@@ -15,6 +15,7 @@ import { ensureMediaHosted } from "../media/host.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import type { TwilioRequester } from "../twilio/types.js";
+import { splitMessage } from "../twilio/send.js";
 import { sendTypingIndicator } from "../twilio/typing.js";
 import { runCommandReply } from "./command-reply.js";
 import {
@@ -371,12 +372,37 @@ export async function autoReplyIfConfigured(
         const hosted = await ensureMediaHosted(resolvedMedia);
         resolvedMedia = hosted.url;
       }
-      await client.messages.create({
-        from: replyFrom,
-        to: replyTo,
-        body,
-        ...(resolvedMedia ? { mediaUrl: [resolvedMedia] } : {}),
-      });
+
+      // Split long messages to stay within Twilio's 1600 char limit
+      const chunks = splitMessage(body);
+      const totalChunks = chunks.length;
+
+      if (totalChunks > 1) {
+        logVerbose(
+          `Message too long (${body.length} chars), splitting into ${totalChunks} parts`,
+        );
+      }
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        // Only attach media to the first message
+        const mediaUrl = i === 0 && resolvedMedia ? [resolvedMedia] : undefined;
+        // Add part indicator for multi-part messages
+        const messageBody =
+          totalChunks > 1 ? `[${i + 1}/${totalChunks}] ${chunk}` : chunk;
+
+        await client.messages.create({
+          from: replyFrom,
+          to: replyTo,
+          body: messageBody,
+          ...(mediaUrl ? { mediaUrl } : {}),
+        });
+
+        // Small delay between chunks to maintain order
+        if (i < chunks.length - 1) {
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      }
     };
 
     if (mediaList.length === 0) {
