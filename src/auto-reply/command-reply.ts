@@ -6,6 +6,7 @@ import type { AgentMeta } from "../agents/types.js";
 import type { WarelayConfig } from "../config/config.js";
 import { isVerbose, logVerbose } from "../globals.js";
 import { logError } from "../logger.js";
+import { getChildLogger } from "../logging.js";
 import { splitMediaFromOutput } from "../media/parse.js";
 import { enqueueCommand } from "../process/command-queue.js";
 import type { runCommandWithTimeout } from "../process/exec.js";
@@ -100,6 +101,12 @@ export function summarizeClaudeMetadata(payload: unknown): string | undefined {
 export async function runCommandReply(
   params: CommandReplyParams,
 ): Promise<CommandReplyResult> {
+  const logger = getChildLogger({ module: "command-reply" });
+  const verboseLog = (msg: string) => {
+    logger.debug(msg);
+    if (isVerbose()) logVerbose(msg);
+  };
+
   const {
     reply,
     templatingCtx,
@@ -182,7 +189,7 @@ export async function runCommandReply(
         systemSent,
         identityPrefix: agentCfg.identityPrefix,
         format: agentCfg.format,
-      })
+    })
     : argv;
 
   logVerbose(
@@ -249,17 +256,19 @@ export async function runCommandReply(
     trimmed = cleanedText;
     if (mediaFound?.length) {
       mediaFromCommand = mediaFound;
-      if (isVerbose()) logVerbose(`MEDIA token extracted: ${mediaFound}`);
-    } else if (isVerbose()) {
-      logVerbose("No MEDIA token extracted from final text");
+      verboseLog(`MEDIA token extracted: ${mediaFound}`);
+    } else {
+      verboseLog("No MEDIA token extracted from final text");
     }
     if (!trimmed && !mediaFromCommand) {
       const meta = parsed?.meta?.extra?.summary ?? undefined;
       trimmed = `(command produced no output${meta ? `; ${meta}` : ""})`;
-      logVerbose("No text/media produced; injecting fallback notice to user");
+      verboseLog("No text/media produced; injecting fallback notice to user");
     }
-    logVerbose(`Command auto-reply stdout (trimmed): ${trimmed || "<empty>"}`);
-    logVerbose(`Command auto-reply finished in ${Date.now() - started}ms`);
+    verboseLog(`Command auto-reply stdout (trimmed): ${trimmed || "<empty>"}`);
+    const elapsed = Date.now() - started;
+    verboseLog(`Command auto-reply finished in ${elapsed}ms`);
+    logger.info({ durationMs: elapsed, agent: agentKind, cwd: reply.cwd }, "command auto-reply finished");
     if ((code ?? 0) !== 0) {
       console.error(
         `Command auto-reply exited with code ${code ?? "unknown"} (signal: ${signal ?? "none"})`,
@@ -346,17 +355,16 @@ export async function runCommandReply(
       killed,
       agentMeta: parsed?.meta,
     };
-    if (isVerbose()) {
-      logVerbose(`Command auto-reply meta: ${JSON.stringify(meta)}`);
-    }
+    verboseLog(`Command auto-reply meta: ${JSON.stringify(meta)}`);
     return { payload, meta };
   } catch (err) {
     const elapsed = Date.now() - started;
+    logger.info({ durationMs: elapsed, agent: agentKind, cwd: reply.cwd }, "command auto-reply failed");
     const anyErr = err as { killed?: boolean; signal?: string };
     const timeoutHit = anyErr.killed === true || anyErr.signal === "SIGKILL";
     const errorObj = err as { stdout?: string; stderr?: string };
     if (errorObj.stderr?.trim()) {
-      logVerbose(`Command auto-reply stderr: ${errorObj.stderr.trim()}`);
+      verboseLog(`Command auto-reply stderr: ${errorObj.stderr.trim()}`);
     }
     if (timeoutHit) {
       console.error(
