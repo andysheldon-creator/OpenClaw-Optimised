@@ -61,7 +61,7 @@ export async function convertTelegramMessage(
  *
  * Returns:
  * - telegram:@username (if username available)
- * - telegram:+phone (if phone available)
+ * - telegram:+phone (if phone available, normalized to E.164)
  * - telegram:id (numeric Telegram ID as fallback)
  */
 function extractSenderIdentifier(sender: Api.User | Api.Chat): string {
@@ -69,7 +69,9 @@ function extractSenderIdentifier(sender: Api.User | Api.Chat): string {
     return `telegram:@${sender.username}`;
   }
   if ("phone" in sender && sender.phone) {
-    return `telegram:${sender.phone}`;
+    // Ensure phone has + prefix for E.164 format to match normalized allowFrom entries
+    const phone = sender.phone.startsWith("+") ? sender.phone : `+${sender.phone}`;
+    return `telegram:${phone}`;
   }
   if ("id" in sender && sender.id) {
     return `telegram:${sender.id.toString()}`;
