@@ -19,6 +19,7 @@ import { detectMime } from "../media/mime.js";
 import { saveMediaBuffer } from "../media/store.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { loadWebMedia } from "../web/media.js";
+import { startLivenessProbe, type LivenessProbeOptions } from "./liveness-probe.js";
 
 const PARSE_ERR_RE =
   /can't parse entities|parse entities|find end of the entity/i;
@@ -40,6 +41,7 @@ export type TelegramBotOptions = {
   allowFrom?: Array<string | number>;
   mediaMaxMb?: number;
   proxyFetch?: typeof fetch;
+  livenessProbe?: LivenessProbeOptions | boolean;
 };
 
 export function createTelegramBot(opts: TelegramBotOptions) {
@@ -204,6 +206,12 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       runtime.error?.(danger(`Telegram handler failed: ${String(err)}`));
     }
   });
+
+  // Start liveness probe if enabled
+  if (opts.livenessProbe !== false) {
+    const livenessOpts = typeof opts.livenessProbe === 'object' ? opts.livenessProbe : {};
+    startLivenessProbe({ bot, ...livenessOpts });
+  }
 
   return bot;
 }

@@ -14,6 +14,7 @@ export type MonitorTelegramOpts = {
   webhookSecret?: string;
   proxyFetch?: typeof fetch;
   webhookUrl?: string;
+  livenessProbe?: boolean;
 };
 
 export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
@@ -34,6 +35,7 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
     token,
     runtime: opts.runtime,
     proxyFetch,
+    livenessProbe: opts.livenessProbe ?? !opts.useWebhook, // Enable liveness probe for long-polling by default
   });
 
   if (opts.useWebhook) {
