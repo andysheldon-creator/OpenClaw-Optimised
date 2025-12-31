@@ -1,29 +1,131 @@
 ---
 name: coding-supervisor
-description: Monitor and supervise AI coding sessions across Claude Code, OpenCode, Codex CLI, Gemini CLI, and Cursor.
+description: Monitor, supervise, and interact with AI coding sessions across Claude Code, OpenCode, Codex CLI, Gemini CLI, and Cursor.
 metadata: {"clawdis":{"emoji":"👁️","always":true}}
 ---
 
 # Coding Supervisor
 
-Monitor and supervise AI coding sessions across multiple tools. Ask questions like:
+Monitor, supervise, and **interact** with AI coding sessions across multiple tools.
+
+## Capabilities
+
+### Read-Only (Monitoring)
 - "What coding sessions are active?"
 - "What's happening in OpenCode?"
 - "Summarize the Claude Code session in clawdis"
 - "Are there any errors in my coding sessions?"
-- "What did Codex do in the last hour?"
 
-## Session Locations
+### Interactive (Session Control)
+- "List my Claude Code sessions"
+- "Continue session X"
+- "Resume the clawdis session"
+- "Pick up where I left off in OpenCode"
 
-| Tool | Session Data | CLI Commands |
-|------|-------------|--------------|
-| **Claude Code** | `~/.claude/transcripts/ses_*.jsonl` | `claude -r` (resume picker) |
-| **OpenCode** | Per-project DB | `opencode session list` |
-| **Codex CLI** | `~/.codex/sessions/` | `codex resume` |
-| **Gemini CLI** | `~/.gemini/tmp/<hash>/` | `gemini --list-sessions` |
-| **Cursor** | `~/Library/Application Support/Cursor/` | N/A (GUI only) |
+---
 
-## Commands to Run
+## Session Locations & CLI
+
+| Tool | Session Data | List Command | Resume Command |
+|------|-------------|--------------|----------------|
+| **Claude Code** | `~/.claude/transcripts/ses_*.jsonl` | `claude -r ""` (picker) | `claude -r <session_id>` |
+| **OpenCode** | Per-project DB | `opencode session list` | `opencode -s <session_id>` |
+| **Codex CLI** | `~/.codex/sessions/` | `codex resume` (picker) | `codex resume --session <id>` |
+| **Gemini CLI** | `~/.gemini/tmp/<hash>/` | `gemini --list-sessions` | N/A |
+| **Cursor** | `~/Library/Application Support/Cursor/` | N/A (GUI) | N/A (GUI) |
+
+---
+
+## Interactive Session Workflow
+
+When user wants to continue/resume a session, follow this **multi-step** process:
+
+### Step 1: List Available Sessions
+
+First, show the user what sessions exist. Run the appropriate list command:
+
+#### Claude Code Sessions
+```bash
+# List recent sessions with details
+for f in $(ls -t ~/.claude/transcripts/*.jsonl 2>/dev/null | head -10); do
+  session_id=$(basename "$f" .jsonl)
+  msg_count=$(wc -l < "$f" | tr -d ' ')
+  last_mod=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$f")
+  # Get project path from first line if available
+  project=$(head -1 "$f" 2>/dev/null | jq -r '.cwd // .workingDirectory // "unknown"' 2>/dev/null | xargs basename 2>/dev/null || echo "unknown")
+  echo "$session_id | $project | $msg_count msgs | $last_mod"
+done
+```
+
+#### OpenCode Sessions
+```bash
+opencode session list 2>/dev/null
+```
+
+#### Codex Sessions
+```bash
+# List with metadata
+for f in $(ls -t ~/.codex/sessions/2025/*/*.json 2>/dev/null | head -10); do
+  session_id=$(basename "$f" .json)
+  last_mod=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$f")
+  echo "$session_id | $last_mod"
+done
+```
+
+### Step 2: Present Sessions to User
+
+Format the output as a numbered list:
+
+```
+Available Claude Code sessions:
+
+1. ses_abc123 | clawdis | 45 msgs | 2025-12-30 23:15
+2. ses_def456 | oracle | 120 msgs | 2025-12-30 22:00
+3. ses_ghi789 | agent-scripts | 23 msgs | 2025-12-30 18:30
+
+Which session would you like to continue? (number or session ID)
+```
+
+### Step 3: Execute Resume Command
+
+Once user identifies the session (by number, ID, or project name):
+
+#### Claude Code
+```bash
+# Resume specific session
+claude -r ses_abc123
+
+# Or open picker with search term
+claude -r "clawdis"
+
+# Continue most recent
+claude -c
+```
+
+#### OpenCode
+```bash
+# Resume specific session
+opencode -s <session_id>
+
+# Continue most recent
+opencode -c
+```
+
+#### Codex
+```bash
+# Resume specific session
+codex resume --session <session_id>
+
+# Continue most recent
+codex resume --last
+
+# Open picker
+codex resume
+```
+
+---
+
+## Monitoring Commands
 
 ### 1. Check Running Processes
 ```bash
@@ -69,7 +171,6 @@ grep -i "error\|failed\|exception" "$LATEST" | tail -10
 ```
 
 ### 8. Get Session Summary
-For Claude Code, parse the JSONL to extract:
 ```bash
 LATEST=$(ls -t ~/.claude/transcripts/*.jsonl 2>/dev/null | head -1)
 # Count messages
@@ -82,34 +183,43 @@ grep '"role":"user"' "$LATEST" | tail -1 | jq -r '.content' 2>/dev/null
 grep '"role":"assistant"' "$LATEST" | tail -1 | jq -r '.content[:200]' 2>/dev/null
 ```
 
-## Interactive Queries
+---
 
-When user asks about coding sessions, follow this workflow:
+## Query Workflows
 
-1. **"What sessions are active?"**
-   - Run `pgrep` to find running processes
-   - List recent sessions from each tool
-   - Report which tools have active/recent sessions
+### "What sessions are active?"
+1. Run `pgrep` to find running processes
+2. List recent sessions from each tool
+3. Report which tools have active/recent sessions
 
-2. **"What's happening in [tool]?"**
-   - Find the most recent session for that tool
-   - Read the last 20-50 messages
-   - Summarize: current task, recent actions, any issues
+### "What's happening in [tool]?"
+1. Find the most recent session for that tool
+2. Read the last 20-50 messages
+3. Summarize: current task, recent actions, any issues
 
-3. **"Any errors?"**
-   - Grep all recent sessions for error patterns
-   - Check for stalled sessions (no recent activity)
-   - Report findings with session IDs
+### "Any errors?"
+1. Grep all recent sessions for error patterns
+2. Check for stalled sessions (no recent activity)
+3. Report findings with session IDs
 
-4. **"Summarize [project] session"**
-   - Find session by project name/path
-   - Extract: start time, message count, last activity
-   - Summarize: what was being worked on, current status
+### "Summarize [project] session"
+1. Find session by project name/path
+2. Extract: start time, message count, last activity
+3. Summarize: what was being worked on, current status
 
-5. **"What did [tool] do recently?"**
-   - Read recent session activity
-   - List tool calls, file edits, commands run
-   - Highlight completions or issues
+### "Continue/resume [session]"
+1. **List sessions** for the specified tool (or all if not specified)
+2. **Present numbered list** with project, message count, last modified
+3. **Wait for user selection** (number, ID, or project name)
+4. **Execute resume command** with the selected session
+
+### "Pick up where I left off"
+1. Check which tools have recent sessions
+2. Show most recent session per tool
+3. User picks tool + session
+4. Execute resume
+
+---
 
 ## Session File Formats
 
@@ -119,6 +229,7 @@ Each line is a JSON object with fields like:
 - `content`: message content
 - `timestamp`: ISO timestamp
 - `tool_name`: for tool calls
+- `cwd` or `workingDirectory`: project path
 
 ### OpenCode
 Uses SQLite database, query via `opencode session list`
@@ -129,6 +240,8 @@ JSON files in `~/.codex/sessions/YYYY/MM/`
 ### Gemini CLI
 JSON session files in project-specific temp directories
 
+---
+
 ## Supervisor Alerts
 
 Watch for these patterns to alert user:
@@ -137,7 +250,11 @@ Watch for these patterns to alert user:
 - **Approval needed**: grep for "approve", "confirm", "permission", "accept"
 - **Completed**: grep for "complete", "done", "finished", "success"
 
+---
+
 ## Example Interactions
+
+### Monitoring
 
 **User**: "What coding sessions do I have running?"
 **Action**: Run pgrep, list recent sessions, summarize status
@@ -150,3 +267,32 @@ Watch for these patterns to alert user:
 
 **User**: "Give me a status update on all coding agents"
 **Action**: Check each tool, summarize activity, flag issues
+
+### Interactive
+
+**User**: "List my Claude Code sessions"
+**Action**:
+1. Run session listing command
+2. Format as numbered list with project/msgs/date
+3. Present to user
+
+**User**: "Continue session 2" (after listing)
+**Action**: `claude -r ses_def456`
+
+**User**: "Resume the clawdis session"
+**Action**:
+1. Search sessions for "clawdis" in project path
+2. If one match: `claude -r <session_id>`
+3. If multiple: show matches, ask user to pick
+
+**User**: "Pick up where I left off in OpenCode"
+**Action**:
+1. Run `opencode session list`
+2. Show most recent or ask if multiple
+3. Execute `opencode -c` or `opencode -s <id>`
+
+**User**: "Continue my most recent coding session"
+**Action**:
+1. Find most recent session across all tools
+2. Identify tool and session ID
+3. Execute appropriate resume command
