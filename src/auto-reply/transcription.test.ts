@@ -6,13 +6,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { transcribeInboundAudio } from "./transcription.js";
 
+const runExecMock = vi.hoisted(
+  () => vi.fn(async () => ({ stdout: "transcribed text\n" })),
+);
+
 vi.mock("../globals.js", () => ({
   isVerbose: () => false,
   logVerbose: vi.fn(),
 }));
 
 vi.mock("../process/exec.js", () => ({
-  runExec: vi.fn(async () => ({ stdout: "transcribed text\n" })),
+  runExec: runExecMock,
 }));
 
 const runtime = {
@@ -54,6 +58,39 @@ describe("transcribeInboundAudio", () => {
     );
     expect(result?.text).toBe("transcribed text");
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("uses MediaPath in template without downloading", async () => {
+    const fetchMock = vi.fn();
+    // @ts-expect-error override global fetch for test
+    global.fetch = fetchMock;
+
+    const cfg = {
+      routing: {
+        transcribeAudio: {
+          command: ["echo", "{{MediaPath}}"],
+          timeoutSeconds: 5,
+        },
+      },
+    };
+    const ctx = {
+      MediaPath: "/tmp/sample audio.ogg",
+      MediaType: "audio/ogg",
+    };
+
+    const result = await transcribeInboundAudio(
+      cfg as never,
+      ctx as never,
+      runtime as never,
+    );
+
+    expect(result?.text).toBe("transcribed text");
+    expect(runExecMock).toHaveBeenCalledWith(
+      "echo",
+      ["/tmp/sample audio.ogg"],
+      expect.objectContaining({ timeoutMs: 5000 }),
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns undefined when no transcription command", async () => {
