@@ -81,3 +81,6 @@ ecosystem.config.cjs
 
 # Temporary directories
 temp_/
+
+# Test fixtures (local test data)
+tests/fixtures/
