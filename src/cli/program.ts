@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { agentCommand } from "../commands/agent.js";
+import { collectUsageCommand } from "../commands/collect-usage.js";
 import { configureCommand } from "../commands/configure.js";
 import { doctorCommand } from "../commands/doctor.js";
 import { healthCommand } from "../commands/health.js";
@@ -461,6 +462,22 @@ Examples:
             deep: Boolean(opts.deep),
             timeoutMs: timeout,
           },
+          defaultRuntime,
+        );
+      } catch (err) {
+        defaultRuntime.error(String(err));
+        defaultRuntime.exit(1);
+      }
+    });
+
+  program
+    .command("collect-usage")
+    .description("Append Claude rate-limit snapshot to usage history")
+    .option("--json", "Output JSON entry", false)
+    .action(async (opts) => {
+      try {
+        await collectUsageCommand(
+          { json: Boolean(opts.json) },
           defaultRuntime,
         );
       } catch (err) {

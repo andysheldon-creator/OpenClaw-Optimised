@@ -99,6 +99,22 @@ It checks your config, skills status, and gateway health. It can also restart th
 
 The macOS app onboarding is still being polished and can have quirks (e.g., WhatsApp 515 errors, OAuth issues).
 
+### How do I log Claude usage over time?
+
+Run the collector once:
+
+```bash
+pnpm clawdis collect-usage
+```
+
+It reads `~/.clawdis/rate-limits.json` and appends a line to `~/.clawdis/usage-history.jsonl`.
+
+Cron every 5 minutes:
+
+```cron
+*/5 * * * * cd /home/admin/clawdis && pnpm clawdis collect-usage
+```
+
 ---
 
 ## Authentication
