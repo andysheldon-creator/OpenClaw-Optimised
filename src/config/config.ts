@@ -637,11 +637,17 @@ const HooksGmailSchema = z
   .optional();
 
 const DEEP_RESEARCH_OUTPUT_LANGUAGES = ["ru", "en", "auto"] as const;
+export const DEFAULT_DEEP_RESEARCH_CLI_PATH = path.join(
+  os.homedir(),
+  "TOOLS",
+  "gemini_deep_research",
+  "gdr.sh",
+);
 // Defaults align with docs; override via config or env as needed.
 const DEEP_RESEARCH_DEFAULTS = {
   enabled: true,
   dryRun: true,
-  cliPath: "/home/almaz/TOOLS/gemini_deep_research/gdr.sh",
+  cliPath: DEFAULT_DEEP_RESEARCH_CLI_PATH,
   outputLanguage: "auto" as const,
 };
 
@@ -1062,8 +1068,13 @@ function applyDeepResearchEnvOverrides(config: ClawdisConfig): ClawdisConfig {
   if (!hasEnabled && !hasDryRun && !cliPath && !hasOutputLanguage) return config;
 
   const deepResearch: DeepResearchConfig = {
-    ...DEEP_RESEARCH_DEFAULTS,
-    ...(config.deepResearch ?? {}),
+    enabled: config.deepResearch?.enabled ?? DEEP_RESEARCH_DEFAULTS.enabled,
+    dryRun: config.deepResearch?.dryRun ?? DEEP_RESEARCH_DEFAULTS.dryRun,
+    cliPath: config.deepResearch?.cliPath ?? DEEP_RESEARCH_DEFAULTS.cliPath,
+    outputLanguage:
+      config.deepResearch?.outputLanguage ??
+      DEEP_RESEARCH_DEFAULTS.outputLanguage,
+    keywords: config.deepResearch?.keywords,
   };
   if (hasEnabled) {
     deepResearch.enabled = process.env.DEEP_RESEARCH_ENABLED === "true";
@@ -1072,10 +1083,13 @@ function applyDeepResearchEnvOverrides(config: ClawdisConfig): ClawdisConfig {
     deepResearch.dryRun = process.env.DEEP_RESEARCH_DRY_RUN === "true";
   }
   if (cliPath) {
-    deepResearch.cliPath = cliPath;
+    const normalizedPath = cliPath.trim();
+    if (normalizedPath) {
+      deepResearch.cliPath = normalizedPath;
+    }
   }
   if (outputLanguage) {
-    const normalized = outputLanguage.toLowerCase();
+    const normalized = outputLanguage.trim().toLowerCase();
     if (
       DEEP_RESEARCH_OUTPUT_LANGUAGES.includes(
         normalized as (typeof DEEP_RESEARCH_OUTPUT_LANGUAGES)[number],
@@ -1083,6 +1097,10 @@ function applyDeepResearchEnvOverrides(config: ClawdisConfig): ClawdisConfig {
     ) {
       deepResearch.outputLanguage =
         normalized as (typeof DEEP_RESEARCH_OUTPUT_LANGUAGES)[number];
+    } else if (normalized) {
+      console.warn(
+        `[deep-research] Ignoring invalid output language: ${outputLanguage}`,
+      );
     }
   }
 

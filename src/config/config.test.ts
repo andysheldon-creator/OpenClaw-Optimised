@@ -269,6 +269,32 @@ describe("deep research env overrides", () => {
       expect(snap.config.deepResearch?.outputLanguage).toBe("ru");
     });
   });
+
+  it("keeps defaults for unset env vars", async () => {
+    await withTempHome(async () => {
+      process.env.DEEP_RESEARCH_DRY_RUN = "false";
+
+      vi.resetModules();
+      const { readConfigFileSnapshot } = await import("./config.js");
+      const snap = await readConfigFileSnapshot();
+
+      expect(snap.config.deepResearch?.enabled).toBe(true);
+      expect(snap.config.deepResearch?.dryRun).toBe(false);
+      expect(snap.config.deepResearch?.outputLanguage).toBe("auto");
+    });
+  });
+
+  it("ignores invalid output language values", async () => {
+    await withTempHome(async () => {
+      process.env.DEEP_RESEARCH_OUTPUT_LANGUAGE = "xx";
+
+      vi.resetModules();
+      const { readConfigFileSnapshot } = await import("./config.js");
+      const snap = await readConfigFileSnapshot();
+
+      expect(snap.config.deepResearch?.outputLanguage).toBe("auto");
+    });
+  });
 });
 
 describe("talk.voiceAliases", () => {
