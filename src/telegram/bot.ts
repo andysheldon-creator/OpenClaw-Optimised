@@ -8,6 +8,7 @@ import { Bot, InputFile, webhookCallback } from "grammy";
 import { chunkText } from "../auto-reply/chunk.js";
 import { formatAgentEnvelope } from "../auto-reply/envelope.js";
 import { getReplyFromConfig } from "../auto-reply/reply.js";
+import { isAudio, transcribeInboundAudio } from "../auto-reply/transcription.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { loadConfig } from "../config/config.js";
 import {
@@ -23,6 +24,8 @@ import {
   deliverResults,
   truncateForTelegram,
   messages,
+  generateGapQuestions,
+  type DeepResearchProgressStage,
 } from "../deep-research/index.js";
 import { resolveStorePath, updateLastRoute } from "../config/sessions.js";
 import { danger, isVerbose, logVerbose } from "../globals.js";
@@ -128,20 +131,54 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         return;
       }
 
-      if (await handleDeepResearchMessage(ctx, cfg, chatId, runtime)) {
-        return;
-      }
-
       const media = await resolveMedia(
         ctx,
         mediaMaxBytes,
         opts.token,
         opts.proxyFetch,
       );
+      let transcript: string | undefined;
+      if (
+        !msg.text &&
+        !msg.caption &&
+        media?.contentType &&
+        isAudio(media.contentType)
+      ) {
+        const transcribed = await transcribeInboundAudio(
+          cfg,
+          {
+            MediaPath: media.path,
+            MediaUrl: media.path,
+            MediaType: media.contentType,
+            Surface: "telegram",
+          },
+          runtime,
+        );
+        transcript = transcribed?.text;
+      }
+      const messageText = (
+        msg.text ??
+        msg.caption ??
+        transcript ??
+        ""
+      ).trim();
+      if (
+        await handleDeepResearchMessage(
+          ctx,
+          cfg,
+          chatId,
+          messageText,
+          transcript,
+        )
+      ) {
+        return;
+      }
+
       const replyTarget = describeReplyTarget(msg);
       const rawBody = (
         msg.text ??
         msg.caption ??
+        transcript ??
         media?.placeholder ??
         ""
       ).trim();
@@ -174,6 +211,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         MediaPath: media?.path,
         MediaType: media?.contentType,
         MediaUrl: media?.path,
+        Transcript: transcript,
       };
 
       if (replyTarget && isVerbose()) {
@@ -255,11 +293,11 @@ async function handleDeepResearchMessage(
   ctx: Context,
   cfg: ReturnType<typeof loadConfig>,
   chatId: number,
-  runtime: RuntimeEnv,
+  messageText: string,
+  transcript?: string,
 ): Promise<boolean> {
   if (cfg.deepResearch?.enabled === false) return false;
 
-  const messageText = ctx.message?.text || ctx.message?.caption || "";
   if (!messageText) return false;
 
   if (!detectDeepResearchIntent(messageText, cfg.deepResearch?.keywords)) {
@@ -272,12 +310,24 @@ async function handleDeepResearchMessage(
   );
   const normalized = normalizeDeepResearchTopic(extractedTopic);
   if (!normalized) {
-    await ctx.reply(messages.invalidTopic());
+    const questions = await generateGapQuestions({
+      request: messageText,
+      cfg,
+    });
+    if (questions && questions.length > 0) {
+      await ctx.reply(messages.gapQuestions(questions));
+    } else {
+      await ctx.reply(messages.invalidTopic());
+    }
     return true;
   }
 
-  const { topic, truncated } = normalized;
+  const { topic: cleanedTopic, truncated } = normalized;
   const userId = ctx.from?.id;
+  if (userId === undefined) {
+    await ctx.reply(messages.missingUserId());
+    return true;
+  }
 
   if (truncated) {
     logVerbose(
@@ -285,11 +335,11 @@ async function handleDeepResearchMessage(
     );
   }
   logVerbose(
-    `[deep-research] Intent detected from ${userId} in chat ${chatId}: "${topic}"`,
+    `[deep-research] Intent detected from ${userId} in chat ${chatId}: "${cleanedTopic}"`,
   );
 
-  await ctx.reply(messages.acknowledgment(topic), {
-    reply_markup: createExecuteButton(topic, userId),
+  await ctx.reply(messages.acknowledgment(cleanedTopic, transcript), {
+    reply_markup: createExecuteButton(cleanedTopic, userId),
   });
 
   return true;
@@ -313,17 +363,31 @@ async function handleDeepResearchCallback(
   const { action, topic, ownerId } = parsed;
   const callerId = ctx.from?.id;
 
-  if (ownerId && callerId && ownerId !== callerId) {
+  if (callerId === undefined) {
+    await ctx.answerCallbackQuery({ text: messages.callbackInvalid() });
+    return true;
+  }
+
+  const isPrivateChat = ctx.chat?.type === "private";
+  // Allow ownerless callbacks only in private chats (legacy buttons).
+  if (ownerId === undefined && !isPrivateChat) {
+    await ctx.answerCallbackQuery({ text: messages.callbackInvalid() });
+    return true;
+  }
+
+  if (ownerId !== undefined && ownerId !== callerId) {
     await ctx.answerCallbackQuery({ text: messages.callbackUnauthorized() });
     return true;
   }
+
+  const effectiveOwnerId = ownerId ?? callerId;
 
   if (action !== CallbackActions.EXECUTE && action !== CallbackActions.RETRY) {
     await ctx.answerCallbackQuery({ text: messages.callbackInvalid() });
     return true;
   }
 
-  if (callerId && deepResearchInFlight.has(callerId)) {
+  if (deepResearchInFlight.has(callerId)) {
     await ctx.answerCallbackQuery({ text: messages.callbackBusy() });
     return true;
   }
@@ -341,18 +405,73 @@ async function handleDeepResearchCallback(
     );
   }
 
-  await ctx.answerCallbackQuery({ text: messages.callbackAcknowledgment() });
-  await ctx.reply(messages.startExecution());
-
   try {
-    if (callerId) {
-      deepResearchInFlight.add(callerId);
-    }
+    deepResearchInFlight.add(callerId);
+
+    await ctx.answerCallbackQuery({ text: messages.callbackAcknowledgment() });
+    const statusMessage = await ctx.reply(messages.progress("starting"));
+    const statusChatId = ctx.chat?.id;
+    const statusMessageId = statusMessage.message_id;
+    let statusStage: DeepResearchProgressStage = "starting";
+    let statusRunId: string | undefined;
+    let lastStatusText = messages.progress(statusStage);
+
+    const updateStatus = async (
+      nextStage?: DeepResearchProgressStage,
+      nextRunId?: string,
+    ) => {
+      if (!statusChatId || !statusMessageId) return;
+      if (nextStage) statusStage = nextStage;
+      if (nextRunId) statusRunId = nextRunId;
+      const nextText = messages.progress(statusStage, statusRunId);
+      if (nextText === lastStatusText) return;
+      lastStatusText = nextText;
+      try {
+        await ctx.api.editMessageText(statusChatId, statusMessageId, nextText);
+      } catch (err) {
+        logVerbose(
+          `[deep-research] Failed to update status message: ${String(err)}`,
+        );
+      }
+    };
+
+    const mapEventToStage = (
+      eventName?: string,
+    ): DeepResearchProgressStage | null => {
+      switch (eventName) {
+        case "run.start":
+          return "starting";
+        case "run.notice":
+        case "interaction.start":
+          return "working";
+        case "agent_summary.start":
+          return "summarizing";
+        case "publish.start":
+          return "publishing";
+        case "run.complete":
+          return "done";
+        default:
+          return null;
+      }
+    };
 
     logVerbose(
       `[deep-research] Starting execution for topic: "${normalizedTopic}"`,
     );
-    const executeResult = await executeDeepResearch({ topic: normalizedTopic });
+    const executeResult = await executeDeepResearch({
+      topic: normalizedTopic,
+      onEvent: (event) => {
+        if (event.run_id) {
+          void updateStatus(undefined, String(event.run_id));
+        }
+        const stage = mapEventToStage(
+          typeof event.event === "string" ? event.event : undefined,
+        );
+        if (stage) {
+          void updateStatus(stage);
+        }
+      },
+    });
 
     const deliveryContext = {
       sendMessage: async (text: string) => {
@@ -366,7 +485,7 @@ async function handleDeepResearchCallback(
       },
       sendError: async (text: string) => {
         await ctx.reply(text, {
-          reply_markup: createRetryButton(normalizedTopic, ownerId ?? callerId),
+          reply_markup: createRetryButton(normalizedTopic, effectiveOwnerId),
         });
       },
     };
@@ -374,10 +493,12 @@ async function handleDeepResearchCallback(
     const success = await deliverResults(executeResult, deliveryContext);
 
     if (success) {
+      await updateStatus("done");
       logVerbose(
         `[deep-research] Completed successfully for topic: "${normalizedTopic}"`,
       );
     } else {
+      await updateStatus("failed");
       logVerbose(`[deep-research] Failed for topic: "${normalizedTopic}"`);
     }
   } catch (error) {
@@ -391,14 +512,12 @@ async function handleDeepResearchCallback(
       {
         reply_markup: createRetryButton(
           normalizedTopic,
-          ownerId ?? callerId,
+          effectiveOwnerId,
         ),
       },
     );
   } finally {
-    if (callerId) {
-      deepResearchInFlight.delete(callerId);
-    }
+    deepResearchInFlight.delete(callerId);
   }
 
   return true;
