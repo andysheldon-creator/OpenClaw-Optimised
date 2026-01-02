@@ -259,6 +259,43 @@ private extension TestChatTransportState {
         try await waitUntil("streaming visible") { await MainActor.run { vm.streamingAssistantText == "Visible" } }
     }
 
+    @Test func keepsNonThinkTagsInAssistantText() async throws {
+        let sessionId = "sess-main"
+        let history = ClawdisChatHistoryPayload(
+            sessionKey: "main",
+            sessionId: sessionId,
+            messages: [
+                AnyCodable([
+                    "role": "assistant",
+                    "content": [
+                        ["type": "text", "text": "<thinking>example</thinking>\nKeep this."],
+                    ],
+                    "timestamp": Date().timeIntervalSince1970 * 1000,
+                ]),
+            ],
+            thinkingLevel: "off")
+
+        let transport = TestChatTransport(historyResponses: [history])
+        let vm = await MainActor.run { ClawdisChatViewModel(sessionKey: "main", transport: transport) }
+
+        await MainActor.run { vm.load() }
+        try await waitUntil("history loaded") { await MainActor.run { !vm.messages.isEmpty } }
+
+        let historyText = await MainActor.run { vm.messages.first?.content.first?.text }
+        #expect(historyText == "<thinking>example</thinking>\nKeep this.")
+
+        transport.emit(
+            .agent(
+                ClawdisAgentEventPayload(
+                    runId: sessionId,
+                    seq: 1,
+                    stream: "assistant",
+                    ts: Int(Date().timeIntervalSince1970 * 1000),
+                    data: ["text": AnyCodable("<thinking>stream</thinking>")])))
+
+        try await waitUntil("streaming preserved") { await MainActor.run { vm.streamingAssistantText == "<thinking>stream</thinking>" } }
+    }
+
     @Test func clearsStreamingOnExternalFinalEvent() async throws {
         let sessionId = "sess-main"
         let history = ClawdisChatHistoryPayload(
