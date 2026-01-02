@@ -412,8 +412,12 @@ export type MemoryConfig = {
   embedding?: MemoryEmbeddingConfig;
   /** Automatic memory extraction settings */
   autoExtract?: MemoryAutoExtractConfig;
+  /** Auto-search memory before agent prompt (default: true when enabled) */
+  autoSearch?: boolean;
   /** Max memories to return per search (default: 5) */
   searchLimit?: number;
+  /** Minimum relevance score for memory search results (0-1, default: 0.6) */
+  minRelevanceScore?: number;
   /** Memory TTL in days (0 = no expiry, default: 0) */
   ttlDays?: number;
 };
@@ -435,6 +439,80 @@ export type CalendarConfig = {
   defaultReminderTo?: string;
   /** Default minutes before event for reminders */
   defaultReminderMinutes?: number;
+};
+
+export type ProactiveConfig = {
+  enabled?: boolean;
+  /** Minutes before meeting to generate pre-brief (default: 30) */
+  preBriefMinutes?: number;
+  surfaceMemories?: boolean;
+  /** Maximum number of meeting briefs to generate (default: 3) */
+  maxBriefs?: number;
+  /** Maximum memories to include per brief (default: 3) */
+  memoriesPerBrief?: number;
+  /** Hour to start quiet hours (0-23, e.g. 22 for 10pm) */
+  quietHoursStart?: number;
+  /** Hour to end quiet hours (0-23, e.g. 7 for 7am) */
+  quietHoursEnd?: number;
+  /** Pre-brief configuration */
+  preBrief?: {
+    enabled?: boolean;
+    /** Minutes before meeting (default: 30) */
+    minutesBefore?: number;
+    /** Max memories per brief (default: 5) */
+    maxMemories?: number;
+    /** Min relevance score (default: 0.6) */
+    minRelevanceScore?: number;
+  };
+  /** Conflict detection configuration */
+  conflictDetection?: {
+    enabled?: boolean;
+    /** Hours to look ahead for conflicts (default: 24) */
+    lookAheadHours?: number;
+  };
+};
+
+export type RelationshipConfig = {
+  enabled?: boolean;
+  trackContacts?: boolean;
+  /** Days without contact to flag as dormant (default: 21) */
+  dormantDays?: number;
+  trackTopics?: boolean;
+};
+
+export type GraphConfig = {
+  enabled?: boolean;
+  /** Path to SQLite graph DB (default: ~/.clawdis/graph.db) */
+  dbPath?: string;
+  /** Max traversal depth (default: 3) */
+  maxDepth?: number;
+};
+
+export type EnergySchedulerConfig = {
+  enabled?: boolean;
+  trackProductivity?: boolean;
+  peakHoursAnalysis?: boolean;
+  suggestScheduling?: boolean;
+};
+
+export type MeetingIntelligenceConfig = {
+  enabled?: boolean;
+  preBriefEnabled?: boolean;
+  followUpEnabled?: boolean;
+  extractActionItems?: boolean;
+  preBriefMinutes?: number; // minutes before meeting (default: 30)
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Temporal Reasoning Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type TemporalReasoningConfig = {
+  enabled?: boolean;
+  trackDurations?: boolean;
+  /** Hours before deadline to warn (default: 24) */
+  deadlineWarningHours?: number;
+  learnFromPatterns?: boolean;
 };
 
 export type ClawdisConfig = {
@@ -510,6 +588,12 @@ export type ClawdisConfig = {
   gateway?: GatewayConfig;
   memory?: MemoryConfig;
   calendar?: CalendarConfig;
+  proactive?: ProactiveConfig;
+  relationship?: RelationshipConfig;
+  graph?: GraphConfig;
+  energyScheduler?: EnergySchedulerConfig;
+  temporalReasoning?: TemporalReasoningConfig;
+  meetingIntelligence?: MeetingIntelligenceConfig;
 };
 
 /**
@@ -1035,7 +1119,9 @@ const ClawdisSchema = z.object({
           categories: z.array(z.string()).optional(),
         })
         .optional(),
+      autoSearch: z.boolean().optional(),
       searchLimit: z.number().int().positive().optional(),
+      minRelevanceScore: z.number().min(0).max(1).optional(),
       ttlDays: z.number().int().min(0).optional(),
     })
     .optional(),
@@ -1054,6 +1140,74 @@ const ClawdisSchema = z.object({
         .optional(),
       defaultReminderTo: z.string().optional(),
       defaultReminderMinutes: z.number().int().positive().optional(),
+    })
+    .optional(),
+  relationship: z
+    .object({
+      enabled: z.boolean().optional(),
+      trackContacts: z.boolean().optional(),
+      dormantDays: z.number().int().positive().optional(),
+      trackTopics: z.boolean().optional(),
+    })
+    .optional(),
+  proactive: z
+    .object({
+      enabled: z.boolean().optional(),
+      preBriefMinutes: z.number().int().positive().optional(),
+      surfaceMemories: z.boolean().optional(),
+      maxBriefs: z.number().int().positive().optional(),
+      memoriesPerBrief: z.number().int().positive().optional(),
+      quietHoursStart: z.number().int().min(0).max(23).optional(),
+      quietHoursEnd: z.number().int().min(0).max(23).optional(),
+      preBrief: z
+        .object({
+          enabled: z.boolean().optional(),
+          minutesBefore: z.number().int().positive().optional(),
+          maxMemories: z.number().int().positive().optional(),
+          minRelevanceScore: z.number().min(0).max(1).optional(),
+        })
+        .optional(),
+      conflictDetection: z
+        .union([
+          z.boolean(),
+          z.object({
+            enabled: z.boolean().optional(),
+            lookAheadHours: z.number().int().positive().optional(),
+          }),
+        ])
+        .optional(),
+    })
+    .optional(),
+  energyScheduler: z
+    .object({
+      enabled: z.boolean().optional(),
+      trackProductivity: z.boolean().optional(),
+      peakHoursAnalysis: z.boolean().optional(),
+      suggestScheduling: z.boolean().optional(),
+    })
+    .optional(),
+  graph: z
+    .object({
+      enabled: z.boolean().optional(),
+      dbPath: z.string().optional(),
+      maxDepth: z.number().int().positive().optional(),
+    })
+    .optional(),
+  meetingIntelligence: z
+    .object({
+      enabled: z.boolean().optional(),
+      preBriefEnabled: z.boolean().optional(),
+      followUpEnabled: z.boolean().optional(),
+      extractActionItems: z.boolean().optional(),
+      preBriefMinutes: z.number().int().positive().optional(),
+    })
+    .optional(),
+  temporalReasoning: z
+    .object({
+      enabled: z.boolean().optional(),
+      trackDurations: z.boolean().optional(),
+      deadlineWarningHours: z.number().int().positive().optional(),
+      learnFromPatterns: z.boolean().optional(),
     })
     .optional(),
 });

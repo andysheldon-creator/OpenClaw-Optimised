@@ -2,6 +2,7 @@ import type { AgentTool, AgentToolResult } from "@mariozechner/pi-ai";
 import { codingTools, readTool } from "@mariozechner/pi-coding-agent";
 import { type TSchema, Type } from "@sinclair/typebox";
 
+import { loadConfig } from "../config/config.js";
 import { detectMime } from "../media/mime.js";
 import { startWebLoginWithQr, waitForWebLogin } from "../web/login-qr.js";
 import {
@@ -11,8 +12,16 @@ import {
   type ProcessToolDefaults,
 } from "./bash-tools.js";
 import { createClawdisTools } from "./clawdis-tools.js";
+import { createEnergySchedulerTool } from "./energy-scheduler.js";
+import { createEnergyTool } from "./energy-tool.js";
 import { createGoogleTools } from "./google-tools.js";
+import { createGraphTool } from "./graph-tool.js";
+import { createMeetingTool } from "./meeting-tool.js";
 import { createMemoryTool } from "./memory-tool.js";
+import { createOrchestratorTool } from "./orchestration/orchestrator.js";
+import { createProactiveTool } from "./proactive-tool.js";
+import { createRelationshipTool } from "./relationship-tool.js";
+import { createTemporalTool } from "./temporal-tool.js";
 import { sanitizeToolResultImages } from "./tool-images.js";
 
 // TODO(steipete): Remove this wrapper once pi-mono ships file-magic MIME detection
@@ -298,6 +307,7 @@ function createClawdisReadTool(base: AnyAgentTool): AnyAgentTool {
 export function createClawdisCodingTools(options?: {
   bash?: BashToolDefaults & ProcessToolDefaults;
 }): AnyAgentTool[] {
+  const config = loadConfig();
   const bashToolName = "bash";
   const base = (codingTools as unknown as AnyAgentTool[]).flatMap((tool) => {
     if (tool.name === readTool.name) return [createClawdisReadTool(tool)];
@@ -314,8 +324,35 @@ export function createClawdisCodingTools(options?: {
     processTool as unknown as AnyAgentTool,
     createWhatsAppLoginTool(),
     createMemoryTool(),
+    createEnergySchedulerTool(),
+    createOrchestratorTool(),
+    // Temporal tool (always available - no config gate)
+    createTemporalTool(),
+    // Meeting tool (always available - no config gate)
+    createMeetingTool(),
     ...createClawdisTools(),
     ...createGoogleTools(),
   ];
+
+  // Conditionally add proactive tool if enabled
+  if (config.proactive?.enabled) {
+    tools.push(createProactiveTool());
+  }
+
+  // Conditionally add relationship tool if enabled
+  if (config.relationship?.enabled) {
+    tools.push(createRelationshipTool());
+  }
+
+  // Conditionally add energy tool if enabled
+  if (config.energyScheduler?.enabled) {
+    tools.push(createEnergyTool());
+  }
+
+  // Conditionally add graph tool if enabled
+  if (config.graph?.enabled) {
+    tools.push(createGraphTool());
+  }
+
   return tools.map(normalizeToolParameters);
 }

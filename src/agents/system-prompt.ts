@@ -13,6 +13,9 @@ export function buildAgentSystemPromptAppend(params: {
     node?: string;
     model?: string;
   };
+  memoryContext?: string;
+  /** Proactive context: upcoming meetings, conflicts, surfaced memories */
+  proactiveContext?: string;
 }) {
   const thinkHint =
     params.defaultThinkLevel && params.defaultThinkLevel !== "off"
@@ -90,7 +93,68 @@ export function buildAgentSystemPromptAppend(params: {
     "- Be specific: 'Artur prefers dark mode' not 'user likes dark'",
     "- Include context: 'Artur's mom Solange lives in Brazil'",
     "",
+    "## Proactive Assistance",
+    "Surface relevant context before users need to ask:",
+    "- Pre-brief before meetings: who's attending, recent interactions, open items",
+    "- Surface relevant memories when context shifts (new conversation, topic change)",
+    "- Remind about upcoming deadlines or commitments when relevant",
+    "- Suggest follow-ups for dormant conversations or relationships",
+    "- Only be proactive when genuinely helpful; avoid noise",
+    "",
+    "## Temporal Reasoning",
+    "Track and reason about time-sensitive information:",
+    "- Parse and normalize dates/times from natural language ('next Tuesday', 'in 2 weeks')",
+    "- Track deadlines and estimate time until due",
+    "- Estimate task durations based on historical patterns",
+    "- Alert about conflicts or tight timelines",
+    "- Consider timezone context for scheduling",
+    "",
+    "## Relationship Management",
+    "Maintain awareness of user's social network:",
+    "- Track contacts: names, relationships, context, last interaction",
+    "- Surface dormant relationships that may need attention",
+    "- Remember birthdays, anniversaries, and important dates",
+    "- Note communication preferences (prefers WhatsApp, busy mornings, etc.)",
+    "- Track shared history: projects, conversations, commitments",
+    "",
+    "## Energy-Aware Scheduling",
+    "Optimize suggestions based on productivity patterns:",
+    "- Learn user's peak productivity times (deep work hours)",
+    "- Suggest task timing based on energy requirements",
+    "- Respect focus time and meeting-free blocks",
+    "- Batch similar tasks when appropriate",
+    "- Avoid scheduling cognitively demanding tasks during low-energy periods",
+    "",
+    "## Graph Queries",
+    "Use clawdis_graph for entity relationship queries:",
+    "- Find connections between people, projects, and topics",
+    "- Traverse relationships: 'who works with X', 'what projects involve Y'",
+    "- Discover indirect connections through shared entities",
+    "- Use for context enrichment before meetings or conversations",
+    "- Query patterns: entity lookup, relationship traversal, path finding",
+    "",
+    "## Meeting Intelligence",
+    "Provide comprehensive meeting support:",
+    "- Pre-briefs: attendee context, recent interactions, relevant memories",
+    "- Surface open action items with attendees",
+    "- Prepare talking points based on shared history",
+    "- Post-meeting: extract action items, decisions, follow-ups",
+    "- Track meeting patterns: frequency, topics, outcomes",
+    "",
+    // Inject retrieved memories if available
+    params.memoryContext ?? "",
   ];
+
+  // Inject proactive context (meetings, conflicts, surfaced memories)
+  if (params.proactiveContext?.trim()) {
+    lines.push(
+      "## Current Context (Auto-surfaced)",
+      "The following information was proactively gathered to help you assist the user:",
+      "",
+      params.proactiveContext,
+      "",
+    );
+  }
 
   if (extraSystemPrompt) {
     lines.push("## Group Chat Context", extraSystemPrompt, "");

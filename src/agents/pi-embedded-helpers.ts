@@ -4,6 +4,8 @@ import path from "node:path";
 import type { AppMessage } from "@mariozechner/pi-agent-core";
 import type { AgentToolResult, AssistantMessage } from "@mariozechner/pi-ai";
 
+import type { MemorySearchResult } from "../memory/index.js";
+import type { ProactiveContext } from "./proactive.js";
 import { sanitizeContentBlocksImages } from "./tool-images.js";
 import type { WorkspaceBootstrapFile } from "./workspace.js";
 
@@ -103,4 +105,111 @@ export function formatAssistantErrorText(
 
   // Keep it short for WhatsApp.
   return raw.length > 600 ? `${raw.slice(0, 600)}…` : raw;
+}
+
+/**
+ * Format memory search results for injection into the agent's context.
+ * Returns an empty string if no memories are provided.
+ */
+export function formatMemoryContext(memories: MemorySearchResult[]): string {
+  if (!memories.length) return "";
+
+  const lines = [
+    "## Relevant Memories",
+    "The following memories from previous conversations may be relevant to this request:",
+    "",
+  ];
+
+  for (const mem of memories) {
+    const date = new Date(mem.createdAt).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+    const senderTag = mem.senderId !== "global" ? ` [${mem.senderId}]` : "";
+    lines.push(
+      `- [${mem.category}]${senderTag} ${mem.content} (${date}, relevance: ${(mem.score * 100).toFixed(0)}%)`,
+    );
+  }
+
+  lines.push("");
+  return lines.join("\n");
+}
+
+/**
+ * Format proactive context (pre-briefs, conflicts) for injection into the agent's context.
+ * Returns an empty string if no proactive context is provided.
+ */
+export function formatProactiveContext(context: ProactiveContext | null): string {
+  if (!context) return "";
+
+  const sections: string[] = [];
+
+  // Meeting briefs section
+  if (context.meetingBriefs.length > 0) {
+    sections.push("## Upcoming Meetings");
+    sections.push("");
+
+    for (const brief of context.meetingBriefs) {
+      const startDate = new Date(brief.startTime);
+      const minutesUntil = Math.round((startDate.getTime() - Date.now()) / (1000 * 60));
+
+      sections.push(`### ${brief.eventSummary}`);
+      if (minutesUntil > 0) {
+        sections.push(`Starting in ${minutesUntil} minutes`);
+      } else {
+        sections.push(`Start time: ${brief.startTime}`);
+      }
+
+      if (brief.attendees.length > 0) {
+        sections.push(`Attendees: ${brief.attendees.slice(0, 5).join(", ")}${brief.attendees.length > 5 ? ` (+${brief.attendees.length - 5} more)` : ""}`);
+      }
+
+      if (brief.relevantMemories.length > 0) {
+        sections.push("");
+        sections.push("Relevant context from memory:");
+        for (const mem of brief.relevantMemories.slice(0, 3)) {
+          sections.push(`- ${mem.content.slice(0, 150)}${mem.content.length > 150 ? "..." : ""}`);
+        }
+      }
+
+      if (brief.suggestedTopics && brief.suggestedTopics.length > 0) {
+        sections.push("");
+        sections.push(`Consider discussing: ${brief.suggestedTopics.join(", ")}`);
+      }
+
+      sections.push("");
+    }
+  }
+
+  // Conflicts section
+  if (context.conflicts.length > 0) {
+    sections.push("## Schedule Alerts");
+    sections.push("");
+
+    for (const conflict of context.conflicts) {
+      const severity = conflict.severity === "high" ? "[HIGH]" : conflict.severity === "medium" ? "[MEDIUM]" : "[LOW]";
+      sections.push(`${severity} ${conflict.description}`);
+      if (conflict.suggestion) {
+        sections.push(`  Suggestion: ${conflict.suggestion}`);
+      }
+    }
+    sections.push("");
+  }
+
+  // Surfaced memories section (context-based)
+  if (context.surfacedMemories.length > 0) {
+    sections.push("## Relevant Context");
+    sections.push("");
+
+    for (const mem of context.surfacedMemories) {
+      const score = (mem.score * 100).toFixed(0);
+      sections.push(`- [${mem.category}] ${mem.content} (relevance: ${score}%)`);
+    }
+    sections.push("");
+  }
+
+  if (sections.length === 0) return "";
+
+  return sections.join("\n");
 }

@@ -39,6 +39,7 @@ import {
   buildBootstrapContextFiles,
   ensureSessionHeader,
   formatAssistantErrorText,
+  formatMemoryContext,
   sanitizeSessionMessagesImages,
 } from "./pi-embedded-helpers.js";
 import { subscribeEmbeddedPiSession } from "./pi-embedded-subscribe.js";
@@ -54,6 +55,12 @@ import {
 } from "./skills.js";
 import { buildAgentSystemPromptAppend } from "./system-prompt.js";
 import { loadWorkspaceBootstrapFiles } from "./workspace.js";
+import {
+  createMemoryService,
+  extractMemories,
+  isMemoryEnabled,
+} from "../memory/index.js";
+import { createProactiveService, isQuietHours } from "./proactive.js";
 
 export type EmbeddedPiAgentMeta = {
   sessionId: string;
@@ -418,6 +425,62 @@ export async function runEmbeddedPiAgent(params: {
           model: `${provider}/${modelId}`,
         };
         const reasoningTagHint = provider === "ollama";
+
+        // Search memory for relevant context (if enabled and autoSearch is on)
+        let memoryContext = "";
+        const memConfig = params.config?.memory;
+        const autoSearch = memConfig?.autoSearch ?? true; // Default: search when memory enabled
+        if (isMemoryEnabled() && autoSearch) {
+          try {
+            const memoryService = await createMemoryService();
+            if (memoryService) {
+              // Search using the user's prompt, filter by sender if available
+              const senderId = params.ownerNumbers?.[0];
+              const searchLimit = memConfig?.searchLimit ?? 5;
+              const minScore = memConfig?.minRelevanceScore ?? 0.6;
+              const memories = await memoryService.search(params.prompt, {
+                senderId,
+                limit: searchLimit,
+                minScore,
+              });
+              memoryContext = formatMemoryContext(memories);
+            }
+          } catch (err) {
+            // Log but don't fail - memory is optional enhancement
+            console.error("[memory-injection] Search failed:", err);
+          }
+        }
+
+        // Generate proactive context (meeting briefs, conflicts, surfaced memories)
+        let proactiveContext = "";
+        const proactiveConfig = params.config?.proactive;
+        const enableProactive = proactiveConfig?.enabled === true;
+        const inQuietHours = isQuietHours(proactiveConfig);
+        if (enableProactive && !inQuietHours && isMemoryEnabled()) {
+          try {
+            const proactiveService = await createProactiveService();
+            if (proactiveService) {
+              const senderId = params.ownerNumbers?.[0];
+              // Map from new config structure to ProactiveContextOptions
+              const maxBriefs = 3;
+              const memoriesPerBrief = proactiveConfig?.preBrief?.maxMemories ?? 3;
+              const lookaheadHours =
+                proactiveConfig?.conflictDetection?.lookAheadHours ?? 24;
+              const context = await proactiveService.generateProactiveContext({
+                senderId,
+                currentContext: params.prompt,
+                maxBriefs,
+                memoriesPerBrief,
+                lookaheadHours,
+              });
+              proactiveContext = proactiveService.formatContextForInjection(context);
+            }
+          } catch (err) {
+            // Log but don't fail - proactive is optional enhancement
+            console.error("[proactive-injection] Generation failed:", err);
+          }
+        }
+
         const systemPrompt = buildSystemPrompt({
           appendPrompt: buildAgentSystemPromptAppend({
             workspaceDir: resolvedWorkspace,
@@ -426,6 +489,8 @@ export async function runEmbeddedPiAgent(params: {
             ownerNumbers: params.ownerNumbers,
             reasoningTagHint,
             runtimeInfo,
+            memoryContext,
+            proactiveContext,
           }),
           contextFiles,
           skills: promptSkills,
@@ -606,6 +671,49 @@ export async function runEmbeddedPiAgent(params: {
             (p) =>
               p.text || p.mediaUrl || (p.mediaUrls && p.mediaUrls.length > 0),
           );
+
+        // Auto-extract memories from user message and agent response (if enabled)
+        const autoExtractConfig = memConfig?.autoExtract;
+        if (isMemoryEnabled() && autoExtractConfig?.enabled !== false) {
+          try {
+            const memoryService = await createMemoryService();
+            if (memoryService) {
+              const agentResponseText = payloads
+                .map((p) => p.text)
+                .filter(Boolean)
+                .join("\n");
+
+              const extracted = extractMemories({
+                userMessage: params.prompt,
+                agentResponse: agentResponseText,
+                config: autoExtractConfig,
+              });
+
+              // Save extracted memories
+              const senderId = params.ownerNumbers?.[0] ?? "global";
+              for (const mem of extracted) {
+                await memoryService.save({
+                  content: mem.content,
+                  category: mem.category,
+                  source: "auto",
+                  sessionId: sessionIdUsed,
+                  senderId,
+                  confidence: mem.confidence,
+                  metadata: { reason: mem.reason },
+                });
+              }
+
+              if (extracted.length > 0) {
+                console.log(
+                  `[memory-extraction] Saved ${extracted.length} memories`,
+                );
+              }
+            }
+          } catch (err) {
+            // Log but don't fail - extraction is optional
+            console.error("[memory-extraction] Failed:", err);
+          }
+        }
 
         return {
           payloads: payloads.length ? payloads : undefined,

@@ -43,6 +43,7 @@ import { parseDurationMs } from "../cli/parse-duration.js";
 import { loadConfig } from "../config/config.js";
 import { callGateway } from "../gateway/call.js";
 import { detectMime } from "../media/mime.js";
+import { createRelationshipTool } from "./relationship-tool.js";
 import { sanitizeToolResultImages } from "./tool-images.js";
 
 type AnyAgentTool = AgentTool<TSchema, unknown>;
@@ -1721,5 +1722,6 @@ export function createClawdisTools(): AnyAgentTool[] {
     createSendMessageTool(),
     createHomeAssistantTool(),
     createTTSTool(),
+    createRelationshipTool(),
   ];
 }
