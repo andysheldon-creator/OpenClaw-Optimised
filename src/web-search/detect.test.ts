@@ -34,12 +34,8 @@ describe('detectWebSearchIntent', () => {
     expect(detectWebSearchIntent('как твои дела')).toBe(false);
   });
   
-  it('returns false when deep research detected', () => {
-    expect(detectWebSearchIntent('сделай депресерч по python')).toBe(false);
-  });
-  
-  it('returns false when deep research keyword present', () => {
-    expect(detectWebSearchIntent('depresearch this topic')).toBe(false);
+  it('returns false for /deep command', () => {
+    expect(detectWebSearchIntent('/deep weather in Berlin')).toBe(false);
   });
   
   it('handles mixed case messages', () => {

@@ -29,6 +29,10 @@ vendor/
 # Vendor build artifacts
 vendor/a2ui/renderers/lit/dist/
 
+# Canvas host bundle artifacts (generated)
+src/canvas-host/a2ui/*.bundle.js
+src/canvas-host/a2ui/.bundle.hash
+
 # fastlane (iOS)
 apps/ios/fastlane/README.md
 apps/ios/fastlane/report.xml
@@ -55,6 +59,7 @@ settings.json
 test-*.mjs
 test-*.js
 debug-*.js
+debug-*.mjs
 fix-*.js
 fix-*.mjs
 simulate-*.mjs
@@ -64,8 +69,11 @@ create-*.js
 update-*.mjs
 load-*.mjs
 reproduce-*.mjs
+trace-*.mjs
+trace-*.js
 
 # Documentation drafts
+CHANGES.md
 *-SUMMARY.md
 *-fix-summary.md
 investigation.md
@@ -84,11 +92,16 @@ ecosystem.config.cjs
 # Transcription cache
 .transcriptions/
 
+# Python virtual environments
+.venv/
+venv/
+
 # Temporary directories
 temp_/
 
 # Test fixtures (local test data)
 tests/fixtures/
+test/fixtures/
 
 # Project analysis working files (generated)
 docs/project_gathering/

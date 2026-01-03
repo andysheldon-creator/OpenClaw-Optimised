@@ -2,8 +2,6 @@
  * Web Search keyword detection
  */
 
-import { detectDeepResearchIntent } from "../deep-research/detect.js";
-
 const EXPLICIT_KEYWORDS = [
   "погуглить", "погугли", "загугли", "загуглить",
   "поискать", "найди", "найти", "искать",
@@ -18,21 +16,21 @@ const CONTEXTUAL_PATTERNS = [
   /что такое|who is|what is|где|where|когда|when|какой|сколько|how much|how many/i,
   /текущий|current|сейчас|now|сегодня|today/i,
 ];
+const DEEP_COMMAND_RE = /^\/deep(?:@[a-z0-9_]+)?\b/i;
 
 /**
  * Detect if message contains web search intent
- * Returns false if deep research intent detected (deep research takes priority)
+ * Returns false for /deep commands (deep research takes priority)
  */
 export function detectWebSearchIntent(
   message: string,
   customPatterns?: readonly (string | RegExp)[]
 ): boolean {
-  const normalized = message.toLowerCase().trim();
-  
-  // Priority 1: If deep research detected, no web search
-  if (detectDeepResearchIntent(normalized)) {
+  const trimmed = message.trim();
+  if (DEEP_COMMAND_RE.test(trimmed)) {
     return false;
   }
+  const normalized = trimmed.toLowerCase();
   
   // Priority 2: Custom patterns from config
   if (customPatterns) {

@@ -12,8 +12,7 @@ import { isAudio, transcribeInboundAudio } from "../auto-reply/transcription.js"
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { loadConfig } from "../config/config.js";
 import {
-  detectDeepResearchIntent,
-  extractTopicFromMessage,
+  parseDeepResearchCommand,
   normalizeDeepResearchTopic,
   createExecuteButton,
   createRetryButton,
@@ -30,6 +29,7 @@ import {
 import { resolveStorePath, updateLastRoute } from "../config/sessions.js";
 import { danger, isVerbose, logVerbose } from "../globals.js";
 import { formatErrorMessage } from "../infra/errors.js";
+import { categorizeIntent } from "../infra/intent-categorizer.js";
 import { getChildLogger } from "../logging.js";
 import { mediaKindFromMime } from "../media/constants.js";
 import { detectMime } from "../media/mime.js";
@@ -37,10 +37,6 @@ import { saveMediaBuffer } from "../media/store.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { loadWebMedia } from "../web/media.js";
 import { startLivenessProbe, type LivenessProbeOptions } from "./liveness-probe.js";
-import {
-  detectWebSearchIntent,
-  extractSearchQuery,
-} from "../web-search/detect.js";
 import { messages as webSearchMessages } from "../web-search/messages.js";
 import { executeWebSearch } from "../web-search/executor.js";
 
@@ -48,6 +44,16 @@ const PARSE_ERR_RE =
   /can't parse entities|parse entities|find end of the entity/i;
 const deepResearchInFlight = new Set<number>();
 const webSearchInFlight = new Set<number>();
+const CATEGORY_CONFIDENCE_THRESHOLD = 0.7;
+const CATEGORY_MIN_WORDS = 2;
+const CATEGORY_MIN_CHARS = 6;
+const AUDIO_STATUS_MESSAGE = "🎙️ Голосовое получено. Распознаю...";
+const AUDIO_STATUS_DONE = "✅ Готово";
+
+type StatusMessage = {
+  chatId: number;
+  messageId: number;
+};
 
 type TelegramMessage = Message.CommonMessage;
 
@@ -58,6 +64,8 @@ type TelegramContext = {
     file_path?: string;
   }>;
 };
+
+type ReplyMarkup = Parameters<Context["api"]["editMessageText"]>[3]["reply_markup"];
 
 export type TelegramBotOptions = {
   token: string;
@@ -144,6 +152,25 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         opts.token,
         opts.proxyFetch,
       );
+      const isAudioInput =
+        !msg.text &&
+        !msg.caption &&
+        media?.contentType &&
+        isAudio(media.contentType);
+      let audioStatus: StatusMessage | null = null;
+      if (isAudioInput) {
+        try {
+          const status = await ctx.reply(AUDIO_STATUS_MESSAGE);
+          audioStatus = {
+            chatId: ctx.chat?.id ?? chatId,
+            messageId: status.message_id,
+          };
+        } catch (err) {
+          logVerbose(
+            `telegram audio status failed for chat ${chatId}: ${String(err)}`,
+          );
+        }
+      }
       let transcript: string | undefined;
       if (
         !msg.text &&
@@ -176,92 +203,40 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           chatId,
           messageText,
           transcript,
+          audioStatus,
         )
       ) {
         return;
       }
 
-      // Check for web search
-      if (detectWebSearchIntent(messageText)) {
-        const query = extractSearchQuery(messageText);
+      // Check for /web command
+      const webCommand = parseWebCommand(messageText, botUsername);
+      if (webCommand) {
+        const query = webCommand.query.trim();
         if (!query) {
-          logger.warn({ chatId }, "Failed to extract query for web search");
+          await ctx.reply(
+            webSearchMessages.error(
+              "Please provide a search query after /web",
+            ),
+          );
           return;
         }
-        
-        // Check if already searching for this chat
-        if (webSearchInFlight.has(chatId)) {
-          await ctx.reply(webSearchMessages.error("Поиск уже выполняется для этого чата. Пожалуйста, подождите."));
-          return;
-        }
-        
-        // Mark as in-flight
-        webSearchInFlight.add(chatId);
-        
-        let statusChatId: number | undefined;
-        let statusMessageId: number | undefined;
-        
-        try {
-          // Send acknowledgment and store message ID for editing
-          const statusMessage = await ctx.reply(webSearchMessages.acknowledgment());
-          const statusChatId = ctx.chat?.id;
-          const statusMessageId = statusMessage.message_id;
-          
-          if (!statusChatId || !statusMessageId) {
-            throw new Error("Failed to get message ID for status update");
-          }
-          
-          // Execute search
-          const result = await executeWebSearch(query);
-          
-          if (result.success && result.result) {
-            // Edit the original message with result
-            await ctx.api.editMessageText(
-              statusChatId,
-              statusMessageId,
-              webSearchMessages.resultDelivery(result.result)
-            );
-          } else {
-            // Edit with error
-            await ctx.api.editMessageText(
-              statusChatId,
-              statusMessageId,
-              webSearchMessages.error(
-                result.error || "Unknown error",
-                result.runId
-              )
-            );
-          }
-        } catch (error) {
-          logger.error({ chatId, error }, "Web search execution failed");
-          // If we have a status message, try to edit it
-          if (statusChatId && statusMessageId) {
-            try {
-              await ctx.api.editMessageText(
-                statusChatId,
-                statusMessageId,
-                webSearchMessages.error(
-                  error instanceof Error ? error.message : String(error)
-                )
-              );
-            } catch (editError) {
-              // If edit fails, send new message
-              await ctx.reply(webSearchMessages.error(
-                error instanceof Error ? error.message : String(error)
-              ));
-            }
-          } else {
-            // No status message to edit, send new message
-            await ctx.reply(webSearchMessages.error(
-              error instanceof Error ? error.message : String(error)
-            ));
-          }
-        } finally {
-          // Always remove from in-flight set
-          webSearchInFlight.delete(chatId);
-        }
-        
-        return; // Don't process further
+        await runWebSearch(ctx, chatId, query, logger, audioStatus);
+        return;
+      }
+
+      if (
+        await handleCategorizedMessage(
+          ctx,
+          cfg,
+          chatId,
+          messageText,
+          transcript,
+          logger,
+          audioStatus,
+        )
+      ) {
+        return;
       }
 
       const replyTarget = describeReplyTarget(msg);
@@ -348,6 +323,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         token: opts.token,
         runtime,
         bot,
+        statusMessage: audioStatus,
       });
     } catch (err) {
       // Clean up in-flight sets on error (if chatId was defined)
@@ -389,29 +365,83 @@ async function handleDeepResearchMessage(
   chatId: number,
   messageText: string,
   transcript?: string,
+  statusMessage?: StatusMessage | null,
 ): Promise<boolean> {
   if (cfg.deepResearch?.enabled === false) return false;
 
   if (!messageText) return false;
 
-  if (!detectDeepResearchIntent(messageText, cfg.deepResearch?.keywords)) {
+  const command = parseDeepResearchCommand(messageText);
+  if (!command) {
     return false;
   }
 
-  const extractedTopic = extractTopicFromMessage(
-    messageText,
-    cfg.deepResearch?.keywords,
-  );
-  const normalized = normalizeDeepResearchTopic(extractedTopic);
+  return handleDeepResearchTopic({
+    ctx,
+    cfg,
+    chatId,
+    topic: command.topic,
+    transcript,
+    source: "command",
+    respondOnInvalid: true,
+    statusMessage,
+  });
+}
+
+async function handleDeepResearchTopic(params: {
+  ctx: Context;
+  cfg: ReturnType<typeof loadConfig>;
+  chatId: number;
+  topic: string;
+  transcript?: string;
+  source: "command" | "category";
+  respondOnInvalid: boolean;
+  statusMessage?: StatusMessage | null;
+}): Promise<boolean> {
+  const { ctx, cfg, chatId, topic, transcript, source, respondOnInvalid } =
+    params;
+  const trimmedTopic = topic.trim();
+
+  if (!trimmedTopic) {
+    if (respondOnInvalid) {
+      if (params.statusMessage) {
+        await editTelegramMessage(
+          ctx.api,
+          params.statusMessage,
+          messages.invalidTopic(),
+        );
+      } else {
+        await ctx.reply(messages.invalidTopic());
+      }
+      return true;
+    }
+    return false;
+  }
+
+  const normalized = normalizeDeepResearchTopic(trimmedTopic);
   if (!normalized) {
+    if (!respondOnInvalid) return false;
     const questions = await generateGapQuestions({
-      request: messageText,
+      request: trimmedTopic,
       cfg,
     });
     if (questions && questions.length > 0) {
-      await ctx.reply(messages.gapQuestions(questions));
+      const text = messages.gapQuestions(questions);
+      if (params.statusMessage) {
+        await editTelegramMessage(ctx.api, params.statusMessage, text);
+      } else {
+        await ctx.reply(text);
+      }
     } else {
-      await ctx.reply(messages.invalidTopic());
+      if (params.statusMessage) {
+        await editTelegramMessage(
+          ctx.api,
+          params.statusMessage,
+          messages.invalidTopic(),
+        );
+      } else {
+        await ctx.reply(messages.invalidTopic());
+      }
     }
     return true;
   }
@@ -419,7 +449,16 @@ async function handleDeepResearchMessage(
   const { topic: cleanedTopic, truncated } = normalized;
   const userId = ctx.from?.id;
   if (userId === undefined) {
-    await ctx.reply(messages.missingUserId());
+    if (!respondOnInvalid) return false;
+    if (params.statusMessage) {
+      await editTelegramMessage(
+        ctx.api,
+        params.statusMessage,
+        messages.missingUserId(),
+      );
+    } else {
+      await ctx.reply(messages.missingUserId());
+    }
     return true;
   }
 
@@ -428,15 +467,224 @@ async function handleDeepResearchMessage(
       `[deep-research] Topic truncated for ${userId} in chat ${chatId}`,
     );
   }
+  const sourceLabel =
+    source === "command" ? "Command received" : "Categorized request";
   logVerbose(
-    `[deep-research] Intent detected from ${userId} in chat ${chatId}: "${cleanedTopic}"`,
+    `[deep-research] ${sourceLabel} from ${userId} in chat ${chatId}: "${cleanedTopic}"`,
   );
 
-  await ctx.reply(messages.acknowledgment(cleanedTopic, transcript), {
-    reply_markup: createExecuteButton(cleanedTopic, userId),
-  });
+  const ackText = messages.acknowledgment(cleanedTopic, transcript);
+  const replyMarkup = createExecuteButton(cleanedTopic, userId);
+  if (params.statusMessage) {
+    await editTelegramMessage(
+      ctx.api,
+      params.statusMessage,
+      ackText,
+      replyMarkup,
+    );
+  } else {
+    await ctx.reply(ackText, { reply_markup: replyMarkup });
+  }
 
   return true;
+}
+
+async function handleCategorizedMessage(
+  ctx: Context,
+  cfg: ReturnType<typeof loadConfig>,
+  chatId: number,
+  messageText: string,
+  transcript: string | undefined,
+  logger: ReturnType<typeof getChildLogger>,
+  statusMessage?: StatusMessage | null,
+): Promise<boolean> {
+  if (!shouldCategorizeMessage(messageText)) {
+    return false;
+  }
+
+  const result = await categorizeIntent(messageText);
+  if (!result || result.confidence < CATEGORY_CONFIDENCE_THRESHOLD) {
+    return false;
+  }
+
+  const category = normalizeCategory(result.category);
+  if (isVerbose()) {
+    logVerbose(
+      `[intent] category="${result.category}" confidence=${result.confidence} timeMs=${result.timeMs ?? "n/a"}`,
+    );
+  }
+
+  if (category === "deep") {
+    if (cfg.deepResearch?.enabled === false) return false;
+    return handleDeepResearchTopic({
+      ctx,
+      cfg,
+      chatId,
+      topic: messageText,
+      transcript,
+      source: "category",
+      respondOnInvalid: false,
+      statusMessage,
+    });
+  }
+
+  if (category === "web") {
+    if (cfg.webSearch?.enabled === false) return false;
+    const query = messageText.trim();
+    if (!query) return false;
+    await runWebSearch(ctx, chatId, query, logger, statusMessage);
+    return true;
+  }
+
+  return false;
+}
+
+function shouldCategorizeMessage(messageText: string): boolean {
+  const trimmed = messageText.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith("/")) return false;
+  if (trimmed.length < CATEGORY_MIN_CHARS) return false;
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  return words.length >= CATEGORY_MIN_WORDS;
+}
+
+function normalizeCategory(category: string): "deep" | "web" | null {
+  const normalized = category.toLowerCase().replace(/[\s_-]+/g, "");
+  if (normalized === "deepresearch") return "deep";
+  if (normalized === "web" || normalized === "websearch" || normalized === "search") {
+    return "web";
+  }
+  return null;
+}
+
+function parseWebCommand(
+  messageText: string,
+  botUsername?: string,
+): { query: string } | null {
+  const match =
+    /^\/web(?:@([a-z0-9_]+))?(?:\s+([\s\S]+))?$/i.exec(messageText.trim());
+  if (!match) return null;
+  const mentioned = match[1];
+  if (mentioned && botUsername && mentioned.toLowerCase() !== botUsername) {
+    return null;
+  }
+  return { query: (match[2] ?? "").trim() };
+}
+
+async function runWebSearch(
+  ctx: Context,
+  chatId: number,
+  query: string,
+  logger: ReturnType<typeof getChildLogger>,
+  statusMessage?: StatusMessage | null,
+): Promise<void> {
+  // Check if already searching for this chat
+  if (webSearchInFlight.has(chatId)) {
+    await ctx.reply(
+      webSearchMessages.error(
+        "Поиск уже выполняется для этого чата. Пожалуйста, подождите.",
+      ),
+    );
+    return;
+  }
+
+  // Mark as in-flight
+  webSearchInFlight.add(chatId);
+
+  let statusChatId: number | undefined = statusMessage?.chatId;
+  let statusMessageId: number | undefined = statusMessage?.messageId;
+
+  try {
+    // Send acknowledgment and store message ID for editing
+    if (statusChatId && statusMessageId) {
+      await editTelegramMessage(
+        ctx.api,
+        { chatId: statusChatId, messageId: statusMessageId },
+        webSearchMessages.acknowledgment(),
+      );
+    } else {
+      const sent = await ctx.reply(webSearchMessages.acknowledgment());
+      statusChatId = ctx.chat?.id;
+      statusMessageId = sent.message_id;
+    }
+
+    if (!statusChatId || !statusMessageId) {
+      throw new Error("Failed to get message ID for status update");
+    }
+
+    // Execute search
+    const result = await executeWebSearch(query);
+
+    if (result.success && result.result) {
+      // Edit the original message with result
+      await ctx.api.editMessageText(
+        statusChatId,
+        statusMessageId,
+        webSearchMessages.resultDelivery(result.result),
+      );
+    } else {
+      // Edit with error
+      await ctx.api.editMessageText(
+        statusChatId,
+        statusMessageId,
+        webSearchMessages.error(result.error || "Unknown error", result.runId),
+      );
+    }
+  } catch (error) {
+    logger.error({ chatId, error }, "Web search execution failed");
+    // If we have a status message, try to edit it
+    if (statusChatId && statusMessageId) {
+      try {
+        await ctx.api.editMessageText(
+          statusChatId,
+          statusMessageId,
+          webSearchMessages.error(
+            error instanceof Error ? error.message : String(error),
+          ),
+        );
+      } catch (editError) {
+        // If edit fails, send new message
+        await ctx.reply(
+          webSearchMessages.error(
+            error instanceof Error ? error.message : String(error),
+          ),
+        );
+      }
+    } else {
+      // No status message to edit, send new message
+      await ctx.reply(
+        webSearchMessages.error(
+          error instanceof Error ? error.message : String(error),
+        ),
+      );
+    }
+  } finally {
+    // Always remove from in-flight set
+    webSearchInFlight.delete(chatId);
+  }
+}
+
+async function editTelegramMessage(
+  api: Bot["api"],
+  statusMessage: StatusMessage,
+  text: string,
+  replyMarkup?: ReplyMarkup,
+): Promise<void> {
+  try {
+    await api.editMessageText(statusMessage.chatId, statusMessage.messageId, text, {
+      parse_mode: "Markdown",
+      reply_markup: replyMarkup,
+    });
+  } catch (err) {
+    const errText = formatErrorMessage(err);
+    if (PARSE_ERR_RE.test(errText)) {
+      await api.editMessageText(statusMessage.chatId, statusMessage.messageId, text, {
+        reply_markup: replyMarkup,
+      });
+      return;
+    }
+    throw err;
+  }
 }
 
 async function handleDeepResearchCallback(
@@ -623,8 +871,10 @@ async function deliverReplies(params: {
   token: string;
   runtime: RuntimeEnv;
   bot: Bot;
+  statusMessage?: StatusMessage | null;
 }) {
-  const { replies, chatId, runtime, bot } = params;
+  const { replies, chatId, runtime, bot, statusMessage } = params;
+  let statusEdited = false;
   for (const reply of replies) {
     if (!reply?.text && !reply?.mediaUrl && !(reply?.mediaUrls?.length ?? 0)) {
       runtime.error?.(danger("Telegram reply missing text/media"));
@@ -636,10 +886,20 @@ async function deliverReplies(params: {
         ? [reply.mediaUrl]
         : [];
     if (mediaList.length === 0) {
-      for (const chunk of chunkText(reply.text || "", 4000)) {
+      const chunks = chunkText(reply.text || "", 4000);
+      for (const chunk of chunks) {
+        if (statusMessage && !statusEdited) {
+          await editTelegramMessage(bot.api, statusMessage, chunk);
+          statusEdited = true;
+          continue;
+        }
         await sendTelegramText(bot, chatId, chunk, runtime);
       }
       continue;
+    }
+    if (statusMessage && !statusEdited) {
+      await editTelegramMessage(bot.api, statusMessage, AUDIO_STATUS_DONE);
+      statusEdited = true;
     }
     // media with optional caption on first item
     let first = true;
@@ -659,6 +919,9 @@ async function deliverReplies(params: {
         await bot.api.sendDocument(chatId, file, { caption });
       }
     }
+  }
+  if (statusMessage && !statusEdited) {
+    await editTelegramMessage(bot.api, statusMessage, AUDIO_STATUS_DONE);
   }
 }
 
