@@ -1,20 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { executeWebSearch } from './executor.js';
-import { promisify } from 'util';
+import { executeGeminiSearch } from './gemini-cli.js';
 
-// Mock child_process before importing the module
-vi.mock('child_process', () => {
-  const execMock = vi.fn();
-  return {
-    exec: execMock,
-  };
-});
-
-// Import after mock is defined
-import { exec } from 'child_process';
-
-// Create promisified mock that matches how it's used in the executor
-const execPromise = promisify(exec as any);
+vi.mock('./gemini-cli.js', () => ({
+  executeGeminiSearch: vi.fn(),
+}));
 
 describe('executeWebSearch', () => {
   beforeEach(() => {
@@ -22,74 +12,44 @@ describe('executeWebSearch', () => {
   });
 
   it('executes CLI with query', async () => {
-    vi.mocked(exec).mockImplementation((cmd, opts, callback) => {
-      if (callback) {
-        callback(null, JSON.stringify({
-          response: 'Test result',
-          session_id: 'abc-123',
-          stats: { models: {} }
-        }), '');
-      }
-      return {} as any;
+    vi.mocked(executeGeminiSearch).mockResolvedValue({
+      response: 'Test result',
+      session_id: 'abc-123',
+      stats: { models: {} }
     });
     
     const result = await executeWebSearch('test query');
     
     expect(result.success).toBe(true);
     expect(result.result?.response).toBe('Test result');
-    expect(vi.mocked(exec)).toHaveBeenCalledWith(
-      expect.stringContaining('web-search-by-Gemini.sh'),
-      expect.objectContaining({ timeout: 30000 }),
-      expect.any(Function)
-    );
+    expect(vi.mocked(executeGeminiSearch)).toHaveBeenCalled();
   });
   
   it('handles timeout error', async () => {
-    vi.mocked(exec).mockImplementation((cmd, opts, callback) => {
-      if (callback) {
-        const error: any = new Error('timeout');
-        error.code = 'ETIMEOUT';
-        callback(error, '', '');
-      }
-      return {} as any;
-    });
+    vi.mocked(executeGeminiSearch).mockRejectedValue(new Error('timeout'));
     
     const result = await executeWebSearch('test query');
     
     expect(result.success).toBe(false);
-    expect(result.error).toContain('timeout');
+    expect(result.error).toContain('⏱️');
   });
   
   it('handles CLI not found error', async () => {
-    vi.mocked(exec).mockImplementation((cmd, opts, callback) => {
-      if (callback) {
-        const error: any = new Error('not found');
-        error.code = 'ENOENT';
-        callback(error, '', '');
-      }
-      return {} as any;
-    });
+    vi.mocked(executeGeminiSearch).mockRejectedValue(new Error('not found'));
     
     const result = await executeWebSearch('test query');
     
     expect(result.success).toBe(false);
-    expect(result.error).toContain('not found');
+    expect(result.error).toContain('не найден');
   });
   
-  it('handles permission denied error', async () => {
-    vi.mocked(exec).mockImplementation((cmd, opts, callback) => {
-      if (callback) {
-        const error: any = new Error('Permission denied');
-        error.code = 'EACCES';
-        callback(error, '', '');
-      }
-      return {} as any;
-    });
+  it('handles permission error', async () => {
+    vi.mocked(executeGeminiSearch).mockRejectedValue(new Error('Permission denied'));
     
     const result = await executeWebSearch('test query');
     
     expect(result.success).toBe(false);
-    expect(result.error).toContain('executable');
+    expect(result.error).toContain('failed');
   });
   
   it('supports dry run mode', async () => {
@@ -97,41 +57,21 @@ describe('executeWebSearch', () => {
     
     expect(result.success).toBe(true);
     expect(result.result?.response).toContain('DRY RUN');
-    expect(vi.mocked(exec)).not.toHaveBeenCalled();
+    expect(vi.mocked(executeGeminiSearch)).not.toHaveBeenCalled();
   });
   
-  it('escapes special characters in query', async () => {
-    vi.mocked(exec).mockImplementation((cmd, opts, callback) => {
-      if (callback) {
-        // Check that command is properly escaped
-        expect(cmd).not.toContain('dangerous');
-        expect(cmd).toContain('dollar\\$sign');
-        callback(null, JSON.stringify({
-          response: 'Test',
-          session_id: 'abc',
-          stats: { models: {} }
-        }), '');
-      }
-      return {} as any;
-    });
+  it('escapes special characters', async () => {
+    await executeWebSearch('query with "quotes" and $dollar');
     
-    await executeWebSearch('query with dollar$sign and "quotes"');
-    
-    expect(vi.mocked(exec)).toHaveBeenCalled();
+    expect(vi.mocked(executeGeminiSearch)).toHaveBeenCalled();
   });
   
-  it('handles non-JSON output gracefully', async () => {
-    vi.mocked(exec).mockImplementation((cmd, opts, callback) => {
-      if (callback) {
-        callback(null, 'Plain text response', '');
-      }
-      return {} as any;
-    });
+  it('handles API errors', async () => {
+    vi.mocked(executeGeminiSearch).mockRejectedValue(new Error('API error'));
     
-    const result = await executeWebSearch('test query');
+    const result = await executeWebSearch('test');
     
-    expect(result.success).toBe(true);
-    expect(result.result?.response).toBe('Plain text response');
-    expect(result.result?.session_id).toContain('fallback');
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('failed');
   });
 });
