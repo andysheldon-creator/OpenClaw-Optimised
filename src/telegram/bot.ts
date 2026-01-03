@@ -181,11 +181,11 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         return;
       }
 
-      // Check for web search
-      if (detectWebSearchIntent(messageText)) {
-        const query = extractSearchQuery(messageText);
+      // Check for /web command
+      if (messageText.startsWith('/web ')) {
+        const query = messageText.replace(/^\/web\s+/, '').trim();
         if (!query) {
-          logger.warn({ chatId }, "Failed to extract query for web search");
+          await ctx.reply(webSearchMessages.error("Please provide a search query after /web"));
           return;
         }
         
@@ -204,8 +204,8 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         try {
           // Send acknowledgment and store message ID for editing
           const statusMessage = await ctx.reply(webSearchMessages.acknowledgment());
-          const statusChatId = ctx.chat?.id;
-          const statusMessageId = statusMessage.message_id;
+          statusChatId = ctx.chat?.id;
+          statusMessageId = statusMessage.message_id;
           
           if (!statusChatId || !statusMessageId) {
             throw new Error("Failed to get message ID for status update");
@@ -262,6 +262,19 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         }
         
         return; // Don't process further
+      }
+
+      // Deep research check - keep the original logic, just update call
+      if (
+        await handleDeepResearchMessage(
+          ctx,
+          cfg,
+          chatId,
+          messageText,
+          transcript,
+        )
+      ) {
+        return;
       }
 
       const replyTarget = describeReplyTarget(msg);
