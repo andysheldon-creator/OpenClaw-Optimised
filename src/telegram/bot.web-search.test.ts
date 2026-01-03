@@ -15,6 +15,10 @@ vi.mock('../web-search/messages.js', () => ({
   }
 }));
 
+vi.mock('../infra/intent-categorizer.js', () => ({
+  categorizeIntent: vi.fn(async () => null),
+}));
+
 // Mock deep research to avoid conflicts
 vi.mock('../deep-research/index.js', () => ({
   parseDeepResearchCommand: vi.fn(() => null),

@@ -35,6 +35,10 @@ vi.mock("@grammyjs/transformer-throttler", () => ({
   apiThrottler: () => throttlerSpy(),
 }));
 
+vi.mock("../infra/intent-categorizer.js", () => ({
+  categorizeIntent: vi.fn(async () => null),
+}));
+
 vi.mock("../auto-reply/reply.js", () => {
   const replySpy = vi.fn(async (_ctx, opts) => {
     await opts?.onReplyStart?.();
