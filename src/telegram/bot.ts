@@ -47,6 +47,13 @@ const webSearchInFlight = new Set<number>();
 const CATEGORY_CONFIDENCE_THRESHOLD = 0.7;
 const CATEGORY_MIN_WORDS = 2;
 const CATEGORY_MIN_CHARS = 6;
+const AUDIO_STATUS_MESSAGE = "🎙️ Голосовое получено. Распознаю...";
+const AUDIO_STATUS_DONE = "✅ Готово";
+
+type StatusMessage = {
+  chatId: number;
+  messageId: number;
+};
 
 type TelegramMessage = Message.CommonMessage;
 
@@ -57,6 +64,8 @@ type TelegramContext = {
     file_path?: string;
   }>;
 };
+
+type ReplyMarkup = Parameters<Context["api"]["editMessageText"]>[3]["reply_markup"];
 
 export type TelegramBotOptions = {
   token: string;
@@ -143,6 +152,25 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         opts.token,
         opts.proxyFetch,
       );
+      const isAudioInput =
+        !msg.text &&
+        !msg.caption &&
+        media?.contentType &&
+        isAudio(media.contentType);
+      let audioStatus: StatusMessage | null = null;
+      if (isAudioInput) {
+        try {
+          const status = await ctx.reply(AUDIO_STATUS_MESSAGE);
+          audioStatus = {
+            chatId: ctx.chat?.id ?? chatId,
+            messageId: status.message_id,
+          };
+        } catch (err) {
+          logVerbose(
+            `telegram audio status failed for chat ${chatId}: ${String(err)}`,
+          );
+        }
+      }
       let transcript: string | undefined;
       if (
         !msg.text &&
@@ -175,6 +203,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           chatId,
           messageText,
           transcript,
+          audioStatus,
         )
       ) {
         return;
@@ -192,7 +221,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           );
           return;
         }
-        await runWebSearch(ctx, chatId, query, logger);
+        await runWebSearch(ctx, chatId, query, logger, audioStatus);
         return;
       }
 
@@ -204,6 +233,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           messageText,
           transcript,
           logger,
+          audioStatus,
         )
       ) {
         return;
@@ -293,6 +323,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         token: opts.token,
         runtime,
         bot,
+        statusMessage: audioStatus,
       });
     } catch (err) {
       // Clean up in-flight sets on error (if chatId was defined)
@@ -334,6 +365,7 @@ async function handleDeepResearchMessage(
   chatId: number,
   messageText: string,
   transcript?: string,
+  statusMessage?: StatusMessage | null,
 ): Promise<boolean> {
   if (cfg.deepResearch?.enabled === false) return false;
 
@@ -352,6 +384,7 @@ async function handleDeepResearchMessage(
     transcript,
     source: "command",
     respondOnInvalid: true,
+    statusMessage,
   });
 }
 
@@ -363,6 +396,7 @@ async function handleDeepResearchTopic(params: {
   transcript?: string;
   source: "command" | "category";
   respondOnInvalid: boolean;
+  statusMessage?: StatusMessage | null;
 }): Promise<boolean> {
   const { ctx, cfg, chatId, topic, transcript, source, respondOnInvalid } =
     params;
@@ -370,7 +404,15 @@ async function handleDeepResearchTopic(params: {
 
   if (!trimmedTopic) {
     if (respondOnInvalid) {
-      await ctx.reply(messages.invalidTopic());
+      if (params.statusMessage) {
+        await editTelegramMessage(
+          ctx.api,
+          params.statusMessage,
+          messages.invalidTopic(),
+        );
+      } else {
+        await ctx.reply(messages.invalidTopic());
+      }
       return true;
     }
     return false;
@@ -384,9 +426,22 @@ async function handleDeepResearchTopic(params: {
       cfg,
     });
     if (questions && questions.length > 0) {
-      await ctx.reply(messages.gapQuestions(questions));
+      const text = messages.gapQuestions(questions);
+      if (params.statusMessage) {
+        await editTelegramMessage(ctx.api, params.statusMessage, text);
+      } else {
+        await ctx.reply(text);
+      }
     } else {
-      await ctx.reply(messages.invalidTopic());
+      if (params.statusMessage) {
+        await editTelegramMessage(
+          ctx.api,
+          params.statusMessage,
+          messages.invalidTopic(),
+        );
+      } else {
+        await ctx.reply(messages.invalidTopic());
+      }
     }
     return true;
   }
@@ -394,11 +449,17 @@ async function handleDeepResearchTopic(params: {
   const { topic: cleanedTopic, truncated } = normalized;
   const userId = ctx.from?.id;
   if (userId === undefined) {
-    if (respondOnInvalid) {
+    if (!respondOnInvalid) return false;
+    if (params.statusMessage) {
+      await editTelegramMessage(
+        ctx.api,
+        params.statusMessage,
+        messages.missingUserId(),
+      );
+    } else {
       await ctx.reply(messages.missingUserId());
-      return true;
     }
-    return false;
+    return true;
   }
 
   if (truncated) {
@@ -412,9 +473,18 @@ async function handleDeepResearchTopic(params: {
     `[deep-research] ${sourceLabel} from ${userId} in chat ${chatId}: "${cleanedTopic}"`,
   );
 
-  await ctx.reply(messages.acknowledgment(cleanedTopic, transcript), {
-    reply_markup: createExecuteButton(cleanedTopic, userId),
-  });
+  const ackText = messages.acknowledgment(cleanedTopic, transcript);
+  const replyMarkup = createExecuteButton(cleanedTopic, userId);
+  if (params.statusMessage) {
+    await editTelegramMessage(
+      ctx.api,
+      params.statusMessage,
+      ackText,
+      replyMarkup,
+    );
+  } else {
+    await ctx.reply(ackText, { reply_markup: replyMarkup });
+  }
 
   return true;
 }
@@ -426,6 +496,7 @@ async function handleCategorizedMessage(
   messageText: string,
   transcript: string | undefined,
   logger: ReturnType<typeof getChildLogger>,
+  statusMessage?: StatusMessage | null,
 ): Promise<boolean> {
   if (!shouldCategorizeMessage(messageText)) {
     return false;
@@ -453,6 +524,7 @@ async function handleCategorizedMessage(
       transcript,
       source: "category",
       respondOnInvalid: false,
+      statusMessage,
     });
   }
 
@@ -460,7 +532,7 @@ async function handleCategorizedMessage(
     if (cfg.webSearch?.enabled === false) return false;
     const query = messageText.trim();
     if (!query) return false;
-    await runWebSearch(ctx, chatId, query, logger);
+    await runWebSearch(ctx, chatId, query, logger, statusMessage);
     return true;
   }
 
@@ -504,6 +576,7 @@ async function runWebSearch(
   chatId: number,
   query: string,
   logger: ReturnType<typeof getChildLogger>,
+  statusMessage?: StatusMessage | null,
 ): Promise<void> {
   // Check if already searching for this chat
   if (webSearchInFlight.has(chatId)) {
@@ -518,14 +591,22 @@ async function runWebSearch(
   // Mark as in-flight
   webSearchInFlight.add(chatId);
 
-  let statusChatId: number | undefined;
-  let statusMessageId: number | undefined;
+  let statusChatId: number | undefined = statusMessage?.chatId;
+  let statusMessageId: number | undefined = statusMessage?.messageId;
 
   try {
     // Send acknowledgment and store message ID for editing
-    const statusMessage = await ctx.reply(webSearchMessages.acknowledgment());
-    statusChatId = ctx.chat?.id;
-    statusMessageId = statusMessage.message_id;
+    if (statusChatId && statusMessageId) {
+      await editTelegramMessage(
+        ctx.api,
+        { chatId: statusChatId, messageId: statusMessageId },
+        webSearchMessages.acknowledgment(),
+      );
+    } else {
+      const sent = await ctx.reply(webSearchMessages.acknowledgment());
+      statusChatId = ctx.chat?.id;
+      statusMessageId = sent.message_id;
+    }
 
     if (!statusChatId || !statusMessageId) {
       throw new Error("Failed to get message ID for status update");
@@ -580,6 +661,29 @@ async function runWebSearch(
   } finally {
     // Always remove from in-flight set
     webSearchInFlight.delete(chatId);
+  }
+}
+
+async function editTelegramMessage(
+  api: Bot["api"],
+  statusMessage: StatusMessage,
+  text: string,
+  replyMarkup?: ReplyMarkup,
+): Promise<void> {
+  try {
+    await api.editMessageText(statusMessage.chatId, statusMessage.messageId, text, {
+      parse_mode: "Markdown",
+      reply_markup: replyMarkup,
+    });
+  } catch (err) {
+    const errText = formatErrorMessage(err);
+    if (PARSE_ERR_RE.test(errText)) {
+      await api.editMessageText(statusMessage.chatId, statusMessage.messageId, text, {
+        reply_markup: replyMarkup,
+      });
+      return;
+    }
+    throw err;
   }
 }
 
@@ -767,8 +871,10 @@ async function deliverReplies(params: {
   token: string;
   runtime: RuntimeEnv;
   bot: Bot;
+  statusMessage?: StatusMessage | null;
 }) {
-  const { replies, chatId, runtime, bot } = params;
+  const { replies, chatId, runtime, bot, statusMessage } = params;
+  let statusEdited = false;
   for (const reply of replies) {
     if (!reply?.text && !reply?.mediaUrl && !(reply?.mediaUrls?.length ?? 0)) {
       runtime.error?.(danger("Telegram reply missing text/media"));
@@ -780,10 +886,20 @@ async function deliverReplies(params: {
         ? [reply.mediaUrl]
         : [];
     if (mediaList.length === 0) {
-      for (const chunk of chunkText(reply.text || "", 4000)) {
+      const chunks = chunkText(reply.text || "", 4000);
+      for (const chunk of chunks) {
+        if (statusMessage && !statusEdited) {
+          await editTelegramMessage(bot.api, statusMessage, chunk);
+          statusEdited = true;
+          continue;
+        }
         await sendTelegramText(bot, chatId, chunk, runtime);
       }
       continue;
+    }
+    if (statusMessage && !statusEdited) {
+      await editTelegramMessage(bot.api, statusMessage, AUDIO_STATUS_DONE);
+      statusEdited = true;
     }
     // media with optional caption on first item
     let first = true;
@@ -803,6 +919,9 @@ async function deliverReplies(params: {
         await bot.api.sendDocument(chatId, file, { caption });
       }
     }
+  }
+  if (statusMessage && !statusEdited) {
+    await editTelegramMessage(bot.api, statusMessage, AUDIO_STATUS_DONE);
   }
 }
 
