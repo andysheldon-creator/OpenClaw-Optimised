@@ -21,13 +21,15 @@ import com.clawdis.android.node.LocationCaptureManager
 import com.clawdis.android.BuildConfig
 import com.clawdis.android.node.CanvasController
 import com.clawdis.android.node.ScreenRecordManager
+import com.clawdis.android.node.SmsManager
 import com.clawdis.android.protocol.ClawdisCapability
 import com.clawdis.android.protocol.ClawdisCameraCommand
 import com.clawdis.android.protocol.ClawdisCanvasA2UIAction
 import com.clawdis.android.protocol.ClawdisCanvasA2UICommand
 import com.clawdis.android.protocol.ClawdisCanvasCommand
-import com.clawdis.android.protocol.ClawdisLocationCommand
 import com.clawdis.android.protocol.ClawdisScreenCommand
+import com.clawdis.android.protocol.ClawdisLocationCommand
+import com.clawdis.android.protocol.ClawdisSmsCommand
 import com.clawdis.android.voice.TalkModeManager
 import com.clawdis.android.voice.VoiceWakeManager
 import kotlinx.coroutines.CoroutineScope
@@ -61,6 +63,7 @@ class NodeRuntime(context: Context) {
   val camera = CameraCaptureManager(appContext)
   val location = LocationCaptureManager(appContext)
   val screenRecorder = ScreenRecordManager(appContext)
+  val sms = SmsManager(appContext)
   private val json = Json { ignoreUnknownKeys = true }
 
   private val externalAudioCaptureActive = MutableStateFlow(false)
@@ -364,69 +367,112 @@ class NodeRuntime(context: Context) {
     prefs.setTalkEnabled(value)
   }
 
+  private fun buildInvokeCommands(): List<String> =
+    buildList {
+      add(ClawdisCanvasCommand.Present.rawValue)
+      add(ClawdisCanvasCommand.Hide.rawValue)
+      add(ClawdisCanvasCommand.Navigate.rawValue)
+      add(ClawdisCanvasCommand.Eval.rawValue)
+      add(ClawdisCanvasCommand.Snapshot.rawValue)
+      add(ClawdisCanvasA2UICommand.Push.rawValue)
+      add(ClawdisCanvasA2UICommand.PushJSONL.rawValue)
+      add(ClawdisCanvasA2UICommand.Reset.rawValue)
+      add(ClawdisScreenCommand.Record.rawValue)
+      if (cameraEnabled.value) {
+        add(ClawdisCameraCommand.Snap.rawValue)
+        add(ClawdisCameraCommand.Clip.rawValue)
+      }
+      if (locationMode.value != LocationMode.Off) {
+        add(ClawdisLocationCommand.Get.rawValue)
+      }
+      if (sms.canSendSms()) {
+        add(ClawdisSmsCommand.Send.rawValue)
+      }
+    }
+
+  private fun buildCapabilities(): List<String> =
+    buildList {
+      add(ClawdisCapability.Canvas.rawValue)
+      add(ClawdisCapability.Screen.rawValue)
+      if (cameraEnabled.value) add(ClawdisCapability.Camera.rawValue)
+      if (sms.canSendSms()) add(ClawdisCapability.Sms.rawValue)
+      if (voiceWakeMode.value != VoiceWakeMode.Off && hasRecordAudioPermission()) {
+        add(ClawdisCapability.VoiceWake.rawValue)
+      }
+      if (locationMode.value != LocationMode.Off) {
+        add(ClawdisCapability.Location.rawValue)
+      }
+    }
+
+  private fun buildPairingHello(token: String?): BridgePairingClient.Hello {
+    val modelIdentifier = listOfNotNull(Build.MANUFACTURER, Build.MODEL)
+      .joinToString(" ")
+      .trim()
+      .ifEmpty { null }
+    val versionName = BuildConfig.VERSION_NAME.trim().ifEmpty { "dev" }
+    val advertisedVersion =
+      if (BuildConfig.DEBUG && !versionName.contains("dev", ignoreCase = true)) {
+        "$versionName-dev"
+      } else {
+        versionName
+      }
+    return BridgePairingClient.Hello(
+      nodeId = instanceId.value,
+      displayName = displayName.value,
+      token = token,
+      platform = "Android",
+      version = advertisedVersion,
+      deviceFamily = "Android",
+      modelIdentifier = modelIdentifier,
+      caps = buildCapabilities(),
+      commands = buildInvokeCommands(),
+    )
+  }
+
+  private fun buildSessionHello(token: String?): BridgeSession.Hello {
+    val modelIdentifier = listOfNotNull(Build.MANUFACTURER, Build.MODEL)
+      .joinToString(" ")
+      .trim()
+      .ifEmpty { null }
+    val versionName = BuildConfig.VERSION_NAME.trim().ifEmpty { "dev" }
+    val advertisedVersion =
+      if (BuildConfig.DEBUG && !versionName.contains("dev", ignoreCase = true)) {
+        "$versionName-dev"
+      } else {
+        versionName
+      }
+    return BridgeSession.Hello(
+      nodeId = instanceId.value,
+      displayName = displayName.value,
+      token = token,
+      platform = "Android",
+      version = advertisedVersion,
+      deviceFamily = "Android",
+      modelIdentifier = modelIdentifier,
+      caps = buildCapabilities(),
+      commands = buildInvokeCommands(),
+    )
+  }
+
+  fun refreshBridgeHello() {
+    scope.launch {
+      if (!_isConnected.value) return@launch
+      val token = prefs.loadBridgeToken()
+      if (token.isNullOrBlank()) return@launch
+      session.updateHello(buildSessionHello(token))
+    }
+  }
+
   fun connect(endpoint: BridgeEndpoint) {
     scope.launch {
       _statusText.value = "Connecting…"
       val storedToken = prefs.loadBridgeToken()
-      val modelIdentifier = listOfNotNull(Build.MANUFACTURER, Build.MODEL)
-        .joinToString(" ")
-        .trim()
-        .ifEmpty { null }
-
-      val invokeCommands =
-        buildList {
-          add(ClawdisCanvasCommand.Present.rawValue)
-          add(ClawdisCanvasCommand.Hide.rawValue)
-          add(ClawdisCanvasCommand.Navigate.rawValue)
-          add(ClawdisCanvasCommand.Eval.rawValue)
-          add(ClawdisCanvasCommand.Snapshot.rawValue)
-          add(ClawdisCanvasA2UICommand.Push.rawValue)
-          add(ClawdisCanvasA2UICommand.PushJSONL.rawValue)
-          add(ClawdisCanvasA2UICommand.Reset.rawValue)
-          add(ClawdisScreenCommand.Record.rawValue)
-          if (cameraEnabled.value) {
-            add(ClawdisCameraCommand.Snap.rawValue)
-            add(ClawdisCameraCommand.Clip.rawValue)
-          }
-          if (locationMode.value != LocationMode.Off) {
-            add(ClawdisLocationCommand.Get.rawValue)
-          }
-        }
       val resolved =
         if (storedToken.isNullOrBlank()) {
           _statusText.value = "Pairing…"
-          val caps = buildList {
-            add(ClawdisCapability.Canvas.rawValue)
-            add(ClawdisCapability.Screen.rawValue)
-            if (cameraEnabled.value) add(ClawdisCapability.Camera.rawValue)
-            if (voiceWakeMode.value != VoiceWakeMode.Off && hasRecordAudioPermission()) {
-              add(ClawdisCapability.VoiceWake.rawValue)
-            }
-            if (locationMode.value != LocationMode.Off) {
-              add(ClawdisCapability.Location.rawValue)
-            }
-          }
-          val versionName = BuildConfig.VERSION_NAME.trim().ifEmpty { "dev" }
-          val advertisedVersion =
-            if (BuildConfig.DEBUG && !versionName.contains("dev", ignoreCase = true)) {
-              "$versionName-dev"
-            } else {
-              versionName
-            }
           BridgePairingClient().pairAndHello(
             endpoint = endpoint,
-            hello =
-              BridgePairingClient.Hello(
-                nodeId = instanceId.value,
-                displayName = displayName.value,
-                token = null,
-                platform = "Android",
-                version = advertisedVersion,
-                deviceFamily = "Android",
-                modelIdentifier = modelIdentifier,
-                caps = caps,
-                commands = invokeCommands,
-              ),
+            hello = buildPairingHello(token = null),
           )
         } else {
           BridgePairingClient.PairResult(ok = true, token = storedToken.trim())
@@ -440,38 +486,9 @@ class NodeRuntime(context: Context) {
 
       val authToken = requireNotNull(resolved.token).trim()
       prefs.saveBridgeToken(authToken)
-      val versionName = BuildConfig.VERSION_NAME.trim().ifEmpty { "dev" }
-      val advertisedVersion =
-        if (BuildConfig.DEBUG && !versionName.contains("dev", ignoreCase = true)) {
-          "$versionName-dev"
-        } else {
-          versionName
-        }
       session.connect(
         endpoint = endpoint,
-        hello =
-          BridgeSession.Hello(
-            nodeId = instanceId.value,
-            displayName = displayName.value,
-            token = authToken,
-            platform = "Android",
-            version = advertisedVersion,
-            deviceFamily = "Android",
-            modelIdentifier = modelIdentifier,
-            caps =
-              buildList {
-                add(ClawdisCapability.Canvas.rawValue)
-                add(ClawdisCapability.Screen.rawValue)
-                if (cameraEnabled.value) add(ClawdisCapability.Camera.rawValue)
-                if (voiceWakeMode.value != VoiceWakeMode.Off && hasRecordAudioPermission()) {
-                  add(ClawdisCapability.VoiceWake.rawValue)
-                }
-                if (locationMode.value != LocationMode.Off) {
-                  add(ClawdisCapability.Location.rawValue)
-                }
-              },
-            commands = invokeCommands,
-          ),
+        hello = buildSessionHello(token = authToken),
       )
     }
   }
@@ -909,6 +926,17 @@ class NodeRuntime(context: Context) {
           BridgeSession.InvokeResult.ok(res.payloadJson)
         } finally {
           _screenRecordActive.value = false
+        }
+      }
+      ClawdisSmsCommand.Send.rawValue -> {
+        val res = sms.send(paramsJson)
+        if (res.ok) {
+          BridgeSession.InvokeResult.ok(res.payloadJson)
+        } else {
+          val error = res.error ?: "SMS_SEND_FAILED"
+          val idx = error.indexOf(':')
+          val code = if (idx > 0) error.substring(0, idx).trim() else "SMS_SEND_FAILED"
+          BridgeSession.InvokeResult.error(code = code, message = error)
         }
       }
       else ->

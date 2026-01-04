@@ -7,6 +7,7 @@ import com.clawdis.android.chat.OutgoingAttachment
 import com.clawdis.android.node.CameraCaptureManager
 import com.clawdis.android.node.CanvasController
 import com.clawdis.android.node.ScreenRecordManager
+import com.clawdis.android.node.SmsManager
 import kotlinx.coroutines.flow.StateFlow
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -15,6 +16,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
   val canvas: CanvasController = runtime.canvas
   val camera: CameraCaptureManager = runtime.camera
   val screenRecorder: ScreenRecordManager = runtime.screenRecorder
+  val sms: SmsManager = runtime.sms
 
   val bridges: StateFlow<List<BridgeEndpoint>> = runtime.bridges
   val discoveryStatusText: StateFlow<String> = runtime.discoveryStatusText
@@ -114,6 +116,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
   fun setTalkEnabled(enabled: Boolean) {
     runtime.setTalkEnabled(enabled)
+  }
+
+  fun refreshBridgeHello() {
+    runtime.refreshBridgeHello()
   }
 
   fun connect(endpoint: BridgeEndpoint) {
