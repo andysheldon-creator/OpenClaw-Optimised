@@ -1381,6 +1381,14 @@ export async function monitorWebProvider(
             );
             return;
           }
+
+          // Enforce allowFrom in groups: only process messages from allowed senders
+          if (!isOwner) {
+            logVerbose(
+              `Ignoring group message from non-owner ${msg.senderE164} in ${conversationId}`,
+            );
+            return;
+          }
         }
 
         return processMessage(msg);
