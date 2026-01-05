@@ -432,16 +432,26 @@ Default: `~/clawd`.
 If `agent.sandbox` is enabled, non-main sessions can override this with their
 own per-session workspaces under `agent.sandbox.workspaceRoot`.
 
+### `agent.userTimezone`
+
+Sets the user’s timezone for **system prompt context** (not for timestamps in
+message envelopes). If unset, Clawdbot uses the host timezone at runtime.
+
+```json5
+{
+  agent: { userTimezone: "America/Chicago" }
+}
+```
+
 ### `messages`
 
-Controls inbound/outbound prefixes and timestamps.
+Controls inbound/outbound prefixes.
 
 ```json5
 {
   messages: {
     messagePrefix: "[clawdbot]",
-    responsePrefix: "🦞",
-    timestampPrefix: "Europe/London"
+    responsePrefix: "🦞"
   }
 }
 ```
@@ -560,6 +570,7 @@ Z.AI models are available as `zai/<model>` (e.g. `zai/glm-4.7`) and require
 - `target`: optional delivery channel (`last`, `whatsapp`, `telegram`, `discord`, `imessage`, `none`). Default: `last`.
 - `to`: optional recipient override (E.164 for WhatsApp, chat id for Telegram).
 - `prompt`: optional override for the heartbeat body (default: `HEARTBEAT`).
+- `ackMaxChars`: max chars allowed after `HEARTBEAT_OK` before delivery (default: 30).
 
 `agent.bash` configures background bash defaults:
 - `backgroundMs`: time before auto-background (ms, default 10000)
