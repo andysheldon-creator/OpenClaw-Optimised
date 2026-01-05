@@ -138,11 +138,9 @@ COMPLETION*.md
 IMPLEMENTATION*.md
 
 # Test scripts and documentation (Python, Shell, and Markdown)
-test_*.py
-test_*.sh
-test-*.sh
-test-*.md
-test-*.md
+test*.py
+test*.sh
+test*.md
 *-test.py
 *-test.sh
 *-test.md
