@@ -34,4 +34,32 @@ describe("cron tool", () => {
     expect(call.method).toBe(`cron.${action}`);
     expect(call.params).toEqual(expectedParams);
   });
+
+  it("normalizes cron.add job payloads", async () => {
+    const tool = createCronTool();
+    await tool.execute("call2", {
+      action: "add",
+      job: {
+        data: {
+          name: "wake-up",
+          schedule: { atMs: 123 },
+          payload: { text: "hello" },
+        },
+      },
+    });
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+      params?: unknown;
+    };
+    expect(call.method).toBe("cron.add");
+    expect(call.params).toEqual({
+      name: "wake-up",
+      schedule: { kind: "at", atMs: 123 },
+      sessionTarget: "main",
+      wakeMode: "next-heartbeat",
+      payload: { kind: "systemEvent", text: "hello" },
+    });
+  });
 });
