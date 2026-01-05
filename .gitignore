@@ -128,6 +128,7 @@ monitor.sh
 # Investigation/draft markdown files
 *-INVESTIGATION.md
 *INVESTIGATION.md
+INVESTIGATION*.md
 *-investigation.md
 *investigation.md
 
@@ -139,6 +140,7 @@ IMPLEMENTATION*.md
 # Test scripts and documentation (Python, Shell, and Markdown)
 test_*.py
 test_*.sh
+test-*.sh
 test_*.md
 *-test.py
 *-test.sh
