@@ -1,0 +1,34 @@
+{
+  "alerts": [
+    {
+      "id": "db6a9a89",
+      "user_id": "+18572646913",
+      "coin": "bitcoin",
+      "type": "above",
+      "threshold": 100000.0,
+      "created_at": "2026-01-05T23:08:27.016698+00:00",
+      "last_triggered": null,
+      "cooldown_hours": 1
+    },
+    {
+      "id": "45f008d5",
+      "user_id": "+18572646913",
+      "coin": "ethereum",
+      "type": "below",
+      "threshold": 3000.0,
+      "created_at": "2026-01-05T23:08:27.381051+00:00",
+      "last_triggered": null,
+      "cooldown_hours": 1
+    },
+    {
+      "id": "6d49da69",
+      "user_id": "+18572646913",
+      "coin": "solana",
+      "type": "drop",
+      "threshold": 10.0,
+      "created_at": "2026-01-05T23:08:27.747554+00:00",
+      "last_triggered": null,
+      "cooldown_hours": 1
+    }
+  ]
+}
