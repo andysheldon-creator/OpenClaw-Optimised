@@ -1,0 +1,84 @@
+{
+  "lastChecks": {
+    "email": 1736024530,
+    "calendar": 1736024530,
+    "weather": null,
+    "mentions": null,
+    "etsyWeekly": null,
+    "pplReminders": null
+  },
+  "settings": {
+    "enabled": true,
+    "frequency": "every 4 hours",
+    "quietHours": {
+      "start": "01:00",
+      "end": "05:00"
+    },
+    "checks": {
+      "email": true,
+      "calendar": true,
+      "weather": false,
+      "dailyVerse": {
+        "enabled": true,
+        "time": "06:05",
+        "lastSent": null
+      },
+      "etsyWeekly": {
+        "enabled": true,
+        "dayOfWeek": 0,
+        "time": "18:00",
+        "lastSent": null,
+        "shops": {
+          "patterns4printing": {
+            "shopId": "41917012",
+            "shopName": "Patterns4Printing",
+            "operator": "Lisbeth",
+            "apiKeyEnv": "ETSY_API_KEY_P4P",
+            "lastStats": {
+              "activeListings": 119,
+              "sales": 43,
+              "favorites": 14,
+              "reviewAverage": 3.0,
+              "reviewCount": 2
+            }
+          },
+          "customcanvascurators": {
+            "shopId": "41966184",
+            "shopName": "CustomCanvasCurators",
+            "operator": "Avery Thompson",
+            "apiKeyEnv": "ETSY_API_KEY_CCC",
+            "lastStats": {
+              "activeListings": 1169,
+              "sales": 583,
+              "favorites": 143,
+              "reviewAverage": 4.8077,
+              "reviewCount": 26
+            }
+          }
+        }
+      },
+      "pplReminders": {
+        "enabled": true,
+        "checkFrequency": "daily",
+        "alertDaysBefore": 3,
+        "lastChecked": null,
+        "notifiedBirthdays": [],
+        "keyBirthdays": {
+          "immediate_family": [
+            {"name": "Erin Hurley", "id": 687400, "date": "12-31", "relation": "wife"},
+            {"name": "Kate Hurley", "id": 687401, "date": "05-22", "relation": "daughter"},
+            {"name": "Claire Hurley", "id": 687402, "date": "08-15", "relation": "daughter"},
+            {"name": "Samuel Hurley", "id": 687403, "date": "09-23", "relation": "son"}
+          ],
+          "upcoming": [
+            {"name": "Logan Hodges", "date": "01-12"},
+            {"name": "Alana Hodges", "date": "01-18"},
+            {"name": "Alex Allred", "date": "01-30"},
+            {"name": "Evan Allred", "date": "02-02"},
+            {"name": "Brenda Allred (Mawmaw)", "date": "02-03"}
+          ]
+        }
+      }
+    }
+  }
+}

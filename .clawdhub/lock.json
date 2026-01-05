@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "openhue": {
+      "version": "1.0.0",
+      "installedAt": 1767556754940
+    },
+    "nano-pdf": {
+      "version": "1.0.0",
+      "installedAt": 1767564035219
+    },
+    "nano-banana-pro": {
+      "version": "1.0.0",
+      "installedAt": 1767566175155
+    },
+    "apple-notes": {
+      "version": "1.0.0",
+      "installedAt": 1767570758502
+    },
+    "gog": {
+      "version": "1.0.0",
+      "installedAt": 1767580481019
+    },
+    "bird": {
+      "version": "1.0.0",
+      "installedAt": 1767586194563
+    }
+  }
+}

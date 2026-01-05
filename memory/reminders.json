@@ -1,0 +1,20 @@
+{
+  "reminders": [
+    {
+      "id": "crockpot-2026-01-05",
+      "time": "2026-01-05T14:00:00-05:00",
+      "timeMs": 1736100000000,
+      "target": "whatsapp:+18572646913",
+      "message": "🍲 Time to start the crockpot!\n\n1. Season chicken with salt & pepper\n2. Layer chicken in crockpot\n3. Pour entire bottle of BWW Parmesan Garlic sauce over chicken\n4. Add milk to empty bottle, shake, pour over chicken\n5. Add cream cheese cubes + parmesan\n6. Cook on HIGH 2-3hrs or LOW 3-4hrs",
+      "sent": false
+    },
+    {
+      "id": "kate-airport-2026-01-09",
+      "time": "2026-01-09T14:30:00-05:00",
+      "timeMs": 1736451000000,
+      "target": "whatsapp:+18572646913",
+      "message": "✈️ Kate's flight reminder!\n\nBreeze 5pm PVD→ORF\nShe has TSA Pre, but leave Lexington by 3pm to be safe.\n\nHave a good trip, Kate! 💜",
+      "sent": false
+    }
+  ]
+}
