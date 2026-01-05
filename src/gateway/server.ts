@@ -2989,6 +2989,29 @@ export async function startGatewayServer(
               clientRunId,
             });
 
+            // Instant acknowledgment
+            let ackText = "🤔 Думаю...";
+            if (normalizedAttachments.length > 0) {
+              const first = normalizedAttachments[0];
+              if (first.mimeType?.startsWith("image/")) ackText = "📸 Вижу фото, сейчас посмотрю...";
+              else if (first.mimeType?.startsWith("video/")) ackText = "🎥 Вижу видео, сейчас изучу...";
+              else if (first.mimeType?.startsWith("audio/")) ackText = "🎙️ Слушаю аудио...";
+              else ackText = "📂 Вижу файл, сейчас проверю...";
+            }
+            const ackPayload = {
+              runId: clientRunId,
+              sessionKey: p.sessionKey,
+              seq: 0,
+              state: "delta" as const,
+              message: {
+                role: "assistant",
+                content: [{ type: "text", text: ackText }],
+                timestamp: Date.now(),
+              },
+            };
+            broadcast("chat", ackPayload);
+            bridgeSendToSession(p.sessionKey, "chat", ackPayload);
+
             if (store) {
               store[p.sessionKey] = sessionEntry;
               if (storePath) {
@@ -3477,6 +3500,27 @@ export async function startGatewayServer(
         sessionKey,
         seq: evt.seq,
       };
+
+      if (
+        evt.stream === "tool" &&
+        typeof evt.data?.name === "string" &&
+        evt.data.phase === "start"
+      ) {
+        const payload = {
+          ...base,
+          state: "delta" as const,
+          message: {
+            role: "assistant",
+            content: [
+              { type: "text", text: `🛠️ Использую инструмент: **${evt.data.name}**...` },
+            ],
+            timestamp: Date.now(),
+          },
+        };
+        broadcast("chat", payload);
+        bridgeSendToSession(sessionKey, "chat", payload);
+      }
+
       if (evt.stream === "assistant" && typeof evt.data?.text === "string") {
         chatRunBuffers.set(clientRunId, evt.data.text);
         const now = Date.now();
@@ -4247,6 +4291,29 @@ export async function startGatewayServer(
                   sessionKey: p.sessionKey,
                   clientRunId,
                 });
+
+                // Instant acknowledgment
+                let ackText = "🤔 Думаю...";
+                if (normalizedAttachments.length > 0) {
+                  const first = normalizedAttachments[0];
+                  if (first.mimeType?.startsWith("image/")) ackText = "📸 Вижу фото, сейчас посмотрю...";
+                  else if (first.mimeType?.startsWith("video/")) ackText = "🎥 Вижу видео, сейчас изучу...";
+                  else if (first.mimeType?.startsWith("audio/")) ackText = "🎙️ Слушаю аудио...";
+                  else ackText = "📂 Вижу файл, сейчас проверю...";
+                }
+                const ackPayload = {
+                  runId: clientRunId,
+                  sessionKey: p.sessionKey,
+                  seq: 0,
+                  state: "delta" as const,
+                  message: {
+                    role: "assistant",
+                    content: [{ type: "text", text: ackText }],
+                    timestamp: Date.now(),
+                  },
+                };
+                broadcast("chat", ackPayload);
+                bridgeSendToSession(p.sessionKey, "chat", ackPayload);
 
                 if (store) {
                   store[p.sessionKey] = sessionEntry;

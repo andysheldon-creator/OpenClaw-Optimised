@@ -1079,6 +1079,29 @@ export async function monitorWebProvider(
           });
       };
 
+      const sendToolStart = (payload: { name: string }) => {
+        const text = `🛠️ Использую инструмент: *${payload.name}*...`;
+        toolSendChain = toolSendChain
+          .then(async () => {
+            await msg.reply(text);
+          })
+          .catch((err) => {
+            whatsappOutboundLog.error(
+              `Failed sending web tool start to ${msg.from ?? conversationId}: ${formatError(err)}`,
+            );
+          });
+      };
+
+      // Immediate acknowledgment
+      let ackText = "🤔 Думаю...";
+      if (msg.mediaType) {
+        if (msg.mediaType.startsWith("image/")) ackText = "📸 Вижу фото, сейчас посмотрю...";
+        else if (msg.mediaType.startsWith("video/")) ackText = "🎥 Вижу видео, сейчас изучу...";
+        else if (msg.mediaType.startsWith("audio/")) ackText = "🎙️ Слушаю аудио...";
+        else ackText = "📂 Вижу файл, сейчас проверю...";
+      }
+      await msg.reply(ackText);
+
       const replyResult = await (replyResolver ?? getReplyFromConfig)(
         {
           Body: combinedBody,
@@ -1106,6 +1129,7 @@ export async function monitorWebProvider(
         {
           onReplyStart: msg.sendComposing,
           onToolResult: sendToolResult,
+          onToolStart: sendToolStart,
         },
       );
 

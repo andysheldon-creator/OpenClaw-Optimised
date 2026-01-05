@@ -4,8 +4,7 @@
 
 import type { WebSearchResult } from './messages.js';
 import type { ExecuteResult, ExecuteOptions } from '../deep-research/executor.js';
-import { executeGeminiSearch } from './gemini-cli.js';
-import { loadConfig, getDefaultWebSearchCliPath } from '../config/config.js';
+import { loadConfig } from '../config/config.js';
 
 export interface ExecuteWebSearchOptions extends Omit<ExecuteOptions, 'topic'> {
   cliPath?: string;
@@ -25,7 +24,6 @@ export async function executeWebSearch(
 ): Promise<ExecuteWebSearchResult> {
   const cfg = loadConfig();
   const {
-    cliPath = cfg.webSearch?.cliPath ?? getDefaultWebSearchCliPath(),
     timeoutMs = cfg.webSearch?.timeoutMs ?? 30000,
     dryRun = false,
   } = options;
@@ -61,26 +59,36 @@ export async function executeWebSearch(
       throw new Error("Query too long (max 200 characters)");
     }
     
-    // Use the standalone gemini CLI module
-    const result = await executeGeminiSearch(query, { 
-      timeoutMs, 
-      cliPath,
-      model: cfg.webSearch?.geminiModel
+    // Use the unified CLI approach (same as Pi agent)
+    const { exec } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execAsync = promisify(exec);
+    
+    const cliPath = "/home/almaz/zoo_flow/clawdis/google_web";
+    const { stdout, stderr } = await execAsync(`${cliPath} ${JSON.stringify(query)}`, {
+      timeout: timeoutMs,
+      env: process.env,
     });
+    
+    if (stderr) {
+      console.warn(`[web-search] CLI stderr: ${stderr}`);
+    }
+    
+    const result = JSON.parse(stdout.trim());
     
     return {
       success: true,
-      runId: result.session_id,
+      runId: result.session_id || `web-${Date.now()}`,
       result,
       stdout: JSON.stringify(result),
       stderr: ""
     };
     
   } catch (error) {
-    // Simple error handling
     const errorStr = String(error);
+    console.error(`[web-search] Failed: ${errorStr}`);
     
-    let errorMessage = `Search failed: ${errorStr}`;
+    let errorMessage = `❌ Поиск не удался: ${errorStr}`;
     
     // Make error messages more user-friendly
     if (errorStr.includes('timeout')) {
@@ -91,6 +99,8 @@ export async function executeWebSearch(
       errorMessage = '❌ Запрос слишком короткий';
     } else if (errorStr.includes('too long')) {
       errorMessage = '❌ Запрос слишком длинный (макс. 200 символов)';
+    } else if (errorStr.includes('Command failed')) {
+      errorMessage = '❌ Ошибка при выполнении поиска';
     }
     
     return {

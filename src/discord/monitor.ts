@@ -215,10 +215,75 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
         );
       }
 
+      // Immediate acknowledgment
+      let ackText = "🤔 Думаю...";
+      if (media) {
+        if (media.placeholder === "<media:image>") ackText = "📸 Вижу фото, сейчас посмотрю...";
+        else if (media.placeholder === "<media:video>") ackText = "🎥 Вижу видео, сейчас изучу...";
+        else if (media.placeholder === "<media:audio>") ackText = "🎙️ Слушаю аудио...";
+        else ackText = "📂 Вижу файл, сейчас проверю...";
+      }
+      const progressStatus = await message.reply(ackText);
+
+      let statusEdited = false;
+      const deliver = async (payload: ReplyPayload) => {
+        const mediaList =
+          payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []);
+        const text = payload.text ?? "";
+        if (!text && mediaList.length === 0) return;
+        
+        if (mediaList.length === 0) {
+          const chunks = chunkText(text, 2000);
+          for (const chunk of chunks) {
+            if (!statusEdited) {
+              try {
+                await progressStatus.edit(chunk);
+                statusEdited = true;
+                continue;
+              } catch {
+                /* fallback to new message */
+              }
+            }
+            await sendMessageDiscord(ctxPayload.To, chunk, { token });
+          }
+        } else {
+          if (!statusEdited) {
+            try {
+              await progressStatus.edit("✅ Готово");
+              statusEdited = true;
+            } catch {
+              /* ignore */
+            }
+          }
+          let first = true;
+          for (const mediaUrl of mediaList) {
+            const caption = first ? text : "";
+            first = false;
+            await sendMessageDiscord(ctxPayload.To, caption, {
+              token,
+              mediaUrl,
+            });
+          }
+        }
+      };
+
       const replyResult = await getReplyFromConfig(
         ctxPayload,
         {
           onReplyStart: () => sendTyping(message),
+          onToolStart: async ({ name }) => {
+            try {
+              await progressStatus.edit(`🛠️ Использую инструмент: **${name}**...`);
+            } catch {
+              /* ignore edit failures */
+            }
+          },
+          onToolResult: async (payload) => {
+            await deliver(payload);
+          },
+          onPartialReply: async (payload) => {
+            await deliver(payload);
+          },
         },
         cfg,
       );
@@ -229,12 +294,10 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
         : [];
       if (replies.length === 0) return;
 
-      await deliverReplies({
-        replies,
-        target: ctxPayload.To,
-        token,
-        runtime,
-      });
+      for (const reply of replies) {
+        await deliver(reply);
+      }
+      runtime.log?.(`discord: delivered reply to ${ctxPayload.To}`);
     } catch (err) {
       runtime.error?.(danger(`Discord handler failed: ${String(err)}`));
     }

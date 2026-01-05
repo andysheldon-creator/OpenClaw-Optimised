@@ -101,12 +101,30 @@ export function createTelegramBot(opts: TelegramBotOptions) {
   const logger = getChildLogger({ module: "telegram-auto-reply" });
 
   bot.on("message", async (ctx) => {
+    let progressStatus: StatusMessage | null = null;
     try {
       const msg = ctx.message;
       if (!msg) return;
       const chatId = msg.chat.id;
       const isGroup =
         msg.chat.type === "group" || msg.chat.type === "supergroup";
+
+      // Instant acknowledgment at the very beginning
+      try {
+        let initialAck = "🤔 Думаю...";
+        if (msg.photo) initialAck = "📸 Вижу фото, сейчас посмотрю...";
+        else if (msg.video) initialAck = "🎥 Вижу видео, сейчас изучу...";
+        else if (msg.voice || msg.audio) initialAck = "🎙️ Слушаю аудио...";
+        else if (msg.document) initialAck = "📂 Вижу файл, сейчас проверю...";
+        
+        const status = await ctx.reply(initialAck);
+        progressStatus = {
+          chatId: ctx.chat?.id ?? chatId,
+          messageId: status.message_id,
+        };
+      } catch (err) {
+        logVerbose(`telegram initial ack failed: ${String(err)}`);
+      }
 
       const sendTyping = async () => {
         try {
@@ -157,27 +175,14 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         !msg.caption &&
         media?.contentType &&
         isAudio(media.contentType);
-      let audioStatus: StatusMessage | null = null;
-      if (isAudioInput) {
-        try {
-          const status = await ctx.reply(AUDIO_STATUS_MESSAGE);
-          audioStatus = {
-            chatId: ctx.chat?.id ?? chatId,
-            messageId: status.message_id,
-          };
-        } catch (err) {
-          logVerbose(
-            `telegram audio status failed for chat ${chatId}: ${String(err)}`,
-          );
-        }
-      }
+      
       let transcript: string | undefined;
       if (
-        !msg.text &&
-        !msg.caption &&
-        media?.contentType &&
-        isAudio(media.contentType)
+        isAudioInput
       ) {
+        if (progressStatus) {
+          await editTelegramMessage(ctx.api, progressStatus, "🎙️ Голосовое получено. Распознаю...");
+        }
         const transcribed = await transcribeInboundAudio(
           cfg,
           {
@@ -203,7 +208,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           chatId,
           messageText,
           transcript,
-          audioStatus,
+          progressStatus,
         )
       ) {
         return;
@@ -214,14 +219,24 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       if (webCommand) {
         const query = webCommand.query.trim();
         if (!query) {
-          await ctx.reply(
-            webSearchMessages.error(
-              "Please provide a search query after /web",
-            ),
-          );
+          if (progressStatus) {
+            await editTelegramMessage(
+              ctx.api,
+              progressStatus,
+              webSearchMessages.error(
+                "Please provide a search query after /web",
+              ),
+            );
+          } else {
+            await ctx.reply(
+              webSearchMessages.error(
+                "Please provide a search query after /web",
+              ),
+            );
+          }
           return;
         }
-        await runWebSearch(ctx, chatId, query, logger, audioStatus);
+        await runWebSearch(ctx, chatId, query, logger, progressStatus);
         return;
       }
 
@@ -235,7 +250,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           messageText,
           transcript,
           logger,
-          audioStatus,
+          progressStatus,
         ))
       ) {
         return;
@@ -309,7 +324,31 @@ export function createTelegramBot(opts: TelegramBotOptions) {
 
       const replyResult = await getReplyFromConfig(
         ctxPayload,
-        { onReplyStart: sendTyping },
+        {
+          onReplyStart: sendTyping,
+          waitForFinalReply: true, // Wait for final reply instead of streaming
+          // Tool streaming enabled - shows "Using tool: X..." messages
+          onToolStart: async ({ name }) => {
+            if (progressStatus) {
+              await editTelegramMessage(
+                bot.api,
+                progressStatus,
+                `🛠️ Использую инструмент: *${name}*...`,
+              );
+            }
+          },
+          onToolResult: async (payload) => {
+            await deliverReplies({
+              replies: [payload],
+              chatId: String(chatId),
+              token: opts.token,
+              runtime,
+              bot,
+              statusMessage: progressStatus,
+            });
+          },
+          // onPartialReply will be suppressed by waitForFinalReply
+        },
         cfg,
       );
       const replies = replyResult
@@ -325,7 +364,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         token: opts.token,
         runtime,
         bot,
-        statusMessage: audioStatus,
+        statusMessage: progressStatus,
       });
     } catch (err) {
       // Clean up in-flight sets on error (if chatId was defined)
