@@ -1,20 +1,19 @@
 #!/bin/bash
 # google_web - Simple AI-friendly CLI wrapper for web searches
-# Supports both Gemini and Brave search backends
+# Uses Gemini search backend only
 
 set -e
 
 # Default configuration
-BACKEND="${GOOGLE_WEB_BACKEND:-gemini}"
+BACKEND="gemini"
 DEFAULT_GEMINI_PATH="/home/almaz/TOOLS/web_search_by_gemini/web-search-by-Gemini.sh"
-DEFAULT_BRAVE_PATH="/home/almaz/TOOLS/brave-search/brave-web-search.sh"
 
 # Show help
 show_help() {
     cat << 'EOF'
 🔍 Google Web Search CLI
 
-Search the web using AI-powered backends (Gemini or Brave).
+Search the web using Gemini AI.
 
 USAGE:
     google_web [OPTIONS] "<search query>"
@@ -22,7 +21,6 @@ USAGE:
     google_web -h
 
 OPTIONS:
-    --backend <gemini|brave>    Choose search backend (default: gemini)
     --timeout <seconds>         Set timeout (default: 30)
     --format <json|text>        Output format (default: json)
     --dry-run                   Show what would be executed without calling API
@@ -30,20 +28,16 @@ OPTIONS:
 
 EXAMPLES:
     google_web "погода в Москве"
-    google_web --backend brave "latest AI news"
     google_web --dry-run "python tutorial"
     google_web --format text "capital of Japan"
     google_web -h
 
 ENVIRONMENT VARIABLES:
-    GOOGLE_WEB_BACKEND    Default backend (gemini or brave)
     GEMINI_CLI_PATH      Path to Gemini CLI tool
-    BRAVE_CLI_PATH       Path to Brave search CLI
     WEB_SEARCH_TIMEOUT   Default timeout in seconds
 
-BACKENDS:
+BACKEND:
     gemini    Uses Gemini CLI with web search capability
-    brave     Uses Brave Search API (requires BRAVE_API_KEY)
 
 EXIT CODES:
     0    Success
@@ -60,18 +54,11 @@ OUTPUT FORMAT:
       "stats": { "models": { ... } }
     }
 
-    Brave backend returns JSON:
-    {
-      "query": "original query",
-      "results": [ ... ],
-      "metadata": { ... }
-    }
-
     Text format returns plain text summary.
 
 AI AGENT BEST PRACTICES:
     • Use for current information (weather, news, events)
-    • Results always in Russian (Gemini) or English (Brave)
+    • Results always in Russian
     • 5-10 second typical response time
     • No caching (always fresh results)
     • Visual distinction: 🌐 Результат поиска:
@@ -79,7 +66,6 @@ AI AGENT BEST PRACTICES:
 
 SEE ALSO:
     • SDD: docs/sdd/web-search-via-gemini-cli/
-    • Skills: skills/brave-search/SKILL.md
     • Tool: /home/almaz/TOOLS/web_search_by_gemini/README.md
 EOF
     exit 0
@@ -92,7 +78,6 @@ error_exit() {
 }
 
 # Parse arguments
-BACKEND="${GOOGLE_WEB_BACKEND:-gemini}"
 TIMEOUT="${WEB_SEARCH_TIMEOUT:-30}"
 FORMAT="json"
 DRY_RUN="false"
@@ -100,10 +85,6 @@ QUERY=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --backend)
-            BACKEND="$2"
-            shift 2
-            ;;
         --timeout)
             TIMEOUT="$2"
             shift 2
@@ -137,32 +118,16 @@ if [[ ${#QUERY} -lt 3 ]]; then
 fi
 
 # Determine CLI path
-if [[ "$BACKEND" == "gemini" ]]; then
-    CLI_PATH="${GEMINI_CLI_PATH:-$DEFAULT_GEMINI_PATH}"
-elif [[ "$BACKEND" == "brave" ]]; then
-    CLI_PATH="${BRAVE_CLI_PATH:-$DEFAULT_BRAVE_PATH}"
-else
-    error_exit "Invalid backend: $BACKEND. Use 'gemini' or 'brave'." 2
-fi
+CLI_PATH="${GEMINI_CLI_PATH:-$DEFAULT_GEMINI_PATH}"
 
 # Validate CLI exists
 if [[ ! -f "$CLI_PATH" ]]; then
-    error_exit "CLI not found for backend '$BACKEND' at: $CLI_PATH\nSet ${BACKEND^^}_CLI_PATH environment variable." 2
+    error_exit "CLI not found at: $CLI_PATH\nSet GEMINI_CLI_PATH environment variable." 2
 fi
 
-# Run command
-case $BACKEND in
-    gemini)
-        CMD="\"$CLI_PATH\" --request \"$QUERY\""
-        ;;
-    brave)
-        # Ensure API key is available
-        if [[ -z "${BRAVE_API_KEY:-}" ]]; then
-            error_exit "BRAVE_API_KEY environment variable not set. Required for Brave backend." 2
-        fi
-        CMD="BRAVE_API_KEY=\"$BRAVE_API_KEY\" \"$CLI_PATH\" --request \"$QUERY\""
-        ;;
-esac
+# Build command
+CMD="\"$CLI_PATH\" --request \"$QUERY\""
+
 
 # Add timeout if supported
 if [[ -n "$TIMEOUT" ]]; then
@@ -172,7 +137,6 @@ fi
 # Execute
 if [[ "$DRY_RUN" == "true" ]]; then
     echo "📝 DRY RUN MODE"
-    echo "🐛 DEBUG: Backend=$BACKEND"
     echo "🐛 DEBUG: CLI=$CLI_PATH"
     echo "🐛 DEBUG: Timeout=${TIMEOUT}s"
     echo "🐛 DEBUG: Query=$QUERY"
