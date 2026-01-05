@@ -3,11 +3,10 @@ summary: "How inbound audio/voice notes are downloaded, transcribed, and injecte
 read_when:
   - Changing audio transcription or media handling
 ---
-<!-- {% raw %} -->
 # Audio / Voice Notes — 2025-12-05
 
 ## What works
-- **Optional transcription**: If `routing.transcribeAudio.command` is set in `~/.clawdis/clawdis.json`, CLAWDIS will:
+- **Optional transcription**: If `routing.transcribeAudio.command` is set in `~/.clawdbot/clawdbot.json`, CLAWDBOT will:
   1) Download inbound audio to a temp path when WhatsApp only provides a URL.
   2) Run the configured CLI (templated with `{{MediaPath}}`), expecting transcript on stdout.
   3) Replace `Body` with the transcript, set `{{Transcript}}`, and prepend the original media path plus a `Transcript:` section in the command prompt so models see both.
@@ -47,4 +46,3 @@ Requires `OPENAI_API_KEY` in env and `openai` CLI installed:
 ## Gotchas
 - Ensure your CLI exits 0 and prints plain text; JSON needs to be massaged via `jq -r .text`.
 - Keep timeouts reasonable (`timeoutSeconds`, default 45s) to avoid blocking the reply queue.
-<!-- {% endraw %} -->

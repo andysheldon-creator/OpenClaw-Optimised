@@ -2,7 +2,7 @@ import fs from "node:fs";
 
 import type { Command } from "commander";
 import {
-  CONFIG_PATH_CLAWDIS,
+  CONFIG_PATH_CLAWDBOT,
   loadConfig,
   resolveGatewayPort,
 } from "../config/config.js";
@@ -153,14 +153,14 @@ export function registerGatewayCli(program: Command) {
   program
     .command("gateway-daemon")
     .description("Run the WebSocket Gateway as a long-lived daemon")
-    .option("--port <port>", "Port for the gateway WebSocket", "18789")
+    .option("--port <port>", "Port for the gateway WebSocket")
     .option(
       "--bind <mode>",
       'Bind mode ("loopback"|"tailnet"|"lan"|"auto"). Defaults to config gateway.bind (or loopback).',
     )
     .option(
       "--token <token>",
-      "Shared token required in connect.params.auth.token (default: CLAWDIS_GATEWAY_TOKEN env if set)",
+      "Shared token required in connect.params.auth.token (default: CLAWDBOT_GATEWAY_TOKEN env if set)",
     )
     .option("--auth <mode>", 'Gateway auth mode ("token"|"password")')
     .option("--password <password>", "Password for auth mode=password")
@@ -218,7 +218,7 @@ export function registerGatewayCli(program: Command) {
         return;
       }
       if (opts.token) {
-        process.env.CLAWDIS_GATEWAY_TOKEN = String(opts.token);
+        process.env.CLAWDBOT_GATEWAY_TOKEN = String(opts.token);
       }
       const authModeRaw = opts.auth ? String(opts.auth) : undefined;
       const authMode =
@@ -298,14 +298,14 @@ export function registerGatewayCli(program: Command) {
   const gateway = program
     .command("gateway")
     .description("Run the WebSocket Gateway")
-    .option("--port <port>", "Port for the gateway WebSocket", "18789")
+    .option("--port <port>", "Port for the gateway WebSocket")
     .option(
       "--bind <mode>",
       'Bind mode ("loopback"|"tailnet"|"lan"|"auto"). Defaults to config gateway.bind (or loopback).',
     )
     .option(
       "--token <token>",
-      "Shared token required in connect.params.auth.token (default: CLAWDIS_GATEWAY_TOKEN env if set)",
+      "Shared token required in connect.params.auth.token (default: CLAWDBOT_GATEWAY_TOKEN env if set)",
     )
     .option("--auth <mode>", 'Gateway auth mode ("token"|"password")')
     .option("--password <password>", "Password for auth mode=password")
@@ -404,7 +404,7 @@ export function registerGatewayCli(program: Command) {
         }
       }
       if (opts.token) {
-        process.env.CLAWDIS_GATEWAY_TOKEN = String(opts.token);
+        process.env.CLAWDBOT_GATEWAY_TOKEN = String(opts.token);
       }
       const authModeRaw = opts.auth ? String(opts.auth) : undefined;
       const authMode =
@@ -430,12 +430,12 @@ export function registerGatewayCli(program: Command) {
         defaultRuntime.exit(1);
         return;
       }
-      const configExists = fs.existsSync(CONFIG_PATH_CLAWDIS);
+      const configExists = fs.existsSync(CONFIG_PATH_CLAWDBOT);
       const mode = cfg.gateway?.mode;
       if (!opts.allowUnconfigured && mode !== "local") {
         if (!configExists) {
           defaultRuntime.error(
-            "Missing config. Run `clawdis setup` or set gateway.mode=local (or pass --allow-unconfigured).",
+            "Missing config. Run `clawdbot setup` or set gateway.mode=local (or pass --allow-unconfigured).",
           );
         } else {
           defaultRuntime.error(

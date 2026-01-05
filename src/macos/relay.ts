@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import process from "node:process";
 
-declare const __CLAWDIS_VERSION__: string | undefined;
+declare const __CLAWDBOT_VERSION__: string | undefined;
 
 const BUNDLED_VERSION =
-  typeof __CLAWDIS_VERSION__ === "string" ? __CLAWDIS_VERSION__ : "0.0.0";
+  typeof __CLAWDBOT_VERSION__ === "string" ? __CLAWDBOT_VERSION__ : "0.0.0";
 
 function hasFlag(args: string[], flag: string): boolean {
   return args.includes(flag);
@@ -34,24 +34,28 @@ async function main() {
 
   await patchBunLongForProtobuf();
 
-  const { default: dotenv } = await import("dotenv");
-  dotenv.config({ quiet: true });
+  const { loadDotEnv } = await import("../infra/dotenv.js");
+  loadDotEnv({ quiet: true });
 
-  const { ensureClawdisCliOnPath } = await import("../infra/path-env.js");
-  ensureClawdisCliOnPath();
+  const { ensureClawdbotCliOnPath } = await import("../infra/path-env.js");
+  ensureClawdbotCliOnPath();
 
   const { enableConsoleCapture } = await import("../logging.js");
   enableConsoleCapture();
 
   const { assertSupportedRuntime } = await import("../infra/runtime-guard.js");
   assertSupportedRuntime();
+  const { isUnhandledRejectionHandled } = await import(
+    "../infra/unhandled-rejections.js"
+  );
 
   const { buildProgram } = await import("../cli/program.js");
   const program = buildProgram();
 
   process.on("unhandledRejection", (reason, _promise) => {
+    if (isUnhandledRejectionHandled(reason)) return;
     console.error(
-      "[clawdis] Unhandled promise rejection:",
+      "[clawdbot] Unhandled promise rejection:",
       reason instanceof Error ? (reason.stack ?? reason.message) : reason,
     );
     process.exit(1);
@@ -59,7 +63,7 @@ async function main() {
 
   process.on("uncaughtException", (error) => {
     console.error(
-      "[clawdis] Uncaught exception:",
+      "[clawdbot] Uncaught exception:",
       error.stack ?? error.message,
     );
     process.exit(1);

@@ -12,16 +12,17 @@ import {
   normalizeUsage,
   type UsageLike,
 } from "../agents/usage.js";
-import type { ClawdisConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import {
+  resolveMainSessionKey,
   resolveSessionTranscriptPath,
   type SessionEntry,
   type SessionScope,
 } from "../config/sessions.js";
 import { shortenHomePath } from "../utils.js";
-import type { ThinkLevel, VerboseLevel } from "./thinking.js";
+import type { ElevatedLevel, ThinkLevel, VerboseLevel } from "./thinking.js";
 
-type AgentConfig = NonNullable<ClawdisConfig["agent"]>;
+type AgentConfig = NonNullable<ClawdbotConfig["agent"]>;
 
 type StatusArgs = {
   agent: AgentConfig;
@@ -33,6 +34,8 @@ type StatusArgs = {
   groupActivation?: "mention" | "always";
   resolvedThink?: ThinkLevel;
   resolvedVerbose?: VerboseLevel;
+  resolvedElevated?: ElevatedLevel;
+  modelAuth?: string;
   now?: number;
   webLinked?: boolean;
   webAuthAgeMs?: number | null;
@@ -79,7 +82,7 @@ const readUsageFromSessionLog = (
       model?: string;
     }
   | undefined => {
-  // Transcripts always live at: ~/.clawdis/sessions/<SessionId>.jsonl
+  // Transcripts always live at: ~/.clawdbot/sessions/<SessionId>.jsonl
   if (!sessionId) return undefined;
   const logPath = resolveSessionTranscriptPath(sessionId);
   if (!fs.existsSync(logPath)) return undefined;
@@ -133,6 +136,8 @@ export function buildStatusMessage(args: StatusArgs): string {
     defaultProvider: DEFAULT_PROVIDER,
     defaultModel: DEFAULT_MODEL,
   });
+  const provider =
+    entry?.modelProvider ?? resolved.provider ?? DEFAULT_PROVIDER;
   let model = entry?.model ?? resolved.model ?? DEFAULT_MODEL;
   let contextTokens =
     entry?.contextTokens ??
@@ -162,11 +167,34 @@ export function buildStatusMessage(args: StatusArgs): string {
   const verboseLevel =
     args.resolvedVerbose ?? args.agent?.verboseDefault ?? "off";
   const elevatedLevel =
-    args.sessionEntry?.elevatedLevel ?? args.agent?.elevatedDefault ?? "on";
+    args.resolvedElevated ??
+    args.sessionEntry?.elevatedLevel ??
+    args.agent?.elevatedDefault ??
+    "on";
+
+  const runtime = (() => {
+    const sandboxMode = args.agent?.sandbox?.mode ?? "off";
+    if (sandboxMode === "off")
+      return { line: "Runtime: direct", sandboxed: false };
+    const sessionScope = args.sessionScope ?? "per-sender";
+    const mainKey = resolveMainSessionKey({
+      session: { scope: sessionScope },
+    });
+    const sessionKey = args.sessionKey?.trim();
+    const sandboxed = sessionKey
+      ? sandboxMode === "all" || sessionKey !== mainKey.trim()
+      : false;
+    const runtime = sandboxed ? "docker" : sessionKey ? "direct" : "unknown";
+    const suffix = sandboxed ? ` • elevated ${elevatedLevel}` : "";
+    return {
+      line: `Runtime: ${runtime} (sandbox ${sandboxMode})${suffix}`,
+      sandboxed,
+    };
+  })();
 
   const webLine = (() => {
     if (args.webLinked === false) {
-      return "Web: not linked — run `clawdis login` to scan the QR.";
+      return "Web: not linked — run `clawdbot login` to scan the QR.";
     }
     const authAge = formatAge(args.webAuthAgeMs);
     const heartbeat =
@@ -202,27 +230,39 @@ export function buildStatusMessage(args: StatusArgs): string {
     contextTokens ?? null,
   )}${entry?.abortedLastRun ? " • last run aborted" : ""}`;
 
-  const optionsLine = `Options: thinking=${thinkLevel} | verbose=${verboseLevel} | elevated=${elevatedLevel} (set with /think <level>, /verbose on|off, /elevated on|off, /model <id>)`;
+  const optionsLine = runtime.sandboxed
+    ? `Options: thinking=${thinkLevel} | verbose=${verboseLevel} | elevated=${elevatedLevel}`
+    : `Options: thinking=${thinkLevel} | verbose=${verboseLevel}`;
 
-  const modelLabel = model ? `${resolved.provider}/${model}` : "unknown";
+  const modelLabel = model ? `${provider}/${model}` : "unknown";
 
   const agentLine = `Agent: embedded pi • ${modelLabel}`;
+  const authLine = args.modelAuth ? `Model auth: ${args.modelAuth}` : undefined;
 
   const workspaceLine = args.workspaceDir
     ? `Workspace: ${shortenHomePath(args.workspaceDir)}`
     : undefined;
 
-  const helpersLine = "Shortcuts: /new reset | /restart relink";
-
   return [
     "⚙️ Status",
     webLine,
     agentLine,
+    authLine,
+    runtime.line,
     workspaceLine,
     contextLine,
     sessionLine,
     groupActivationLine,
     optionsLine,
-    helpersLine,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildHelpMessage(): string {
+  return [
+    "ℹ️ Help",
+    "Shortcuts: /new reset | /restart relink",
+    "Options: /think <level> | /verbose on|off | /elevated on|off | /model <id>",
   ].join("\n");
 }

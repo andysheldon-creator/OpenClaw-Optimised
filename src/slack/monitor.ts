@@ -1,11 +1,12 @@
-import bolt from "@slack/bolt";
 import type {
   SlackCommandMiddlewareArgs,
   SlackEventMiddlewareArgs,
 } from "@slack/bolt";
-
+import bolt from "@slack/bolt";
 import { chunkText, resolveTextChunkLimit } from "../auto-reply/chunk.js";
+import { hasControlCommand } from "../auto-reply/command-detection.js";
 import { formatAgentEnvelope } from "../auto-reply/envelope.js";
+import { createReplyDispatcher } from "../auto-reply/reply/reply-dispatcher.js";
 import { getReplyFromConfig } from "../auto-reply/reply.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
@@ -14,7 +15,11 @@ import type {
   SlackSlashCommandConfig,
 } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
-import { resolveStorePath, updateLastRoute } from "../config/sessions.js";
+import {
+  resolveSessionKey,
+  resolveStorePath,
+  updateLastRoute,
+} from "../config/sessions.js";
 import { danger, logVerbose, shouldLogVerbose } from "../globals.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { getChildLogger } from "../logging.js";
@@ -311,6 +316,31 @@ async function resolveSlackMedia(params: {
 
 export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
   const cfg = loadConfig();
+  const sessionCfg = cfg.session;
+  const sessionScope = sessionCfg?.scope ?? "per-sender";
+  const mainKey = (sessionCfg?.mainKey ?? "main").trim() || "main";
+
+  const resolveSlackSystemEventSessionKey = (params: {
+    channelId?: string | null;
+    channelType?: string | null;
+  }) => {
+    const channelId = params.channelId?.trim() ?? "";
+    if (!channelId) return mainKey;
+    const channelType = params.channelType?.trim().toLowerCase() ?? "";
+    const isRoom = channelType === "channel" || channelType === "group";
+    const isGroup = channelType === "mpim";
+    const from = isRoom
+      ? `slack:channel:${channelId}`
+      : isGroup
+        ? `slack:group:${channelId}`
+        : `slack:${channelId}`;
+    const chatType = isRoom ? "room" : isGroup ? "group" : "direct";
+    return resolveSessionKey(
+      sessionScope,
+      { From: from, ChatType: chatType, Surface: "slack" },
+      mainKey,
+    );
+  };
   const botToken = resolveSlackBotToken(
     opts.botToken ??
       process.env.SLACK_BOT_TOKEN ??
@@ -552,7 +582,30 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       opts.wasMentioned ??
       (!isDirectMessage &&
         Boolean(botUserId && message.text?.includes(`<@${botUserId}>`)));
-    if (isRoom && channelConfig?.requireMention && !wasMentioned) {
+    const sender = await resolveUserName(message.user);
+    const senderName = sender?.name ?? message.user;
+    const allowList = normalizeAllowListLower(allowFrom);
+    const commandAuthorized =
+      allowList.length === 0 ||
+      allowListMatches({
+        allowList,
+        id: message.user,
+        name: senderName,
+      });
+    const hasAnyMention = /<@[^>]+>/.test(message.text ?? "");
+    const shouldBypassMention =
+      isRoom &&
+      channelConfig?.requireMention &&
+      !wasMentioned &&
+      !hasAnyMention &&
+      commandAuthorized &&
+      hasControlCommand(message.text ?? "");
+    if (
+      isRoom &&
+      channelConfig?.requireMention &&
+      !wasMentioned &&
+      !shouldBypassMention
+    ) {
       logger.info(
         { channel: message.channel, reason: "no-mention" },
         "skipping room message",
@@ -568,15 +621,28 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     const rawBody = (message.text ?? "").trim() || media?.placeholder || "";
     if (!rawBody) return;
 
-    const sender = await resolveUserName(message.user);
-    const senderName = sender?.name ?? message.user;
     const roomLabel = channelName ? `#${channelName}` : `#${message.channel}`;
 
     const preview = rawBody.replace(/\s+/g, " ").slice(0, 160);
     const inboundLabel = isDirectMessage
       ? `Slack DM from ${senderName}`
       : `Slack message in ${roomLabel} from ${senderName}`;
+    const slackFrom = isDirectMessage
+      ? `slack:${message.user}`
+      : isRoom
+        ? `slack:channel:${message.channel}`
+        : `slack:group:${message.channel}`;
+    const sessionKey = resolveSessionKey(
+      sessionScope,
+      {
+        From: slackFrom,
+        ChatType: isDirectMessage ? "direct" : isRoom ? "room" : "group",
+        Surface: "slack",
+      },
+      mainKey,
+    );
     enqueueSystemEvent(`${inboundLabel}: ${preview}`, {
+      sessionKey,
       contextKey: `slack:message:${message.channel}:${message.ts ?? "unknown"}`,
     });
 
@@ -591,17 +657,14 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     const isRoomish = isRoom || isGroupDm;
     const ctxPayload = {
       Body: body,
-      From: isDirectMessage
-        ? `slack:${message.user}`
-        : isRoom
-          ? `slack:channel:${message.channel}`
-          : `slack:group:${message.channel}`,
+      From: slackFrom,
       To: isDirectMessage
         ? `user:${message.user}`
         : `channel:${message.channel}`,
       ChatType: isDirectMessage ? "direct" : isRoom ? "room" : "group",
       GroupSubject: isRoomish ? roomLabel : undefined,
       SenderName: senderName,
+      SenderId: message.user,
       Surface: "slack" as const,
       MessageSid: message.ts,
       ReplyToId: message.thread_ts ?? message.ts,
@@ -610,6 +673,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       MediaPath: media?.path,
       MediaType: media?.contentType,
       MediaUrl: media?.path,
+      CommandAuthorized: commandAuthorized,
     };
 
     const replyTarget = ctxPayload.To ?? undefined;
@@ -636,34 +700,33 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       );
     }
 
-    let blockSendChain: Promise<void> = Promise.resolve();
-    const sendBlockReply = (payload: ReplyPayload) => {
-      if (
-        !payload?.text &&
-        !payload?.mediaUrl &&
-        !(payload?.mediaUrls?.length ?? 0)
-      ) {
-        return;
-      }
-      blockSendChain = blockSendChain
-        .then(async () => {
-          await deliverReplies({
-            replies: [payload],
-            target: replyTarget,
-            token: botToken,
-            runtime,
-            textLimit,
-          });
-        })
-        .catch((err) => {
-          runtime.error?.(danger(`slack block reply failed: ${String(err)}`));
+    const dispatcher = createReplyDispatcher({
+      responsePrefix: cfg.messages?.responsePrefix,
+      deliver: async (payload) => {
+        await deliverReplies({
+          replies: [payload],
+          target: replyTarget,
+          token: botToken,
+          runtime,
+          textLimit,
         });
-    };
+      },
+      onError: (err, info) => {
+        runtime.error?.(
+          danger(`slack ${info.kind} reply failed: ${String(err)}`),
+        );
+      },
+    });
 
     const replyResult = await getReplyFromConfig(
       ctxPayload,
       {
-        onBlockReply: sendBlockReply,
+        onToolResult: (payload) => {
+          dispatcher.sendToolResult(payload);
+        },
+        onBlockReply: (payload) => {
+          dispatcher.sendBlockReply(payload);
+        },
       },
       cfg,
     );
@@ -672,19 +735,16 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
         ? replyResult
         : [replyResult]
       : [];
-    await blockSendChain;
-    if (replies.length === 0) return;
-
-    await deliverReplies({
-      replies,
-      target: replyTarget,
-      token: botToken,
-      runtime,
-      textLimit,
-    });
+    let queuedFinal = false;
+    for (const reply of replies) {
+      queuedFinal = dispatcher.sendFinalReply(reply) || queuedFinal;
+    }
+    await dispatcher.waitForIdle();
+    if (!queuedFinal) return;
     if (shouldLogVerbose()) {
+      const finalCount = dispatcher.getQueuedCounts().final;
       logVerbose(
-        `slack: delivered ${replies.length} reply${replies.length === 1 ? "" : "ies"} to ${replyTarget}`,
+        `slack: delivered ${finalCount} reply${finalCount === 1 ? "" : "ies"} to ${replyTarget}`,
       );
     }
   };
@@ -715,7 +775,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
             channelId,
             channelName: channelInfo?.name,
           });
+          const sessionKey = resolveSlackSystemEventSessionKey({
+            channelId,
+            channelType,
+          });
           enqueueSystemEvent(`Slack message edited in ${label}.`, {
+            sessionKey,
             contextKey: `slack:message:changed:${channelId ?? "unknown"}:${messageId ?? changed.event_ts ?? "unknown"}`,
           });
           return;
@@ -740,7 +805,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
             channelId,
             channelName: channelInfo?.name,
           });
+          const sessionKey = resolveSlackSystemEventSessionKey({
+            channelId,
+            channelType,
+          });
           enqueueSystemEvent(`Slack message deleted in ${label}.`, {
+            sessionKey,
             contextKey: `slack:message:deleted:${channelId ?? "unknown"}:${deleted.deleted_ts ?? deleted.event_ts ?? "unknown"}`,
           });
           return;
@@ -766,7 +836,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
             channelName: channelInfo?.name,
           });
           const messageId = thread.message?.ts ?? thread.event_ts;
+          const sessionKey = resolveSlackSystemEventSessionKey({
+            channelId,
+            channelType,
+          });
           enqueueSystemEvent(`Slack thread reply broadcast in ${label}.`, {
+            sessionKey,
             contextKey: `slack:thread:broadcast:${channelId ?? "unknown"}:${messageId ?? "unknown"}`,
           });
           return;
@@ -860,7 +935,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       const authorLabel = authorInfo?.name ?? event.item_user;
       const baseText = `Slack reaction ${action}: :${emojiLabel}: by ${actorLabel} in ${channelLabel} msg ${item.ts}`;
       const text = authorLabel ? `${baseText} from ${authorLabel}` : baseText;
+      const sessionKey = resolveSlackSystemEventSessionKey({
+        channelId: item.channel,
+        channelType,
+      });
       enqueueSystemEvent(text, {
+        sessionKey,
         contextKey: `slack:reaction:${action}:${item.channel}:${item.ts}:${event.user}:${emojiLabel}`,
       });
     } catch (err) {
@@ -909,7 +989,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
           channelId,
           channelName: channelInfo?.name,
         });
+        const sessionKey = resolveSlackSystemEventSessionKey({
+          channelId,
+          channelType,
+        });
         enqueueSystemEvent(`Slack: ${userLabel} joined ${label}.`, {
+          sessionKey,
           contextKey: `slack:member:joined:${channelId ?? "unknown"}:${payload.user ?? "unknown"}`,
         });
       } catch (err) {
@@ -945,7 +1030,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
           channelId,
           channelName: channelInfo?.name,
         });
+        const sessionKey = resolveSlackSystemEventSessionKey({
+          channelId,
+          channelType,
+        });
         enqueueSystemEvent(`Slack: ${userLabel} left ${label}.`, {
+          sessionKey,
           contextKey: `slack:member:left:${channelId ?? "unknown"}:${payload.user ?? "unknown"}`,
         });
       } catch (err) {
@@ -971,7 +1061,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
           return;
         }
         const label = resolveSlackChannelLabel({ channelId, channelName });
+        const sessionKey = resolveSlackSystemEventSessionKey({
+          channelId,
+          channelType: "channel",
+        });
         enqueueSystemEvent(`Slack channel created: ${label}.`, {
+          sessionKey,
           contextKey: `slack:channel:created:${channelId ?? channelName ?? "unknown"}`,
         });
       } catch (err) {
@@ -1000,7 +1095,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
           return;
         }
         const label = resolveSlackChannelLabel({ channelId, channelName });
+        const sessionKey = resolveSlackSystemEventSessionKey({
+          channelId,
+          channelType: "channel",
+        });
         enqueueSystemEvent(`Slack channel renamed: ${label}.`, {
+          sessionKey,
           contextKey: `slack:channel:renamed:${channelId ?? channelName ?? "unknown"}`,
         });
       } catch (err) {
@@ -1039,9 +1139,14 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
         const userLabel = userInfo?.name ?? payload.user ?? "someone";
         const itemType = payload.item?.type ?? "item";
         const messageId = payload.item?.message?.ts ?? payload.event_ts;
+        const sessionKey = resolveSlackSystemEventSessionKey({
+          channelId,
+          channelType: channelInfo?.type ?? undefined,
+        });
         enqueueSystemEvent(
           `Slack: ${userLabel} pinned a ${itemType} in ${label}.`,
           {
+            sessionKey,
             contextKey: `slack:pin:added:${channelId ?? "unknown"}:${messageId ?? "unknown"}`,
           },
         );
@@ -1081,9 +1186,14 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
         const userLabel = userInfo?.name ?? payload.user ?? "someone";
         const itemType = payload.item?.type ?? "item";
         const messageId = payload.item?.message?.ts ?? payload.event_ts;
+        const sessionKey = resolveSlackSystemEventSessionKey({
+          channelId,
+          channelType: channelInfo?.type ?? undefined,
+        });
         enqueueSystemEvent(
           `Slack: ${userLabel} unpinned a ${itemType} in ${label}.`,
           {
+            sessionKey,
             contextKey: `slack:pin:removed:${channelId ?? "unknown"}:${messageId ?? "unknown"}`,
           },
         );

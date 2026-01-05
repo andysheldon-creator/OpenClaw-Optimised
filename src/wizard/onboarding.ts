@@ -1,6 +1,12 @@
 import path from "node:path";
 
-import { loginAnthropic, type OAuthCredentials } from "@mariozechner/pi-ai";
+import {
+  loginAnthropic,
+  type OAuthCredentials,
+  type OAuthProvider,
+} from "@mariozechner/pi-ai";
+import { discoverAuthStorage } from "@mariozechner/pi-coding-agent";
+import { resolveClawdbotAgentDir } from "../agents/agent-paths.js";
 import {
   isRemoteEnvironment,
   loginAntigravityVpsAware,
@@ -14,7 +20,9 @@ import {
 import {
   applyWizardMetadata,
   DEFAULT_WORKSPACE,
+  detectBrowserOpenSupport,
   ensureWorkspaceAndSessions,
+  formatControlUiSshHint,
   handleReset,
   openUrl,
   printWizardHeader,
@@ -33,9 +41,10 @@ import type {
   OnboardOptions,
   ResetScope,
 } from "../commands/onboard-types.js";
-import type { ClawdisConfig } from "../config/config.js";
+import { ensureSystemdUserLingerInteractive } from "../commands/systemd-linger.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import {
-  CONFIG_PATH_CLAWDIS,
+  CONFIG_PATH_CLAWDBOT,
   readConfigFileSnapshot,
   resolveGatewayPort,
   writeConfigFile,
@@ -43,6 +52,7 @@ import {
 import { GATEWAY_LAUNCH_AGENT_LABEL } from "../daemon/constants.js";
 import { resolveGatewayProgramArguments } from "../daemon/program-args.js";
 import { resolveGatewayService } from "../daemon/service.js";
+import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { resolveUserPath, sleep } from "../utils.js";
@@ -54,10 +64,10 @@ export async function runOnboardingWizard(
   prompter: WizardPrompter,
 ) {
   printWizardHeader(runtime);
-  await prompter.intro("Clawdis onboarding");
+  await prompter.intro("Clawdbot onboarding");
 
   const snapshot = await readConfigFileSnapshot();
-  let baseConfig: ClawdisConfig = snapshot.valid ? snapshot.config : {};
+  let baseConfig: ClawdbotConfig = snapshot.valid ? snapshot.config : {};
 
   if (snapshot.exists) {
     const title = snapshot.valid
@@ -109,10 +119,10 @@ export async function runOnboardingWizard(
   const localUrl = `ws://127.0.0.1:${localPort}`;
   const localProbe = await probeGatewayReachable({
     url: localUrl,
-    token: process.env.CLAWDIS_GATEWAY_TOKEN,
+    token: process.env.CLAWDBOT_GATEWAY_TOKEN,
     password:
       baseConfig.gateway?.auth?.password ??
-      process.env.CLAWDIS_GATEWAY_PASSWORD,
+      process.env.CLAWDBOT_GATEWAY_PASSWORD,
   });
   const remoteUrl = baseConfig.gateway?.remote?.url?.trim() ?? "";
   const remoteProbe = remoteUrl
@@ -150,7 +160,7 @@ export async function runOnboardingWizard(
     let nextConfig = await promptRemoteGatewayConfig(baseConfig, prompter);
     nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
     await writeConfigFile(nextConfig);
-    runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
+    runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
     await prompter.outro("Remote gateway configured.");
     return;
   }
@@ -166,7 +176,7 @@ export async function runOnboardingWizard(
     workspaceInput.trim() || DEFAULT_WORKSPACE,
   );
 
-  let nextConfig: ClawdisConfig = {
+  let nextConfig: ClawdbotConfig = {
     ...baseConfig,
     agent: {
       ...baseConfig.agent,
@@ -182,6 +192,7 @@ export async function runOnboardingWizard(
     message: "Model/auth choice",
     options: [
       { value: "oauth", label: "Anthropic OAuth (Claude Pro/Max)" },
+      { value: "openai-codex", label: "OpenAI Codex (ChatGPT OAuth)" },
       {
         value: "antigravity",
         label: "Google Antigravity (Claude Opus 4.5, Gemini 3, etc.)",
@@ -219,6 +230,53 @@ export async function runOnboardingWizard(
       }
     } catch (err) {
       spin.stop("OAuth failed");
+      runtime.error(String(err));
+    }
+  } else if (authChoice === "openai-codex") {
+    const isRemote = isRemoteEnvironment();
+    await prompter.note(
+      isRemote
+        ? [
+            "You are running in a remote/VPS environment.",
+            "A URL will be shown for you to open in your LOCAL browser.",
+            "After signing in, paste the redirect URL back here.",
+          ].join("\n")
+        : [
+            "Browser will open for OpenAI authentication.",
+            "If the callback doesn't auto-complete, paste the redirect URL.",
+            "OpenAI OAuth uses localhost:1455 for the callback.",
+          ].join("\n"),
+      "OpenAI Codex OAuth",
+    );
+    const spin = prompter.progress("Starting OAuth flow…");
+    try {
+      const agentDir = resolveClawdbotAgentDir();
+      const authStorage = discoverAuthStorage(agentDir);
+      const provider = "openai-codex" as unknown as OAuthProvider;
+      await authStorage.login(provider, {
+        onAuth: async ({ url }) => {
+          if (isRemote) {
+            spin.stop("OAuth URL ready");
+            runtime.log(`\nOpen this URL in your LOCAL browser:\n\n${url}\n`);
+          } else {
+            spin.update("Complete sign-in in browser…");
+            await openUrl(url);
+            runtime.log(`Open: ${url}`);
+          }
+        },
+        onPrompt: async (prompt) => {
+          const code = await prompter.text({
+            message: prompt.message,
+            placeholder: prompt.placeholder,
+            validate: (value) => (value?.trim() ? undefined : "Required"),
+          });
+          return String(code);
+        },
+        onProgress: (msg) => spin.update(msg),
+      });
+      spin.stop("OpenAI OAuth complete");
+    } catch (err) {
+      spin.stop("OpenAI OAuth failed");
       runtime.error(String(err));
     }
   } else if (authChoice === "antigravity") {
@@ -424,7 +482,7 @@ export async function runOnboardingWizard(
   });
 
   await writeConfigFile(nextConfig);
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
+  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
   await ensureWorkspaceAndSessions(workspaceDir, runtime);
 
   nextConfig = await setupSkills(nextConfig, workspaceDir, runtime, prompter);
@@ -466,8 +524,8 @@ export async function runOnboardingWizard(
         await resolveGatewayProgramArguments({ port, dev: devMode });
       const environment: Record<string, string | undefined> = {
         PATH: process.env.PATH,
-        CLAWDIS_GATEWAY_TOKEN: gatewayToken,
-        CLAWDIS_LAUNCHD_LABEL:
+        CLAWDBOT_GATEWAY_TOKEN: gatewayToken,
+        CLAWDBOT_LAUNCHD_LABEL:
           process.platform === "darwin"
             ? GATEWAY_LAUNCH_AGENT_LABEL
             : undefined,
@@ -480,6 +538,17 @@ export async function runOnboardingWizard(
         environment,
       });
     }
+
+    await ensureSystemdUserLingerInteractive({
+      runtime,
+      prompter: {
+        confirm: prompter.confirm,
+        note: prompter.note,
+      },
+      reason:
+        "Linux installs use a systemd user service. Without lingering, systemd stops the user session on logout/idle and kills the Gateway.",
+      requireConfirm: true,
+    });
   }
 
   await sleep(1500);
@@ -487,6 +556,11 @@ export async function runOnboardingWizard(
     await healthCommand({ json: false, timeoutMs: 10_000 }, runtime);
   } catch (err) {
     runtime.error(`Health check failed: ${String(err)}`);
+  }
+
+  const controlUiAssets = await ensureControlUiAssetsBuilt(runtime);
+  if (!controlUiAssets.ok && controlUiAssets.message) {
+    runtime.error(controlUiAssets.message);
   }
 
   await prompter.note(
@@ -522,21 +596,43 @@ export async function runOnboardingWizard(
     "Control UI",
   );
 
-  const wantsOpen = await prompter.confirm({
-    message: "Open Control UI now?",
-    initialValue: true,
-  });
-  if (wantsOpen) {
-    const links = resolveControlUiLinks({
-      bind,
-      port,
-      basePath: baseConfig.gateway?.controlUi?.basePath,
+  const browserSupport = await detectBrowserOpenSupport();
+  if (!browserSupport.ok) {
+    await prompter.note(
+      formatControlUiSshHint({
+        port,
+        basePath: baseConfig.gateway?.controlUi?.basePath,
+        token: authMode === "token" ? gatewayToken : undefined,
+      }),
+      "Open Control UI",
+    );
+  } else {
+    const wantsOpen = await prompter.confirm({
+      message: "Open Control UI now?",
+      initialValue: true,
     });
-    const tokenParam =
-      authMode === "token" && gatewayToken
-        ? `?token=${encodeURIComponent(gatewayToken)}`
-        : "";
-    await openUrl(`${links.httpUrl}${tokenParam}`);
+    if (wantsOpen) {
+      const links = resolveControlUiLinks({
+        bind,
+        port,
+        basePath: baseConfig.gateway?.controlUi?.basePath,
+      });
+      const tokenParam =
+        authMode === "token" && gatewayToken
+          ? `?token=${encodeURIComponent(gatewayToken)}`
+          : "";
+      const opened = await openUrl(`${links.httpUrl}${tokenParam}`);
+      if (!opened) {
+        await prompter.note(
+          formatControlUiSshHint({
+            port,
+            basePath: baseConfig.gateway?.controlUi?.basePath,
+            token: authMode === "token" ? gatewayToken : undefined,
+          }),
+          "Open Control UI",
+        );
+      }
+    }
   }
 
   await prompter.outro("Onboarding complete.");

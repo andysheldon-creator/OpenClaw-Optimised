@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const sendCommand = vi.fn();
 const statusCommand = vi.fn();
+const configureCommand = vi.fn();
 const loginWeb = vi.fn();
 const callGateway = vi.fn();
 
@@ -16,6 +17,7 @@ const runtime = {
 
 vi.mock("../commands/send.js", () => ({ sendCommand }));
 vi.mock("../commands/status.js", () => ({ statusCommand }));
+vi.mock("../commands/configure.js", () => ({ configureCommand }));
 vi.mock("../runtime.js", () => ({ defaultRuntime: runtime }));
 vi.mock("../provider-web.js", () => ({
   loginWeb,
@@ -47,6 +49,12 @@ describe("cli program", () => {
     const program = buildProgram();
     await program.parseAsync(["status"], { from: "user" });
     expect(statusCommand).toHaveBeenCalled();
+  });
+
+  it("runs config alias as configure", async () => {
+    const program = buildProgram();
+    await program.parseAsync(["config"], { from: "user" });
+    expect(configureCommand).toHaveBeenCalled();
   });
 
   it("runs nodes list and calls node.pair.list", async () => {
@@ -381,7 +389,7 @@ describe("cli program", () => {
 
     const out = String(runtime.log.mock.calls[0]?.[0] ?? "");
     const mediaPath = out.replace(/^MEDIA:/, "").trim();
-    expect(mediaPath).toMatch(/clawdis-camera-clip-front-.*\.mp4$/);
+    expect(mediaPath).toMatch(/clawdbot-camera-clip-front-.*\.mp4$/);
 
     try {
       await expect(fs.readFile(mediaPath, "utf8")).resolves.toBe("hi");
@@ -607,7 +615,7 @@ describe("cli program", () => {
 
     const out = String(runtime.log.mock.calls[0]?.[0] ?? "");
     const mediaPath = out.replace(/^MEDIA:/, "").trim();
-    expect(mediaPath).toMatch(/clawdis-canvas-snapshot-.*\.png$/);
+    expect(mediaPath).toMatch(/clawdbot-canvas-snapshot-.*\.png$/);
 
     try {
       await expect(fs.readFile(mediaPath, "utf8")).resolves.toBe("hi");
@@ -645,7 +653,7 @@ describe("cli program", () => {
 
     const out = String(runtime.log.mock.calls[0]?.[0] ?? "");
     const mediaPath = out.replace(/^MEDIA:/, "").trim();
-    expect(mediaPath).toMatch(/clawdis-canvas-snapshot-.*\.png$/);
+    expect(mediaPath).toMatch(/clawdbot-canvas-snapshot-.*\.png$/);
 
     try {
       await expect(fs.readFile(mediaPath, "utf8")).resolves.toBe("hi");

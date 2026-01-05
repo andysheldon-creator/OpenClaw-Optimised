@@ -1,7 +1,7 @@
-# 🦞 CLAWDIS — Personal AI Assistant
+# 🦞 CLAWDBOT — Personal AI Assistant
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/steipete/clawdis/main/docs/whatsapp-clawd.jpg" alt="CLAWDIS" width="400">
+  <img src="https://raw.githubusercontent.com/clawdbot/clawdbot/main/docs/whatsapp-clawd.jpg" alt="CLAWDBOT" width="400">
 </p>
 
 <p align="center">
@@ -9,56 +9,41 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/steipete/clawdis/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/steipete/clawdis/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
-  <a href="https://github.com/steipete/clawdis/releases"><img src="https://img.shields.io/github/v/release/steipete/clawdis?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
+  <a href="https://github.com/clawdbot/clawdbot/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/clawdbot/clawdbot/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
+  <a href="https://github.com/clawdbot/clawdbot/releases"><img src="https://img.shields.io/github/v/release/clawdbot/clawdbot?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
   <a href="https://discord.gg/clawd"><img src="https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge" alt="Discord"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**Clawdis** is a *personal AI assistant* you run on your own devices.
-It answers you on the surfaces you already use (WhatsApp, Telegram, Discord, iMessage, WebChat), can speak and listen on macOS/iOS, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
+**Clawdbot** is a *personal AI assistant* you run on your own devices.
+It answers you on the surfaces you already use (WhatsApp, Telegram, Slack, Discord, Signal, iMessage, WebChat), can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
 
 If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
 
-Website: https://clawd.me · Docs: [`docs/index.md`](docs/index.md) · FAQ: [`docs/faq.md`](docs/faq.md) · Wizard: [`docs/wizard.md`](docs/wizard.md) · Docker (optional): [`docs/docker.md`](docs/docker.md) · Discord: https://discord.gg/clawd
+Website: [https://clawdbot.com](https://clawdbot.com) · Docs: [https://docs.clawdbot.com](https://docs.clawdbot.com/) · FAQ: [https://docs.clawdbot.com/faq](https://docs.clawdbot.com/faq) · Wizard: [https://docs.clawdbot.com/wizard](https://docs.clawdbot.com/wizard) · Nix: [https://github.com/clawdbot/nix-clawdbot](https://github.com/clawdbot/nix-clawdbot) · Docker: [https://docs.clawdbot.com/docker](https://docs.clawdbot.com/docker) · Discord: [https://discord.gg/clawd](https://discord.gg/clawd)
 
-Preferred setup: run the onboarding wizard (`clawdis onboard`). It walks through gateway, workspace, providers, and skills. The CLI wizard is the recommended path and works on **macOS, Windows, and Linux**.
+Preferred setup: run the onboarding wizard (`clawdbot onboard`). It walks through gateway, workspace, providers, and skills. The CLI wizard is the recommended path and works on **macOS, Windows, and Linux**.
 
-Using Claude Pro/Max subscription? See `docs/onboarding.md` for the Anthropic OAuth setup.
+**Subscriptions (OAuth):**
+- **Anthropic** (Claude Pro/Max)
+- **OpenAI** (ChatGPT/Codex)
 
+Model note: while any model is supported, I strongly recommend **Anthropic Pro/Max (100/200) + Opus 4.5** for long‑context strength and better prompt‑injection resistance. See [Onboarding](https://docs.clawdbot.com/onboarding).
+
+## Recommended setup (from source)
+
+Do **not** download prebuilt binaries. Build from source.
+
+```bash
+# Clone this repo
+git clone https://github.com/clawdbot/clawdbot.git
+cd clawdbot
+
+pnpm install
+pnpm build
+pnpm ui:build
+pnpm clawdbot onboard
 ```
-Your surfaces
-   │
-   ▼
-┌───────────────────────────────┐
-│            Gateway            │  ws://127.0.0.1:18789
-│       (control plane)         │  tcp://0.0.0.0:18790 (optional Bridge)
-└──────────────┬────────────────┘
-               │
-               ├─ Pi agent (RPC)
-               ├─ CLI (clawdis …)
-               ├─ WebChat (browser)
-               ├─ macOS app (Clawdis.app)
-               └─ iOS node (Canvas + voice)
-```
-
-## What Clawdis does
-
-- **Personal assistant** — one user, one identity, one memory surface.
-- **Multi-surface inbox** — WhatsApp, Telegram, Discord, iMessage, WebChat, macOS, iOS. Signal support via `signal-cli` (see `docs/signal.md`). iMessage uses `imsg` (see `docs/imessage.md`).
-- **Voice wake + push-to-talk** — local speech recognition on macOS/iOS.
-- **Canvas** — a live visual workspace you can drive from the agent.
-- **Automation-ready** — browser control, media handling, and tool streaming.
-- **Local-first control plane** — the Gateway owns state, everything else connects.
-- **Group chats** — mention-based by default, `/activation always|mention` per group (owner-only).
-- **Nix mode** — opt-in declarative config + read-only UI when `CLAWDIS_NIX_MODE=1`.
-
-## How it works (short)
-
-- **Gateway** is the single source of truth for sessions/providers.
-- **Loopback-first**: `ws://127.0.0.1:18789` by default.
-- **Bridge** (optional) exposes a paired-node port for iOS/Android.
-- **Agent runtime** is **Pi** in RPC mode.
 
 ## Quick start (from source)
 
@@ -70,29 +55,107 @@ pnpm build
 pnpm ui:build
 
 # Recommended: run the onboarding wizard
-pnpm clawdis onboard
+pnpm clawdbot onboard
 
-# Link WhatsApp (stores creds in ~/.clawdis/credentials)
-pnpm clawdis login
+# Link WhatsApp (stores creds in ~/.clawdbot/credentials)
+pnpm clawdbot login
 
 # Start the gateway
-pnpm clawdis gateway --port 18789 --verbose
+pnpm clawdbot gateway --port 18789 --verbose
 
 # Dev loop (auto-reload on TS changes)
 pnpm gateway:watch
 
 # Send a message
-pnpm clawdis send --to +1234567890 --message "Hello from Clawdis"
+pnpm clawdbot send --to +1234567890 --message "Hello from Clawdbot"
 
-# Talk to the assistant (optionally deliver back to WhatsApp/Telegram/Discord)
-pnpm clawdis agent --message "Ship checklist" --thinking high
+# Talk to the assistant (optionally deliver back to WhatsApp/Telegram/Slack/Discord)
+pnpm clawdbot agent --message "Ship checklist" --thinking high
 ```
 
-If you run from source, prefer `pnpm clawdis …` (not global `clawdis`).
+Upgrading? `clawdbot doctor`.
+
+If you run from source, prefer `pnpm clawdbot …` (not global `clawdbot`).
+
+## Highlights
+
+- **[Local-first Gateway](https://docs.clawdbot.com/gateway)** — single control plane for sessions, providers, tools, and events.
+- **[Multi-surface inbox](https://docs.clawdbot.com/surface)** — WhatsApp, Telegram, Slack, Discord, Signal, iMessage, WebChat, macOS, iOS/Android.
+- **[Voice Wake](https://docs.clawdbot.com/voicewake) + [Talk Mode](https://docs.clawdbot.com/talk)** — always-on speech for macOS/iOS/Android with ElevenLabs.
+- **[Live Canvas](https://docs.clawdbot.com/mac/canvas)** — agent-driven visual workspace with [A2UI](https://docs.clawdbot.com/refactor/canvas-a2ui).
+- **[First-class tools](https://docs.clawdbot.com/tools)** — browser, canvas, nodes, cron, sessions, and Discord/Slack actions.
+- **[Companion apps](https://docs.clawdbot.com/clawdbot-mac)** — macOS menu bar app + iOS/Android [nodes](https://docs.clawdbot.com/nodes).
+- **[Onboarding](https://docs.clawdbot.com/wizard) + [skills](https://docs.clawdbot.com/skills)** — wizard-driven setup with bundled/managed/workspace skills.
+
+## Everything we built so far
+
+### Core platform
+- [Gateway WS control plane](https://docs.clawdbot.com/gateway) with sessions, presence, config, cron, webhooks, [Control UI](https://docs.clawdbot.com/web), and [Canvas host](https://docs.clawdbot.com/refactor/canvas-a2ui).
+- [CLI surface](https://docs.clawdbot.com/agent-send): gateway, agent, send, [wizard](https://docs.clawdbot.com/wizard), [doctor](https://docs.clawdbot.com/doctor), and [TUI](https://docs.clawdbot.com/tui).
+- [Pi agent runtime](https://docs.clawdbot.com/agent) in RPC mode with tool streaming and block streaming.
+- [Session model](https://docs.clawdbot.com/session): `main` for direct chats, group isolation, activation modes, queue modes, reply-back. Group rules: [Groups](https://docs.clawdbot.com/groups).
+- [Media pipeline](https://docs.clawdbot.com/images): images/audio/video, transcription hooks, size caps, temp file lifecycle. Audio details: [Audio](https://docs.clawdbot.com/audio).
+
+### Surfaces + providers
+- [Providers](https://docs.clawdbot.com/surface): [WhatsApp](https://docs.clawdbot.com/whatsapp) (Baileys), [Telegram](https://docs.clawdbot.com/telegram) (grammY), [Slack](https://docs.clawdbot.com/slack) (Bolt), [Discord](https://docs.clawdbot.com/discord) (discord.js), [Signal](https://docs.clawdbot.com/signal) (signal-cli), [iMessage](https://docs.clawdbot.com/imessage) (imsg), [WebChat](https://docs.clawdbot.com/webchat).
+- [Group routing](https://docs.clawdbot.com/group-messages): mention gating, reply tags, per-surface chunking and routing. Surface rules: [Surface routing](https://docs.clawdbot.com/surface).
+
+### Apps + nodes
+- [macOS app](https://docs.clawdbot.com/clawdbot-mac): menu bar control plane, [Voice Wake](https://docs.clawdbot.com/voicewake)/PTT, [Talk Mode](https://docs.clawdbot.com/talk) overlay, [WebChat](https://docs.clawdbot.com/webchat), debug tools, [remote gateway](https://docs.clawdbot.com/remote) control.
+- [iOS node](https://docs.clawdbot.com/ios/connect): [Canvas](https://docs.clawdbot.com/mac/canvas), [Voice Wake](https://docs.clawdbot.com/voicewake), [Talk Mode](https://docs.clawdbot.com/talk), camera, screen recording, Bonjour pairing.
+- [Android node](https://docs.clawdbot.com/android/connect): [Canvas](https://docs.clawdbot.com/mac/canvas), [Talk Mode](https://docs.clawdbot.com/talk), camera, screen recording, optional SMS.
+- [macOS node mode](https://docs.clawdbot.com/nodes): system.run/notify + canvas/camera exposure.
+
+### Tools + automation
+- [Browser control](https://docs.clawdbot.com/browser): dedicated clawd Chrome/Chromium, snapshots, actions, uploads, profiles.
+- [Canvas](https://docs.clawdbot.com/mac/canvas): [A2UI](https://docs.clawdbot.com/refactor/canvas-a2ui) push/reset, eval, snapshot.
+- [Nodes](https://docs.clawdbot.com/nodes): camera snap/clip, screen record, [location.get](https://docs.clawdbot.com/location-command), notifications.
+- [Cron + wakeups](https://docs.clawdbot.com/cron); [webhooks](https://docs.clawdbot.com/webhook); [Gmail Pub/Sub](https://docs.clawdbot.com/gmail-pubsub).
+- [Skills platform](https://docs.clawdbot.com/skills): bundled, managed, and workspace skills with install gating + UI.
+
+### Ops + packaging
+- [Control UI](https://docs.clawdbot.com/web) + [WebChat](https://docs.clawdbot.com/webchat) served directly from the Gateway.
+- [Tailscale Serve/Funnel](https://docs.clawdbot.com/tailscale) or [SSH tunnels](https://docs.clawdbot.com/remote) with token/password auth.
+- [Nix mode](https://docs.clawdbot.com/nix) for declarative config; [Docker](https://docs.clawdbot.com/docker)-based installs.
+- [Doctor](https://docs.clawdbot.com/doctor) migrations, [logging](https://docs.clawdbot.com/logging), release tooling: [Releasing](https://docs.clawdbot.com/releasing).
+
+## How it works (short)
+
+```
+WhatsApp / Telegram / Slack / Discord / Signal
+iMessage / WebChat
+               │
+               ▼
+┌───────────────────────────────┐
+│            Gateway            │  ws://127.0.0.1:18789
+│       (control plane)         │  bridge: tcp://0.0.0.0:18790
+└──────────────┬────────────────┘
+               │
+               ├─ Pi agent (RPC)
+               ├─ CLI (clawdbot …)
+               ├─ WebChat UI
+               ├─ macOS app
+               └─ iOS/Android nodes
+```
+
+## Key subsystems
+
+- **[Gateway WebSocket network](https://docs.clawdbot.com/architecture)** — single WS control plane for clients, tools, and events (plus ops: [Gateway runbook](https://docs.clawdbot.com/gateway)).
+- **[Tailscale exposure](https://docs.clawdbot.com/tailscale)** — Serve/Funnel for the Gateway dashboard + WS (remote access: [Remote](https://docs.clawdbot.com/remote)).
+- **[Browser control](https://docs.clawdbot.com/browser)** — clawd‑managed Chrome/Chromium with CDP control.
+- **[Canvas + A2UI](https://docs.clawdbot.com/mac/canvas)** — agent‑driven visual workspace (A2UI host: [Canvas/A2UI](https://docs.clawdbot.com/refactor/canvas-a2ui)).
+- **[Voice Wake](https://docs.clawdbot.com/voicewake) + [Talk Mode](https://docs.clawdbot.com/talk)** — always‑on speech and continuous conversation.
+- **[Nodes](https://docs.clawdbot.com/nodes)** — Canvas, camera snap/clip, screen record, `location.get`, notifications, plus macOS‑only `system.run`/`system.notify`.
+
+## Skills registry (ClawdHub)
+
+ClawdHub is a minimal skill registry. With ClawdHub enabled, the agent can search for skills automatically and pull in new ones as needed.
+
+https://clawdhub.com
 
 ## Chat commands
 
-Send these in WhatsApp/Telegram/WebChat (group commands are owner-only):
+Send these in WhatsApp/Telegram/Slack/WebChat (group commands are owner-only):
 
 - `/status` — health + session info (group shows activation mode)
 - `/new` or `/reset` — reset the session
@@ -101,28 +164,17 @@ Send these in WhatsApp/Telegram/WebChat (group commands are owner-only):
 - `/restart` — restart the gateway (owner-only in groups)
 - `/activation mention|always` — group activation toggle (groups only)
 
-## Architecture
+## macOS app (optional)
 
-### TypeScript Gateway (src/gateway/server.ts)
-- **Single HTTP+WS server** on `ws://127.0.0.1:18789` (bind policy: loopback/lan/tailnet/auto). The first frame must be `connect`; AJV validates frames against TypeBox schemas (`src/gateway/protocol`).
-- **Single source of truth** for sessions, providers, cron, voice wake, and presence. Methods cover `send`, `agent`, `chat.*`, `sessions.*`, `config.*`, `cron.*`, `voicewake.*`, `node.*`, `system-*`, `wake`.
-- **Events + snapshot**: handshake returns a snapshot (presence/health) and declares event types; runtime events include `agent`, `chat`, `presence`, `tick`, `health`, `heartbeat`, `cron`, `node.pair.*`, `voicewake.changed`, `shutdown`.
-- **Idempotency & safety**: `send`/`agent`/`chat.send` require idempotency keys with a TTL cache (5 min, cap 1000) to avoid double‑sends on reconnects; payload sizes are capped per connection.
-- **Bridge for nodes**: optional TCP bridge (`src/infra/bridge/server.ts`) is newline‑delimited JSON frames (`hello`, pairing, RPC, `invoke`); node connect/disconnect is surfaced into presence.
-- **Control UI + Canvas Host**: HTTP serves Control UI assets (default `/`, optional base path) and can host a live‑reload Canvas host for nodes (`src/canvas-host/server.ts`), injecting the A2UI postMessage bridge.
+The Gateway alone delivers a great experience. All apps are optional and add extra features.
 
-### iOS app (apps/ios)
-- **Discovery + pairing**: Bonjour discovery via `BridgeDiscoveryModel` (NWBrowser). `BridgeConnectionController` auto‑connects using Keychain token or allows manual host/port.
-- **Node runtime**: `BridgeSession` (actor) maintains the `NWConnection`, hello handshake, ping/pong, RPC requests, and `invoke` callbacks.
-- **Capabilities + commands**: advertises `canvas`, `screen`, `camera`, `voiceWake` (settings‑driven) and executes `canvas.*`, `canvas.a2ui.*`, `camera.*`, `screen.record` (`NodeAppModel.handleInvoke`).
-- **Canvas**: `WKWebView` with bundled Canvas scaffold + A2UI, JS eval, snapshot capture, and `clawdis://` deep‑link interception (`ScreenController`).
-- **Voice + deep links**: voice wake sends `voice.transcript` events; `clawdis://agent` links emit `agent.request`. Voice wake triggers sync via `voicewake.get` + `voicewake.changed`.
+If you plan to build/run companion apps, initialize submodules first:
 
-## Companion apps
+```bash
+git submodule update --init --recursive
+```
 
-The **macOS app is critical**: it runs the menu‑bar control plane, owns local permissions (TCC), hosts Voice Wake, exposes WebChat/debug tools, and coordinates local/remote gateway mode. Most “assistant” UX lives here.
-
-### macOS (Clawdis.app)
+### macOS (Clawdbot.app) (optional)
 
 - Menu bar control for the Gateway and health.
 - Voice Wake + push-to-talk overlay.
@@ -131,19 +183,19 @@ The **macOS app is critical**: it runs the menu‑bar control plane, owns local 
 
 Build/run: `./scripts/restart-mac.sh` (packages + launches).
 
-### iOS node (internal)
+### iOS node (optional)
 
 - Pairs as a node via the Bridge.
 - Voice trigger forwarding + Canvas surface.
-- Controlled via `clawdis nodes …`.
+- Controlled via `clawdbot nodes …`.
 
-Runbook: `docs/ios/connect.md`.
+Runbook: [iOS connect](https://docs.clawdbot.com/ios/connect).
 
-### Android node (internal)
+### Android node (optional)
 
 - Pairs via the same Bridge + pairing flow as iOS.
 - Exposes Canvas, Camera, and Screen capture commands.
-- Runbook: `docs/android/connect.md`.
+- Runbook: [Android connect](https://docs.clawdbot.com/android/connect).
 
 ## Agent workspace + skills
 
@@ -153,22 +205,32 @@ Runbook: `docs/ios/connect.md`.
 
 ## Configuration
 
-Minimal `~/.clawdis/clawdis.json`:
+Minimal `~/.clawdbot/clawdbot.json` (model + defaults):
 
 ```json5
 {
-  whatsapp: {
-    allowFrom: ["+1234567890"]
+  agent: {
+    model: "anthropic/claude-opus-4-5"
   }
 }
 ```
 
-### WhatsApp
+[Full configuration reference (all keys + examples).](https://docs.clawdbot.com/configuration)
 
-- Link the device: `pnpm clawdis login` (stores creds in `~/.clawdis/credentials`).
+## Security model (important)
+
+- **Default:** tools run on the host for the **main** session, so the agent has full access when it’s just you.
+- **Group/channel safety:** set `agent.sandbox.mode: "non-main"` to run **non‑main sessions** (groups/channels) inside per‑session Docker sandboxes; bash then runs in Docker for those sessions.
+- **Sandbox defaults:** allowlist `bash`, `process`, `read`, `write`, `edit`; denylist `browser`, `canvas`, `nodes`, `cron`, `discord`, `gateway`.
+
+Details: [Security guide](https://docs.clawdbot.com/security) · [Docker + sandboxing](https://docs.clawdbot.com/docker) · [Sandbox config](https://docs.clawdbot.com/configuration)
+
+### [WhatsApp](docs/whatsapp.md)
+
+- Link the device: `pnpm clawdbot login` (stores creds in `~/.clawdbot/credentials`).
 - Allowlist who can talk to the assistant via `whatsapp.allowFrom`.
 
-### Telegram
+### [Telegram](docs/telegram.md)
 
 - Set `TELEGRAM_BOT_TOKEN` or `telegram.botToken` (env wins).
 - Optional: set `telegram.groups` (with `telegram.groups."*".requireMention`), `telegram.allowFrom`, or `telegram.webhookUrl` as needed.
@@ -181,7 +243,11 @@ Minimal `~/.clawdis/clawdis.json`:
 }
 ```
 
-### Discord
+### [Slack](docs/slack.md)
+
+- Set `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN` (or `slack.botToken` + `slack.appToken`).
+
+### [Discord](docs/discord.md)
 
 - Set `DISCORD_BOT_TOKEN` or `discord.token` (env wins).
 - Optional: set `discord.slashCommand`, `discord.dm.allowFrom`, `discord.guilds`, or `discord.mediaMaxMb` as needed.
@@ -193,6 +259,18 @@ Minimal `~/.clawdis/clawdis.json`:
   }
 }
 ```
+
+### [Signal](docs/signal.md)
+
+- Requires `signal-cli` and a `signal` config section.
+
+### [iMessage](docs/imessage.md)
+
+- macOS only; Messages must be signed in.
+
+### [WebChat](docs/webchat.md)
+
+- Uses the Gateway WebSocket; no separate WebChat port/config.
 
 Browser control (optional):
 
@@ -208,39 +286,50 @@ Browser control (optional):
 
 ## Docs
 
-- [`docs/index.md`](docs/index.md) (overview)
-- [`docs/configuration.md`](docs/configuration.md)
-- [`docs/group-messages.md`](docs/group-messages.md)
-- [`docs/gateway.md`](docs/gateway.md)
-- [`docs/web.md`](docs/web.md)
-- [`docs/discovery.md`](docs/discovery.md)
-- [`docs/agent.md`](docs/agent.md)
-- [`docs/discord.md`](docs/discord.md)
-- [`docs/wizard.md`](docs/wizard.md)
-- Webhooks + external triggers: [`docs/webhook.md`](docs/webhook.md)
-- Gmail hooks (email → wake): [`docs/gmail-pubsub.md`](docs/gmail-pubsub.md)
+- [Start with the docs index for navigation and “what’s where.”](https://docs.clawdbot.com/)
+- [Read the architecture overview for the gateway + protocol model.](https://docs.clawdbot.com/architecture)
+- [Use the full configuration reference when you need every key and example.](https://docs.clawdbot.com/configuration)
+- [Run the Gateway by the book with the operational runbook.](https://docs.clawdbot.com/gateway)
+- [Learn how the Control UI/Web surfaces work and how to expose them safely.](https://docs.clawdbot.com/web)
+- [Understand remote access over SSH tunnels or tailnets.](https://docs.clawdbot.com/remote)
+- [Follow the onboarding wizard flow for a guided setup.](https://docs.clawdbot.com/wizard)
+- [Wire external triggers via the webhook surface.](https://docs.clawdbot.com/webhook)
+- [Set up Gmail Pub/Sub triggers.](https://docs.clawdbot.com/gmail-pubsub)
+- [Learn the macOS menu bar companion details.](https://docs.clawdbot.com/macos)
+- [Platform guides: Windows](https://docs.clawdbot.com/windows), [Linux](https://docs.clawdbot.com/linux), [macOS](https://docs.clawdbot.com/macos), [iOS](https://docs.clawdbot.com/ios), [Android](https://docs.clawdbot.com/android)
+- [Debug common failures with the troubleshooting guide.](https://docs.clawdbot.com/troubleshooting)
+- [Review security guidance before exposing anything.](https://docs.clawdbot.com/security)
 
 ## Email hooks (Gmail)
 
+[Gmail Pub/Sub wiring (gcloud + gogcli), hook tokens, and auto-watch behavior are documented here.](https://docs.clawdbot.com/gmail-pubsub)
+
+Gateway auto-starts the watcher when `hooks.enabled=true` and `hooks.gmail.account` is set; `clawdbot hooks gmail run` is the manual daemon wrapper if you don’t want auto-start.
+
 ```bash
-clawdis hooks gmail setup --account you@gmail.com
-clawdis hooks gmail run
+clawdbot hooks gmail setup --account you@gmail.com
+clawdbot hooks gmail run
 ```
-- [`docs/security.md`](docs/security.md)
-- [`docs/troubleshooting.md`](docs/troubleshooting.md)
-- [`docs/ios/connect.md`](docs/ios/connect.md)
-- [`docs/clawdis-mac.md`](docs/clawdis-mac.md)
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, maintainers, and how to submit PRs.
-
-AI/vibe-coded PRs welcome! 🤖
 
 ## Clawd
 
-Clawdis was built for **Clawd**, a space lobster AI assistant.
+Clawdbot was built for **Clawd**, a space lobster AI assistant. 🦞  
+by Peter Steinberger and the community.
 
 - https://clawd.me
 - https://soul.md
 - https://steipete.me
+
+## Community
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, maintainers, and how to submit PRs.  
+AI/vibe-coded PRs welcome! 🤖
+
+Thanks to everyone who has contributed:
+
+<p align="left">
+  <a href="https://github.com/steipete"><img src="https://avatars.githubusercontent.com/u/58493?v=4&s=48" width="48" height="48" alt="steipete" title="steipete"/></a> <a href="https://github.com/thewilloftheshadow"><img src="https://avatars.githubusercontent.com/u/35580099?v=4&s=48" width="48" height="48" alt="thewilloftheshadow" title="thewilloftheshadow"/></a> <a href="https://github.com/mcinteerj"><img src="https://avatars.githubusercontent.com/u/3613653?v=4&s=48" width="48" height="48" alt="mcinteerj" title="mcinteerj"/></a> <a href="https://github.com/joshp123"><img src="https://avatars.githubusercontent.com/u/1497361?v=4&s=48" width="48" height="48" alt="joshp123" title="joshp123"/></a> <a href="https://github.com/joaohlisboa"><img src="https://avatars.githubusercontent.com/u/8200873?v=4&s=48" width="48" height="48" alt="joaohlisboa" title="joaohlisboa"/></a> <a href="https://github.com/petter-b"><img src="https://avatars.githubusercontent.com/u/62076402?v=4&s=48" width="48" height="48" alt="petter-b" title="petter-b"/></a> <a href="https://github.com/mukhtharcm"><img src="https://avatars.githubusercontent.com/u/56378562?v=4&s=48" width="48" height="48" alt="mukhtharcm" title="mukhtharcm"/></a> <a href="https://github.com/dan-dr"><img src="https://avatars.githubusercontent.com/u/6669808?v=4&s=48" width="48" height="48" alt="dan-dr" title="dan-dr"/></a> <a href="https://github.com/Nachx639"><img src="https://avatars.githubusercontent.com/u/71144023?v=4&s=48" width="48" height="48" alt="Nachx639" title="Nachx639"/></a> <a href="https://github.com/jeffersonwarrior"><img src="https://avatars.githubusercontent.com/u/89030989?v=4&s=48" width="48" height="48" alt="jeffersonwarrior" title="jeffersonwarrior"/></a>
+  <a href="https://github.com/mbelinky"><img src="https://avatars.githubusercontent.com/u/132747814?v=4&s=48" width="48" height="48" alt="mbelinky" title="mbelinky"/></a> <a href="https://github.com/julianengel"><img src="https://avatars.githubusercontent.com/u/10634231?v=4&s=48" width="48" height="48" alt="julianengel" title="julianengel"/></a> <a href="https://github.com/CashWilliams"><img src="https://avatars.githubusercontent.com/u/613573?v=4&s=48" width="48" height="48" alt="CashWilliams" title="CashWilliams"/></a> <a href="https://github.com/omniwired"><img src="https://avatars.githubusercontent.com/u/322761?v=4&s=48" width="48" height="48" alt="omniwired" title="omniwired"/></a> <a href="https://github.com/jverdi"><img src="https://avatars.githubusercontent.com/u/345050?v=4&s=48" width="48" height="48" alt="jverdi" title="jverdi"/></a> <a href="https://github.com/Syhids"><img src="https://avatars.githubusercontent.com/u/671202?v=4&s=48" width="48" height="48" alt="Syhids" title="Syhids"/></a> <a href="https://github.com/meaningfool"><img src="https://avatars.githubusercontent.com/u/2862331?v=4&s=48" width="48" height="48" alt="meaningfool" title="meaningfool"/></a> <a href="https://github.com/rafaelreis-r"><img src="https://avatars.githubusercontent.com/u/57492577?v=4&s=48" width="48" height="48" alt="rafaelreis-r" title="rafaelreis-r"/></a> <a href="https://github.com/wstock"><img src="https://avatars.githubusercontent.com/u/1394687?v=4&s=48" width="48" height="48" alt="wstock" title="wstock"/></a> <a href="https://github.com/vsabavat"><img src="https://avatars.githubusercontent.com/u/50385532?v=4&s=48" width="48" height="48" alt="vsabavat" title="vsabavat"/></a>
+  <a href="https://github.com/scald"><img src="https://avatars.githubusercontent.com/u/1215913?v=4&s=48" width="48" height="48" alt="scald" title="scald"/></a> <a href="https://github.com/sreekaransrinath"><img src="https://avatars.githubusercontent.com/u/50989977?v=4&s=48" width="48" height="48" alt="sreekaransrinath" title="sreekaransrinath"/></a> <a href="https://github.com/ratulsarna"><img src="https://avatars.githubusercontent.com/u/105903728?v=4&s=48" width="48" height="48" alt="ratulsarna" title="ratulsarna"/></a> <a href="https://github.com/osolmaz"><img src="https://avatars.githubusercontent.com/u/2453968?v=4&s=48" width="48" height="48" alt="osolmaz" title="osolmaz"/></a> <a href="https://github.com/conhecendocontato"><img src="https://avatars.githubusercontent.com/u/82890727?v=4&s=48" width="48" height="48" alt="conhecendocontato" title="conhecendocontato"/></a> <a href="https://github.com/hrdwdmrbl"><img src="https://avatars.githubusercontent.com/u/554881?v=4&s=48" width="48" height="48" alt="hrdwdmrbl" title="hrdwdmrbl"/></a> <a href="https://github.com/jayhickey"><img src="https://avatars.githubusercontent.com/u/1676460?v=4&s=48" width="48" height="48" alt="jayhickey" title="jayhickey"/></a> <a href="https://github.com/jamesgroat"><img src="https://avatars.githubusercontent.com/u/2634024?v=4&s=48" width="48" height="48" alt="jamesgroat" title="jamesgroat"/></a> <a href="https://github.com/gtsifrikas"><img src="https://avatars.githubusercontent.com/u/8904378?v=4&s=48" width="48" height="48" alt="gtsifrikas" title="gtsifrikas"/></a> <a href="https://github.com/djangonavarro220"><img src="https://avatars.githubusercontent.com/u/251162586?v=4&s=48" width="48" height="48" alt="djangonavarro220" title="djangonavarro220"/></a>
+  <a href="https://github.com/azade-c"><img src="https://avatars.githubusercontent.com/u/252790079?v=4&s=48" width="48" height="48" alt="azade-c" title="azade-c"/></a> <a href="https://github.com/andranik-sahakyan"><img src="https://avatars.githubusercontent.com/u/8908029?v=4&s=48" width="48" height="48" alt="andranik-sahakyan" title="andranik-sahakyan"/></a>
+</p>

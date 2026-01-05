@@ -4,7 +4,7 @@ import type { MockBaileysSocket } from "../../test/mocks/baileys.js";
 import { createMockBaileys } from "../../test/mocks/baileys.js";
 
 // Use globalThis to store the mock config so it survives vi.mock hoisting
-const CONFIG_KEY = Symbol.for("clawdis:testConfigMock");
+const CONFIG_KEY = Symbol.for("clawdbot:testConfigMock");
 const DEFAULT_CONFIG = {
   whatsapp: {
     // Tests can override; default remains open to avoid surprising fixtures
@@ -31,13 +31,17 @@ export function resetLoadConfigMock() {
   (globalThis as Record<symbol, unknown>)[CONFIG_KEY] = () => DEFAULT_CONFIG;
 }
 
-vi.mock("../config/config.js", () => ({
-  loadConfig: () => {
-    const getter = (globalThis as Record<symbol, unknown>)[CONFIG_KEY];
-    if (typeof getter === "function") return getter();
-    return DEFAULT_CONFIG;
-  },
-}));
+vi.mock("../config/config.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../config/config.js")>();
+  return {
+    ...actual,
+    loadConfig: () => {
+      const getter = (globalThis as Record<symbol, unknown>)[CONFIG_KEY];
+      if (typeof getter === "function") return getter();
+      return DEFAULT_CONFIG;
+    },
+  };
+});
 
 vi.mock("../media/store.js", () => ({
   saveMediaBuffer: vi
@@ -53,7 +57,7 @@ vi.mock("../media/store.js", () => ({
 vi.mock("@whiskeysockets/baileys", () => {
   const created = createMockBaileys();
   (globalThis as Record<PropertyKey, unknown>)[
-    Symbol.for("clawdis:lastSocket")
+    Symbol.for("clawdbot:lastSocket")
   ] = created.lastSocket;
   return created.mod;
 });
@@ -75,7 +79,7 @@ export const baileys = (await import(
 export function resetBaileysMocks() {
   const recreated = createMockBaileys();
   (globalThis as Record<PropertyKey, unknown>)[
-    Symbol.for("clawdis:lastSocket")
+    Symbol.for("clawdbot:lastSocket")
   ] = recreated.lastSocket;
   baileys.makeWASocket.mockImplementation(recreated.mod.makeWASocket);
   baileys.useMultiFileAuthState.mockImplementation(
@@ -91,7 +95,7 @@ export function resetBaileysMocks() {
 
 export function getLastSocket(): MockBaileysSocket {
   const getter = (globalThis as Record<PropertyKey, unknown>)[
-    Symbol.for("clawdis:lastSocket")
+    Symbol.for("clawdbot:lastSocket")
   ];
   if (typeof getter === "function")
     return (getter as () => MockBaileysSocket)();

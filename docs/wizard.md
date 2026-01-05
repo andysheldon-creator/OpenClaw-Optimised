@@ -7,26 +7,26 @@ read_when:
 
 # Onboarding Wizard (CLI)
 
-The onboarding wizard is the **recommended** way to set up Clawdis on any OS.
+The onboarding wizard is the **recommended** way to set up Clawdbot on any OS.
 It configures a local Gateway or a remote Gateway connection, plus providers, skills,
 and workspace defaults in one guided flow.
 
 Primary entrypoint:
 
 ```bash
-clawdis onboard
+clawdbot onboard
 ```
 
 Follow‑up reconfiguration:
 
 ```bash
-clawdis configure
+clawdbot configure
 ```
 
 ## What the wizard does
 
 **Local mode (default)** walks you through:
-- Model/auth (Anthropic OAuth recommended, API key optional, Minimax M2.1 via LM Studio)
+- Model/auth (Anthropic or OpenAI Codex OAuth recommended, API key optional, Minimax M2.1 via LM Studio)
 - Workspace location + bootstrap files
 - Gateway settings (port/bind/auth/tailscale)
 - Providers (WhatsApp, Telegram, Discord, Signal)
@@ -40,7 +40,7 @@ It does **not** install or change anything on the remote host.
 ## Flow details (local)
 
 1) **Existing config detection**
-   - If `~/.clawdis/clawdis.json` exists, choose **Keep / Modify / Reset**.
+   - If `~/.clawdbot/clawdbot.json` exists, choose **Keep / Modify / Reset**.
    - Reset uses `trash` (never `rm`) and offers scopes:
      - Config only
      - Config + credentials + sessions
@@ -48,9 +48,11 @@ It does **not** install or change anything on the remote host.
 
 2) **Model/Auth**
    - **Anthropic OAuth (recommended)**: browser flow; paste the `code#state`.
+   - **OpenAI Codex OAuth**: browser flow; paste the `code#state`.
    - **API key**: stores the key for you.
    - **Minimax M2.1 (LM Studio)**: config is auto‑written for the LM Studio endpoint.
    - **Skip**: no auth configured yet.
+   - OAuth + API keys are stored in `~/.clawdbot/agent/auth.json`.
 
 3) **Workspace**
    - Default `~/clawd` (configurable).
@@ -70,11 +72,15 @@ It does **not** install or change anything on the remote host.
 
 6) **Daemon install**
    - macOS: LaunchAgent
+     - Requires a logged-in user session; for headless, use a custom LaunchDaemon (not shipped).
    - Linux: systemd user unit
+     - Wizard enables lingering via `loginctl enable-linger <user>` so the Gateway stays up after logout.
+     - Requires sudo (writes `/var/lib/systemd/linger`).
    - Windows: Scheduled Task
+     - Runs on user logon; headless/system services are not configured by default.
 
 7) **Health check**
-   - Starts the Gateway (if needed) and runs `clawdis health`.
+   - Starts the Gateway (if needed) and runs `clawdbot health`.
 
 8) **Skills (recommended)**
    - Reads the available skills and checks requirements.
@@ -83,6 +89,7 @@ It does **not** install or change anything on the remote host.
 
 9) **Finish**
    - Summary + next steps, including iOS/Android/macOS apps for extra features.
+   - If no GUI is detected, the wizard prints SSH port-forward instructions for the Control UI instead of opening a browser.
 
 ## Remote mode
 
@@ -104,7 +111,7 @@ Notes:
 Use `--non-interactive` to automate or script onboarding:
 
 ```bash
-clawdis onboard --non-interactive \
+clawdbot onboard --non-interactive \
   --mode local \
   --auth-choice apiKey \
   --anthropic-api-key "$ANTHROPIC_API_KEY" \
@@ -124,7 +131,7 @@ Clients (macOS app, Control UI) can render steps without re‑implementing onboa
 
 The wizard can install `signal-cli` from GitHub releases:
 - Downloads the appropriate release asset.
-- Stores it under `~/.clawdis/tools/signal-cli/<version>/`.
+- Stores it under `~/.clawdbot/tools/signal-cli/<version>/`.
 - Writes `signal.cliPath` to your config.
 
 Notes:
@@ -134,7 +141,7 @@ Notes:
 
 ## What the wizard writes
 
-Typical fields in `~/.clawdis/clawdis.json`:
+Typical fields in `~/.clawdbot/clawdbot.json`:
 - `agent.workspace`
 - `agent.model` / `models.providers` (if Minimax chosen)
 - `gateway.*` (mode, bind, auth, tailscale)
@@ -146,8 +153,8 @@ Typical fields in `~/.clawdis/clawdis.json`:
 - `wizard.lastRunCommand`
 - `wizard.lastRunMode`
 
-WhatsApp credentials go to `~/.clawdis/credentials/`.
-Sessions are stored under `~/.clawdis/sessions/`.
+WhatsApp credentials go to `~/.clawdbot/credentials/`.
+Sessions are stored under `~/.clawdbot/sessions/`.
 
 ## Related docs
 

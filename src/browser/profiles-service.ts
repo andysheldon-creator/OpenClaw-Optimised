@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import type { BrowserProfileConfig, ClawdisConfig } from "../config/config.js";
+import type { BrowserProfileConfig, ClawdbotConfig } from "../config/config.js";
 import { loadConfig, writeConfigFile } from "../config/config.js";
+import { deriveDefaultBrowserCdpPortRange } from "../config/port-defaults.js";
 import { resolveClawdUserDataDir } from "./chrome.js";
 import { parseHttpUrl, resolveProfile } from "./config.js";
 import {
@@ -79,14 +80,17 @@ export function createBrowserProfilesService(ctx: BrowserRouteContext) {
       profileConfig = { cdpUrl: parsed.normalized, color: profileColor };
     } else {
       const usedPorts = getUsedPorts(resolvedProfiles);
-      const cdpPort = allocateCdpPort(usedPorts);
+      const range = deriveDefaultBrowserCdpPortRange(
+        state.resolved.controlPort,
+      );
+      const cdpPort = allocateCdpPort(usedPorts, range);
       if (cdpPort === null) {
         throw new Error("no available CDP ports in range");
       }
       profileConfig = { cdpPort, color: profileColor };
     }
 
-    const nextConfig: ClawdisConfig = {
+    const nextConfig: ClawdbotConfig = {
       ...cfg,
       browser: {
         ...cfg.browser,
@@ -157,7 +161,7 @@ export function createBrowserProfilesService(ctx: BrowserRouteContext) {
     }
 
     const { [name]: _removed, ...remainingProfiles } = profiles;
-    const nextConfig: ClawdisConfig = {
+    const nextConfig: ClawdbotConfig = {
       ...cfg,
       browser: {
         ...cfg.browser,

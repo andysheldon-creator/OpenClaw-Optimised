@@ -6,6 +6,7 @@ import {
   DEFAULT_PROVIDER,
 } from "../agents/defaults.js";
 import { loadModelCatalog } from "../agents/model-catalog.js";
+import { runWithModelFallback } from "../agents/model-fallback.js";
 import {
   buildAllowedModelSet,
   modelKey,
@@ -27,7 +28,7 @@ import {
   type VerboseLevel,
 } from "../auto-reply/thinking.js";
 import { type CliDeps, createDefaultDeps } from "../cli/deps.js";
-import { type ClawdisConfig, loadConfig } from "../config/config.js";
+import { type ClawdbotConfig, loadConfig } from "../config/config.js";
 import {
   DEFAULT_IDLE_MINUTES,
   loadSessionStore,
@@ -77,7 +78,7 @@ type SessionResolution = {
 };
 
 function resolveSession(opts: {
-  cfg: ClawdisConfig;
+  cfg: ClawdbotConfig;
   to?: string;
   sessionId?: string;
 }): SessionResolution {
@@ -351,19 +352,11 @@ export async function agentCommand(
   const sessionFile = resolveSessionTranscriptPath(sessionId);
 
   const startedAt = Date.now();
-  emitAgentEvent({
-    runId,
-    stream: "job",
-    data: {
-      state: "started",
-      startedAt,
-      to: opts.to ?? null,
-      sessionId,
-      isNewSession,
-    },
-  });
+  let lifecycleEnded = false;
 
   let result: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
+  let fallbackProvider = provider;
+  let fallbackModel = model;
   try {
     const surface =
       opts.surface?.trim().toLowerCase() ||
@@ -372,66 +365,82 @@ export async function agentCommand(
         if (!raw) return undefined;
         return raw === "imsg" ? "imessage" : raw;
       })();
-    result = await runEmbeddedPiAgent({
-      sessionId,
-      sessionKey,
-      surface,
-      sessionFile,
-      workspaceDir,
-      config: cfg,
-      skillsSnapshot,
-      prompt: body,
+    const fallbackResult = await runWithModelFallback({
+      cfg,
       provider,
       model,
-      thinkLevel: resolvedThinkLevel,
-      verboseLevel: resolvedVerboseLevel,
-      timeoutMs,
-      runId,
-      lane: opts.lane,
-      abortSignal: opts.abortSignal,
-      extraSystemPrompt: opts.extraSystemPrompt,
-      onAgentEvent: (evt) => {
-        emitAgentEvent({
+      run: (providerOverride, modelOverride) =>
+        runEmbeddedPiAgent({
+          sessionId,
+          sessionKey,
+          surface,
+          sessionFile,
+          workspaceDir,
+          config: cfg,
+          skillsSnapshot,
+          prompt: body,
+          provider: providerOverride,
+          model: modelOverride,
+          thinkLevel: resolvedThinkLevel,
+          verboseLevel: resolvedVerboseLevel,
+          timeoutMs,
           runId,
-          stream: evt.stream,
-          data: evt.data,
-        });
-      },
+          lane: opts.lane,
+          abortSignal: opts.abortSignal,
+          extraSystemPrompt: opts.extraSystemPrompt,
+          onAgentEvent: (evt) => {
+            if (
+              evt.stream === "lifecycle" &&
+              typeof evt.data?.phase === "string" &&
+              (evt.data.phase === "end" || evt.data.phase === "error")
+            ) {
+              lifecycleEnded = true;
+            }
+            emitAgentEvent({
+              runId,
+              stream: evt.stream,
+              data: evt.data,
+            });
+          },
+        }),
     });
-    emitAgentEvent({
-      runId,
-      stream: "job",
-      data: {
-        state: "done",
-        startedAt,
-        endedAt: Date.now(),
-        to: opts.to ?? null,
-        sessionId,
-        durationMs: Date.now() - startedAt,
-        aborted: result.meta.aborted ?? false,
-      },
-    });
+    result = fallbackResult.result;
+    fallbackProvider = fallbackResult.provider;
+    fallbackModel = fallbackResult.model;
+    if (!lifecycleEnded) {
+      emitAgentEvent({
+        runId,
+        stream: "lifecycle",
+        data: {
+          phase: "end",
+          startedAt,
+          endedAt: Date.now(),
+          aborted: result.meta.aborted ?? false,
+        },
+      });
+    }
   } catch (err) {
-    emitAgentEvent({
-      runId,
-      stream: "job",
-      data: {
-        state: "error",
-        startedAt,
-        endedAt: Date.now(),
-        to: opts.to ?? null,
-        sessionId,
-        durationMs: Date.now() - startedAt,
-        error: String(err),
-      },
-    });
+    if (!lifecycleEnded) {
+      emitAgentEvent({
+        runId,
+        stream: "lifecycle",
+        data: {
+          phase: "error",
+          startedAt,
+          endedAt: Date.now(),
+          error: String(err),
+        },
+      });
+    }
     throw err;
   }
 
   // Update token+model fields in the session store.
   if (sessionStore && sessionKey) {
     const usage = result.meta.agentMeta?.usage;
-    const modelUsed = result.meta.agentMeta?.model ?? model;
+    const modelUsed = result.meta.agentMeta?.model ?? fallbackModel ?? model;
+    const providerUsed =
+      result.meta.agentMeta?.provider ?? fallbackProvider ?? provider;
     const contextTokens =
       agentCfg?.contextTokens ??
       lookupContextTokens(modelUsed) ??
@@ -445,6 +454,7 @@ export async function agentCommand(
       ...entry,
       sessionId,
       updatedAt: Date.now(),
+      modelProvider: providerUsed,
       model: modelUsed,
       contextTokens,
     };
@@ -540,7 +550,7 @@ export async function agentCommand(
     }
     if (deliveryProvider === "webchat") {
       const err = new Error(
-        "Delivering to WebChat is not supported via `clawdis agent`; use WhatsApp/Telegram or run with --deliver=false.",
+        "Delivering to WebChat is not supported via `clawdbot agent`; use WhatsApp/Telegram or run with --deliver=false.",
       );
       if (!bestEffortDeliver) throw err;
       logDeliveryError(err);

@@ -1,18 +1,8 @@
-import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
-import path from "node:path";
 
 import type { AgentMessage, ThinkingLevel } from "@mariozechner/pi-agent-core";
-import {
-  type Api,
-  type AssistantMessage,
-  getEnvApiKey,
-  getOAuthApiKey,
-  type Model,
-  type OAuthCredentials,
-  type OAuthProvider,
-} from "@mariozechner/pi-ai";
+import type { Api, AssistantMessage, Model } from "@mariozechner/pi-ai";
 import {
   buildSystemPrompt,
   createAgentSession,
@@ -24,7 +14,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import type { ThinkLevel, VerboseLevel } from "../auto-reply/thinking.js";
 import { formatToolAggregate } from "../auto-reply/tool-meta.js";
-import type { ClawdisConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
 import { createSubsystemLogger } from "../logging.js";
 import { splitMediaFromOutput } from "../media/parse.js";
@@ -32,11 +22,12 @@ import {
   type enqueueCommand,
   enqueueCommandInLane,
 } from "../process/command-queue.js";
-import { CONFIG_DIR, resolveUserPath } from "../utils.js";
-import { resolveClawdisAgentDir } from "./agent-paths.js";
+import { resolveUserPath } from "../utils.js";
+import { resolveClawdbotAgentDir } from "./agent-paths.js";
 import type { BashElevatedDefaults } from "./bash-tools.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
-import { ensureClawdisModelsJson } from "./models-config.js";
+import { getApiKeyForModel } from "./model-auth.js";
+import { ensureClawdbotModelsJson } from "./models-config.js";
 import {
   buildBootstrapContextFiles,
   ensureSessionHeader,
@@ -48,7 +39,8 @@ import {
   subscribeEmbeddedPiSession,
 } from "./pi-embedded-subscribe.js";
 import { extractAssistantText } from "./pi-embedded-utils.js";
-import { createClawdisCodingTools } from "./pi-tools.js";
+import { toToolDefinitions } from "./pi-tool-definition-adapter.js";
+import { createClawdbotCodingTools } from "./pi-tools.js";
 import { resolveSandboxContext } from "./sandbox.js";
 import {
   applySkillEnvOverrides,
@@ -105,11 +97,6 @@ type EmbeddedRunWaiter = {
 };
 const EMBEDDED_RUN_WAITERS = new Map<string, Set<EmbeddedRunWaiter>>();
 
-const OAUTH_FILENAME = "oauth.json";
-const DEFAULT_OAUTH_DIR = path.join(CONFIG_DIR, "credentials");
-let oauthStorageConfigured = false;
-
-type OAuthStorage = Record<string, OAuthCredentials>;
 type EmbeddedSandboxInfo = {
   enabled: boolean;
   workspaceDir?: string;
@@ -137,92 +124,6 @@ export function buildEmbeddedSandboxInfo(
     browserControlUrl: sandbox.browser?.controlUrl,
     browserNoVncUrl: sandbox.browser?.noVncUrl,
   };
-}
-
-function resolveClawdisOAuthPath(): string {
-  const overrideDir =
-    process.env.CLAWDIS_OAUTH_DIR?.trim() || DEFAULT_OAUTH_DIR;
-  return path.join(resolveUserPath(overrideDir), OAUTH_FILENAME);
-}
-
-function loadOAuthStorageAt(pathname: string): OAuthStorage | null {
-  if (!fsSync.existsSync(pathname)) return null;
-  try {
-    const content = fsSync.readFileSync(pathname, "utf8");
-    const json = JSON.parse(content) as OAuthStorage;
-    if (!json || typeof json !== "object") return null;
-    return json;
-  } catch {
-    return null;
-  }
-}
-
-function hasAnthropicOAuth(storage: OAuthStorage): boolean {
-  const entry = storage.anthropic as
-    | {
-        refresh?: string;
-        refresh_token?: string;
-        refreshToken?: string;
-        access?: string;
-        access_token?: string;
-        accessToken?: string;
-      }
-    | undefined;
-  if (!entry) return false;
-  const refresh =
-    entry.refresh ?? entry.refresh_token ?? entry.refreshToken ?? "";
-  const access = entry.access ?? entry.access_token ?? entry.accessToken ?? "";
-  return Boolean(refresh.trim() && access.trim());
-}
-
-function saveOAuthStorageAt(pathname: string, storage: OAuthStorage): void {
-  const dir = path.dirname(pathname);
-  fsSync.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  fsSync.writeFileSync(
-    pathname,
-    `${JSON.stringify(storage, null, 2)}\n`,
-    "utf8",
-  );
-  fsSync.chmodSync(pathname, 0o600);
-}
-
-function legacyOAuthPaths(): string[] {
-  const paths: string[] = [];
-  const piOverride = process.env.PI_CODING_AGENT_DIR?.trim();
-  if (piOverride) {
-    paths.push(path.join(resolveUserPath(piOverride), OAUTH_FILENAME));
-  }
-  paths.push(path.join(os.homedir(), ".pi", "agent", OAUTH_FILENAME));
-  paths.push(path.join(os.homedir(), ".claude", OAUTH_FILENAME));
-  paths.push(path.join(os.homedir(), ".config", "claude", OAUTH_FILENAME));
-  paths.push(path.join(os.homedir(), ".config", "anthropic", OAUTH_FILENAME));
-  return Array.from(new Set(paths));
-}
-
-function importLegacyOAuthIfNeeded(destPath: string): void {
-  if (fsSync.existsSync(destPath)) return;
-  for (const legacyPath of legacyOAuthPaths()) {
-    const storage = loadOAuthStorageAt(legacyPath);
-    if (!storage || !hasAnthropicOAuth(storage)) continue;
-    saveOAuthStorageAt(destPath, storage);
-    return;
-  }
-}
-
-function ensureOAuthStorage(): void {
-  if (oauthStorageConfigured) return;
-  oauthStorageConfigured = true;
-  const oauthPath = resolveClawdisOAuthPath();
-  importLegacyOAuthIfNeeded(oauthPath);
-}
-
-function isOAuthProvider(provider: string): provider is OAuthProvider {
-  return (
-    provider === "anthropic" ||
-    provider === "github-copilot" ||
-    provider === "google-gemini-cli" ||
-    provider === "google-antigravity"
-  );
 }
 
 export function queueEmbeddedPiMessage(
@@ -298,7 +199,7 @@ export function resolveEmbeddedSessionLane(key: string) {
 }
 
 function mapThinkingLevel(level?: ThinkLevel): ThinkingLevel {
-  // pi-agent-core supports "xhigh" too; Clawdis doesn't surface it for now.
+  // pi-agent-core supports "xhigh" too; Clawdbot doesn't surface it for now.
   if (!level) return "off";
   return level;
 }
@@ -313,7 +214,7 @@ function resolveModel(
   authStorage: ReturnType<typeof discoverAuthStorage>;
   modelRegistry: ReturnType<typeof discoverModels>;
 } {
-  const resolvedAgentDir = agentDir ?? resolveClawdisAgentDir();
+  const resolvedAgentDir = agentDir ?? resolveClawdbotAgentDir();
   const authStorage = discoverAuthStorage(resolvedAgentDir);
   const modelRegistry = discoverModels(authStorage, resolvedAgentDir);
   const model = modelRegistry.find(provider, modelId) as Model<Api> | null;
@@ -325,38 +226,6 @@ function resolveModel(
     };
   }
   return { model, authStorage, modelRegistry };
-}
-
-async function getApiKeyForModel(
-  model: Model<Api>,
-  authStorage: ReturnType<typeof discoverAuthStorage>,
-): Promise<string> {
-  const storedKey = await authStorage.getApiKey(model.provider);
-  if (storedKey) return storedKey;
-  ensureOAuthStorage();
-  if (model.provider === "anthropic") {
-    const oauthEnv = process.env.ANTHROPIC_OAUTH_TOKEN;
-    if (oauthEnv?.trim()) return oauthEnv.trim();
-  }
-  const envKey = getEnvApiKey(model.provider);
-  if (envKey) return envKey;
-  if (isOAuthProvider(model.provider)) {
-    const oauthPath = resolveClawdisOAuthPath();
-    const storage = loadOAuthStorageAt(oauthPath);
-    if (storage) {
-      try {
-        const result = await getOAuthApiKey(model.provider, storage);
-        if (result?.apiKey) {
-          storage[model.provider] = result.newCredentials;
-          saveOAuthStorageAt(oauthPath, storage);
-          return result.apiKey;
-        }
-      } catch {
-        // fall through to error below
-      }
-    }
-  }
-  throw new Error(`No API key found for provider "${model.provider}"`);
 }
 
 function resolvePromptSkills(
@@ -384,7 +253,7 @@ export async function runEmbeddedPiAgent(params: {
   surface?: string;
   sessionFile: string;
   workspaceDir: string;
-  config?: ClawdisConfig;
+  config?: ClawdbotConfig;
   skillsSnapshot?: SkillSnapshot;
   prompt: string;
   provider?: string;
@@ -436,8 +305,8 @@ export async function runEmbeddedPiAgent(params: {
       const provider =
         (params.provider ?? DEFAULT_PROVIDER).trim() || DEFAULT_PROVIDER;
       const modelId = (params.model ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
-      await ensureClawdisModelsJson(params.config);
-      const agentDir = resolveClawdisAgentDir();
+      await ensureClawdbotModelsJson(params.config);
+      const agentDir = resolveClawdbotAgentDir();
       const { model, error, authStorage, modelRegistry } = resolveModel(
         provider,
         modelId,
@@ -496,7 +365,9 @@ export async function runEmbeddedPiAgent(params: {
           await loadWorkspaceBootstrapFiles(resolvedWorkspace);
         const contextFiles = buildBootstrapContextFiles(bootstrapFiles);
         const promptSkills = resolvePromptSkills(skillsSnapshot, skillEntries);
-        const tools = createClawdisCodingTools({
+        // Tool schemas must be provider-compatible (OpenAI requires top-level `type: "object"`).
+        // `createClawdbotCodingTools()` normalizes schemas so the session can pass them through unchanged.
+        const tools = createClawdbotCodingTools({
           bash: {
             ...params.config?.agent?.bash,
             elevated: params.bashElevated,
@@ -504,6 +375,7 @@ export async function runEmbeddedPiAgent(params: {
           sandbox,
           surface: params.surface,
           sessionKey: params.sessionKey ?? params.sessionId,
+          config: params.config,
         });
         const machineName = await getMachineDisplayName();
         const runtimeInfo = {
@@ -524,6 +396,7 @@ export async function runEmbeddedPiAgent(params: {
             reasoningTagHint,
             runtimeInfo,
             sandboxInfo,
+            toolNames: tools.map((tool) => tool.name),
           }),
           contextFiles,
           skills: promptSkills,
@@ -537,6 +410,13 @@ export async function runEmbeddedPiAgent(params: {
           agentDir,
         );
 
+        // Split tools into built-in (recognized by pi-coding-agent SDK) and custom (clawdbot-specific)
+        const builtInToolNames = new Set(["read", "bash", "edit", "write"]);
+        const builtInTools = tools.filter((t) => builtInToolNames.has(t.name));
+        const customTools = toToolDefinitions(
+          tools.filter((t) => !builtInToolNames.has(t.name)),
+        );
+
         const { session } = await createAgentSession({
           cwd: resolvedWorkspace,
           agentDir,
@@ -545,8 +425,10 @@ export async function runEmbeddedPiAgent(params: {
           model,
           thinkingLevel,
           systemPrompt,
-          // Custom tool set: extra bash/process + read image sanitization.
-          tools,
+          // Built-in tools recognized by pi-coding-agent SDK
+          tools: builtInTools,
+          // Custom clawdbot tools (browser, canvas, nodes, cron, etc.)
+          customTools,
           sessionManager,
           settingsManager,
           skills: promptSkills,

@@ -12,6 +12,7 @@ export type ChatState = {
   chatMessage: string;
   chatRunId: string | null;
   chatStream: string | null;
+  chatStreamStartedAt: number | null;
   lastError: string | null;
 };
 
@@ -41,10 +42,20 @@ export async function loadChatHistory(state: ChatState) {
   }
 }
 
-export async function sendChat(state: ChatState) {
-  if (!state.client || !state.connected) return;
+export async function sendChat(state: ChatState): Promise<boolean> {
+  if (!state.client || !state.connected) return false;
   const msg = state.chatMessage.trim();
-  if (!msg) return;
+  if (!msg) return false;
+
+  const now = Date.now();
+  state.chatMessages = [
+    ...state.chatMessages,
+    {
+      role: "user",
+      content: [{ type: "text", text: msg }],
+      timestamp: now,
+    },
+  ];
 
   state.chatSending = true;
   state.chatMessage = "";
@@ -52,6 +63,7 @@ export async function sendChat(state: ChatState) {
   const runId = generateUUID();
   state.chatRunId = runId;
   state.chatStream = "";
+  state.chatStreamStartedAt = now;
   try {
     await state.client.request("chat.send", {
       sessionKey: state.sessionKey,
@@ -59,11 +71,23 @@ export async function sendChat(state: ChatState) {
       deliver: false,
       idempotencyKey: runId,
     });
+    return true;
   } catch (err) {
+    const error = String(err);
     state.chatRunId = null;
     state.chatStream = null;
+    state.chatStreamStartedAt = null;
     state.chatMessage = msg;
-    state.lastError = String(err);
+    state.lastError = error;
+    state.chatMessages = [
+      ...state.chatMessages,
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "Error: " + error }],
+        timestamp: Date.now(),
+      },
+    ];
+    return false;
   } finally {
     state.chatSending = false;
   }
@@ -79,13 +103,25 @@ export function handleChatEvent(
     return null;
 
   if (payload.state === "delta") {
-    state.chatStream = extractText(payload.message) ?? state.chatStream;
+    const next = extractText(payload.message);
+    if (typeof next === "string") {
+      const current = state.chatStream ?? "";
+      if (!current || next.length >= current.length) {
+        state.chatStream = next;
+      }
+    }
   } else if (payload.state === "final") {
     state.chatStream = null;
     state.chatRunId = null;
+    state.chatStreamStartedAt = null;
+  } else if (payload.state === "aborted") {
+    state.chatStream = null;
+    state.chatRunId = null;
+    state.chatStreamStartedAt = null;
   } else if (payload.state === "error") {
     state.chatStream = null;
     state.chatRunId = null;
+    state.chatStreamStartedAt = null;
     state.lastError = payload.errorMessage ?? "chat error";
   }
   return payload.state;

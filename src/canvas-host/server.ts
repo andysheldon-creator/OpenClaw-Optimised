@@ -27,6 +27,12 @@ export type CanvasHostOpts = {
   port?: number;
   listenHost?: string;
   allowInTests?: boolean;
+  liveReload?: boolean;
+};
+
+export type CanvasHostServerOpts = CanvasHostOpts & {
+  handler?: CanvasHostHandler;
+  ownsHandler?: boolean;
 };
 
 export type CanvasHostServer = {
@@ -40,6 +46,7 @@ export type CanvasHostHandlerOpts = {
   rootDir?: string;
   basePath?: string;
   allowInTests?: boolean;
+  liveReload?: boolean;
 };
 
 export type CanvasHostHandler = {
@@ -61,7 +68,7 @@ function defaultIndexHTML() {
   return `<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Clawdis Canvas</title>
+<title>Clawdbot Canvas</title>
 <style>
   html, body { height: 100%; margin: 0; background: #000; color: #fff; font: 16px/1.4 -apple-system, BlinkMacSystemFont, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
   .wrap { min-height: 100%; display: grid; place-items: center; padding: 24px; }
@@ -79,7 +86,7 @@ function defaultIndexHTML() {
 <div class="wrap">
   <div class="card">
     <div class="title">
-      <h1>Clawdis Canvas</h1>
+      <h1>Clawdbot Canvas</h1>
       <div class="sub">Interactive test page (auto-reload enabled)</div>
     </div>
 
@@ -100,26 +107,26 @@ function defaultIndexHTML() {
   const statusEl = document.getElementById("status");
   const log = (msg) => { logEl.textContent = String(msg); };
 
-  const hasIOS = () => !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clawdisCanvasA2UIAction);
-  const hasAndroid = () => !!(window.clawdisCanvasA2UIAction && typeof window.clawdisCanvasA2UIAction.postMessage === "function");
-  const hasHelper = () => typeof window.clawdisSendUserAction === "function";
+  const hasIOS = () => !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.clawdbotCanvasA2UIAction);
+  const hasAndroid = () => !!(window.clawdbotCanvasA2UIAction && typeof window.clawdbotCanvasA2UIAction.postMessage === "function");
+  const hasHelper = () => typeof window.clawdbotSendUserAction === "function";
   statusEl.innerHTML =
     "Bridge: " +
     (hasHelper() ? "<span class='ok'>ready</span>" : "<span class='bad'>missing</span>") +
     " · iOS=" + (hasIOS() ? "yes" : "no") +
     " · Android=" + (hasAndroid() ? "yes" : "no");
 
-  window.addEventListener("clawdis:a2ui-action-status", (ev) => {
+  window.addEventListener("clawdbot:a2ui-action-status", (ev) => {
     const d = ev && ev.detail || {};
     log("Action status: id=" + (d.id || "?") + " ok=" + String(!!d.ok) + (d.error ? (" error=" + d.error) : ""));
   });
 
   function send(name, sourceComponentId) {
     if (!hasHelper()) {
-      log("No action bridge found. Ensure you're viewing this on an iOS/Android Clawdis node canvas.");
+      log("No action bridge found. Ensure you're viewing this on an iOS/Android Clawdbot node canvas.");
       return;
     }
-    const ok = window.clawdisSendUserAction({
+    const ok = window.clawdbotSendUserAction({
       name,
       surfaceId: "main",
       sourceComponentId,
@@ -177,7 +184,7 @@ async function resolveFilePath(rootReal: string, urlPath: string) {
 }
 
 function isDisabledByEnv() {
-  if (process.env.CLAWDIS_SKIP_CANVAS_HOST === "1") return true;
+  if (process.env.CLAWDBOT_SKIP_CANVAS_HOST === "1") return true;
   if (process.env.NODE_ENV === "test") return true;
   if (process.env.VITEST) return true;
   return false;
@@ -229,15 +236,19 @@ export async function createCanvasHostHandler(
   );
   const rootReal = await prepareCanvasRoot(rootDir);
 
-  const wss = new WebSocketServer({ noServer: true });
+  const liveReload = opts.liveReload !== false;
+  const wss = liveReload ? new WebSocketServer({ noServer: true }) : null;
   const sockets = new Set<WebSocket>();
-  wss.on("connection", (ws) => {
-    sockets.add(ws);
-    ws.on("close", () => sockets.delete(ws));
-  });
+  if (wss) {
+    wss.on("connection", (ws) => {
+      sockets.add(ws);
+      ws.on("close", () => sockets.delete(ws));
+    });
+  }
 
   let debounce: NodeJS.Timeout | null = null;
   const broadcastReload = () => {
+    if (!liveReload) return;
     for (const ws of sockets) {
       try {
         ws.send("reload");
@@ -255,21 +266,33 @@ export async function createCanvasHostHandler(
     debounce.unref?.();
   };
 
-  const watcher = chokidar.watch(rootReal, {
-    ignoreInitial: true,
-    awaitWriteFinish: { stabilityThreshold: 75, pollInterval: 10 },
-    ignored: [
-      /(^|[\\/])\../, // dotfiles
-      /(^|[\\/])node_modules([\\/]|$)/,
-    ],
+  let watcherClosed = false;
+  const watcher = liveReload
+    ? chokidar.watch(rootReal, {
+        ignoreInitial: true,
+        awaitWriteFinish: { stabilityThreshold: 75, pollInterval: 10 },
+        ignored: [
+          /(^|[\\/])\../, // dotfiles
+          /(^|[\\/])node_modules([\\/]|$)/,
+        ],
+      })
+    : null;
+  watcher?.on("all", () => scheduleReload());
+  watcher?.on("error", (err) => {
+    if (watcherClosed) return;
+    watcherClosed = true;
+    opts.runtime.error(
+      `canvasHost watcher error: ${String(err)} (live reload disabled; consider canvasHost.liveReload=false or a smaller canvasHost.root)`,
+    );
+    void watcher.close().catch(() => {});
   });
-  watcher.on("all", () => scheduleReload());
 
   const handleUpgrade = (
     req: IncomingMessage,
     socket: Duplex,
     head: Buffer,
   ) => {
+    if (!wss) return false;
     const url = new URL(req.url ?? "/", "http://localhost");
     if (url.pathname !== CANVAS_WS_PATH) return false;
     wss.handleUpgrade(req, socket as Socket, head, (ws) => {
@@ -288,9 +311,9 @@ export async function createCanvasHostHandler(
     try {
       const url = new URL(urlRaw, "http://localhost");
       if (url.pathname === CANVAS_WS_PATH) {
-        res.statusCode = 426;
+        res.statusCode = liveReload ? 426 : 404;
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
-        res.end("upgrade required");
+        res.end(liveReload ? "upgrade required" : "not found");
         return true;
       }
 
@@ -318,7 +341,7 @@ export async function createCanvasHostHandler(
           res.statusCode = 404;
           res.setHeader("Content-Type", "text/html; charset=utf-8");
           res.end(
-            `<!doctype html><meta charset="utf-8" /><title>Clawdis Canvas</title><pre>Missing file.\nCreate ${rootDir}/index.html</pre>`,
+            `<!doctype html><meta charset="utf-8" /><title>Clawdbot Canvas</title><pre>Missing file.\nCreate ${rootDir}/index.html</pre>`,
           );
           return true;
         }
@@ -338,7 +361,7 @@ export async function createCanvasHostHandler(
       if (mime === "text/html") {
         const html = await fs.readFile(filePath, "utf8");
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(injectCanvasLiveReload(html));
+        res.end(liveReload ? injectCanvasLiveReload(html) : html);
         return true;
       }
 
@@ -361,25 +384,32 @@ export async function createCanvasHostHandler(
     handleUpgrade,
     close: async () => {
       if (debounce) clearTimeout(debounce);
-      await watcher.close().catch(() => {});
-      await new Promise<void>((resolve) => wss.close(() => resolve()));
+      watcherClosed = true;
+      await watcher?.close().catch(() => {});
+      if (wss) {
+        await new Promise<void>((resolve) => wss.close(() => resolve()));
+      }
     },
   };
 }
 
 export async function startCanvasHost(
-  opts: CanvasHostOpts,
+  opts: CanvasHostServerOpts,
 ): Promise<CanvasHostServer> {
   if (isDisabledByEnv() && opts.allowInTests !== true) {
     return { port: 0, rootDir: "", close: async () => {} };
   }
 
-  const handler = await createCanvasHostHandler({
-    runtime: opts.runtime,
-    rootDir: opts.rootDir,
-    basePath: CANVAS_HOST_PATH,
-    allowInTests: opts.allowInTests,
-  });
+  const handler =
+    opts.handler ??
+    (await createCanvasHostHandler({
+      runtime: opts.runtime,
+      rootDir: opts.rootDir,
+      basePath: CANVAS_HOST_PATH,
+      allowInTests: opts.allowInTests,
+      liveReload: opts.liveReload,
+    }));
+  const ownsHandler = opts.ownsHandler ?? opts.handler === undefined;
 
   const bindHost = opts.listenHost?.trim() || "0.0.0.0";
   const server: Server = http.createServer((req, res) => {
@@ -430,7 +460,7 @@ export async function startCanvasHost(
     port: boundPort,
     rootDir: handler.rootDir,
     close: async () => {
-      await handler.close();
+      if (ownsHandler) await handler.close();
       await new Promise<void>((resolve, reject) =>
         server.close((err) => (err ? reject(err) : resolve())),
       );

@@ -13,10 +13,13 @@ function normalizeBase(input: string): string {
 }
 
 export default defineConfig(({ command }) => {
-  const envBase = process.env.CLAWDIS_CONTROL_UI_BASE_PATH?.trim();
+  const envBase = process.env.CLAWDBOT_CONTROL_UI_BASE_PATH?.trim();
   const base = envBase ? normalizeBase(envBase) : "/";
   return {
     base,
+    optimizeDeps: {
+      include: ["lit/directives/repeat.js"],
+    },
     build: {
       outDir: path.resolve(here, "../dist/control-ui"),
       emptyOutDir: true,

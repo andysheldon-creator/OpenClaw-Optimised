@@ -35,7 +35,7 @@ vi.mock("../agents/model-catalog.js", () => ({
 }));
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  const base = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-reply-"));
+  const base = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-reply-"));
   const previousHome = process.env.HOME;
   process.env.HOME = base;
   try {
@@ -578,6 +578,7 @@ describe("directive parsing", () => {
       expect(text).toContain("anthropic/claude-opus-4-5");
       expect(text).toContain("openai/gpt-4.1-mini");
       expect(text).not.toContain("claude-sonnet-4-1");
+      expect(text).toContain("auth:");
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -604,6 +605,33 @@ describe("directive parsing", () => {
       expect(text).toContain("anthropic/claude-opus-4-5");
       expect(text).toContain("openai/gpt-4.1-mini");
       expect(text).not.toContain("claude-sonnet-4-1");
+      expect(text).toContain("auth:");
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
+  it("lists allowlisted models on /model list", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+      const storePath = path.join(home, "sessions.json");
+
+      const res = await getReplyFromConfig(
+        { Body: "/model list", From: "+1222", To: "+1222" },
+        {},
+        {
+          agent: {
+            model: "anthropic/claude-opus-4-5",
+            workspace: path.join(home, "clawd"),
+            allowedModels: ["anthropic/claude-opus-4-5", "openai/gpt-4.1-mini"],
+          },
+          session: { store: storePath },
+        },
+      );
+
+      const text = Array.isArray(res) ? res[0]?.text : res?.text;
+      expect(text).toContain("anthropic/claude-opus-4-5");
+      expect(text).toContain("openai/gpt-4.1-mini");
+      expect(text).toContain("auth:");
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });

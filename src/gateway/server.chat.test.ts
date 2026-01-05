@@ -18,8 +18,30 @@ import {
 installGatewayTestHooks();
 
 describe("gateway server chat", () => {
+  test("webchat can chat.send without a mobile node", async () => {
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws, {
+      client: {
+        name: "clawdbot-control-ui",
+        version: "dev",
+        platform: "web",
+        mode: "webchat",
+      },
+    });
+
+    const res = await rpcReq(ws, "chat.send", {
+      sessionKey: "main",
+      message: "hello",
+      idempotencyKey: "idem-webchat-1",
+    });
+    expect(res.ok).toBe(true);
+
+    ws.close();
+    await server.close();
+  });
+
   test("chat.send blocked by send policy", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     testState.sessionConfig = {
       sendPolicy: {
@@ -68,7 +90,7 @@ describe("gateway server chat", () => {
   });
 
   test("agent blocked by send policy for sessionKey", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     testState.sessionConfig = {
       sendPolicy: {
@@ -158,7 +180,7 @@ describe("gateway server chat", () => {
       return typeof text === "string" ? text : undefined;
     };
 
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -274,7 +296,7 @@ describe("gateway server chat", () => {
         reasoning: true,
       },
     ];
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -316,7 +338,7 @@ describe("gateway server chat", () => {
   });
 
   test("chat.history caps payload bytes", { timeout: 15_000 }, async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -371,7 +393,7 @@ describe("gateway server chat", () => {
   });
 
   test("chat.send does not overwrite last delivery route", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -416,7 +438,7 @@ describe("gateway server chat", () => {
     "chat.abort cancels an in-flight chat.send",
     { timeout: 15000 },
     async () => {
-      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
       testState.sessionStorePath = path.join(dir, "sessions.json");
       await fs.writeFile(
         testState.sessionStorePath,
@@ -521,7 +543,7 @@ describe("gateway server chat", () => {
   );
 
   test("chat.abort cancels while saving the session store", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -608,7 +630,7 @@ describe("gateway server chat", () => {
   });
 
   test("chat.abort returns aborted=false for unknown runId", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -632,7 +654,7 @@ describe("gateway server chat", () => {
   });
 
   test("chat.abort rejects mismatched sessionKey", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -709,7 +731,7 @@ describe("gateway server chat", () => {
   }, 15_000);
 
   test("chat.abort is a no-op after chat.send completes", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -764,7 +786,7 @@ describe("gateway server chat", () => {
   });
 
   test("chat.send preserves run ordering for queued runs", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-gw-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
     await fs.writeFile(
       testState.sessionStorePath,
@@ -808,9 +830,9 @@ describe("gateway server chat", () => {
     );
 
     emitAgentEvent({
-      runId: "sess-main",
-      stream: "job",
-      data: { state: "done" },
+      runId: "idem-1",
+      stream: "lifecycle",
+      data: { phase: "end" },
     });
 
     const final1 = await final1P;
@@ -830,9 +852,9 @@ describe("gateway server chat", () => {
     );
 
     emitAgentEvent({
-      runId: "sess-main",
-      stream: "job",
-      data: { state: "done" },
+      runId: "idem-2",
+      stream: "lifecycle",
+      data: { phase: "end" },
     });
 
     const final2 = await final2P;

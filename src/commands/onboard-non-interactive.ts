@@ -1,8 +1,8 @@
 import path from "node:path";
 
 import {
-  type ClawdisConfig,
-  CONFIG_PATH_CLAWDIS,
+  type ClawdbotConfig,
+  CONFIG_PATH_CLAWDBOT,
   readConfigFileSnapshot,
   resolveGatewayPort,
   writeConfigFile,
@@ -26,13 +26,14 @@ import type {
   OnboardMode,
   OnboardOptions,
 } from "./onboard-types.js";
+import { ensureSystemdUserLingerNonInteractive } from "./systemd-linger.js";
 
 export async function runNonInteractiveOnboarding(
   opts: OnboardOptions,
   runtime: RuntimeEnv = defaultRuntime,
 ) {
   const snapshot = await readConfigFileSnapshot();
-  const baseConfig: ClawdisConfig = snapshot.valid ? snapshot.config : {};
+  const baseConfig: ClawdbotConfig = snapshot.valid ? snapshot.config : {};
   const mode: OnboardMode = opts.mode ?? "local";
 
   if (mode === "remote") {
@@ -43,7 +44,7 @@ export async function runNonInteractiveOnboarding(
       return;
     }
 
-    let nextConfig: ClawdisConfig = {
+    let nextConfig: ClawdbotConfig = {
       ...baseConfig,
       gateway: {
         ...baseConfig.gateway,
@@ -56,7 +57,7 @@ export async function runNonInteractiveOnboarding(
     };
     nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
     await writeConfigFile(nextConfig);
-    runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
+    runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
 
     const payload = {
       mode,
@@ -76,7 +77,7 @@ export async function runNonInteractiveOnboarding(
     (opts.workspace ?? baseConfig.agent?.workspace ?? DEFAULT_WORKSPACE).trim(),
   );
 
-  let nextConfig: ClawdisConfig = {
+  let nextConfig: ClawdbotConfig = {
     ...baseConfig,
     agent: {
       ...baseConfig.agent,
@@ -99,9 +100,17 @@ export async function runNonInteractiveOnboarding(
     await setAnthropicApiKey(key);
   } else if (authChoice === "minimax") {
     nextConfig = applyMinimaxConfig(nextConfig);
-  } else if (authChoice === "oauth" || authChoice === "antigravity") {
+  } else if (
+    authChoice === "oauth" ||
+    authChoice === "openai-codex" ||
+    authChoice === "antigravity"
+  ) {
     runtime.error(
-      `${authChoice === "oauth" ? "OAuth" : "Antigravity"} requires interactive mode.`,
+      `${
+        authChoice === "oauth" || authChoice === "openai-codex"
+          ? "OAuth"
+          : "Antigravity"
+      } requires interactive mode.`,
     );
     runtime.exit(1);
     return;
@@ -200,7 +209,7 @@ export async function runNonInteractiveOnboarding(
 
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await writeConfigFile(nextConfig);
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
+  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
   await ensureWorkspaceAndSessions(workspaceDir, runtime);
 
   if (opts.installDaemon) {
@@ -212,8 +221,8 @@ export async function runNonInteractiveOnboarding(
       await resolveGatewayProgramArguments({ port, dev: devMode });
     const environment: Record<string, string | undefined> = {
       PATH: process.env.PATH,
-      CLAWDIS_GATEWAY_TOKEN: gatewayToken,
-      CLAWDIS_LAUNCHD_LABEL:
+      CLAWDBOT_GATEWAY_TOKEN: gatewayToken,
+      CLAWDBOT_LAUNCHD_LABEL:
         process.platform === "darwin" ? GATEWAY_LAUNCH_AGENT_LABEL : undefined,
     };
     await service.install({
@@ -223,6 +232,7 @@ export async function runNonInteractiveOnboarding(
       workingDirectory,
       environment,
     });
+    await ensureSystemdUserLingerNonInteractive({ runtime });
   }
 
   if (!opts.skipHealth) {

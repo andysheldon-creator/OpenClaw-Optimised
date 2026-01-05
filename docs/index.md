@@ -1,29 +1,29 @@
 ---
-summary: "Top-level overview of Clawdis, features, and purpose"
+summary: "Top-level overview of Clawdbot, features, and purpose"
 read_when:
-  - Introducing Clawdis to newcomers
+  - Introducing Clawdbot to newcomers
 ---
-<!-- {% raw %} -->
-# CLAWDIS 🦞
+# CLAWDBOT 🦞
 
 > *"EXFOLIATE! EXFOLIATE!"* — A space lobster, probably
 
 <p align="center">
-  <img src="whatsapp-clawd.jpg" alt="CLAWDIS" width="420">
+  <img src="whatsapp-clawd.jpg" alt="CLAWDBOT" width="420" />
 </p>
 
 <p align="center">
-  <strong>WhatsApp + Telegram + Discord + iMessage gateway for AI agents (Pi).</strong><br>
+  <strong>Any OS + WhatsApp/Telegram/Discord/iMessage gateway for AI agents (Pi).</strong><br />
   Send a message, get an agent response — from your pocket.
 </p>
 
 <p align="center">
-  <a href="https://github.com/steipete/clawdis">GitHub</a> ·
-  <a href="https://github.com/steipete/clawdis/releases">Releases</a> ·
+  <a href="https://github.com/clawdbot/clawdbot">GitHub</a> ·
+  <a href="https://github.com/clawdbot/clawdbot/releases">Releases</a> ·
+  <a href="https://docs.clawdbot.com/">Docs</a> ·
   <a href="./clawd.md">Clawd setup</a>
 </p>
 
-CLAWDIS bridges WhatsApp (via WhatsApp Web / Baileys), Telegram (Bot API / grammY), Discord (Bot API / discord.js), and iMessage (imsg CLI) to coding agents like [Pi](https://github.com/badlogic/pi-mono).
+CLAWDBOT bridges WhatsApp (via WhatsApp Web / Baileys), Telegram (Bot API / grammY), Discord (Bot API / discord.js), and iMessage (imsg CLI) to coding agents like [Pi](https://github.com/badlogic/pi-mono).
 It’s built for [Clawd](https://clawd.me), a space lobster who needed a TARDIS.
 
 ## How it works
@@ -35,25 +35,26 @@ WhatsApp / Telegram / Discord
   ┌──────────────────────────┐
   │          Gateway          │  ws://127.0.0.1:18789 (loopback-only)
   │     (single source)       │  tcp://0.0.0.0:18790 (Bridge)
-  │                          │  http://<gateway-host>:18793/__clawdis__/canvas/ (Canvas host)
+  │                          │  http://<gateway-host>:18793/__clawdbot__/canvas/ (Canvas host)
   └───────────┬───────────────┘
               │
               ├─ Pi agent (RPC)
-              ├─ CLI (clawdis …)
+              ├─ CLI (clawdbot …)
               ├─ Chat UI (SwiftUI)
-              ├─ macOS app (Clawdis.app)
-              └─ iOS node via Bridge + pairing
+              ├─ macOS app (Clawdbot.app)
+              ├─ iOS node via Bridge + pairing
+              └─ Android node via Bridge + pairing
 ```
 
-Most operations flow through the **Gateway** (`clawdis gateway`), a single long-running process that owns provider connections and the WebSocket control plane.
+Most operations flow through the **Gateway** (`clawdbot gateway`), a single long-running process that owns provider connections and the WebSocket control plane.
 
 ## Network model
 
 - **One Gateway per host**: it is the only process allowed to own the WhatsApp Web session.
 - **Loopback-first**: Gateway WS defaults to `ws://127.0.0.1:18789`.
-  - For Tailnet access, run `clawdis gateway --bind tailnet --token ...` (token is required for non-loopback binds).
+  - For Tailnet access, run `clawdbot gateway --bind tailnet --token ...` (token is required for non-loopback binds).
 - **Bridge for nodes**: optional LAN/tailnet-facing bridge on `tcp://0.0.0.0:18790` for paired nodes (Bonjour-discoverable).
-- **Canvas host**: HTTP file server on `canvasHost.port` (default `18793`), serving `/__clawdis__/canvas/` for node WebViews; see `docs/configuration.md` (`canvasHost`).
+- **Canvas host**: HTTP file server on `canvasHost.port` (default `18793`), serving `/__clawdbot__/canvas/` for node WebViews; see `docs/configuration.md` (`canvasHost`).
 - **Remote use**: SSH tunnel or tailnet/VPN; see `docs/remote.md` and `docs/discovery.md`.
 
 ## Features (high level)
@@ -63,12 +64,14 @@ Most operations flow through the **Gateway** (`clawdis gateway`), a single long-
 - 🎮 **Discord Bot** — DMs + guild channels via discord.js
 - 💬 **iMessage** — Local imsg CLI integration (macOS)
 - 🤖 **Agent bridge** — Pi (RPC mode) with tool streaming
+- 🔐 **Subscription auth** — Anthropic (Claude Pro/Max) + OpenAI (ChatGPT/Codex) via OAuth
 - 💬 **Sessions** — Direct chats collapse into shared `main` (default); groups are isolated
 - 👥 **Group Chat Support** — Mention-based by default; owner can toggle `/activation always|mention`
 - 📎 **Media Support** — Send and receive images, audio, documents
 - 🎤 **Voice notes** — Optional transcription hook
 - 🖥️ **WebChat + macOS app** — Local UI + menu bar companion for ops and voice wake
 - 📱 **iOS node** — Pairs as a node and exposes a Canvas surface
+- 📱 **Android node** — Pairs as a node and exposes Canvas + Chat + Camera
 
 Note: legacy Claude/Codex/Gemini/Opencode paths have been removed; Pi is the only coding-agent path.
 
@@ -83,31 +86,31 @@ pnpm build
 pnpm link --global
 
 # Pair WhatsApp Web (shows QR)
-clawdis login
+clawdbot login
 
 # Run the Gateway (leave running)
-clawdis gateway --port 18789
+clawdbot gateway --port 18789
 ```
 
 Multi-instance quickstart (optional):
 
 ```bash
-CLAWDIS_CONFIG_PATH=~/.clawdis/a.json \
-CLAWDIS_STATE_DIR=~/.clawdis-a \
-clawdis gateway --port 19001
+CLAWDBOT_CONFIG_PATH=~/.clawdbot/a.json \
+CLAWDBOT_STATE_DIR=~/.clawdbot-a \
+clawdbot gateway --port 19001
 ```
 
 Send a test message (requires a running Gateway):
 
 ```bash
-clawdis send --to +15555550123 --message "Hello from CLAWDIS"
+clawdbot send --to +15555550123 --message "Hello from CLAWDBOT"
 ```
 
 ## Configuration (optional)
 
-Config lives at `~/.clawdis/clawdis.json`.
+Config lives at `~/.clawdbot/clawdbot.json`.
 
-- If you **do nothing**, CLAWDIS uses the bundled Pi binary in RPC mode with per-sender sessions.
+- If you **do nothing**, CLAWDBOT uses the bundled Pi binary in RPC mode with per-sender sessions.
 - If you want to lock it down, start with `whatsapp.allowFrom` and (for groups) mention rules.
 
 Example:
@@ -148,6 +151,12 @@ Example:
   - [WhatsApp group messages](./group-messages.md)
   - [Media: images](./images.md)
   - [Media: audio](./audio.md)
+- Companion apps:
+  - [macOS app](./macos.md)
+  - [iOS app](./ios.md)
+  - [Android app](./android.md)
+  - [Windows app](./windows.md)
+  - [Linux app](./linux.md)
 - Ops and safety:
   - [Sessions](./session.md)
   - [Cron + wakeups](./cron.md)
@@ -156,12 +165,11 @@ Example:
 
 ## The name
 
-**CLAWDIS = CLAW + TARDIS** — because every space lobster needs a time-and-space machine.
+**CLAWDBOT = CLAW + TARDIS** — because every space lobster needs a time-and-space machine.
 
 ---
 
 *"We're all just playing with our own prompts."* — an AI, probably high on tokens
-<!-- {% endraw %} -->
 
 ## Credits
 

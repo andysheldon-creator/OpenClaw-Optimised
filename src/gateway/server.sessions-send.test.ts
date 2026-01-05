@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { createClawdisTools } from "../agents/clawdis-tools.js";
+import { createClawdbotTools } from "../agents/clawdbot-tools.js";
 import { resolveSessionTranscriptPath } from "../config/sessions.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import {
@@ -14,10 +14,10 @@ import {
 installGatewayTestHooks();
 
 describe("sessions_send gateway loopback", () => {
-  it("returns reply when job finishes before agent.wait", async () => {
+  it("returns reply when lifecycle ends before agent.wait", async () => {
     const port = await getFreePort();
-    const prevPort = process.env.CLAWDIS_GATEWAY_PORT;
-    process.env.CLAWDIS_GATEWAY_PORT = String(port);
+    const prevPort = process.env.CLAWDBOT_GATEWAY_PORT;
+    process.env.CLAWDBOT_GATEWAY_PORT = String(port);
 
     const server = await startGatewayServer(port);
     const spy = vi.mocked(agentCommand);
@@ -35,8 +35,8 @@ describe("sessions_send gateway loopback", () => {
       const startedAt = Date.now();
       emitAgentEvent({
         runId,
-        stream: "job",
-        data: { state: "started", startedAt, sessionId },
+        stream: "lifecycle",
+        data: { phase: "start", startedAt },
       });
 
       let text = "pong";
@@ -60,18 +60,17 @@ describe("sessions_send gateway loopback", () => {
 
       emitAgentEvent({
         runId,
-        stream: "job",
+        stream: "lifecycle",
         data: {
-          state: "done",
+          phase: "end",
           startedAt,
           endedAt: Date.now(),
-          sessionId,
         },
       });
     });
 
     try {
-      const tool = createClawdisTools().find(
+      const tool = createClawdbotTools().find(
         (candidate) => candidate.name === "sessions_send",
       );
       if (!tool) throw new Error("missing sessions_send tool");
@@ -94,9 +93,9 @@ describe("sessions_send gateway loopback", () => {
       expect(firstCall?.lane).toBe("nested");
     } finally {
       if (prevPort === undefined) {
-        delete process.env.CLAWDIS_GATEWAY_PORT;
+        delete process.env.CLAWDBOT_GATEWAY_PORT;
       } else {
-        process.env.CLAWDIS_GATEWAY_PORT = prevPort;
+        process.env.CLAWDBOT_GATEWAY_PORT = prevPort;
       }
       await server.close();
     }

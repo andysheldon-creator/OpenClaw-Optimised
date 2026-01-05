@@ -443,7 +443,7 @@ export type RoutingConfig = {
 };
 
 export type MessagesConfig = {
-  messagePrefix?: string; // Prefix added to all inbound messages (default: "[clawdis]" if no allowFrom, else "")
+  messagePrefix?: string; // Prefix added to all inbound messages (default: "[clawdbot]" if no allowFrom, else "")
   responsePrefix?: string; // Prefix auto-added to all outbound replies (e.g., "🦞")
   timestampPrefix?: boolean | string; // true/false or IANA timezone string (default: true with UTC)
 };
@@ -477,6 +477,8 @@ export type CanvasHostConfig = {
   root?: string;
   /** HTTP port to listen on (default: 18793). */
   port?: number;
+  /** Enable live-reload file watching + WS reloads (default: true). */
+  liveReload?: boolean;
 };
 
 export type TalkConfig = {
@@ -497,7 +499,7 @@ export type TalkConfig = {
 export type GatewayControlUiConfig = {
   /** If false, the Gateway will not serve the Control UI (default /). */
   enabled?: boolean;
-  /** Optional base path prefix for the Control UI (e.g. "/clawdis"). */
+  /** Optional base path prefix for the Control UI (e.g. "/clawdbot"). */
   basePath?: string;
 };
 
@@ -634,7 +636,15 @@ export type ModelsConfig = {
   providers?: Record<string, ModelProviderConfig>;
 };
 
-export type ClawdisConfig = {
+export type ClawdbotConfig = {
+  env?: {
+    /** Opt-in: import missing secrets from a login shell environment (exec `$SHELL -l -c 'env -0'`). */
+    shellEnv?: {
+      enabled?: boolean;
+      /** Timeout for the login shell exec (ms). Default: 15000. */
+      timeoutMs?: number;
+    };
+  };
   identity?: {
     name?: string;
     theme?: string;
@@ -650,7 +660,7 @@ export type ClawdisConfig = {
   logging?: LoggingConfig;
   browser?: BrowserConfig;
   ui?: {
-    /** Accent color for Clawdis UI chrome (hex). */
+    /** Accent color for Clawdbot UI chrome (hex). */
     seamColor?: string;
   };
   skills?: SkillsConfig;
@@ -658,12 +668,18 @@ export type ClawdisConfig = {
   agent?: {
     /** Model id (provider/model), e.g. "anthropic/claude-opus-4-5". */
     model?: string;
+    /** Optional image-capable model (provider/model) used by the image tool. */
+    imageModel?: string;
     /** Agent working directory (preferred). Used as the default cwd for agent runs. */
     workspace?: string;
     /** Optional allowlist for /model (provider/model or model-only). */
     allowedModels?: string[];
     /** Optional model aliases for /model (alias -> provider/model). */
     modelAliases?: Record<string, string>;
+    /** Ordered fallback models (provider/model). */
+    modelFallbacks?: string[];
+    /** Ordered fallback image models (provider/model) for the image tool. */
+    imageModelFallbacks?: string[];
     /** Optional display-only context window override (used for % in status UIs). */
     contextTokens?: number;
     /** Default thinking level when no /think directive is present. */
@@ -759,6 +775,30 @@ export type ClawdisConfig = {
         env?: Record<string, string>;
         /** Optional setup command run once after container creation. */
         setupCommand?: string;
+        /** Limit container PIDs (0 = Docker default). */
+        pidsLimit?: number;
+        /** Limit container memory (e.g. 512m, 2g, or bytes as number). */
+        memory?: string | number;
+        /** Limit container memory swap (same format as memory). */
+        memorySwap?: string | number;
+        /** Limit container CPU shares (e.g. 0.5, 1, 2). */
+        cpus?: number;
+        /**
+         * Set ulimit values by name (e.g. nofile, nproc).
+         * Use "soft:hard" string, a number, or { soft, hard }.
+         */
+        ulimits?: Record<
+          string,
+          string | number | { soft?: number; hard?: number }
+        >;
+        /** Seccomp profile (path or profile name). */
+        seccompProfile?: string;
+        /** AppArmor profile name. */
+        apparmorProfile?: string;
+        /** DNS servers (e.g. ["1.1.1.1", "8.8.8.8"]). */
+        dns?: string[];
+        /** Extra host mappings (e.g. ["api.local:10.0.0.2"]). */
+        extraHosts?: string[];
       };
       /** Optional sandboxed browser settings. */
       browser?: {
@@ -783,6 +823,11 @@ export type ClawdisConfig = {
         /** Prune if older than N days (0 disables). */
         maxAgeDays?: number;
       };
+    };
+    /** Global tool allow/deny policy for all providers (deny wins). */
+    tools?: {
+      allow?: string[];
+      deny?: string[];
     };
   };
   routing?: RoutingConfig;
@@ -820,7 +865,7 @@ export type ConfigFileSnapshot = {
   raw: string | null;
   parsed: unknown;
   valid: boolean;
-  config: ClawdisConfig;
+  config: ClawdbotConfig;
   issues: ConfigValidationIssue[];
   legacyIssues: LegacyConfigIssue[];
 };

@@ -11,9 +11,9 @@ import {
   text,
 } from "@clack/prompts";
 import { loginAnthropic, type OAuthCredentials } from "@mariozechner/pi-ai";
-import type { ClawdisConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/config.js";
 import {
-  CONFIG_PATH_CLAWDIS,
+  CONFIG_PATH_CLAWDBOT,
   readConfigFileSnapshot,
   resolveGatewayPort,
   writeConfigFile,
@@ -21,6 +21,7 @@ import {
 import { GATEWAY_LAUNCH_AGENT_LABEL } from "../daemon/constants.js";
 import { resolveGatewayProgramArguments } from "../daemon/program-args.js";
 import { resolveGatewayService } from "../daemon/service.js";
+import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { resolveUserPath, sleep } from "../utils.js";
@@ -38,7 +39,9 @@ import {
 import {
   applyWizardMetadata,
   DEFAULT_WORKSPACE,
+  detectBrowserOpenSupport,
   ensureWorkspaceAndSessions,
+  formatControlUiSshHint,
   guardCancel,
   openUrl,
   printWizardHeader,
@@ -50,6 +53,7 @@ import {
 import { setupProviders } from "./onboard-providers.js";
 import { promptRemoteGatewayConfig } from "./onboard-remote.js";
 import { setupSkills } from "./onboard-skills.js";
+import { ensureSystemdUserLingerInteractive } from "./systemd-linger.js";
 
 type WizardSection =
   | "model"
@@ -66,10 +70,10 @@ type ConfigureWizardParams = {
 };
 
 async function promptGatewayConfig(
-  cfg: ClawdisConfig,
+  cfg: ClawdbotConfig,
   runtime: RuntimeEnv,
 ): Promise<{
-  config: ClawdisConfig;
+  config: ClawdbotConfig;
   port: number;
   token?: string;
 }> {
@@ -176,7 +180,7 @@ async function promptGatewayConfig(
       ...next,
       gateway: {
         ...next.gateway,
-        auth: { ...next.gateway?.auth, mode: "token" },
+        auth: { ...next.gateway?.auth, mode: "token", token: gatewayToken },
       },
     };
   }
@@ -221,9 +225,9 @@ async function promptGatewayConfig(
 }
 
 async function promptAuthConfig(
-  cfg: ClawdisConfig,
+  cfg: ClawdbotConfig,
   runtime: RuntimeEnv,
-): Promise<ClawdisConfig> {
+): Promise<ClawdbotConfig> {
   const authChoice = guardCancel(
     await select({
       message: "Model/auth choice",
@@ -370,6 +374,8 @@ async function maybeInstallDaemon(params: {
 }) {
   const service = resolveGatewayService();
   const loaded = await service.isLoaded({ env: process.env });
+  let shouldCheckLinger = false;
+  let shouldInstall = true;
   if (loaded) {
     const action = guardCancel(
       await select({
@@ -384,7 +390,8 @@ async function maybeInstallDaemon(params: {
     );
     if (action === "restart") {
       await service.restart({ stdout: process.stdout });
-      return;
+      shouldCheckLinger = true;
+      shouldInstall = false;
     }
     if (action === "skip") return;
     if (action === "reinstall") {
@@ -392,24 +399,41 @@ async function maybeInstallDaemon(params: {
     }
   }
 
-  const devMode =
-    process.argv[1]?.includes(`${path.sep}src${path.sep}`) &&
-    process.argv[1]?.endsWith(".ts");
-  const { programArguments, workingDirectory } =
-    await resolveGatewayProgramArguments({ port: params.port, dev: devMode });
-  const environment: Record<string, string | undefined> = {
-    PATH: process.env.PATH,
-    CLAWDIS_GATEWAY_TOKEN: params.gatewayToken,
-    CLAWDIS_LAUNCHD_LABEL:
-      process.platform === "darwin" ? GATEWAY_LAUNCH_AGENT_LABEL : undefined,
-  };
-  await service.install({
-    env: process.env,
-    stdout: process.stdout,
-    programArguments,
-    workingDirectory,
-    environment,
-  });
+  if (shouldInstall) {
+    const devMode =
+      process.argv[1]?.includes(`${path.sep}src${path.sep}`) &&
+      process.argv[1]?.endsWith(".ts");
+    const { programArguments, workingDirectory } =
+      await resolveGatewayProgramArguments({ port: params.port, dev: devMode });
+    const environment: Record<string, string | undefined> = {
+      PATH: process.env.PATH,
+      CLAWDBOT_GATEWAY_TOKEN: params.gatewayToken,
+      CLAWDBOT_LAUNCHD_LABEL:
+        process.platform === "darwin" ? GATEWAY_LAUNCH_AGENT_LABEL : undefined,
+    };
+    await service.install({
+      env: process.env,
+      stdout: process.stdout,
+      programArguments,
+      workingDirectory,
+      environment,
+    });
+    shouldCheckLinger = true;
+  }
+
+  if (shouldCheckLinger) {
+    await ensureSystemdUserLingerInteractive({
+      runtime: params.runtime,
+      prompter: {
+        confirm: async (p) =>
+          guardCancel(await confirm(p), params.runtime) === true,
+        note,
+      },
+      reason:
+        "Linux installs use a systemd user service. Without lingering, systemd stops the user session on logout/idle and kills the Gateway.",
+      requireConfirm: true,
+    });
+  }
 }
 
 export async function runConfigureWizard(
@@ -418,12 +442,12 @@ export async function runConfigureWizard(
 ) {
   printWizardHeader(runtime);
   intro(
-    opts.command === "update" ? "Clawdis update wizard" : "Clawdis configure",
+    opts.command === "update" ? "Clawdbot update wizard" : "Clawdbot configure",
   );
   const prompter = createClackPrompter();
 
   const snapshot = await readConfigFileSnapshot();
-  let baseConfig: ClawdisConfig = snapshot.valid ? snapshot.config : {};
+  let baseConfig: ClawdbotConfig = snapshot.valid ? snapshot.config : {};
 
   if (snapshot.exists) {
     const title = snapshot.valid
@@ -453,10 +477,11 @@ export async function runConfigureWizard(
   const localUrl = "ws://127.0.0.1:18789";
   const localProbe = await probeGatewayReachable({
     url: localUrl,
-    token: process.env.CLAWDIS_GATEWAY_TOKEN,
+    token:
+      baseConfig.gateway?.auth?.token ?? process.env.CLAWDBOT_GATEWAY_TOKEN,
     password:
       baseConfig.gateway?.auth?.password ??
-      process.env.CLAWDIS_GATEWAY_PASSWORD,
+      process.env.CLAWDBOT_GATEWAY_PASSWORD,
   });
   const remoteUrl = baseConfig.gateway?.remote?.url?.trim() ?? "";
   const remoteProbe = remoteUrl
@@ -498,7 +523,7 @@ export async function runConfigureWizard(
       mode,
     });
     await writeConfigFile(remoteConfig);
-    runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
+    runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
     outro("Remote gateway configured.");
     return;
   }
@@ -583,7 +608,7 @@ export async function runConfigureWizard(
     mode,
   });
   await writeConfigFile(nextConfig);
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDIS}`);
+  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
 
   if (selected.includes("daemon")) {
     if (!selected.includes("gateway")) {
@@ -615,6 +640,11 @@ export async function runConfigureWizard(
     }
   }
 
+  const controlUiAssets = await ensureControlUiAssetsBuilt(runtime);
+  if (!controlUiAssets.ok && controlUiAssets.message) {
+    runtime.error(controlUiAssets.message);
+  }
+
   note(
     (() => {
       const bind = nextConfig.gateway?.bind ?? "loopback";
@@ -630,21 +660,43 @@ export async function runConfigureWizard(
     "Control UI",
   );
 
-  const wantsOpen = guardCancel(
-    await confirm({
-      message: "Open Control UI now?",
-      initialValue: false,
-    }),
-    runtime,
-  );
-  if (wantsOpen) {
-    const bind = nextConfig.gateway?.bind ?? "loopback";
-    const links = resolveControlUiLinks({
-      bind,
-      port: gatewayPort,
-      basePath: nextConfig.gateway?.controlUi?.basePath,
-    });
-    await openUrl(links.httpUrl);
+  const browserSupport = await detectBrowserOpenSupport();
+  if (!browserSupport.ok) {
+    note(
+      formatControlUiSshHint({
+        port: gatewayPort,
+        basePath: nextConfig.gateway?.controlUi?.basePath,
+        token: gatewayToken,
+      }),
+      "Open Control UI",
+    );
+  } else {
+    const wantsOpen = guardCancel(
+      await confirm({
+        message: "Open Control UI now?",
+        initialValue: false,
+      }),
+      runtime,
+    );
+    if (wantsOpen) {
+      const bind = nextConfig.gateway?.bind ?? "loopback";
+      const links = resolveControlUiLinks({
+        bind,
+        port: gatewayPort,
+        basePath: nextConfig.gateway?.controlUi?.basePath,
+      });
+      const opened = await openUrl(links.httpUrl);
+      if (!opened) {
+        note(
+          formatControlUiSshHint({
+            port: gatewayPort,
+            basePath: nextConfig.gateway?.controlUi?.basePath,
+            token: gatewayToken,
+          }),
+          "Open Control UI",
+        );
+      }
+    }
   }
 
   outro("Configure complete.");

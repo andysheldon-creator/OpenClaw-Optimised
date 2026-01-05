@@ -31,9 +31,13 @@ vi.mock("@grammyjs/transformer-throttler", () => ({
   apiThrottler: () => throttlerSpy(),
 }));
 
-vi.mock("../config/config.js", () => ({
-  loadConfig: () => ({}),
-}));
+vi.mock("../config/config.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../config/config.js")>();
+  return {
+    ...actual,
+    loadConfig: () => ({}),
+  };
+});
 
 vi.mock("../auto-reply/reply.js", () => {
   const replySpy = vi.fn(async (_ctx, opts) => {
@@ -89,7 +93,7 @@ describe("telegram inbound media", () => {
         photo: [{ file_id: "fid" }],
         date: 1736380800, // 2025-01-09T00:00:00Z
       },
-      me: { username: "clawdis_bot" },
+      me: { username: "clawdbot_bot" },
       getFile: async () => ({ file_path: "photos/1.jpg" }),
     });
 
@@ -145,7 +149,7 @@ describe("telegram inbound media", () => {
         chat: { id: 1234, type: "private" },
         photo: [{ file_id: "fid" }],
       },
-      me: { username: "clawdis_bot" },
+      me: { username: "clawdbot_bot" },
       getFile: async () => ({ file_path: "photos/2.jpg" }),
     });
 
@@ -191,7 +195,7 @@ describe("telegram inbound media", () => {
         chat: { id: 1234, type: "private" },
         photo: [{ file_id: "fid" }],
       },
-      me: { username: "clawdis_bot" },
+      me: { username: "clawdbot_bot" },
       getFile: async () => ({}),
     });
 

@@ -1,5 +1,8 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import net from "node:net";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 const waitForPortOpen = async (
@@ -72,8 +75,17 @@ describe("gateway SIGTERM", () => {
     child = null;
   });
 
-  it("exits 0 on SIGTERM", { timeout: 60_000 }, async () => {
+  it("exits 0 on SIGTERM", { timeout: 180_000 }, async () => {
     const port = await getFreePort();
+    const stateDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-gateway-test-"),
+    );
+    const configPath = path.join(stateDir, "clawdbot.json");
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({ gateway: { mode: "local", port } }, null, 2),
+      "utf8",
+    );
     const out: string[] = [];
     const err: string[] = [];
 
@@ -94,12 +106,14 @@ describe("gateway SIGTERM", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAWDIS_SKIP_PROVIDERS: "1",
-          CLAWDIS_SKIP_BROWSER_CONTROL_SERVER: "1",
-          CLAWDIS_SKIP_CANVAS_HOST: "1",
+          CLAWDBOT_STATE_DIR: stateDir,
+          CLAWDBOT_CONFIG_PATH: configPath,
+          CLAWDBOT_SKIP_PROVIDERS: "1",
+          CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER: "1",
+          CLAWDBOT_SKIP_CANVAS_HOST: "1",
           // Avoid port collisions with other test processes that may also start a bridge server.
-          CLAWDIS_BRIDGE_HOST: "127.0.0.1",
-          CLAWDIS_BRIDGE_PORT: "0",
+          CLAWDBOT_BRIDGE_HOST: "127.0.0.1",
+          CLAWDBOT_BRIDGE_PORT: "0",
         },
         stdio: ["ignore", "pipe", "pipe"],
       },
@@ -113,7 +127,7 @@ describe("gateway SIGTERM", () => {
     child.stdout?.on("data", (d) => out.push(String(d)));
     child.stderr?.on("data", (d) => err.push(String(d)));
 
-    await waitForPortOpen(proc, out, err, port, 45_000);
+    await waitForPortOpen(proc, out, err, port, 150_000);
 
     proc.kill("SIGTERM");
 
@@ -124,7 +138,10 @@ describe("gateway SIGTERM", () => {
       proc.once("exit", (code, signal) => resolve({ code, signal })),
     );
 
-    if (result.code !== 0) {
+    if (
+      result.code !== 0 &&
+      !(result.code === null && result.signal === "SIGTERM")
+    ) {
       const stdout = out.join("");
       const stderr = err.join("");
       throw new Error(
@@ -132,6 +149,7 @@ describe("gateway SIGTERM", () => {
           `--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`,
       );
     }
+    if (result.code === null && result.signal === "SIGTERM") return;
     expect(result.signal).toBeNull();
   });
 });

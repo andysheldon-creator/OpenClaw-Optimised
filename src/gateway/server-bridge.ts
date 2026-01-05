@@ -26,7 +26,7 @@ import type { CliDeps } from "../cli/deps.js";
 import { agentCommand } from "../commands/agent.js";
 import type { HealthSummary } from "../commands/health.js";
 import {
-  CONFIG_PATH_CLAWDIS,
+  CONFIG_PATH_CLAWDBOT,
   loadConfig,
   parseConfigJson5,
   readConfigFileSnapshot,
@@ -41,6 +41,7 @@ import {
   type SessionEntry,
   saveSessionStore,
 } from "../config/sessions.js";
+import { registerAgentRunContext } from "../infra/agent-events.js";
 import {
   loadVoiceWakeConfig,
   setVoiceWakeTriggers,
@@ -249,7 +250,7 @@ export function createBridgeHandlers(ctx: BridgeHandlersContext) {
             ok: true,
             payloadJSON: JSON.stringify({
               ok: true,
-              path: CONFIG_PATH_CLAWDIS,
+              path: CONFIG_PATH_CLAWDBOT,
               config: validated.config,
             }),
           };
@@ -844,12 +845,12 @@ export function createBridgeHandlers(ctx: BridgeHandlersContext) {
           ctx.chatAbortControllers.delete(runId);
           ctx.chatRunBuffers.delete(runId);
           ctx.chatDeltaSentAt.delete(runId);
-          ctx.removeChatRun(active.sessionId, runId, sessionKey);
+          ctx.removeChatRun(runId, runId, sessionKey);
 
           const payload = {
             runId,
             sessionKey,
-            seq: (ctx.agentRunSeq.get(active.sessionId) ?? 0) + 1,
+            seq: (ctx.agentRunSeq.get(runId) ?? 0) + 1,
             state: "aborted" as const,
           };
           ctx.broadcast("chat", payload);
@@ -940,6 +941,7 @@ export function createBridgeHandlers(ctx: BridgeHandlersContext) {
             lastTo: entry?.lastTo,
           };
           const clientRunId = p.idempotencyKey;
+          registerAgentRunContext(clientRunId, { sessionKey: p.sessionKey });
 
           const cached = ctx.dedupe.get(`chat:${clientRunId}`);
           if (cached) {
@@ -962,7 +964,7 @@ export function createBridgeHandlers(ctx: BridgeHandlersContext) {
               sessionId,
               sessionKey: p.sessionKey,
             });
-            ctx.addChatRun(sessionId, {
+            ctx.addChatRun(clientRunId, {
               sessionKey: p.sessionKey,
               clientRunId,
             });
@@ -978,6 +980,7 @@ export function createBridgeHandlers(ctx: BridgeHandlersContext) {
               {
                 message: messageWithAttachments,
                 sessionId,
+                runId: clientRunId,
                 thinking: p.thinking,
                 deliver: p.deliver,
                 timeout: Math.ceil(timeoutMs / 1000).toString(),

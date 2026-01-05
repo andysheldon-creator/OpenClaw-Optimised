@@ -273,7 +273,17 @@ const HooksGmailSchema = z
   })
   .optional();
 
-export const ClawdisSchema = z.object({
+export const ClawdbotSchema = z.object({
+  env: z
+    .object({
+      shellEnv: z
+        .object({
+          enabled: z.boolean().optional(),
+          timeoutMs: z.number().int().nonnegative().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
   identity: z
     .object({
       name: z.string().optional(),
@@ -363,10 +373,19 @@ export const ClawdisSchema = z.object({
   agent: z
     .object({
       model: z.string().optional(),
+      imageModel: z.string().optional(),
       workspace: z.string().optional(),
       allowedModels: z.array(z.string()).optional(),
       modelAliases: z.record(z.string(), z.string()).optional(),
+      modelFallbacks: z.array(z.string()).optional(),
+      imageModelFallbacks: z.array(z.string()).optional(),
       contextTokens: z.number().int().positive().optional(),
+      tools: z
+        .object({
+          allow: z.array(z.string()).optional(),
+          deny: z.array(z.string()).optional(),
+        })
+        .optional(),
       thinkingDefault: z
         .union([
           z.literal("off"),
@@ -444,6 +463,27 @@ export const ClawdisSchema = z.object({
               capDrop: z.array(z.string()).optional(),
               env: z.record(z.string(), z.string()).optional(),
               setupCommand: z.string().optional(),
+              pidsLimit: z.number().int().positive().optional(),
+              memory: z.union([z.string(), z.number()]).optional(),
+              memorySwap: z.union([z.string(), z.number()]).optional(),
+              cpus: z.number().positive().optional(),
+              ulimits: z
+                .record(
+                  z.string(),
+                  z.union([
+                    z.string(),
+                    z.number(),
+                    z.object({
+                      soft: z.number().int().nonnegative().optional(),
+                      hard: z.number().int().nonnegative().optional(),
+                    }),
+                  ]),
+                )
+                .optional(),
+              seccompProfile: z.string().optional(),
+              apparmorProfile: z.string().optional(),
+              dns: z.array(z.string()).optional(),
+              extraHosts: z.array(z.string()).optional(),
             })
             .optional(),
           browser: z
@@ -748,6 +788,7 @@ export const ClawdisSchema = z.object({
       enabled: z.boolean().optional(),
       root: z.string().optional(),
       port: z.number().int().positive().optional(),
+      liveReload: z.boolean().optional(),
     })
     .optional(),
   talk: z

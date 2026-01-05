@@ -1,19 +1,18 @@
 import crypto from "node:crypto";
 
 import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
-import type { ClawdisConfig } from "../../config/config.js";
+import type { ClawdbotConfig } from "../../config/config.js";
 import { type SessionEntry, saveSessionStore } from "../../config/sessions.js";
 import { buildProviderSummary } from "../../infra/provider-summary.js";
 import { drainSystemEvents } from "../../infra/system-events.js";
 
 export async function prependSystemEvents(params: {
-  cfg: ClawdisConfig;
+  cfg: ClawdbotConfig;
+  sessionKey: string;
   isMainSession: boolean;
   isNewSession: boolean;
   prefixedBodyBase: string;
 }): Promise<string> {
-  if (!params.isMainSession) return params.prefixedBodyBase;
-
   const compactSystemEvent = (line: string): string | null => {
     const trimmed = line.trim();
     if (!trimmed) return null;
@@ -27,11 +26,11 @@ export async function prependSystemEvents(params: {
   };
 
   const systemLines: string[] = [];
-  const queued = drainSystemEvents();
+  const queued = drainSystemEvents(params.sessionKey);
   systemLines.push(
     ...queued.map(compactSystemEvent).filter((v): v is string => Boolean(v)),
   );
-  if (params.isNewSession) {
+  if (params.isMainSession && params.isNewSession) {
     const summary = await buildProviderSummary(params.cfg);
     if (summary.length > 0) systemLines.unshift(...summary);
   }
@@ -49,7 +48,7 @@ export async function ensureSkillSnapshot(params: {
   sessionId?: string;
   isFirstTurnInSession: boolean;
   workspaceDir: string;
-  cfg: ClawdisConfig;
+  cfg: ClawdbotConfig;
 }): Promise<{
   sessionEntry?: SessionEntry;
   skillsSnapshot?: SessionEntry["skillsSnapshot"];

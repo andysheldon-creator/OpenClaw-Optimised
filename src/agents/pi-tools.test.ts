@@ -4,11 +4,19 @@ import path from "node:path";
 
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { createClawdisCodingTools } from "./pi-tools.js";
+import { createClawdbotCodingTools } from "./pi-tools.js";
+import { createBrowserTool } from "./tools/browser-tool.js";
 
-describe("createClawdisCodingTools", () => {
+describe("createClawdbotCodingTools", () => {
+  it("keeps browser tool schema OpenAI-compatible without normalization", () => {
+    const browser = createBrowserTool();
+    const schema = browser.parameters as { type?: unknown; anyOf?: unknown };
+    expect(schema.type).toBe("object");
+    expect(schema.anyOf).toBeUndefined();
+  });
+
   it("merges properties for union tool schemas", () => {
-    const tools = createClawdisCodingTools();
+    const tools = createClawdbotCodingTools();
     const browser = tools.find((tool) => tool.name === "browser");
     expect(browser).toBeDefined();
     const parameters = browser?.parameters as {
@@ -23,85 +31,97 @@ describe("createClawdisCodingTools", () => {
     expect(parameters.required ?? []).toContain("action");
   });
 
-  it("preserves union action values in merged schema", () => {
-    const tools = createClawdisCodingTools();
+  it("preserves action enums in normalized schemas", () => {
+    const tools = createClawdbotCodingTools();
     const toolNames = ["browser", "canvas", "nodes", "cron", "gateway"];
+
+    const collectActionValues = (
+      schema: unknown,
+      values: Set<string>,
+    ): void => {
+      if (!schema || typeof schema !== "object") return;
+      const record = schema as Record<string, unknown>;
+      if (typeof record.const === "string") values.add(record.const);
+      if (Array.isArray(record.enum)) {
+        for (const value of record.enum) {
+          if (typeof value === "string") values.add(value);
+        }
+      }
+      if (Array.isArray(record.anyOf)) {
+        for (const variant of record.anyOf) {
+          collectActionValues(variant, values);
+        }
+      }
+    };
 
     for (const name of toolNames) {
       const tool = tools.find((candidate) => candidate.name === name);
       expect(tool).toBeDefined();
       const parameters = tool?.parameters as {
-        anyOf?: Array<{ properties?: Record<string, unknown> }>;
         properties?: Record<string, unknown>;
       };
-      if (!Array.isArray(parameters.anyOf) || parameters.anyOf.length === 0) {
-        continue;
-      }
-      const actionValues = new Set<string>();
-      for (const variant of parameters.anyOf ?? []) {
-        const action = variant?.properties?.action as
-          | { const?: unknown; enum?: unknown[] }
-          | undefined;
-        if (typeof action?.const === "string") actionValues.add(action.const);
-        if (Array.isArray(action?.enum)) {
-          for (const value of action.enum) {
-            if (typeof value === "string") actionValues.add(value);
-          }
-        }
-      }
-
-      if (actionValues.size <= 1) {
-        continue;
-      }
-      const mergedAction = parameters.properties?.action as
+      const action = parameters.properties?.action as
         | { const?: unknown; enum?: unknown[] }
         | undefined;
-      const mergedValues = new Set<string>();
-      if (typeof mergedAction?.const === "string") {
-        mergedValues.add(mergedAction.const);
-      }
-      if (Array.isArray(mergedAction?.enum)) {
-        for (const value of mergedAction.enum) {
-          if (typeof value === "string") mergedValues.add(value);
-        }
-      }
+      const values = new Set<string>();
+      collectActionValues(action, values);
 
-      expect(actionValues.size).toBeGreaterThan(1);
-      expect(mergedValues.size).toBe(actionValues.size);
-      for (const value of actionValues) {
-        expect(mergedValues.has(value)).toBe(true);
-      }
+      const min =
+        name === "gateway"
+          ? 1
+          : // Most tools expose multiple actions; keep this signal so schemas stay useful to models.
+            2;
+      expect(values.size).toBeGreaterThanOrEqual(min);
     }
   });
 
   it("includes bash and process tools", () => {
-    const tools = createClawdisCodingTools();
+    const tools = createClawdbotCodingTools();
     expect(tools.some((tool) => tool.name === "bash")).toBe(true);
     expect(tools.some((tool) => tool.name === "process")).toBe(true);
   });
 
+  it("provides top-level object schemas for all tools", () => {
+    const tools = createClawdbotCodingTools();
+    const offenders = tools
+      .map((tool) => {
+        const schema =
+          tool.parameters && typeof tool.parameters === "object"
+            ? (tool.parameters as Record<string, unknown>)
+            : null;
+        return {
+          name: tool.name,
+          type: schema?.type,
+          keys: schema ? Object.keys(schema).sort() : null,
+        };
+      })
+      .filter((entry) => entry.type !== "object");
+
+    expect(offenders).toEqual([]);
+  });
+
   it("scopes discord tool to discord surface", () => {
-    const other = createClawdisCodingTools({ surface: "whatsapp" });
+    const other = createClawdbotCodingTools({ surface: "whatsapp" });
     expect(other.some((tool) => tool.name === "discord")).toBe(false);
 
-    const discord = createClawdisCodingTools({ surface: "discord" });
+    const discord = createClawdbotCodingTools({ surface: "discord" });
     expect(discord.some((tool) => tool.name === "discord")).toBe(true);
   });
 
   it("scopes slack tool to slack surface", () => {
-    const other = createClawdisCodingTools({ surface: "whatsapp" });
+    const other = createClawdbotCodingTools({ surface: "whatsapp" });
     expect(other.some((tool) => tool.name === "slack")).toBe(false);
 
-    const slack = createClawdisCodingTools({ surface: "slack" });
+    const slack = createClawdbotCodingTools({ surface: "slack" });
     expect(slack.some((tool) => tool.name === "slack")).toBe(true);
   });
 
   it("keeps read tool image metadata intact", async () => {
-    const tools = createClawdisCodingTools();
+    const tools = createClawdbotCodingTools();
     const readTool = tools.find((tool) => tool.name === "read");
     expect(readTool).toBeDefined();
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-read-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-read-"));
     try {
       const imagePath = path.join(tmpDir, "sample.png");
       const png = await sharp({
@@ -137,14 +157,14 @@ describe("createClawdisCodingTools", () => {
   });
 
   it("returns text content without image blocks for text files", async () => {
-    const tools = createClawdisCodingTools();
+    const tools = createClawdbotCodingTools();
     const readTool = tools.find((tool) => tool.name === "read");
     expect(readTool).toBeDefined();
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdis-read-"));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-read-"));
     try {
       const textPath = path.join(tmpDir, "sample.txt");
-      const contents = "Hello from clawdis read tool.";
+      const contents = "Hello from clawdbot read tool.";
       await fs.writeFile(textPath, contents, "utf8");
 
       const result = await readTool?.execute("tool-2", {
@@ -171,12 +191,12 @@ describe("createClawdisCodingTools", () => {
     const sandbox = {
       enabled: true,
       sessionKey: "sandbox:test",
-      workspaceDir: path.join(os.tmpdir(), "clawdis-sandbox"),
-      containerName: "clawdis-sbx-test",
+      workspaceDir: path.join(os.tmpdir(), "clawdbot-sandbox"),
+      containerName: "clawdbot-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
-        image: "clawdis-sandbox:bookworm-slim",
-        containerPrefix: "clawdis-sbx-",
+        image: "clawdbot-sandbox:bookworm-slim",
+        containerPrefix: "clawdbot-sbx-",
         workdir: "/workspace",
         readOnlyRoot: true,
         tmpfs: [],
@@ -190,9 +210,17 @@ describe("createClawdisCodingTools", () => {
         deny: ["browser"],
       },
     };
-    const tools = createClawdisCodingTools({ sandbox });
+    const tools = createClawdbotCodingTools({ sandbox });
     expect(tools.some((tool) => tool.name === "bash")).toBe(true);
     expect(tools.some((tool) => tool.name === "read")).toBe(false);
+    expect(tools.some((tool) => tool.name === "browser")).toBe(false);
+  });
+
+  it("filters tools by agent tool policy even without sandbox", () => {
+    const tools = createClawdbotCodingTools({
+      config: { agent: { tools: { deny: ["browser"] } } },
+    });
+    expect(tools.some((tool) => tool.name === "bash")).toBe(true);
     expect(tools.some((tool) => tool.name === "browser")).toBe(false);
   });
 });

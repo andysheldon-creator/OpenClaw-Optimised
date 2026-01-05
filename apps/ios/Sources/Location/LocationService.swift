@@ -1,4 +1,4 @@
-import ClawdisKit
+import ClawdbotKit
 import CoreLocation
 import Foundation
 
@@ -30,7 +30,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         return .fullAccuracy
     }
 
-    func ensureAuthorization(mode: ClawdisLocationMode) async -> CLAuthorizationStatus {
+    func ensureAuthorization(mode: ClawdbotLocationMode) async -> CLAuthorizationStatus {
         guard CLLocationManager.locationServicesEnabled() else { return .denied }
 
         let status = self.manager.authorizationStatus
@@ -53,8 +53,8 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     func currentLocation(
-        params: ClawdisLocationGetParams,
-        desiredAccuracy: ClawdisLocationAccuracy,
+        params: ClawdbotLocationGetParams,
+        desiredAccuracy: ClawdbotLocationAccuracy,
         maxAgeMs: Int?,
         timeoutMs: Int?) async throws -> CLLocation
     {
@@ -67,7 +67,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         }
 
         self.manager.desiredAccuracy = Self.accuracyValue(desiredAccuracy)
-        let timeout = max(0, timeoutMs ?? 10_000)
+        let timeout = max(0, timeoutMs ?? 10000)
         return try await self.withTimeout(timeoutMs: timeout) {
             try await self.requestLocation()
         }
@@ -106,14 +106,14 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    private static func accuracyValue(_ accuracy: ClawdisLocationAccuracy) -> CLLocationAccuracy {
+    private static func accuracyValue(_ accuracy: ClawdbotLocationAccuracy) -> CLLocationAccuracy {
         switch accuracy {
         case .coarse:
-            return kCLLocationAccuracyKilometer
+            kCLLocationAccuracyKilometer
         case .balanced:
-            return kCLLocationAccuracyHundredMeters
+            kCLLocationAccuracyHundredMeters
         case .precise:
-            return kCLLocationAccuracyBest
+            kCLLocationAccuracyBest
         }
     }
 

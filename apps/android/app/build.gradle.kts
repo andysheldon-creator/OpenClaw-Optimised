@@ -6,17 +6,17 @@ plugins {
 }
 
 android {
-  namespace = "com.clawdis.android"
+  namespace = "com.clawdbot.android"
   compileSdk = 36
 
   sourceSets {
     getByName("main") {
-      assets.srcDir(file("../../shared/ClawdisKit/Sources/ClawdisKit/Resources"))
+      assets.srcDir(file("../../shared/ClawdbotKit/Sources/ClawdbotKit/Resources"))
     }
   }
 
   defaultConfig {
-    applicationId = "com.clawdis.android"
+    applicationId = "com.clawdbot.android"
     minSdk = 31
     targetSdk = 36
     versionCode = 1
@@ -48,6 +48,10 @@ android {
   lint {
     disable += setOf("IconLauncherShape")
   }
+
+  testOptions {
+    unitTests.isIncludeAndroidResources = true
+  }
 }
 
 kotlin {
@@ -64,7 +68,7 @@ dependencies {
   implementation("androidx.core:core-ktx:1.17.0")
   implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
   implementation("androidx.activity:activity-compose:1.12.2")
-  implementation("androidx.webkit:webkit:1.14.0")
+  implementation("androidx.webkit:webkit:1.15.0")
 
   implementation("androidx.compose.ui:ui")
   implementation("androidx.compose.ui:ui-tooling-preview")
@@ -96,7 +100,8 @@ dependencies {
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
   testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.7")
   testImplementation("io.kotest:kotest-assertions-core-jvm:6.0.7")
-  testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.13.3")
+  testImplementation("org.robolectric:robolectric:4.16")
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine:6.0.1")
 }
 
 tasks.withType<Test>().configureEach {

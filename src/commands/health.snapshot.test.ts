@@ -10,9 +10,13 @@ import { getHealthSnapshot } from "./health.js";
 let testConfig: Record<string, unknown> = {};
 let testStore: Record<string, { updatedAt?: number }> = {};
 
-vi.mock("../config/config.js", () => ({
-  loadConfig: () => testConfig,
-}));
+vi.mock("../config/config.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../config/config.js")>();
+  return {
+    ...actual,
+    loadConfig: () => testConfig,
+  };
+});
 
 vi.mock("../config/sessions.js", () => ({
   resolveStorePath: () => "/tmp/sessions.json",
@@ -104,7 +108,7 @@ describe("getHealthSnapshot", () => {
   });
 
   it("treats telegram.tokenFile as configured", async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdis-health-"));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-health-"));
     const tokenFile = path.join(tmpDir, "telegram-token");
     fs.writeFileSync(tokenFile, "t-file\n", "utf-8");
     testConfig = { telegram: { tokenFile } };

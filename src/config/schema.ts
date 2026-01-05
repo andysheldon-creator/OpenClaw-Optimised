@@ -1,5 +1,5 @@
 import { VERSION } from "../version.js";
-import { ClawdisSchema } from "./zod-schema.js";
+import { ClawdbotSchema } from "./zod-schema.js";
 
 export type ConfigUiHint = {
   label?: string;
@@ -14,7 +14,7 @@ export type ConfigUiHint = {
 
 export type ConfigUiHints = Record<string, ConfigUiHint>;
 
-export type ConfigSchema = ReturnType<typeof ClawdisSchema.toJSONSchema>;
+export type ConfigSchema = ReturnType<typeof ClawdbotSchema.toJSONSchema>;
 
 export type ConfigSchemaResponse = {
   schema: ConfigSchema;
@@ -88,6 +88,9 @@ const FIELD_LABELS: Record<string, string> = {
   "gateway.reload.debounceMs": "Config Reload Debounce (ms)",
   "agent.workspace": "Workspace",
   "agent.model": "Default Model",
+  "agent.imageModel": "Image Model",
+  "agent.modelFallbacks": "Model Fallbacks",
+  "agent.imageModelFallbacks": "Image Model Fallbacks",
   "ui.seamColor": "Accent Color",
   "browser.controlUrl": "Browser Control URL",
   "session.agentToAgent.maxPingPongTurns": "Agent-to-Agent Ping-Pong Turns",
@@ -106,18 +109,24 @@ const FIELD_HELP: Record<string, string> = {
     "Required for multi-machine access or non-loopback binds.",
   "gateway.auth.password": "Required for Tailscale funnel.",
   "gateway.controlUi.basePath":
-    "Optional URL prefix where the Control UI is served (e.g. /clawdis).",
+    "Optional URL prefix where the Control UI is served (e.g. /clawdbot).",
   "gateway.reload.mode":
     'Hot reload strategy for config changes ("hybrid" recommended).',
   "gateway.reload.debounceMs":
     "Debounce window (ms) before applying config changes.",
+  "agent.modelFallbacks":
+    "Ordered fallback models (provider/model). Used when the primary model fails.",
+  "agent.imageModel":
+    "Optional image-capable model (provider/model) used by the image tool.",
+  "agent.imageModelFallbacks":
+    "Ordered fallback image models (provider/model) used by the image tool.",
   "session.agentToAgent.maxPingPongTurns":
     "Max reply-back turns between requester and target (0–5).",
 };
 
 const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.remote.url": "ws://host:18789",
-  "gateway.controlUi.basePath": "/clawdis",
+  "gateway.controlUi.basePath": "/clawdbot",
 };
 
 const SENSITIVE_PATTERNS = [/token/i, /password/i, /secret/i, /api.?key/i];
@@ -164,11 +173,11 @@ let cached: ConfigSchemaResponse | null = null;
 
 export function buildConfigSchema(): ConfigSchemaResponse {
   if (cached) return cached;
-  const schema = ClawdisSchema.toJSONSchema({
+  const schema = ClawdbotSchema.toJSONSchema({
     target: "draft-07",
     unrepresentable: "any",
   });
-  schema.title = "ClawdisConfig";
+  schema.title = "ClawdbotConfig";
   const hints = applySensitiveHints(buildBaseHints());
   const next = {
     schema,

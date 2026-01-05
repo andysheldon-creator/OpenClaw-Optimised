@@ -1,15 +1,30 @@
 ---
-summary: "Agent tool surface for Clawdis (browser, canvas, nodes, cron) replacing clawdis-* skills"
+summary: "Agent tool surface for Clawdbot (browser, canvas, nodes, cron) replacing clawdbot-* skills"
 read_when:
   - Adding or modifying agent tools
-  - Retiring or changing clawdis-* skills
+  - Retiring or changing clawdbot-* skills
 ---
 
-# Tools (Clawdis)
+# Tools (Clawdbot)
 
-Clawdis exposes **first-class agent tools** for browser, canvas, nodes, and cron.
-These replace the old `clawdis-*` skills: the tools are typed, no shelling,
+Clawdbot exposes **first-class agent tools** for browser, canvas, nodes, and cron.
+These replace the old `clawdbot-*` skills: the tools are typed, no shelling,
 and the agent should rely on them directly.
+
+## Disabling tools
+
+You can globally allow/deny tools via `agent.tools` in `clawdbot.json`
+(deny wins). This prevents disallowed tools from being sent to providers.
+
+```json5
+{
+  agent: {
+    tools: {
+      deny: ["browser"]
+    }
+  }
+}
+```
 
 ## Tool inventory
 
@@ -58,7 +73,7 @@ Common parameters:
 - `controlUrl` (defaults from config)
 - `profile` (optional; defaults to `browser.defaultProfile`)
 Notes:
-- Requires `browser.enabled=true` in `~/.clawdis/clawdis.json`.
+- Requires `browser.enabled=true` in `~/.clawdbot/clawdbot.json`.
 - Uses `browser.controlUrl` unless `controlUrl` is passed explicitly.
 - All actions accept optional `profile` parameter for multi-instance support.
 - When `profile` is omitted, uses `browser.defaultProfile` (defaults to "clawd").
@@ -83,7 +98,7 @@ Notes:
 - Uses gateway `node.invoke` under the hood.
 - If no `node` is provided, the tool picks a default (single connected node or local mac node).
 - A2UI is v0.8 only (no `createSurface`); the CLI rejects v0.9 JSONL with line errors.
-- Quick smoke: `clawdis canvas a2ui push --text "Hello from A2UI"`.
+- Quick smoke: `clawdbot canvas a2ui push --text "Hello from A2UI"`.
 
 ### `nodes`
 Discover and target paired nodes; send notifications; capture camera/screen.
@@ -101,6 +116,19 @@ Notes:
 - Videos return `FILE:<path>` (mp4).
 - Location returns a JSON payload (lat/lon/accuracy/timestamp).
 
+### `image`
+Analyze an image with the configured image model.
+
+Core parameters:
+- `image` (required path or URL)
+- `prompt` (optional; defaults to "Describe the image.")
+- `model` (optional override)
+- `maxBytesMb` (optional size cap)
+
+Notes:
+- Only available when `agent.imageModel` or `agent.imageModelFallbacks` is set.
+- Uses the image model directly (independent of the main chat model).
+
 ### `cron`
 Manage Gateway cron jobs and wakeups.
 
@@ -117,7 +145,7 @@ Notes:
 Restart the running Gateway process (in-place).
 
 Core actions:
-- `restart` (sends `SIGUSR1` to the current process; `clawdis gateway`/`gateway-daemon` restart in-place)
+- `restart` (sends `SIGUSR1` to the current process; `clawdbot gateway`/`gateway-daemon` restart in-place)
 
 Notes:
 - Use `delayMs` (defaults to 2000) to avoid interrupting an in-flight reply.
@@ -230,6 +258,6 @@ In pi-mono:
   - Agent loop: `packages/ai/src/agent/agent-loop.ts`
   - Validates tool arguments and executes tools, then appends `toolResult` messages.
 
-In Clawdis:
+In Clawdbot:
 - System prompt append: `src/agents/system-prompt.ts`
-- Tool list injected via `createClawdisCodingTools()` in `src/agents/pi-tools.ts`
+- Tool list injected via `createClawdbotCodingTools()` in `src/agents/pi-tools.ts`
