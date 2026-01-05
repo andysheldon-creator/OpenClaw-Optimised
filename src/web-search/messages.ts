@@ -1,6 +1,9 @@
 /**
  * Web Search message templates
+ * Uses telegram formatter for MarkdownV2 and emoji restrictions
  */
+
+import { formatTelegramMessage } from "../telegram/formatter.js";
 
 export interface WebSearchResult {
   response: string;
@@ -21,21 +24,28 @@ export interface WebSearchMessages {
   cliNotFound: (path: string) => string;
 }
 
+/**
+ * Allowed emoji set (black/white only, never 2 close together):
+ * Numbers: ① ② ③ ④ ⑤, ❶ ❷ ❸ ❹ ❺
+ * Circles: ○ ● ◐ ◑ ◒ ◓
+ * Arrows: ⬆︎ ↗︎ ➡︎ ↘︎ ⬇︎ ↙︎ ⬅︎ ↖︎
+ * Symbols: ✂︎ ♠︎ ☣︎
+ */
+
 export const messages: WebSearchMessages = {
   /**
    * System acknowledgment when search is triggered
    */
   acknowledgment: () => {
-    return "🔍 Выполняю веб-поиск...";
+    return formatTelegramMessage("● Выполняю веб-поиск...");
   },
 
   /**
    * Deliver search results with visual distinction
    */
   resultDelivery: (result: WebSearchResult) => {
-    return `🌐 Результат поиска:
-
-${result.response}`;
+    const message = `○ Результат поиска:\n\n${result.response}`;
+    return formatTelegramMessage(message);
   },
 
   /**
@@ -43,27 +53,23 @@ ${result.response}`;
    */
   error: (error: string, sessionId?: string) => {
     const errorText = error.length > 200 ? `${error.slice(0, 200)}...` : error;
-    const sessionInfo = sessionId ? `\nSearch ID: \`${sessionId}\`` : "";
-    
-    return `❌ Ошибка поиска:
-
-${errorText}${sessionInfo}`;
+    const sessionInfo = sessionId ? `\nSearch ID: ${sessionId}` : "";
+    const message = `✂︎ Ошибка поиска:\n\n${errorText}${sessionInfo}`;
+    return formatTelegramMessage(message);
   },
 
   /**
-   * Timeout message after 30 seconds
+   * Timeout message after timeout
    */
   timeout: () => {
-    return "⏱️ Поиск занял слишком много времени";
+    return formatTelegramMessage("◐ Поиск занял слишком много времени");
   },
 
   /**
    * CLI not found error with configuration hint
    */
   cliNotFound: (path: string) => {
-    return `❌ Ошибка поиска:
-
-CLI not found at \`${path}\`
-Проверьте настройки webSearch.cliPath в конфигурации`;
+    const message = `✂︎ Ошибка поиска:\n\nCLI not found at ${path}\nПроверьте настройки webSearch.cliPath в конфигурации`;
+    return formatTelegramMessage(message);
   }
 };
