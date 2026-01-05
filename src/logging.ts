@@ -5,12 +5,16 @@ import util from "node:util";
 import { Chalk } from "chalk";
 import { Logger as TsLogger } from "tslog";
 import { type ClawdbotConfig, loadConfig } from "./config/config.js";
+import { LOG_DIR_CLAWDBOT } from "./config/paths.js";
 import { isVerbose } from "./globals.js";
 import { defaultRuntime, type RuntimeEnv } from "./runtime.js";
 
-// Pin to /tmp so mac Debug UI and docs match; os.tmpdir() can be a per-user
-// randomized path on macOS which made the “Open log” button a no-op.
-export const DEFAULT_LOG_DIR = "/tmp/clawdbot";
+/**
+ * Central logging directory following XDG Base Directory Specification.
+ * Default: $XDG_STATE_HOME/clawdbot/logs (~/.local/state/clawdbot/logs)
+ * Can be overridden via CLAWDBOT_LOG_DIR environment variable.
+ */
+export const DEFAULT_LOG_DIR = LOG_DIR_CLAWDBOT;
 export const DEFAULT_LOG_FILE = path.join(DEFAULT_LOG_DIR, "clawdbot.log"); // legacy single-file path
 
 const LOG_PREFIX = "clawdbot";

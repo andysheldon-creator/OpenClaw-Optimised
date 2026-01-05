@@ -4,6 +4,44 @@ import { resolveUserPath } from "../utils.js";
 import type { ClawdbotConfig } from "./types.js";
 
 /**
+ * XDG Base Directory Specification support.
+ * https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+ */
+
+/**
+ * XDG_STATE_HOME for user-specific state files (logs, history, etc).
+ * Default: ~/.local/state
+ */
+export function resolveXdgStateHome(
+  env: NodeJS.ProcessEnv = process.env,
+  homedir: () => string = os.homedir,
+): string {
+  const override = env.XDG_STATE_HOME?.trim();
+  if (override) return resolveUserPath(override);
+  return path.join(homedir(), ".local", "state");
+}
+
+/**
+ * Central logging directory following XDG spec.
+ * Can be overridden via CLAWDBOT_LOG_DIR environment variable.
+ *
+ * Precedence:
+ * - CLAWDBOT_LOG_DIR (explicit override)
+ * - $XDG_STATE_HOME/clawdbot/logs (XDG compliant)
+ * - ~/.local/state/clawdbot/logs (XDG default)
+ */
+export function resolveLogDir(
+  env: NodeJS.ProcessEnv = process.env,
+  homedir: () => string = os.homedir,
+): string {
+  const override = env.CLAWDBOT_LOG_DIR?.trim();
+  if (override) return resolveUserPath(override);
+  return path.join(resolveXdgStateHome(env, homedir), "clawdbot", "logs");
+}
+
+export const LOG_DIR_CLAWDBOT = resolveLogDir();
+
+/**
  * Nix mode detection: When CLAWDBOT_NIX_MODE=1, the gateway is running under Nix.
  * In this mode:
  * - No auto-install flows should be attempted
