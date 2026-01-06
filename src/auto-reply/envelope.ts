@@ -5,6 +5,7 @@ export type AgentEnvelopeParams = {
   host?: string;
   ip?: string;
   body: string;
+  thread?: string;
 };
 
 function formatTimestamp(ts?: number | Date): string | undefined {
@@ -37,6 +38,7 @@ export function formatAgentEnvelope(params: AgentEnvelopeParams): string {
   const surface = params.surface?.trim() || "Surface";
   const parts: string[] = [surface];
   if (params.from?.trim()) parts.push(params.from.trim());
+  if (params.thread?.trim()) parts.push(`thread:${params.thread.trim()}`);
   if (params.host?.trim()) parts.push(params.host.trim());
   if (params.ip?.trim()) parts.push(params.ip.trim());
   const ts = formatTimestamp(params.timestamp);

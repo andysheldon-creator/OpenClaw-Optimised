@@ -166,6 +166,8 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         ""
       ).trim();
       if (!rawBody) return;
+      const threadId = msg.message_thread_id ? String(msg.message_thread_id) : undefined;
+      
       const replySuffix = replyTarget
         ? `\n\n[Replying to ${replyTarget.sender}${
             replyTarget.id ? ` id:${replyTarget.id}` : ""
@@ -178,8 +180,9 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           : buildSenderLabel(msg, chatId),
         timestamp: msg.date ? msg.date * 1000 : undefined,
         body: `${rawBody}${replySuffix}`,
+        thread: threadId,
       });
-
+      
       const ctxPayload = {
         Body: body,
         From: isGroup ? `group:${chatId}` : `telegram:${chatId}`,
@@ -200,6 +203,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         MediaType: media?.contentType,
         MediaUrl: media?.path,
         CommandAuthorized: commandAuthorized,
+        ThreadId: threadId,
       };
 
       if (replyTarget && shouldLogVerbose()) {
@@ -242,6 +246,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
             await deliverReplies({
               replies: [payload],
               chatId: String(chatId),
+              threadId,
               token: opts.token,
               runtime,
               bot,
@@ -272,6 +277,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       await deliverReplies({
         replies,
         chatId: String(chatId),
+        threadId,
         token: opts.token,
         runtime,
         bot,
@@ -296,13 +302,14 @@ export function createTelegramWebhookCallback(
 async function deliverReplies(params: {
   replies: ReplyPayload[];
   chatId: string;
+  threadId?: string;
   token: string;
   runtime: RuntimeEnv;
   bot: Bot;
   replyToMode: ReplyToMode;
   textLimit: number;
 }) {
-  const { replies, chatId, runtime, bot, replyToMode, textLimit } = params;
+  const { replies, chatId, threadId, runtime, bot, replyToMode, textLimit } = params;
   let hasReplied = false;
   for (const reply of replies) {
     if (!reply?.text && !reply?.mediaUrl && !(reply?.mediaUrls?.length ?? 0)) {
@@ -325,6 +332,7 @@ async function deliverReplies(params: {
             replyToId && (replyToMode === "all" || !hasReplied)
               ? replyToId
               : undefined,
+          messageThreadId: threadId ? Number(threadId) : undefined,
         });
         if (replyToId && !hasReplied) {
           hasReplied = true;
@@ -344,25 +352,30 @@ async function deliverReplies(params: {
         replyToId && (replyToMode === "all" || !hasReplied)
           ? replyToId
           : undefined;
+      const messageThreadId = threadId ? Number(threadId) : undefined;
       if (kind === "image") {
         await bot.api.sendPhoto(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       } else if (kind === "video") {
         await bot.api.sendVideo(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       } else if (kind === "audio") {
         await bot.api.sendAudio(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       } else {
         await bot.api.sendDocument(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       }
       if (replyToId && !hasReplied) {
@@ -470,12 +483,13 @@ async function sendTelegramText(
   chatId: string,
   text: string,
   runtime: RuntimeEnv,
-  opts?: { replyToMessageId?: number },
+  opts?: { replyToMessageId?: number; messageThreadId?: number },
 ): Promise<number | undefined> {
   try {
     const res = await bot.api.sendMessage(chatId, text, {
       parse_mode: "Markdown",
       reply_to_message_id: opts?.replyToMessageId,
+      message_thread_id: opts?.messageThreadId,
     });
     return res.message_id;
   } catch (err) {
@@ -486,6 +500,7 @@ async function sendTelegramText(
       );
       const res = await bot.api.sendMessage(chatId, text, {
         reply_to_message_id: opts?.replyToMessageId,
+        message_thread_id: opts?.messageThreadId,
       });
       return res.message_id;
     }

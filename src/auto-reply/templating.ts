@@ -24,6 +24,8 @@ export type MsgContext = {
   Surface?: string;
   WasMentioned?: boolean;
   CommandAuthorized?: boolean;
+  ThreadId?: string;
+  ThreadName?: string;
 };
 
 export type TemplateContext = MsgContext & {
