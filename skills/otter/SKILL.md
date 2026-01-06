@@ -1,96 +1,119 @@
 ---
 name: otter
-description: Otter.ai transcription CLI - list, search, download, and summarize meeting transcripts.
+description: Otter.ai transcription CLI - list, search, download, and sync meeting transcripts to CRM.
+version: 1.0.0
+author: dbhurley
 homepage: https://otter.ai
 metadata:
-  clawdbot:
+  clawdis:
     emoji: "🦦"
     requires:
       bins: ["python3", "uv"]
-    env:
-      - OTTER_EMAIL
-      - OTTER_PASSWORD
+      env:
+        - OTTER_EMAIL
+        - OTTER_PASSWORD
+    optionalEnv:
+      - TWENTY_API_URL
+      - TWENTY_API_TOKEN
+    primaryEnv: OTTER_EMAIL
 ---
 
 # Otter.ai Transcription CLI
 
-Interact with Otter.ai to manage meeting transcripts - list, search, download, upload, and summarize.
+Interact with Otter.ai to manage meeting transcripts - list, search, download, upload, summarize, and sync to CRM.
 
-## Setup
+## 🔑 Required Secrets
 
-1. Set environment variables:
-   ```bash
-   export OTTER_EMAIL="your@email.com"
-   export OTTER_PASSWORD="your-password"
-   ```
+| Variable | Description | How to Get |
+|----------|-------------|------------|
+| `OTTER_EMAIL` | Your Otter.ai account email | Your login email |
+| `OTTER_PASSWORD` | Your Otter.ai password | Set in Otter account settings |
 
-2. Or configure in clawdis.json:
-   ```json
-   "otter": {
-     "env": {
-       "OTTER_EMAIL": "your@email.com",
-       "OTTER_PASSWORD": "..."
-     }
-   }
-   ```
+## 🔐 Optional Secrets (for CRM sync)
 
-## Commands
+| Variable | Description | How to Get |
+|----------|-------------|------------|
+| `TWENTY_API_URL` | Twenty CRM API endpoint | Your Twenty instance URL |
+| `TWENTY_API_TOKEN` | Twenty API key | Twenty → Settings → Developers → API Keys |
+
+## ⚙️ Setup
+
+Configure in `~/.clawdis/clawdis.json`:
+```json
+{
+  "skills": {
+    "otter": {
+      "env": {
+        "OTTER_EMAIL": "you@company.com",
+        "OTTER_PASSWORD": "your-password",
+        "TWENTY_API_URL": "https://api.your-twenty.com",
+        "TWENTY_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+## 📋 Commands
 
 ### List Recent Transcripts
 ```bash
-uv run skills/otter/scripts/otter.py list [--limit 10]
+uv run {baseDir}/scripts/otter.py list [--limit 10]
 ```
 
 ### Get Full Transcript
 ```bash
-uv run skills/otter/scripts/otter.py get <speech_id>
+uv run {baseDir}/scripts/otter.py get <speech_id>
 ```
 
 ### Search Transcripts
 ```bash
-uv run skills/otter/scripts/otter.py search "quarterly review"
+uv run {baseDir}/scripts/otter.py search "quarterly review"
 ```
 
 ### Download Transcript
 ```bash
-uv run skills/otter/scripts/otter.py download <speech_id> [--format txt|pdf|docx|srt]
+uv run {baseDir}/scripts/otter.py download <speech_id> [--format txt|pdf|docx|srt]
 ```
 
 ### Upload Audio for Transcription
 ```bash
-uv run skills/otter/scripts/otter.py upload /path/to/audio.mp3
+uv run {baseDir}/scripts/otter.py upload /path/to/audio.mp3
 ```
 
-### Get Summary (AI-generated)
+### Get AI Summary
 ```bash
-uv run skills/otter/scripts/otter.py summary <speech_id>
+uv run {baseDir}/scripts/otter.py summary <speech_id>
 ```
 
-## Twenty CRM Integration (Optional)
-
-To sync transcripts to Twenty CRM, also set:
+### Sync to Twenty CRM
 ```bash
-export TWENTY_API_URL="https://api.your-twenty.com"
-export TWENTY_API_TOKEN="your-token"
+uv run {baseDir}/scripts/otter.py sync-twenty <speech_id>
+uv run {baseDir}/scripts/otter.py sync-twenty <speech_id> --company "Client Name"
 ```
 
-Then use:
-```bash
-uv run skills/otter/scripts/otter.py sync-twenty <speech_id> --contact "John Smith"
-```
-
-See `references/twenty-sync.md` for detailed CRM integration guide.
-
-## Output Formats
+## 📤 Output Formats
 
 All commands support `--json` for machine-readable output:
 ```bash
-uv run skills/otter/scripts/otter.py list --json
+uv run {baseDir}/scripts/otter.py list --json
 ```
 
-## Notes
+## 🔗 Twenty CRM Integration
 
-- Requires Otter.ai account (Business recommended for full API access)
-- Uses unofficial Otter.ai API (reverse-engineered)
+When syncing to Twenty, creates:
+- **Note** with transcript title, date, duration, and full text
+- **Auto-links** to engagement if `--company` matches
+
+## ⚠️ Notes
+
+- Requires Otter.ai account (Business recommended for API access)
+- Uses unofficial Otter.ai API
+- SSO users: Create a password in Otter account settings
 - Rate limits may apply
-- Transcripts are cached locally to reduce API calls
+
+## 📦 Installation
+
+```bash
+clawdhub install otter
+```
