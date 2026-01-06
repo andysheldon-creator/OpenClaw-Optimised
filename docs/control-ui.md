@@ -9,9 +9,12 @@ read_when:
 The Control UI is a small **Vite + Lit** single-page app served by the Gateway:
 
 - default: `http://<host>:18789/`
+- chat-only: `http://<host>:18789/chat-only`
 - optional prefix: set `gateway.controlUi.basePath` (e.g. `/clawdbot`)
 
 It speaks **directly to the Gateway WebSocket** on the same port.
+
+With a configured base path, chat-only becomes `http://<host>:18789/<basePath>/chat-only`.
 
 Auth is supplied during the WebSocket handshake via:
 - `connect.params.auth.token`

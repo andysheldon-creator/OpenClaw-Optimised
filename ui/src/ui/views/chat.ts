@@ -7,6 +7,7 @@ import { toSanitizedMarkdownHtml } from "../markdown";
 import { resolveToolDisplay, formatToolDetail } from "../tool-display";
 
 export type ChatProps = {
+  chatOnly: boolean;
   sessionKey: string;
   onSessionKeyChange: (next: string) => void;
   thinkingLevel: string | null;
@@ -23,6 +24,7 @@ export type ChatProps = {
   error: string | null;
   sessions: SessionsListResult | null;
   focusMode: boolean;
+  onOpenFullUi: () => void;
   onRefresh: () => void;
   onToggleFocusMode: () => void;
   onDraftChange: (next: string) => void;
@@ -66,14 +68,18 @@ export function renderChat(props: ChatProps) {
         </div>
         <div class="chat-header__right">
           <div class="muted">Thinking: ${props.thinkingLevel ?? "inherit"}</div>
-          <button
-            class="btn ${props.focusMode ? "active" : ""}"
-            @click=${props.onToggleFocusMode}
-            aria-pressed=${props.focusMode}
-            title="Toggle focus mode (hide header + sidebar)"
-          >
-            Focus
-          </button>
+          ${props.chatOnly
+            ? html`<button class="btn" @click=${props.onOpenFullUi}>
+                Open Control UI
+              </button>`
+            : html`<button
+                  class="btn ${props.focusMode ? "active" : ""}"
+                  @click=${props.onToggleFocusMode}
+                  aria-pressed=${props.focusMode}
+                  title="Toggle focus mode (hide header + sidebar)"
+                >
+                  Focus
+                </button>`}
         </div>
       </div>
 

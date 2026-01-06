@@ -8,6 +8,8 @@ export const TAB_GROUPS = [
   { label: "Settings", tabs: ["config", "debug"] },
 ] as const;
 
+export type UiMode = "full" | "chat-only";
+
 export type Tab =
   | "overview"
   | "connections"
@@ -32,6 +34,10 @@ const TAB_PATHS: Record<Tab, string> = {
   config: "/config",
   debug: "/debug",
 };
+
+export const CHAT_ONLY_PATH = "/chat-only";
+
+const KNOWN_ROUTE_PATHS = new Set([...Object.values(TAB_PATHS), CHAT_ONLY_PATH]);
 
 const PATH_TO_TAB = new Map(
   Object.entries(TAB_PATHS).map(([tab, path]) => [path, tab as Tab]),
@@ -62,6 +68,26 @@ export function pathForTab(tab: Tab, basePath = ""): string {
   return base ? `${base}${path}` : path;
 }
 
+export function pathForChatOnly(basePath = ""): string {
+  const base = normalizeBasePath(basePath);
+  return base ? `${base}${CHAT_ONLY_PATH}` : CHAT_ONLY_PATH;
+}
+
+export function isChatOnlyPath(pathname: string, basePath = ""): boolean {
+  const base = normalizeBasePath(basePath);
+  let path = pathname || "/";
+  if (base) {
+    if (path === base) {
+      path = "/";
+    } else if (path.startsWith(`${base}/`)) {
+      path = path.slice(base.length);
+    }
+  }
+  let normalized = normalizePath(path).toLowerCase();
+  if (normalized.endsWith("/index.html")) normalized = "/";
+  return normalized === CHAT_ONLY_PATH;
+}
+
 export function tabFromPath(pathname: string, basePath = ""): Tab | null {
   const base = normalizeBasePath(basePath);
   let path = pathname || "/";
@@ -75,6 +101,7 @@ export function tabFromPath(pathname: string, basePath = ""): Tab | null {
   let normalized = normalizePath(path).toLowerCase();
   if (normalized.endsWith("/index.html")) normalized = "/";
   if (normalized === "/") return "chat";
+  if (normalized === CHAT_ONLY_PATH) return "chat";
   return PATH_TO_TAB.get(normalized) ?? null;
 }
 
@@ -88,7 +115,7 @@ export function inferBasePathFromPathname(pathname: string): string {
   if (segments.length === 0) return "";
   for (let i = 0; i < segments.length; i++) {
     const candidate = `/${segments.slice(i).join("/")}`.toLowerCase();
-    if (PATH_TO_TAB.has(candidate)) {
+    if (KNOWN_ROUTE_PATHS.has(candidate)) {
       const prefix = segments.slice(0, i);
       return prefix.length ? `/${prefix.join("/")}` : "";
     }

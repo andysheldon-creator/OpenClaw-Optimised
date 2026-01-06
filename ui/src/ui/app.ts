@@ -8,9 +8,12 @@ import {
   inferBasePathFromPathname,
   normalizeBasePath,
   normalizePath,
+  pathForChatOnly,
   pathForTab,
+  isChatOnlyPath,
   tabFromPath,
   type Tab,
+  type UiMode,
 } from "./navigation";
 import {
   resolveTheme,
@@ -172,6 +175,7 @@ export class ClawdbotApp extends LitElement {
   @state() settings: UiSettings = loadSettings();
   @state() password = "";
   @state() tab: Tab = "chat";
+  @state() uiMode: UiMode = "full";
   @state() connected = false;
   @state() theme: ThemeMode = this.settings.theme ?? "system";
   @state() themeResolved: ResolvedTheme = "dark";
@@ -348,6 +352,7 @@ export class ClawdbotApp extends LitElement {
   private toolStreamById = new Map<string, ToolStreamEntry>();
   private toolStreamOrder: string[] = [];
   basePath = "";
+  private chatOnlyLocked = false;
   private popStateHandler = () => this.onPopState();
   private themeMedia: MediaQueryList | null = null;
   private themeMediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
@@ -360,6 +365,8 @@ export class ClawdbotApp extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.basePath = this.inferBasePath();
+    this.chatOnlyLocked = isChatOnlyPath(window.location.pathname, this.basePath);
+    this.uiMode = this.chatOnlyLocked ? "chat-only" : "full";
     this.syncTabWithLocation(true);
     this.syncThemeWithSettings();
     this.attachThemeListener();
@@ -477,6 +484,8 @@ export class ClawdbotApp extends LitElement {
 
   private observeTopbar() {
     if (typeof ResizeObserver === "undefined") return;
+    this.topbarObserver?.disconnect();
+    this.topbarObserver = null;
     const topbar = this.querySelector(".topbar");
     if (!topbar) return;
     const update = () => {
@@ -675,10 +684,24 @@ export class ClawdbotApp extends LitElement {
   }
 
   setTab(next: Tab) {
+    if (this.chatOnlyLocked && next !== "chat") {
+      this.uiMode = "chat-only";
+      this.setTabFromRoute("chat");
+      this.syncUrlWithTab("chat", true);
+      return;
+    }
     if (this.tab !== next) this.tab = next;
     if (next === "chat") this.chatHasAutoScrolled = false;
     void this.refreshActiveTab();
     this.syncUrlWithTab(next, false);
+  }
+
+  openFullUi() {
+    if (!this.chatOnlyLocked && this.uiMode === "full") return;
+    this.chatOnlyLocked = false;
+    this.uiMode = "full";
+    this.setTab("overview");
+    this.observeTopbar();
   }
 
   setTheme(next: ThemeMode, context?: ThemeTransitionContext) {
@@ -773,7 +796,24 @@ export class ClawdbotApp extends LitElement {
 
   private syncTabWithLocation(replace: boolean) {
     if (typeof window === "undefined") return;
+    const isChatOnly = isChatOnlyPath(window.location.pathname, this.basePath);
+    if (isChatOnly) this.chatOnlyLocked = true;
+
+    if (this.chatOnlyLocked && !isChatOnly) {
+      this.uiMode = "chat-only";
+      this.setTabFromRoute("chat");
+      this.syncUrlWithTab("chat", true);
+      return;
+    }
+
+    this.uiMode = isChatOnly ? "chat-only" : "full";
     const resolved = tabFromPath(window.location.pathname, this.basePath) ?? "chat";
+    if (this.uiMode === "chat-only" && resolved !== "chat") {
+      this.setTabFromRoute("chat");
+      this.syncUrlWithTab("chat", true);
+      return;
+    }
+
     this.setTabFromRoute(resolved);
     this.syncUrlWithTab(resolved, replace);
   }
@@ -782,6 +822,20 @@ export class ClawdbotApp extends LitElement {
     if (typeof window === "undefined") return;
     const resolved = tabFromPath(window.location.pathname, this.basePath);
     if (!resolved) return;
+    const isChatOnly = isChatOnlyPath(window.location.pathname, this.basePath);
+    if (isChatOnly) this.chatOnlyLocked = true;
+
+    if (this.chatOnlyLocked) {
+      this.uiMode = "chat-only";
+      if (!isChatOnly || resolved !== "chat") {
+        this.setTabFromRoute("chat");
+        this.syncUrlWithTab("chat", true);
+        return;
+      }
+    } else {
+      this.uiMode = isChatOnly ? "chat-only" : "full";
+    }
+
     this.setTabFromRoute(resolved);
   }
 
@@ -793,7 +847,10 @@ export class ClawdbotApp extends LitElement {
 
   private syncUrlWithTab(tab: Tab, replace: boolean) {
     if (typeof window === "undefined") return;
-    const targetPath = normalizePath(pathForTab(tab, this.basePath));
+    const targetPath =
+      this.uiMode === "chat-only"
+        ? normalizePath(pathForChatOnly(this.basePath))
+        : normalizePath(pathForTab(tab, this.basePath));
     const currentPath = normalizePath(window.location.pathname);
     if (currentPath === targetPath) return;
     const url = new URL(window.location.href);

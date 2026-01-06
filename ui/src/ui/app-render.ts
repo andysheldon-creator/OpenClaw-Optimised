@@ -74,6 +74,7 @@ export type AppViewState = {
   settings: UiSettings;
   password: string;
   tab: Tab;
+  uiMode: "full" | "chat-only";
   basePath: string;
   connected: boolean;
   theme: ThemeMode;
@@ -167,6 +168,7 @@ export type AppViewState = {
   client: GatewayBrowserClient | null;
   connect: () => void;
   setTab: (tab: Tab) => void;
+  openFullUi: () => void;
   setTheme: (theme: ThemeMode, context?: ThemeTransitionContext) => void;
   applySettings: (next: UiSettings) => void;
   loadOverview: () => Promise<void>;
@@ -184,47 +186,60 @@ export function renderApp(state: AppViewState) {
   const sessionsCount = state.sessionsResult?.count ?? null;
   const cronNext = state.cronStatus?.nextWakeAtMs ?? null;
   const chatDisabledReason = state.connected ? null : "Disconnected from gateway.";
+  const chatOnly = state.uiMode === "chat-only";
   const isChat = state.tab === "chat";
-  const chatFocus = isChat && state.settings.chatFocusMode;
+  const chatFocus = (isChat && state.settings.chatFocusMode) || chatOnly;
 
   return html`
     <div class="shell ${isChat ? "shell--chat" : ""} ${chatFocus ? "shell--chat-focus" : ""}">
-      <header class="topbar">
-        <div class="brand">
-          <div class="brand-title">Clawdbot Control</div>
-          <div class="brand-sub">Gateway dashboard</div>
-        </div>
-        <div class="topbar-status">
-          <div class="pill">
-            <span class="statusDot ${state.connected ? "ok" : ""}"></span>
-            <span>Health</span>
-            <span class="mono">${state.connected ? "OK" : "Offline"}</span>
-          </div>
-          ${renderThemeToggle(state)}
-        </div>
-      </header>
-      <aside class="nav">
-        ${TAB_GROUPS.map(
-          (group) => html`
-            <div class="nav-group">
-              <div class="nav-label">${group.label}</div>
-              ${group.tabs.map((tab) => renderTab(state, tab))}
-            </div>
-          `,
-        )}
-      </aside>
+      ${chatOnly
+        ? nothing
+        : html`
+            <header class="topbar">
+              <div class="brand">
+                <div class="brand-title">Clawdbot Control</div>
+                <div class="brand-sub">Gateway dashboard</div>
+              </div>
+              <div class="topbar-status">
+                <div class="pill">
+                  <span class="statusDot ${state.connected ? "ok" : ""}"></span>
+                  <span>Health</span>
+                  <span class="mono">${state.connected ? "OK" : "Offline"}</span>
+                </div>
+                ${renderThemeToggle(state)}
+              </div>
+            </header>
+          `}
+      ${chatOnly
+        ? nothing
+        : html`
+            <aside class="nav">
+              ${TAB_GROUPS.map(
+                (group) => html`
+                  <div class="nav-group">
+                    <div class="nav-label">${group.label}</div>
+                    ${group.tabs.map((tab) => renderTab(state, tab))}
+                  </div>
+                `,
+              )}
+            </aside>
+          `}
       <main class="content ${isChat ? "content--chat" : ""}">
-        <section class="content-header">
-          <div>
-            <div class="page-title">${titleForTab(state.tab)}</div>
-            <div class="page-sub">${subtitleForTab(state.tab)}</div>
-          </div>
-          <div class="page-meta">
-            ${state.lastError
-              ? html`<div class="pill danger">${state.lastError}</div>`
-              : nothing}
-          </div>
-        </section>
+        ${chatOnly
+          ? nothing
+          : html`
+              <section class="content-header">
+                <div>
+                  <div class="page-title">${titleForTab(state.tab)}</div>
+                  <div class="page-sub">${subtitleForTab(state.tab)}</div>
+                </div>
+                <div class="page-meta">
+                  ${state.lastError
+                    ? html`<div class="pill danger">${state.lastError}</div>`
+                    : nothing}
+                </div>
+              </section>
+            `}
 
         ${state.tab === "overview"
           ? renderOverview({
@@ -374,6 +389,7 @@ export function renderApp(state: AppViewState) {
 
         ${state.tab === "chat"
           ? renderChat({
+              chatOnly,
               sessionKey: state.sessionKey,
               onSessionKeyChange: (next) => {
                 state.sessionKey = next;
@@ -400,6 +416,7 @@ export function renderApp(state: AppViewState) {
               error: state.lastError,
               sessions: state.sessionsResult,
               focusMode: state.settings.chatFocusMode,
+              onOpenFullUi: () => state.openFullUi(),
               onRefresh: () => {
                 state.resetToolStream();
                 return loadChatHistory(state);

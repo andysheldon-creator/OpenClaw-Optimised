@@ -42,6 +42,14 @@ describe("control UI routing", () => {
     expect(window.location.pathname).toBe("/sessions");
   });
 
+  it("supports a stable chat-only route", async () => {
+    const app = mountApp("/chat-only");
+    await app.updateComplete;
+
+    expect(app.tab).toBe("chat");
+    expect(window.location.pathname).toBe("/chat-only");
+  });
+
   it("respects /ui base paths", async () => {
     const app = mountApp("/ui/cron");
     await app.updateComplete;
@@ -58,6 +66,15 @@ describe("control UI routing", () => {
     expect(app.basePath).toBe("/apps/clawdbot");
     expect(app.tab).toBe("cron");
     expect(window.location.pathname).toBe("/apps/clawdbot/cron");
+  });
+
+  it("infers nested base paths for chat-only", async () => {
+    const app = mountApp("/apps/clawdbot/chat-only");
+    await app.updateComplete;
+
+    expect(app.basePath).toBe("/apps/clawdbot");
+    expect(app.tab).toBe("chat");
+    expect(window.location.pathname).toBe("/apps/clawdbot/chat-only");
   });
 
   it("honors explicit base path overrides", async () => {

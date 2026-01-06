@@ -6,6 +6,7 @@
   --shell-focus-duration: 220ms;
   --shell-focus-ease: cubic-bezier(0.2, 0.85, 0.25, 1);
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: var(--shell-nav-col) minmax(0, 1fr);
   grid-template-rows: var(--shell-topbar-row) 1fr;
@@ -196,6 +197,10 @@
   min-height: 0;
 }
 
+.shell--chat-focus .content {
+  padding: 0 0 14px;
+}
+
 .shell--chat .content {
   min-height: calc(
     100vh - var(--topbar-height, 0px) - var(--shell-gap) -
@@ -277,6 +282,23 @@
 .stack {
   display: grid;
   gap: 14px;
+}
+
+@media (max-width: 520px) {
+  .shell {
+    --shell-pad: 12px;
+    --shell-gap: 12px;
+  }
+
+  .shell--chat-focus {
+    --shell-pad: 6px;
+    --shell-gap: 10px;
+  }
+
+  .content {
+    padding: 0 0 14px;
+    gap: 14px;
+  }
 }
 
 .filters {
