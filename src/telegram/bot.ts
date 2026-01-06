@@ -194,9 +194,16 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       ...storeAllowFrom,
     ]);
 
+    // Forum topic support: capture message_thread_id for forum supergroups
+    const messageThreadId = (msg as { message_thread_id?: number })
+      .message_thread_id;
+    const isForum = (msg.chat as { is_forum?: boolean }).is_forum === true;
+
     const sendTyping = async () => {
       try {
-        await bot.api.sendChatAction(chatId, "typing");
+        await bot.api.sendChatAction(chatId, "typing", {
+          message_thread_id: messageThreadId,
+        });
       } catch (err) {
         logVerbose(
           `telegram typing cue failed for chat ${chatId}: ${String(err)}`,
@@ -398,6 +405,9 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           : undefined,
       ...(locationData ? toLocationContext(locationData) : undefined),
       CommandAuthorized: commandAuthorized,
+      // Forum topic metadata
+      MessageThreadId: messageThreadId,
+      IsForum: isForum,
     };
 
     if (replyTarget && shouldLogVerbose()) {
@@ -440,6 +450,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
           bot,
           replyToMode,
           textLimit,
+          messageThreadId,
         });
       },
       onIdle: () => {
@@ -636,8 +647,9 @@ async function deliverReplies(params: {
   bot: Bot;
   replyToMode: ReplyToMode;
   textLimit: number;
+  messageThreadId?: number;
 }) {
-  const { replies, chatId, runtime, bot, replyToMode, textLimit } = params;
+  const { replies, chatId, runtime, bot, replyToMode, textLimit, messageThreadId } = params;
   let hasReplied = false;
   for (const reply of replies) {
     if (!reply?.text && !reply?.mediaUrl && !(reply?.mediaUrls?.length ?? 0)) {
@@ -660,6 +672,7 @@ async function deliverReplies(params: {
             replyToId && (replyToMode === "all" || !hasReplied)
               ? replyToId
               : undefined,
+          messageThreadId,
         });
         if (replyToId && !hasReplied) {
           hasReplied = true;
@@ -688,26 +701,31 @@ async function deliverReplies(params: {
         await bot.api.sendAnimation(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       } else if (kind === "image") {
         await bot.api.sendPhoto(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       } else if (kind === "video") {
         await bot.api.sendVideo(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       } else if (kind === "audio") {
         await bot.api.sendAudio(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       } else {
         await bot.api.sendDocument(chatId, file, {
           caption,
           reply_to_message_id: replyToMessageId,
+          message_thread_id: messageThreadId,
         });
       }
       if (replyToId && !hasReplied) {
@@ -815,12 +833,13 @@ async function sendTelegramText(
   chatId: string,
   text: string,
   runtime: RuntimeEnv,
-  opts?: { replyToMessageId?: number },
+  opts?: { replyToMessageId?: number; messageThreadId?: number },
 ): Promise<number | undefined> {
   try {
     const res = await bot.api.sendMessage(chatId, text, {
       parse_mode: "Markdown",
       reply_to_message_id: opts?.replyToMessageId,
+      message_thread_id: opts?.messageThreadId,
     });
     return res.message_id;
   } catch (err) {
@@ -831,6 +850,7 @@ async function sendTelegramText(
       );
       const res = await bot.api.sendMessage(chatId, text, {
         reply_to_message_id: opts?.replyToMessageId,
+        message_thread_id: opts?.messageThreadId,
       });
       return res.message_id;
     }

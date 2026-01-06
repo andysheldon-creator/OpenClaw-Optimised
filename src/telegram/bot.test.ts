@@ -201,7 +201,7 @@ describe("createTelegramBot", () => {
       getFile: async () => ({ download: async () => new Uint8Array() }),
     });
 
-    expect(sendChatActionSpy).toHaveBeenCalledWith(42, "typing");
+    expect(sendChatActionSpy).toHaveBeenCalledWith(42, "typing", { message_thread_id: undefined });
   });
 
   it("accepts group messages when mentionPatterns match (without @botUsername)", async () => {
@@ -509,6 +509,85 @@ describe("createTelegramBot", () => {
     for (const call of sendMessageSpy.mock.calls) {
       expect(call[2]?.reply_to_message_id).toBe(101);
     }
+  });
+
+  it("passes message_thread_id to replies in forum supergroups", async () => {
+    onSpy.mockReset();
+    sendMessageSpy.mockReset();
+    sendChatActionSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    replySpy.mockReset();
+    replySpy.mockResolvedValue({ text: "response" });
+
+    loadConfig.mockReturnValue({
+      telegram: { groups: { "*": { requireMention: false } } },
+    });
+
+    createTelegramBot({ token: "tok" });
+    const handler = onSpy.mock.calls[0][1] as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+    await handler({
+      message: {
+        chat: { id: -1001234567890, type: "supergroup", title: "Forum Group", is_forum: true },
+        from: { id: 12345, username: "testuser" },
+        text: "hello",
+        date: 1736380800,
+        message_id: 42,
+        message_thread_id: 99,
+      },
+      me: { username: "clawdbot_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    });
+
+    // Check that the reply function was called
+    expect(replySpy).toHaveBeenCalled();
+    // Check that reply includes message_thread_id
+    expect(sendMessageSpy).toHaveBeenCalledWith(
+      "-1001234567890",
+      expect.any(String),
+      expect.objectContaining({ message_thread_id: 99 }),
+    );
+  });
+
+  it("handles forum messages without message_thread_id gracefully", async () => {
+    onSpy.mockReset();
+    sendMessageSpy.mockReset();
+    sendChatActionSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    replySpy.mockReset();
+    replySpy.mockResolvedValue({ text: "response" });
+
+    loadConfig.mockReturnValue({
+      telegram: { groups: { "*": { requireMention: false } } },
+    });
+
+    createTelegramBot({ token: "tok" });
+    const handler = onSpy.mock.calls[0][1] as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+    await handler({
+      message: {
+        chat: { id: -1001234567890, type: "supergroup", title: "Regular Group" },
+        from: { id: 12345, username: "testuser" },
+        text: "hello",
+        date: 1736380800,
+        message_id: 42,
+      },
+      me: { username: "clawdbot_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    });
+
+    // Check that reply does not include message_thread_id
+    expect(sendMessageSpy).toHaveBeenCalledWith(
+      "-1001234567890",
+      expect.any(String),
+      expect.objectContaining({ message_thread_id: undefined }),
+    );
   });
 
   it("blocks group messages when telegram.groups is set without a wildcard", async () => {
