@@ -28,9 +28,9 @@ function isToolResultMessage(
 ): message is AgentMessage & { role: "toolResult" } {
   return Boolean(
     message &&
-    typeof message === "object" &&
-    "role" in message &&
-    (message as { role?: unknown }).role === "toolResult",
+      typeof message === "object" &&
+      "role" in message &&
+      (message as { role?: unknown }).role === "toolResult",
   );
 }
 

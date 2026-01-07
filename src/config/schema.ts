@@ -182,7 +182,8 @@ const FIELD_HELP: Record<string, string> = {
 const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.remote.url": "ws://host:18789",
   "gateway.controlUi.basePath": "/clawdbot",
-  "agent.observationMasking.placeholder": "Previous observation omitted for brevity.",
+  "agent.observationMasking.placeholder":
+    "Previous observation omitted for brevity.",
 };
 
 const SENSITIVE_PATTERNS = [/token/i, /password/i, /secret/i, /api.?key/i];
