@@ -89,6 +89,8 @@ const GroupPolicySchema = z.enum(["open", "disabled", "allowlist"]);
 
 const DmPolicySchema = z.enum(["pairing", "allowlist", "open", "disabled"]);
 
+const MSTeamsReplyStyleSchema = z.enum(["thread", "top-level"]);
+
 const RetryConfigSchema = z
   .object({
     attempts: z.number().int().min(1).optional(),
@@ -1172,13 +1174,21 @@ export const ClawdbotSchema = z.object({
       allowFrom: z.array(z.string()).optional(),
       textChunkLimit: z.number().int().positive().optional(),
       requireMention: z.boolean().optional(),
+      replyStyle: MSTeamsReplyStyleSchema.optional(),
       teams: z
         .record(
           z.string(),
           z.object({
             requireMention: z.boolean().optional(),
+            replyStyle: MSTeamsReplyStyleSchema.optional(),
             channels: z
-              .record(z.string(), z.object({ requireMention: z.boolean().optional() }))
+              .record(
+                z.string(),
+                z.object({
+                  requireMention: z.boolean().optional(),
+                  replyStyle: MSTeamsReplyStyleSchema.optional(),
+                }),
+              )
               .optional(),
           }),
         )
