@@ -21,6 +21,7 @@ import {
 } from "../config/sessions.js";
 import { resolveCommitHash } from "../infra/git-commit.js";
 import { VERSION } from "../version.js";
+import { listChatCommands } from "./commands-registry.js";
 import type {
   ElevatedLevel,
   ReasoningLevel,
@@ -303,4 +304,14 @@ export function buildHelpMessage(): string {
     "Shortcuts: /new reset | /compact [instructions] | /restart relink",
     "Options: /think <level> | /verbose on|off | /reasoning on|off | /elevated on|off | /model <id>",
   ].join("\n");
+}
+
+export function buildCommandsMessage(): string {
+  const commands = listChatCommands();
+  const lines = ["ℹ️ Available Commands:", ""];
+  for (const cmd of commands) {
+    const aliases = cmd.textAliases.join(", ");
+    lines.push(`${aliases} - ${cmd.description}`);
+  }
+  return lines.join("\n");
 }

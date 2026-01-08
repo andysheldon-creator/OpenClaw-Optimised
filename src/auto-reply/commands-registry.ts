@@ -22,6 +22,12 @@ const CHAT_COMMANDS: ChatCommandDefinition[] = [
     textAliases: ["/help"],
   },
   {
+    key: "commands",
+    nativeName: "commands",
+    description: "List all available commands.",
+    textAliases: ["/commands"],
+  },
+  {
     key: "status",
     nativeName: "status",
     description: "Show current status.",
