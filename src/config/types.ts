@@ -374,6 +374,7 @@ export type DiscordActionConfig = {
   moderation?: boolean;
   emojiUploads?: boolean;
   stickerUploads?: boolean;
+  channels?: boolean;
 };
 
 export type DiscordConfig = {
