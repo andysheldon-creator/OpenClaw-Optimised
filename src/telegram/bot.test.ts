@@ -548,6 +548,44 @@ describe("createTelegramBot", () => {
     }
   });
 
+  it("falls back to plain text when Telegram rejects HTML formatting", async () => {
+    onSpy.mockReset();
+    sendMessageSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    replySpy.mockReset();
+    replySpy.mockResolvedValue({ text: "_oops_" });
+    sendMessageSpy
+      .mockRejectedValueOnce(
+        new Error(
+          "400: Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 9",
+        ),
+      )
+      .mockResolvedValueOnce({ message_id: 88 });
+
+    createTelegramBot({ token: "tok" });
+    const handler = onSpy.mock.calls[0][1] as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+    await handler({
+      message: {
+        chat: { id: 5, type: "private" },
+        text: "hi",
+        date: 1736380800,
+        message_id: 101,
+      },
+      me: { username: "clawdbot_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    });
+
+    expect(sendMessageSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(sendMessageSpy.mock.calls[0][1]).toBe("<em>oops</em>");
+    expect(sendMessageSpy.mock.calls[0][2]?.parse_mode).toBe("HTML");
+    expect(sendMessageSpy.mock.calls[1][1]).toBe("_oops_");
+    expect(sendMessageSpy.mock.calls[1][2]?.parse_mode).toBeUndefined();
+  });
+
   it("honors replyToMode=first for threaded replies", async () => {
     onSpy.mockReset();
     sendMessageSpy.mockReset();
