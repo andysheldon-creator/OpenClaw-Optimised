@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { runClaudeCliAgent } from "../agents/claude-cli-runner.js";
 import { lookupContextTokens } from "../agents/context.js";
 import {
   DEFAULT_CONTEXT_TOKENS,
@@ -159,7 +160,8 @@ function resolveDeliveryTarget(
       | "discord"
       | "slack"
       | "signal"
-      | "imessage";
+      | "imessage"
+      | "msteams";
     to?: string;
   },
 ) {
@@ -267,12 +269,11 @@ export async function runCronIsolatedAgentTurn(params: {
   sessionKey: string;
   lane?: string;
 }): Promise<RunCronAgentTurnResult> {
-  const agentCfg = params.cfg.agent;
-  const workspaceDirRaw =
-    params.cfg.agent?.workspace ?? DEFAULT_AGENT_WORKSPACE_DIR;
+  const agentCfg = params.cfg.agents?.defaults;
+  const workspaceDirRaw = agentCfg?.workspace ?? DEFAULT_AGENT_WORKSPACE_DIR;
   const workspace = await ensureAgentWorkspace({
     dir: workspaceDirRaw,
-    ensureBootstrapFiles: !params.cfg.agent?.skipBootstrap,
+    ensureBootstrapFiles: !agentCfg?.skipBootstrap,
   });
   const workspaceDir = workspace.dir;
 
@@ -318,6 +319,7 @@ export async function runCronIsolatedAgentTurn(params: {
       cfg: params.cfg,
       catalog: await loadCatalog(),
       defaultProvider: resolvedDefault.provider,
+      defaultModel: resolvedDefault.model,
     });
     const key = modelKey(
       resolvedOverride.ref.provider,
@@ -422,12 +424,29 @@ export async function runCronIsolatedAgentTurn(params: {
       sessionKey: params.sessionKey,
     });
     const messageProvider = resolvedDelivery.provider;
+    const claudeSessionId = cronSession.sessionEntry.claudeCliSessionId?.trim();
     const fallbackResult = await runWithModelFallback({
       cfg: params.cfg,
       provider,
       model,
-      run: (providerOverride, modelOverride) =>
-        runEmbeddedPiAgent({
+      run: (providerOverride, modelOverride) => {
+        if (providerOverride === "claude-cli") {
+          return runClaudeCliAgent({
+            sessionId: cronSession.sessionEntry.sessionId,
+            sessionKey: params.sessionKey,
+            sessionFile,
+            workspaceDir,
+            config: params.cfg,
+            prompt: commandBody,
+            provider: providerOverride,
+            model: modelOverride,
+            thinkLevel,
+            timeoutMs,
+            runId: cronSession.sessionEntry.sessionId,
+            claudeSessionId,
+          });
+        }
+        return runEmbeddedPiAgent({
           sessionId: cronSession.sessionEntry.sessionId,
           sessionKey: params.sessionKey,
           messageProvider,
@@ -448,7 +467,8 @@ export async function runCronIsolatedAgentTurn(params: {
             (agentCfg?.verboseDefault as "on" | "off" | undefined),
           timeoutMs,
           runId: cronSession.sessionEntry.sessionId,
-        }),
+        });
+      },
     });
     runResult = fallbackResult.result;
     fallbackProvider = fallbackResult.provider;
@@ -473,6 +493,12 @@ export async function runCronIsolatedAgentTurn(params: {
     cronSession.sessionEntry.modelProvider = providerUsed;
     cronSession.sessionEntry.model = modelUsed;
     cronSession.sessionEntry.contextTokens = contextTokens;
+    if (providerUsed === "claude-cli") {
+      const cliSessionId = runResult.meta.agentMeta?.sessionId?.trim();
+      if (cliSessionId) {
+        cronSession.sessionEntry.claudeCliSessionId = cliSessionId;
+      }
+    }
     if (hasNonzeroUsage(usage)) {
       const input = usage.input ?? 0;
       const output = usage.output ?? 0;
@@ -494,7 +520,8 @@ export async function runCronIsolatedAgentTurn(params: {
   // This allows cron jobs to silently ack when nothing to report but still deliver
   // actual content when there is something to say.
   const ackMaxChars =
-    params.cfg.agent?.heartbeat?.ackMaxChars ?? DEFAULT_HEARTBEAT_ACK_MAX_CHARS;
+    params.cfg.agents?.defaults?.heartbeat?.ackMaxChars ??
+    DEFAULT_HEARTBEAT_ACK_MAX_CHARS;
   const skipHeartbeatDelivery =
     delivery && isHeartbeatOnlyResponse(payloads, Math.max(0, ackMaxChars));
 

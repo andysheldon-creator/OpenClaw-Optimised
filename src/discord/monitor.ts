@@ -17,6 +17,7 @@ import { GatewayIntents, GatewayPlugin } from "@buape/carbon/gateway";
 import type { APIAttachment } from "discord-api-types/v10";
 import { ApplicationCommandOptionType, Routes } from "discord-api-types/v10";
 
+import { resolveAckReaction } from "../agents/identity.js";
 import { resolveTextChunkLimit } from "../auto-reply/chunk.js";
 import { hasControlCommand } from "../auto-reply/command-detection.js";
 import {
@@ -501,7 +502,6 @@ export function createDiscordMessageHandler(params: {
     guildEntries,
   } = params;
   const logger = getChildLogger({ module: "discord-auto-reply" });
-  const ackReaction = (cfg.messages?.ackReaction ?? "").trim();
   const ackReactionScope = cfg.messages?.ackReactionScope ?? "group-mentions";
   const groupPolicy = discordConfig?.groupPolicy ?? "open";
 
@@ -785,6 +785,7 @@ export function createDiscordMessageHandler(params: {
         !hasAnyMention &&
         commandAuthorized &&
         hasControlCommand(baseText);
+      const effectiveWasMentioned = wasMentioned || shouldBypassMention;
       const canDetectMention = Boolean(botId) || mentionRegexes.length > 0;
       if (isGuildMessage && shouldRequireMention) {
         if (botId && !wasMentioned && !shouldBypassMention) {
@@ -841,6 +842,7 @@ export function createDiscordMessageHandler(params: {
         logVerbose(`discord: drop message ${message.id} (empty content)`);
         return;
       }
+      const ackReaction = resolveAckReaction(cfg, route.agentId);
       const shouldAckReaction = () => {
         if (!ackReaction) return false;
         if (ackReactionScope === "all") return true;
@@ -981,7 +983,7 @@ export function createDiscordMessageHandler(params: {
           : undefined,
         Provider: "discord" as const,
         Surface: "discord" as const,
-        WasMentioned: wasMentioned,
+        WasMentioned: effectiveWasMentioned,
         MessageSid: message.id,
         ParentSessionKey: threadKeys.parentSessionKey,
         ThreadStarterBody: threadStarterBody,

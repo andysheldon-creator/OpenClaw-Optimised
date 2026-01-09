@@ -78,11 +78,13 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
-            models: {
-              "anthropic/claude-opus-4-5": { alias: " help " },
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": { alias: " help " },
+              },
             },
           },
           whatsapp: { allowFrom: ["*"] },
@@ -108,9 +110,11 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: { allowFrom: ["*"] },
           session: { store: path.join(home, "sessions.json") },
@@ -138,11 +142,13 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
-          routing: {
+          messages: {
             queue: {
               mode: "collect",
               debounceMs: 1500,
@@ -174,10 +180,12 @@ describe("directive behavior", () => {
         { Body: "/think", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
-            thinkingDefault: "high",
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+              thinkingDefault: "high",
+            },
           },
           session: { store: path.join(home, "sessions.json") },
         },
@@ -198,9 +206,11 @@ describe("directive behavior", () => {
         { Body: "/think", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           session: { store: path.join(home, "sessions.json") },
         },
@@ -232,9 +242,11 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: { allowFrom: ["*"] },
           session: { store: path.join(home, "sessions.json") },
@@ -270,9 +282,11 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: { allowFrom: ["*"] },
           session: { store: path.join(home, "sessions.json") },
@@ -303,9 +317,11 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: {
             allowFrom: ["*"],
@@ -330,9 +346,11 @@ describe("directive behavior", () => {
         { Body: "/verbose on", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           session: { store: path.join(home, "sessions.json") },
         },
@@ -352,10 +370,12 @@ describe("directive behavior", () => {
         { Body: "/think", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
-            thinkingDefault: "high",
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+              thinkingDefault: "high",
+            },
           },
           session: { store: path.join(home, "sessions.json") },
         },
@@ -376,9 +396,11 @@ describe("directive behavior", () => {
         { Body: "/think", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           session: { store: path.join(home, "sessions.json") },
         },
@@ -399,10 +421,12 @@ describe("directive behavior", () => {
         { Body: "/verbose", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
-            verboseDefault: "on",
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+              verboseDefault: "on",
+            },
           },
           session: { store: path.join(home, "sessions.json") },
         },
@@ -423,9 +447,11 @@ describe("directive behavior", () => {
         { Body: "/reasoning", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           session: { store: path.join(home, "sessions.json") },
         },
@@ -452,10 +478,14 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
-            elevatedDefault: "on",
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+              elevatedDefault: "on",
+            },
+          },
+          tools: {
             elevated: {
               allowFrom: { whatsapp: ["+1222"] },
             },
@@ -468,6 +498,44 @@ describe("directive behavior", () => {
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toContain("Current elevated level: on");
       expect(text).toContain("Options: on, off.");
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
+  it("warns when elevated is used in direct runtime", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+
+      const res = await getReplyFromConfig(
+        {
+          Body: "/elevated off",
+          From: "+1222",
+          To: "+1222",
+          Provider: "whatsapp",
+          SenderE164: "+1222",
+        },
+        {},
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+              sandbox: { mode: "off" },
+            },
+          },
+          tools: {
+            elevated: {
+              allowFrom: { whatsapp: ["+1222"] },
+            },
+          },
+          whatsapp: { allowFrom: ["+1222"] },
+          session: { store: path.join(home, "sessions.json") },
+        },
+      );
+
+      const text = Array.isArray(res) ? res[0]?.text : res?.text;
+      expect(text).toContain("Elevated mode disabled.");
+      expect(text).toContain("Runtime is direct; sandboxing does not apply.");
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -486,9 +554,13 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          tools: {
             elevated: {
               allowFrom: { whatsapp: ["+1222"] },
             },
@@ -504,6 +576,80 @@ describe("directive behavior", () => {
     });
   });
 
+  it("handles multiple directives in a single message", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+
+      const res = await getReplyFromConfig(
+        {
+          Body: "/elevated off\n/verbose on",
+          From: "+1222",
+          To: "+1222",
+          Provider: "whatsapp",
+          SenderE164: "+1222",
+        },
+        {},
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          tools: {
+            elevated: {
+              allowFrom: { whatsapp: ["+1222"] },
+            },
+          },
+          whatsapp: { allowFrom: ["+1222"] },
+          session: { store: path.join(home, "sessions.json") },
+        },
+      );
+
+      const text = Array.isArray(res) ? res[0]?.text : res?.text;
+      expect(text).toContain("Elevated mode disabled.");
+      expect(text).toContain("Verbose logging enabled.");
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
+  it("returns status alongside directive-only acks", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+
+      const res = await getReplyFromConfig(
+        {
+          Body: "/elevated off\n/status",
+          From: "+1222",
+          To: "+1222",
+          Provider: "whatsapp",
+          SenderE164: "+1222",
+        },
+        {},
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          tools: {
+            elevated: {
+              allowFrom: { whatsapp: ["+1222"] },
+            },
+          },
+          whatsapp: { allowFrom: ["+1222"] },
+          session: { store: path.join(home, "sessions.json") },
+        },
+      );
+
+      const text = Array.isArray(res) ? res[0]?.text : res?.text;
+      expect(text).toContain("Elevated mode disabled.");
+      expect(text).toContain("Session: agent:main:main");
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
   it("acks queue directive and persists override", async () => {
     await withTempHome(async (home) => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
@@ -513,9 +659,11 @@ describe("directive behavior", () => {
         { Body: "/queue interrupt", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: { allowFrom: ["*"] },
           session: { store: storePath },
@@ -544,9 +692,11 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: { allowFrom: ["*"] },
           session: { store: storePath },
@@ -577,9 +727,11 @@ describe("directive behavior", () => {
         { Body: "/queue interrupt", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: { allowFrom: ["*"] },
           session: { store: storePath },
@@ -590,9 +742,11 @@ describe("directive behavior", () => {
         { Body: "/queue reset", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: { allowFrom: ["*"] },
           session: { store: storePath },
@@ -649,9 +803,11 @@ describe("directive behavior", () => {
         ctx,
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: {
             allowFrom: ["*"],
@@ -710,9 +866,11 @@ describe("directive behavior", () => {
         { Body: "/verbose on", From: ctx.From, To: ctx.To },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: {
             allowFrom: ["*"],
@@ -725,9 +883,11 @@ describe("directive behavior", () => {
         ctx,
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: {
             allowFrom: ["*"],
@@ -753,12 +913,14 @@ describe("directive behavior", () => {
         { Body: "/model", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: { primary: "anthropic/claude-opus-4-5" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "anthropic/claude-opus-4-5": {},
-              "openai/gpt-4.1-mini": {},
+          agents: {
+            defaults: {
+              model: { primary: "anthropic/claude-opus-4-5" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+                "openai/gpt-4.1-mini": {},
+              },
             },
           },
           session: { store: storePath },
@@ -783,12 +945,14 @@ describe("directive behavior", () => {
         { Body: "/model status", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: { primary: "anthropic/claude-opus-4-5" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "anthropic/claude-opus-4-5": {},
-              "openai/gpt-4.1-mini": {},
+          agents: {
+            defaults: {
+              model: { primary: "anthropic/claude-opus-4-5" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+                "openai/gpt-4.1-mini": {},
+              },
             },
           },
           session: { store: storePath },
@@ -813,12 +977,14 @@ describe("directive behavior", () => {
         { Body: "/model list", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: { primary: "anthropic/claude-opus-4-5" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "anthropic/claude-opus-4-5": {},
-              "openai/gpt-4.1-mini": {},
+          agents: {
+            defaults: {
+              model: { primary: "anthropic/claude-opus-4-5" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+                "openai/gpt-4.1-mini": {},
+              },
             },
           },
           session: { store: storePath },
@@ -833,6 +999,38 @@ describe("directive behavior", () => {
     });
   });
 
+  it("falls back to configured models when catalog is unavailable", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+      vi.mocked(loadModelCatalog).mockResolvedValueOnce([]);
+      const storePath = path.join(home, "sessions.json");
+
+      const res = await getReplyFromConfig(
+        { Body: "/model", From: "+1222", To: "+1222" },
+        {},
+        {
+          agents: {
+            defaults: {
+              model: { primary: "anthropic/claude-opus-4-5" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+                "openai/gpt-4.1-mini": {},
+              },
+            },
+          },
+          session: { store: storePath },
+        },
+      );
+
+      const text = Array.isArray(res) ? res[0]?.text : res?.text;
+      expect(text).toContain("Model catalog unavailable");
+      expect(text).toContain("anthropic/claude-opus-4-5");
+      expect(text).toContain("openai/gpt-4.1-mini");
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
   it("does not repeat missing auth labels on /model list", async () => {
     await withTempHome(async (home) => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
@@ -842,11 +1040,13 @@ describe("directive behavior", () => {
         { Body: "/model list", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: { primary: "anthropic/claude-opus-4-5" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "anthropic/claude-opus-4-5": {},
+          agents: {
+            defaults: {
+              model: { primary: "anthropic/claude-opus-4-5" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+              },
             },
           },
           session: { store: storePath },
@@ -869,12 +1069,14 @@ describe("directive behavior", () => {
         { Body: "/model openai/gpt-4.1-mini", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: { primary: "anthropic/claude-opus-4-5" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "anthropic/claude-opus-4-5": {},
-              "openai/gpt-4.1-mini": {},
+          agents: {
+            defaults: {
+              model: { primary: "anthropic/claude-opus-4-5" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+                "openai/gpt-4.1-mini": {},
+              },
             },
           },
           session: { store: storePath },
@@ -900,12 +1102,14 @@ describe("directive behavior", () => {
         { Body: "/model Opus", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: { primary: "openai/gpt-4.1-mini" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "openai/gpt-4.1-mini": {},
-              "anthropic/claude-opus-4-5": { alias: "Opus" },
+          agents: {
+            defaults: {
+              model: { primary: "openai/gpt-4.1-mini" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "openai/gpt-4.1-mini": {},
+                "anthropic/claude-opus-4-5": { alias: "Opus" },
+              },
             },
           },
           session: { store: storePath },
@@ -951,12 +1155,14 @@ describe("directive behavior", () => {
         { Body: "/model Opus@anthropic:work", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: { primary: "openai/gpt-4.1-mini" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "openai/gpt-4.1-mini": {},
-              "anthropic/claude-opus-4-5": { alias: "Opus" },
+          agents: {
+            defaults: {
+              model: { primary: "openai/gpt-4.1-mini" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "openai/gpt-4.1-mini": {},
+                "anthropic/claude-opus-4-5": { alias: "Opus" },
+              },
             },
           },
           session: { store: storePath },
@@ -982,12 +1188,14 @@ describe("directive behavior", () => {
         { Body: "/model Opus", From: "+1222", To: "+1222" },
         {},
         {
-          agent: {
-            model: { primary: "openai/gpt-4.1-mini" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "openai/gpt-4.1-mini": {},
-              "anthropic/claude-opus-4-5": { alias: "Opus" },
+          agents: {
+            defaults: {
+              model: { primary: "openai/gpt-4.1-mini" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "openai/gpt-4.1-mini": {},
+                "anthropic/claude-opus-4-5": { alias: "Opus" },
+              },
             },
           },
           session: { store: storePath },
@@ -1021,12 +1229,14 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: { primary: "anthropic/claude-opus-4-5" },
-            workspace: path.join(home, "clawd"),
-            models: {
-              "anthropic/claude-opus-4-5": {},
-              "openai/gpt-4.1-mini": {},
+          agents: {
+            defaults: {
+              model: { primary: "anthropic/claude-opus-4-5" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+                "openai/gpt-4.1-mini": {},
+              },
             },
           },
           whatsapp: {
@@ -1074,9 +1284,11 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
           },
           whatsapp: {
             allowFrom: ["*"],
@@ -1112,9 +1324,13 @@ describe("directive behavior", () => {
         },
         {},
         {
-          agent: {
-            model: "anthropic/claude-opus-4-5",
-            workspace: path.join(home, "clawd"),
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          tools: {
             elevated: {
               allowFrom: { whatsapp: ["+1004"] },
             },

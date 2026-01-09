@@ -130,6 +130,27 @@ describe("resolveAuthProfileOrder", () => {
     expect(order).toEqual(["anthropic:work", "anthropic:default"]);
   });
 
+  it("pushes cooldown profiles to the end even with configured order", () => {
+    const now = Date.now();
+    const order = resolveAuthProfileOrder({
+      cfg: {
+        auth: {
+          order: { anthropic: ["anthropic:default", "anthropic:work"] },
+          profiles: cfg.auth.profiles,
+        },
+      },
+      store: {
+        ...store,
+        usageStats: {
+          "anthropic:default": { cooldownUntil: now + 60_000 },
+          "anthropic:work": { lastUsed: 1 },
+        },
+      },
+      provider: "anthropic",
+    });
+    expect(order).toEqual(["anthropic:work", "anthropic:default"]);
+  });
+
   it("normalizes z.ai aliases in auth.order", () => {
     const order = resolveAuthProfileOrder({
       cfg: {
@@ -428,7 +449,7 @@ describe("external CLI credential sync", () => {
       );
       expect(store.profiles[CLAUDE_CLI_PROFILE_ID]).toBeDefined();
       expect(
-        (store.profiles[CLAUDE_CLI_PROFILE_ID] as { access: string }).access,
+        (store.profiles[CLAUDE_CLI_PROFILE_ID] as { token: string }).token,
       ).toBe("fresh-access-token");
       expect(
         (store.profiles[CLAUDE_CLI_PROFILE_ID] as { expires: number }).expires,
@@ -537,7 +558,7 @@ describe("external CLI credential sync", () => {
     }
   });
 
-  it("does not overwrite fresher store OAuth with older Claude CLI credentials", () => {
+  it("does not overwrite fresher store token with older Claude CLI credentials", () => {
     const agentDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "clawdbot-cli-no-downgrade-"),
     );
@@ -567,10 +588,9 @@ describe("external CLI credential sync", () => {
           version: 1,
           profiles: {
             [CLAUDE_CLI_PROFILE_ID]: {
-              type: "oauth",
+              type: "token",
               provider: "anthropic",
-              access: "store-access",
-              refresh: "store-refresh",
+              token: "store-access",
               expires: Date.now() + 60 * 60 * 1000,
             },
           },
@@ -579,7 +599,7 @@ describe("external CLI credential sync", () => {
 
       const store = ensureAuthProfileStore(agentDir);
       expect(
-        (store.profiles[CLAUDE_CLI_PROFILE_ID] as { access: string }).access,
+        (store.profiles[CLAUDE_CLI_PROFILE_ID] as { token: string }).token,
       ).toBe("store-access");
     } finally {
       restoreHomeEnv(originalHome);

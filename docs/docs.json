@@ -550,12 +550,21 @@
         ]
       },
       {
+        "group": "CLI",
+        "pages": [
+          "cli/index",
+          "cli/gateway",
+          "cli/sandbox"
+        ]
+      },
+      {
         "group": "Core Concepts",
         "pages": [
           "concepts/architecture",
           "concepts/agent",
           "concepts/agent-loop",
           "concepts/system-prompt",
+          "token-use",
           "concepts/oauth",
           "concepts/agent-workspace",
           "concepts/multi-agent",

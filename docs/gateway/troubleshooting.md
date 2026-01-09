@@ -33,6 +33,19 @@ Doctor/daemon will show runtime state (PID/last exit) and log hints.
 - Linux systemd (if installed): `journalctl --user -u clawdbot-gateway.service -n 200 --no-pager`
 - Windows: `schtasks /Query /TN "Clawdbot Gateway" /V /FO LIST`
 
+**Enable more logging:**
+- Bump file log detail (persisted JSONL):
+  ```json
+  { "logging": { "level": "debug" } }
+  ```
+- Bump console verbosity (TTY output only):
+  ```json
+  { "logging": { "consoleLevel": "debug", "consoleStyle": "pretty" } }
+  ```
+- Quick tip: `--verbose` affects **console** output only. File logs remain controlled by `logging.level`.
+
+See [/logging](/logging) for a full overview of formats, config, and access.
+
 ### Service Environment (PATH + runtime)
 
 The gateway daemon runs with a **minimal PATH** to avoid shell/manager cruft:
@@ -109,6 +122,19 @@ or state drift because only one workspace is active.
 **Fix:** keep a single active workspace and archive/remove the rest. See
 [Agent workspace](/concepts/agent-workspace#legacy-workspace-folders).
 
+### Main chat running in a sandbox workspace
+
+Symptoms: `pwd` or file tools show `~/.clawdbot/sandboxes/...` even though you
+expected the host workspace.
+
+**Why:** `agents.defaults.sandbox.mode: "non-main"` keys off `session.mainKey` (default `"main"`).
+Group/channel sessions use their own keys, so they are treated as non-main and
+get sandbox workspaces.
+
+**Fix options:**
+- If you want host workspaces for an agent: set `agents.list[].sandbox.mode: "off"`.
+- If you want host workspace access inside sandbox: set `workspaceAccess: "rw"` for that agent.
+
 ### "Agent was aborted"
 
 The agent was interrupted mid-response.
@@ -131,8 +157,8 @@ Look for `AllowFrom: ...` in the output.
 **Check 2:** For group chats, is mention required?
 ```bash
 # The message must match mentionPatterns or explicit mentions; defaults live in provider groups/guilds.
-# Multi-agent: `routing.agents.<agentId>.mentionPatterns` overrides global patterns.
-grep -n "routing\\|groupChat\\|mentionPatterns\\|whatsapp\\.groups\\|telegram\\.groups\\|imessage\\.groups\\|discord\\.guilds" \
+# Multi-agent: `agents.list[].groupChat.mentionPatterns` overrides global patterns.
+grep -n "agents\\|groupChat\\|mentionPatterns\\|whatsapp\\.groups\\|telegram\\.groups\\|imessage\\.groups\\|discord\\.guilds" \
   "${CLAWDBOT_CONFIG_PATH:-$HOME/.clawdbot/clawdbot.json}"
 ```
 

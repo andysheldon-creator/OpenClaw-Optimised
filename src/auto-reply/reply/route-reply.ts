@@ -10,12 +10,14 @@
 import type { ClawdbotConfig } from "../../config/config.js";
 import { sendMessageDiscord } from "../../discord/send.js";
 import { sendMessageIMessage } from "../../imessage/send.js";
+import { sendMessageMSTeams } from "../../msteams/send.js";
 import { sendMessageSignal } from "../../signal/send.js";
 import { sendMessageSlack } from "../../slack/send.js";
 import { sendMessageTelegram } from "../../telegram/send.js";
 import { sendMessageWhatsApp } from "../../web/outbound.js";
 import type { OriginatingChannelType } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
+import { normalizeReplyPayload } from "./normalize-reply.js";
 
 export type RouteReplyParams = {
   /** The reply payload to send. */
@@ -54,16 +56,22 @@ export type RouteReplyResult = {
 export async function routeReply(
   params: RouteReplyParams,
 ): Promise<RouteReplyResult> {
-  const { payload, channel, to, accountId, threadId, abortSignal } = params;
+  const { payload, channel, to, accountId, threadId, cfg, abortSignal } =
+    params;
 
   // Debug: `pnpm test src/auto-reply/reply/route-reply.test.ts`
-  const text = payload.text ?? "";
-  const mediaUrls = (payload.mediaUrls?.filter(Boolean) ?? []).length
-    ? (payload.mediaUrls?.filter(Boolean) as string[])
-    : payload.mediaUrl
-      ? [payload.mediaUrl]
+  const normalized = normalizeReplyPayload(payload, {
+    responsePrefix: cfg.messages?.responsePrefix,
+  });
+  if (!normalized) return { ok: true };
+
+  const text = normalized.text ?? "";
+  const mediaUrls = (normalized.mediaUrls?.filter(Boolean) ?? []).length
+    ? (normalized.mediaUrls?.filter(Boolean) as string[])
+    : normalized.mediaUrl
+      ? [normalized.mediaUrl]
       : [];
-  const replyToId = payload.replyToId;
+  const replyToId = normalized.replyToId;
 
   // Skip empty replies.
   if (!text.trim() && mediaUrls.length === 0) {
@@ -145,6 +153,16 @@ export async function routeReply(
         };
       }
 
+      case "msteams": {
+        const result = await sendMessageMSTeams({
+          cfg,
+          to,
+          text,
+          mediaUrl,
+        });
+        return { ok: true, messageId: result.messageId };
+      }
+
       default: {
         const _exhaustive: never = channel;
         return { ok: false, error: `Unknown channel: ${String(_exhaustive)}` };
@@ -195,7 +213,8 @@ export function isRoutableChannel(
   | "discord"
   | "signal"
   | "imessage"
-  | "whatsapp" {
+  | "whatsapp"
+  | "msteams" {
   if (!channel) return false;
   return [
     "telegram",
@@ -204,5 +223,6 @@ export function isRoutableChannel(
     "signal",
     "imessage",
     "whatsapp",
+    "msteams",
   ].includes(channel);
 }

@@ -105,7 +105,6 @@ beforeEach(() => {
       ackReactionScope: "group-mentions",
     },
     slack: { dm: { enabled: true, policy: "open", allowFrom: ["*"] } },
-    routing: { allowFrom: [] },
   };
   sendMock.mockReset().mockResolvedValue(undefined);
   replyMock.mockReset();
@@ -208,14 +207,13 @@ describe("monitorSlackProvider tool results", () => {
 
   it("accepts channel messages when mentionPatterns match", async () => {
     config = {
-      messages: { responsePrefix: "PFX" },
+      messages: {
+        responsePrefix: "PFX",
+        groupChat: { mentionPatterns: ["\\bclawd\\b"] },
+      },
       slack: {
         dm: { enabled: true, policy: "open", allowFrom: ["*"] },
         channels: { C1: { allow: true, requireMention: true } },
-      },
-      routing: {
-        allowFrom: [],
-        groupChat: { mentionPatterns: ["\\bclawd\\b"] },
       },
     };
     replyMock.mockResolvedValue({ text: "hi" });
@@ -236,6 +234,39 @@ describe("monitorSlackProvider tool results", () => {
         type: "message",
         user: "U1",
         text: "clawd: hello",
+        ts: "123",
+        channel: "C1",
+        channel_type: "channel",
+      },
+    });
+
+    await flush();
+    controller.abort();
+    await run;
+
+    expect(replyMock).toHaveBeenCalledTimes(1);
+    expect(replyMock.mock.calls[0][0].WasMentioned).toBe(true);
+  });
+
+  it("treats control commands as mentions for group bypass", async () => {
+    replyMock.mockResolvedValue({ text: "ok" });
+
+    const controller = new AbortController();
+    const run = monitorSlackProvider({
+      botToken: "bot-token",
+      appToken: "app-token",
+      abortSignal: controller.signal,
+    });
+
+    await waitForEvent("message");
+    const handler = getSlackHandlers()?.get("message");
+    if (!handler) throw new Error("Slack message handler not registered");
+
+    await handler({
+      event: {
+        type: "message",
+        user: "U1",
+        text: "/elevated off",
         ts: "123",
         channel: "C1",
         channel_type: "channel",
@@ -345,7 +376,6 @@ describe("monitorSlackProvider tool results", () => {
         dm: { enabled: true, policy: "open", allowFrom: ["*"] },
         channels: { C1: { allow: true, requireMention: false } },
       },
-      routing: { allowFrom: [] },
     };
 
     const controller = new AbortController();
@@ -396,12 +426,9 @@ describe("monitorSlackProvider tool results", () => {
         dm: { enabled: true, policy: "open", allowFrom: ["*"] },
         channels: { C1: { allow: true, requireMention: false } },
       },
-      routing: {
-        allowFrom: [],
-        bindings: [
-          { agentId: "support", match: { provider: "slack", teamId: "T1" } },
-        ],
-      },
+      bindings: [
+        { agentId: "support", match: { provider: "slack", teamId: "T1" } },
+      ],
     };
 
     const client = getSlackClient();

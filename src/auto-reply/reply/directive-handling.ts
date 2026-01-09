@@ -23,8 +23,14 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
+import { resolveSandboxConfigForAgent } from "../../agents/sandbox.js";
 import type { ClawdbotConfig } from "../../config/config.js";
-import { type SessionEntry, saveSessionStore } from "../../config/sessions.js";
+import {
+  resolveAgentIdFromSessionKey,
+  resolveAgentMainSessionKey,
+  type SessionEntry,
+  saveSessionStore,
+} from "../../config/sessions.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { shortenHomePath } from "../../utils.js";
 import { extractModelDirective } from "../model.js";
@@ -57,6 +63,8 @@ const SYSTEM_MARK = "⚙️";
 const formatOptionsLine = (options: string) => `Options: ${options}.`;
 const withOptions = (line: string, options: string) =>
   `${line}\n${formatOptionsLine(options)}`;
+const formatElevatedRuntimeHint = () =>
+  `${SYSTEM_MARK} Runtime is direct; sandboxing does not apply.`;
 
 const maskApiKey = (value: string): string => {
   const trimmed = value.trim();
@@ -81,12 +89,17 @@ const resolveAuthLabel = async (
         !profile ||
         (configProfile?.provider &&
           configProfile.provider !== profile.provider) ||
-        (configProfile?.mode && configProfile.mode !== profile.type)
+        (configProfile?.mode &&
+          configProfile.mode !== profile.type &&
+          !(configProfile.mode === "oauth" && profile.type === "token"))
       ) {
         return `${profileId}=missing`;
       }
       if (profile.type === "api_key") {
         return `${profileId}=${maskApiKey(profile.key)}`;
+      }
+      if (profile.type === "token") {
+        return `${profileId}=token:${maskApiKey(profile.token)}`;
       }
       const display = resolveAuthProfileDisplayLabel({
         cfg,
@@ -350,6 +363,21 @@ export async function handleDirectiveOnly(params: {
     currentReasoningLevel,
     currentElevatedLevel,
   } = params;
+  const runtimeIsSandboxed = (() => {
+    const sessionKey = params.sessionKey?.trim();
+    if (!sessionKey) return false;
+    const agentId = resolveAgentIdFromSessionKey(sessionKey);
+    const sandboxCfg = resolveSandboxConfigForAgent(params.cfg, agentId);
+    if (sandboxCfg.mode === "off") return false;
+    const mainKey = resolveAgentMainSessionKey({
+      cfg: params.cfg,
+      agentId,
+    });
+    if (sandboxCfg.mode === "all") return true;
+    return sessionKey !== mainKey;
+  })();
+  const shouldHintDirectRuntime =
+    directives.hasElevatedDirective && !runtimeIsSandboxed;
 
   if (directives.hasModelDirective) {
     const modelDirective = directives.rawModelDirective?.trim().toLowerCase();
@@ -357,7 +385,89 @@ export async function handleDirectiveOnly(params: {
       modelDirective === "status" || modelDirective === "list";
     if (!directives.rawModelDirective || isModelListAlias) {
       if (allowedModelCatalog.length === 0) {
-        return { text: "No models available." };
+        const resolvedDefault = resolveConfiguredModelRef({
+          cfg: params.cfg,
+          defaultProvider,
+          defaultModel,
+        });
+        const fallbackKeys = new Set<string>();
+        const fallbackCatalog: Array<{
+          provider: string;
+          id: string;
+        }> = [];
+        for (const raw of Object.keys(
+          params.cfg.agents?.defaults?.models ?? {},
+        )) {
+          const resolved = resolveModelRefFromString({
+            raw: String(raw),
+            defaultProvider,
+            aliasIndex,
+          });
+          if (!resolved) continue;
+          const key = modelKey(resolved.ref.provider, resolved.ref.model);
+          if (fallbackKeys.has(key)) continue;
+          fallbackKeys.add(key);
+          fallbackCatalog.push({
+            provider: resolved.ref.provider,
+            id: resolved.ref.model,
+          });
+        }
+        if (fallbackCatalog.length === 0 && resolvedDefault.model) {
+          const key = modelKey(resolvedDefault.provider, resolvedDefault.model);
+          fallbackKeys.add(key);
+          fallbackCatalog.push({
+            provider: resolvedDefault.provider,
+            id: resolvedDefault.model,
+          });
+        }
+        if (fallbackCatalog.length === 0) {
+          return { text: "No models available." };
+        }
+        const agentDir = resolveClawdbotAgentDir();
+        const modelsPath = `${agentDir}/models.json`;
+        const formatPath = (value: string) => shortenHomePath(value);
+        const authByProvider = new Map<string, string>();
+        for (const entry of fallbackCatalog) {
+          if (authByProvider.has(entry.provider)) continue;
+          const auth = await resolveAuthLabel(
+            entry.provider,
+            params.cfg,
+            modelsPath,
+          );
+          authByProvider.set(entry.provider, formatAuthLabel(auth));
+        }
+        const current = `${params.provider}/${params.model}`;
+        const defaultLabel = `${defaultProvider}/${defaultModel}`;
+        const lines = [
+          `Current: ${current}`,
+          `Default: ${defaultLabel}`,
+          `Auth file: ${formatPath(resolveAuthStorePathForDisplay())}`,
+          `⚠️ Model catalog unavailable; showing configured models only.`,
+        ];
+        const byProvider = new Map<string, typeof fallbackCatalog>();
+        for (const entry of fallbackCatalog) {
+          const models = byProvider.get(entry.provider);
+          if (models) {
+            models.push(entry);
+            continue;
+          }
+          byProvider.set(entry.provider, [entry]);
+        }
+        for (const provider of byProvider.keys()) {
+          const models = byProvider.get(provider);
+          if (!models) continue;
+          const authLabel = authByProvider.get(provider) ?? "missing";
+          lines.push("");
+          lines.push(`[${provider}] auth: ${authLabel}`);
+          for (const entry of models) {
+            const label = `${entry.provider}/${entry.id}`;
+            const aliases = aliasIndex.byKey.get(label);
+            const aliasSuffix =
+              aliases && aliases.length > 0 ? ` (${aliases.join(", ")})` : "";
+            lines.push(`  • ${label}${aliasSuffix}`);
+          }
+        }
+        return { text: lines.join("\n") };
       }
       const agentDir = resolveClawdbotAgentDir();
       const modelsPath = `${agentDir}/models.json`;
@@ -463,7 +573,12 @@ export async function handleDirectiveOnly(params: {
       }
       const level = currentElevatedLevel ?? "off";
       return {
-        text: withOptions(`Current elevated level: ${level}.`, "on, off"),
+        text: [
+          withOptions(`Current elevated level: ${level}.`, "on, off"),
+          shouldHintDirectRuntime ? formatElevatedRuntimeHint() : null,
+        ]
+          .filter(Boolean)
+          .join("\n"),
       };
     }
     return {
@@ -681,6 +796,7 @@ export async function handleDirectiveOnly(params: {
         ? `${SYSTEM_MARK} Elevated mode disabled.`
         : `${SYSTEM_MARK} Elevated mode enabled.`,
     );
+    if (shouldHintDirectRuntime) parts.push(formatElevatedRuntimeHint());
   }
   if (modelSelection) {
     const label = `${modelSelection.provider}/${modelSelection.model}`;
@@ -716,6 +832,7 @@ export async function handleDirectiveOnly(params: {
     parts.push(`${SYSTEM_MARK} Queue drop set to ${directives.dropPolicy}.`);
   }
   const ack = parts.join(" ").trim();
+  if (!ack && directives.hasStatusDirective) return undefined;
   return { text: ack || "OK." };
 }
 
@@ -737,7 +854,7 @@ export async function persistInlineDirectives(params: {
   model: string;
   initialModelLabel: string;
   formatModelSwitchEvent: (label: string, alias?: string) => string;
-  agentCfg: ClawdbotConfig["agent"] | undefined;
+  agentCfg: NonNullable<ClawdbotConfig["agents"]>["defaults"] | undefined;
 }): Promise<{ provider: string; model: string; contextTokens: number }> {
   const {
     directives,
@@ -893,13 +1010,16 @@ export function resolveDefaultModel(params: {
     agentModelOverride && agentModelOverride.length > 0
       ? {
           ...params.cfg,
-          agent: {
-            ...params.cfg.agent,
-            model: {
-              ...(typeof params.cfg.agent?.model === "object"
-                ? params.cfg.agent.model
-                : undefined),
-              primary: agentModelOverride,
+          agents: {
+            ...params.cfg.agents,
+            defaults: {
+              ...params.cfg.agents?.defaults,
+              model: {
+                ...(typeof params.cfg.agents?.defaults?.model === "object"
+                  ? params.cfg.agents.defaults.model
+                  : undefined),
+                primary: agentModelOverride,
+              },
             },
           },
         }

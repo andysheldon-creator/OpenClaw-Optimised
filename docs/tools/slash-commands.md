@@ -18,6 +18,7 @@ Directives (`/think`, `/verbose`, `/reasoning`, `/elevated`) are parsed even whe
   commands: {
     native: false,
     text: true,
+    restart: false,
     useAccessGroups: true
   }
 }
@@ -35,6 +36,7 @@ Directives (`/think`, `/verbose`, `/reasoning`, `/elevated`) are parsed even whe
 Text + native (when enabled):
 - `/help`
 - `/status`
+- `/cost on|off` (toggle per-response usage line)
 - `/stop`
 - `/restart`
 - `/activation mention|always` (groups only)
@@ -44,7 +46,7 @@ Text + native (when enabled):
 - `/verbose on|off` (alias: `/v`)
 - `/reasoning on|off|stream` (alias: `/reason`; `stream` = Telegram draft only)
 - `/elevated on|off` (alias: `/elev`)
-- `/model <name>` (or `/<alias>` from `agent.models.*.alias`)
+- `/model <name>` (or `/<alias>` from `agents.defaults.models.*.alias`)
 - `/queue <mode>` (plus options like `debounce:2s cap:25 drop:summarize`; send `/queue` to see current settings)
 
 Text-only:
@@ -52,6 +54,10 @@ Text-only:
 
 Notes:
 - Commands accept an optional `:` between the command and args (e.g. `/think: high`, `/send: on`, `/help:`).
+- `/cost` appends per-response token usage; it only shows dollar cost when the model uses an API key (OAuth hides cost).
+- `/restart` is disabled by default; set `commands.restart: true` to enable it.
+- `/verbose` is meant for debugging and extra visibility; keep it **off** in normal use.
+- `/reasoning` (and `/verbose`) are risky in group settings: they may reveal internal reasoning or tool output you did not intend to expose. Prefer leaving them off, especially in group chats.
 
 ## Surface notes
 

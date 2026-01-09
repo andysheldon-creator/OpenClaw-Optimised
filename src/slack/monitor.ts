@@ -4,6 +4,7 @@ import {
   type SlackEventMiddlewareArgs,
 } from "@slack/bolt";
 import type { WebClient as SlackWebClient } from "@slack/web-api";
+import { resolveAckReaction } from "../agents/identity.js";
 import {
   chunkMarkdownText,
   resolveTextChunkLimit,
@@ -509,7 +510,6 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     opts.slashCommand ?? slackCfg.slashCommand,
   );
   const textLimit = resolveTextChunkLimit(cfg, "slack", account.accountId);
-  const ackReaction = (cfg.messages?.ackReaction ?? "").trim();
   const ackReactionScope = cfg.messages?.ackReactionScope ?? "group-mentions";
   const mediaMaxBytes =
     (opts.mediaMaxMb ?? slackCfg.mediaMaxMb ?? 20) * 1024 * 1024;
@@ -913,6 +913,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       !hasAnyMention &&
       commandAuthorized &&
       hasControlCommand(message.text ?? "");
+    const effectiveWasMentioned = wasMentioned || shouldBypassMention;
     const canDetectMention = Boolean(botUserId) || mentionRegexes.length > 0;
     if (
       isRoom &&
@@ -935,6 +936,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     });
     const rawBody = (message.text ?? "").trim() || media?.placeholder || "";
     if (!rawBody) return;
+    const ackReaction = resolveAckReaction(cfg, route.agentId);
     const shouldAckReaction = () => {
       if (!ackReaction) return false;
       if (ackReactionScope === "all") return true;
@@ -1058,7 +1060,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       ThreadStarterBody: threadStarterBody,
       ThreadLabel: threadLabel,
       Timestamp: message.ts ? Math.round(Number(message.ts) * 1000) : undefined,
-      WasMentioned: isRoomish ? wasMentioned : undefined,
+      WasMentioned: isRoomish ? effectiveWasMentioned : undefined,
       MediaPath: media?.path,
       MediaType: media?.contentType,
       MediaUrl: media?.path,

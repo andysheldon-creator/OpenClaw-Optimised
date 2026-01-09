@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { lookupContextTokens } from "../agents/context.js";
 import {
   DEFAULT_CONTEXT_TOKENS,
@@ -51,6 +52,8 @@ export type GatewaySessionRow = {
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
+  responseUsage?: "on" | "off";
+  modelProvider?: string;
   model?: string;
   contextTokens?: number;
   lastProvider?: SessionEntry["lastProvider"];
@@ -229,11 +232,11 @@ function listExistingAgentIdsFromDisk(): string[] {
 
 function listConfiguredAgentIds(cfg: ClawdbotConfig): string[] {
   const ids = new Set<string>();
-  const defaultId = normalizeAgentId(cfg.routing?.defaultAgentId);
+  const defaultId = normalizeAgentId(resolveDefaultAgentId(cfg));
   ids.add(defaultId);
-  const agents = cfg.routing?.agents;
-  if (agents && typeof agents === "object") {
-    for (const id of Object.keys(agents)) ids.add(normalizeAgentId(id));
+  const agents = cfg.agents?.list ?? [];
+  for (const entry of agents) {
+    if (entry?.id) ids.add(normalizeAgentId(entry.id));
   }
   for (const id of listExistingAgentIdsFromDisk()) ids.add(id);
   const sorted = Array.from(ids).filter(Boolean);
@@ -250,22 +253,19 @@ export function listAgentsForGateway(cfg: ClawdbotConfig): {
   scope: SessionScope;
   agents: GatewayAgentRow[];
 } {
-  const defaultId = normalizeAgentId(cfg.routing?.defaultAgentId);
+  const defaultId = normalizeAgentId(resolveDefaultAgentId(cfg));
   const mainKey =
     (cfg.session?.mainKey ?? DEFAULT_MAIN_KEY).trim() || DEFAULT_MAIN_KEY;
   const scope = cfg.session?.scope ?? "per-sender";
-  const configured = cfg.routing?.agents;
   const configuredById = new Map<string, { name?: string }>();
-  if (configured && typeof configured === "object") {
-    for (const [key, value] of Object.entries(configured)) {
-      if (!value || typeof value !== "object") continue;
-      configuredById.set(normalizeAgentId(key), {
-        name:
-          typeof value.name === "string" && value.name.trim()
-            ? value.name.trim()
-            : undefined,
-      });
-    }
+  for (const entry of cfg.agents?.list ?? []) {
+    if (!entry?.id) continue;
+    configuredById.set(normalizeAgentId(entry.id), {
+      name:
+        typeof entry.name === "string" && entry.name.trim()
+          ? entry.name.trim()
+          : undefined,
+    });
   }
   const agents = listConfiguredAgentIds(cfg).map((id) => {
     const meta = configuredById.get(id);
@@ -348,7 +348,7 @@ export function loadCombinedSessionStoreForGateway(cfg: ClawdbotConfig): {
   const storeConfig = cfg.session?.store;
   if (storeConfig && !isStorePathTemplate(storeConfig)) {
     const storePath = resolveStorePath(storeConfig);
-    const defaultAgentId = normalizeAgentId(cfg.routing?.defaultAgentId);
+    const defaultAgentId = normalizeAgentId(resolveDefaultAgentId(cfg));
     const store = loadSessionStore(storePath);
     const combined: Record<string, SessionEntry> = {};
     for (const [key, entry] of Object.entries(store)) {
@@ -394,7 +394,7 @@ export function getSessionDefaults(
     defaultModel: DEFAULT_MODEL,
   });
   const contextTokens =
-    cfg.agent?.contextTokens ??
+    cfg.agents?.defaults?.contextTokens ??
     lookupContextTokens(resolved.model) ??
     DEFAULT_CONTEXT_TOKENS;
   return {
@@ -503,6 +503,8 @@ export function listSessionsFromStore(params: {
         inputTokens: entry?.inputTokens,
         outputTokens: entry?.outputTokens,
         totalTokens: total,
+        responseUsage: entry?.responseUsage,
+        modelProvider: entry?.modelProvider,
         model: entry?.model,
         contextTokens: entry?.contextTokens,
         lastProvider: entry?.lastProvider,

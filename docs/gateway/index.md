@@ -68,7 +68,7 @@ Defaults (can be overridden via env/flags/config):
 - `bridge.port=19002` (derived: `gateway.port+1`)
 - `browser.controlUrl=http://127.0.0.1:19003` (derived: `gateway.port+2`)
 - `canvasHost.port=19005` (derived: `gateway.port+4`)
-- `agent.workspace` default becomes `~/clawd-dev` when you run `setup`/`onboard` under `--dev`.
+- `agents.defaults.workspace` default becomes `~/clawd-dev` when you run `setup`/`onboard` under `--dev`.
 
 Derived ports (rules of thumb):
 - Base port = `gateway.port` (or `CLAWDBOT_GATEWAY_PORT` / `--port`)
@@ -81,7 +81,7 @@ Checklist per instance:
 - unique `gateway.port`
 - unique `CLAWDBOT_CONFIG_PATH`
 - unique `CLAWDBOT_STATE_DIR`
-- unique `agent.workspace`
+- unique `agents.defaults.workspace`
 - separate WhatsApp numbers (if using WA)
 
 Example:
@@ -254,7 +254,7 @@ Windows installs should use **WSL2** and follow the Linux systemd section above.
 
 ## CLI helpers
 - `clawdbot gateway health|status` — request health/status over the Gateway WS.
-- `clawdbot send --to <num> --message "hi" [--media ...]` — send via Gateway (idempotent for WhatsApp).
+- `clawdbot message send --to <num> --message "hi" [--media ...]` — send via Gateway (idempotent for WhatsApp).
 - `clawdbot agent --message "hi" --to <num>` — run an agent turn (waits for final by default).
 - `clawdbot gateway call <method> --params '{"k":"v"}'` — raw method invoker for debugging.
 - `clawdbot daemon stop|restart` — stop/restart the supervised gateway service (launchd/systemd).

@@ -40,7 +40,11 @@ import { getAbortMemory } from "./reply/abort.js";
 import { runReplyAgent } from "./reply/agent-runner.js";
 import { resolveBlockStreamingChunking } from "./reply/block-streaming.js";
 import { applySessionHints } from "./reply/body.js";
-import { buildCommandContext, handleCommands } from "./reply/commands.js";
+import {
+  buildCommandContext,
+  buildStatusReply,
+  handleCommands,
+} from "./reply/commands.js";
 import {
   handleDirectiveOnly,
   type InlineDirectives,
@@ -208,7 +212,7 @@ export async function getReplyFromConfig(
 ): Promise<ReplyPayload | ReplyPayload[] | undefined> {
   const cfg = configOverride ?? loadConfig();
   const agentId = resolveAgentIdFromSessionKey(ctx.SessionKey);
-  const agentCfg = cfg.agent;
+  const agentCfg = cfg.agents?.defaults;
   const sessionCfg = cfg.session;
   const { defaultProvider, defaultModel, aliasIndex } = resolveDefaultModel({
     cfg,
@@ -235,7 +239,7 @@ export async function getReplyFromConfig(
     resolveAgentWorkspaceDir(cfg, agentId) ?? DEFAULT_AGENT_WORKSPACE_DIR;
   const workspace = await ensureAgentWorkspace({
     dir: workspaceDirRaw,
-    ensureBootstrapFiles: !cfg.agent?.skipBootstrap,
+    ensureBootstrapFiles: !agentCfg?.skipBootstrap,
   });
   const workspaceDir = workspace.dir;
   const agentDir = resolveAgentDir(cfg, agentId);
@@ -253,7 +257,7 @@ export async function getReplyFromConfig(
   opts?.onTypingController?.(typing);
 
   let transcribedText: string | undefined;
-  if (cfg.routing?.transcribeAudio && isAudio(ctx.MediaType)) {
+  if (cfg.audio?.transcription && isAudio(ctx.MediaType)) {
     const transcribed = await transcribeInboundAudio(cfg, ctx, defaultRuntime);
     if (transcribed?.text) {
       transcribedText = transcribed.text;
@@ -325,15 +329,27 @@ export async function getReplyFromConfig(
       cmd.textAliases.map((a) => a.replace(/^\//, "").toLowerCase()),
     ),
   );
-  const configuredAliases = Object.values(cfg.agent?.models ?? {})
+  const configuredAliases = Object.values(cfg.agents?.defaults?.models ?? {})
     .map((entry) => entry.alias?.trim())
     .filter((alias): alias is string => Boolean(alias))
     .filter((alias) => !reservedCommands.has(alias.toLowerCase()));
-  const disableElevatedInGroup = isGroup && ctx.WasMentioned !== true;
   let parsedDirectives = parseInlineDirectives(rawBody, {
     modelAliases: configuredAliases,
-    disableElevated: disableElevatedInGroup,
   });
+  if (
+    isGroup &&
+    ctx.WasMentioned !== true &&
+    parsedDirectives.hasElevatedDirective
+  ) {
+    if (parsedDirectives.elevatedLevel !== "off") {
+      parsedDirectives = {
+        ...parsedDirectives,
+        hasElevatedDirective: false,
+        elevatedLevel: undefined,
+        rawElevatedLevel: undefined,
+      };
+    }
+  }
   const hasDirective =
     parsedDirectives.hasThinkDirective ||
     parsedDirectives.hasVerboseDirective ||
@@ -348,7 +364,12 @@ export async function getReplyFromConfig(
       ? stripMentions(stripped, ctx, cfg, agentId)
       : stripped;
     if (noMentions.trim().length > 0) {
-      parsedDirectives = clearInlineDirectives(parsedDirectives.cleaned);
+      const directiveOnlyCheck = parseInlineDirectives(noMentions, {
+        modelAliases: configuredAliases,
+      });
+      if (directiveOnlyCheck.cleaned.trim().length > 0) {
+        parsedDirectives = clearInlineDirectives(parsedDirectives.cleaned);
+      }
     }
   }
   const directives = commandAuthorized
@@ -370,7 +391,7 @@ export async function getReplyFromConfig(
     sessionCtx.Provider?.trim().toLowerCase() ??
     ctx.Provider?.trim().toLowerCase() ??
     "";
-  const elevatedConfig = agentCfg?.elevated;
+  const elevatedConfig = cfg.tools?.elevated;
   const discordElevatedFallback =
     messageProviderKey === "discord" ? cfg.discord?.dm?.allowFrom : undefined;
   const elevatedEnabled = elevatedConfig?.enabled !== false;
@@ -465,6 +486,21 @@ export async function getReplyFromConfig(
     ? undefined
     : directives.rawModelDirective;
 
+  const command = buildCommandContext({
+    ctx,
+    cfg,
+    agentId,
+    sessionKey,
+    isGroup,
+    triggerBodyNormalized,
+    commandAuthorized,
+  });
+  const allowTextCommands = shouldHandleTextCommands({
+    cfg,
+    surface: command.surface,
+    commandSource: ctx.CommandSource,
+  });
+
   if (
     isDirectiveOnly({
       directives,
@@ -510,8 +546,36 @@ export async function getReplyFromConfig(
       currentReasoningLevel,
       currentElevatedLevel,
     });
+    let statusReply: ReplyPayload | undefined;
+    if (directives.hasStatusDirective && allowTextCommands) {
+      statusReply = await buildStatusReply({
+        cfg,
+        command,
+        sessionEntry,
+        sessionKey,
+        sessionScope,
+        provider,
+        model,
+        contextTokens,
+        resolvedThinkLevel:
+          currentThinkLevel ??
+          (agentCfg?.thinkingDefault as ThinkLevel | undefined),
+        resolvedVerboseLevel: (currentVerboseLevel ?? "off") as VerboseLevel,
+        resolvedReasoningLevel: (currentReasoningLevel ??
+          "off") as ReasoningLevel,
+        resolvedElevatedLevel: currentElevatedLevel,
+        resolveDefaultThinkingLevel: async () =>
+          currentThinkLevel ??
+          (agentCfg?.thinkingDefault as ThinkLevel | undefined),
+        isGroup,
+        defaultGroupActivation: () => defaultActivation,
+      });
+    }
     typing.cleanup();
-    return directiveReply;
+    if (statusReply?.text && directiveReply?.text) {
+      return { text: `${directiveReply.text}\n${statusReply.text}` };
+    }
+    return statusReply ?? directiveReply;
   }
 
   const persisted = await persistInlineDirectives({
@@ -551,20 +615,6 @@ export async function getReplyFromConfig(
         }
       : undefined;
 
-  const command = buildCommandContext({
-    ctx,
-    cfg,
-    agentId,
-    sessionKey,
-    isGroup,
-    triggerBodyNormalized,
-    commandAuthorized,
-  });
-  const allowTextCommands = shouldHandleTextCommands({
-    cfg,
-    surface: command.surface,
-    commandSource: ctx.CommandSource,
-  });
   const isEmptyConfig = Object.keys(cfg).length === 0;
   if (
     command.isWhatsAppProvider &&

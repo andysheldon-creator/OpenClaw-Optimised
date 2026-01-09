@@ -1,5 +1,13 @@
 import path from "node:path";
-import { intro, note, outro } from "@clack/prompts";
+import {
+  intro as clackIntro,
+  note as clackNote,
+  outro as clackOutro,
+} from "@clack/prompts";
+import {
+  resolveAgentWorkspaceDir,
+  resolveDefaultAgentId,
+} from "../agents/agent-scope.js";
 import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
 import type { ClawdbotConfig } from "../config/config.js";
 import {
@@ -20,7 +28,8 @@ import { formatPortDiagnostics, inspectPortUsage } from "../infra/ports.js";
 import { collectProvidersStatusIssues } from "../infra/providers-status-issues.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
-import { resolveUserPath, sleep } from "../utils.js";
+import { stylePromptTitle } from "../terminal/prompt-style.js";
+import { sleep } from "../utils.js";
 import {
   DEFAULT_GATEWAY_DAEMON_RUNTIME,
   GATEWAY_DAEMON_RUNTIME_OPTIONS,
@@ -64,12 +73,15 @@ import {
   shouldSuggestMemorySystem,
 } from "./doctor-workspace.js";
 import { healthCommand } from "./health.js";
-import {
-  applyWizardMetadata,
-  DEFAULT_WORKSPACE,
-  printWizardHeader,
-} from "./onboard-helpers.js";
+import { applyWizardMetadata, printWizardHeader } from "./onboard-helpers.js";
 import { ensureSystemdUserLingerInteractive } from "./systemd-linger.js";
+
+const intro = (message: string) =>
+  clackIntro(stylePromptTitle(message) ?? message);
+const outro = (message: string) =>
+  clackOutro(stylePromptTitle(message) ?? message);
+const note = (message: string, title?: string) =>
+  clackNote(message, stylePromptTitle(title));
 
 function resolveMode(cfg: ClawdbotConfig): "local" | "remote" {
   return cfg.gateway?.mode === "remote" ? "remote" : "local";
@@ -212,8 +224,9 @@ export async function doctorCommand(
     }
   }
 
-  const workspaceDir = resolveUserPath(
-    cfg.agent?.workspace ?? DEFAULT_WORKSPACE,
+  const workspaceDir = resolveAgentWorkspaceDir(
+    cfg,
+    resolveDefaultAgentId(cfg),
   );
   const legacyWorkspace = detectLegacyWorkspaceDirs({ workspaceDir });
   if (legacyWorkspace.legacyDirs.length > 0) {
@@ -403,8 +416,9 @@ export async function doctorCommand(
   runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
 
   if (options.workspaceSuggestions !== false) {
-    const workspaceDir = resolveUserPath(
-      cfg.agent?.workspace ?? DEFAULT_WORKSPACE,
+    const workspaceDir = resolveAgentWorkspaceDir(
+      cfg,
+      resolveDefaultAgentId(cfg),
     );
     noteWorkspaceBackupTip(workspaceDir);
     if (await shouldSuggestMemorySystem(workspaceDir)) {
