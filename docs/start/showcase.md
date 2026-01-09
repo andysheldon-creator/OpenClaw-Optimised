@@ -66,6 +66,28 @@ Real projects from the community. See what people are building with Clawdbot.
   Watches company Slack channel, responds helpfully, and forwards notifications to Telegram. Autonomously fixed a production bug in a deployed app without being asked.
 </Card>
 
+<Card title="SNAG (Screenshot-to-Markdown)" icon="clipboard" href="https://github.com/am-will/snag">
+  **@am-will** • `screenshot` `gemini` `cli` `multimodal`
+
+  Screenshot-to-text CLI: select a region of your screen and it sends it to Gemini 2.5 Flash, extracts everything, and puts Markdown directly into your clipboard (about 3-4s).
+
+  <img src="/assets/showcase/snag.png" alt="SNAG screenshot" />
+</Card>
+
+<Card title="Agents UI (ReleaseFlow)" icon="window-maximize" href="https://releaseflow.net/kitze/agents-ui">
+  **@kitze** • `ui` `agents` `cli` `developer-tools`
+
+  A lightweight UI for working with agents, including an installable CLI from within the app.
+
+  <img src="/assets/showcase/agents-ui.png" alt="Agents UI screenshot" />
+</Card>
+
+<Card title="Daily Pulse Digest" icon="rss">
+  **@pocarles** • `digest` `news` `planning` `automation`
+
+  Built a custom morning “Pulse” that sends a 5AM daily update: per-topic summaries of the last 24h, links to the highest-authority source, follow-ups on yesterday’s tasks, and a look ahead at the day.
+</Card>
+
 </CardGroup>
 
 ## 🧠 Knowledge & Memory
