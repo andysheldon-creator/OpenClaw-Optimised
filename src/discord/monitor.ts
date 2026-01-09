@@ -503,6 +503,16 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
   const stopGatewayLogging = attachDiscordGatewayLogging({
     emitter: gatewayEmitter,
     runtime,
+    // Pass gateway handle for zombie connection detection (no HELLO timeout)
+    gateway: gateway
+      ? {
+          get isConnected() {
+            return gateway.isConnected;
+          },
+          disconnect: () => gateway.disconnect(),
+          connect: (resume) => gateway.connect(resume),
+        }
+      : undefined,
   });
   try {
     await waitForDiscordGatewayStop({

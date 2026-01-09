@@ -5,6 +5,22 @@ import type { RuntimeEnv } from "../runtime.js";
 
 type GatewayEmitter = Pick<EventEmitter, "on" | "removeListener">;
 
+/**
+ * Gateway handle for zombie connection detection.
+ * Allows the logging module to check connection state and force reconnection.
+ */
+type GatewayHandle = {
+  /** True once HELLO is received and session is established */
+  isConnected: boolean;
+  /** Disconnect from the gateway */
+  disconnect: () => void;
+  /** Connect to the gateway (resume=false for fresh connection) */
+  connect: (resume: boolean) => void;
+};
+
+/** Timeout (ms) to receive HELLO after WebSocket opens before forcing reconnect */
+const HELLO_TIMEOUT_MS = 30_000;
+
 const INFO_DEBUG_MARKERS = [
   "WebSocket connection closed",
   "Reconnecting with backoff",
@@ -34,15 +50,35 @@ const formatGatewayMetrics = (metrics: unknown) => {
 export function attachDiscordGatewayLogging(params: {
   emitter?: GatewayEmitter;
   runtime: RuntimeEnv;
+  /** Optional gateway handle for zombie connection detection */
+  gateway?: GatewayHandle;
 }) {
-  const { emitter, runtime } = params;
+  const { emitter, runtime, gateway } = params;
   if (!emitter) return () => {};
+
+  // Timeout ID for detecting zombie connections (WebSocket open but no HELLO)
+  let helloTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
   const onGatewayDebug = (msg: unknown) => {
     const message = String(msg);
     logVerbose(`discord gateway: ${message}`);
     if (shouldPromoteGatewayDebug(message)) {
       runtime.log?.(`discord gateway: ${message}`);
+    }
+
+    // Zombie connection detection: start timeout when WebSocket opens
+    if (gateway && message.includes("WebSocket connection opened")) {
+      if (helloTimeoutId) clearTimeout(helloTimeoutId);
+      helloTimeoutId = setTimeout(() => {
+        if (!gateway.isConnected) {
+          runtime.error?.(
+            `discord gateway: connection stalled - no HELLO received within ${HELLO_TIMEOUT_MS}ms, forcing reconnect`,
+          );
+          gateway.disconnect();
+          gateway.connect(false);
+        }
+        helloTimeoutId = undefined;
+      }, HELLO_TIMEOUT_MS);
     }
   };
 
@@ -59,6 +95,7 @@ export function attachDiscordGatewayLogging(params: {
   emitter.on("metrics", onGatewayMetrics);
 
   return () => {
+    if (helloTimeoutId) clearTimeout(helloTimeoutId);
     emitter.removeListener("debug", onGatewayDebug);
     emitter.removeListener("warning", onGatewayWarning);
     emitter.removeListener("metrics", onGatewayMetrics);
