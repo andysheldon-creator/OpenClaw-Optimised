@@ -14,6 +14,7 @@ import {
   type MessagePollResult,
   type MessageSendResult,
 } from "../infra/outbound/message.js";
+import type { OutboundSendDeps } from "../infra/outbound/deliver.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { normalizeMessageProvider } from "../utils/message-provider.js";
 
@@ -125,6 +126,17 @@ function logSendResult(
   }
 }
 
+function toOutboundSendDeps(deps: CliDeps): OutboundSendDeps {
+  return {
+    sendWhatsApp: deps.sendMessageWhatsApp,
+    sendTelegram: deps.sendMessageTelegram,
+    sendDiscord: deps.sendMessageDiscord,
+    sendSlack: deps.sendMessageSlack,
+    sendSignal: deps.sendMessageSignal,
+    sendIMessage: deps.sendMessageIMessage,
+  };
+}
+
 export async function messageSendCommand(
   opts: MessageSendOpts,
   deps: CliDeps,
@@ -152,7 +164,7 @@ export async function messageSendCommand(
         gifPlayback: opts.gifPlayback,
         accountId: opts.account,
         dryRun: opts.dryRun,
-        deps,
+        deps: toOutboundSendDeps(deps),
         gateway: { clientName: "cli", mode: "cli" },
       }),
   );

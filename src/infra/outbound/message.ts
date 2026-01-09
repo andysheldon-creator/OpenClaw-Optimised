@@ -36,14 +36,23 @@ type MessageSendParams = {
   idempotencyKey?: string;
 };
 
-export type MessageSendResult = {
-  provider: string;
-  to: string;
-  via: "direct" | "gateway";
-  mediaUrl: string | null;
-  result?: OutboundDeliveryResult | { messageId: string };
-  dryRun?: boolean;
-};
+export type MessageSendResult =
+  | {
+      provider: string;
+      to: string;
+      via: "direct";
+      mediaUrl: string | null;
+      result?: OutboundDeliveryResult;
+      dryRun?: boolean;
+    }
+  | {
+      provider: string;
+      to: string;
+      via: "gateway";
+      mediaUrl: string | null;
+      result?: { messageId: string };
+      dryRun?: boolean;
+    };
 
 type MessagePollParams = {
   to: string;
