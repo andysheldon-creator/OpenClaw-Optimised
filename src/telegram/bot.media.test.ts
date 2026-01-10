@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const useSpy = vi.fn();
 const middlewareUseSpy = vi.fn();
@@ -235,6 +235,11 @@ describe("telegram inbound media", () => {
 });
 
 describe("telegram media groups", () => {
+  beforeEach(() => {
+    // These tests rely on real setTimeout aggregation; guard against leaked fake timers.
+    vi.useRealTimers();
+  });
+
   const MEDIA_GROUP_POLL_TIMEOUT_MS =
     process.platform === "win32" ? 30_000 : 15_000;
   const MEDIA_GROUP_TEST_TIMEOUT_MS =
@@ -315,7 +320,8 @@ describe("telegram media groups", () => {
         getFile: async () => ({ file_path: "photos/photo2.jpg" }),
       });
 
-      await Promise.all([first, second]);
+      await first;
+      await second;
 
       expect(replySpy).not.toHaveBeenCalled();
       await waitForMediaGroupProcessing(replySpy, 1);

@@ -1,6 +1,6 @@
 {
   "name": "clawdbot",
-  "version": "2026.1.9",
+  "version": "2026.1.10",
   "description": "WhatsApp gateway CLI (Baileys web) with Pi RPC agent",
   "type": "module",
   "main": "dist/index.js",
@@ -25,6 +25,7 @@
     "dist/infra/**",
     "dist/macos/**",
     "dist/media/**",
+    "dist/msteams/**",
     "dist/process/**",
     "dist/sessions/**",
     "dist/providers/**",
@@ -48,7 +49,8 @@
     "dist/utils/**",
     "dist/logging/**",
     "dist/markdown/**",
-    "dist/pairing/**"
+    "dist/pairing/**",
+    "dist/whatsapp/**"
   ],
   "scripts": {
     "dev": "tsx src/entry.ts",
