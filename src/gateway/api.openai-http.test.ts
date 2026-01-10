@@ -91,7 +91,9 @@ function makeRes() {
 }
 
 describe("/v1/chat/completions HTTP API", () => {
-  it("requires auth token when configured", async () => {
+  // === AUTH TESTS ===
+
+  it("rejects requests without token when auth.mode=token (non-loopback)", async () => {
     const req = makeReq({
       url: "/v1/chat/completions",
       payload: {
@@ -113,9 +115,63 @@ describe("/v1/chat/completions HTTP API", () => {
     });
     expect(handled).toBe(true);
     expect(state.statusCode).toBe(401);
+    expect(state.body).toContain("Unauthorized");
   });
 
-  it("supports SSE when stream=true", async () => {
+  it("accepts requests with valid bearer token", async () => {
+    const req = makeReq({
+      url: "/v1/chat/completions",
+      payload: {
+        model: "clawdbot",
+        messages: [{ role: "user", content: "hi" }],
+      },
+      remoteAddress: "10.0.0.5",
+      headers: {
+        host: "example.com",
+        authorization: "Bearer secret",
+      },
+    });
+    const { res, state } = makeRes();
+
+    const handled = await handleApiRequest(req, res, {
+      auth: {
+        mode: "token",
+        token: "secret",
+        password: undefined,
+        allowTailscale: false,
+      },
+    });
+    expect(handled).toBe(true);
+    expect(state.statusCode).toBe(200);
+  });
+
+  it("allows loopback-direct requests without auth (127.0.0.1 + localhost host)", async () => {
+    const req = makeReq({
+      url: "/v1/chat/completions",
+      payload: {
+        model: "clawdbot",
+        messages: [{ role: "user", content: "hi" }],
+      },
+      remoteAddress: "127.0.0.1",
+      headers: { host: "localhost:18789" },
+    });
+    const { res, state } = makeRes();
+
+    const handled = await handleApiRequest(req, res, {
+      auth: {
+        mode: "token",
+        token: "secret",
+        password: undefined,
+        allowTailscale: false,
+      },
+    });
+    expect(handled).toBe(true);
+    expect(state.statusCode).toBe(200);
+  });
+
+  // === SSE STREAMING TESTS ===
+
+  it("SSE response has text/event-stream header when stream=true", async () => {
     const req = makeReq({
       url: "/v1/chat/completions",
       payload: {
@@ -138,7 +194,64 @@ describe("/v1/chat/completions HTTP API", () => {
     });
     expect(handled).toBe(true);
     expect(state.headers["content-type"]).toContain("text/event-stream");
+  });
+
+  it("SSE body contains data: chunks and ends with [DONE]", async () => {
+    const req = makeReq({
+      url: "/v1/chat/completions",
+      payload: {
+        stream: true,
+        model: "clawdbot",
+        messages: [{ role: "user", content: "hi" }],
+      },
+      remoteAddress: "127.0.0.1",
+      headers: { host: "localhost:18789" },
+    });
+    const { res, state } = makeRes();
+
+    await handleApiRequest(req, res, {
+      auth: {
+        mode: "none",
+        token: undefined,
+        password: undefined,
+        allowTailscale: false,
+      },
+    });
     expect(state.body).toContain("data:");
     expect(state.body).toContain("[DONE]");
+  });
+
+  // === NON-STREAMING JSON TESTS ===
+
+  it("returns OpenAI-compatible JSON with choices[0].message.content when stream=false", async () => {
+    const req = makeReq({
+      url: "/v1/chat/completions",
+      payload: {
+        stream: false,
+        model: "clawdbot",
+        messages: [{ role: "user", content: "hi" }],
+      },
+      remoteAddress: "127.0.0.1",
+      headers: { host: "localhost:18789" },
+    });
+    const { res, state } = makeRes();
+
+    await handleApiRequest(req, res, {
+      auth: {
+        mode: "none",
+        token: undefined,
+        password: undefined,
+        allowTailscale: false,
+      },
+    });
+    expect(state.statusCode).toBe(200);
+    expect(state.headers["content-type"]).toContain("application/json");
+
+    const body = JSON.parse(state.body);
+    expect(body.object).toBe("chat.completion");
+    expect(body.choices).toHaveLength(1);
+    expect(body.choices[0].message.role).toBe("assistant");
+    expect(typeof body.choices[0].message.content).toBe("string");
+    expect(body.choices[0].finish_reason).toBe("stop");
   });
 });
