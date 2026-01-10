@@ -11,8 +11,10 @@
 - CLI: add `clawdbot update` (safe-ish git checkout update) + `--update` shorthand. (#673) — thanks @fm1randa.
 
 ### Fixes
+- Agents/System: clarify sandboxed runtime in system prompt and surface elevated availability when sandboxed.
 - Auto-reply: prefer `RawBody` for command/directive parsing (WhatsApp + Discord) and prevent fallback runs from clobbering concurrent session updates. (#643) — thanks @mcinteerj.
 - WhatsApp: fix group reactions by preserving message IDs and sender JIDs in history; normalize participant phone numbers to JIDs in outbound reactions. (#640) — thanks @mcinteerj.
+- WhatsApp: expose group participant IDs to the model so reactions can target the right sender.
 - Cron: `wakeMode: "now"` waits for heartbeat completion (and retries when the main lane is busy). (#666) — thanks @roshanasingh4.
 - Agents/OpenAI: fix Responses tool-only → follow-up turn handling (avoid standalone `reasoning` items that trigger 400 “required following item”).
 - Sandbox: add `clawdbot sandbox explain` (effective policy inspector + fix-it keys); improve “sandbox jail” tool-policy/elevated errors with actionable config key paths; link to docs.
@@ -25,10 +27,12 @@
 - Gateway/Control UI: make `chat.send` non-blocking, wire Stop to `chat.abort`, and treat `/stop` as an out-of-band abort. (#653)
 - Gateway/Control UI: allow `chat.abort` without `runId` (abort active runs), suppress post-abort chat streaming, and prune stuck chat runs. (#653)
 - Gateway/Control UI: sniff image attachments for chat.send, drop non-images, and log mismatches. (#670) — thanks @cristip73.
+- Gateway/Agent: accept image attachments on `agent` (multimodal message) and add live gateway image probe (`CLAWDBOT_LIVE_GATEWAY_IMAGE_PROBE=1`).
 - CLI: `clawdbot sessions` now includes `elev:*` + `usage:*` flags in the table output.
 - CLI/Pairing: accept positional provider for `pairing list|approve` (npm-run compatible); update docs/bot hints.
 - Branding: normalize user-facing “ClawdBot”/“CLAWDBOT” → “Clawdbot” (CLI, status, docs).
 - Auto-reply: fix native `/model` not updating the actual chat session (Telegram/Slack/Discord). (#646)
+- Doctor: offer to run `clawdbot update` first on git installs (keeps doctor output aligned with latest).
 - Doctor: avoid false legacy workspace warning when install dir is `~/clawdbot`. (#660)
 - iMessage: fix reasoning persistence across DMs; avoid partial/duplicate replies when reasoning is enabled. (#655) — thanks @antons.
 - Models/Auth: allow MiniMax API configs without `models.providers.minimax.apiKey` (auth profiles / `MINIMAX_API_KEY`). (#656) — thanks @mneves75.

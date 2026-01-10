@@ -142,7 +142,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       );
       defaultRuntime.log(
         theme.muted(
-          "Examples: `npm i -g clawdbot@latest` or `pnpm add -g clawdbot@latest`",
+          "Examples: `npm i -g clawdbot@latest`, `pnpm add -g clawdbot@latest`, or `bun add -g clawdbot@latest`",
         ),
       );
     }
@@ -161,7 +161,12 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       if (!opts.json) {
         defaultRuntime.log(theme.success("Daemon restarted successfully."));
         defaultRuntime.log("");
-        await doctorCommand(defaultRuntime, { nonInteractive: true });
+        process.env.CLAWDBOT_UPDATE_IN_PROGRESS = "1";
+        try {
+          await doctorCommand(defaultRuntime, { nonInteractive: true });
+        } finally {
+          delete process.env.CLAWDBOT_UPDATE_IN_PROGRESS;
+        }
       }
     } catch (err) {
       if (!opts.json) {
@@ -209,7 +214,7 @@ Examples:
 
 Notes:
   - For git installs: fetches, rebases, installs deps, builds, and runs doctor
-  - For npm installs: use npm/pnpm to reinstall (see docs/install/updating.md)
+  - For global installs: use npm/pnpm/bun to reinstall (see docs/install/updating.md)
   - Skips update if the working directory has uncommitted changes
 
 ${theme.muted("Docs:")} ${formatDocsLink("/updating", "docs.clawd.bot/updating")}`,
