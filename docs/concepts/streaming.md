@@ -32,9 +32,11 @@ Legend:
 - `provider send`: actual outbound messages (block replies).
 
 **Controls:**
-- `agents.defaults.blockStreamingDefault`: `"on"`/`"off"` (default on).
+- `agents.defaults.blockStreamingDefault`: `"on"`/`"off"` (default off).
+- Provider overrides: `*.blockStreaming` (and per-account variants) to force `"on"`/`"off"` per provider.
 - `agents.defaults.blockStreamingBreak`: `"text_end"` or `"message_end"`.
 - `agents.defaults.blockStreamingChunk`: `{ minChars, maxChars, breakPreference? }`.
+- `agents.defaults.blockStreamingCoalesce`: `{ minChars?, maxChars?, idleMs? }` (merge streamed blocks before send).
 - Provider hard cap: `*.textChunkLimit` (e.g., `whatsapp.textChunkLimit`).
 - Discord soft cap: `discord.maxLinesPerMessage` (default 17) splits tall replies to avoid UI clipping.
 
@@ -54,12 +56,41 @@ Block chunking is implemented by `EmbeddedBlockChunker`:
 
 `maxChars` is clamped to the provider `textChunkLimit`, so you can’t exceed per-provider caps.
 
+## Coalescing (merge streamed blocks)
+
+When block streaming is enabled, Clawdbot can **merge consecutive block chunks**
+before sending them out. This reduces “single-line spam” while still providing
+progressive output.
+
+- Coalescing waits for **idle gaps** (`idleMs`) before flushing.
+- Buffers are capped by `maxChars` and will flush if they exceed it.
+- `minChars` prevents tiny fragments from sending until enough text accumulates
+  (final flush always sends remaining text).
+- Joiner is derived from `blockStreamingChunk.breakPreference`
+  (`paragraph` → `\n\n`, `newline` → `\n`, `sentence` → space).
+- Provider overrides are available via `*.blockStreamingCoalesce` (including per-account configs).
+- Default coalesce `minChars` is bumped to 1500 for Signal/Slack/Discord unless overridden.
+
+## Human-like pacing between blocks
+
+When block streaming is enabled, you can add a **randomized pause** between
+block replies (after the first block). This makes multi-bubble responses feel
+more natural.
+
+- Config: `agents.defaults.humanDelay` (override per agent via `agents.list[].humanDelay`).
+- Modes: `off` (default), `natural` (800–2500ms), `custom` (`minMs`/`maxMs`).
+- Applies only to **block replies**, not final replies or tool summaries.
+
 ## “Stream chunks or everything”
 
 This maps to:
-- **Stream chunks:** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"` (emit as you go).
+- **Stream chunks:** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"` (emit as you go). Non-Telegram providers also need `*.blockStreaming: true`.
 - **Stream everything at end:** `blockStreamingBreak: "message_end"` (flush once, possibly multiple chunks if very long).
 - **No block streaming:** `blockStreamingDefault: "off"` (only final reply).
+
+**Provider note:** For non-Telegram providers, block streaming is **off unless**
+`*.blockStreaming` is explicitly set to `true`. Telegram can stream drafts
+(`telegram.streamMode`) without block replies.
 
 ## Telegram draft streaming (token-ish)
 
@@ -69,6 +100,8 @@ Telegram is the only provider with draft streaming:
   - `partial`: draft updates with the latest stream text.
   - `block`: draft updates in chunked blocks (same chunker rules).
   - `off`: no draft streaming.
+- Draft chunk config (only for `streamMode: "block"`): `telegram.draftChunk` (defaults: `minChars: 200`, `maxChars: 800`).
+- Draft streaming is separate from block streaming; block replies are off by default and only enabled by `*.blockStreaming: true` on non-Telegram providers.
 - Final reply is still a normal message.
 - `/reasoning stream` writes reasoning into the draft bubble (Telegram only).
 

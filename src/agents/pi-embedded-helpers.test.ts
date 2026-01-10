@@ -3,12 +3,17 @@ import type { AssistantMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
 import {
   buildBootstrapContextFiles,
+  classifyFailoverReason,
   formatAssistantErrorText,
+  isBillingErrorMessage,
+  isCloudCodeAssistFormatError,
   isContextOverflowError,
+  isFailoverErrorMessage,
   isMessagingToolDuplicate,
   normalizeTextForComparison,
   sanitizeGoogleTurnOrdering,
   sanitizeSessionMessagesImages,
+  sanitizeToolCallId,
   validateGeminiTurns,
 } from "./pi-embedded-helpers.js";
 import {
@@ -215,6 +220,86 @@ describe("isContextOverflowError", () => {
   });
 });
 
+describe("isBillingErrorMessage", () => {
+  it("matches credit / payment failures", () => {
+    const samples = [
+      "Your credit balance is too low to access the Anthropic API.",
+      "insufficient credits",
+      "Payment Required",
+      "HTTP 402 Payment Required",
+      "plans & billing",
+      "billing: please upgrade your plan",
+    ];
+    for (const sample of samples) {
+      expect(isBillingErrorMessage(sample)).toBe(true);
+    }
+  });
+
+  it("ignores unrelated errors", () => {
+    expect(isBillingErrorMessage("rate limit exceeded")).toBe(false);
+    expect(isBillingErrorMessage("invalid api key")).toBe(false);
+    expect(isBillingErrorMessage("context length exceeded")).toBe(false);
+  });
+});
+
+describe("isFailoverErrorMessage", () => {
+  it("matches auth/rate/billing/timeout", () => {
+    const samples = [
+      "invalid api key",
+      "429 rate limit exceeded",
+      "Your credit balance is too low",
+      "request timed out",
+      "invalid request format",
+    ];
+    for (const sample of samples) {
+      expect(isFailoverErrorMessage(sample)).toBe(true);
+    }
+  });
+});
+
+describe("classifyFailoverReason", () => {
+  it("returns a stable reason", () => {
+    expect(classifyFailoverReason("invalid api key")).toBe("auth");
+    expect(classifyFailoverReason("429 too many requests")).toBe("rate_limit");
+    expect(classifyFailoverReason("resource has been exhausted")).toBe(
+      "rate_limit",
+    );
+    expect(classifyFailoverReason("invalid request format")).toBe("format");
+    expect(classifyFailoverReason("credit balance too low")).toBe("billing");
+    expect(classifyFailoverReason("deadline exceeded")).toBe("timeout");
+    expect(classifyFailoverReason("string should match pattern")).toBe(
+      "format",
+    );
+    expect(classifyFailoverReason("bad request")).toBeNull();
+  });
+
+  it("classifies OpenAI usage limit errors as rate_limit", () => {
+    expect(
+      classifyFailoverReason(
+        "You have hit your ChatGPT usage limit (plus plan)",
+      ),
+    ).toBe("rate_limit");
+  });
+});
+
+describe("isCloudCodeAssistFormatError", () => {
+  it("matches format errors", () => {
+    const samples = [
+      "INVALID_REQUEST_ERROR: string should match pattern",
+      "messages.1.content.1.tool_use.id",
+      "tool_use.id should match pattern",
+      "invalid request format",
+    ];
+    for (const sample of samples) {
+      expect(isCloudCodeAssistFormatError(sample)).toBe(true);
+    }
+  });
+
+  it("ignores unrelated errors", () => {
+    expect(isCloudCodeAssistFormatError("rate limit exceeded")).toBe(false);
+  });
+});
+
 describe("formatAssistantErrorText", () => {
   const makeAssistantError = (errorMessage: string): AssistantMessage =>
     ({
@@ -225,6 +310,20 @@ describe("formatAssistantErrorText", () => {
   it("returns a friendly message for context overflow", () => {
     const msg = makeAssistantError("request_too_large");
     expect(formatAssistantErrorText(msg)).toContain("Context overflow");
+  });
+});
+
+describe("sanitizeToolCallId", () => {
+  it("keeps valid tool call IDs", () => {
+    expect(sanitizeToolCallId("call_abc-123")).toBe("call_abc-123");
+  });
+
+  it("replaces invalid characters with underscores", () => {
+    expect(sanitizeToolCallId("call_abc|item:456")).toBe("call_abc_item_456");
+  });
+
+  it("returns default for empty IDs", () => {
+    expect(sanitizeToolCallId("")).toBe("default_tool_id");
   });
 });
 
@@ -272,6 +371,39 @@ describe("sanitizeSessionMessagesImages", () => {
     expect((content as Array<{ type?: string }>)[0]?.type).toBe("toolCall");
   });
 
+  it("sanitizes tool ids for assistant blocks and tool results when enabled", async () => {
+    const input = [
+      {
+        role: "assistant",
+        content: [
+          { type: "toolUse", id: "call_abc|item:123", name: "test", input: {} },
+          {
+            type: "toolCall",
+            id: "call_abc|item:456",
+            name: "bash",
+            arguments: {},
+          },
+        ],
+      },
+      {
+        role: "toolResult",
+        toolUseId: "call_abc|item:123",
+        content: [{ type: "text", text: "ok" }],
+      },
+    ] satisfies AgentMessage[];
+
+    const out = await sanitizeSessionMessagesImages(input, "test", {
+      sanitizeToolCallIds: true,
+    });
+
+    const assistant = out[0] as { content?: Array<{ id?: string }> };
+    expect(assistant.content?.[0]?.id).toBe("call_abc_item_123");
+    expect(assistant.content?.[1]?.id).toBe("call_abc_item_456");
+
+    const toolResult = out[1] as { toolUseId?: string };
+    expect(toolResult.toolUseId).toBe("call_abc_item_123");
+  });
+
   it("filters whitespace-only assistant text blocks", async () => {
     const input = [
       {
@@ -304,12 +436,25 @@ describe("sanitizeSessionMessagesImages", () => {
     expect(out[0]?.role).toBe("user");
   });
 
+  it("drops empty assistant error messages", async () => {
+    const input = [
+      { role: "user", content: "hello" },
+      { role: "assistant", stopReason: "error", content: [] },
+      { role: "assistant", stopReason: "error" },
+    ] satisfies AgentMessage[];
+
+    const out = await sanitizeSessionMessagesImages(input, "test");
+
+    expect(out).toHaveLength(1);
+    expect(out[0]?.role).toBe("user");
+  });
+
   it("leaves non-assistant messages unchanged", async () => {
     const input = [
       { role: "user", content: "hello" },
       {
         role: "toolResult",
-        toolUseId: "tool-1",
+        toolCallId: "tool-1",
         content: [{ type: "text", text: "result" }],
       },
     ] satisfies AgentMessage[];
@@ -319,6 +464,131 @@ describe("sanitizeSessionMessagesImages", () => {
     expect(out).toHaveLength(2);
     expect(out[0]?.role).toBe("user");
     expect(out[1]?.role).toBe("toolResult");
+  });
+
+  it("keeps tool call + tool result IDs unchanged by default", async () => {
+    const input = [
+      {
+        role: "assistant",
+        content: [
+          {
+            type: "toolCall",
+            id: "call_123|fc_456",
+            name: "read",
+            arguments: { path: "package.json" },
+          },
+        ],
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call_123|fc_456",
+        toolName: "read",
+        content: [{ type: "text", text: "ok" }],
+        isError: false,
+      },
+    ] satisfies AgentMessage[];
+
+    const out = await sanitizeSessionMessagesImages(input, "test");
+
+    const assistant = out[0] as unknown as { role?: string; content?: unknown };
+    expect(assistant.role).toBe("assistant");
+    expect(Array.isArray(assistant.content)).toBe(true);
+    const toolCall = (
+      assistant.content as Array<{ type?: string; id?: string }>
+    ).find((b) => b.type === "toolCall");
+    expect(toolCall?.id).toBe("call_123|fc_456");
+
+    const toolResult = out[1] as unknown as {
+      role?: string;
+      toolCallId?: string;
+    };
+    expect(toolResult.role).toBe("toolResult");
+    expect(toolResult.toolCallId).toBe("call_123|fc_456");
+  });
+
+  it("sanitizes tool call + tool result IDs when enabled", async () => {
+    const input = [
+      {
+        role: "assistant",
+        content: [
+          {
+            type: "toolCall",
+            id: "call_123|fc_456",
+            name: "read",
+            arguments: { path: "package.json" },
+          },
+        ],
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call_123|fc_456",
+        toolName: "read",
+        content: [{ type: "text", text: "ok" }],
+        isError: false,
+      },
+    ] satisfies AgentMessage[];
+
+    const out = await sanitizeSessionMessagesImages(input, "test", {
+      sanitizeToolCallIds: true,
+    });
+
+    const assistant = out[0] as unknown as { role?: string; content?: unknown };
+    expect(assistant.role).toBe("assistant");
+    expect(Array.isArray(assistant.content)).toBe(true);
+    const toolCall = (
+      assistant.content as Array<{ type?: string; id?: string }>
+    ).find((b) => b.type === "toolCall");
+    expect(toolCall?.id).toBe("call_123_fc_456");
+
+    const toolResult = out[1] as unknown as {
+      role?: string;
+      toolCallId?: string;
+    };
+    expect(toolResult.role).toBe("toolResult");
+    expect(toolResult.toolCallId).toBe("call_123_fc_456");
+  });
+
+  it("drops assistant blocks after a tool call when enforceToolCallLast is enabled", async () => {
+    const input = [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "before" },
+          { type: "toolCall", id: "call_1", name: "read", arguments: {} },
+          { type: "thinking", thinking: "after", thinkingSignature: "sig" },
+          { type: "text", text: "after text" },
+        ],
+      },
+    ] satisfies AgentMessage[];
+
+    const out = await sanitizeSessionMessagesImages(input, "test", {
+      enforceToolCallLast: true,
+    });
+    const assistant = out[0] as { content?: Array<{ type?: string }> };
+    expect(assistant.content?.map((b) => b.type)).toEqual(["text", "toolCall"]);
+  });
+
+  it("keeps assistant blocks after a tool call when enforceToolCallLast is disabled", async () => {
+    const input = [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "before" },
+          { type: "toolCall", id: "call_1", name: "read", arguments: {} },
+          { type: "thinking", thinking: "after", thinkingSignature: "sig" },
+          { type: "text", text: "after text" },
+        ],
+      },
+    ] satisfies AgentMessage[];
+
+    const out = await sanitizeSessionMessagesImages(input, "test");
+    const assistant = out[0] as { content?: Array<{ type?: string }> };
+    expect(assistant.content?.map((b) => b.type)).toEqual([
+      "text",
+      "toolCall",
+      "thinking",
+      "text",
+    ]);
   });
 });
 

@@ -4,11 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const messageCommand = vi.fn();
 const statusCommand = vi.fn();
 const configureCommand = vi.fn();
+const configureCommandWithSections = vi.fn();
 const setupCommand = vi.fn();
 const onboardCommand = vi.fn();
 const callGateway = vi.fn();
 const runProviderLogin = vi.fn();
 const runProviderLogout = vi.fn();
+const runTui = vi.fn();
 
 const runtime = {
   log: vi.fn(),
@@ -22,13 +24,28 @@ vi.mock("../commands/message.js", () => ({
   messageCommand,
 }));
 vi.mock("../commands/status.js", () => ({ statusCommand }));
-vi.mock("../commands/configure.js", () => ({ configureCommand }));
+vi.mock("../commands/configure.js", () => ({
+  CONFIGURE_WIZARD_SECTIONS: [
+    "workspace",
+    "model",
+    "gateway",
+    "daemon",
+    "providers",
+    "skills",
+    "health",
+  ],
+  configureCommand,
+  configureCommandWithSections,
+}));
 vi.mock("../commands/setup.js", () => ({ setupCommand }));
 vi.mock("../commands/onboard.js", () => ({ onboardCommand }));
 vi.mock("../runtime.js", () => ({ defaultRuntime: runtime }));
 vi.mock("./provider-auth.js", () => ({
   runProviderLogin,
   runProviderLogout,
+}));
+vi.mock("../tui/tui.js", () => ({
+  runTui,
 }));
 vi.mock("../gateway/call.js", () => ({
   callGateway,
@@ -43,6 +60,7 @@ const { buildProgram } = await import("./program.js");
 describe("cli program", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    runTui.mockResolvedValue(undefined);
   });
 
   it("runs message with required options", async () => {
@@ -60,6 +78,37 @@ describe("cli program", () => {
     const program = buildProgram();
     await program.parseAsync(["status"], { from: "user" });
     expect(statusCommand).toHaveBeenCalled();
+  });
+
+  it("runs tui without overriding timeout", async () => {
+    const program = buildProgram();
+    await program.parseAsync(["tui"], { from: "user" });
+    expect(runTui).toHaveBeenCalledWith(
+      expect.objectContaining({ timeoutMs: undefined }),
+    );
+  });
+
+  it("runs tui with explicit timeout override", async () => {
+    const program = buildProgram();
+    await program.parseAsync(["tui", "--timeout-ms", "45000"], {
+      from: "user",
+    });
+    expect(runTui).toHaveBeenCalledWith(
+      expect.objectContaining({ timeoutMs: 45000 }),
+    );
+  });
+
+  it("warns and ignores invalid tui timeout override", async () => {
+    const program = buildProgram();
+    await program.parseAsync(["tui", "--timeout-ms", "nope"], {
+      from: "user",
+    });
+    expect(runtime.error).toHaveBeenCalledWith(
+      'warning: invalid --timeout-ms "nope"; ignoring',
+    );
+    expect(runTui).toHaveBeenCalledWith(
+      expect.objectContaining({ timeoutMs: undefined }),
+    );
   });
 
   it("runs config alias as configure", async () => {
@@ -82,6 +131,52 @@ describe("cli program", () => {
     });
     expect(onboardCommand).toHaveBeenCalled();
     expect(setupCommand).not.toHaveBeenCalled();
+  });
+
+  it("passes opencode-zen api key to onboard", async () => {
+    const program = buildProgram();
+    await program.parseAsync(
+      [
+        "onboard",
+        "--non-interactive",
+        "--auth-choice",
+        "opencode-zen",
+        "--opencode-zen-api-key",
+        "sk-opencode-zen-test",
+      ],
+      { from: "user" },
+    );
+    expect(onboardCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nonInteractive: true,
+        authChoice: "opencode-zen",
+        opencodeZenApiKey: "sk-opencode-zen-test",
+      }),
+      runtime,
+    );
+  });
+
+  it("passes zai api key to onboard", async () => {
+    const program = buildProgram();
+    await program.parseAsync(
+      [
+        "onboard",
+        "--non-interactive",
+        "--auth-choice",
+        "zai-api-key",
+        "--zai-api-key",
+        "sk-zai-test",
+      ],
+      { from: "user" },
+    );
+    expect(onboardCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nonInteractive: true,
+        authChoice: "zai-api-key",
+        zaiApiKey: "sk-zai-test",
+      }),
+      runtime,
+    );
   });
 
   it("runs providers login", async () => {

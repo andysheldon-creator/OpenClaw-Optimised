@@ -2,6 +2,8 @@ import fs from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { normalizeTestText } from "../../test/helpers/normalize-text.js";
+import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
 
 vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
@@ -51,31 +53,14 @@ const webMocks = vi.hoisted(() => ({
 vi.mock("../web/session.js", () => webMocks);
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  const base = await fs.mkdtemp(join(tmpdir(), "clawdbot-triggers-"));
-  const previousHome = process.env.HOME;
-  const previousUserProfile = process.env.USERPROFILE;
-  const previousHomeDrive = process.env.HOMEDRIVE;
-  const previousHomePath = process.env.HOMEPATH;
-  process.env.HOME = base;
-  if (process.platform === "win32") {
-    process.env.USERPROFILE = base;
-    const driveMatch = base.match(/^([A-Za-z]:)(.*)$/);
-    if (driveMatch) {
-      process.env.HOMEDRIVE = driveMatch[1];
-      process.env.HOMEPATH = driveMatch[2] || "\\";
-    }
-  }
-  try {
-    vi.mocked(runEmbeddedPiAgent).mockClear();
-    vi.mocked(abortEmbeddedPiRun).mockClear();
-    return await fn(base);
-  } finally {
-    process.env.HOME = previousHome;
-    process.env.USERPROFILE = previousUserProfile;
-    process.env.HOMEDRIVE = previousHomeDrive;
-    process.env.HOMEPATH = previousHomePath;
-    await fs.rm(base, { recursive: true, force: true });
-  }
+  return withTempHomeBase(
+    async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockClear();
+      vi.mocked(abortEmbeddedPiRun).mockClear();
+      return await fn(home);
+    },
+    { prefix: "clawdbot-triggers-" },
+  );
 }
 
 function makeCfg(home: string) {
@@ -115,7 +100,7 @@ describe("trigger handling", () => {
       );
 
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("📊 Usage: Claude 80% left");
+      expect(normalizeTestText(text ?? "")).toContain("Usage: Claude 80% left");
       expect(usageMocks.loadProviderUsageSummary).toHaveBeenCalledWith(
         expect.objectContaining({ providers: ["anthropic"] }),
       );
@@ -202,6 +187,83 @@ describe("trigger handling", () => {
     });
   });
 
+  it("applies native /model to the target session", async () => {
+    await withTempHome(async (home) => {
+      const cfg = makeCfg(home);
+      const slashSessionKey = "telegram:slash:111";
+      const targetSessionKey = MAIN_SESSION_KEY;
+
+      // Seed the target session to ensure the native command mutates it.
+      await fs.writeFile(
+        cfg.session.store,
+        JSON.stringify(
+          {
+            [targetSessionKey]: {
+              sessionId: "session-target",
+              updatedAt: Date.now(),
+            },
+          },
+          null,
+          2,
+        ),
+      );
+
+      const res = await getReplyFromConfig(
+        {
+          Body: "/model openai/gpt-4.1-mini",
+          From: "telegram:111",
+          To: "telegram:111",
+          ChatType: "direct",
+          Provider: "telegram",
+          Surface: "telegram",
+          SessionKey: slashSessionKey,
+          CommandSource: "native",
+          CommandTargetSessionKey: targetSessionKey,
+          CommandAuthorized: true,
+        },
+        {},
+        cfg,
+      );
+
+      const text = Array.isArray(res) ? res[0]?.text : res?.text;
+      expect(text).toContain("Model set to openai/gpt-4.1-mini");
+
+      const store = loadSessionStore(cfg.session.store);
+      expect(store[targetSessionKey]?.providerOverride).toBe("openai");
+      expect(store[targetSessionKey]?.modelOverride).toBe("gpt-4.1-mini");
+      expect(store[slashSessionKey]).toBeUndefined();
+
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "ok" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+
+      await getReplyFromConfig(
+        {
+          Body: "hi",
+          From: "telegram:111",
+          To: "telegram:111",
+          ChatType: "direct",
+          Provider: "telegram",
+          Surface: "telegram",
+        },
+        {},
+        cfg,
+      );
+
+      expect(runEmbeddedPiAgent).toHaveBeenCalledOnce();
+      expect(vi.mocked(runEmbeddedPiAgent).mock.calls[0]?.[0]).toEqual(
+        expect.objectContaining({
+          provider: "openai",
+          model: "gpt-4.1-mini",
+        }),
+      );
+    });
+  });
+
   it("rejects /restart by default", async () => {
     await withTempHome(async (home) => {
       const res = await getReplyFromConfig(
@@ -252,7 +314,24 @@ describe("trigger handling", () => {
         makeCfg(home),
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("ClawdBot");
+      expect(text).toContain("Clawdbot");
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
+  it("reports status via /usage without invoking the agent", async () => {
+    await withTempHome(async (home) => {
+      const res = await getReplyFromConfig(
+        {
+          Body: "/usage",
+          From: "+1002",
+          To: "+2000",
+        },
+        {},
+        makeCfg(home),
+      );
+      const text = Array.isArray(res) ? res[0]?.text : res?.text;
+      expect(text).toContain("Clawdbot");
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -314,7 +393,7 @@ describe("trigger handling", () => {
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toContain("api-key");
-      expect(text).toContain("…");
+      expect(text).toMatch(/…|\.{3}/);
       expect(text).toContain("(anthropic:work)");
       expect(text).not.toContain("mixed");
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
@@ -477,7 +556,7 @@ describe("trigger handling", () => {
         cfg,
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toBe("elevated is not available right now.");
+      expect(text).toContain("tools.elevated.enabled");
 
       const storeRaw = await fs.readFile(cfg.session.store, "utf-8");
       const store = JSON.parse(storeRaw) as Record<
@@ -578,6 +657,11 @@ describe("trigger handling", () => {
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
       expect(text).toContain("Elevated mode disabled.");
+
+      const store = loadSessionStore(cfg.session.store);
+      expect(store["agent:main:whatsapp:group:123@g.us"]?.elevatedLevel).toBe(
+        "off",
+      );
     });
   });
 
@@ -711,7 +795,7 @@ describe("trigger handling", () => {
         cfg,
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).not.toBe("elevated is not available right now.");
+      expect(text).not.toContain("elevated is not available right now");
       expect(runEmbeddedPiAgent).toHaveBeenCalled();
     });
   });
@@ -792,7 +876,7 @@ describe("trigger handling", () => {
         cfg,
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toBe("elevated is not available right now.");
+      expect(text).toContain("tools.elevated.allowFrom.discord");
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -1255,6 +1339,7 @@ describe("trigger handling", () => {
         vi.mocked(runEmbeddedPiAgent).mock.calls[0]?.[0]?.prompt ?? "";
       expect(prompt).toContain("Give me the status");
       expect(prompt).not.toContain("/thinking high");
+      expect(prompt).not.toContain("/think high");
     });
   });
 
@@ -1432,7 +1517,7 @@ describe("group intro prompts", () => {
         vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0]
           ?.extraSystemPrompt ?? "";
       expect(extraSystemPrompt).toBe(
-        `You are replying inside the WhatsApp group "Ops". Activation: trigger-only (you are invoked only when explicitly mentioned; recent context may be included). ${groupParticipationNote} Address the specific sender noted in the message context.`,
+        `You are replying inside the WhatsApp group "Ops". Activation: trigger-only (you are invoked only when explicitly mentioned; recent context may be included). WhatsApp IDs: SenderId is the participant JID; [message_id: ...] is the message id for reactions (use SenderId as participant). ${groupParticipationNote} Address the specific sender noted in the message context.`,
       );
     });
   });

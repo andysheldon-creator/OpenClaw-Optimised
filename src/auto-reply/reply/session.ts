@@ -6,6 +6,7 @@ import {
   CURRENT_SESSION_VERSION,
   SessionManager,
 } from "@mariozechner/pi-coding-agent";
+import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import {
   buildGroupDisplayName,
@@ -13,7 +14,6 @@ import {
   DEFAULT_RESET_TRIGGERS,
   type GroupKeyResolution,
   loadSessionStore,
-  resolveAgentIdFromSessionKey,
   resolveGroupSessionKey,
   resolveSessionFilePath,
   resolveSessionKey,
@@ -23,6 +23,7 @@ import {
   type SessionScope,
   saveSessionStore,
 } from "../../config/sessions.js";
+import { normalizeMainKey } from "../../routing/session-key.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
@@ -89,9 +90,22 @@ export async function initSessionState(params: {
   commandAuthorized: boolean;
 }): Promise<SessionInitResult> {
   const { ctx, cfg, commandAuthorized } = params;
+  // Native slash commands (Telegram/Discord/Slack) are delivered on a separate
+  // "slash session" key, but should mutate the target chat session.
+  const targetSessionKey =
+    ctx.CommandSource === "native"
+      ? ctx.CommandTargetSessionKey?.trim()
+      : undefined;
+  const sessionCtxForState =
+    targetSessionKey && targetSessionKey !== ctx.SessionKey
+      ? { ...ctx, SessionKey: targetSessionKey }
+      : ctx;
   const sessionCfg = cfg.session;
-  const mainKey = sessionCfg?.mainKey ?? "main";
-  const agentId = resolveAgentIdFromSessionKey(ctx.SessionKey);
+  const mainKey = normalizeMainKey(sessionCfg?.mainKey);
+  const agentId = resolveSessionAgentId({
+    sessionKey: sessionCtxForState.SessionKey,
+    config: cfg,
+  });
   const resetTriggers = sessionCfg?.resetTriggers?.length
     ? sessionCfg.resetTriggers
     : DEFAULT_RESET_TRIGGERS;
@@ -118,14 +132,19 @@ export async function initSessionState(params: {
   let persistedModelOverride: string | undefined;
   let persistedProviderOverride: string | undefined;
 
-  const groupResolution = resolveGroupSessionKey(ctx) ?? undefined;
+  const groupResolution =
+    resolveGroupSessionKey(sessionCtxForState) ?? undefined;
   const isGroup =
     ctx.ChatType?.trim().toLowerCase() === "group" || Boolean(groupResolution);
-  const triggerBodyNormalized = stripStructuralPrefixes(ctx.Body ?? "")
+  // Prefer CommandBody/RawBody (clean message) for command detection; fall back
+  // to Body which may contain structural context (history, sender labels).
+  const commandSource = ctx.CommandBody ?? ctx.RawBody ?? ctx.Body ?? "";
+  const triggerBodyNormalized = stripStructuralPrefixes(commandSource)
     .trim()
     .toLowerCase();
 
-  const rawBody = ctx.Body ?? "";
+  // Use CommandBody/RawBody for reset trigger matching (clean message without structural context).
+  const rawBody = commandSource;
   const trimmedBody = rawBody.trim();
   const resetAuthorized = resolveCommandAuthorization({
     ctx,
@@ -157,7 +176,7 @@ export async function initSessionState(params: {
     }
   }
 
-  sessionKey = resolveSessionKey(sessionScope, ctx, mainKey);
+  sessionKey = resolveSessionKey(sessionScope, sessionCtxForState, mainKey);
   if (groupResolution?.legacyKey && groupResolution.legacyKey !== sessionKey) {
     const legacyEntry = sessionStore[groupResolution.legacyKey];
     if (legacyEntry && !sessionStore[sessionKey]) {
@@ -264,12 +283,14 @@ export async function initSessionState(params: {
       ctx.MessageThreadId,
     );
   }
-  sessionStore[sessionKey] = sessionEntry;
+  sessionStore[sessionKey] = { ...sessionStore[sessionKey], ...sessionEntry };
   await saveSessionStore(storePath, sessionStore);
 
   const sessionCtx: TemplateContext = {
     ...ctx,
-    BodyStripped: bodyStripped ?? ctx.Body,
+    // Keep BodyStripped aligned with Body (best default for agent prompts).
+    // RawBody is reserved for command/directive parsing and may omit context.
+    BodyStripped: bodyStripped ?? ctx.Body ?? ctx.CommandBody ?? ctx.RawBody,
     SessionId: sessionId,
     IsNewSession: isNewSession ? "true" : "false",
   };

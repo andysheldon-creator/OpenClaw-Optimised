@@ -7,6 +7,8 @@
  * across multiple providers.
  */
 
+import { resolveSessionAgentId } from "../../agents/agent-scope.js";
+import { resolveEffectiveMessagesConfig } from "../../agents/identity.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import { sendMessageDiscord } from "../../discord/send.js";
 import { sendMessageIMessage } from "../../imessage/send.js";
@@ -26,6 +28,8 @@ export type RouteReplyParams = {
   channel: OriginatingChannelType;
   /** The destination chat/channel/user ID. */
   to: string;
+  /** Session key for deriving agent identity defaults (multi-agent). */
+  sessionKey?: string;
   /** Provider account id (multi-account). */
   accountId?: string;
   /** Telegram message thread id (forum topics). */
@@ -60,8 +64,19 @@ export async function routeReply(
     params;
 
   // Debug: `pnpm test src/auto-reply/reply/route-reply.test.ts`
+  const responsePrefix = params.sessionKey
+    ? resolveEffectiveMessagesConfig(
+        cfg,
+        resolveSessionAgentId({
+          sessionKey: params.sessionKey,
+          config: cfg,
+        }),
+      ).responsePrefix
+    : cfg.messages?.responsePrefix === "auto"
+      ? undefined
+      : cfg.messages?.responsePrefix;
   const normalized = normalizeReplyPayload(payload, {
-    responsePrefix: cfg.messages?.responsePrefix,
+    responsePrefix,
   });
   if (!normalized) return { ok: true };
 

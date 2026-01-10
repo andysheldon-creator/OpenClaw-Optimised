@@ -3,28 +3,40 @@ import path from "node:path";
 import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { AgentSession } from "@mariozechner/pi-coding-agent";
+import { parseReplyDirectives } from "../auto-reply/reply/reply-directives.js";
 import type { ReasoningLevel } from "../auto-reply/thinking.js";
 import { formatToolAggregate } from "../auto-reply/tool-meta.js";
 import { resolveStateDir } from "../config/paths.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import { createSubsystemLogger } from "../logging.js";
-import { splitMediaFromOutput } from "../media/parse.js";
+import { truncateUtf16Safe } from "../utils.js";
 import type { BlockReplyChunking } from "./pi-embedded-block-chunker.js";
 import { EmbeddedBlockChunker } from "./pi-embedded-block-chunker.js";
-import { isMessagingToolDuplicate } from "./pi-embedded-helpers.js";
+import {
+  isMessagingToolDuplicateNormalized,
+  normalizeTextForComparison,
+} from "./pi-embedded-helpers.js";
+import {
+  isMessagingTool,
+  isMessagingToolSendAction,
+  type MessagingToolSend,
+  normalizeTargetForProvider,
+} from "./pi-embedded-messaging.js";
 import {
   extractAssistantText,
   extractAssistantThinking,
-  formatReasoningMarkdown,
+  extractThinkingFromTaggedStream,
+  extractThinkingFromTaggedText,
+  formatReasoningMessage,
   inferToolMetaFromArgs,
+  promoteThinkingTagsToBlocks,
 } from "./pi-embedded-utils.js";
 
-const THINKING_TAG_RE = /<\s*\/?\s*think(?:ing)?\s*>/gi;
-const THINKING_OPEN_RE = /<\s*think(?:ing)?\s*>/i;
-const THINKING_CLOSE_RE = /<\s*\/\s*think(?:ing)?\s*>/i;
-const THINKING_OPEN_GLOBAL_RE = /<\s*think(?:ing)?\s*>/gi;
-const THINKING_CLOSE_GLOBAL_RE = /<\s*\/\s*think(?:ing)?\s*>/gi;
-const THINKING_TAG_SCAN_RE = /<\s*(\/?)\s*think(?:ing)?\s*>/gi;
+const THINKING_TAG_RE = /<\s*\/?\s*(?:think(?:ing)?|thought|antthinking)\s*>/gi;
+const THINKING_OPEN_RE = /<\s*(?:think(?:ing)?|thought|antthinking)\s*>/i;
+const THINKING_CLOSE_RE = /<\s*\/\s*(?:think(?:ing)?|thought|antthinking)\s*>/i;
+const THINKING_TAG_SCAN_RE =
+  /<\s*(\/?)\s*(?:think(?:ing)?|thought|antthinking)\s*>/gi;
 const TOOL_RESULT_MAX_CHARS = 8000;
 const log = createSubsystemLogger("agent/embedded");
 const RAW_STREAM_ENABLED = process.env.CLAWDBOT_RAW_STREAM === "1";
@@ -55,16 +67,9 @@ const appendRawStream = (payload: Record<string, unknown>) => {
 
 export type { BlockReplyChunking } from "./pi-embedded-block-chunker.js";
 
-type MessagingToolSend = {
-  tool: string;
-  provider: string;
-  accountId?: string;
-  to?: string;
-};
-
 function truncateToolText(text: string): string {
   if (text.length <= TOOL_RESULT_MAX_CHARS) return text;
-  return `${text.slice(0, TOOL_RESULT_MAX_CHARS)}\n…(truncated)…`;
+  return `${truncateUtf16Safe(text, TOOL_RESULT_MAX_CHARS)}\n…(truncated)…`;
 }
 
 function sanitizeToolResult(result: unknown): unknown {
@@ -122,168 +127,6 @@ function stripUnpairedThinkingTags(text: string): string {
   return text;
 }
 
-type ThinkTaggedSplitBlock =
-  | { type: "thinking"; thinking: string }
-  | { type: "text"; text: string };
-
-function splitThinkingTaggedText(text: string): ThinkTaggedSplitBlock[] | null {
-  const trimmedStart = text.trimStart();
-  // Avoid false positives: only treat it as structured thinking when it begins
-  // with a think tag (common for local/OpenAI-compat providers that emulate
-  // reasoning blocks via tags).
-  if (!trimmedStart.startsWith("<")) return null;
-  if (!THINKING_OPEN_RE.test(trimmedStart)) return null;
-  if (!THINKING_CLOSE_RE.test(text)) return null;
-
-  THINKING_TAG_SCAN_RE.lastIndex = 0;
-  let inThinking = false;
-  let cursor = 0;
-  let thinkingStart = 0;
-  const blocks: ThinkTaggedSplitBlock[] = [];
-
-  const pushText = (value: string) => {
-    if (!value) return;
-    blocks.push({ type: "text", text: value });
-  };
-  const pushThinking = (value: string) => {
-    const cleaned = value.trim();
-    if (!cleaned) return;
-    blocks.push({ type: "thinking", thinking: cleaned });
-  };
-
-  for (const match of text.matchAll(THINKING_TAG_SCAN_RE)) {
-    const index = match.index ?? 0;
-    const isClose = Boolean(match[1]?.includes("/"));
-
-    if (!inThinking && !isClose) {
-      pushText(text.slice(cursor, index));
-      thinkingStart = index + match[0].length;
-      inThinking = true;
-      continue;
-    }
-
-    if (inThinking && isClose) {
-      pushThinking(text.slice(thinkingStart, index));
-      cursor = index + match[0].length;
-      inThinking = false;
-    }
-  }
-
-  if (inThinking) return null;
-  pushText(text.slice(cursor));
-
-  const hasThinking = blocks.some((b) => b.type === "thinking");
-  if (!hasThinking) return null;
-  return blocks;
-}
-
-function promoteThinkingTagsToBlocks(message: AssistantMessage): void {
-  if (!Array.isArray(message.content)) return;
-  const hasThinkingBlock = message.content.some(
-    (block) => block.type === "thinking",
-  );
-  if (hasThinkingBlock) return;
-
-  const next: AssistantMessage["content"] = [];
-  let changed = false;
-
-  for (const block of message.content) {
-    if (block.type !== "text") {
-      next.push(block);
-      continue;
-    }
-    const split = splitThinkingTaggedText(block.text);
-    if (!split) {
-      next.push(block);
-      continue;
-    }
-    changed = true;
-    for (const part of split) {
-      if (part.type === "thinking") {
-        next.push({ type: "thinking", thinking: part.thinking });
-      } else if (part.type === "text") {
-        const cleaned = part.text.trimStart();
-        if (cleaned) next.push({ type: "text", text: cleaned });
-      }
-    }
-  }
-
-  if (!changed) return;
-  message.content = next;
-}
-
-function normalizeSlackTarget(raw: string): string | undefined {
-  const trimmed = raw.trim();
-  if (!trimmed) return undefined;
-  const mentionMatch = trimmed.match(/^<@([A-Z0-9]+)>$/i);
-  if (mentionMatch) return `user:${mentionMatch[1]}`;
-  if (trimmed.startsWith("user:")) {
-    const id = trimmed.slice(5).trim();
-    return id ? `user:${id}` : undefined;
-  }
-  if (trimmed.startsWith("channel:")) {
-    const id = trimmed.slice(8).trim();
-    return id ? `channel:${id}` : undefined;
-  }
-  if (trimmed.startsWith("slack:")) {
-    const id = trimmed.slice(6).trim();
-    return id ? `user:${id}` : undefined;
-  }
-  if (trimmed.startsWith("@")) {
-    const id = trimmed.slice(1).trim();
-    return id ? `user:${id}` : undefined;
-  }
-  if (trimmed.startsWith("#")) {
-    const id = trimmed.slice(1).trim();
-    return id ? `channel:${id}` : undefined;
-  }
-  return `channel:${trimmed}`;
-}
-
-function normalizeDiscordTarget(raw: string): string | undefined {
-  const trimmed = raw.trim();
-  if (!trimmed) return undefined;
-  const mentionMatch = trimmed.match(/^<@!?(\d+)>$/);
-  if (mentionMatch) return `user:${mentionMatch[1]}`;
-  if (trimmed.startsWith("user:")) {
-    const id = trimmed.slice(5).trim();
-    return id ? `user:${id}` : undefined;
-  }
-  if (trimmed.startsWith("channel:")) {
-    const id = trimmed.slice(8).trim();
-    return id ? `channel:${id}` : undefined;
-  }
-  if (trimmed.startsWith("discord:")) {
-    const id = trimmed.slice(8).trim();
-    return id ? `user:${id}` : undefined;
-  }
-  if (trimmed.startsWith("@")) {
-    const id = trimmed.slice(1).trim();
-    return id ? `user:${id}` : undefined;
-  }
-  return `channel:${trimmed}`;
-}
-
-function normalizeTelegramTarget(raw: string): string | undefined {
-  const trimmed = raw.trim();
-  if (!trimmed) return undefined;
-  let normalized = trimmed;
-  if (normalized.startsWith("telegram:")) {
-    normalized = normalized.slice("telegram:".length).trim();
-  } else if (normalized.startsWith("tg:")) {
-    normalized = normalized.slice("tg:".length).trim();
-  } else if (normalized.startsWith("group:")) {
-    normalized = normalized.slice("group:".length).trim();
-  }
-  if (!normalized) return undefined;
-  const tmeMatch =
-    /^https?:\/\/t\.me\/([A-Za-z0-9_]+)$/i.exec(normalized) ??
-    /^t\.me\/([A-Za-z0-9_]+)$/i.exec(normalized);
-  if (tmeMatch?.[1]) normalized = `@${tmeMatch[1]}`;
-  if (!normalized) return undefined;
-  return `telegram:${normalized}`;
-}
-
 function extractMessagingToolSend(
   toolName: string,
   args: Record<string, unknown>,
@@ -296,7 +139,7 @@ function extractMessagingToolSend(
     if (action !== "sendMessage") return undefined;
     const toRaw = typeof args.to === "string" ? args.to : undefined;
     if (!toRaw) return undefined;
-    const to = normalizeSlackTarget(toRaw);
+    const to = normalizeTargetForProvider("slack", toRaw);
     return to
       ? { tool: toolName, provider: "slack", accountId, to }
       : undefined;
@@ -305,7 +148,7 @@ function extractMessagingToolSend(
     if (action === "sendMessage") {
       const toRaw = typeof args.to === "string" ? args.to : undefined;
       if (!toRaw) return undefined;
-      const to = normalizeDiscordTarget(toRaw);
+      const to = normalizeTargetForProvider("discord", toRaw);
       return to
         ? { tool: toolName, provider: "discord", accountId, to }
         : undefined;
@@ -314,7 +157,7 @@ function extractMessagingToolSend(
       const channelId =
         typeof args.channelId === "string" ? args.channelId.trim() : "";
       if (!channelId) return undefined;
-      const to = normalizeDiscordTarget(`channel:${channelId}`);
+      const to = normalizeTargetForProvider("discord", `channel:${channelId}`);
       return to
         ? { tool: toolName, provider: "discord", accountId, to }
         : undefined;
@@ -325,10 +168,20 @@ function extractMessagingToolSend(
     if (action !== "sendMessage") return undefined;
     const toRaw = typeof args.to === "string" ? args.to : undefined;
     if (!toRaw) return undefined;
-    const to = normalizeTelegramTarget(toRaw);
+    const to = normalizeTargetForProvider("telegram", toRaw);
     return to
       ? { tool: toolName, provider: "telegram", accountId, to }
       : undefined;
+  }
+  if (toolName === "message") {
+    if (action !== "send" && action !== "thread-reply") return undefined;
+    const toRaw = typeof args.to === "string" ? args.to : undefined;
+    if (!toRaw) return undefined;
+    const providerRaw =
+      typeof args.provider === "string" ? args.provider.trim() : "";
+    const provider = providerRaw ? providerRaw.toLowerCase() : "message";
+    const to = normalizeTargetForProvider(provider, toRaw);
+    return to ? { tool: toolName, provider, accountId, to } : undefined;
   }
   return undefined;
 }
@@ -350,6 +203,7 @@ export function subscribeEmbeddedPiSession(params: {
   onBlockReply?: (payload: {
     text?: string;
     mediaUrls?: string[];
+    audioAsVoice?: boolean;
   }) => void | Promise<void>;
   blockReplyBreak?: "text_end" | "message_end";
   blockReplyChunking?: BlockReplyChunking;
@@ -370,37 +224,93 @@ export function subscribeEmbeddedPiSession(params: {
   const blockReplyBreak = params.blockReplyBreak ?? "text_end";
   const reasoningMode = params.reasoningMode ?? "off";
   const includeReasoning = reasoningMode === "on";
+  const shouldEmitPartialReplies = !(includeReasoning && !params.onBlockReply);
   const streamReasoning =
     reasoningMode === "stream" &&
     typeof params.onReasoningStream === "function";
   let deltaBuffer = "";
   let blockBuffer = "";
+  // Track if a streamed chunk opened a <think> block (stateful across chunks).
+  let blockThinkingActive = false;
   let lastStreamedAssistant: string | undefined;
   let lastStreamedReasoning: string | undefined;
   let lastBlockReplyText: string | undefined;
   let assistantTextBaseline = 0;
+  let suppressBlockChunks = false; // Avoid late chunk inserts after final text merge.
   let compactionInFlight = false;
   let pendingCompactionRetry = 0;
   let compactionRetryResolve: (() => void) | undefined;
   let compactionRetryPromise: Promise<void> | null = null;
   let lastReasoningSent: string | undefined;
 
+  const resetAssistantMessageState = (nextAssistantTextBaseline: number) => {
+    deltaBuffer = "";
+    blockBuffer = "";
+    blockChunker?.reset();
+    blockThinkingActive = false;
+    lastStreamedAssistant = undefined;
+    lastBlockReplyText = undefined;
+    lastStreamedReasoning = undefined;
+    lastReasoningSent = undefined;
+    suppressBlockChunks = false;
+    assistantTextBaseline = nextAssistantTextBaseline;
+  };
+
+  const finalizeAssistantTexts = (args: {
+    text: string;
+    addedDuringMessage: boolean;
+    chunkerHasBuffered: boolean;
+  }) => {
+    const { text, addedDuringMessage, chunkerHasBuffered } = args;
+
+    // If we're not streaming block replies, ensure the final payload includes
+    // the final text even when interim streaming was enabled.
+    if (includeReasoning && text && !params.onBlockReply) {
+      if (assistantTexts.length > assistantTextBaseline) {
+        assistantTexts.splice(
+          assistantTextBaseline,
+          assistantTexts.length - assistantTextBaseline,
+          text,
+        );
+      } else {
+        const last = assistantTexts.at(-1);
+        if (!last || last !== text) assistantTexts.push(text);
+      }
+      suppressBlockChunks = true;
+    } else if (!addedDuringMessage && !chunkerHasBuffered && text) {
+      // Non-streaming models (no text_delta): ensure assistantTexts gets the final
+      // text when the chunker has nothing buffered to drain.
+      const last = assistantTexts.at(-1);
+      if (!last || last !== text) assistantTexts.push(text);
+    }
+
+    assistantTextBaseline = assistantTexts.length;
+  };
+
   // ── Messaging tool duplicate detection ──────────────────────────────────────
   // Track texts sent via messaging tools to suppress duplicate block replies.
   // Only committed (successful) texts are checked - pending texts are tracked
   // to support commit logic but not used for suppression (avoiding lost messages on tool failure).
   // These tools can send messages via sendMessage/threadReply actions (or sessions_send with message).
-  const MESSAGING_TOOLS = new Set([
-    "telegram",
-    "whatsapp",
-    "discord",
-    "slack",
-    "sessions_send",
-  ]);
+  const MAX_MESSAGING_SENT_TEXTS = 200;
+  const MAX_MESSAGING_SENT_TARGETS = 200;
   const messagingToolSentTexts: string[] = [];
+  const messagingToolSentTextsNormalized: string[] = [];
   const messagingToolSentTargets: MessagingToolSend[] = [];
   const pendingMessagingTexts = new Map<string, string>();
   const pendingMessagingTargets = new Map<string, MessagingToolSend>();
+  const trimMessagingToolSent = () => {
+    if (messagingToolSentTexts.length > MAX_MESSAGING_SENT_TEXTS) {
+      const overflow = messagingToolSentTexts.length - MAX_MESSAGING_SENT_TEXTS;
+      messagingToolSentTexts.splice(0, overflow);
+      messagingToolSentTextsNormalized.splice(0, overflow);
+    }
+    if (messagingToolSentTargets.length > MAX_MESSAGING_SENT_TARGETS) {
+      const overflow =
+        messagingToolSentTargets.length - MAX_MESSAGING_SENT_TARGETS;
+      messagingToolSentTargets.splice(0, overflow);
+    }
+  };
 
   const ensureCompactionPromise = () => {
     if (!compactionRetryPromise) {
@@ -468,7 +378,7 @@ export function subscribeEmbeddedPiSession(params: {
   const emitToolSummary = (toolName?: string, meta?: string) => {
     if (!params.onToolResult) return;
     const agg = formatToolAggregate(toolName, meta ? [meta] : undefined);
-    const { text: cleanedText, mediaUrls } = splitMediaFromOutput(agg);
+    const { text: cleanedText, mediaUrls } = parseReplyDirectives(agg);
     if (!cleanedText && (!mediaUrls || mediaUrls.length === 0)) return;
     try {
       void params.onToolResult({
@@ -480,16 +390,46 @@ export function subscribeEmbeddedPiSession(params: {
     }
   };
 
+  const stripBlockThinkingSegments = (text: string): string => {
+    if (!text) return text;
+    if (!blockThinkingActive && !THINKING_TAG_SCAN_RE.test(text)) return text;
+    THINKING_TAG_SCAN_RE.lastIndex = 0;
+    let result = "";
+    let lastIndex = 0;
+    let inThinking = blockThinkingActive;
+    for (const match of text.matchAll(THINKING_TAG_SCAN_RE)) {
+      const idx = match.index ?? 0;
+      if (!inThinking) {
+        result += text.slice(lastIndex, idx);
+      }
+      const isClose = match[1] === "/";
+      inThinking = !isClose;
+      lastIndex = idx + match[0].length;
+    }
+    if (!inThinking) {
+      result += text.slice(lastIndex);
+    }
+    blockThinkingActive = inThinking;
+    return result;
+  };
+
   const emitBlockChunk = (text: string) => {
-    // Strip any <thinking> tags that may have leaked into the output (e.g., from Gemini mimicking history)
-    const strippedText = stripThinkingSegments(stripUnpairedThinkingTags(text));
+    if (suppressBlockChunks) return;
+    // Strip <think> blocks across chunk boundaries to avoid leaking reasoning.
+    const strippedText = stripBlockThinkingSegments(text);
     const chunk = strippedText.trimEnd();
     if (!chunk) return;
     if (chunk === lastBlockReplyText) return;
 
     // Only check committed (successful) messaging tool texts - checking pending texts
     // is risky because if the tool fails after suppression, the user gets no response
-    if (isMessagingToolDuplicate(chunk, messagingToolSentTexts)) {
+    const normalizedChunk = normalizeTextForComparison(chunk);
+    if (
+      isMessagingToolDuplicateNormalized(
+        normalizedChunk,
+        messagingToolSentTextsNormalized,
+      )
+    ) {
       log.debug(
         `Skipping block reply - already sent via messaging tool: ${chunk.slice(0, 50)}...`,
       );
@@ -499,57 +439,21 @@ export function subscribeEmbeddedPiSession(params: {
     lastBlockReplyText = chunk;
     assistantTexts.push(chunk);
     if (!params.onBlockReply) return;
-    const { text: cleanedText, mediaUrls } = splitMediaFromOutput(chunk);
-    if (!cleanedText && (!mediaUrls || mediaUrls.length === 0)) return;
+    const splitResult = parseReplyDirectives(chunk);
+    const { text: cleanedText, mediaUrls, audioAsVoice } = splitResult;
+    // Skip empty payloads, but always emit if audioAsVoice is set (to propagate the flag)
+    if (!cleanedText && (!mediaUrls || mediaUrls.length === 0) && !audioAsVoice)
+      return;
     void params.onBlockReply({
       text: cleanedText,
       mediaUrls: mediaUrls?.length ? mediaUrls : undefined,
+      audioAsVoice,
     });
-  };
-
-  const extractThinkingFromText = (text: string): string => {
-    if (!text || !THINKING_TAG_RE.test(text)) return "";
-    THINKING_TAG_RE.lastIndex = 0;
-    let result = "";
-    let lastIndex = 0;
-    let inThinking = false;
-    for (const match of text.matchAll(THINKING_TAG_RE)) {
-      const idx = match.index ?? 0;
-      if (inThinking) {
-        result += text.slice(lastIndex, idx);
-      }
-      const tag = match[0].toLowerCase();
-      inThinking = !tag.includes("/");
-      lastIndex = idx + match[0].length;
-    }
-    return result.trim();
-  };
-
-  const extractThinkingFromStream = (text: string): string => {
-    if (!text) return "";
-    const closed = extractThinkingFromText(text);
-    if (closed) return closed;
-    const openMatches = [...text.matchAll(THINKING_OPEN_GLOBAL_RE)];
-    if (openMatches.length === 0) return "";
-    const closeMatches = [...text.matchAll(THINKING_CLOSE_GLOBAL_RE)];
-    const lastOpen = openMatches[openMatches.length - 1];
-    const lastClose = closeMatches[closeMatches.length - 1];
-    if (lastClose && (lastClose.index ?? -1) > (lastOpen.index ?? -1)) {
-      return closed;
-    }
-    const start = (lastOpen.index ?? 0) + lastOpen[0].length;
-    return text.slice(start).trim();
-  };
-
-  const formatReasoningDraft = (text: string): string => {
-    const trimmed = text.trim();
-    if (!trimmed) return "";
-    return `Reasoning:\n${trimmed}`;
   };
 
   const emitReasoningStream = (text: string) => {
     if (!streamReasoning || !params.onReasoningStream) return;
-    const formatted = formatReasoningDraft(text);
+    const formatted = formatReasoningMessage(text);
     if (!formatted) return;
     if (formatted === lastStreamedReasoning) return;
     lastStreamedReasoning = formatted;
@@ -564,16 +468,11 @@ export function subscribeEmbeddedPiSession(params: {
     toolMetaById.clear();
     toolSummaryById.clear();
     messagingToolSentTexts.length = 0;
+    messagingToolSentTextsNormalized.length = 0;
     messagingToolSentTargets.length = 0;
     pendingMessagingTexts.clear();
     pendingMessagingTargets.clear();
-    deltaBuffer = "";
-    blockBuffer = "";
-    blockChunker?.reset();
-    lastStreamedAssistant = undefined;
-    lastStreamedReasoning = undefined;
-    lastBlockReplyText = undefined;
-    assistantTextBaseline = 0;
+    resetAssistantMessageState(0);
   };
 
   const unsubscribe = params.session.subscribe(
@@ -586,14 +485,7 @@ export function subscribeEmbeddedPiSession(params: {
           // Start-of-message is a safer reset point than message_end: some providers
           // may deliver late text_end updates after message_end, which would
           // otherwise re-trigger block replies.
-          deltaBuffer = "";
-          blockBuffer = "";
-          blockChunker?.reset();
-          lastStreamedAssistant = undefined;
-          lastBlockReplyText = undefined;
-          lastStreamedReasoning = undefined;
-          lastReasoningSent = undefined;
-          assistantTextBaseline = assistantTexts.length;
+          resetAssistantMessageState(assistantTexts.length);
         }
       }
 
@@ -605,12 +497,28 @@ export function subscribeEmbeddedPiSession(params: {
           (evt as AgentEvent & { toolCallId: string }).toolCallId,
         );
         const args = (evt as AgentEvent & { args: unknown }).args;
+        if (toolName === "read") {
+          const record =
+            args && typeof args === "object"
+              ? (args as Record<string, unknown>)
+              : {};
+          const filePath =
+            typeof record.path === "string" ? record.path.trim() : "";
+          if (!filePath) {
+            const argsPreview =
+              typeof args === "string" ? args.slice(0, 200) : undefined;
+            log.warn(
+              `read tool called without path: toolCallId=${toolCallId} argsType=${typeof args}${argsPreview ? ` argsPreview=${argsPreview}` : ""}`,
+            );
+          }
+        }
         const meta = inferToolMetaFromArgs(toolName, args);
         toolMetaById.set(toolCallId, meta);
         log.debug(
           `embedded run tool start: runId=${params.runId} tool=${toolName} toolCallId=${toolCallId}`,
         );
 
+        const shouldEmitToolEvents = shouldEmitToolResult();
         emitAgentEvent({
           runId: params.runId,
           stream: "tool",
@@ -628,7 +536,7 @@ export function subscribeEmbeddedPiSession(params: {
 
         if (
           params.onToolResult &&
-          shouldEmitToolResult() &&
+          shouldEmitToolEvents &&
           !toolSummaryById.has(toolCallId)
         ) {
           toolSummaryById.add(toolCallId);
@@ -636,19 +544,17 @@ export function subscribeEmbeddedPiSession(params: {
         }
 
         // Track messaging tool sends (pending until confirmed in tool_execution_end)
-        if (MESSAGING_TOOLS.has(toolName)) {
+        if (isMessagingTool(toolName)) {
           const argsRecord =
             args && typeof args === "object"
               ? (args as Record<string, unknown>)
               : {};
           const action =
-            typeof argsRecord.action === "string" ? argsRecord.action : "";
-          // Track send actions: sendMessage/threadReply for Discord/Slack, or sessions_send (no action field)
-          if (
-            action === "sendMessage" ||
-            action === "threadReply" ||
-            toolName === "sessions_send"
-          ) {
+            typeof argsRecord.action === "string"
+              ? argsRecord.action.trim()
+              : "";
+          const isMessagingSend = isMessagingToolSendAction(toolName, action);
+          if (isMessagingSend) {
             const sendTarget = extractMessagingToolSend(toolName, argsRecord);
             if (sendTarget) {
               pendingMessagingTargets.set(toolCallId, sendTarget);
@@ -720,15 +626,20 @@ export function subscribeEmbeddedPiSession(params: {
           pendingMessagingTexts.delete(toolCallId);
           if (!isError) {
             messagingToolSentTexts.push(pendingText);
+            messagingToolSentTextsNormalized.push(
+              normalizeTextForComparison(pendingText),
+            );
             log.debug(
               `Committed messaging text: tool=${toolName} len=${pendingText.length}`,
             );
+            trimMessagingToolSent();
           }
         }
         if (pendingTarget) {
           pendingMessagingTargets.delete(toolCallId);
           if (!isError) {
             messagingToolSentTargets.push(pendingTarget);
+            trimMessagingToolSent();
           }
         }
 
@@ -822,7 +733,7 @@ export function subscribeEmbeddedPiSession(params: {
 
             if (streamReasoning) {
               // Handle partial <think> tags: stream whatever reasoning is visible so far.
-              emitReasoningStream(extractThinkingFromStream(deltaBuffer));
+              emitReasoningStream(extractThinkingFromTaggedStream(deltaBuffer));
             }
 
             const cleaned = params.enforceFinalTag
@@ -834,7 +745,7 @@ export function subscribeEmbeddedPiSession(params: {
             if (next && next !== lastStreamedAssistant) {
               lastStreamedAssistant = next;
               const { text: cleanedText, mediaUrls } =
-                splitMediaFromOutput(next);
+                parseReplyDirectives(next);
               emitAgentEvent({
                 runId: params.runId,
                 stream: "assistant",
@@ -850,7 +761,7 @@ export function subscribeEmbeddedPiSession(params: {
                   mediaUrls: mediaUrls?.length ? mediaUrls : undefined,
                 },
               });
-              if (params.onPartialReply) {
+              if (params.onPartialReply && shouldEmitPartialReplies) {
                 void params.onPartialReply({
                   text: cleanedText,
                   mediaUrls: mediaUrls?.length ? mediaUrls : undefined,
@@ -903,27 +814,40 @@ export function subscribeEmbeddedPiSession(params: {
           const rawThinking =
             includeReasoning || streamReasoning
               ? extractAssistantThinking(assistantMessage) ||
-                extractThinkingFromText(rawText)
+                extractThinkingFromTaggedText(rawText)
               : "";
           const formattedReasoning = rawThinking
-            ? formatReasoningMarkdown(rawThinking)
+            ? formatReasoningMessage(rawThinking)
             : "";
-          const text = includeReasoning
-            ? baseText && formattedReasoning
-              ? `${formattedReasoning}\n\n${baseText}`
-              : formattedReasoning || baseText
-            : baseText;
+          const text = baseText;
 
           const addedDuringMessage =
             assistantTexts.length > assistantTextBaseline;
           const chunkerHasBuffered = blockChunker?.hasBuffered() ?? false;
-          // Non-streaming models (no text_delta): ensure assistantTexts gets the
-          // final text when the chunker has nothing buffered to drain.
-          if (!addedDuringMessage && !chunkerHasBuffered && text) {
-            const last = assistantTexts.at(-1);
-            if (!last || last !== text) assistantTexts.push(text);
-          }
-          assistantTextBaseline = assistantTexts.length;
+          finalizeAssistantTexts({
+            text,
+            addedDuringMessage,
+            chunkerHasBuffered,
+          });
+
+          const onBlockReply = params.onBlockReply;
+          const shouldEmitReasoning = Boolean(
+            includeReasoning &&
+              formattedReasoning &&
+              onBlockReply &&
+              formattedReasoning !== lastReasoningSent,
+          );
+          const shouldEmitReasoningBeforeAnswer =
+            shouldEmitReasoning &&
+            blockReplyBreak === "message_end" &&
+            !addedDuringMessage;
+          const maybeEmitReasoning = () => {
+            if (!shouldEmitReasoning || !formattedReasoning) return;
+            lastReasoningSent = formattedReasoning;
+            void onBlockReply?.({ text: formattedReasoning });
+          };
+
+          if (shouldEmitReasoningBeforeAnswer) maybeEmitReasoning();
 
           if (
             (blockReplyBreak === "message_end" ||
@@ -931,47 +855,53 @@ export function subscribeEmbeddedPiSession(params: {
                 ? blockChunker.hasBuffered()
                 : blockBuffer.length > 0)) &&
             text &&
-            params.onBlockReply
+            onBlockReply
           ) {
             if (blockChunker?.hasBuffered()) {
               blockChunker.drain({ force: true, emit: emitBlockChunk });
               blockChunker.reset();
             } else if (text !== lastBlockReplyText) {
               // Check for duplicates before emitting (same logic as emitBlockChunk)
-              if (isMessagingToolDuplicate(text, messagingToolSentTexts)) {
+              const normalizedText = normalizeTextForComparison(text);
+              if (
+                isMessagingToolDuplicateNormalized(
+                  normalizedText,
+                  messagingToolSentTextsNormalized,
+                )
+              ) {
                 log.debug(
                   `Skipping message_end block reply - already sent via messaging tool: ${text.slice(0, 50)}...`,
                 );
               } else {
                 lastBlockReplyText = text;
-                const { text: cleanedText, mediaUrls } =
-                  splitMediaFromOutput(text);
-                if (cleanedText || (mediaUrls && mediaUrls.length > 0)) {
-                  void params.onBlockReply({
+                const {
+                  text: cleanedText,
+                  mediaUrls,
+                  audioAsVoice,
+                } = parseReplyDirectives(text);
+                // Emit if there's content OR audioAsVoice flag (to propagate the flag)
+                if (
+                  cleanedText ||
+                  (mediaUrls && mediaUrls.length > 0) ||
+                  audioAsVoice
+                ) {
+                  void onBlockReply({
                     text: cleanedText,
                     mediaUrls: mediaUrls?.length ? mediaUrls : undefined,
+                    audioAsVoice,
                   });
                 }
               }
             }
           }
-          const onBlockReply = params.onBlockReply;
-          const shouldEmitReasoningBlock =
-            includeReasoning &&
-            Boolean(formattedReasoning) &&
-            Boolean(onBlockReply) &&
-            formattedReasoning !== lastReasoningSent &&
-            (blockReplyBreak === "text_end" || Boolean(blockChunker));
-          if (shouldEmitReasoningBlock && formattedReasoning && onBlockReply) {
-            lastReasoningSent = formattedReasoning;
-            void onBlockReply({ text: formattedReasoning });
-          }
+          if (!shouldEmitReasoningBeforeAnswer) maybeEmitReasoning();
           if (streamReasoning && rawThinking) {
             emitReasoningStream(rawThinking);
           }
           deltaBuffer = "";
           blockBuffer = "";
           blockChunker?.reset();
+          blockThinkingActive = false;
           lastStreamedAssistant = undefined;
         }
       }
@@ -1044,6 +974,16 @@ export function subscribeEmbeddedPiSession(params: {
           stream: "lifecycle",
           data: { phase: "end" },
         });
+        if (params.onBlockReply) {
+          if (blockChunker?.hasBuffered()) {
+            blockChunker.drain({ force: true, emit: emitBlockChunk });
+            blockChunker.reset();
+          } else if (blockBuffer.length > 0) {
+            emitBlockChunk(blockBuffer);
+            blockBuffer = "";
+          }
+        }
+        blockThinkingActive = false;
         if (pendingCompactionRetry > 0) {
           resolveCompactionRetry();
         } else {

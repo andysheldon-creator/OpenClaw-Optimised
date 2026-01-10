@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resetProcessRegistryForTests } from "./bash-process-registry.js";
 import {
   bashTool,
@@ -50,35 +50,50 @@ beforeEach(() => {
 });
 
 describe("bash tool backgrounding", () => {
-  it("backgrounds after yield and can be polled", async () => {
-    const result = await bashTool.execute("call1", {
-      command: joinCommands([yieldDelayCmd, "echo done"]),
-      yieldMs: 10,
-    });
+  const originalShell = process.env.SHELL;
 
-    expect(result.details.status).toBe("running");
-    const sessionId = (result.details as { sessionId: string }).sessionId;
-
-    let status = "running";
-    let output = "";
-    const deadline = Date.now() + (process.platform === "win32" ? 8000 : 2000);
-
-    while (Date.now() < deadline && status === "running") {
-      const poll = await processTool.execute("call2", {
-        action: "poll",
-        sessionId,
-      });
-      status = (poll.details as { status: string }).status;
-      const textBlock = poll.content.find((c) => c.type === "text");
-      output = textBlock?.text ?? "";
-      if (status === "running") {
-        await sleep(20);
-      }
-    }
-
-    expect(status).toBe("completed");
-    expect(output).toContain("done");
+  beforeEach(() => {
+    if (!isWin) process.env.SHELL = "/bin/bash";
   });
+
+  afterEach(() => {
+    if (!isWin) process.env.SHELL = originalShell;
+  });
+
+  it(
+    "backgrounds after yield and can be polled",
+    async () => {
+      const result = await bashTool.execute("call1", {
+        command: joinCommands([yieldDelayCmd, "echo done"]),
+        yieldMs: 10,
+      });
+
+      expect(result.details.status).toBe("running");
+      const sessionId = (result.details as { sessionId: string }).sessionId;
+
+      let status = "running";
+      let output = "";
+      const deadline =
+        Date.now() + (process.platform === "win32" ? 8000 : 2000);
+
+      while (Date.now() < deadline && status === "running") {
+        const poll = await processTool.execute("call2", {
+          action: "poll",
+          sessionId,
+        });
+        status = (poll.details as { status: string }).status;
+        const textBlock = poll.content.find((c) => c.type === "text");
+        output = textBlock?.text ?? "";
+        if (status === "running") {
+          await sleep(20);
+        }
+      }
+
+      expect(status).toBe("completed");
+      expect(output).toContain("done");
+    },
+    isWin ? 15_000 : 5_000,
+  );
 
   it("supports explicit background", async () => {
     const result = await bashTool.execute("call1", {
@@ -149,7 +164,7 @@ describe("bash tool backgrounding", () => {
         command: "echo hi",
         elevated: true,
       }),
-    ).rejects.toThrow("elevated is not available right now.");
+    ).rejects.toThrow("tools.elevated.allowFrom.<provider>");
   });
 
   it("does not default to elevated when not allowed", async () => {

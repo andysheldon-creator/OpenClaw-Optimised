@@ -7,15 +7,50 @@ read_when:
 # Authentication
 
 Clawdbot supports OAuth and API keys for model providers. For Anthropic
-subscription accounts, the most stable path is to **reuse Claude Code OAuth
-credentials**, including the 1‑year token created by `claude setup-token`.
+accounts, we recommend using an **API key**. Clawdbot can also reuse Claude Code
+credentials, including the long‑lived token created by `claude setup-token`.
 
 See [/concepts/oauth](/concepts/oauth) for the full OAuth flow and storage
 layout.
 
-## Preferred Anthropic setup (Claude CLI setup-token)
+## Recommended Anthropic setup (API key)
 
-For Anthropic, the **preferred** path is the Claude CLI setup-token, not an API key.
+If you’re using Anthropic directly, use an API key.
+
+1) Create an API key in the Anthropic Console.
+2) Put it on the **gateway host** (the machine running `clawdbot gateway`).
+
+```bash
+export ANTHROPIC_API_KEY="..."
+clawdbot models status
+```
+
+3) If the Gateway runs under systemd/launchd, prefer putting the key in
+`~/.clawdbot/.env` so the daemon can read it:
+
+```bash
+cat >> ~/.clawdbot/.env <<'EOF'
+ANTHROPIC_API_KEY=...
+EOF
+```
+
+Then restart the daemon (or restart your Gateway process) and re-check:
+
+```bash
+clawdbot models status
+clawdbot doctor
+```
+
+If you’d rather not manage env vars yourself, the onboarding wizard can store
+API keys for daemon use: `clawdbot onboard`.
+
+See [/start/faq](/start/faq) for details on env inheritance (`env.shellEnv`,
+`~/.clawdbot/.env`, systemd/launchd).
+
+## Anthropic: Claude CLI setup-token (supported)
+
+For Anthropic, the recommended path is an **API key**. If you’re already using
+Claude Code, the Claude CLI setup-token is also supported.
 Run it on the **gateway host**:
 
 ```bash
@@ -29,20 +64,28 @@ clawdbot models status
 clawdbot doctor
 ```
 
-## Recommended: long‑lived Claude Code token
+This should create (or refresh) an auth profile like `anthropic:claude-cli` in
+the agent auth store.
 
-Run this on the **gateway host** (the machine running the Gateway):
+If you see an Anthropic error like:
 
-```bash
-claude setup-token
+```
+This credential is only authorized for use with Claude Code and cannot be used for other API requests.
 ```
 
-This issues a long‑lived **OAuth token** (not an API key) and stores it for
-Claude Code. Then sync and verify:
+…use an Anthropic API key instead.
+
+Alternative: run the wrapper (also updates Clawdbot config):
 
 ```bash
-clawdbot models status
-clawdbot doctor
+clawdbot models auth setup-token --provider anthropic
+```
+
+Manual token entry (any provider; writes `auth-profiles.json` + updates config):
+
+```bash
+clawdbot models auth paste-token --provider anthropic
+clawdbot models auth paste-token --provider openrouter
 ```
 
 Automation-friendly check (exit `1` when expired/missing, `2` when expiring):
@@ -67,6 +110,24 @@ clawdbot models status
 clawdbot doctor
 ```
 
+## Controlling which credential is used
+
+### Per-session (chat command)
+
+Use `/model <alias-or-id>@<profileId>` to pin a specific provider credential for the current session (example profile ids: `anthropic:claude-cli`, `anthropic:default`). Use `/model status` to see candidates + which one is next.
+
+### Per-agent (CLI override)
+
+Set an explicit auth profile order override for an agent (stored in that agent’s `auth-profiles.json`):
+
+```bash
+clawdbot models auth order get --provider anthropic
+clawdbot models auth order set --provider anthropic anthropic:claude-cli
+clawdbot models auth order clear --provider anthropic
+```
+
+Use `--agent <id>` to target a specific agent; omit it to use the configured default agent.
+
 ## How sync works
 
 1. **Claude Code** stores credentials in `~/.claude/.credentials.json` (or
@@ -74,13 +135,15 @@ clawdbot doctor
 2. **Clawdbot** syncs those into
    `~/.clawdbot/agents/<agentId>/agent/auth-profiles.json` when the auth store is
    loaded.
-3. OAuth refresh happens automatically on use if a token is expired.
+3. Refreshable OAuth profiles can be refreshed automatically on use. Static
+   token profiles (including Claude CLI setup-token) are not refreshable by
+   Clawdbot.
 
 ## Troubleshooting
 
 ### “No credentials found”
 
-If the Anthropic OAuth profile is missing, run `claude setup-token` on the
+If the Anthropic token profile is missing, run `claude setup-token` on the
 **gateway host**, then re-check:
 
 ```bash

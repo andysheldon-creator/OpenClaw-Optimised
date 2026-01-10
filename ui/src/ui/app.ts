@@ -52,6 +52,7 @@ import {
 import {
   loadChatHistory,
   sendChatMessage,
+  abortChatRun,
   handleChatEvent,
   type ChatEventPayload,
 } from "./controllers/chat";
@@ -205,6 +206,7 @@ export class ClawdbotApp extends LitElement {
   @state() eventLog: EventLogEntry[] = [];
   private eventLogBuffer: EventLogEntry[] = [];
   private toolStreamSyncTimer: number | null = null;
+  private sidebarCloseTimer: number | null = null;
 
   @state() sessionKey = this.settings.sessionKey;
   @state() chatLoading = false;
@@ -218,6 +220,11 @@ export class ClawdbotApp extends LitElement {
   @state() chatThinkingLevel: string | null = null;
   @state() chatQueue: ChatQueueItem[] = [];
   @state() toolOutputExpanded = new Set<string>();
+  // Sidebar state for tool output viewing
+  @state() sidebarOpen = false;
+  @state() sidebarContent: string | null = null;
+  @state() sidebarError: string | null = null;
+  @state() splitRatio = this.settings.splitRatio;
 
   @state() nodesLoading = false;
   @state() nodes: Array<Record<string, unknown>> = [];
@@ -1022,6 +1029,26 @@ export class ClawdbotApp extends LitElement {
     return this.chatSending || Boolean(this.chatRunId);
   }
 
+  private isChatStopCommand(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return false;
+    const normalized = trimmed.toLowerCase();
+    if (normalized === "/stop") return true;
+    return (
+      normalized === "stop" ||
+      normalized === "esc" ||
+      normalized === "abort" ||
+      normalized === "wait" ||
+      normalized === "exit"
+    );
+  }
+
+  async handleAbortChat() {
+    if (!this.connected) return;
+    this.chatMessage = "";
+    await abortChatRun(this);
+  }
+
   private enqueueChatMessage(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -1046,14 +1073,6 @@ export class ClawdbotApp extends LitElement {
     }
     if (ok) {
       this.setLastActiveSessionKey(this.sessionKey);
-    }
-    if (ok && this.chatRunId) {
-      // chat.send returned (run finished), but we missed the chat final event.
-      this.chatRunId = null;
-      this.chatStream = null;
-      this.chatStreamStartedAt = null;
-      this.resetToolStream();
-      void loadChatHistory(this);
     }
     if (ok && opts?.restoreDraft && opts.previousDraft?.trim()) {
       this.chatMessage = opts.previousDraft;
@@ -1088,6 +1107,11 @@ export class ClawdbotApp extends LitElement {
     const previousDraft = this.chatMessage;
     const message = (messageOverride ?? this.chatMessage).trim();
     if (!message) return;
+
+    if (this.isChatStopCommand(message)) {
+      await this.handleAbortChat();
+      return;
+    }
 
     if (messageOverride == null) {
       this.chatMessage = "";
@@ -1147,6 +1171,37 @@ export class ClawdbotApp extends LitElement {
     await saveIMessageConfig(this);
     await loadConfig(this);
     await loadProviders(this, true);
+  }
+
+  // Sidebar handlers for tool output viewing
+  handleOpenSidebar(content: string) {
+    if (this.sidebarCloseTimer != null) {
+      window.clearTimeout(this.sidebarCloseTimer);
+      this.sidebarCloseTimer = null;
+    }
+    this.sidebarContent = content;
+    this.sidebarError = null;
+    this.sidebarOpen = true;
+  }
+
+  handleCloseSidebar() {
+    this.sidebarOpen = false;
+    // Clear content after transition
+    if (this.sidebarCloseTimer != null) {
+      window.clearTimeout(this.sidebarCloseTimer);
+    }
+    this.sidebarCloseTimer = window.setTimeout(() => {
+      if (this.sidebarOpen) return;
+      this.sidebarContent = null;
+      this.sidebarError = null;
+      this.sidebarCloseTimer = null;
+    }, 200);
+  }
+
+  handleSplitRatioChange(ratio: number) {
+    const newRatio = Math.max(0.4, Math.min(0.7, ratio));
+    this.splitRatio = newRatio;
+    this.applySettings({ ...this.settings, splitRatio: newRatio });
   }
 
   render() {

@@ -9,13 +9,20 @@ import { shouldLogVerbose } from "../globals.js";
 import { createSubsystemLogger } from "../logging.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { resolveUserPath } from "../utils.js";
+import { resolveSessionAgentIds } from "./agent-scope.js";
+import { FailoverError, resolveFailoverStatus } from "./failover-error.js";
 import {
   buildBootstrapContextFiles,
+  classifyFailoverReason,
   type EmbeddedContextFile,
+  isFailoverErrorMessage,
 } from "./pi-embedded-helpers.js";
 import type { EmbeddedPiRunResult } from "./pi-embedded-runner.js";
 import { buildAgentSystemPrompt } from "./system-prompt.js";
-import { loadWorkspaceBootstrapFiles } from "./workspace.js";
+import {
+  filterBootstrapFilesForSession,
+  loadWorkspaceBootstrapFiles,
+} from "./workspace.js";
 
 const log = createSubsystemLogger("agent/claude-cli");
 const CLAUDE_CLI_QUEUE_KEY = "global";
@@ -130,6 +137,7 @@ function buildSystemPrompt(params: {
   defaultThinkLevel?: ThinkLevel;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
+  heartbeatPrompt?: string;
   tools: AgentTool[];
   contextFiles?: EmbeddedContextFile[];
   modelDisplay: string;
@@ -144,9 +152,7 @@ function buildSystemPrompt(params: {
     extraSystemPrompt: params.extraSystemPrompt,
     ownerNumbers: params.ownerNumbers,
     reasoningTagHint: false,
-    heartbeatPrompt: resolveHeartbeatPrompt(
-      params.config?.agents?.defaults?.heartbeat?.prompt,
-    ),
+    heartbeatPrompt: params.heartbeatPrompt,
     runtimeInfo: {
       host: "clawdbot",
       os: `${os.type()} ${os.release()}`,
@@ -310,6 +316,16 @@ async function runClaudeCliOnce(params: {
   }
   if (result.code !== 0) {
     const err = result.stderr.trim() || stdout || "Claude CLI failed.";
+    if (isFailoverErrorMessage(err)) {
+      const reason = classifyFailoverReason(err) ?? "unknown";
+      const status = resolveFailoverStatus(reason);
+      throw new FailoverError(err, {
+        reason,
+        provider: "claude-cli",
+        model: params.modelId,
+        status,
+      });
+    }
     throw new Error(err);
   }
   const parsed = parseClaudeCliJson(stdout);
@@ -353,14 +369,28 @@ export async function runClaudeCliAgent(params: {
     .filter(Boolean)
     .join("\n");
 
-  const bootstrapFiles = await loadWorkspaceBootstrapFiles(workspaceDir);
+  const bootstrapFiles = filterBootstrapFilesForSession(
+    await loadWorkspaceBootstrapFiles(workspaceDir),
+    params.sessionKey ?? params.sessionId,
+  );
   const contextFiles = buildBootstrapContextFiles(bootstrapFiles);
+  const { defaultAgentId, sessionAgentId } = resolveSessionAgentIds({
+    sessionKey: params.sessionKey,
+    config: params.config,
+  });
+  const heartbeatPrompt =
+    sessionAgentId === defaultAgentId
+      ? resolveHeartbeatPrompt(
+          params.config?.agents?.defaults?.heartbeat?.prompt,
+        )
+      : undefined;
   const systemPrompt = buildSystemPrompt({
     workspaceDir,
     config: params.config,
     defaultThinkLevel: params.thinkLevel,
     extraSystemPrompt,
     ownerNumbers: params.ownerNumbers,
+    heartbeatPrompt,
     tools: [],
     contextFiles,
     modelDisplay,

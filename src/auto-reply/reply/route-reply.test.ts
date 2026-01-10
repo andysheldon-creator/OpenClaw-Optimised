@@ -81,6 +81,18 @@ describe("routeReply", () => {
     expect(mocks.sendMessageSlack).not.toHaveBeenCalled();
   });
 
+  it("drops payloads that start with the silent token", async () => {
+    mocks.sendMessageSlack.mockClear();
+    const res = await routeReply({
+      payload: { text: `${SILENT_REPLY_TOKEN} -- (why am I here?)` },
+      channel: "slack",
+      to: "channel:C123",
+      cfg: {} as never,
+    });
+    expect(res.ok).toBe(true);
+    expect(mocks.sendMessageSlack).not.toHaveBeenCalled();
+  });
+
   it("applies responsePrefix when routing", async () => {
     mocks.sendMessageSlack.mockClear();
     const cfg = {
@@ -95,6 +107,33 @@ describe("routeReply", () => {
     expect(mocks.sendMessageSlack).toHaveBeenCalledWith(
       "channel:C123",
       "[clawdbot] hi",
+      expect.any(Object),
+    );
+  });
+
+  it("does not derive responsePrefix from agent identity when routing", async () => {
+    mocks.sendMessageSlack.mockClear();
+    const cfg = {
+      agents: {
+        list: [
+          {
+            id: "rich",
+            identity: { name: "Richbot", theme: "lion bot", emoji: "🦁" },
+          },
+        ],
+      },
+      messages: {},
+    } as unknown as ClawdbotConfig;
+    await routeReply({
+      payload: { text: "hi" },
+      channel: "slack",
+      to: "channel:C123",
+      sessionKey: "agent:rich:main",
+      cfg,
+    });
+    expect(mocks.sendMessageSlack).toHaveBeenCalledWith(
+      "channel:C123",
+      "hi",
       expect.any(Object),
     );
   });

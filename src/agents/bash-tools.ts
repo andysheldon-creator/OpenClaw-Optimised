@@ -8,6 +8,7 @@ import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 
 import { logInfo } from "../logger.js";
+import { sliceUtf16Safe } from "../utils.js";
 import {
   addSession,
   appendOutput,
@@ -43,7 +44,7 @@ const DEFAULT_PATH =
 // because Claude API on Vertex AI rejects nested anyOf schemas as invalid JSON Schema.
 // Type.Union of literals compiles to { anyOf: [{enum:["a"]}, {enum:["b"]}, ...] }
 // which is valid but not accepted. A flat enum { type: "string", enum: [...] } works.
-const stringEnum = <T extends readonly string[]>(
+const _stringEnum = <T extends readonly string[]>(
   values: T,
   options?: { description?: string },
 ) =>
@@ -60,6 +61,7 @@ export type BashToolDefaults = {
   elevated?: BashElevatedDefaults;
   allowBackground?: boolean;
   scopeKey?: string;
+  cwd?: string;
 };
 
 export type ProcessToolDefaults = {
@@ -112,6 +114,7 @@ export type BashToolDetails =
       sessionId: string;
       pid?: number;
       startedAt: number;
+      cwd?: string;
       tail?: string;
     }
   | {
@@ -119,6 +122,7 @@ export type BashToolDetails =
       exitCode: number | null;
       durationMs: number;
       aggregated: string;
+      cwd?: string;
     };
 
 export function createBashTool(
@@ -190,7 +194,28 @@ export function createBashTool(
           : elevatedDefaultOn;
       if (elevatedRequested) {
         if (!elevatedDefaults?.enabled || !elevatedDefaults.allowed) {
-          throw new Error("elevated is not available right now.");
+          const runtime = defaults?.sandbox ? "sandboxed" : "direct";
+          const gates: string[] = [];
+          if (!elevatedDefaults?.enabled) {
+            gates.push(
+              "enabled (tools.elevated.enabled / agents.list[].tools.elevated.enabled)",
+            );
+          } else {
+            gates.push(
+              "allowFrom (tools.elevated.allowFrom.<provider> / agents.list[].tools.elevated.allowFrom.<provider>)",
+            );
+          }
+          throw new Error(
+            [
+              `elevated is not available right now (runtime=${runtime}).`,
+              `Failing gates: ${gates.join(", ")}`,
+              "Fix-it keys:",
+              "- tools.elevated.enabled",
+              "- tools.elevated.allowFrom.<provider>",
+              "- agents.list[].tools.elevated.enabled",
+              "- agents.list[].tools.elevated.allowFrom.<provider>",
+            ].join("\n"),
+          );
         }
         logInfo(
           `bash: elevated command (${sessionId.slice(0, 8)}) ${truncateMiddle(
@@ -201,7 +226,8 @@ export function createBashTool(
       }
 
       const sandbox = elevatedRequested ? undefined : defaults?.sandbox;
-      const rawWorkdir = params.workdir?.trim() || process.cwd();
+      const rawWorkdir =
+        params.workdir?.trim() || defaults?.cwd || process.cwd();
       let workdir = rawWorkdir;
       let containerWorkdir = sandbox?.containerWorkdir;
       if (sandbox) {
@@ -313,6 +339,7 @@ export function createBashTool(
             sessionId,
             pid: session.pid ?? undefined,
             startedAt,
+            cwd: session.cwd,
             tail: session.tail,
           },
         });
@@ -353,6 +380,7 @@ export function createBashTool(
                   sessionId,
                   pid: session.pid ?? undefined,
                   startedAt,
+                  cwd: session.cwd,
                   tail: session.tail,
                 },
               }),
@@ -428,12 +456,15 @@ export function createBashTool(
                   exitCode: code ?? 0,
                   durationMs,
                   aggregated,
+                  cwd: session.cwd,
                 },
               }),
             );
           };
 
-          child.once("exit", (code, exitSignal) => {
+          // `exit` can fire before stdio fully flushes (notably on Windows).
+          // `close` waits for streams to close, so aggregated output is complete.
+          child.once("close", (code, exitSignal) => {
             handleExit(code, exitSignal);
           });
 
@@ -452,12 +483,7 @@ export function createBashTool(
 export const bashTool = createBashTool();
 
 const processSchema = Type.Object({
-  action: stringEnum(
-    ["list", "poll", "log", "write", "kill", "clear", "remove"] as const,
-    {
-      description: "Process action",
-    },
-  ),
+  action: Type.String({ description: "Process action" }),
   sessionId: Type.Optional(
     Type.String({ description: "Session id for actions other than list" }),
   ),
@@ -1041,7 +1067,7 @@ function chunkString(input: string, limit = CHUNK_LIMIT) {
 function truncateMiddle(str: string, max: number) {
   if (str.length <= max) return str;
   const half = Math.floor((max - 3) / 2);
-  return `${str.slice(0, half)}...${str.slice(str.length - half)}`;
+  return `${sliceUtf16Safe(str, 0, half)}...${sliceUtf16Safe(str, -half)}`;
 }
 
 function sliceLogLines(

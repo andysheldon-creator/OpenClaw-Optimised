@@ -23,6 +23,43 @@ vi.mock("../config/config.js", async (importOriginal) => {
 import { createClawdbotTools } from "./clawdbot-tools.js";
 
 describe("sessions tools", () => {
+  it("uses number (not integer) in tool schemas for Gemini compatibility", () => {
+    const tools = createClawdbotTools();
+    const byName = (name: string) => {
+      const tool = tools.find((candidate) => candidate.name === name);
+      expect(tool).toBeDefined();
+      if (!tool) throw new Error(`missing ${name} tool`);
+      return tool;
+    };
+
+    const schemaProp = (toolName: string, prop: string) => {
+      const tool = byName(toolName);
+      const schema = tool.parameters as {
+        anyOf?: unknown;
+        oneOf?: unknown;
+        properties?: Record<string, unknown>;
+      };
+      expect(schema.anyOf).toBeUndefined();
+      expect(schema.oneOf).toBeUndefined();
+
+      const properties = schema.properties ?? {};
+      const value = properties[prop] as { type?: unknown } | undefined;
+      expect(value).toBeDefined();
+      if (!value) throw new Error(`missing ${toolName} schema prop: ${prop}`);
+      return value;
+    };
+
+    expect(schemaProp("sessions_history", "limit").type).toBe("number");
+    expect(schemaProp("sessions_list", "limit").type).toBe("number");
+    expect(schemaProp("sessions_list", "activeMinutes").type).toBe("number");
+    expect(schemaProp("sessions_list", "messageLimit").type).toBe("number");
+    expect(schemaProp("sessions_send", "timeoutSeconds").type).toBe("number");
+    expect(schemaProp("sessions_spawn", "runTimeoutSeconds").type).toBe(
+      "number",
+    );
+    expect(schemaProp("sessions_spawn", "timeoutSeconds").type).toBe("number");
+  });
+
   it("sessions_list filters kinds and includes messages", async () => {
     callGatewayMock.mockReset();
     callGatewayMock.mockImplementation(async (opts: unknown) => {
@@ -206,7 +243,11 @@ describe("sessions tools", () => {
       message: "ping",
       timeoutSeconds: 0,
     });
-    expect(fire.details).toMatchObject({ status: "accepted", runId: "run-1" });
+    expect(fire.details).toMatchObject({
+      status: "accepted",
+      runId: "run-1",
+      delivery: { status: "pending", mode: "announce" },
+    });
     await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -219,6 +260,7 @@ describe("sessions tools", () => {
     expect(waited.details).toMatchObject({
       status: "ok",
       reply: "done",
+      delivery: { status: "pending", mode: "announce" },
     });
     expect(typeof (waited.details as { runId?: string }).runId).toBe("string");
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -231,7 +273,10 @@ describe("sessions tools", () => {
     );
     expect(agentCalls).toHaveLength(8);
     for (const call of agentCalls) {
-      expect(call.params).toMatchObject({ lane: "nested" });
+      expect(call.params).toMatchObject({
+        lane: "nested",
+        provider: "webchat",
+      });
     }
     expect(
       agentCalls.some(
@@ -356,6 +401,15 @@ describe("sessions tools", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const agentCalls = calls.filter((call) => call.method === "agent");
+    expect(agentCalls).toHaveLength(4);
+    for (const call of agentCalls) {
+      expect(call.params).toMatchObject({
+        lane: "nested",
+        provider: "webchat",
+      });
+    }
 
     const replySteps = calls.filter(
       (call) =>

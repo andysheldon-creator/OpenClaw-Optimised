@@ -20,9 +20,9 @@ Status: ready for DM and guild text channels via the official Discord bot gatewa
 3. Configure Clawdbot with `DISCORD_BOT_TOKEN` (or `discord.token` in `~/.clawdbot/clawdbot.json`).
 4. Run the gateway; it auto-starts the Discord provider only when a `discord` config section exists **and** the token is set (unless `discord.enabled = false`).
    - If you prefer env vars, still add `discord: { enabled: true }` to `~/.clawdbot/clawdbot.json` and set `DISCORD_BOT_TOKEN`.
-5. Direct chats: use `user:<id>` (or a `<@id>` mention) when delivering; all turns land in the shared `main` session.
+5. Direct chats: use `user:<id>` (or a `<@id>` mention) when delivering; all turns land in the shared `main` session. Bare numeric IDs are ambiguous and rejected.
 6. Guild channels: use `channel:<channelId>` for delivery. Mentions are required by default and can be set per guild or per channel.
-7. Direct chats: secure by default via `discord.dm.policy` (default: `"pairing"`). Unknown senders get a pairing code (expires after 1 hour); approve via `clawdbot pairing approve --provider discord <code>`.
+7. Direct chats: secure by default via `discord.dm.policy` (default: `"pairing"`). Unknown senders get a pairing code (expires after 1 hour); approve via `clawdbot pairing approve discord <code>`.
    - To keep old “open to anyone” behavior: set `discord.dm.policy="open"` and `discord.dm.allowFrom=["*"]`.
    - To hard-allowlist: set `discord.dm.policy="allowlist"` and list senders in `discord.dm.allowFrom`.
    - To ignore all DMs: set `discord.dm.enabled=false` or `discord.dm.policy="disabled"`.
@@ -30,7 +30,7 @@ Status: ready for DM and guild text channels via the official Discord bot gatewa
 9. Optional guild rules: set `discord.guilds` keyed by guild id (preferred) or slug, with per-channel rules.
 10. Optional native commands: set `commands.native: true` to register native commands in Discord; set `commands.native: false` to clear previously registered native commands. Text commands are controlled by `commands.text` and must be sent as standalone `/...` messages. Use `commands.useAccessGroups: false` to bypass access-group checks for commands.
     - Full command list + config: [Slash commands](/tools/slash-commands)
-11. Optional guild context history: set `discord.historyLimit` (default 20) to include the last N guild messages as context when replying to a mention. Set `0` to disable.
+11. Optional guild context history: set `discord.historyLimit` (default 20, falls back to `messages.groupChat.historyLimit`) to include the last N guild messages as context when replying to a mention. Set `0` to disable.
 12. Reactions: the agent can trigger reactions via the `discord` tool (gated by `discord.actions.*`).
     - Reaction removal semantics: see [/tools/reactions](/tools/reactions).
     - The `discord` tool is only exposed when the current provider is Discord.
@@ -225,7 +225,8 @@ Outbound Discord API calls retry on rate limits (429) using Discord `retry_after
 ```
 
 Ack reactions are controlled globally via `messages.ackReaction` +
-`messages.ackReactionScope`.
+`messages.ackReactionScope`. Use `messages.removeAckAfterReply` to clear the
+ack reaction after the bot replies.
 
 - `dm.enabled`: set `false` to ignore all DMs (default `true`).
 - `dm.policy`: DM access control (`pairing` recommended). `"open"` requires `dm.allowFrom=["*"]`.
@@ -249,7 +250,7 @@ Ack reactions are controlled globally via `messages.ackReaction` +
 - `textChunkLimit`: outbound text chunk size (chars). Default: 2000.
 - `maxLinesPerMessage`: soft max line count per message. Default: 17.
 - `mediaMaxMb`: clamp inbound media saved to disk.
-- `historyLimit`: number of recent guild messages to include as context when replying to a mention (default 20, `0` disables).
+- `historyLimit`: number of recent guild messages to include as context when replying to a mention (default 20; falls back to `messages.groupChat.historyLimit`; `0` disables).
 - `retry`: retry policy for outbound Discord API calls (attempts, minDelayMs, maxDelayMs, jitter).
 - `actions`: per-action tool gates; omit to allow all (set `false` to disable).
   - `reactions` (covers react + read reactions)

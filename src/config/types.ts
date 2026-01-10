@@ -16,6 +16,27 @@ export type OutboundRetryConfig = {
   jitter?: number;
 };
 
+export type BlockStreamingCoalesceConfig = {
+  minChars?: number;
+  maxChars?: number;
+  idleMs?: number;
+};
+
+export type BlockStreamingChunkConfig = {
+  minChars?: number;
+  maxChars?: number;
+  breakPreference?: "paragraph" | "newline" | "sentence";
+};
+
+export type HumanDelayConfig = {
+  /** Delay style for block replies (off|natural|custom). */
+  mode?: "off" | "natural" | "custom";
+  /** Minimum delay in milliseconds (default: 800). */
+  minMs?: number;
+  /** Maximum delay in milliseconds (default: 2500). */
+  maxMs?: number;
+};
+
 export type SessionSendPolicyAction = "allow" | "deny";
 export type SessionSendPolicyMatch = {
   provider?: string;
@@ -100,16 +121,23 @@ export type IdentityConfig = {
 export type WhatsAppActionConfig = {
   reactions?: boolean;
   sendMessage?: boolean;
+  polls?: boolean;
 };
 
 export type WhatsAppConfig = {
   /** Optional per-account WhatsApp configuration (multi-account). */
   accounts?: Record<string, WhatsAppAccountConfig>;
+  /** Optional provider capability tags used for agent/runtime guidance. */
+  capabilities?: string[];
+  /**
+   * Inbound message prefix (WhatsApp only).
+   * Default: `[{agents.list[].identity.name}]` (or `[clawdbot]`) when allowFrom is empty, else `""`.
+   */
+  messagePrefix?: string;
   /** Direct message access policy (default: pairing). */
   dmPolicy?: DmPolicy;
   /**
    * Same-phone setup (bot uses your personal WhatsApp number).
-   * When true, suppress pairing replies for outbound DMs.
    */
   selfChatMode?: boolean;
   /** Optional allowlist for WhatsApp direct chats (E.164). */
@@ -123,8 +151,16 @@ export type WhatsAppConfig = {
    * - "allowlist": only allow group messages from senders in groupAllowFrom/allowFrom
    */
   groupPolicy?: GroupPolicy;
+  /** Max group messages to keep as history context (0 disables). */
+  historyLimit?: number;
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;
+  /** Maximum media file size in MB. Default: 50. */
+  mediaMaxMb?: number;
+  /** Disable block streaming for this account. */
+  blockStreaming?: boolean;
+  /** Merge streamed block replies before sending. */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   /** Per-action tool gating (default: true for all). */
   actions?: WhatsAppActionConfig;
   groups?: Record<
@@ -138,18 +174,28 @@ export type WhatsAppConfig = {
 export type WhatsAppAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
+  /** Optional provider capability tags used for agent/runtime guidance. */
+  capabilities?: string[];
   /** If false, do not start this WhatsApp account provider. Default: true. */
   enabled?: boolean;
+  /** Inbound message prefix override for this account (WhatsApp only). */
+  messagePrefix?: string;
   /** Override auth directory (Baileys multi-file auth state). */
   authDir?: string;
   /** Direct message access policy (default: pairing). */
   dmPolicy?: DmPolicy;
-  /** Same-phone setup for this account (suppresses pairing replies for outbound DMs). */
+  /** Same-phone setup for this account (bot uses your personal WhatsApp number). */
   selfChatMode?: boolean;
   allowFrom?: string[];
   groupAllowFrom?: string[];
   groupPolicy?: GroupPolicy;
+  /** Max group messages to keep as history context (0 disables). */
+  historyLimit?: number;
   textChunkLimit?: number;
+  mediaMaxMb?: number;
+  blockStreaming?: boolean;
+  /** Merge streamed block replies before sending. */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   groups?: Record<
     string,
     {
@@ -251,7 +297,13 @@ export type HooksGmailConfig = {
   tailscale?: {
     mode?: HooksGmailTailscaleMode;
     path?: string;
+    /** Optional tailscale serve/funnel target (port, host:port, or full URL). */
+    target?: string;
   };
+  /** Optional model override for Gmail hook processing (provider/model or alias). */
+  model?: string;
+  /** Optional thinking level override for Gmail hook processing. */
+  thinking?: "off" | "minimal" | "low" | "medium" | "high";
 };
 
 export type HooksConfig = {
@@ -273,6 +325,8 @@ export type TelegramActionConfig = {
 export type TelegramAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
+  /** Optional provider capability tags used for agent/runtime guidance. */
+  capabilities?: string[];
   /**
    * Controls how Telegram direct chats (DMs) are handled:
    * - "pairing" (default): unknown senders get a pairing code; owner must approve
@@ -299,8 +353,16 @@ export type TelegramAccountConfig = {
    * - "allowlist": only allow group messages from senders in groupAllowFrom/allowFrom
    */
   groupPolicy?: GroupPolicy;
+  /** Max group messages to keep as history context (0 disables). */
+  historyLimit?: number;
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;
+  /** Disable block streaming for this account. */
+  blockStreaming?: boolean;
+  /** Chunking config for draft streaming in `streamMode: "block"`. */
+  draftChunk?: BlockStreamingChunkConfig;
+  /** Merge streamed block replies before sending. */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   /** Draft streaming mode for Telegram (off|partial|block). Default: partial. */
   streamMode?: "off" | "partial" | "block";
   mediaMaxMb?: number;
@@ -404,11 +466,14 @@ export type DiscordActionConfig = {
   moderation?: boolean;
   emojiUploads?: boolean;
   stickerUploads?: boolean;
+  channels?: boolean;
 };
 
 export type DiscordAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
+  /** Optional provider capability tags used for agent/runtime guidance. */
+  capabilities?: string[];
   /** If false, do not start this Discord account. Default: true. */
   enabled?: boolean;
   token?: string;
@@ -421,6 +486,10 @@ export type DiscordAccountConfig = {
   groupPolicy?: GroupPolicy;
   /** Outbound text chunk size (chars). Default: 2000. */
   textChunkLimit?: number;
+  /** Disable block streaming for this account. */
+  blockStreaming?: boolean;
+  /** Merge streamed block replies before sending. */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   /**
    * Soft max line count per Discord message.
    * Discord clients can clip/collapse very tall messages; splitting by lines
@@ -475,6 +544,12 @@ export type SlackChannelConfig = {
   systemPrompt?: string;
 };
 
+export type SignalReactionNotificationMode =
+  | "off"
+  | "own"
+  | "all"
+  | "allowlist";
+
 export type SlackReactionNotificationMode = "off" | "own" | "all" | "allowlist";
 
 export type SlackActionConfig = {
@@ -502,6 +577,8 @@ export type SlackSlashCommandConfig = {
 export type SlackAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
+  /** Optional provider capability tags used for agent/runtime guidance. */
+  capabilities?: string[];
   /** If false, do not start this Slack account. Default: true. */
   enabled?: boolean;
   botToken?: string;
@@ -515,7 +592,12 @@ export type SlackAccountConfig = {
    * - "allowlist": only allow channels present in slack.channels
    */
   groupPolicy?: GroupPolicy;
+  /** Max channel messages to keep as history context (0 disables). */
+  historyLimit?: number;
   textChunkLimit?: number;
+  blockStreaming?: boolean;
+  /** Merge streamed block replies before sending. */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   mediaMaxMb?: number;
   /** Reaction notification mode (off|own|all|allowlist). Default: own. */
   reactionNotifications?: SlackReactionNotificationMode;
@@ -537,6 +619,8 @@ export type SlackConfig = {
 export type SignalAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
+  /** Optional provider capability tags used for agent/runtime guidance. */
+  capabilities?: string[];
   /** If false, do not start this Signal account. Default: true. */
   enabled?: boolean;
   /** Optional explicit E.164 account for signal-cli. */
@@ -567,9 +651,18 @@ export type SignalAccountConfig = {
    * - "allowlist": only allow group messages from senders in groupAllowFrom/allowFrom
    */
   groupPolicy?: GroupPolicy;
+  /** Max group messages to keep as history context (0 disables). */
+  historyLimit?: number;
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;
+  blockStreaming?: boolean;
+  /** Merge streamed block replies before sending. */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   mediaMaxMb?: number;
+  /** Reaction notification mode (off|own|all|allowlist). Default: own. */
+  reactionNotifications?: SignalReactionNotificationMode;
+  /** Allowlist for reaction notifications when mode is allowlist. */
+  reactionAllowlist?: Array<string | number>;
 };
 
 export type SignalConfig = {
@@ -608,6 +701,8 @@ export type MSTeamsTeamConfig = {
 export type MSTeamsConfig = {
   /** If false, do not start the MS Teams provider. Default: true. */
   enabled?: boolean;
+  /** Optional provider capability tags used for agent/runtime guidance. */
+  capabilities?: string[];
   /** Azure Bot App ID (from Azure Bot registration). */
   appId?: string;
   /** Azure Bot App Password / Client Secret. */
@@ -622,6 +717,8 @@ export type MSTeamsConfig = {
   allowFrom?: Array<string>;
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;
+  /** Merge streamed block replies before sending. */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   /**
    * Allowed host suffixes for inbound attachment downloads.
    * Use ["*"] to allow any host (not recommended).
@@ -629,6 +726,8 @@ export type MSTeamsConfig = {
   mediaAllowHosts?: Array<string>;
   /** Default: require @mention to respond in channels/groups. */
   requireMention?: boolean;
+  /** Max group/channel messages to keep as history context (0 disables). */
+  historyLimit?: number;
   /** Default reply style: "thread" replies to the message, "top-level" posts a new message. */
   replyStyle?: MSTeamsReplyStyle;
   /** Per-team config. Key is team ID (from the /team/ URL path segment). */
@@ -638,6 +737,8 @@ export type MSTeamsConfig = {
 export type IMessageAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
+  /** Optional provider capability tags used for agent/runtime guidance. */
+  capabilities?: string[];
   /** If false, do not start this iMessage account. Default: true. */
   enabled?: boolean;
   /** imsg CLI binary path (default: imsg). */
@@ -661,12 +762,17 @@ export type IMessageAccountConfig = {
    * - "allowlist": only allow group messages from senders in groupAllowFrom/allowFrom
    */
   groupPolicy?: GroupPolicy;
+  /** Max group messages to keep as history context (0 disables). */
+  historyLimit?: number;
   /** Include attachments + reactions in watch payloads. */
   includeAttachments?: boolean;
   /** Max outbound media size in MB. */
   mediaMaxMb?: number;
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;
+  blockStreaming?: boolean;
+  /** Merge streamed block replies before sending. */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   groups?: Record<
     string,
     {
@@ -754,6 +860,13 @@ export type SandboxBrowserSettings = {
   noVncPort?: number;
   headless?: boolean;
   enableNoVnc?: boolean;
+  /**
+   * When true (default), sandboxed browser control will try to start/reattach to
+   * the sandbox browser container when a tool call needs it.
+   */
+  autoStart?: boolean;
+  /** Max time to wait for CDP to become reachable after auto-start (ms). */
+  autoStartTimeoutMs?: number;
 };
 
 export type SandboxPruneSettings = {
@@ -779,6 +892,13 @@ export type QueueConfig = {
 export type AgentToolsConfig = {
   allow?: string[];
   deny?: string[];
+  /** Per-agent elevated bash gate (can only further restrict global tools.elevated). */
+  elevated?: {
+    /** Enable or disable elevated mode for this agent (default: true). */
+    enabled?: boolean;
+    /** Approved senders for /elevated (per-provider allowlists). */
+    allowFrom?: AgentElevatedAllowFromConfig;
+  };
   sandbox?: {
     tools?: {
       allow?: string[];
@@ -835,6 +955,8 @@ export type AgentConfig = {
   workspace?: string;
   agentDir?: string;
   model?: string;
+  /** Human-like delay between block replies for this agent. */
+  humanDelay?: HumanDelayConfig;
   identity?: IdentityConfig;
   groupChat?: GroupChatConfig;
   subagents?: {
@@ -882,6 +1004,19 @@ export type AgentBinding = {
   };
 };
 
+export type BroadcastStrategy = "parallel" | "sequential";
+
+export type BroadcastConfig = {
+  /** Default processing strategy for broadcast peers. */
+  strategy?: BroadcastStrategy;
+  /**
+   * Map peer IDs to arrays of agent IDs that should ALL process messages.
+   *
+   * Note: the index signature includes `undefined` so `strategy?: ...` remains type-safe.
+   */
+  [peerId: string]: string[] | BroadcastStrategy | undefined;
+};
+
 export type AudioConfig = {
   transcription?: {
     // Optional CLI to turn inbound audio into text; templated args, must output transcript to stdout.
@@ -891,14 +1026,23 @@ export type AudioConfig = {
 };
 
 export type MessagesConfig = {
-  messagePrefix?: string; // Prefix added to all inbound messages (default: "[clawdbot]" if no allowFrom, else "")
-  responsePrefix?: string; // Prefix auto-added to all outbound replies (e.g., "🦞")
+  /** @deprecated Use `whatsapp.messagePrefix` (WhatsApp-only inbound prefix). */
+  messagePrefix?: string;
+  /**
+   * Prefix auto-added to all outbound replies.
+   * - string: explicit prefix
+   * - special value: `"auto"` derives `[{agents.list[].identity.name}]` for the routed agent (when set)
+   * Default: none
+   */
+  responsePrefix?: string;
   groupChat?: GroupChatConfig;
   queue?: QueueConfig;
   /** Emoji reaction used to acknowledge inbound messages (empty disables). */
   ackReaction?: string;
   /** When to send ack reactions. Default: "group-mentions". */
   ackReactionScope?: "group-mentions" | "group-all" | "direct" | "all";
+  /** Remove ack reaction after reply is sent (default: false). */
+  removeAckAfterReply?: boolean;
 };
 
 export type CommandsConfig = {
@@ -1011,6 +1155,22 @@ export type GatewayReloadConfig = {
   debounceMs?: number;
 };
 
+export type GatewayHttpChatCompletionsConfig = {
+  /**
+   * If false, the Gateway will not serve `POST /v1/chat/completions`.
+   * Default: false when absent.
+   */
+  enabled?: boolean;
+};
+
+export type GatewayHttpEndpointsConfig = {
+  chatCompletions?: GatewayHttpChatCompletionsConfig;
+};
+
+export type GatewayHttpConfig = {
+  endpoints?: GatewayHttpEndpointsConfig;
+};
+
 export type GatewayConfig = {
   /** Single multiplexed port for Gateway WS + HTTP (default: 18789). */
   port?: number;
@@ -1029,6 +1189,7 @@ export type GatewayConfig = {
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;
   reload?: GatewayReloadConfig;
+  http?: GatewayHttpConfig;
 };
 
 export type SkillConfig = {
@@ -1092,7 +1253,7 @@ export type ModelDefinitionConfig = {
 
 export type ModelProviderConfig = {
   baseUrl: string;
-  apiKey: string;
+  apiKey?: string;
   api?: ModelApi;
   headers?: Record<string, string>;
   authHeader?: boolean;
@@ -1119,6 +1280,19 @@ export type AuthProfileConfig = {
 export type AuthConfig = {
   profiles?: Record<string, AuthProfileConfig>;
   order?: Record<string, string[]>;
+  cooldowns?: {
+    /** Default billing backoff (hours). Default: 5. */
+    billingBackoffHours?: number;
+    /** Optional per-provider billing backoff (hours). */
+    billingBackoffHoursByProvider?: Record<string, number>;
+    /** Billing backoff cap (hours). Default: 24. */
+    billingMaxHours?: number;
+    /**
+     * Failure window for backoff counters (hours). If no failures occur within
+     * this window, counters reset. Default: 24.
+     */
+    failureWindowHours?: number;
+  };
 };
 
 export type AgentModelEntryConfig = {
@@ -1185,11 +1359,14 @@ export type AgentDefaultsConfig = {
    */
   blockStreamingBreak?: "text_end" | "message_end";
   /** Soft block chunking for streamed replies (min/max chars, prefer paragraph/newline). */
-  blockStreamingChunk?: {
-    minChars?: number;
-    maxChars?: number;
-    breakPreference?: "paragraph" | "newline" | "sentence";
-  };
+  blockStreamingChunk?: BlockStreamingChunkConfig;
+  /**
+   * Block reply coalescing (merge streamed chunks before send).
+   * idleMs: wait time before flushing when idle.
+   */
+  blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
+  /** Human-like delay between block replies. */
+  humanDelay?: HumanDelayConfig;
   timeoutSeconds?: number;
   /** Max inbound media size in MB for agent-visible attachments (text note or future image attach). */
   mediaMaxMb?: number;
@@ -1202,16 +1379,16 @@ export type AgentDefaultsConfig = {
     every?: string;
     /** Heartbeat model override (provider/model). */
     model?: string;
-    /** Delivery target (last|whatsapp|telegram|discord|signal|imessage|none). */
+    /** Delivery target (last|whatsapp|telegram|discord|slack|msteams|signal|imessage|none). */
     target?:
       | "last"
       | "whatsapp"
       | "telegram"
       | "discord"
       | "slack"
+      | "msteams"
       | "signal"
       | "imessage"
-      | "msteams"
       | "none";
     /** Optional delivery override (E.164 for WhatsApp, chat id for Telegram). */
     to?: string;
@@ -1219,6 +1396,13 @@ export type AgentDefaultsConfig = {
     prompt?: string;
     /** Max chars allowed after HEARTBEAT_OK before delivery (default: 30). */
     ackMaxChars?: number;
+    /**
+     * When enabled, deliver the model's reasoning payload for heartbeat runs (when available)
+     * as a separate message prefixed with `Reasoning:` (same as `/reasoning on`).
+     *
+     * Default: false (only the final heartbeat payload is delivered).
+     */
+    includeReasoning?: boolean;
   };
   /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
   maxConcurrent?: number;
@@ -1297,6 +1481,7 @@ export type ClawdbotConfig = {
   agents?: AgentsConfig;
   tools?: ToolsConfig;
   bindings?: AgentBinding[];
+  broadcast?: BroadcastConfig;
   audio?: AudioConfig;
   messages?: MessagesConfig;
   commands?: CommandsConfig;

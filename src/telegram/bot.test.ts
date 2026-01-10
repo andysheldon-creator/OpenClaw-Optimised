@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { resetInboundDedupe } from "../auto-reply/reply/inbound-dedupe.js";
 import * as replyModule from "../auto-reply/reply.js";
 import { createTelegramBot, getTelegramSequentialKey } from "./bot.js";
 import { resolveTelegramFetch } from "./fetch.js";
@@ -46,6 +47,7 @@ const onSpy = vi.fn();
 const stopSpy = vi.fn();
 const commandSpy = vi.fn();
 const botCtorSpy = vi.fn();
+const answerCallbackQuerySpy = vi.fn(async () => undefined);
 const sendChatActionSpy = vi.fn();
 const setMessageReactionSpy = vi.fn(async () => undefined);
 const setMyCommandsSpy = vi.fn(async () => undefined);
@@ -54,6 +56,7 @@ const sendAnimationSpy = vi.fn(async () => ({ message_id: 78 }));
 const sendPhotoSpy = vi.fn(async () => ({ message_id: 79 }));
 type ApiStub = {
   config: { use: (arg: unknown) => void };
+  answerCallbackQuery: typeof answerCallbackQuerySpy;
   sendChatAction: typeof sendChatActionSpy;
   setMessageReaction: typeof setMessageReactionSpy;
   setMyCommands: typeof setMyCommandsSpy;
@@ -63,6 +66,7 @@ type ApiStub = {
 };
 const apiStub: ApiStub = {
   config: { use: useSpy },
+  answerCallbackQuery: answerCallbackQuerySpy,
   sendChatAction: sendChatActionSpy,
   setMessageReaction: setMessageReactionSpy,
   setMyCommands: setMyCommandsSpy,
@@ -113,8 +117,15 @@ vi.mock("../auto-reply/reply.js", () => {
   return { getReplyFromConfig: replySpy, __replySpy: replySpy };
 });
 
+const getOnHandler = (event: string) => {
+  const handler = onSpy.mock.calls.find((call) => call[0] === event)?.[1];
+  if (!handler) throw new Error(`Missing handler for event: ${event}`);
+  return handler as (ctx: Record<string, unknown>) => Promise<void>;
+};
+
 describe("createTelegramBot", () => {
   beforeEach(() => {
+    resetInboundDedupe();
     loadConfig.mockReturnValue({
       telegram: { dmPolicy: "open", allowFrom: ["*"] },
     });
@@ -122,6 +133,7 @@ describe("createTelegramBot", () => {
     sendAnimationSpy.mockReset();
     sendPhotoSpy.mockReset();
     setMessageReactionSpy.mockReset();
+    answerCallbackQuerySpy.mockReset();
     setMyCommandsSpy.mockReset();
     middlewareUseSpy.mockReset();
     sequentializeSpy.mockReset();
@@ -206,6 +218,40 @@ describe("createTelegramBot", () => {
     ).toBe("telegram:555");
   });
 
+  it("routes callback_query payloads as messages and answers callbacks", async () => {
+    onSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    replySpy.mockReset();
+
+    createTelegramBot({ token: "tok" });
+    const callbackHandler = onSpy.mock.calls.find(
+      (call) => call[0] === "callback_query",
+    )?.[1] as (ctx: Record<string, unknown>) => Promise<void>;
+    expect(callbackHandler).toBeDefined();
+
+    await callbackHandler({
+      callbackQuery: {
+        id: "cbq-1",
+        data: "cmd:option_a",
+        from: { id: 9, first_name: "Ada", username: "ada_bot" },
+        message: {
+          chat: { id: 1234, type: "private" },
+          date: 1736380800,
+          message_id: 10,
+        },
+      },
+      me: { username: "clawdbot_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    });
+
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    const payload = replySpy.mock.calls[0][0];
+    expect(payload.Body).toContain("cmd:option_a");
+    expect(answerCallbackQuerySpy).toHaveBeenCalledWith("cbq-1");
+  });
+
   it("wraps inbound message with Telegram envelope", async () => {
     const originalTz = process.env.TZ;
     process.env.TZ = "Europe/Vienna";
@@ -219,7 +265,7 @@ describe("createTelegramBot", () => {
 
       createTelegramBot({ token: "tok" });
       expect(onSpy).toHaveBeenCalledWith("message", expect.any(Function));
-      const handler = onSpy.mock.calls[0][1] as (
+      const handler = getOnHandler("message") as (
         ctx: Record<string, unknown>,
       ) => Promise<void>;
 
@@ -266,7 +312,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -308,7 +354,7 @@ describe("createTelegramBot", () => {
       .mockResolvedValueOnce({ code: "PAIRME12", created: false });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -339,7 +385,7 @@ describe("createTelegramBot", () => {
     sendChatActionSpy.mockReset();
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
     await handler({
@@ -365,7 +411,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -401,7 +447,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -447,7 +493,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -491,7 +537,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -523,7 +569,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -553,7 +599,7 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -591,7 +637,7 @@ describe("createTelegramBot", () => {
     replySpy.mockResolvedValue({ text: "a".repeat(4500) });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
     await handler({
@@ -624,7 +670,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok", replyToMode: "first" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
     await handler({
@@ -663,7 +709,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
     await handler({
@@ -694,7 +740,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok", replyToMode: "all" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
     await handler({
@@ -729,7 +775,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -757,7 +803,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -806,7 +852,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -839,7 +885,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -877,7 +923,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -913,7 +959,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -941,7 +987,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -976,7 +1022,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1015,7 +1061,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1048,7 +1094,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1081,7 +1127,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1114,7 +1160,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1147,7 +1193,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1180,7 +1226,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1212,7 +1258,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1245,7 +1291,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1277,7 +1323,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1308,7 +1354,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1339,7 +1385,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1372,7 +1418,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1404,7 +1450,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1437,7 +1483,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1471,7 +1517,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1504,7 +1550,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1537,7 +1583,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1568,7 +1614,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1629,7 +1675,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1673,7 +1719,7 @@ describe("createTelegramBot", () => {
     });
 
     createTelegramBot({ token: "tok" });
-    const handler = onSpy.mock.calls[0][1] as (
+    const handler = getOnHandler("message") as (
       ctx: Record<string, unknown>,
     ) => Promise<void>;
 
@@ -1749,5 +1795,127 @@ describe("createTelegramBot", () => {
       expect.any(String),
       expect.objectContaining({ message_thread_id: 99 }),
     );
+  });
+
+  it("dedupes duplicate message updates by update_id", async () => {
+    onSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    replySpy.mockReset();
+
+    loadConfig.mockReturnValue({
+      telegram: { dmPolicy: "open", allowFrom: ["*"] },
+    });
+
+    createTelegramBot({ token: "tok" });
+    const handler = getOnHandler("message") as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+
+    const ctx = {
+      update: { update_id: 111 },
+      message: {
+        chat: { id: 123, type: "private" },
+        from: { id: 456, username: "testuser" },
+        text: "hello",
+        date: 1736380800,
+        message_id: 42,
+      },
+      me: { username: "clawdbot_bot" },
+      getFile: async () => ({ download: async () => new Uint8Array() }),
+    };
+
+    await handler(ctx);
+    await handler(ctx);
+
+    expect(replySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("dedupes duplicate callback_query updates by update_id", async () => {
+    onSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    replySpy.mockReset();
+
+    loadConfig.mockReturnValue({
+      telegram: { dmPolicy: "open", allowFrom: ["*"] },
+    });
+
+    createTelegramBot({ token: "tok" });
+    const handler = getOnHandler("callback_query") as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+
+    const ctx = {
+      update: { update_id: 222 },
+      callbackQuery: {
+        id: "cb-1",
+        data: "ping",
+        from: { id: 789, username: "testuser" },
+        message: {
+          chat: { id: 123, type: "private" },
+          date: 1736380800,
+          message_id: 9001,
+        },
+      },
+      me: { username: "clawdbot_bot" },
+      getFile: async () => ({}),
+    };
+
+    await handler(ctx);
+    await handler(ctx);
+
+    expect(replySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows distinct callback_query ids without update_id", async () => {
+    onSpy.mockReset();
+    const replySpy = replyModule.__replySpy as unknown as ReturnType<
+      typeof vi.fn
+    >;
+    replySpy.mockReset();
+
+    loadConfig.mockReturnValue({
+      telegram: { dmPolicy: "open", allowFrom: ["*"] },
+    });
+
+    createTelegramBot({ token: "tok" });
+    const handler = getOnHandler("callback_query") as (
+      ctx: Record<string, unknown>,
+    ) => Promise<void>;
+
+    await handler({
+      callbackQuery: {
+        id: "cb-1",
+        data: "ping",
+        from: { id: 789, username: "testuser" },
+        message: {
+          chat: { id: 123, type: "private" },
+          date: 1736380800,
+          message_id: 9001,
+        },
+      },
+      me: { username: "clawdbot_bot" },
+      getFile: async () => ({}),
+    });
+
+    await handler({
+      callbackQuery: {
+        id: "cb-2",
+        data: "ping",
+        from: { id: 789, username: "testuser" },
+        message: {
+          chat: { id: 123, type: "private" },
+          date: 1736380800,
+          message_id: 9001,
+        },
+      },
+      me: { username: "clawdbot_bot" },
+      getFile: async () => ({}),
+    });
+
+    expect(replySpy).toHaveBeenCalledTimes(2);
   });
 });

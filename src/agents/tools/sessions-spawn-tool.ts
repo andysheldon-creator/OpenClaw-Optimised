@@ -9,7 +9,9 @@ import {
   normalizeAgentId,
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
+import type { GatewayMessageProvider } from "../../utils/message-provider.js";
 import { resolveAgentConfig } from "../agent-scope.js";
+import { AGENT_LANE_SUBAGENT } from "../lanes.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import { registerSubagentRun } from "../subagent-registry.js";
 import type { AnyAgentTool } from "./common.js";
@@ -25,9 +27,9 @@ const SessionsSpawnToolSchema = Type.Object({
   label: Type.Optional(Type.String()),
   agentId: Type.Optional(Type.String()),
   model: Type.Optional(Type.String()),
-  runTimeoutSeconds: Type.Optional(Type.Integer({ minimum: 0 })),
+  runTimeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   // Back-compat alias. Prefer runTimeoutSeconds.
-  timeoutSeconds: Type.Optional(Type.Integer({ minimum: 0 })),
+  timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   cleanup: Type.Optional(
     Type.Union([Type.Literal("delete"), Type.Literal("keep")]),
   ),
@@ -35,7 +37,7 @@ const SessionsSpawnToolSchema = Type.Object({
 
 export function createSessionsSpawnTool(opts?: {
   agentSessionKey?: string;
-  agentProvider?: string;
+  agentProvider?: GatewayMessageProvider;
   sandboxed?: boolean;
 }): AnyAgentTool {
   return {
@@ -126,17 +128,7 @@ export function createSessionsSpawnTool(opts?: {
         }
       }
       const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
-      if (opts?.sandboxed === true) {
-        try {
-          await callGateway({
-            method: "sessions.patch",
-            params: { key: childSessionKey, spawnedBy: requesterInternalKey },
-            timeoutMs: 10_000,
-          });
-        } catch {
-          // best-effort; scoping relies on this metadata but spawning still works without it
-        }
-      }
+      const shouldPatchSpawnedBy = opts?.sandboxed === true;
       if (model) {
         try {
           await callGateway({
@@ -170,6 +162,7 @@ export function createSessionsSpawnTool(opts?: {
         requesterProvider: opts?.agentProvider,
         childSessionKey,
         label: label || undefined,
+        task,
       });
 
       const childIdem = crypto.randomUUID();
@@ -180,11 +173,14 @@ export function createSessionsSpawnTool(opts?: {
           params: {
             message: task,
             sessionKey: childSessionKey,
+            provider: opts?.agentProvider,
             idempotencyKey: childIdem,
             deliver: false,
-            lane: "subagent",
+            lane: AGENT_LANE_SUBAGENT,
             extraSystemPrompt: childSystemPrompt,
             timeout: runTimeoutSeconds > 0 ? runTimeoutSeconds : undefined,
+            label: label || undefined,
+            spawnedBy: shouldPatchSpawnedBy ? requesterInternalKey : undefined,
           },
           timeoutMs: 10_000,
         })) as { runId?: string };
@@ -214,6 +210,7 @@ export function createSessionsSpawnTool(opts?: {
         requesterDisplayKey,
         task,
         cleanup,
+        label: label || undefined,
       });
 
       return jsonResult({

@@ -21,6 +21,9 @@ import {
 
 installGatewayTestHooks();
 
+const BASE_IMAGE_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X3mIAAAAASUVORK5CYII=";
+
 function expectProviders(call: Record<string, unknown>, provider: string) {
   expect(call.provider).toBe(provider);
   expect(call.messageProvider).toBe(provider);
@@ -103,9 +106,106 @@ describe("gateway server agent", () => {
     const call = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
     expect(call.sessionKey).toBe("agent:main:subagent:abc");
     expect(call.sessionId).toBe("sess-sub");
+    expectProviders(call, "webchat");
+    expect(call.deliver).toBe(false);
+    expect(call.to).toBeUndefined();
 
     ws.close();
     await server.close();
+  });
+
+  test("agent forwards image attachments as images[]", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
+    testState.sessionStorePath = path.join(dir, "sessions.json");
+    await fs.writeFile(
+      testState.sessionStorePath,
+      JSON.stringify(
+        {
+          main: {
+            sessionId: "sess-main-images",
+            updatedAt: Date.now(),
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+
+    const res = await rpcReq(ws, "agent", {
+      message: "what is in the image?",
+      sessionKey: "main",
+      attachments: [
+        {
+          mimeType: "image/png",
+          fileName: "tiny.png",
+          content: BASE_IMAGE_PNG,
+        },
+      ],
+      idempotencyKey: "idem-agent-attachments",
+    });
+    expect(res.ok).toBe(true);
+
+    const spy = vi.mocked(agentCommand);
+    const call = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(call.sessionKey).toBe("main");
+    expectProviders(call, "webchat");
+    expect(call.message).toBe("what is in the image?");
+
+    const images = call.images as Array<Record<string, unknown>>;
+    expect(Array.isArray(images)).toBe(true);
+    expect(images.length).toBe(1);
+    expect(images[0]?.type).toBe("image");
+    expect(images[0]?.mimeType).toBe("image/png");
+    expect(images[0]?.data).toBe(BASE_IMAGE_PNG);
+
+    ws.close();
+    await server.close();
+  });
+
+  test("agent falls back to whatsapp when delivery requested and no last provider exists", async () => {
+    testState.allowFrom = ["+1555"];
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
+    testState.sessionStorePath = path.join(dir, "sessions.json");
+    await fs.writeFile(
+      testState.sessionStorePath,
+      JSON.stringify(
+        {
+          main: {
+            sessionId: "sess-main-missing-provider",
+            updatedAt: Date.now(),
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+
+    const res = await rpcReq(ws, "agent", {
+      message: "hi",
+      sessionKey: "main",
+      deliver: true,
+      idempotencyKey: "idem-agent-missing-provider",
+    });
+    expect(res.ok).toBe(true);
+
+    const spy = vi.mocked(agentCommand);
+    const call = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expectProviders(call, "whatsapp");
+    expect(call.to).toBe("+1555");
+    expect(call.deliver).toBe(true);
+    expect(call.sessionId).toBe("sess-main-missing-provider");
+
+    ws.close();
+    await server.close();
+    testState.allowFrom = undefined;
   });
 
   test("agent routes main last-channel whatsapp", async () => {
@@ -241,6 +341,50 @@ describe("gateway server agent", () => {
     await server.close();
   });
 
+  test("agent routes main last-channel slack", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
+    testState.sessionStorePath = path.join(dir, "sessions.json");
+    await fs.writeFile(
+      testState.sessionStorePath,
+      JSON.stringify(
+        {
+          main: {
+            sessionId: "sess-slack",
+            updatedAt: Date.now(),
+            lastProvider: "slack",
+            lastTo: "channel:slack-123",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+
+    const res = await rpcReq(ws, "agent", {
+      message: "hi",
+      sessionKey: "main",
+      provider: "last",
+      deliver: true,
+      idempotencyKey: "idem-agent-last-slack",
+    });
+    expect(res.ok).toBe(true);
+
+    const spy = vi.mocked(agentCommand);
+    const call = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expectProviders(call, "slack");
+    expect(call.to).toBe("channel:slack-123");
+    expect(call.deliver).toBe(true);
+    expect(call.bestEffortDeliver).toBe(true);
+    expect(call.sessionId).toBe("sess-slack");
+
+    ws.close();
+    await server.close();
+  });
+
   test("agent routes main last-channel signal", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
     testState.sessionStorePath = path.join(dir, "sessions.json");
@@ -280,6 +424,125 @@ describe("gateway server agent", () => {
     expect(call.deliver).toBe(true);
     expect(call.bestEffortDeliver).toBe(true);
     expect(call.sessionId).toBe("sess-signal");
+
+    ws.close();
+    await server.close();
+  });
+
+  test("agent routes main last-channel msteams", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
+    testState.sessionStorePath = path.join(dir, "sessions.json");
+    await fs.writeFile(
+      testState.sessionStorePath,
+      JSON.stringify(
+        {
+          main: {
+            sessionId: "sess-teams",
+            updatedAt: Date.now(),
+            lastProvider: "msteams",
+            lastTo: "conversation:teams-123",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+
+    const res = await rpcReq(ws, "agent", {
+      message: "hi",
+      sessionKey: "main",
+      provider: "last",
+      deliver: true,
+      idempotencyKey: "idem-agent-last-msteams",
+    });
+    expect(res.ok).toBe(true);
+
+    const spy = vi.mocked(agentCommand);
+    const call = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expectProviders(call, "msteams");
+    expect(call.to).toBe("conversation:teams-123");
+    expect(call.deliver).toBe(true);
+    expect(call.bestEffortDeliver).toBe(true);
+    expect(call.sessionId).toBe("sess-teams");
+
+    ws.close();
+    await server.close();
+  });
+
+  test("agent accepts provider aliases (imsg/teams)", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
+    testState.sessionStorePath = path.join(dir, "sessions.json");
+    await fs.writeFile(
+      testState.sessionStorePath,
+      JSON.stringify(
+        {
+          main: {
+            sessionId: "sess-alias",
+            updatedAt: Date.now(),
+            lastProvider: "imessage",
+            lastTo: "chat_id:123",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+
+    const resIMessage = await rpcReq(ws, "agent", {
+      message: "hi",
+      sessionKey: "main",
+      provider: "imsg",
+      deliver: true,
+      idempotencyKey: "idem-agent-imsg",
+    });
+    expect(resIMessage.ok).toBe(true);
+
+    const resTeams = await rpcReq(ws, "agent", {
+      message: "hi",
+      sessionKey: "main",
+      provider: "teams",
+      to: "conversation:teams-abc",
+      deliver: false,
+      idempotencyKey: "idem-agent-teams",
+    });
+    expect(resTeams.ok).toBe(true);
+
+    const spy = vi.mocked(agentCommand);
+    const lastIMessageCall = spy.mock.calls.at(-2)?.[0] as Record<
+      string,
+      unknown
+    >;
+    expectProviders(lastIMessageCall, "imessage");
+    expect(lastIMessageCall.to).toBe("chat_id:123");
+
+    const lastTeamsCall = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expectProviders(lastTeamsCall, "msteams");
+    expect(lastTeamsCall.to).toBe("conversation:teams-abc");
+
+    ws.close();
+    await server.close();
+  });
+
+  test("agent rejects unknown provider", async () => {
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+
+    const res = await rpcReq(ws, "agent", {
+      message: "hi",
+      sessionKey: "main",
+      provider: "sms",
+      idempotencyKey: "idem-agent-bad-provider",
+    });
+    expect(res.ok).toBe(false);
+    expect(res.error?.code).toBe("INVALID_REQUEST");
 
     ws.close();
     await server.close();
@@ -325,6 +588,50 @@ describe("gateway server agent", () => {
     expect(call.deliver).toBe(true);
     expect(call.bestEffortDeliver).toBe(true);
     expect(call.sessionId).toBe("sess-main-webchat");
+
+    ws.close();
+    await server.close();
+  });
+
+  test("agent uses webchat for internal runs when last provider is webchat", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
+    testState.sessionStorePath = path.join(dir, "sessions.json");
+    await fs.writeFile(
+      testState.sessionStorePath,
+      JSON.stringify(
+        {
+          main: {
+            sessionId: "sess-main-webchat-internal",
+            updatedAt: Date.now(),
+            lastProvider: "webchat",
+            lastTo: "+1555",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+
+    const res = await rpcReq(ws, "agent", {
+      message: "hi",
+      sessionKey: "main",
+      provider: "last",
+      deliver: false,
+      idempotencyKey: "idem-agent-webchat-internal",
+    });
+    expect(res.ok).toBe(true);
+
+    const spy = vi.mocked(agentCommand);
+    const call = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expectProviders(call, "webchat");
+    expect(call.to).toBeUndefined();
+    expect(call.deliver).toBe(false);
+    expect(call.bestEffortDeliver).toBe(true);
+    expect(call.sessionId).toBe("sess-main-webchat-internal");
 
     ws.close();
     await server.close();
@@ -533,7 +840,10 @@ describe("gateway server agent", () => {
       },
     });
 
-    registerAgentRunContext("run-tool-1", { sessionKey: "main" });
+    registerAgentRunContext("run-tool-1", {
+      sessionKey: "main",
+      verboseLevel: "on",
+    });
 
     const agentEvtP = onceMessage(
       ws,
@@ -556,6 +866,66 @@ describe("gateway server agent", () => {
         ? (evt.payload as Record<string, unknown>)
         : {};
     expect(payload.sessionKey).toBe("main");
+
+    ws.close();
+    await server.close();
+  });
+
+  test("suppresses tool stream events when verbose is off", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-"));
+    testState.sessionStorePath = path.join(dir, "sessions.json");
+    await fs.writeFile(
+      testState.sessionStorePath,
+      JSON.stringify(
+        {
+          "agent:main:main": {
+            sessionId: "sess-main",
+            updatedAt: Date.now(),
+            verboseLevel: "off",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws, {
+      client: {
+        name: "webchat",
+        version: "1.0.0",
+        platform: "test",
+        mode: "webchat",
+      },
+    });
+
+    registerAgentRunContext("run-tool-off", { sessionKey: "agent:main:main" });
+
+    emitAgentEvent({
+      runId: "run-tool-off",
+      stream: "tool",
+      data: { phase: "start", name: "read", toolCallId: "tool-1" },
+    });
+    emitAgentEvent({
+      runId: "run-tool-off",
+      stream: "assistant",
+      data: { text: "hello" },
+    });
+
+    const evt = await onceMessage(
+      ws,
+      (o) =>
+        o.type === "event" &&
+        o.event === "agent" &&
+        o.payload?.runId === "run-tool-off",
+      8000,
+    );
+    const payload =
+      evt.payload && typeof evt.payload === "object"
+        ? (evt.payload as Record<string, unknown>)
+        : {};
+    expect(payload.stream).toBe("assistant");
 
     ws.close();
     await server.close();

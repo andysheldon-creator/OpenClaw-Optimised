@@ -10,7 +10,8 @@ import {
   normalizeThinkLevel,
   type ThinkLevel,
 } from "../auto-reply/thinking.js";
-
+import type { ClawdbotConfig } from "../config/config.js";
+import { formatSandboxToolPolicyBlockedMessage } from "./sandbox.js";
 import { sanitizeContentBlocksImages } from "./tool-images.js";
 import type { WorkspaceBootstrapFile } from "./workspace.js";
 
@@ -61,9 +62,31 @@ export async function ensureSessionHeader(params: {
 
 type ContentBlock = AgentToolResult<unknown>["content"][number];
 
+export function isEmptyAssistantMessageContent(
+  message: Extract<AgentMessage, { role: "assistant" }>,
+): boolean {
+  const content = message.content;
+  if (content == null) return true;
+  if (!Array.isArray(content)) return false;
+  return content.every((block) => {
+    if (!block || typeof block !== "object") return true;
+    const rec = block as { type?: unknown; text?: unknown };
+    if (rec.type !== "text") return false;
+    return typeof rec.text !== "string" || rec.text.trim().length === 0;
+  });
+}
+
+function isEmptyAssistantErrorMessage(
+  message: Extract<AgentMessage, { role: "assistant" }>,
+): boolean {
+  if (message.stopReason !== "error") return false;
+  return isEmptyAssistantMessageContent(message);
+}
+
 export async function sanitizeSessionMessagesImages(
   messages: AgentMessage[],
   label: string,
+  options?: { sanitizeToolCallIds?: boolean; enforceToolCallLast?: boolean },
 ): Promise<AgentMessage[]> {
   // We sanitize historical session messages because Anthropic can reject a request
   // if the transcript contains oversized base64 images (see MAX_IMAGE_DIMENSION_PX).
@@ -82,7 +105,28 @@ export async function sanitizeSessionMessagesImages(
         content as ContentBlock[],
         label,
       )) as unknown as typeof toolMsg.content;
-      out.push({ ...toolMsg, content: nextContent });
+      const sanitizedToolCallId =
+        options?.sanitizeToolCallIds && toolMsg.toolCallId
+          ? sanitizeToolCallId(toolMsg.toolCallId)
+          : undefined;
+      const toolUseId = (toolMsg as { toolUseId?: unknown }).toolUseId;
+      const sanitizedToolUseId =
+        options?.sanitizeToolCallIds &&
+        typeof toolUseId === "string" &&
+        toolUseId
+          ? sanitizeToolCallId(toolUseId)
+          : undefined;
+      const sanitizedMsg = {
+        ...toolMsg,
+        content: nextContent,
+        ...(sanitizedToolCallId && {
+          toolCallId: sanitizedToolCallId,
+        }),
+        ...(sanitizedToolUseId && {
+          toolUseId: sanitizedToolUseId,
+        }),
+      };
+      out.push(sanitizedMsg);
       continue;
     }
 
@@ -101,6 +145,9 @@ export async function sanitizeSessionMessagesImages(
 
     if (role === "assistant") {
       const assistantMsg = msg as Extract<AgentMessage, { role: "assistant" }>;
+      if (isEmptyAssistantErrorMessage(assistantMsg)) {
+        continue;
+      }
       const content = assistantMsg.content;
       if (Array.isArray(content)) {
         const filteredContent = content.filter((block) => {
@@ -109,14 +156,59 @@ export async function sanitizeSessionMessagesImages(
           if (rec.type !== "text" || typeof rec.text !== "string") return true;
           return rec.text.trim().length > 0;
         });
-        const sanitizedContent = (await sanitizeContentBlocksImages(
-          filteredContent as unknown as ContentBlock[],
+        const normalizedContent = options?.enforceToolCallLast
+          ? (() => {
+              let lastToolIndex = -1;
+              for (let i = filteredContent.length - 1; i >= 0; i -= 1) {
+                const block = filteredContent[i];
+                if (!block || typeof block !== "object") continue;
+                const type = (block as { type?: unknown }).type;
+                if (
+                  type === "functionCall" ||
+                  type === "toolUse" ||
+                  type === "toolCall"
+                ) {
+                  lastToolIndex = i;
+                  break;
+                }
+              }
+              if (lastToolIndex === -1) return filteredContent;
+              return filteredContent.slice(0, lastToolIndex + 1);
+            })()
+          : filteredContent;
+        const sanitizedContent = options?.sanitizeToolCallIds
+          ? await Promise.all(
+              normalizedContent.map(async (block) => {
+                if (!block || typeof block !== "object") return block;
+
+                const type = (block as { type?: unknown }).type;
+                const id = (block as { id?: unknown }).id;
+                if (typeof id !== "string" || !id) return block;
+
+                // Cloud Code Assist tool blocks require ids matching ^[a-zA-Z0-9_-]+$.
+                if (
+                  type === "functionCall" ||
+                  type === "toolUse" ||
+                  type === "toolCall"
+                ) {
+                  return {
+                    ...(block as unknown as Record<string, unknown>),
+                    id: sanitizeToolCallId(id),
+                  };
+                }
+
+                return block;
+              }),
+            )
+          : normalizedContent;
+        const finalContent = (await sanitizeContentBlocksImages(
+          sanitizedContent as unknown as ContentBlock[],
           label,
         )) as unknown as typeof assistantMsg.content;
-        if (sanitizedContent.length === 0) {
+        if (finalContent.length === 0) {
           continue;
         }
-        out.push({ ...assistantMsg, content: sanitizedContent });
+        out.push({ ...assistantMsg, content: finalContent });
         continue;
       }
     }
@@ -196,10 +288,25 @@ export function isContextOverflowError(errorMessage?: string): boolean {
 
 export function formatAssistantErrorText(
   msg: AssistantMessage,
+  opts?: { cfg?: ClawdbotConfig; sessionKey?: string },
 ): string | undefined {
   if (msg.stopReason !== "error") return undefined;
   const raw = (msg.errorMessage ?? "").trim();
   if (!raw) return "LLM request failed with an unknown error.";
+
+  const unknownTool =
+    raw.match(/unknown tool[:\s]+["']?([a-z0-9_-]+)["']?/i) ??
+    raw.match(
+      /tool\s+["']?([a-z0-9_-]+)["']?\s+(?:not found|is not available)/i,
+    );
+  if (unknownTool?.[1]) {
+    const rewritten = formatSandboxToolPolicyBlockedMessage({
+      cfg: opts?.cfg,
+      sessionKey: opts?.sessionKey,
+      toolName: unknownTool[1],
+    });
+    if (rewritten) return rewritten;
+  }
 
   // Check for context overflow (413) errors
   if (isContextOverflowError(raw)) {
@@ -224,33 +331,101 @@ export function isRateLimitAssistantError(
   msg: AssistantMessage | undefined,
 ): boolean {
   if (!msg || msg.stopReason !== "error") return false;
-  const raw = (msg.errorMessage ?? "").toLowerCase();
+  return isRateLimitErrorMessage(msg.errorMessage ?? "");
+}
+
+type ErrorPattern = RegExp | string;
+
+const ERROR_PATTERNS = {
+  rateLimit: [
+    /rate[_ ]limit|too many requests|429/,
+    "exceeded your current quota",
+    "resource has been exhausted",
+    "quota exceeded",
+    "resource_exhausted",
+    "usage limit",
+  ],
+  timeout: [
+    "timeout",
+    "timed out",
+    "deadline exceeded",
+    "context deadline exceeded",
+  ],
+  billing: [
+    /\b402\b/,
+    "payment required",
+    "insufficient credits",
+    "credit balance",
+    "plans & billing",
+  ],
+  auth: [
+    /invalid[_ ]?api[_ ]?key/,
+    "incorrect api key",
+    "invalid token",
+    "authentication",
+    "unauthorized",
+    "forbidden",
+    "access denied",
+    "expired",
+    "token has expired",
+    /\b401\b/,
+    /\b403\b/,
+  ],
+  format: [
+    "invalid_request_error",
+    "string should match pattern",
+    "tool_use.id",
+    "tool_use_id",
+    "messages.1.content.1.tool_use.id",
+    "invalid request format",
+  ],
+} as const;
+
+function matchesErrorPatterns(
+  raw: string,
+  patterns: readonly ErrorPattern[],
+): boolean {
   if (!raw) return false;
-  return isRateLimitErrorMessage(raw);
+  const value = raw.toLowerCase();
+  return patterns.some((pattern) =>
+    pattern instanceof RegExp ? pattern.test(value) : value.includes(pattern),
+  );
 }
 
 export function isRateLimitErrorMessage(raw: string): boolean {
+  return matchesErrorPatterns(raw, ERROR_PATTERNS.rateLimit);
+}
+
+export function isTimeoutErrorMessage(raw: string): boolean {
+  return matchesErrorPatterns(raw, ERROR_PATTERNS.timeout);
+}
+
+export function isBillingErrorMessage(raw: string): boolean {
   const value = raw.toLowerCase();
+  if (!value) return false;
+  if (matchesErrorPatterns(value, ERROR_PATTERNS.billing)) return true;
   return (
-    /rate[_ ]limit|too many requests|429/.test(value) ||
-    value.includes("exceeded your current quota")
+    value.includes("billing") &&
+    (value.includes("upgrade") ||
+      value.includes("credits") ||
+      value.includes("payment") ||
+      value.includes("plan"))
   );
 }
 
+export function isBillingAssistantError(
+  msg: AssistantMessage | undefined,
+): boolean {
+  if (!msg || msg.stopReason !== "error") return false;
+  return isBillingErrorMessage(msg.errorMessage ?? "");
+}
+
 export function isAuthErrorMessage(raw: string): boolean {
-  const value = raw.toLowerCase();
-  if (!value) return false;
-  return (
-    /invalid[_ ]?api[_ ]?key/.test(value) ||
-    value.includes("incorrect api key") ||
-    value.includes("invalid token") ||
-    value.includes("authentication") ||
-    value.includes("unauthorized") ||
-    value.includes("forbidden") ||
-    value.includes("access denied") ||
-    /\b401\b/.test(value) ||
-    /\b403\b/.test(value)
-  );
+  return matchesErrorPatterns(raw, ERROR_PATTERNS.auth);
+}
+
+export function isCloudCodeAssistFormatError(raw: string): boolean {
+  return matchesErrorPatterns(raw, ERROR_PATTERNS.format);
 }
 
 export function isAuthAssistantError(
@@ -258,6 +433,34 @@ export function isAuthAssistantError(
 ): boolean {
   if (!msg || msg.stopReason !== "error") return false;
   return isAuthErrorMessage(msg.errorMessage ?? "");
+}
+
+export type FailoverReason =
+  | "auth"
+  | "format"
+  | "rate_limit"
+  | "billing"
+  | "timeout"
+  | "unknown";
+
+export function classifyFailoverReason(raw: string): FailoverReason | null {
+  if (isRateLimitErrorMessage(raw)) return "rate_limit";
+  if (isCloudCodeAssistFormatError(raw)) return "format";
+  if (isBillingErrorMessage(raw)) return "billing";
+  if (isTimeoutErrorMessage(raw)) return "timeout";
+  if (isAuthErrorMessage(raw)) return "auth";
+  return null;
+}
+
+export function isFailoverErrorMessage(raw: string): boolean {
+  return classifyFailoverReason(raw) !== null;
+}
+
+export function isFailoverAssistantError(
+  msg: AssistantMessage | undefined,
+): boolean {
+  if (!msg || msg.stopReason !== "error") return false;
+  return isFailoverErrorMessage(msg.errorMessage ?? "");
 }
 
 function extractSupportedValues(raw: string): string[] {
@@ -370,7 +573,7 @@ export function validateGeminiTurns(messages: AgentMessage[]): AgentMessage[] {
 }
 
 // ── Messaging tool duplicate detection ──────────────────────────────────────
-// When the agent uses a messaging tool (telegram, discord, slack, sessions_send)
+// When the agent uses a messaging tool (telegram, discord, slack, message, sessions_send)
 // to send a message, we track the text so we can suppress duplicate block replies.
 // The LLM sometimes elaborates or wraps the same content, so we use substring matching.
 
@@ -392,11 +595,52 @@ export function normalizeTextForComparison(text: string): string {
     .trim();
 }
 
+export function isMessagingToolDuplicateNormalized(
+  normalized: string,
+  normalizedSentTexts: string[],
+): boolean {
+  if (normalizedSentTexts.length === 0) return false;
+  if (!normalized || normalized.length < MIN_DUPLICATE_TEXT_LENGTH)
+    return false;
+  return normalizedSentTexts.some((normalizedSent) => {
+    if (!normalizedSent || normalizedSent.length < MIN_DUPLICATE_TEXT_LENGTH)
+      return false;
+    return (
+      normalized.includes(normalizedSent) || normalizedSent.includes(normalized)
+    );
+  });
+}
+
 /**
  * Check if a text is a duplicate of any previously sent messaging tool text.
  * Uses substring matching to handle LLM elaboration (e.g., wrapping in quotes,
  * adding context, or slight rephrasing that includes the original).
  */
+// ── Tool Call ID Sanitization (Google Cloud Code Assist) ───────────────────────
+// Google Cloud Code Assist rejects tool call IDs that contain invalid characters.
+// OpenAI Codex generates IDs like "call_abc123|item_456" with pipe characters,
+// but Google requires IDs matching ^[a-zA-Z0-9_-]+$ pattern.
+// This function sanitizes tool call IDs by replacing invalid characters with underscores.
+
+export function sanitizeToolCallId(id: string): string {
+  if (!id || typeof id !== "string") return "default_tool_id";
+
+  const cloudCodeAssistPatternReplacement = id.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const trimmedInvalidStartChars = cloudCodeAssistPatternReplacement.replace(
+    /^[^a-zA-Z0-9_-]+/,
+    "",
+  );
+
+  return trimmedInvalidStartChars.length > 0
+    ? trimmedInvalidStartChars
+    : "sanitized_tool_id";
+}
+
+export function isValidCloudCodeAssistToolId(id: string): boolean {
+  if (!id || typeof id !== "string") return false;
+  return /^[a-zA-Z0-9_-]+$/.test(id);
+}
+
 export function isMessagingToolDuplicate(
   text: string,
   sentTexts: string[],
@@ -405,13 +649,8 @@ export function isMessagingToolDuplicate(
   const normalized = normalizeTextForComparison(text);
   if (!normalized || normalized.length < MIN_DUPLICATE_TEXT_LENGTH)
     return false;
-  return sentTexts.some((sent) => {
-    const normalizedSent = normalizeTextForComparison(sent);
-    if (!normalizedSent || normalizedSent.length < MIN_DUPLICATE_TEXT_LENGTH)
-      return false;
-    // Substring match: either text contains the other
-    return (
-      normalized.includes(normalizedSent) || normalizedSent.includes(normalized)
-    );
-  });
+  return isMessagingToolDuplicateNormalized(
+    normalized,
+    sentTexts.map(normalizeTextForComparison),
+  );
 }

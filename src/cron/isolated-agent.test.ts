@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
 import type { CliDeps } from "../cli/deps.js";
 import type { ClawdbotConfig } from "../config/config.js";
 import type { CronJob } from "./types.js";
@@ -23,15 +23,7 @@ import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  const base = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-cron-"));
-  const previousHome = process.env.HOME;
-  process.env.HOME = base;
-  try {
-    return await fn(base);
-  } finally {
-    process.env.HOME = previousHome;
-    await fs.rm(base, { recursive: true, force: true });
-  }
+  return withTempHomeBase(fn, { prefix: "clawdbot-cron-" });
 }
 
 async function writeSessionStore(home: string) {
@@ -166,6 +158,107 @@ describe("runCronIsolatedAgentTurn", () => {
       };
       expect(call?.provider).toBe("openai");
       expect(call?.model).toBe("gpt-4.1-mini");
+    });
+  });
+
+  it("uses hooks.gmail.model for Gmail hook sessions", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn(),
+        sendMessageDiscord: vi.fn(),
+        sendMessageSignal: vi.fn(),
+        sendMessageIMessage: vi.fn(),
+      };
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "ok" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          hooks: {
+            gmail: {
+              model: "openrouter/meta-llama/llama-3.3-70b:free",
+            },
+          },
+        }),
+        deps,
+        job: makeJob({ kind: "agentTurn", message: "do it", deliver: false }),
+        message: "do it",
+        sessionKey: "hook:gmail:msg-1",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      const call = vi.mocked(runEmbeddedPiAgent).mock.calls[0]?.[0] as {
+        provider?: string;
+        model?: string;
+      };
+      expect(call?.provider).toBe("openrouter");
+      expect(call?.model).toBe("meta-llama/llama-3.3-70b:free");
+    });
+  });
+
+  it("ignores hooks.gmail.model when not in the allowlist", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn(),
+        sendMessageDiscord: vi.fn(),
+        sendMessageSignal: vi.fn(),
+        sendMessageIMessage: vi.fn(),
+      };
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "ok" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+      vi.mocked(loadModelCatalog).mockResolvedValueOnce([
+        {
+          id: "claude-opus-4-5",
+          name: "Opus 4.5",
+          provider: "anthropic",
+        },
+      ]);
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              models: {
+                "anthropic/claude-opus-4-5": { alias: "Opus" },
+              },
+            },
+          },
+          hooks: {
+            gmail: {
+              model: "openrouter/meta-llama/llama-3.3-70b:free",
+            },
+          },
+        }),
+        deps,
+        job: makeJob({ kind: "agentTurn", message: "do it", deliver: false }),
+        message: "do it",
+        sessionKey: "hook:gmail:msg-2",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      const call = vi.mocked(runEmbeddedPiAgent).mock.calls[0]?.[0] as {
+        provider?: string;
+        model?: string;
+      };
+      expect(call?.provider).toBe("anthropic");
+      expect(call?.model).toBe("claude-opus-4-5");
     });
   });
 

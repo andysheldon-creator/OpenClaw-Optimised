@@ -56,7 +56,9 @@ import {
   normalizeOutboundPayloadsForJson,
 } from "../infra/outbound/payloads.js";
 import { resolveOutboundTarget } from "../infra/outbound/targets.js";
+import { normalizeMainKey } from "../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
+import { applyVerboseOverride } from "../sessions/level-overrides.js";
 import { resolveSendPolicy } from "../sessions/send-policy.js";
 import {
   normalizeMessageProvider,
@@ -64,8 +66,17 @@ import {
 } from "../utils/message-provider.js";
 import { normalizeE164 } from "../utils.js";
 
+/** Image content block for Claude API multimodal messages. */
+type ImageContent = {
+  type: "image";
+  data: string;
+  mimeType: string;
+};
+
 type AgentCommandOpts = {
   message: string;
+  /** Optional image attachments for multimodal messages. */
+  images?: ImageContent[];
   to?: string;
   sessionId?: string;
   sessionKey?: string;
@@ -104,7 +115,7 @@ function resolveSession(opts: {
 }): SessionResolution {
   const sessionCfg = opts.cfg.session;
   const scope = sessionCfg?.scope ?? "per-sender";
-  const mainKey = sessionCfg?.mainKey ?? "main";
+  const mainKey = normalizeMainKey(sessionCfg?.mainKey);
   const idleMinutes = Math.max(
     sessionCfg?.idleMinutes ?? DEFAULT_IDLE_MINUTES,
     1,
@@ -248,10 +259,6 @@ export async function agentCommand(
   let sessionEntry = resolvedSessionEntry;
   const runId = opts.runId?.trim() || sessionId;
 
-  if (sessionKey) {
-    registerAgentRunContext(runId, { sessionKey });
-  }
-
   if (opts.deliver === true) {
     const sendPolicy = resolveSendPolicy({
       cfg,
@@ -274,6 +281,13 @@ export async function agentCommand(
     verboseOverride ??
     persistedVerbose ??
     (agentCfg?.verboseDefault as VerboseLevel | undefined);
+
+  if (sessionKey) {
+    registerAgentRunContext(runId, {
+      sessionKey,
+      verboseLevel: resolvedVerboseLevel,
+    });
+  }
 
   const needsSkillsSnapshot = isNewSession || !sessionEntry?.skillsSnapshot;
   const skillsSnapshot = needsSkillsSnapshot
@@ -305,10 +319,7 @@ export async function agentCommand(
       if (thinkOverride === "off") delete next.thinkingLevel;
       else next.thinkingLevel = thinkOverride;
     }
-    if (verboseOverride) {
-      if (verboseOverride === "off") delete next.verboseLevel;
-      else next.verboseLevel = verboseOverride;
-    }
+    applyVerboseOverride(next, verboseOverride);
     sessionStore[sessionKey] = next;
     await saveSessionStore(storePath, sessionStore);
   }
@@ -448,6 +459,7 @@ export async function agentCommand(
           config: cfg,
           skillsSnapshot,
           prompt: body,
+          images: opts.images,
           provider: providerOverride,
           model: modelOverride,
           authProfileId: sessionEntry?.authProfileOverride,

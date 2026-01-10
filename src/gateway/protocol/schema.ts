@@ -1,6 +1,11 @@
 import { type Static, type TSchema, Type } from "@sinclair/typebox";
+import { SESSION_LABEL_MAX_LENGTH } from "../../sessions/session-label.js";
 
 const NonEmptyString = Type.String({ minLength: 1 });
+const SessionLabelString = Type.String({
+  minLength: 1,
+  maxLength: SESSION_LABEL_MAX_LENGTH,
+});
 
 export const PresenceEntrySchema = Type.Object(
   {
@@ -220,11 +225,14 @@ export const AgentParamsSchema = Type.Object(
     sessionKey: Type.Optional(Type.String()),
     thinking: Type.Optional(Type.String()),
     deliver: Type.Optional(Type.Boolean()),
+    attachments: Type.Optional(Type.Array(Type.Unknown())),
     provider: Type.Optional(Type.String()),
     timeout: Type.Optional(Type.Integer({ minimum: 0 })),
     lane: Type.Optional(Type.String()),
     extraSystemPrompt: Type.Optional(Type.String()),
     idempotencyKey: NonEmptyString,
+    label: Type.Optional(SessionLabelString),
+    spawnedBy: Type.Optional(Type.String()),
   },
   { additionalProperties: false },
 );
@@ -313,8 +321,21 @@ export const SessionsListParamsSchema = Type.Object(
     activeMinutes: Type.Optional(Type.Integer({ minimum: 1 })),
     includeGlobal: Type.Optional(Type.Boolean()),
     includeUnknown: Type.Optional(Type.Boolean()),
+    label: Type.Optional(SessionLabelString),
     spawnedBy: Type.Optional(NonEmptyString),
     agentId: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const SessionsResolveParamsSchema = Type.Object(
+  {
+    key: Type.Optional(NonEmptyString),
+    label: Type.Optional(SessionLabelString),
+    agentId: Type.Optional(NonEmptyString),
+    spawnedBy: Type.Optional(NonEmptyString),
+    includeGlobal: Type.Optional(Type.Boolean()),
+    includeUnknown: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },
 );
@@ -322,6 +343,7 @@ export const SessionsListParamsSchema = Type.Object(
 export const SessionsPatchParamsSchema = Type.Object(
   {
     key: NonEmptyString,
+    label: Type.Optional(Type.Union([SessionLabelString, Type.Null()])),
     thinkingLevel: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
     verboseLevel: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
     reasoningLevel: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
@@ -882,7 +904,7 @@ export const ChatSendParamsSchema = Type.Object(
 export const ChatAbortParamsSchema = Type.Object(
   {
     sessionKey: NonEmptyString,
-    runId: NonEmptyString,
+    runId: Type.Optional(NonEmptyString),
   },
   { additionalProperties: false },
 );
@@ -933,6 +955,7 @@ export const ProtocolSchemas: Record<string, TSchema> = {
   NodeDescribeParams: NodeDescribeParamsSchema,
   NodeInvokeParams: NodeInvokeParamsSchema,
   SessionsListParams: SessionsListParamsSchema,
+  SessionsResolveParams: SessionsResolveParamsSchema,
   SessionsPatchParams: SessionsPatchParamsSchema,
   SessionsResetParams: SessionsResetParamsSchema,
   SessionsDeleteParams: SessionsDeleteParamsSchema,
@@ -1009,6 +1032,7 @@ export type NodeListParams = Static<typeof NodeListParamsSchema>;
 export type NodeDescribeParams = Static<typeof NodeDescribeParamsSchema>;
 export type NodeInvokeParams = Static<typeof NodeInvokeParamsSchema>;
 export type SessionsListParams = Static<typeof SessionsListParamsSchema>;
+export type SessionsResolveParams = Static<typeof SessionsResolveParamsSchema>;
 export type SessionsPatchParams = Static<typeof SessionsPatchParamsSchema>;
 export type SessionsResetParams = Static<typeof SessionsResetParamsSchema>;
 export type SessionsDeleteParams = Static<typeof SessionsDeleteParamsSchema>;

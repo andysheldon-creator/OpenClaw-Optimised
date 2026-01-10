@@ -1,7 +1,10 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
+import { DEFAULT_BOOTSTRAP_FILENAME } from "../agents/workspace.js";
 import {
   applyAuthChoice,
+  resolvePreferredProviderForAuthChoice,
   warnIfModelConfigLooksOff,
 } from "../commands/auth-choice.js";
 import { buildAuthChoiceOptions } from "../commands/auth-choice-options.js";
@@ -11,6 +14,11 @@ import {
   type GatewayDaemonRuntime,
 } from "../commands/daemon-runtime.js";
 import { healthCommand } from "../commands/health.js";
+import { formatHealthCheckFailure } from "../commands/health-format.js";
+import {
+  applyPrimaryModel,
+  promptDefaultModel,
+} from "../commands/model-picker.js";
 import {
   applyWizardMetadata,
   DEFAULT_WORKSPACE,
@@ -49,9 +57,11 @@ import { resolveGatewayProgramArguments } from "../daemon/program-args.js";
 import { resolvePreferredNodePath } from "../daemon/runtime-paths.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { buildServiceEnvironment } from "../daemon/service-env.js";
+import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
 import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
+import { runTui } from "../tui/tui.js";
 import { resolveUserPath, sleep } from "../utils.js";
 import type { WizardPrompter } from "./prompts.js";
 
@@ -117,14 +127,26 @@ export async function runOnboardingWizard(
 
   const quickstartHint = "Configure details later via clawdbot configure.";
   const advancedHint = "Configure port, network, Tailscale, and auth options.";
-  let flow = (await prompter.select({
-    message: "Onboarding mode",
-    options: [
-      { value: "quickstart", label: "QuickStart", hint: quickstartHint },
-      { value: "advanced", label: "Advanced", hint: advancedHint },
-    ],
-    initialValue: "quickstart",
-  })) as "quickstart" | "advanced";
+  const explicitFlow = opts.flow?.trim();
+  if (
+    explicitFlow &&
+    explicitFlow !== "quickstart" &&
+    explicitFlow !== "advanced"
+  ) {
+    runtime.error("Invalid --flow (use quickstart or advanced).");
+    runtime.exit(1);
+    return;
+  }
+  let flow =
+    explicitFlow ??
+    ((await prompter.select({
+      message: "Onboarding mode",
+      options: [
+        { value: "quickstart", label: "QuickStart", hint: quickstartHint },
+        { value: "advanced", label: "Advanced", hint: advancedHint },
+      ],
+      initialValue: "quickstart",
+    })) as "quickstart" | "advanced");
 
   if (opts.mode === "remote" && flow === "quickstart") {
     await prompter.note(
@@ -306,14 +328,17 @@ export async function runOnboardingWizard(
   const authStore = ensureAuthProfileStore(undefined, {
     allowKeychainPrompt: false,
   });
-  const authChoice = (await prompter.select({
-    message: "Model/auth choice",
-    options: buildAuthChoiceOptions({
-      store: authStore,
-      includeSkip: true,
-      includeClaudeCliIfMissing: true,
-    }),
-  })) as AuthChoice;
+  const authChoiceFromPrompt = opts.authChoice === undefined;
+  const authChoice =
+    opts.authChoice ??
+    ((await prompter.select({
+      message: "Model/auth choice",
+      options: buildAuthChoiceOptions({
+        store: authStore,
+        includeSkip: true,
+        includeClaudeCliIfMissing: true,
+      }),
+    })) as AuthChoice);
 
   const authResult = await applyAuthChoice({
     authChoice,
@@ -323,6 +348,19 @@ export async function runOnboardingWizard(
     setDefaultModel: true,
   });
   nextConfig = authResult.config;
+
+  if (authChoiceFromPrompt) {
+    const modelSelection = await promptDefaultModel({
+      config: nextConfig,
+      prompter,
+      allowKeep: true,
+      ignoreAllowlist: true,
+      preferredProvider: resolvePreferredProviderForAuthChoice(authChoice),
+    });
+    if (modelSelection.model) {
+      nextConfig = applyPrimaryModel(nextConfig, modelSelection.model);
+    }
+  }
 
   await warnIfModelConfigLooksOff(nextConfig, prompter);
 
@@ -498,14 +536,18 @@ export async function runOnboardingWizard(
     },
   };
 
-  nextConfig = await setupProviders(nextConfig, runtime, prompter, {
-    allowSignalInstall: true,
-    forceAllowFromProviders:
-      flow === "quickstart" ? ["telegram", "whatsapp"] : [],
-    skipDmPolicyPrompt: flow === "quickstart",
-    skipConfirm: flow === "quickstart",
-    quickstartDefaults: flow === "quickstart",
-  });
+  if (opts.skipProviders) {
+    await prompter.note("Skipping provider setup.", "Providers");
+  } else {
+    nextConfig = await setupProviders(nextConfig, runtime, prompter, {
+      allowSignalInstall: true,
+      forceAllowFromProviders:
+        flow === "quickstart" ? ["telegram", "whatsapp"] : [],
+      skipDmPolicyPrompt: flow === "quickstart",
+      skipConfirm: flow === "quickstart",
+      quickstartDefaults: flow === "quickstart",
+    });
+  }
 
   await writeConfigFile(nextConfig);
   runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
@@ -513,28 +555,59 @@ export async function runOnboardingWizard(
     skipBootstrap: Boolean(nextConfig.agents?.defaults?.skipBootstrap),
   });
 
-  nextConfig = await setupSkills(nextConfig, workspaceDir, runtime, prompter);
+  if (opts.skipSkills) {
+    await prompter.note("Skipping skills setup.", "Skills");
+  } else {
+    nextConfig = await setupSkills(nextConfig, workspaceDir, runtime, prompter);
+  }
   nextConfig = applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await writeConfigFile(nextConfig);
 
-  await ensureSystemdUserLingerInteractive({
-    runtime,
-    prompter: {
-      confirm: prompter.confirm,
-      note: prompter.note,
-    },
-    reason:
-      "Linux installs use a systemd user service by default. Without lingering, systemd stops the user session on logout/idle and kills the Gateway.",
-    requireConfirm: false,
-  });
+  const systemdAvailable =
+    process.platform === "linux" ? await isSystemdUserServiceAvailable() : true;
+  if (process.platform === "linux" && !systemdAvailable) {
+    await prompter.note(
+      "Systemd user services are unavailable. Skipping lingering checks and daemon install.",
+      "Systemd",
+    );
+  }
 
-  const installDaemon =
-    flow === "quickstart"
-      ? true
-      : await prompter.confirm({
-          message: "Install Gateway daemon (recommended)",
-          initialValue: true,
-        });
+  if (process.platform === "linux" && systemdAvailable) {
+    await ensureSystemdUserLingerInteractive({
+      runtime,
+      prompter: {
+        confirm: prompter.confirm,
+        note: prompter.note,
+      },
+      reason:
+        "Linux installs use a systemd user service by default. Without lingering, systemd stops the user session on logout/idle and kills the Gateway.",
+      requireConfirm: false,
+    });
+  }
+
+  const explicitInstallDaemon =
+    typeof opts.installDaemon === "boolean" ? opts.installDaemon : undefined;
+  let installDaemon: boolean;
+  if (explicitInstallDaemon !== undefined) {
+    installDaemon = explicitInstallDaemon;
+  } else if (process.platform === "linux" && !systemdAvailable) {
+    installDaemon = false;
+  } else if (flow === "quickstart") {
+    installDaemon = true;
+  } else {
+    installDaemon = await prompter.confirm({
+      message: "Install Gateway daemon (recommended)",
+      initialValue: true,
+    });
+  }
+
+  if (process.platform === "linux" && !systemdAvailable && installDaemon) {
+    await prompter.note(
+      "Systemd user services are unavailable; skipping daemon install. Use your container supervisor or `docker compose up -d`.",
+      "Gateway daemon",
+    );
+    installDaemon = false;
+  }
 
   if (installDaemon) {
     const daemonRuntime =
@@ -613,19 +686,21 @@ export async function runOnboardingWizard(
     }
   }
 
-  await sleep(1500);
-  try {
-    await healthCommand({ json: false, timeoutMs: 10_000 }, runtime);
-  } catch (err) {
-    runtime.error(`Health check failed: ${String(err)}`);
-    await prompter.note(
-      [
-        "Docs:",
-        "https://docs.clawd.bot/gateway/health",
-        "https://docs.clawd.bot/gateway/troubleshooting",
-      ].join("\n"),
-      "Health check help",
-    );
+  if (!opts.skipHealth) {
+    await sleep(1500);
+    try {
+      await healthCommand({ json: false, timeoutMs: 10_000 }, runtime);
+    } catch (err) {
+      runtime.error(formatHealthCheckFailure(err));
+      await prompter.note(
+        [
+          "Docs:",
+          "https://docs.clawd.bot/gateway/health",
+          "https://docs.clawd.bot/gateway/troubleshooting",
+        ].join("\n"),
+        "Health check help",
+      );
+    }
   }
 
   const controlUiAssets = await ensureControlUiAssetsBuilt(runtime);
@@ -661,6 +736,11 @@ export async function runOnboardingWizard(
   const gatewayStatusLine = gatewayProbe.ok
     ? "Gateway: reachable"
     : `Gateway: not detected${gatewayProbe.detail ? ` (${gatewayProbe.detail})` : ""}`;
+  const bootstrapPath = path.join(workspaceDir, DEFAULT_BOOTSTRAP_FILENAME);
+  const hasBootstrap = await fs
+    .access(bootstrapPath)
+    .then(() => true)
+    .catch(() => false);
 
   await prompter.note(
     [
@@ -675,36 +755,63 @@ export async function runOnboardingWizard(
     "Control UI",
   );
 
-  const browserSupport = await detectBrowserOpenSupport();
-  if (gatewayProbe.ok) {
-    if (!browserSupport.ok) {
+  if (!opts.skipUi && gatewayProbe.ok) {
+    if (hasBootstrap) {
       await prompter.note(
-        formatControlUiSshHint({
-          port,
-          basePath: baseConfig.gateway?.controlUi?.basePath,
-          token: authMode === "token" ? gatewayToken : undefined,
-        }),
-        "Open Control UI",
+        [
+          "This is the defining action that makes your agent you.",
+          "Please take your time.",
+          "The more you tell it, the better the experience will be.",
+          'We will send: "Wake up, my friend!"',
+        ].join("\n"),
+        "Start TUI (best option!)",
       );
-    } else {
-      const wantsOpen = await prompter.confirm({
-        message: "Open Control UI now?",
+      const wantsTui = await prompter.confirm({
+        message: "Do you want to hatch your bot now?",
         initialValue: true,
       });
-      if (wantsOpen) {
-        const opened = await openUrl(`${links.httpUrl}${tokenParam}`);
-        if (!opened) {
-          await prompter.note(
-            formatControlUiSshHint({
-              port,
-              basePath: baseConfig.gateway?.controlUi?.basePath,
-              token: authMode === "token" ? gatewayToken : undefined,
-            }),
-            "Open Control UI",
-          );
+      if (wantsTui) {
+        await runTui({
+          url: links.wsUrl,
+          token: authMode === "token" ? gatewayToken : undefined,
+          password:
+            authMode === "password" ? baseConfig.gateway?.auth?.password : "",
+          message: "Wake up, my friend!",
+        });
+      }
+    } else {
+      const browserSupport = await detectBrowserOpenSupport();
+      if (!browserSupport.ok) {
+        await prompter.note(
+          formatControlUiSshHint({
+            port,
+            basePath: baseConfig.gateway?.controlUi?.basePath,
+            token: authMode === "token" ? gatewayToken : undefined,
+          }),
+          "Open Control UI",
+        );
+      } else {
+        const wantsOpen = await prompter.confirm({
+          message: "Open Control UI now?",
+          initialValue: true,
+        });
+        if (wantsOpen) {
+          const opened = await openUrl(`${links.httpUrl}${tokenParam}`);
+          if (!opened) {
+            await prompter.note(
+              formatControlUiSshHint({
+                port,
+                basePath: baseConfig.gateway?.controlUi?.basePath,
+                token: authMode === "token" ? gatewayToken : undefined,
+              }),
+              "Open Control UI",
+            );
+          }
         }
       }
     }
+  } else if (opts.skipUi) {
+    await prompter.note("Skipping Control UI/TUI prompts.", "Control UI");
   }
 
   await prompter.note(

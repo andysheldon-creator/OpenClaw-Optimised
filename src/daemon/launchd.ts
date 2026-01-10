@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { colorize, isRich, theme } from "../terminal/theme.js";
 import {
   GATEWAY_LAUNCH_AGENT_LABEL,
   LEGACY_GATEWAY_LAUNCH_AGENT_LABELS,
@@ -12,6 +13,11 @@ import { parseKeyValueOutput } from "./runtime-parse.js";
 import type { GatewayServiceRuntime } from "./service-runtime.js";
 
 const execFileAsync = promisify(execFile);
+
+const formatLine = (label: string, value: string) => {
+  const rich = isRich();
+  return `${colorize(rich, theme.muted, `${label}:`)} ${colorize(rich, theme.command, value)}`;
+};
 function resolveHomeDir(env: Record<string, string | undefined>): string {
   const home = env.HOME?.trim() || env.USERPROFILE?.trim();
   if (!home) throw new Error("Missing HOME");
@@ -380,7 +386,9 @@ export async function uninstallLegacyLaunchAgents({
     const dest = path.join(trashDir, `${agent.label}.plist`);
     try {
       await fs.rename(agent.plistPath, dest);
-      stdout.write(`Moved legacy LaunchAgent to Trash: ${dest}\n`);
+      stdout.write(
+        `${formatLine("Moved legacy LaunchAgent to Trash", dest)}\n`,
+      );
     } catch {
       stdout.write(
         `Legacy LaunchAgent remains at ${agent.plistPath} (could not move)\n`,
@@ -417,7 +425,7 @@ export async function uninstallLaunchAgent({
   try {
     await fs.mkdir(trashDir, { recursive: true });
     await fs.rename(plistPath, dest);
-    stdout.write(`Moved LaunchAgent to Trash: ${dest}\n`);
+    stdout.write(`${formatLine("Moved LaunchAgent to Trash", dest)}\n`);
   } catch {
     stdout.write(`LaunchAgent remains at ${plistPath} (could not move)\n`);
   }
@@ -451,7 +459,7 @@ export async function stopLaunchAgent({
       `launchctl bootout failed: ${res.stderr || res.stdout}`.trim(),
     );
   }
-  stdout.write(`Stopped LaunchAgent: ${domain}/${label}\n`);
+  stdout.write(`${formatLine("Stopped LaunchAgent", `${domain}/${label}`)}\n`);
 }
 
 export async function installLaunchAgent({
@@ -510,8 +518,8 @@ export async function installLaunchAgent({
   await execLaunchctl(["enable", `${domain}/${label}`]);
   await execLaunchctl(["kickstart", "-k", `${domain}/${label}`]);
 
-  stdout.write(`Installed LaunchAgent: ${plistPath}\n`);
-  stdout.write(`Logs: ${stdoutPath}\n`);
+  stdout.write(`${formatLine("Installed LaunchAgent", plistPath)}\n`);
+  stdout.write(`${formatLine("Logs", stdoutPath)}\n`);
   return { plistPath };
 }
 
@@ -530,5 +538,7 @@ export async function restartLaunchAgent({
       `launchctl kickstart failed: ${res.stderr || res.stdout}`.trim(),
     );
   }
-  stdout.write(`Restarted LaunchAgent: ${domain}/${label}\n`);
+  stdout.write(
+    `${formatLine("Restarted LaunchAgent", `${domain}/${label}`)}\n`,
+  );
 }

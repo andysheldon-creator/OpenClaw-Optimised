@@ -4,7 +4,11 @@ import {
   type SlackEventMiddlewareArgs,
 } from "@slack/bolt";
 import type { WebClient as SlackWebClient } from "@slack/web-api";
-import { resolveAckReaction } from "../agents/identity.js";
+import {
+  resolveAckReaction,
+  resolveEffectiveMessagesConfig,
+  resolveHumanDelayConfig,
+} from "../agents/identity.js";
 import {
   chunkMarkdownText,
   resolveTextChunkLimit,
@@ -21,12 +25,18 @@ import {
 } from "../auto-reply/envelope.js";
 import { dispatchReplyFromConfig } from "../auto-reply/reply/dispatch-from-config.js";
 import {
+  buildHistoryContextFromMap,
+  clearHistoryEntries,
+  DEFAULT_GROUP_HISTORY_LIMIT,
+  type HistoryEntry,
+} from "../auto-reply/reply/history.js";
+import {
   buildMentionRegexes,
   matchesMentionPatterns,
 } from "../auto-reply/reply/mentions.js";
 import { createReplyDispatcherWithTyping } from "../auto-reply/reply/reply-dispatcher.js";
 import { getReplyFromConfig } from "../auto-reply/reply.js";
-import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import type {
   ClawdbotConfig,
@@ -40,9 +50,10 @@ import {
   updateLastRoute,
 } from "../config/sessions.js";
 import { danger, logVerbose, shouldLogVerbose } from "../globals.js";
+import { createDedupeCache } from "../infra/dedupe.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { getChildLogger } from "../logging.js";
-import { detectMime } from "../media/mime.js";
+import { type FetchLike, fetchRemoteMedia } from "../media/fetch.js";
 import { saveMediaBuffer } from "../media/store.js";
 import { buildPairingReply } from "../pairing/pairing-messages.js";
 import {
@@ -50,12 +61,21 @@ import {
   upsertProviderPairingRequest,
 } from "../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
-import { resolveThreadSessionKeys } from "../routing/session-key.js";
+import {
+  normalizeMainKey,
+  resolveThreadSessionKeys,
+} from "../routing/session-key.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { resolveSlackAccount } from "./accounts.js";
-import { reactSlackMessage } from "./actions.js";
+import { reactSlackMessage, removeSlackReaction } from "./actions.js";
 import { sendMessageSlack } from "./send.js";
+import { resolveSlackThreadTargets } from "./threading.js";
 import { resolveSlackAppToken, resolveSlackBotToken } from "./token.js";
+import type {
+  SlackAppMentionEvent,
+  SlackFile,
+  SlackMessageEvent,
+} from "./types.js";
 
 export type MonitorSlackOpts = {
   botToken?: string;
@@ -66,43 +86,6 @@ export type MonitorSlackOpts = {
   abortSignal?: AbortSignal;
   mediaMaxMb?: number;
   slashCommand?: SlackSlashCommandConfig;
-};
-
-type SlackFile = {
-  id?: string;
-  name?: string;
-  mimetype?: string;
-  size?: number;
-  url_private?: string;
-  url_private_download?: string;
-};
-
-type SlackMessageEvent = {
-  type: "message";
-  user?: string;
-  bot_id?: string;
-  subtype?: string;
-  username?: string;
-  text?: string;
-  ts?: string;
-  thread_ts?: string;
-  parent_user_id?: string;
-  channel: string;
-  channel_type?: "im" | "mpim" | "channel" | "group";
-  files?: SlackFile[];
-};
-
-type SlackAppMentionEvent = {
-  type: "app_mention";
-  user?: string;
-  bot_id?: string;
-  username?: string;
-  text?: string;
-  ts?: string;
-  thread_ts?: string;
-  parent_user_id?: string;
-  channel: string;
-  channel_type?: "im" | "mpim" | "channel" | "group";
 };
 
 type SlackReactionEvent = {
@@ -380,27 +363,28 @@ async function resolveSlackMedia(params: {
     const url = file.url_private_download ?? file.url_private;
     if (!url) continue;
     try {
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${params.token}` },
+      const fetchImpl: FetchLike = (input, init) => {
+        const headers = new Headers(init?.headers);
+        headers.set("Authorization", `Bearer ${params.token}`);
+        return fetch(input, { ...init, headers });
+      };
+      const fetched = await fetchRemoteMedia({
+        url,
+        fetchImpl,
+        filePathHint: file.name,
       });
-      if (!res.ok) continue;
-      const buffer = Buffer.from(await res.arrayBuffer());
-      if (buffer.byteLength > params.maxBytes) continue;
-      const contentType = await detectMime({
-        buffer,
-        headerMime: res.headers.get("content-type"),
-        filePath: file.name,
-      });
+      if (fetched.buffer.byteLength > params.maxBytes) continue;
       const saved = await saveMediaBuffer(
-        buffer,
-        contentType ?? file.mimetype,
+        fetched.buffer,
+        fetched.contentType ?? file.mimetype,
         "inbound",
         params.maxBytes,
       );
+      const label = fetched.fileName ?? file.name;
       return {
         path: saved.path,
         contentType: saved.contentType,
-        placeholder: file.name ? `[Slack file: ${file.name}]` : "[Slack file]",
+        placeholder: label ? `[Slack file: ${label}]` : "[Slack file]",
       };
     } catch {
       // Ignore download failures and fall through to the next file.
@@ -453,9 +437,16 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     cfg,
     accountId: opts.accountId,
   });
+  const historyLimit = Math.max(
+    0,
+    account.config.historyLimit ??
+      cfg.messages?.groupChat?.historyLimit ??
+      DEFAULT_GROUP_HISTORY_LIMIT,
+  );
+  const channelHistories = new Map<string, HistoryEntry[]>();
   const sessionCfg = cfg.session;
   const sessionScope = sessionCfg?.scope ?? "per-sender";
-  const mainKey = (sessionCfg?.mainKey ?? "main").trim() || "main";
+  const mainKey = normalizeMainKey(sessionCfg?.mainKey);
 
   const resolveSlackSystemEventSessionKey = (params: {
     channelId?: string | null;
@@ -506,6 +497,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
   const useAccessGroups = cfg.commands?.useAccessGroups !== false;
   const reactionMode = slackCfg.reactionNotifications ?? "own";
   const reactionAllowlist = slackCfg.reactionAllowlist ?? [];
+  const replyToMode = slackCfg.replyToMode ?? "off";
   const slashCommand = resolveSlackSlashCommandConfig(
     opts.slashCommand ?? slackCfg.slashCommand,
   );
@@ -525,24 +517,11 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     }
   >();
   const userCache = new Map<string, { name?: string }>();
-  const seenMessages = new Map<string, number>();
+  const seenMessages = createDedupeCache({ ttlMs: 60_000, maxSize: 500 });
 
   const markMessageSeen = (channelId: string | undefined, ts?: string) => {
     if (!channelId || !ts) return false;
-    const key = `${channelId}:${ts}`;
-    if (seenMessages.has(key)) return true;
-    seenMessages.set(key, Date.now());
-    if (seenMessages.size > 500) {
-      const cutoff = Date.now() - 60_000;
-      for (const [entry, seenAt] of seenMessages) {
-        if (seenAt < cutoff || seenMessages.size > 450) {
-          seenMessages.delete(entry);
-        } else {
-          break;
-        }
-      }
-    }
-    return false;
+    return seenMessages.check(`${channelId}:${ts}`);
   };
 
   const app = new App({
@@ -937,6 +916,8 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     const rawBody = (message.text ?? "").trim() || media?.placeholder || "";
     if (!rawBody) return;
     const ackReaction = resolveAckReaction(cfg, route.agentId);
+    const ackReactionValue = ackReaction ?? "";
+    const removeAckAfterReply = cfg.messages?.removeAckAfterReply ?? false;
     const shouldAckReaction = () => {
       if (!ackReaction) return false;
       if (ackReactionScope === "all") return true;
@@ -951,18 +932,42 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       }
       return false;
     };
-    if (shouldAckReaction() && message.ts) {
-      reactSlackMessage(message.channel, message.ts, ackReaction, {
-        token: botToken,
-        client: app.client,
-      }).catch((err) => {
-        logVerbose(
-          `slack react failed for channel ${message.channel}: ${String(err)}`,
-        );
-      });
-    }
+    const ackReactionMessageTs = message.ts;
+    const ackReactionPromise =
+      shouldAckReaction() && ackReactionMessageTs && ackReactionValue
+        ? reactSlackMessage(
+            message.channel,
+            ackReactionMessageTs,
+            ackReactionValue,
+            {
+              token: botToken,
+              client: app.client,
+            },
+          ).then(
+            () => true,
+            (err) => {
+              logVerbose(
+                `slack react failed for channel ${message.channel}: ${String(err)}`,
+              );
+              return false;
+            },
+          )
+        : null;
 
     const roomLabel = channelName ? `#${channelName}` : `#${message.channel}`;
+    const isRoomish = isRoom || isGroupDm;
+    const historyKey = message.channel;
+    const historyEntry =
+      isRoomish && historyLimit > 0
+        ? {
+            sender: senderName,
+            body: rawBody,
+            timestamp: message.ts
+              ? Math.round(Number(message.ts) * 1000)
+              : undefined,
+            messageId: message.ts,
+          }
+        : undefined;
 
     const preview = rawBody.replace(/\s+/g, " ").slice(0, 160);
     const inboundLabel = isDirectMessage
@@ -998,7 +1003,27 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       body: textWithId,
     });
 
-    const isRoomish = isRoom || isGroupDm;
+    let combinedBody = body;
+    if (isRoomish && historyLimit > 0) {
+      combinedBody = buildHistoryContextFromMap({
+        historyMap: channelHistories,
+        historyKey,
+        limit: historyLimit,
+        entry: historyEntry,
+        currentMessage: combinedBody,
+        formatEntry: (entry) =>
+          formatAgentEnvelope({
+            provider: "Slack",
+            from: roomLabel,
+            timestamp: entry.timestamp,
+            body: `${entry.sender}: ${entry.body}${
+              entry.messageId
+                ? ` [id:${entry.messageId} channel:${message.channel}]`
+                : ""
+            }`,
+          }),
+      });
+    }
     const slackTo = isDirectMessage
       ? `user:${message.user}`
       : `channel:${message.channel}`;
@@ -1042,7 +1067,9 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       }
     }
     const ctxPayload = {
-      Body: body,
+      Body: combinedBody,
+      RawBody: rawBody,
+      CommandBody: rawBody,
       From: slackFrom,
       To: slackTo,
       SessionKey: sessionKey,
@@ -1096,10 +1123,17 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       );
     }
 
-    // Only thread replies if the incoming message was in a thread.
+    // Use helper for status thread; compute baseThreadTs for "first" mode support
+    const { statusThreadTs } = resolveSlackThreadTargets({
+      message,
+      replyToMode,
+    });
+    const messageTs = message.ts ?? message.event_ts;
     const incomingThreadTs = message.thread_ts;
-    const statusThreadTs = message.thread_ts ?? message.ts;
     let didSetStatus = false;
+    // Shared mutable ref for tracking if a reply was sent (used by both
+    // auto-reply path and tool path for "first" threading mode).
+    const hasRepliedRef = { value: false };
     const onReplyStart = async () => {
       didSetStatus = true;
       await setSlackThreadStatus({
@@ -1108,10 +1142,19 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
         status: "is typing...",
       });
     };
+    let didSendReply = false;
     const { dispatcher, replyOptions, markDispatchIdle } =
       createReplyDispatcherWithTyping({
-        responsePrefix: cfg.messages?.responsePrefix,
+        responsePrefix: resolveEffectiveMessagesConfig(cfg, route.agentId)
+          .responsePrefix,
+        humanDelay: resolveHumanDelayConfig(cfg, route.agentId),
         deliver: async (payload) => {
+          const effectiveThreadTs = resolveSlackThreadTs({
+            replyToMode,
+            incomingThreadTs,
+            messageTs,
+            hasReplied: hasRepliedRef.value,
+          });
           await deliverReplies({
             replies: [payload],
             target: replyTarget,
@@ -1119,8 +1162,10 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
             accountId: account.accountId,
             runtime,
             textLimit,
-            threadTs: incomingThreadTs,
+            replyThreadTs: effectiveThreadTs,
           });
+          didSendReply = true;
+          hasRepliedRef.value = true;
         },
         onError: (err, info) => {
           runtime.error?.(
@@ -1141,7 +1186,15 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
       ctx: ctxPayload,
       cfg,
       dispatcher,
-      replyOptions: { ...replyOptions, skillFilter: channelConfig?.skills },
+      replyOptions: {
+        ...replyOptions,
+        skillFilter: channelConfig?.skills,
+        hasRepliedRef,
+        disableBlockStreaming:
+          typeof account.config.blockStreaming === "boolean"
+            ? !account.config.blockStreaming
+            : undefined,
+      },
     });
     markDispatchIdle();
     if (didSetStatus) {
@@ -1151,12 +1204,34 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
         status: "",
       });
     }
-    if (!queuedFinal) return;
+    if (!queuedFinal) {
+      if (isRoomish && historyLimit > 0 && didSendReply) {
+        clearHistoryEntries({ historyMap: channelHistories, historyKey });
+      }
+      return;
+    }
     if (shouldLogVerbose()) {
       const finalCount = counts.final;
       logVerbose(
         `slack: delivered ${finalCount} reply${finalCount === 1 ? "" : "ies"} to ${replyTarget}`,
       );
+    }
+    if (removeAckAfterReply && ackReactionPromise && ackReactionMessageTs) {
+      const messageTs = ackReactionMessageTs;
+      void ackReactionPromise.then((didAck) => {
+        if (!didAck) return;
+        removeSlackReaction(message.channel, messageTs, ackReactionValue, {
+          token: botToken,
+          client: app.client,
+        }).catch((err) => {
+          logVerbose(
+            `slack: failed to remove ack reaction from ${message.channel}/${message.ts}: ${String(err)}`,
+          );
+        });
+      });
+    }
+    if (isRoomish && historyLimit > 0 && didSendReply) {
+      clearHistoryEntries({ historyMap: channelHistories, historyKey });
     }
   };
 
@@ -1922,10 +1997,11 @@ async function deliverReplies(params: {
   accountId?: string;
   runtime: RuntimeEnv;
   textLimit: number;
-  threadTs?: string;
+  replyThreadTs?: string;
 }) {
   const chunkLimit = Math.min(params.textLimit, 4000);
   for (const payload of params.replies) {
+    const threadTs = payload.replyToId ?? params.replyThreadTs;
     const mediaList =
       payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []);
     const text = payload.text ?? "";
@@ -1934,10 +2010,11 @@ async function deliverReplies(params: {
     if (mediaList.length === 0) {
       for (const chunk of chunkMarkdownText(text, chunkLimit)) {
         const trimmed = chunk.trim();
-        if (!trimmed || trimmed === SILENT_REPLY_TOKEN) continue;
+        if (!trimmed || isSilentReplyText(trimmed, SILENT_REPLY_TOKEN))
+          continue;
         await sendMessageSlack(params.target, trimmed, {
           token: params.token,
-          threadTs: params.threadTs,
+          threadTs,
           accountId: params.accountId,
         });
       }
@@ -1949,7 +2026,7 @@ async function deliverReplies(params: {
         await sendMessageSlack(params.target, caption, {
           token: params.token,
           mediaUrl,
-          threadTs: params.threadTs,
+          threadTs,
           accountId: params.accountId,
         });
       }
@@ -1975,6 +2052,33 @@ export function isSlackRoomAllowedByPolicy(params: {
   return channelAllowed;
 }
 
+/**
+ * Compute effective threadTs for a Slack reply based on replyToMode.
+ * - "off": stay in thread if already in one, otherwise main channel
+ * - "first": first reply goes to thread, subsequent replies to main channel
+ * - "all": all replies go to thread
+ */
+export function resolveSlackThreadTs(params: {
+  replyToMode: "off" | "first" | "all";
+  incomingThreadTs: string | undefined;
+  messageTs: string | undefined;
+  hasReplied: boolean;
+}): string | undefined {
+  const { replyToMode, incomingThreadTs, messageTs, hasReplied } = params;
+  if (incomingThreadTs) return incomingThreadTs;
+  if (!messageTs) return undefined;
+  if (replyToMode === "all") {
+    // All replies go to thread
+    return messageTs;
+  }
+  if (replyToMode === "first") {
+    // "first": only first reply goes to thread
+    return hasReplied ? undefined : messageTs;
+  }
+  // "off": never start a thread
+  return undefined;
+}
+
 async function deliverSlackSlashReplies(params: {
   replies: ReplyPayload[];
   respond: SlackRespondFn;
@@ -1986,7 +2090,9 @@ async function deliverSlackSlashReplies(params: {
   for (const payload of params.replies) {
     const textRaw = payload.text?.trim() ?? "";
     const text =
-      textRaw && textRaw !== SILENT_REPLY_TOKEN ? textRaw : undefined;
+      textRaw && !isSilentReplyText(textRaw, SILENT_REPLY_TOKEN)
+        ? textRaw
+        : undefined;
     const mediaList =
       payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []);
     const combined = [

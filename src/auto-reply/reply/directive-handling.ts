@@ -2,6 +2,7 @@ import {
   resolveAgentConfig,
   resolveAgentDir,
   resolveDefaultAgentId,
+  resolveSessionAgentId,
 } from "../../agents/agent-scope.js";
 import {
   isProfileInCooldown,
@@ -28,15 +29,11 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
-import { resolveSandboxConfigForAgent } from "../../agents/sandbox.js";
+import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import type { ClawdbotConfig } from "../../config/config.js";
-import {
-  resolveAgentIdFromSessionKey,
-  resolveAgentMainSessionKey,
-  type SessionEntry,
-  saveSessionStore,
-} from "../../config/sessions.js";
+import { type SessionEntry, saveSessionStore } from "../../config/sessions.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
+import { applyVerboseOverride } from "../../sessions/level-overrides.js";
 import { shortenHomePath } from "../../utils.js";
 import { extractModelDirective } from "../model.js";
 import type { MsgContext } from "../templating.js";
@@ -70,6 +67,31 @@ const withOptions = (line: string, options: string) =>
   `${line}\n${formatOptionsLine(options)}`;
 const formatElevatedRuntimeHint = () =>
   `${SYSTEM_MARK} Runtime is direct; sandboxing does not apply.`;
+
+function formatElevatedUnavailableText(params: {
+  runtimeSandboxed: boolean;
+  failures?: Array<{ gate: string; key: string }>;
+  sessionKey?: string;
+}): string {
+  const lines: string[] = [];
+  lines.push(
+    `elevated is not available right now (runtime=${params.runtimeSandboxed ? "sandboxed" : "direct"}).`,
+  );
+  const failures = params.failures ?? [];
+  if (failures.length > 0) {
+    lines.push(
+      `Failing gates: ${failures.map((f) => `${f.gate} (${f.key})`).join(", ")}`,
+    );
+  } else {
+    lines.push(
+      "Fix-it keys: tools.elevated.enabled, tools.elevated.allowFrom.<provider>, agents.list[].tools.elevated.*",
+    );
+  }
+  if (params.sessionKey) {
+    lines.push(`See: clawdbot sandbox explain --session ${params.sessionKey}`);
+  }
+  return lines.join("\n");
+}
 
 const maskApiKey = (value: string): string => {
   const trimmed = value.trim();
@@ -447,10 +469,12 @@ export async function handleDirectiveOnly(params: {
   directives: InlineDirectives;
   sessionEntry?: SessionEntry;
   sessionStore?: Record<string, SessionEntry>;
-  sessionKey?: string;
+  sessionKey: string;
   storePath?: string;
   elevatedEnabled: boolean;
   elevatedAllowed: boolean;
+  elevatedFailures?: Array<{ gate: string; key: string }>;
+  messageProviderKey?: string;
   defaultProvider: string;
   defaultModel: string;
   aliasIndex: ModelAliasIndex;
@@ -490,23 +514,15 @@ export async function handleDirectiveOnly(params: {
     currentReasoningLevel,
     currentElevatedLevel,
   } = params;
-  const activeAgentId = params.sessionKey
-    ? resolveAgentIdFromSessionKey(params.sessionKey)
-    : resolveDefaultAgentId(params.cfg);
+  const activeAgentId = resolveSessionAgentId({
+    sessionKey: params.sessionKey,
+    config: params.cfg,
+  });
   const agentDir = resolveAgentDir(params.cfg, activeAgentId);
-  const runtimeIsSandboxed = (() => {
-    const sessionKey = params.sessionKey?.trim();
-    if (!sessionKey) return false;
-    const agentId = resolveAgentIdFromSessionKey(sessionKey);
-    const sandboxCfg = resolveSandboxConfigForAgent(params.cfg, agentId);
-    if (sandboxCfg.mode === "off") return false;
-    const mainKey = resolveAgentMainSessionKey({
-      cfg: params.cfg,
-      agentId,
-    });
-    if (sandboxCfg.mode === "all") return true;
-    return sessionKey !== mainKey;
-  })();
+  const runtimeIsSandboxed = resolveSandboxRuntimeStatus({
+    cfg: params.cfg,
+    sessionKey: params.sessionKey,
+  }).sandboxed;
   const shouldHintDirectRuntime =
     directives.hasElevatedDirective && !runtimeIsSandboxed;
 
@@ -704,7 +720,13 @@ export async function handleDirectiveOnly(params: {
   if (directives.hasElevatedDirective && !directives.elevatedLevel) {
     if (!directives.rawElevatedLevel) {
       if (!elevatedEnabled || !elevatedAllowed) {
-        return { text: "elevated is not available right now." };
+        return {
+          text: formatElevatedUnavailableText({
+            runtimeSandboxed: runtimeIsSandboxed,
+            failures: params.elevatedFailures,
+            sessionKey: params.sessionKey,
+          }),
+        };
       }
       const level = currentElevatedLevel ?? "off";
       return {
@@ -724,7 +746,13 @@ export async function handleDirectiveOnly(params: {
     directives.hasElevatedDirective &&
     (!elevatedEnabled || !elevatedAllowed)
   ) {
-    return { text: "elevated is not available right now." };
+    return {
+      text: formatElevatedUnavailableText({
+        runtimeSandboxed: runtimeIsSandboxed,
+        failures: params.elevatedFailures,
+        sessionKey: params.sessionKey,
+      }),
+    };
   }
 
   if (
@@ -836,6 +864,7 @@ export async function handleDirectiveOnly(params: {
         enqueueSystemEvent(
           formatModelSwitchEvent(nextLabel, modelSelection.alias),
           {
+            sessionKey,
             contextKey: `model:${nextLabel}`,
           },
         );
@@ -852,8 +881,7 @@ export async function handleDirectiveOnly(params: {
       else sessionEntry.thinkingLevel = directives.thinkLevel;
     }
     if (directives.hasVerboseDirective && directives.verboseLevel) {
-      if (directives.verboseLevel === "off") delete sessionEntry.verboseLevel;
-      else sessionEntry.verboseLevel = directives.verboseLevel;
+      applyVerboseOverride(sessionEntry, directives.verboseLevel);
     }
     if (directives.hasReasoningDirective && directives.reasoningLevel) {
       if (directives.reasoningLevel === "off")
@@ -861,8 +889,9 @@ export async function handleDirectiveOnly(params: {
       else sessionEntry.reasoningLevel = directives.reasoningLevel;
     }
     if (directives.hasElevatedDirective && directives.elevatedLevel) {
-      if (directives.elevatedLevel === "off") delete sessionEntry.elevatedLevel;
-      else sessionEntry.elevatedLevel = directives.elevatedLevel;
+      // Unlike other toggles, elevated defaults can be "on".
+      // Persist "off" explicitly so `/elevated off` actually overrides defaults.
+      sessionEntry.elevatedLevel = directives.elevatedLevel;
     }
     if (modelSelection) {
       if (modelSelection.isDefault) {
@@ -1010,8 +1039,11 @@ export async function persistInlineDirectives(params: {
     formatModelSwitchEvent,
     agentCfg,
   } = params;
-  const { agentDir } = params;
   let { provider, model } = params;
+  const activeAgentId = sessionKey
+    ? resolveSessionAgentId({ sessionKey, config: cfg })
+    : resolveDefaultAgentId(cfg);
+  const agentDir = resolveAgentDir(cfg, activeAgentId);
 
   if (sessionEntry && sessionStore && sessionKey) {
     let updated = false;
@@ -1024,11 +1056,7 @@ export async function persistInlineDirectives(params: {
       updated = true;
     }
     if (directives.hasVerboseDirective && directives.verboseLevel) {
-      if (directives.verboseLevel === "off") {
-        delete sessionEntry.verboseLevel;
-      } else {
-        sessionEntry.verboseLevel = directives.verboseLevel;
-      }
+      applyVerboseOverride(sessionEntry, directives.verboseLevel);
       updated = true;
     }
     if (directives.hasReasoningDirective && directives.reasoningLevel) {
@@ -1045,11 +1073,8 @@ export async function persistInlineDirectives(params: {
       elevatedEnabled &&
       elevatedAllowed
     ) {
-      if (directives.elevatedLevel === "off") {
-        delete sessionEntry.elevatedLevel;
-      } else {
-        sessionEntry.elevatedLevel = directives.elevatedLevel;
-      }
+      // Persist "off" explicitly so inline `/elevated off` overrides defaults.
+      sessionEntry.elevatedLevel = directives.elevatedLevel;
       updated = true;
     }
     const modelDirective =
@@ -1100,6 +1125,7 @@ export async function persistInlineDirectives(params: {
             enqueueSystemEvent(
               formatModelSwitchEvent(nextLabel, resolved.alias),
               {
+                sessionKey,
                 contextKey: `model:${nextLabel}`,
               },
             );

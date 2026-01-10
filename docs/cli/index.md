@@ -14,6 +14,7 @@ This page describes the current CLI behavior. If commands change, update this do
 - `--dev`: isolate state under `~/.clawdbot-dev` and shift default ports.
 - `--profile <name>`: isolate state under `~/.clawdbot-<name>`.
 - `--no-color`: disable ANSI colors.
+- `--update`: shorthand for `clawdbot update` (source installs only).
 - `-V`, `--version`, `-v`: print version and exit.
 
 ## Output styling
@@ -47,6 +48,7 @@ clawdbot [--dev] [--profile <name>] <command>
   onboard
   configure (alias: config)
   doctor
+  update
   providers
     list
     status
@@ -147,6 +149,15 @@ clawdbot [--dev] [--profile <name>] <command>
   tui
 ```
 
+## Chat slash commands
+
+Chat messages support `/...` commands (text and native). See [/tools/slash-commands](/tools/slash-commands).
+
+Highlights:
+- `/status` for quick diagnostics.
+- `/config` for persisted config changes.
+- `/debug` for runtime-only config overrides (memory, not disk).
+
 ## Setup + onboarding
 
 ### `setup`
@@ -169,11 +180,17 @@ Options:
 - `--workspace <dir>`
 - `--non-interactive`
 - `--mode <local|remote>`
-- `--auth-choice <oauth|claude-cli|token|openai-codex|openai-api-key|codex-cli|antigravity|gemini-api-key|apiKey|minimax-cloud|minimax|skip>`
+- `--auth-choice <setup-token|claude-cli|token|openai-codex|openai-api-key|codex-cli|antigravity|gemini-api-key|zai-api-key|apiKey|minimax-cloud|minimax-api|minimax|opencode-zen|skip>`
+- `--token-provider <id>` (non-interactive; used with `--auth-choice token`)
+- `--token <token>` (non-interactive; used with `--auth-choice token`)
+- `--token-profile-id <id>` (non-interactive; default: `<provider>:manual`)
+- `--token-expires-in <duration>` (non-interactive; e.g. `365d`, `12h`)
 - `--anthropic-api-key <key>`
 - `--openai-api-key <key>`
 - `--gemini-api-key <key>`
+- `--zai-api-key <key>`
 - `--minimax-api-key <key>`
+- `--opencode-zen-api-key <key>`
 - `--gateway-port <port>`
 - `--gateway-bind <loopback|lan|tailnet|auto>`
 - `--gateway-auth <off|token|password>`
@@ -270,14 +287,14 @@ Tip: use `npx clawdhub` to search, install, and sync skills.
 Approve DM pairing requests across providers.
 
 Subcommands:
-- `pairing list --provider <telegram|signal|imessage|discord|slack|whatsapp> [--json]`
-- `pairing approve --provider <...> <code> [--notify]`
+- `pairing list <provider> [--json]`
+- `pairing approve <provider> <code> [--notify]`
 
 ### `hooks gmail`
 Gmail Pub/Sub hook setup + runner. See [/automation/gmail-pubsub](/automation/gmail-pubsub).
 
 Subcommands:
-- `hooks gmail setup` (requires `--account <email>`; supports `--project`, `--topic`, `--subscription`, `--label`, `--hook-url`, `--hook-token`, `--push-token`, `--bind`, `--port`, `--path`, `--include-body`, `--max-bytes`, `--renew-minutes`, `--tailscale`, `--tailscale-path`, `--push-endpoint`, `--json`)
+- `hooks gmail setup` (requires `--account <email>`; supports `--project`, `--topic`, `--subscription`, `--label`, `--hook-url`, `--hook-token`, `--push-token`, `--bind`, `--port`, `--path`, `--include-body`, `--max-bytes`, `--renew-minutes`, `--tailscale`, `--tailscale-path`, `--tailscale-target`, `--push-endpoint`, `--json`)
 - `hooks gmail run` (runtime overrides for the same flags)
 
 ### `dns setup`
@@ -369,7 +386,7 @@ Options:
 Clawdbot can surface provider usage/quota when OAuth/API creds are available.
 
 Surfaces:
-- `/status` (adds a short usage line when available)
+- `/status` (alias: `/usage`; adds a short usage line when available)
 - `clawdbot status --usage` (prints full provider breakdown)
 - macOS menu bar (Usage section under Context)
 
@@ -660,5 +677,6 @@ Options:
 - `--session <key>`
 - `--deliver`
 - `--thinking <level>`
-- `--timeout-ms <ms>`
+- `--message <text>`
+- `--timeout-ms <ms>` (defaults to `agents.defaults.timeoutSeconds`)
 - `--history-limit <n>`

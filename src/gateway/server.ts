@@ -9,7 +9,11 @@ import {
   type ModelCatalogEntry,
   resetModelCatalogCacheForTest,
 } from "../agents/model-catalog.js";
-import { resolveConfiguredModelRef } from "../agents/model-selection.js";
+import {
+  getModelRefStatus,
+  resolveConfiguredModelRef,
+  resolveHooksGmailModel,
+} from "../agents/model-selection.js";
 import { resolveAnnounceTargetFromKey } from "../agents/tools/sessions-send-helpers.js";
 import { CANVAS_HOST_PATH } from "../canvas-host/a2ui.js";
 import {
@@ -37,6 +41,7 @@ import {
 import {
   loadSessionStore,
   resolveMainSessionKey,
+  resolveMainSessionKeyFromConfig,
   resolveStorePath,
 } from "../config/sessions.js";
 import { runCronIsolatedAgentTurn } from "../cron/isolated-agent.js";
@@ -56,7 +61,10 @@ import { startNodeBridgeServer } from "../infra/bridge/server.js";
 import { resolveCanvasHostUrl } from "../infra/canvas-host-url.js";
 import { GatewayLockError } from "../infra/gateway-lock.js";
 import { onHeartbeatEvent } from "../infra/heartbeat-events.js";
-import { startHeartbeatRunner } from "../infra/heartbeat-runner.js";
+import {
+  runHeartbeatOnce,
+  startHeartbeatRunner,
+} from "../infra/heartbeat-runner.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
 import { resolveOutboundTarget } from "../infra/outbound/targets.js";
@@ -106,12 +114,16 @@ import {
   resolveGatewayAuth,
 } from "./auth.js";
 import {
+  abortChatRunById,
+  type ChatAbortControllerEntry,
+} from "./chat-abort.js";
+import {
   type GatewayReloadPlan,
   type ProviderKind,
   startGatewayConfigReloader,
 } from "./config-reload.js";
 import { normalizeControlUiBasePath } from "./control-ui.js";
-import { resolveHooksConfig } from "./hooks.js";
+import { type HookMessageProvider, resolveHooksConfig } from "./hooks.js";
 import {
   isLoopbackAddress,
   isLoopbackHost,
@@ -317,6 +329,11 @@ export type GatewayServerOptions = {
    */
   controlUiEnabled?: boolean;
   /**
+   * If false, do not serve `POST /v1/chat/completions`.
+   * Default: config `gateway.http.endpoints.chatCompletions.enabled` (or false when absent).
+   */
+  openAiChatCompletionsEnabled?: boolean;
+  /**
    * Override gateway auth configuration (merges with config).
    */
   auth?: import("../config/config.js").GatewayAuthConfig;
@@ -420,6 +437,10 @@ export async function startGatewayServer(
   }
   const controlUiEnabled =
     opts.controlUiEnabled ?? cfgAtStart.gateway?.controlUi?.enabled ?? true;
+  const openAiChatCompletionsEnabled =
+    opts.openAiChatCompletionsEnabled ??
+    cfgAtStart.gateway?.http?.endpoints?.chatCompletions?.enabled ??
+    false;
   const controlUiBasePath = normalizeControlUiBasePath(
     cfgAtStart.gateway?.controlUi?.basePath,
   );
@@ -484,7 +505,8 @@ export async function startGatewayServer(
     text: string;
     mode: "now" | "next-heartbeat";
   }) => {
-    enqueueSystemEvent(value.text);
+    const sessionKey = resolveMainSessionKeyFromConfig();
+    enqueueSystemEvent(value.text, { sessionKey });
     if (value.mode === "now") {
       requestHeartbeatNow({ reason: "hook:wake" });
     }
@@ -496,15 +518,7 @@ export async function startGatewayServer(
     wakeMode: "now" | "next-heartbeat";
     sessionKey: string;
     deliver: boolean;
-    provider:
-      | "last"
-      | "whatsapp"
-      | "telegram"
-      | "discord"
-      | "slack"
-      | "signal"
-      | "imessage"
-      | "msteams";
+    provider: HookMessageProvider;
     to?: string;
     model?: string;
     thinking?: string;
@@ -513,6 +527,7 @@ export async function startGatewayServer(
     const sessionKey = value.sessionKey.trim()
       ? value.sessionKey.trim()
       : `hook:${randomUUID()}`;
+    const mainSessionKey = resolveMainSessionKeyFromConfig();
     const jobId = randomUUID();
     const now = Date.now();
     const job: CronJob = {
@@ -555,13 +570,17 @@ export async function startGatewayServer(
           result.status === "ok"
             ? `Hook ${value.name}`
             : `Hook ${value.name} (${result.status})`;
-        enqueueSystemEvent(`${prefix}: ${summary}`.trim());
+        enqueueSystemEvent(`${prefix}: ${summary}`.trim(), {
+          sessionKey: mainSessionKey,
+        });
         if (value.wakeMode === "now") {
           requestHeartbeatNow({ reason: `hook:${jobId}` });
         }
       } catch (err) {
         logHooks.warn(`hook agent failed: ${String(err)}`);
-        enqueueSystemEvent(`Hook ${value.name} (error): ${String(err)}`);
+        enqueueSystemEvent(`Hook ${value.name} (error): ${String(err)}`, {
+          sessionKey: mainSessionKey,
+        });
         if (value.wakeMode === "now") {
           requestHeartbeatNow({ reason: `hook:${jobId}:error` });
         }
@@ -605,7 +624,9 @@ export async function startGatewayServer(
     canvasHost,
     controlUiEnabled,
     controlUiBasePath,
+    openAiChatCompletionsEnabled,
     handleHooksRequest,
+    resolvedAuth,
   });
   let bonjourStop: (() => Promise<void>) | null = null;
   let bridge: Awaited<ReturnType<typeof startNodeBridgeServer>> | null = null;
@@ -682,10 +703,7 @@ export async function startGatewayServer(
     }
     return sessionKey;
   };
-  const chatAbortControllers = new Map<
-    string,
-    { controller: AbortController; sessionId: string; sessionKey: string }
-  >();
+  const chatAbortControllers = new Map<string, ChatAbortControllerEntry>();
   setCommandLaneConcurrency("cron", cfgAtStart.cron?.maxConcurrentRuns ?? 1);
   setCommandLaneConcurrency(
     "main",
@@ -711,6 +729,14 @@ export async function startGatewayServer(
         enqueueSystemEvent(text, { sessionKey: resolveMainSessionKey(cfg) });
       },
       requestHeartbeatNow,
+      runHeartbeatOnce: async (opts) => {
+        const runtimeConfig = loadConfig();
+        return await runHeartbeatOnce({
+          cfg: runtimeConfig,
+          reason: opts?.reason,
+          deps: { ...deps, runtime: defaultRuntime },
+        });
+      },
       runIsolatedAgentJob: async ({ job, message }) => {
         const runtimeConfig = loadConfig();
         return await runCronIsolatedAgentTurn({
@@ -964,6 +990,7 @@ export async function startGatewayServer(
     addChatRun,
     removeChatRun,
     chatAbortControllers,
+    chatAbortedRuns: chatRunState.abortedRuns,
     chatRunBuffers,
     chatDeltaSentAt,
     dedupe,
@@ -1188,6 +1215,31 @@ export async function startGatewayServer(
       for (let i = 0; i < dedupe.size - DEDUPE_MAX; i++) {
         dedupe.delete(entries[i][0]);
       }
+    }
+
+    for (const [runId, entry] of chatAbortControllers) {
+      if (now <= entry.expiresAtMs) continue;
+      abortChatRunById(
+        {
+          chatAbortControllers,
+          chatRunBuffers,
+          chatDeltaSentAt,
+          chatAbortedRuns: chatRunState.abortedRuns,
+          removeChatRun,
+          agentRunSeq,
+          broadcast,
+          bridgeSendToSession,
+        },
+        { runId, sessionKey: entry.sessionKey, stopReason: "timeout" },
+      );
+    }
+
+    const ABORTED_RUN_TTL_MS = 60 * 60_000;
+    for (const [runId, abortedAt] of chatRunState.abortedRuns) {
+      if (now - abortedAt <= ABORTED_RUN_TTL_MS) continue;
+      chatRunState.abortedRuns.delete(runId);
+      chatRunBuffers.delete(runId);
+      chatDeltaSentAt.delete(runId);
     }
   }, 60_000);
 
@@ -1633,6 +1685,7 @@ export async function startGatewayServer(
               getHealthCache: () => healthCache,
               refreshHealthSnapshot,
               logHealth,
+              logGateway: log,
               incrementPresenceVersion: () => {
                 presenceVersion += 1;
                 return presenceVersion;
@@ -1644,6 +1697,7 @@ export async function startGatewayServer(
               hasConnectedMobileNode,
               agentRunSeq,
               chatAbortControllers,
+              chatAbortedRuns: chatRunState.abortedRuns,
               chatRunBuffers,
               chatDeltaSentAt,
               addChatRun,
@@ -1771,6 +1825,40 @@ export async function startGatewayServer(
     }
   }
 
+  // Validate hooks.gmail.model if configured.
+  if (cfgAtStart.hooks?.gmail?.model) {
+    const hooksModelRef = resolveHooksGmailModel({
+      cfg: cfgAtStart,
+      defaultProvider: DEFAULT_PROVIDER,
+    });
+    if (hooksModelRef) {
+      const { provider: defaultProvider, model: defaultModel } =
+        resolveConfiguredModelRef({
+          cfg: cfgAtStart,
+          defaultProvider: DEFAULT_PROVIDER,
+          defaultModel: DEFAULT_MODEL,
+        });
+      const catalog = await loadModelCatalog({ config: cfgAtStart });
+      const status = getModelRefStatus({
+        cfg: cfgAtStart,
+        catalog,
+        ref: hooksModelRef,
+        defaultProvider,
+        defaultModel,
+      });
+      if (!status.allowed) {
+        logHooks.warn(
+          `hooks.gmail.model "${status.key}" not in agents.defaults.models allowlist (will use primary instead)`,
+        );
+      }
+      if (!status.inCatalog) {
+        logHooks.warn(
+          `hooks.gmail.model "${status.key}" not in the model catalog (may fail at runtime)`,
+        );
+      }
+    }
+  }
+
   // Launch configured providers (WhatsApp Web, Discord, Slack, Telegram) so gateway replies via the
   // surface the message came from. Tests can opt out via CLAWDBOT_SKIP_PROVIDERS.
   if (process.env.CLAWDBOT_SKIP_PROVIDERS !== "1") {
@@ -1792,7 +1880,8 @@ export async function startGatewayServer(
     const summary = summarizeRestartSentinel(payload);
 
     if (!sessionKey) {
-      enqueueSystemEvent(message);
+      const mainSessionKey = resolveMainSessionKeyFromConfig();
+      enqueueSystemEvent(message, { sessionKey: mainSessionKey });
       return;
     }
 
@@ -1806,7 +1895,7 @@ export async function startGatewayServer(
     const provider = lastProvider ?? parsedTarget?.provider;
     const to = lastTo || parsedTarget?.to;
     if (!provider || !to) {
-      enqueueSystemEvent(message);
+      enqueueSystemEvent(message, { sessionKey });
       return;
     }
 
@@ -1823,7 +1912,7 @@ export async function startGatewayServer(
       allowFrom: cfg.whatsapp?.allowFrom ?? [],
     });
     if (!resolved.ok) {
-      enqueueSystemEvent(message);
+      enqueueSystemEvent(message, { sessionKey });
       return;
     }
 
@@ -1842,7 +1931,7 @@ export async function startGatewayServer(
         deps,
       );
     } catch (err) {
-      enqueueSystemEvent(`${summary}\n${String(err)}`);
+      enqueueSystemEvent(`${summary}\n${String(err)}`, { sessionKey });
     }
   };
 

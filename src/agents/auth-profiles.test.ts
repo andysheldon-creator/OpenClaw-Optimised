@@ -4,48 +4,16 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { withTempHome } from "../../test/helpers/temp-home.js";
 import {
   type AuthProfileStore,
   CLAUDE_CLI_PROFILE_ID,
   CODEX_CLI_PROFILE_ID,
   calculateAuthProfileCooldownMs,
   ensureAuthProfileStore,
+  markAuthProfileFailure,
   resolveAuthProfileOrder,
 } from "./auth-profiles.js";
-
-const HOME_ENV_KEYS = ["HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH"] as const;
-type HomeEnvSnapshot = Record<
-  (typeof HOME_ENV_KEYS)[number],
-  string | undefined
->;
-
-const snapshotHomeEnv = (): HomeEnvSnapshot => ({
-  HOME: process.env.HOME,
-  USERPROFILE: process.env.USERPROFILE,
-  HOMEDRIVE: process.env.HOMEDRIVE,
-  HOMEPATH: process.env.HOMEPATH,
-});
-
-const restoreHomeEnv = (snapshot: HomeEnvSnapshot) => {
-  for (const key of HOME_ENV_KEYS) {
-    const value = snapshot[key];
-    if (value === undefined) {
-      delete process.env[key];
-    } else {
-      process.env[key] = value;
-    }
-  }
-};
-
-const setTempHome = (tempHome: string) => {
-  process.env.HOME = tempHome;
-  if (process.platform === "win32") {
-    process.env.USERPROFILE = tempHome;
-    const root = path.parse(tempHome).root;
-    process.env.HOMEDRIVE = root.replace(/\\$/, "");
-    process.env.HOMEPATH = tempHome.slice(root.length - 1);
-  }
-};
 
 describe("resolveAuthProfileOrder", () => {
   const store: AuthProfileStore = {
@@ -176,6 +144,49 @@ describe("resolveAuthProfileOrder", () => {
         ...store,
         usageStats: {
           "anthropic:default": { cooldownUntil: now + 60_000 },
+          "anthropic:work": { lastUsed: 1 },
+        },
+      },
+      provider: "anthropic",
+    });
+    expect(order).toEqual(["anthropic:work", "anthropic:default"]);
+  });
+
+  it("pushes disabled profiles to the end even with store order", () => {
+    const now = Date.now();
+    const order = resolveAuthProfileOrder({
+      store: {
+        ...store,
+        order: { anthropic: ["anthropic:default", "anthropic:work"] },
+        usageStats: {
+          "anthropic:default": {
+            disabledUntil: now + 60_000,
+            disabledReason: "billing",
+          },
+          "anthropic:work": { lastUsed: 1 },
+        },
+      },
+      provider: "anthropic",
+    });
+    expect(order).toEqual(["anthropic:work", "anthropic:default"]);
+  });
+
+  it("pushes disabled profiles to the end even with configured order", () => {
+    const now = Date.now();
+    const order = resolveAuthProfileOrder({
+      cfg: {
+        auth: {
+          order: { anthropic: ["anthropic:default", "anthropic:work"] },
+          profiles: cfg.auth.profiles,
+        },
+      },
+      store: {
+        ...store,
+        usageStats: {
+          "anthropic:default": {
+            disabledUntil: now + 60_000,
+            disabledReason: "billing",
+          },
           "anthropic:work": { lastUsed: 1 },
         },
       },
@@ -430,34 +441,10 @@ describe("auth profile cooldowns", () => {
   });
 });
 
-describe("external CLI credential sync", () => {
-  it("syncs Claude CLI credentials into anthropic:claude-cli", () => {
-    const agentDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "clawdbot-cli-sync-"),
-    );
-    const originalHome = snapshotHomeEnv();
-
+describe("markAuthProfileFailure", () => {
+  it("disables billing failures for ~5 hours by default", async () => {
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-auth-"));
     try {
-      // Create a temp home with Claude CLI credentials
-      const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-home-"));
-      setTempHome(tempHome);
-
-      // Create Claude CLI credentials
-      const claudeDir = path.join(tempHome, ".claude");
-      fs.mkdirSync(claudeDir, { recursive: true });
-      const claudeCreds = {
-        claudeAiOauth: {
-          accessToken: "fresh-access-token",
-          refreshToken: "fresh-refresh-token",
-          expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour from now
-        },
-      };
-      fs.writeFileSync(
-        path.join(claudeDir, ".credentials.json"),
-        JSON.stringify(claudeCreds),
-      );
-
-      // Create empty auth-profiles.json
       const authPath = path.join(agentDir, "auth-profiles.json");
       fs.writeFileSync(
         authPath,
@@ -473,96 +460,29 @@ describe("external CLI credential sync", () => {
         }),
       );
 
-      // Load the store - should sync from CLI
       const store = ensureAuthProfileStore(agentDir);
+      const startedAt = Date.now();
+      await markAuthProfileFailure({
+        store,
+        profileId: "anthropic:default",
+        reason: "billing",
+        agentDir,
+      });
 
-      expect(store.profiles["anthropic:default"]).toBeDefined();
-      expect((store.profiles["anthropic:default"] as { key: string }).key).toBe(
-        "sk-default",
-      );
-      expect(store.profiles[CLAUDE_CLI_PROFILE_ID]).toBeDefined();
-      expect(
-        (store.profiles[CLAUDE_CLI_PROFILE_ID] as { token: string }).token,
-      ).toBe("fresh-access-token");
-      expect(
-        (store.profiles[CLAUDE_CLI_PROFILE_ID] as { expires: number }).expires,
-      ).toBeGreaterThan(Date.now());
+      const disabledUntil =
+        store.usageStats?.["anthropic:default"]?.disabledUntil;
+      expect(typeof disabledUntil).toBe("number");
+      const remainingMs = (disabledUntil as number) - startedAt;
+      expect(remainingMs).toBeGreaterThan(4.5 * 60 * 60 * 1000);
+      expect(remainingMs).toBeLessThan(5.5 * 60 * 60 * 1000);
     } finally {
-      restoreHomeEnv(originalHome);
       fs.rmSync(agentDir, { recursive: true, force: true });
     }
   });
 
-  it("syncs Codex CLI credentials into openai-codex:codex-cli", () => {
-    const agentDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "clawdbot-codex-sync-"),
-    );
-    const originalHome = snapshotHomeEnv();
-
+  it("honors per-provider billing backoff overrides", async () => {
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-auth-"));
     try {
-      const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-home-"));
-      setTempHome(tempHome);
-
-      // Create Codex CLI credentials
-      const codexDir = path.join(tempHome, ".codex");
-      fs.mkdirSync(codexDir, { recursive: true });
-      const codexCreds = {
-        tokens: {
-          access_token: "codex-access-token",
-          refresh_token: "codex-refresh-token",
-        },
-      };
-      const codexAuthPath = path.join(codexDir, "auth.json");
-      fs.writeFileSync(codexAuthPath, JSON.stringify(codexCreds));
-
-      // Create empty auth-profiles.json
-      const authPath = path.join(agentDir, "auth-profiles.json");
-      fs.writeFileSync(
-        authPath,
-        JSON.stringify({
-          version: 1,
-          profiles: {},
-        }),
-      );
-
-      const store = ensureAuthProfileStore(agentDir);
-
-      expect(store.profiles[CODEX_CLI_PROFILE_ID]).toBeDefined();
-      expect(
-        (store.profiles[CODEX_CLI_PROFILE_ID] as { access: string }).access,
-      ).toBe("codex-access-token");
-    } finally {
-      restoreHomeEnv(originalHome);
-      fs.rmSync(agentDir, { recursive: true, force: true });
-    }
-  });
-
-  it("does not overwrite API keys when syncing external CLI creds", () => {
-    const agentDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "clawdbot-no-overwrite-"),
-    );
-    const originalHome = snapshotHomeEnv();
-
-    try {
-      const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-home-"));
-      setTempHome(tempHome);
-
-      // Create Claude CLI credentials
-      const claudeDir = path.join(tempHome, ".claude");
-      fs.mkdirSync(claudeDir, { recursive: true });
-      const claudeCreds = {
-        claudeAiOauth: {
-          accessToken: "cli-access",
-          refreshToken: "cli-refresh",
-          expiresAt: Date.now() + 30 * 60 * 1000,
-        },
-      };
-      fs.writeFileSync(
-        path.join(claudeDir, ".credentials.json"),
-        JSON.stringify(claudeCreds),
-      );
-
-      // Create auth-profiles.json with an API key
       const authPath = path.join(agentDir, "auth-profiles.json");
       fs.writeFileSync(
         authPath,
@@ -572,118 +492,560 @@ describe("external CLI credential sync", () => {
             "anthropic:default": {
               type: "api_key",
               provider: "anthropic",
-              key: "sk-store",
+              key: "sk-default",
             },
           },
         }),
       );
 
       const store = ensureAuthProfileStore(agentDir);
+      const startedAt = Date.now();
+      await markAuthProfileFailure({
+        store,
+        profileId: "anthropic:default",
+        reason: "billing",
+        agentDir,
+        cfg: {
+          auth: {
+            cooldowns: {
+              billingBackoffHoursByProvider: { Anthropic: 1 },
+              billingMaxHours: 2,
+            },
+          },
+        } as never,
+      });
 
-      // Should keep the store's API key and still add the CLI profile.
-      expect((store.profiles["anthropic:default"] as { key: string }).key).toBe(
-        "sk-store",
-      );
-      expect(store.profiles[CLAUDE_CLI_PROFILE_ID]).toBeDefined();
+      const disabledUntil =
+        store.usageStats?.["anthropic:default"]?.disabledUntil;
+      expect(typeof disabledUntil).toBe("number");
+      const remainingMs = (disabledUntil as number) - startedAt;
+      expect(remainingMs).toBeGreaterThan(0.8 * 60 * 60 * 1000);
+      expect(remainingMs).toBeLessThan(1.2 * 60 * 60 * 1000);
     } finally {
-      restoreHomeEnv(originalHome);
       fs.rmSync(agentDir, { recursive: true, force: true });
     }
   });
 
-  it("does not overwrite fresher store token with older Claude CLI credentials", () => {
-    const agentDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "clawdbot-cli-no-downgrade-"),
-    );
-    const originalHome = snapshotHomeEnv();
-
+  it("resets backoff counters outside the failure window", async () => {
+    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-auth-"));
     try {
-      const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-home-"));
-      setTempHome(tempHome);
-
-      const claudeDir = path.join(tempHome, ".claude");
-      fs.mkdirSync(claudeDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(claudeDir, ".credentials.json"),
-        JSON.stringify({
-          claudeAiOauth: {
-            accessToken: "cli-access",
-            refreshToken: "cli-refresh",
-            expiresAt: Date.now() + 30 * 60 * 1000,
-          },
-        }),
-      );
-
       const authPath = path.join(agentDir, "auth-profiles.json");
+      const now = Date.now();
       fs.writeFileSync(
         authPath,
         JSON.stringify({
           version: 1,
           profiles: {
-            [CLAUDE_CLI_PROFILE_ID]: {
-              type: "token",
+            "anthropic:default": {
+              type: "api_key",
               provider: "anthropic",
-              token: "store-access",
-              expires: Date.now() + 60 * 60 * 1000,
+              key: "sk-default",
+            },
+          },
+          usageStats: {
+            "anthropic:default": {
+              errorCount: 9,
+              failureCounts: { billing: 3 },
+              lastFailureAt: now - 48 * 60 * 60 * 1000,
             },
           },
         }),
       );
 
       const store = ensureAuthProfileStore(agentDir);
+      await markAuthProfileFailure({
+        store,
+        profileId: "anthropic:default",
+        reason: "billing",
+        agentDir,
+        cfg: {
+          auth: { cooldowns: { failureWindowHours: 24 } },
+        } as never,
+      });
+
+      expect(store.usageStats?.["anthropic:default"]?.errorCount).toBe(1);
       expect(
-        (store.profiles[CLAUDE_CLI_PROFILE_ID] as { token: string }).token,
-      ).toBe("store-access");
+        store.usageStats?.["anthropic:default"]?.failureCounts?.billing,
+      ).toBe(1);
     } finally {
-      restoreHomeEnv(originalHome);
+      fs.rmSync(agentDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("external CLI credential sync", () => {
+  it("syncs Claude CLI OAuth credentials into anthropic:claude-cli", async () => {
+    const agentDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-cli-sync-"),
+    );
+    try {
+      // Create a temp home with Claude CLI credentials
+      await withTempHome(
+        async (tempHome) => {
+          // Create Claude CLI credentials with refreshToken (OAuth)
+          const claudeDir = path.join(tempHome, ".claude");
+          fs.mkdirSync(claudeDir, { recursive: true });
+          const claudeCreds = {
+            claudeAiOauth: {
+              accessToken: "fresh-access-token",
+              refreshToken: "fresh-refresh-token",
+              expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour from now
+            },
+          };
+          fs.writeFileSync(
+            path.join(claudeDir, ".credentials.json"),
+            JSON.stringify(claudeCreds),
+          );
+
+          // Create empty auth-profiles.json
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({
+              version: 1,
+              profiles: {
+                "anthropic:default": {
+                  type: "api_key",
+                  provider: "anthropic",
+                  key: "sk-default",
+                },
+              },
+            }),
+          );
+
+          // Load the store - should sync from CLI as OAuth credential
+          const store = ensureAuthProfileStore(agentDir);
+
+          expect(store.profiles["anthropic:default"]).toBeDefined();
+          expect(
+            (store.profiles["anthropic:default"] as { key: string }).key,
+          ).toBe("sk-default");
+          expect(store.profiles[CLAUDE_CLI_PROFILE_ID]).toBeDefined();
+          // Should be stored as OAuth credential (type: "oauth") for auto-refresh
+          const cliProfile = store.profiles[CLAUDE_CLI_PROFILE_ID];
+          expect(cliProfile.type).toBe("oauth");
+          expect((cliProfile as { access: string }).access).toBe(
+            "fresh-access-token",
+          );
+          expect((cliProfile as { refresh: string }).refresh).toBe(
+            "fresh-refresh-token",
+          );
+          expect((cliProfile as { expires: number }).expires).toBeGreaterThan(
+            Date.now(),
+          );
+        },
+        { prefix: "clawdbot-home-" },
+      );
+    } finally {
       fs.rmSync(agentDir, { recursive: true, force: true });
     }
   });
 
-  it("updates codex-cli profile when Codex CLI refresh token changes", () => {
+  it("syncs Claude CLI credentials without refreshToken as token type", async () => {
+    const agentDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-cli-token-sync-"),
+    );
+    try {
+      await withTempHome(
+        async (tempHome) => {
+          // Create Claude CLI credentials WITHOUT refreshToken (fallback to token type)
+          const claudeDir = path.join(tempHome, ".claude");
+          fs.mkdirSync(claudeDir, { recursive: true });
+          const claudeCreds = {
+            claudeAiOauth: {
+              accessToken: "access-only-token",
+              // No refreshToken - backward compatibility scenario
+              expiresAt: Date.now() + 60 * 60 * 1000,
+            },
+          };
+          fs.writeFileSync(
+            path.join(claudeDir, ".credentials.json"),
+            JSON.stringify(claudeCreds),
+          );
+
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({ version: 1, profiles: {} }),
+          );
+
+          const store = ensureAuthProfileStore(agentDir);
+
+          expect(store.profiles[CLAUDE_CLI_PROFILE_ID]).toBeDefined();
+          // Should be stored as token type (no refresh capability)
+          const cliProfile = store.profiles[CLAUDE_CLI_PROFILE_ID];
+          expect(cliProfile.type).toBe("token");
+          expect((cliProfile as { token: string }).token).toBe(
+            "access-only-token",
+          );
+        },
+        { prefix: "clawdbot-home-" },
+      );
+    } finally {
+      fs.rmSync(agentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("upgrades token to oauth when Claude CLI gets refreshToken", async () => {
+    const agentDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-cli-upgrade-"),
+    );
+    try {
+      await withTempHome(
+        async (tempHome) => {
+          // Create Claude CLI credentials with refreshToken
+          const claudeDir = path.join(tempHome, ".claude");
+          fs.mkdirSync(claudeDir, { recursive: true });
+          fs.writeFileSync(
+            path.join(claudeDir, ".credentials.json"),
+            JSON.stringify({
+              claudeAiOauth: {
+                accessToken: "new-oauth-access",
+                refreshToken: "new-refresh-token",
+                expiresAt: Date.now() + 60 * 60 * 1000,
+              },
+            }),
+          );
+
+          // Create auth-profiles.json with existing token type credential
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({
+              version: 1,
+              profiles: {
+                [CLAUDE_CLI_PROFILE_ID]: {
+                  type: "token",
+                  provider: "anthropic",
+                  token: "old-token",
+                  expires: Date.now() + 30 * 60 * 1000,
+                },
+              },
+            }),
+          );
+
+          const store = ensureAuthProfileStore(agentDir);
+
+          // Should upgrade from token to oauth
+          const cliProfile = store.profiles[CLAUDE_CLI_PROFILE_ID];
+          expect(cliProfile.type).toBe("oauth");
+          expect((cliProfile as { access: string }).access).toBe(
+            "new-oauth-access",
+          );
+          expect((cliProfile as { refresh: string }).refresh).toBe(
+            "new-refresh-token",
+          );
+        },
+        { prefix: "clawdbot-home-" },
+      );
+    } finally {
+      fs.rmSync(agentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("syncs Codex CLI credentials into openai-codex:codex-cli", async () => {
+    const agentDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-codex-sync-"),
+    );
+    try {
+      await withTempHome(
+        async (tempHome) => {
+          // Create Codex CLI credentials
+          const codexDir = path.join(tempHome, ".codex");
+          fs.mkdirSync(codexDir, { recursive: true });
+          const codexCreds = {
+            tokens: {
+              access_token: "codex-access-token",
+              refresh_token: "codex-refresh-token",
+            },
+          };
+          const codexAuthPath = path.join(codexDir, "auth.json");
+          fs.writeFileSync(codexAuthPath, JSON.stringify(codexCreds));
+
+          // Create empty auth-profiles.json
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({
+              version: 1,
+              profiles: {},
+            }),
+          );
+
+          const store = ensureAuthProfileStore(agentDir);
+
+          expect(store.profiles[CODEX_CLI_PROFILE_ID]).toBeDefined();
+          expect(
+            (store.profiles[CODEX_CLI_PROFILE_ID] as { access: string }).access,
+          ).toBe("codex-access-token");
+        },
+        { prefix: "clawdbot-home-" },
+      );
+    } finally {
+      fs.rmSync(agentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not overwrite API keys when syncing external CLI creds", async () => {
+    const agentDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-no-overwrite-"),
+    );
+    try {
+      await withTempHome(
+        async (tempHome) => {
+          // Create Claude CLI credentials
+          const claudeDir = path.join(tempHome, ".claude");
+          fs.mkdirSync(claudeDir, { recursive: true });
+          const claudeCreds = {
+            claudeAiOauth: {
+              accessToken: "cli-access",
+              refreshToken: "cli-refresh",
+              expiresAt: Date.now() + 30 * 60 * 1000,
+            },
+          };
+          fs.writeFileSync(
+            path.join(claudeDir, ".credentials.json"),
+            JSON.stringify(claudeCreds),
+          );
+
+          // Create auth-profiles.json with an API key
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({
+              version: 1,
+              profiles: {
+                "anthropic:default": {
+                  type: "api_key",
+                  provider: "anthropic",
+                  key: "sk-store",
+                },
+              },
+            }),
+          );
+
+          const store = ensureAuthProfileStore(agentDir);
+
+          // Should keep the store's API key and still add the CLI profile.
+          expect(
+            (store.profiles["anthropic:default"] as { key: string }).key,
+          ).toBe("sk-store");
+          expect(store.profiles[CLAUDE_CLI_PROFILE_ID]).toBeDefined();
+        },
+        { prefix: "clawdbot-home-" },
+      );
+    } finally {
+      fs.rmSync(agentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("prefers oauth over token even if token has later expiry (oauth enables auto-refresh)", async () => {
+    const agentDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-cli-oauth-preferred-"),
+    );
+    try {
+      await withTempHome(
+        async (tempHome) => {
+          const claudeDir = path.join(tempHome, ".claude");
+          fs.mkdirSync(claudeDir, { recursive: true });
+          // CLI has OAuth credentials (with refresh token) expiring in 30 min
+          fs.writeFileSync(
+            path.join(claudeDir, ".credentials.json"),
+            JSON.stringify({
+              claudeAiOauth: {
+                accessToken: "cli-oauth-access",
+                refreshToken: "cli-refresh",
+                expiresAt: Date.now() + 30 * 60 * 1000,
+              },
+            }),
+          );
+
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          // Store has token credentials expiring in 60 min (later than CLI)
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({
+              version: 1,
+              profiles: {
+                [CLAUDE_CLI_PROFILE_ID]: {
+                  type: "token",
+                  provider: "anthropic",
+                  token: "store-token-access",
+                  expires: Date.now() + 60 * 60 * 1000,
+                },
+              },
+            }),
+          );
+
+          const store = ensureAuthProfileStore(agentDir);
+          // OAuth should be preferred over token because it can auto-refresh
+          const cliProfile = store.profiles[CLAUDE_CLI_PROFILE_ID];
+          expect(cliProfile.type).toBe("oauth");
+          expect((cliProfile as { access: string }).access).toBe(
+            "cli-oauth-access",
+          );
+        },
+        { prefix: "clawdbot-home-" },
+      );
+    } finally {
+      fs.rmSync(agentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not overwrite fresher store oauth with older CLI oauth", async () => {
+    const agentDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-cli-oauth-no-downgrade-"),
+    );
+    try {
+      await withTempHome(
+        async (tempHome) => {
+          const claudeDir = path.join(tempHome, ".claude");
+          fs.mkdirSync(claudeDir, { recursive: true });
+          // CLI has OAuth credentials expiring in 30 min
+          fs.writeFileSync(
+            path.join(claudeDir, ".credentials.json"),
+            JSON.stringify({
+              claudeAiOauth: {
+                accessToken: "cli-oauth-access",
+                refreshToken: "cli-refresh",
+                expiresAt: Date.now() + 30 * 60 * 1000,
+              },
+            }),
+          );
+
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          // Store has OAuth credentials expiring in 60 min (later than CLI)
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({
+              version: 1,
+              profiles: {
+                [CLAUDE_CLI_PROFILE_ID]: {
+                  type: "oauth",
+                  provider: "anthropic",
+                  access: "store-oauth-access",
+                  refresh: "store-refresh",
+                  expires: Date.now() + 60 * 60 * 1000,
+                },
+              },
+            }),
+          );
+
+          const store = ensureAuthProfileStore(agentDir);
+          // Fresher store oauth should be kept
+          const cliProfile = store.profiles[CLAUDE_CLI_PROFILE_ID];
+          expect(cliProfile.type).toBe("oauth");
+          expect((cliProfile as { access: string }).access).toBe(
+            "store-oauth-access",
+          );
+        },
+        { prefix: "clawdbot-home-" },
+      );
+    } finally {
+      fs.rmSync(agentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not downgrade store oauth to token when CLI lacks refresh token", async () => {
+    const agentDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "clawdbot-cli-no-downgrade-oauth-"),
+    );
+    try {
+      await withTempHome(
+        async (tempHome) => {
+          const claudeDir = path.join(tempHome, ".claude");
+          fs.mkdirSync(claudeDir, { recursive: true });
+          // CLI has token-only credentials (no refresh token)
+          fs.writeFileSync(
+            path.join(claudeDir, ".credentials.json"),
+            JSON.stringify({
+              claudeAiOauth: {
+                accessToken: "cli-token-access",
+                expiresAt: Date.now() + 30 * 60 * 1000,
+              },
+            }),
+          );
+
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          // Store already has OAuth credentials with refresh token
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({
+              version: 1,
+              profiles: {
+                [CLAUDE_CLI_PROFILE_ID]: {
+                  type: "oauth",
+                  provider: "anthropic",
+                  access: "store-oauth-access",
+                  refresh: "store-refresh",
+                  expires: Date.now() + 60 * 60 * 1000,
+                },
+              },
+            }),
+          );
+
+          const store = ensureAuthProfileStore(agentDir);
+          // Keep oauth to preserve auto-refresh capability
+          const cliProfile = store.profiles[CLAUDE_CLI_PROFILE_ID];
+          expect(cliProfile.type).toBe("oauth");
+          expect((cliProfile as { access: string }).access).toBe(
+            "store-oauth-access",
+          );
+        },
+        { prefix: "clawdbot-home-" },
+      );
+    } finally {
+      fs.rmSync(agentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("updates codex-cli profile when Codex CLI refresh token changes", async () => {
     const agentDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "clawdbot-codex-refresh-sync-"),
     );
-    const originalHome = snapshotHomeEnv();
-
     try {
-      const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-home-"));
-      setTempHome(tempHome);
+      await withTempHome(
+        async (tempHome) => {
+          const codexDir = path.join(tempHome, ".codex");
+          fs.mkdirSync(codexDir, { recursive: true });
+          const codexAuthPath = path.join(codexDir, "auth.json");
+          fs.writeFileSync(
+            codexAuthPath,
+            JSON.stringify({
+              tokens: {
+                access_token: "same-access",
+                refresh_token: "new-refresh",
+              },
+            }),
+          );
+          fs.utimesSync(codexAuthPath, new Date(), new Date());
 
-      const codexDir = path.join(tempHome, ".codex");
-      fs.mkdirSync(codexDir, { recursive: true });
-      const codexAuthPath = path.join(codexDir, "auth.json");
-      fs.writeFileSync(
-        codexAuthPath,
-        JSON.stringify({
-          tokens: { access_token: "same-access", refresh_token: "new-refresh" },
-        }),
+          const authPath = path.join(agentDir, "auth-profiles.json");
+          fs.writeFileSync(
+            authPath,
+            JSON.stringify({
+              version: 1,
+              profiles: {
+                [CODEX_CLI_PROFILE_ID]: {
+                  type: "oauth",
+                  provider: "openai-codex",
+                  access: "same-access",
+                  refresh: "old-refresh",
+                  expires: Date.now() - 1000,
+                },
+              },
+            }),
+          );
+
+          const store = ensureAuthProfileStore(agentDir);
+          expect(
+            (store.profiles[CODEX_CLI_PROFILE_ID] as { refresh: string })
+              .refresh,
+          ).toBe("new-refresh");
+        },
+        { prefix: "clawdbot-home-" },
       );
-      fs.utimesSync(codexAuthPath, new Date(), new Date());
-
-      const authPath = path.join(agentDir, "auth-profiles.json");
-      fs.writeFileSync(
-        authPath,
-        JSON.stringify({
-          version: 1,
-          profiles: {
-            [CODEX_CLI_PROFILE_ID]: {
-              type: "oauth",
-              provider: "openai-codex",
-              access: "same-access",
-              refresh: "old-refresh",
-              expires: Date.now() - 1000,
-            },
-          },
-        }),
-      );
-
-      const store = ensureAuthProfileStore(agentDir);
-      expect(
-        (store.profiles[CODEX_CLI_PROFILE_ID] as { refresh: string }).refresh,
-      ).toBe("new-refresh");
     } finally {
-      restoreHomeEnv(originalHome);
       fs.rmSync(agentDir, { recursive: true, force: true });
     }
   });

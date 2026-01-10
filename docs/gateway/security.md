@@ -38,7 +38,7 @@ Clawdbot’s stance:
 
 All current DM-capable providers support a DM policy (`dmPolicy` or `*.dm.policy`) that gates inbound DMs **before** the message is processed:
 
-- `pairing` (default): unknown senders receive a short pairing code and the bot ignores their message until approved. Codes expire after 1 hour; repeated DMs won’t resend a code until a new request is created.
+- `pairing` (default): unknown senders receive a short pairing code and the bot ignores their message until approved. Codes expire after 1 hour; repeated DMs won’t resend a code until a new request is created. Pending requests are capped at **3 per provider** by default.
 - `allowlist`: unknown senders are blocked (no pairing handshake).
 - `open`: allow anyone to DM (public). **Requires** the provider allowlist to include `"*"` (explicit opt-in).
 - `disabled`: ignore inbound DMs entirely.
@@ -46,8 +46,8 @@ All current DM-capable providers support a DM policy (`dmPolicy` or `*.dm.policy
 Approve via CLI:
 
 ```bash
-clawdbot pairing list --provider <provider>
-clawdbot pairing approve --provider <provider> <code>
+clawdbot pairing list <provider>
+clawdbot pairing approve <provider> <code>
 ```
 
 Details + files on disk: [Pairing](/start/pairing)
@@ -172,7 +172,7 @@ Also consider agent workspace access inside the sandbox:
 - `agents.defaults.sandbox.workspaceAccess: "ro"` mounts the agent workspace read-only at `/agent` (disables `write`/`edit`)
 - `agents.defaults.sandbox.workspaceAccess: "rw"` mounts the agent workspace read/write at `/workspace`
 
-Important: `tools.elevated` is a **global**, sender-based escape hatch that runs bash on the host. Keep `tools.elevated.allowFrom` tight and don’t enable it for strangers. See [Elevated Mode](/tools/elevated).
+Important: `tools.elevated` is the global baseline escape hatch that runs bash on the host. Keep `tools.elevated.allowFrom` tight and don’t enable it for strangers. You can further restrict elevated per agent via `agents.list[].tools.elevated`. See [Elevated Mode](/tools/elevated).
 
 ## Per-agent access profiles (multi-agent)
 
@@ -241,7 +241,7 @@ Common use cases:
           workspaceAccess: "none"
         },
         tools: {
-          allow: ["sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "whatsapp", "telegram", "slack", "discord", "gateway"],
+          allow: ["sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "session_status", "whatsapp", "telegram", "slack", "discord", "gateway"],
           deny: ["read", "write", "edit", "bash", "process", "browser", "canvas", "nodes", "cron", "gateway", "image"]
         }
       }
@@ -294,7 +294,7 @@ Mario asking for find ~
 
 ## Reporting Security Issues
 
-Found a vulnerability in CLAWDBOT? Please report responsibly:
+Found a vulnerability in Clawdbot? Please report responsibly:
 
 1. Email: security@clawd.bot
 2. Don't post publicly until fixed

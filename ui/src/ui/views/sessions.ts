@@ -32,7 +32,11 @@ export type SessionsProps = {
 };
 
 const THINK_LEVELS = ["", "off", "minimal", "low", "medium", "high"] as const;
-const VERBOSE_LEVELS = ["", "off", "on"] as const;
+const VERBOSE_LEVELS = [
+  { value: "", label: "inherit" },
+  { value: "off", label: "off (explicit)" },
+  { value: "on", label: "on" },
+] as const;
 const REASONING_LEVELS = ["", "off", "on", "stream"] as const;
 
 export function renderSessions(props: SessionsProps) {
@@ -117,6 +121,7 @@ export function renderSessions(props: SessionsProps) {
       <div class="table" style="margin-top: 16px;">
         <div class="table-head">
           <div>Key</div>
+          <div>Label</div>
           <div>Kind</div>
           <div>Updated</div>
           <div>Tokens</div>
@@ -132,7 +137,11 @@ export function renderSessions(props: SessionsProps) {
   `;
 }
 
-function renderRow(row: GatewaySessionRow, basePath: string, onPatch: SessionsProps["onPatch"]) {
+function renderRow(
+  row: GatewaySessionRow,
+  basePath: string,
+  onPatch: SessionsProps["onPatch"],
+) {
   const updated = row.updatedAt ? formatAgo(row.updatedAt) : "n/a";
   const thinking = row.thinkingLevel ?? "";
   const verbose = row.verboseLevel ?? "";
@@ -148,6 +157,7 @@ function renderRow(row: GatewaySessionRow, basePath: string, onPatch: SessionsPr
       <div class="mono">${canLink
         ? html`<a href=${chatUrl} class="session-link">${displayName}</a>`
         : displayName}</div>
+      <div>${row.label ?? ""}</div>
       <div>${row.kind}</div>
       <div>${updated}</div>
       <div>${formatSessionTokens(row)}</div>
@@ -172,8 +182,8 @@ function renderRow(row: GatewaySessionRow, basePath: string, onPatch: SessionsPr
             onPatch(row.key, { verboseLevel: value || null });
           }}
         >
-          ${VERBOSE_LEVELS.map((level) =>
-            html`<option value=${level}>${level || "inherit"}</option>`,
+          ${VERBOSE_LEVELS.map(
+            (level) => html`<option value=${level.value}>${level.label}</option>`,
           )}
         </select>
       </div>

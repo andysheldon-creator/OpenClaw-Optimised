@@ -1,41 +1,13 @@
 import fs from "node:fs/promises";
-import os from "node:os";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
+
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
-  const base = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-config-"));
-  const previousHome = process.env.HOME;
-  const previousUserProfile = process.env.USERPROFILE;
-  const previousHomeDrive = process.env.HOMEDRIVE;
-  const previousHomePath = process.env.HOMEPATH;
-  process.env.HOME = base;
-  process.env.USERPROFILE = base;
-  if (process.platform === "win32") {
-    const parsed = path.parse(base);
-    process.env.HOMEDRIVE = parsed.root.replace(/\\$/, "");
-    process.env.HOMEPATH = base.slice(Math.max(parsed.root.length - 1, 0));
-  }
-  try {
-    return await fn(base);
-  } finally {
-    process.env.HOME = previousHome;
-    process.env.USERPROFILE = previousUserProfile;
-    if (process.platform === "win32") {
-      if (previousHomeDrive === undefined) {
-        delete process.env.HOMEDRIVE;
-      } else {
-        process.env.HOMEDRIVE = previousHomeDrive;
-      }
-      if (previousHomePath === undefined) {
-        delete process.env.HOMEPATH;
-      } else {
-        process.env.HOMEPATH = previousHomePath;
-      }
-    }
-    await fs.rm(base, { recursive: true, force: true });
-  }
+  return withTempHomeBase(fn, { prefix: "clawdbot-config-" });
 }
 
 /**
@@ -265,6 +237,57 @@ describe("config identity defaults", () => {
       const legacy = (cfg.messages as unknown as Record<string, unknown>)
         .textChunkLimit;
       expect(legacy).toBeUndefined();
+    });
+  });
+
+  it("accepts blank model provider apiKey values", async () => {
+    await withTempHome(async (home) => {
+      const configDir = path.join(home, ".clawdbot");
+      await fs.mkdir(configDir, { recursive: true });
+      await fs.writeFile(
+        path.join(configDir, "clawdbot.json"),
+        JSON.stringify(
+          {
+            models: {
+              mode: "merge",
+              providers: {
+                minimax: {
+                  baseUrl: "https://api.minimax.io/anthropic",
+                  apiKey: "",
+                  api: "anthropic-messages",
+                  models: [
+                    {
+                      id: "MiniMax-M2.1",
+                      name: "MiniMax M2.1",
+                      reasoning: false,
+                      input: ["text"],
+                      cost: {
+                        input: 0,
+                        output: 0,
+                        cacheRead: 0,
+                        cacheWrite: 0,
+                      },
+                      contextWindow: 200000,
+                      maxTokens: 8192,
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+
+      vi.resetModules();
+      const { loadConfig } = await import("./config.js");
+      const cfg = loadConfig();
+
+      expect(cfg.models?.providers?.minimax?.baseUrl).toBe(
+        "https://api.minimax.io/anthropic",
+      );
     });
   });
 
@@ -836,6 +859,41 @@ describe("talk.voiceAliases", () => {
   });
 });
 
+describe("broadcast", () => {
+  it("accepts a broadcast peer map with strategy", async () => {
+    vi.resetModules();
+    const { validateConfigObject } = await import("./config.js");
+    const res = validateConfigObject({
+      agents: {
+        list: [{ id: "alfred" }, { id: "baerbel" }],
+      },
+      broadcast: {
+        strategy: "parallel",
+        "120363403215116621@g.us": ["alfred", "baerbel"],
+      },
+    });
+    expect(res.ok).toBe(true);
+  });
+
+  it("rejects invalid broadcast strategy", async () => {
+    vi.resetModules();
+    const { validateConfigObject } = await import("./config.js");
+    const res = validateConfigObject({
+      broadcast: { strategy: "nope" },
+    });
+    expect(res.ok).toBe(false);
+  });
+
+  it("rejects non-array broadcast entries", async () => {
+    vi.resetModules();
+    const { validateConfigObject } = await import("./config.js");
+    const res = validateConfigObject({
+      broadcast: { "120363403215116621@g.us": 123 },
+    });
+    expect(res.ok).toBe(false);
+  });
+});
+
 describe("legacy config detection", () => {
   it("rejects routing.allowFrom", async () => {
     vi.resetModules();
@@ -986,6 +1044,39 @@ describe("legacy config detection", () => {
     expect((res.config as { agent?: unknown }).agent).toBeUndefined();
   });
 
+  it("accepts per-agent tools.elevated overrides", async () => {
+    vi.resetModules();
+    const { validateConfigObject } = await import("./config.js");
+    const res = validateConfigObject({
+      tools: {
+        elevated: {
+          allowFrom: { whatsapp: ["+15555550123"] },
+        },
+      },
+      agents: {
+        list: [
+          {
+            id: "work",
+            workspace: "~/clawd-work",
+            tools: {
+              elevated: {
+                enabled: false,
+                allowFrom: { whatsapp: ["+15555550123"] },
+              },
+            },
+          },
+        ],
+      },
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.config?.agents?.list?.[0]?.tools?.elevated).toEqual({
+        enabled: false,
+        allowFrom: { whatsapp: ["+15555550123"] },
+      });
+    }
+  });
+
   it("rejects telegram.requireMention", async () => {
     vi.resetModules();
     const { validateConfigObject } = await import("./config.js");
@@ -1134,6 +1225,34 @@ describe("legacy config detection", () => {
     }
   });
 
+  it("accepts historyLimit overrides per provider and account", async () => {
+    vi.resetModules();
+    const { validateConfigObject } = await import("./config.js");
+    const res = validateConfigObject({
+      messages: { groupChat: { historyLimit: 12 } },
+      whatsapp: { historyLimit: 9, accounts: { work: { historyLimit: 4 } } },
+      telegram: { historyLimit: 8, accounts: { ops: { historyLimit: 3 } } },
+      slack: { historyLimit: 7, accounts: { ops: { historyLimit: 2 } } },
+      signal: { historyLimit: 6 },
+      imessage: { historyLimit: 5 },
+      msteams: { historyLimit: 4 },
+      discord: { historyLimit: 3 },
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.config.whatsapp?.historyLimit).toBe(9);
+      expect(res.config.whatsapp?.accounts?.work?.historyLimit).toBe(4);
+      expect(res.config.telegram?.historyLimit).toBe(8);
+      expect(res.config.telegram?.accounts?.ops?.historyLimit).toBe(3);
+      expect(res.config.slack?.historyLimit).toBe(7);
+      expect(res.config.slack?.accounts?.ops?.historyLimit).toBe(2);
+      expect(res.config.signal?.historyLimit).toBe(6);
+      expect(res.config.imessage?.historyLimit).toBe(5);
+      expect(res.config.msteams?.historyLimit).toBe(4);
+      expect(res.config.discord?.historyLimit).toBe(3);
+    }
+  });
+
   it('rejects imessage.dmPolicy="open" without allowFrom "*"', async () => {
     vi.resetModules();
     const { validateConfigObject } = await import("./config.js");
@@ -1277,7 +1396,7 @@ describe("multi-agent agentDir validation", () => {
   it("rejects shared agents.list agentDir", async () => {
     vi.resetModules();
     const { validateConfigObject } = await import("./config.js");
-    const shared = path.join(os.tmpdir(), "clawdbot-shared-agentdir");
+    const shared = path.join(tmpdir(), "clawdbot-shared-agentdir");
     const res = validateConfigObject({
       agents: {
         list: [

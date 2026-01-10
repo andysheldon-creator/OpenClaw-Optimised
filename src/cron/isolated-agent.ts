@@ -9,11 +9,10 @@ import {
 import { loadModelCatalog } from "../agents/model-catalog.js";
 import { runWithModelFallback } from "../agents/model-fallback.js";
 import {
-  buildAllowedModelSet,
-  buildModelAliasIndex,
-  modelKey,
+  getModelRefStatus,
+  resolveAllowedModelRef,
   resolveConfiguredModelRef,
-  resolveModelRefFromString,
+  resolveHooksGmailModel,
   resolveThinkingDefault,
 } from "../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
@@ -49,7 +48,11 @@ import {
 import { registerAgentRunContext } from "../infra/agent-events.js";
 import { parseTelegramTarget } from "../telegram/targets.js";
 import { resolveTelegramToken } from "../telegram/token.js";
-import { normalizeE164 } from "../utils.js";
+import { normalizeE164, truncateUtf16Safe } from "../utils.js";
+import {
+  isWhatsAppGroupJid,
+  normalizeWhatsAppTarget,
+} from "../whatsapp/normalize.js";
 import type { CronJob } from "./types.js";
 
 export type RunCronAgentTurnResult = {
@@ -68,7 +71,7 @@ function pickSummaryFromOutput(text: string | undefined) {
   const clean = (text ?? "").trim();
   if (!clean) return undefined;
   const limit = 2000;
-  return clean.length > limit ? `${clean.slice(0, limit)}…` : clean;
+  return clean.length > limit ? `${truncateUtf16Safe(clean, limit)}…` : clean;
 }
 
 function pickSummaryFromPayloads(
@@ -204,15 +207,22 @@ function resolveDeliveryTarget(
 
   const sanitizedWhatsappTo = (() => {
     if (provider !== "whatsapp") return rawTo;
+    if (rawTo && isWhatsAppGroupJid(rawTo)) {
+      return normalizeWhatsAppTarget(rawTo) ?? rawTo;
+    }
     const rawAllow = cfg.whatsapp?.allowFrom ?? [];
-    if (rawAllow.includes("*")) return rawTo;
+    if (rawAllow.includes("*")) {
+      return rawTo ? (normalizeWhatsAppTarget(rawTo) ?? rawTo) : rawTo;
+    }
     const allowFrom = rawAllow
       .map((val) => normalizeE164(val))
       .filter((val) => val.length > 1);
-    if (allowFrom.length === 0) return rawTo;
+    if (allowFrom.length === 0) {
+      return rawTo ? (normalizeWhatsAppTarget(rawTo) ?? rawTo) : rawTo;
+    }
     if (!rawTo) return allowFrom[0];
-    const normalized = normalizeE164(rawTo);
-    if (allowFrom.includes(normalized)) return normalized;
+    const normalized = normalizeWhatsAppTarget(rawTo);
+    if (normalized && allowFrom.includes(normalized)) return normalized;
     return allowFrom[0];
   })();
 
@@ -291,6 +301,27 @@ export async function runCronIsolatedAgentTurn(params: {
     }
     return catalog;
   };
+  // Resolve model - prefer hooks.gmail.model for Gmail hooks.
+  const isGmailHook = params.sessionKey.startsWith("hook:gmail:");
+  const hooksGmailModelRef = isGmailHook
+    ? resolveHooksGmailModel({
+        cfg: params.cfg,
+        defaultProvider: DEFAULT_PROVIDER,
+      })
+    : null;
+  if (hooksGmailModelRef) {
+    const status = getModelRefStatus({
+      cfg: params.cfg,
+      catalog: await loadCatalog(),
+      ref: hooksGmailModelRef,
+      defaultProvider: resolvedDefault.provider,
+      defaultModel: resolvedDefault.model,
+    });
+    if (status.allowed) {
+      provider = hooksGmailModelRef.provider;
+      model = hooksGmailModelRef.model;
+    }
+  }
   const modelOverrideRaw =
     params.job.payload.kind === "agentTurn"
       ? params.job.payload.model
@@ -299,34 +330,15 @@ export async function runCronIsolatedAgentTurn(params: {
     if (typeof modelOverrideRaw !== "string") {
       return { status: "error", error: "invalid model: expected string" };
     }
-    const trimmed = modelOverrideRaw.trim();
-    if (!trimmed) {
-      return { status: "error", error: "invalid model: empty" };
-    }
-    const aliasIndex = buildModelAliasIndex({
-      cfg: params.cfg,
-      defaultProvider: resolvedDefault.provider,
-    });
-    const resolvedOverride = resolveModelRefFromString({
-      raw: trimmed,
-      defaultProvider: resolvedDefault.provider,
-      aliasIndex,
-    });
-    if (!resolvedOverride) {
-      return { status: "error", error: `invalid model: ${trimmed}` };
-    }
-    const allowed = buildAllowedModelSet({
+    const resolvedOverride = resolveAllowedModelRef({
       cfg: params.cfg,
       catalog: await loadCatalog(),
+      raw: modelOverrideRaw,
       defaultProvider: resolvedDefault.provider,
       defaultModel: resolvedDefault.model,
     });
-    const key = modelKey(
-      resolvedOverride.ref.provider,
-      resolvedOverride.ref.model,
-    );
-    if (!allowed.allowAny && !allowed.allowedKeys.has(key)) {
-      return { status: "error", error: `model not allowed: ${key}` };
+    if ("error" in resolvedOverride) {
+      return { status: "error", error: resolvedOverride.error };
     }
     provider = resolvedOverride.ref.provider;
     model = resolvedOverride.ref.model;
@@ -340,13 +352,17 @@ export async function runCronIsolatedAgentTurn(params: {
   const isFirstTurnInSession =
     cronSession.isNewSession || !cronSession.systemSent;
 
+  // Resolve thinking level - job thinking > hooks.gmail.thinking > agent default
+  const hooksGmailThinking = isGmailHook
+    ? normalizeThinkLevel(params.cfg.hooks?.gmail?.thinking)
+    : undefined;
   const thinkOverride = normalizeThinkLevel(agentCfg?.thinkingDefault);
   const jobThink = normalizeThinkLevel(
     (params.job.payload.kind === "agentTurn"
       ? params.job.payload.thinking
       : undefined) ?? undefined,
   );
-  let thinkLevel = jobThink ?? thinkOverride;
+  let thinkLevel = jobThink ?? hooksGmailThinking ?? thinkOverride;
   if (!thinkLevel) {
     thinkLevel = resolveThinkingDefault({
       cfg: params.cfg,
@@ -420,8 +436,12 @@ export async function runCronIsolatedAgentTurn(params: {
     const sessionFile = resolveSessionTranscriptPath(
       cronSession.sessionEntry.sessionId,
     );
+    const resolvedVerboseLevel =
+      (cronSession.sessionEntry.verboseLevel as "on" | "off" | undefined) ??
+      (agentCfg?.verboseDefault as "on" | "off" | undefined);
     registerAgentRunContext(cronSession.sessionEntry.sessionId, {
       sessionKey: params.sessionKey,
+      verboseLevel: resolvedVerboseLevel,
     });
     const messageProvider = resolvedDelivery.provider;
     const claudeSessionId = cronSession.sessionEntry.claudeCliSessionId?.trim();
@@ -459,12 +479,7 @@ export async function runCronIsolatedAgentTurn(params: {
           provider: providerOverride,
           model: modelOverride,
           thinkLevel,
-          verboseLevel:
-            (cronSession.sessionEntry.verboseLevel as
-              | "on"
-              | "off"
-              | undefined) ??
-            (agentCfg?.verboseDefault as "on" | "off" | undefined),
+          verboseLevel: resolvedVerboseLevel,
           timeoutMs,
           runId: cronSession.sessionEntry.sessionId,
         });
@@ -539,7 +554,8 @@ export async function runCronIsolatedAgentTurn(params: {
           summary: "Delivery skipped (no WhatsApp recipient).",
         };
       }
-      const to = normalizeE164(resolvedDelivery.to);
+      const rawTo = resolvedDelivery.to;
+      const to = normalizeWhatsAppTarget(rawTo) ?? rawTo;
       try {
         await deliverPayloadsWithMedia({
           payloads,

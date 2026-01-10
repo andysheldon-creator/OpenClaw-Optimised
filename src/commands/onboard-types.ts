@@ -3,7 +3,9 @@ import type { GatewayDaemonRuntime } from "./daemon-runtime.js";
 
 export type OnboardMode = "local" | "remote";
 export type AuthChoice =
+  // Legacy alias for `setup-token` (kept for backwards CLI compatibility).
   | "oauth"
+  | "setup-token"
   | "claude-cli"
   | "token"
   | "openai-codex"
@@ -12,8 +14,11 @@ export type AuthChoice =
   | "antigravity"
   | "apiKey"
   | "gemini-api-key"
+  | "zai-api-key"
   | "minimax-cloud"
   | "minimax"
+  | "minimax-api"
+  | "opencode-zen"
   | "skip";
 export type GatewayAuthChoice = "off" | "token" | "password";
 export type ResetScope = "config" | "config+creds+sessions" | "full";
@@ -24,13 +29,24 @@ export type ProviderChoice = ChatProviderId;
 
 export type OnboardOptions = {
   mode?: OnboardMode;
+  flow?: "quickstart" | "advanced";
   workspace?: string;
   nonInteractive?: boolean;
   authChoice?: AuthChoice;
+  /** Used when `authChoice=token` in non-interactive mode. */
+  tokenProvider?: string;
+  /** Used when `authChoice=token` in non-interactive mode. */
+  token?: string;
+  /** Used when `authChoice=token` in non-interactive mode. */
+  tokenProfileId?: string;
+  /** Used when `authChoice=token` in non-interactive mode. */
+  tokenExpiresIn?: string;
   anthropicApiKey?: string;
   openaiApiKey?: string;
   geminiApiKey?: string;
+  zaiApiKey?: string;
   minimaxApiKey?: string;
+  opencodeZenApiKey?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;
   gatewayAuth?: GatewayAuthChoice;
@@ -40,8 +56,10 @@ export type OnboardOptions = {
   tailscaleResetOnExit?: boolean;
   installDaemon?: boolean;
   daemonRuntime?: GatewayDaemonRuntime;
+  skipProviders?: boolean;
   skipSkills?: boolean;
   skipHealth?: boolean;
+  skipUi?: boolean;
   nodeManager?: NodeManagerChoice;
   remoteUrl?: string;
   remoteToken?: string;

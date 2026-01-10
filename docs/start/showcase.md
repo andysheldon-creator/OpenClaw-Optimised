@@ -12,6 +12,126 @@ Real projects from the community. See what people are building with Clawdbot.
 **Want to be featured?** Share your project in [#showcase on Discord](https://discord.gg/clawdbot) or [tag @clawdbot on X](https://x.com/clawdbot).
 </Info>
 
+## 🎥 Clawdbot in Action
+
+Full setup walkthrough (28m) by VelvetShark.
+
+<div
+  style={{
+    position: "relative",
+    paddingBottom: "56.25%",
+    height: 0,
+    overflow: "hidden",
+    borderRadius: 16,
+  }}
+>
+  <iframe
+    src="https://www.youtube-nocookie.com/embed/SaWSPZoPX34"
+    title="Clawdbot: The self-hosted AI that Siri should have been (Full setup)"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    loading="lazy"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowFullScreen
+  />
+</div>
+
+[Watch on YouTube](https://www.youtube.com/watch?v=SaWSPZoPX34)
+
+## 🆕 Fresh from Discord
+
+<CardGroup cols={2}>
+
+<Card title="Tesco Shop Autopilot" icon="cart-shopping" href="https://x.com/i/status/2009724862470689131">
+  **@marchattonhere** • `automation` `browser` `shopping`
+
+  Weekly meal plan → regulars → book delivery slot → confirm order. No APIs, just browser control.
+
+  <img src="/assets/showcase/tesco-shop.jpg" alt="Tesco shop automation via chat" />
+</Card>
+
+<Card title="SNAG Screenshot-to-Markdown" icon="scissors" href="https://github.com/am-will/snag">
+  **@am-will** • `devtools` `screenshots` `markdown`
+
+  Hotkey a screen region → Gemini vision → instant Markdown in your clipboard.
+
+  <img src="/assets/showcase/snag.png" alt="SNAG screenshot-to-markdown tool" />
+</Card>
+
+<Card title="Agents UI" icon="window-maximize" href="https://releaseflow.net/kitze/agents-ui">
+  **@kitze** • `ui` `skills` `sync`
+
+  Desktop app to manage skills/commands across Agents, Claude, Codex, and Clawdbot.
+
+  <img src="/assets/showcase/agents-ui.jpg" alt="Agents UI app" />
+</Card>
+
+<Card title="Telegram Voice Notes (papla.media)" icon="microphone" href="https://papla.media/docs">
+  **Community** • `voice` `tts` `telegram`
+
+  Wraps papla.media TTS and sends results as Telegram voice notes (no annoying autoplay).
+
+  <img src="/assets/showcase/papla-tts.jpg" alt="Telegram voice note output from TTS" />
+</Card>
+
+<Card title="CodexMonitor" icon="eye" href="https://clawdhub.com/odrobnik/codexmonitor">
+  **@odrobnik** • `devtools` `codex` `brew`
+
+  Homebrew-installed helper to list/inspect/watch local OpenAI Codex sessions (CLI + VS Code).
+
+  <img src="/assets/showcase/codexmonitor.png" alt="CodexMonitor on ClawdHub" />
+</Card>
+
+<Card title="Bambu 3D Printer Control" icon="print" href="https://clawdhub.com/tobiasbischoff/bambu-cli">
+  **@tobiasbischoff** • `hardware` `3d-printing` `skill`
+
+  Control and troubleshoot BambuLab printers: status, jobs, camera, AMS, calibration, and more.
+
+  <img src="/assets/showcase/bambu-cli.png" alt="Bambu CLI skill on ClawdHub" />
+</Card>
+
+<Card title="Vienna Transport (Wiener Linien)" icon="train" href="https://clawdhub.com/hjanuschka/wienerlinien">
+  **@hjanuschka** • `travel` `transport` `skill`
+
+  Real-time departures, disruptions, elevator status, and routing for Vienna's public transport.
+
+  <img src="/assets/showcase/wienerlinien.png" alt="Wiener Linien skill on ClawdHub" />
+</Card>
+
+<Card title="ParentPay School Meals" icon="utensils" href="#">
+  **@George5562** • `automation` `browser` `parenting`
+
+  Automated UK school meal booking via ParentPay. Uses mouse coordinates for reliable table cell clicking.
+</Card>
+
+<Card title="R2 Upload (Send Me My Files)" icon="cloud-arrow-up" href="https://clawdhub.com/skills/r2-upload">
+  **@julianengel** • `files` `r2` `presigned-urls`
+
+  Upload to Cloudflare R2/S3 and generate secure presigned download links. Perfect for remote Clawdbot instances.
+</Card>
+
+<Card title="iOS App via Telegram" icon="mobile" href="#">
+  **@coard** • `ios` `xcode` `testflight`
+
+  Built a complete iOS app with maps and voice recording, deployed to TestFlight entirely via Telegram chat.
+
+  <img src="/assets/showcase/ios-testflight.jpg" alt="iOS app on TestFlight" />
+</Card>
+
+<Card title="Oura Ring Health Assistant" icon="heart-pulse" href="#">
+  **@AS** • `health` `oura` `calendar`
+
+  Personal AI health assistant integrating Oura ring data with calendar, appointments, and gym schedule.
+
+  <img src="/assets/showcase/oura-health.png" alt="Oura ring health assistant" />
+</Card>
+<Card title="Multi-Agent Swarm (14+ Agents)" icon="robot" href="https://github.com/adam91holt/clawdspace">
+  **@adam91holt** • `multi-agent` `slack` `orchestration` `swarm`
+
+  14+ Clawdbot agents under one gateway. Opus 4.5 orchestrator delegates to Codex workers. Self-maintaining agents that continuously improve. Open-sourced clawdspace for agent sandboxing.
+</Card>
+</CardGroup>
+
 ## 🤖 Automation & Workflows
 
 <CardGroup cols={2}>

@@ -1,6 +1,7 @@
 import ClawdbotKit
 import Foundation
 import Network
+import OSLog
 
 actor MacNodeBridgeSession {
     private struct TimeoutError: LocalizedError {
@@ -15,17 +16,20 @@ actor MacNodeBridgeSession {
         case failed(message: String)
     }
 
+    private let logger = Logger(subsystem: "com.clawdbot", category: "node.bridge-session")
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+    private let clock = ContinuousClock()
+    private var disconnectHandler: (@Sendable (String) async -> Void)?
 
     private var connection: NWConnection?
     private var queue: DispatchQueue?
     private var buffer = Data()
     private var pendingRPC: [String: CheckedContinuation<BridgeRPCResponse, Error>] = [:]
     private var serverEventSubscribers: [UUID: AsyncStream<BridgeEventFrame>.Continuation] = [:]
+    private var invokeTasks: [UUID: Task<Void, Never>] = [:]
     private var pingTask: Task<Void, Never>?
-    private var lastPongAt: Date?
-    private var lastPingId: String?
+    private var lastPongAt: ContinuousClock.Instant?
 
     private(set) var state: State = .idle
 
@@ -33,14 +37,22 @@ actor MacNodeBridgeSession {
         endpoint: NWEndpoint,
         hello: BridgeHello,
         onConnected: (@Sendable (String) async -> Void)? = nil,
+        onDisconnected: (@Sendable (String) async -> Void)? = nil,
         onInvoke: @escaping @Sendable (BridgeInvokeRequest) async -> BridgeInvokeResponse)
         async throws
     {
         await self.disconnect()
+        self.disconnectHandler = onDisconnected
         self.state = .connecting
 
         let params = NWParameters.tcp
         params.includePeerToPeer = true
+        let tcpOptions = NWProtocolTCP.Options()
+        tcpOptions.enableKeepalive = true
+        tcpOptions.keepaliveIdle = 30
+        tcpOptions.keepaliveInterval = 15
+        tcpOptions.keepaliveCount = 3
+        params.defaultProtocolStack.transportProtocol = tcpOptions
         let connection = NWConnection(to: endpoint, using: params)
         let queue = DispatchQueue(label: "com.clawdbot.macos.bridge-session")
         self.connection = connection
@@ -50,6 +62,10 @@ actor MacNodeBridgeSession {
         connection.start(queue: queue)
 
         try await Self.waitForReady(stateStream, timeoutSeconds: 6)
+        connection.stateUpdateHandler = { [weak self] state in
+            guard let self else { return }
+            Task { await self.handleConnectionState(state) }
+        }
 
         try await AsyncTimeout.withTimeout(
             seconds: 6,
@@ -71,6 +87,7 @@ actor MacNodeBridgeSession {
             let data = line.data(using: .utf8),
             let base = try? self.decoder.decode(BridgeBaseFrame.self, from: data)
         else {
+            self.logger.error("node bridge hello failed (unexpected response)")
             await self.disconnect()
             throw NSError(domain: "Bridge", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "Unexpected bridge response",
@@ -85,53 +102,67 @@ actor MacNodeBridgeSession {
         } else if base.type == "error" {
             let err = try self.decoder.decode(BridgeErrorFrame.self, from: data)
             self.state = .failed(message: "\(err.code): \(err.message)")
+            self.logger.error("node bridge hello error: \(err.code, privacy: .public)")
             await self.disconnect()
             throw NSError(domain: "Bridge", code: 2, userInfo: [
                 NSLocalizedDescriptionKey: "\(err.code): \(err.message)",
             ])
         } else {
             self.state = .failed(message: "Unexpected bridge response")
+            self.logger.error("node bridge hello failed (unexpected frame)")
             await self.disconnect()
             throw NSError(domain: "Bridge", code: 3, userInfo: [
                 NSLocalizedDescriptionKey: "Unexpected bridge response",
             ])
         }
 
-        while true {
-            guard let next = try await self.receiveLine() else { break }
-            guard let nextData = next.data(using: .utf8) else { continue }
-            guard let nextBase = try? self.decoder.decode(BridgeBaseFrame.self, from: nextData) else { continue }
+        do {
+            while true {
+                guard let next = try await self.receiveLine() else { break }
+                guard let nextData = next.data(using: .utf8) else { continue }
+                guard let nextBase = try? self.decoder.decode(BridgeBaseFrame.self, from: nextData) else { continue }
 
-            switch nextBase.type {
-            case "res":
-                let res = try self.decoder.decode(BridgeRPCResponse.self, from: nextData)
-                if let cont = self.pendingRPC.removeValue(forKey: res.id) {
-                    cont.resume(returning: res)
+                switch nextBase.type {
+                case "res":
+                    let res = try self.decoder.decode(BridgeRPCResponse.self, from: nextData)
+                    if let cont = self.pendingRPC.removeValue(forKey: res.id) {
+                        cont.resume(returning: res)
+                    }
+
+                case "event":
+                    let evt = try self.decoder.decode(BridgeEventFrame.self, from: nextData)
+                    self.broadcastServerEvent(evt)
+
+                case "ping":
+                    let ping = try self.decoder.decode(BridgePing.self, from: nextData)
+                    try await self.send(BridgePong(type: "pong", id: ping.id))
+
+                case "pong":
+                    let pong = try self.decoder.decode(BridgePong.self, from: nextData)
+                    self.notePong(pong)
+
+                case "invoke":
+                    let req = try self.decoder.decode(BridgeInvokeRequest.self, from: nextData)
+                    let taskID = UUID()
+                    let task = Task { [weak self] in
+                        let res = await onInvoke(req)
+                        guard let self else { return }
+                        await self.sendInvokeResponse(res, taskID: taskID)
+                    }
+                    self.invokeTasks[taskID] = task
+
+                default:
+                    continue
                 }
-
-            case "event":
-                let evt = try self.decoder.decode(BridgeEventFrame.self, from: nextData)
-                self.broadcastServerEvent(evt)
-
-            case "ping":
-                let ping = try self.decoder.decode(BridgePing.self, from: nextData)
-                try await self.send(BridgePong(type: "pong", id: ping.id))
-
-            case "pong":
-                let pong = try self.decoder.decode(BridgePong.self, from: nextData)
-                self.notePong(pong)
-
-            case "invoke":
-                let req = try self.decoder.decode(BridgeInvokeRequest.self, from: nextData)
-                let res = await onInvoke(req)
-                try await self.send(res)
-
-            default:
-                continue
             }
-        }
 
-        await self.disconnect()
+            await self.handleDisconnect(reason: "connection closed")
+        } catch {
+            self.logger.error(
+                "node bridge receive failed: \(error.localizedDescription, privacy: .public)")
+            await self.handleDisconnect(reason: "receive failed")
+            throw error
+        }
     }
 
     func sendEvent(event: String, payloadJSON: String?) async throws {
@@ -193,7 +224,8 @@ actor MacNodeBridgeSession {
         self.pingTask?.cancel()
         self.pingTask = nil
         self.lastPongAt = nil
-        self.lastPingId = nil
+        self.disconnectHandler = nil
+        self.cancelInvokeTasks()
 
         self.connection?.cancel()
         self.connection = nil
@@ -300,7 +332,8 @@ actor MacNodeBridgeSession {
 
     private func startPingLoop() {
         self.pingTask?.cancel()
-        self.lastPongAt = Date()
+        self.lastPongAt = self.clock.now
+        self.logger.debug("node bridge ping loop started")
         self.pingTask = Task { [weak self] in
             guard let self else { return }
             await self.runPingLoop()
@@ -308,31 +341,38 @@ actor MacNodeBridgeSession {
     }
 
     private func runPingLoop() async {
-        let intervalSeconds = 15.0
-        let timeoutSeconds = 45.0
+        let interval: Duration = .seconds(15)
+        let timeout: Duration = .seconds(45)
 
         while !Task.isCancelled {
-            do {
-                try await Task.sleep(nanoseconds: UInt64(intervalSeconds * 1_000_000_000))
-            } catch {
-                return
-            }
+            try? await Task.sleep(for: interval)
 
             guard self.connection != nil else { return }
 
-            if let last = self.lastPongAt,
-               Date().timeIntervalSince(last) > timeoutSeconds
-            {
-                await self.disconnect()
-                return
+            if let last = self.lastPongAt {
+                let now = self.clock.now
+                if now > last.advanced(by: timeout) {
+                    let age = last.duration(to: now)
+                    let ageDescription = String(describing: age)
+                    let message =
+                        "Node bridge heartbeat timed out; disconnecting " +
+                        "(age: \(ageDescription, privacy: .public))."
+                    self.logger.warning(message)
+                    await self.handleDisconnect(reason: "ping timeout")
+                    return
+                }
             }
 
             let id = UUID().uuidString
-            self.lastPingId = id
             do {
                 try await self.send(BridgePing(type: "ping", id: id))
             } catch {
-                await self.disconnect()
+                let errorDescription = String(describing: error)
+                let message =
+                    "Node bridge ping send failed; disconnecting " +
+                    "(error: \(errorDescription, privacy: .public))."
+                self.logger.warning(message)
+                await self.handleDisconnect(reason: "ping send failed")
                 return
             }
         }
@@ -340,7 +380,54 @@ actor MacNodeBridgeSession {
 
     private func notePong(_ pong: BridgePong) {
         _ = pong
-        self.lastPongAt = Date()
+        self.lastPongAt = self.clock.now
+    }
+
+    private func handleConnectionState(_ state: NWConnection.State) async {
+        switch state {
+        case let .failed(error):
+            let errorDescription = String(describing: error)
+            let message =
+                "Node bridge connection failed; disconnecting " +
+                "(error: \(errorDescription, privacy: .public))."
+            self.logger.warning(message)
+            await self.handleDisconnect(reason: "connection failed")
+        case .cancelled:
+            self.logger.warning("Node bridge connection cancelled; disconnecting.")
+            await self.handleDisconnect(reason: "connection cancelled")
+        default:
+            break
+        }
+    }
+
+    private func handleDisconnect(reason: String) async {
+        self.logger.info("node bridge disconnect reason=\(reason, privacy: .public)")
+        if let handler = self.disconnectHandler {
+            await handler(reason)
+        }
+        await self.disconnect()
+    }
+
+    private func logInvokeSendFailure(_ error: Error) {
+        self.logger.error(
+            "node bridge invoke response send failed: \(error.localizedDescription, privacy: .public)")
+    }
+
+    private func sendInvokeResponse(_ response: BridgeInvokeResponse, taskID: UUID) async {
+        defer { self.invokeTasks[taskID] = nil }
+        if Task.isCancelled { return }
+        do {
+            try await self.send(response)
+        } catch {
+            await self.logInvokeSendFailure(error)
+        }
+    }
+
+    private func cancelInvokeTasks() {
+        for task in self.invokeTasks.values {
+            task.cancel()
+        }
+        self.invokeTasks.removeAll()
     }
 
     private static func makeStateStream(

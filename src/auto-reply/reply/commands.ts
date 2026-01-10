@@ -1,4 +1,9 @@
 import {
+  resolveAgentDir,
+  resolveDefaultAgentId,
+  resolveSessionAgentId,
+} from "../../agents/agent-scope.js";
+import {
   ensureAuthProfileStore,
   resolveAuthProfileDisplayLabel,
   resolveAuthProfileOrder,
@@ -15,6 +20,23 @@ import {
   waitForEmbeddedPiRunEnd,
 } from "../../agents/pi-embedded.js";
 import type { ClawdbotConfig } from "../../config/config.js";
+import {
+  readConfigFileSnapshot,
+  validateConfigObject,
+  writeConfigFile,
+} from "../../config/config.js";
+import {
+  getConfigValueAtPath,
+  parseConfigPath,
+  setConfigValueAtPath,
+  unsetConfigValueAtPath,
+} from "../../config/config-paths.js";
+import {
+  getConfigOverrides,
+  resetConfigOverrides,
+  setConfigOverride,
+  unsetConfigOverride,
+} from "../../config/runtime-overrides.js";
 import {
   resolveSessionFilePath,
   type SessionEntry,
@@ -46,6 +68,7 @@ import {
 } from "../group-activation.js";
 import { parseSendPolicyCommand } from "../send-policy.js";
 import {
+  buildCommandsMessage,
   buildHelpMessage,
   buildStatusMessage,
   formatContextUsageShort,
@@ -60,6 +83,8 @@ import type {
 } from "../thinking.js";
 import type { ReplyPayload } from "../types.js";
 import { isAbortTrigger, setAbortMemory } from "./abort.js";
+import { parseConfigCommand } from "./config-commands.js";
+import { parseDebugCommand } from "./debug-commands.js";
 import type { InlineDirectives } from "./directive-handling.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
 import { getFollowupQueueDepth, resolveQueueSettings } from "./queue.js";
@@ -98,7 +123,7 @@ export async function buildStatusReply(params: {
   cfg: ClawdbotConfig;
   command: CommandContext;
   sessionEntry?: SessionEntry;
-  sessionKey?: string;
+  sessionKey: string;
   sessionScope?: SessionScope;
   provider: string;
   model: string;
@@ -134,6 +159,10 @@ export async function buildStatusReply(params: {
     );
     return undefined;
   }
+  const statusAgentId = sessionKey
+    ? resolveSessionAgentId({ sessionKey, config: cfg })
+    : resolveDefaultAgentId(cfg);
+  const statusAgentDir = resolveAgentDir(cfg, statusAgentId);
   let usageLine: string | null = null;
   try {
     const usageProvider = resolveUsageProviderId(provider);
@@ -141,8 +170,18 @@ export async function buildStatusReply(params: {
       const usageSummary = await loadProviderUsageSummary({
         timeoutMs: 3500,
         providers: [usageProvider],
+        agentDir: statusAgentDir,
       });
       usageLine = formatUsageSummaryLine(usageSummary, { now: Date.now() });
+      if (
+        !usageLine &&
+        (resolvedVerboseLevel === "on" || resolvedElevatedLevel === "on")
+      ) {
+        const entry = usageSummary.providers[0];
+        if (entry?.error) {
+          usageLine = `📊 Usage: ${entry.displayName} (${entry.error})`;
+        }
+      }
     }
   } catch {
     usageLine = null;
@@ -185,7 +224,12 @@ export async function buildStatusReply(params: {
     resolvedVerbose: resolvedVerboseLevel,
     resolvedReasoning: resolvedReasoningLevel,
     resolvedElevated: resolvedElevatedLevel,
-    modelAuth: resolveModelAuthLabel(provider, cfg, sessionEntry),
+    modelAuth: resolveModelAuthLabel(
+      provider,
+      cfg,
+      sessionEntry,
+      statusAgentDir,
+    ),
     usageLine: usageLine ?? undefined,
     queue: {
       mode: queueSettings.mode,
@@ -213,12 +257,15 @@ function resolveModelAuthLabel(
   provider?: string,
   cfg?: ClawdbotConfig,
   sessionEntry?: SessionEntry,
+  agentDir?: string,
 ): string | undefined {
   const resolved = provider?.trim();
   if (!resolved) return undefined;
 
   const providerKey = normalizeProviderId(resolved);
-  const store = ensureAuthProfileStore();
+  const store = ensureAuthProfileStore(agentDir, {
+    allowKeychainPrompt: false,
+  });
   const profileOverride = sessionEntry?.authProfileOverride?.trim();
   const order = resolveAuthProfileOrder({
     cfg,
@@ -355,7 +402,7 @@ export async function handleCommands(params: {
   directives: InlineDirectives;
   sessionEntry?: SessionEntry;
   sessionStore?: Record<string, SessionEntry>;
-  sessionKey?: string;
+  sessionKey: string;
   storePath?: string;
   sessionScope?: SessionScope;
   workspaceDir: string;
@@ -558,6 +605,17 @@ export async function handleCommands(params: {
     return { shouldContinue: false, reply: { text: buildHelpMessage() } };
   }
 
+  const commandsRequested = command.commandBodyNormalized === "/commands";
+  if (allowTextCommands && commandsRequested) {
+    if (!command.isAuthorizedSender) {
+      logVerbose(
+        `Ignoring /commands from unauthorized sender: ${command.senderE164 || "<unknown>"}`,
+      );
+      return { shouldContinue: false };
+    }
+    return { shouldContinue: false, reply: { text: buildCommandsMessage() } };
+  }
+
   const statusRequested =
     directives.hasStatusDirective ||
     command.commandBodyNormalized === "/status";
@@ -580,6 +638,214 @@ export async function handleCommands(params: {
       defaultGroupActivation,
     });
     return { shouldContinue: false, reply };
+  }
+
+  const configCommand = allowTextCommands
+    ? parseConfigCommand(command.commandBodyNormalized)
+    : null;
+  if (configCommand) {
+    if (!command.isAuthorizedSender) {
+      logVerbose(
+        `Ignoring /config from unauthorized sender: ${command.senderE164 || "<unknown>"}`,
+      );
+      return { shouldContinue: false };
+    }
+    if (configCommand.action === "error") {
+      return {
+        shouldContinue: false,
+        reply: { text: `⚠️ ${configCommand.message}` },
+      };
+    }
+    const snapshot = await readConfigFileSnapshot();
+    if (
+      !snapshot.valid ||
+      !snapshot.parsed ||
+      typeof snapshot.parsed !== "object"
+    ) {
+      return {
+        shouldContinue: false,
+        reply: {
+          text: "⚠️ Config file is invalid; fix it before using /config.",
+        },
+      };
+    }
+    const parsedBase = structuredClone(
+      snapshot.parsed as Record<string, unknown>,
+    );
+
+    if (configCommand.action === "show") {
+      const pathRaw = configCommand.path?.trim();
+      if (pathRaw) {
+        const parsedPath = parseConfigPath(pathRaw);
+        if (!parsedPath.ok || !parsedPath.path) {
+          return {
+            shouldContinue: false,
+            reply: { text: `⚠️ ${parsedPath.error ?? "Invalid path."}` },
+          };
+        }
+        const value = getConfigValueAtPath(parsedBase, parsedPath.path);
+        const rendered = JSON.stringify(value ?? null, null, 2);
+        return {
+          shouldContinue: false,
+          reply: {
+            text: `⚙️ Config ${pathRaw}:\n\`\`\`json\n${rendered}\n\`\`\``,
+          },
+        };
+      }
+      const json = JSON.stringify(parsedBase, null, 2);
+      return {
+        shouldContinue: false,
+        reply: { text: `⚙️ Config (raw):\n\`\`\`json\n${json}\n\`\`\`` },
+      };
+    }
+
+    if (configCommand.action === "unset") {
+      const parsedPath = parseConfigPath(configCommand.path);
+      if (!parsedPath.ok || !parsedPath.path) {
+        return {
+          shouldContinue: false,
+          reply: { text: `⚠️ ${parsedPath.error ?? "Invalid path."}` },
+        };
+      }
+      const removed = unsetConfigValueAtPath(parsedBase, parsedPath.path);
+      if (!removed) {
+        return {
+          shouldContinue: false,
+          reply: { text: `⚙️ No config value found for ${configCommand.path}.` },
+        };
+      }
+      const validated = validateConfigObject(parsedBase);
+      if (!validated.ok) {
+        const issue = validated.issues[0];
+        return {
+          shouldContinue: false,
+          reply: {
+            text: `⚠️ Config invalid after unset (${issue.path}: ${issue.message}).`,
+          },
+        };
+      }
+      await writeConfigFile(validated.config);
+      return {
+        shouldContinue: false,
+        reply: { text: `⚙️ Config updated: ${configCommand.path} removed.` },
+      };
+    }
+
+    if (configCommand.action === "set") {
+      const parsedPath = parseConfigPath(configCommand.path);
+      if (!parsedPath.ok || !parsedPath.path) {
+        return {
+          shouldContinue: false,
+          reply: { text: `⚠️ ${parsedPath.error ?? "Invalid path."}` },
+        };
+      }
+      setConfigValueAtPath(parsedBase, parsedPath.path, configCommand.value);
+      const validated = validateConfigObject(parsedBase);
+      if (!validated.ok) {
+        const issue = validated.issues[0];
+        return {
+          shouldContinue: false,
+          reply: {
+            text: `⚠️ Config invalid after set (${issue.path}: ${issue.message}).`,
+          },
+        };
+      }
+      await writeConfigFile(validated.config);
+      const valueLabel =
+        typeof configCommand.value === "string"
+          ? `"${configCommand.value}"`
+          : JSON.stringify(configCommand.value);
+      return {
+        shouldContinue: false,
+        reply: {
+          text: `⚙️ Config updated: ${configCommand.path}=${valueLabel ?? "null"}`,
+        },
+      };
+    }
+  }
+
+  const debugCommand = allowTextCommands
+    ? parseDebugCommand(command.commandBodyNormalized)
+    : null;
+  if (debugCommand) {
+    if (!command.isAuthorizedSender) {
+      logVerbose(
+        `Ignoring /debug from unauthorized sender: ${command.senderE164 || "<unknown>"}`,
+      );
+      return { shouldContinue: false };
+    }
+    if (debugCommand.action === "error") {
+      return {
+        shouldContinue: false,
+        reply: { text: `⚠️ ${debugCommand.message}` },
+      };
+    }
+    if (debugCommand.action === "show") {
+      const overrides = getConfigOverrides();
+      const hasOverrides = Object.keys(overrides).length > 0;
+      if (!hasOverrides) {
+        return {
+          shouldContinue: false,
+          reply: { text: "⚙️ Debug overrides: (none)" },
+        };
+      }
+      const effectiveConfig = cfg ?? {};
+      const json = JSON.stringify(overrides, null, 2);
+      const effectiveJson = JSON.stringify(effectiveConfig, null, 2);
+      return {
+        shouldContinue: false,
+        reply: {
+          text: `⚙️ Debug overrides (memory-only):\n\`\`\`json\n${json}\n\`\`\`\n⚙️ Effective config (with overrides):\n\`\`\`json\n${effectiveJson}\n\`\`\``,
+        },
+      };
+    }
+    if (debugCommand.action === "reset") {
+      resetConfigOverrides();
+      return {
+        shouldContinue: false,
+        reply: { text: "⚙️ Debug overrides cleared; using config on disk." },
+      };
+    }
+    if (debugCommand.action === "unset") {
+      const result = unsetConfigOverride(debugCommand.path);
+      if (!result.ok) {
+        return {
+          shouldContinue: false,
+          reply: { text: `⚠️ ${result.error ?? "Invalid path."}` },
+        };
+      }
+      if (!result.removed) {
+        return {
+          shouldContinue: false,
+          reply: {
+            text: `⚙️ No debug override found for ${debugCommand.path}.`,
+          },
+        };
+      }
+      return {
+        shouldContinue: false,
+        reply: { text: `⚙️ Debug override removed for ${debugCommand.path}.` },
+      };
+    }
+    if (debugCommand.action === "set") {
+      const result = setConfigOverride(debugCommand.path, debugCommand.value);
+      if (!result.ok) {
+        return {
+          shouldContinue: false,
+          reply: { text: `⚠️ ${result.error ?? "Invalid override."}` },
+        };
+      }
+      const valueLabel =
+        typeof debugCommand.value === "string"
+          ? `"${debugCommand.value}"`
+          : JSON.stringify(debugCommand.value);
+      return {
+        shouldContinue: false,
+        reply: {
+          text: `⚙️ Debug override set: ${debugCommand.path}=${valueLabel ?? "null"}`,
+        },
+      };
+    }
   }
 
   const stopRequested = command.commandBodyNormalized === "/stop";
@@ -634,7 +900,7 @@ export async function handleCommands(params: {
       await waitForEmbeddedPiRunEnd(sessionId, 15_000);
     }
     const customInstructions = extractCompactInstructions({
-      rawBody: ctx.Body,
+      rawBody: ctx.CommandBody ?? ctx.RawBody ?? ctx.Body,
       ctx,
       cfg,
       agentId: params.agentId,
@@ -687,7 +953,7 @@ export async function handleCommands(params: {
     const line = reason
       ? `${compactLabel}: ${reason} • ${contextSummary}`
       : `${compactLabel} • ${contextSummary}`;
-    enqueueSystemEvent(line);
+    enqueueSystemEvent(line, { sessionKey });
     return { shouldContinue: false, reply: { text: `⚙️ ${line}` } };
   }
 

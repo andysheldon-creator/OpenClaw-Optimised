@@ -402,7 +402,11 @@ function isRichConsoleEnv(): boolean {
 }
 
 function getColorForConsole(): ChalkInstance {
-  if (process.env.NO_COLOR) return new Chalk({ level: 0 });
+  const hasForceColor =
+    typeof process.env.FORCE_COLOR === "string" &&
+    process.env.FORCE_COLOR.trim().length > 0 &&
+    process.env.FORCE_COLOR.trim() !== "0";
+  if (process.env.NO_COLOR && !hasForceColor) return new Chalk({ level: 0 });
   const hasTty = Boolean(process.stdout.isTTY || process.stderr.isTTY);
   return hasTty || isRichConsoleEnv()
     ? new Chalk({ level: 1 })
@@ -503,13 +507,19 @@ function formatConsoleLine(opts: {
 }
 
 function writeConsoleLine(level: Level, line: string) {
+  const sanitized =
+    process.platform === "win32" && process.env.GITHUB_ACTIONS === "true"
+      ? line
+          .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, "?")
+          .replace(/[\uD800-\uDFFF]/g, "?")
+      : line;
   const sink = rawConsole ?? console;
   if (forceConsoleToStderr || level === "error" || level === "fatal") {
-    (sink.error ?? console.error)(line);
+    (sink.error ?? console.error)(sanitized);
   } else if (level === "warn") {
-    (sink.warn ?? console.warn)(line);
+    (sink.warn ?? console.warn)(sanitized);
   } else {
-    (sink.log ?? console.log)(line);
+    (sink.log ?? console.log)(sanitized);
   }
 }
 

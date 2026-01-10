@@ -58,10 +58,11 @@ cat ~/.clawdbot/clawdbot.json
 - Health check + restart prompt.
 - Skills status summary (eligible/missing/blocked).
 - Legacy config migration and normalization.
+- OpenCode Zen provider override warnings (`models.providers.opencode`).
 - Legacy on-disk state migration (sessions/agent dir/WhatsApp auth).
 - State integrity and permissions checks (sessions, transcripts, state dir).
 - Config file permission checks (chmod 600) when running locally.
-- Model auth health: checks OAuth expiry and can refresh expiring tokens.
+- Model auth health: checks OAuth expiry, can refresh expiring tokens, and reports auth-profile cooldown/disabled states.
 - Legacy workspace dir detection (`~/clawdis`, `~/clawdbot`).
 - Sandbox image repair when sandboxing is enabled.
 - Legacy service migration and extra gateway detection.
@@ -106,6 +107,12 @@ Current migrations:
 - `agent.*` → `agents.defaults` + `tools.*` (tools/elevated/bash/sandbox/subagents)
 - `agent.model`/`allowedModels`/`modelAliases`/`modelFallbacks`/`imageModelFallbacks`
   → `agents.defaults.models` + `agents.defaults.model.primary/fallbacks` + `agents.defaults.imageModel.primary/fallbacks`
+
+### 2b) OpenCode Zen provider overrides
+If you’ve added `models.providers.opencode` (or `opencode-zen`) manually, it
+overrides the built-in OpenCode Zen catalog from `@mariozechner/pi-ai`. That can
+force every model onto a single API or zero out costs. Doctor warns so you can
+remove the override and restore per-model API routing + costs.
 
 ### 3) Legacy state migrations (disk layout)
 Doctor can migrate older on-disk layouts into the current structure:
@@ -152,6 +159,10 @@ expiring/expired, and can refresh them when safe. If the Anthropic Claude Code
 profile is stale, it suggests `claude setup-token` on the gateway host.
 Refresh prompts only appear when running interactively (TTY); `--non-interactive`
 skips refresh attempts.
+
+Doctor also reports auth profiles that are temporarily unusable due to:
+- short cooldowns (rate limits/timeouts/auth failures)
+- longer disables (billing/credit failures)
 
 ### 6) Sandbox image repair
 When sandboxing is enabled, doctor checks Docker images and offers to build or

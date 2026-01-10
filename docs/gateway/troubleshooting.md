@@ -169,6 +169,24 @@ clawdbot logs --follow
 tail -f "$(ls -t /tmp/clawdbot/clawdbot-*.log | head -1)" | grep "blocked\\|skip\\|unauthorized"
 ```
 
+### Pairing Code Not Arriving
+
+If `dmPolicy` is `pairing`, unknown senders should receive a code and their message is ignored until approved.
+
+**Check 1:** Is a pending request already waiting?
+```bash
+clawdbot pairing list <provider>
+```
+
+Pending DM pairing requests are capped at **3 per provider** by default. If the list is full, new requests won’t generate a code until one is approved or expires.
+
+**Check 2:** Did the request get created but no reply was sent?
+```bash
+clawdbot logs --follow | grep "pairing request"
+```
+
+**Check 3:** Confirm `dmPolicy` isn’t `open`/`allowlist` for that provider.
+
 ### Image + Mention Not Working
 
 Known issue: When you send an image with ONLY a mention (no other text), WhatsApp sometimes doesn't include the mention metadata.
@@ -254,7 +272,7 @@ grep "media\\|fetch\\|download" "$(ls -t /tmp/clawdbot/clawdbot-*.log | head -1)
 
 ### High Memory Usage
 
-CLAWDBOT keeps conversation history in memory.
+Clawdbot keeps conversation history in memory.
 
 **Fix:** Restart periodically or set session limits:
 ```json
@@ -304,7 +322,7 @@ kill -9 <PID> # last resort
 ```
 
 **Fix 3: Check embedded gateway**
-Ensure the gateway relay was properly bundled. Run [`./scripts/package-mac-app.sh`](https://github.com/clawdbot/clawdbot/blob/main/scripts/package-mac-app.sh) and ensure `bun` is installed.
+Ensure the gateway relay was properly bundled. Run [`./scripts/package-mac-app.sh`](https://github.com/clawdbot/clawdbot/blob/main/scripts/package-mac-app.sh) and ensure Node is available (the script downloads a bundled runtime by default).
 
 ## Debug Mode
 
@@ -372,7 +390,7 @@ clawdbot daemon restart           # or: clawdbot gateway
 1. Check logs first: `/tmp/clawdbot/` (default: `clawdbot-YYYY-MM-DD.log`, or your configured `logging.file`)
 2. Search existing issues on GitHub
 3. Open a new issue with:
-   - CLAWDBOT version
+   - Clawdbot version
    - Relevant log snippets
    - Steps to reproduce
    - Your config (redact secrets!)

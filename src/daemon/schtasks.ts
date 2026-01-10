@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { colorize, isRich, theme } from "../terminal/theme.js";
 import {
   LEGACY_GATEWAY_WINDOWS_TASK_NAMES,
   resolveGatewayWindowsTaskName,
@@ -11,6 +12,11 @@ import { parseKeyValueOutput } from "./runtime-parse.js";
 import type { GatewayServiceRuntime } from "./service-runtime.js";
 
 const execFileAsync = promisify(execFile);
+
+const formatLine = (label: string, value: string) => {
+  const rich = isRich();
+  return `${colorize(rich, theme.muted, `${label}:`)} ${colorize(rich, theme.command, value)}`;
+};
 
 function resolveHomeDir(env: Record<string, string | undefined>): string {
   const home = env.USERPROFILE?.trim() || env.HOME?.trim();
@@ -233,8 +239,8 @@ export async function installScheduledTask({
   }
 
   await execSchtasks(["/Run", "/TN", taskName]);
-  stdout.write(`Installed Scheduled Task: ${taskName}\n`);
-  stdout.write(`Task script: ${scriptPath}\n`);
+  stdout.write(`${formatLine("Installed Scheduled Task", taskName)}\n`);
+  stdout.write(`${formatLine("Task script", scriptPath)}\n`);
   return { scriptPath };
 }
 
@@ -252,7 +258,7 @@ export async function uninstallScheduledTask({
   const scriptPath = resolveTaskScriptPath(env);
   try {
     await fs.unlink(scriptPath);
-    stdout.write(`Removed task script: ${scriptPath}\n`);
+    stdout.write(`${formatLine("Removed task script", scriptPath)}\n`);
   } catch {
     stdout.write(`Task script not found at ${scriptPath}\n`);
   }
@@ -280,7 +286,7 @@ export async function stopScheduledTask({
   if (res.code !== 0 && !isTaskNotRunning(res)) {
     throw new Error(`schtasks end failed: ${res.stderr || res.stdout}`.trim());
   }
-  stdout.write(`Stopped Scheduled Task: ${taskName}\n`);
+  stdout.write(`${formatLine("Stopped Scheduled Task", taskName)}\n`);
 }
 
 export async function restartScheduledTask({
@@ -297,7 +303,7 @@ export async function restartScheduledTask({
   if (res.code !== 0) {
     throw new Error(`schtasks run failed: ${res.stderr || res.stdout}`.trim());
   }
-  stdout.write(`Restarted Scheduled Task: ${taskName}\n`);
+  stdout.write(`${formatLine("Restarted Scheduled Task", taskName)}\n`);
 }
 
 export async function isScheduledTaskInstalled(
@@ -420,7 +426,9 @@ export async function uninstallLegacyScheduledTasks({
 
     try {
       await fs.unlink(task.scriptPath);
-      stdout.write(`Removed legacy task script: ${task.scriptPath}\n`);
+      stdout.write(
+        `${formatLine("Removed legacy task script", task.scriptPath)}\n`,
+      );
     } catch {
       stdout.write(`Legacy task script not found at ${task.scriptPath}\n`);
     }

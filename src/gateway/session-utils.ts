@@ -21,8 +21,8 @@ import {
   type SessionScope,
 } from "../config/sessions.js";
 import {
-  DEFAULT_MAIN_KEY,
   normalizeAgentId,
+  normalizeMainKey,
   parseAgentSessionKey,
 } from "../routing/session-key.js";
 
@@ -34,6 +34,7 @@ export type GatewaySessionsDefaults = {
 export type GatewaySessionRow = {
   key: string;
   kind: "direct" | "group" | "global" | "unknown";
+  label?: string;
   displayName?: string;
   provider?: string;
   subject?: string;
@@ -254,8 +255,7 @@ export function listAgentsForGateway(cfg: ClawdbotConfig): {
   agents: GatewayAgentRow[];
 } {
   const defaultId = normalizeAgentId(resolveDefaultAgentId(cfg));
-  const mainKey =
-    (cfg.session?.mainKey ?? DEFAULT_MAIN_KEY).trim() || DEFAULT_MAIN_KEY;
+  const mainKey = normalizeMainKey(cfg.session?.mainKey);
   const scope = cfg.session?.scope ?? "per-sender";
   const configuredById = new Map<string, { name?: string }>();
   for (const entry of cfg.agents?.list ?? []) {
@@ -434,6 +434,7 @@ export function listSessionsFromStore(params: {
   const includeGlobal = opts.includeGlobal === true;
   const includeUnknown = opts.includeUnknown === true;
   const spawnedBy = typeof opts.spawnedBy === "string" ? opts.spawnedBy : "";
+  const label = typeof opts.label === "string" ? opts.label.trim() : "";
   const agentId =
     typeof opts.agentId === "string" ? normalizeAgentId(opts.agentId) : "";
   const activeMinutes =
@@ -458,6 +459,10 @@ export function listSessionsFromStore(params: {
       if (!spawnedBy) return true;
       if (key === "unknown" || key === "global") return false;
       return entry?.spawnedBy === spawnedBy;
+    })
+    .filter(([, entry]) => {
+      if (!label) return true;
+      return entry?.label === label;
     })
     .map(([key, entry]) => {
       const updatedAt = entry?.updatedAt ?? null;
@@ -485,6 +490,7 @@ export function listSessionsFromStore(params: {
       return {
         key,
         kind: classifySessionKey(key, entry),
+        label: entry?.label,
         displayName,
         provider,
         subject,

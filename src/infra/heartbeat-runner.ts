@@ -1,3 +1,4 @@
+import { resolveEffectiveMessagesConfig } from "../agents/identity.js";
 import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
   DEFAULT_HEARTBEAT_EVERY,
@@ -109,6 +110,20 @@ function resolveHeartbeatReplyPayload(
     }
   }
   return undefined;
+}
+
+function resolveHeartbeatReasoningPayloads(
+  replyResult: ReplyPayload | ReplyPayload[] | undefined,
+): ReplyPayload[] {
+  const payloads = Array.isArray(replyResult)
+    ? replyResult
+    : replyResult
+      ? [replyResult]
+      : [];
+  return payloads.filter((payload) => {
+    const text = typeof payload.text === "string" ? payload.text : "";
+    return text.trimStart().startsWith("Reasoning:");
+  });
 }
 
 function resolveHeartbeatSender(params: {
@@ -245,6 +260,8 @@ export async function runHeartbeatOnce(opts: {
       cfg,
     );
     const replyPayload = resolveHeartbeatReplyPayload(replyResult);
+    const includeReasoning =
+      cfg.agents?.defaults?.heartbeat?.includeReasoning === true;
 
     if (
       !replyPayload ||
@@ -268,7 +285,10 @@ export async function runHeartbeatOnce(opts: {
     const ackMaxChars = resolveHeartbeatAckMaxChars(cfg);
     const normalized = normalizeHeartbeatReply(
       replyPayload,
-      cfg.messages?.responsePrefix,
+      resolveEffectiveMessagesConfig(
+        cfg,
+        resolveAgentIdFromSessionKey(sessionKey),
+      ).responsePrefix,
       ackMaxChars,
     );
     if (normalized.shouldSkip && !normalized.hasMedia) {
@@ -289,6 +309,12 @@ export async function runHeartbeatOnce(opts: {
     const mediaUrls =
       replyPayload.mediaUrls ??
       (replyPayload.mediaUrl ? [replyPayload.mediaUrl] : []);
+
+    const reasoningPayloads = includeReasoning
+      ? resolveHeartbeatReasoningPayloads(replyResult).filter(
+          (payload) => payload !== replyPayload,
+        )
+      : [];
 
     if (delivery.provider === "none" || !delivery.to) {
       emitHeartbeatEvent({
@@ -323,6 +349,7 @@ export async function runHeartbeatOnce(opts: {
       provider: delivery.provider,
       to: delivery.to,
       payloads: [
+        ...reasoningPayloads,
         {
           text: normalized.text,
           mediaUrls,

@@ -10,6 +10,7 @@ import { Type } from "@sinclair/typebox";
 import type { ClawdbotConfig } from "../config/config.js";
 import { detectMime } from "../media/mime.js";
 import { isSubagentSessionKey } from "../routing/session-key.js";
+import { resolveGatewayMessageProvider } from "../utils/message-provider.js";
 import { startWebLoginWithQr, waitForWebLogin } from "../web/login-qr.js";
 import {
   resolveAgentConfig,
@@ -22,8 +23,10 @@ import {
   type ProcessToolDefaults,
 } from "./bash-tools.js";
 import { createClawdbotTools } from "./clawdbot-tools.js";
+import type { ModelAuthMode } from "./model-auth.js";
 import type { SandboxContext, SandboxToolPolicy } from "./sandbox.js";
 import { assertSandboxPath } from "./sandbox-paths.js";
+import { cleanSchemaForGemini } from "./schema/clean-for-gemini.js";
 import { sanitizeToolResultImages } from "./tool-images.js";
 
 // NOTE(steipete): Upstream read now does file-magic MIME detection; we keep the wrapper
@@ -154,128 +157,6 @@ function mergePropertySchemas(existing: unknown, incoming: unknown): unknown {
   return existing;
 }
 
-// Check if an anyOf array contains only literal values that can be flattened
-// TypeBox Type.Literal generates { const: "value", type: "string" }
-// Some schemas may use { enum: ["value"], type: "string" }
-// Both patterns are flattened to { type: "string", enum: ["a", "b", ...] }
-function tryFlattenLiteralAnyOf(
-  anyOf: unknown[],
-): { type: string; enum: unknown[] } | null {
-  if (anyOf.length === 0) return null;
-
-  const allValues: unknown[] = [];
-  let commonType: string | null = null;
-
-  for (const variant of anyOf) {
-    if (!variant || typeof variant !== "object") return null;
-    const v = variant as Record<string, unknown>;
-
-    // Extract the literal value - either from const or single-element enum
-    let literalValue: unknown;
-    if ("const" in v) {
-      literalValue = v.const;
-    } else if (Array.isArray(v.enum) && v.enum.length === 1) {
-      literalValue = v.enum[0];
-    } else {
-      return null; // Not a literal pattern
-    }
-
-    // Must have consistent type (usually "string")
-    const variantType = typeof v.type === "string" ? v.type : null;
-    if (!variantType) return null;
-    if (commonType === null) commonType = variantType;
-    else if (commonType !== variantType) return null;
-
-    allValues.push(literalValue);
-  }
-
-  if (commonType && allValues.length > 0) {
-    return { type: commonType, enum: allValues };
-  }
-  return null;
-}
-
-function cleanSchemaForGemini(schema: unknown): unknown {
-  if (!schema || typeof schema !== "object") return schema;
-  if (Array.isArray(schema)) return schema.map(cleanSchemaForGemini);
-
-  const obj = schema as Record<string, unknown>;
-  const hasAnyOf = "anyOf" in obj && Array.isArray(obj.anyOf);
-
-  // Try to flatten anyOf of literals to a single enum BEFORE processing
-  // This handles Type.Union([Type.Literal("a"), Type.Literal("b")]) patterns
-  if (hasAnyOf) {
-    const flattened = tryFlattenLiteralAnyOf(obj.anyOf as unknown[]);
-    if (flattened) {
-      // Return flattened enum, preserving metadata (description, title, default, examples)
-      const result: Record<string, unknown> = {
-        type: flattened.type,
-        enum: flattened.enum,
-      };
-      for (const key of ["description", "title", "default", "examples"]) {
-        if (key in obj && obj[key] !== undefined) {
-          result[key] = obj[key];
-        }
-      }
-      return result;
-    }
-  }
-
-  const cleaned: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    // Skip unsupported schema features for Gemini:
-    // - patternProperties: not in OpenAPI 3.0 subset
-    // - const: convert to enum with single value instead
-    if (key === "patternProperties") {
-      // Gemini doesn't support patternProperties - skip it
-      continue;
-    }
-
-    // Convert const to enum (Gemini doesn't support const)
-    if (key === "const") {
-      cleaned.enum = [value];
-      continue;
-    }
-
-    // Skip 'type' if we have 'anyOf' — Gemini doesn't allow both
-    if (key === "type" && hasAnyOf) {
-      continue;
-    }
-
-    if (key === "properties" && value && typeof value === "object") {
-      // Recursively clean nested properties
-      const props = value as Record<string, unknown>;
-      cleaned[key] = Object.fromEntries(
-        Object.entries(props).map(([k, v]) => [k, cleanSchemaForGemini(v)]),
-      );
-    } else if (key === "items" && value && typeof value === "object") {
-      // Recursively clean array items schema
-      cleaned[key] = cleanSchemaForGemini(value);
-    } else if (key === "anyOf" && Array.isArray(value)) {
-      // Clean each anyOf variant
-      cleaned[key] = value.map((variant) => cleanSchemaForGemini(variant));
-    } else if (key === "oneOf" && Array.isArray(value)) {
-      // Clean each oneOf variant
-      cleaned[key] = value.map((variant) => cleanSchemaForGemini(variant));
-    } else if (key === "allOf" && Array.isArray(value)) {
-      // Clean each allOf variant
-      cleaned[key] = value.map((variant) => cleanSchemaForGemini(variant));
-    } else if (
-      key === "additionalProperties" &&
-      value &&
-      typeof value === "object"
-    ) {
-      // Recursively clean additionalProperties schema
-      cleaned[key] = cleanSchemaForGemini(value);
-    } else {
-      cleaned[key] = value;
-    }
-  }
-
-  return cleaned;
-}
-
 function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
   const schema =
     tool.parameters && typeof tool.parameters === "object"
@@ -394,31 +275,13 @@ function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
   };
 }
 
+function cleanToolSchemaForGemini(schema: Record<string, unknown>): unknown {
+  return cleanSchemaForGemini(schema);
+}
+
 function normalizeToolNames(list?: string[]) {
   if (!list) return [];
   return list.map((entry) => entry.trim().toLowerCase()).filter(Boolean);
-}
-
-/**
- * Anthropic blocks specific lowercase tool names (bash, read, write, edit) with OAuth tokens.
- * Renaming to capitalized versions bypasses the block while maintaining compatibility
- * with regular API keys.
- */
-const OAUTH_BLOCKED_TOOL_NAMES: Record<string, string> = {
-  bash: "Bash",
-  read: "Read",
-  write: "Write",
-  edit: "Edit",
-};
-
-function renameBlockedToolsForOAuth(tools: AnyAgentTool[]): AnyAgentTool[] {
-  return tools.map((tool) => {
-    const newName = OAUTH_BLOCKED_TOOL_NAMES[tool.name];
-    if (newName) {
-      return { ...tool, name: newName };
-    }
-    return tool;
-  });
 }
 
 const DEFAULT_SUBAGENT_TOOL_DENY = [
@@ -465,11 +328,13 @@ function resolveEffectiveToolPolicy(params: {
     params.config && agentId
       ? resolveAgentConfig(params.config, agentId)
       : undefined;
-  const hasAgentTools = agentConfig?.tools !== undefined;
+  const agentTools = agentConfig?.tools;
+  const hasAgentToolPolicy =
+    Array.isArray(agentTools?.allow) || Array.isArray(agentTools?.deny);
   const globalTools = params.config?.tools;
   return {
     agentId,
-    policy: hasAgentTools ? agentConfig?.tools : globalTools,
+    policy: hasAgentToolPolicy ? agentTools : globalTools,
   };
 }
 
@@ -613,6 +478,52 @@ function createClawdbotReadTool(base: AnyAgentTool): AnyAgentTool {
   };
 }
 
+export const __testing = {
+  cleanToolSchemaForGemini,
+} as const;
+
+function throwAbortError(): never {
+  const err = new Error("Aborted");
+  err.name = "AbortError";
+  throw err;
+}
+
+function combineAbortSignals(
+  a?: AbortSignal,
+  b?: AbortSignal,
+): AbortSignal | undefined {
+  if (!a && !b) return undefined;
+  if (a && !b) return a;
+  if (b && !a) return b;
+  if (a?.aborted) return a;
+  if (b?.aborted) return b;
+  if (typeof AbortSignal.any === "function") {
+    return AbortSignal.any([a as AbortSignal, b as AbortSignal]);
+  }
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  a?.addEventListener("abort", onAbort, { once: true });
+  b?.addEventListener("abort", onAbort, { once: true });
+  return controller.signal;
+}
+
+function wrapToolWithAbortSignal(
+  tool: AnyAgentTool,
+  abortSignal?: AbortSignal,
+): AnyAgentTool {
+  if (!abortSignal) return tool;
+  const execute = tool.execute;
+  if (!execute) return tool;
+  return {
+    ...tool,
+    execute: async (toolCallId, params, signal, onUpdate) => {
+      const combined = combineAbortSignals(signal, abortSignal);
+      if (combined?.aborted) throwAbortError();
+      return await execute(toolCallId, params, combined, onUpdate);
+    },
+  };
+}
+
 export function createClawdbotCodingTools(options?: {
   bash?: BashToolDefaults & ProcessToolDefaults;
   messageProvider?: string;
@@ -620,7 +531,27 @@ export function createClawdbotCodingTools(options?: {
   sandbox?: SandboxContext | null;
   sessionKey?: string;
   agentDir?: string;
+  workspaceDir?: string;
   config?: ClawdbotConfig;
+  abortSignal?: AbortSignal;
+  /**
+   * Provider of the currently selected model (used for provider-specific tool quirks).
+   * Example: "anthropic", "openai", "google", "openai-codex".
+   */
+  modelProvider?: string;
+  /**
+   * Auth mode for the current provider. We only need this for Anthropic OAuth
+   * tool-name blocking quirks.
+   */
+  modelAuthMode?: ModelAuthMode;
+  /** Current channel ID for auto-threading (Slack). */
+  currentChannelId?: string;
+  /** Current thread timestamp for auto-threading (Slack). */
+  currentThreadTs?: string;
+  /** Reply-to mode for Slack auto-threading. */
+  replyToMode?: "off" | "first" | "all";
+  /** Mutable ref to track if a reply was sent (for "first" mode). */
+  hasRepliedRef?: { value: boolean };
 }): AnyAgentTool[] {
   const bashToolName = "bash";
   const sandbox = options?.sandbox?.enabled ? options.sandbox : undefined;
@@ -641,20 +572,30 @@ export function createClawdbotCodingTools(options?: {
   ]);
   const sandboxRoot = sandbox?.workspaceDir;
   const allowWorkspaceWrites = sandbox?.workspaceAccess !== "ro";
+  const workspaceRoot = options?.workspaceDir ?? process.cwd();
+
   const base = (codingTools as unknown as AnyAgentTool[]).flatMap((tool) => {
     if (tool.name === readTool.name) {
-      return sandboxRoot
-        ? [createSandboxedReadTool(sandboxRoot)]
-        : [createClawdbotReadTool(tool)];
+      if (sandboxRoot) {
+        return [createSandboxedReadTool(sandboxRoot)];
+      }
+      const freshReadTool = createReadTool(workspaceRoot);
+      return [createClawdbotReadTool(freshReadTool)];
     }
     if (tool.name === bashToolName) return [];
-    if (sandboxRoot && (tool.name === "write" || tool.name === "edit")) {
-      return [];
+    if (tool.name === "write") {
+      if (sandboxRoot) return [];
+      return [createWriteTool(workspaceRoot)];
+    }
+    if (tool.name === "edit") {
+      if (sandboxRoot) return [];
+      return [createEditTool(workspaceRoot)];
     }
     return [tool as AnyAgentTool];
   });
   const bashTool = createBashTool({
     ...options?.bash,
+    cwd: options?.workspaceDir,
     allowBackground,
     scopeKey,
     sandbox: sandbox
@@ -686,11 +627,15 @@ export function createClawdbotCodingTools(options?: {
     ...createClawdbotTools({
       browserControlUrl: sandbox?.browser?.controlUrl,
       agentSessionKey: options?.sessionKey,
-      agentProvider: options?.messageProvider,
+      agentProvider: resolveGatewayMessageProvider(options?.messageProvider),
       agentAccountId: options?.agentAccountId,
       agentDir: options?.agentDir,
       sandboxed: !!sandbox,
       config: options?.config,
+      currentChannelId: options?.currentChannelId,
+      currentThreadTs: options?.currentThreadTs,
+      replyToMode: options?.replyToMode,
+      hasRepliedRef: options?.hasRepliedRef,
     }),
   ];
   const toolsFiltered = effectiveToolsPolicy
@@ -705,8 +650,14 @@ export function createClawdbotCodingTools(options?: {
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
   const normalized = subagentFiltered.map(normalizeToolParameters);
+  const withAbort = options?.abortSignal
+    ? normalized.map((tool) =>
+        wrapToolWithAbortSignal(tool, options.abortSignal),
+      )
+    : normalized;
 
-  // Anthropic blocks specific lowercase tool names (bash, read, write, edit) with OAuth tokens.
-  // Always use capitalized versions for compatibility with both OAuth and regular API keys.
-  return renameBlockedToolsForOAuth(normalized);
+  // NOTE: Keep canonical (lowercase) tool names here.
+  // pi-ai's Anthropic OAuth transport remaps tool names to Claude Code-style names
+  // on the wire and maps them back for tool dispatch.
+  return withAbort;
 }

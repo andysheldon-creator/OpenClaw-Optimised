@@ -8,6 +8,8 @@ import {
   resolveStorePath,
 } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
+import { INTERNAL_MESSAGE_PROVIDER } from "../utils/message-provider.js";
+import { AGENT_LANE_NESTED } from "./lanes.js";
 import { readLatestAssistantReply, runAgentStep } from "./tools/agent-step.js";
 import { resolveAnnounceTarget } from "./tools/sessions-announce-target.js";
 import { isAnnounceSkip } from "./tools/sessions-send-helpers.js";
@@ -140,20 +142,54 @@ export function buildSubagentSystemPrompt(params: {
   requesterProvider?: string;
   childSessionKey: string;
   label?: string;
+  task?: string;
 }) {
+  const taskText =
+    typeof params.task === "string" && params.task.trim()
+      ? params.task.replace(/\s+/g, " ").trim()
+      : "{{TASK_DESCRIPTION}}";
   const lines = [
-    "Sub-agent context:",
-    params.label ? `Label: ${params.label}` : undefined,
+    "# Subagent Context",
+    "",
+    "You are a **subagent** spawned by the main agent for a specific task.",
+    "",
+    "## Your Role",
+    `- You were created to handle: ${taskText}`,
+    "- Complete this task and report back. That's your entire purpose.",
+    "- You are NOT the main agent. Don't try to be.",
+    "",
+    "## Rules",
+    "1. **Stay focused** - Do your assigned task, nothing else",
+    "2. **Report completion** - When done, summarize results clearly",
+    "3. **Don't initiate** - No heartbeats, no proactive actions, no side quests",
+    "4. **Ask the spawner** - If blocked or confused, report back rather than improvising",
+    "5. **Be ephemeral** - You may be terminated after task completion. That's fine.",
+    "",
+    "## What You DON'T Do",
+    "- NO user conversations (that's main agent's job)",
+    "- NO external messages (email, tweets, etc.) unless explicitly tasked",
+    "- NO cron jobs or persistent state",
+    "- NO pretending to be the main agent",
+    "",
+    "## Output Format",
+    "When complete, respond with:",
+    "- **Status:** success | failed | blocked",
+    "- **Result:** [what you accomplished]",
+    "- **Notes:** [anything the main agent should know] - discuss gimme options",
+    "",
+    "## Session Context",
+    params.label ? `- Label: ${params.label}` : undefined,
     params.requesterSessionKey
-      ? `Requester session: ${params.requesterSessionKey}.`
+      ? `- Requester session: ${params.requesterSessionKey}.`
       : undefined,
     params.requesterProvider
-      ? `Requester provider: ${params.requesterProvider}.`
+      ? `- Requester provider: ${params.requesterProvider}.`
       : undefined,
-    `Your session: ${params.childSessionKey}.`,
+    `- Your session: ${params.childSessionKey}.`,
+    "",
     "Run the task. Provide a clear final answer (plain text).",
     'After you finish, you may be asked to produce an "announce" message to post back to the requester chat.',
-  ].filter(Boolean);
+  ].filter((line): line is string => line !== undefined);
   return lines.join("\n");
 }
 
@@ -196,6 +232,7 @@ export async function runSubagentAnnounceFlow(params: {
   waitForCompletion?: boolean;
   startedAt?: number;
   endedAt?: number;
+  label?: string;
 }) {
   try {
     let reply = params.roundOneReply;
@@ -240,7 +277,8 @@ export async function runSubagentAnnounceFlow(params: {
       message: "Sub-agent announce step.",
       extraSystemPrompt: announcePrompt,
       timeoutMs: params.timeoutMs,
-      lane: "nested",
+      provider: INTERNAL_MESSAGE_PROVIDER,
+      lane: AGENT_LANE_NESTED,
     });
 
     if (
@@ -273,6 +311,18 @@ export async function runSubagentAnnounceFlow(params: {
   } catch {
     // Best-effort follow-ups; ignore failures to avoid breaking the caller response.
   } finally {
+    // Patch label after all writes complete
+    if (params.label) {
+      try {
+        await callGateway({
+          method: "sessions.patch",
+          params: { key: params.childSessionKey, label: params.label },
+          timeoutMs: 10_000,
+        });
+      } catch {
+        // Best-effort
+      }
+    }
     if (params.cleanup === "delete") {
       try {
         await callGateway({

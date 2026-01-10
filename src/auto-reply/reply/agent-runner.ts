@@ -15,6 +15,7 @@ import {
   resolveSessionTranscriptPath,
   type SessionEntry,
   saveSessionStore,
+  updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import type { TypingMode } from "../../config/types.js";
 import { logVerbose } from "../../globals.js";
@@ -22,6 +23,7 @@ import {
   emitAgentEvent,
   registerAgentRunContext,
 } from "../../infra/agent-events.js";
+import { isAudioFileName } from "../../media/mime.js";
 import { defaultRuntime } from "../../runtime.js";
 import {
   estimateUsageCost,
@@ -34,7 +36,11 @@ import type { OriginatingChannelType, TemplateContext } from "../templating.js";
 import { normalizeVerboseLevel, type VerboseLevel } from "../thinking.js";
 import { SILENT_REPLY_TOKEN } from "../tokens.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
-import { extractAudioTag } from "./audio-tags.js";
+import {
+  createAudioAsVoiceBuffer,
+  createBlockReplyPipeline,
+} from "./block-reply-pipeline.js";
+import { resolveBlockStreamingCoalescing } from "./block-streaming.js";
 import { createFollowupRunner } from "./followup-runner.js";
 import {
   enqueueFollowupRun,
@@ -42,6 +48,7 @@ import {
   type QueueSettings,
   scheduleFollowupDrain,
 } from "./queue.js";
+import { parseReplyDirectives } from "./reply-directives.js";
 import {
   applyReplyTagsToPayload,
   applyReplyThreading,
@@ -50,7 +57,7 @@ import {
   shouldSuppressMessagingToolReplies,
 } from "./reply-payloads.js";
 import {
-  createReplyToModeFilter,
+  createReplyToModeFilterForChannel,
   resolveReplyToMode,
 } from "./reply-threading.js";
 import { incrementCompactionCount } from "./session-updates.js";
@@ -59,6 +66,50 @@ import { createTypingSignaler } from "./typing-mode.js";
 
 const BUN_FETCH_SOCKET_ERROR_RE = /socket connection was closed unexpectedly/i;
 const BLOCK_REPLY_SEND_TIMEOUT_MS = 15_000;
+
+/**
+ * Build Slack-specific threading context for tool auto-injection.
+ * Returns undefined values for non-Slack providers.
+ */
+function buildSlackThreadingContext(params: {
+  sessionCtx: TemplateContext;
+  config: { slack?: { replyToMode?: "off" | "first" | "all" } } | undefined;
+  hasRepliedRef: { value: boolean } | undefined;
+}): {
+  currentChannelId: string | undefined;
+  currentThreadTs: string | undefined;
+  replyToMode: "off" | "first" | "all" | undefined;
+  hasRepliedRef: { value: boolean } | undefined;
+} {
+  const { sessionCtx, config, hasRepliedRef } = params;
+  const isSlack = sessionCtx.Provider?.toLowerCase() === "slack";
+  if (!isSlack) {
+    return {
+      currentChannelId: undefined,
+      currentThreadTs: undefined,
+      replyToMode: undefined,
+      hasRepliedRef: undefined,
+    };
+  }
+
+  // If we're already inside a thread, never jump replies out of it (even in
+  // replyToMode="off"/"first"). This keeps tool calls consistent with the
+  // auto-reply path.
+  const configuredReplyToMode = config?.slack?.replyToMode ?? "off";
+  const effectiveReplyToMode = sessionCtx.ThreadLabel
+    ? ("all" as const)
+    : configuredReplyToMode;
+
+  return {
+    // Extract channel from "channel:C123" format
+    currentChannelId: sessionCtx.To?.startsWith("channel:")
+      ? sessionCtx.To.slice("channel:".length)
+      : undefined,
+    currentThreadTs: sessionCtx.ReplyToId,
+    replyToMode: effectiveReplyToMode,
+    hasRepliedRef,
+  };
+}
 
 const isBunFetchSocketError = (message?: string) =>
   Boolean(message && BUN_FETCH_SOCKET_ERROR_RE.test(message));
@@ -130,23 +181,6 @@ const appendUsageLine = (
   const updated = payloads.slice();
   updated[index] = next;
   return updated;
-};
-
-const withTimeout = async <T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  timeoutError: Error,
-): Promise<T> => {
-  if (!timeoutMs || timeoutMs <= 0) return promise;
-  let timer: NodeJS.Timeout | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(timeoutError), timeoutMs);
-  });
-  try {
-    return await Promise.race([promise, timeoutPromise]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
 };
 
 export async function runReplyAgent(params: {
@@ -228,29 +262,16 @@ export async function runReplyAgent(params: {
     return resolvedVerboseLevel === "on";
   };
 
-  const streamedPayloadKeys = new Set<string>();
-  const pendingStreamedPayloadKeys = new Set<string>();
-  const pendingBlockTasks = new Set<Promise<void>>();
   const pendingToolTasks = new Set<Promise<void>>();
-  let blockReplyChain: Promise<void> = Promise.resolve();
-  let blockReplyAborted = false;
-  let didLogBlockReplyAbort = false;
-  let didStreamBlockReply = false;
   const blockReplyTimeoutMs =
     opts?.blockReplyTimeoutMs ?? BLOCK_REPLY_SEND_TIMEOUT_MS;
-  const buildPayloadKey = (payload: ReplyPayload) => {
-    const text = payload.text?.trim() ?? "";
-    const mediaList = payload.mediaUrls?.length
-      ? payload.mediaUrls
-      : payload.mediaUrl
-        ? [payload.mediaUrl]
-        : [];
-    return JSON.stringify({
-      text,
-      mediaList,
-      replyToId: payload.replyToId ?? null,
-    });
-  };
+
+  const hasAudioMedia = (urls?: string[]): boolean =>
+    Boolean(urls?.some((u) => isAudioFileName(u)));
+  const isAudioPayload = (payload: ReplyPayload) =>
+    hasAudioMedia(
+      payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : undefined),
+    );
   const replyToChannel =
     sessionCtx.OriginatingChannel ??
     ((sessionCtx.Surface ?? sessionCtx.Provider)?.toLowerCase() as
@@ -260,8 +281,29 @@ export async function runReplyAgent(params: {
     followupRun.run.config,
     replyToChannel,
   );
-  const applyReplyToMode = createReplyToModeFilter(replyToMode);
+  const applyReplyToMode = createReplyToModeFilterForChannel(
+    replyToMode,
+    replyToChannel,
+  );
   const cfg = followupRun.run.config;
+  const blockReplyCoalescing =
+    blockStreamingEnabled && opts?.onBlockReply
+      ? resolveBlockStreamingCoalescing(
+          cfg,
+          sessionCtx.Provider,
+          sessionCtx.AccountId,
+          blockReplyChunking,
+        )
+      : undefined;
+  const blockReplyPipeline =
+    blockStreamingEnabled && opts?.onBlockReply
+      ? createBlockReplyPipeline({
+          onBlockReply: opts.onBlockReply,
+          timeoutMs: blockReplyTimeoutMs,
+          coalescing: blockReplyCoalescing,
+          buffer: createAudioAsVoiceBuffer({ isAudioPayload }),
+        })
+      : null;
 
   if (shouldSteer && isStreaming) {
     const steered = queueEmbeddedPiMessage(
@@ -317,7 +359,10 @@ export async function runReplyAgent(params: {
   try {
     const runId = crypto.randomUUID();
     if (sessionKey) {
-      registerAgentRunContext(runId, { sessionKey });
+      registerAgentRunContext(runId, {
+        sessionKey,
+        verboseLevel: resolvedVerboseLevel,
+      });
     }
     let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
     let fallbackProvider = followupRun.run.provider;
@@ -390,6 +435,12 @@ export async function runReplyAgent(params: {
             messageProvider:
               sessionCtx.Provider?.trim().toLowerCase() || undefined,
             agentAccountId: sessionCtx.AccountId,
+            // Slack threading context for tool auto-injection
+            ...buildSlackThreadingContext({
+              sessionCtx,
+              config: followupRun.run.config,
+              hasRepliedRef: opts?.hasRepliedRef,
+            }),
             sessionFile: followupRun.run.sessionFile,
             workspaceDir: followupRun.run.workspaceDir,
             agentDir: followupRun.run.agentDir,
@@ -494,80 +545,54 @@ export async function runReplyAgent(params: {
                       },
                       sessionCtx.MessageSid,
                     );
-                    if (!isRenderablePayload(taggedPayload)) return;
-                    const audioTagResult = extractAudioTag(taggedPayload.text);
-                    const cleaned = audioTagResult.cleaned || undefined;
+                    // Let through payloads with audioAsVoice flag even if empty (need to track it)
+                    if (
+                      !isRenderablePayload(taggedPayload) &&
+                      !payload.audioAsVoice
+                    )
+                      return;
+                    const parsed = parseReplyDirectives(
+                      taggedPayload.text ?? "",
+                      {
+                        currentMessageId: sessionCtx.MessageSid,
+                        silentToken: SILENT_REPLY_TOKEN,
+                      },
+                    );
+                    const cleaned = parsed.text || undefined;
                     const hasMedia =
                       Boolean(taggedPayload.mediaUrl) ||
                       (taggedPayload.mediaUrls?.length ?? 0) > 0;
-                    if (!cleaned && !hasMedia) return;
-                    if (cleaned?.trim() === SILENT_REPLY_TOKEN && !hasMedia)
+                    // Skip empty payloads unless they have audioAsVoice flag (need to track it)
+                    if (
+                      !cleaned &&
+                      !hasMedia &&
+                      !payload.audioAsVoice &&
+                      !parsed.audioAsVoice
+                    )
                       return;
+                    if (parsed.isSilent && !hasMedia) return;
+
                     const blockPayload: ReplyPayload = applyReplyToMode({
                       ...taggedPayload,
                       text: cleaned,
-                      audioAsVoice: audioTagResult.audioAsVoice,
+                      audioAsVoice: Boolean(
+                        parsed.audioAsVoice || payload.audioAsVoice,
+                      ),
+                      replyToId: taggedPayload.replyToId ?? parsed.replyToId,
+                      replyToTag: taggedPayload.replyToTag || parsed.replyToTag,
+                      replyToCurrent:
+                        taggedPayload.replyToCurrent || parsed.replyToCurrent,
                     });
-                    const payloadKey = buildPayloadKey(blockPayload);
-                    if (
-                      streamedPayloadKeys.has(payloadKey) ||
-                      pendingStreamedPayloadKeys.has(payloadKey)
-                    ) {
-                      return;
-                    }
-                    if (blockReplyAborted) return;
-                    pendingStreamedPayloadKeys.add(payloadKey);
+
                     void typingSignals
-                      .signalTextDelta(taggedPayload.text)
+                      .signalTextDelta(cleaned ?? taggedPayload.text)
                       .catch((err) => {
                         logVerbose(
                           `block reply typing signal failed: ${String(err)}`,
                         );
                       });
-                    const timeoutError = new Error(
-                      `block reply delivery timed out after ${blockReplyTimeoutMs}ms`,
-                    );
-                    const abortController = new AbortController();
-                    blockReplyChain = blockReplyChain
-                      .then(async () => {
-                        if (blockReplyAborted) return false;
-                        await withTimeout(
-                          opts.onBlockReply?.(blockPayload, {
-                            abortSignal: abortController.signal,
-                            timeoutMs: blockReplyTimeoutMs,
-                          }) ?? Promise.resolve(),
-                          blockReplyTimeoutMs,
-                          timeoutError,
-                        );
-                        return true;
-                      })
-                      .then((didSend) => {
-                        if (!didSend) return;
-                        streamedPayloadKeys.add(payloadKey);
-                        didStreamBlockReply = true;
-                      })
-                      .catch((err) => {
-                        if (err === timeoutError) {
-                          abortController.abort();
-                          blockReplyAborted = true;
-                          if (!didLogBlockReplyAbort) {
-                            didLogBlockReplyAbort = true;
-                            logVerbose(
-                              `block reply delivery timed out after ${blockReplyTimeoutMs}ms; skipping remaining block replies to preserve ordering`,
-                            );
-                          }
-                          return;
-                        }
-                        logVerbose(
-                          `block reply delivery failed: ${String(err)}`,
-                        );
-                      })
-                      .finally(() => {
-                        pendingStreamedPayloadKeys.delete(payloadKey);
-                      });
-                    const task = blockReplyChain;
-                    pendingBlockTasks.add(task);
-                    void task.finally(() => pendingBlockTasks.delete(task));
+
+                    blockReplyPipeline?.enqueue(blockPayload);
                   }
                 : undefined,
             shouldEmitToolResult,
@@ -681,12 +706,15 @@ export async function runReplyAgent(params: {
     }
 
     const payloadArray = runResult.payloads ?? [];
-    if (pendingBlockTasks.size > 0) {
-      await Promise.allSettled(pendingBlockTasks);
+
+    if (blockReplyPipeline) {
+      await blockReplyPipeline.flush({ force: true });
+      blockReplyPipeline.stop();
     }
     if (pendingToolTasks.size > 0) {
       await Promise.allSettled(pendingToolTasks);
     }
+
     // Drain any late tool/block deliveries before deciding there's "nothing to send".
     // Otherwise, a late typing trigger (e.g. from a tool callback) can outlive the run and
     // keep the typing indicator stuck.
@@ -716,15 +744,26 @@ export async function runReplyAgent(params: {
 
     const replyTaggedPayloads: ReplyPayload[] = applyReplyThreading({
       payloads: sanitizedPayloads,
-      applyReplyToMode,
+      replyToMode,
+      replyToChannel,
       currentMessageId: sessionCtx.MessageSid,
     })
       .map((payload) => {
-        const audioTagResult = extractAudioTag(payload.text);
+        const parsed = parseReplyDirectives(payload.text ?? "", {
+          currentMessageId: sessionCtx.MessageSid,
+          silentToken: SILENT_REPLY_TOKEN,
+        });
+        const mediaUrls = payload.mediaUrls ?? parsed.mediaUrls;
+        const mediaUrl = payload.mediaUrl ?? parsed.mediaUrl ?? mediaUrls?.[0];
         return {
           ...payload,
-          text: audioTagResult.cleaned ? audioTagResult.cleaned : undefined,
-          audioAsVoice: audioTagResult.audioAsVoice,
+          text: parsed.text ? parsed.text : undefined,
+          mediaUrls,
+          mediaUrl,
+          replyToId: payload.replyToId ?? parsed.replyToId,
+          replyToTag: payload.replyToTag || parsed.replyToTag,
+          replyToCurrent: payload.replyToCurrent || parsed.replyToCurrent,
+          audioAsVoice: Boolean(payload.audioAsVoice || parsed.audioAsVoice),
         };
       })
       .filter(isRenderablePayload);
@@ -732,7 +771,9 @@ export async function runReplyAgent(params: {
     // Drop final payloads only when block streaming succeeded end-to-end.
     // If streaming aborted (e.g., timeout), fall back to final payloads.
     const shouldDropFinalPayloads =
-      blockStreamingEnabled && didStreamBlockReply && !blockReplyAborted;
+      blockStreamingEnabled &&
+      Boolean(blockReplyPipeline?.didStream()) &&
+      !blockReplyPipeline?.isAborted();
     const messagingToolSentTexts = runResult.messagingToolSentTexts ?? [];
     const messagingToolSentTargets = runResult.messagingToolSentTargets ?? [];
     const suppressMessagingToolReplies = shouldSuppressMessagingToolReplies({
@@ -749,7 +790,7 @@ export async function runReplyAgent(params: {
       ? []
       : blockStreamingEnabled
         ? dedupedPayloads.filter(
-            (payload) => !streamedPayloadKeys.has(buildPayloadKey(payload)),
+            (payload) => !blockReplyPipeline?.hasSentPayload(payload),
           )
         : dedupedPayloads;
     const replyPayloads = suppressMessagingToolReplies ? [] : filteredPayloads;
@@ -758,7 +799,7 @@ export async function runReplyAgent(params: {
 
     const shouldSignalTyping = replyPayloads.some((payload) => {
       const trimmed = payload.text?.trim();
-      if (trimmed && trimmed !== SILENT_REPLY_TOKEN) return true;
+      if (trimmed) return true;
       if (payload.mediaUrl) return true;
       if (payload.mediaUrls && payload.mediaUrls.length > 0) return true;
       return false;
@@ -784,46 +825,48 @@ export async function runReplyAgent(params: {
       sessionEntry?.contextTokens ??
       DEFAULT_CONTEXT_TOKENS;
 
-    if (sessionStore && sessionKey) {
+    if (storePath && sessionKey) {
       if (hasNonzeroUsage(usage)) {
-        const entry = sessionEntry ?? sessionStore[sessionKey];
-        if (entry) {
-          const input = usage.input ?? 0;
-          const output = usage.output ?? 0;
-          const promptTokens =
-            input + (usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0);
-          const nextEntry = {
-            ...entry,
-            inputTokens: input,
-            outputTokens: output,
-            totalTokens:
-              promptTokens > 0 ? promptTokens : (usage.total ?? input),
-            modelProvider: providerUsed,
-            model: modelUsed,
-            contextTokens: contextTokensUsed ?? entry.contextTokens,
-            updatedAt: Date.now(),
-          };
-          if (cliSessionId) {
-            nextEntry.claudeCliSessionId = cliSessionId;
-          }
-          sessionStore[sessionKey] = nextEntry;
-          if (storePath) {
-            await saveSessionStore(storePath, sessionStore);
-          }
+        try {
+          await updateSessionStoreEntry({
+            storePath,
+            sessionKey,
+            update: async (entry) => {
+              const input = usage.input ?? 0;
+              const output = usage.output ?? 0;
+              const promptTokens =
+                input + (usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0);
+              return {
+                inputTokens: input,
+                outputTokens: output,
+                totalTokens:
+                  promptTokens > 0 ? promptTokens : (usage.total ?? input),
+                modelProvider: providerUsed,
+                model: modelUsed,
+                contextTokens: contextTokensUsed ?? entry.contextTokens,
+                updatedAt: Date.now(),
+                claudeCliSessionId: cliSessionId ?? entry.claudeCliSessionId,
+              };
+            },
+          });
+        } catch (err) {
+          logVerbose(`failed to persist usage update: ${String(err)}`);
         }
       } else if (modelUsed || contextTokensUsed) {
-        const entry = sessionEntry ?? sessionStore[sessionKey];
-        if (entry) {
-          sessionStore[sessionKey] = {
-            ...entry,
-            modelProvider: providerUsed ?? entry.modelProvider,
-            model: modelUsed ?? entry.model,
-            contextTokens: contextTokensUsed ?? entry.contextTokens,
-            claudeCliSessionId: cliSessionId ?? entry.claudeCliSessionId,
-          };
-          if (storePath) {
-            await saveSessionStore(storePath, sessionStore);
-          }
+        try {
+          await updateSessionStoreEntry({
+            storePath,
+            sessionKey,
+            update: async (entry) => ({
+              modelProvider: providerUsed ?? entry.modelProvider,
+              model: modelUsed ?? entry.model,
+              contextTokens: contextTokensUsed ?? entry.contextTokens,
+              claudeCliSessionId: cliSessionId ?? entry.claudeCliSessionId,
+              updatedAt: Date.now(),
+            }),
+          });
+        } catch (err) {
+          logVerbose(`failed to persist model/context update: ${String(err)}`);
         }
       }
     }
@@ -882,6 +925,7 @@ export async function runReplyAgent(params: {
       finalPayloads.length === 1 ? finalPayloads[0] : finalPayloads,
     );
   } finally {
+    blockReplyPipeline?.stop();
     typing.markRunComplete();
   }
 }

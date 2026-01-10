@@ -1,3 +1,4 @@
+import { migrateLegacyCronPayload } from "./payload-migration.js";
 import type { CronJobCreate, CronJobPatch } from "./types.js";
 
 type UnknownRecord = Record<string, unknown>;
@@ -32,6 +33,9 @@ function coercePayload(payload: UnknownRecord) {
     if (typeof payload.text === "string") next.kind = "systemEvent";
     else if (typeof payload.message === "string") next.kind = "agentTurn";
   }
+
+  // Back-compat: older configs used `channel` for delivery provider.
+  migrateLegacyCronPayload(next);
   return next;
 }
 

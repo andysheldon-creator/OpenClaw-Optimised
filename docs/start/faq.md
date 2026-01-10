@@ -92,6 +92,31 @@ It also warns if your configured model is unknown or missing auth.
 
 Bun is supported for faster TypeScript execution, but **WhatsApp requires Node** in this ecosystem. The wizard lets you pick the runtime; choose **Node** if you use WhatsApp.
 
+### Can I switch between npm and git installs later?
+
+Yes. Install the other flavor, then run Doctor so the gateway service points at the new entrypoint.
+
+From npm → git:
+
+```bash
+git clone https://github.com/clawdbot/clawdbot.git
+cd clawdbot
+pnpm install
+pnpm build
+pnpm clawdbot doctor
+clawdbot daemon restart
+```
+
+From git → npm:
+
+```bash
+npm install -g clawdbot@latest
+clawdbot doctor
+clawdbot daemon restart
+```
+
+Doctor detects a gateway service entrypoint mismatch and offers to rewrite the service config to match the current install (use `--repair` in automation).
+
 ### Is there a dedicated sandboxing doc?
 
 Yes. See [Sandboxing](/gateway/sandboxing). For Docker-specific setup (full gateway in Docker or sandbox images), see [Docker](/install/docker).
@@ -248,6 +273,30 @@ This runs your login shell and imports only missing expected keys (never overrid
 
 Send `/new` or `/reset` as a standalone message. See [Session management](/concepts/session).
 
+### Do I need to add a “bot account” to a WhatsApp group?
+
+No. Clawdbot runs on **your own account**, so if you’re in the group, Clawdbot can see it.
+By default, anyone in that group can **mention** the bot to trigger a reply.
+
+If you want only **you** to be able to trigger group replies:
+
+```json5
+{
+  whatsapp: {
+    groupPolicy: "allowlist",
+    groupAllowFrom: ["+15551234567"]
+  }
+}
+```
+
+### Why doesn’t Clawdbot reply in a group?
+
+Two common causes:
+- Mention gating is on (default). You must @mention the bot (or match `mentionPatterns`).
+- You configured `whatsapp.groups` without `"*"` and the group isn’t allowlisted.
+
+See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
+
 ### Do groups/threads share context with DMs?
 
 Direct chats collapse to the main session by default. Groups/channels have their own session keys, and Telegram topics / Discord threads are separate sessions. See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
@@ -279,6 +328,15 @@ Use the `/model` command as a standalone message:
 ```
 
 You can list available models with `/model`, `/model list`, or `/model status`.
+
+You can also force a specific auth profile for the provider (per session):
+
+```
+/model opus@anthropic:claude-cli
+/model opus@anthropic:default
+```
+
+Tip: `/model status` shows which agent is active, which `auth-profiles.json` file is being used, and which auth profile will be tried next.
 
 ### Why do I see “Model … is not allowed” and then no reply?
 
@@ -412,6 +470,30 @@ Clawdbot uses provider‑prefixed IDs like:
 ### Can I control which auth profile is tried first?
 
 Yes. Config supports optional metadata for profiles and an ordering per provider (`auth.order.<provider>`). This does **not** store secrets; it maps IDs to provider/mode and sets rotation order.
+
+Clawdbot may temporarily skip a profile if it’s in a short **cooldown** (rate limits/timeouts/auth failures) or a longer **disabled** state (billing/insufficient credits). To inspect this, run `clawdbot models status --json` and check `auth.unusableProfiles`. Tuning: `auth.cooldowns.billingBackoffHours*`.
+
+You can also set a **per-agent** order override (stored in that agent’s `auth-profiles.json`) via the CLI:
+
+```bash
+# Defaults to the configured default agent (omit --agent)
+clawdbot models auth order get --provider anthropic
+
+# Lock rotation to a single profile (only try this one)
+clawdbot models auth order set --provider anthropic anthropic:claude-cli
+
+# Or set an explicit order (fallback within provider)
+clawdbot models auth order set --provider anthropic anthropic:claude-cli anthropic:default
+
+# Clear override (fall back to config auth.order / round-robin)
+clawdbot models auth order clear --provider anthropic
+```
+
+To target a specific agent:
+
+```bash
+clawdbot models auth order set --provider anthropic --agent main anthropic:claude-cli
+```
 
 ### OAuth vs API key: what’s the difference?
 
@@ -573,7 +655,8 @@ Treat inbound DMs as untrusted input. Defaults are designed to reduce risk:
 
 - Default behavior on DM‑capable providers is **pairing**:
   - Unknown senders receive a pairing code; the bot does not process their message.
-  - Approve with: `clawdbot pairing approve --provider <provider> <code>`
+  - Approve with: `clawdbot pairing approve <provider> <code>`
+  - Pending requests are capped at **3 per provider**; check `clawdbot pairing list <provider>` if a code didn’t arrive.
 - Opening DMs publicly requires explicit opt‑in (`dmPolicy: "open"` and allowlist `"*"`).
 
 Run `clawdbot doctor` to surface risky DM policies.

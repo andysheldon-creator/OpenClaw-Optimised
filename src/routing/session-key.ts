@@ -2,10 +2,26 @@ export const DEFAULT_AGENT_ID = "main";
 export const DEFAULT_MAIN_KEY = "main";
 export const DEFAULT_ACCOUNT_ID = "default";
 
+function normalizeToken(value: string | undefined | null): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+export function normalizeMainKey(value: string | undefined | null): string {
+  const trimmed = (value ?? "").trim();
+  return trimmed ? trimmed : DEFAULT_MAIN_KEY;
+}
+
 export type ParsedAgentSessionKey = {
   agentId: string;
   rest: string;
 };
+
+export function resolveAgentIdFromSessionKey(
+  sessionKey: string | undefined | null,
+): string {
+  const parsed = parseAgentSessionKey(sessionKey);
+  return normalizeAgentId(parsed?.agentId ?? DEFAULT_AGENT_ID);
+}
 
 export function normalizeAgentId(value: string | undefined | null): string {
   const trimmed = (value ?? "").trim();
@@ -66,8 +82,7 @@ export function buildAgentMainSessionKey(params: {
   mainKey?: string | undefined;
 }): string {
   const agentId = normalizeAgentId(params.agentId);
-  const mainKey =
-    (params.mainKey ?? DEFAULT_MAIN_KEY).trim() || DEFAULT_MAIN_KEY;
+  const mainKey = normalizeMainKey(params.mainKey);
   return `agent:${agentId}:${mainKey}`;
 }
 
@@ -88,6 +103,18 @@ export function buildAgentPeerSessionKey(params: {
   const provider = (params.provider ?? "").trim().toLowerCase() || "unknown";
   const peerId = (params.peerId ?? "").trim() || "unknown";
   return `agent:${normalizeAgentId(params.agentId)}:${provider}:${peerKind}:${peerId}`;
+}
+
+export function buildGroupHistoryKey(params: {
+  provider: string;
+  accountId?: string | null;
+  peerKind: "group" | "channel";
+  peerId: string;
+}): string {
+  const provider = normalizeToken(params.provider) || "unknown";
+  const accountId = normalizeAccountId(params.accountId);
+  const peerId = params.peerId.trim() || "unknown";
+  return `${provider}:${accountId}:${params.peerKind}:${peerId}`;
 }
 
 export function resolveThreadSessionKeys(params: {

@@ -213,9 +213,13 @@ export function buildGroupIntro(params: {
     activation === "always"
       ? "Activation: always-on (you receive every group message)."
       : "Activation: trigger-only (you are invoked only when explicitly mentioned; recent context may be included).";
+  const whatsappIdsLine =
+    provider === "whatsapp"
+      ? "WhatsApp IDs: SenderId is the participant JID; [message_id: ...] is the message id for reactions (use SenderId as participant)."
+      : undefined;
   const silenceLine =
     activation === "always"
-      ? `If no response is needed, reply with exactly "${params.silentToken}" (no other text) so Clawdbot stays silent.`
+      ? `If no response is needed, reply with exactly "${params.silentToken}" (and nothing else) so Clawdbot stays silent. Do not add any other words, punctuation, tags, markdown/code blocks, or explanations.`
       : undefined;
   const cautionLine =
     activation === "always"
@@ -227,6 +231,7 @@ export function buildGroupIntro(params: {
     subjectLine,
     membersLine,
     activationLine,
+    whatsappIdsLine,
     silenceLine,
     cautionLine,
     lurkLine,

@@ -76,7 +76,10 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resetLogger, setLoggerOverride } from "../logging.js";
-import { monitorWebInbox } from "./inbound.js";
+import { monitorWebInbox, resetWebInboundDedupe } from "./inbound.js";
+
+const ACCOUNT_ID = "default";
+let authDir: string;
 
 describe("web monitor inbox", () => {
   beforeEach(() => {
@@ -86,12 +89,15 @@ describe("web monitor inbox", () => {
       code: "PAIRCODE",
       created: true,
     });
+    resetWebInboundDedupe();
+    authDir = fsSync.mkdtempSync(path.join(os.tmpdir(), "clawdbot-auth-"));
   });
 
   afterEach(() => {
     resetLogger();
     setLoggerOverride(null);
     vi.useRealTimers();
+    fsSync.rmSync(authDir, { recursive: true, force: true });
   });
 
   it("streams inbound messages", async () => {
@@ -100,7 +106,12 @@ describe("web monitor inbox", () => {
       await msg.reply("pong");
     });
 
-    const listener = await monitorWebInbox({ verbose: false, onMessage });
+    const listener = await monitorWebInbox({
+      verbose: false,
+      onMessage,
+      accountId: ACCOUNT_ID,
+      authDir,
+    });
     const sock = await createWaSocket();
     expect(sock.sendPresenceUpdate).toHaveBeenCalledWith("available");
     const upsert = {
@@ -141,12 +152,50 @@ describe("web monitor inbox", () => {
     await listener.close();
   });
 
+  it("deduplicates redelivered messages by id", async () => {
+    const onMessage = vi.fn(async () => {
+      return;
+    });
+
+    const listener = await monitorWebInbox({
+      verbose: false,
+      onMessage,
+      accountId: ACCOUNT_ID,
+      authDir,
+    });
+    const sock = await createWaSocket();
+    const upsert = {
+      type: "notify",
+      messages: [
+        {
+          key: { id: "abc", fromMe: false, remoteJid: "999@s.whatsapp.net" },
+          message: { conversation: "ping" },
+          messageTimestamp: 1_700_000_000,
+          pushName: "Tester",
+        },
+      ],
+    };
+
+    sock.ev.emit("messages.upsert", upsert);
+    sock.ev.emit("messages.upsert", upsert);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(onMessage).toHaveBeenCalledTimes(1);
+
+    await listener.close();
+  });
+
   it("resolves LID JIDs using Baileys LID mapping store", async () => {
     const onMessage = vi.fn(async () => {
       return;
     });
 
-    const listener = await monitorWebInbox({ verbose: false, onMessage });
+    const listener = await monitorWebInbox({
+      verbose: false,
+      onMessage,
+      accountId: ACCOUNT_ID,
+      authDir,
+    });
     const sock = await createWaSocket();
     const getPNForLID = vi.spyOn(
       sock.signalRepository.lidMapping,
@@ -178,12 +227,60 @@ describe("web monitor inbox", () => {
     await listener.close();
   });
 
+  it("resolves LID JIDs via authDir mapping files", async () => {
+    const onMessage = vi.fn(async () => {
+      return;
+    });
+    fsSync.writeFileSync(
+      path.join(authDir, "lid-mapping-555_reverse.json"),
+      JSON.stringify("1555"),
+    );
+
+    const listener = await monitorWebInbox({
+      verbose: false,
+      onMessage,
+      accountId: ACCOUNT_ID,
+      authDir,
+    });
+    const sock = await createWaSocket();
+    const getPNForLID = vi.spyOn(
+      sock.signalRepository.lidMapping,
+      "getPNForLID",
+    );
+    const upsert = {
+      type: "notify",
+      messages: [
+        {
+          key: { id: "abc", fromMe: false, remoteJid: "555@lid" },
+          message: { conversation: "ping" },
+          messageTimestamp: 1_700_000_000,
+          pushName: "Tester",
+        },
+      ],
+    };
+
+    sock.ev.emit("messages.upsert", upsert);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(onMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ body: "ping", from: "+1555", to: "+123" }),
+    );
+    expect(getPNForLID).not.toHaveBeenCalled();
+
+    await listener.close();
+  });
+
   it("resolves group participant LID JIDs via Baileys mapping", async () => {
     const onMessage = vi.fn(async () => {
       return;
     });
 
-    const listener = await monitorWebInbox({ verbose: false, onMessage });
+    const listener = await monitorWebInbox({
+      verbose: false,
+      onMessage,
+      accountId: ACCOUNT_ID,
+      authDir,
+    });
     const sock = await createWaSocket();
     const getPNForLID = vi.spyOn(
       sock.signalRepository.lidMapping,
@@ -234,7 +331,12 @@ describe("web monitor inbox", () => {
       }
     });
 
-    const listener = await monitorWebInbox({ verbose: false, onMessage });
+    const listener = await monitorWebInbox({
+      verbose: false,
+      onMessage,
+      accountId: ACCOUNT_ID,
+      authDir,
+    });
     const sock = await createWaSocket();
     const upsert = {
       type: "notify",
@@ -1244,7 +1346,7 @@ describe("web monitor inbox", () => {
     await listener.close();
   });
 
-  it("still pairs outbound DMs when same-phone mode is disabled", async () => {
+  it("skips pairing replies for outbound DMs when same-phone mode is disabled", async () => {
     mockLoadConfig.mockReturnValue({
       whatsapp: {
         dmPolicy: "pairing",
@@ -1279,13 +1381,8 @@ describe("web monitor inbox", () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(onMessage).not.toHaveBeenCalled();
-    expect(upsertPairingRequestMock).toHaveBeenCalledTimes(1);
-    expect(sock.sendMessage).toHaveBeenCalledWith("999@s.whatsapp.net", {
-      text: expect.stringContaining("Your WhatsApp phone number: +999"),
-    });
-    expect(sock.sendMessage).toHaveBeenCalledWith("999@s.whatsapp.net", {
-      text: expect.stringContaining("Pairing code: PAIRCODE"),
-    });
+    expect(upsertPairingRequestMock).not.toHaveBeenCalled();
+    expect(sock.sendMessage).not.toHaveBeenCalled();
 
     mockLoadConfig.mockReturnValue({
       whatsapp: {
@@ -1336,6 +1433,38 @@ describe("web monitor inbox", () => {
 
     // Verify it WAS NOT passed to onMessage
     expect(onMessage).not.toHaveBeenCalled();
+
+    await listener.close();
+  });
+
+  it("normalizes participant phone numbers to JIDs in sendReaction", async () => {
+    const listener = await monitorWebInbox({
+      verbose: false,
+      onMessage: vi.fn(),
+      accountId: ACCOUNT_ID,
+      authDir,
+    });
+    const sock = await createWaSocket();
+
+    await listener.sendReaction(
+      "12345@g.us",
+      "msg123",
+      "👍",
+      false,
+      "+6421000000",
+    );
+
+    expect(sock.sendMessage).toHaveBeenCalledWith("12345@g.us", {
+      react: {
+        text: "👍",
+        key: {
+          remoteJid: "12345@g.us",
+          id: "msg123",
+          fromMe: false,
+          participant: "6421000000@s.whatsapp.net",
+        },
+      },
+    });
 
     await listener.close();
   });

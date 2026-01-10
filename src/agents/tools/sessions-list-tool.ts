@@ -25,6 +25,7 @@ type SessionListRow = {
   key: string;
   kind: SessionKind;
   provider: string;
+  label?: string;
   displayName?: string;
   updatedAt?: number | null;
   sessionId?: string;
@@ -45,9 +46,9 @@ type SessionListRow = {
 
 const SessionsListToolSchema = Type.Object({
   kinds: Type.Optional(Type.Array(Type.String())),
-  limit: Type.Optional(Type.Integer({ minimum: 1 })),
-  activeMinutes: Type.Optional(Type.Integer({ minimum: 1 })),
-  messageLimit: Type.Optional(Type.Integer({ minimum: 0 })),
+  limit: Type.Optional(Type.Number({ minimum: 1 })),
+  activeMinutes: Type.Optional(Type.Number({ minimum: 1 })),
+  messageLimit: Type.Optional(Type.Number({ minimum: 0 })),
 });
 
 function resolveSandboxSessionToolsVisibility(
@@ -205,6 +206,7 @@ export function createSessionsListTool(opts?: {
           key: displayKey,
           kind,
           provider: derivedProvider,
+          label: typeof entry.label === "string" ? entry.label : undefined,
           displayName:
             typeof entry.displayName === "string"
               ? entry.displayName

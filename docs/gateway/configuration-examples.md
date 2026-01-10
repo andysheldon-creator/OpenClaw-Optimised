@@ -208,12 +208,18 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
       thinkingDefault: "low",
       verboseDefault: "off",
       elevatedDefault: "on",
-      blockStreamingDefault: "on",
+      blockStreamingDefault: "off",
       blockStreamingBreak: "text_end",
       blockStreamingChunk: {
         minChars: 800,
         maxChars: 1200,
         breakPreference: "paragraph"
+      },
+      blockStreamingCoalesce: {
+        idleMs: 1000
+      },
+      humanDelay: {
+        mode: "natural"
       },
       timeoutSeconds: 600,
       mediaMaxMb: 5,
