@@ -128,10 +128,6 @@ describe("newFeature", () => {
 });
 ```
 
-## Quality Checklist
+## Before Commit
 
-Before committing:
-- [ ] All tests pass: `pnpm test --run`
-- [ ] Coverage maintained: `pnpm test:coverage`
-- [ ] Lint passes: `pnpm lint`
-- [ ] Build succeeds: `pnpm build`
+Run `/dev:gate` (lint, build, test).
