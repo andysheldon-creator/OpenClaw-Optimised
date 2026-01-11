@@ -1,0 +1,19 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "node dist/index.js gateway-daemon --bind lan --port $PORT"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[[deploy.healthcheck]]
+path = "/health"
+interval = 30
+timeout = 10
+
+[deploy.env]
+HOME = "/home/node"
+NODE_ENV = "production"
+TERM = "xterm-256color"
+CLAWDBOT_GATEWAY_BIND = "lan"
