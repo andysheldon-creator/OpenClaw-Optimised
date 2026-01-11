@@ -60,6 +60,68 @@ Notes:
 - `pnpm build` matters when you run the packaged `clawdbot` binary ([`dist/entry.js`](https://github.com/clawdbot/clawdbot/blob/main/dist/entry.js)) or use Node to run `dist/`.
 - If you run directly from TypeScript (`pnpm clawdbot ...` / `bun run clawdbot ...`), a rebuild is usually unnecessary, but **config migrations still apply** → run doctor.
 
+## macOS: “I pull from git and run the Gateway in the background”
+
+This is the recommended workflow when you:
+- run from a repo checkout
+- want the Gateway supervised (LaunchAgent) instead of tied to a terminal
+- pull updates regularly
+
+### One-time setup (install LaunchAgent)
+
+Install the Gateway LaunchAgent (daemon) via the onboarding wizard once:
+
+```bash
+bun run clawdbot onboard --non-interactive \
+  --mode local \
+  --install-daemon \
+  --daemon-runtime node \
+  --skip-skills \
+  --skip-health
+```
+
+Notes:
+- **Use `--daemon-runtime node` if you use WhatsApp**. Bun’s WebSocket implementation is currently incompatible with Baileys on reconnect (can crash / corrupt memory).
+- If you prefer `pnpm`, use `pnpm clawdbot ...` instead of `bun run clawdbot ...`.
+
+### Every time you pull (fast, safe checklist)
+
+From your repo checkout:
+
+```bash
+git pull
+
+# Pick ONE and stick with it:
+bun install
+
+# Update dist/ for Node-supervised services:
+bun run build
+
+# Migrations + safety checks:
+bun run clawdbot doctor
+
+# Restart the supervised Gateway:
+bun run clawdbot gateway restart
+```
+
+Alternative restart (launchd directly):
+
+```bash
+launchctl kickstart -k gui/$UID/com.clawdbot.gateway
+```
+
+Logs:
+- `~/.clawdbot/logs/gateway.log` (stdout)
+- `~/.clawdbot/logs/gateway.err.log` (stderr)
+
+### Updating the macOS app (if you run it from this repo)
+
+If you’re developing/running **Clawdbot.app** from source, rebuild + relaunch it after pulls:
+
+```bash
+./scripts/restart-mac.sh
+```
+
 ## Always run: `clawdbot doctor`
 
 Doctor is the “safe update” command. It’s intentionally boring: repair + migrate + warn.
