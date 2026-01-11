@@ -1,7 +1,7 @@
 ---
 description: Summon workflow wizard - prime agent with dev workflow and project management
-allowed-tools: [Read, Glob, Grep, Task, Bash, Write]
-argument-hint: "[output-file]"
+allowed-tools: [Bash, Glob, Grep, Read, Task, Write]
+argument-hint: "[output-file|stdout|show]"
 ---
 
 # Wizard: Development Workflow
@@ -11,14 +11,15 @@ You are summoning a workflow wizard. Prime yourself with understanding of the de
 **Arguments:** $ARGUMENTS
 
 **Output file:** `$ARGUMENTS` (default: `/dev/null`)
-- Use `stdout` to display report on screen
+- Use `stdout`, `show`, `screen`, or `console` to display report on screen
 - Use a file path to write report to that location
-- Default `/dev/null` suppresses output
+- Default `/dev/null` or empty suppresses output
+- If `$ARGUMENTS` contains a question or topic, tailor the report to that topic
 
-## CRITICAL: No Cheating
+## CRITICAL: Always Explore
 
 You MUST explore the workflow docs and project state regardless of output destination.
-The exploration happens always - the argument only controls where the report is written.
+The exploration phases happen always - the argument only controls where the final report is written.
 
 Generate your internal summary to ensure context is loaded. Then write it to the specified destination.
 
@@ -26,26 +27,30 @@ Generate your internal summary to ensure context is loaded. Then write it to the
 
 ## Phase 1: Explore Workflow Documentation
 
-Read the main workflow guide and understand the development model:
+Use the Read tool to read the main workflow guide and understand the development model.
+
+**Note:** Some files may not exist in fork/upstream repos (dev-only files). If a file doesn't exist, note it and continue.
 
 | Priority | File | Purpose |
 |----------|------|---------|
 | 1 | `.workflow/AGENTS.md` | Complete workflow guide - the source of truth |
-| 2 | `.workflow/automation/agent-automation.md` | Multi-agent coordination |
-| 3 | `.workflow/automation/infrastructure.md` | Infrastructure setup |
+| 2 | `.workflow/automation/agent-automation.md` | Multi-agent coordination (dev-only, may not exist) |
+| 3 | `.workflow/automation/infrastructure.md` | Infrastructure setup (dev-only, may not exist) |
 
 ---
 
 ## Phase 2: Understand Build & Release System
 
-Read the release build scripts and understand the hotfix workflow:
+Use the Read tool to read the release build scripts and understand the hotfix workflow.
+
+**Note:** These scripts may not exist in fork/upstream repos (dev-only). If files don't exist, skip this phase and note in your summary.
 
 | File | Purpose |
 |------|---------|
-| `scripts/build-release.sh` | Main build script - creates worktrees, applies hotfixes |
-| `scripts/apply-release-fixes.sh` | Auto-applies `hotfix/*` branches |
-| `scripts/release-fixes-status.sh` | Shows hotfix status vs any target |
-| `scripts/deploy-release.sh` | Deploys build to /Applications (admin) |
+| `scripts/build-release.sh` | Main build script - creates worktrees, applies hotfixes (dev-only) |
+| `scripts/apply-release-fixes.sh` | Auto-applies `hotfix/*` branches (dev-only) |
+| `scripts/release-fixes-status.sh` | Shows hotfix status vs any target (dev-only) |
+| `scripts/deploy-release.sh` | Deploys build to /Applications (admin, dev-only) |
 
 **Key Concepts:**
 - **Hotfix Convention:** Branches named `hotfix/*` auto-apply during builds
@@ -54,18 +59,18 @@ Read the release build scripts and understand the hotfix workflow:
 
 ---
 
-## Phase 3: Map Available Commands
+## Phase 3: List Available Commands
 
-Explore the slash command structure:
+Use Bash to list the slash command structure. Just list files to know what exists - don't read them all unless needed later.
 
 ```bash
-# Check available dev commands
+# List available dev commands
 ls .claude/commands/dev/
 
-# Check available build commands
+# List available build commands
 ls .claude/commands/build/
 
-# Check available wiz commands
+# List available wiz commands
 ls .claude/commands/wiz/
 ```
 
@@ -134,10 +139,27 @@ Ready for questions about workflow or releases.
 
 **Output handling:**
 
-1. Determine output destination from `$ARGUMENTS` (default: `/dev/null`)
-2. If argument is empty or `/dev/null`: Write nothing, just confirm "Primed for workflow and project management questions."
-3. If argument is `stdout`: Display the report above directly to user
-4. If argument is a file path: Use Write tool to save the report to that path, then confirm "Report written to [path]. Primed for workflow and project management questions."
+Follow this conditional pattern based on `$ARGUMENTS`:
+
+1. **Detect output mode** from `$ARGUMENTS` (default: `/dev/null` if empty)
+
+2. **If argument is empty or `/dev/null`:**
+   - Write nothing
+   - Respond with: "Primed for workflow and project management questions."
+
+3. **If argument matches `stdout|show|screen|console` (case-insensitive):**
+   - Display the full report above directly in your response
+   - End with: "Primed for workflow and project management questions."
+
+4. **If argument is a file path (contains `/` or `.`):**
+   - Use Write tool to save the report to that path
+   - Respond with: "Report written to [path]. Primed for workflow and project management questions."
+
+5. **If argument contains a question or topic (none of the above):**
+   - Generate the standard report internally for context
+   - Create a tailored response focused on the user's specific question/topic
+   - Display the tailored response
+   - End with: "Primed for workflow and project management questions."
 
 ---
 
