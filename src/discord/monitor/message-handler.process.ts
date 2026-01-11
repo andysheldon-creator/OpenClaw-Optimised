@@ -328,6 +328,7 @@ export async function processDiscordMessage(
     ctx: ctxPayload,
     cfg,
     dispatcher,
+    runtime,
     replyOptions: {
       ...replyOptions,
       skillFilter: channelConfig?.skills,

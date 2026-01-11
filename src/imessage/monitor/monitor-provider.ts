@@ -422,6 +422,7 @@ export async function monitorIMessageProvider(
       ctx: ctxPayload,
       cfg,
       dispatcher,
+      runtime,
       replyOptions: {
         disableBlockStreaming:
           typeof accountInfo.config.blockStreaming === "boolean"

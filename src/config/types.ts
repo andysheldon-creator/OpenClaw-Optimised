@@ -1231,6 +1231,13 @@ export type AudioConfig = {
     // Command should print MEDIA:<path> to stdout (or write to ReplyAudioPath).
     command: string[];
     timeoutSeconds?: number;
+    /**
+     * When true, suppress text replies and only send synthesized voice.
+     * Text is still accumulated internally for voice synthesis.
+     * Only applies when inbound message is audio.
+     * Default: false (send both text and voice).
+     */
+    voiceOnly?: boolean;
   };
 };
 

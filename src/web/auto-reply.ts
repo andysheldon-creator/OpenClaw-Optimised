@@ -2,7 +2,6 @@ import {
   resolveEffectiveMessagesConfig,
   resolveMessagePrefix,
 } from "../agents/identity.js";
-import { synthesizeReplyAudio } from "../auto-reply/audio-reply.js";
 import {
   chunkMarkdownText,
   resolveTextChunkLimit,
@@ -30,7 +29,6 @@ import { dispatchReplyWithBufferedBlockDispatcher } from "../auto-reply/reply/pr
 import { getReplyFromConfig } from "../auto-reply/reply.js";
 import type { MsgContext } from "../auto-reply/templating.js";
 import { HEARTBEAT_TOKEN, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
-import { isAudio } from "../auto-reply/transcription.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { toLocationContext } from "../channels/location.js";
 import { resolveWhatsAppHeartbeatRecipients } from "../channels/plugins/whatsapp-heartbeat.js";
@@ -1284,7 +1282,6 @@ export async function monitorWebChannel(
       const textLimit = resolveTextChunkLimit(cfg, "whatsapp");
       let didLogHeartbeatStrip = false;
       let didSendReply = false;
-      let didSendVoiceReply = false;
       const responsePrefix = resolveEffectiveMessagesConfig(
         cfg,
         route.agentId,
@@ -1334,55 +1331,26 @@ export async function monitorWebChannel(
             }
           },
           deliver: async (payload, info) => {
-            let replyPayload = payload;
-            let sendTextBeforeMedia = false;
-            const replyText = replyPayload.text?.trim();
-            if (
-              info.kind === "final" &&
-              !didSendVoiceReply &&
-              isAudio(msg.mediaType) &&
-              !replyPayload.mediaUrl &&
-              (replyPayload.mediaUrls?.length ?? 0) === 0 &&
-              replyText &&
-              cfg.audio?.reply?.command?.length
-            ) {
-              const audioReply = await synthesizeReplyAudio({
-                cfg,
-                ctx: dispatchCtx,
-                replyText,
-                runtime: defaultRuntime,
-              });
-              if (audioReply?.mediaUrls?.length) {
-                replyPayload = {
-                  ...replyPayload,
-                  mediaUrls: audioReply.mediaUrls,
-                  mediaUrl: audioReply.mediaUrls[0],
-                  audioAsVoice:
-                    audioReply.audioAsVoice ?? replyPayload.audioAsVoice,
-                };
-                sendTextBeforeMedia = true;
-                didSendVoiceReply = true;
-              }
-            }
+            // Voice synthesis is now handled generically in dispatch-from-config.ts
             await deliverWebReply({
-              replyResult: replyPayload,
+              replyResult: payload,
               msg,
               maxMediaBytes,
               textLimit,
               replyLogger,
               connectionId,
-              sendTextBeforeMedia,
+              sendTextBeforeMedia: false,
               // Tool + block updates are noisy; skip their log lines.
               skipLog: info.kind !== "final",
             });
             didSendReply = true;
             if (info.kind === "tool") {
-              rememberSentText(replyPayload.text, {});
+              rememberSentText(payload.text, {});
               return;
             }
             const shouldLog =
-              info.kind === "final" && replyPayload.text ? true : undefined;
-            rememberSentText(replyPayload.text, {
+              info.kind === "final" && payload.text ? true : undefined;
+            rememberSentText(payload.text, {
               combinedBody,
               combinedBodySessionKey: route.sessionKey,
               logVerboseMessage: shouldLog,
@@ -1393,15 +1361,15 @@ export async function monitorWebChannel(
                   ? conversationId
                   : (msg.from ?? "unknown");
               const hasMedia = Boolean(
-                replyPayload.mediaUrl || replyPayload.mediaUrls?.length,
+                payload.mediaUrl || payload.mediaUrls?.length,
               );
               whatsappOutboundLog.info(
                 `Auto-replied to ${fromDisplay}${hasMedia ? " (media)" : ""}`,
               );
               if (shouldLogVerbose()) {
                 const preview =
-                  replyPayload.text != null
-                    ? elide(replyPayload.text, 400)
+                  payload.text != null
+                    ? elide(payload.text, 400)
                     : "<media>";
                 whatsappOutboundLog.debug(
                   `Reply body: ${preview}${hasMedia ? " (media)" : ""}`,
@@ -1428,15 +1396,20 @@ export async function monitorWebChannel(
               ? !cfg.channels.whatsapp.blockStreaming
               : undefined,
         },
+        // Pass runtime for generic voice synthesis in dispatch-from-config
+        runtime: defaultRuntime,
       });
+      // Voice synthesis is now handled generically in dispatch-from-config.ts
       if (!queuedFinal) {
         if (shouldClearGroupHistory && didSendReply) {
           groupHistories.set(groupHistoryKey, []);
         }
-        logVerbose(
-          "Skipping auto-reply: silent token or no text/media returned from resolver",
-        );
-        return false;
+        if (!didSendReply) {
+          logVerbose(
+            "Skipping auto-reply: silent token or no text/media returned from resolver",
+          );
+        }
+        return didSendReply;
       }
 
       if (shouldClearGroupHistory && didSendReply) {

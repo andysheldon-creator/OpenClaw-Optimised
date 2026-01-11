@@ -1,5 +1,8 @@
 import type { ClawdbotConfig } from "../../config/config.js";
+import { logVerbose } from "../../globals.js";
+import type { RuntimeEnv } from "../../runtime.js";
 import type { MsgContext } from "../templating.js";
+import { isAudio } from "../transcription.js";
 import type { GetReplyOptions } from "../types.js";
 import type { DispatchFromConfigResult } from "./dispatch-from-config.js";
 import { dispatchReplyFromConfig } from "./dispatch-from-config.js";
@@ -16,15 +19,31 @@ export async function dispatchReplyWithBufferedBlockDispatcher(params: {
   dispatcherOptions: ReplyDispatcherWithTypingOptions;
   replyOptions?: Omit<GetReplyOptions, "onToolResult" | "onBlockReply">;
   replyResolver?: typeof import("../reply.js").getReplyFromConfig;
+  /** Runtime for error logging. Required for voice synthesis. */
+  runtime?: RuntimeEnv;
 }): Promise<DispatchFromConfigResult> {
+  // For voiceOnly mode: skip text delivery when inbound is audio and voiceOnly is enabled.
+  // Text is still accumulated for voice synthesis, just not delivered to the user.
+  const inboundIsAudio = isAudio(params.ctx.MediaType);
+  const voiceOnlyEnabled = params.cfg.audio?.reply?.voiceOnly === true;
+  const skipTextOnlyDelivery = inboundIsAudio && voiceOnlyEnabled;
+
+  logVerbose(
+    `voiceOnly check: MediaType=${params.ctx.MediaType} isAudio=${inboundIsAudio} voiceOnly=${voiceOnlyEnabled} skipText=${skipTextOnlyDelivery}`
+  );
+
   const { dispatcher, replyOptions, markDispatchIdle } =
-    createReplyDispatcherWithTyping(params.dispatcherOptions);
+    createReplyDispatcherWithTyping({
+      ...params.dispatcherOptions,
+      skipTextOnlyDelivery,
+    });
 
   const result = await dispatchReplyFromConfig({
     ctx: params.ctx,
     cfg: params.cfg,
     dispatcher,
     replyResolver: params.replyResolver,
+    runtime: params.runtime,
     replyOptions: {
       ...params.replyOptions,
       ...replyOptions,
