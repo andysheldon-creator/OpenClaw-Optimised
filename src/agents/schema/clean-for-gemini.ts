@@ -149,11 +149,12 @@ function cleanSchemaForGeminiWithDefs(
   schema: unknown,
   defs: SchemaDefs | undefined,
   refStack: Set<string> | undefined,
+  options: { flattenUnions: boolean },
 ): unknown {
   if (!schema || typeof schema !== "object") return schema;
   if (Array.isArray(schema)) {
     return schema.map((item) =>
-      cleanSchemaForGeminiWithDefs(item, defs, refStack),
+      cleanSchemaForGeminiWithDefs(item, defs, refStack, options),
     );
   }
 
@@ -173,6 +174,7 @@ function cleanSchemaForGeminiWithDefs(
         resolved,
         nextDefs,
         nextRefStack,
+        options,
       );
       if (!cleaned || typeof cleaned !== "object" || Array.isArray(cleaned)) {
         return cleaned;
@@ -197,57 +199,69 @@ function cleanSchemaForGeminiWithDefs(
   const hasAnyOf = "anyOf" in obj && Array.isArray(obj.anyOf);
   const hasOneOf = "oneOf" in obj && Array.isArray(obj.oneOf);
 
-  if (hasAnyOf) {
-    // Try to flatten nullable patterns like [string, null] -> string
-    const nullable = tryFlattenNullableAnyOf(obj.anyOf as unknown[]);
-    if (nullable) {
-      const result = cleanSchemaForGeminiWithDefs(nullable, nextDefs, refStack);
-      if (result && typeof result === "object" && !Array.isArray(result)) {
-        for (const key of ["description", "title", "default"]) {
-          if (key in obj && obj[key] !== undefined)
-            (result as Record<string, unknown>)[key] = obj[key];
+  if (options.flattenUnions) {
+    if (hasAnyOf) {
+      // Try to flatten nullable patterns like [string, null] -> string
+      const nullable = tryFlattenNullableAnyOf(obj.anyOf as unknown[]);
+      if (nullable) {
+        const result = cleanSchemaForGeminiWithDefs(
+          nullable,
+          nextDefs,
+          refStack,
+          options,
+        );
+        if (result && typeof result === "object" && !Array.isArray(result)) {
+          for (const key of ["description", "title", "default"]) {
+            if (key in obj && obj[key] !== undefined)
+              (result as Record<string, unknown>)[key] = obj[key];
+          }
         }
+        return result;
       }
-      return result;
-    }
 
-    const flattened = tryFlattenLiteralAnyOf(obj.anyOf as unknown[]);
-    if (flattened) {
-      const result: Record<string, unknown> = {
-        type: flattened.type,
-        enum: flattened.enum,
-      };
-      for (const key of ["description", "title", "default"]) {
-        if (key in obj && obj[key] !== undefined) result[key] = obj[key];
-      }
-      return result;
-    }
-  }
-
-  if (hasOneOf) {
-    // Try to flatten nullable patterns like [string, null] -> string
-    const nullable = tryFlattenNullableAnyOf(obj.oneOf as unknown[]);
-    if (nullable) {
-      const result = cleanSchemaForGeminiWithDefs(nullable, nextDefs, refStack);
-      if (result && typeof result === "object" && !Array.isArray(result)) {
+      const flattened = tryFlattenLiteralAnyOf(obj.anyOf as unknown[]);
+      if (flattened) {
+        const result: Record<string, unknown> = {
+          type: flattened.type,
+          enum: flattened.enum,
+        };
         for (const key of ["description", "title", "default"]) {
-          if (key in obj && obj[key] !== undefined)
-            (result as Record<string, unknown>)[key] = obj[key];
+          if (key in obj && obj[key] !== undefined) result[key] = obj[key];
         }
+        return result;
       }
-      return result;
     }
 
-    const flattened = tryFlattenLiteralAnyOf(obj.oneOf as unknown[]);
-    if (flattened) {
-      const result: Record<string, unknown> = {
-        type: flattened.type,
-        enum: flattened.enum,
-      };
-      for (const key of ["description", "title", "default"]) {
-        if (key in obj && obj[key] !== undefined) result[key] = obj[key];
+    if (hasOneOf) {
+      // Try to flatten nullable patterns like [string, null] -> string
+      const nullable = tryFlattenNullableAnyOf(obj.oneOf as unknown[]);
+      if (nullable) {
+        const result = cleanSchemaForGeminiWithDefs(
+          nullable,
+          nextDefs,
+          refStack,
+          options,
+        );
+        if (result && typeof result === "object" && !Array.isArray(result)) {
+          for (const key of ["description", "title", "default"]) {
+            if (key in obj && obj[key] !== undefined)
+              (result as Record<string, unknown>)[key] = obj[key];
+          }
+        }
+        return result;
       }
-      return result;
+
+      const flattened = tryFlattenLiteralAnyOf(obj.oneOf as unknown[]);
+      if (flattened) {
+        const result: Record<string, unknown> = {
+          type: flattened.type,
+          enum: flattened.enum,
+        };
+        for (const key of ["description", "title", "default"]) {
+          if (key in obj && obj[key] !== undefined) result[key] = obj[key];
+        }
+        return result;
+      }
     }
   }
 
@@ -268,22 +282,27 @@ function cleanSchemaForGeminiWithDefs(
       cleaned[key] = Object.fromEntries(
         Object.entries(props).map(([k, v]) => [
           k,
-          cleanSchemaForGeminiWithDefs(v, nextDefs, refStack),
+          cleanSchemaForGeminiWithDefs(v, nextDefs, refStack, options),
         ]),
       );
     } else if (key === "items" && value && typeof value === "object") {
-      cleaned[key] = cleanSchemaForGeminiWithDefs(value, nextDefs, refStack);
+      cleaned[key] = cleanSchemaForGeminiWithDefs(
+        value,
+        nextDefs,
+        refStack,
+        options,
+      );
     } else if (key === "anyOf" && Array.isArray(value)) {
       cleaned[key] = value.map((variant) =>
-        cleanSchemaForGeminiWithDefs(variant, nextDefs, refStack),
+        cleanSchemaForGeminiWithDefs(variant, nextDefs, refStack, options),
       );
     } else if (key === "oneOf" && Array.isArray(value)) {
       cleaned[key] = value.map((variant) =>
-        cleanSchemaForGeminiWithDefs(variant, nextDefs, refStack),
+        cleanSchemaForGeminiWithDefs(variant, nextDefs, refStack, options),
       );
     } else if (key === "allOf" && Array.isArray(value)) {
       cleaned[key] = value.map((variant) =>
-        cleanSchemaForGeminiWithDefs(variant, nextDefs, refStack),
+        cleanSchemaForGeminiWithDefs(variant, nextDefs, refStack, options),
       );
     } else {
       cleaned[key] = value;
@@ -293,10 +312,17 @@ function cleanSchemaForGeminiWithDefs(
   return cleaned;
 }
 
-export function cleanSchemaForGemini(schema: unknown): unknown {
+export function cleanSchemaForGemini(
+  schema: unknown,
+  options?: { flattenUnions?: boolean },
+): unknown {
   if (!schema || typeof schema !== "object") return schema;
-  if (Array.isArray(schema)) return schema.map(cleanSchemaForGemini);
+  if (Array.isArray(schema)) {
+    return schema.map((item) => cleanSchemaForGemini(item, options));
+  }
 
   const defs = extendSchemaDefs(undefined, schema as Record<string, unknown>);
-  return cleanSchemaForGeminiWithDefs(schema, defs, undefined);
+  return cleanSchemaForGeminiWithDefs(schema, defs, undefined, {
+    flattenUnions: options?.flattenUnions ?? true,
+  });
 }

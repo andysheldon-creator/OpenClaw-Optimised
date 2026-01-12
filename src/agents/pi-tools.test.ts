@@ -361,7 +361,7 @@ describe("createClawdbotCodingTools", () => {
       sessionKey: "sandbox:test",
       workspaceDir: path.join(os.tmpdir(), "clawdbot-sandbox"),
       agentWorkspaceDir: path.join(os.tmpdir(), "clawdbot-workspace"),
-      workspaceAccess: "none",
+      workspaceAccess: "none" as const,
       containerName: "clawdbot-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
@@ -393,7 +393,7 @@ describe("createClawdbotCodingTools", () => {
       sessionKey: "sandbox:test",
       workspaceDir: path.join(os.tmpdir(), "clawdbot-sandbox"),
       agentWorkspaceDir: path.join(os.tmpdir(), "clawdbot-workspace"),
-      workspaceAccess: "ro",
+      workspaceAccess: "ro" as const,
       containerName: "clawdbot-sbx-test",
       containerWorkdir: "/workspace",
       docker: {
@@ -501,6 +501,102 @@ describe("createClawdbotCodingTools", () => {
       );
       expect(violations).toEqual([]);
     }
+  });
+
+  it("strips nullable unions for Cloud Code Assist tool schemas", () => {
+    const tools = createClawdbotCodingTools({
+      modelProvider: "google-gemini-cli",
+    });
+    const message = tools.find((tool) => tool.name === "message");
+    const parameters = message?.parameters as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    const parentId = parameters?.properties?.parentId as
+      | { type?: unknown; anyOf?: unknown[] }
+      | undefined;
+
+    expect(parentId).toBeDefined();
+    expect(parentId?.type).toBe("string");
+    expect(parentId?.anyOf).toBeUndefined();
+  });
+
+  it("strips nullable unions for antigravity tool schemas", () => {
+    const tools = createClawdbotCodingTools({
+      modelProvider: "google-antigravity",
+    });
+    const message = tools.find((tool) => tool.name === "message");
+    const parameters = message?.parameters as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    const parentId = parameters?.properties?.parentId as
+      | { type?: unknown; anyOf?: unknown[] }
+      | undefined;
+
+    expect(parentId).toBeDefined();
+    expect(parentId?.type).toBe("string");
+    expect(parentId?.anyOf).toBeUndefined();
+  });
+
+  it("preserves nullable unions for non-Cloud Code Assist providers", () => {
+    const tools = createClawdbotCodingTools({ modelProvider: "openai" });
+    const message = tools.find((tool) => tool.name === "message");
+    const parameters = message?.parameters as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    const parentId = parameters?.properties?.parentId as
+      | { type?: unknown; anyOf?: unknown[] }
+      | undefined;
+
+    expect(parentId).toBeDefined();
+    expect(Array.isArray(parentId?.anyOf)).toBe(true);
+  });
+
+  it("strips nullable unions for Cloud Code Assist tool schemas", () => {
+    const tools = createClawdbotCodingTools({
+      modelProvider: "google-gemini-cli",
+    });
+    const message = tools.find((tool) => tool.name === "message");
+    const parameters = message?.parameters as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    const parentId = parameters?.properties?.parentId as
+      | { type?: unknown; anyOf?: unknown[] }
+      | undefined;
+
+    expect(parentId).toBeDefined();
+    expect(parentId?.type).toBe("string");
+    expect(parentId?.anyOf).toBeUndefined();
+  });
+
+  it("strips nullable unions for antigravity tool schemas", () => {
+    const tools = createClawdbotCodingTools({
+      modelProvider: "google-antigravity",
+    });
+    const message = tools.find((tool) => tool.name === "message");
+    const parameters = message?.parameters as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    const parentId = parameters?.properties?.parentId as
+      | { type?: unknown; anyOf?: unknown[] }
+      | undefined;
+
+    expect(parentId).toBeDefined();
+    expect(parentId?.type).toBe("string");
+    expect(parentId?.anyOf).toBeUndefined();
+  });
+
+  it("preserves nullable unions for non-Cloud Code Assist providers", () => {
+    const tools = createClawdbotCodingTools({ modelProvider: "openai" });
+    const message = tools.find((tool) => tool.name === "message");
+    const parameters = message?.parameters as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    const parentId = parameters?.properties?.parentId as
+      | { type?: unknown; anyOf?: unknown[] }
+      | undefined;
+
+    expect(parentId).toBeDefined();
+    expect(Array.isArray(parentId?.anyOf)).toBe(true);
   });
 
   it("uses workspaceDir for Read tool path resolution", async () => {

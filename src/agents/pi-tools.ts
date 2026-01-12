@@ -169,7 +169,10 @@ function mergePropertySchemas(existing: unknown, incoming: unknown): unknown {
   return existing;
 }
 
-function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
+function normalizeToolParameters(
+  tool: AnyAgentTool,
+  options?: { modelProvider?: string },
+): AnyAgentTool {
   const schema =
     tool.parameters && typeof tool.parameters === "object"
       ? (tool.parameters as Record<string, unknown>)
@@ -192,7 +195,9 @@ function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
   ) {
     return {
       ...tool,
-      parameters: cleanSchemaForGemini(schema),
+      parameters: cleanToolSchemaForGemini(schema, {
+        provider: options?.modelProvider,
+      }),
     };
   }
 
@@ -206,7 +211,10 @@ function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
   ) {
     return {
       ...tool,
-      parameters: cleanSchemaForGemini({ ...schema, type: "object" }),
+      parameters: cleanToolSchemaForGemini(
+        { ...schema, type: "object" },
+        { provider: options?.modelProvider },
+      ),
     };
   }
 
@@ -266,29 +274,116 @@ function normalizeToolParameters(tool: AnyAgentTool): AnyAgentTool {
     // - Gemini doesn't allow top-level `type` together with `anyOf`.
     // - OpenAI rejects schemas without top-level `type: "object"`.
     // Merging properties preserves useful enums like `action` while keeping schemas portable.
-    parameters: cleanSchemaForGemini({
-      type: "object",
-      ...(typeof nextSchema.title === "string"
-        ? { title: nextSchema.title }
-        : {}),
-      ...(typeof nextSchema.description === "string"
-        ? { description: nextSchema.description }
-        : {}),
-      properties:
-        Object.keys(mergedProperties).length > 0
-          ? mergedProperties
-          : (schema.properties ?? {}),
-      ...(mergedRequired && mergedRequired.length > 0
-        ? { required: mergedRequired }
-        : {}),
-      additionalProperties:
-        "additionalProperties" in schema ? schema.additionalProperties : true,
-    }),
+    parameters: cleanToolSchemaForGemini(
+      {
+        type: "object",
+        ...(typeof nextSchema.title === "string"
+          ? { title: nextSchema.title }
+          : {}),
+        ...(typeof nextSchema.description === "string"
+          ? { description: nextSchema.description }
+          : {}),
+        properties:
+          Object.keys(mergedProperties).length > 0
+            ? mergedProperties
+            : (schema.properties ?? {}),
+        ...(mergedRequired && mergedRequired.length > 0
+          ? { required: mergedRequired }
+          : {}),
+        additionalProperties:
+          "additionalProperties" in schema ? schema.additionalProperties : true,
+      },
+      { provider: options?.modelProvider },
+    ),
   };
 }
 
-function cleanToolSchemaForGemini(schema: Record<string, unknown>): unknown {
-  return cleanSchemaForGemini(schema);
+function isNullSchema(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  if (record.type === "null") return true;
+  if ("const" in record && record.const === null) return true;
+  if (Array.isArray(record.enum) && record.enum.length === 1) {
+    return record.enum[0] === null;
+  }
+  return false;
+}
+
+function stripNullableUnions(schema: unknown): unknown {
+  if (!schema || typeof schema !== "object") return schema;
+  if (Array.isArray(schema)) return schema.map(stripNullableUnions);
+
+  const record = schema as Record<string, unknown>;
+
+  const tryStripUnion = (variants: unknown[]) => {
+    const nonNull = variants.filter((variant) => !isNullSchema(variant));
+    if (nonNull.length === variants.length) return null;
+    if (nonNull.length !== 1) return null;
+    const cleaned = stripNullableUnions(nonNull[0]);
+    if (!cleaned || typeof cleaned !== "object" || Array.isArray(cleaned)) {
+      return cleaned;
+    }
+    const result: Record<string, unknown> = {
+      ...(cleaned as Record<string, unknown>),
+    };
+    for (const key of ["description", "title", "default"]) {
+      if (key in record && record[key] !== undefined) {
+        result[key] = record[key];
+      }
+    }
+    return result;
+  };
+
+  if (Array.isArray(record.anyOf)) {
+    const stripped = tryStripUnion(record.anyOf);
+    if (stripped) return stripped;
+  }
+  if (Array.isArray(record.oneOf)) {
+    const stripped = tryStripUnion(record.oneOf);
+    if (stripped) return stripped;
+  }
+
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (key === "properties" && value && typeof value === "object") {
+      const props = value as Record<string, unknown>;
+      cleaned[key] = Object.fromEntries(
+        Object.entries(props).map(([k, v]) => [k, stripNullableUnions(v)]),
+      );
+    } else if (key === "items" && value && typeof value === "object") {
+      cleaned[key] = stripNullableUnions(value);
+    } else if (key === "anyOf" && Array.isArray(value)) {
+      cleaned[key] = value.map(stripNullableUnions);
+    } else if (key === "oneOf" && Array.isArray(value)) {
+      cleaned[key] = value.map(stripNullableUnions);
+    } else if (key === "allOf" && Array.isArray(value)) {
+      cleaned[key] = value.map(stripNullableUnions);
+    } else {
+      cleaned[key] = value;
+    }
+  }
+
+  return cleaned;
+}
+
+function cleanToolSchemaForGemini(
+  schema: Record<string, unknown>,
+  options?: { provider?: string },
+): unknown {
+  const isGemini =
+    options?.provider === "google-gemini-cli" ||
+    options?.provider === "google-antigravity";
+  const isOpenAI = options?.provider === "openai";
+
+  // We flatten by default to keep schemas portable and compatible with most providers,
+  // but we allow OpenAI to preserve unions (e.g. nullable) if requested.
+  const flattenUnions = !isOpenAI;
+
+  const cleaned = cleanSchemaForGemini(schema, { flattenUnions });
+  if (isGemini) {
+    return stripNullableUnions(cleaned);
+  }
+  return cleaned;
 }
 
 const TOOL_NAME_ALIASES: Record<string, string> = {
@@ -660,7 +755,9 @@ export function createClawdbotCodingTools(options?: {
     : sandboxed;
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
-  const normalized = subagentFiltered.map(normalizeToolParameters);
+  const normalized = subagentFiltered.map((tool) =>
+    normalizeToolParameters(tool, { modelProvider: options?.modelProvider }),
+  );
   const withAbort = options?.abortSignal
     ? normalized.map((tool) =>
         wrapToolWithAbortSignal(tool, options.abortSignal),
