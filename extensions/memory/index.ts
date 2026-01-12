@@ -32,9 +32,7 @@ type MemoryEntry = {
 	vector: number[];
 	importance: number;
 	category: "preference" | "fact" | "decision" | "entity" | "other";
-	tags: string[];
 	createdAt: number;
-	accessedAt: number;
 };
 
 type MemorySearchResult = {
@@ -138,7 +136,6 @@ class MemoryDB {
 		if (tables.includes(TABLE_NAME)) {
 			this.table = await this.db.openTable(TABLE_NAME);
 		} else {
-			// Create with schema hint (tags needs non-empty array for type inference)
 			this.table = await this.db.createTable(TABLE_NAME, [
 				{
 					id: "__schema__",
@@ -146,9 +143,7 @@ class MemoryDB {
 					vector: new Array(VECTOR_DIM).fill(0),
 					importance: 0,
 					category: "other",
-					tags: ["__schema__"],
 					createdAt: 0,
-					accessedAt: 0,
 				},
 			]);
 			await this.table.delete('id = "__schema__"');
@@ -156,16 +151,14 @@ class MemoryDB {
 	}
 
 	async store(
-		entry: Omit<MemoryEntry, "id" | "createdAt" | "accessedAt">,
+		entry: Omit<MemoryEntry, "id" | "createdAt">,
 	): Promise<MemoryEntry> {
 		await this.ensureInitialized();
 
-		const now = Date.now();
 		const fullEntry: MemoryEntry = {
 			...entry,
 			id: randomUUID(),
-			createdAt: now,
-			accessedAt: now,
+			createdAt: Date.now(),
 		};
 
 		await this.table!.add([fullEntry]);
@@ -181,12 +174,10 @@ class MemoryDB {
 
 		const results = await this.table!.vectorSearch(vector).limit(limit).toArray();
 
-		// LanceDB uses L2 distance by default; convert to similarity
-		// For debugging: log raw distances
+		// LanceDB uses L2 distance by default; convert to similarity score
 		const mapped = results.map((row) => {
 			const distance = row._distance ?? 0;
-			// Cosine similarity from L2: sim = 1 - (d^2 / 2) for normalized vectors
-			// Or just use inverse: sim = 1 / (1 + d) for a 0-1 range
+			// Use inverse for a 0-1 range: sim = 1 / (1 + d)
 			const score = 1 / (1 + distance);
 			return {
 				entry: {
@@ -195,9 +186,7 @@ class MemoryDB {
 					vector: row.vector as number[],
 					importance: row.importance as number,
 					category: row.category as MemoryEntry["category"],
-					tags: row.tags as string[],
 					createdAt: row.createdAt as number,
-					accessedAt: row.accessedAt as number,
 				},
 				score,
 			};
@@ -410,7 +399,6 @@ const memoryPlugin = {
 						vector,
 						importance,
 						category,
-						tags: [],
 					});
 
 					return {
@@ -630,7 +618,6 @@ const memoryPlugin = {
 							vector,
 							importance: 0.7,
 							category,
-							tags: [],
 						});
 						stored++;
 					}
