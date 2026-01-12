@@ -274,6 +274,15 @@ export const VoiceCallConfigSchema = z.object({
 
   /** Store path for call logs */
   store: z.string().optional(),
+
+  /** Model for generating voice responses (e.g., "anthropic/claude-sonnet-4", "openai/gpt-4o") */
+  responseModel: z.string().default("openai/gpt-4o-mini"),
+
+  /** System prompt for voice responses */
+  responseSystemPrompt: z.string().optional(),
+
+  /** Timeout for response generation in ms (default 30s) */
+  responseTimeoutMs: z.number().int().positive().default(30000),
 });
 
 export type VoiceCallConfig = z.infer<typeof VoiceCallConfigSchema>;

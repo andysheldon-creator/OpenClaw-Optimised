@@ -290,7 +290,8 @@ export class VoiceCallWebhookServer {
   }
 
   /**
-   * Handle auto-response for inbound calls using AI.
+   * Handle auto-response for inbound calls using the agent system.
+   * Supports any model provider (OpenAI, Anthropic, Google, local, etc.)
    */
   private async handleInboundResponse(
     callId: string,
@@ -307,59 +308,27 @@ export class VoiceCallWebhookServer {
       return;
     }
 
-    // Build conversation history from transcript
-    const messages = call.transcript.map((entry) => ({
-      role:
-        entry.speaker === "bot" ? ("assistant" as const) : ("user" as const),
-      content: entry.text,
-    }));
-
-    // Generate response using OpenAI (simple approach)
-    const apiKey =
-      this.config.streaming?.openaiApiKey || process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.warn("[voice-call] No OpenAI API key for auto-response");
-      return;
-    }
-
     try {
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "system",
-                content: `You are Haki, a helpful voice assistant. Keep responses brief and conversational (1-2 sentences). You're on a phone call, so be natural and friendly. The caller's phone number is ${call.from}.`,
-              },
-              ...messages,
-            ],
-            max_tokens: 150,
-            temperature: 0.7,
-          }),
-        },
-      );
+      const { generateVoiceResponse } = await import("./response-generator.js");
 
-      if (!response.ok) {
-        const error = await response.text();
-        console.error(`[voice-call] OpenAI API error: ${error}`);
+      const result = await generateVoiceResponse({
+        voiceConfig: this.config,
+        callId,
+        from: call.from,
+        transcript: call.transcript,
+        userMessage,
+      });
+
+      if (result.error) {
+        console.error(
+          `[voice-call] Response generation error: ${result.error}`,
+        );
         return;
       }
 
-      const data = (await response.json()) as {
-        choices: Array<{ message: { content: string } }>;
-      };
-      const aiResponse = data.choices[0]?.message?.content;
-
-      if (aiResponse) {
-        console.log(`[voice-call] AI response: "${aiResponse}"`);
-        await this.manager.speak(callId, aiResponse);
+      if (result.text) {
+        console.log(`[voice-call] AI response: "${result.text}"`);
+        await this.manager.speak(callId, result.text);
       }
     } catch (err) {
       console.error(`[voice-call] Auto-response error:`, err);
