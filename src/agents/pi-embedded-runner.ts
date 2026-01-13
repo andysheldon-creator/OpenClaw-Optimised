@@ -85,6 +85,7 @@ export type { MessagingToolSend } from "./pi-embedded-messaging.js";
 import {
   buildBootstrapContextFiles,
   classifyFailoverReason,
+  downgradeGeminiHistory,
   type EmbeddedContextFile,
   ensureSessionHeader,
   formatAssistantErrorText,
@@ -100,6 +101,7 @@ import {
   pickFallbackThinkingLevel,
   sanitizeGoogleTurnOrdering,
   sanitizeSessionMessagesImages,
+  validateAnthropicTurns,
   validateGeminiTurns,
 } from "./pi-embedded-helpers.js";
 import {
@@ -492,8 +494,14 @@ async function sanitizeSessionHistory(params: {
     },
   );
   const repairedTools = sanitizeToolUseResultPairing(sanitizedImages);
+
+  // Downgrade tool calls missing thought_signature if using Gemini
+  const downgraded = isGoogleModelApi(params.modelApi)
+    ? downgradeGeminiHistory(repairedTools)
+    : repairedTools;
+
   return applyGoogleTurnOrderingFix({
-    messages: repairedTools,
+    messages: downgraded,
     modelApi: params.modelApi,
     sessionManager: params.sessionManager,
     sessionId: params.sessionId,
@@ -1291,7 +1299,9 @@ export async function compactEmbeddedPiSession(params: {
               sessionManager,
               sessionId: params.sessionId,
             });
-            const validated = validateGeminiTurns(prior);
+            // Validate turn ordering for both Gemini (consecutive assistant) and Anthropic (consecutive user)
+            const validatedGemini = validateGeminiTurns(prior);
+            const validated = validateAnthropicTurns(validatedGemini);
             const limited = limitHistoryTurns(
               validated,
               getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
@@ -1714,7 +1724,9 @@ export async function runEmbeddedPiAgent(params: {
               sessionManager,
               sessionId: params.sessionId,
             });
-            const validated = validateGeminiTurns(prior);
+            // Validate turn ordering for both Gemini (consecutive assistant) and Anthropic (consecutive user)
+            const validatedGemini = validateGeminiTurns(prior);
+            const validated = validateAnthropicTurns(validatedGemini);
             const limited = limitHistoryTurns(
               validated,
               getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),

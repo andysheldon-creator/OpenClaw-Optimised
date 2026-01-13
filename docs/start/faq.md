@@ -124,9 +124,17 @@ Clawdbot supports **OpenAI Code (Codex)** via OAuth or by reusing your Codex CLI
 
 Usually no. Clawdbot needs large context + strong safety; small cards truncate and leak. If you must, run the **largest** MiniMax M2.1 build you can locally (LM Studio) and see [/gateway/local-models](/gateway/local-models). Smaller/quantized models increase prompt-injection risk — see [Security](/gateway/security).
 
+### How do I keep hosted model traffic in a specific region?
+
+Pick region-pinned endpoints. OpenRouter exposes US-hosted options for MiniMax, Kimi, and GLM; choose the US-hosted variant to keep data in-region. You can still list Anthropic/OpenAI alongside these by using `models.mode: "merge"` so fallbacks stay available while respecting the regioned provider you select.
+
 ### Can I use Bun?
 
 Bun is supported for faster TypeScript execution, but **WhatsApp requires Node** in this ecosystem. The wizard lets you pick the runtime; choose **Node** if you use WhatsApp.
+
+### Telegram: what goes in `allowFrom`?
+
+`telegram.allowFrom` is **the human sender’s Telegram user ID** (numeric, recommended) or `@username`. It is not the bot username. To find your ID, DM `@userinfobot` or read the `from.id` in the gateway log for a DM. See [/providers/telegram](/providers/telegram#access-control-dms--groups).
 
 ### Can multiple people use one WhatsApp number with different Clawdbots?
 
@@ -209,6 +217,10 @@ ClawdHub installs into `./skills` under your current directory; Clawdbot treats 
 
 Yes. See [Sandboxing](/gateway/sandboxing). For Docker-specific setup (full gateway in Docker or sandbox images), see [Docker](/install/docker).
 
+### How do I bind a host folder into the sandbox?
+
+Set `agents.defaults.sandbox.docker.binds` to `["host:path:mode"]` (e.g., `"/home/user/src:/src:ro"`). Global + per-agent binds merge; per-agent binds are ignored when `scope: "shared"`. Use `:ro` for anything sensitive and remember binds bypass the sandbox filesystem walls. See [Sandboxing](/gateway/sandboxing#custom-bind-mounts) and [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated#bind-mounts-security-quick-check) for examples and safety notes.
+
 ### How does memory work?
 
 Clawdbot memory is just Markdown files in the agent workspace:
@@ -218,6 +230,17 @@ Clawdbot memory is just Markdown files in the agent workspace:
 Clawdbot also runs a **silent pre-compaction memory flush** to remind the model
 to write durable notes before auto-compaction. This only runs when the workspace
 is writable (read-only sandboxes skip it). See [Memory](/concepts/memory).
+
+### Does semantic memory search require an OpenAI API key?
+
+Only if you use **remote embeddings** (OpenAI). Codex OAuth covers
+chat/completions and does **not** grant embeddings access, so **signing in with
+Codex (OAuth or the Codex CLI login)** does not help for semantic memory search.
+Remote memory search still needs a real OpenAI API key (`OPENAI_API_KEY` or
+`models.providers.openai.apiKey`). If you’d rather stay local, set
+`memorySearch.provider = "local"` (and optionally `memorySearch.fallback =
+"none"`). We support **remote or local embedding models** — see [Memory](/concepts/memory)
+for the setup details.
 
 ## Where things live on disk
 

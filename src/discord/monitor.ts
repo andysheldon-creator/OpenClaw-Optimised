@@ -14,8 +14,11 @@ import {
   type User,
 } from "@buape/carbon";
 import { GatewayIntents, GatewayPlugin } from "@buape/carbon/gateway";
-import type { APIAttachment } from "discord-api-types/v10";
-import { ApplicationCommandOptionType, Routes } from "discord-api-types/v10";
+import {
+  type APIAttachment,
+  ApplicationCommandOptionType,
+  Routes,
+} from "discord-api-types/v10";
 
 import {
   resolveAckReaction,
@@ -43,12 +46,14 @@ import {
   buildMentionRegexes,
   matchesMentionPatterns,
 } from "../auto-reply/reply/mentions.js";
-import {
-  createReplyDispatcher,
-  createReplyDispatcherWithTyping,
-} from "../auto-reply/reply/reply-dispatcher.js";
-import { getReplyFromConfig } from "../auto-reply/reply.js";
+import { dispatchReplyWithDispatcher } from "../auto-reply/reply/provider-dispatcher.js";
+import { createReplyDispatcherWithTyping } from "../auto-reply/reply/reply-dispatcher.js";
+import { createReplyReferencePlanner } from "../auto-reply/reply/reply-reference.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
+import {
+  isNativeCommandsExplicitlyDisabled,
+  resolveNativeCommandsEnabled,
+} from "../config/commands.js";
 import type { ClawdbotConfig, ReplyToMode } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import { resolveStorePath, updateLastRoute } from "../config/sessions.js";
@@ -343,6 +348,87 @@ export function resolveDiscordReplyTarget(opts: {
   return opts.hasReplied ? undefined : replyToId;
 }
 
+export function sanitizeDiscordThreadName(
+  rawName: string,
+  fallbackId: string,
+): string {
+  const cleanedName = rawName
+    .replace(/<@!?\d+>/g, "") // user mentions
+    .replace(/<@&\d+>/g, "") // role mentions
+    .replace(/<#\d+>/g, "") // channel mentions
+    .replace(/\s+/g, " ")
+    .trim();
+  const baseSource = cleanedName || `Thread ${fallbackId}`;
+  const base = truncateUtf16Safe(baseSource, 80);
+  return truncateUtf16Safe(base, 100) || `Thread ${fallbackId}`;
+}
+
+type DiscordReplyDeliveryPlan = {
+  deliverTarget: string;
+  replyTarget: string;
+  replyReference: ReturnType<typeof createReplyReferencePlanner>;
+};
+
+async function maybeCreateDiscordAutoThread(params: {
+  client: Client;
+  message: DiscordMessageEvent["message"];
+  isGuildMessage: boolean;
+  channelConfig?: DiscordChannelConfigResolved | null;
+  threadChannel?: DiscordThreadChannel | null;
+  baseText: string;
+  combinedBody: string;
+}): Promise<string | undefined> {
+  if (!params.isGuildMessage) return undefined;
+  if (!params.channelConfig?.autoThread) return undefined;
+  if (params.threadChannel) return undefined;
+  try {
+    const threadName = sanitizeDiscordThreadName(
+      params.baseText || params.combinedBody || "Thread",
+      params.message.id,
+    );
+    const created = (await params.client.rest.post(
+      `${Routes.channelMessage(params.message.channelId, params.message.id)}/threads`,
+      {
+        body: {
+          name: threadName,
+          auto_archive_duration: 60,
+        },
+      },
+    )) as { id?: string };
+    const createdId = created?.id ? String(created.id) : "";
+    return createdId || undefined;
+  } catch (err) {
+    logVerbose(
+      `discord: autoThread failed for ${params.message.channelId}/${params.message.id}: ${String(err)}`,
+    );
+    return undefined;
+  }
+}
+
+function resolveDiscordReplyDeliveryPlan(params: {
+  replyTarget: string;
+  replyToMode: ReplyToMode;
+  messageId: string;
+  threadChannel?: DiscordThreadChannel | null;
+  createdThreadId?: string | null;
+}): DiscordReplyDeliveryPlan {
+  const originalReplyTarget = params.replyTarget;
+  let deliverTarget = originalReplyTarget;
+  let replyTarget = originalReplyTarget;
+  if (params.createdThreadId) {
+    deliverTarget = `channel:${params.createdThreadId}`;
+    replyTarget = deliverTarget;
+  }
+  const allowReference = deliverTarget === originalReplyTarget;
+  const replyReference = createReplyReferencePlanner({
+    replyToMode: allowReference ? params.replyToMode : "off",
+    existingId: params.threadChannel ? params.messageId : undefined,
+    startId: params.messageId,
+    allowReference,
+  });
+  return { deliverTarget, replyTarget, replyReference };
+}
+
 function summarizeAllowList(list?: Array<string | number>) {
   if (!list || list.length === 0) return "any";
   const sample = list.slice(0, 4).map((entry) => String(entry));
@@ -403,8 +489,15 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
   const dmPolicy = dmConfig?.policy ?? "pairing";
   const groupDmEnabled = dmConfig?.groupEnabled ?? false;
   const groupDmChannels = dmConfig?.groupChannels;
-  const nativeEnabled = cfg.commands?.native === true;
-  const nativeDisabledExplicit = cfg.commands?.native === false;
+  const nativeEnabled = resolveNativeCommandsEnabled({
+    providerId: "discord",
+    providerSetting: discordCfg.commands?.native,
+    globalSetting: cfg.commands?.native,
+  });
+  const nativeDisabledExplicit = isNativeCommandsExplicitlyDisabled({
+    providerSetting: discordCfg.commands?.native,
+    globalSetting: cfg.commands?.native,
+  });
   const useAccessGroups = cfg.commands?.useAccessGroups !== false;
   const sessionPrefix = "discord:slash";
   const ephemeralDefault = true;
@@ -442,6 +535,11 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
       publicKey: "a",
       token,
       autoDeploy: nativeEnabled,
+      eventQueue: {
+        // Auto-threading (create thread + generate reply + post) can exceed the default
+        // 30s listener timeout in some environments.
+        listenerTimeout: 120_000,
+      },
     },
     {
       commands,
@@ -647,7 +745,17 @@ export function createDiscordMessageHandler(params: {
     try {
       const message = data.message;
       const author = data.author;
-      if (!author || author.bot) return;
+      if (!author) return;
+
+      const allowBots = discordConfig?.allowBots ?? false;
+      if (author.bot) {
+        // Always ignore own messages to prevent self-reply loops
+        if (botUserId && author.id === botUserId) return;
+        if (!allowBots) {
+          logVerbose("discord: drop bot message (allowBots=false)");
+          return;
+        }
+      }
 
       const isGuildMessage = Boolean(data.guild_id);
       const channelInfo = await resolveDiscordChannelInfo(
@@ -1155,44 +1263,30 @@ export function createDiscordMessageHandler(params: {
         OriginatingChannel: "discord" as const,
         OriginatingTo: discordTo,
       };
-      const replyTarget = ctxPayload.To ?? undefined;
+      let replyTarget = ctxPayload.To ?? undefined;
       if (!replyTarget) {
         runtime.error?.(danger("discord: missing reply target"));
         return;
       }
-
-      let deliverTarget = replyTarget;
-      if (isGuildMessage && channelConfig?.autoThread && !threadChannel) {
-        try {
-          const base = truncateUtf16Safe(
-            (baseText || combinedBody || "Thread").replace(/\s+/g, " ").trim(),
-            80,
-          );
-          const authorLabel = author.username ?? author.id;
-          const threadName =
-            truncateUtf16Safe(`${authorLabel}: ${base}`.trim(), 100) ||
-            `Thread ${message.id}`;
-
-          const created = (await client.rest.post(
-            `${Routes.channelMessage(message.channelId, message.id)}/threads`,
-            {
-              body: {
-                name: threadName,
-                auto_archive_duration: 60,
-              },
-            },
-          )) as { id?: string };
-
-          const createdId = created?.id ? String(created.id) : "";
-          if (createdId) {
-            deliverTarget = `channel:${createdId}`;
-          }
-        } catch (err) {
-          logVerbose(
-            `discord: autoThread failed for ${message.channelId}/${message.id}: ${String(err)}`,
-          );
-        }
-      }
+      const createdThreadId = await maybeCreateDiscordAutoThread({
+        client,
+        message,
+        isGuildMessage,
+        channelConfig,
+        threadChannel,
+        baseText: baseText ?? "",
+        combinedBody,
+      });
+      const replyPlan = resolveDiscordReplyDeliveryPlan({
+        replyTarget,
+        replyToMode,
+        messageId: message.id,
+        threadChannel,
+        createdThreadId,
+      });
+      const deliverTarget = replyPlan.deliverTarget;
+      replyTarget = replyPlan.replyTarget;
+      const replyReference = replyPlan.replyReference;
 
       if (isDirectMessage) {
         const sessionCfg = cfg.session;
@@ -1225,6 +1319,7 @@ export function createDiscordMessageHandler(params: {
             .responsePrefix,
           humanDelay: resolveHumanDelayConfig(cfg, route.agentId),
           deliver: async (payload) => {
+            const replyToId = replyReference.use();
             await deliverDiscordReply({
               replies: [payload],
               target: deliverTarget,
@@ -1232,11 +1327,12 @@ export function createDiscordMessageHandler(params: {
               accountId,
               rest: client.rest,
               runtime,
-              replyToMode: deliverTarget !== replyTarget ? "off" : replyToMode,
+              replyToId,
               textLimit,
               maxLinesPerMessage: discordConfig?.maxLinesPerMessage,
             });
             didSendReply = true;
+            replyReference.markSent();
           },
           onError: (err, info) => {
             runtime.error?.(
@@ -1504,7 +1600,7 @@ async function handleDiscordReactionEvent(params: {
   }
 }
 
-function createDiscordNativeCommand(params: {
+export function createDiscordNativeCommand(params: {
   command: {
     name: string;
     description: string;
@@ -1734,41 +1830,37 @@ function createDiscordNativeCommand(params: {
       };
 
       let didReply = false;
-      const dispatcher = createReplyDispatcher({
-        responsePrefix: resolveEffectiveMessagesConfig(cfg, route.agentId)
-          .responsePrefix,
-        humanDelay: resolveHumanDelayConfig(cfg, route.agentId),
-        deliver: async (payload, _info) => {
-          await deliverDiscordInteractionReply({
-            interaction,
-            payload,
-            textLimit: resolveTextChunkLimit(cfg, "discord", accountId, {
-              fallbackLimit: 2000,
-            }),
-            maxLinesPerMessage: discordConfig?.maxLinesPerMessage,
-            preferFollowUp: didReply,
-          });
-          didReply = true;
+      await dispatchReplyWithDispatcher({
+        ctx: ctxPayload,
+        cfg,
+        dispatcherOptions: {
+          responsePrefix: resolveEffectiveMessagesConfig(cfg, route.agentId)
+            .responsePrefix,
+          humanDelay: resolveHumanDelayConfig(cfg, route.agentId),
+          deliver: async (payload) => {
+            await deliverDiscordInteractionReply({
+              interaction,
+              payload,
+              textLimit: resolveTextChunkLimit(cfg, "discord", accountId, {
+                fallbackLimit: 2000,
+              }),
+              maxLinesPerMessage: discordConfig?.maxLinesPerMessage,
+              preferFollowUp: didReply,
+            });
+            didReply = true;
+          },
+          onError: (err, info) => {
+            console.error(`discord slash ${info.kind} reply failed`, err);
+          },
         },
-        onError: (err) => {
-          console.error(err);
+        replyOptions: {
+          skillFilter: channelConfig?.skills,
+          disableBlockStreaming:
+            typeof discordConfig?.blockStreaming === "boolean"
+              ? !discordConfig.blockStreaming
+              : undefined,
         },
       });
-
-      const replyResult = await getReplyFromConfig(
-        ctxPayload,
-        { skillFilter: channelConfig?.skills },
-        cfg,
-      );
-      const replies = replyResult
-        ? Array.isArray(replyResult)
-          ? replyResult
-          : [replyResult]
-        : [];
-      for (const reply of replies) {
-        dispatcher.sendFinalReply(reply);
-      }
-      await dispatcher.waitForIdle();
     }
   })();
 }
@@ -1861,7 +1953,7 @@ async function deliverDiscordReply(params: {
   runtime: RuntimeEnv;
   textLimit: number;
   maxLinesPerMessage?: number;
-  replyToMode: ReplyToMode;
+  replyToId?: string;
 }) {
   const chunkLimit = Math.min(params.textLimit, 2000);
   for (const payload of params.replies) {
@@ -1869,8 +1961,10 @@ async function deliverDiscordReply(params: {
       payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []);
     const text = payload.text ?? "";
     if (!text && mediaList.length === 0) continue;
+    const replyTo = params.replyToId?.trim() || undefined;
 
     if (mediaList.length === 0) {
+      let isFirstChunk = true;
       for (const chunk of chunkDiscordText(text, {
         maxChars: chunkLimit,
         maxLines: params.maxLinesPerMessage,
@@ -1881,7 +1975,9 @@ async function deliverDiscordReply(params: {
           token: params.token,
           rest: params.rest,
           accountId: params.accountId,
+          replyTo: isFirstChunk ? replyTo : undefined,
         });
+        isFirstChunk = false;
       }
       continue;
     }
@@ -1893,6 +1989,7 @@ async function deliverDiscordReply(params: {
       rest: params.rest,
       mediaUrl: firstMedia,
       accountId: params.accountId,
+      replyTo,
     });
     for (const extra of mediaList.slice(1)) {
       await sendMessageDiscord(params.target, "", {
@@ -2446,7 +2543,11 @@ export function resolveDiscordShouldRequireMention(params: {
 }): boolean {
   if (!params.isGuildMessage) return false;
   if (params.isThread && params.channelConfig?.autoThread) return false;
-  return params.channelConfig?.requireMention ?? params.guildInfo?.requireMention ?? true;
+  return (
+    params.channelConfig?.requireMention ??
+    params.guildInfo?.requireMention ??
+    true
+  );
 }
 
 export function isDiscordGroupAllowedByPolicy(params: {

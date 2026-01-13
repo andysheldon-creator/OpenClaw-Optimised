@@ -44,6 +44,17 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
   );
 }
 
+function assertModelSelection(
+  storePath: string,
+  selection: { model?: string; provider?: string } = {},
+) {
+  const store = loadSessionStore(storePath);
+  const entry = store[MAIN_SESSION_KEY];
+  expect(entry).toBeDefined();
+  expect(entry?.modelOverride).toBe(selection.model);
+  expect(entry?.providerOverride).toBe(selection.provider);
+}
+
 describe("directive behavior", () => {
   beforeEach(() => {
     vi.mocked(runEmbeddedPiAgent).mockReset();
@@ -404,6 +415,120 @@ describe("directive behavior", () => {
         .filter(Boolean);
       expect(texts).toContain("done");
       expect(runEmbeddedPiAgent).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("applies inline reasoning in mixed messages and acks immediately", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "done" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+
+      const blockReplies: string[] = [];
+      const storePath = path.join(home, "sessions.json");
+
+      const res = await getReplyFromConfig(
+        {
+          Body: "please reply\n/reasoning on",
+          From: "+1222",
+          To: "+1222",
+          Provider: "whatsapp",
+        },
+        {
+          onBlockReply: (payload) => {
+            if (payload.text) blockReplies.push(payload.text);
+          },
+        },
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          whatsapp: {
+            allowFrom: ["*"],
+          },
+          session: { store: storePath },
+        },
+      );
+
+      const texts = (Array.isArray(res) ? res : [res])
+        .map((entry) => entry?.text)
+        .filter(Boolean);
+      expect(texts).toContain("done");
+
+      expect(runEmbeddedPiAgent).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("keeps reasoning acks for rapid mixed directives", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "ok" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+
+      const blockReplies: string[] = [];
+      const storePath = path.join(home, "sessions.json");
+
+      await getReplyFromConfig(
+        {
+          Body: "do it\n/reasoning on",
+          From: "+1222",
+          To: "+1222",
+          Provider: "whatsapp",
+        },
+        {
+          onBlockReply: (payload) => {
+            if (payload.text) blockReplies.push(payload.text);
+          },
+        },
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          whatsapp: { allowFrom: ["*"] },
+          session: { store: storePath },
+        },
+      );
+
+      await getReplyFromConfig(
+        {
+          Body: "again\n/reasoning on",
+          From: "+1222",
+          To: "+1222",
+          Provider: "whatsapp",
+        },
+        {
+          onBlockReply: (payload) => {
+            if (payload.text) blockReplies.push(payload.text);
+          },
+        },
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "clawd"),
+            },
+          },
+          whatsapp: { allowFrom: ["*"] },
+          session: { store: storePath },
+        },
+      );
+
+      expect(runEmbeddedPiAgent).toHaveBeenCalledTimes(2);
+      expect(blockReplies.length).toBe(0);
     });
   });
 
@@ -1636,7 +1761,7 @@ describe("directive behavior", () => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
       const storePath = path.join(home, "sessions.json");
 
-      const res = await getReplyFromConfig(
+      await getReplyFromConfig(
         { Body: "/model openai/gpt-4.1-mini", From: "+1222", To: "+1222" },
         {},
         {
@@ -1654,12 +1779,10 @@ describe("directive behavior", () => {
         },
       );
 
-      const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("Model set to openai/gpt-4.1-mini");
-      const store = loadSessionStore(storePath);
-      const entry = store["agent:main:main"];
-      expect(entry.modelOverride).toBe("gpt-4.1-mini");
-      expect(entry.providerOverride).toBe("openai");
+      assertModelSelection(storePath, {
+        model: "gpt-4.1-mini",
+        provider: "openai",
+      });
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -1669,7 +1792,7 @@ describe("directive behavior", () => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
       const storePath = path.join(home, "sessions.json");
 
-      const res = await getReplyFromConfig(
+      await getReplyFromConfig(
         { Body: "/model Opus", From: "+1222", To: "+1222" },
         {},
         {
@@ -1687,13 +1810,10 @@ describe("directive behavior", () => {
         },
       );
 
-      const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("Model set to Opus");
-      expect(text).toContain("anthropic/claude-opus-4-5");
-      const store = loadSessionStore(storePath);
-      const entry = store["agent:main:main"];
-      expect(entry.modelOverride).toBe("claude-opus-4-5");
-      expect(entry.providerOverride).toBe("anthropic");
+      assertModelSelection(storePath, {
+        model: "claude-opus-4-5",
+        provider: "anthropic",
+      });
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -1703,7 +1823,7 @@ describe("directive behavior", () => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
       const storePath = path.join(home, "sessions.json");
 
-      const res = await getReplyFromConfig(
+      await getReplyFromConfig(
         { Body: "/model kimi", From: "+1222", To: "+1222" },
         {},
         {
@@ -1732,12 +1852,10 @@ describe("directive behavior", () => {
         },
       );
 
-      const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("Model set to moonshot/kimi-k2-0905-preview");
-      const store = loadSessionStore(storePath);
-      const entry = store["agent:main:main"];
-      expect(entry.modelOverride).toBe("kimi-k2-0905-preview");
-      expect(entry.providerOverride).toBe("moonshot");
+      assertModelSelection(storePath, {
+        model: "kimi-k2-0905-preview",
+        provider: "moonshot",
+      });
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -1747,7 +1865,7 @@ describe("directive behavior", () => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
       const storePath = path.join(home, "sessions.json");
 
-      const res = await getReplyFromConfig(
+      await getReplyFromConfig(
         { Body: "/model kimi-k2-0905-preview", From: "+1222", To: "+1222" },
         {},
         {
@@ -1776,12 +1894,10 @@ describe("directive behavior", () => {
         },
       );
 
-      const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("Model set to moonshot/kimi-k2-0905-preview");
-      const store = loadSessionStore(storePath);
-      const entry = store["agent:main:main"];
-      expect(entry.modelOverride).toBe("kimi-k2-0905-preview");
-      expect(entry.providerOverride).toBe("moonshot");
+      assertModelSelection(storePath, {
+        model: "kimi-k2-0905-preview",
+        provider: "moonshot",
+      });
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
@@ -1791,7 +1907,7 @@ describe("directive behavior", () => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
       const storePath = path.join(home, "sessions.json");
 
-      const res = await getReplyFromConfig(
+      await getReplyFromConfig(
         { Body: "/model moonshot/kimi", From: "+1222", To: "+1222" },
         {},
         {
@@ -1820,12 +1936,154 @@ describe("directive behavior", () => {
         },
       );
 
-      const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text).toContain("Model set to moonshot/kimi-k2-0905-preview");
-      const store = loadSessionStore(storePath);
-      const entry = store["agent:main:main"];
-      expect(entry.modelOverride).toBe("kimi-k2-0905-preview");
-      expect(entry.providerOverride).toBe("moonshot");
+      assertModelSelection(storePath, {
+        model: "kimi-k2-0905-preview",
+        provider: "moonshot",
+      });
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
+  it("picks the best fuzzy match when multiple models match", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+      const storePath = path.join(home, "sessions.json");
+
+      await getReplyFromConfig(
+        { Body: "/model minimax", From: "+1222", To: "+1222" },
+        {},
+        {
+          agents: {
+            defaults: {
+              model: { primary: "minimax/MiniMax-M2.1" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "minimax/MiniMax-M2.1": {},
+                "minimax/MiniMax-M2.1-lightning": {},
+                "lmstudio/minimax-m2.1-gs32": {},
+              },
+            },
+          },
+          models: {
+            mode: "merge",
+            providers: {
+              minimax: {
+                baseUrl: "https://api.minimax.io/anthropic",
+                apiKey: "sk-test",
+                api: "anthropic-messages",
+                models: [{ id: "MiniMax-M2.1", name: "MiniMax M2.1" }],
+              },
+              lmstudio: {
+                baseUrl: "http://127.0.0.1:1234/v1",
+                apiKey: "lmstudio",
+                api: "openai-responses",
+                models: [
+                  { id: "minimax-m2.1-gs32", name: "MiniMax M2.1 GS32" },
+                ],
+              },
+            },
+          },
+          session: { store: storePath },
+        },
+      );
+
+      assertModelSelection(storePath);
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
+  it("picks the best fuzzy match within a provider", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+      const storePath = path.join(home, "sessions.json");
+
+      await getReplyFromConfig(
+        { Body: "/model minimax/m2.1", From: "+1222", To: "+1222" },
+        {},
+        {
+          agents: {
+            defaults: {
+              model: { primary: "minimax/MiniMax-M2.1" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "minimax/MiniMax-M2.1": {},
+                "minimax/MiniMax-M2.1-lightning": {},
+              },
+            },
+          },
+          models: {
+            mode: "merge",
+            providers: {
+              minimax: {
+                baseUrl: "https://api.minimax.io/anthropic",
+                apiKey: "sk-test",
+                api: "anthropic-messages",
+                models: [
+                  { id: "MiniMax-M2.1", name: "MiniMax M2.1" },
+                  {
+                    id: "MiniMax-M2.1-lightning",
+                    name: "MiniMax M2.1 Lightning",
+                  },
+                ],
+              },
+            },
+          },
+          session: { store: storePath },
+        },
+      );
+
+      assertModelSelection(storePath);
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
+
+  it("prefers alias matches when fuzzy selection is ambiguous", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+      const storePath = path.join(home, "sessions.json");
+
+      await getReplyFromConfig(
+        { Body: "/model ki", From: "+1222", To: "+1222" },
+        {},
+        {
+          agents: {
+            defaults: {
+              model: { primary: "anthropic/claude-opus-4-5" },
+              workspace: path.join(home, "clawd"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+                "moonshot/kimi-k2-0905-preview": { alias: "Kimi" },
+                "lmstudio/kimi-k2-0905-preview": {},
+              },
+            },
+          },
+          models: {
+            mode: "merge",
+            providers: {
+              moonshot: {
+                baseUrl: "https://api.moonshot.ai/v1",
+                apiKey: "sk-test",
+                api: "openai-completions",
+                models: [{ id: "kimi-k2-0905-preview", name: "Kimi K2" }],
+              },
+              lmstudio: {
+                baseUrl: "http://127.0.0.1:1234/v1",
+                apiKey: "lmstudio",
+                api: "openai-responses",
+                models: [
+                  { id: "kimi-k2-0905-preview", name: "Kimi K2 (Local)" },
+                ],
+              },
+            },
+          },
+          session: { store: storePath },
+        },
+      );
+
+      assertModelSelection(storePath, {
+        model: "kimi-k2-0905-preview",
+        provider: "moonshot",
+      });
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });

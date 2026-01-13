@@ -756,8 +756,8 @@ Controls how chat commands are enabled across connectors.
 Notes:
 - Text commands must be sent as a **standalone** message and use the leading `/` (no plain-text aliases).
 - `commands.text: false` disables parsing chat messages for commands.
-- `commands.native: true` registers native commands on supported connectors (Discord/Slack/Telegram). Platforms without native commands still rely on text commands.
-- `commands.native: false` skips native registration; Discord/Telegram clear previously registered commands on startup. Slack commands are managed in the Slack app.
+- `commands.native: "auto"` (default) turns on native commands for Discord/Telegram and leaves Slack off; unsupported providers stay text-only.
+- Set `commands.native: true|false` to force all, or override per provider with `discord.commands.native`, `telegram.commands.native`, `slack.commands.native` (bool or `"auto"`). `false` clears previously registered commands on Discord/Telegram at startup; Slack commands are managed in the Slack app.
 - `commands.config: true` enables `/config` (reads/writes `clawdbot.json`).
 - `commands.debug: true` enables `/debug` (runtime-only overrides).
 - `commands.restart: true` enables `/restart` and the gateway tool restart action.
@@ -852,6 +852,7 @@ Multi-account support lives under `discord.accounts` (see the multi-account sect
     enabled: true,
     token: "your-bot-token",
     mediaMaxMb: 8,                          // clamp inbound media size
+    allowBots: false,                       // allow bot-authored messages
     actions: {                              // tool action gates (false disables)
       reactions: true,
       stickers: true,
@@ -910,6 +911,7 @@ Multi-account support lives under `discord.accounts` (see the multi-account sect
 
 Clawdbot starts Discord only when a `discord` config section exists. The token is resolved from `DISCORD_BOT_TOKEN` or `discord.token` (unless `discord.enabled` is `false`). Use `user:<id>` (DM) or `channel:<id>` (guild channel) when specifying delivery targets for cron/CLI commands; bare numeric IDs are ambiguous and rejected.
 Guild slugs are lowercase with spaces replaced by `-`; channel keys use the slugged channel name (no leading `#`). Prefer guild ids as keys to avoid rename ambiguity.
+Bot-authored messages are ignored by default. Enable with `discord.allowBots` (own messages are still filtered to prevent self-reply loops).
 Reaction notification modes:
 - `off`: no reaction events.
 - `own`: reactions on the bot's own messages (default).
@@ -1562,6 +1564,7 @@ Defaults (if enabled):
 - auto-prune: idle > 24h OR age > 7d
 - tool policy: allow only `exec`, `process`, `read`, `write`, `edit`, `apply_patch`, `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `session_status` (deny wins)
   - configure via `tools.sandbox.tools`, override per-agent via `agents.list[].tools.sandbox.tools`
+  - tool group shorthands supported in sandbox policy: `group:runtime`, `group:fs`, `group:sessions`, `group:memory` (see [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated#tool-groups-shorthands))
 - optional sandboxed browser (Chromium + CDP, noVNC observer)
 - hardening knobs: `network`, `user`, `pidsLimit`, `memory`, `cpus`, `ulimits`, `seccompProfile`, `apparmorProfile`
 
@@ -1603,7 +1606,8 @@ Legacy: `perSession` is still supported (`true` → `scope: "session"`,
           seccompProfile: "/path/to/seccomp.json",
           apparmorProfile: "clawdbot-sandbox",
           dns: ["1.1.1.1", "8.8.8.8"],
-          extraHosts: ["internal.service:10.0.0.5"]
+          extraHosts: ["internal.service:10.0.0.5"],
+          binds: ["/var/run/docker.sock:/var/run/docker.sock", "/home/user/source:/source:rw"]
         },
         browser: {
           enabled: false,
@@ -1648,6 +1652,8 @@ Note: sandbox containers default to `network: "none"`; set `agents.defaults.sand
 to `"bridge"` (or your custom network) if the agent needs outbound access.
 
 Note: inbound attachments are staged into the active workspace at `media/inbound/*`. With `workspaceAccess: "rw"`, that means files are written into the agent workspace.
+
+Note: `docker.binds` mounts additional host directories; global and per-agent binds are merged.
 
 Build the optional browser image with:
 ```bash

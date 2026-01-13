@@ -248,6 +248,14 @@ const ToolsAudioTranscriptionSchema = z
   })
   .optional();
 
+const NativeCommandsSettingSchema = z.union([z.boolean(), z.literal("auto")]);
+
+const ProviderCommandsSchema = z
+  .object({
+    native: NativeCommandsSettingSchema.optional(),
+  })
+  .optional();
+
 const TelegramTopicSchema = z.object({
   requireMention: z.boolean().optional(),
   skills: z.array(z.string()).optional(),
@@ -269,6 +277,7 @@ const TelegramAccountSchemaBase = z.object({
   name: z.string().optional(),
   capabilities: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
+  commands: ProviderCommandsSchema,
   dmPolicy: DmPolicySchema.optional().default("pairing"),
   botToken: z.string().optional(),
   tokenFile: z.string().optional(),
@@ -367,7 +376,9 @@ const DiscordAccountSchema = z.object({
   name: z.string().optional(),
   capabilities: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
+  commands: ProviderCommandsSchema,
   token: z.string().optional(),
+  allowBots: z.boolean().optional(),
   groupPolicy: GroupPolicySchema.optional().default("allowlist"),
   historyLimit: z.number().int().min(0).optional(),
   dmHistoryLimit: z.number().int().min(0).optional(),
@@ -439,6 +450,7 @@ const SlackAccountSchema = z.object({
   name: z.string().optional(),
   capabilities: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
+  commands: ProviderCommandsSchema,
   botToken: z.string().optional(),
   appToken: z.string().optional(),
   allowBots: z.boolean().optional(),
@@ -710,14 +722,15 @@ const MessagesSchema = z
 
 const CommandsSchema = z
   .object({
-    native: z.boolean().optional(),
+    native: NativeCommandsSettingSchema.optional().default("auto"),
     text: z.boolean().optional(),
     config: z.boolean().optional(),
     debug: z.boolean().optional(),
     restart: z.boolean().optional(),
     useAccessGroups: z.boolean().optional(),
   })
-  .optional();
+  .optional()
+  .default({ native: "auto" });
 
 const HeartbeatSchema = z
   .object({
@@ -1744,6 +1757,7 @@ export const ClawdbotSchema = z
       })
       .optional(),
   })
+  .passthrough()
   .superRefine((cfg, ctx) => {
     const agents = cfg.agents?.list ?? [];
     if (agents.length === 0) return;

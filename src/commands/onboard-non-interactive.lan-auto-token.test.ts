@@ -3,7 +3,7 @@ import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
 
 import { PROTOCOL_VERSION } from "../gateway/protocol/index.js";
@@ -143,6 +143,16 @@ describe("onboard (non-interactive): lan bind auto-token", () => {
         throw new Error(`exit:${code}`);
       },
     };
+
+    // Other test files mock ../config/config.js. This onboarding flow needs the real
+    // implementation so it can persist the config and then read it back (Windows CI
+    // otherwise sees a mocked writeConfigFile and the config never lands on disk).
+    vi.resetModules();
+    vi.doMock("../config/config.js", async () => {
+      return (await vi.importActual(
+        "../config/config.js",
+      )) as typeof import("../config/config.js");
+    });
 
     const { runNonInteractiveOnboarding } = await import(
       "./onboard-non-interactive.js"

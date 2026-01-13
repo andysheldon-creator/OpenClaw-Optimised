@@ -1,4 +1,6 @@
 # Repository Guidelines
+- Repo: https://github.com/clawdbot/clawdbot
+- GitHub issues: use literal multiline strings or $'...' for newlines; avoid "\\n" escapes in `gh issue create/edit`.
 
 ## Project Structure & Module Organization
 - Source code: `src/` (CLI wiring in `src/cli`, commands in `src/commands`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).
@@ -11,6 +13,7 @@
 - Internal doc links in `docs/**/*.md`: root-relative, no `.md`/`.mdx` (example: `[Config](/configuration)`).
 - Section cross-references: use anchors on root-relative paths (example: `[Hooks](/configuration#hooks)`).
 - When Peter asks for links, reply with full `https://docs.clawd.bot/...` URLs (not root-relative).
+- When you touch docs, end the reply with the `https://docs.clawd.bot/...` URLs you referenced.
 - README (GitHub): keep absolute docs URLs (`https://docs.clawd.bot/...`) so links work on GitHub.
 - Docs content must be generic: no personal device names/hostnames/paths; use placeholders like `user@gateway-host` and “gateway host”.
 

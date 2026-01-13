@@ -297,6 +297,16 @@ export function formatAssistantErrorText(
     );
   }
 
+  // Check for role ordering errors (Anthropic 400 "Incorrect role information")
+  // This typically happens when consecutive user messages are sent without
+  // an assistant response between them, often due to steering/queueing timing.
+  if (/incorrect role information|roles must alternate/i.test(raw)) {
+    return (
+      "Message ordering conflict - please try again. " +
+      "If this persists, use /new to start a fresh session."
+    );
+  }
+
   const invalidRequest = raw.match(
     /"type":"invalid_request_error".*?"message":"([^"]+)"/,
   );
@@ -553,6 +563,83 @@ export function validateGeminiTurns(messages: AgentMessage[]): AgentMessage[] {
   return result;
 }
 
+export function mergeConsecutiveUserTurns(
+  previous: Extract<AgentMessage, { role: "user" }>,
+  current: Extract<AgentMessage, { role: "user" }>,
+): Extract<AgentMessage, { role: "user" }> {
+  const mergedContent = [
+    ...(Array.isArray(previous.content) ? previous.content : []),
+    ...(Array.isArray(current.content) ? current.content : []),
+  ];
+
+  // Preserve newest metadata while backfilling timestamp if the latest is missing.
+  return {
+    ...current, // newest wins for metadata
+    content: mergedContent,
+    timestamp: current.timestamp ?? previous.timestamp,
+  };
+}
+
+/**
+ * Validates and fixes conversation turn sequences for Anthropic API.
+ * Anthropic requires strict alternating user→assistant pattern.
+ * This function:
+ * 1. Detects consecutive user messages
+ * 2. Merges consecutive user messages together
+ * 3. Preserves timestamps from the later message
+ *
+ * This prevents the "400 Incorrect role information" error that occurs
+ * when steering messages are injected during streaming and create
+ * consecutive user messages.
+ */
+export function validateAnthropicTurns(
+  messages: AgentMessage[],
+): AgentMessage[] {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return messages;
+  }
+
+  const result: AgentMessage[] = [];
+  let lastRole: string | undefined;
+
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object") {
+      result.push(msg);
+      continue;
+    }
+
+    const msgRole = (msg as { role?: unknown }).role as string | undefined;
+    if (!msgRole) {
+      result.push(msg);
+      continue;
+    }
+
+    // Check if this message has the same role as the last one
+    if (msgRole === lastRole && lastRole === "user") {
+      // Merge consecutive user messages. Base on the newest message so we keep
+      // fresh metadata (attachments, timestamps, future fields) while
+      // appending prior content.
+      const lastMsg = result[result.length - 1];
+      const currentMsg = msg as Extract<AgentMessage, { role: "user" }>;
+
+      if (lastMsg && typeof lastMsg === "object") {
+        const lastUser = lastMsg as Extract<AgentMessage, { role: "user" }>;
+        const merged = mergeConsecutiveUserTurns(lastUser, currentMsg);
+
+        // Replace the last message with merged version
+        result[result.length - 1] = merged;
+        continue;
+      }
+    }
+
+    // Not a consecutive duplicate, add normally
+    result.push(msg);
+    lastRole = msgRole;
+  }
+
+  return result;
+}
+
 // ── Messaging tool duplicate detection ──────────────────────────────────────
 // When the agent uses a messaging tool (telegram, discord, slack, message, sessions_send)
 // to send a message, we track the text so we can suppress duplicate block replies.
@@ -616,4 +703,149 @@ export function isMessagingToolDuplicate(
     normalized,
     sentTexts.map(normalizeTextForComparison),
   );
+}
+
+/**
+ * Downgrades tool calls that are missing `thought_signature` (required by Gemini)
+ * into text representations, to prevent 400 INVALID_ARGUMENT errors.
+ * Also converts corresponding tool results into user messages.
+ */
+type GeminiToolCallBlock = {
+  type?: unknown;
+  thought_signature?: unknown;
+  id?: unknown;
+  toolCallId?: unknown;
+  name?: unknown;
+  toolName?: unknown;
+  arguments?: unknown;
+  input?: unknown;
+};
+
+export function downgradeGeminiHistory(
+  messages: AgentMessage[],
+): AgentMessage[] {
+  const downgradedIds = new Set<string>();
+  const out: AgentMessage[] = [];
+
+  const resolveToolResultId = (
+    msg: Extract<AgentMessage, { role: "toolResult" }>,
+  ): string | undefined => {
+    const toolCallId = (msg as { toolCallId?: unknown }).toolCallId;
+    if (typeof toolCallId === "string" && toolCallId) return toolCallId;
+    const toolUseId = (msg as { toolUseId?: unknown }).toolUseId;
+    if (typeof toolUseId === "string" && toolUseId) return toolUseId;
+    return undefined;
+  };
+
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object") {
+      out.push(msg);
+      continue;
+    }
+
+    const role = (msg as { role?: unknown }).role;
+
+    if (role === "assistant") {
+      const assistantMsg = msg as Extract<AgentMessage, { role: "assistant" }>;
+      if (!Array.isArray(assistantMsg.content)) {
+        out.push(msg);
+        continue;
+      }
+
+      let hasDowngraded = false;
+      const newContent = assistantMsg.content.map((block) => {
+        if (!block || typeof block !== "object") return block;
+        const blockRecord = block as GeminiToolCallBlock;
+        const type = blockRecord.type;
+
+        // Check for tool calls / function calls
+        if (
+          type === "toolCall" ||
+          type === "functionCall" ||
+          type === "toolUse"
+        ) {
+          // Check if thought_signature is missing
+          // Note: TypeScript doesn't know about thought_signature on standard types
+          const hasSignature = Boolean(blockRecord.thought_signature);
+
+          if (!hasSignature) {
+            const id =
+              typeof blockRecord.id === "string"
+                ? blockRecord.id
+                : typeof blockRecord.toolCallId === "string"
+                  ? blockRecord.toolCallId
+                  : undefined;
+            const name =
+              typeof blockRecord.name === "string"
+                ? blockRecord.name
+                : typeof blockRecord.toolName === "string"
+                  ? blockRecord.toolName
+                  : undefined;
+            const args =
+              blockRecord.arguments !== undefined
+                ? blockRecord.arguments
+                : blockRecord.input;
+
+            if (id) downgradedIds.add(id);
+            hasDowngraded = true;
+
+            const argsText =
+              typeof args === "string" ? args : JSON.stringify(args, null, 2);
+
+            return {
+              type: "text",
+              text: `[Tool Call: ${name ?? "unknown"}${
+                id ? ` (ID: ${id})` : ""
+              }]\nArguments: ${argsText}`,
+            };
+          }
+        }
+        return block;
+      });
+
+      if (hasDowngraded) {
+        out.push({ ...assistantMsg, content: newContent } as AgentMessage);
+      } else {
+        out.push(msg);
+      }
+      continue;
+    }
+
+    if (role === "toolResult") {
+      const toolMsg = msg as Extract<AgentMessage, { role: "toolResult" }>;
+      const toolResultId = resolveToolResultId(toolMsg);
+      if (toolResultId && downgradedIds.has(toolResultId)) {
+        // Convert to User message
+        let textContent = "";
+        if (Array.isArray(toolMsg.content)) {
+          textContent = toolMsg.content
+            .map((entry) => {
+              if (entry && typeof entry === "object") {
+                const text = (entry as { text?: unknown }).text;
+                if (typeof text === "string") return text;
+              }
+              return JSON.stringify(entry);
+            })
+            .join("\n");
+        } else {
+          textContent = JSON.stringify(toolMsg.content);
+        }
+
+        out.push({
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `[Tool Result for ID ${toolResultId}]\n${textContent}`,
+            },
+          ],
+        } as AgentMessage);
+
+        continue;
+      }
+    }
+
+    out.push(msg);
+  }
+  return out;
 }

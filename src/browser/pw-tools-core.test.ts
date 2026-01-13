@@ -1,3 +1,4 @@
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let currentPage: Record<string, unknown> | null = null;
@@ -306,10 +307,11 @@ describe("pw-tools-core", () => {
     currentPage = { on, off };
 
     const mod = await importModule();
+    const targetPath = path.resolve("/tmp/file.bin");
     const p = mod.waitForDownloadViaPlaywright({
       cdpUrl: "http://127.0.0.1:18792",
       targetId: "T1",
-      path: "/tmp/file.bin",
+      path: targetPath,
       timeoutMs: 1000,
     });
 
@@ -318,8 +320,8 @@ describe("pw-tools-core", () => {
     downloadHandler?.(download);
 
     const res = await p;
-    expect(saveAs).toHaveBeenCalledWith("/tmp/file.bin");
-    expect(res.path).toBe("/tmp/file.bin");
+    expect(saveAs).toHaveBeenCalledWith(targetPath);
+    expect(res.path).toBe(targetPath);
   });
 
   it("clicks a ref and saves the resulting download", async () => {
@@ -342,11 +344,12 @@ describe("pw-tools-core", () => {
     currentPage = { on, off };
 
     const mod = await importModule();
+    const targetPath = path.resolve("/tmp/report.pdf");
     const p = mod.downloadViaPlaywright({
       cdpUrl: "http://127.0.0.1:18792",
       targetId: "T1",
       ref: "e12",
-      path: "/tmp/report.pdf",
+      path: targetPath,
       timeoutMs: 1000,
     });
 
@@ -357,8 +360,8 @@ describe("pw-tools-core", () => {
     downloadHandler?.(download);
 
     const res = await p;
-    expect(saveAs).toHaveBeenCalledWith("/tmp/report.pdf");
-    expect(res.path).toBe("/tmp/report.pdf");
+    expect(saveAs).toHaveBeenCalledWith(targetPath);
+    expect(res.path).toBe(targetPath);
   });
 
   it("waits for a matching response and returns its body", async () => {
@@ -394,6 +397,90 @@ describe("pw-tools-core", () => {
     expect(res.status).toBe(200);
     expect(res.body).toBe('{"ok":true');
     expect(res.truncated).toBe(true);
+  });
+
+  it("scrolls a ref into view (default timeout)", async () => {
+    const scrollIntoViewIfNeeded = vi.fn(async () => {});
+    currentRefLocator = { scrollIntoViewIfNeeded };
+    currentPage = {};
+
+    const mod = await importModule();
+    await mod.scrollIntoViewViaPlaywright({
+      cdpUrl: "http://127.0.0.1:18792",
+      targetId: "T1",
+      ref: "1",
+    });
+
+    expect(sessionMocks.refLocator).toHaveBeenCalledWith(currentPage, "1");
+    expect(scrollIntoViewIfNeeded).toHaveBeenCalledWith({ timeout: 20_000 });
+  });
+
+  it("requires a ref for scrollIntoView", async () => {
+    currentRefLocator = { scrollIntoViewIfNeeded: vi.fn(async () => {}) };
+    currentPage = {};
+
+    const mod = await importModule();
+    await expect(
+      mod.scrollIntoViewViaPlaywright({
+        cdpUrl: "http://127.0.0.1:18792",
+        targetId: "T1",
+        ref: "   ",
+      }),
+    ).rejects.toThrow(/ref is required/i);
+  });
+
+  it("clamps timeoutMs for scrollIntoView", async () => {
+    const scrollIntoViewIfNeeded = vi.fn(async () => {});
+    currentRefLocator = { scrollIntoViewIfNeeded };
+    currentPage = {};
+
+    const mod = await importModule();
+    await mod.scrollIntoViewViaPlaywright({
+      cdpUrl: "http://127.0.0.1:18792",
+      targetId: "T1",
+      ref: "1",
+      timeoutMs: 50,
+    });
+
+    expect(scrollIntoViewIfNeeded).toHaveBeenCalledWith({ timeout: 500 });
+  });
+
+  it("rewrites strict mode violations for scrollIntoView", async () => {
+    const scrollIntoViewIfNeeded = vi.fn(async () => {
+      throw new Error(
+        'Error: strict mode violation: locator("aria-ref=1") resolved to 2 elements',
+      );
+    });
+    currentRefLocator = { scrollIntoViewIfNeeded };
+    currentPage = {};
+
+    const mod = await importModule();
+    await expect(
+      mod.scrollIntoViewViaPlaywright({
+        cdpUrl: "http://127.0.0.1:18792",
+        targetId: "T1",
+        ref: "1",
+      }),
+    ).rejects.toThrow(/Run a new snapshot/i);
+  });
+
+  it("rewrites not-visible timeouts for scrollIntoView", async () => {
+    const scrollIntoViewIfNeeded = vi.fn(async () => {
+      throw new Error(
+        'Timeout 5000ms exceeded. waiting for locator("aria-ref=1") to be visible',
+      );
+    });
+    currentRefLocator = { scrollIntoViewIfNeeded };
+    currentPage = {};
+
+    const mod = await importModule();
+    await expect(
+      mod.scrollIntoViewViaPlaywright({
+        cdpUrl: "http://127.0.0.1:18792",
+        targetId: "T1",
+        ref: "1",
+      }),
+    ).rejects.toThrow(/not found or not visible/i);
   });
 
   it("rewrites strict mode violations into snapshot hints", async () => {

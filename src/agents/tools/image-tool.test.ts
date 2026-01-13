@@ -28,6 +28,10 @@ describe("image tool implicit imageModel config", () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("ANTHROPIC_OAUTH_TOKEN", "");
     vi.stubEnv("MINIMAX_API_KEY", "");
+    // Avoid implicit Copilot provider discovery hitting the network in tests.
+    vi.stubEnv("COPILOT_GITHUB_TOKEN", "");
+    vi.stubEnv("GH_TOKEN", "");
+    vi.stubEnv("GITHUB_TOKEN", "");
   });
 
   afterEach(() => {
@@ -182,7 +186,7 @@ describe("image tool implicit imageModel config", () => {
 
     const res = await tool.execute("t1", {
       prompt: "Describe the image.",
-      image: "/Users/steipete/.clawdbot/media/inbound/photo.png",
+      image: "@/Users/steipete/.clawdbot/media/inbound/photo.png",
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -216,6 +220,9 @@ describe("image tool MiniMax VLM routing", () => {
 
   beforeEach(() => {
     vi.stubEnv("MINIMAX_API_KEY", "");
+    vi.stubEnv("COPILOT_GITHUB_TOKEN", "");
+    vi.stubEnv("GH_TOKEN", "");
+    vi.stubEnv("GITHUB_TOKEN", "");
   });
 
   afterEach(() => {

@@ -174,7 +174,7 @@ Private chats can include `message_thread_id` in some edge cases. Clawdbot keeps
   - `clawdbot pairing list telegram`
   - `clawdbot pairing approve telegram <CODE>`
 - Pairing is the default token exchange used for Telegram DMs. Details: [Pairing](/start/pairing)
-- `telegram.allowFrom` accepts numeric user IDs (recommended) or `@username` entries.
+- `telegram.allowFrom` accepts numeric user IDs (recommended) or `@username` entries. It is **not** the bot username; use the human sender’s ID (get it from `@userinfobot` or the `from.id` field in the gateway log).
 
 ### Group access
 
@@ -315,5 +315,5 @@ Provider options:
 Related global options:
 - `agents.list[].groupChat.mentionPatterns` (mention gating patterns).
 - `messages.groupChat.mentionPatterns` (global fallback).
-- `commands.native`, `commands.text`, `commands.useAccessGroups` (command behavior).
+- `commands.native` (defaults to `"auto"` → on for Telegram/Discord, off for Slack), `commands.text`, `commands.useAccessGroups` (command behavior). Override with `telegram.commands.native`.
 - `messages.responsePrefix`, `messages.ackReaction`, `messages.ackReactionScope`, `messages.removeAckAfterReply`.

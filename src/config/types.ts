@@ -359,6 +359,8 @@ export type TelegramAccountConfig = {
   name?: string;
   /** Optional provider capability tags used for agent/runtime guidance. */
   capabilities?: string[];
+  /** Override native command registration for Telegram (bool or "auto"). */
+  commands?: ProviderCommandsConfig;
   /**
    * Controls how Telegram direct chats (DMs) are handled:
    * - "pairing" (default): unknown senders get a pairing code; owner must approve
@@ -510,9 +512,13 @@ export type DiscordAccountConfig = {
   name?: string;
   /** Optional provider capability tags used for agent/runtime guidance. */
   capabilities?: string[];
+  /** Override native command registration for Discord (bool or "auto"). */
+  commands?: ProviderCommandsConfig;
   /** If false, do not start this Discord account. Default: true. */
   enabled?: boolean;
   token?: string;
+  /** Allow bot-authored messages to trigger replies (default: false). */
+  allowBots?: boolean;
   /**
    * Controls how guild channel messages are handled:
    * - "open": guild channels bypass allowlists; mention-gating applies
@@ -619,6 +625,8 @@ export type SlackAccountConfig = {
   name?: string;
   /** Optional provider capability tags used for agent/runtime guidance. */
   capabilities?: string[];
+  /** Override native command registration for Slack (bool or "auto"). */
+  commands?: ProviderCommandsConfig;
   /** If false, do not start this Slack account. Default: true. */
   enabled?: boolean;
   botToken?: string;
@@ -914,6 +922,8 @@ export type SandboxDockerSettings = {
   dns?: string[];
   /** Extra host mappings (e.g. ["api.local:10.0.0.2"]). */
   extraHosts?: string[];
+  /** Additional bind mounts (host:container:mode format, e.g. ["/host/path:/container/path:rw"]). */
+  binds?: string[];
 };
 
 export type SandboxBrowserSettings = {
@@ -1207,9 +1217,11 @@ export type MessagesConfig = {
   removeAckAfterReply?: boolean;
 };
 
+export type NativeCommandsSetting = boolean | "auto";
+
 export type CommandsConfig = {
-  /** Enable native command registration when supported (default: false). */
-  native?: boolean;
+  /** Enable native command registration when supported (default: "auto"). */
+  native?: NativeCommandsSetting;
   /** Enable text command parsing (default: true). */
   text?: boolean;
   /** Allow /config command (default: false). */
@@ -1220,6 +1232,11 @@ export type CommandsConfig = {
   restart?: boolean;
   /** Enforce access-group allowlists/policies for commands (default: true). */
   useAccessGroups?: boolean;
+};
+
+export type ProviderCommandsConfig = {
+  /** Override native command registration for this provider (bool or "auto"). */
+  native?: NativeCommandsSetting;
 };
 
 export type BridgeBindMode = "auto" | "lan" | "tailnet" | "loopback";

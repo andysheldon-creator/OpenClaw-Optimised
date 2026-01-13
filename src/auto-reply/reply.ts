@@ -40,6 +40,7 @@ import {
 import { normalizeMainKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
 import { INTERNAL_MESSAGE_PROVIDER } from "../utils/message-provider.js";
+import { isReasoningTagProvider } from "../utils/provider-utils.js";
 import { resolveCommandAuthorization } from "./command-auth.js";
 import { hasControlCommand } from "./command-detection.js";
 import {
@@ -57,6 +58,7 @@ import {
   handleCommands,
 } from "./reply/commands.js";
 import {
+  applyInlineDirectivesFastLane,
   handleDirectiveOnly,
   type InlineDirectives,
   isDirectiveOnly,
@@ -157,6 +159,8 @@ const INLINE_SIMPLE_COMMAND_ALIASES = new Map<string, string>([
 const INLINE_SIMPLE_COMMAND_RE =
   /(?:^|\s)\/(help|commands|whoami|id)(?=$|\s|:)/i;
 
+const INLINE_STATUS_RE = /(?:^|\s)\/(?:status|usage)(?=$|\s|:)(?:\s*:\s*)?/gi;
+
 function extractInlineSimpleCommand(body?: string): {
   command: string;
   cleaned: string;
@@ -169,6 +173,19 @@ function extractInlineSimpleCommand(body?: string): {
   if (!command) return null;
   const cleaned = body.replace(match[0], " ").replace(/\s+/g, " ").trim();
   return { command, cleaned };
+}
+
+function stripInlineStatus(body: string): {
+  cleaned: string;
+  didStrip: boolean;
+} {
+  const trimmed = body.trim();
+  if (!trimmed) return { cleaned: "", didStrip: false };
+  const cleaned = trimmed
+    .replace(INLINE_STATUS_RE, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return { cleaned, didStrip: cleaned !== trimmed };
 }
 
 function resolveElevatedAllowList(
@@ -589,6 +606,10 @@ export async function getReplyFromConfig(
     return `${head}${cleanedTail}`;
   })();
 
+  if (allowStatusDirective) {
+    cleanedBody = stripInlineStatus(cleanedBody).cleaned;
+  }
+
   sessionCtx.Body = cleanedBody;
   sessionCtx.BodyStripped = cleanedBody;
 
@@ -708,6 +729,9 @@ export async function getReplyFromConfig(
   const inlineStatusRequested =
     hasInlineStatus && allowTextCommands && command.isAuthorizedSender;
 
+  // Inline control directives should apply immediately, even when mixed with text.
+  let directiveAck: ReplyPayload | undefined;
+
   if (!command.isAuthorizedSender) {
     directives = {
       ...directives,
@@ -805,6 +829,54 @@ export async function getReplyFromConfig(
       return { text: `${directiveReply.text}\n${statusReply.text}` };
     }
     return statusReply ?? directiveReply;
+  }
+
+  const hasAnyDirective =
+    directives.hasThinkDirective ||
+    directives.hasVerboseDirective ||
+    directives.hasReasoningDirective ||
+    directives.hasElevatedDirective ||
+    directives.hasModelDirective ||
+    directives.hasQueueDirective ||
+    directives.hasStatusDirective;
+
+  if (hasAnyDirective && command.isAuthorizedSender) {
+    const fastLane = await applyInlineDirectivesFastLane({
+      directives,
+      commandAuthorized: command.isAuthorizedSender,
+      ctx,
+      cfg,
+      agentId,
+      isGroup,
+      sessionEntry,
+      sessionStore,
+      sessionKey,
+      storePath,
+      elevatedEnabled,
+      elevatedAllowed,
+      elevatedFailures,
+      messageProviderKey,
+      defaultProvider,
+      defaultModel,
+      aliasIndex,
+      allowedModelKeys: modelState.allowedModelKeys,
+      allowedModelCatalog: modelState.allowedModelCatalog,
+      resetModelOverride: modelState.resetModelOverride,
+      provider,
+      model,
+      initialModelLabel,
+      formatModelSwitchEvent,
+      agentCfg,
+      modelState: {
+        resolveDefaultThinkingLevel: modelState.resolveDefaultThinkingLevel,
+        allowedModelKeys: modelState.allowedModelKeys,
+        allowedModelCatalog: modelState.allowedModelCatalog,
+        resetModelOverride: modelState.resetModelOverride,
+      },
+    });
+    directiveAck = fastLane.directiveAck;
+    provider = fastLane.provider;
+    model = fastLane.model;
   }
 
   const persisted = await persistInlineDirectives({
@@ -928,6 +1000,10 @@ export async function getReplyFromConfig(
       }
       await sendInlineReply(inlineResult.reply);
     }
+  }
+
+  if (directiveAck) {
+    await sendInlineReply(directiveAck);
   }
 
   const isEmptyConfig = Object.keys(cfg).length === 0;
@@ -1198,7 +1274,7 @@ export async function getReplyFromConfig(
       ownerNumbers:
         command.ownerList.length > 0 ? command.ownerList : undefined,
       extraSystemPrompt: extraSystemPrompt || undefined,
-      ...(provider === "ollama" ? { enforceFinalTag: true } : {}),
+      ...(isReasoningTagProvider(provider) ? { enforceFinalTag: true } : {}),
     },
   };
 

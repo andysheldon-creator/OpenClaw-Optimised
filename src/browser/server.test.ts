@@ -2,6 +2,7 @@ import { type AddressInfo, createServer } from "node:net";
 import { fetch as realFetch } from "undici";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "./constants.js";
 
 let testPort = 0;
 let cdpBaseUrl = "";
@@ -34,6 +35,7 @@ const pwMocks = vi.hoisted(() => ({
   fillFormViaPlaywright: vi.fn(async () => {}),
   getConsoleMessagesViaPlaywright: vi.fn(async () => []),
   hoverViaPlaywright: vi.fn(async () => {}),
+  scrollIntoViewViaPlaywright: vi.fn(async () => {}),
   navigateViaPlaywright: vi.fn(async () => ({ url: "https://example.com" })),
   pdfViaPlaywright: vi.fn(async () => ({ buffer: Buffer.from("pdf") })),
   pressKeyViaPlaywright: vi.fn(async () => {}),
@@ -328,6 +330,7 @@ describe("browser control server", () => {
     expect(pwMocks.snapshotAiViaPlaywright).toHaveBeenCalledWith({
       cdpUrl: cdpBaseUrl,
       targetId: "abcd1234",
+      maxChars: DEFAULT_AI_SNAPSHOT_MAX_CHARS,
     });
 
     const nav = (await realFetch(`${base}/navigate`, {
@@ -411,6 +414,18 @@ describe("browser control server", () => {
     }).then((r) => r.json())) as { ok: boolean };
     expect(hover.ok).toBe(true);
     expect(pwMocks.hoverViaPlaywright).toHaveBeenCalledWith({
+      cdpUrl: cdpBaseUrl,
+      targetId: "abcd1234",
+      ref: "2",
+    });
+
+    const scroll = (await realFetch(`${base}/act`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "scrollIntoView", ref: "2" }),
+    }).then((r) => r.json())) as { ok: boolean };
+    expect(scroll.ok).toBe(true);
+    expect(pwMocks.scrollIntoViewViaPlaywright).toHaveBeenCalledWith({
       cdpUrl: cdpBaseUrl,
       targetId: "abcd1234",
       ref: "2",
@@ -672,6 +687,25 @@ describe("browser control server", () => {
     expect(stopped.stopped).toBe(true);
   });
 
+  it("skips default maxChars when explicitly set to zero", async () => {
+    const { startBrowserControlServerFromConfig } = await import("./server.js");
+    await startBrowserControlServerFromConfig();
+    const base = `http://127.0.0.1:${testPort}`;
+    await realFetch(`${base}/start`, { method: "POST" }).then((r) => r.json());
+
+    const snapAi = (await realFetch(
+      `${base}/snapshot?format=ai&maxChars=0`,
+    ).then((r) => r.json())) as { ok: boolean; format?: string };
+    expect(snapAi.ok).toBe(true);
+    expect(snapAi.format).toBe("ai");
+
+    const [call] = pwMocks.snapshotAiViaPlaywright.mock.calls.at(-1) ?? [];
+    expect(call).toEqual({
+      cdpUrl: cdpBaseUrl,
+      targetId: "abcd1234",
+    });
+  });
+
   it("validates agent inputs (agent routes)", async () => {
     const { startBrowserControlServerFromConfig } = await import("./server.js");
     await startBrowserControlServerFromConfig();
@@ -698,6 +732,20 @@ describe("browser control server", () => {
       body: JSON.stringify({ kind: "click" }),
     });
     expect(clickMissingRef.status).toBe(400);
+
+    const scrollMissingRef = await realFetch(`${base}/act`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "scrollIntoView" }),
+    });
+    expect(scrollMissingRef.status).toBe(400);
+
+    const scrollSelectorUnsupported = await realFetch(`${base}/act`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "scrollIntoView", selector: "button.save" }),
+    });
+    expect(scrollSelectorUnsupported.status).toBe(400);
 
     const clickBadButton = await realFetch(`${base}/act`, {
       method: "POST",

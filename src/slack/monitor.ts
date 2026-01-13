@@ -34,10 +34,12 @@ import {
   buildMentionRegexes,
   matchesMentionPatterns,
 } from "../auto-reply/reply/mentions.js";
+import { dispatchReplyWithDispatcher } from "../auto-reply/reply/provider-dispatcher.js";
 import { createReplyDispatcherWithTyping } from "../auto-reply/reply/reply-dispatcher.js";
-import { getReplyFromConfig } from "../auto-reply/reply.js";
+import { createReplyReferencePlanner } from "../auto-reply/reply/reply-reference.js";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
+import { resolveNativeCommandsEnabled } from "../config/commands.js";
 import type {
   ClawdbotConfig,
   SlackReactionNotificationMode,
@@ -1134,6 +1136,12 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     // Shared mutable ref for tracking if a reply was sent (used by both
     // auto-reply path and tool path for "first" threading mode).
     const hasRepliedRef = { value: false };
+    const replyPlan = createSlackReplyDeliveryPlan({
+      replyToMode,
+      incomingThreadTs,
+      messageTs,
+      hasRepliedRef,
+    });
     const onReplyStart = async () => {
       didSetStatus = true;
       await setSlackThreadStatus({
@@ -1149,12 +1157,7 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
           .responsePrefix,
         humanDelay: resolveHumanDelayConfig(cfg, route.agentId),
         deliver: async (payload) => {
-          const effectiveThreadTs = resolveSlackThreadTs({
-            replyToMode,
-            incomingThreadTs,
-            messageTs,
-            hasReplied: hasRepliedRef.value,
-          });
+          const replyThreadTs = replyPlan.nextThreadTs();
           await deliverReplies({
             replies: [payload],
             target: replyTarget,
@@ -1162,10 +1165,10 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
             accountId: account.accountId,
             runtime,
             textLimit,
-            replyThreadTs: effectiveThreadTs,
+            replyThreadTs,
           });
           didSendReply = true;
-          hasRepliedRef.value = true;
+          replyPlan.markSent();
         },
         onError: (err, info) => {
           runtime.error?.(
@@ -1918,23 +1921,36 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
         OriginatingTo: `user:${command.user_id}`,
       };
 
-      const replyResult = await getReplyFromConfig(
-        ctxPayload,
-        { skillFilter: channelConfig?.skills },
+      const { counts } = await dispatchReplyWithDispatcher({
+        ctx: ctxPayload,
         cfg,
-      );
-      const replies = replyResult
-        ? Array.isArray(replyResult)
-          ? replyResult
-          : [replyResult]
-        : [];
-
-      await deliverSlackSlashReplies({
-        replies,
-        respond,
-        ephemeral: slashCommand.ephemeral,
-        textLimit,
+        dispatcherOptions: {
+          responsePrefix: resolveEffectiveMessagesConfig(cfg, route.agentId)
+            .responsePrefix,
+          deliver: async (payload) => {
+            await deliverSlackSlashReplies({
+              replies: [payload],
+              respond,
+              ephemeral: slashCommand.ephemeral,
+              textLimit,
+            });
+          },
+          onError: (err, info) => {
+            runtime.error?.(
+              danger(`slack slash ${info.kind} reply failed: ${String(err)}`),
+            );
+          },
+        },
+        replyOptions: { skillFilter: channelConfig?.skills },
       });
+      if (counts.final + counts.tool + counts.block === 0) {
+        await deliverSlackSlashReplies({
+          replies: [],
+          respond,
+          ephemeral: slashCommand.ephemeral,
+          textLimit,
+        });
+      }
     } catch (err) {
       runtime.error?.(danger(`slack slash handler failed: ${String(err)}`));
       await respond({
@@ -1944,8 +1960,14 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
     }
   };
 
-  const nativeCommands =
-    cfg.commands?.native === true ? listNativeCommandSpecsForConfig(cfg) : [];
+  const nativeEnabled = resolveNativeCommandsEnabled({
+    providerId: "slack",
+    providerSetting: account.config.commands?.native,
+    globalSetting: cfg.commands?.native,
+  });
+  const nativeCommands = nativeEnabled
+    ? listNativeCommandSpecsForConfig(cfg)
+    : [];
   if (nativeCommands.length > 0) {
     for (const command of nativeCommands) {
       app.command(
@@ -2064,19 +2086,53 @@ export function resolveSlackThreadTs(params: {
   messageTs: string | undefined;
   hasReplied: boolean;
 }): string | undefined {
-  const { replyToMode, incomingThreadTs, messageTs, hasReplied } = params;
-  if (incomingThreadTs) return incomingThreadTs;
-  if (!messageTs) return undefined;
-  if (replyToMode === "all") {
-    // All replies go to thread
-    return messageTs;
-  }
-  if (replyToMode === "first") {
-    // "first": only first reply goes to thread
-    return hasReplied ? undefined : messageTs;
-  }
-  // "off": never start a thread
-  return undefined;
+  const planner = createSlackReplyReferencePlanner({
+    replyToMode: params.replyToMode,
+    incomingThreadTs: params.incomingThreadTs,
+    messageTs: params.messageTs,
+    hasReplied: params.hasReplied,
+  });
+  return planner.use();
+}
+
+type SlackReplyDeliveryPlan = {
+  nextThreadTs: () => string | undefined;
+  markSent: () => void;
+};
+
+function createSlackReplyReferencePlanner(params: {
+  replyToMode: "off" | "first" | "all";
+  incomingThreadTs: string | undefined;
+  messageTs: string | undefined;
+  hasReplied?: boolean;
+}) {
+  return createReplyReferencePlanner({
+    replyToMode: params.replyToMode,
+    existingId: params.incomingThreadTs,
+    startId: params.messageTs,
+    hasReplied: params.hasReplied,
+  });
+}
+
+function createSlackReplyDeliveryPlan(params: {
+  replyToMode: "off" | "first" | "all";
+  incomingThreadTs: string | undefined;
+  messageTs: string | undefined;
+  hasRepliedRef: { value: boolean };
+}): SlackReplyDeliveryPlan {
+  const replyReference = createSlackReplyReferencePlanner({
+    replyToMode: params.replyToMode,
+    incomingThreadTs: params.incomingThreadTs,
+    messageTs: params.messageTs,
+    hasReplied: params.hasRepliedRef.value,
+  });
+  return {
+    nextThreadTs: () => replyReference.use(),
+    markSent: () => {
+      replyReference.markSent();
+      params.hasRepliedRef.value = replyReference.hasReplied();
+    },
+  };
 }
 
 async function deliverSlackSlashReplies(params: {
