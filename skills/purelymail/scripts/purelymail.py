@@ -205,6 +205,7 @@ def read(
     msg_num: int = typer.Argument(..., help="Message number to read"),
     email_addr: str = typer.Option(..., "--email", "-e", help="Email address"),
     password: str = typer.Option(..., "--password", "-p", help="Email password"),
+    mark_read: bool = typer.Option(False, "--mark-read", "-m", help="Mark message as read after reading"),
 ):
     """Read a specific email message."""
     
@@ -239,6 +240,47 @@ def read(
                 f"{body[:2000]}{'...' if len(body) > 2000 else ''}",
                 title=f"Message #{msg_num}"
             ))
+            
+            # Mark as read if requested
+            if mark_read:
+                imap.store(str(msg_num).encode(), '+FLAGS', '\\Seen')
+                console.print(f"[green]✓ Marked as read[/green]")
+            
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def mark_read(
+    msg_nums: str = typer.Argument(..., help="Message number(s) to mark as read (comma-separated or 'all')"),
+    email_addr: str = typer.Option(..., "--email", "-e", help="Email address"),
+    password: str = typer.Option(..., "--password", "-p", help="Email password"),
+):
+    """Mark message(s) as read."""
+    
+    try:
+        context = ssl.create_default_context()
+        with imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT, ssl_context=context) as imap:
+            imap.login(email_addr, password)
+            imap.select("INBOX")
+            
+            if msg_nums.lower() == "all":
+                # Mark all unread as read
+                _, messages = imap.search(None, "UNSEEN")
+                if messages[0]:
+                    nums = messages[0].split()
+                    for num in nums:
+                        imap.store(num, '+FLAGS', '\\Seen')
+                    console.print(f"[green]✓ Marked {len(nums)} messages as read[/green]")
+                else:
+                    console.print("[yellow]No unread messages[/yellow]")
+            else:
+                # Mark specific messages
+                nums = [n.strip() for n in msg_nums.split(",")]
+                for num in nums:
+                    imap.store(num.encode(), '+FLAGS', '\\Seen')
+                console.print(f"[green]✓ Marked {len(nums)} message(s) as read[/green]")
             
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")

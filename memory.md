@@ -16,6 +16,13 @@
 
 - **Reminder timing**: ~1 hour heads up for events (not several hours in advance)
 
+## Cron Job Best Practices
+
+- Use `deliver: true` + `provider: telegram` + `to: <chat_id>` for notifications
+- Tell agent "Delivery is handled automatically" - don't ask it to use message tool
+- For media attachments, agent outputs `MEDIA:/path/to/file.jpg` and Clawdbot attaches it
+- `TELEGRAM_BOT_TOKEN` is in `~/.zshenv` for scripts that need direct access
+
 ## Family
 
 - **Home**: 79 Grant Street, Lexington, MA

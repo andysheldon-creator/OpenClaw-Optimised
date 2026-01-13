@@ -222,17 +222,17 @@ def generate_image(prompt: str, output_path: str) -> str | None:
         return None
 
 
-def fetch_twenty_data(query: str) -> list[dict]:
-    """Fetch data from Twenty CRM."""
+def fetch_crm_data(query: str) -> list[dict]:
+    """Fetch data from CRM."""
     api_url = os.environ.get("TWENTY_API_URL", "")
     api_token = os.environ.get("TWENTY_API_TOKEN", "")
     
     if not api_url or not api_token:
-        print("Warning: Twenty CRM not configured, skipping data fetch", file=sys.stderr)
+        print("Warning: CRM not configured, skipping data fetch", file=sys.stderr)
         return []
     
     # Parse query like "twenty://opportunities?stage=negotiation"
-    # For now, return empty - this would need proper Twenty API integration
+    # For now, return empty - this would need proper CRM API integration
     return []
 
 

@@ -40,16 +40,8 @@ Chart types: `bar`, `column`, `line`, `pie`, `doughnut`, `area`, `scatter`
 ```markdown
 ## Table Slide  
 - table: my_table
-- source: twenty://opportunities
-- columns: name, amount, stage
-```
-
-### Data Sources
-```markdown
-## Data-Driven Slide
-- source: twenty://opportunities?stage=won
-- source: sharepoint://sites/team/docs/report.xlsx
-- source: /local/path/to/data.csv
+- data: /path/to/data.csv
+- columns: name, value, category
 ```
 
 ### Layouts
@@ -73,9 +65,9 @@ Layouts: `title_and_content`, `two_column`, `image_and_text`, `chart`, `table`, 
 ## Complete Example
 
 ```markdown
-# Q4 2026 Sales Review
+# Q4 2026 Review
 subtitle: Performance & Outlook
-author: David Hurley
+author: Your Name
 
 ## Agenda
 - Q4 Performance Highlights
@@ -95,21 +87,21 @@ author: David Hurley
 - Northeast led growth at 24%
 - West recovering after Q3 dip
 
-## Key Customer Wins
+## Key Wins
 - ![logo](generate: abstract celebration, confetti, corporate style)
-- Acme Corp - $450K deal
-- GlobalTech - $380K expansion
-- StartupXYZ - $220K new logo
+- Major enterprise deal closed
+- Strategic partnership signed
+- Product launch successful
 
 ## 2027 Outlook
 - layout: two_column
 - **Goals**: $18M revenue, 200 new customers
-- **Investments**: New sales team, Marketing automation
-- **Risks**: Market headwinds, Competition
+- **Investments**: Team expansion, Platform upgrades
+- **Risks**: Market conditions, Competition
 
 ## Next Steps
-- Finalize 2027 quotas by Jan 15
-- Kick-off meeting Jan 22
-- Q1 pipeline review Feb 1
-> Schedule follow-up with regional leads
+- Finalize 2027 targets
+- Kick-off planning meeting
+- Q1 pipeline review
+> Schedule follow-ups with regional leads
 ```
