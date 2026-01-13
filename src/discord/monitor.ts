@@ -48,12 +48,10 @@ import {
 } from "../auto-reply/reply/mentions.js";
 import { dispatchReplyWithDispatcher } from "../auto-reply/reply/provider-dispatcher.js";
 import {
-  createReplyDispatcher,
   createReplyDispatcherWithTyping,
   shouldSkipTextOnlyDelivery,
 } from "../auto-reply/reply/reply-dispatcher.js";
 import { createReplyReferencePlanner } from "../auto-reply/reply/reply-reference.js";
-import { getReplyFromConfig } from "../auto-reply/reply.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import {
   isNativeCommandsExplicitlyDisabled,

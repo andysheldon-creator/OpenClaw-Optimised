@@ -9,9 +9,9 @@ import { dispatchReplyFromConfig } from "./dispatch-from-config.js";
 import {
   createReplyDispatcher,
   createReplyDispatcherWithTyping,
-  shouldSkipTextOnlyDelivery,
   type ReplyDispatcherOptions,
   type ReplyDispatcherWithTypingOptions,
+  shouldSkipTextOnlyDelivery,
 } from "./reply-dispatcher.js";
 
 export async function dispatchReplyWithBufferedBlockDispatcher(params: {
