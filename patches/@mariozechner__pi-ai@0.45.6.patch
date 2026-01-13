@@ -28,10 +28,10 @@ index 7488c79..4c34587 100644
  }
  function mapStopReason(status) {
 diff --git a/dist/providers/openai-responses.js b/dist/providers/openai-responses.js
-index c4714f4..4d1e6b0 100644
+index fc060fe..df48e54 100644
 --- a/dist/providers/openai-responses.js
 +++ b/dist/providers/openai-responses.js
-@@ -400,10 +400,16 @@ function convertMessages(model, context) {
+@@ -401,10 +401,16 @@ function convertMessages(model, context) {
          }
          else if (msg.role === "assistant") {
              const output = [];
@@ -48,7 +48,7 @@ index c4714f4..4d1e6b0 100644
                          const reasoningItem = JSON.parse(block.thinkingSignature);
                          output.push(reasoningItem);
                      }
-@@ -438,6 +444,16 @@ function convertMessages(model, context) {
+@@ -439,6 +445,16 @@ function convertMessages(model, context) {
                      });
                  }
              }
