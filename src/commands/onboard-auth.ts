@@ -1,5 +1,5 @@
 import type { OAuthCredentials } from "@mariozechner/pi-ai";
-import { resolveDefaultAgentDir } from "../agents/agent-scope.js";
+import { resolveClawdbotAgentDir } from "../agents/agent-paths.js";
 import { upsertAuthProfile } from "../agents/auth-profiles.js";
 import { OPENCODE_ZEN_DEFAULT_MODEL_REF } from "../agents/opencode-zen-models.js";
 import {
@@ -115,7 +115,7 @@ export async function writeOAuthCredentials(
       provider,
       ...creds,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 
@@ -128,7 +128,7 @@ export async function setAnthropicApiKey(key: string, agentDir?: string) {
       provider: "anthropic",
       key,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 
@@ -141,7 +141,7 @@ export async function setGeminiApiKey(key: string, agentDir?: string) {
       provider: "google",
       key,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 
@@ -154,7 +154,7 @@ export async function setMinimaxApiKey(key: string, agentDir?: string) {
       provider: "minimax",
       key,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 
@@ -167,7 +167,7 @@ export async function setMoonshotApiKey(key: string, agentDir?: string) {
       provider: "moonshot",
       key,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 
@@ -180,7 +180,7 @@ export async function setSyntheticApiKey(key: string, agentDir?: string) {
       provider: "synthetic",
       key,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 
@@ -196,7 +196,7 @@ export async function setZaiApiKey(key: string, agentDir?: string) {
       provider: "zai",
       key,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 
@@ -208,7 +208,7 @@ export async function setOpenrouterApiKey(key: string, agentDir?: string) {
       provider: "openrouter",
       key,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 
@@ -714,7 +714,7 @@ export async function setOpencodeZenApiKey(key: string, agentDir?: string) {
       provider: "opencode",
       key,
     },
-    agentDir: agentDir ?? resolveDefaultAgentDir(),
+    agentDir: agentDir ?? resolveClawdbotAgentDir(),
   });
 }
 

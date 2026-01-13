@@ -113,8 +113,6 @@ describe("applyAuthChoice", () => {
 
     const authProfilePath = path.join(
       tempStateDir,
-      "agents",
-      "main",
       "agent",
       "auth-profiles.json",
     );
@@ -172,8 +170,6 @@ describe("applyAuthChoice", () => {
 
     const authProfilePath = path.join(
       tempStateDir,
-      "agents",
-      "main",
       "agent",
       "auth-profiles.json",
     );
@@ -339,8 +335,6 @@ describe("applyAuthChoice", () => {
 
     const authProfilePath = path.join(
       tempStateDir,
-      "agents",
-      "main",
       "agent",
       "auth-profiles.json",
     );
@@ -428,8 +422,6 @@ describe("applyAuthChoice", () => {
 
     const authProfilePath = path.join(
       tempStateDir,
-      "agents",
-      "main",
       "agent",
       "auth-profiles.json",
     );
