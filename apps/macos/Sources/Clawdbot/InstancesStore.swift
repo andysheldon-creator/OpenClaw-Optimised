@@ -242,6 +242,21 @@ final class InstancesStore {
         do {
             let data = try await ControlChannel.shared.health(timeout: 8)
             guard let snap = decodeHealthSnapshot(from: data) else { return }
+<<<<<<< HEAD
+=======
+            let linkId = snap.channelOrder?.first(where: {
+                if let summary = snap.channels[$0] { return summary.linked != nil }
+                return false
+            }) ?? snap.channels.keys.first(where: {
+                if let summary = snap.channels[$0] { return summary.linked != nil }
+                return false
+            })
+            let linked = linkId.flatMap { snap.channels[$0]?.linked } ?? false
+            let linkLabel =
+                linkId.flatMap { snap.channelLabels?[$0] } ??
+                linkId?.capitalized ??
+                "channel"
+>>>>>>> upstream/main
             let entry = InstanceInfo(
                 id: "health-\(snap.ts)",
                 host: "gateway (health)",

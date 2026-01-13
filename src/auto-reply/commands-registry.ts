@@ -1,5 +1,5 @@
+import { listChannelDocks } from "../channels/dock.js";
 import type { ClawdbotConfig } from "../config/types.js";
-import { listProviderDocks } from "../providers/dock.js";
 
 export type CommandScope = "text" | "native" | "both";
 
@@ -251,6 +251,13 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
       textAlias: "/queue",
       acceptsArgs: true,
     }),
+    defineChatCommand({
+      key: "bash",
+      description: "Run host shell commands (host-only).",
+      textAlias: "/bash",
+      scope: "text",
+      acceptsArgs: true,
+    }),
   ];
 
   registerAlias(commands, "status", "/usage");
@@ -269,7 +276,7 @@ let cachedNativeCommandSurfaces: Set<string> | null = null;
 const getNativeCommandSurfaces = (): Set<string> => {
   if (!cachedNativeCommandSurfaces) {
     cachedNativeCommandSurfaces = new Set(
-      listProviderDocks()
+      listChannelDocks()
         .filter((dock) => dock.capabilities.nativeCommands)
         .map((dock) => dock.id),
     );
@@ -314,6 +321,7 @@ export function isCommandEnabled(
 ): boolean {
   if (commandKey === "config") return cfg.commands?.config === true;
   if (commandKey === "debug") return cfg.commands?.debug === true;
+  if (commandKey === "bash") return cfg.commands?.bash === true;
   return true;
 }
 

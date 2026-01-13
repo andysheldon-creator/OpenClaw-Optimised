@@ -33,8 +33,8 @@ import type {
 } from "../auto-reply/thinking.js";
 import { formatToolAggregate } from "../auto-reply/tool-meta.js";
 import { isCacheEnabled, resolveCacheTtlMs } from "../config/cache-utils.js";
+import { resolveChannelCapabilities } from "../config/channel-capabilities.js";
 import type { ClawdbotConfig } from "../config/config.js";
-import { resolveProviderCapabilities } from "../config/provider-capabilities.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
 import { registerUnhandledRejectionHandler } from "../infra/unhandled-rejections.js";
 import { createSubsystemLogger } from "../logging.js";
@@ -42,7 +42,7 @@ import {
   type enqueueCommand,
   enqueueCommandInLane,
 } from "../process/command-queue.js";
-import { normalizeMessageProvider } from "../utils/message-provider.js";
+import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { isReasoningTagProvider } from "../utils/provider-utils.js";
 import { resolveUserPath } from "../utils.js";
 import { resolveClawdbotAgentDir } from "./agent-paths.js";
@@ -321,6 +321,12 @@ function buildContextPruningExtension(params: {
   };
 }
 
+function resolveCompactionMode(cfg?: ClawdbotConfig): "default" | "safeguard" {
+  return cfg?.agents?.defaults?.compaction?.mode === "safeguard"
+    ? "safeguard"
+    : "default";
+}
+
 function buildEmbeddedExtensionPaths(params: {
   cfg: ClawdbotConfig | undefined;
   sessionManager: SessionManager;
@@ -329,6 +335,9 @@ function buildEmbeddedExtensionPaths(params: {
   model: Model<Api> | undefined;
 }): string[] {
   const paths = [resolvePiExtensionPath("transcript-sanitize")];
+  if (resolveCompactionMode(params.cfg) === "safeguard") {
+    paths.push(resolvePiExtensionPath("compaction-safeguard"));
+  }
   const pruning = buildContextPruningExtension(params);
   if (pruning.additionalExtensionPaths) {
     paths.push(...pruning.additionalExtensionPaths);
@@ -353,6 +362,10 @@ export type EmbeddedPiRunMeta = {
   durationMs: number;
   agentMeta?: EmbeddedPiAgentMeta;
   aborted?: boolean;
+  error?: {
+    kind: "context_overflow" | "compaction_failure";
+    message: string;
+  };
 };
 
 function buildModelAliasLines(cfg?: ClawdbotConfig) {
@@ -417,6 +430,85 @@ type EmbeddedPiQueueHandle = {
 
 const log = createSubsystemLogger("agent/embedded");
 const GOOGLE_TURN_ORDERING_CUSTOM_TYPE = "google-turn-ordering-bootstrap";
+const GOOGLE_SCHEMA_UNSUPPORTED_KEYWORDS = new Set([
+  "patternProperties",
+  "additionalProperties",
+  "$schema",
+  "$id",
+  "$ref",
+  "$defs",
+  "definitions",
+  "examples",
+  "minLength",
+  "maxLength",
+  "minimum",
+  "maximum",
+  "multipleOf",
+  "pattern",
+  "format",
+  "minItems",
+  "maxItems",
+  "uniqueItems",
+  "minProperties",
+  "maxProperties",
+]);
+
+function findUnsupportedSchemaKeywords(
+  schema: unknown,
+  path: string,
+): string[] {
+  if (!schema || typeof schema !== "object") return [];
+  if (Array.isArray(schema)) {
+    return schema.flatMap((item, index) =>
+      findUnsupportedSchemaKeywords(item, `${path}[${index}]`),
+    );
+  }
+  const record = schema as Record<string, unknown>;
+  const violations: string[] = [];
+  for (const [key, value] of Object.entries(record)) {
+    if (GOOGLE_SCHEMA_UNSUPPORTED_KEYWORDS.has(key)) {
+      violations.push(`${path}.${key}`);
+    }
+    if (value && typeof value === "object") {
+      violations.push(
+        ...findUnsupportedSchemaKeywords(value, `${path}.${key}`),
+      );
+    }
+  }
+  return violations;
+}
+
+function logToolSchemasForGoogle(params: {
+  tools: AgentTool[];
+  provider: string;
+}) {
+  if (
+    params.provider !== "google-antigravity" &&
+    params.provider !== "google-gemini-cli"
+  ) {
+    return;
+  }
+  const toolNames = params.tools.map((tool, index) => `${index}:${tool.name}`);
+  log.info("google tool schema snapshot", {
+    provider: params.provider,
+    toolCount: params.tools.length,
+    tools: toolNames,
+  });
+  for (const [index, tool] of params.tools.entries()) {
+    const violations = findUnsupportedSchemaKeywords(
+      tool.parameters,
+      `${tool.name}.parameters`,
+    );
+    if (violations.length > 0) {
+      log.warn("google tool schema has unsupported keywords", {
+        index,
+        tool: tool.name,
+        violations: violations.slice(0, 12),
+        violationCount: violations.length,
+      });
+    }
+  }
+}
 
 registerUnhandledRejectionHandler((reason) => {
   const message = describeUnknownError(reason);
@@ -598,19 +690,19 @@ export function getDmHistoryLimitFromSessionKey(
   // Map provider to config key
   switch (provider) {
     case "telegram":
-      return getLimit(config.telegram);
+      return getLimit(config.channels?.telegram);
     case "whatsapp":
-      return getLimit(config.whatsapp);
+      return getLimit(config.channels?.whatsapp);
     case "discord":
-      return getLimit(config.discord);
+      return getLimit(config.channels?.discord);
     case "slack":
-      return getLimit(config.slack);
+      return getLimit(config.channels?.slack);
     case "signal":
-      return getLimit(config.signal);
+      return getLimit(config.channels?.signal);
     case "imessage":
-      return getLimit(config.imessage);
+      return getLimit(config.channels?.imessage);
     case "msteams":
-      return getLimit(config.msteams);
+      return getLimit(config.channels?.msteams);
     default:
       return undefined;
   }
@@ -958,7 +1050,7 @@ export function resolveEmbeddedSessionLane(key: string) {
 }
 
 function mapThinkingLevel(level?: ThinkLevel): ThinkingLevel {
-  // pi-agent-core supports "xhigh" too; Clawdbot doesn't surface it for now.
+  // pi-agent-core supports "xhigh"; Clawdbot enables it for specific models.
   if (!level) return "off";
   return level;
 }
@@ -1033,6 +1125,7 @@ function resolveModel(
 export async function compactEmbeddedPiSession(params: {
   sessionId: string;
   sessionKey?: string;
+  messageChannel?: string;
   messageProvider?: string;
   agentAccountId?: string;
   sessionFile: string;
@@ -1166,7 +1259,7 @@ export async function compactEmbeddedPiSession(params: {
             elevated: params.bashElevated,
           },
           sandbox,
-          messageProvider: params.messageProvider,
+          messageProvider: params.messageChannel ?? params.messageProvider,
           agentAccountId: params.agentAccountId,
           sessionKey: params.sessionKey ?? params.sessionId,
           agentDir,
@@ -1178,14 +1271,15 @@ export async function compactEmbeddedPiSession(params: {
           modelAuthMode: resolveModelAuthMode(model.provider, params.config),
           // No currentChannelId/currentThreadTs for compaction - not in message context
         });
+        logToolSchemasForGoogle({ tools, provider });
         const machineName = await getMachineDisplayName();
-        const runtimeProvider = normalizeMessageProvider(
-          params.messageProvider,
+        const runtimeChannel = normalizeMessageChannel(
+          params.messageChannel ?? params.messageProvider,
         );
-        const runtimeCapabilities = runtimeProvider
-          ? (resolveProviderCapabilities({
+        const runtimeCapabilities = runtimeChannel
+          ? (resolveChannelCapabilities({
               cfg: params.config,
-              provider: runtimeProvider,
+              channel: runtimeChannel,
               accountId: params.agentAccountId,
             }) ?? [])
           : undefined;
@@ -1195,7 +1289,7 @@ export async function compactEmbeddedPiSession(params: {
           arch: os.arch(),
           node: process.version,
           model: `${provider}/${modelId}`,
-          provider: runtimeProvider,
+          channel: runtimeChannel,
           capabilities: runtimeCapabilities,
         };
         const sandboxInfo = buildEmbeddedSandboxInfo(
@@ -1350,6 +1444,7 @@ export async function compactEmbeddedPiSession(params: {
 export async function runEmbeddedPiAgent(params: {
   sessionId: string;
   sessionKey?: string;
+  messageChannel?: string;
   messageProvider?: string;
   agentAccountId?: string;
   /** Current channel ID for auto-threading (Slack). */
@@ -1546,7 +1641,7 @@ export async function runEmbeddedPiAgent(params: {
         attemptedThinking.add(thinkLevel);
 
         log.debug(
-          `embedded run start: runId=${params.runId} sessionId=${params.sessionId} provider=${provider} model=${modelId} thinking=${thinkLevel} messageProvider=${params.messageProvider ?? "unknown"}`,
+          `embedded run start: runId=${params.runId} sessionId=${params.sessionId} provider=${provider} model=${modelId} thinking=${thinkLevel} messageChannel=${params.messageChannel ?? params.messageProvider ?? "unknown"}`,
         );
 
         await fs.mkdir(resolvedWorkspace, { recursive: true });
@@ -1605,7 +1700,7 @@ export async function runEmbeddedPiAgent(params: {
               elevated: params.bashElevated,
             },
             sandbox,
-            messageProvider: params.messageProvider,
+            messageProvider: params.messageChannel ?? params.messageProvider,
             agentAccountId: params.agentAccountId,
             sessionKey: params.sessionKey ?? params.sessionId,
             agentDir,
@@ -1620,6 +1715,7 @@ export async function runEmbeddedPiAgent(params: {
             replyToMode: params.replyToMode,
             hasRepliedRef: params.hasRepliedRef,
           });
+          logToolSchemasForGoogle({ tools, provider });
           const machineName = await getMachineDisplayName();
           const runtimeInfo = {
             host: machineName,
@@ -1886,12 +1982,15 @@ export async function runEmbeddedPiAgent(params: {
           if (promptError && !aborted) {
             const errorText = describeUnknownError(promptError);
             if (isContextOverflowError(errorText)) {
+              const kind = isCompactionFailureError(errorText)
+                ? "compaction_failure"
+                : "context_overflow";
               return {
                 payloads: [
                   {
                     text:
-                      "Context overflow: the conversation history is too large for the model. " +
-                      "Use /new or /reset to start a fresh session, or try a model with a larger context window.",
+                      "Context overflow: prompt too large for the model. " +
+                      "Try again with less input or a larger-context model.",
                     isError: true,
                   },
                 ],
@@ -1902,6 +2001,7 @@ export async function runEmbeddedPiAgent(params: {
                     provider,
                     model: model.id,
                   },
+                  error: { kind, message: errorText },
                 },
               };
             }

@@ -39,7 +39,7 @@ export type HumanDelayConfig = {
 
 export type SessionSendPolicyAction = "allow" | "deny";
 export type SessionSendPolicyMatch = {
-  provider?: string;
+  channel?: string;
   chatType?: "direct" | "group" | "room";
   keyPrefix?: string;
 };
@@ -292,7 +292,7 @@ export type HookMappingConfig = {
   messageTemplate?: string;
   textTemplate?: string;
   deliver?: boolean;
-  provider?:
+  channel?:
     | "last"
     | "whatsapp"
     | "telegram"
@@ -637,7 +637,7 @@ export type SlackAccountConfig = {
    * Controls how channel messages are handled:
    * - "open": channels bypass allowlists; mention-gating applies
    * - "disabled": block all channel messages
-   * - "allowlist": only allow channels present in slack.channels
+   * - "allowlist": only allow channels present in channels.slack.channels
    */
   groupPolicy?: GroupPolicy;
   /** Max channel messages to keep as history context (0 disables). */
@@ -801,6 +801,16 @@ export type MSTeamsConfig = {
   replyStyle?: MSTeamsReplyStyle;
   /** Per-team config. Key is team ID (from the /team/ URL path segment). */
   teams?: Record<string, MSTeamsTeamConfig>;
+};
+
+export type ChannelsConfig = {
+  whatsapp?: WhatsAppConfig;
+  telegram?: TelegramConfig;
+  discord?: DiscordConfig;
+  slack?: SlackConfig;
+  signal?: SignalConfig;
+  imessage?: IMessageConfig;
+  msteams?: MSTeamsConfig;
 };
 
 export type IMessageAccountConfig = {
@@ -982,13 +992,17 @@ export type DmConfig = {
 
 export type QueueConfig = {
   mode?: QueueMode;
-  byProvider?: QueueModeByProvider;
+  byChannel?: QueueModeByProvider;
   debounceMs?: number;
   cap?: number;
   drop?: QueueDropPolicy;
 };
 
+export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
+
 export type AgentToolsConfig = {
+  /** Base tool profile applied before allow/deny lists. */
+  profile?: ToolProfileId;
   allow?: string[];
   deny?: string[];
   /** Per-agent elevated exec gate (can only further restrict global tools.elevated). */
@@ -1053,6 +1067,8 @@ export type MemorySearchConfig = {
 };
 
 export type ToolsConfig = {
+  /** Base tool profile applied before allow/deny lists. */
+  profile?: ToolProfileId;
   allow?: string[];
   deny?: string[];
   audio?: {
@@ -1121,13 +1137,22 @@ export type ToolsConfig = {
   };
 };
 
+export type AgentModelConfig =
+  | string
+  | {
+      /** Primary model (provider/model). */
+      primary?: string;
+      /** Per-agent model fallbacks (provider/model). */
+      fallbacks?: string[];
+    };
+
 export type AgentConfig = {
   id: string;
   default?: boolean;
   name?: string;
   workspace?: string;
   agentDir?: string;
-  model?: string;
+  model?: AgentModelConfig;
   memorySearch?: MemorySearchConfig;
   /** Human-like delay between block replies for this agent. */
   humanDelay?: HumanDelayConfig;
@@ -1172,7 +1197,7 @@ export type AgentsConfig = {
 export type AgentBinding = {
   agentId: string;
   match: {
-    provider: string;
+    channel: string;
     accountId?: string;
     peer?: { kind: "dm" | "group" | "channel"; id: string };
     guildId?: string;
@@ -1229,6 +1254,10 @@ export type CommandsConfig = {
   native?: NativeCommandsSetting;
   /** Enable text command parsing (default: true). */
   text?: boolean;
+  /** Allow bash chat command (`!`; `/bash` alias) (default: false). */
+  bash?: boolean;
+  /** How long bash waits before backgrounding (default: 2000; 0 backgrounds immediately). */
+  bashForegroundMs?: number;
   /** Allow /config command (default: false). */
   config?: boolean;
   /** Allow /debug command (default: false). */
@@ -1244,17 +1273,17 @@ export type ProviderCommandsConfig = {
   native?: NativeCommandsSetting;
 };
 
-export type BridgeBindMode = "auto" | "lan" | "tailnet" | "loopback";
+export type BridgeBindMode = "auto" | "lan" | "loopback" | "custom";
 
 export type BridgeConfig = {
   enabled?: boolean;
   port?: number;
   /**
    * Bind address policy for the node bridge server.
-   * - auto: prefer tailnet IP when present, else LAN (0.0.0.0)
-   * - lan:  0.0.0.0 (reachable on local network + any forwarded interfaces)
-   * - tailnet: bind to the Tailscale interface IP (100.64.0.0/10) plus loopback
-   * - loopback: 127.0.0.1
+   * - auto: Tailnet IPv4 if available, else 0.0.0.0 (fallback to all interfaces)
+   * - lan: 0.0.0.0 (all interfaces, no fallback)
+   * - loopback: 127.0.0.1 (local-only)
+   * - custom: User-specified IP, fallback to 0.0.0.0 if unavailable (requires customBindHost on gateway)
    */
   bind?: BridgeBindMode;
 };
@@ -1369,9 +1398,15 @@ export type GatewayConfig = {
   mode?: "local" | "remote";
   /**
    * Bind address policy for the Gateway WebSocket + Control UI HTTP server.
+   * - auto: Tailnet IPv4 if available, else 0.0.0.0 (fallback to all interfaces)
+   * - lan: 0.0.0.0 (all interfaces, no fallback)
+   * - loopback: 127.0.0.1 (local-only)
+   * - custom: User-specified IP, fallback to 0.0.0.0 if unavailable (requires customBindHost)
    * Default: loopback (127.0.0.1).
    */
   bind?: BridgeBindMode;
+  /** Custom IP address for bind="custom" mode. Fallback: 0.0.0.0. */
+  customBindHost?: string;
   controlUi?: GatewayControlUiConfig;
   auth?: GatewayAuthConfig;
   tailscale?: GatewayTailscaleConfig;
@@ -1608,7 +1643,7 @@ export type AgentDefaultsConfig = {
   /** Vector memory search configuration (per-agent overrides supported). */
   memorySearch?: MemorySearchConfig;
   /** Default thinking level when no /think directive is present. */
-  thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high";
+  thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
   /** Default verbose level when no /verbose directive is present. */
   verboseDefault?: "off" | "on";
   /** Default elevated level when no /elevated directive is present. */
@@ -1710,7 +1745,11 @@ export type AgentDefaultsConfig = {
   };
 };
 
+export type AgentCompactionMode = "default" | "safeguard";
+
 export type AgentCompactionConfig = {
+  /** Compaction summarization mode. */
+  mode?: AgentCompactionMode;
   /** Minimum reserve tokens enforced for Pi compaction (0 disables the floor). */
   reserveTokensFloor?: number;
   /** Pre-compaction memory flush (agentic turn). Default: enabled. */
@@ -1771,13 +1810,7 @@ export type ClawdbotConfig = {
   commands?: CommandsConfig;
   session?: SessionConfig;
   web?: WebConfig;
-  whatsapp?: WhatsAppConfig;
-  telegram?: TelegramConfig;
-  discord?: DiscordConfig;
-  slack?: SlackConfig;
-  signal?: SignalConfig;
-  imessage?: IMessageConfig;
-  msteams?: MSTeamsConfig;
+  channels?: ChannelsConfig;
   cron?: CronConfig;
   hooks?: HooksConfig;
   bridge?: BridgeConfig;

@@ -4,9 +4,17 @@ import type { ClawdbotConfig } from "../../config/config.js";
 import { runMessageAction } from "./message-action-runner.js";
 
 const slackConfig = {
+<<<<<<< HEAD
   slack: {
     botToken: "xoxb-test",
     appToken: "xapp-test",
+=======
+  channels: {
+    slack: {
+      botToken: "xoxb-test",
+      appToken: "xapp-test",
+    },
+>>>>>>> upstream/main
   },
 } as ClawdbotConfig;
 
@@ -16,7 +24,11 @@ describe("runMessageAction context isolation", () => {
       cfg: slackConfig,
       action: "send",
       params: {
+<<<<<<< HEAD
         provider: "slack",
+=======
+        channel: "slack",
+>>>>>>> upstream/main
         to: "#C123",
         message: "hi",
       },
@@ -33,7 +45,11 @@ describe("runMessageAction context isolation", () => {
         cfg: slackConfig,
         action: "send",
         params: {
+<<<<<<< HEAD
           provider: "slack",
+=======
+          channel: "slack",
+>>>>>>> upstream/main
           to: "channel:C999",
           message: "hi",
         },
@@ -49,7 +65,11 @@ describe("runMessageAction context isolation", () => {
         cfg: slackConfig,
         action: "thread-reply",
         params: {
+<<<<<<< HEAD
           provider: "slack",
+=======
+          channel: "slack",
+>>>>>>> upstream/main
           channelId: "C999",
           message: "hi",
         },

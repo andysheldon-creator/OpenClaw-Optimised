@@ -202,7 +202,7 @@ describeLive("gateway live (cli backend)", () => {
     const previous = {
       configPath: process.env.CLAWDBOT_CONFIG_PATH,
       token: process.env.CLAWDBOT_GATEWAY_TOKEN,
-      skipProviders: process.env.CLAWDBOT_SKIP_PROVIDERS,
+      skipChannels: process.env.CLAWDBOT_SKIP_CHANNELS,
       skipGmail: process.env.CLAWDBOT_SKIP_GMAIL_WATCHER,
       skipCron: process.env.CLAWDBOT_SKIP_CRON,
       skipCanvas: process.env.CLAWDBOT_SKIP_CANVAS_HOST,
@@ -210,7 +210,7 @@ describeLive("gateway live (cli backend)", () => {
       anthropicApiKeyOld: process.env.ANTHROPIC_API_KEY_OLD,
     };
 
-    process.env.CLAWDBOT_SKIP_PROVIDERS = "1";
+    process.env.CLAWDBOT_SKIP_CHANNELS = "1";
     process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
     process.env.CLAWDBOT_SKIP_CRON = "1";
     process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
@@ -444,9 +444,9 @@ describeLive("gateway live (cli backend)", () => {
       if (previous.token === undefined)
         delete process.env.CLAWDBOT_GATEWAY_TOKEN;
       else process.env.CLAWDBOT_GATEWAY_TOKEN = previous.token;
-      if (previous.skipProviders === undefined)
-        delete process.env.CLAWDBOT_SKIP_PROVIDERS;
-      else process.env.CLAWDBOT_SKIP_PROVIDERS = previous.skipProviders;
+      if (previous.skipChannels === undefined)
+        delete process.env.CLAWDBOT_SKIP_CHANNELS;
+      else process.env.CLAWDBOT_SKIP_CHANNELS = previous.skipChannels;
       if (previous.skipGmail === undefined)
         delete process.env.CLAWDBOT_SKIP_GMAIL_WATCHER;
       else process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = previous.skipGmail;

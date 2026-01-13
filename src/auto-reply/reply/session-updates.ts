@@ -3,7 +3,11 @@ import crypto from "node:crypto";
 import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import { type SessionEntry, saveSessionStore } from "../../config/sessions.js";
+<<<<<<< HEAD
 import { buildProviderSummary } from "../../infra/provider-summary.js";
+=======
+import { buildChannelSummary } from "../../infra/channel-summary.js";
+>>>>>>> upstream/main
 import { drainSystemEventEntries } from "../../infra/system-events.js";
 
 export async function prependSystemEvents(params: {
@@ -48,7 +52,7 @@ export async function prependSystemEvents(params: {
       .filter((v): v is string => Boolean(v)),
   );
   if (params.isMainSession && params.isNewSession) {
-    const summary = await buildProviderSummary(params.cfg);
+    const summary = await buildChannelSummary(params.cfg);
     if (summary.length > 0) systemLines.unshift(...summary);
   }
   if (systemLines.length === 0) return params.prefixedBodyBase;

@@ -127,7 +127,9 @@ describe("createTelegramBot", () => {
   beforeEach(() => {
     resetInboundDedupe();
     loadConfig.mockReturnValue({
-      telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      channels: {
+        telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      },
     });
     loadWebMedia.mockReset();
     sendAnimationSpy.mockReset();
@@ -309,7 +311,9 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
 
-    loadConfig.mockReturnValue({ telegram: { dmPolicy: "pairing" } });
+    loadConfig.mockReturnValue({
+      channels: { telegram: { dmPolicy: "pairing" } },
+    });
     readTelegramAllowFromStore.mockResolvedValue([]);
     upsertTelegramPairingRequest.mockResolvedValue({
       code: "PAIRME12",
@@ -352,7 +356,9 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
 
-    loadConfig.mockReturnValue({ telegram: { dmPolicy: "pairing" } });
+    loadConfig.mockReturnValue({
+      channels: { telegram: { dmPolicy: "pairing" } },
+    });
     readTelegramAllowFromStore.mockResolvedValue([]);
     upsertTelegramPairingRequest
       .mockResolvedValueOnce({ code: "PAIRME12", created: true })
@@ -412,9 +418,11 @@ describe("createTelegramBot", () => {
     loadConfig.mockReturnValue({
       identity: { name: "Bert" },
       messages: { groupChat: { mentionPatterns: ["\\bbert\\b"] } },
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: true } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: true } },
+        },
       },
     });
 
@@ -451,9 +459,11 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -500,9 +510,11 @@ describe("createTelegramBot", () => {
         ackReactionScope: "group-mentions",
         groupChat: { mentionPatterns: ["\\bbert\\b"] },
       },
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: true } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: true } },
+        },
       },
     });
 
@@ -547,9 +559,11 @@ describe("createTelegramBot", () => {
 
     loadConfig.mockReturnValue({
       messages: { groupChat: { mentionPatterns: ["\\bbert\\b"] } },
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: true } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: true } },
+        },
       },
     });
 
@@ -582,9 +596,11 @@ describe("createTelegramBot", () => {
 
     loadConfig.mockReturnValue({
       messages: { groupChat: { mentionPatterns: [] } },
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: true } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: true } },
+        },
       },
     });
 
@@ -724,7 +740,9 @@ describe("createTelegramBot", () => {
       return { text: "final reply" };
     });
     loadConfig.mockReturnValue({
-      telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      channels: {
+        telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      },
       messages: { responsePrefix: "PFX" },
     });
 
@@ -787,9 +805,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groups: {
-          "123": { requireMention: false },
+      channels: {
+        telegram: {
+          groups: {
+            "123": { requireMention: false },
+          },
         },
       },
     });
@@ -819,7 +839,9 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: { groups: { "*": { requireMention: true } } },
+      channels: {
+        telegram: { groups: { "*": { requireMention: true } } },
+      },
     });
 
     createTelegramBot({ token: "tok" });
@@ -858,15 +880,17 @@ describe("createTelegramBot", () => {
       "utf-8",
     );
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: true } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: true } },
+        },
       },
       bindings: [
         {
           agentId: "ops",
           match: {
-            provider: "telegram",
+            channel: "telegram",
             peer: { kind: "group", id: "123" },
           },
         },
@@ -900,18 +924,32 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     loadConfig.mockReturnValue({
+<<<<<<< HEAD
       telegram: {
         accounts: {
           opie: {
             botToken: "tok-opie",
             dmPolicy: "open",
+=======
+      channels: {
+        telegram: {
+          accounts: {
+            opie: {
+              botToken: "tok-opie",
+              dmPolicy: "open",
+            },
+>>>>>>> upstream/main
           },
         },
       },
       bindings: [
         {
           agentId: "opie",
+<<<<<<< HEAD
           match: { provider: "telegram", accountId: "opie" },
+=======
+          match: { channel: "telegram", accountId: "opie" },
+>>>>>>> upstream/main
         },
       ],
     });
@@ -946,11 +984,13 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: {
-          "*": { requireMention: true },
-          "123": { requireMention: false },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: {
+            "*": { requireMention: true },
+            "123": { requireMention: false },
+          },
         },
       },
     });
@@ -980,14 +1020,16 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: {
-          "*": { requireMention: true },
-          "-1001234567890": {
-            requireMention: true,
-            topics: {
-              "99": { requireMention: false },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: {
+            "*": { requireMention: true },
+            "-1001234567890": {
+              requireMention: true,
+              topics: {
+                "99": { requireMention: false },
+              },
             },
           },
         },
@@ -1025,9 +1067,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1056,9 +1100,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: true } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: true } },
+        },
       },
     });
 
@@ -1130,9 +1176,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "disabled",
-        allowFrom: ["123456789"],
+      channels: {
+        telegram: {
+          groupPolicy: "disabled",
+          allowFrom: ["123456789"],
+        },
       },
     });
 
@@ -1163,9 +1211,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["123456789"], // Does not include sender 999999
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["123456789"], // Does not include sender 999999
+        },
       },
     });
 
@@ -1195,10 +1245,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["123456789"],
-        groups: { "*": { requireMention: false } }, // Skip mention check
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["123456789"],
+          groups: { "*": { requireMention: false } }, // Skip mention check
+        },
       },
     });
 
@@ -1228,10 +1280,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["@testuser"], // By username
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["@testuser"], // By username
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1261,10 +1315,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["telegram:77112533"],
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["telegram:77112533"],
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1294,10 +1350,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["TG:77112533"],
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["TG:77112533"],
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1327,9 +1385,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1359,10 +1419,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["@TestUser"], // Uppercase in config
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["@TestUser"], // Uppercase in config
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1392,9 +1454,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "disabled", // Even with disabled, DMs should work
-        allowFrom: ["123456789"],
+      channels: {
+        telegram: {
+          groupPolicy: "disabled", // Even with disabled, DMs should work
+          allowFrom: ["123456789"],
+        },
       },
     });
 
@@ -1424,8 +1488,10 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        allowFrom: ["  TG:123456789  "],
+      channels: {
+        telegram: {
+          allowFrom: ["  TG:123456789  "],
+        },
       },
     });
 
@@ -1455,8 +1521,10 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        allowFrom: ["telegram:123456789"],
+      channels: {
+        telegram: {
+          allowFrom: ["telegram:123456789"],
+        },
       },
     });
 
@@ -1486,10 +1554,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["*"], // Wildcard allows everyone
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["*"], // Wildcard allows everyone
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1519,9 +1589,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["123456789"],
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["123456789"],
+        },
       },
     });
 
@@ -1551,10 +1623,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["telegram:123456789"], // Prefixed format
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["telegram:123456789"], // Prefixed format
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1585,10 +1659,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        allowFrom: ["TG:123456789"], // Prefixed format (case-insensitive)
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          allowFrom: ["TG:123456789"], // Prefixed format (case-insensitive)
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1619,9 +1695,11 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1651,10 +1729,12 @@ describe("createTelegramBot", () => {
     >;
     replySpy.mockReset();
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "allowlist",
-        groupAllowFrom: ["  TG:123456789  "],
-        groups: { "*": { requireMention: true } },
+      channels: {
+        telegram: {
+          groupPolicy: "allowlist",
+          groupAllowFrom: ["  TG:123456789  "],
+          groups: { "*": { requireMention: true } },
+        },
       },
     });
 
@@ -1686,9 +1766,11 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1737,9 +1819,11 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1781,9 +1865,17 @@ describe("createTelegramBot", () => {
     replySpy.mockResolvedValue({ text: "response" });
 
     loadConfig.mockReturnValue({
+<<<<<<< HEAD
       telegram: {
         groupPolicy: "open",
         groups: { "*": { requireMention: false } },
+=======
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: false } },
+        },
+>>>>>>> upstream/main
       },
     });
 
@@ -1824,17 +1916,19 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: {
-          "-1001234567890": {
-            requireMention: false,
-            systemPrompt: "Group prompt",
-            skills: ["group-skill"],
-            topics: {
-              "99": {
-                skills: [],
-                systemPrompt: "Topic prompt",
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: {
+            "-1001234567890": {
+              requireMention: false,
+              systemPrompt: "Group prompt",
+              skills: ["group-skill"],
+              topics: {
+                "99": {
+                  skills: [],
+                  systemPrompt: "Topic prompt",
+                },
               },
             },
           },
@@ -1883,9 +1977,11 @@ describe("createTelegramBot", () => {
     replySpy.mockResolvedValue({ text: "response" });
 
     loadConfig.mockReturnValue({
-      telegram: {
-        groupPolicy: "open",
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          groupPolicy: "open",
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -1931,10 +2027,12 @@ describe("createTelegramBot", () => {
 
     loadConfig.mockReturnValue({
       commands: { native: true },
-      telegram: {
-        dmPolicy: "open",
-        allowFrom: ["*"],
-        groups: { "*": { requireMention: false } },
+      channels: {
+        telegram: {
+          dmPolicy: "open",
+          allowFrom: ["*"],
+          groups: { "*": { requireMention: false } },
+        },
       },
     });
 
@@ -2019,7 +2117,9 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     loadConfig.mockReturnValue({
-      telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      channels: {
+        telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      },
     });
 
     createTelegramBot({ token: "tok" });
@@ -2054,7 +2154,9 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     loadConfig.mockReturnValue({
-      telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      channels: {
+        telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      },
     });
 
     createTelegramBot({ token: "tok" });
@@ -2092,7 +2194,9 @@ describe("createTelegramBot", () => {
     replySpy.mockReset();
 
     loadConfig.mockReturnValue({
-      telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      channels: {
+        telegram: { dmPolicy: "open", allowFrom: ["*"] },
+      },
     });
 
     createTelegramBot({ token: "tok" });

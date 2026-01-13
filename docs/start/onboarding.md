@@ -64,8 +64,13 @@ Onboarding requests TCC permissions needed for:
 
 ## 5) CLI helper (optional)
 
+<<<<<<< HEAD
 The app can symlink the bundled `clawdbot` CLI into `/usr/local/bin` and
 `/opt/homebrew/bin` so terminal workflows work out of the box.
+=======
+The app can install the global `clawdbot` CLI via npm/pnpm so terminal
+workflows and launchd tasks work out of the box.
+>>>>>>> upstream/main
 
 ## 6) Onboarding chat (dedicated session)
 

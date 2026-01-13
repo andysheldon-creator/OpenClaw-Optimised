@@ -19,6 +19,7 @@ echo "==> Run live model tests (profile keys)"
 docker run --rm -t \
   --entrypoint bash \
   -e HOME=/home/node \
+  -e NODE_OPTIONS=--disable-warning=ExperimentalWarning \
   -e CLAWDBOT_LIVE_TEST=1 \
   -e CLAWDBOT_LIVE_MODELS="${CLAWDBOT_LIVE_MODELS:-all}" \
   -e CLAWDBOT_LIVE_PROVIDERS="${CLAWDBOT_LIVE_PROVIDERS:-}" \

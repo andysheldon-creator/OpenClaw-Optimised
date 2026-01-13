@@ -2,10 +2,15 @@ import { html, nothing } from "lit";
 
 import { formatAgo } from "../format";
 import type {
+  ChannelAccountSnapshot,
+  ChannelsStatusSnapshot,
   DiscordStatus,
   IMessageStatus,
+<<<<<<< HEAD
   ProviderAccountSnapshot,
   ProvidersStatusSnapshot,
+=======
+>>>>>>> upstream/main
   SignalStatus,
   SlackStatus,
   TelegramStatus,
@@ -50,7 +55,7 @@ const slackActionOptions = [
 export type ConnectionsProps = {
   connected: boolean;
   loading: boolean;
-  snapshot: ProvidersStatusSnapshot | null;
+  snapshot: ChannelsStatusSnapshot | null;
   lastError: string | null;
   lastSuccessAt: number | null;
   whatsappMessage: string | null;
@@ -93,6 +98,7 @@ export type ConnectionsProps = {
 };
 
 export function renderConnections(props: ConnectionsProps) {
+<<<<<<< HEAD
   const whatsapp = props.snapshot?.whatsapp;
   const telegram = props.snapshot?.telegram;
   const discord = props.snapshot?.discord ?? null;
@@ -100,6 +106,20 @@ export function renderConnections(props: ConnectionsProps) {
   const signal = props.snapshot?.signal ?? null;
   const imessage = props.snapshot?.imessage ?? null;
   const providerOrder: ProviderKey[] = [
+=======
+  const channels = props.snapshot?.channels as Record<string, unknown> | null;
+  const whatsapp = (channels?.whatsapp ?? undefined) as
+    | WhatsAppStatus
+    | undefined;
+  const telegram = (channels?.telegram ?? undefined) as
+    | TelegramStatus
+    | undefined;
+  const discord = (channels?.discord ?? null) as DiscordStatus | null;
+  const slack = (channels?.slack ?? null) as SlackStatus | null;
+  const signal = (channels?.signal ?? null) as SignalStatus | null;
+  const imessage = (channels?.imessage ?? null) as IMessageStatus | null;
+  const channelOrder: ChannelKey[] = [
+>>>>>>> upstream/main
     "whatsapp",
     "telegram",
     "discord",
@@ -107,10 +127,10 @@ export function renderConnections(props: ConnectionsProps) {
     "signal",
     "imessage",
   ];
-  const orderedProviders = providerOrder
+  const orderedChannels = channelOrder
     .map((key, index) => ({
       key,
-      enabled: providerEnabled(key, props),
+      enabled: channelEnabled(key, props),
       order: index,
     }))
     .sort((a, b) => {
@@ -120,15 +140,19 @@ export function renderConnections(props: ConnectionsProps) {
 
   return html`
     <section class="grid grid-cols-2">
-      ${orderedProviders.map((provider) =>
-        renderProvider(provider.key, props, {
+      ${orderedChannels.map((channel) =>
+        renderChannel(channel.key, props, {
           whatsapp,
           telegram,
           discord,
           slack,
           signal,
           imessage,
+<<<<<<< HEAD
           providerAccounts: props.snapshot?.providerAccounts ?? null,
+=======
+          channelAccounts: props.snapshot?.channelAccounts ?? null,
+>>>>>>> upstream/main
         }),
       )}
     </section>
@@ -137,7 +161,7 @@ export function renderConnections(props: ConnectionsProps) {
       <div class="row" style="justify-content: space-between;">
         <div>
           <div class="card-title">Connection health</div>
-          <div class="card-sub">Provider status snapshots from the gateway.</div>
+          <div class="card-sub">Channel status snapshots from the gateway.</div>
         </div>
         <div class="muted">${props.lastSuccessAt ? formatAgo(props.lastSuccessAt) : "n/a"}</div>
       </div>
@@ -163,7 +187,7 @@ function formatDuration(ms?: number | null) {
   return `${hr}h`;
 }
 
-type ProviderKey =
+type ChannelKey =
   | "whatsapp"
   | "telegram"
   | "discord"
@@ -171,9 +195,20 @@ type ProviderKey =
   | "signal"
   | "imessage";
 
-function providerEnabled(key: ProviderKey, props: ConnectionsProps) {
+function channelEnabled(key: ChannelKey, props: ConnectionsProps) {
   const snapshot = props.snapshot;
+<<<<<<< HEAD
   if (!snapshot) return false;
+=======
+  const channels = snapshot?.channels as Record<string, unknown> | null;
+  if (!snapshot || !channels) return false;
+  const whatsapp = channels.whatsapp as WhatsAppStatus | undefined;
+  const telegram = channels.telegram as TelegramStatus | undefined;
+  const discord = (channels.discord ?? null) as DiscordStatus | null;
+  const slack = (channels.slack ?? null) as SlackStatus | null;
+  const signal = (channels.signal ?? null) as SignalStatus | null;
+  const imessage = (channels.imessage ?? null) as IMessageStatus | null;
+>>>>>>> upstream/main
   switch (key) {
     case "whatsapp":
       return (
@@ -196,6 +231,7 @@ function providerEnabled(key: ProviderKey, props: ConnectionsProps) {
   }
 }
 
+<<<<<<< HEAD
 function getProviderAccountCount(
   key: ProviderKey,
   providerAccounts?: Record<string, ProviderAccountSnapshot[]> | null,
@@ -208,12 +244,31 @@ function renderProviderAccountCount(
   providerAccounts?: Record<string, ProviderAccountSnapshot[]> | null,
 ) {
   const count = getProviderAccountCount(key, providerAccounts);
+=======
+function getChannelAccountCount(
+  key: ChannelKey,
+  channelAccounts?: Record<string, ChannelAccountSnapshot[]> | null,
+): number {
+  return channelAccounts?.[key]?.length ?? 0;
+}
+
+function renderChannelAccountCount(
+  key: ChannelKey,
+  channelAccounts?: Record<string, ChannelAccountSnapshot[]> | null,
+) {
+  const count = getChannelAccountCount(key, channelAccounts);
+>>>>>>> upstream/main
   if (count < 2) return nothing;
   return html`<div class="account-count">Accounts (${count})</div>`;
 }
 
+<<<<<<< HEAD
 function renderProvider(
   key: ProviderKey,
+=======
+function renderChannel(
+  key: ChannelKey,
+>>>>>>> upstream/main
   props: ConnectionsProps,
   data: {
     whatsapp?: WhatsAppStatus;
@@ -222,12 +277,21 @@ function renderProvider(
     slack?: SlackStatus | null;
     signal?: SignalStatus | null;
     imessage?: IMessageStatus | null;
+<<<<<<< HEAD
     providerAccounts?: Record<string, ProviderAccountSnapshot[]> | null;
   },
 ) {
   const accountCountLabel = renderProviderAccountCount(
     key,
     data.providerAccounts,
+=======
+    channelAccounts?: Record<string, ChannelAccountSnapshot[]> | null;
+  },
+) {
+  const accountCountLabel = renderChannelAccountCount(
+    key,
+    data.channelAccounts,
+>>>>>>> upstream/main
   );
   switch (key) {
     case "whatsapp": {
@@ -333,10 +397,17 @@ function renderProvider(
     }
     case "telegram": {
       const telegram = data.telegram;
+<<<<<<< HEAD
       const telegramAccounts = data.providerAccounts?.telegram ?? [];
       const hasMultipleAccounts = telegramAccounts.length > 1;
       
       const renderAccountCard = (account: ProviderAccountSnapshot) => {
+=======
+      const telegramAccounts = data.channelAccounts?.telegram ?? [];
+      const hasMultipleAccounts = telegramAccounts.length > 1;
+      
+      const renderAccountCard = (account: ChannelAccountSnapshot) => {
+>>>>>>> upstream/main
         const probe = account.probe as { bot?: { username?: string } } | undefined;
         const botUsername = probe?.bot?.username;
         const label = account.name || account.accountId;

@@ -498,7 +498,23 @@ struct GeneralSettings: View {
             }
 
             if let snap = snapshot {
+<<<<<<< HEAD
                 Text("Linked auth age: \(healthAgeString(snap.web.authAgeMs))")
+=======
+                let linkId = snap.channelOrder?.first(where: {
+                    if let summary = snap.channels[$0] { return summary.linked != nil }
+                    return false
+                }) ?? snap.channels.keys.first(where: {
+                    if let summary = snap.channels[$0] { return summary.linked != nil }
+                    return false
+                })
+                let linkLabel =
+                    linkId.flatMap { snap.channelLabels?[$0] } ??
+                    linkId?.capitalized ??
+                    "Link channel"
+                let linkAge = linkId.flatMap { snap.channels[$0]?.authAgeMs }
+                Text("\(linkLabel) auth age: \(healthAgeString(linkAge))")
+>>>>>>> upstream/main
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("Session store: \(snap.sessions.path) (\(snap.sessions.count) entries)")

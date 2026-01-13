@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import {
   resolveAgentConfig,
+  resolveAgentModelFallbacksOverride,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
@@ -31,7 +32,14 @@ import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
   stripHeartbeatToken,
 } from "../auto-reply/heartbeat.js";
-import { normalizeThinkLevel } from "../auto-reply/thinking.js";
+import {
+  formatXHighModelHint,
+  normalizeThinkLevel,
+  supportsXHighThinking,
+} from "../auto-reply/thinking.js";
+import { normalizeChannelId } from "../channels/plugins/index.js";
+import type { ChannelId } from "../channels/plugins/types.js";
+import { DEFAULT_CHAT_CHANNEL } from "../channels/registry.js";
 import type { CliDeps } from "../cli/deps.js";
 import type { ClawdbotConfig } from "../config/config.js";
 import {
@@ -45,23 +53,18 @@ import {
 } from "../config/sessions.js";
 import type { AgentDefaultsConfig } from "../config/types.js";
 import { registerAgentRunContext } from "../infra/agent-events.js";
+import { resolveMessageChannelSelection } from "../infra/outbound/channel-selection.js";
 import { deliverOutboundPayloads } from "../infra/outbound/deliver.js";
-import { resolveMessageProviderSelection } from "../infra/outbound/provider-selection.js";
-import {
-  type OutboundProvider,
-  resolveOutboundTarget,
-} from "../infra/outbound/targets.js";
-import { normalizeProviderId } from "../providers/plugins/index.js";
-import type { ProviderId } from "../providers/plugins/types.js";
-import { DEFAULT_CHAT_PROVIDER } from "../providers/registry.js";
+import type { OutboundChannel } from "../infra/outbound/targets.js";
+import { resolveOutboundTarget } from "../infra/outbound/targets.js";
 import {
   buildAgentMainSessionKey,
   normalizeAgentId,
 } from "../routing/session-key.js";
 import {
-  INTERNAL_MESSAGE_PROVIDER,
-  normalizeMessageProvider,
-} from "../utils/message-provider.js";
+  INTERNAL_MESSAGE_CHANNEL,
+  normalizeMessageChannel,
+} from "../utils/message-channel.js";
 import { truncateUtf16Safe } from "../utils.js";
 import type { CronJob } from "./types.js";
 
@@ -121,20 +124,20 @@ async function resolveDeliveryTarget(
   cfg: ClawdbotConfig,
   agentId: string,
   jobPayload: {
-    provider?: "last" | ProviderId;
+    channel?: "last" | ChannelId;
     to?: string;
   },
 ): Promise<{
-  provider: string;
+  channel: Exclude<OutboundChannel, "none">;
   to?: string;
   accountId?: string;
   mode: "explicit" | "implicit";
   error?: Error;
 }> {
   const requestedRaw =
-    typeof jobPayload.provider === "string" ? jobPayload.provider : "last";
-  const requestedProvider =
-    normalizeMessageProvider(requestedRaw) ?? requestedRaw;
+    typeof jobPayload.channel === "string" ? jobPayload.channel : "last";
+  const requestedChannelHint =
+    normalizeMessageChannel(requestedRaw) ?? requestedRaw;
   const explicitTo =
     typeof jobPayload.to === "string" && jobPayload.to.trim()
       ? jobPayload.to.trim()
@@ -145,45 +148,45 @@ async function resolveDeliveryTarget(
   const storePath = resolveStorePath(sessionCfg?.store, { agentId });
   const store = loadSessionStore(storePath);
   const main = store[mainSessionKey];
-  const lastProvider =
-    main?.lastProvider && main.lastProvider !== INTERNAL_MESSAGE_PROVIDER
-      ? (normalizeProviderId(main.lastProvider) ?? main.lastProvider)
+  const lastChannel =
+    main?.lastChannel && main.lastChannel !== INTERNAL_MESSAGE_CHANNEL
+      ? normalizeChannelId(main.lastChannel)
       : undefined;
   const lastTo = typeof main?.lastTo === "string" ? main.lastTo.trim() : "";
   const lastAccountId = main?.lastAccountId;
 
-  let provider =
-    requestedProvider === "last"
-      ? lastProvider
-      : requestedProvider === INTERNAL_MESSAGE_PROVIDER
+  let channel: Exclude<OutboundChannel, "none"> | undefined =
+    requestedChannelHint === "last"
+      ? (lastChannel ?? undefined)
+      : requestedChannelHint === INTERNAL_MESSAGE_CHANNEL
         ? undefined
-        : normalizeProviderId(requestedProvider);
-  if (!provider) {
+        : (normalizeChannelId(requestedChannelHint) ?? undefined);
+  if (!channel) {
     try {
-      const selection = await resolveMessageProviderSelection({ cfg });
-      provider = selection.provider;
+      const selection = await resolveMessageChannelSelection({ cfg });
+      channel = selection.channel;
     } catch {
-      provider = lastProvider ?? DEFAULT_CHAT_PROVIDER;
+      channel = lastChannel ?? DEFAULT_CHAT_CHANNEL;
     }
   }
 
   const toCandidate = explicitTo ?? (lastTo || undefined);
   const mode: "explicit" | "implicit" = explicitTo ? "explicit" : "implicit";
   if (!toCandidate) {
-    return { provider, to: undefined, accountId: lastAccountId, mode };
+    return { channel, to: undefined, accountId: lastAccountId, mode };
   }
 
   const resolved = resolveOutboundTarget({
-    provider: provider as Exclude<OutboundProvider, "none">,
+    channel,
     to: toCandidate,
     cfg,
-    accountId: provider === lastProvider ? lastAccountId : undefined,
+    accountId: channel === lastChannel ? lastAccountId : undefined,
     mode,
   });
   return {
-    provider,
+    channel,
     to: resolved.ok ? resolved.to : undefined,
-    accountId: provider === lastProvider ? lastAccountId : undefined,
+    accountId: channel === lastChannel ? lastAccountId : undefined,
     mode,
     error: resolved.ok ? undefined : resolved.error,
   };
@@ -218,7 +221,7 @@ function resolveCronSession(params: {
     model: entry?.model,
     contextTokens: entry?.contextTokens,
     sendPolicy: entry?.sendPolicy,
-    lastProvider: entry?.lastProvider,
+    lastChannel: entry?.lastChannel,
     lastTo: entry?.lastTo,
   };
   return { storePath, store, sessionEntry, systemSent, isNewSession: !fresh };
@@ -366,6 +369,11 @@ export async function runCronIsolatedAgentTurn(params: {
       catalog: await loadCatalog(),
     });
   }
+  if (thinkLevel === "xhigh" && !supportsXHighThinking(provider, model)) {
+    throw new Error(
+      `Thinking level "xhigh" is only supported for ${formatXHighModelHint()}.`,
+    );
+  }
 
   const timeoutMs = resolveAgentTimeoutMs({
     cfg: cfgWithAgentDefaults,
@@ -386,9 +394,9 @@ export async function runCronIsolatedAgentTurn(params: {
     cfgWithAgentDefaults,
     agentId,
     {
-      provider:
+      channel:
         params.job.payload.kind === "agentTurn"
-          ? params.job.payload.provider
+          ? (params.job.payload.channel ?? "last")
           : "last",
       to:
         params.job.payload.kind === "agentTurn"
@@ -444,11 +452,15 @@ export async function runCronIsolatedAgentTurn(params: {
       sessionKey: agentSessionKey,
       verboseLevel: resolvedVerboseLevel,
     });
-    const messageProvider = resolvedDelivery.provider;
+    const messageChannel = resolvedDelivery.channel;
     const fallbackResult = await runWithModelFallback({
       cfg: cfgWithAgentDefaults,
       provider,
       model,
+      fallbacksOverride: resolveAgentModelFallbacksOverride(
+        params.cfg,
+        agentId,
+      ),
       run: (providerOverride, modelOverride) => {
         if (isCliProvider(providerOverride, cfgWithAgentDefaults)) {
           const cliSessionId = getCliSessionId(
@@ -473,7 +485,7 @@ export async function runCronIsolatedAgentTurn(params: {
         return runEmbeddedPiAgent({
           sessionId: cronSession.sessionEntry.sessionId,
           sessionKey: agentSessionKey,
-          messageProvider,
+          messageChannel,
           sessionFile,
           workspaceDir,
           config: cfgWithAgentDefaults,
@@ -563,10 +575,7 @@ export async function runCronIsolatedAgentTurn(params: {
     try {
       await deliverOutboundPayloads({
         cfg: cfgWithAgentDefaults,
-        provider: resolvedDelivery.provider as Exclude<
-          OutboundProvider,
-          "none"
-        >,
+        channel: resolvedDelivery.channel,
         to: resolvedDelivery.to,
         accountId: resolvedDelivery.accountId,
         payloads,

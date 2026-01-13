@@ -6,7 +6,7 @@ import type { Command } from "commander";
 import { resolveDefaultAgentWorkspaceDir } from "../agents/workspace.js";
 import { gatewayStatusCommand } from "../commands/gateway-status.js";
 import {
-  formatHealthProviderLines,
+  formatHealthChannelLines,
   type HealthSummary,
 } from "../commands/health.js";
 import { handleReset } from "../commands/onboard-helpers.js";
@@ -47,7 +47,7 @@ import { colorize, isRich, theme } from "../terminal/theme.js";
 import {
   GATEWAY_CLIENT_MODES,
   GATEWAY_CLIENT_NAMES,
-} from "../utils/message-provider.js";
+} from "../utils/message-channel.js";
 import { resolveUserPath } from "../utils.js";
 import { forceFreePortAndWait } from "./ports.js";
 import { withProgress } from "./progress.js";
@@ -399,7 +399,10 @@ async function maybeExplainGatewayServiceStop() {
   const service = resolveGatewayService();
   let loaded: boolean | null = null;
   try {
-    loaded = await service.isLoaded({ profile: process.env.CLAWDBOT_PROFILE });
+    loaded = await service.isLoaded({
+      env: process.env,
+      profile: process.env.CLAWDBOT_PROFILE,
+    });
   } catch {
     loaded = null;
   }
@@ -684,14 +687,14 @@ async function runGatewayCommand(
   const bindRaw = toOptionString(opts.bind) ?? cfg.gateway?.bind ?? "loopback";
   const bind =
     bindRaw === "loopback" ||
-    bindRaw === "tailnet" ||
     bindRaw === "lan" ||
-    bindRaw === "auto"
+    bindRaw === "auto" ||
+    bindRaw === "custom"
       ? bindRaw
       : null;
   if (!bind) {
     defaultRuntime.error(
-      'Invalid --bind (use "loopback", "tailnet", "lan", or "auto")',
+      'Invalid --bind (use "loopback", "lan", "auto", or "custom")',
     );
     defaultRuntime.exit(1);
     return;
@@ -961,10 +964,8 @@ export function registerGatewayCli(program: Command) {
               durationMs != null ? ` (${durationMs}ms)` : ""
             }`,
           );
-          if (obj.providers && typeof obj.providers === "object") {
-            for (const line of formatHealthProviderLines(
-              obj as HealthSummary,
-            )) {
+          if (obj.channels && typeof obj.channels === "object") {
+            for (const line of formatHealthChannelLines(obj as HealthSummary)) {
               defaultRuntime.log(line);
             }
           }

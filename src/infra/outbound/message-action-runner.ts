@@ -6,21 +6,21 @@ import {
   readStringParam,
 } from "../../agents/tools/common.js";
 import { parseReplyDirectives } from "../../auto-reply/reply/reply-directives.js";
-import type { ClawdbotConfig } from "../../config/config.js";
-import { dispatchProviderMessageAction } from "../../providers/plugins/message-actions.js";
+import { dispatchChannelMessageAction } from "../../channels/plugins/message-actions.js";
 import type {
-  ProviderId,
-  ProviderMessageActionName,
-  ProviderThreadingToolContext,
-} from "../../providers/plugins/types.js";
+  ChannelId,
+  ChannelMessageActionName,
+  ChannelThreadingToolContext,
+} from "../../channels/plugins/types.js";
+import type { ClawdbotConfig } from "../../config/config.js";
 import type {
   GatewayClientMode,
   GatewayClientName,
-} from "../../utils/message-provider.js";
+} from "../../utils/message-channel.js";
+import { resolveMessageChannelSelection } from "./channel-selection.js";
 import type { OutboundSendDeps } from "./deliver.js";
 import type { MessagePollResult, MessageSendResult } from "./message.js";
 import { sendMessage, sendPoll } from "./message.js";
-import { resolveMessageProviderSelection } from "./provider-selection.js";
 
 export type MessageActionRunnerGateway = {
   url?: string;
@@ -33,10 +33,10 @@ export type MessageActionRunnerGateway = {
 
 export type RunMessageActionParams = {
   cfg: ClawdbotConfig;
-  action: ProviderMessageActionName;
+  action: ChannelMessageActionName;
   params: Record<string, unknown>;
   defaultAccountId?: string;
-  toolContext?: ProviderThreadingToolContext;
+  toolContext?: ChannelThreadingToolContext;
   gateway?: MessageActionRunnerGateway;
   deps?: OutboundSendDeps;
   dryRun?: boolean;
@@ -45,7 +45,7 @@ export type RunMessageActionParams = {
 export type MessageActionRunResult =
   | {
       kind: "send";
-      provider: ProviderId;
+      channel: ChannelId;
       action: "send";
       to: string;
       handledBy: "plugin" | "core";
@@ -56,7 +56,7 @@ export type MessageActionRunResult =
     }
   | {
       kind: "poll";
-      provider: ProviderId;
+      channel: ChannelId;
       action: "poll";
       to: string;
       handledBy: "plugin" | "core";
@@ -67,8 +67,8 @@ export type MessageActionRunResult =
     }
   | {
       kind: "action";
-      provider: ProviderId;
-      action: Exclude<ProviderMessageActionName, "send" | "poll">;
+      channel: ChannelId;
+      action: Exclude<ChannelMessageActionName, "send" | "poll">;
       handledBy: "plugin" | "dry-run";
       payload: unknown;
       toolResult?: AgentToolResult<unknown>;
@@ -126,7 +126,11 @@ function parseButtonsParam(params: Record<string, unknown>): void {
   }
 }
 
+<<<<<<< HEAD
 const CONTEXT_GUARDED_ACTIONS = new Set<ProviderMessageActionName>([
+=======
+const CONTEXT_GUARDED_ACTIONS = new Set<ChannelMessageActionName>([
+>>>>>>> upstream/main
   "send",
   "poll",
   "thread-create",
@@ -135,7 +139,11 @@ const CONTEXT_GUARDED_ACTIONS = new Set<ProviderMessageActionName>([
 ]);
 
 function resolveContextGuardTarget(
+<<<<<<< HEAD
   action: ProviderMessageActionName,
+=======
+  action: ChannelMessageActionName,
+>>>>>>> upstream/main
   params: Record<string, unknown>,
 ): string | undefined {
   if (!CONTEXT_GUARDED_ACTIONS.has(action)) return undefined;
@@ -150,10 +158,17 @@ function resolveContextGuardTarget(
 }
 
 function enforceContextIsolation(params: {
+<<<<<<< HEAD
   provider: ProviderId;
   action: ProviderMessageActionName;
   params: Record<string, unknown>;
   toolContext?: ProviderThreadingToolContext;
+=======
+  channel: ChannelId;
+  action: ChannelMessageActionName;
+  params: Record<string, unknown>;
+  toolContext?: ChannelThreadingToolContext;
+>>>>>>> upstream/main
 }): void {
   const currentTarget = params.toolContext?.currentChannelId?.trim();
   if (!currentTarget) return;
@@ -163,29 +178,43 @@ function enforceContextIsolation(params: {
   if (!target) return;
 
   const normalizedTarget =
+<<<<<<< HEAD
     normalizeTargetForProvider(params.provider, target) ?? target.toLowerCase();
   const normalizedCurrent =
     normalizeTargetForProvider(params.provider, currentTarget) ??
+=======
+    normalizeTargetForProvider(params.channel, target) ?? target.toLowerCase();
+  const normalizedCurrent =
+    normalizeTargetForProvider(params.channel, currentTarget) ??
+>>>>>>> upstream/main
     currentTarget.toLowerCase();
 
   if (!normalizedTarget || !normalizedCurrent) return;
   if (normalizedTarget === normalizedCurrent) return;
 
   throw new Error(
+<<<<<<< HEAD
     `Cross-context messaging denied: action=${params.action} target="${target}" while bound to "${currentTarget}" (provider=${params.provider}).`,
   );
 }
 
 async function resolveProvider(
+=======
+    `Cross-context messaging denied: action=${params.action} target="${target}" while bound to "${currentTarget}" (channel=${params.channel}).`,
+  );
+}
+
+async function resolveChannel(
+>>>>>>> upstream/main
   cfg: ClawdbotConfig,
   params: Record<string, unknown>,
 ) {
-  const providerHint = readStringParam(params, "provider");
-  const selection = await resolveMessageProviderSelection({
+  const channelHint = readStringParam(params, "channel");
+  const selection = await resolveMessageChannelSelection({
     cfg,
-    provider: providerHint,
+    channel: channelHint,
   });
-  return selection.provider;
+  return selection.channel;
 }
 
 export async function runMessageAction(
@@ -196,13 +225,17 @@ export async function runMessageAction(
   parseButtonsParam(params);
 
   const action = input.action;
-  const provider = await resolveProvider(cfg, params);
+  const channel = await resolveChannel(cfg, params);
   const accountId =
     readStringParam(params, "accountId") ?? input.defaultAccountId;
   const dryRun = Boolean(input.dryRun ?? readBooleanParam(params, "dryRun"));
 
   enforceContextIsolation({
+<<<<<<< HEAD
     provider,
+=======
+    channel,
+>>>>>>> upstream/main
     action,
     params,
     toolContext: input.toolContext,
@@ -239,8 +272,8 @@ export async function runMessageAction(
     const bestEffort = readBooleanParam(params, "bestEffort");
 
     if (!dryRun) {
-      const handled = await dispatchProviderMessageAction({
-        provider,
+      const handled = await dispatchChannelMessageAction({
+        channel,
         action,
         cfg,
         params,
@@ -252,7 +285,7 @@ export async function runMessageAction(
       if (handled) {
         return {
           kind: "send",
-          provider,
+          channel,
           action,
           to,
           handledBy: "plugin",
@@ -268,7 +301,7 @@ export async function runMessageAction(
       to,
       content: message,
       mediaUrl: mediaUrl || undefined,
-      provider: provider || undefined,
+      channel: channel || undefined,
       accountId: accountId ?? undefined,
       gifPlayback,
       dryRun,
@@ -279,7 +312,7 @@ export async function runMessageAction(
 
     return {
       kind: "send",
-      provider,
+      channel,
       action,
       to,
       handledBy: "core",
@@ -306,8 +339,8 @@ export async function runMessageAction(
     const maxSelections = allowMultiselect ? Math.max(2, options.length) : 1;
 
     if (!dryRun) {
-      const handled = await dispatchProviderMessageAction({
-        provider,
+      const handled = await dispatchChannelMessageAction({
+        channel,
         action,
         cfg,
         params,
@@ -319,7 +352,7 @@ export async function runMessageAction(
       if (handled) {
         return {
           kind: "poll",
-          provider,
+          channel,
           action,
           to,
           handledBy: "plugin",
@@ -337,14 +370,14 @@ export async function runMessageAction(
       options,
       maxSelections,
       durationHours: durationHours ?? undefined,
-      provider,
+      channel,
       dryRun,
       gateway,
     });
 
     return {
       kind: "poll",
-      provider,
+      channel,
       action,
       to,
       handledBy: "core",
@@ -357,16 +390,16 @@ export async function runMessageAction(
   if (dryRun) {
     return {
       kind: "action",
-      provider,
+      channel,
       action,
       handledBy: "dry-run",
-      payload: { ok: true, dryRun: true, provider, action },
+      payload: { ok: true, dryRun: true, channel, action },
       dryRun: true,
     };
   }
 
-  const handled = await dispatchProviderMessageAction({
-    provider,
+  const handled = await dispatchChannelMessageAction({
+    channel,
     action,
     cfg,
     params,
@@ -377,12 +410,12 @@ export async function runMessageAction(
   });
   if (!handled) {
     throw new Error(
-      `Message action ${action} not supported for provider ${provider}.`,
+      `Message action ${action} not supported for channel ${channel}.`,
     );
   }
   return {
     kind: "action",
-    provider,
+    channel,
     action,
     handledBy: "plugin",
     payload: extractToolPayload(handled),

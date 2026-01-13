@@ -118,4 +118,19 @@ describe("buildAuthChoiceOptions", () => {
 
     expect(options.some((opt) => opt.value === "synthetic-api-key")).toBe(true);
   });
+<<<<<<< HEAD
+=======
+
+  it("includes Chutes OAuth auth choice", () => {
+    const store: AuthProfileStore = { version: 1, profiles: {} };
+    const options = buildAuthChoiceOptions({
+      store,
+      includeSkip: false,
+      includeClaudeCliIfMissing: true,
+      platform: "darwin",
+    });
+
+    expect(options.some((opt) => opt.value === "chutes")).toBe(true);
+  });
+>>>>>>> upstream/main
 });

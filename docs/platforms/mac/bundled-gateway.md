@@ -34,6 +34,7 @@ App bundle layout:
 - `Clawdbot.app/Contents/Resources/Relay/control-ui/`
   - Control UI build output (served by the gateway)
 
+<<<<<<< HEAD
 Why the sidecar files matter:
 - The embedded Pi runtime detects “bundled relay mode” and then looks for
   `package.json` + `theme/` **next to `process.execPath`** (i.e. next to
@@ -59,6 +60,9 @@ Important knobs:
 Version injection:
 - The relay wrapper exports `CLAWDBOT_BUNDLED_VERSION` so `--version` works
   without reading `package.json` at runtime.
+=======
+The macOS app’s **Install CLI** button runs the same flow via npm/pnpm (bun not recommended for Gateway runtime).
+>>>>>>> upstream/main
 
 ## Launchd (Gateway as LaunchAgent)
 
@@ -106,7 +110,7 @@ From a packaged app (local build):
 ```bash
 dist/Clawdbot.app/Contents/Resources/Relay/clawdbot --version
 
-CLAWDBOT_SKIP_PROVIDERS=1 \
+CLAWDBOT_SKIP_CHANNELS=1 \
 CLAWDBOT_SKIP_CANVAS_HOST=1 \
 dist/Clawdbot.app/Contents/Resources/Relay/clawdbot gateway --port 18999 --bind loopback
 ```

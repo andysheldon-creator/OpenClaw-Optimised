@@ -210,7 +210,7 @@ const QueueModeBySurfaceSchema = z
 const QueueSchema = z
   .object({
     mode: QueueModeSchema.optional(),
-    byProvider: QueueModeBySurfaceSchema,
+    byChannel: QueueModeBySurfaceSchema,
     debounceMs: z.number().int().nonnegative().optional(),
     cap: z.number().int().positive().optional(),
     drop: QueueDropSchema.optional(),
@@ -315,7 +315,7 @@ const TelegramAccountSchema = TelegramAccountSchemaBase.superRefine(
       ctx,
       path: ["allowFrom"],
       message:
-        'telegram.dmPolicy="open" requires telegram.allowFrom to include "*"',
+        'channels.telegram.dmPolicy="open" requires channels.telegram.allowFrom to include "*"',
     });
   },
 );
@@ -329,7 +329,7 @@ const TelegramConfigSchema = TelegramAccountSchemaBase.extend({
     ctx,
     path: ["allowFrom"],
     message:
-      'telegram.dmPolicy="open" requires telegram.allowFrom to include "*"',
+      'channels.telegram.dmPolicy="open" requires channels.telegram.allowFrom to include "*"',
   });
 });
 
@@ -348,7 +348,7 @@ const DiscordDmSchema = z
       ctx,
       path: ["allowFrom"],
       message:
-        'discord.dm.policy="open" requires discord.dm.allowFrom to include "*"',
+        'channels.discord.dm.policy="open" requires channels.discord.dm.allowFrom to include "*"',
     });
   });
 
@@ -432,7 +432,7 @@ const SlackDmSchema = z
       ctx,
       path: ["allowFrom"],
       message:
-        'slack.dm.policy="open" requires slack.dm.allowFrom to include "*"',
+        'channels.slack.dm.policy="open" requires channels.slack.dm.allowFrom to include "*"',
     });
   });
 
@@ -530,7 +530,7 @@ const SignalAccountSchema = SignalAccountSchemaBase.superRefine(
       ctx,
       path: ["allowFrom"],
       message:
-        'signal.dmPolicy="open" requires signal.allowFrom to include "*"',
+        'channels.signal.dmPolicy="open" requires channels.signal.allowFrom to include "*"',
     });
   },
 );
@@ -543,7 +543,8 @@ const SignalConfigSchema = SignalAccountSchemaBase.extend({
     allowFrom: value.allowFrom,
     ctx,
     path: ["allowFrom"],
-    message: 'signal.dmPolicy="open" requires signal.allowFrom to include "*"',
+    message:
+      'channels.signal.dmPolicy="open" requires channels.signal.allowFrom to include "*"',
   });
 });
 
@@ -589,7 +590,7 @@ const IMessageAccountSchema = IMessageAccountSchemaBase.superRefine(
       ctx,
       path: ["allowFrom"],
       message:
-        'imessage.dmPolicy="open" requires imessage.allowFrom to include "*"',
+        'channels.imessage.dmPolicy="open" requires channels.imessage.allowFrom to include "*"',
     });
   },
 );
@@ -603,7 +604,7 @@ const IMessageConfigSchema = IMessageAccountSchemaBase.extend({
     ctx,
     path: ["allowFrom"],
     message:
-      'imessage.dmPolicy="open" requires imessage.allowFrom to include "*"',
+      'channels.imessage.dmPolicy="open" requires channels.imessage.allowFrom to include "*"',
   });
 });
 
@@ -652,9 +653,135 @@ const MSTeamsConfigSchema = z
       ctx,
       path: ["allowFrom"],
       message:
-        'msteams.dmPolicy="open" requires msteams.allowFrom to include "*"',
+        'channels.msteams.dmPolicy="open" requires channels.msteams.allowFrom to include "*"',
     });
   });
+
+const WhatsAppAccountSchema = z
+  .object({
+    name: z.string().optional(),
+    capabilities: z.array(z.string()).optional(),
+    enabled: z.boolean().optional(),
+    messagePrefix: z.string().optional(),
+    /** Override auth directory for this WhatsApp account (Baileys multi-file auth state). */
+    authDir: z.string().optional(),
+    dmPolicy: DmPolicySchema.optional().default("pairing"),
+    selfChatMode: z.boolean().optional(),
+    allowFrom: z.array(z.string()).optional(),
+    groupAllowFrom: z.array(z.string()).optional(),
+    groupPolicy: GroupPolicySchema.optional().default("allowlist"),
+    historyLimit: z.number().int().min(0).optional(),
+    dmHistoryLimit: z.number().int().min(0).optional(),
+    dms: z.record(z.string(), DmConfigSchema.optional()).optional(),
+    textChunkLimit: z.number().int().positive().optional(),
+    mediaMaxMb: z.number().int().positive().optional(),
+    blockStreaming: z.boolean().optional(),
+    blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
+    groups: z
+      .record(
+        z.string(),
+        z
+          .object({
+            requireMention: z.boolean().optional(),
+          })
+          .optional(),
+      )
+      .optional(),
+    ackReaction: z
+      .object({
+        emoji: z.string().optional(),
+        direct: z.boolean().optional().default(true),
+        group: z
+          .enum(["always", "mentions", "never"])
+          .optional()
+          .default("mentions"),
+      })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.dmPolicy !== "open") return;
+    const allow = (value.allowFrom ?? [])
+      .map((v) => String(v).trim())
+      .filter(Boolean);
+    if (allow.includes("*")) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["allowFrom"],
+      message:
+        'channels.whatsapp.accounts.*.dmPolicy="open" requires allowFrom to include "*"',
+    });
+  });
+
+const WhatsAppConfigSchema = z
+  .object({
+    accounts: z.record(z.string(), WhatsAppAccountSchema.optional()).optional(),
+    capabilities: z.array(z.string()).optional(),
+    dmPolicy: DmPolicySchema.optional().default("pairing"),
+    messagePrefix: z.string().optional(),
+    selfChatMode: z.boolean().optional(),
+    allowFrom: z.array(z.string()).optional(),
+    groupAllowFrom: z.array(z.string()).optional(),
+    groupPolicy: GroupPolicySchema.optional().default("allowlist"),
+    historyLimit: z.number().int().min(0).optional(),
+    dmHistoryLimit: z.number().int().min(0).optional(),
+    dms: z.record(z.string(), DmConfigSchema.optional()).optional(),
+    textChunkLimit: z.number().int().positive().optional(),
+    mediaMaxMb: z.number().int().positive().optional().default(50),
+    blockStreaming: z.boolean().optional(),
+    blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
+    actions: z
+      .object({
+        reactions: z.boolean().optional(),
+        sendMessage: z.boolean().optional(),
+        polls: z.boolean().optional(),
+      })
+      .optional(),
+    groups: z
+      .record(
+        z.string(),
+        z
+          .object({
+            requireMention: z.boolean().optional(),
+          })
+          .optional(),
+      )
+      .optional(),
+    ackReaction: z
+      .object({
+        emoji: z.string().optional(),
+        direct: z.boolean().optional().default(true),
+        group: z
+          .enum(["always", "mentions", "never"])
+          .optional()
+          .default("mentions"),
+      })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.dmPolicy !== "open") return;
+    const allow = (value.allowFrom ?? [])
+      .map((v) => String(v).trim())
+      .filter(Boolean);
+    if (allow.includes("*")) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["allowFrom"],
+      message:
+        'channels.whatsapp.dmPolicy="open" requires channels.whatsapp.allowFrom to include "*"',
+    });
+  });
+
+const ChannelsSchema = z
+  .object({
+    whatsapp: WhatsAppConfigSchema.optional(),
+    telegram: TelegramConfigSchema.optional(),
+    discord: DiscordConfigSchema.optional(),
+    slack: SlackConfigSchema.optional(),
+    signal: SignalConfigSchema.optional(),
+    imessage: IMessageConfigSchema.optional(),
+    msteams: MSTeamsConfigSchema.optional(),
+  })
+  .optional();
 
 const SessionSchema = z
   .object({
@@ -682,7 +809,7 @@ const SessionSchema = z
               action: z.union([z.literal("allow"), z.literal("deny")]),
               match: z
                 .object({
-                  provider: z.string().optional(),
+                  channel: z.string().optional(),
                   chatType: z
                     .union([
                       z.literal("direct"),
@@ -724,6 +851,8 @@ const CommandsSchema = z
   .object({
     native: NativeCommandsSettingSchema.optional().default("auto"),
     text: z.boolean().optional(),
+    bash: z.boolean().optional(),
+    bashForegroundMs: z.number().int().min(0).max(30_000).optional(),
     config: z.boolean().optional(),
     debug: z.boolean().optional(),
     restart: z.boolean().optional(),
@@ -837,6 +966,15 @@ const ToolPolicySchema = z
   })
   .optional();
 
+const ToolProfileSchema = z
+  .union([
+    z.literal("minimal"),
+    z.literal("coding"),
+    z.literal("messaging"),
+    z.literal("full"),
+  ])
+  .optional();
+
 // Provider docking: allowlists keyed by provider id (no schema updates when adding providers).
 const ElevatedAllowFromSchema = z
   .record(z.string(), z.array(z.union([z.string(), z.number()])))
@@ -866,6 +1004,7 @@ const AgentSandboxSchema = z
 
 const AgentToolsSchema = z
   .object({
+    profile: ToolProfileSchema,
     allow: z.array(z.string()).optional(),
     deny: z.array(z.string()).optional(),
     elevated: z
@@ -930,22 +1069,33 @@ const MemorySearchSchema = z
       .optional(),
   })
   .optional();
+<<<<<<< HEAD
 
 const AgentModelSelectionSchema = z.union([
+=======
+const AgentModelSchema = z.union([
+>>>>>>> upstream/main
   z.string(),
   z.object({
     primary: z.string().optional(),
     fallbacks: z.array(z.string()).optional(),
   }),
 ]);
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/main
 const AgentEntrySchema = z.object({
   id: z.string(),
   default: z.boolean().optional(),
   name: z.string().optional(),
   workspace: z.string().optional(),
   agentDir: z.string().optional(),
+<<<<<<< HEAD
   model: AgentModelSelectionSchema.optional(),
+=======
+  model: AgentModelSchema.optional(),
+>>>>>>> upstream/main
   memorySearch: MemorySearchSchema,
   humanDelay: HumanDelaySchema.optional(),
   identity: IdentitySchema,
@@ -970,6 +1120,7 @@ const AgentEntrySchema = z.object({
 
 const ToolsSchema = z
   .object({
+    profile: ToolProfileSchema,
     allow: z.array(z.string()).optional(),
     deny: z.array(z.string()).optional(),
     audio: z
@@ -1034,7 +1185,7 @@ const BindingsSchema = z
     z.object({
       agentId: z.string(),
       match: z.object({
-        provider: z.string(),
+        channel: z.string(),
         accountId: z.string().optional(),
         peer: z
           .object({
@@ -1086,7 +1237,7 @@ const HookMappingSchema = z
     messageTemplate: z.string().optional(),
     textTemplate: z.string().optional(),
     deliver: z.boolean().optional(),
-    provider: z
+    channel: z
       .union([
         z.literal("last"),
         z.literal("whatsapp"),
@@ -1212,6 +1363,9 @@ const AgentDefaultsSchema = z
       .optional(),
     compaction: z
       .object({
+        mode: z
+          .union([z.literal("default"), z.literal("safeguard")])
+          .optional(),
         reserveTokensFloor: z.number().int().nonnegative().optional(),
         memoryFlush: z
           .object({
@@ -1230,6 +1384,7 @@ const AgentDefaultsSchema = z
         z.literal("low"),
         z.literal("medium"),
         z.literal("high"),
+        z.literal("xhigh"),
       ])
       .optional(),
     verboseDefault: z.union([z.literal("off"), z.literal("on")]).optional(),
@@ -1466,130 +1621,7 @@ export const ClawdbotSchema = z
           .optional(),
       })
       .optional(),
-    whatsapp: z
-      .object({
-        accounts: z
-          .record(
-            z.string(),
-            z
-              .object({
-                name: z.string().optional(),
-                capabilities: z.array(z.string()).optional(),
-                enabled: z.boolean().optional(),
-                messagePrefix: z.string().optional(),
-                /** Override auth directory for this WhatsApp account (Baileys multi-file auth state). */
-                authDir: z.string().optional(),
-                dmPolicy: DmPolicySchema.optional().default("pairing"),
-                selfChatMode: z.boolean().optional(),
-                allowFrom: z.array(z.string()).optional(),
-                groupAllowFrom: z.array(z.string()).optional(),
-                groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-                historyLimit: z.number().int().min(0).optional(),
-                dmHistoryLimit: z.number().int().min(0).optional(),
-                dms: z.record(z.string(), DmConfigSchema.optional()).optional(),
-                textChunkLimit: z.number().int().positive().optional(),
-                mediaMaxMb: z.number().int().positive().optional(),
-                blockStreaming: z.boolean().optional(),
-                blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-                groups: z
-                  .record(
-                    z.string(),
-                    z
-                      .object({
-                        requireMention: z.boolean().optional(),
-                      })
-                      .optional(),
-                  )
-                  .optional(),
-                ackReaction: z
-                  .object({
-                    emoji: z.string().optional(),
-                    direct: z.boolean().optional().default(true),
-                    group: z
-                      .enum(["always", "mentions", "never"])
-                      .optional()
-                      .default("mentions"),
-                  })
-                  .optional(),
-              })
-              .superRefine((value, ctx) => {
-                if (value.dmPolicy !== "open") return;
-                const allow = (value.allowFrom ?? [])
-                  .map((v) => String(v).trim())
-                  .filter(Boolean);
-                if (allow.includes("*")) return;
-                ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  path: ["allowFrom"],
-                  message:
-                    'whatsapp.accounts.*.dmPolicy="open" requires allowFrom to include "*"',
-                });
-              })
-              .optional(),
-          )
-          .optional(),
-        capabilities: z.array(z.string()).optional(),
-        dmPolicy: DmPolicySchema.optional().default("pairing"),
-        messagePrefix: z.string().optional(),
-        selfChatMode: z.boolean().optional(),
-        allowFrom: z.array(z.string()).optional(),
-        groupAllowFrom: z.array(z.string()).optional(),
-        groupPolicy: GroupPolicySchema.optional().default("allowlist"),
-        historyLimit: z.number().int().min(0).optional(),
-        dmHistoryLimit: z.number().int().min(0).optional(),
-        dms: z.record(z.string(), DmConfigSchema.optional()).optional(),
-        textChunkLimit: z.number().int().positive().optional(),
-        mediaMaxMb: z.number().int().positive().optional().default(50),
-        blockStreaming: z.boolean().optional(),
-        blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
-        actions: z
-          .object({
-            reactions: z.boolean().optional(),
-            sendMessage: z.boolean().optional(),
-            polls: z.boolean().optional(),
-          })
-          .optional(),
-        groups: z
-          .record(
-            z.string(),
-            z
-              .object({
-                requireMention: z.boolean().optional(),
-              })
-              .optional(),
-          )
-          .optional(),
-        ackReaction: z
-          .object({
-            emoji: z.string().optional(),
-            direct: z.boolean().optional().default(true),
-            group: z
-              .enum(["always", "mentions", "never"])
-              .optional()
-              .default("mentions"),
-          })
-          .optional(),
-      })
-      .superRefine((value, ctx) => {
-        if (value.dmPolicy !== "open") return;
-        const allow = (value.allowFrom ?? [])
-          .map((v) => String(v).trim())
-          .filter(Boolean);
-        if (allow.includes("*")) return;
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["allowFrom"],
-          message:
-            'whatsapp.dmPolicy="open" requires whatsapp.allowFrom to include "*"',
-        });
-      })
-      .optional(),
-    telegram: TelegramConfigSchema.optional(),
-    discord: DiscordConfigSchema.optional(),
-    slack: SlackConfigSchema.optional(),
-    signal: SignalConfigSchema.optional(),
-    imessage: IMessageConfigSchema.optional(),
-    msteams: MSTeamsConfigSchema.optional(),
+    channels: ChannelsSchema,
     bridge: z
       .object({
         enabled: z.boolean().optional(),

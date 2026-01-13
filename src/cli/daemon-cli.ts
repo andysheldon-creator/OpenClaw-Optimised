@@ -57,7 +57,7 @@ import { colorize, isRich, theme } from "../terminal/theme.js";
 import {
   GATEWAY_CLIENT_MODES,
   GATEWAY_CLIENT_NAMES,
-} from "../utils/message-provider.js";
+} from "../utils/message-channel.js";
 import { createDefaultDeps } from "./deps.js";
 import { withProgress } from "./progress.js";
 
@@ -71,7 +71,8 @@ type ConfigSummary = {
 
 type GatewayStatusSummary = {
   bindMode: BridgeBindMode;
-  bindHost: string | null;
+  bindHost: string;
+  customBindHost?: string;
   port: number;
   portSource: "service args" | "env/config";
   probeUrl: string;
@@ -190,8 +191,11 @@ function parsePortFromArgs(
 function pickProbeHostForBind(
   bindMode: string,
   tailnetIPv4: string | undefined,
+  customBindHost?: string,
 ) {
-  if (bindMode === "tailnet") return tailnetIPv4 ?? "127.0.0.1";
+  if (bindMode === "custom" && customBindHost?.trim()) {
+    return customBindHost.trim();
+  }
   if (bindMode === "auto") return tailnetIPv4 ?? "127.0.0.1";
   return "127.0.0.1";
 }
@@ -363,7 +367,10 @@ async function gatherDaemonStatus(opts: {
   const service = resolveGatewayService();
   const [loaded, command, runtime] = await Promise.all([
     service
-      .isLoaded({ profile: process.env.CLAWDBOT_PROFILE })
+      .isLoaded({
+        env: process.env,
+        profile: process.env.CLAWDBOT_PROFILE,
+      })
       .catch(() => false),
     service.readCommand(process.env).catch(() => null),
     service.readRuntime(process.env).catch(() => undefined),
@@ -429,11 +436,12 @@ async function gatherDaemonStatus(opts: {
   const bindMode = (daemonCfg.gateway?.bind ?? "loopback") as
     | "auto"
     | "lan"
-    | "tailnet"
-    | "loopback";
-  const bindHost = resolveGatewayBindHost(bindMode);
+    | "loopback"
+    | "custom";
+  const customBindHost = daemonCfg.gateway?.customBindHost;
+  const bindHost = await resolveGatewayBindHost(bindMode, customBindHost);
   const tailnetIPv4 = pickPrimaryTailnetIPv4();
-  const probeHost = pickProbeHostForBind(bindMode, tailnetIPv4);
+  const probeHost = pickProbeHostForBind(bindMode, tailnetIPv4, customBindHost);
   const probeUrlOverride =
     typeof opts.rpc.url === "string" && opts.rpc.url.trim().length > 0
       ? opts.rpc.url.trim()
@@ -523,6 +531,7 @@ async function gatherDaemonStatus(opts: {
     gateway: {
       bindMode,
       bindHost,
+      customBindHost,
       port: daemonPort,
       portSource,
       probeUrl,
@@ -651,6 +660,7 @@ function printDaemonStatus(status: DaemonStatus, opts: { json: boolean }) {
       const links = resolveControlUiLinks({
         port: status.gateway.port,
         bind: status.gateway.bindMode,
+        customBindHost: status.gateway.customBindHost,
         basePath: status.config?.daemon?.controlUi?.basePath,
       });
       defaultRuntime.log(`${label("Dashboard:")} ${infoText(links.httpUrl)}`);
@@ -658,13 +668,6 @@ function printDaemonStatus(status: DaemonStatus, opts: { json: boolean }) {
     if (status.gateway.probeNote) {
       defaultRuntime.log(
         `${label("Probe note:")} ${infoText(status.gateway.probeNote)}`,
-      );
-    }
-    if (status.gateway.bindMode === "tailnet" && !status.gateway.bindHost) {
-      defaultRuntime.error(
-        errorText(
-          "Root cause: gateway bind=tailnet but no tailnet interface was found.",
-        ),
       );
     }
     spacer();
@@ -899,7 +902,7 @@ export async function runDaemonInstall(opts: DaemonInstallOptions) {
   const profile = process.env.CLAWDBOT_PROFILE;
   let loaded = false;
   try {
-    loaded = await service.isLoaded({ profile });
+    loaded = await service.isLoaded({ env: process.env, profile });
   } catch (err) {
     defaultRuntime.error(`Gateway service check failed: ${String(err)}`);
     defaultRuntime.exit(1);
@@ -980,7 +983,7 @@ export async function runDaemonStart() {
   const profile = process.env.CLAWDBOT_PROFILE;
   let loaded = false;
   try {
-    loaded = await service.isLoaded({ profile });
+    loaded = await service.isLoaded({ env: process.env, profile });
   } catch (err) {
     defaultRuntime.error(`Gateway service check failed: ${String(err)}`);
     defaultRuntime.exit(1);
@@ -994,7 +997,11 @@ export async function runDaemonStart() {
     return;
   }
   try {
-    await service.restart({ profile, stdout: process.stdout });
+    await service.restart({
+      env: process.env,
+      profile,
+      stdout: process.stdout,
+    });
   } catch (err) {
     defaultRuntime.error(`Gateway start failed: ${String(err)}`);
     for (const hint of renderGatewayServiceStartHints()) {
@@ -1009,7 +1016,7 @@ export async function runDaemonStop() {
   const profile = process.env.CLAWDBOT_PROFILE;
   let loaded = false;
   try {
-    loaded = await service.isLoaded({ profile });
+    loaded = await service.isLoaded({ env: process.env, profile });
   } catch (err) {
     defaultRuntime.error(`Gateway service check failed: ${String(err)}`);
     defaultRuntime.exit(1);
@@ -1020,7 +1027,7 @@ export async function runDaemonStop() {
     return;
   }
   try {
-    await service.stop({ profile, stdout: process.stdout });
+    await service.stop({ env: process.env, profile, stdout: process.stdout });
   } catch (err) {
     defaultRuntime.error(`Gateway stop failed: ${String(err)}`);
     defaultRuntime.exit(1);
@@ -1037,7 +1044,7 @@ export async function runDaemonRestart(): Promise<boolean> {
   const profile = process.env.CLAWDBOT_PROFILE;
   let loaded = false;
   try {
-    loaded = await service.isLoaded({ profile });
+    loaded = await service.isLoaded({ env: process.env, profile });
   } catch (err) {
     defaultRuntime.error(`Gateway service check failed: ${String(err)}`);
     defaultRuntime.exit(1);
@@ -1051,7 +1058,11 @@ export async function runDaemonRestart(): Promise<boolean> {
     return false;
   }
   try {
-    await service.restart({ profile, stdout: process.stdout });
+    await service.restart({
+      env: process.env,
+      profile,
+      stdout: process.stdout,
+    });
     return true;
   } catch (err) {
     defaultRuntime.error(`Gateway restart failed: ${String(err)}`);
