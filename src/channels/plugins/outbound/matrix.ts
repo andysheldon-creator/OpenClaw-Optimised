@@ -1,5 +1,5 @@
 import { chunkMarkdownText } from "../../../auto-reply/chunk.js";
-import { sendMessageMatrix } from "../../../matrix/send.js";
+import { sendMessageMatrix, sendPollMatrix } from "../../../matrix/send.js";
 import type { ChannelOutboundAdapter } from "../types.js";
 
 export const matrixOutbound: ChannelOutboundAdapter = {
@@ -40,5 +40,9 @@ export const matrixOutbound: ChannelOutboundAdapter = {
     };
     const result = await send(to, text, opts);
     return { channel: "matrix", ...result };
+  },
+  sendPoll: async ({ to, poll }) => {
+    const result = await sendPollMatrix(to, poll);
+    return { channel: "matrix", messageId: result.eventId };
   },
 };

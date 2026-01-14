@@ -403,3 +403,68 @@ export async function sendPollMatrix(
     }
   }
 }
+
+export type LocationInput = {
+  latitude: number;
+  longitude: number;
+  label?: string;
+  description?: string;
+};
+
+export type MatrixLocationSendResult = {
+  eventId: string;
+  roomId: string;
+};
+
+export async function sendLocationMatrix(
+  to: string,
+  location: LocationInput,
+  opts: MatrixSendOpts = {},
+): Promise<MatrixLocationSendResult> {
+  if (
+    typeof location.latitude !== "number" ||
+    typeof location.longitude !== "number"
+  ) {
+    throw new Error("Matrix location requires latitude and longitude");
+  }
+  if (
+    !Number.isFinite(location.latitude) ||
+    !Number.isFinite(location.longitude)
+  ) {
+    throw new Error("Matrix location requires finite latitude and longitude");
+  }
+
+  const { client, stopOnDone } = await resolveMatrixClient({
+    client: opts.client,
+    timeoutMs: opts.timeoutMs,
+  });
+
+  try {
+    const roomId = await resolveMatrixRoomId(client, to);
+    const geoUri = `geo:${location.latitude},${location.longitude}`;
+    const label = location.label?.trim() || geoUri;
+    const description = location.description?.trim();
+
+    const content = {
+      msgtype: MsgType.Location,
+      body: description ? `${label}\n${description}` : label,
+      geo_uri: geoUri,
+      "org.matrix.msc3488.location": {
+        uri: geoUri,
+        description: label,
+      },
+    } as unknown as RoomMessageEventContent;
+
+    const threadId = opts.threadId?.trim() || null;
+    const response = await client.sendMessage(roomId, threadId, content);
+
+    return {
+      eventId: response.event_id ?? "unknown",
+      roomId,
+    };
+  } finally {
+    if (stopOnDone) {
+      client.stopClient();
+    }
+  }
+}

@@ -151,10 +151,13 @@ function isLikelyDirectRoom(params: {
 }): boolean {
   if (!params.selfId) return false;
   const memberCount = params.room.getJoinedMemberCount?.();
+  // With lazyLoadMembers enabled, getMember() may return null even for joined
+  // members until their membership events are explicitly loaded. The summary
+  // member count is reliable, so trust it for DM detection.
   if (typeof memberCount !== "number" || memberCount !== 2) return false;
-  const senderMember = params.room.getMember(params.senderId);
-  const selfMember = params.room.getMember(params.selfId);
-  return Boolean(senderMember && selfMember);
+  // If we have exactly 2 members, treat as likely DM. Don't require getMember()
+  // to succeed since lazy loading may not have loaded the membership events yet.
+  return true;
 }
 
 function hasDirectFlag(member?: RoomMember | null): boolean {
@@ -856,6 +859,8 @@ export async function monitorMatrixProvider(
           },
           onReplyStart: () =>
             sendTypingMatrix(roomId, true, undefined, client).catch(() => {}),
+          onIdle: () =>
+            sendTypingMatrix(roomId, false, undefined, client).catch(() => {}),
         });
 
       const { queuedFinal, counts } = await dispatchReplyFromConfig({
