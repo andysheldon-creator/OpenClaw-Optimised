@@ -215,6 +215,118 @@ describe("sendMessageTelegram caption splitting", () => {
     });
   });
 
+  it("includes thread params and reply_markup on follow-up text when splitting", async () => {
+    const chatId = "-1001234567890";
+    const longText = "F".repeat(1100);
+
+    const sendPhoto = vi.fn().mockResolvedValue({
+      message_id: 78,
+      chat: { id: chatId },
+    });
+    const sendMessage = vi.fn().mockResolvedValue({
+      message_id: 79,
+      chat: { id: chatId },
+    });
+    const api = { sendPhoto, sendMessage } as unknown as {
+      sendPhoto: typeof sendPhoto;
+      sendMessage: typeof sendMessage;
+    };
+
+    loadWebMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("fake-image"),
+      contentType: "image/jpeg",
+      fileName: "photo.jpg",
+    });
+
+    await sendMessageTelegram(chatId, longText, {
+      token: "tok",
+      api,
+      mediaUrl: "https://example.com/photo.jpg",
+      messageThreadId: 271,
+      replyToMessageId: 500,
+      buttons: [[{ text: "Click me", callback_data: "action:click" }]],
+    });
+
+    expect(sendPhoto).toHaveBeenCalledWith(chatId, expect.anything(), {
+      caption: undefined,
+      message_thread_id: 271,
+      reply_to_message_id: 500,
+    });
+    expect(sendMessage).toHaveBeenCalledWith(chatId, longText, {
+      message_thread_id: 271,
+      reply_to_message_id: 500,
+      reply_markup: {
+        inline_keyboard: [[{ text: "Click me", callback_data: "action:click" }]],
+      },
+    });
+  });
+
+  it("wraps chat-not-found errors from follow-up message", async () => {
+    const chatId = "123";
+    const longText = "G".repeat(1100);
+
+    const sendPhoto = vi.fn().mockResolvedValue({
+      message_id: 80,
+      chat: { id: chatId },
+    });
+    const sendMessage = vi
+      .fn()
+      .mockRejectedValue(new Error("400: Bad Request: chat not found"));
+    const api = { sendPhoto, sendMessage } as unknown as {
+      sendPhoto: typeof sendPhoto;
+      sendMessage: typeof sendMessage;
+    };
+
+    loadWebMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("fake-image"),
+      contentType: "image/jpeg",
+      fileName: "photo.jpg",
+    });
+
+    await expect(
+      sendMessageTelegram(chatId, longText, {
+        token: "tok",
+        api,
+        mediaUrl: "https://example.com/photo.jpg",
+      }),
+    ).rejects.toThrow(
+      /Telegram send failed: chat not found \(chat_id=123\)\./,
+    );
+  });
+
+  it("does not send follow-up text when caption is empty", async () => {
+    const chatId = "123";
+    const emptyText = "   ";
+
+    const sendPhoto = vi.fn().mockResolvedValue({
+      message_id: 81,
+      chat: { id: chatId },
+    });
+    const sendMessage = vi.fn();
+    const api = { sendPhoto, sendMessage } as unknown as {
+      sendPhoto: typeof sendPhoto;
+      sendMessage: typeof sendMessage;
+    };
+
+    loadWebMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("fake-image"),
+      contentType: "image/jpeg",
+      fileName: "photo.jpg",
+    });
+
+    const res = await sendMessageTelegram(chatId, emptyText, {
+      token: "tok",
+      api,
+      mediaUrl: "https://example.com/photo.jpg",
+    });
+
+    expect(sendPhoto).toHaveBeenCalledWith(chatId, expect.anything(), {
+      caption: undefined,
+    });
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(res.messageId).toBe("81");
+  });
+
   it("keeps reply_markup on media when not splitting", async () => {
     const chatId = "123";
     const shortText = "E".repeat(100);

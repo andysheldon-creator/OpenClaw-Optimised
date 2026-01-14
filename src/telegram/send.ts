@@ -313,7 +313,9 @@ export async function sendMessageTelegram(
             ? api.sendMessage(chatId, trimmedText, textParams)
             : api.sendMessage(chatId, trimmedText),
         "message",
-      );
+      ).catch((err) => {
+        throw wrapChatNotFound(err);
+      });
       // Return the text message ID as the "main" message (it's the actual content).
       return {
         messageId: String(textRes?.message_id ?? mediaMessageId),
