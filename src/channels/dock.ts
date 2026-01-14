@@ -253,7 +253,7 @@ const DOCKS: Record<ChannelId, ChannelDock> = {
       blockStreamingCoalesceDefaults: { minChars: 1500, idleMs: 1000 },
     },
     config: {
-      resolveAllowFrom: ({ cfg }) => cfg.matrix?.dm?.allowFrom ?? [],
+      resolveAllowFrom: ({ cfg }) => cfg.channels?.matrix?.dm?.allowFrom ?? [],
       formatAllowFrom: ({ allowFrom }) =>
         allowFrom
           .map((entry) => String(entry).trim())
@@ -262,7 +262,8 @@ const DOCKS: Record<ChannelId, ChannelDock> = {
           .filter(Boolean),
     },
     threading: {
-      resolveReplyToMode: ({ cfg }) => cfg.matrix?.replyToMode ?? "first",
+      resolveReplyToMode: ({ cfg }) =>
+        cfg.channels?.matrix?.replyToMode ?? "first",
     },
   },
   signal: {

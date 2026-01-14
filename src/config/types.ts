@@ -857,6 +857,7 @@ export type ChannelsConfig = {
   signal?: SignalConfig;
   imessage?: IMessageConfig;
   msteams?: MSTeamsConfig;
+  matrix?: MatrixConfig;
 };
 
 export type IMessageAccountConfig = {
@@ -1855,7 +1856,6 @@ export type ClawdbotConfig = {
   commands?: CommandsConfig;
   session?: SessionConfig;
   web?: WebConfig;
-  matrix?: MatrixConfig;
   channels?: ChannelsConfig;
   cron?: CronConfig;
   hooks?: HooksConfig;

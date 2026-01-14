@@ -508,7 +508,7 @@ const MatrixDmSchema = z
       ctx,
       path: ["allowFrom"],
       message:
-        'matrix.dm.policy="open" requires matrix.dm.allowFrom to include "*" when allowFrom is set',
+        'channels.matrix.dm.policy="open" requires channels.matrix.dm.allowFrom to include "*" when allowFrom is set',
       allowEmpty: true,
     });
   });
@@ -843,6 +843,7 @@ const ChannelsSchema = z
     signal: SignalConfigSchema.optional(),
     imessage: IMessageConfigSchema.optional(),
     msteams: MSTeamsConfigSchema.optional(),
+    matrix: MatrixConfigSchema.optional(),
   })
   .optional();
 
@@ -1677,7 +1678,6 @@ export const ClawdbotSchema = z
           .optional(),
       })
       .optional(),
-    matrix: MatrixConfigSchema.optional(),
     channels: ChannelsSchema,
 
     bridge: z

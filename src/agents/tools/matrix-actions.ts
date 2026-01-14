@@ -37,7 +37,7 @@ export async function handleMatrixAction(
   cfg: ClawdbotConfig,
 ): Promise<AgentToolResult<unknown>> {
   const action = readStringParam(params, "action", { required: true });
-  const isActionEnabled = createActionGate(cfg.matrix?.actions);
+  const isActionEnabled = createActionGate(cfg.channels?.matrix?.actions);
 
   if (reactionsActions.has(action)) {
     if (!isActionEnabled("reactions")) {

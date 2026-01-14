@@ -26,7 +26,7 @@ function clean(value?: unknown): string {
 function resolveMatrixConfigValues(
   cfg: ClawdbotConfig,
 ): MatrixCredentialSnapshot {
-  const matrix = cfg.matrix ?? {};
+  const matrix = cfg.channels?.matrix ?? {};
   return {
     homeserver: clean(matrix.homeserver),
     userId: clean(matrix.userId),
@@ -57,19 +57,23 @@ function hasMatrixCredentials(values: MatrixCredentialSnapshot): boolean {
 }
 
 function setMatrixDmPolicy(cfg: ClawdbotConfig, dmPolicy: DmPolicy) {
+  const matrix = cfg.channels?.matrix;
   const allowFrom =
     dmPolicy === "open"
-      ? addWildcardAllowFrom(cfg.matrix?.dm?.allowFrom)
+      ? addWildcardAllowFrom(matrix?.dm?.allowFrom)
       : undefined;
   return {
     ...cfg,
-    matrix: {
-      ...cfg.matrix,
-      dm: {
-        ...cfg.matrix?.dm,
-        enabled: cfg.matrix?.dm?.enabled ?? true,
-        policy: dmPolicy,
-        ...(allowFrom ? { allowFrom } : {}),
+    channels: {
+      ...cfg.channels,
+      matrix: {
+        ...matrix,
+        dm: {
+          ...matrix?.dm,
+          enabled: matrix?.dm?.enabled ?? true,
+          policy: dmPolicy,
+          ...(allowFrom ? { allowFrom } : {}),
+        },
       },
     },
   };
@@ -92,9 +96,9 @@ async function noteMatrixCredentialHelp(
 const dmPolicy: ChannelOnboardingDmPolicy = {
   label: "Matrix",
   channel,
-  policyKey: "matrix.dm.policy",
-  allowFromKey: "matrix.dm.allowFrom",
-  getCurrent: (cfg) => cfg.matrix?.dm?.policy ?? "pairing",
+  policyKey: "channels.matrix.dm.policy",
+  allowFromKey: "channels.matrix.dm.allowFrom",
+  getCurrent: (cfg) => cfg.channels?.matrix?.dm?.policy ?? "pairing",
   setPolicy: (cfg, policy) => setMatrixDmPolicy(cfg, policy),
 };
 
@@ -125,7 +129,9 @@ export const matrixOnboardingAdapter: ChannelOnboardingAdapter = {
     const envValues = resolveMatrixEnvValues();
     const hasConfigCreds = hasMatrixCredentials(configValues);
     const hasEnvCreds = hasMatrixCredentials(envValues);
-    const matrixConfig = { ...(cfg.matrix as Record<string, unknown>) };
+    const matrixConfig = {
+      ...(cfg.channels?.matrix as Record<string, unknown>),
+    };
 
     let next = cfg;
     let shouldWrite = false;
@@ -244,7 +250,10 @@ export const matrixOnboardingAdapter: ChannelOnboardingAdapter = {
     if (shouldWrite) {
       next = {
         ...next,
-        matrix: matrixConfig,
+        channels: {
+          ...next.channels,
+          matrix: matrixConfig,
+        },
       };
     }
 
@@ -253,6 +262,9 @@ export const matrixOnboardingAdapter: ChannelOnboardingAdapter = {
   dmPolicy,
   disable: (cfg) => ({
     ...cfg,
-    matrix: { ...cfg.matrix, enabled: false },
+    channels: {
+      ...cfg.channels,
+      matrix: { ...cfg.channels?.matrix, enabled: false },
+    },
   }),
 };

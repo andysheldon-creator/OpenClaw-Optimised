@@ -578,7 +578,7 @@ async function removeChannelConfigWizard(
 
   const listConfiguredChannels = () =>
     listChatChannels().filter((meta) => {
-      if (meta.id === "matrix") return next.matrix !== undefined;
+      if (meta.id === "matrix") return next.channels?.matrix !== undefined;
       const channels = next.channels as Record<string, unknown> | undefined;
       return channels?.[meta.id] !== undefined;
     });
@@ -624,20 +624,14 @@ async function removeChannelConfigWizard(
     );
     if (!confirmed) continue;
 
-    if (channel === "matrix") {
-      const updated = { ...next } as ClawdbotConfig;
-      delete updated.matrix;
-      next = updated;
-    } else {
-      const nextChannels: Record<string, unknown> = { ...next.channels };
-      delete nextChannels[channel];
-      next = {
-        ...next,
-        channels: Object.keys(nextChannels).length
-          ? (nextChannels as ClawdbotConfig["channels"])
-          : undefined,
-      };
-    }
+    const nextChannels: Record<string, unknown> = { ...next.channels };
+    delete nextChannels[channel];
+    next = {
+      ...next,
+      channels: Object.keys(nextChannels).length
+        ? (nextChannels as ClawdbotConfig["channels"])
+        : undefined,
+    };
 
     note(
       [

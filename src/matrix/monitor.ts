@@ -114,7 +114,9 @@ function resolveMatrixAllowListMatches(params: {
 }
 
 function resolveMatrixRoomConfig(params: {
-  rooms?: NonNullable<ClawdbotConfig["matrix"]>["rooms"];
+  rooms?: NonNullable<
+    NonNullable<ClawdbotConfig["channels"]>["matrix"]
+  >["rooms"];
   roomId: string;
   aliases: string[];
   name?: string | null;
@@ -382,7 +384,7 @@ export async function monitorMatrixProvider(
     );
   }
   const cfg = loadConfig();
-  if (cfg.matrix?.enabled === false) return;
+  if (cfg.channels?.matrix?.enabled === false) return;
 
   const runtime: RuntimeEnv = opts.runtime ?? {
     log: console.log,
@@ -402,13 +404,14 @@ export async function monitorMatrixProvider(
 
   const mentionRegexes = buildMentionRegexes(cfg);
   const logger = getChildLogger({ module: "matrix-auto-reply" });
-  const allowlistOnly = cfg.matrix?.allowlistOnly === true;
-  const groupPolicyRaw = cfg.matrix?.groupPolicy ?? "disabled";
+  const allowlistOnly = cfg.channels?.matrix?.allowlistOnly === true;
+  const groupPolicyRaw = cfg.channels?.matrix?.groupPolicy ?? "disabled";
   const groupPolicy =
     allowlistOnly && groupPolicyRaw === "open" ? "allowlist" : groupPolicyRaw;
-  const replyToMode = opts.replyToMode ?? cfg.matrix?.replyToMode ?? "off";
-  const threadReplies = cfg.matrix?.threadReplies ?? "inbound";
-  const dmConfig = cfg.matrix?.dm;
+  const replyToMode =
+    opts.replyToMode ?? cfg.channels?.matrix?.replyToMode ?? "off";
+  const threadReplies = cfg.channels?.matrix?.threadReplies ?? "inbound";
+  const dmConfig = cfg.channels?.matrix?.dm;
   const dmEnabled = dmConfig?.enabled ?? true;
   const dmPolicyRaw = dmConfig?.policy ?? "pairing";
   const dmPolicy =
@@ -416,7 +419,7 @@ export async function monitorMatrixProvider(
   const allowFrom = dmConfig?.allowFrom ?? [];
   const textLimit = resolveTextChunkLimit(cfg, "matrix");
   const mediaMaxMb =
-    opts.mediaMaxMb ?? cfg.matrix?.mediaMaxMb ?? DEFAULT_MEDIA_MAX_MB;
+    opts.mediaMaxMb ?? cfg.channels?.matrix?.mediaMaxMb ?? DEFAULT_MEDIA_MAX_MB;
   const mediaMaxBytes = Math.max(1, mediaMaxMb) * 1024 * 1024;
   // Avoid replaying backlog messages when the client first syncs.
   const startupMs = Date.now();
@@ -443,8 +446,8 @@ export async function monitorMatrixProvider(
     updateDirectMap(event.getContent<MatrixDirectAccountData>() ?? {});
   });
 
-  const autoJoin = cfg.matrix?.autoJoin ?? "always";
-  const autoJoinAllowlist = cfg.matrix?.autoJoinAllowlist ?? [];
+  const autoJoin = cfg.channels?.matrix?.autoJoin ?? "always";
+  const autoJoinAllowlist = cfg.channels?.matrix?.autoJoinAllowlist ?? [];
   client.on(
     RoomMemberEvent.Membership,
     async (_event: MatrixEvent, member: RoomMember) => {
@@ -560,7 +563,7 @@ export async function monitorMatrixProvider(
       ].filter(Boolean);
       const roomName = room.name ?? undefined;
       const roomConfigInfo = resolveMatrixRoomConfig({
-        rooms: cfg.matrix?.rooms,
+        rooms: cfg.channels?.matrix?.rooms,
         roomId,
         aliases: roomAliases,
         name: roomName,

@@ -22,11 +22,13 @@ Status: production-ready for **unencrypted** DMs + rooms via `matrix-js-sdk`.
 Minimal config:
 ```json5
 {
-  matrix: {
-    enabled: true,
-    homeserver: "https://matrix.example.org",
-    userId: "@clawdbot:example.org",
-    accessToken: "syt_..."
+  channels: {
+    matrix: {
+      enabled: true,
+      homeserver: "https://matrix.example.org",
+      userId: "@clawdbot:example.org",
+      accessToken: "syt_..."
+    }
   }
 }
 ```
@@ -79,32 +81,36 @@ curl -sS "https://matrix.example.org/_matrix/client/v3/login" \
 ```
 
 The response includes:
-- `access_token` → set as `matrix.accessToken`
-- `user_id` → set as `matrix.userId`
+- `access_token` → set as `channels.matrix.accessToken`
+- `user_id` → set as `channels.matrix.userId`
 
 Then configure:
 ```json5
 {
-  matrix: {
-    homeserver: "https://matrix.example.org",
-    userId: "@clawdbot:example.org",
-    accessToken: "syt_..."
+  channels: {
+    matrix: {
+      homeserver: "https://matrix.example.org",
+      userId: "@clawdbot:example.org",
+      accessToken: "syt_..."
+    }
   }
 }
 ```
 
 ### Option 2: Password login (runtime)
 
-If you set `matrix.password`, Clawdbot will log in at startup to obtain a token. The credentials are cached to `~/.clawdbot/credentials/matrix/` for reuse.
+If you set `channels.matrix.password`, Clawdbot will log in at startup to obtain a token. The credentials are cached to `~/.clawdbot/credentials/matrix/` for reuse.
 
 For long-running gateways, prefer a pre-generated `accessToken`.
 
 ```json5
 {
-  matrix: {
-    homeserver: "https://matrix.example.org",
-    userId: "@clawdbot:example.org",
-    password: "YOUR_PASSWORD"
+  channels: {
+    matrix: {
+      homeserver: "https://matrix.example.org",
+      userId: "@clawdbot:example.org",
+      password: "YOUR_PASSWORD"
+    }
   }
 }
 ```
@@ -116,17 +122,19 @@ For long-running gateways, prefer a pre-generated `accessToken`.
 Control who can DM your bot:
 
 - `pairing` (default): Unknown senders receive a pairing code. Approve with `clawdbot pairing approve matrix <code>`.
-- `allowlist`: Only senders in `matrix.dm.allowFrom` can message.
-- `open`: Anyone can DM; if `matrix.dm.allowFrom` is set, include `"*"` to keep it open.
+- `allowlist`: Only senders in `channels.matrix.dm.allowFrom` can message.
+- `open`: Anyone can DM; if `channels.matrix.dm.allowFrom` is set, include `"*"` to keep it open.
 - `disabled`: Block all DMs.
 
 ```json5
 {
-  matrix: {
-    dm: {
-      enabled: true,
-      policy: "pairing",
-      allowFrom: ["@alice:example.org", "@bob:example.org"]
+  channels: {
+    matrix: {
+      dm: {
+        enabled: true,
+        policy: "pairing",
+        allowFrom: ["@alice:example.org", "@bob:example.org"]
+      }
     }
   }
 }
@@ -169,15 +177,17 @@ Control which rooms your bot responds in:
 
 - `disabled` (default): Block all room messages.
 - `open`: Rooms bypass allowlists; mention gating still applies.
-- `allowlist`: Only rooms listed in `matrix.rooms` are allowed.
+- `allowlist`: Only rooms listed in `channels.matrix.rooms` are allowed.
 
 ```json5
 {
-  matrix: {
-    groupPolicy: "allowlist",
-    rooms: {
-      "!roomid:example.org": { allow: true, requireMention: true },
-      "#ops:example.org": { allow: true, requireMention: false }
+  channels: {
+    matrix: {
+      groupPolicy: "allowlist",
+      rooms: {
+        "!roomid:example.org": { allow: true, requireMention: true },
+        "#ops:example.org": { allow: true, requireMention: false }
+      }
     }
   }
 }
@@ -187,17 +197,19 @@ Control which rooms your bot responds in:
 
 ```json5
 {
-  matrix: {
-    rooms: {
-      "*": { requireMention: true },  // default for all rooms
-      "!specific:example.org": {
-        enabled: true,           // alias for allow
-        allow: true,
-        autoReply: false,        // when true, don't require mention
-        requireMention: true,    // require @mention to respond
-        skills: ["docs", "code"], // skill filter (omit = all skills)
-        systemPrompt: "Keep answers short and technical.",
-        users: ["@alice:example.org"]  // per-room user allowlist
+  channels: {
+    matrix: {
+      rooms: {
+        "*": { requireMention: true },  // default for all rooms
+        "!specific:example.org": {
+          enabled: true,           // alias for allow
+          allow: true,
+          autoReply: false,        // when true, don't require mention
+          requireMention: true,    // require @mention to respond
+          skills: ["docs", "code"], // skill filter (omit = all skills)
+          systemPrompt: "Keep answers short and technical.",
+          users: ["@alice:example.org"]  // per-room user allowlist
+        }
       }
     }
   }
@@ -209,14 +221,16 @@ Control which rooms your bot responds in:
 Control automatic room joins on invite:
 
 - `always` (default): Accept all invites.
-- `allowlist`: Only join rooms in `matrix.autoJoinAllowlist`.
+- `allowlist`: Only join rooms in `channels.matrix.autoJoinAllowlist`.
 - `off`: Never auto-join.
 
 ```json5
 {
-  matrix: {
-    autoJoin: "allowlist",
-    autoJoinAllowlist: ["!roomid:example.org", "#ops:example.org"]
+  channels: {
+    matrix: {
+      autoJoin: "allowlist",
+      autoJoinAllowlist: ["!roomid:example.org", "#ops:example.org"]
+    }
   }
 }
 ```
@@ -225,7 +239,7 @@ Control automatic room joins on invite:
 
 ### Thread replies
 
-Matrix threads are fully supported. Control behavior with `matrix.threadReplies`:
+Matrix threads are fully supported. Control behavior with `channels.matrix.threadReplies`:
 
 - `inbound` (default): Reply in a thread only if the sender started one.
 - `always`: Always reply in threads (create new thread if none exists).
@@ -235,7 +249,7 @@ When an inbound message is a thread reply, Clawdbot follows the thread automatic
 
 ### Reply-to mode
 
-Control non-thread reply tags with `matrix.replyToMode`:
+Control non-thread reply tags with `channels.matrix.replyToMode`:
 
 - `off` (default): Don't add reply relations.
 - `first`: Reply-to on first message only.
@@ -287,13 +301,15 @@ Control which actions are enabled:
 
 ```json5
 {
-  matrix: {
-    actions: {
-      messages: true,    // sendMessage, editMessage, deleteMessage, readMessages
-      reactions: true,   // react, reactions
-      pins: true,        // pinMessage, unpinMessage, listPins
-      memberInfo: true,  // memberInfo
-      roomInfo: true     // roomInfo
+  channels: {
+    matrix: {
+      actions: {
+        messages: true,    // sendMessage, editMessage, deleteMessage, readMessages
+        reactions: true,   // react, reactions
+        pins: true,        // pinMessage, unpinMessage, listPins
+        memberInfo: true,  // memberInfo
+        roomInfo: true     // roomInfo
+      }
     }
   }
 }
@@ -337,70 +353,72 @@ clawdbot message poll --channel matrix --to "room:!roomid:example.org" \
 
 ### Limits
 
-- Text chunked to `matrix.textChunkLimit` (default: 4000 chars).
-- Media capped by `matrix.mediaMaxMb` (default: 20 MB).
+- Text chunked to `channels.matrix.textChunkLimit` (default: 4000 chars).
+- Media capped by `channels.matrix.mediaMaxMb` (default: 20 MB).
 - **Node.js only** — Bun runtime is not supported.
 
 ## Full configuration reference
 
 ```json5
 {
-  matrix: {
-    // Provider control
-    enabled: true,                        // enable/disable the provider
-    
-    // Authentication
-    homeserver: "https://matrix.example.org",
-    userId: "@clawdbot:example.org",
-    accessToken: "syt_...",               // preferred auth method
-    password: "...",                       // alternative: login at startup
-    deviceName: "Clawdbot Gateway",       // display name for device
-    
-    // Storage (defaults usually fine)
-    storePath: "~/.clawdbot/credentials/matrix/store",
-    
-    // Auto-join behavior
-    autoJoin: "always",                   // always | allowlist | off
-    autoJoinAllowlist: ["!roomid:example.org", "#ops:example.org"],
-    
-    // Room handling
-    groupPolicy: "disabled",              // open | allowlist | disabled
-    allowlistOnly: false,                 // require allowlists for all
-    
-    // DM handling
-    dm: {
-      enabled: true,
-      policy: "pairing",                  // pairing | allowlist | open | disabled
-      allowFrom: ["@owner:example.org", "*"]
-    },
-    
-    // Per-room config
-    rooms: {
-      "*": { requireMention: true },
-      "!roomid:example.org": {
-        allow: true,
-        autoReply: false,
-        skills: ["docs"],
-        systemPrompt: "Keep answers short."
+  channels: {
+    matrix: {
+      // Provider control
+      enabled: true,                        // enable/disable the provider
+      
+      // Authentication
+      homeserver: "https://matrix.example.org",
+      userId: "@clawdbot:example.org",
+      accessToken: "syt_...",               // preferred auth method
+      password: "...",                       // alternative: login at startup
+      deviceName: "Clawdbot Gateway",       // display name for device
+      
+      // Storage (defaults usually fine)
+      storePath: "~/.clawdbot/credentials/matrix/store",
+      
+      // Auto-join behavior
+      autoJoin: "always",                   // always | allowlist | off
+      autoJoinAllowlist: ["!roomid:example.org", "#ops:example.org"],
+      
+      // Room handling
+      groupPolicy: "disabled",              // open | allowlist | disabled
+      allowlistOnly: false,                 // require allowlists for all
+      
+      // DM handling
+      dm: {
+        enabled: true,
+        policy: "pairing",                  // pairing | allowlist | open | disabled
+        allowFrom: ["@owner:example.org", "*"]
+      },
+      
+      // Per-room config
+      rooms: {
+        "*": { requireMention: true },
+        "!roomid:example.org": {
+          allow: true,
+          autoReply: false,
+          skills: ["docs"],
+          systemPrompt: "Keep answers short."
+        }
+      },
+      
+      // Threading
+      replyToMode: "off",                   // off | first | all
+      threadReplies: "inbound",             // inbound | always | off
+      
+      // Limits
+      textChunkLimit: 4000,
+      mediaMaxMb: 20,
+      initialSyncLimit: 10,                 // events per room on initial sync
+      
+      // Tool gating
+      actions: {
+        messages: true,
+        reactions: true,
+        pins: true,
+        memberInfo: true,
+        roomInfo: true
       }
-    },
-    
-    // Threading
-    replyToMode: "off",                   // off | first | all
-    threadReplies: "inbound",             // inbound | always | off
-    
-    // Limits
-    textChunkLimit: 4000,
-    mediaMaxMb: 20,
-    initialSyncLimit: 10,                 // events per room on initial sync
-    
-    // Tool gating
-    actions: {
-      messages: true,
-      reactions: true,
-      pins: true,
-      memberInfo: true,
-      roomInfo: true
     }
   }
 }
@@ -412,12 +430,12 @@ All config options can be overridden via environment variables (env wins):
 
 | Variable | Config key |
 |----------|------------|
-| `MATRIX_HOMESERVER` | `matrix.homeserver` |
-| `MATRIX_USER_ID` | `matrix.userId` |
-| `MATRIX_ACCESS_TOKEN` | `matrix.accessToken` |
-| `MATRIX_PASSWORD` | `matrix.password` |
-| `MATRIX_DEVICE_NAME` | `matrix.deviceName` |
-| `MATRIX_STORE_PATH` | `matrix.storePath` |
+| `MATRIX_HOMESERVER` | `channels.matrix.homeserver` |
+| `MATRIX_USER_ID` | `channels.matrix.userId` |
+| `MATRIX_ACCESS_TOKEN` | `channels.matrix.accessToken` |
+| `MATRIX_PASSWORD` | `channels.matrix.password` |
+| `MATRIX_DEVICE_NAME` | `channels.matrix.deviceName` |
+| `MATRIX_STORE_PATH` | `channels.matrix.storePath` |
 
 ## Routing and sessions
 
@@ -447,14 +465,14 @@ node dist/bin/clawdbot.js gateway
 
 ### DMs not working
 
-1. Check `matrix.dm.enabled` is true.
-2. Check `matrix.dm.policy` — if `pairing`, approve pending requests.
-3. For `allowlist` policy, verify the sender is in `matrix.dm.allowFrom`.
+1. Check `channels.matrix.dm.enabled` is true.
+2. Check `channels.matrix.dm.policy` — if `pairing`, approve pending requests.
+3. For `allowlist` policy, verify the sender is in `channels.matrix.dm.allowFrom`.
 
 ### Room messages ignored
 
-1. Check `matrix.groupPolicy` — it's `disabled` by default.
-2. For `allowlist` policy, add the room to `matrix.rooms`.
+1. Check `channels.matrix.groupPolicy` — it's `disabled` by default.
+2. For `allowlist` policy, add the room to `channels.matrix.rooms`.
 3. Check if mention is required but bot wasn't mentioned.
 
 ## References

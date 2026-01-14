@@ -49,7 +49,7 @@ export function resolveMatrixConfig(
   cfg: ClawdbotConfig = loadConfig(),
   env: NodeJS.ProcessEnv = process.env,
 ): MatrixResolvedConfig {
-  const matrix = cfg.matrix ?? {};
+  const matrix = cfg.channels?.matrix ?? {};
   const homeserver = clean(env.MATRIX_HOMESERVER) || clean(matrix.homeserver);
   const userId = clean(env.MATRIX_USER_ID) || clean(matrix.userId);
   const accessToken =

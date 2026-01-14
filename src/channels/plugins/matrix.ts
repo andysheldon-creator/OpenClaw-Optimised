@@ -40,10 +40,10 @@ function clean(value?: unknown): string {
 }
 
 function resolveMatrixCredentialValues(
-  cfg: { matrix?: Record<string, unknown> },
+  cfg: { channels?: { matrix?: Record<string, unknown> } },
   env: NodeJS.ProcessEnv = process.env,
 ) {
-  const matrixConfig = (cfg.matrix ?? {}) as Record<string, unknown>;
+  const matrixConfig = (cfg.channels?.matrix ?? {}) as Record<string, unknown>;
   return {
     matrixConfig,
     homeserver: clean(env.MATRIX_HOMESERVER) || clean(matrixConfig.homeserver),
@@ -55,7 +55,7 @@ function resolveMatrixCredentialValues(
 }
 
 function resolveMatrixAccount(params: {
-  cfg: { matrix?: Record<string, unknown> };
+  cfg: { channels?: { matrix?: Record<string, unknown> } };
   accountId?: string | null;
 }): ResolvedMatrixAccount {
   const cfg = params.cfg;
@@ -109,26 +109,35 @@ export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount> = {
   streaming: {
     blockStreamingCoalesceDefaults: { minChars: 1500, idleMs: 1000 },
   },
-  reload: { configPrefixes: ["matrix"] },
+  reload: { configPrefixes: ["channels.matrix"] },
   config: {
     listAccountIds: (cfg) => listMatrixAccountIds(cfg),
     resolveAccount: (cfg, accountId) =>
       resolveMatrixAccount({ cfg, accountId }),
     defaultAccountId: (cfg) => resolveDefaultMatrixAccountId(cfg),
     setAccountEnabled: ({ cfg, enabled }) => {
-      const base = (cfg.matrix as Record<string, unknown> | undefined) ?? {};
+      const base =
+        (cfg.channels?.matrix as Record<string, unknown> | undefined) ?? {};
       return {
         ...cfg,
-        matrix: {
-          ...base,
-          enabled,
+        channels: {
+          ...cfg.channels,
+          matrix: {
+            ...base,
+            enabled,
+          },
         },
       };
     },
     deleteAccount: ({ cfg }) => {
-      const next = { ...cfg };
-      delete next.matrix;
-      return next;
+      const nextChannels: Record<string, unknown> = { ...cfg.channels };
+      delete nextChannels.matrix;
+      return {
+        ...cfg,
+        channels: Object.keys(nextChannels).length
+          ? (nextChannels as typeof cfg.channels)
+          : undefined,
+      };
     },
     isConfigured: (account) => account.configured,
     describeAccount: (account) => ({
@@ -139,8 +148,9 @@ export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount> = {
       homeserver: account.config.homeserver,
     }),
     resolveAllowFrom: ({ cfg }) => {
-      const matrixDm = (cfg.matrix as Record<string, unknown> | undefined)
-        ?.dm as Record<string, unknown> | undefined;
+      const matrixDm = (
+        cfg.channels?.matrix as Record<string, unknown> | undefined
+      )?.dm as Record<string, unknown> | undefined;
       const raw = matrixDm?.allowFrom as Array<string | number> | undefined;
       return raw?.map((entry) => String(entry)) ?? [];
     },
@@ -153,7 +163,7 @@ export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount> = {
   },
   security: {
     resolveDmPolicy: ({ account }) => {
-      const basePath = "matrix.";
+      const basePath = "channels.matrix.";
       return {
         policy: account.config.dmPolicy ?? "pairing",
         allowFrom: account.config.allowFrom ?? [],
@@ -166,7 +176,7 @@ export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount> = {
       const groupPolicy = account.config.groupPolicy ?? "disabled";
       if (groupPolicy !== "open") return [];
       return [
-        `- Matrix rooms: groupPolicy="open" allows any member to trigger the bot. Set matrix.groupPolicy="allowlist" + matrix.rooms to restrict.`,
+        `- Matrix rooms: groupPolicy="open" allows any member to trigger the bot. Set channels.matrix.groupPolicy="allowlist" + channels.matrix.rooms to restrict.`,
       ];
     },
   },
@@ -175,12 +185,15 @@ export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount> = {
     applyAccountName: ({ cfg, name }) => {
       const trimmed = name?.trim();
       if (!trimmed) return cfg;
-      const base = (cfg.matrix ?? {}) as MatrixConfig;
+      const base = (cfg.channels?.matrix ?? {}) as MatrixConfig;
       return {
         ...cfg,
-        matrix: {
-          ...base,
-          name: trimmed,
+        channels: {
+          ...cfg.channels,
+          matrix: {
+            ...base,
+            name: trimmed,
+          },
         },
       };
     },
@@ -198,7 +211,7 @@ export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount> = {
       return null;
     },
     applyAccountConfig: ({ cfg, input }) => {
-      const base = (cfg.matrix ?? {}) as MatrixConfig;
+      const base = (cfg.channels?.matrix ?? {}) as MatrixConfig;
       const next: MatrixConfig = {
         ...base,
         enabled: true,
@@ -211,7 +224,10 @@ export const matrixPlugin: ChannelPlugin<ResolvedMatrixAccount> = {
       if (input.password?.trim()) next.password = input.password.trim();
       return {
         ...cfg,
-        matrix: next,
+        channels: {
+          ...cfg.channels,
+          matrix: next,
+        },
       };
     },
   },

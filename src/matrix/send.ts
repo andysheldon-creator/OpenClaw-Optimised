@@ -55,8 +55,8 @@ function ensureNodeRuntime() {
 
 function resolveMediaMaxBytes(): number | undefined {
   const cfg = loadConfig();
-  if (typeof cfg.matrix?.mediaMaxMb === "number") {
-    return cfg.matrix.mediaMaxMb * 1024 * 1024;
+  if (typeof cfg.channels?.matrix?.mediaMaxMb === "number") {
+    return cfg.channels.matrix.mediaMaxMb * 1024 * 1024;
   }
   return undefined;
 }
