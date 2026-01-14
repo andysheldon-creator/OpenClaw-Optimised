@@ -1,6 +1,6 @@
 {
   "name": "clawdbot",
-  "version": "2026.1.13",
+  "version": "2026.1.14",
   "description": "WhatsApp gateway CLI (Baileys web) with Pi RPC agent",
   "type": "module",
   "main": "dist/index.js",
@@ -71,8 +71,8 @@
     "start": "tsx src/entry.ts",
     "clawdbot": "tsx src/entry.ts",
     "gateway:watch": "tsx watch src/entry.ts gateway --force",
-    "gateway:dev": "CLAWDBOT_PROFILE=dev tsx src/entry.ts gateway --dev",
-    "gateway:dev:reset": "CLAWDBOT_PROFILE=dev tsx src/entry.ts gateway --reset",
+    "gateway:dev": "tsx src/entry.ts --dev gateway",
+    "gateway:dev:reset": "tsx src/entry.ts --dev gateway --reset",
     "tui": "tsx src/entry.ts tui",
     "tui:dev": "CLAWDBOT_PROFILE=dev tsx src/entry.ts tui",
     "clawdbot:rpc": "tsx src/entry.ts agent --mode rpc --json",
@@ -119,7 +119,8 @@
     "protocol:gen": "tsx scripts/protocol-gen.ts",
     "protocol:gen:swift": "tsx scripts/protocol-gen-swift.ts",
     "protocol:check": "pnpm protocol:gen && pnpm protocol:gen:swift && git diff --exit-code -- dist/protocol.schema.json apps/macos/Sources/ClawdbotProtocol/GatewayModels.swift",
-    "canvas:a2ui:bundle": "bash scripts/bundle-a2ui.sh"
+    "canvas:a2ui:bundle": "bash scripts/bundle-a2ui.sh",
+    "check:loc": "tsx scripts/check-ts-max-loc.ts --max 500"
   },
   "keywords": [],
   "author": "",

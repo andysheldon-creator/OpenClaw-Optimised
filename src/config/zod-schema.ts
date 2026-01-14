@@ -1,5 +1,21 @@
 import { z } from "zod";
+import { ToolsSchema } from "./zod-schema.agent-runtime.js";
+import {
+  AgentsSchema,
+  AudioSchema,
+  BindingsSchema,
+  BroadcastSchema,
+} from "./zod-schema.agents.js";
+import { HexColorSchema, ModelsConfigSchema } from "./zod-schema.core.js";
+import { HookMappingSchema, HooksGmailSchema } from "./zod-schema.hooks.js";
+import { ChannelsSchema } from "./zod-schema.providers.js";
+import {
+  CommandsSchema,
+  MessagesSchema,
+  SessionSchema,
+} from "./zod-schema.session.js";
 
+<<<<<<< HEAD
 import { parseDurationMs } from "../cli/parse-duration.js";
 import { isSafeExecutableValue } from "../infra/exec-safety.js";
 
@@ -1453,6 +1469,8 @@ const AgentDefaultsSchema = z
       .optional(),
   })
   .optional();
+=======
+>>>>>>> upstream/main
 export const ClawdbotSchema = z
   .object({
     env: z

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1080,3 +1081,6 @@ export function registerGatewayCli(program: Command) {
       }
     });
 }
+=======
+export { registerGatewayCli } from "./gateway-cli/register.js";
+>>>>>>> upstream/main

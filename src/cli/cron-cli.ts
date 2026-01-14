@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type { Command } from "commander";
 <<<<<<< HEAD
 =======
@@ -775,3 +776,6 @@ export function registerCronCli(program: Command) {
       }),
   );
 }
+=======
+export { registerCronCli } from "./cron-cli/register.js";
+>>>>>>> upstream/main

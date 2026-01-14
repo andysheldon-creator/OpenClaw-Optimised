@@ -1,5 +1,3 @@
-import { Type } from "@sinclair/typebox";
-
 import {
   browserCloseTab,
   browserFocusTab,
@@ -22,7 +20,7 @@ import {
 import { resolveBrowserConfig } from "../../browser/config.js";
 import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
 import { loadConfig } from "../../config/config.js";
-import { optionalStringEnum, stringEnum } from "../schema/typebox.js";
+import { BrowserToolSchema } from "./browser-tool.schema.js";
 import {
   type AnyAgentTool,
   imageResultFromFile,
@@ -30,6 +28,7 @@ import {
   readStringParam,
 } from "./common.js";
 
+<<<<<<< HEAD
 const BROWSER_ACT_KINDS = [
   "click",
   "type",
@@ -139,6 +138,8 @@ const BrowserToolSchema = Type.Object({
   request: Type.Optional(BrowserActSchema),
 });
 
+=======
+>>>>>>> upstream/main
 function resolveBrowserBaseUrl(params: {
   target?: "sandbox" | "host" | "custom";
   controlUrl?: string;

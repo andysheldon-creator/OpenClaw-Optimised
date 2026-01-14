@@ -17,85 +17,21 @@ import type {
   WhatsAppStatus,
 } from "../types";
 import type {
-  DiscordActionForm,
   DiscordForm,
   IMessageForm,
-  SlackActionForm,
   SlackForm,
   SignalForm,
   TelegramForm,
 } from "../ui-types";
-
-const discordActionOptions = [
-  { key: "reactions", label: "Reactions" },
-  { key: "stickers", label: "Stickers" },
-  { key: "polls", label: "Polls" },
-  { key: "permissions", label: "Permissions" },
-  { key: "messages", label: "Messages" },
-  { key: "threads", label: "Threads" },
-  { key: "pins", label: "Pins" },
-  { key: "search", label: "Search" },
-  { key: "memberInfo", label: "Member info" },
-  { key: "roleInfo", label: "Role info" },
-  { key: "channelInfo", label: "Channel info" },
-  { key: "voiceStatus", label: "Voice status" },
-  { key: "events", label: "Events" },
-  { key: "roles", label: "Role changes" },
-  { key: "moderation", label: "Moderation" },
-] satisfies Array<{ key: keyof DiscordActionForm; label: string }>;
-
-const slackActionOptions = [
-  { key: "reactions", label: "Reactions" },
-  { key: "messages", label: "Messages" },
-  { key: "pins", label: "Pins" },
-  { key: "memberInfo", label: "Member info" },
-  { key: "emojiList", label: "Emoji list" },
-] satisfies Array<{ key: keyof SlackActionForm; label: string }>;
-
-export type ConnectionsProps = {
-  connected: boolean;
-  loading: boolean;
-  snapshot: ChannelsStatusSnapshot | null;
-  lastError: string | null;
-  lastSuccessAt: number | null;
-  whatsappMessage: string | null;
-  whatsappQrDataUrl: string | null;
-  whatsappConnected: boolean | null;
-  whatsappBusy: boolean;
-  telegramForm: TelegramForm;
-  telegramTokenLocked: boolean;
-  telegramSaving: boolean;
-  telegramStatus: string | null;
-  discordForm: DiscordForm;
-  discordTokenLocked: boolean;
-  discordSaving: boolean;
-  discordStatus: string | null;
-  slackForm: SlackForm;
-  slackTokenLocked: boolean;
-  slackAppTokenLocked: boolean;
-  slackSaving: boolean;
-  slackStatus: string | null;
-  signalForm: SignalForm;
-  signalSaving: boolean;
-  signalStatus: string | null;
-  imessageForm: IMessageForm;
-  imessageSaving: boolean;
-  imessageStatus: string | null;
-  onRefresh: (probe: boolean) => void;
-  onWhatsAppStart: (force: boolean) => void;
-  onWhatsAppWait: () => void;
-  onWhatsAppLogout: () => void;
-  onTelegramChange: (patch: Partial<TelegramForm>) => void;
-  onTelegramSave: () => void;
-  onDiscordChange: (patch: Partial<DiscordForm>) => void;
-  onDiscordSave: () => void;
-  onSlackChange: (patch: Partial<SlackForm>) => void;
-  onSlackSave: () => void;
-  onSignalChange: (patch: Partial<SignalForm>) => void;
-  onSignalSave: () => void;
-  onIMessageChange: (patch: Partial<IMessageForm>) => void;
-  onIMessageSave: () => void;
-};
+import type {
+  ChannelKey,
+  ConnectionsChannelData,
+  ConnectionsProps,
+} from "./connections.types";
+import { channelEnabled, formatDuration, renderChannelAccountCount } from "./connections.shared";
+import { discordActionOptions, slackActionOptions } from "./connections.action-options";
+import { renderTelegramCard } from "./connections.telegram";
+import { renderWhatsAppCard } from "./connections.whatsapp";
 
 export function renderConnections(props: ConnectionsProps) {
 <<<<<<< HEAD
@@ -177,6 +113,7 @@ ${props.snapshot ? JSON.stringify(props.snapshot, null, 2) : "No snapshot yet."}
   `;
 }
 
+<<<<<<< HEAD
 function formatDuration(ms?: number | null) {
   if (!ms && ms !== 0) return "n/a";
   const sec = Math.round(ms / 1000);
@@ -266,10 +203,13 @@ function renderChannelAccountCount(
 function renderProvider(
   key: ProviderKey,
 =======
+=======
+>>>>>>> upstream/main
 function renderChannel(
   key: ChannelKey,
 >>>>>>> upstream/main
   props: ConnectionsProps,
+<<<<<<< HEAD
   data: {
     whatsapp?: WhatsAppStatus;
     telegram?: TelegramStatus;
@@ -287,6 +227,9 @@ function renderChannel(
 =======
     channelAccounts?: Record<string, ChannelAccountSnapshot[]> | null;
   },
+=======
+  data: ConnectionsChannelData,
+>>>>>>> upstream/main
 ) {
   const accountCountLabel = renderChannelAccountCount(
     key,
@@ -294,6 +237,7 @@ function renderChannel(
 >>>>>>> upstream/main
   );
   switch (key) {
+<<<<<<< HEAD
     case "whatsapp": {
       const whatsapp = data.whatsapp;
       return html`
@@ -637,6 +581,21 @@ function renderChannel(
         </div>
       `;
     }
+=======
+    case "whatsapp":
+      return renderWhatsAppCard({
+        props,
+        whatsapp: data.whatsapp,
+        accountCountLabel,
+      });
+    case "telegram":
+      return renderTelegramCard({
+        props,
+        telegram: data.telegram,
+        telegramAccounts: data.channelAccounts?.telegram ?? [],
+        accountCountLabel,
+      });
+>>>>>>> upstream/main
     case "discord": {
       const discord = data.discord;
       const botName = discord?.probe?.bot?.username;

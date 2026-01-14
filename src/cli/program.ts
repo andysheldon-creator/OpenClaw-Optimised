@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Command } from "commander";
 import { listChannelPlugins } from "../channels/plugins/index.js";
 import { DEFAULT_CHAT_CHANNEL } from "../channels/registry.js";
@@ -1350,3 +1351,7 @@ Shows token usage per session when the agent reports it; set agents.defaults.con
 
   return program;
 }
+=======
+export { forceFreePort } from "./ports.js";
+export { buildProgram } from "./program/build-program.js";
+>>>>>>> upstream/main

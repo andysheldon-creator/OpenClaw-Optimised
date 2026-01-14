@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   resolveEffectiveMessagesConfig,
   resolveMessagePrefix,
@@ -1910,3 +1911,6 @@ export async function monitorWebChannel(
 }
 
 export { DEFAULT_WEB_MEDIA_BYTES };
+=======
+export * from "./auto-reply.impl.js";
+>>>>>>> upstream/main

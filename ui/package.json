@@ -22,9 +22,12 @@
     "vitest": "4.0.16"
 =======
     "vitest": "4.0.17"
+<<<<<<< HEAD
   },
   "pnpm": {
     "minimumReleaseAge": 2880
+>>>>>>> upstream/main
+=======
 >>>>>>> upstream/main
   }
 }
