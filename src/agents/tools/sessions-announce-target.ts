@@ -30,7 +30,7 @@ export async function resolveAnnounceTarget(params: {
         includeUnknown: true,
         limit: 200,
       },
-    })) as { sessions?: Array<Record<string, unknown>> };
+    })) as { sessions?: Array<Record<string, unknown>>; path?: string };
     const sessions = Array.isArray(list?.sessions) ? list.sessions : [];
     const match =
       sessions.find((entry) => entry?.key === params.sessionKey) ??
@@ -44,7 +44,7 @@ export async function resolveAnnounceTarget(params: {
         : undefined;
     if (channel && to) return { channel, to, accountId };
   } catch {
-    // ignore
+    // ignore session lookup failures; fall through to key-based fallback
   }
 
   return fallback;

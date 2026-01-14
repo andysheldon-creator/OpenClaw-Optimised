@@ -1,10 +1,13 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 
+import { normalizeChannelId } from "../channels/registry.js";
 import { loadConfig } from "../config/config.js";
 import {
   loadSessionStore,
   resolveAgentIdFromSessionKey,
+  resolveMainSessionKey,
   resolveStorePath,
 } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
@@ -13,6 +16,10 @@ import { AGENT_LANE_NESTED } from "./lanes.js";
 import { readLatestAssistantReply, runAgentStep } from "./tools/agent-step.js";
 import { resolveAnnounceTarget } from "./tools/sessions-announce-target.js";
 import { isAnnounceSkip } from "./tools/sessions-send-helpers.js";
+import {
+  DEFAULT_AGENT_WORKSPACE_DIR,
+  DEFAULT_SOUL_FILENAME,
+} from "./workspace.js";
 
 function formatDurationShort(valueMs?: number) {
   if (!valueMs || !Number.isFinite(valueMs) || valueMs <= 0) return undefined;
@@ -30,13 +37,6 @@ function formatTokenCount(value?: number) {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}m`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
   return String(Math.round(value));
-}
-
-function formatUsd(value?: number) {
-  if (value === undefined || !Number.isFinite(value)) return undefined;
-  if (value >= 1) return `$${value.toFixed(2)}`;
-  if (value >= 0.01) return `$${value.toFixed(2)}`;
-  return `$${value.toFixed(4)}`;
 }
 
 function resolveModelCost(params: {
@@ -65,11 +65,14 @@ async function waitForSessionUsage(params: { sessionKey: string }) {
   const storePath = resolveStorePath(cfg.session?.store, { agentId });
   let entry = loadSessionStore(storePath)[params.sessionKey];
   if (!entry) return { entry, storePath };
-  const hasTokens = () =>
-    entry &&
-    (typeof entry.totalTokens === "number" ||
+  const hasTokens = () => {
+    if (!entry || typeof entry !== "object") return false;
+    return (
+      typeof entry.totalTokens === "number" ||
       typeof entry.inputTokens === "number" ||
-      typeof entry.outputTokens === "number");
+      typeof entry.outputTokens === "number"
+    );
+  };
   if (hasTokens()) return { entry, storePath };
   for (let attempt = 0; attempt < 4; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -79,7 +82,8 @@ async function waitForSessionUsage(params: { sessionKey: string }) {
   return { entry, storePath };
 }
 
-async function buildSubagentStatsLine(params: {
+// Build stats line for internal logging (not sent to users)
+export async function buildSubagentStatsLine(params: {
   sessionKey: string;
   startedAt?: number;
   endedAt?: number;
@@ -128,13 +132,23 @@ async function buildSubagentStatsLine(params: {
   } else {
     parts.push("tokens n/a");
   }
-  const costText = formatUsd(cost);
-  if (costText) parts.push(`est ${costText}`);
+  if (cost !== undefined) parts.push(`est $${cost.toFixed(4)}`);
   parts.push(`sessionKey ${params.sessionKey}`);
   if (sessionId) parts.push(`sessionId ${sessionId}`);
   if (transcriptPath) parts.push(`transcript ${transcriptPath}`);
 
   return `Stats: ${parts.join(" \u2022 ")}`;
+}
+
+function loadSoulContent(workspaceDir?: string): string | undefined {
+  const dir = workspaceDir ?? DEFAULT_AGENT_WORKSPACE_DIR;
+  const soulPath = path.join(dir, DEFAULT_SOUL_FILENAME);
+  try {
+    const content = fs.readFileSync(soulPath, "utf-8");
+    return content.trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function buildSubagentSystemPrompt(params: {
@@ -143,11 +157,16 @@ export function buildSubagentSystemPrompt(params: {
   childSessionKey: string;
   label?: string;
   task?: string;
+  workspaceDir?: string;
 }) {
   const taskText =
     typeof params.task === "string" && params.task.trim()
       ? params.task.replace(/\s+/g, " ").trim()
       : "{{TASK_DESCRIPTION}}";
+
+  // Load soul/persona from workspace if available
+  const soulContent = loadSoulContent(params.workspaceDir);
+
   const lines = [
     "# Subagent Context",
     "",
@@ -170,6 +189,7 @@ export function buildSubagentSystemPrompt(params: {
     "- NO external messages (email, tweets, etc.) unless explicitly tasked",
     "- NO cron jobs or persistent state",
     "- NO pretending to be the main agent",
+    "- **NO using the message tool** - you don't have a recipient address; the main agent handles messaging",
     "",
     "## Output Format",
     "When complete, respond with:",
@@ -189,8 +209,19 @@ export function buildSubagentSystemPrompt(params: {
     "",
     "Run the task. Provide a clear final answer (plain text).",
     'After you finish, you may be asked to produce an "announce" message to post back to the requester chat.',
-  ].filter((line): line is string => line !== undefined);
-  return lines.join("\n");
+  ];
+
+  // Append soul/persona guidance if available
+  if (soulContent) {
+    lines.push("");
+    lines.push("## Persona & Style (from SOUL.md)");
+    lines.push("");
+    lines.push("Match this persona when responding:");
+    lines.push("");
+    lines.push(soulContent);
+  }
+
+  return lines.filter((line): line is string => line !== undefined).join("\n");
 }
 
 function buildSubagentAnnouncePrompt(params: {
@@ -199,27 +230,65 @@ function buildSubagentAnnouncePrompt(params: {
   announceChannel: string;
   task: string;
   subagentReply?: string;
+  elapsedMs?: number;
+  workspaceDir?: string;
 }) {
+  // Calculate human-readable elapsed time
+  let elapsedText = "";
+  if (params.elapsedMs && params.elapsedMs > 0) {
+    const seconds = Math.round(params.elapsedMs / 1000);
+    if (seconds < 10) {
+      elapsedText = "just a few seconds";
+    } else if (seconds < 60) {
+      elapsedText = `about ${seconds} seconds`;
+    } else {
+      const minutes = Math.round(seconds / 60);
+      elapsedText =
+        minutes === 1 ? "about a minute" : `about ${minutes} minutes`;
+    }
+  }
+
+  // Load SOUL.md for persona guidance
+  const soulContent = loadSoulContent(params.workspaceDir);
+
   const lines = [
-    "Sub-agent announce step:",
-    params.requesterSessionKey
-      ? `Requester session: ${params.requesterSessionKey}.`
-      : undefined,
-    params.requesterChannel
-      ? `Requester channel: ${params.requesterChannel}.`
-      : undefined,
-    `Post target channel: ${params.announceChannel}.`,
-    `Original task: ${params.task}`,
-    params.subagentReply
-      ? `Sub-agent result: ${params.subagentReply}`
-      : "Sub-agent result: (not available).",
+    "# Background Task Announcement",
     "",
-    "**You MUST announce your result.** The requester is waiting for your response.",
-    "Provide a brief, useful summary of what you accomplished.",
-    'Only reply "ANNOUNCE_SKIP" if the task completely failed with no useful output.',
-    "Your reply will be posted to the requester chat.",
-  ].filter(Boolean);
-  return lines.join("\n");
+    "Your background task has completed. Write a message to share the results.",
+    "",
+    "## Context",
+    `- **Original task:** ${params.task}`,
+    params.subagentReply
+      ? `- **Result:** ${params.subagentReply}`
+      : "- **Result:** (not available)",
+    elapsedText ? `- **Duration:** ${elapsedText}` : undefined,
+    "",
+    "## Guidelines",
+    "",
+    "1. **Frame as notification** - The user may have continued chatting while this ran in the background. Present results as new information arriving, not as returning from somewhere.",
+    "2. **Lead with the results** - Share the useful information directly. Avoid preamble.",
+    "3. **Stay concise** - Summarize key findings. Don't repeat the full raw output.",
+    "4. **Match your persona** - Use the voice and style from SOUL.md if available.",
+    "",
+    "## Avoid",
+    '- Phrases like "I\'m back" or "just finished" (implies you left)',
+    '- "Task complete" or "I already completed" (robotic)',
+    "- System-style announcements",
+    "- Excessive bullet points for simple information",
+    "",
+    'Reply "ANNOUNCE_SKIP" only if the task completely failed with no useful output.',
+  ];
+
+  // Add persona reminder if SOUL.md exists
+  if (soulContent) {
+    lines.push("");
+    lines.push("## Your Persona (from SOUL.md)");
+    lines.push("");
+    lines.push("Match this voice/style:");
+    lines.push(soulContent);
+  }
+
+  return lines.filter((line): line is string => line !== undefined).join("\n");
 }
 
 export async function runSubagentAnnounceFlow(params: {
@@ -227,6 +296,7 @@ export async function runSubagentAnnounceFlow(params: {
   childRunId: string;
   requesterSessionKey: string;
   requesterChannel?: string;
+  requesterTo?: string;
   requesterDisplayKey: string;
   task: string;
   timeoutMs: number;
@@ -262,18 +332,84 @@ export async function runSubagentAnnounceFlow(params: {
       });
     }
 
-    const announceTarget = await resolveAnnounceTarget({
-      sessionKey: params.requesterSessionKey,
-      displayKey: params.requesterDisplayKey,
-    });
-    if (!announceTarget) return false;
+    // Build announce targets: prioritize stored routing info
+    type AnnounceDestination = {
+      channel: string;
+      to: string;
+      accountId?: string;
+    };
+    const announceTargets: AnnounceDestination[] = [];
 
+    // Primary target: use stored requesterChannel + requesterTo if available
+    if (params.requesterChannel && params.requesterTo) {
+      announceTargets.push({
+        channel: params.requesterChannel,
+        to: params.requesterTo,
+      });
+    } else {
+      // Fall back to session lookup
+      const lookedUp = await resolveAnnounceTarget({
+        sessionKey: params.requesterSessionKey,
+        displayKey: params.requesterDisplayKey,
+      });
+      if (lookedUp) {
+        announceTargets.push({
+          channel: lookedUp.channel,
+          to: lookedUp.to,
+          accountId: lookedUp.accountId,
+        });
+      }
+    }
+
+    // Also announce to main session if it has a valid messaging channel
+    const cfg = loadConfig();
+    const mainKey = resolveMainSessionKey(cfg);
+    const mainAgentId = resolveAgentIdFromSessionKey(mainKey);
+    const mainStorePath = resolveStorePath(cfg.session?.store, {
+      agentId: mainAgentId,
+    });
+    const mainEntry = loadSessionStore(mainStorePath)[mainKey];
+    const mainChannel = mainEntry?.lastChannel;
+    const mainTo = mainEntry?.lastTo;
+
+    // Add main session as additional target if it's a valid messaging channel
+    // Skip internal channels like "webchat" that aren't actual messaging destinations
+    const mainIsMessagingChannel = Boolean(
+      mainChannel && mainTo && normalizeChannelId(mainChannel),
+    );
+    if (mainIsMessagingChannel && mainChannel && mainTo) {
+      const isDuplicate = announceTargets.some(
+        (t) => t.channel === mainChannel && t.to === mainTo,
+      );
+      if (!isDuplicate) {
+        announceTargets.push({
+          channel: mainChannel,
+          to: mainTo,
+          accountId: mainEntry?.lastAccountId,
+        });
+      }
+    }
+
+    // Always inject into main session transcript so the main agent has context
+    const shouldInjectToMain = Boolean(mainKey);
+
+    if (announceTargets.length === 0 && !shouldInjectToMain) return false;
+
+    const primaryTarget = announceTargets[0];
+    const announceChannel =
+      primaryTarget?.channel ?? params.requesterChannel ?? "webchat";
+    const elapsedMs =
+      typeof params.startedAt === "number" && typeof params.endedAt === "number"
+        ? Math.max(0, params.endedAt - params.startedAt)
+        : undefined;
     const announcePrompt = buildSubagentAnnouncePrompt({
       requesterSessionKey: params.requesterSessionKey,
       requesterChannel: params.requesterChannel,
-      announceChannel: announceTarget.channel,
+      announceChannel,
       task: params.task,
       subagentReply: reply,
+      elapsedMs,
+      workspaceDir: DEFAULT_AGENT_WORKSPACE_DIR,
     });
 
     const announceReply = await runAgentStep({
@@ -292,27 +428,45 @@ export async function runSubagentAnnounceFlow(params: {
     )
       return false;
 
-    const statsLine = await buildSubagentStatsLine({
-      sessionKey: params.childSessionKey,
-      startedAt: params.startedAt,
-      endedAt: params.endedAt,
-    });
-    const message = statsLine
-      ? `${announceReply.trim()}\n\n${statsLine}`
-      : announceReply.trim();
+    const message = announceReply.trim();
 
-    await callGateway({
-      method: "send",
-      params: {
-        to: announceTarget.to,
-        message,
-        channel: announceTarget.channel,
-        accountId: announceTarget.accountId,
-        idempotencyKey: crypto.randomUUID(),
-      },
-      timeoutMs: 10_000,
-    });
-    didAnnounce = true;
+    // Inject into main session transcript so the main agent has context
+    // Uses chat.inject gateway method which also broadcasts to webchat UI
+    if (shouldInjectToMain) {
+      try {
+        const labelText = params.label
+          ? `Subagent "${params.label}" completed`
+          : "Subagent completed";
+        await callGateway({
+          method: "chat.inject",
+          params: {
+            sessionKey: mainKey,
+            message,
+            label: labelText,
+          },
+          timeoutMs: 10_000,
+        });
+        didAnnounce = true;
+      } catch {
+        // Best-effort injection
+      }
+    }
+
+    // Send to all messaging channel targets
+    for (const target of announceTargets) {
+      await callGateway({
+        method: "send",
+        params: {
+          to: target.to,
+          message,
+          channel: target.channel,
+          accountId: target.accountId,
+          idempotencyKey: crypto.randomUUID(),
+        },
+        timeoutMs: 10_000,
+      });
+      didAnnounce = true;
+    }
   } catch {
     // Best-effort follow-ups; ignore failures to avoid breaking the caller response.
   } finally {

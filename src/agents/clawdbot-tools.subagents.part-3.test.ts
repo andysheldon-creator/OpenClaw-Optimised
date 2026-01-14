@@ -152,7 +152,7 @@ describe("clawdbot-tools: subagents", () => {
     expect(sendParams.channel).toBe("whatsapp");
     expect(sendParams.to).toBe("+123");
     expect(sendParams.message ?? "").toContain("hello from sub");
-    expect(sendParams.message ?? "").toContain("Stats:");
+    // Stats are no longer included in user-facing announce messages
     expect(childSessionKey?.startsWith("agent:main:subagent:")).toBe(true);
   });
   it("sessions_spawn only allows same-agent by default", async () => {

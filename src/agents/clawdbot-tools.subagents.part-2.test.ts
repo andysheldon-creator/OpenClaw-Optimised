@@ -152,7 +152,7 @@ describe("clawdbot-tools: subagents", () => {
     expect(sendParams.channel).toBe("discord");
     expect(sendParams.to).toBe("channel:req");
     expect(sendParams.message ?? "").toContain("announce now");
-    expect(sendParams.message ?? "").toContain("Stats:");
+    // Stats are no longer included in user-facing announce messages
     expect(deletedKey?.startsWith("agent:main:subagent:")).toBe(true);
   });
 });

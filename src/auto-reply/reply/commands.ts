@@ -999,11 +999,11 @@ export async function handleCommands(params: {
     });
 
     const totalTokens =
-      sessionEntry.totalTokens ??
-      (sessionEntry.inputTokens ?? 0) + (sessionEntry.outputTokens ?? 0);
+      sessionEntry?.totalTokens ??
+      (sessionEntry?.inputTokens ?? 0) + (sessionEntry?.outputTokens ?? 0);
     const contextSummary = formatContextUsageShort(
       totalTokens > 0 ? totalTokens : null,
-      contextTokens ?? sessionEntry.contextTokens ?? null,
+      contextTokens ?? sessionEntry?.contextTokens ?? null,
     );
     const compactLabel = result.ok
       ? result.compacted

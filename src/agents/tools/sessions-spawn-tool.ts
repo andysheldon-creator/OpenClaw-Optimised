@@ -4,6 +4,7 @@ import { Type } from "@sinclair/typebox";
 
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
+import { loadSessionEntry } from "../../gateway/session-utils.js";
 import {
   isSubagentSessionKey,
   normalizeAgentId,
@@ -15,6 +16,7 @@ import { AGENT_LANE_SUBAGENT } from "../lanes.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import { registerSubagentRun } from "../subagent-registry.js";
+import { DEFAULT_AGENT_WORKSPACE_DIR } from "../workspace.js";
 import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringParam } from "./common.js";
 import {
@@ -107,6 +109,9 @@ export function createSessionsSpawnTool(opts?: {
         alias,
         mainKey,
       });
+      // Get lastTo from the parent session for announce routing
+      const parentEntry = loadSessionEntry(requesterInternalKey).entry;
+      const requesterTo = parentEntry?.lastTo;
 
       const requesterAgentId = normalizeAgentId(
         parseAgentSessionKey(requesterInternalKey)?.agentId,
@@ -178,6 +183,7 @@ export function createSessionsSpawnTool(opts?: {
         childSessionKey,
         label: label || undefined,
         task,
+        workspaceDir: DEFAULT_AGENT_WORKSPACE_DIR,
       });
 
       const childIdem = crypto.randomUUID();
@@ -222,6 +228,7 @@ export function createSessionsSpawnTool(opts?: {
         childSessionKey,
         requesterSessionKey: requesterInternalKey,
         requesterChannel: opts?.agentChannel,
+        requesterTo,
         requesterDisplayKey,
         task,
         cleanup,

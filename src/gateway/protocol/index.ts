@@ -22,6 +22,8 @@ import {
   type ChatEvent,
   ChatEventSchema,
   ChatHistoryParamsSchema,
+  type ChatInjectParams,
+  ChatInjectParamsSchema,
   ChatSendParamsSchema,
   type ConfigApplyParams,
   ConfigApplyParamsSchema,
@@ -287,6 +289,9 @@ export const validateLogsTailParams =
   ajv.compile<LogsTailParams>(LogsTailParamsSchema);
 export const validateChatHistoryParams = ajv.compile(ChatHistoryParamsSchema);
 export const validateChatSendParams = ajv.compile(ChatSendParamsSchema);
+export const validateChatInjectParams = ajv.compile<ChatInjectParams>(
+  ChatInjectParamsSchema,
+);
 export const validateChatAbortParams = ajv.compile<ChatAbortParams>(
   ChatAbortParamsSchema,
 );
@@ -374,6 +379,7 @@ export {
   LogsTailResultSchema,
   ChatHistoryParamsSchema,
   ChatSendParamsSchema,
+  ChatInjectParamsSchema,
   UpdateRunParamsSchema,
   TickEventSchema,
   ShutdownEventSchema,
@@ -397,6 +403,7 @@ export type {
   AgentEvent,
   AgentWaitParams,
   ChatEvent,
+  ChatInjectParams,
   TickEvent,
   ShutdownEvent,
   WakeParams,

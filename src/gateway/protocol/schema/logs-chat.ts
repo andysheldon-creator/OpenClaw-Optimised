@@ -53,6 +53,25 @@ export const ChatAbortParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export type ChatInjectParams = {
+  sessionKey: string;
+  message: string;
+  role?: "assistant" | "user";
+  label?: string;
+};
+
+export const ChatInjectParamsSchema = Type.Object(
+  {
+    sessionKey: NonEmptyString,
+    message: NonEmptyString,
+    role: Type.Optional(
+      Type.Union([Type.Literal("assistant"), Type.Literal("user")]),
+    ),
+    label: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
 export const ChatEventSchema = Type.Object(
   {
     runId: NonEmptyString,

@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 
 import { resolveThinkingDefault } from "../../agents/model-selection.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
@@ -19,11 +21,13 @@ import {
   parseMessageWithAttachments,
 } from "../chat-attachments.js";
 import {
+  type ChatInjectParams,
   ErrorCodes,
   errorShape,
   formatValidationErrors,
   validateChatAbortParams,
   validateChatHistoryParams,
+  validateChatInjectParams,
   validateChatSendParams,
 } from "../protocol/index.js";
 import { MAX_CHAT_HISTORY_MESSAGES_BYTES } from "../server-constants.js";
@@ -156,6 +160,104 @@ export const chatHandlers: GatewayRequestHandlers = {
       aborted: res.aborted,
       runIds: res.aborted ? [runId] : [],
     });
+  },
+  "chat.inject": async ({ params, respond, context }) => {
+    if (!validateChatInjectParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid chat.inject params: ${formatValidationErrors(validateChatInjectParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    const p = params as ChatInjectParams;
+    const { storePath, entry } = loadSessionEntry(p.sessionKey);
+    const sessionId = entry?.sessionId;
+    if (!sessionId || !storePath) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "session not found"),
+      );
+      return;
+    }
+
+    // Resolve transcript path
+    const transcriptPath = entry?.sessionFile
+      ? entry.sessionFile
+      : path.join(path.dirname(storePath), `${sessionId}.jsonl`);
+
+    if (!fs.existsSync(transcriptPath)) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "transcript file not found"),
+      );
+      return;
+    }
+
+    // Build transcript entry
+    const now = Date.now();
+    const messageId = randomUUID().slice(0, 8);
+    const role = p.role ?? "assistant";
+    const labelPrefix = p.label ? `[${p.label}]\n\n` : "";
+    // For assistant messages, add stopReason and minimal usage to match Pi AI's expected format.
+    // Pi AI may access message.usage.totalTokens when reading session history.
+    const messageBody: Record<string, unknown> = {
+      role,
+      content: [{ type: "text", text: `${labelPrefix}${p.message}` }],
+      timestamp: now,
+    };
+    if (role === "assistant") {
+      messageBody.stopReason = "injected";
+      messageBody.usage = {
+        input: 0,
+        output: 0,
+        totalTokens: 0,
+      };
+    }
+    const transcriptEntry = {
+      type: "message",
+      id: messageId,
+      timestamp: new Date(now).toISOString(),
+      message: messageBody,
+    };
+
+    // Append to transcript file
+    try {
+      await fs.promises.appendFile(
+        transcriptPath,
+        `${JSON.stringify(transcriptEntry)}\n`,
+        "utf-8",
+      );
+    } catch (err) {
+      const errMessage = err instanceof Error ? err.message : String(err);
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `failed to write transcript: ${errMessage}`,
+        ),
+      );
+      return;
+    }
+
+    // Broadcast to webchat for immediate UI update
+    const chatPayload = {
+      runId: `inject-${messageId}`,
+      sessionKey: p.sessionKey,
+      seq: 0,
+      state: "final" as const,
+      message: transcriptEntry.message,
+    };
+    context.broadcast("chat", chatPayload);
+    context.bridgeSendToSession(p.sessionKey, "chat", chatPayload);
+
+    respond(true, { ok: true, messageId });
   },
   "chat.send": async ({ params, respond, context }) => {
     if (!validateChatSendParams(params)) {
