@@ -2,11 +2,19 @@ import type { AgentElevatedAllowFromConfig } from "./types.base.js";
 
 export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
 
+export type ToolPolicyConfig = {
+  profile?: ToolProfileId;
+  allow?: string[];
+  deny?: string[];
+};
+
 export type AgentToolsConfig = {
   /** Base tool profile applied before allow/deny lists. */
   profile?: ToolProfileId;
   allow?: string[];
   deny?: string[];
+  /** Per-provider tool policy overrides. */
+  byProvider?: Record<string, ToolPolicyConfig>;
   /** Per-agent elevated exec gate (can only further restrict global tools.elevated). */
   elevated?: {
     /** Enable or disable elevated mode for this agent (default: true). */
@@ -73,6 +81,8 @@ export type ToolsConfig = {
   profile?: ToolProfileId;
   allow?: string[];
   deny?: string[];
+  /** Per-provider tool policy overrides. */
+  byProvider?: Record<string, ToolPolicyConfig>;
   web?: {
     search?: {
       /** Enable web search tool (default: true when API key is present). */
