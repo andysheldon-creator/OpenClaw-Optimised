@@ -43,6 +43,7 @@
     "extensions/**",
     "assets/**",
     "skills/**",
+    "hooks/**",
     "README.md",
     "README-header.png",
     "CHANGELOG.md",

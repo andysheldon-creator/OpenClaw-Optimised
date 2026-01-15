@@ -24,12 +24,15 @@ import type { InternalHookHandler } from './internal-hooks.js';
  * ```
  */
 export async function loadInternalHooks(cfg: ClawdbotConfig): Promise<number> {
+  console.log('[internal-hooks] loadInternalHooks called');
   // Check if internal hooks are enabled
   if (!cfg.hooks?.internal?.enabled) {
+    console.log('[internal-hooks] Internal hooks not enabled in config');
     return 0;
   }
 
   const handlers = cfg.hooks.internal.handlers ?? [];
+  console.log(`[internal-hooks] Found ${handlers.length} handlers to load`);
   let loadedCount = 0;
 
   for (const handlerConfig of handlers) {
