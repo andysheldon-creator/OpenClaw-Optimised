@@ -234,7 +234,7 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
       .map((dock) =>
         defineChatCommand({
           key: `dock:${dock.id}`,
-          nativeName: `dock-${dock.id}`,
+          nativeName: `dock_${dock.id}`,
           description: `Switch to ${dock.id} for replies.`,
           textAlias: `/dock-${dock.id}`,
           acceptsArgs: false,
