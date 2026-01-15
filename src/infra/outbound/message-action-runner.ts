@@ -207,7 +207,20 @@ export async function runMessageAction(
     : undefined;
 
   if (action === "send") {
-    const to = readStringParam(params, "to", { required: true });
+    // Allow omitting `to` when agent has a bound context (e.g., replying to same conversation)
+    const toParam = readStringParam(params, "to");
+    const to = toParam || input.toolContext?.currentChannelId;
+    if (!to) {
+      return {
+        kind: "send",
+        channel,
+        action,
+        to: "",
+        handledBy: "core",
+        payload: { status: "error", tool: "message", error: "to required" },
+        dryRun,
+      };
+    }
     let message = readStringParam(params, "message", {
       required: true,
       allowEmpty: true,

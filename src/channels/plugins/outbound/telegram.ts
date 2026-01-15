@@ -8,6 +8,13 @@ function parseReplyToMessageId(replyToId?: string | null) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function parseThreadId(threadId?: string | number | null): number | undefined {
+  if (threadId == null) return undefined;
+  if (typeof threadId === "number") return threadId;
+  const parsed = Number.parseInt(threadId, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 export const telegramOutbound: ChannelOutboundAdapter = {
   deliveryMode: "direct",
   chunker: markdownToTelegramHtmlChunks,
@@ -28,7 +35,7 @@ export const telegramOutbound: ChannelOutboundAdapter = {
     const result = await send(to, text, {
       verbose: false,
       textMode: "html",
-      messageThreadId: threadId ?? undefined,
+      messageThreadId: parseThreadId(threadId),
       replyToMessageId,
       accountId: accountId ?? undefined,
     });
@@ -41,7 +48,7 @@ export const telegramOutbound: ChannelOutboundAdapter = {
       verbose: false,
       mediaUrl,
       textMode: "html",
-      messageThreadId: threadId ?? undefined,
+      messageThreadId: parseThreadId(threadId),
       replyToMessageId,
       accountId: accountId ?? undefined,
     });
