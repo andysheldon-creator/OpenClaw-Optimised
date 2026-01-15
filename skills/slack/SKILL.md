@@ -9,6 +9,26 @@ description: Use when you need to control Slack from Clawdbot via the slack tool
 
 Use `slack` to react, manage pins, send/edit/delete messages, and fetch member info. The tool uses the bot token configured for Clawdbot.
 
+## User token configuration (optional)
+
+Clawdbot can use a Slack user token (`xoxp-...`) for read operations when set in
+`channels.slack.userToken` (or `channels.slack.accounts.<id>.userToken`). Reads
+prefer the user token when present. Writes still use the bot token unless
+`userTokenReadOnly: false`, and the bot token remains preferred when available.
+
+Required user token scopes (read-only by default):
+- `channels:history`, `channels:read`
+- `groups:history`, `groups:read`
+- `im:history`, `im:read`
+- `mpim:history`, `mpim:read`
+- `users:read`
+- `reactions:read`
+- `pins:read`
+- `emoji:read`
+
+If you enable user-token writes, add the write scopes you need (`chat:write`,
+`reactions:write`, `pins:write`, `files:write`).
+
 ## Inputs to collect
 
 - `channelId` and `messageId` (Slack message timestamp, e.g. `1712023032.1234`).
