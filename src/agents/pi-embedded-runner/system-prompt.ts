@@ -14,6 +14,8 @@ export function buildEmbeddedSystemPrompt(params: {
   reasoningTagHint: boolean;
   heartbeatPrompt?: string;
   skillsPrompt?: string;
+  /** When true, omits most sections (Skills, Memory, Heartbeats, etc.) to reduce token usage. */
+  isSubagent?: boolean;
   runtimeInfo: {
     host: string;
     os: string;
@@ -40,6 +42,7 @@ export function buildEmbeddedSystemPrompt(params: {
     reasoningTagHint: params.reasoningTagHint,
     heartbeatPrompt: params.heartbeatPrompt,
     skillsPrompt: params.skillsPrompt,
+    isSubagent: params.isSubagent,
     runtimeInfo: params.runtimeInfo,
     sandboxInfo: params.sandboxInfo,
     toolNames: params.tools.map((tool) => tool.name),

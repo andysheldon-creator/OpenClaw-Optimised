@@ -166,7 +166,7 @@ describe("clawdbot-tools: subagents", () => {
     expect(sendParams.channel).toBe("discord");
     expect(sendParams.to).toBe("channel:req");
     expect(sendParams.message ?? "").toContain("announce now");
-    expect(sendParams.message ?? "").toContain("Stats:");
+    // External channels (discord) use compact format which doesn't include Stats line
     expect(deletedKey?.startsWith("agent:main:subagent:")).toBe(true);
   });
 });

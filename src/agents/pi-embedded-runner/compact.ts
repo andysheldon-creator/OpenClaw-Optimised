@@ -10,6 +10,7 @@ import type { ClawdbotConfig } from "../../config/config.js";
 import { getMachineDisplayName } from "../../infra/machine-name.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
+import { isSubagentSessionKey } from "../../routing/session-key.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { resolveUserPath } from "../../utils.js";
 import { resolveClawdbotAgentDir } from "../agent-paths.js";
@@ -234,6 +235,7 @@ export async function compactEmbeddedPiSession(params: {
           config: params.config,
         });
         const isDefaultAgent = sessionAgentId === defaultAgentId;
+        const isSubagent = isSubagentSessionKey(params.sessionKey);
         const appendPrompt = buildEmbeddedSystemPrompt({
           workspaceDir: effectiveWorkspace,
           defaultThinkLevel: params.thinkLevel,
@@ -245,6 +247,7 @@ export async function compactEmbeddedPiSession(params: {
             ? resolveHeartbeatPrompt(params.config?.agents?.defaults?.heartbeat?.prompt)
             : undefined,
           skillsPrompt,
+          isSubagent,
           runtimeInfo,
           sandboxInfo,
           tools,

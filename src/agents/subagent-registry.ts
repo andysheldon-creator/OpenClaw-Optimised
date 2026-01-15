@@ -156,7 +156,9 @@ async function sweepSubagentRuns() {
 }
 
 function ensureListener() {
-  if (listenerStarted) return;
+  if (listenerStarted) {
+    return;
+  }
   listenerStarted = true;
   listenerStop = onAgentEvent((evt) => {
     if (!evt || evt.stream !== "lifecycle") return;

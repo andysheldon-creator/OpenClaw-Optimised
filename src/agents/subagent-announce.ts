@@ -8,6 +8,7 @@ import {
   resolveStorePath,
 } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
+import { enqueueSystemEvent } from "../infra/system-events.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
 import { AGENT_LANE_NESTED } from "./lanes.js";
 import { readLatestAssistantReply, runAgentStep } from "./tools/agent-step.js";
@@ -229,6 +230,8 @@ function normalizeAnnounceBody(params: {
   outcome: SubagentRunOutcome;
   announceReply: string;
   statsLine?: string;
+  /** If true, returns only the result text without Status/Notes/Stats wrapper */
+  compact?: boolean;
 }) {
   const announce = params.announceReply.trim();
   const statsLine = params.statsLine?.trim();
@@ -244,6 +247,17 @@ function normalizeAnnounceBody(params: {
 
   const parsed = parseAnnounceSections(announce);
   const resultText = parsed.result ?? (announce || "(not available)");
+
+  // For external channels, return just the result (clean user-facing message)
+  if (params.compact) {
+    // Include error info if the task failed
+    if (params.outcome.status !== "ok" && params.outcome.error) {
+      return `${resultText}\n\n(Error: ${params.outcome.error})`;
+    }
+    return resultText;
+  }
+
+  // For internal/dashboard, return full verbose format with stats
   const notesParts: string[] = [];
   if (parsed.notes) notesParts.push(parsed.notes);
   if (params.outcome.error) notesParts.push(`- Error: ${params.outcome.error}`);
@@ -387,10 +401,14 @@ export async function runSubagentAnnounceFlow(params: {
       startedAt: params.startedAt,
       endedAt: params.endedAt,
     });
+    // Use compact format for external channels (telegram, whatsapp, etc.)
+    // Full verbose format only for internal/dashboard (webchat)
+    const isExternalChannel = announceTarget.channel !== INTERNAL_MESSAGE_CHANNEL;
     const message = normalizeAnnounceBody({
       outcome,
       announceReply,
-      statsLine,
+      statsLine: isExternalChannel ? undefined : statsLine,
+      compact: isExternalChannel,
     });
 
     await callGateway({
@@ -404,6 +422,13 @@ export async function runSubagentAnnounceFlow(params: {
       },
       timeoutMs: 10_000,
     });
+
+    // Inject announce into requester session context so main agent sees it
+    const label = params.label ? ` (${params.label})` : "";
+    enqueueSystemEvent(`Subagent${label} completed: ${message}`, {
+      sessionKey: params.requesterSessionKey,
+    });
+
     didAnnounce = true;
   } catch {
     // Best-effort follow-ups; ignore failures to avoid breaking the caller response.

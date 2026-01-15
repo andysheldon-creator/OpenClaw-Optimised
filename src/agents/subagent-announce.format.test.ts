@@ -23,8 +23,9 @@ vi.mock("./tools/agent-step.js", () => ({
 }));
 
 vi.mock("./tools/sessions-announce-target.js", () => ({
+  // Use "webchat" channel (INTERNAL_MESSAGE_CHANNEL) to get verbose format in tests
   resolveAnnounceTarget: vi.fn(async () => ({
-    provider: "telegram",
+    channel: "webchat",
     to: "+15550001111",
     accountId: "default",
   })),
@@ -49,6 +50,7 @@ vi.mock("../config/config.js", () => ({
 describe("subagent announce formatting", () => {
   beforeEach(() => {
     sendSpy.mockClear();
+    vi.resetModules();
   });
 
   it("wraps unstructured announce into Status/Result/Notes", async () => {
@@ -77,8 +79,9 @@ describe("subagent announce formatting", () => {
 
   it("keeps runtime status even when announce reply is structured", async () => {
     const agentStep = await import("./tools/agent-step.js");
+    // Use format that matches the ANNOUNCE_SECTION_RE regex pattern
     vi.mocked(agentStep.runAgentStep).mockResolvedValueOnce(
-      "- **Status:** success\n\n- **Result:** did some stuff\n\n- **Notes:** all good",
+      "Status: success\n\nResult: did some stuff\n\nNotes: all good",
     );
 
     const { runSubagentAnnounceFlow } = await import("./subagent-announce.js");

@@ -188,6 +188,11 @@ export async function initSessionState(params: {
   }
 
   const baseEntry = !isNewSession && freshEntry ? entry : undefined;
+  // Track the originating channel/to for announce routing (subagent announce-back).
+  const lastChannel =
+    (ctx.OriginatingChannel as string | undefined)?.trim() || baseEntry?.lastChannel;
+  const lastTo = ctx.OriginatingTo?.trim() || ctx.To?.trim() || baseEntry?.lastTo;
+  const lastAccountId = ctx.AccountId?.trim() || baseEntry?.lastAccountId;
   sessionEntry = {
     ...baseEntry,
     sessionId,
@@ -212,6 +217,10 @@ export async function initSessionState(params: {
     subject: baseEntry?.subject,
     room: baseEntry?.room,
     space: baseEntry?.space,
+    // Track originating channel for subagent announce routing.
+    lastChannel,
+    lastTo,
+    lastAccountId,
   };
   if (groupResolution?.channel) {
     const channel = groupResolution.channel;

@@ -18,6 +18,8 @@ export function buildAgentSystemPrompt(params: {
   contextFiles?: EmbeddedContextFile[];
   skillsPrompt?: string;
   heartbeatPrompt?: string;
+  /** When true, omits most sections (Skills, Memory, Heartbeats, etc.) to reduce token usage. */
+  isSubagent?: boolean;
   runtimeInfo?: {
     host?: string;
     os?: string;
@@ -172,17 +174,21 @@ export function buildAgentSystemPrompt(params: {
   const runtimeCapabilitiesLower = new Set(runtimeCapabilities.map((cap) => cap.toLowerCase()));
   const inlineButtonsEnabled = runtimeCapabilitiesLower.has("inlinebuttons");
   const messageChannelOptions = listDeliverableMessageChannels().join("|");
+  const isSubagent = params.isSubagent ?? false;
   const skillsLines = skillsPrompt ? [skillsPrompt, ""] : [];
-  const skillsSection = skillsPrompt
-    ? [
-        "## Skills",
-        `Skills provide task-specific instructions. Use \`${readToolName}\` to load the SKILL.md at the location listed for that skill.`,
-        ...skillsLines,
-        "",
-      ]
-    : [];
+  // Skip skills section for subagents
+  const skillsSection =
+    skillsPrompt && !isSubagent
+      ? [
+          "## Skills",
+          `Skills provide task-specific instructions. Use \`${readToolName}\` to load the SKILL.md at the location listed for that skill.`,
+          ...skillsLines,
+          "",
+        ]
+      : [];
+  // Skip memory section for subagents
   const memorySection =
-    availableTools.has("memory_search") || availableTools.has("memory_get")
+    !isSubagent && (availableTools.has("memory_search") || availableTools.has("memory_get"))
       ? [
           "## Memory Recall",
           "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",
@@ -219,8 +225,9 @@ export function buildAgentSystemPrompt(params: {
     "",
     ...skillsSection,
     ...memorySection,
-    hasGateway ? "## Clawdbot Self-Update" : "",
-    hasGateway
+    // Skip self-update for subagents
+    hasGateway && !isSubagent ? "## Clawdbot Self-Update" : "",
+    hasGateway && !isSubagent
       ? [
           "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
           "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
@@ -228,16 +235,19 @@ export function buildAgentSystemPrompt(params: {
           "After restart, Clawdbot pings the last active session automatically.",
         ].join("\n")
       : "",
-    hasGateway ? "" : "",
+    hasGateway && !isSubagent ? "" : "",
     "",
-    params.modelAliasLines && params.modelAliasLines.length > 0 ? "## Model Aliases" : "",
-    params.modelAliasLines && params.modelAliasLines.length > 0
+    // Skip model aliases for subagents
+    params.modelAliasLines && params.modelAliasLines.length > 0 && !isSubagent
+      ? "## Model Aliases"
+      : "",
+    params.modelAliasLines && params.modelAliasLines.length > 0 && !isSubagent
       ? "Prefer aliases when specifying model overrides; full provider/model is also accepted."
       : "",
-    params.modelAliasLines && params.modelAliasLines.length > 0
+    params.modelAliasLines && params.modelAliasLines.length > 0 && !isSubagent
       ? params.modelAliasLines.join("\n")
       : "",
-    params.modelAliasLines && params.modelAliasLines.length > 0 ? "" : "",
+    params.modelAliasLines && params.modelAliasLines.length > 0 && !isSubagent ? "" : "",
     "## Workspace",
     `Your working directory is: ${params.workspaceDir}`,
     "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.",
@@ -295,9 +305,10 @@ export function buildAgentSystemPrompt(params: {
           .join("\n")
       : "",
     params.sandboxInfo?.enabled ? "" : "",
-    ownerLine ? "## User Identity" : "",
-    ownerLine ?? "",
-    ownerLine ? "" : "",
+    // Skip user identity for subagents
+    ownerLine && !isSubagent ? "## User Identity" : "",
+    ownerLine && !isSubagent ? ownerLine : "",
+    ownerLine && !isSubagent ? "" : "",
     "## Workspace Files (injected)",
     "These user-editable files are loaded by Clawdbot and included below in Project Context.",
     "",
@@ -305,38 +316,50 @@ export function buildAgentSystemPrompt(params: {
       ? `Time: assume UTC unless stated. User TZ=${userTimezone ?? "unknown"}. Current user time (converted)=${userTime ?? "unknown"}.`
       : "",
     userTimezone || userTime ? "" : "",
-    "## Reply Tags",
-    "To request a native reply/quote on supported surfaces, include one tag in your reply:",
-    "- [[reply_to_current]] replies to the triggering message.",
-    "- [[reply_to:<id>]] replies to a specific message id when you have it.",
-    "Whitespace inside the tag is allowed (e.g. [[ reply_to_current ]] / [[ reply_to: 123 ]]).",
-    "Tags are stripped before sending; support depends on the current channel config.",
-    "",
-    "## Messaging",
-    "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
-    "- Cross-session messaging → use sessions_send(sessionKey, message)",
-    "- Never use exec/curl for provider messaging; Clawdbot handles all routing internally.",
-    availableTools.has("message")
-      ? [
+    // Skip reply tags for subagents
+    ...(isSubagent
+      ? []
+      : [
+          "## Reply Tags",
+          "To request a native reply/quote on supported surfaces, include one tag in your reply:",
+          "- [[reply_to_current]] replies to the triggering message.",
+          "- [[reply_to:<id>]] replies to a specific message id when you have it.",
+          "Whitespace inside the tag is allowed (e.g. [[ reply_to_current ]] / [[ reply_to: 123 ]]).",
+          "Tags are stripped before sending; support depends on the current channel config.",
           "",
-          "### message tool",
-          "- Use `message` for proactive sends + channel actions (polls, reactions, etc.).",
-          "- For `action=send`, include `to` and `message`.",
-          `- If multiple channels are configured, pass \`channel\` (${messageChannelOptions}).`,
-          inlineButtonsEnabled
-            ? "- Inline buttons supported. Use `action=send` with `buttons=[[{text,callback_data}]]` (callback_data routes back as a user message)."
-            : runtimeChannel
-              ? `- Inline buttons not enabled for ${runtimeChannel}. If you need them, ask to add "inlineButtons" to ${runtimeChannel}.capabilities or ${runtimeChannel}.accounts.<id>.capabilities.`
-              : "",
-        ]
-          .filter(Boolean)
-          .join("\n")
-      : "",
-    "",
+        ]),
+    // Skip messaging section for subagents
+    ...(isSubagent
+      ? []
+      : [
+          "## Messaging",
+          "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
+          "- Cross-session messaging → use sessions_send(sessionKey, message)",
+          "- Never use exec/curl for provider messaging; Clawdbot handles all routing internally.",
+          availableTools.has("message")
+            ? [
+                "",
+                "### message tool",
+                "- Use `message` for proactive sends + channel actions (polls, reactions, etc.).",
+                "- For `action=send`, include `to` and `message`.",
+                `- If multiple channels are configured, pass \`channel\` (${messageChannelOptions}).`,
+                inlineButtonsEnabled
+                  ? "- Inline buttons supported. Use `action=send` with `buttons=[[{text,callback_data}]]` (callback_data routes back as a user message)."
+                  : runtimeChannel
+                    ? `- Inline buttons not enabled for ${runtimeChannel}. If you need them, ask to add "inlineButtons" to ${runtimeChannel}.capabilities or ${runtimeChannel}.accounts.<id>.capabilities.`
+                    : "",
+              ]
+                .filter(Boolean)
+                .join("\n")
+            : "",
+          "",
+        ]),
   ];
 
   if (extraSystemPrompt) {
-    lines.push("## Group Chat Context", extraSystemPrompt, "");
+    // Rename "Group Chat Context" to "Subagent Context" for subagents
+    const contextHeader = isSubagent ? "## Subagent Context" : "## Group Chat Context";
+    lines.push(contextHeader, extraSystemPrompt, "");
   }
   if (reasoningHint) {
     lines.push("## Reasoning Format", reasoningHint, "");
@@ -355,26 +378,38 @@ export function buildAgentSystemPrompt(params: {
     }
   }
 
+  // Skip silent replies for subagents
+  if (!isSubagent) {
+    lines.push(
+      "## Silent Replies",
+      `When you have nothing to say, respond with ONLY: ${SILENT_REPLY_TOKEN}`,
+      "",
+      "⚠️ Rules:",
+      "- It must be your ENTIRE message — nothing else",
+      `- Never append it to an actual response (never include "${SILENT_REPLY_TOKEN}" in real replies)`,
+      "- Never wrap it in markdown or code blocks",
+      "",
+      `❌ Wrong: "Here's help... ${SILENT_REPLY_TOKEN}"`,
+      `❌ Wrong: "${SILENT_REPLY_TOKEN}"`,
+      `✅ Right: ${SILENT_REPLY_TOKEN}`,
+      "",
+    );
+  }
+
+  // Skip heartbeats for subagents
+  if (!isSubagent) {
+    lines.push(
+      "## Heartbeats",
+      heartbeatPromptLine,
+      "If you receive a heartbeat poll (a user message matching the heartbeat prompt above), and there is nothing that needs attention, reply exactly:",
+      "HEARTBEAT_OK",
+      'Clawdbot treats a leading/trailing "HEARTBEAT_OK" as a heartbeat ack (and may discard it).',
+      'If something needs attention, do NOT include "HEARTBEAT_OK"; reply with the alert text instead.',
+      "",
+    );
+  }
+
   lines.push(
-    "## Silent Replies",
-    `When you have nothing to say, respond with ONLY: ${SILENT_REPLY_TOKEN}`,
-    "",
-    "⚠️ Rules:",
-    "- It must be your ENTIRE message — nothing else",
-    `- Never append it to an actual response (never include "${SILENT_REPLY_TOKEN}" in real replies)`,
-    "- Never wrap it in markdown or code blocks",
-    "",
-    `❌ Wrong: "Here's help... ${SILENT_REPLY_TOKEN}"`,
-    `❌ Wrong: "${SILENT_REPLY_TOKEN}"`,
-    `✅ Right: ${SILENT_REPLY_TOKEN}`,
-    "",
-    "## Heartbeats",
-    heartbeatPromptLine,
-    "If you receive a heartbeat poll (a user message matching the heartbeat prompt above), and there is nothing that needs attention, reply exactly:",
-    "HEARTBEAT_OK",
-    'Clawdbot treats a leading/trailing "HEARTBEAT_OK" as a heartbeat ack (and may discard it).',
-    'If something needs attention, do NOT include "HEARTBEAT_OK"; reply with the alert text instead.',
-    "",
     "## Runtime",
     `Runtime: ${[
       runtimeInfo?.host ? `host=${runtimeInfo.host}` : "",
