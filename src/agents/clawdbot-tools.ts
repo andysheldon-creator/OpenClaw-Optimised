@@ -12,6 +12,7 @@ import { createImageTool } from "./tools/image-tool.js";
 import { createMemoryGetTool, createMemorySearchTool } from "./tools/memory-tool.js";
 import { createMessageTool } from "./tools/message-tool.js";
 import { createNodesTool } from "./tools/nodes-tool.js";
+import { createReportBackTool } from "./tools/report-back-tool.js";
 import { createSessionStatusTool } from "./tools/session-status-tool.js";
 import { createSessionsHistoryTool } from "./tools/sessions-history-tool.js";
 import { createSessionsListTool } from "./tools/sessions-list-tool.js";
@@ -110,6 +111,9 @@ export function createClawdbotTools(options?: {
     createSessionStatusTool({
       agentSessionKey: options?.agentSessionKey,
       config: options?.config,
+    }),
+    createReportBackTool({
+      agentSessionKey: options?.agentSessionKey,
     }),
     ...(memorySearchTool && memoryGetTool ? [memorySearchTool, memoryGetTool] : []),
     ...(webSearchTool ? [webSearchTool] : []),

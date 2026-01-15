@@ -21,6 +21,7 @@ import {
   formatValidationErrors,
   validateChatAbortParams,
   validateChatHistoryParams,
+  validateChatInjectParams,
   validateChatSendParams,
 } from "../protocol/index.js";
 import { MAX_CHAT_HISTORY_MESSAGES_BYTES } from "../server-constants.js";
@@ -354,5 +355,42 @@ export const chatHandlers: GatewayRequestHandlers = {
         error: formatForLog(err),
       });
     }
+  },
+  "chat.inject": ({ params, respond, context }) => {
+    if (!validateChatInjectParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid chat.inject params: ${formatValidationErrors(validateChatInjectParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    const p = params as {
+      sessionKey: string;
+      message: string;
+      label?: string;
+    };
+    const now = Date.now();
+    const runId = randomUUID();
+    const labelPrefix = p.label ? `[${p.label}] ` : "";
+    const text = `${labelPrefix}${p.message}`;
+    // Broadcast as a "final" chat event so it shows in the webchat UI
+    const payload = {
+      runId,
+      sessionKey: p.sessionKey,
+      seq: 0,
+      state: "final" as const,
+      message: {
+        role: "system",
+        content: [{ type: "text", text }],
+        timestamp: now,
+      },
+    };
+    context.broadcast("chat", payload);
+    context.bridgeSendToSession(p.sessionKey, "chat", payload);
+    respond(true, { ok: true, runId });
   },
 };

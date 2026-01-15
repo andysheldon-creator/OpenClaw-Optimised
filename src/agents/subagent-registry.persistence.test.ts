@@ -18,9 +18,9 @@ vi.mock("../infra/agent-events.js", () => ({
   onAgentEvent: vi.fn(() => noop),
 }));
 
-const announceSpy = vi.fn(async () => true);
+const cleanupSpy = vi.fn(async () => {});
 vi.mock("./subagent-announce.js", () => ({
-  runSubagentAnnounceFlow: (...args: unknown[]) => announceSpy(...args),
+  runSubagentCleanup: (...args: unknown[]) => cleanupSpy(...args),
 }));
 
 describe("subagent registry persistence", () => {
@@ -28,7 +28,7 @@ describe("subagent registry persistence", () => {
   let tempStateDir: string | null = null;
 
   afterEach(async () => {
-    announceSpy.mockClear();
+    cleanupSpy.mockClear();
     vi.resetModules();
     if (tempStateDir) {
       await fs.rm(tempStateDir, { recursive: true, force: true });
@@ -68,21 +68,21 @@ describe("subagent registry persistence", () => {
     const mod2 = await import("./subagent-registry.js");
     mod2.initSubagentRegistry();
 
-    // allow queued async wait/announce to execute
+    // allow queued async wait/cleanup to execute
     await new Promise((r) => setTimeout(r, 0));
 
-    expect(announceSpy).toHaveBeenCalled();
+    expect(cleanupSpy).toHaveBeenCalled();
 
-    type AnnounceParams = {
-      childRunId: string;
+    type CleanupParams = {
       childSessionKey: string;
+      cleanup: string;
+      label?: string;
     };
-    const first = announceSpy.mock.calls[0]?.[0] as unknown as AnnounceParams;
-    expect(first.childRunId).toBe("run-1");
+    const first = cleanupSpy.mock.calls[0]?.[0] as unknown as CleanupParams;
     expect(first.childSessionKey).toBe("agent:main:subagent:test");
   });
 
-  it("retries announce even when announceHandled was persisted", async () => {
+  it("skips cleanup when cleanupHandled/announceHandled was persisted", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-subagent-"));
     process.env.CLAWDBOT_STATE_DIR = tempStateDir;
 
@@ -100,7 +100,7 @@ describe("subagent registry persistence", () => {
           createdAt: 1,
           startedAt: 1,
           endedAt: 2,
-          announceHandled: true,
+          cleanupHandled: true, // Already handled - should be skipped
         },
       },
     };
@@ -113,10 +113,11 @@ describe("subagent registry persistence", () => {
 
     await new Promise((r) => setTimeout(r, 0));
 
-    const calls = announceSpy.mock.calls.map((call) => call[0]);
+    // cleanup should NOT be called since cleanupHandled was true
+    const calls = cleanupSpy.mock.calls.map((call) => call[0]);
     const match = calls.find(
-      (params) => (params as { childRunId?: string }).childRunId === "run-2",
+      (params) => (params as { childSessionKey?: string }).childSessionKey === "agent:main:subagent:two",
     );
-    expect(match).toBeTruthy();
+    expect(match).toBeFalsy();
   });
 });

@@ -155,22 +155,27 @@ export function buildSubagentSystemPrompt(params: {
     "",
     "## Rules",
     "1. **Stay focused** - Do your assigned task, nothing else",
-    "2. **Report completion** - When done, summarize results clearly",
+    "2. **Report when done** - Use the `report_back` tool to send your findings to the main agent",
     "3. **Don't initiate** - No heartbeats, no proactive actions, no side quests",
     "4. **Ask the spawner** - If blocked or confused, report back rather than improvising",
     "5. **Be ephemeral** - You may be terminated after task completion. That's fine.",
+    "",
+    "## Reporting Results",
+    "",
+    "Use the `report_back` tool to send your results to the main session.",
+    "The main agent will summarize your report in their own voice.",
+    "",
+    "- Call `report_back` when your task is complete",
+    "- Include your findings, results, or status in the message",
+    "- If the task is silent/internal, you can skip reporting",
+    "- Keep the message concise but informative",
     "",
     "## What You DON'T Do",
     "- NO user conversations (that's main agent's job)",
     "- NO external messages (email, tweets, etc.) unless explicitly tasked",
     "- NO cron jobs or persistent state",
     "- NO pretending to be the main agent",
-    "",
-    "## Output Format",
-    "When complete, respond with:",
-    "- **Status:** success | failed | blocked",
-    "- **Result:** [what you accomplished]",
-    "- **Notes:** [anything the main agent should know] - discuss gimme options",
+    "- NO using the `message` tool (use `report_back` instead)",
     "",
     "## Session Context",
     params.label ? `- Label: ${params.label}` : undefined,
@@ -178,8 +183,6 @@ export function buildSubagentSystemPrompt(params: {
     params.requesterChannel ? `- Requester channel: ${params.requesterChannel}.` : undefined,
     `- Your session: ${params.childSessionKey}.`,
     "",
-    "Run the task. Provide a clear final answer (plain text).",
-    'After you finish, you may be asked to produce an "announce" message to post back to the requester chat.',
   ].filter((line): line is string => line !== undefined);
   return lines.join("\n");
 }
@@ -458,4 +461,40 @@ export async function runSubagentAnnounceFlow(params: {
     }
   }
   return didAnnounce;
+}
+
+/**
+ * Runs cleanup for a subagent session (label patching and optional deletion).
+ * This is called after subagent completion when using report_back tool.
+ * The subagent uses report_back to send results directly, so no announce step needed.
+ */
+export async function runSubagentCleanup(params: {
+  childSessionKey: string;
+  cleanup: "delete" | "keep";
+  label?: string;
+}): Promise<void> {
+  // Patch label after completion
+  if (params.label) {
+    try {
+      await callGateway({
+        method: "sessions.patch",
+        params: { key: params.childSessionKey, label: params.label },
+        timeoutMs: 10_000,
+      });
+    } catch {
+      // Best-effort
+    }
+  }
+  // Delete session if configured
+  if (params.cleanup === "delete") {
+    try {
+      await callGateway({
+        method: "sessions.delete",
+        params: { key: params.childSessionKey, deleteTranscript: true },
+        timeoutMs: 10_000,
+      });
+    } catch {
+      // ignore
+    }
+  }
 }

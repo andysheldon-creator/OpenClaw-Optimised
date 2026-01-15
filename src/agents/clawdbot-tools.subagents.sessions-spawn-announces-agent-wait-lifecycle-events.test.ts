@@ -34,17 +34,15 @@ describe("clawdbot-tools: subagents", () => {
     };
   });
 
-  it("sessions_spawn announces via agent.wait when lifecycle events are missing", async () => {
+  it("sessions_spawn deletes session when cleanup=delete via agent.wait", async () => {
     resetSubagentRegistryForTests();
     callGatewayMock.mockReset();
     const calls: Array<{ method?: string; params?: unknown }> = [];
     let agentCallCount = 0;
-    let sendParams: { to?: string; channel?: string; message?: string } = {};
     let deletedKey: string | undefined;
     let childRunId: string | undefined;
     let childSessionKey: string | undefined;
     const waitCalls: Array<{ runId?: string; timeoutMs?: number }> = [];
-    const sessionLastAssistantText = new Map<string, string>();
 
     callGatewayMock.mockImplementation(async (opts: unknown) => {
       const request = opts as { method?: string; params?: unknown };
@@ -58,17 +56,10 @@ describe("clawdbot-tools: subagents", () => {
           channel?: string;
           timeout?: number;
         };
-        const message = params?.message ?? "";
-        const sessionKey = params?.sessionKey ?? "";
-        if (message === "Sub-agent announce step.") {
-          sessionLastAssistantText.set(sessionKey, "announce now");
-        } else {
-          childRunId = runId;
-          childSessionKey = sessionKey;
-          sessionLastAssistantText.set(sessionKey, "result");
-          expect(params?.channel).toBe("discord");
-          expect(params?.timeout).toBe(1);
-        }
+        childRunId = runId;
+        childSessionKey = params?.sessionKey ?? "";
+        expect(params?.channel).toBe("discord");
+        expect(params?.timeout).toBe(1);
         return {
           runId,
           status: "accepted",
@@ -84,24 +75,6 @@ describe("clawdbot-tools: subagents", () => {
           startedAt: 3000,
           endedAt: 4000,
         };
-      }
-      if (request.method === "chat.history") {
-        const params = request.params as { sessionKey?: string } | undefined;
-        const text = sessionLastAssistantText.get(params?.sessionKey ?? "") ?? "";
-        return {
-          messages: [{ role: "assistant", content: [{ type: "text", text }] }],
-        };
-      }
-      if (request.method === "send") {
-        const params = request.params as
-          | { to?: string; channel?: string; message?: string }
-          | undefined;
-        sendParams = {
-          to: params?.to,
-          channel: params?.channel,
-          message: params?.message,
-        };
-        return { messageId: "m-announce" };
       }
       if (request.method === "sessions.delete") {
         const params = request.params as { key?: string } | undefined;
@@ -135,19 +108,15 @@ describe("clawdbot-tools: subagents", () => {
     expect(childWait?.timeoutMs).toBe(1000);
     expect(childSessionKey?.startsWith("agent:main:subagent:")).toBe(true);
 
+    // No announce LLM step should run (no "Sub-agent announce step." agent call)
     const agentCalls = calls.filter((call) => call.method === "agent");
-    expect(agentCalls).toHaveLength(2);
-    const second = agentCalls[1]?.params as
-      | { channel?: string; deliver?: boolean; lane?: string }
-      | undefined;
-    expect(second?.lane).toBe("nested");
-    expect(second?.deliver).toBe(false);
-    expect(second?.channel).toBe("webchat");
+    expect(agentCalls).toHaveLength(1); // Only the subagent run, no announce step
 
-    expect(sendParams.channel).toBe("discord");
-    expect(sendParams.to).toBe("channel:req");
-    expect(sendParams.message ?? "").toContain("announce now");
-    // External channels (discord) use compact format which doesn't include Stats line
+    // No send to external channel
+    const sendCalls = calls.filter((c) => c.method === "send");
+    expect(sendCalls.length).toBe(0);
+
+    // Session should be deleted
     expect(deletedKey?.startsWith("agent:main:subagent:")).toBe(true);
   });
 });
