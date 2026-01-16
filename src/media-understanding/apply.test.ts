@@ -199,6 +199,51 @@ describe("applyMediaUnderstanding", () => {
     expect(ctx.Body).toBe("[Audio]\nTranscript:\nmulti audio");
   });
 
+  it("keeps per-index MediaTypes when the array is sparse", async () => {
+    const { applyMediaUnderstanding } = await loadApply();
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-media-"));
+    const audioPath = path.join(dir, "voice");
+    const imagePath = path.join(dir, "image.jpg");
+    await fs.writeFile(audioPath, "audio-bytes");
+    await fs.writeFile(imagePath, "image-bytes");
+
+    let seenFileName: string | undefined;
+    const ctx: MsgContext = {
+      Body: "<media:audio>",
+      MediaPaths: [audioPath, imagePath],
+      MediaTypes: ["audio/ogg"],
+    };
+    const cfg: ClawdbotConfig = {
+      tools: {
+        audio: {
+          transcription: {
+            enabled: true,
+            provider: "groq",
+            maxBytes: 1024 * 1024,
+          },
+        },
+      },
+    };
+
+    const result = await applyMediaUnderstanding({
+      ctx,
+      cfg,
+      providers: {
+        groq: {
+          id: "groq",
+          transcribeAudio: async (req) => {
+            seenFileName = req.fileName;
+            return { text: "sparse audio" };
+          },
+        },
+      },
+    });
+
+    expect(result.appliedAudio).toBe(true);
+    expect(seenFileName).toBe("voice");
+    expect(ctx.Body).toBe("[Audio]\nTranscript:\nsparse audio");
+  });
+
   it("skips video when base64 payload exceeds limit", async () => {
     const { applyMediaUnderstanding } = await loadApply();
     const bigBuffer = Buffer.alloc(54 * 1024 * 1024);
