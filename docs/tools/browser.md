@@ -59,6 +59,8 @@ Browser settings live in `~/.clawdbot/clawdbot.json`.
     enabled: true,                    // default: true
     controlUrl: "http://127.0.0.1:18791",
     cdpUrl: "http://127.0.0.1:18792", // defaults to controlUrl + 1
+    remoteCdpTimeoutMs: 1500,         // remote CDP HTTP timeout (ms)
+    remoteCdpHandshakeTimeoutMs: 3000, // remote CDP WebSocket handshake timeout (ms)
     defaultProfile: "chrome",
     color: "#FF4500",
     headless: false,
@@ -79,6 +81,8 @@ Notes:
 - If you override the Gateway port (`gateway.port` or `CLAWDBOT_GATEWAY_PORT`),
   the default browser ports shift to stay in the same “family” (control = gateway + 2).
 - `cdpUrl` defaults to `controlUrl + 1` when unset.
+- `remoteCdpTimeoutMs` applies to remote (non-loopback) CDP reachability checks.
+- `remoteCdpHandshakeTimeoutMs` applies to remote CDP WebSocket reachability checks.
 - `attachOnly: true` means “never launch a local browser; only attach if it is already running.”
 - `color` + per-profile `color` tint the browser UI so you can see which profile is active.
 - Default profile is `chrome` (extension relay). Use `defaultProfile: "clawd"` for the managed browser.
@@ -161,6 +165,34 @@ Remote CDP URLs can include auth:
 Clawdbot preserves the auth when calling `/json/*` endpoints and when connecting
 to the CDP WebSocket. Prefer environment variables or secrets managers for
 tokens instead of committing them to config files.
+
+### Browserless (hosted remote CDP)
+
+[Browserless](https://browserless.io) is a hosted Chromium service that exposes
+CDP endpoints over HTTPS. You can point a Clawdbot browser profile at a
+Browserless region endpoint and authenticate with your API key.
+
+Example:
+```json5
+{
+  browser: {
+    enabled: true,
+    defaultProfile: "browserless",
+    remoteCdpTimeoutMs: 2000,
+    remoteCdpHandshakeTimeoutMs: 4000,
+    profiles: {
+      browserless: {
+        cdpUrl: "https://production-sfo.browserless.io?token=<BROWSERLESS_API_KEY>",
+        color: "#00AA00"
+      }
+    }
+  }
+}
+```
+
+Notes:
+- Replace `<BROWSERLESS_API_KEY>` with your real Browserless token.
+- Choose the region endpoint that matches your Browserless account (see their docs).
 
 ### Running the control server on the browser machine
 

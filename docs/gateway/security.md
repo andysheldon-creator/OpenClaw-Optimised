@@ -133,7 +133,7 @@ By default, Clawdbot routes **all DMs into the main session** so your assistant 
 }
 ```
 
-This prevents cross-user context leakage while keeping group chats isolated. See [Session Management](/concepts/session) and [Configuration](/gateway/configuration).
+This prevents cross-user context leakage while keeping group chats isolated. If the same person contacts you on multiple channels, use `session.identityLinks` to collapse those DM sessions into one canonical identity. See [Session Management](/concepts/session) and [Configuration](/gateway/configuration).
 
 ## Allowlists (DM + groups) — terminology
 
@@ -160,6 +160,15 @@ Even with strong system prompts, **prompt injection is not solved**. What helps 
 - Treat links and pasted instructions as hostile by default.
 - Run sensitive tool execution in a sandbox; keep secrets out of the agent’s reachable filesystem.
 - **Model choice matters:** older/legacy models can be less robust against prompt injection and tool misuse. Prefer modern, instruction-hardened models for any bot with tools. We recommend Anthropic Opus 4.5 because it’s quite good at recognizing prompt injections (see [“A step forward on safety”](https://www.anthropic.com/news/claude-opus-4-5)).
+
+### Model strength (security note)
+
+Prompt injection resistance is **not** uniform across model tiers. Smaller/cheaper models are generally more susceptible to tool misuse and instruction hijacking, especially under adversarial prompts.
+
+Recommendations:
+- **Use the latest generation, best-tier model** for any bot that can run tools or touch files/networks.
+- **Avoid weaker tiers** (for example, Sonnet or Haiku) for tool-enabled agents or untrusted inboxes.
+- If you must use a smaller model, **reduce blast radius** (read-only tools, strong sandboxing, minimal filesystem access, strict allowlists).
 
 ## Reasoning & verbose output in groups
 

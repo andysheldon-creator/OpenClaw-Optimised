@@ -158,6 +158,7 @@ const FIELD_LABELS: Record<string, string> = {
   "agents.defaults.humanDelay.maxMs": "Human Delay Max (ms)",
   "agents.defaults.cliBackends": "CLI Backends",
   "commands.native": "Native Commands",
+  "commands.nativeSkills": "Native Skill Commands",
   "commands.text": "Text Commands",
   "commands.bash": "Allow Bash Chat Command",
   "commands.bashForegroundMs": "Bash Foreground Window (ms)",
@@ -167,6 +168,8 @@ const FIELD_LABELS: Record<string, string> = {
   "commands.useAccessGroups": "Use Access Groups",
   "ui.seamColor": "Accent Color",
   "browser.controlUrl": "Browser Control URL",
+  "browser.remoteCdpTimeoutMs": "Remote CDP Timeout (ms)",
+  "browser.remoteCdpHandshakeTimeoutMs": "Remote CDP Handshake Timeout (ms)",
   "session.dmScope": "DM Session Scope",
   "session.agentToAgent.maxPingPongTurns": "Agent-to-Agent Ping-Pong Turns",
   "messages.ackReaction": "Ack Reaction Emoji",
@@ -192,6 +195,7 @@ const FIELD_LABELS: Record<string, string> = {
   "channels.telegram.retry.maxDelayMs": "Telegram Retry Max Delay (ms)",
   "channels.telegram.retry.jitter": "Telegram Retry Jitter",
   "channels.telegram.timeoutSeconds": "Telegram API Timeout (seconds)",
+  "channels.telegram.capabilities.inlineButtons": "Telegram Inline Buttons",
   "channels.whatsapp.dmPolicy": "WhatsApp DM Policy",
   "channels.whatsapp.selfChatMode": "WhatsApp Self-Phone Mode",
   "channels.whatsapp.debounceMs": "WhatsApp Message Debounce (ms)",
@@ -304,7 +308,8 @@ const FIELD_HELP: Record<string, string> = {
   "plugins.installs.*.source": 'Install source ("npm", "archive", or "path").',
   "plugins.installs.*.spec": "Original npm spec used for install (if source is npm).",
   "plugins.installs.*.sourcePath": "Original archive/path used for install (if any).",
-  "plugins.installs.*.installPath": "Resolved install directory (usually ~/.clawdbot/extensions/<id>).",
+  "plugins.installs.*.installPath":
+    "Resolved install directory (usually ~/.clawdbot/extensions/<id>).",
   "plugins.installs.*.version": "Version recorded at install time (if available).",
   "plugins.installs.*.installedAt": "ISO timestamp of last install/update.",
   "agents.defaults.model.primary": "Primary model (provider/model).",
@@ -319,6 +324,8 @@ const FIELD_HELP: Record<string, string> = {
   "agents.defaults.humanDelay.maxMs": "Maximum delay in ms for custom humanDelay (default: 2500).",
   "commands.native":
     "Register native commands with channels that support it (Discord/Slack/Telegram).",
+  "commands.nativeSkills":
+    "Register native skill commands (user-invocable skills) with channels that support it.",
   "commands.text": "Allow text command parsing (slash commands only).",
   "commands.bash":
     "Allow bash chat command (`!`; `/bash` alias) to run host shell commands (default: false; requires tools.elevated).",
@@ -330,6 +337,8 @@ const FIELD_HELP: Record<string, string> = {
   "commands.useAccessGroups": "Enforce access-group allowlists/policies for commands.",
   "session.dmScope":
     'DM session scoping: "main" keeps continuity; "per-peer" or "per-channel-peer" isolates DM history (recommended for shared inboxes).',
+  "session.identityLinks":
+    "Map canonical identities to provider-prefixed peer IDs for DM session linking (example: telegram:123456).",
   "channels.telegram.configWrites":
     "Allow Telegram to write config in response to channel events/commands (default: true).",
   "channels.slack.configWrites":
@@ -345,8 +354,14 @@ const FIELD_HELP: Record<string, string> = {
   "channels.msteams.configWrites":
     "Allow Microsoft Teams to write config in response to channel events/commands (default: true).",
   "channels.discord.commands.native": 'Override native commands for Discord (bool or "auto").',
+  "channels.discord.commands.nativeSkills":
+    'Override native skill commands for Discord (bool or "auto").',
   "channels.telegram.commands.native": 'Override native commands for Telegram (bool or "auto").',
+  "channels.telegram.commands.nativeSkills":
+    'Override native skill commands for Telegram (bool or "auto").',
   "channels.slack.commands.native": 'Override native commands for Slack (bool or "auto").',
+  "channels.slack.commands.nativeSkills":
+    'Override native skill commands for Slack (bool or "auto").',
   "session.agentToAgent.maxPingPongTurns":
     "Max reply-back turns between requester and target (0–5).",
   "channels.telegram.customCommands":

@@ -9,6 +9,7 @@ import {
   parseCommandArgs,
   resolveCommandArgMenu,
 } from "../auto-reply/commands-registry.js";
+import { listSkillCommandsForAgents } from "../auto-reply/skill-commands.js";
 import type { CommandArgs } from "../auto-reply/commands-registry.js";
 import { resolveTelegramCustomCommands } from "../config/telegram-custom-commands.js";
 import { dispatchReplyWithBufferedBlockDispatcher } from "../auto-reply/reply/provider-dispatcher.js";
@@ -37,16 +38,24 @@ export const registerTelegramNativeCommands = ({
   textLimit,
   useAccessGroups,
   nativeEnabled,
+  nativeSkillsEnabled,
   nativeDisabledExplicit,
   resolveGroupPolicy,
   resolveTelegramGroupConfig,
   shouldSkipUpdate,
   opts,
 }) => {
-  const nativeCommands = nativeEnabled ? listNativeCommandSpecsForConfig(cfg) : [];
+  const skillCommands =
+    nativeEnabled && nativeSkillsEnabled ? listSkillCommandsForAgents({ cfg }) : [];
+  const nativeCommands = nativeEnabled
+    ? listNativeCommandSpecsForConfig(cfg, { skillCommands })
+    : [];
   const reservedCommands = new Set(
     listNativeCommandSpecs().map((command) => command.name.toLowerCase()),
   );
+  for (const command of skillCommands) {
+    reservedCommands.add(command.name.toLowerCase());
+  }
   const customResolution = resolveTelegramCustomCommands({
     commands: telegramCfg.customCommands,
     reservedCommands,
@@ -70,11 +79,9 @@ export const registerTelegramNativeCommands = ({
       ) => Promise<unknown>;
     };
     if (typeof api.setMyCommands === "function") {
-      api
-        .setMyCommands(allCommands)
-        .catch((err) => {
-          runtime.error?.(danger(`telegram setMyCommands failed: ${String(err)}`));
-        });
+      api.setMyCommands(allCommands).catch((err) => {
+        runtime.error?.(danger(`telegram setMyCommands failed: ${String(err)}`));
+      });
     } else {
       logVerbose("telegram: setMyCommands unavailable; skipping registration");
     }

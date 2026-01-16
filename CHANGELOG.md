@@ -1,53 +1,92 @@
 # Changelog
 
-## 2026.1.15 (unreleased)
+## 2026.1.16 (unreleased)
 
+### Highlights
+- Plugins: add provider auth registry + `clawdbot models auth login` for plugin-driven OAuth/API key flows.
+- Browser: improve remote CDP/Browserless support (auth passthrough, `wss` upgrade, timeouts, clearer errors).
+- Heartbeat: per-agent configuration + 24h duplicate suppression. (#980) — thanks @voidserf.
+- Security: audit warns on weak model tiers; app nodes store auth tokens encrypted (Keychain/SecurePrefs).
+
+### Breaking
+- **BREAKING:** iOS minimum version is now 18.0 to support Textual markdown rendering in native chat. (#702)
 - **BREAKING:** Microsoft Teams is now a plugin; install `@clawdbot/msteams` via `clawdbot plugins install @clawdbot/msteams`.
+
+### Changes
 - CLI: set process titles to `clawdbot-<command>` for clearer process listings.
 - CLI/macOS: sync remote SSH target/identity to config and let `gateway status` auto-infer SSH targets (ssh-config aware).
+- Telegram: scope inline buttons with allowlist default + callback gating in DMs/groups.
+- Telegram: default reaction notifications to own.
 - Heartbeat: tighten prompt guidance + suppress duplicate alerts for 24h. (#980) — thanks @voidserf.
+- Repo: ignore local identity files to avoid accidental commits. (#1001) — thanks @gerardward2007.
 - Sessions/Security: add `session.dmScope` for multi-user DM isolation and audit warnings. (#948) — thanks @Alphonse-arianee.
+- Sessions: add `session.identityLinks` for cross-platform DM session linking. (#1033) — thanks @thewilloftheshadow.
 - Plugins: add provider auth registry + `clawdbot models auth login` for plugin-driven OAuth/API key flows.
+- Skills: add user-invocable skill commands (sanitized + unique), native skill registration gating, and an opt-out for model invocation.
 - Onboarding: switch channels setup to a single-select loop with per-channel actions and disabled hints in the picker.
 - TUI: show provider/model labels for the active session and default model.
 - Heartbeat: add per-agent heartbeat configuration and multi-agent docs example.
-- Fix: list model picker entries as provider/model pairs for explicit selection. (#970) — thanks @mcinteerj.
-- Fix: align OpenAI image-gen defaults with DALL-E 3 standard quality and document output formats. (#880) — thanks @mkbehr.
-- Fix: persist `gateway.mode=local` after selecting Local run mode in `clawdbot configure`, even if no other sections are chosen.
-- Daemon: fix profile-aware service label resolution (env-driven) and add coverage for launchd/systemd/schtasks. (#969) — thanks @bjesuiter.
+- UI: show gateway auth guidance + doc link on unauthorized Control UI connections.
+- Security: warn on weak model tiers (Haiku, below GPT-5, below Claude 4.5) in `clawdbot security audit`.
+- Apps: store node auth tokens encrypted (Keychain/SecurePrefs).
 - Daemon: share profile/state-dir resolution across service helpers and honor `CLAWDBOT_STATE_DIR` for Windows task scripts.
 - Docs: clarify multi-gateway rescue bot guidance. (#969) — thanks @bjesuiter.
 - Agents: add Current Date & Time system prompt section with configurable time format (auto/12/24).
-- Agents: avoid false positives when logging unsupported Google tool schema keywords.
-- Agents: skip Gemini history downgrades for google-antigravity to preserve tool calls. (#894) — thanks @mukhtharcm.
-- Status: restore usage summary line for current provider when no OAuth profiles exist.
+- Agents: default to no narration for routine tool calls. (#1008) — thanks @cpojer.
 - Tools: normalize Slack/Discord message timestamps with `timestampMs`/`timestampUtc` while keeping raw provider fields.
 - macOS: add `system.which` for prompt-free remote skill discovery (with gateway fallback to `system.run`).
 - Docs: add Date & Time guide and update prompt/timezone configuration docs.
 - Messages: debounce rapid inbound messages across channels with per-connector overrides. (#971) — thanks @juanpablodlc.
 - Messages: allow media-only sends (CLI/tool) and show Telegram voice recording status for voice notes. (#957) — thanks @rdev.
 - Auth/Status: keep auth profiles sticky per session (rotate on compaction/new), surface provider usage headers in `/status` and `clawdbot models status`, and update docs.
-- Fix: guard model fallback against undefined provider/model values. (#954) — thanks @roshanasingh4.
-- Fix: refactor session store updates, add chat.inject, and harden subagent cleanup flow. (#944) — thanks @tyler6204.
-- Fix: clean up suspended CLI processes across backends. (#978) — thanks @Nachx639.
-- Fix: support MiniMax coding plan usage responses with `model_remains`/`current_interval_*` payloads.
+- Models: add Vercel AI Gateway auth choice + onboarding docs. (#1016) — thanks @timolins.
 - CLI: add `--json` output for `clawdbot daemon` lifecycle/install commands.
 - Memory: make `node-llama-cpp` an optional dependency (avoid Node 25 install failures) and improve local-embeddings fallback/errors.
 - Browser: add `snapshot refs=aria` (Playwright aria-ref ids) for self-resolving refs across `snapshot` → `act`.
 - Browser: `profile="chrome"` now defaults to host control and returns clearer “attach a tab” errors.
-- Browser: extension mode recovers when only one tab is attached (stale targetId fallback).
 - Browser: prefer stable Chrome for auto-detect, with Brave/Edge fallbacks and updated docs. (#983) — thanks @cpojer.
-- Browser: fix `tab not found` for extension relay snapshots/actions when Playwright blocks `newCDPSession` (use the single available Page).
-- Browser: upgrade `ws` → `wss` when remote CDP uses `https` (fixes Browserless handshake).
+- Browser: increase remote CDP reachability timeouts + add `remoteCdpTimeoutMs`/`remoteCdpHandshakeTimeoutMs`.
 - Browser: preserve auth/query tokens for remote CDP endpoints and pass Basic auth for CDP HTTP/WS. (#895) — thanks @mukhtharcm.
 - Telegram: add bidirectional reaction support with configurable notifications and agent guidance. (#964) — thanks @bohdanpodvirnyi.
+- Telegram: default reaction level to minimal for more delightful baseline reactions.
 - Telegram: allow custom commands in the bot menu (merged with native; conflicts ignored). (#860) — thanks @nachoiacovino.
-- Telegram: skip `message_thread_id=1` for General topic sends while keeping typing indicators. (#848) — thanks @azade-c.
 - Discord: allow allowlisted guilds without channel lists to receive messages when `groupPolicy="allowlist"`. — thanks @thewilloftheshadow.
 - Discord: allow emoji/sticker uploads + channel actions in config defaults. (#870) — thanks @JDIVE.
+
+### Fixes
+- Messages: make `/stop` clear queued followups and pending session lane work for a hard abort.
+- WhatsApp: default response prefix only for self-chat, using identity name when set.
+- Signal/iMessage: bound transport readiness waits to 30s with periodic logging. (#1014) — thanks @Szpadel.
+- Auth: merge main auth profiles into per-agent stores for sub-agents and document inheritance. (#1013) — thanks @marcmarg.
+- Agents: avoid JSON Schema `format` collisions in tool params by renaming snapshot format fields. (#1013) — thanks @marcmarg.
+- Fix: make `clawdbot update` auto-update global installs when installed via a package manager.
+- Fix: list model picker entries as provider/model pairs for explicit selection. (#970) — thanks @mcinteerj.
+- Fix: align OpenAI image-gen defaults with DALL-E 3 standard quality and document output formats. (#880) — thanks @mkbehr.
+- Fix: persist `gateway.mode=local` after selecting Local run mode in `clawdbot configure`, even if no other sections are chosen.
+- Daemon: fix profile-aware service label resolution (env-driven) and add coverage for launchd/systemd/schtasks. (#969) — thanks @bjesuiter.
+- Agents: avoid false positives when logging unsupported Google tool schema keywords.
+- Agents: skip Gemini history downgrades for google-antigravity to preserve tool calls. (#894) — thanks @mukhtharcm.
+- Status: restore usage summary line for current provider when no OAuth profiles exist.
+- Fix: guard model fallback against undefined provider/model values. (#954) — thanks @roshanasingh4.
+- Fix: refactor session store updates, add chat.inject, and harden subagent cleanup flow. (#944) — thanks @tyler6204.
+- Fix: clean up suspended CLI processes across backends. (#978) — thanks @Nachx639.
+- Fix: support MiniMax coding plan usage responses with `model_remains`/`current_interval_*` payloads.
+- Fix: suppress WhatsApp pairing replies for historical catch-up DMs on initial link. (#904)
+- Browser: extension mode recovers when only one tab is attached (stale targetId fallback).
+- Browser: fix `tab not found` for extension relay snapshots/actions when Playwright blocks `newCDPSession` (use the single available Page).
+- Browser: upgrade `ws` → `wss` when remote CDP uses `https` (fixes Browserless handshake).
+- Telegram: skip `message_thread_id=1` for General topic sends while keeping typing indicators. (#848) — thanks @azade-c.
 - Fix: sanitize user-facing error text + strip `<final>` tags across reply pipelines. (#975) — thanks @ThomsenDrake.
 - Fix: normalize pairing CLI aliases, allow extension channels, and harden Zalo webhook payload parsing. (#991) — thanks @longmaba.
 - Fix: allow local Tailscale Serve hostnames without treating tailnet clients as direct. (#885) — thanks @oswalpalash.
+- Fix: reset sessions after role-ordering conflicts to recover from consecutive user turns. (#998)
+- Fix: repair orphaned user turns before embedded prompts to avoid role-ordering lockouts. (#1026) — thanks @odrobnik.
+- Dev: auto-sync Peekaboo submodule on install when clean to avoid dirty checkouts.
+- Fix: keep background exec aborts from killing backgrounded sessions while honoring timeouts.
+- Fix: use local auth for gateway security probe unless remote mode has a URL. (#1011) — thanks @ivanrvpereira.
+- Discord: truncate skill command descriptions for slash command limits. (#1018) — thanks @evalexpr.
+- macOS: resolve gateway token/password using config mode/remote URL, and warn when `launchctl setenv` overrides config. (#1022, #1021) — thanks @kkarimi.
+- Telegram: allow reply-chain messages to bypass mention gating in groups. (#1038) — thanks @adityashaw2.
 
 ## 2026.1.14-1
 

@@ -1,11 +1,6 @@
 import fs from "node:fs";
 
-import {
-  appendCdpPath,
-  createTargetViaCdp,
-  getHeadersWithAuth,
-  normalizeCdpWsUrl,
-} from "./cdp.js";
+import { appendCdpPath, createTargetViaCdp, getHeadersWithAuth, normalizeCdpWsUrl } from "./cdp.js";
 import {
   isChromeCdpReady,
   isChromeReachable,
@@ -55,10 +50,7 @@ async function fetchJson<T>(url: string, timeoutMs = 1500, init?: RequestInit): 
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const headers = getHeadersWithAuth(
-      url,
-      (init?.headers as Record<string, string>) || {},
-    );
+    const headers = getHeadersWithAuth(url, (init?.headers as Record<string, string>) || {});
     const res = await fetch(url, { ...init, headers, signal: ctrl.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return (await res.json()) as T;
@@ -71,10 +63,7 @@ async function fetchOk(url: string, timeoutMs = 1500, init?: RequestInit): Promi
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const headers = getHeadersWithAuth(
-      url,
-      (init?.headers as Record<string, string>) || {},
-    );
+    const headers = getHeadersWithAuth(url, (init?.headers as Record<string, string>) || {});
     const res = await fetch(url, { ...init, headers, signal: ctrl.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
   } finally {
@@ -187,13 +176,36 @@ function createProfileContext(
     };
   };
 
-  const isReachable = async (timeoutMs = 300) => {
-    const wsTimeout = Math.max(200, Math.min(2000, timeoutMs * 2));
-    return await isChromeCdpReady(profile.cdpUrl, timeoutMs, wsTimeout);
+  const resolveRemoteHttpTimeout = (timeoutMs: number | undefined) => {
+    if (profile.cdpIsLoopback) return timeoutMs ?? 300;
+    const resolved = state().resolved;
+    if (typeof timeoutMs === "number" && Number.isFinite(timeoutMs)) {
+      return Math.max(Math.floor(timeoutMs), resolved.remoteCdpTimeoutMs);
+    }
+    return resolved.remoteCdpTimeoutMs;
   };
 
-  const isHttpReachable = async (timeoutMs = 300) => {
-    return await isChromeReachable(profile.cdpUrl, timeoutMs);
+  const resolveRemoteWsTimeout = (timeoutMs: number | undefined) => {
+    if (profile.cdpIsLoopback) {
+      const base = timeoutMs ?? 300;
+      return Math.max(200, Math.min(2000, base * 2));
+    }
+    const resolved = state().resolved;
+    if (typeof timeoutMs === "number" && Number.isFinite(timeoutMs)) {
+      return Math.max(Math.floor(timeoutMs) * 2, resolved.remoteCdpHandshakeTimeoutMs);
+    }
+    return resolved.remoteCdpHandshakeTimeoutMs;
+  };
+
+  const isReachable = async (timeoutMs?: number) => {
+    const httpTimeout = resolveRemoteHttpTimeout(timeoutMs);
+    const wsTimeout = resolveRemoteWsTimeout(timeoutMs);
+    return await isChromeCdpReady(profile.cdpUrl, httpTimeout, wsTimeout);
+  };
+
+  const isHttpReachable = async (timeoutMs?: number) => {
+    const httpTimeout = resolveRemoteHttpTimeout(timeoutMs);
+    return await isChromeReachable(profile.cdpUrl, httpTimeout);
   };
 
   const attachRunning = (running: NonNullable<ProfileRuntimeState["running"]>) => {

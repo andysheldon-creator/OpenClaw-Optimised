@@ -8,8 +8,9 @@ import {
   parseCommandArgs,
   resolveCommandArgMenu,
 } from "../../auto-reply/commands-registry.js";
+import { listSkillCommandsForAgents } from "../../auto-reply/skill-commands.js";
 import { dispatchReplyWithDispatcher } from "../../auto-reply/reply/provider-dispatcher.js";
-import { resolveNativeCommandsEnabled } from "../../config/commands.js";
+import { resolveNativeCommandsEnabled, resolveNativeSkillsEnabled } from "../../config/commands.js";
 import { danger, logVerbose } from "../../globals.js";
 import { buildPairingReply } from "../../pairing/pairing-messages.js";
 import {
@@ -403,7 +404,16 @@ export function registerSlackMonitorSlashCommands(params: {
     providerSetting: account.config.commands?.native,
     globalSetting: cfg.commands?.native,
   });
-  const nativeCommands = nativeEnabled ? listNativeCommandSpecsForConfig(cfg) : [];
+  const nativeSkillsEnabled = resolveNativeSkillsEnabled({
+    providerId: "slack",
+    providerSetting: account.config.commands?.nativeSkills,
+    globalSetting: cfg.commands?.nativeSkills,
+  });
+  const skillCommands =
+    nativeEnabled && nativeSkillsEnabled ? listSkillCommandsForAgents({ cfg }) : [];
+  const nativeCommands = nativeEnabled
+    ? listNativeCommandSpecsForConfig(cfg, { skillCommands })
+    : [];
   if (nativeCommands.length > 0) {
     for (const command of nativeCommands) {
       ctx.app.command(
