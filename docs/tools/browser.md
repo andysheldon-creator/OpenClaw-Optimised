@@ -14,8 +14,10 @@ control server.
 
 Beginner view:
 - Think of it as a **separate, agent-only browser**.
-- It does **not** touch your personal browser profile.
+- The `clawd` profile does **not** touch your personal browser profile.
 - The agent can **open tabs, read pages, click, and type** in a safe lane.
+- The default `chrome` profile uses the **system default Chromium browser** via the
+  extension relay; switch to `clawd` for the isolated managed browser.
 
 ## What you get
 
@@ -39,6 +41,14 @@ clawdbot browser --browser-profile clawd snapshot
 If you get “Browser disabled”, enable it in config (see below) and restart the
 Gateway.
 
+## Profiles: `clawd` vs `chrome`
+
+- `clawd`: managed, isolated browser (no extension required).
+- `chrome`: extension relay to your **system browser** (requires the Clawdbot
+  extension to be attached to a tab).
+
+Set `browser.defaultProfile: "clawd"` if you want managed mode by default.
+
 ## Configuration
 
 Browser settings live in `~/.clawdbot/clawdbot.json`.
@@ -49,6 +59,8 @@ Browser settings live in `~/.clawdbot/clawdbot.json`.
     enabled: true,                    // default: true
     controlUrl: "http://127.0.0.1:18791",
     cdpUrl: "http://127.0.0.1:18792", // defaults to controlUrl + 1
+    remoteCdpTimeoutMs: 1500,         // remote CDP HTTP timeout (ms)
+    remoteCdpHandshakeTimeoutMs: 3000, // remote CDP WebSocket handshake timeout (ms)
     defaultProfile: "chrome",
     color: "#FF4500",
     headless: false,
@@ -69,13 +81,25 @@ Notes:
 - If you override the Gateway port (`gateway.port` or `CLAWDBOT_GATEWAY_PORT`),
   the default browser ports shift to stay in the same “family” (control = gateway + 2).
 - `cdpUrl` defaults to `controlUrl + 1` when unset.
+- `remoteCdpTimeoutMs` applies to remote (non-loopback) CDP reachability checks.
+- `remoteCdpHandshakeTimeoutMs` applies to remote CDP WebSocket reachability checks.
 - `attachOnly: true` means “never launch a local browser; only attach if it is already running.”
 - `color` + per-profile `color` tint the browser UI so you can see which profile is active.
-- Auto-detect order: Chrome → Brave → Edge → Chromium → Chrome Canary.
+- Default profile is `chrome` (extension relay). Use `defaultProfile: "clawd"` for the managed browser.
+- Auto-detect order: system default browser if Chromium-based; otherwise Chrome → Brave → Edge → Chromium → Chrome Canary.
+- Local `clawd` profiles auto-assign `cdpPort`/`cdpUrl` — set those only for remote CDP.
 
 ## Use Brave (or another Chromium-based browser)
 
-Set `browser.executablePath` to override auto-detection:
+If your **system default** browser is Chromium-based (Chrome/Brave/Edge/etc),
+Clawdbot uses it automatically. Set `browser.executablePath` to override
+auto-detection:
+
+CLI example:
+
+```bash
+clawdbot config set browser.executablePath "/usr/bin/google-chrome"
+```
 
 ```json5
 // macOS
@@ -133,6 +157,42 @@ Example:
 
 Use `profiles.<name>.cdpUrl` for **remote CDP** if you want the Gateway to talk
 directly to a Chromium-based browser instance without a remote control server.
+
+Remote CDP URLs can include auth:
+- Query tokens (e.g., `https://provider.example?token=<token>`)
+- HTTP Basic auth (e.g., `https://user:pass@provider.example`)
+
+Clawdbot preserves the auth when calling `/json/*` endpoints and when connecting
+to the CDP WebSocket. Prefer environment variables or secrets managers for
+tokens instead of committing them to config files.
+
+### Browserless (hosted remote CDP)
+
+[Browserless](https://browserless.io) is a hosted Chromium service that exposes
+CDP endpoints over HTTPS. You can point a Clawdbot browser profile at a
+Browserless region endpoint and authenticate with your API key.
+
+Example:
+```json5
+{
+  browser: {
+    enabled: true,
+    defaultProfile: "browserless",
+    remoteCdpTimeoutMs: 2000,
+    remoteCdpHandshakeTimeoutMs: 4000,
+    profiles: {
+      browserless: {
+        cdpUrl: "https://production-sfo.browserless.io?token=<BROWSERLESS_API_KEY>",
+        color: "#00AA00"
+      }
+    }
+  }
+}
+```
+
+Notes:
+- Replace `<BROWSERLESS_API_KEY>` with your real Browserless token.
+- Choose the region endpoint that matches your Browserless account (see their docs).
 
 ### Running the control server on the browser machine
 
@@ -338,6 +398,10 @@ Some features (navigate/act/AI snapshot/role snapshot, element screenshots, PDF)
 Playwright. If Playwright isn’t installed, those endpoints return a clear 501
 error. ARIA snapshots and basic screenshots still work for clawd-managed Chrome.
 For the Chrome extension relay driver, ARIA snapshots and screenshots require Playwright.
+
+If you see `Playwright is not available in this gateway build`, install the full
+Playwright package (not `playwright-core`) and restart the gateway, or reinstall
+Clawdbot with browser support.
 
 ## How it works (internal)
 

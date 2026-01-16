@@ -70,11 +70,14 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [I set `COPILOT_GITHUB_TOKEN`, but models status shows “Shell env: off.” Why?](#i-set-copilot_github_token-but-models-status-shows-shell-env-off-why)
 - [Sessions & multiple chats](#sessions-multiple-chats)
   - [How do I start a fresh conversation?](#how-do-i-start-a-fresh-conversation)
-  - [How do I completely reset Clawdbot (but keep it installed)?](#how-do-i-completely-reset-clawdbot-but-keep-it-installed)
+  - [Do sessions reset automatically if I never send `/new`?](#do-sessions-reset-automatically-if-i-never-send-new)
+  - [How do I completely reset Clawdbot but keep it installed?](#how-do-i-completely-reset-clawdbot-but-keep-it-installed)
   - [I’m getting “context too large” errors — how do I reset or compact?](#im-getting-context-too-large-errors-how-do-i-reset-or-compact)
+  - [Why am I getting heartbeat messages every 30 minutes?](#why-am-i-getting-heartbeat-messages-every-30-minutes)
   - [Do I need to add a “bot account” to a WhatsApp group?](#do-i-need-to-add-a-bot-account-to-a-whatsapp-group)
   - [Why doesn’t Clawdbot reply in a group?](#why-doesnt-clawdbot-reply-in-a-group)
   - [Do groups/threads share context with DMs?](#do-groupsthreads-share-context-with-dms)
+  - [How many workspaces and agents can I create?](#how-many-workspaces-and-agents-can-i-create)
 - [Models: defaults, selection, aliases, switching](#models-defaults-selection-aliases-switching)
   - [What is the “default model”?](#what-is-the-default-model)
   - [How do I switch models on the fly (without restarting)?](#how-do-i-switch-models-on-the-fly-without-restarting)
@@ -107,25 +110,17 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 - [Logging and debugging](#logging-and-debugging)
   - [Where are logs?](#where-are-logs)
   - [How do I start/stop/restart the Gateway daemon?](#how-do-i-startstoprestart-the-gateway-daemon)
+  - [ELI5: `clawdbot daemon restart` vs `clawdbot gateway`](#eli5-clawdbot-daemon-restart-vs-clawdbot-gateway)
   - [What’s the fastest way to get more details when something fails?](#whats-the-fastest-way-to-get-more-details-when-something-fails)
 - [Media & attachments](#media-attachments)
   - [My skill generated an image/PDF, but nothing was sent](#my-skill-generated-an-imagepdf-but-nothing-was-sent)
 - [Security and access control](#security-and-access-control)
   - [Is it safe to expose Clawdbot to inbound DMs?](#is-it-safe-to-expose-clawdbot-to-inbound-dms)
+  - [I ran `/start` in Telegram but didn’t get a pairing code](#i-ran-start-in-telegram-but-didnt-get-a-pairing-code)
   - [WhatsApp: will it message my contacts? How does pairing work?](#whatsapp-will-it-message-my-contacts-how-does-pairing-work)
 - [Chat commands, aborting tasks, and “it won’t stop”](#chat-commands-aborting-tasks-and-it-wont-stop)
   - [How do I stop/cancel a running task?](#how-do-i-stopcancel-a-running-task)
   - [Why does it feel like the bot “ignores” rapid‑fire messages?](#why-does-it-feel-like-the-bot-ignores-rapidfire-messages)
-- [Common troubleshooting](#common-troubleshooting)
-  - [“All models failed” — what should I check first?](#all-models-failed-what-should-i-check-first)
-  - [I’m running on my personal WhatsApp number — why is self-chat weird?](#im-running-on-my-personal-whatsapp-number-why-is-self-chat-weird)
-  - [WhatsApp logged me out. How do I re‑auth?](#whatsapp-logged-me-out-how-do-i-reauth)
-  - [Build errors on `main` — what’s the standard fix path?](#build-errors-on-main-whats-the-standard-fix-path)
-  - [npm install fails (allow-build-scripts / missing tar or yargs). What now?](#npm-install-fails-allow-build-scripts--missing-tar-or-yargs-what-now)
-  - [How do I switch between git installs and npm installs?](#how-do-i-switch-between-git-installs-and-npm-installs)
-  - [Telegram block streaming isn’t splitting text between tool calls. Why?](#telegram-block-streaming-isnt-splitting-text-between-tool-calls-why)
-  - [Discord doesn’t reply in my server even with `requireMention: false`. Why?](#discord-doesnt-reply-in-my-server-even-with-requiremention-false-why)
-  - [Cloud Code Assist API error: invalid tool schema (400). What now?](#cloud-code-assist-api-error-invalid-tool-schema-400-what-now)
 
 ## First 60 seconds if something's broken
 
@@ -858,7 +853,21 @@ See [/concepts/model-providers](/concepts/model-providers) and [/environment](/e
 
 Send `/new` or `/reset` as a standalone message. See [Session management](/concepts/session).
 
-### How do I completely reset Clawdbot (but keep it installed)?
+### Do sessions reset automatically if I never send `/new`?
+
+Yes. Sessions expire after `session.idleMinutes` (default **60**). The **next**
+message starts a fresh session id for that chat key. This does not delete
+transcripts — it just starts a new session.
+
+```json5
+{
+  session: {
+    idleMinutes: 240
+  }
+}
+```
+
+### How do I completely reset Clawdbot but keep it installed?
 
 Use the reset command:
 
@@ -905,6 +914,24 @@ If it keeps happening:
 
 Docs: [Compaction](/concepts/compaction), [Session pruning](/concepts/session-pruning), [Session management](/concepts/session).
 
+### Why am I getting heartbeat messages every 30 minutes?
+
+Heartbeats run every **30m** by default. Tune or disable them:
+
+```json5
+{
+  agents: {
+    defaults: {
+      heartbeat: {
+        every: "2h"   // or "0m" to disable
+      }
+    }
+  }
+}
+```
+
+Per-agent overrides use `agents.list[].heartbeat`. Docs: [Heartbeat](/gateway/heartbeat).
+
 ### Do I need to add a “bot account” to a WhatsApp group?
 
 No. Clawdbot runs on **your own account**, so if you’re in the group, Clawdbot can see it.
@@ -934,6 +961,19 @@ See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
 ### Do groups/threads share context with DMs?
 
 Direct chats collapse to the main session by default. Groups/channels have their own session keys, and Telegram topics / Discord threads are separate sessions. See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
+
+### How many workspaces and agents can I create?
+
+No hard limits. Dozens (even hundreds) are fine, but watch for:
+
+- **Disk growth:** sessions + transcripts live under `~/.clawdbot/agents/<agentId>/sessions/`.
+- **Token cost:** more agents means more concurrent model usage.
+- **Ops overhead:** per-agent auth profiles, workspaces, and channel routing.
+
+Tips:
+- Keep one **active** workspace per agent (`agents.defaults.workspace`).
+- Prune old sessions (delete JSONL or store entries) if disk grows.
+- Use `clawdbot doctor` to spot stray workspaces and profile mismatches.
 
 ## Models: defaults, selection, aliases, switching
 
@@ -1315,9 +1355,11 @@ Facts (from code):
 
 Fix:
 - Fastest: `clawdbot dashboard` (prints + copies tokenized link, tries to open; shows SSH hint if headless).
+- If you don’t have a token yet: `clawdbot doctor --generate-gateway-token`.
 - If remote, tunnel first: `ssh -N -L 18789:127.0.0.1:18789 user@host` then open `http://127.0.0.1:18789/?token=...`.
 - Set `gateway.auth.token` (or `CLAWDBOT_GATEWAY_TOKEN`) on the gateway host.
 - In the Control UI settings, paste the same token (or refresh with a one-time `?token=...` link).
+- Still stuck? Run `clawdbot status --all` and follow [Troubleshooting](/gateway/troubleshooting). See [Dashboard](/web/dashboard) for auth details.
 
 ### I set `gateway.bind: "tailnet"` but it can’t bind / nothing listens
 
@@ -1407,6 +1449,14 @@ clawdbot daemon restart
 
 If you run the gateway manually, `clawdbot gateway --force` can reclaim the port. See [Gateway](/gateway).
 
+### ELI5: `clawdbot daemon restart` vs `clawdbot gateway`
+
+- `clawdbot daemon restart`: restarts the **background service** (launchd/systemd).
+- `clawdbot gateway`: runs the gateway **in the foreground** for this terminal session.
+
+If you installed the daemon, use the daemon commands. Use `clawdbot gateway` when
+you want a one-off, foreground run.
+
 ### What’s the fastest way to get more details when something fails?
 
 Start the Gateway with `--verbose` to get more console detail. Then inspect the log file for channel auth, model routing, and RPC errors.
@@ -1423,7 +1473,11 @@ CLI sending:
 clawdbot message send --to +15555550123 --message "Here you go" --media /path/to/file.png
 ```
 
-Note: images are resized/recompressed (max side 2048px) to hit size limits. See [Images](/nodes/images).
+Also check:
+- The target channel supports outbound media and isn’t blocked by allowlists.
+- The file is within the provider’s size limits (images are resized to max 2048px).
+
+See [Images](/nodes/images).
 
 ## Security and access control
 
@@ -1438,6 +1492,19 @@ Treat inbound DMs as untrusted input. Defaults are designed to reduce risk:
 - Opening DMs publicly requires explicit opt‑in (`dmPolicy: "open"` and allowlist `"*"`).
 
 Run `clawdbot doctor` to surface risky DM policies.
+
+### I ran `/start` in Telegram but didn’t get a pairing code
+
+Pairing codes are sent **only** when an unknown sender messages the bot and
+`dmPolicy: "pairing"` is enabled. `/start` by itself doesn’t generate a code.
+
+Check pending requests:
+```bash
+clawdbot pairing list telegram
+```
+
+If you want immediate access, allowlist your sender id or set `dmPolicy: "open"`
+for that account.
 
 ### WhatsApp: will it message my contacts? How does pairing work?
 
@@ -1495,139 +1562,6 @@ Queue mode controls how new messages interact with an in‑flight run. Use `/que
 - `interrupt` — abort current run and start fresh
 
 You can add options like `debounce:2s cap:25 drop:summarize` for followup modes.
-
-## Common troubleshooting
-
-### “All models failed” — what should I check first?
-
-- **Credentials** present for the provider(s) being tried (auth profiles + env vars).
-- **Model routing**: confirm `agents.defaults.model.primary` and fallbacks are models you can access.
-- **Gateway logs** in `/tmp/clawdbot/…` for the exact provider error.
-- **`/model status`** to see current configured models + shorthands.
-
-### I’m running on my personal WhatsApp number — why is self-chat weird?
-
-Enable self-chat mode and allowlist your own number:
-
-```json5
-{
-  channels: {
-    whatsapp: {
-      selfChatMode: true,
-      dmPolicy: "allowlist",
-      allowFrom: ["+15555550123"]
-    }
-  }
-}
-```
-
-See [WhatsApp setup](/channels/whatsapp).
-
-### WhatsApp logged me out. How do I re‑auth?
-
-Run the login command again and scan the QR code:
-
-```bash
-clawdbot channels login
-```
-
-### Build errors on `main` — what’s the standard fix path?
-
-1) `git pull origin main && pnpm install`
-2) `pnpm clawdbot doctor`
-3) Check GitHub issues or Discord
-4) Temporary workaround: check out an older commit
-
-### npm install fails (allow-build-scripts / missing tar or yargs). What now?
-
-If you’re running from source, use the repo’s package manager: **pnpm** (preferred).
-The repo declares `packageManager: "pnpm@…"`, and pnpm patches are tracked in `pnpm.patchedDependencies`.
-
-Typical recovery:
-```bash
-git status   # ensure you’re in the repo root
-pnpm install
-pnpm build
-pnpm clawdbot doctor
-clawdbot daemon restart
-```
-
-Why: pnpm is the configured package manager for this repo, and the dependency
-patching workflow relies on it.
-
-### How do I switch between git installs and npm installs?
-
-Use the **website installer** and select the install method with a flag. It
-upgrades in place and rewrites the gateway service to point at the new install.
-
-Switch **to git install**:
-```bash
-curl -fsSL https://clawd.bot/install.sh | bash -s -- --install-method git --no-onboard
-```
-
-Switch **to npm global**:
-```bash
-curl -fsSL https://clawd.bot/install.sh | bash
-```
-
-Notes:
-- The git flow only rebases if the repo is clean. Commit or stash changes first.
-- After switching, run:
-  ```bash
-  clawdbot doctor
-  clawdbot daemon restart
-  ```
-
-### Telegram block streaming isn’t splitting text between tool calls. Why?
-
-Block streaming only sends **completed text blocks**. Common reasons you see a single message:
-- `agents.defaults.blockStreamingDefault` is still `"off"`.
-- `channels.telegram.blockStreaming` is set to `false`.
-- `channels.telegram.streamMode` is `partial` or `block` **and draft streaming is active**
-  (private chat + topics). Draft streaming disables block streaming in that case.
-- Your `minChars` / coalesce settings are too high, so chunks get merged.
-- The model emits one large text block (no mid‑reply flush points).
-
-Fix checklist:
-1) Put block streaming settings under `agents.defaults`, not the root.
-2) Set `channels.telegram.streamMode: "off"` if you want real multi‑message block replies.
-3) Use smaller chunk/coalesce thresholds while debugging.
-
-See [Streaming](/concepts/streaming).
-
-### Discord doesn’t reply in my server even with `requireMention: false`. Why?
-
-`requireMention` only controls mention‑gating **after** the channel passes allowlists.
-By default `channels.discord.groupPolicy` is **allowlist**, so guilds must be explicitly enabled.
-If you set `channels.discord.guilds.<guildId>.channels`, only the listed channels are allowed; omit it to allow all channels in the guild.
-
-Fix checklist:
-1) Set `channels.discord.groupPolicy: "open"` **or** add a guild allowlist entry (and optionally a channel allowlist).
-2) Use **numeric channel IDs** in `channels.discord.guilds.<guildId>.channels`.
-3) Put `requireMention: false` **under** `channels.discord.guilds` (global or per‑channel).
-   Top‑level `channels.discord.requireMention` is not a supported key.
-4) Ensure the bot has **Message Content Intent** and channel permissions.
-5) Run `clawdbot channels status --probe` for audit hints.
-
-Docs: [Discord](/channels/discord), [Channels troubleshooting](/channels/troubleshooting).
-
-### Cloud Code Assist API error: invalid tool schema (400). What now?
-
-This is almost always a **tool schema compatibility** issue. The Cloud Code Assist
-endpoint accepts a strict subset of JSON Schema. Clawdbot scrubs/normalizes tool
-schemas in current `main`, but the fix is not in the last release yet (as of
-January 13, 2026).
-
-Fix checklist:
-1) **Update Clawdbot**:
-   - If you can run from source, pull `main` and restart the gateway.
-   - Otherwise, wait for the next release that includes the schema scrubber.
-2) Avoid unsupported keywords like `anyOf/oneOf/allOf`, `patternProperties`,
-   `additionalProperties`, `minLength`, `maxLength`, `format`, etc.
-3) If you define custom tools, keep the top‑level schema as `type: "object"` with
-   `properties` and simple enums.
-
-See [Tools](/tools) and [TypeBox schemas](/concepts/typebox).
 
 ## Answer the exact question from the screenshot/chat log
 

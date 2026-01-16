@@ -67,6 +67,8 @@ export const ClawdbotSchema = z
         controlUrl: z.string().optional(),
         controlToken: z.string().optional(),
         cdpUrl: z.string().optional(),
+        remoteCdpTimeoutMs: z.number().int().nonnegative().optional(),
+        remoteCdpHandshakeTimeoutMs: z.number().int().nonnegative().optional(),
         color: z.string().optional(),
         executablePath: z.string().optional(),
         headless: z.boolean().optional(),
@@ -170,6 +172,15 @@ export const ClawdbotSchema = z
         port: z.number().int().positive().optional(),
         bind: z
           .union([z.literal("auto"), z.literal("lan"), z.literal("tailnet"), z.literal("loopback")])
+          .optional(),
+        tls: z
+          .object({
+            enabled: z.boolean().optional(),
+            autoGenerate: z.boolean().optional(),
+            certPath: z.string().optional(),
+            keyPath: z.string().optional(),
+            caPath: z.string().optional(),
+          })
           .optional(),
       })
       .optional(),
@@ -313,6 +324,21 @@ export const ClawdbotSchema = z
               .object({
                 enabled: z.boolean().optional(),
                 config: z.record(z.string(), z.unknown()).optional(),
+              })
+              .passthrough(),
+          )
+          .optional(),
+        installs: z
+          .record(
+            z.string(),
+            z
+              .object({
+                source: z.union([z.literal("npm"), z.literal("archive"), z.literal("path")]),
+                spec: z.string().optional(),
+                sourcePath: z.string().optional(),
+                installPath: z.string().optional(),
+                version: z.string().optional(),
+                installedAt: z.string().optional(),
               })
               .passthrough(),
           )

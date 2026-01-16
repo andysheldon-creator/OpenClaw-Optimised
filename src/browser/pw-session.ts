@@ -8,6 +8,7 @@ import type {
 } from "playwright-core";
 import { chromium } from "playwright-core";
 import { formatErrorMessage } from "../infra/errors.js";
+import { getHeadersWithAuth } from "./cdp.helpers.js";
 import { getChromeWebSocketUrl } from "./chrome.js";
 
 export type BrowserConsoleMessage = {
@@ -268,7 +269,8 @@ async function connectBrowser(cdpUrl: string): Promise<ConnectedBrowser> {
         const timeout = 5000 + attempt * 2000;
         const wsUrl = await getChromeWebSocketUrl(normalized, timeout).catch(() => null);
         const endpoint = wsUrl ?? normalized;
-        const browser = await chromium.connectOverCDP(endpoint, { timeout });
+        const headers = getHeadersWithAuth(endpoint);
+        const browser = await chromium.connectOverCDP(endpoint, { timeout, headers });
         const connected: ConnectedBrowser = { browser, cdpUrl: normalized };
         cached = connected;
         observeBrowser(browser);

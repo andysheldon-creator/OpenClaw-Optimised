@@ -167,6 +167,8 @@ const FIELD_LABELS: Record<string, string> = {
   "commands.useAccessGroups": "Use Access Groups",
   "ui.seamColor": "Accent Color",
   "browser.controlUrl": "Browser Control URL",
+  "browser.remoteCdpTimeoutMs": "Remote CDP Timeout (ms)",
+  "browser.remoteCdpHandshakeTimeoutMs": "Remote CDP Handshake Timeout (ms)",
   "session.dmScope": "DM Session Scope",
   "session.agentToAgent.maxPingPongTurns": "Agent-to-Agent Ping-Pong Turns",
   "messages.ackReaction": "Ack Reaction Emoji",
@@ -175,6 +177,7 @@ const FIELD_LABELS: Record<string, string> = {
   "talk.apiKey": "Talk API Key",
   "channels.whatsapp": "WhatsApp",
   "channels.telegram": "Telegram",
+  "channels.telegram.customCommands": "Telegram Custom Commands",
   "channels.discord": "Discord",
   "channels.slack": "Slack",
   "channels.signal": "Signal",
@@ -220,6 +223,13 @@ const FIELD_LABELS: Record<string, string> = {
   "plugins.entries": "Plugin Entries",
   "plugins.entries.*.enabled": "Plugin Enabled",
   "plugins.entries.*.config": "Plugin Config",
+  "plugins.installs": "Plugin Install Records",
+  "plugins.installs.*.source": "Plugin Install Source",
+  "plugins.installs.*.spec": "Plugin Install Spec",
+  "plugins.installs.*.sourcePath": "Plugin Install Source Path",
+  "plugins.installs.*.installPath": "Plugin Install Path",
+  "plugins.installs.*.version": "Plugin Install Version",
+  "plugins.installs.*.installedAt": "Plugin Install Time",
 };
 
 const FIELD_HELP: Record<string, string> = {
@@ -291,6 +301,15 @@ const FIELD_HELP: Record<string, string> = {
   "plugins.entries": "Per-plugin settings keyed by plugin id (enable/disable + config payloads).",
   "plugins.entries.*.enabled": "Overrides plugin enable/disable for this entry (restart required).",
   "plugins.entries.*.config": "Plugin-defined config payload (schema is provided by the plugin).",
+  "plugins.installs":
+    "CLI-managed install metadata (used by `clawdbot plugins update` to locate install sources).",
+  "plugins.installs.*.source": 'Install source ("npm", "archive", or "path").',
+  "plugins.installs.*.spec": "Original npm spec used for install (if source is npm).",
+  "plugins.installs.*.sourcePath": "Original archive/path used for install (if any).",
+  "plugins.installs.*.installPath":
+    "Resolved install directory (usually ~/.clawdbot/extensions/<id>).",
+  "plugins.installs.*.version": "Version recorded at install time (if available).",
+  "plugins.installs.*.installedAt": "ISO timestamp of last install/update.",
   "agents.defaults.model.primary": "Primary model (provider/model).",
   "agents.defaults.model.fallbacks":
     "Ordered fallback models (provider/model). Used when the primary model fails.",
@@ -333,6 +352,8 @@ const FIELD_HELP: Record<string, string> = {
   "channels.slack.commands.native": 'Override native commands for Slack (bool or "auto").',
   "session.agentToAgent.maxPingPongTurns":
     "Max reply-back turns between requester and target (0–5).",
+  "channels.telegram.customCommands":
+    "Additional Telegram bot menu commands (merged with native; conflicts ignored).",
   "messages.ackReaction": "Emoji reaction used to acknowledge inbound messages (empty disables).",
   "messages.ackReactionScope":
     'When to send ack reactions ("group-mentions", "group-all", "direct", "all").',

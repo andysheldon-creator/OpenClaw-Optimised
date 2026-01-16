@@ -4,11 +4,15 @@ import { resolveEffectiveMessagesConfig } from "../agents/identity.js";
 import {
   buildCommandTextFromArgs,
   findCommandByNativeName,
+  listNativeCommandSpecs,
   listNativeCommandSpecsForConfig,
   parseCommandArgs,
   resolveCommandArgMenu,
 } from "../auto-reply/commands-registry.js";
+import { listSkillCommandsForWorkspace } from "../auto-reply/skill-commands.js";
+import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import type { CommandArgs } from "../auto-reply/commands-registry.js";
+import { resolveTelegramCustomCommands } from "../config/telegram-custom-commands.js";
 import { dispatchReplyWithBufferedBlockDispatcher } from "../auto-reply/reply/provider-dispatcher.js";
 import { danger, logVerbose } from "../globals.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
@@ -41,24 +45,47 @@ export const registerTelegramNativeCommands = ({
   shouldSkipUpdate,
   opts,
 }) => {
-  const nativeCommands = nativeEnabled ? listNativeCommandSpecsForConfig(cfg) : [];
-  if (nativeCommands.length > 0) {
+  const skillCommands = nativeEnabled
+    ? listSkillCommandsForWorkspace({
+        workspaceDir: resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg)),
+        cfg,
+      })
+    : [];
+  const nativeCommands = nativeEnabled
+    ? listNativeCommandSpecsForConfig(cfg, { skillCommands })
+    : [];
+  const reservedCommands = new Set(
+    listNativeCommandSpecs().map((command) => command.name.toLowerCase()),
+  );
+  for (const command of skillCommands) {
+    reservedCommands.add(command.name.toLowerCase());
+  }
+  const customResolution = resolveTelegramCustomCommands({
+    commands: telegramCfg.customCommands,
+    reservedCommands,
+  });
+  for (const issue of customResolution.issues) {
+    runtime.error?.(danger(issue.message));
+  }
+  const customCommands = customResolution.commands;
+  const allCommands: Array<{ command: string; description: string }> = [
+    ...nativeCommands.map((command) => ({
+      command: command.name,
+      description: command.description,
+    })),
+    ...customCommands,
+  ];
+
+  if (allCommands.length > 0) {
     const api = bot.api as unknown as {
       setMyCommands?: (
         commands: Array<{ command: string; description: string }>,
       ) => Promise<unknown>;
     };
     if (typeof api.setMyCommands === "function") {
-      api
-        .setMyCommands(
-          nativeCommands.map((command) => ({
-            command: command.name,
-            description: command.description,
-          })),
-        )
-        .catch((err) => {
-          runtime.error?.(danger(`telegram setMyCommands failed: ${String(err)}`));
-        });
+      api.setMyCommands(allCommands).catch((err) => {
+        runtime.error?.(danger(`telegram setMyCommands failed: ${String(err)}`));
+      });
     } else {
       logVerbose("telegram: setMyCommands unavailable; skipping registration");
     }

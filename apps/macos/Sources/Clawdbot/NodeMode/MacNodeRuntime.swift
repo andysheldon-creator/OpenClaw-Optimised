@@ -55,6 +55,8 @@ actor MacNodeRuntime {
                 return try await self.handleScreenRecordInvoke(req)
             case ClawdbotSystemCommand.run.rawValue:
                 return try await self.handleSystemRun(req)
+            case ClawdbotSystemCommand.which.rawValue:
+                return try await self.handleSystemWhich(req)
             case ClawdbotSystemCommand.notify.rawValue:
                 return try await self.handleSystemNotify(req)
             default:
@@ -455,14 +457,7 @@ actor MacNodeRuntime {
             }
         }
 
-        var env = params.env
-        if wasAllowlisted, let overrides = env {
-            var merged = ProcessInfo.processInfo.environment
-            for (key, value) in overrides where key != "PATH" {
-                merged[key] = value
-            }
-            env = merged
-        }
+        let env = Self.sanitizedEnv(params.env)
 
         if params.needsScreenRecording == true {
             let authorized = await PermissionManager
@@ -498,6 +493,33 @@ actor MacNodeRuntime {
             stdout: result.stdout,
             stderr: result.stderr,
             error: result.errorMessage))
+        return BridgeInvokeResponse(id: req.id, ok: true, payloadJSON: payload)
+    }
+
+    private func handleSystemWhich(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
+        let params = try Self.decodeParams(ClawdbotSystemWhichParams.self, from: req.paramsJSON)
+        let bins = params.bins
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !bins.isEmpty else {
+            return Self.errorResponse(req, code: .invalidRequest, message: "INVALID_REQUEST: bins required")
+        }
+
+        let searchPaths = CommandResolver.preferredPaths()
+        var matches: [String] = []
+        var paths: [String: String] = [:]
+        for bin in bins {
+            if let path = CommandResolver.findExecutable(named: bin, searchPaths: searchPaths) {
+                matches.append(bin)
+                paths[bin] = path
+            }
+        }
+
+        struct WhichPayload: Encodable {
+            let bins: [String]
+            let paths: [String: String]
+        }
+        let payload = try Self.encodePayload(WhichPayload(bins: matches, paths: paths))
         return BridgeInvokeResponse(id: req.id, ok: true, payloadJSON: payload)
     }
 
@@ -569,6 +591,35 @@ actor MacNodeRuntime {
 
     private nonisolated static func systemRunPolicy() -> SystemRunPolicy {
         SystemRunPolicy.load()
+    }
+
+    private static let blockedEnvKeys: Set<String> = [
+        "PATH",
+        "NODE_OPTIONS",
+        "PYTHONHOME",
+        "PYTHONPATH",
+        "PERL5LIB",
+        "PERL5OPT",
+        "RUBYOPT",
+    ]
+
+    private static let blockedEnvPrefixes: [String] = [
+        "DYLD_",
+        "LD_",
+    ]
+
+    private static func sanitizedEnv(_ overrides: [String: String]?) -> [String: String]? {
+        guard let overrides else { return nil }
+        var merged = ProcessInfo.processInfo.environment
+        for (rawKey, value) in overrides {
+            let key = rawKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { continue }
+            let upper = key.uppercased()
+            if self.blockedEnvKeys.contains(upper) { continue }
+            if self.blockedEnvPrefixes.contains(where: { upper.hasPrefix($0) }) { continue }
+            merged[key] = value
+        }
+        return merged
     }
 
     private nonisolated static func locationMode() -> ClawdbotLocationMode {

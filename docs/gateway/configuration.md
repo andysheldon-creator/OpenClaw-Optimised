@@ -871,6 +871,7 @@ Notes:
 - `commands.text: false` disables parsing chat messages for commands.
 - `commands.native: "auto"` (default) turns on native commands for Discord/Telegram and leaves Slack off; unsupported channels stay text-only.
 - Set `commands.native: true|false` to force all, or override per channel with `channels.discord.commands.native`, `channels.telegram.commands.native`, `channels.slack.commands.native` (bool or `"auto"`). `false` clears previously registered commands on Discord/Telegram at startup; Slack commands are managed in the Slack app.
+- `channels.telegram.customCommands` adds extra Telegram bot menu entries. Names are normalized; conflicts with native commands are ignored.
 - `commands.bash: true` enables `! <cmd>` to run host shell commands (`/bash <cmd>` also works as an alias). Requires `tools.elevated.enabled` and allowlisting the sender in `tools.elevated.allowFrom.<channel>`.
 - `commands.bashForegroundMs` controls how long bash waits before backgrounding. While a bash job is running, new `! <cmd>` requests are rejected (one at a time).
 - `commands.config: true` enables `/config` (reads/writes `clawdbot.json`).
@@ -929,6 +930,10 @@ Set `channels.telegram.configWrites: false` to block Telegram-initiated config w
           }
         }
       },
+      customCommands: [
+        { command: "backup", description: "Git backup" },
+        { command: "generate", description: "Create an image" }
+      ],
       historyLimit: 50,                     // include last N group messages as context (0 disables)
       replyToMode: "first",                 // off | first | all
       streamMode: "partial",               // off | partial | block (draft streaming; separate from block streaming)
@@ -1266,7 +1271,9 @@ See [Messages](/concepts/messages) for queueing, sessions, and streaming context
 `responsePrefix` is applied to **all outbound replies** (tool summaries, block
 streaming, final replies) across channels unless already present.
 
-If `messages.responsePrefix` is unset, no prefix is applied by default.
+If `messages.responsePrefix` is unset, no prefix is applied by default. WhatsApp self-chat
+replies are the exception: they default to `[{identity.name}]` when set, otherwise
+`[clawdbot]`, so same-phone conversations stay legible.
 Set it to `"auto"` to derive `[{identity.name}]` for the routed agent (when set).
 
 #### Template variables
@@ -2396,7 +2403,7 @@ Defaults:
 - CDP URL: `http://127.0.0.1:18792` (control URL + 1, legacy single-profile)
 - profile color: `#FF4500` (lobster-orange)
 - Note: the control server is started by the running gateway (Clawdbot.app menubar, or `clawdbot gateway`).
-- Auto-detect order: Chrome → Brave → Edge → Chromium → Chrome Canary.
+- Auto-detect order: default browser if Chromium-based; otherwise Chrome → Brave → Edge → Chromium → Chrome Canary.
 
 ```json5
 {
@@ -2732,12 +2739,29 @@ Bind modes:
 - `loopback`: `127.0.0.1` (local only)
 - `auto`: prefer tailnet IP if present, else `lan`
 
+TLS:
+- `bridge.tls.enabled`: enable TLS for bridge connections (TLS-only when enabled).
+- `bridge.tls.autoGenerate`: generate a self-signed cert when no cert/key are present (default: true).
+- `bridge.tls.certPath` / `bridge.tls.keyPath`: PEM paths for the bridge certificate + private key.
+- `bridge.tls.caPath`: optional PEM CA bundle (custom roots or future mTLS).
+
+When TLS is enabled, the Gateway advertises `bridgeTls=1` and `bridgeTlsSha256` in discovery TXT
+records so nodes can pin the certificate. Manual connections use trust-on-first-use if no
+fingerprint is stored yet.
+Auto-generated certs require `openssl` on PATH; if generation fails, the bridge will not start.
+
 ```json5
 {
   bridge: {
     enabled: true,
     port: 18790,
-    bind: "tailnet"
+    bind: "tailnet",
+    tls: {
+      enabled: true,
+      // Uses ~/.clawdbot/bridge/tls/bridge-{cert,key}.pem when omitted.
+      // certPath: "~/.clawdbot/bridge/tls/bridge-cert.pem",
+      // keyPath: "~/.clawdbot/bridge/tls/bridge-key.pem"
+    }
   }
 }
 ```
