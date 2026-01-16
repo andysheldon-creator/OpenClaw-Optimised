@@ -228,6 +228,58 @@ describe("runReplyAgent typing (heartbeat)", () => {
       text: expect.not.stringContaining("400"),
     });
   });
+
+  it("resets session on role ordering errors when persisted", async () => {
+    const prevStateDir = process.env.CLAWDBOT_STATE_DIR;
+    const stateDir = await fs.mkdtemp(path.join(tmpdir(), "clawdbot-test-"));
+    process.env.CLAWDBOT_STATE_DIR = stateDir;
+
+    try {
+      const storePath = path.join(stateDir, "sessions.json");
+      const sessionId = "session-role-ordering";
+      const transcriptPath = sessions.resolveSessionTranscriptPath(sessionId);
+
+      const sessionEntry = {
+        sessionId,
+        updatedAt: Date.now(),
+        sessionFile: transcriptPath,
+      } as SessionEntry;
+      const sessionStore = { main: sessionEntry };
+
+      await fs.mkdir(path.dirname(storePath), { recursive: true });
+      await fs.writeFile(storePath, JSON.stringify(sessionStore), "utf-8");
+
+      await fs.mkdir(path.dirname(transcriptPath), { recursive: true });
+      await fs.writeFile(transcriptPath, "ok", "utf-8");
+
+      runEmbeddedPiAgentMock.mockImplementationOnce(async () => {
+        throw new Error('messages: roles must alternate between "user" and "assistant"');
+      });
+
+      const { run } = createMinimalRun({
+        sessionEntry,
+        sessionStore,
+        sessionKey: "main",
+        storePath,
+      });
+      const res = await run();
+
+      expect(res).toMatchObject({
+        text: expect.stringContaining("Session history was corrupted"),
+      });
+      expect(sessionStore.main).toBeUndefined();
+      await expect(fs.access(transcriptPath)).rejects.toBeDefined();
+
+      const persisted = JSON.parse(await fs.readFile(storePath, "utf-8"));
+      expect(persisted.main).toBeUndefined();
+    } finally {
+      if (prevStateDir) {
+        process.env.CLAWDBOT_STATE_DIR = prevStateDir;
+      } else {
+        delete process.env.CLAWDBOT_STATE_DIR;
+      }
+    }
+  });
   it("returns friendly message for 'roles must alternate' errors thrown as exceptions", async () => {
     runEmbeddedPiAgentMock.mockImplementationOnce(async () => {
       throw new Error('messages: roles must alternate between "user" and "assistant"');

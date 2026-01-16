@@ -13,6 +13,7 @@ import {
 } from "../../agents/pi-embedded-helpers.js";
 import {
   resolveAgentIdFromSessionKey,
+  resolveSessionFilePath,
   resolveSessionTranscriptPath,
   type SessionEntry,
   updateSessionStore,
@@ -381,27 +382,36 @@ export async function runAgentTurnWithFallback(params: {
         continue;
       }
 
-      // Auto-recover from Gemini session corruption by resetting the session
+      // Auto-recover from transcript/session history corruption by resetting the session.
+      // This catches Gemini-specific function call ordering bugs and OpenAI-style role ordering
+      // errors (commonly seen with strict OpenAI-compatible providers).
       if (
-        isSessionCorruption &&
+        (isSessionCorruption || isRoleOrderingError) &&
         params.sessionKey &&
         params.activeSessionStore &&
         params.storePath
       ) {
         const sessionKey = params.sessionKey;
-        const corruptedSessionId = params.getActiveSessionEntry()?.sessionId;
+        const activeEntry = params.getActiveSessionEntry();
+        const agentId = resolveAgentIdFromSessionKey(sessionKey);
+
         defaultRuntime.error(
-          `Session history corrupted (Gemini function call ordering). Resetting session: ${params.sessionKey}`,
+          `Session history corrupted (${isSessionCorruption ? "Gemini function call ordering" : "role ordering"}). Resetting session: ${sessionKey}`,
         );
 
         try {
           // Delete transcript file if it exists
-          if (corruptedSessionId) {
-            const transcriptPath = resolveSessionTranscriptPath(corruptedSessionId);
-            try {
-              fs.unlinkSync(transcriptPath);
-            } catch {
-              // Ignore if file doesn't exist
+          if (activeEntry?.sessionId) {
+            const transcriptPath = resolveSessionFilePath(activeEntry.sessionId, activeEntry, {
+              agentId,
+            });
+            const fallbackTranscriptPath = resolveSessionTranscriptPath(activeEntry.sessionId, agentId);
+            for (const candidate of [transcriptPath, fallbackTranscriptPath]) {
+              try {
+                fs.unlinkSync(candidate);
+              } catch {
+                // Ignore if file doesn't exist
+              }
             }
           }
 
@@ -413,9 +423,7 @@ export async function runAgentTurnWithFallback(params: {
             delete store[sessionKey];
           });
         } catch (cleanupErr) {
-          defaultRuntime.error(
-            `Failed to reset corrupted session ${params.sessionKey}: ${String(cleanupErr)}`,
-          );
+          defaultRuntime.error(`Failed to reset corrupted session ${sessionKey}: ${String(cleanupErr)}`);
         }
 
         return {
