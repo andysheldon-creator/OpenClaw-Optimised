@@ -29,6 +29,7 @@ export type SessionsProps = {
       reasoningLevel?: string | null;
     },
   ) => void;
+  onDelete: (key: string) => void;
 };
 
 const THINK_LEVELS = ["", "off", "minimal", "low", "medium", "high"] as const;
@@ -128,10 +129,13 @@ export function renderSessions(props: SessionsProps) {
           <div>Thinking</div>
           <div>Verbose</div>
           <div>Reasoning</div>
+          <div>Actions</div>
         </div>
         ${rows.length === 0
           ? html`<div class="muted">No sessions found.</div>`
-          : rows.map((row) => renderRow(row, props.basePath, props.onPatch))}
+          : rows.map((row) =>
+              renderRow(row, props.basePath, props.onPatch, props.onDelete),
+            )}
       </div>
     </section>
   `;
@@ -141,6 +145,7 @@ function renderRow(
   row: GatewaySessionRow,
   basePath: string,
   onPatch: SessionsProps["onPatch"],
+  onDelete: SessionsProps["onDelete"],
 ) {
   const updated = row.updatedAt ? formatAgo(row.updatedAt) : "n/a";
   const thinking = row.thinkingLevel ?? "";
@@ -199,6 +204,9 @@ function renderRow(
             html`<option value=${level}>${level || "inherit"}</option>`,
           )}
         </select>
+      </div>
+      <div>
+        <button class="btn danger" @click=${() => onDelete(row.key)}>Delete</button>
       </div>
     </div>
   `;

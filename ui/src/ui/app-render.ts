@@ -57,7 +57,7 @@ import {
   updateTelegramForm,
 } from "./controllers/connections";
 import { loadPresence } from "./controllers/presence";
-import { loadSessions, patchSession } from "./controllers/sessions";
+import { loadSessions, patchSession, deleteSession } from "./controllers/sessions";
 import {
   installSkill,
   loadSkills,
@@ -280,6 +280,7 @@ export function renderApp(state: AppViewState) {
               },
               onRefresh: () => loadSessions(state),
               onPatch: (key, patch) => patchSession(state, key, patch),
+              onDelete: (key) => deleteSession(state, key),
             })
           : nothing}
 
