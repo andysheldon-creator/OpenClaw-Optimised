@@ -28,13 +28,23 @@ export function formatStatusSummary(summary: GatewayStatusSummary) {
     }
   }
 
-  if (typeof summary.heartbeatSeconds === "number") {
+  const heartbeatAgents = summary.heartbeat?.agents ?? [];
+  if (heartbeatAgents.length > 0) {
+    const heartbeatParts = heartbeatAgents.map((agent) => {
+      const agentId = agent.agentId ?? "unknown";
+      if (!agent.enabled || !agent.everyMs) return `disabled (${agentId})`;
+      return `${agent.every ?? "unknown"} (${agentId})`;
+    });
     lines.push("");
-    lines.push(`Heartbeat: ${summary.heartbeatSeconds}s`);
+    lines.push(`Heartbeat: ${heartbeatParts.join(", ")}`);
   }
 
-  const sessionPath = summary.sessions?.path;
-  if (sessionPath) lines.push(`Session store: ${sessionPath}`);
+  const sessionPaths = summary.sessions?.paths ?? [];
+  if (sessionPaths.length === 1) {
+    lines.push(`Session store: ${sessionPaths[0]}`);
+  } else if (sessionPaths.length > 1) {
+    lines.push(`Session stores: ${sessionPaths.length}`);
+  }
 
   const defaults = summary.sessions?.defaults;
   const defaultModel = defaults?.model ?? "unknown";

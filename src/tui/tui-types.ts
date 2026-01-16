@@ -52,14 +52,23 @@ export type GatewayStatusSummary = {
     linked?: boolean;
     authAgeMs?: number | null;
   };
-  heartbeatSeconds?: number;
+  heartbeat?: {
+    defaultAgentId?: string;
+    agents?: Array<{
+      agentId?: string;
+      enabled?: boolean;
+      every?: string;
+      everyMs?: number | null;
+    }>;
+  };
   providerSummary?: string[];
   queuedSystemEvents?: string[];
   sessions?: {
-    path?: string;
+    paths?: string[];
     count?: number;
     defaults?: { model?: string | null; contextTokens?: number | null };
     recent?: Array<{
+      agentId?: string;
       key: string;
       kind?: string;
       updatedAt?: number | null;
