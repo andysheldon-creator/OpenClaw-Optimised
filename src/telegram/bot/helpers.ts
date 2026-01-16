@@ -19,8 +19,31 @@ export function resolveTelegramForumThreadId(params: {
   return params.messageThreadId ?? undefined;
 }
 
+/**
+ * Build thread params for Telegram API calls (messages, media).
+ * General forum topic (id=1) must be treated like a regular supergroup send:
+ * Telegram rejects sendMessage/sendMedia with message_thread_id=1 ("thread not found").
+ */
 export function buildTelegramThreadParams(messageThreadId?: number) {
-  return messageThreadId != null ? { message_thread_id: messageThreadId } : undefined;
+  if (messageThreadId == null) {
+    return undefined;
+  }
+  const normalized = Math.trunc(messageThreadId);
+  if (normalized === TELEGRAM_GENERAL_TOPIC_ID) {
+    return undefined;
+  }
+  return { message_thread_id: normalized };
+}
+
+/**
+ * Build thread params for typing indicators (sendChatAction).
+ * Empirically, General topic (id=1) needs message_thread_id for typing to appear.
+ */
+export function buildTypingThreadParams(messageThreadId?: number) {
+  if (messageThreadId == null) {
+    return undefined;
+  }
+  return { message_thread_id: Math.trunc(messageThreadId) };
 }
 
 export function resolveTelegramStreamMode(

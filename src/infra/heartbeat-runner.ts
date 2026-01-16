@@ -18,6 +18,7 @@ import {
   resolveMainSessionKey,
   resolveStorePath,
   saveSessionStore,
+  updateSessionStore,
 } from "../config/sessions.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { createSubsystemLogger } from "../logging.js";
@@ -150,8 +151,13 @@ async function restoreHeartbeatUpdatedAt(params: {
   if (!entry) return;
   const nextUpdatedAt = Math.max(entry.updatedAt ?? 0, updatedAt);
   if (entry.updatedAt === nextUpdatedAt) return;
-  store[sessionKey] = { ...entry, updatedAt: nextUpdatedAt };
-  await saveSessionStore(storePath, store);
+  await updateSessionStore(storePath, (nextStore) => {
+    const nextEntry = nextStore[sessionKey] ?? entry;
+    if (!nextEntry) return;
+    const resolvedUpdatedAt = Math.max(nextEntry.updatedAt ?? 0, updatedAt);
+    if (nextEntry.updatedAt === resolvedUpdatedAt) return;
+    nextStore[sessionKey] = { ...nextEntry, updatedAt: resolvedUpdatedAt };
+  });
 }
 
 function normalizeHeartbeatReply(
@@ -272,6 +278,35 @@ export async function runHeartbeatOnce(opts: {
 
     const mediaUrls =
       replyPayload.mediaUrls ?? (replyPayload.mediaUrl ? [replyPayload.mediaUrl] : []);
+
+    // Suppress duplicate heartbeats (same payload) within a short window.
+    // This prevents "nagging" when nothing changed but the model repeats the same items.
+    const prevHeartbeatText = typeof entry?.lastHeartbeatText === "string" ? entry.lastHeartbeatText : "";
+    const prevHeartbeatAt = typeof entry?.lastHeartbeatSentAt === "number" ? entry.lastHeartbeatSentAt : undefined;
+    const isDuplicateMain =
+      !shouldSkipMain &&
+      !mediaUrls.length &&
+      Boolean(prevHeartbeatText.trim()) &&
+      normalized.text.trim() === prevHeartbeatText.trim() &&
+      typeof prevHeartbeatAt === "number" &&
+      startedAt - prevHeartbeatAt < 24 * 60 * 60 * 1000;
+
+    if (isDuplicateMain) {
+      await restoreHeartbeatUpdatedAt({
+        storePath,
+        sessionKey,
+        updatedAt: previousUpdatedAt,
+      });
+      emitHeartbeatEvent({
+        status: "skipped",
+        reason: "duplicate",
+        preview: normalized.text.slice(0, 200),
+        durationMs: Date.now() - startedAt,
+        hasMedia: false,
+      });
+      return { status: "ran", durationMs: Date.now() - startedAt };
+    }
+
     // Reasoning payloads are text-only; any attachments stay on the main reply.
     const previewText = shouldSkipMain
       ? reasoningPayloads
@@ -333,6 +368,20 @@ export async function runHeartbeatOnce(opts: {
       ],
       deps: opts.deps,
     });
+
+    // Record last delivered heartbeat payload for dedupe.
+    if (!shouldSkipMain && normalized.text.trim()) {
+      const store = loadSessionStore(storePath);
+      const current = store[sessionKey];
+      if (current) {
+        store[sessionKey] = {
+          ...current,
+          lastHeartbeatText: normalized.text,
+          lastHeartbeatSentAt: startedAt,
+        };
+        await saveSessionStore(storePath, store);
+      }
+    }
 
     emitHeartbeatEvent({
       status: "sent",

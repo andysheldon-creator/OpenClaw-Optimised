@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 
 import { colorize, isRich, theme } from "../terminal/theme.js";
 import { formatGatewayServiceDescription, resolveGatewayWindowsTaskName } from "./constants.js";
+import { resolveGatewayStateDir } from "./paths.js";
 import { parseKeyValueOutput } from "./runtime-parse.js";
 import type { GatewayServiceRuntime } from "./service-runtime.js";
 
@@ -15,17 +16,9 @@ const formatLine = (label: string, value: string) => {
   return `${colorize(rich, theme.muted, `${label}:`)} ${colorize(rich, theme.command, value)}`;
 };
 
-function resolveHomeDir(env: Record<string, string | undefined>): string {
-  const home = env.USERPROFILE?.trim() || env.HOME?.trim();
-  if (!home) throw new Error("Missing HOME");
-  return home;
-}
-
-function resolveTaskScriptPath(env: Record<string, string | undefined>): string {
-  const home = resolveHomeDir(env);
-  const profile = env.CLAWDBOT_PROFILE?.trim();
-  const suffix = profile && profile.toLowerCase() !== "default" ? `-${profile}` : "";
-  return path.join(home, `.clawdbot${suffix}`, "gateway.cmd");
+export function resolveTaskScriptPath(env: Record<string, string | undefined>): string {
+  const stateDir = resolveGatewayStateDir(env);
+  return path.join(stateDir, "gateway.cmd");
 }
 
 function quoteCmdArg(value: string): string {
@@ -274,13 +267,13 @@ function isTaskNotRunning(res: { stdout: string; stderr: string; code: number })
 
 export async function stopScheduledTask({
   stdout,
-  profile,
+  env,
 }: {
   stdout: NodeJS.WritableStream;
-  profile?: string;
+  env?: Record<string, string | undefined>;
 }): Promise<void> {
   await assertSchtasksAvailable();
-  const taskName = resolveGatewayWindowsTaskName(profile);
+  const taskName = resolveGatewayWindowsTaskName(env?.CLAWDBOT_PROFILE);
   const res = await execSchtasks(["/End", "/TN", taskName]);
   if (res.code !== 0 && !isTaskNotRunning(res)) {
     throw new Error(`schtasks end failed: ${res.stderr || res.stdout}`.trim());
@@ -290,13 +283,13 @@ export async function stopScheduledTask({
 
 export async function restartScheduledTask({
   stdout,
-  profile,
+  env,
 }: {
   stdout: NodeJS.WritableStream;
-  profile?: string;
+  env?: Record<string, string | undefined>;
 }): Promise<void> {
   await assertSchtasksAvailable();
-  const taskName = resolveGatewayWindowsTaskName(profile);
+  const taskName = resolveGatewayWindowsTaskName(env?.CLAWDBOT_PROFILE);
   await execSchtasks(["/End", "/TN", taskName]);
   const res = await execSchtasks(["/Run", "/TN", taskName]);
   if (res.code !== 0) {
@@ -305,9 +298,11 @@ export async function restartScheduledTask({
   stdout.write(`${formatLine("Restarted Scheduled Task", taskName)}\n`);
 }
 
-export async function isScheduledTaskInstalled(profile?: string): Promise<boolean> {
+export async function isScheduledTaskInstalled(args: {
+  env?: Record<string, string | undefined>;
+}): Promise<boolean> {
   await assertSchtasksAvailable();
-  const taskName = resolveGatewayWindowsTaskName(profile);
+  const taskName = resolveGatewayWindowsTaskName(args.env?.CLAWDBOT_PROFILE);
   const res = await execSchtasks(["/Query", "/TN", taskName]);
   return res.code === 0;
 }

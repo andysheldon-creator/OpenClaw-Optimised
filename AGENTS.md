@@ -20,9 +20,18 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 
 Before doing anything else:
 
+<<<<<<< HEAD
 1. Read `SOUL.md` — this is who you are
 2. Read `USER.md` — this is who you're helping
 3. Read `memory.md` + today's and yesterday's files in `memory/`
+=======
+## Shorthand Commands
+- `sync up`: if working tree is dirty, commit all changes (pick a sensible Conventional Commit message), then `git pull --rebase`; if rebase conflicts and cannot resolve, stop; otherwise `git push`.
+
+### PR Workflow (Review vs Land)
+- **Review mode (PR link only):** read `gh pr view/diff`; **do not** switch branches; **do not** change code.
+- **Landing mode:** create an integration branch from `main`, bring in PR commits (**prefer rebase** for linear history; **merge allowed** when complexity/conflicts make it safer), apply fixes, add changelog (+ thanks + PR #), run full gate **locally before committing** (`pnpm lint && pnpm build && pnpm test`), commit, merge back to `main`, then `git switch main` (never stay on a topic branch after landing). Important: contributor needs to be in git graph after this!
+>>>>>>> upstream/main
 
 Don't ask permission. Just do it.
 

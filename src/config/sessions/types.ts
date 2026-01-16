@@ -10,6 +10,13 @@ export type SessionChannelId = ChannelId | "webchat";
 export type SessionChatType = "direct" | "group" | "room";
 
 export type SessionEntry = {
+  /**
+   * Last delivered heartbeat payload (used to suppress duplicate heartbeat notifications).
+   * Stored on the main session entry.
+   */
+  lastHeartbeatText?: string;
+  /** Timestamp (ms) when lastHeartbeatText was delivered. */
+  lastHeartbeatSentAt?: number;
   sessionId: string;
   updatedAt: number;
   sessionFile?: string;
@@ -26,6 +33,8 @@ export type SessionEntry = {
   providerOverride?: string;
   modelOverride?: string;
   authProfileOverride?: string;
+  authProfileOverrideSource?: "auto" | "user";
+  authProfileOverrideCompactionCount?: number;
   groupActivation?: "mention" | "always";
   groupActivationNeedsSystemIntro?: boolean;
   sendPolicy?: "allow" | "deny";
