@@ -11,12 +11,13 @@ import {
 } from "../../auto-reply/reply/response-prefix-template.js";
 import { resolveTextChunkLimit } from "../../auto-reply/chunk.js";
 import { hasControlCommand } from "../../auto-reply/command-detection.js";
-import { formatAgentEnvelope } from "../../auto-reply/envelope.js";
+import { formatInboundEnvelope, formatInboundFromLabel } from "../../auto-reply/envelope.js";
 import {
   createInboundDebouncer,
   resolveInboundDebounceMs,
 } from "../../auto-reply/inbound-debounce.js";
 import { dispatchReplyFromConfig } from "../../auto-reply/reply/dispatch-from-config.js";
+import { finalizeInboundContext } from "../../auto-reply/reply/inbound-context.js";
 import {
   buildPendingHistoryContextFromMap,
   clearHistoryEntries,
@@ -42,6 +43,7 @@ import {
 } from "../../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
 import { truncateUtf16Safe } from "../../utils.js";
+import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
 import { resolveIMessageAccount } from "../accounts.js";
 import { createIMessageRpcClient } from "../client.js";
 import { probeIMessage } from "../probe.js";
@@ -321,8 +323,19 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
       overrideOrder: "before-config",
     });
     const canDetectMention = mentionRegexes.length > 0;
-    const commandAuthorized = isGroup
-      ? effectiveGroupAllowFrom.length > 0
+    const useAccessGroups = cfg.commands?.useAccessGroups !== false;
+    const ownerAllowedForCommands =
+      effectiveDmAllowFrom.length > 0
+        ? isAllowedIMessageSender({
+            allowFrom: effectiveDmAllowFrom,
+            sender,
+            chatId: chatId ?? undefined,
+            chatGuid,
+            chatIdentifier,
+          })
+        : false;
+    const groupAllowedForCommands =
+      effectiveGroupAllowFrom.length > 0
         ? isAllowedIMessageSender({
             allowFrom: effectiveGroupAllowFrom,
             sender,
@@ -330,8 +343,20 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
             chatGuid,
             chatIdentifier,
           })
-        : true
+        : false;
+    const commandAuthorized = isGroup
+      ? resolveCommandAuthorizedFromAuthorizers({
+          useAccessGroups,
+          authorizers: [
+            { configured: effectiveDmAllowFrom.length > 0, allowed: ownerAllowedForCommands },
+            { configured: effectiveGroupAllowFrom.length > 0, allowed: groupAllowedForCommands },
+          ],
+        })
       : dmAuthorized;
+    if (isGroup && hasControlCommand(messageText, cfg) && !commandAuthorized) {
+      logVerbose(`imessage: drop control command from unauthorized sender ${sender}`);
+      return;
+    }
     const shouldBypassMention =
       isGroup &&
       requireMention &&
@@ -358,14 +383,21 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
     }
 
     const chatTarget = formatIMessageChatTarget(chatId);
-    const fromLabel = isGroup
-      ? `${message.chat_name || "iMessage Group"} id:${chatId ?? "unknown"}`
-      : `${senderNormalized} id:${sender}`;
-    const body = formatAgentEnvelope({
+    const fromLabel = formatInboundFromLabel({
+      isGroup,
+      groupLabel: message.chat_name ?? undefined,
+      groupId: chatId !== undefined ? String(chatId) : "unknown",
+      groupFallback: "Group",
+      directLabel: senderNormalized,
+      directId: sender,
+    });
+    const body = formatInboundEnvelope({
       channel: "iMessage",
       from: fromLabel,
       timestamp: createdAt,
       body: bodyText,
+      chatType: isGroup ? "group" : "direct",
+      sender: { name: senderNormalized, id: sender },
     });
     let combinedBody = body;
     if (isGroup && historyKey && historyLimit > 0) {
@@ -375,25 +407,23 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
         limit: historyLimit,
         currentMessage: combinedBody,
         formatEntry: (entry) =>
-          formatAgentEnvelope({
+          formatInboundEnvelope({
             channel: "iMessage",
             from: fromLabel,
             timestamp: entry.timestamp,
-            body: `${entry.sender}: ${entry.body}${
-              entry.messageId ? ` [id:${entry.messageId}]` : ""
-            }`,
+            body: `${entry.body}${entry.messageId ? ` [id:${entry.messageId}]` : ""}`,
+            chatType: "group",
+            senderLabel: entry.sender,
           }),
       });
     }
 
     const imessageTo = (isGroup ? chatTarget : undefined) || `imessage:${sender}`;
-    const ctxPayload = {
+    const ctxPayload = finalizeInboundContext({
       Body: combinedBody,
-      BodyForAgent: combinedBody,
       RawBody: bodyText,
       CommandBody: bodyText,
-      BodyForCommands: bodyText,
-      From: isGroup ? `group:${chatId}` : `imessage:${sender}`,
+      From: isGroup ? `imessage:group:${chatId ?? "unknown"}` : `imessage:${sender}`,
       To: imessageTo,
       SessionKey: route.sessionKey,
       AccountId: route.accountId,
@@ -416,7 +446,7 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
       // Originating channel for reply routing.
       OriginatingChannel: "imessage" as const,
       OriginatingTo: imessageTo,
-    };
+    });
 
     if (!isGroup) {
       const sessionCfg = cfg.session;
@@ -428,9 +458,11 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
         await updateLastRoute({
           storePath,
           sessionKey: route.mainSessionKey,
-          channel: "imessage",
-          to,
-          accountId: route.accountId,
+          deliveryContext: {
+            channel: "imessage",
+            to,
+            accountId: route.accountId,
+          },
         });
       }
     }

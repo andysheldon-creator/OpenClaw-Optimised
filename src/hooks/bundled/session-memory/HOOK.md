@@ -1,7 +1,7 @@
 ---
 name: session-memory
 description: "Save session context to memory when /new command is issued"
-homepage: https://docs.clawd.bot/internal-hooks#session-memory
+homepage: https://docs.clawd.bot/hooks#session-memory
 metadata:
   {
     "clawdbot":
@@ -68,7 +68,7 @@ No additional configuration required. The hook automatically:
 To disable this hook:
 
 ```bash
-clawdbot hooks internal disable session-memory
+clawdbot hooks disable session-memory
 ```
 
 Or remove it from your config:

@@ -16,13 +16,13 @@ import {
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
 import { resolveMentionGating } from "../../channels/mention-gating.js";
 import { sendMessageDiscord } from "../send.js";
+import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
 import {
   allowListMatches,
   isDiscordGroupAllowedByPolicy,
   normalizeDiscordAllowList,
   normalizeDiscordSlug,
   resolveDiscordChannelConfig,
-  resolveDiscordCommandAuthorized,
   resolveDiscordGuildEntry,
   resolveDiscordShouldRequireMention,
   resolveDiscordUserAllowed,
@@ -314,18 +314,46 @@ export async function preflightDiscordMessage(
       (message.mentionedUsers?.length ?? 0) > 0 ||
       (message.mentionedRoles?.length ?? 0) > 0),
   );
-  if (!isDirectMessage) {
-    commandAuthorized = resolveDiscordCommandAuthorized({
-      isDirectMessage,
-      allowFrom: params.allowFrom,
-      guildInfo,
-      author,
-    });
-  }
   const allowTextCommands = shouldHandleTextCommands({
     cfg: params.cfg,
     surface: "discord",
   });
+
+  if (!isDirectMessage) {
+    const ownerAllowList = normalizeDiscordAllowList(params.allowFrom, ["discord:", "user:"]);
+    const ownerOk = ownerAllowList
+      ? allowListMatches(ownerAllowList, {
+          id: author.id,
+          name: author.username,
+          tag: formatDiscordUserTag(author),
+        })
+      : false;
+    const channelUsers = channelConfig?.users ?? guildInfo?.users;
+    const usersOk =
+      Array.isArray(channelUsers) && channelUsers.length > 0
+        ? resolveDiscordUserAllowed({
+            allowList: channelUsers,
+            userId: author.id,
+            userName: author.username,
+            userTag: formatDiscordUserTag(author),
+          })
+        : false;
+    const useAccessGroups = params.cfg.commands?.useAccessGroups !== false;
+    commandAuthorized = resolveCommandAuthorizedFromAuthorizers({
+      useAccessGroups,
+      authorizers: [
+        { configured: ownerAllowList != null, allowed: ownerOk },
+        { configured: Array.isArray(channelUsers) && channelUsers.length > 0, allowed: usersOk },
+      ],
+      modeWhenAccessGroupsOff: "configured",
+    });
+
+    if (allowTextCommands && hasControlCommand(baseText, params.cfg) && !commandAuthorized) {
+      logVerbose(`Blocked discord control command from unauthorized sender ${author.id}`);
+      return null;
+    }
+  }
+
   const shouldBypassMention =
     allowTextCommands &&
     isGuildMessage &&

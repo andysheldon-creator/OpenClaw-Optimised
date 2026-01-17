@@ -1,7 +1,7 @@
 ---
 name: command-logger
 description: "Log all command events to a centralized audit file"
-homepage: https://docs.clawd.bot/internal-hooks#command-logger
+homepage: https://docs.clawd.bot/hooks#command-logger
 metadata:
   {
     "clawdbot":
@@ -62,7 +62,7 @@ No configuration needed. The hook automatically:
 To disable this hook:
 
 ```bash
-clawdbot hooks internal disable command-logger
+clawdbot hooks disable command-logger
 ```
 
 Or via config:

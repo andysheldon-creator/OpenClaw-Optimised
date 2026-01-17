@@ -1,4 +1,3 @@
-import { normalizeTargetForProvider } from "../../agents/pi-embedded-messaging.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type {
   ChannelDirectoryEntry,
@@ -7,8 +6,13 @@ import type {
 } from "../../channels/plugins/types.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import { defaultRuntime, type RuntimeEnv } from "../../runtime.js";
-import { normalizeChannelTargetInput } from "./channel-target.js";
 import { buildDirectoryCacheKey, DirectoryCache } from "./directory-cache.js";
+import {
+  buildTargetResolverSignature,
+  normalizeChannelTargetInput,
+  normalizeTargetForProvider,
+} from "./target-normalization.js";
+import { ambiguousTargetError, unknownTargetError } from "./target-errors.js";
 
 export type TargetResolveKind = ChannelDirectoryEntryKind | "channel";
 
@@ -60,6 +64,52 @@ function stripTargetPrefixes(value: string): string {
     .replace(/^(channel|group|user):/i, "")
     .replace(/^[@#]/, "")
     .trim();
+}
+
+export function formatTargetDisplay(params: {
+  channel: ChannelId;
+  target: string;
+  display?: string;
+  kind?: ChannelDirectoryEntryKind;
+}): string {
+  const plugin = getChannelPlugin(params.channel);
+  if (plugin?.messaging?.formatTargetDisplay) {
+    return plugin.messaging.formatTargetDisplay({
+      target: params.target,
+      display: params.display,
+      kind: params.kind,
+    });
+  }
+
+  const trimmedTarget = params.target.trim();
+  const lowered = trimmedTarget.toLowerCase();
+  const display = params.display?.trim();
+  const kind =
+    params.kind ??
+    (lowered.startsWith("user:")
+      ? "user"
+      : lowered.startsWith("channel:") || lowered.startsWith("group:")
+        ? "group"
+        : undefined);
+
+  if (display) {
+    if (display.startsWith("#") || display.startsWith("@")) return display;
+    if (kind === "user") return `@${display}`;
+    if (kind === "group" || kind === "channel") return `#${display}`;
+    return display;
+  }
+
+  if (!trimmedTarget) return trimmedTarget;
+  if (trimmedTarget.startsWith("#") || trimmedTarget.startsWith("@")) return trimmedTarget;
+
+  const withoutPrefix = trimmedTarget.replace(/^telegram:/i, "");
+  if (/^(channel|group):/i.test(withoutPrefix)) {
+    return `#${withoutPrefix.replace(/^(channel|group):/i, "")}`;
+  }
+  if (/^user:/i.test(withoutPrefix)) {
+    return `@${withoutPrefix.replace(/^user:/i, "")}`;
+  }
+  return withoutPrefix;
 }
 
 function preserveTargetCase(channel: ChannelId, raw: string, normalized: string): string {
@@ -114,37 +164,6 @@ function resolveMatch(params: {
   return { kind: "ambiguous" as const, entries: matches };
 }
 
-function looksLikeId(channel: ChannelId, normalized: string): boolean {
-  if (!normalized) return false;
-  const raw = normalized.trim();
-  switch (channel) {
-    case "discord": {
-      const candidate = stripTargetPrefixes(raw);
-      return /^\d{6,}$/.test(candidate);
-    }
-    case "slack": {
-      const candidate = stripTargetPrefixes(raw);
-      return /^[A-Z0-9]{8,}$/i.test(candidate);
-    }
-    case "msteams": {
-      return /^conversation:/i.test(raw) || /^user:/i.test(raw) || raw.includes("@thread");
-    }
-    case "telegram": {
-      return /^telegram:/i.test(raw) || raw.startsWith("@");
-    }
-    case "whatsapp": {
-      const candidate = stripTargetPrefixes(raw);
-      return (
-        /@/i.test(candidate) ||
-        /^\+?\d{3,}$/.test(candidate) ||
-        candidate.toLowerCase().endsWith("@g.us")
-      );
-    }
-    default:
-      return Boolean(raw);
-  }
-}
-
 async function listDirectoryEntries(params: {
   cfg: ClawdbotConfig;
   channel: ChannelId;
@@ -190,11 +209,13 @@ async function getDirectoryEntries(params: {
   runtime?: RuntimeEnv;
   preferLiveOnMiss?: boolean;
 }): Promise<ChannelDirectoryEntry[]> {
+  const signature = buildTargetResolverSignature(params.channel);
   const cacheKey = buildDirectoryCacheKey({
     channel: params.channel,
     accountId: params.accountId,
     kind: params.kind,
     source: "cache",
+    signature,
   });
   const cached = directoryCache.get(cacheKey, params.cfg);
   if (cached) return cached;
@@ -216,6 +237,7 @@ async function getDirectoryEntries(params: {
     accountId: params.accountId,
     kind: params.kind,
     source: "live",
+    signature,
   });
   const liveEntries = await listDirectoryEntries({
     cfg: params.cfg,
@@ -243,9 +265,24 @@ export async function resolveMessagingTarget(params: {
   if (!raw) {
     return { ok: false, error: new Error("Target is required") };
   }
+  const plugin = getChannelPlugin(params.channel);
+  const providerLabel = plugin?.meta?.label ?? params.channel;
+  const hint = plugin?.messaging?.targetResolver?.hint;
   const kind = detectTargetKind(raw, params.preferredKind);
   const normalized = normalizeTargetForProvider(params.channel, raw) ?? raw;
-  if (looksLikeId(params.channel, normalized)) {
+  const looksLikeTargetId = (): boolean => {
+    const trimmed = raw.trim();
+    if (!trimmed) return false;
+    const lookup = plugin?.messaging?.targetResolver?.looksLikeId;
+    if (lookup) return lookup(trimmed, normalized);
+    if (/^(channel|group|user):/i.test(trimmed)) return true;
+    if (/^[@#]/.test(trimmed)) return true;
+    if (/^\+?\d{6,}$/.test(trimmed)) return true;
+    if (trimmed.includes("@thread")) return true;
+    if (/^(conversation|user):/i.test(trimmed)) return true;
+    return false;
+  };
+  if (looksLikeTargetId()) {
     const directTarget = preserveTargetCase(params.channel, raw, normalized);
     return {
       ok: true,
@@ -283,13 +320,13 @@ export async function resolveMessagingTarget(params: {
   if (match.kind === "ambiguous") {
     return {
       ok: false,
-      error: new Error(`Ambiguous target "${raw}". Provide a unique name or an explicit id.`),
+      error: ambiguousTargetError(providerLabel, raw, hint),
       candidates: match.entries,
     };
   }
   return {
     ok: false,
-    error: new Error(`Unknown target "${raw}" for ${params.channel}.`),
+    error: unknownTargetError(providerLabel, raw, hint),
   };
 }
 

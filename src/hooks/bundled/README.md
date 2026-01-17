@@ -1,6 +1,6 @@
-# Bundled Internal Hooks
+# Bundled Hooks
 
-This directory contains internal hooks that ship with Clawdbot. These hooks are automatically discovered and can be enabled/disabled via CLI or configuration.
+This directory contains hooks that ship with Clawdbot. These hooks are automatically discovered and can be enabled/disabled via CLI or configuration.
 
 ## Available Hooks
 
@@ -15,7 +15,7 @@ Automatically saves session context to memory when you issue `/new`.
 **Enable**:
 
 ```bash
-clawdbot hooks internal enable session-memory
+clawdbot hooks enable session-memory
 ```
 
 ### 📝 command-logger
@@ -29,7 +29,7 @@ Logs all command events to a centralized audit file.
 **Enable**:
 
 ```bash
-clawdbot hooks internal enable command-logger
+clawdbot hooks enable command-logger
 ```
 
 ## Hook Structure
@@ -53,7 +53,7 @@ session-memory/
 ---
 name: my-hook
 description: "Short description"
-homepage: https://docs.clawd.bot/hooks/my-hook
+homepage: https://docs.clawd.bot/hooks#my-hook
 metadata:
   { "clawdbot": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
 ---
@@ -88,26 +88,26 @@ Custom hooks follow the same structure as bundled hooks.
 List all hooks:
 
 ```bash
-clawdbot hooks internal list
+clawdbot hooks list
 ```
 
 Show hook details:
 
 ```bash
-clawdbot hooks internal info session-memory
+clawdbot hooks info session-memory
 ```
 
 Check hook status:
 
 ```bash
-clawdbot hooks internal check
+clawdbot hooks check
 ```
 
 Enable/disable:
 
 ```bash
-clawdbot hooks internal enable session-memory
-clawdbot hooks internal disable command-logger
+clawdbot hooks enable session-memory
+clawdbot hooks disable command-logger
 ```
 
 ## Configuration
@@ -161,9 +161,9 @@ interface InternalHookEvent {
 Example handler:
 
 ```typescript
-import type { InternalHookHandler } from "../../src/hooks/internal-hooks.js";
+import type { HookHandler } from "../../src/hooks/hooks.js";
 
-const myHandler: InternalHookHandler = async (event) => {
+const myHandler: HookHandler = async (event) => {
   if (event.type !== "command" || event.action !== "new") {
     return;
   }
@@ -184,10 +184,10 @@ Test your hooks by:
 
 1. Place hook in workspace hooks directory
 2. Restart gateway: `pkill -9 -f 'clawdbot.*gateway' && pnpm clawdbot gateway`
-3. Enable the hook: `clawdbot hooks internal enable my-hook`
+3. Enable the hook: `clawdbot hooks enable my-hook`
 4. Trigger the event (e.g., send `/new` command)
 5. Check gateway logs for hook execution
 
 ## Documentation
 
-Full documentation: https://docs.clawd.bot/internal-hooks
+Full documentation: https://docs.clawd.bot/hooks

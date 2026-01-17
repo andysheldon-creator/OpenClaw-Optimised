@@ -20,7 +20,7 @@ import {
 } from "./config-helpers.js";
 import { resolveSlackGroupRequireMention } from "./group-mentions.js";
 import { formatPairingApproveHint } from "./helpers.js";
-import { normalizeSlackMessagingTarget } from "./normalize-target.js";
+import { looksLikeSlackTargetId, normalizeSlackMessagingTarget } from "./normalize-target.js";
 import { slackOnboardingAdapter } from "./onboarding/slack.js";
 import { PAIRING_APPROVED_MESSAGE } from "./pairing-message.js";
 import {
@@ -28,7 +28,10 @@ import {
   migrateBaseNameToDefaultAccount,
 } from "./setup-helpers.js";
 import type { ChannelMessageActionName, ChannelPlugin } from "./types.js";
-import { missingTargetError } from "../../infra/outbound/target-errors.js";
+import {
+  listSlackDirectoryGroupsFromConfig,
+  listSlackDirectoryPeersFromConfig,
+} from "./directory-config.js";
 
 const meta = getChatChannelMeta("slack");
 
@@ -136,18 +139,24 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount> = {
       };
     },
     collectWarnings: ({ account }) => {
+      const warnings: string[] = [];
       const groupPolicy = account.config.groupPolicy ?? "allowlist";
-      if (groupPolicy !== "open") return [];
       const channelAllowlistConfigured =
         Boolean(account.config.channels) && Object.keys(account.config.channels ?? {}).length > 0;
-      if (channelAllowlistConfigured) {
-        return [
-          `- Slack channels: groupPolicy="open" allows any channel not explicitly denied to trigger (mention-gated). Set channels.slack.groupPolicy="allowlist" and configure channels.slack.channels.`,
-        ];
+
+      if (groupPolicy === "open") {
+        if (channelAllowlistConfigured) {
+          warnings.push(
+            `- Slack channels: groupPolicy="open" allows any channel not explicitly denied to trigger (mention-gated). Set channels.slack.groupPolicy="allowlist" and configure channels.slack.channels.`,
+          );
+        } else {
+          warnings.push(
+            `- Slack channels: groupPolicy="open" with no channel allowlist; any channel can trigger (mention-gated). Set channels.slack.groupPolicy="allowlist" and configure channels.slack.channels.`,
+          );
+        }
       }
-      return [
-        `- Slack channels: groupPolicy="open" with no channel allowlist; any channel can trigger (mention-gated). Set channels.slack.groupPolicy="allowlist" and configure channels.slack.channels.`,
-      ];
+
+      return warnings;
     },
   },
   groups: {
@@ -172,60 +181,15 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount> = {
   },
   messaging: {
     normalizeTarget: normalizeSlackMessagingTarget,
+    targetResolver: {
+      looksLikeId: looksLikeSlackTargetId,
+      hint: "<channelId|user:ID|channel:ID>",
+    },
   },
   directory: {
     self: async () => null,
-    listPeers: async ({ cfg, accountId, query, limit }) => {
-      const account = resolveSlackAccount({ cfg, accountId });
-      const q = query?.trim().toLowerCase() || "";
-      const ids = new Set<string>();
-
-      for (const entry of account.dm?.allowFrom ?? []) {
-        const raw = String(entry).trim();
-        if (!raw || raw === "*") continue;
-        ids.add(raw);
-      }
-      for (const id of Object.keys(account.config.dms ?? {})) {
-        const trimmed = id.trim();
-        if (trimmed) ids.add(trimmed);
-      }
-      for (const channel of Object.values(account.config.channels ?? {})) {
-        for (const user of channel.users ?? []) {
-          const raw = String(user).trim();
-          if (raw) ids.add(raw);
-        }
-      }
-
-      const peers = Array.from(ids)
-        .map((raw) => raw.trim())
-        .filter(Boolean)
-        .map((raw) => {
-          const mention = raw.match(/^<@([A-Z0-9]+)>$/i);
-          const normalizedUserId = (mention?.[1] ?? raw).replace(/^(slack|user):/i, "").trim();
-          if (!normalizedUserId) return null;
-          const target = `user:${normalizedUserId}`;
-          return normalizeSlackMessagingTarget(target) ?? target.toLowerCase();
-        })
-        .filter((id): id is string => Boolean(id))
-        .filter((id) => id.startsWith("user:"))
-        .filter((id) => (q ? id.toLowerCase().includes(q) : true))
-        .slice(0, limit && limit > 0 ? limit : undefined)
-        .map((id) => ({ kind: "user", id }) as const);
-      return peers;
-    },
-    listGroups: async ({ cfg, accountId, query, limit }) => {
-      const account = resolveSlackAccount({ cfg, accountId });
-      const q = query?.trim().toLowerCase() || "";
-      const groups = Object.keys(account.config.channels ?? {})
-        .map((raw) => raw.trim())
-        .filter(Boolean)
-        .map((raw) => normalizeSlackMessagingTarget(raw) ?? raw.toLowerCase())
-        .filter((id) => id.startsWith("channel:"))
-        .filter((id) => (q ? id.toLowerCase().includes(q) : true))
-        .slice(0, limit && limit > 0 ? limit : undefined)
-        .map((id) => ({ kind: "group", id }) as const);
-      return groups;
-    },
+    listPeers: async (params) => listSlackDirectoryPeersFromConfig(params),
+    listGroups: async (params) => listSlackDirectoryGroupsFromConfig(params),
   },
   actions: {
     listActions: ({ cfg }) => {
@@ -493,16 +457,6 @@ export const slackPlugin: ChannelPlugin<ResolvedSlackAccount> = {
     deliveryMode: "direct",
     chunker: null,
     textChunkLimit: 4000,
-    resolveTarget: ({ to }) => {
-      const trimmed = to?.trim();
-      if (!trimmed) {
-        return {
-          ok: false,
-          error: missingTargetError("Slack", "<channelId|user:ID|channel:ID>"),
-        };
-      }
-      return { ok: true, to: trimmed };
-    },
     sendText: async ({ to, text, accountId, deps, replyToId, cfg }) => {
       const send = deps?.sendSlack ?? sendMessageSlack;
       const account = resolveSlackAccount({ cfg, accountId });

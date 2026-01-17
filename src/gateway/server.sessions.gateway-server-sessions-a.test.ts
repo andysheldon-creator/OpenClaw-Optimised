@@ -10,6 +10,7 @@ import {
   rpcReq,
   startServerWithClient,
   testState,
+  writeSessionStore,
 } from "./test-helpers.js";
 import { DEFAULT_PROVIDER } from "../agents/defaults.js";
 
@@ -65,41 +66,35 @@ describe("gateway server sessions", () => {
       "utf-8",
     );
 
-    await fs.writeFile(
-      storePath,
-      JSON.stringify(
-        {
-          "agent:main:main": {
-            sessionId: "sess-main",
-            updatedAt: now - 30_000,
-            inputTokens: 10,
-            outputTokens: 20,
-            thinkingLevel: "low",
-            verboseLevel: "on",
-            lastProvider: "whatsapp",
-            lastTo: "+1555",
-            lastAccountId: "work",
-          },
-          "agent:main:discord:group:dev": {
-            sessionId: "sess-group",
-            updatedAt: now - 120_000,
-            totalTokens: 50,
-          },
-          "agent:main:subagent:one": {
-            sessionId: "sess-subagent",
-            updatedAt: now - 120_000,
-            spawnedBy: "agent:main:main",
-          },
-          global: {
-            sessionId: "sess-global",
-            updatedAt: now - 10_000,
-          },
+    await writeSessionStore({
+      entries: {
+        main: {
+          sessionId: "sess-main",
+          updatedAt: now - 30_000,
+          inputTokens: 10,
+          outputTokens: 20,
+          thinkingLevel: "low",
+          verboseLevel: "on",
+          lastChannel: "whatsapp",
+          lastTo: "+1555",
+          lastAccountId: "work",
         },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
+        "discord:group:dev": {
+          sessionId: "sess-group",
+          updatedAt: now - 120_000,
+          totalTokens: 50,
+        },
+        "agent:main:subagent:one": {
+          sessionId: "sess-subagent",
+          updatedAt: now - 120_000,
+          spawnedBy: "agent:main:main",
+        },
+        global: {
+          sessionId: "sess-global",
+          updatedAt: now - 10_000,
+        },
+      },
+    });
 
     const { server, ws } = await startServerWithClient();
     const hello = await connectOk(ws);
@@ -128,6 +123,7 @@ describe("gateway server sessions", () => {
         thinkingLevel?: string;
         verboseLevel?: string;
         lastAccountId?: string;
+        deliveryContext?: { channel?: string; to?: string; accountId?: string };
       }>;
     }>(ws, "sessions.list", { includeGlobal: false, includeUnknown: false });
 
@@ -140,6 +136,11 @@ describe("gateway server sessions", () => {
     expect(main?.thinkingLevel).toBe("low");
     expect(main?.verboseLevel).toBe("on");
     expect(main?.lastAccountId).toBe("work");
+    expect(main?.deliveryContext).toEqual({
+      channel: "whatsapp",
+      to: "+1555",
+      accountId: "work",
+    });
 
     const active = await rpcReq<{
       sessions: Array<{ key: string }>;
@@ -349,21 +350,15 @@ describe("gateway server sessions", () => {
       "utf-8",
     );
 
-    await fs.writeFile(
-      storePath,
-      JSON.stringify(
-        {
-          main: { sessionId: "sess-main", updatedAt: Date.now() },
-          "discord:group:dev": {
-            sessionId: "sess-active",
-            updatedAt: Date.now(),
-          },
+    await writeSessionStore({
+      entries: {
+        main: { sessionId: "sess-main", updatedAt: Date.now() },
+        "discord:group:dev": {
+          sessionId: "sess-active",
+          updatedAt: Date.now(),
         },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
+      },
+    });
 
     embeddedRunMock.activeIds.add("sess-active");
     embeddedRunMock.waitResults.set("sess-active", true);

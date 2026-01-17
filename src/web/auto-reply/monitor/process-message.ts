@@ -8,7 +8,7 @@ import {
   type ResponsePrefixContext,
 } from "../../../auto-reply/reply/response-prefix-template.js";
 import { resolveTextChunkLimit } from "../../../auto-reply/chunk.js";
-import { formatAgentEnvelope } from "../../../auto-reply/envelope.js";
+import { formatInboundEnvelope } from "../../../auto-reply/envelope.js";
 import {
   buildHistoryContextFromEntries,
   type HistoryEntry,
@@ -16,13 +16,15 @@ import {
 import { dispatchReplyWithBufferedBlockDispatcher } from "../../../auto-reply/reply/provider-dispatcher.js";
 import type { getReplyFromConfig } from "../../../auto-reply/reply.js";
 import type { ReplyPayload } from "../../../auto-reply/types.js";
+import { hasInlineCommandTokens, isControlCommandMessage } from "../../../auto-reply/command-detection.js";
+import { finalizeInboundContext } from "../../../auto-reply/reply/inbound-context.js";
 import { toLocationContext } from "../../../channels/location.js";
 import type { loadConfig } from "../../../config/config.js";
 import { logVerbose, shouldLogVerbose } from "../../../globals.js";
 import type { getChildLogger } from "../../../logging.js";
+import { readChannelAllowFromStore } from "../../../pairing/pairing-store.js";
 import type { resolveAgentRoute } from "../../../routing/resolve-route.js";
 import { jidToE164, normalizeE164 } from "../../../utils.js";
-import { normalizeChatType } from "../../../channels/chat-type.js";
 import { newConnectionId } from "../../reconnect.js";
 import { formatError } from "../../session.js";
 import { deliverWebReply } from "../deliver-reply.js";
@@ -41,6 +43,53 @@ export type GroupHistoryEntry = {
   id?: string;
   senderJid?: string;
 };
+
+function normalizeAllowFromE164(values: Array<string | number> | undefined): string[] {
+  const list = Array.isArray(values) ? values : [];
+  return list
+    .map((entry) => String(entry).trim())
+    .filter((entry) => entry && entry !== "*")
+    .map((entry) => normalizeE164(entry))
+    .filter((entry): entry is string => Boolean(entry));
+}
+
+async function resolveWhatsAppCommandAuthorized(params: {
+  cfg: ReturnType<typeof loadConfig>;
+  msg: WebInboundMsg;
+}): Promise<boolean> {
+  const useAccessGroups = params.cfg.commands?.useAccessGroups !== false;
+  if (!useAccessGroups) return true;
+
+  const isGroup = params.msg.chatType === "group";
+  const senderE164 = normalizeE164(
+    isGroup ? (params.msg.senderE164 ?? "") : (params.msg.senderE164 ?? params.msg.from ?? ""),
+  );
+  if (!senderE164) return false;
+
+  const configuredAllowFrom = params.cfg.channels?.whatsapp?.allowFrom ?? [];
+  const configuredGroupAllowFrom =
+    params.cfg.channels?.whatsapp?.groupAllowFrom ??
+    (configuredAllowFrom.length > 0 ? configuredAllowFrom : undefined);
+
+  if (isGroup) {
+    if (!configuredGroupAllowFrom || configuredGroupAllowFrom.length === 0) return false;
+    if (configuredGroupAllowFrom.some((v) => String(v).trim() === "*")) return true;
+    return normalizeAllowFromE164(configuredGroupAllowFrom).includes(senderE164);
+  }
+
+  const storeAllowFrom = await readChannelAllowFromStore("whatsapp").catch(() => []);
+  const combinedAllowFrom = Array.from(
+    new Set([...(configuredAllowFrom ?? []), ...storeAllowFrom]),
+  );
+  const allowFrom =
+    combinedAllowFrom.length > 0
+      ? combinedAllowFrom
+      : params.msg.selfE164
+        ? [params.msg.selfE164]
+        : [];
+  if (allowFrom.some((v) => String(v).trim() === "*")) return true;
+  return normalizeAllowFromE164(allowFrom).includes(senderE164);
+}
 
 export async function processMessage(params: {
   cfg: ReturnType<typeof loadConfig>;
@@ -95,11 +144,13 @@ export async function processMessage(params: {
           const bodyWithId = entry.messageId
             ? `${entry.body}\n[message_id: ${entry.messageId}]`
             : entry.body;
-          return formatAgentEnvelope({
+          return formatInboundEnvelope({
             channel: "WhatsApp",
             from: conversationId,
             timestamp: entry.timestamp,
-            body: `${entry.sender}: ${bodyWithId}`,
+            body: bodyWithId,
+            chatType: "group",
+            senderLabel: entry.sender,
           });
         },
       });
@@ -178,6 +229,11 @@ export async function processMessage(params: {
   const textLimit = params.maxMediaTextChunkLimit ?? resolveTextChunkLimit(params.cfg, "whatsapp");
   let didLogHeartbeatStrip = false;
   let didSendReply = false;
+  const shouldComputeCommandAuthorized =
+    isControlCommandMessage(params.msg.body, params.cfg) || hasInlineCommandTokens(params.msg.body);
+  const commandAuthorized = shouldComputeCommandAuthorized
+    ? await resolveWhatsAppCommandAuthorized({ cfg: params.cfg, msg: params.msg })
+    : undefined;
   const configuredResponsePrefix = params.cfg.messages?.responsePrefix;
   const resolvedMessages = resolveEffectiveMessagesConfig(params.cfg, params.route.agentId);
   const isSelfChat =
@@ -196,12 +252,10 @@ export async function processMessage(params: {
   };
 
   const { queuedFinal } = await dispatchReplyWithBufferedBlockDispatcher({
-    ctx: {
+    ctx: finalizeInboundContext({
       Body: combinedBody,
-      BodyForAgent: combinedBody,
       RawBody: params.msg.body,
       CommandBody: params.msg.body,
-      BodyForCommands: params.msg.body,
       From: params.msg.from,
       To: params.msg.to,
       SessionKey: params.route.sessionKey,
@@ -213,7 +267,7 @@ export async function processMessage(params: {
       MediaPath: params.msg.mediaPath,
       MediaUrl: params.msg.mediaUrl,
       MediaType: params.msg.mediaType,
-      ChatType: normalizeChatType(params.msg.chatType) ?? params.msg.chatType,
+      ChatType: params.msg.chatType,
       ConversationLabel: params.msg.chatType === "group" ? conversationId : params.msg.from,
       GroupSubject: params.msg.groupSubject,
       GroupMembers: formatGroupMembers({
@@ -224,13 +278,14 @@ export async function processMessage(params: {
       SenderName: params.msg.senderName,
       SenderId: params.msg.senderJid?.trim() || params.msg.senderE164,
       SenderE164: params.msg.senderE164,
+      CommandAuthorized: commandAuthorized,
       WasMentioned: params.msg.wasMentioned,
       ...(params.msg.location ? toLocationContext(params.msg.location) : {}),
       Provider: "whatsapp",
       Surface: "whatsapp",
       OriginatingChannel: "whatsapp",
       OriginatingTo: params.msg.from,
-    },
+    }),
     cfg: params.cfg,
     replyResolver: params.replyResolver,
     dispatcherOptions: {

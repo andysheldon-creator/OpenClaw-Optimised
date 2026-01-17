@@ -1,19 +1,25 @@
-// @ts-nocheck
+import type { Bot } from "grammy";
+
 import { resolveAckReaction } from "../agents/identity.js";
 import { hasControlCommand } from "../auto-reply/command-detection.js";
 import { normalizeCommandBody } from "../auto-reply/commands-registry.js";
-import { formatAgentEnvelope } from "../auto-reply/envelope.js";
+import { formatInboundEnvelope } from "../auto-reply/envelope.js";
 import {
   buildPendingHistoryContextFromMap,
   recordPendingHistoryEntry,
+  type HistoryEntry,
 } from "../auto-reply/reply/history.js";
+import { finalizeInboundContext } from "../auto-reply/reply/inbound-context.js";
 import { buildMentionRegexes, matchesMentionPatterns } from "../auto-reply/reply/mentions.js";
 import { formatLocationText, toLocationContext } from "../channels/location.js";
 import { resolveStorePath, updateLastRoute } from "../config/sessions.js";
+import type { ClawdbotConfig } from "../config/config.js";
+import type { DmPolicy, TelegramGroupConfig, TelegramTopicConfig } from "../config/types.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { recordChannelActivity } from "../infra/channel-activity.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
 import { resolveMentionGating } from "../channels/mention-gating.js";
+import { resolveCommandAuthorizedFromAuthorizers } from "../channels/command-gating.js";
 import {
   buildGroupLabel,
   buildSenderLabel,
@@ -28,6 +34,52 @@ import {
 } from "./bot/helpers.js";
 import { firstDefined, isSenderAllowed, normalizeAllowFrom } from "./bot-access.js";
 import { upsertTelegramPairingRequest } from "./pairing-store.js";
+import type { TelegramContext } from "./bot/types.js";
+
+type TelegramMediaRef = { path: string; contentType?: string };
+
+type TelegramMessageContextOptions = {
+  forceWasMentioned?: boolean;
+  messageIdOverride?: string;
+};
+
+type TelegramLogger = {
+  info: (obj: Record<string, unknown>, msg: string) => void;
+};
+
+type ResolveTelegramGroupConfig = (
+  chatId: string | number,
+  messageThreadId?: number,
+) => { groupConfig?: TelegramGroupConfig; topicConfig?: TelegramTopicConfig };
+
+type ResolveGroupActivation = (params: {
+  chatId: string | number;
+  agentId?: string;
+  messageThreadId?: number;
+  sessionKey?: string;
+}) => boolean | undefined;
+
+type ResolveGroupRequireMention = (chatId: string | number) => boolean;
+
+type BuildTelegramMessageContextParams = {
+  primaryCtx: TelegramContext;
+  allMedia: TelegramMediaRef[];
+  storeAllowFrom: string[];
+  options?: TelegramMessageContextOptions;
+  bot: Bot;
+  cfg: ClawdbotConfig;
+  account: { accountId: string };
+  historyLimit: number;
+  groupHistories: Map<string, HistoryEntry[]>;
+  dmPolicy: DmPolicy;
+  allowFrom?: Array<string | number>;
+  groupAllowFrom?: Array<string | number>;
+  ackReactionScope: "off" | "group-mentions" | "group-all" | "direct" | "all";
+  logger: TelegramLogger;
+  resolveGroupActivation: ResolveGroupActivation;
+  resolveGroupRequireMention: ResolveGroupRequireMention;
+  resolveTelegramGroupConfig: ResolveTelegramGroupConfig;
+};
 
 export const buildTelegramMessageContext = async ({
   primaryCtx,
@@ -47,7 +99,7 @@ export const buildTelegramMessageContext = async ({
   resolveGroupActivation,
   resolveGroupRequireMention,
   resolveTelegramGroupConfig,
-}) => {
+}: BuildTelegramMessageContextParams) => {
   const msg = primaryCtx.message;
   recordChannelActivity({
     channel: "telegram",
@@ -197,10 +249,16 @@ export const buildTelegramMessageContext = async ({
       return null;
     }
   }
-  const commandAuthorized = isSenderAllowed({
-    allow: isGroup ? effectiveGroupAllow : effectiveDmAllow,
+  const allowForCommands = isGroup ? effectiveGroupAllow : effectiveDmAllow;
+  const senderAllowedForCommands = isSenderAllowed({
+    allow: allowForCommands,
     senderId,
     senderUsername,
+  });
+  const useAccessGroups = cfg.commands?.useAccessGroups !== false;
+  const commandAuthorized = resolveCommandAuthorizedFromAuthorizers({
+    useAccessGroups,
+    authorizers: [{ configured: allowForCommands.hasEntries, allowed: senderAllowedForCommands }],
   });
   const historyKey = isGroup ? buildTelegramGroupPeerId(chatId, resolvedThreadId) : undefined;
 
@@ -222,12 +280,20 @@ export const buildTelegramMessageContext = async ({
     bodyText = `<media:image>${allMedia.length > 1 ? ` (${allMedia.length} images)` : ""}`;
   }
   const computedWasMentioned =
-    (Boolean(botUsername) && hasBotMention(msg, botUsername)) ||
+    (botUsername ? hasBotMention(msg, botUsername) : false) ||
     matchesMentionPatterns(msg.text ?? msg.caption ?? "", mentionRegexes);
   const wasMentioned = options?.forceWasMentioned === true ? true : computedWasMentioned;
   const hasAnyMention = (msg.entities ?? msg.caption_entities ?? []).some(
     (ent) => ent.type === "mention",
   );
+  if (
+    isGroup &&
+    hasControlCommand(msg.text ?? msg.caption ?? "", cfg, { botUsername }) &&
+    !commandAuthorized
+  ) {
+    logVerbose(`telegram: drop control command from unauthorized sender ${senderId ?? "unknown"}`);
+    return null;
+  }
   const activationOverride = resolveGroupActivation({
     chatId,
     messageThreadId: resolvedThreadId,
@@ -324,14 +390,21 @@ export const buildTelegramMessageContext = async ({
       }]\n${replyTarget.body}\n[/Replying]`
     : "";
   const groupLabel = isGroup ? buildGroupLabel(msg, chatId, resolvedThreadId) : undefined;
+  const senderName = buildSenderName(msg);
   const conversationLabel = isGroup
     ? (groupLabel ?? `group:${chatId}`)
     : buildSenderLabel(msg, senderId || chatId);
-  const body = formatAgentEnvelope({
+  const body = formatInboundEnvelope({
     channel: "Telegram",
     from: conversationLabel,
     timestamp: msg.date ? msg.date * 1000 : undefined,
     body: `${bodyText}${replySuffix}`,
+    chatType: isGroup ? "group" : "direct",
+    sender: {
+      name: senderName,
+      username: senderUsername || undefined,
+      id: senderId || undefined,
+    },
   });
   let combinedBody = body;
   if (isGroup && historyKey && historyLimit > 0) {
@@ -341,11 +414,13 @@ export const buildTelegramMessageContext = async ({
       limit: historyLimit,
       currentMessage: combinedBody,
       formatEntry: (entry) =>
-        formatAgentEnvelope({
+        formatInboundEnvelope({
           channel: "Telegram",
           from: groupLabel ?? `group:${chatId}`,
           timestamp: entry.timestamp,
-          body: `${entry.sender}: ${entry.body} [id:${entry.messageId ?? "unknown"} chat:${chatId}]`,
+          body: `${entry.body} [id:${entry.messageId ?? "unknown"} chat:${chatId}]`,
+          chatType: "group",
+          senderLabel: entry.sender,
         }),
     });
   }
@@ -358,12 +433,10 @@ export const buildTelegramMessageContext = async ({
   const groupSystemPrompt =
     systemPromptParts.length > 0 ? systemPromptParts.join("\n\n") : undefined;
   const commandBody = normalizeCommandBody(rawBody, { botUsername });
-  const ctxPayload = {
+  const ctxPayload = finalizeInboundContext({
     Body: combinedBody,
-    BodyForAgent: combinedBody,
     RawBody: rawBody,
     CommandBody: commandBody,
-    BodyForCommands: commandBody,
     From: isGroup ? buildTelegramGroupFrom(chatId, resolvedThreadId) : `telegram:${chatId}`,
     To: `telegram:${chatId}`,
     SessionKey: route.sessionKey,
@@ -372,7 +445,7 @@ export const buildTelegramMessageContext = async ({
     ConversationLabel: conversationLabel,
     GroupSubject: isGroup ? (msg.chat.title ?? undefined) : undefined,
     GroupSystemPrompt: isGroup ? groupSystemPrompt : undefined,
-    SenderName: buildSenderName(msg),
+    SenderName: senderName,
     SenderId: senderId || undefined,
     SenderUsername: senderUsername || undefined,
     Provider: "telegram",
@@ -399,7 +472,7 @@ export const buildTelegramMessageContext = async ({
     // Originating channel for reply routing.
     OriginatingChannel: "telegram" as const,
     OriginatingTo: `telegram:${chatId}`,
-  };
+  });
 
   if (replyTarget && shouldLogVerbose()) {
     const preview = replyTarget.body.replace(/\s+/g, " ").slice(0, 120);
@@ -416,9 +489,11 @@ export const buildTelegramMessageContext = async ({
     await updateLastRoute({
       storePath,
       sessionKey: route.mainSessionKey,
-      channel: "telegram",
-      to: String(chatId),
-      accountId: route.accountId,
+      deliveryContext: {
+        channel: "telegram",
+        to: String(chatId),
+        accountId: route.accountId,
+      },
     });
   }
 

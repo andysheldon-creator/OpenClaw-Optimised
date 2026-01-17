@@ -251,12 +251,7 @@ export const MediaUnderstandingScopeSchema = z
             .object({
               channel: z.string().optional(),
               chatType: z
-                .union([
-                  z.literal("direct"),
-                  z.literal("group"),
-                  z.literal("channel"),
-                  z.literal("room"),
-                ])
+                .union([z.literal("direct"), z.literal("group"), z.literal("channel")])
                 .optional(),
               keyPrefix: z.string().optional(),
             })
@@ -275,7 +270,17 @@ export const MediaUnderstandingAttachmentsSchema = z
   .object({
     mode: z.union([z.literal("first"), z.literal("all")]).optional(),
     maxAttachments: z.number().int().positive().optional(),
-    prefer: z.union([z.literal("first"), z.literal("last"), z.literal("path"), z.literal("url")]).optional(),
+    prefer: z
+      .union([z.literal("first"), z.literal("last"), z.literal("path"), z.literal("url")])
+      .optional(),
+  })
+  .optional();
+
+const DeepgramAudioSchema = z
+  .object({
+    detectLanguage: z.boolean().optional(),
+    punctuate: z.boolean().optional(),
+    smartFormat: z.boolean().optional(),
   })
   .optional();
 
@@ -292,6 +297,9 @@ export const MediaUnderstandingModelSchema = z
     maxBytes: z.number().int().positive().optional(),
     timeoutSeconds: z.number().int().positive().optional(),
     language: z.string().optional(),
+    deepgram: DeepgramAudioSchema,
+    baseUrl: z.string().optional(),
+    headers: z.record(z.string(), z.string()).optional(),
     profile: z.string().optional(),
     preferredProfile: z.string().optional(),
   })
@@ -306,6 +314,9 @@ export const ToolsMediaUnderstandingSchema = z
     prompt: z.string().optional(),
     timeoutSeconds: z.number().int().positive().optional(),
     language: z.string().optional(),
+    deepgram: DeepgramAudioSchema,
+    baseUrl: z.string().optional(),
+    headers: z.record(z.string(), z.string()).optional(),
     attachments: MediaUnderstandingAttachmentsSchema,
     models: z.array(MediaUnderstandingModelSchema).optional(),
   })

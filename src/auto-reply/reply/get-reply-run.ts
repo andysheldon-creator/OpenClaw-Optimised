@@ -273,8 +273,10 @@ export async function runPreparedReply(
     typing.cleanup();
     return undefined;
   }
+  const isBareNewOrReset = rawBodyTrimmed === "/new" || rawBodyTrimmed === "/reset";
   const isBareSessionReset =
-    isNewSession && baseBodyTrimmedRaw.length === 0 && rawBodyTrimmed.length > 0;
+    isNewSession &&
+    ((baseBodyTrimmedRaw.length === 0 && rawBodyTrimmed.length > 0) || isBareNewOrReset);
   const baseBodyFinal = isBareSessionReset ? BARE_SESSION_RESET_PROMPT : baseBody;
   const baseBodyTrimmed = baseBodyFinal.trim();
   if (!baseBodyTrimmed) {
@@ -295,10 +297,7 @@ export async function runPreparedReply(
     abortKey: command.abortKey,
     messageId: sessionCtx.MessageSid,
   });
-  const isGroupSession =
-    sessionEntry?.chatType === "group" ||
-    sessionEntry?.chatType === "channel" ||
-    sessionEntry?.chatType === "room";
+  const isGroupSession = sessionEntry?.chatType === "group" || sessionEntry?.chatType === "channel";
   const isMainSession = !isGroupSession && sessionKey === normalizeMainKey(sessionCfg?.mainKey);
   prefixedBodyBase = await prependSystemEvents({
     cfg,

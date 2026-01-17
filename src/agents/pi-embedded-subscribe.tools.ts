@@ -1,6 +1,7 @@
 import { getChannelPlugin, normalizeChannelId } from "../channels/plugins/index.js";
 import { truncateUtf16Safe } from "../utils.js";
-import { type MessagingToolSend, normalizeTargetForProvider } from "./pi-embedded-messaging.js";
+import { type MessagingToolSend } from "./pi-embedded-messaging.js";
+import { normalizeTargetForProvider } from "../infra/outbound/target-normalization.js";
 
 const TOOL_RESULT_MAX_CHARS = 8000;
 
@@ -31,6 +32,24 @@ export function sanitizeToolResult(result: unknown): unknown {
     return entry;
   });
   return { ...record, content: sanitized };
+}
+
+export function extractToolResultText(result: unknown): string | undefined {
+  if (!result || typeof result !== "object") return undefined;
+  const record = result as Record<string, unknown>;
+  const content = Array.isArray(record.content) ? record.content : null;
+  if (!content) return undefined;
+  const texts = content
+    .map((item) => {
+      if (!item || typeof item !== "object") return undefined;
+      const entry = item as Record<string, unknown>;
+      if (entry.type !== "text" || typeof entry.text !== "string") return undefined;
+      const trimmed = entry.text.trim();
+      return trimmed ? trimmed : undefined;
+    })
+    .filter((value): value is string => Boolean(value));
+  if (texts.length === 0) return undefined;
+  return texts.join("\n");
 }
 
 export function isToolResultError(result: unknown): boolean {

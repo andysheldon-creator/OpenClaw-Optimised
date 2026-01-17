@@ -1,8 +1,9 @@
+import type { NormalizedChatType } from "../channels/chat-type.js";
 import type { AgentElevatedAllowFromConfig, SessionSendPolicyAction } from "./types.base.js";
 
 export type MediaUnderstandingScopeMatch = {
   channel?: string;
-  chatType?: "direct" | "group" | "channel" | "room";
+  chatType?: NormalizedChatType;
   keyPrefix?: string;
 };
 
@@ -50,6 +51,16 @@ export type MediaUnderstandingModelConfig = {
   timeoutSeconds?: number;
   /** Optional language hint for audio transcription. */
   language?: string;
+  /** Optional Deepgram transcription options (audio only). */
+  deepgram?: {
+    detectLanguage?: boolean;
+    punctuate?: boolean;
+    smartFormat?: boolean;
+  };
+  /** Optional base URL override for provider requests. */
+  baseUrl?: string;
+  /** Optional headers merged into provider requests. */
+  headers?: Record<string, string>;
   /** Auth profile id to use for this provider. */
   profile?: string;
   /** Preferred profile id if multiple are available. */
@@ -71,6 +82,16 @@ export type MediaUnderstandingConfig = {
   timeoutSeconds?: number;
   /** Default language hint (audio). */
   language?: string;
+  /** Optional Deepgram transcription options (audio only). */
+  deepgram?: {
+    detectLanguage?: boolean;
+    punctuate?: boolean;
+    smartFormat?: boolean;
+  };
+  /** Optional base URL override for provider requests. */
+  baseUrl?: string;
+  /** Optional headers merged into provider requests. */
+  headers?: Record<string, string>;
   /** Attachment selection policy. */
   attachments?: MediaUnderstandingAttachmentsConfig;
   /** Ordered model list (fallbacks in order). */
@@ -263,6 +284,8 @@ export type ToolsConfig = {
     timeoutSec?: number;
     /** How long to keep finished sessions in memory (ms). */
     cleanupMs?: number;
+    /** Emit a system event and heartbeat when a backgrounded exec exits. */
+    notifyOnExit?: boolean;
     /** apply_patch subtool configuration (experimental). */
     applyPatch?: {
       /** Enable apply_patch for OpenAI models (default: false). */
@@ -273,15 +296,6 @@ export type ToolsConfig = {
        */
       allowModels?: string[];
     };
-  };
-  /** @deprecated Use tools.exec. */
-  bash?: {
-    /** Default time (ms) before a bash command auto-backgrounds. */
-    backgroundMs?: number;
-    /** Default timeout (seconds) before auto-killing bash commands. */
-    timeoutSec?: number;
-    /** How long to keep finished sessions in memory (ms). */
-    cleanupMs?: number;
   };
   /** Sub-agent tool policy defaults (deny wins). */
   subagents?: {

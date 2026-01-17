@@ -1,6 +1,7 @@
 import type { ClawdbotConfig } from "../config/config.js";
 import type { TelegramInlineButtonsScope } from "../config/types.telegram.js";
 import { listTelegramAccountIds, resolveTelegramAccount } from "./accounts.js";
+import { parseTelegramTarget } from "./targets.js";
 
 const DEFAULT_INLINE_BUTTONS_SCOPE: TelegramInlineButtonsScope = "allowlist";
 
@@ -61,10 +62,12 @@ export function isTelegramInlineButtonsEnabled(params: {
 }
 
 export function resolveTelegramTargetChatType(target: string): "direct" | "group" | "unknown" {
-  const trimmed = target.trim();
-  if (!trimmed) return "unknown";
-  if (/^-?\d+$/.test(trimmed)) {
-    return trimmed.startsWith("-") ? "group" : "direct";
+  if (!target.trim()) return "unknown";
+  const parsed = parseTelegramTarget(target);
+  const chatId = parsed.chatId.trim();
+  if (!chatId) return "unknown";
+  if (/^-?\d+$/.test(chatId)) {
+    return chatId.startsWith("-") ? "group" : "direct";
   }
   return "unknown";
 }

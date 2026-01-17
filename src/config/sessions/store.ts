@@ -4,6 +4,13 @@ import path from "node:path";
 
 import JSON5 from "json5";
 import { getFileMtimeMs, isCacheEnabled, resolveCacheTtlMs } from "../cache-utils.js";
+import {
+  deliveryContextFromSession,
+  mergeDeliveryContext,
+  normalizeDeliveryContext,
+  normalizeSessionDeliveryFields,
+  type DeliveryContext,
+} from "../../utils/delivery-context.js";
 import { mergeSessionEntry, type SessionEntry } from "./types.js";
 
 // ============================================================================
@@ -39,6 +46,37 @@ function isSessionStoreCacheValid(entry: SessionStoreCacheEntry): boolean {
 
 function invalidateSessionStoreCache(storePath: string): void {
   SESSION_STORE_CACHE.delete(storePath);
+}
+
+function normalizeSessionEntryDelivery(entry: SessionEntry): SessionEntry {
+  const normalized = normalizeSessionDeliveryFields(entry);
+  const nextDelivery = normalized.deliveryContext;
+  const sameDelivery =
+    (entry.deliveryContext?.channel ?? undefined) === nextDelivery?.channel &&
+    (entry.deliveryContext?.to ?? undefined) === nextDelivery?.to &&
+    (entry.deliveryContext?.accountId ?? undefined) === nextDelivery?.accountId;
+  const sameLast =
+    entry.lastChannel === normalized.lastChannel &&
+    entry.lastTo === normalized.lastTo &&
+    entry.lastAccountId === normalized.lastAccountId;
+  if (sameDelivery && sameLast) return entry;
+  return {
+    ...entry,
+    deliveryContext: nextDelivery,
+    lastChannel: normalized.lastChannel,
+    lastTo: normalized.lastTo,
+    lastAccountId: normalized.lastAccountId,
+  };
+}
+
+function normalizeSessionStore(store: Record<string, SessionEntry>): void {
+  for (const [key, entry] of Object.entries(store)) {
+    if (!entry) continue;
+    const normalized = normalizeSessionEntryDelivery(entry);
+    if (normalized !== entry) {
+      store[key] = normalized;
+    }
+  }
 }
 
 export function clearSessionStoreCacheForTest(): void {
@@ -113,6 +151,8 @@ async function saveSessionStoreUnlocked(
 ): Promise<void> {
   // Invalidate cache on write to ensure consistency
   invalidateSessionStoreCache(storePath);
+
+  normalizeSessionStore(store);
 
   await fs.promises.mkdir(path.dirname(storePath), { recursive: true });
   const json = JSON.stringify(store, null, 2);
@@ -289,20 +329,37 @@ export async function updateSessionStoreEntry(params: {
 export async function updateLastRoute(params: {
   storePath: string;
   sessionKey: string;
-  channel: SessionEntry["lastChannel"];
+  channel?: SessionEntry["lastChannel"];
   to?: string;
   accountId?: string;
+  deliveryContext?: DeliveryContext;
 }) {
   const { storePath, sessionKey, channel, to, accountId } = params;
   return await withSessionStoreLock(storePath, async () => {
     const store = loadSessionStore(storePath);
     const existing = store[sessionKey];
     const now = Date.now();
+    const explicitContext = normalizeDeliveryContext(params.deliveryContext);
+    const inlineContext = normalizeDeliveryContext({
+      channel,
+      to,
+      accountId,
+    });
+    const mergedInput = mergeDeliveryContext(explicitContext, inlineContext);
+    const merged = mergeDeliveryContext(mergedInput, deliveryContextFromSession(existing));
+    const normalized = normalizeSessionDeliveryFields({
+      deliveryContext: {
+        channel: merged?.channel,
+        to: merged?.to,
+        accountId: merged?.accountId,
+      },
+    });
     const next = mergeSessionEntry(existing, {
       updatedAt: Math.max(existing?.updatedAt ?? 0, now),
-      lastChannel: channel,
-      lastTo: to?.trim() ? to.trim() : undefined,
-      lastAccountId: accountId?.trim() ? accountId.trim() : existing?.lastAccountId,
+      deliveryContext: normalized.deliveryContext,
+      lastChannel: normalized.lastChannel,
+      lastTo: normalized.lastTo,
+      lastAccountId: normalized.lastAccountId,
     });
     store[sessionKey] = next;
     await saveSessionStoreUnlocked(storePath, store);

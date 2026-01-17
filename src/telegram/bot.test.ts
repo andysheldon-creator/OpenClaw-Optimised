@@ -1815,7 +1815,7 @@ describe("createTelegramBot", () => {
     expect(replySpy).toHaveBeenCalledTimes(1);
     const payload = replySpy.mock.calls[0][0];
     expect(payload.SessionKey).toContain("telegram:group:-1001234567890:topic:99");
-    expect(payload.From).toBe("group:-1001234567890:topic:99");
+    expect(payload.From).toBe("telegram:group:-1001234567890:topic:99");
     expect(payload.MessageThreadId).toBe(99);
     expect(payload.IsForum).toBe(true);
     expect(sendChatActionSpy).toHaveBeenCalledWith(-1001234567890, "typing", {
@@ -2064,9 +2064,11 @@ describe("createTelegramBot", () => {
 
     loadConfig.mockReturnValue({
       commands: { native: true },
-      telegram: {
-        dmPolicy: "open",
-        allowFrom: ["*"],
+      channels: {
+        telegram: {
+          dmPolicy: "open",
+          allowFrom: ["*"],
+        },
       },
     });
 

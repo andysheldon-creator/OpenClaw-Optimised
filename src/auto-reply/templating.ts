@@ -1,7 +1,10 @@
 import type { ChannelId } from "../channels/plugins/types.js";
 import type { InternalMessageChannel } from "../utils/message-channel.js";
 import type { CommandArgs } from "./commands-registry.types.js";
-import type { MediaUnderstandingOutput } from "../media-understanding/types.js";
+import type {
+  MediaUnderstandingDecision,
+  MediaUnderstandingOutput,
+} from "../media-understanding/types.js";
 
 /** Valid message channels for routing. */
 export type OriginatingChannelType = ChannelId | InternalMessageChannel;
@@ -53,13 +56,15 @@ export type MsgContext = {
   MediaRemoteHost?: string;
   Transcript?: string;
   MediaUnderstanding?: MediaUnderstandingOutput[];
+  MediaUnderstandingDecisions?: MediaUnderstandingDecision[];
   Prompt?: string;
   MaxChars?: number;
   ChatType?: string;
   /** Human label for envelope headers (conversation label, not sender). */
   ConversationLabel?: string;
   GroupSubject?: string;
-  GroupRoom?: string;
+  /** Human label for channel-like group conversations (e.g. #general, #support). */
+  GroupChannel?: string;
   GroupSpace?: string;
   GroupMembers?: string;
   GroupSystemPrompt?: string;
@@ -92,7 +97,7 @@ export type MsgContext = {
    */
   OriginatingTo?: string;
   /**
-   * Messages from internal hooks to be included in the response.
+   * Messages from hooks to be included in the response.
    * Used for hook confirmation messages like "Session context saved to memory".
    */
   HookMessages?: string[];

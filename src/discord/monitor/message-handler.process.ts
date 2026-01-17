@@ -8,12 +8,13 @@ import {
   extractShortModelName,
   type ResponsePrefixContext,
 } from "../../auto-reply/reply/response-prefix-template.js";
-import { formatAgentEnvelope, formatThreadStarterEnvelope } from "../../auto-reply/envelope.js";
+import { formatInboundEnvelope, formatThreadStarterEnvelope } from "../../auto-reply/envelope.js";
 import { dispatchReplyFromConfig } from "../../auto-reply/reply/dispatch-from-config.js";
 import {
   buildPendingHistoryContextFromMap,
   clearHistoryEntries,
 } from "../../auto-reply/reply/history.js";
+import { finalizeInboundContext } from "../../auto-reply/reply/inbound-context.js";
 import { createReplyDispatcherWithTyping } from "../../auto-reply/reply/reply-dispatcher.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import { resolveStorePath, updateLastRoute } from "../../config/sessions.js";
@@ -117,8 +118,14 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
         channelName: channelName ?? message.channelId,
         channelId: message.channelId,
       });
-  const groupRoom = isGuildMessage && displayChannelSlug ? `#${displayChannelSlug}` : undefined;
-  const groupSubject = isDirectMessage ? undefined : groupRoom;
+  const senderTag = formatDiscordUserTag(author);
+  const senderDisplay = data.member?.nickname ?? author.globalName ?? author.username;
+  const senderLabel =
+    senderDisplay && senderTag && senderDisplay !== senderTag
+      ? `${senderDisplay} (${senderTag})`
+      : (senderDisplay ?? senderTag ?? author.id);
+  const groupChannel = isGuildMessage && displayChannelSlug ? `#${displayChannelSlug}` : undefined;
+  const groupSubject = isDirectMessage ? undefined : groupChannel;
   const channelDescription = channelInfo?.topic?.trim();
   const systemPromptParts = [
     channelDescription ? `Channel topic: ${channelDescription}` : null,
@@ -126,11 +133,13 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
   ].filter((entry): entry is string => Boolean(entry));
   const groupSystemPrompt =
     systemPromptParts.length > 0 ? systemPromptParts.join("\n\n") : undefined;
-  let combinedBody = formatAgentEnvelope({
+  let combinedBody = formatInboundEnvelope({
     channel: "Discord",
     from: fromLabel,
     timestamp: resolveTimestampMs(message.timestamp),
     body: text,
+    chatType: isDirectMessage ? "direct" : "channel",
+    senderLabel,
   });
   const shouldIncludeChannelHistory =
     !isDirectMessage && !(isGuildMessage && channelConfig?.autoThread && !threadChannel);
@@ -141,11 +150,13 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
       limit: historyLimit,
       currentMessage: combinedBody,
       formatEntry: (entry) =>
-        formatAgentEnvelope({
+        formatInboundEnvelope({
           channel: "Discord",
           from: fromLabel,
           timestamp: entry.timestamp,
-          body: `${entry.sender}: ${entry.body} [id:${entry.messageId ?? "unknown"} channel:${message.channelId}]`,
+          body: `${entry.body} [id:${entry.messageId ?? "unknown"} channel:${message.channelId}]`,
+          chatType: "channel",
+          senderLabel: entry.sender,
         }),
     });
   }
@@ -212,19 +223,17 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
 
   const effectiveFrom = isDirectMessage
     ? `discord:${author.id}`
-    : (autoThreadContext?.From ?? `group:${message.channelId}`);
+    : (autoThreadContext?.From ?? `discord:channel:${message.channelId}`);
   const effectiveTo = autoThreadContext?.To ?? replyTarget;
   if (!effectiveTo) {
     runtime.error?.(danger("discord: missing reply target"));
     return;
   }
 
-  const ctxPayload = {
+  const ctxPayload = finalizeInboundContext({
     Body: combinedBody,
-    BodyForAgent: combinedBody,
     RawBody: baseText,
     CommandBody: baseText,
-    BodyForCommands: baseText,
     From: effectiveFrom,
     To: effectiveTo,
     SessionKey: autoThreadContext?.SessionKey ?? threadKeys.sessionKey,
@@ -236,7 +245,7 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
     SenderUsername: author.username,
     SenderTag: formatDiscordUserTag(author),
     GroupSubject: groupSubject,
-    GroupRoom: groupRoom,
+    GroupChannel: groupChannel,
     GroupSystemPrompt: isGuildMessage ? groupSystemPrompt : undefined,
     GroupSpace: isGuildMessage ? (guildInfo?.id ?? guildSlug) || undefined : undefined,
     Provider: "discord" as const,
@@ -253,7 +262,7 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
     // Originating channel for reply routing.
     OriginatingChannel: "discord" as const,
     OriginatingTo: autoThreadContext?.OriginatingTo ?? replyTarget,
-  };
+  });
 
   if (isDirectMessage) {
     const sessionCfg = cfg.session;
@@ -263,9 +272,11 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
     await updateLastRoute({
       storePath,
       sessionKey: route.mainSessionKey,
-      channel: "discord",
-      to: `user:${author.id}`,
-      accountId: route.accountId,
+      deliveryContext: {
+        channel: "discord",
+        to: `user:${author.id}`,
+        accountId: route.accountId,
+      },
     });
   }
 

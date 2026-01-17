@@ -60,7 +60,7 @@ describe("runMessageAction context isolation", () => {
         action: "send",
         params: {
           channel: "slack",
-        target: "#C12345678",
+          target: "#C12345678",
         },
         toolContext: { currentChannelId: "C12345678" },
         dryRun: true,
@@ -106,7 +106,7 @@ describe("runMessageAction context isolation", () => {
       action: "send",
       params: {
         channel: "whatsapp",
-        target: "group:123@g.us",
+        target: "123@g.us",
         message: "hi",
       },
       toolContext: { currentChannelId: "123@g.us" },

@@ -41,4 +41,16 @@ describe("formatInboundBodyWithSenderMeta", () => {
       "[X] hi\n[from: Alice (A1)]",
     );
   });
+
+  it("does not append when the body already includes a sender prefix", () => {
+    const ctx: MsgContext = { ChatType: "group", SenderName: "Alice", SenderId: "A1" };
+    expect(formatInboundBodyWithSenderMeta({ ctx, body: "Alice (A1): hi" })).toBe("Alice (A1): hi");
+  });
+
+  it("does not append when the sender prefix follows an envelope header", () => {
+    const ctx: MsgContext = { ChatType: "group", SenderName: "Alice", SenderId: "A1" };
+    expect(formatInboundBodyWithSenderMeta({ ctx, body: "[Signal Group] Alice (A1): hi" })).toBe(
+      "[Signal Group] Alice (A1): hi",
+    );
+  });
 });

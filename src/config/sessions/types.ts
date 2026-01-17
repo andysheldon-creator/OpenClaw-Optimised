@@ -1,18 +1,15 @@
 import crypto from "node:crypto";
 
 import type { Skill } from "@mariozechner/pi-coding-agent";
+import type { NormalizedChatType } from "../../channels/chat-type.js";
 import type { ChannelId } from "../../channels/plugins/types.js";
+import type { DeliveryContext } from "../../utils/delivery-context.js";
 
 export type SessionScope = "per-sender" | "global";
 
 export type SessionChannelId = ChannelId | "webchat";
 
-export type SessionChatType =
-  | "direct"
-  | "group"
-  | "channel"
-  // Legacy alias for "channel".
-  | "room";
+export type SessionChatType = NormalizedChatType;
 
 export type SessionEntry = {
   /**
@@ -68,9 +65,11 @@ export type SessionEntry = {
   label?: string;
   displayName?: string;
   channel?: string;
+  groupId?: string;
   subject?: string;
   room?: string;
   space?: string;
+  deliveryContext?: DeliveryContext;
   lastChannel?: SessionChannelId;
   lastTo?: string;
   lastAccountId?: string;
@@ -90,7 +89,6 @@ export function mergeSessionEntry(
 
 export type GroupKeyResolution = {
   key: string;
-  legacyKey?: string;
   channel?: string;
   id?: string;
   chatType?: SessionChatType;

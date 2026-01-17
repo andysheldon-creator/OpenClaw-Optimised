@@ -26,7 +26,7 @@ import { buildChannelConfigSchema } from "./config-schema.js";
 import { createWhatsAppLoginTool } from "./agent-tools/whatsapp-login.js";
 import { resolveWhatsAppGroupRequireMention } from "./group-mentions.js";
 import { formatPairingApproveHint } from "./helpers.js";
-import { normalizeWhatsAppMessagingTarget } from "./normalize-target.js";
+import { looksLikeWhatsAppTargetId, normalizeWhatsAppMessagingTarget } from "./normalize-target.js";
 import { whatsappOnboardingAdapter } from "./onboarding/whatsapp.js";
 import {
   applyAccountNameToChannelSection,
@@ -36,6 +36,10 @@ import { collectWhatsAppStatusIssues } from "./status-issues/whatsapp.js";
 import type { ChannelMessageActionName, ChannelPlugin } from "./types.js";
 import { resolveWhatsAppHeartbeatRecipients } from "./whatsapp-heartbeat.js";
 import { missingTargetError } from "../../infra/outbound/target-errors.js";
+import {
+  listWhatsAppDirectoryGroupsFromConfig,
+  listWhatsAppDirectoryPeersFromConfig,
+} from "./directory-config.js";
 
 const meta = getChatChannelMeta("whatsapp");
 
@@ -219,6 +223,10 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
   },
   messaging: {
     normalizeTarget: normalizeWhatsAppMessagingTarget,
+    targetResolver: {
+      looksLikeId: looksLikeWhatsAppTargetId,
+      hint: "<E.164|group JID>",
+    },
   },
   directory: {
     self: async ({ cfg, accountId }) => {
@@ -233,31 +241,8 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
         raw: { e164, jid },
       };
     },
-    listPeers: async ({ cfg, accountId, query, limit }) => {
-      const account = resolveWhatsAppAccount({ cfg, accountId });
-      const q = query?.trim().toLowerCase() || "";
-      const peers = (account.allowFrom ?? [])
-        .map((entry) => String(entry).trim())
-        .filter((entry) => Boolean(entry) && entry !== "*")
-        .map((entry) => normalizeWhatsAppTarget(entry) ?? "")
-        .filter(Boolean)
-        .filter((id) => !isWhatsAppGroupJid(id))
-        .filter((id) => (q ? id.toLowerCase().includes(q) : true))
-        .slice(0, limit && limit > 0 ? limit : undefined)
-        .map((id) => ({ kind: "user", id }) as const);
-      return peers;
-    },
-    listGroups: async ({ cfg, accountId, query, limit }) => {
-      const account = resolveWhatsAppAccount({ cfg, accountId });
-      const q = query?.trim().toLowerCase() || "";
-      const groups = Object.keys(account.groups ?? {})
-        .map((id) => id.trim())
-        .filter((id) => Boolean(id) && id !== "*")
-        .filter((id) => (q ? id.toLowerCase().includes(q) : true))
-        .slice(0, limit && limit > 0 ? limit : undefined)
-        .map((id) => ({ kind: "group", id }) as const);
-      return groups;
-    },
+    listPeers: async (params) => listWhatsAppDirectoryPeersFromConfig(params),
+    listGroups: async (params) => listWhatsAppDirectoryGroupsFromConfig(params),
   },
   actions: {
     listActions: ({ cfg }) => {
@@ -342,7 +327,10 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
       }
       return {
         ok: false,
-        error: missingTargetError("WhatsApp", "<E.164|group JID> or channels.whatsapp.allowFrom[0]"),
+        error: missingTargetError(
+          "WhatsApp",
+          "<E.164|group JID> or channels.whatsapp.allowFrom[0]",
+        ),
       };
     },
     sendText: async ({ to, text, accountId, deps, gifPlayback }) => {

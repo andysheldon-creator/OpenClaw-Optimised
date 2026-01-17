@@ -79,8 +79,18 @@ export type HookConfig = {
   [key: string]: unknown;
 };
 
+export type HookInstallRecord = {
+  source: "npm" | "archive" | "path";
+  spec?: string;
+  sourcePath?: string;
+  installPath?: string;
+  version?: string;
+  installedAt?: string;
+  hooks?: string[];
+};
+
 export type InternalHooksConfig = {
-  /** Enable internal hooks system */
+  /** Enable hooks system */
   enabled?: boolean;
   /** Legacy: List of internal hook handlers to register (still supported) */
   handlers?: InternalHookHandlerConfig[];
@@ -91,6 +101,8 @@ export type InternalHooksConfig = {
     /** Additional hook directories to scan */
     extraDirs?: string[];
   };
+  /** Install records for hook packs or hooks */
+  installs?: Record<string, HookInstallRecord>;
 };
 
 export type HooksConfig = {

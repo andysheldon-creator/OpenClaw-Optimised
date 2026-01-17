@@ -81,6 +81,50 @@ describe("applyMediaUnderstanding", () => {
     expect(ctx.Body).toBe("[Audio]\nTranscript:\ntranscribed text");
     expect(ctx.CommandBody).toBe("transcribed text");
     expect(ctx.RawBody).toBe("transcribed text");
+    expect(ctx.BodyForAgent).toBe(ctx.Body);
+    expect(ctx.BodyForCommands).toBe("transcribed text");
+  });
+
+  it("keeps caption for command parsing when audio has user text", async () => {
+    const { applyMediaUnderstanding } = await loadApply();
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-media-"));
+    const audioPath = path.join(dir, "note.ogg");
+    await fs.writeFile(audioPath, "hello");
+
+    const ctx: MsgContext = {
+      Body: "<media:audio> /capture status",
+      MediaPath: audioPath,
+      MediaType: "audio/ogg",
+    };
+    const cfg: ClawdbotConfig = {
+      tools: {
+        media: {
+          audio: {
+            enabled: true,
+            maxBytes: 1024 * 1024,
+            models: [{ provider: "groq" }],
+          },
+        },
+      },
+    };
+
+    const result = await applyMediaUnderstanding({
+      ctx,
+      cfg,
+      providers: {
+        groq: {
+          id: "groq",
+          transcribeAudio: async () => ({ text: "transcribed text" }),
+        },
+      },
+    });
+
+    expect(result.appliedAudio).toBe(true);
+    expect(ctx.Transcript).toBe("transcribed text");
+    expect(ctx.Body).toBe("[Audio]\nUser text:\n/capture status\nTranscript:\ntranscribed text");
+    expect(ctx.CommandBody).toBe("/capture status");
+    expect(ctx.RawBody).toBe("/capture status");
+    expect(ctx.BodyForCommands).toBe("/capture status");
   });
 
   it("handles URL-only attachments for audio transcription", async () => {
@@ -254,6 +298,8 @@ describe("applyMediaUnderstanding", () => {
     expect(ctx.Body).toBe("[Image]\nUser text:\nshow Dom\nDescription:\nimage description");
     expect(ctx.CommandBody).toBe("show Dom");
     expect(ctx.RawBody).toBe("show Dom");
+    expect(ctx.BodyForAgent).toBe(ctx.Body);
+    expect(ctx.BodyForCommands).toBe("show Dom");
   });
 
   it("uses shared media models list when capability config is missing", async () => {
@@ -297,6 +343,43 @@ describe("applyMediaUnderstanding", () => {
     expect(ctx.Body).toBe("[Image]\nDescription:\nshared description");
   });
 
+  it("uses active model when enabled and models are missing", async () => {
+    const { applyMediaUnderstanding } = await loadApply();
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-media-"));
+    const audioPath = path.join(dir, "fallback.ogg");
+    await fs.writeFile(audioPath, "hello");
+
+    const ctx: MsgContext = {
+      Body: "<media:audio>",
+      MediaPath: audioPath,
+      MediaType: "audio/ogg",
+    };
+    const cfg: ClawdbotConfig = {
+      tools: {
+        media: {
+          audio: {
+            enabled: true,
+          },
+        },
+      },
+    };
+
+    const result = await applyMediaUnderstanding({
+      ctx,
+      cfg,
+      activeModel: { provider: "groq", model: "whisper-large-v3" },
+      providers: {
+        groq: {
+          id: "groq",
+          transcribeAudio: async () => ({ text: "fallback transcript" }),
+        },
+      },
+    });
+
+    expect(result.appliedAudio).toBe(true);
+    expect(ctx.Transcript).toBe("fallback transcript");
+  });
+
   it("handles multiple audio attachments when attachment mode is all", async () => {
     const { applyMediaUnderstanding } = await loadApply();
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-media-"));
@@ -336,9 +419,67 @@ describe("applyMediaUnderstanding", () => {
     expect(result.appliedAudio).toBe(true);
     expect(ctx.Transcript).toBe("Audio 1:\nnote-a.ogg\n\nAudio 2:\nnote-b.ogg");
     expect(ctx.Body).toBe(
-      ["[Audio 1/2]\nTranscript:\nnote-a.ogg", "[Audio 2/2]\nTranscript:\nnote-b.ogg"].join(
-        "\n\n",
-      ),
+      ["[Audio 1/2]\nTranscript:\nnote-a.ogg", "[Audio 2/2]\nTranscript:\nnote-b.ogg"].join("\n\n"),
     );
+  });
+
+  it("orders mixed media outputs as image, audio, video", async () => {
+    const { applyMediaUnderstanding } = await loadApply();
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-media-"));
+    const imagePath = path.join(dir, "photo.jpg");
+    const audioPath = path.join(dir, "note.ogg");
+    const videoPath = path.join(dir, "clip.mp4");
+    await fs.writeFile(imagePath, "image-bytes");
+    await fs.writeFile(audioPath, "audio-bytes");
+    await fs.writeFile(videoPath, "video-bytes");
+
+    const ctx: MsgContext = {
+      Body: "<media:mixed>",
+      MediaPaths: [imagePath, audioPath, videoPath],
+      MediaTypes: ["image/jpeg", "audio/ogg", "video/mp4"],
+    };
+    const cfg: ClawdbotConfig = {
+      tools: {
+        media: {
+          image: { enabled: true, models: [{ provider: "openai", model: "gpt-5.2" }] },
+          audio: { enabled: true, models: [{ provider: "groq" }] },
+          video: { enabled: true, models: [{ provider: "google", model: "gemini-3" }] },
+        },
+      },
+    };
+
+    const result = await applyMediaUnderstanding({
+      ctx,
+      cfg,
+      agentDir: dir,
+      providers: {
+        openai: {
+          id: "openai",
+          describeImage: async () => ({ text: "image ok" }),
+        },
+        groq: {
+          id: "groq",
+          transcribeAudio: async () => ({ text: "audio ok" }),
+        },
+        google: {
+          id: "google",
+          describeVideo: async () => ({ text: "video ok" }),
+        },
+      },
+    });
+
+    expect(result.appliedImage).toBe(true);
+    expect(result.appliedAudio).toBe(true);
+    expect(result.appliedVideo).toBe(true);
+    expect(ctx.Body).toBe(
+      [
+        "[Image]\nDescription:\nimage ok",
+        "[Audio]\nTranscript:\naudio ok",
+        "[Video]\nDescription:\nvideo ok",
+      ].join("\n\n"),
+    );
+    expect(ctx.Transcript).toBe("audio ok");
+    expect(ctx.CommandBody).toBe("audio ok");
+    expect(ctx.BodyForCommands).toBe("audio ok");
   });
 });

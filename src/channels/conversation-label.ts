@@ -27,7 +27,7 @@ export function resolveConversationLabel(ctx: MsgContext): string | undefined {
   }
 
   const base =
-    ctx.GroupRoom?.trim() ||
+    ctx.GroupChannel?.trim() ||
     ctx.GroupSubject?.trim() ||
     ctx.GroupSpace?.trim() ||
     ctx.From?.trim() ||
@@ -43,4 +43,3 @@ export function resolveConversationLabel(ctx: MsgContext): string | undefined {
   if (base.startsWith("#") || base.startsWith("@")) return base;
   return `${base} id:${id}`;
 }
-

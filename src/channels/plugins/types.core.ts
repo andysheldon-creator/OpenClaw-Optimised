@@ -4,6 +4,7 @@ import type { MsgContext } from "../../auto-reply/templating.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import type { PollInput } from "../../polls.js";
 import type { GatewayClientMode, GatewayClientName } from "../../utils/message-channel.js";
+import type { NormalizedChatType } from "../chat-type.js";
 import type { ChatChannelId } from "../registry.js";
 import type { ChannelMessageActionName as ChannelMessageActionNameFromList } from "./message-action-names.js";
 
@@ -132,13 +133,14 @@ export type ChannelLogSink = {
 export type ChannelGroupContext = {
   cfg: ClawdbotConfig;
   groupId?: string | null;
-  groupRoom?: string | null;
+  /** Human label for channel-like group conversations (e.g. #general). */
+  groupChannel?: string | null;
   groupSpace?: string | null;
   accountId?: string | null;
 };
 
 export type ChannelCapabilities = {
-  chatTypes: Array<"direct" | "group" | "channel" | "thread">;
+  chatTypes: Array<NormalizedChatType | "thread">;
   polls?: boolean;
   reactions?: boolean;
   threads?: boolean;
@@ -215,6 +217,15 @@ export type ChannelThreadingToolContext = {
 
 export type ChannelMessagingAdapter = {
   normalizeTarget?: (raw: string) => string | undefined;
+  targetResolver?: {
+    looksLikeId?: (raw: string, normalized?: string) => boolean;
+    hint?: string;
+  };
+  formatTargetDisplay?: (params: {
+    target: string;
+    display?: string;
+    kind?: ChannelDirectoryEntryKind;
+  }) => string;
 };
 
 export type ChannelDirectoryEntryKind = "user" | "group" | "channel";

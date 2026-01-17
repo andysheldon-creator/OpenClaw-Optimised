@@ -1,11 +1,15 @@
 import { resolveAckReaction } from "../../../agents/identity.js";
 import { hasControlCommand } from "../../../auto-reply/command-detection.js";
 import { shouldHandleTextCommands } from "../../../auto-reply/commands-registry.js";
-import { formatAgentEnvelope, formatThreadStarterEnvelope } from "../../../auto-reply/envelope.js";
+import {
+  formatInboundEnvelope,
+  formatThreadStarterEnvelope,
+} from "../../../auto-reply/envelope.js";
 import {
   buildPendingHistoryContextFromMap,
   recordPendingHistoryEntry,
 } from "../../../auto-reply/reply/history.js";
+import { finalizeInboundContext } from "../../../auto-reply/reply/inbound-context.js";
 import { buildMentionRegexes, matchesMentionPatterns } from "../../../auto-reply/reply/mentions.js";
 import { logVerbose, shouldLogVerbose } from "../../../globals.js";
 import { enqueueSystemEvent } from "../../../infra/system-events.js";
@@ -15,6 +19,7 @@ import { resolveAgentRoute } from "../../../routing/resolve-route.js";
 import { resolveThreadSessionKeys } from "../../../routing/session-key.js";
 import { resolveMentionGating } from "../../../channels/mention-gating.js";
 import { resolveConversationLabel } from "../../../channels/conversation-label.js";
+import { resolveCommandAuthorizedFromAuthorizers } from "../../../channels/command-gating.js";
 
 import type { ResolvedSlackAccount } from "../../accounts.js";
 import { reactSlackMessage } from "../../actions.js";
@@ -22,7 +27,7 @@ import { sendMessageSlack } from "../../send.js";
 import type { SlackMessageEvent } from "../../types.js";
 
 import { allowListMatches, resolveSlackUserAllowed } from "../allow-list.js";
-import { isSlackSenderAllowListed, resolveSlackEffectiveAllowFrom } from "../auth.js";
+import { resolveSlackEffectiveAllowFrom } from "../auth.js";
 import { resolveSlackChannelConfig } from "../channel-config.js";
 import { normalizeSlackChannelType, type SlackMonitorContext } from "../context.js";
 import { resolveSlackMedia, resolveSlackThreadStarter } from "../media.js";
@@ -213,18 +218,45 @@ export async function prepareSlackMessage(params: {
     return null;
   }
 
-  const commandAuthorized =
-    isSlackSenderAllowListed({
-      allowListLower: allowFromLower,
-      senderId,
-      senderName,
-    }) && channelUserAuthorized;
-
   const hasAnyMention = /<@[^>]+>/.test(message.text ?? "");
   const allowTextCommands = shouldHandleTextCommands({
     cfg,
     surface: "slack",
   });
+
+  const ownerAuthorized = allowListMatches({
+    allowList: allowFromLower,
+    id: senderId,
+    name: senderName,
+  });
+  const channelUsersAllowlistConfigured =
+    isRoom && Array.isArray(channelConfig?.users) && channelConfig.users.length > 0;
+  const channelCommandAuthorized =
+    isRoom && channelUsersAllowlistConfigured
+      ? resolveSlackUserAllowed({
+          allowList: channelConfig?.users,
+          userId: senderId,
+          userName: senderName,
+        })
+      : false;
+  const commandAuthorized = resolveCommandAuthorizedFromAuthorizers({
+    useAccessGroups: ctx.useAccessGroups,
+    authorizers: [
+      { configured: allowFromLower.length > 0, allowed: ownerAuthorized },
+      { configured: channelUsersAllowlistConfigured, allowed: channelCommandAuthorized },
+    ],
+  });
+
+  if (
+    allowTextCommands &&
+    isRoomish &&
+    hasControlCommand(message.text ?? "", cfg) &&
+    !commandAuthorized
+  ) {
+    logVerbose(`Blocked slack control command from unauthorized sender ${senderId}`);
+    return null;
+  }
+
   const shouldRequireMention = isRoom
     ? (channelConfig?.requireMention ?? ctx.defaultRequireMention)
     : false;
@@ -249,7 +281,7 @@ export async function prepareSlackMessage(params: {
   });
   const effectiveWasMentioned = mentionGate.effectiveWasMentioned;
   if (isRoom && shouldRequireMention && mentionGate.shouldSkip) {
-    ctx.logger.info({ channel: message.channel, reason: "no-mention" }, "skipping room message");
+    ctx.logger.info({ channel: message.channel, reason: "no-mention" }, "skipping channel message");
     if (ctx.historyLimit > 0) {
       const pendingText = (message.text ?? "").trim();
       const fallbackFile = message.files?.[0]?.name
@@ -339,11 +371,13 @@ export async function prepareSlackMessage(params: {
       From: slackFrom,
     }) ?? (isDirectMessage ? senderName : roomLabel);
   const textWithId = `${rawBody}\n[slack message id: ${message.ts} channel: ${message.channel}]`;
-  const body = formatAgentEnvelope({
+  const body = formatInboundEnvelope({
     channel: "Slack",
     from: envelopeFrom,
     timestamp: message.ts ? Math.round(Number(message.ts) * 1000) : undefined,
     body: textWithId,
+    chatType: isDirectMessage ? "direct" : "channel",
+    sender: { name: senderName, id: senderId },
   });
 
   let combinedBody = body;
@@ -354,13 +388,15 @@ export async function prepareSlackMessage(params: {
       limit: ctx.historyLimit,
       currentMessage: combinedBody,
       formatEntry: (entry) =>
-        formatAgentEnvelope({
+        formatInboundEnvelope({
           channel: "Slack",
           from: roomLabel,
           timestamp: entry.timestamp,
-          body: `${entry.sender}: ${entry.body}${
+          body: `${entry.body}${
             entry.messageId ? ` [id:${entry.messageId} channel:${message.channel}]` : ""
           }`,
+          chatType: "channel",
+          senderLabel: entry.sender,
         }),
     });
   }
@@ -404,12 +440,10 @@ export async function prepareSlackMessage(params: {
     }
   }
 
-  const ctxPayload = {
+  const ctxPayload = finalizeInboundContext({
     Body: combinedBody,
-    BodyForAgent: combinedBody,
     RawBody: rawBody,
     CommandBody: rawBody,
-    BodyForCommands: rawBody,
     From: slackFrom,
     To: slackTo,
     SessionKey: sessionKey,
@@ -435,7 +469,7 @@ export async function prepareSlackMessage(params: {
     CommandAuthorized: commandAuthorized,
     OriginatingChannel: "slack" as const,
     OriginatingTo: slackTo,
-  } satisfies Record<string, unknown>;
+  }) satisfies Record<string, unknown>;
 
   const replyTarget = ctxPayload.To ?? undefined;
   if (!replyTarget) return null;

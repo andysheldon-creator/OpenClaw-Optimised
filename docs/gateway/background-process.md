@@ -33,12 +33,14 @@ When spawning long-running child processes outside the exec/process tools (for e
 Environment overrides:
 - `PI_BASH_YIELD_MS`: default yield (ms)
 - `PI_BASH_MAX_OUTPUT_CHARS`: in‑memory output cap (chars)
+- `CLAWDBOT_BASH_PENDING_MAX_OUTPUT_CHARS`: pending stdout/stderr cap per stream (chars)
 - `PI_BASH_JOB_TTL_MS`: TTL for finished sessions (ms, bounded to 1m–3h)
 
 Config (preferred):
 - `tools.exec.backgroundMs` (default 10000)
 - `tools.exec.timeoutSec` (default 1800)
 - `tools.exec.cleanupMs` (default 1800000)
+ - `tools.exec.notifyOnExit` (default true): enqueue a system event + request heartbeat when a backgrounded exec exits.
 
 ## process tool
 

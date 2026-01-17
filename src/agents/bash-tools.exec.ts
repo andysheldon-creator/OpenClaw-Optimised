@@ -1,15 +1,19 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 
+import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
+import { enqueueSystemEvent } from "../infra/system-events.js";
 import { logInfo } from "../logger.js";
 import {
+  type ProcessSession,
   type SessionStdin,
   addSession,
   appendOutput,
+  createSessionSlug,
   markBackgrounded,
   markExited,
+  tail,
 } from "./bash-process-registry.js";
 import type { BashSandboxConfig } from "./bash-tools.shared.js";
 import {
@@ -25,6 +29,7 @@ import {
   truncateMiddle,
 } from "./bash-tools.shared.js";
 import { getShellConfig, sanitizeBinaryOutput } from "./shell-utils.js";
+import { buildCursorPositionResponse, stripDsrRequests } from "./pty-dsr.js";
 
 const DEFAULT_MAX_OUTPUT = clampNumber(
   readEnvInt("PI_BASH_MAX_OUTPUT_CHARS"),
@@ -32,8 +37,15 @@ const DEFAULT_MAX_OUTPUT = clampNumber(
   1_000,
   150_000,
 );
+const DEFAULT_PENDING_MAX_OUTPUT = clampNumber(
+  readEnvInt("CLAWDBOT_BASH_PENDING_MAX_OUTPUT_CHARS"),
+  30_000,
+  1_000,
+  150_000,
+);
 const DEFAULT_PATH =
   process.env.PATH ?? "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+const DEFAULT_NOTIFY_TAIL_CHARS = 400;
 
 type PtyExitEvent = { exitCode: number; signal?: number };
 type PtyListener<T> = (event: T) => void;
@@ -62,6 +74,8 @@ export type ExecToolDefaults = {
   elevated?: ExecElevatedDefaults;
   allowBackground?: boolean;
   scopeKey?: string;
+  sessionKey?: string;
+  notifyOnExit?: boolean;
   cwd?: string;
 };
 
@@ -90,7 +104,8 @@ const execSchema = Type.Object({
   ),
   pty: Type.Optional(
     Type.Boolean({
-      description: "Run in a pseudo-terminal (PTY) when available (TTY-required CLIs, coding agents)",
+      description:
+        "Run in a pseudo-terminal (PTY) when available (TTY-required CLIs, coding agents)",
     }),
   ),
   elevated: Type.Optional(
@@ -117,6 +132,28 @@ export type ExecToolDetails =
       cwd?: string;
     };
 
+function normalizeNotifyOutput(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function maybeNotifyOnExit(session: ProcessSession, status: "completed" | "failed") {
+  if (!session.backgrounded || !session.notifyOnExit || session.exitNotified) return;
+  const sessionKey = session.sessionKey?.trim();
+  if (!sessionKey) return;
+  session.exitNotified = true;
+  const exitLabel = session.exitSignal
+    ? `signal ${session.exitSignal}`
+    : `code ${session.exitCode ?? 0}`;
+  const output = normalizeNotifyOutput(
+    tail(session.tail || session.aggregated || "", DEFAULT_NOTIFY_TAIL_CHARS),
+  );
+  const summary = output
+    ? `Exec ${status} (${session.id.slice(0, 8)}, ${exitLabel}) :: ${output}`
+    : `Exec ${status} (${session.id.slice(0, 8)}, ${exitLabel})`;
+  enqueueSystemEvent(summary, { sessionKey });
+  requestHeartbeatNow({ reason: `exec:${session.id}:exit` });
+}
+
 export function createExecTool(
   defaults?: ExecToolDefaults,
   // biome-ignore lint/suspicious/noExplicitAny: TypeBox schema type from pi-agent-core uses a different module instance.
@@ -132,6 +169,8 @@ export function createExecTool(
     typeof defaults?.timeoutSec === "number" && defaults.timeoutSec > 0
       ? defaults.timeoutSec
       : 1800;
+  const notifyOnExit = defaults?.notifyOnExit !== false;
+  const notifySessionKey = defaults?.sessionKey?.trim() || undefined;
 
   return {
     name: "exec",
@@ -156,8 +195,9 @@ export function createExecTool(
       }
 
       const maxOutput = DEFAULT_MAX_OUTPUT;
+      const pendingMaxOutput = DEFAULT_PENDING_MAX_OUTPUT;
       const startedAt = Date.now();
-      const sessionId = randomUUID();
+      const sessionId = createSessionSlug();
       const warnings: string[] = [];
       const backgroundRequested = params.background === true;
       const yieldRequested = typeof params.yieldMs === "number";
@@ -241,22 +281,22 @@ export function createExecTool(
 
       if (sandbox) {
         child = spawn(
-            "docker",
-            buildDockerExecArgs({
-              containerName: sandbox.containerName,
-              command: params.command,
-              workdir: containerWorkdir ?? sandbox.containerWorkdir,
-              env,
-              tty: params.pty === true,
-            }),
-            {
-              cwd: workdir,
-              env: process.env,
-              detached: process.platform !== "win32",
-              stdio: ["pipe", "pipe", "pipe"],
-              windowsHide: true,
-            },
-          ) as ChildProcessWithoutNullStreams;
+          "docker",
+          buildDockerExecArgs({
+            containerName: sandbox.containerName,
+            command: params.command,
+            workdir: containerWorkdir ?? sandbox.containerWorkdir,
+            env,
+            tty: params.pty === true,
+          }),
+          {
+            cwd: workdir,
+            env: process.env,
+            detached: process.platform !== "win32",
+            stdio: ["pipe", "pipe", "pipe"],
+            windowsHide: true,
+          },
+        ) as ChildProcessWithoutNullStreams;
         stdin = child.stdin;
       } else if (usePty) {
         const ptyModule = (await import("@lydell/node-pty")) as unknown as {
@@ -295,11 +335,11 @@ export function createExecTool(
         };
       } else {
         child = spawn(shell, [...shellArgs, params.command], {
-            cwd: workdir,
-            env,
-            detached: process.platform !== "win32",
-            stdio: ["pipe", "pipe", "pipe"],
-            windowsHide: true,
+          cwd: workdir,
+          env,
+          detached: process.platform !== "win32",
+          stdio: ["pipe", "pipe", "pipe"],
+          windowsHide: true,
         }) as ChildProcessWithoutNullStreams;
         stdin = child.stdin;
       }
@@ -308,15 +348,21 @@ export function createExecTool(
         id: sessionId,
         command: params.command,
         scopeKey: defaults?.scopeKey,
+        sessionKey: notifySessionKey,
+        notifyOnExit,
+        exitNotified: false,
         child: child ?? undefined,
         stdin,
         pid: child?.pid ?? pty?.pid,
         startedAt,
         cwd: workdir,
         maxOutputChars: maxOutput,
+        pendingMaxOutputChars: pendingMaxOutput,
         totalOutputChars: 0,
         pendingStdout: [],
         pendingStderr: [],
+        pendingStdoutChars: 0,
+        pendingStderrChars: 0,
         aggregated: "",
         tail: "",
         exited: false,
@@ -347,6 +393,7 @@ export function createExecTool(
       const finalizeTimeout = () => {
         if (session.exited) return;
         markExited(session, null, "SIGKILL", "failed");
+        maybeNotifyOnExit(session, "failed");
         if (settled || !rejectFn) return;
         const aggregated = session.aggregated.trim();
         const reason = `Command timed out after ${effectiveTimeout} seconds`;
@@ -415,7 +462,17 @@ export function createExecTool(
       };
 
       if (pty) {
-        pty.onData(handleStdout);
+        const cursorResponse = buildCursorPositionResponse();
+        pty.onData((data) => {
+          const raw = data.toString();
+          const { cleaned, requests } = stripDsrRequests(raw);
+          if (requests > 0) {
+            for (let i = 0; i < requests; i += 1) {
+              pty.write(cursorResponse);
+            }
+          }
+          handleStdout(cleaned);
+        });
       } else if (child) {
         child.stdout.on("data", handleStdout);
         child.stderr.on("data", handleStderr);
@@ -477,6 +534,7 @@ export function createExecTool(
           const isSuccess = code === 0 && !wasSignal && !signal?.aborted && !timedOut;
           const status: "completed" | "failed" = isSuccess ? "completed" : "failed";
           markExited(session, code, exitSignal, status);
+          maybeNotifyOnExit(session, status);
           if (!session.child && session.stdin) {
             session.stdin.destroyed = true;
           }
@@ -536,6 +594,7 @@ export function createExecTool(
             if (timeoutTimer) clearTimeout(timeoutTimer);
             if (timeoutFinalizeTimer) clearTimeout(timeoutFinalizeTimer);
             markExited(session, null, null, "failed");
+            maybeNotifyOnExit(session, "failed");
             settle(() => reject(err));
           });
         }

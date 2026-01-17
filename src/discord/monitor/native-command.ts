@@ -30,6 +30,7 @@ import type {
   NativeCommandSpec,
 } from "../../auto-reply/commands-registry.js";
 import { dispatchReplyWithDispatcher } from "../../auto-reply/reply/provider-dispatcher.js";
+import { finalizeInboundContext } from "../../auto-reply/reply/inbound-context.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import type { ClawdbotConfig, loadConfig } from "../../config/config.js";
 import { buildPairingReply } from "../../pairing/pairing-messages.js";
@@ -40,6 +41,7 @@ import {
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
 import { loadWebMedia } from "../../web/media.js";
 import { chunkDiscordText } from "../chunk.js";
+import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
 import {
   allowListMatches,
   isDiscordGroupAllowedByPolicy,
@@ -422,6 +424,18 @@ async function dispatchDiscordCommandInteraction(params: {
   const isGroupDm = channelType === ChannelType.GroupDM;
   const channelName = channel && "name" in channel ? (channel.name as string) : undefined;
   const channelSlug = channelName ? normalizeDiscordSlug(channelName) : "";
+  const ownerAllowList = normalizeDiscordAllowList(discordConfig?.dm?.allowFrom ?? [], [
+    "discord:",
+    "user:",
+  ]);
+  const ownerOk =
+    ownerAllowList && user
+      ? allowListMatches(ownerAllowList, {
+          id: user.id,
+          name: user.username,
+          tag: formatDiscordUserTag(user),
+        })
+      : false;
   const guildInfo = resolveDiscordGuildEntry({
     guild: interaction.guild ?? undefined,
     guildEntries: discordConfig?.guilds,
@@ -507,17 +521,29 @@ async function dispatchDiscordCommandInteraction(params: {
   }
   if (!isDirectMessage) {
     const channelUsers = channelConfig?.users ?? guildInfo?.users;
-    if (Array.isArray(channelUsers) && channelUsers.length > 0) {
-      const userOk = resolveDiscordUserAllowed({
-        allowList: channelUsers,
-        userId: user.id,
-        userName: user.username,
-        userTag: formatDiscordUserTag(user),
-      });
-      if (!userOk) {
-        await respond("You are not authorized to use this command.");
-        return;
-      }
+    const hasUserAllowlist = Array.isArray(channelUsers) && channelUsers.length > 0;
+    const userOk = hasUserAllowlist
+      ? resolveDiscordUserAllowed({
+          allowList: channelUsers,
+          userId: user.id,
+          userName: user.username,
+          userTag: formatDiscordUserTag(user),
+        })
+      : false;
+    const authorizers = useAccessGroups
+      ? [
+          { configured: ownerAllowList != null, allowed: ownerOk },
+          { configured: hasUserAllowlist, allowed: userOk },
+        ]
+      : [{ configured: hasUserAllowlist, allowed: userOk }];
+    commandAuthorized = resolveCommandAuthorizedFromAuthorizers({
+      useAccessGroups,
+      authorizers,
+      modeWhenAccessGroupsOff: "configured",
+    });
+    if (!commandAuthorized) {
+      await respond("You are not authorized to use this command.", { ephemeral: true });
+      return;
     }
   }
   if (isGroupDm && discordConfig?.dm?.groupEnabled === false) {
@@ -570,13 +596,16 @@ async function dispatchDiscordCommandInteraction(params: {
     },
   });
   const conversationLabel = isDirectMessage ? (user.globalName ?? user.username) : channelId;
-  const ctxPayload = {
+  const ctxPayload = finalizeInboundContext({
     Body: prompt,
-    BodyForAgent: prompt,
+    RawBody: prompt,
     CommandBody: prompt,
-    BodyForCommands: prompt,
     CommandArgs: commandArgs,
-    From: isDirectMessage ? `discord:${user.id}` : `group:${channelId}`,
+    From: isDirectMessage
+      ? `discord:${user.id}`
+      : isGroupDm
+        ? `discord:group:${channelId}`
+        : `discord:channel:${channelId}`,
     To: `slash:${user.id}`,
     SessionKey: `agent:${route.agentId}:${sessionPrefix}:${user.id}`,
     CommandTargetSessionKey: route.sessionKey,
@@ -607,7 +636,7 @@ async function dispatchDiscordCommandInteraction(params: {
     Timestamp: Date.now(),
     CommandAuthorized: commandAuthorized,
     CommandSource: "native" as const,
-  };
+  });
 
   let didReply = false;
   await dispatchReplyWithDispatcher({

@@ -21,7 +21,8 @@ Clawdbot can optionally **summarize inbound media** (image/audio/video) before t
 4) If a model fails or the media is too large, **fall back to the next entry**.
 5) On success:
    - `Body` becomes `[Image]`, `[Audio]`, or `[Video]` block.
-   - Audio sets `{{Transcript}}` and `CommandBody`/`RawBody` for command parsing.
+   - Audio sets `{{Transcript}}`; command parsing uses caption text when present,
+     otherwise the transcript.
    - Captions are preserved as `User text:` inside the block.
 
 If understanding fails or is disabled, **the reply flow continues** with the original body + attachments.
@@ -31,6 +32,8 @@ If understanding fails or is disabled, **the reply flow continues** with the ori
 - `tools.media.models`: shared model list (use `capabilities` to gate).
 - `tools.media.image` / `tools.media.audio` / `tools.media.video`:
   - defaults (`prompt`, `maxChars`, `maxBytes`, `timeoutSeconds`, `language`)
+  - provider overrides (`baseUrl`, `headers`)
+  - Deepgram audio options (`deepgram` in `tools.media.audio`)
   - optional **per‑capability `models` list** (preferred before shared models)
   - `attachments` policy (`mode`, `maxAttachments`, `prefer`)
   - `scope` (optional gating by channel/chatType/session key)
@@ -98,6 +101,8 @@ Rules:
 - If media exceeds `maxBytes`, that model is skipped and the **next model is tried**.
 - If the model returns more than `maxChars`, output is trimmed.
 - `prompt` defaults to simple “Describe the {media}.” plus the `maxChars` guidance (image/video only).
+- If `<capability>.enabled: true` but no models are configured, Clawdbot tries the
+  **active reply model** when its provider supports the capability.
 
 ## Capabilities (optional)
 If you set `capabilities`, the entry only runs for those media types. For shared
@@ -105,6 +110,7 @@ lists, Clawdbot can infer defaults:
 - `openai`, `anthropic`, `minimax`: **image**
 - `google` (Gemini API): **image + audio + video**
 - `groq`: **audio**
+- `deepgram`: **audio**
 
 For CLI entries, **set `capabilities` explicitly** to avoid surprising matches.
 If you omit `capabilities`, the entry is eligible for the list it appears in.
@@ -113,7 +119,7 @@ If you omit `capabilities`, the entry is eligible for the list it appears in.
 | Capability | Provider integration | Notes |
 |------------|----------------------|-------|
 | Image | OpenAI / Anthropic / Google / others via `pi-ai` | Any image-capable model in the registry works. |
-| Audio | OpenAI, Groq | Provider transcription (Whisper). |
+| Audio | OpenAI, Groq, Deepgram | Provider transcription (Whisper/Deepgram). |
 | Video | Google (Gemini API) | Provider video understanding. |
 
 ## Recommended providers
@@ -122,8 +128,9 @@ If you omit `capabilities`, the entry is eligible for the list it appears in.
 - Good defaults: `openai/gpt-5.2`, `anthropic/claude-opus-4-5`, `google/gemini-3-pro-preview`.
 
 **Audio**
-- `openai/whisper-1` or `groq/whisper-large-v3-turbo`.
+- `openai/whisper-1`, `groq/whisper-large-v3-turbo`, or `deepgram/nova-3`.
 - CLI fallback: `whisper` binary.
+- Deepgram setup: [Deepgram (audio transcription)](/providers/deepgram).
 
 **Video**
 - `google/gemini-3-flash-preview` (fast), `google/gemini-3-pro-preview` (richer).
@@ -252,6 +259,15 @@ When `mode: "all"`, outputs are labeled `[Image 1/2]`, `[Audio 2/2]`, etc.
   }
 }
 ```
+
+## Status output
+When media understanding runs, `/status` includes a short summary line:
+
+```
+📎 Media: image ok (openai/gpt-5.2) · audio skipped (maxBytes)
+```
+
+This shows per‑capability outcomes and the chosen provider/model when applicable.
 
 ## Notes
 - Understanding is **best‑effort**. Errors do not block replies.

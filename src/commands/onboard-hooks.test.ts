@@ -59,7 +59,7 @@ describe("onboard-hooks", () => {
   });
 
   describe("setupInternalHooks", () => {
-    it("should enable internal hooks when user selects them", async () => {
+    it("should enable hooks when user selects them", async () => {
       const { buildWorkspaceHookStatus } = await import("../hooks/hooks-status.js");
       vi.mocked(buildWorkspaceHookStatus).mockReturnValue(createMockHookReport());
 
@@ -75,7 +75,7 @@ describe("onboard-hooks", () => {
       });
       expect(prompter.note).toHaveBeenCalledTimes(2);
       expect(prompter.multiselect).toHaveBeenCalledWith({
-        message: "Enable internal hooks?",
+        message: "Enable hooks?",
         options: [
           { value: "__skip__", label: "Skip for now" },
           {
@@ -173,13 +173,13 @@ describe("onboard-hooks", () => {
       const noteCalls = (prompter.note as ReturnType<typeof vi.fn>).mock.calls;
       expect(noteCalls).toHaveLength(2);
 
-      // First note should explain what internal hooks are
-      expect(noteCalls[0][0]).toContain("Internal hooks");
+      // First note should explain what hooks are
+      expect(noteCalls[0][0]).toContain("Hooks let you automate actions");
       expect(noteCalls[0][0]).toContain("automate actions");
 
       // Second note should confirm configuration
       expect(noteCalls[1][0]).toContain("Enabled 1 hook: session-memory");
-      expect(noteCalls[1][0]).toContain("clawdbot hooks internal list");
+      expect(noteCalls[1][0]).toContain("clawdbot hooks list");
     });
   });
 });
