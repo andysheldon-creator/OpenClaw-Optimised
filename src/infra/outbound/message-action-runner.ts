@@ -384,94 +384,11 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
     preferEmbeds: true,
   });
 
-<<<<<<< HEAD
-  const gateway = input.gateway
-    ? {
-        url: input.gateway.url,
-        token: input.gateway.token,
-        timeoutMs: input.gateway.timeoutMs,
-        clientName: input.gateway.clientName,
-        clientDisplayName: input.gateway.clientDisplayName,
-        mode: input.gateway.mode,
-      }
-    : undefined;
-
-  if (action === "send") {
-<<<<<<< HEAD
-    // Allow omitting `to` when agent has a bound context (e.g., replying to same conversation)
-    const toParam = readStringParam(params, "to");
-    const to = toParam || input.toolContext?.currentChannelId;
-    if (!to) {
-      return {
-        kind: "send",
-        channel,
-        action,
-        to: "",
-        handledBy: "core",
-        payload: { status: "error", tool: "message", error: "to required" },
-        dryRun,
-      };
-    }
-    let message = readStringParam(params, "message", {
-      required: true,
-      allowEmpty: true,
-    });
-=======
-    const to = readStringParam(params, "to", { required: true });
-    // Allow message to be omitted when sending media-only (e.g., voice notes)
-    const mediaHint = readStringParam(params, "media", { trim: false });
-    let message =
-      readStringParam(params, "message", {
-        required: !mediaHint, // Only require message if no media hint
-        allowEmpty: true,
-      }) ?? "";
->>>>>>> upstream/main
-
-    const parsed = parseReplyDirectives(message);
-    message = parsed.text;
-    params.message = message;
-    if (!params.replyTo && parsed.replyToId) params.replyTo = parsed.replyToId;
-    if (!params.media) {
-      params.media = parsed.mediaUrls?.[0] || parsed.mediaUrl || undefined;
-    }
-
-    const mediaUrl = readStringParam(params, "media", { trim: false });
-    const gifPlayback = readBooleanParam(params, "gifPlayback") ?? false;
-    const bestEffort = readBooleanParam(params, "bestEffort");
-
-    if (!dryRun) {
-      const handled = await dispatchChannelMessageAction({
-        channel,
-        action,
-        cfg,
-        params,
-        accountId: accountId ?? undefined,
-        gateway,
-        toolContext: input.toolContext,
-        dryRun,
-      });
-      if (handled) {
-        return {
-          kind: "send",
-          channel,
-          action,
-          to,
-          handledBy: "plugin",
-          payload: extractToolPayload(handled),
-          toolResult: handled,
-          dryRun,
-        };
-      }
-    }
-
-    const result: MessageSendResult = await sendMessage({
-=======
   const mediaUrl = readStringParam(params, "media", { trim: false });
   const gifPlayback = readBooleanParam(params, "gifPlayback") ?? false;
   const bestEffort = readBooleanParam(params, "bestEffort");
   const send = await executeSendAction({
     ctx: {
->>>>>>> upstream/main
       cfg,
       channel,
       params,

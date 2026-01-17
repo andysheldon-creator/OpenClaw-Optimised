@@ -1,4 +1,3 @@
-import { DEFAULT_HEARTBEAT_ACK_MAX_CHARS, stripHeartbeatToken } from "../../auto-reply/heartbeat.js";
 import type { HeartbeatRunResult } from "../../infra/heartbeat-wake.js";
 import type { CronJob } from "../types.js";
 import { computeJobNextRunAtMs, nextWakeAtMs, resolveJobPayloadTextForMain } from "./jobs.js";
@@ -7,16 +6,6 @@ import type { CronEvent, CronServiceState } from "./state.js";
 import { ensureLoaded, persist } from "./store.js";
 
 const MAX_TIMEOUT_MS = 2 ** 31 - 1;
-
-function shouldSkipCronSummary(summary?: string) {
-  const trimmed = (summary ?? "").trim();
-  if (!trimmed) return true;
-  const { shouldSkip } = stripHeartbeatToken(trimmed, {
-    mode: "heartbeat",
-    maxAckChars: DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
-  });
-  return shouldSkip;
-}
 
 export function armTimer(state: CronServiceState) {
   if (state.timer) clearTimeout(state.timer);
@@ -123,19 +112,6 @@ export async function executeJob(
     }
 
     if (job.sessionTarget === "isolated") {
-<<<<<<< HEAD
-      const shouldPost = status !== "ok" || !shouldSkipCronSummary(summary);
-      if (shouldPost) {
-        const prefix = job.isolation?.postToMainPrefix?.trim() || "Cron";
-        const body = (summary ?? err ?? status).trim();
-        const statusPrefix = status === "ok" ? prefix : `${prefix} (${status})`;
-        state.deps.enqueueSystemEvent(`${statusPrefix}: ${body}`, {
-          agentId: job.agentId,
-        });
-        if (job.wakeMode === "now") {
-          state.deps.requestHeartbeatNow({ reason: `cron:${job.id}:post` });
-        }
-=======
       const prefix = job.isolation?.postToMainPrefix?.trim() || "Cron";
       const mode = job.isolation?.postToMainMode ?? "summary";
 
@@ -156,7 +132,6 @@ export async function executeJob(
       });
       if (job.wakeMode === "now") {
         state.deps.requestHeartbeatNow({ reason: `cron:${job.id}:post` });
->>>>>>> upstream/main
       }
     }
   };
