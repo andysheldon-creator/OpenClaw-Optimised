@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { format } from "date-fns"
-import { User, Bot, Wrench, Settings, ChevronDown, ChevronRight, Clock, Coins, Terminal, CheckCircle, XCircle, Copy, Check } from "lucide-react"
+import { User, Bot, Wrench, Settings, ChevronDown, ChevronRight, Clock, Coins, Terminal, CheckCircle, XCircle, Copy, Check, AlertCircle, Info } from "lucide-react"
 import { cn, formatCost, formatTokens, formatDuration } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { MarkdownContent } from "./MarkdownContent"
@@ -26,6 +26,146 @@ function formatToolParams(input: any): { key: string; value: string; full: strin
 function truncateContent(content: string, maxLength = 200): string {
   if (content.length <= maxLength) return content
   return content.slice(0, maxLength) + '...'
+}
+
+// Parse user message to extract system logs and actual message
+interface ParsedUserMessage {
+  systemLogs: { timestamp: string; type: 'error' | 'warning' | 'info'; message: string }[]
+  chatMessage: { channel: string; sender: string; timestamp: string; text: string; messageId?: string } | null
+  rawText: string
+}
+
+function parseUserMessage(content: string): ParsedUserMessage {
+  const result: ParsedUserMessage = {
+    systemLogs: [],
+    chatMessage: null,
+    rawText: content
+  }
+  
+  // Extract system logs: System: [timestamp] message
+  const systemRegex = /System:\s*\[([^\]]+)\]\s*([^\n]+?)(?=System:|$|\[(?:WhatsApp|Telegram|Slack|Discord))/g
+  let match
+  while ((match = systemRegex.exec(content)) !== null) {
+    const timestamp = match[1]
+    const message = match[2].trim()
+    const type = message.toLowerCase().includes('error') ? 'error' 
+      : message.toLowerCase().includes('warn') ? 'warning' 
+      : 'info'
+    result.systemLogs.push({ timestamp, type, message })
+  }
+  
+  // Extract chat message: [Channel sender timestamp] message [message_id: xxx]
+  const chatRegex = /\[(WhatsApp|Telegram|Slack|Discord|Signal)\s+([^\]]+?)\s+(\d{4}-\d{2}-\d{2}T[\d:Z]+)\]\s*(.+?)(?:\[message_id:\s*([^\]]+)\])?$/s
+  const chatMatch = content.match(chatRegex)
+  if (chatMatch) {
+    result.chatMessage = {
+      channel: chatMatch[1],
+      sender: chatMatch[2],
+      timestamp: chatMatch[3],
+      text: chatMatch[4].trim().replace(/\[message_id:\s*[^\]]+\]\s*$/, '').trim(),
+      messageId: chatMatch[5]
+    }
+  }
+  
+  return result
+}
+
+// Component to render parsed user messages nicely
+function UserMessageContent({ content }: { content: string }) {
+  const [showSystemLogs, setShowSystemLogs] = useState(false)
+  const parsed = parseUserMessage(content)
+  
+  // If we couldn't parse anything useful, show raw
+  if (!parsed.chatMessage && parsed.systemLogs.length === 0) {
+    return (
+      <div className="prose-sm max-w-none">
+        <MarkdownContent content={content} />
+      </div>
+    )
+  }
+  
+  const channelIcons: Record<string, string> = {
+    WhatsApp: '💬',
+    Telegram: '✈️',
+    Slack: '💼',
+    Discord: '🎮',
+    Signal: '🔒'
+  }
+  
+  return (
+    <div className="space-y-3">
+      {/* System logs - collapsed by default */}
+      {parsed.systemLogs.length > 0 && (
+        <div className="rounded-lg border border-muted bg-muted/30 overflow-hidden">
+          <button
+            onClick={() => setShowSystemLogs(!showSystemLogs)}
+            className="w-full px-3 py-2 flex items-center justify-between text-xs hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Info className="h-3.5 w-3.5" />
+              <span>{parsed.systemLogs.length} system event{parsed.systemLogs.length !== 1 ? 's' : ''}</span>
+              {parsed.systemLogs.some(l => l.type === 'error') && (
+                <Badge variant="destructive" className="text-[10px] h-4 px-1">
+                  {parsed.systemLogs.filter(l => l.type === 'error').length} error
+                </Badge>
+              )}
+            </div>
+            {showSystemLogs ? (
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+          </button>
+          {showSystemLogs && (
+            <div className="px-3 pb-2 space-y-1 border-t border-muted">
+              {parsed.systemLogs.map((log, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs pt-1">
+                  {log.type === 'error' ? (
+                    <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
+                  ) : log.type === 'warning' ? (
+                    <AlertCircle className="h-3.5 w-3.5 text-yellow-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <Info className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
+                  )}
+                  <div className="min-w-0">
+                    <span className="font-mono text-muted-foreground">{log.timestamp.split('T')[1]?.replace('Z', '') || log.timestamp}</span>
+                    <span className={cn(
+                      "ml-2",
+                      log.type === 'error' && "text-red-600 dark:text-red-400",
+                      log.type === 'warning' && "text-yellow-600 dark:text-yellow-400"
+                    )}>
+                      {log.message}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Actual chat message */}
+      {parsed.chatMessage && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-lg">{channelIcons[parsed.chatMessage.channel] || '💬'}</span>
+            <span className="font-medium">{parsed.chatMessage.sender}</span>
+            <span className="text-xs text-muted-foreground font-mono">
+              {parsed.chatMessage.timestamp.split('T')[1]?.replace('Z', '') || parsed.chatMessage.timestamp}
+            </span>
+          </div>
+          <div className="text-base leading-relaxed pl-8">
+            {parsed.chatMessage.text}
+          </div>
+        </div>
+      )}
+      
+      {/* Fallback if only system logs */}
+      {!parsed.chatMessage && parsed.systemLogs.length > 0 && !showSystemLogs && (
+        <p className="text-xs text-muted-foreground italic">Click above to view system events</p>
+      )}
+    </div>
+  )
 }
 
 export function MessageBubble({ message, className }: MessageBubbleProps) {
@@ -238,12 +378,14 @@ export function MessageBubble({ message, className }: MessageBubbleProps) {
           )}
         </div>
 
-        {/* Message content */}
-        {content && (
+        {/* Message content - special handling for user messages */}
+        {content && isUser ? (
+          <UserMessageContent content={content} />
+        ) : content ? (
           <div className="prose-sm max-w-none">
             <MarkdownContent content={content} />
           </div>
-        )}
+        ) : null}
 
         {/* Tool calls */}
         {toolCalls.length > 0 && (
