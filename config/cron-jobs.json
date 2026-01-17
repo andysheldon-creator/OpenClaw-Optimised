@@ -1,0 +1,416 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "f952c7c4-01eb-40c6-a6b4-c6a177da0c8c",
+      "name": "daily-verse",
+      "enabled": true,
+      "createdAtMs": 1767797010998,
+      "updatedAtMs": 1768395898656,
+      "schedule": {
+        "kind": "cron",
+        "expr": "5 6 * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run: python3 /Users/steve/.clawd/skills/bible/votd.py --download /tmp/votd.jpg\n\nOutput: 📖 [Reference]\n\"[Verse text]\"\n\nMEDIA:/tmp/votd.jpg",
+        "channel": "telegram"
+      },
+      "state": {
+        "nextRunAtMs": 1768475100000,
+        "lastRunAtMs": 1768388700008,
+        "lastStatus": "ok",
+        "lastDurationMs": 39408
+      }
+    },
+    {
+      "id": "a407dbac-e701-456b-90a0-46fb7927acda",
+      "name": "crypto-alert-check",
+      "enabled": true,
+      "createdAtMs": 1767797011032,
+      "updatedAtMs": 1768424400010,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 */2 * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run: cd /Users/steve/clawd-opie && uv run skills/crypto-tracker/scripts/crypto.py check-alerts\n\nOutput the script result. If HEARTBEAT_OK, output only: HEARTBEAT_OK",
+        "channel": "telegram"
+      },
+      "state": {
+        "lastRunAtMs": 1768424400011,
+        "lastStatus": "ok",
+        "lastDurationMs": 2594,
+        "nextRunAtMs": 1768431600000
+      }
+    },
+    {
+      "id": "ed1aeae5-2c1c-4033-a523-1dee0f081833",
+      "name": "sync-skills",
+      "enabled": true,
+      "createdAtMs": 1767797011054,
+      "updatedAtMs": 1768424400010,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 */4 * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run this command:\n/Users/steve/.clawd/scripts/sync-skills.sh\n\nBased on the output, respond with a sync summary:\n- If commits synced: 🔄 Synced [N] commits from upstream. New skills: [list any new skill folders]\n- If already in sync: ✅ Skills in sync\n- If errors: ⚠️ Sync issue: [brief description]\n\nJust output the summary message - delivery is handled automatically.",
+        "channel": "telegram"
+      },
+      "state": {
+        "lastRunAtMs": 1768424402611,
+        "lastStatus": "ok",
+        "lastDurationMs": 3593,
+        "nextRunAtMs": 1768438800000
+      }
+    },
+    {
+      "id": "8c328851-73b1-4e48-b076-f6f4aac45493",
+      "name": "etsy-sales-monitor",
+      "enabled": false,
+      "createdAtMs": 1767843212935,
+      "updatedAtMs": 1768341363219,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/10 * * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run this command:\\ncd /Users/steve/.clawd && python3 scripts/etsy_sales_monitor.py\\n\\nIf output is exactly HEARTBEAT_OK: reply HEARTBEAT_OK\\nIf output contains lines starting with 🛒, send each sale notification. No preamble.\\nIf the command errors, report: ⚠️ Etsy monitor error: ...",
+        "to": "1191367022",
+        "deliver": true,
+        "model": "minimax/glm-4.7",
+        "channel": "telegram"
+      },
+      "state": {
+        "lastRunAtMs": 1768341000009,
+        "lastStatus": "ok",
+        "lastDurationMs": 4350
+      }
+    },
+    {
+      "id": "f9aeada2-f9a1-41a6-b87e-58a86a9a5f7f",
+      "name": "otter-transcript-check",
+      "enabled": true,
+      "createdAtMs": 1767844791344,
+      "updatedAtMs": 1768399200058,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9 * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run this command:\ncd /Users/steve/.clawd && uv run skills/otter/scripts/otter.py list --since 24h\n\nIf new transcripts found, output: 🎙️ New transcript: [title] ([duration])\nIf none found, output exactly: HEARTBEAT_OK\n\nDelivery is handled automatically.",
+        "channel": "telegram"
+      },
+      "state": {
+        "lastRunAtMs": 1768399200059,
+        "lastStatus": "ok",
+        "lastDurationMs": 7706,
+        "nextRunAtMs": 1768485600000
+      }
+    },
+    {
+      "id": "08c16f9d-f8d9-44e5-9663-422133af3016",
+      "name": "vikunja-twenty-sync",
+      "enabled": true,
+      "createdAtMs": 1767853612657,
+      "updatedAtMs": 1768395898120,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 8 * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run this command:\ncd /Users/steve/.clawd && uv run skills/vikunja/scripts/vikunja.py sync-twenty\n\nIf new projects created, output: 📋 Created [N] new Vikunja projects from Twenty\nIf no changes, output exactly: HEARTBEAT_OK\n\nDelivery is handled automatically.",
+        "channel": "telegram"
+      },
+      "state": {
+        "lastRunAtMs": 1768395600145,
+        "lastStatus": "error",
+        "lastDurationMs": 14,
+        "nextRunAtMs": 1768482000000,
+        "lastError": "model not allowed: google/gemini-3.0-flash"
+      }
+    },
+    {
+      "id": "838e34fc-7696-4e92-a0e3-d15612186bd5",
+      "name": "reminder-missing-tokens",
+      "enabled": false,
+      "createdAtMs": 1767855115613,
+      "updatedAtMs": 1768181965662,
+      "schedule": {
+        "kind": "at",
+        "atMs": 1767879900000
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "REMINDER for David: Look up the missing API tokens/credentials.\n\nMissing: vercel, godaddy, cloudflare, tmdb, sag (ElevenLabs), homeassistant, bird (Sweetistics), notion, reddit, trello, gifgrep, eightctl, openhue, things-mac, ordercli.\n\nSend this reminder via Telegram.",
+        "deliver": true,
+        "model": "minimax/glm-4.7"
+      },
+      "state": {
+        "lastRunAtMs": 1767879908027,
+        "lastStatus": "ok",
+        "lastDurationMs": 48831
+      }
+    },
+    {
+      "id": "be502c9a-d60c-417b-b98b-41b5fab5f08e",
+      "name": "archive-media",
+      "enabled": true,
+      "createdAtMs": 1768002109294,
+      "updatedAtMs": 1768428000010,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 * * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run this command and report the result:\n\n/Users/steve/.clawd/scripts/archive-media.sh\n\nBased on output:\n- If files archived, say: 📸 Archived [N] media files to Steve_Journal\n- If output is \"HEARTBEAT_OK\" or no new files, reply exactly: HEARTBEAT_OK",
+        "channel": "telegram"
+      },
+      "state": {
+        "lastRunAtMs": 1768428000010,
+        "lastStatus": "ok",
+        "lastDurationMs": 1451,
+        "nextRunAtMs": 1768431600000
+      }
+    },
+    {
+      "id": "da672eb0-dd66-450d-a923-9222019adcf6",
+      "name": "opie-daily-brief",
+      "enabled": true,
+      "createdAtMs": 1768076037328,
+      "updatedAtMs": 1768397400005,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 8 * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run this command:\npython3 /Users/steve/clawd-opie/scripts/opie_daily_brief.py\n\nOutput the daily brief exactly as printed.\n\nDelivery is handled automatically via Opie's Telegram.",
+        "channel": "telegram"
+      },
+      "state": {
+        "lastRunAtMs": 1768397400006,
+        "lastStatus": "ok",
+        "lastDurationMs": 18675,
+        "nextRunAtMs": 1768483800000
+      },
+      "agentId": "opie"
+    },
+    {
+      "id": "d4ab233c-6301-4230-9103-26b109303d85",
+      "name": "opie-weekly-review",
+      "enabled": true,
+      "createdAtMs": 1768076047548,
+      "updatedAtMs": 1768395899064,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 15 * * 5",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run this command:\npython3 /Users/steve/clawd-opie/scripts/opie_weekly_review.py\n\nOutput the weekly review exactly as printed.\n\nDelivery is handled automatically via Opie's Telegram.",
+        "channel": "telegram"
+      },
+      "state": {
+        "nextRunAtMs": 1768593600000
+      },
+      "agentId": "opie"
+    },
+    {
+      "id": "2bc77ed6-957b-4e3d-975e-f201404b031a",
+      "name": "hope-church-service",
+      "enabled": true,
+      "createdAtMs": 1768098554967,
+      "updatedAtMs": 1768395898766,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 17 * * 6",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Fetch Hope Church service details from https://hopechristianchurch.updates.church/\n\nOutput: ⛪ This Sunday at Hope:\nSermon: [title] - [scripture]\nSongs: [list]\n\nIf unavailable, output: HEARTBEAT_OK",
+        "channel": "telegram"
+      },
+      "state": {
+        "nextRunAtMs": 1768687200000
+      }
+    },
+    {
+      "id": "97891857-f151-462a-84e6-16a26fca6dc5",
+      "name": "daily-weather-steve",
+      "enabled": true,
+      "createdAtMs": 1768184862421,
+      "updatedAtMs": 1768395898544,
+      "schedule": {
+        "kind": "cron",
+        "expr": "55 5 * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Generate daily weather for David.\n\n1. Get weather: curl -s \"wttr.in/Lexington+MA?format=%C+%t\"\n2. Generate Steve image with nano-banana-pro matching weather\n3. Output: 🌤️ Good morning! [conditions] in Lexington\n   MEDIA:[image path]",
+        "channel": "telegram"
+      },
+      "state": {
+        "nextRunAtMs": 1768474500000,
+        "lastRunAtMs": 1768388100026,
+        "lastStatus": "ok",
+        "lastDurationMs": 33798
+      }
+    },
+    {
+      "id": "1584e998-6bbe-4fc2-a0d5-a3b65407f595",
+      "name": "steve-email-check",
+      "enabled": true,
+      "createdAtMs": 1768197215512,
+      "updatedAtMs": 1768428000010,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 * * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Check Steve email inbox.\n\nRun: himalaya envelope list \"flag unseen\"\n\nBased on output:\n- If emails shown (table with data), say: 📬 [count] new email(s) and list From/Subject\n- If empty table or no unread, reply exactly: HEARTBEAT_OK",
+        "channel": "telegram"
+      },
+      "state": {
+        "nextRunAtMs": 1768431600000,
+        "lastRunAtMs": 1768428001468,
+        "lastStatus": "ok",
+        "lastDurationMs": 1641
+      }
+    },
+    {
+      "id": "abcd50c8-e851-45dc-8f8f-c9edd5b93f6e",
+      "name": "daily-recap-posterboard",
+      "enabled": true,
+      "createdAtMs": 1768256800157,
+      "updatedAtMs": 1768428000010,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 17 * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Check for daily wins.\n\nRun: cat /Users/steve/clawd/memory/$(date +%Y-%m-%d).md 2>/dev/null | grep -i win\n\nBased on output:\n- If wins found, summarize them briefly\n- If no wins or file not found, reply exactly: HEARTBEAT_OK",
+        "channel": "telegram"
+      },
+      "state": {
+        "nextRunAtMs": 1768514400000,
+        "lastRunAtMs": 1768428003115,
+        "lastStatus": "ok",
+        "lastDurationMs": 4046
+      }
+    },
+    {
+      "id": "0a7cb918-4656-4bb2-ba85-944fe57bc7ad",
+      "name": "breaking-news-check",
+      "enabled": false,
+      "createdAtMs": 1768325308961,
+      "updatedAtMs": 1768338281065,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/15 * * * *",
+        "tz": "America/New_York"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "deliver": true,
+        "to": "1191367022",
+        "model": "minimax/glm-4.7",
+        "message": "Run: cd /Users/steve/clawd && uv run skills/breaking-news/scripts/breaking_news.py --check\n\nRULES:\n- If output is HEARTBEAT_OK → respond ONLY: HEARTBEAT_OK (nothing else)\n- If items shown, review silently. Only alert if TRULY major (notable death, disaster, crisis)\n- If alerting → respond ONLY: 🚨 [one line summary]\n- If NOT alerting → respond ONLY: HEARTBEAT_OK\n- After review, run the --mark-sent command shown\n\nNO explanations. NO reasoning. Just HEARTBEAT_OK or 🚨 alert.",
+        "channel": "telegram"
+      },
+      "state": {
+        "lastRunAtMs": 1768338113349,
+        "lastStatus": "ok",
+        "lastDurationMs": 26999
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+    "name": "vercel-deployer",
+    "version": "1.0.0",
+    "description": "Deploys static web pages to Vercel under the opie.website domain.",
+    "author": "Opie",
+    "license": "MIT",
+    "permissions": [
+        "network",
+        "filesystem"
+    ],
+    "env": [
+        "VERCEL_TOKEN",
+        "VERCEL_SCOPE"
+    ]
+}
