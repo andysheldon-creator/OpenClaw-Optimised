@@ -25,6 +25,7 @@ import { buildGatewayRuntimeHints, formatGatewayRuntimeSummary } from "./doctor-
 import type { DoctorOptions, DoctorPrompter } from "./doctor-prompter.js";
 import { healthCommand } from "./health.js";
 import { formatHealthCheckFailure } from "./health-format.js";
+import { maybeRepairLaunchAgentBootstrap } from "./doctor-gateway-bootstrap-repair.js";
 
 export async function maybeRepairGatewayDaemon(params: {
   cfg: ClawdbotConfig;
@@ -108,6 +109,19 @@ export async function maybeRepairGatewayDaemon(params: {
       }
     }
     return;
+  }
+
+  // Check for launch agent bootstrap issue (macOS only)
+  if (process.platform === "darwin") {
+    const bootstrapRepaired = await maybeRepairLaunchAgentBootstrap(
+      params.runtime,
+      params.prompter,
+      params.options,
+    );
+    if (bootstrapRepaired) {
+      // Re-read the service runtime after repair
+      serviceRuntime = await service.readRuntime(process.env).catch(() => undefined);
+    }
   }
 
   const summary = formatGatewayRuntimeSummary(serviceRuntime);
