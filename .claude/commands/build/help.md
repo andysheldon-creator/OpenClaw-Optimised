@@ -35,7 +35,7 @@ git checkout -b hotfix/my-fix
 
 | Script | Purpose |
 |--------|---------|
-| `./scripts/build-release.sh <version>` | Build macOS app from release with hotfixes |
+| `./scripts/build-mac-release.sh <version>` | Build macOS app from release with hotfixes |
 | `./scripts/deploy-release.sh [path]` | Deploy macOS app to /Applications (requires sudo) |
 | `./scripts/release-fixes-status.sh [target]` | Show hotfix status |
 | `./scripts/apply-release-fixes.sh [--dry-run]` | Apply hotfixes manually |

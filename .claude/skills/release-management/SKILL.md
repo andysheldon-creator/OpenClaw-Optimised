@@ -28,7 +28,7 @@ Shows current hotfix branches and their merge status.
 
 **When to use:** Check before building to see what fixes will be applied.
 
-### `scripts/build-release.sh <version>`
+### `scripts/build-mac-release.sh <version>`
 Creates a worktree for the specified version and applies all hotfixes.
 
 **When to use:** After confirming the target version and hotfixes.
@@ -157,7 +157,7 @@ git stash   # Or commit changes
 - Remove and rebuild if outdated:
   ```bash
   git worktree remove .worktrees/v2026.1.x
-  ./scripts/build-release.sh v2026.1.x
+  ./scripts/build-mac-release.sh v2026.1.x
   ```
 
 ## Version Locations
@@ -179,5 +179,5 @@ When updating versions across the codebase:
 
 For detailed information on specific topics:
 - Release process details: See `docs/` directory
-- Build script internals: Read `scripts/build-release.sh`
+- Build script internals: Read `scripts/build-mac-release.sh`
 - Hotfix patterns: Review existing `hotfix/*` branches

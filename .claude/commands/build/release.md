@@ -4,7 +4,7 @@ argument-hint: [version] [-y|--yes]
 allowed-tools: Bash(git:*), Bash(./scripts/*:*), Read, AskUserQuestion
 hooks:
   PreToolUse:
-    - matcher: "Bash(./scripts/build-release.sh:*)"
+    - matcher: "Bash(./scripts/build-mac-release.sh:*)"
       hooks:
         - type: command
           command: "git diff --quiet && git diff --cached --quiet || exit 2"
@@ -67,7 +67,7 @@ Determine the version to build:
 
 Then execute:
 ```bash
-./scripts/build-release.sh <version>
+./scripts/build-mac-release.sh <version>
 ```
 
 Where `<version>` is either the specified version or latest tag (e.g., `v2026.1.9`).
