@@ -1,8 +1,43 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { resolveMemorySearchConfig } from "./memory-search.js";
 
+const ORIGINAL_ENV = { ...process.env };
+
+const resetEnv = () => {
+  process.env = { ...ORIGINAL_ENV };
+};
+
+const setEnv = (vars: Record<string, string | undefined>) => {
+  resetEnv();
+  for (const [key, value] of Object.entries(vars)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+};
+
 describe("memory search config", () => {
+  afterEach(() => {
+    resetEnv();
+  });
+
+  it("returns null when no provider hint exists", () => {
+    setEnv({ OPENAI_API_KEY: undefined, GEMINI_API_KEY: undefined, GOOGLE_API_KEY: undefined });
+    const cfg = {
+      agents: {
+        defaults: {
+          memorySearch: {
+            enabled: true,
+          },
+        },
+      },
+    };
+    const resolved = resolveMemorySearchConfig(cfg, "main");
+    expect(resolved).toBeNull();
+  });
   it("returns null when disabled", () => {
     const cfg = {
       agents: {
@@ -106,6 +141,7 @@ describe("memory search config", () => {
       agents: {
         defaults: {
           memorySearch: {
+            provider: "openai",
             remote: {
               baseUrl: "https://default.example/v1",
               apiKey: "default-key",
@@ -146,6 +182,7 @@ describe("memory search config", () => {
       agents: {
         defaults: {
           memorySearch: {
+            provider: "openai",
             sources: ["memory", "sessions"],
           },
         },
@@ -169,6 +206,7 @@ describe("memory search config", () => {
       agents: {
         defaults: {
           memorySearch: {
+            provider: "openai",
             sources: ["memory", "sessions"],
             experimental: { sessionMemory: true },
           },
@@ -177,5 +215,37 @@ describe("memory search config", () => {
     };
     const resolved = resolveMemorySearchConfig(cfg, "main");
     expect(resolved?.sources).toContain("sessions");
+  });
+
+  it("prefers openai when both keys are set", () => {
+    setEnv({ OPENAI_API_KEY: "openai-key", GEMINI_API_KEY: "gemini-key" });
+    const cfg = {
+      agents: {
+        defaults: {
+          memorySearch: {
+            enabled: true,
+          },
+        },
+      },
+    };
+    const resolved = resolveMemorySearchConfig(cfg, "main");
+    expect(resolved?.provider).toBe("openai");
+    expect(resolved?.fallback).toBe("gemini");
+  });
+
+  it("uses gemini when only gemini key exists", () => {
+    setEnv({ OPENAI_API_KEY: undefined, GEMINI_API_KEY: "gemini-key" });
+    const cfg = {
+      agents: {
+        defaults: {
+          memorySearch: {
+            enabled: true,
+          },
+        },
+      },
+    };
+    const resolved = resolveMemorySearchConfig(cfg, "main");
+    expect(resolved?.provider).toBe("gemini");
+    expect(resolved?.fallback).toBe("none");
   });
 });

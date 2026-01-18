@@ -79,18 +79,45 @@ semantic queries can find related notes even when wording differs.
 Defaults:
 - Enabled by default.
 - Watches memory files for changes (debounced).
-- Uses remote embeddings (OpenAI) unless configured for local.
+- Uses remote embeddings by default, but the provider is resolved in order:
+  1. `agents.list[].memorySearch` (per-agent override)
+  2. `agents.defaults.memorySearch`
+  3. Env-based defaults (OpenAI if `OPENAI_API_KEY` is set, else Gemini if `GEMINI_API_KEY`/`GOOGLE_API_KEY` is set; otherwise disabled)
 - Local mode uses node-llama-cpp and may require `pnpm approve-builds`.
 - Uses sqlite-vec (when available) to accelerate vector search inside SQLite.
 
 Remote embeddings **require** an API key for the embedding provider. By default
 this is OpenAI (`OPENAI_API_KEY` or `models.providers.openai.apiKey`). Codex
 OAuth only covers chat/completions and does **not** satisfy embeddings for
-memory search. When using a custom OpenAI-compatible endpoint, set
-`memorySearch.remote.apiKey` (and optional `memorySearch.remote.headers`).
+memory search. For Gemini, use `GEMINI_API_KEY` (or `memorySearch.remote.apiKey`).
+When using a custom OpenAI-compatible endpoint, set `memorySearch.remote.apiKey`
+(and optional `memorySearch.remote.headers`).
 
-If you want to use a **custom OpenAI-compatible endpoint** (like Gemini, OpenRouter, or a proxy),
-you can use the `remote` configuration:
+### Gemini embeddings (native)
+
+Set the provider to `gemini` to use the Gemini embeddings API directly:
+
+```json5
+agents: {
+  defaults: {
+    memorySearch: {
+      provider: "gemini",
+      model: "gemini-embedding-001",
+      remote: {
+        apiKey: "YOUR_GEMINI_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Notes:
+- `remote.baseUrl` is optional (defaults to the Gemini API base URL).
+- `remote.headers` lets you add extra headers if needed.
+- Default model: `gemini-embedding-001`.
+
+If you want to use a **custom OpenAI-compatible endpoint** (OpenRouter, vLLM, or a proxy),
+you can use the `remote` configuration with the OpenAI provider:
 
 ```json5
 agents: {
@@ -99,8 +126,8 @@ agents: {
       provider: "openai",
       model: "text-embedding-3-small",
       remote: {
-        baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
-        apiKey: "YOUR_GEMINI_API_KEY",
+        baseUrl: "https://api.example.com/v1/",
+        apiKey: "YOUR_OPENAI_COMPAT_API_KEY",
         headers: { "X-Custom-Header": "value" }
       }
     }
@@ -111,11 +138,16 @@ agents: {
 If you don't want to set an API key, use `memorySearch.provider = "local"` or set
 `memorySearch.fallback = "none"`.
 
-Batch indexing (OpenAI only):
-- Enabled by default for OpenAI embeddings. Set `agents.defaults.memorySearch.remote.batch.enabled = false` to disable.
+Fallbacks:
+- `memorySearch.fallback` can be `openai`, `gemini`, `local`, or `none`.
+- The fallback provider is only used when the primary embedding provider fails.
+
+Batch indexing (OpenAI + Gemini):
+- Enabled by default for OpenAI and Gemini embeddings. Set `agents.defaults.memorySearch.remote.batch.enabled = false` to disable.
 - Default behavior waits for batch completion; tune `remote.batch.wait`, `remote.batch.pollIntervalMs`, and `remote.batch.timeoutMinutes` if needed.
 - Set `remote.batch.concurrency` to control how many batch jobs we submit in parallel (default: 2).
-- Batch mode currently applies only when `memorySearch.provider = "openai"` and uses your OpenAI API key.
+- Batch mode applies when `memorySearch.provider = "openai"` or `"gemini"` and uses the corresponding API key.
+- Gemini batch jobs use the async embeddings batch endpoint and require Gemini Batch API availability.
 
 Why OpenAI batch is fast + cheap:
 - For large backfills, OpenAI is typically the fastest option we support because we can submit many embedding requests in a single batch job and let OpenAI process them asynchronously.

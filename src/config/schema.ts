@@ -374,26 +374,26 @@ const FIELD_HELP: Record<string, string> = {
     'Sources to index for memory search (default: ["memory"]; add "sessions" to include session transcripts).',
   "agents.defaults.memorySearch.experimental.sessionMemory":
     "Enable experimental session transcript indexing for memory search (default: false).",
-  "agents.defaults.memorySearch.provider": 'Embedding provider ("openai" or "local").',
+  "agents.defaults.memorySearch.provider": 'Embedding provider ("openai", "gemini", or "local").',
   "agents.defaults.memorySearch.remote.baseUrl":
     "Custom OpenAI-compatible base URL (e.g. for Gemini/OpenRouter proxies).",
   "agents.defaults.memorySearch.remote.apiKey": "Custom API key for the remote embedding provider.",
   "agents.defaults.memorySearch.remote.headers":
     "Extra headers for remote embeddings (merged; remote overrides OpenAI headers).",
   "agents.defaults.memorySearch.remote.batch.enabled":
-    "Enable OpenAI Batch API for memory embeddings (default: true).",
+    "Enable batch API for memory embeddings (OpenAI/Gemini; default: true).",
   "agents.defaults.memorySearch.remote.batch.wait":
-    "Wait for OpenAI batch completion when indexing (default: true).",
+    "Wait for batch completion when indexing (default: true).",
   "agents.defaults.memorySearch.remote.batch.concurrency":
-    "Max concurrent OpenAI batch jobs for memory indexing (default: 2).",
+    "Max concurrent embedding batch jobs for memory indexing (default: 2).",
   "agents.defaults.memorySearch.remote.batch.pollIntervalMs":
-    "Polling interval in ms for OpenAI batch status (default: 2000).",
+    "Polling interval in ms for batch status (default: 2000).",
   "agents.defaults.memorySearch.remote.batch.timeoutMinutes":
-    "Timeout in minutes for OpenAI batch indexing (default: 60).",
+    "Timeout in minutes for batch indexing (default: 60).",
   "agents.defaults.memorySearch.local.modelPath":
     "Local GGUF model path or hf: URI (node-llama-cpp).",
   "agents.defaults.memorySearch.fallback":
-    'Fallback to OpenAI when local embeddings fail ("openai" or "none").',
+    'Fallback provider when embeddings fail ("openai", "gemini", "local", or "none").',
   "agents.defaults.memorySearch.store.path":
     "SQLite index path (default: ~/.clawdbot/memory/{agentId}.sqlite).",
   "agents.defaults.memorySearch.store.vector.enabled":

@@ -3,13 +3,13 @@ import path from "node:path";
 
 import type { ClawdbotConfig, MemorySearchConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
-import { resolveUserPath } from "../utils.js";
+import { clampInt, clampNumber, resolveUserPath } from "../utils.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 
 export type ResolvedMemorySearchConfig = {
   enabled: boolean;
   sources: Array<"memory" | "sessions">;
-  provider: "openai" | "local";
+  provider: "openai" | "local" | "gemini";
   remote?: {
     baseUrl?: string;
     apiKey?: string;
@@ -25,7 +25,7 @@ export type ResolvedMemorySearchConfig = {
   experimental: {
     sessionMemory: boolean;
   };
-  fallback: "openai" | "none";
+  fallback: "openai" | "gemini" | "local" | "none";
   model: string;
   local: {
     modelPath?: string;
@@ -66,7 +66,8 @@ export type ResolvedMemorySearchConfig = {
   };
 };
 
-const DEFAULT_MODEL = "text-embedding-3-small";
+const DEFAULT_OPENAI_MODEL = "text-embedding-3-small";
+const DEFAULT_GEMINI_MODEL = "gemini-embedding-001";
 const DEFAULT_CHUNK_TOKENS = 400;
 const DEFAULT_CHUNK_OVERLAP = 80;
 const DEFAULT_WATCH_DEBOUNCE_MS = 1500;
@@ -78,6 +79,55 @@ const DEFAULT_HYBRID_TEXT_WEIGHT = 0.3;
 const DEFAULT_HYBRID_CANDIDATE_MULTIPLIER = 4;
 const DEFAULT_CACHE_ENABLED = true;
 const DEFAULT_SOURCES: Array<"memory" | "sessions"> = ["memory"];
+
+type ProviderSelection = {
+  provider: "openai" | "local" | "gemini";
+  fallback: "openai" | "gemini" | "local" | "none";
+  enabledDefault: boolean;
+};
+
+function resolveEnvKeys(): { hasOpenAi: boolean; hasGemini: boolean } {
+  const openAiKey = process.env.OPENAI_API_KEY?.trim();
+  const geminiKey =
+    process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim();
+  return {
+    hasOpenAi: Boolean(openAiKey),
+    hasGemini: Boolean(geminiKey),
+  };
+}
+
+function resolveProviderSelection(
+  defaults: MemorySearchConfig | undefined,
+  overrides: MemorySearchConfig | undefined,
+): ProviderSelection | null {
+  const explicitProvider = overrides?.provider ?? defaults?.provider;
+  const explicitFallback = overrides?.fallback ?? defaults?.fallback;
+  if (explicitProvider) {
+    return {
+      provider: explicitProvider,
+      fallback: explicitFallback ?? "openai",
+      enabledDefault: true,
+    };
+  }
+
+  const { hasOpenAi, hasGemini } = resolveEnvKeys();
+  if (hasOpenAi) {
+    return {
+      provider: "openai",
+      fallback: explicitFallback ?? (hasGemini ? "gemini" : "none"),
+      enabledDefault: true,
+    };
+  }
+  if (hasGemini) {
+    return {
+      provider: "gemini",
+      fallback: explicitFallback ?? "none",
+      enabledDefault: true,
+    };
+  }
+
+  return null;
+}
 
 function normalizeSources(
   sources: Array<"memory" | "sessions"> | undefined,
@@ -105,35 +155,38 @@ function mergeConfig(
   defaults: MemorySearchConfig | undefined,
   overrides: MemorySearchConfig | undefined,
   agentId: string,
+  selection: ProviderSelection,
 ): ResolvedMemorySearchConfig {
-  const enabled = overrides?.enabled ?? defaults?.enabled ?? true;
+  const { provider, fallback, enabledDefault } = selection;
+  const enabled = overrides?.enabled ?? defaults?.enabled ?? enabledDefault;
   const sessionMemory =
     overrides?.experimental?.sessionMemory ?? defaults?.experimental?.sessionMemory ?? false;
-  const provider = overrides?.provider ?? defaults?.provider ?? "openai";
-  const hasRemote = Boolean(defaults?.remote || overrides?.remote);
-  const includeRemote = hasRemote || provider === "openai";
+  const defaultRemote = defaults?.provider === provider ? defaults?.remote : undefined;
+  const overrideRemote = overrides?.remote;
+  const hasRemote = Boolean(defaultRemote || overrideRemote);
+  const includeRemote = hasRemote || provider === "openai" || provider === "gemini";
   const batch = {
-    enabled: overrides?.remote?.batch?.enabled ?? defaults?.remote?.batch?.enabled ?? true,
-    wait: overrides?.remote?.batch?.wait ?? defaults?.remote?.batch?.wait ?? true,
+    enabled: overrideRemote?.batch?.enabled ?? defaultRemote?.batch?.enabled ?? true,
+    wait: overrideRemote?.batch?.wait ?? defaultRemote?.batch?.wait ?? true,
     concurrency: Math.max(
       1,
-      overrides?.remote?.batch?.concurrency ?? defaults?.remote?.batch?.concurrency ?? 2,
+      overrideRemote?.batch?.concurrency ?? defaultRemote?.batch?.concurrency ?? 2,
     ),
     pollIntervalMs:
-      overrides?.remote?.batch?.pollIntervalMs ?? defaults?.remote?.batch?.pollIntervalMs ?? 2000,
+      overrideRemote?.batch?.pollIntervalMs ?? defaultRemote?.batch?.pollIntervalMs ?? 2000,
     timeoutMinutes:
-      overrides?.remote?.batch?.timeoutMinutes ?? defaults?.remote?.batch?.timeoutMinutes ?? 60,
+      overrideRemote?.batch?.timeoutMinutes ?? defaultRemote?.batch?.timeoutMinutes ?? 60,
   };
   const remote = includeRemote
     ? {
-        baseUrl: overrides?.remote?.baseUrl ?? defaults?.remote?.baseUrl,
-        apiKey: overrides?.remote?.apiKey ?? defaults?.remote?.apiKey,
-        headers: overrides?.remote?.headers ?? defaults?.remote?.headers,
+        baseUrl: overrideRemote?.baseUrl ?? defaultRemote?.baseUrl,
+        apiKey: overrideRemote?.apiKey ?? defaultRemote?.apiKey,
+        headers: overrideRemote?.headers ?? defaultRemote?.headers,
         batch,
       }
     : undefined;
-  const fallback = overrides?.fallback ?? defaults?.fallback ?? "openai";
-  const model = overrides?.model ?? defaults?.model ?? DEFAULT_MODEL;
+  const modelDefault = provider === "gemini" ? DEFAULT_GEMINI_MODEL : DEFAULT_OPENAI_MODEL;
+  const model = overrides?.model ?? defaults?.model ?? modelDefault;
   const local = {
     modelPath: overrides?.local?.modelPath ?? defaults?.local?.modelPath,
     modelCacheDir: overrides?.local?.modelCacheDir ?? defaults?.local?.modelCacheDir,
@@ -190,14 +243,14 @@ function mergeConfig(
     maxEntries: overrides?.cache?.maxEntries ?? defaults?.cache?.maxEntries,
   };
 
-  const overlap = Math.max(0, Math.min(chunking.overlap, chunking.tokens - 1));
-  const minScore = Math.max(0, Math.min(1, query.minScore));
-  const vectorWeight = Math.max(0, Math.min(1, hybrid.vectorWeight));
-  const textWeight = Math.max(0, Math.min(1, hybrid.textWeight));
+  const overlap = clampNumber(chunking.overlap, 0, Math.max(0, chunking.tokens - 1));
+  const minScore = clampNumber(query.minScore, 0, 1);
+  const vectorWeight = clampNumber(hybrid.vectorWeight, 0, 1);
+  const textWeight = clampNumber(hybrid.textWeight, 0, 1);
   const sum = vectorWeight + textWeight;
   const normalizedVectorWeight = sum > 0 ? vectorWeight / sum : DEFAULT_HYBRID_VECTOR_WEIGHT;
   const normalizedTextWeight = sum > 0 ? textWeight / sum : DEFAULT_HYBRID_TEXT_WEIGHT;
-  const candidateMultiplier = Math.max(1, Math.min(20, Math.floor(hybrid.candidateMultiplier)));
+  const candidateMultiplier = clampInt(hybrid.candidateMultiplier, 1, 20);
   return {
     enabled,
     sources,
@@ -238,7 +291,9 @@ export function resolveMemorySearchConfig(
 ): ResolvedMemorySearchConfig | null {
   const defaults = cfg.agents?.defaults?.memorySearch;
   const overrides = resolveAgentConfig(cfg, agentId)?.memorySearch;
-  const resolved = mergeConfig(defaults, overrides, agentId);
+  const selection = resolveProviderSelection(defaults, overrides);
+  if (!selection) return null;
+  const resolved = mergeConfig(defaults, overrides, agentId, selection);
   if (!resolved.enabled) return null;
   return resolved;
 }
