@@ -518,7 +518,7 @@ describe("createTelegramBot", () => {
       expect(replySpy).toHaveBeenCalledTimes(1);
       const payload = replySpy.mock.calls[0][0];
       expect(payload.Body).toMatch(
-        /^\[Telegram Ada Lovelace \(@ada_bot\) id:1234 2025-01-09T00:00Z\]/,
+        /^\[Telegram Ada Lovelace \(@ada_bot\) id:1234 (\+\d+[smhd] )?2025-01-09T00:00Z\]/,
       );
       expect(payload.Body).toContain("hello world");
     } finally {
@@ -709,7 +709,7 @@ describe("createTelegramBot", () => {
 =======
     expectInboundContextContract(payload);
     expect(payload.WasMentioned).toBe(true);
-    expect(payload.Body).toMatch(/^\[Telegram Test Group id:7 2025-01-09T00:00Z\]/);
+    expect(payload.Body).toMatch(/^\[Telegram Test Group id:7 (\+\d+[smhd] )?2025-01-09T00:00Z\]/);
     expect(payload.SenderName).toBe("Ada");
     expect(payload.SenderId).toBe("9");
 >>>>>>> upstream/main
@@ -769,7 +769,7 @@ describe("createTelegramBot", () => {
     );
 =======
     expectInboundContextContract(payload);
-    expect(payload.Body).toMatch(/^\[Telegram Ops id:42 2025-01-09T00:00Z\]/);
+    expect(payload.Body).toMatch(/^\[Telegram Ops id:42 (\+\d+[smhd] )?2025-01-09T00:00Z\]/);
     expect(payload.SenderName).toBe("Ada Lovelace");
     expect(payload.SenderId).toBe("99");
     expect(payload.SenderUsername).toBe("ada");
