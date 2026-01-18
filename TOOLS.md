@@ -54,7 +54,7 @@ pnpm add -g <package>    # ✅ correct
 npm install -g <package>  # ❌ goes to wrong location
 ```
 
-Global bins: `/Users/dbhurley/Library/pnpm/`
+Global bins: `/Users/steve/Library/pnpm/`
 
 ## Twitter/X
 
