@@ -114,12 +114,19 @@ final class MacNodeModeCoordinator {
         let caps = self.currentCaps()
         let commands = self.currentCommands(caps: caps)
         let permissions = await self.currentPermissions()
+        let uiVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        let liveGatewayVersion = await GatewayConnection.shared.cachedGatewayVersion()
+        let fallbackGatewayVersion = GatewayProcessManager.shared.environmentStatus.gatewayVersion
+        let coreVersion = (liveGatewayVersion ?? fallbackGatewayVersion)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         return BridgeHello(
             nodeId: Self.nodeId(),
             displayName: InstanceIdentity.displayName,
             token: token,
             platform: "macos",
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+            version: uiVersion,
+            coreVersion: coreVersion?.isEmpty == false ? coreVersion : nil,
+            uiVersion: uiVersion,
             deviceFamily: "Mac",
             modelIdentifier: InstanceIdentity.modelIdentifier,
             caps: caps,
@@ -158,6 +165,8 @@ final class MacNodeModeCoordinator {
             ClawdbotSystemCommand.notify.rawValue,
             ClawdbotSystemCommand.which.rawValue,
             ClawdbotSystemCommand.run.rawValue,
+            ClawdbotSystemCommand.execApprovalsGet.rawValue,
+            ClawdbotSystemCommand.execApprovalsSet.rawValue,
         ]
 
         let capsSet = Set(caps)

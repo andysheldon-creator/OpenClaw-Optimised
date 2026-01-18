@@ -97,6 +97,8 @@ const GROUP_ORDER: Record<string, number> = {
 };
 
 const FIELD_LABELS: Record<string, string> = {
+  "meta.lastTouchedVersion": "Config Last Touched Version",
+  "meta.lastTouchedAt": "Config Last Touched At",
   "update.channel": "Update Channel",
   "update.checkOnStart": "Update Check on Start",
   "gateway.remote.url": "Remote Gateway URL",
@@ -296,6 +298,8 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const FIELD_HELP: Record<string, string> = {
+  "meta.lastTouchedVersion": "Auto-set when Clawdbot writes the config.",
+  "meta.lastTouchedAt": "ISO timestamp of the last config write (auto-set).",
   "update.channel": 'Update channel for npm installs ("stable" or "beta").',
   "update.checkOnStart": "Check for npm updates when the gateway starts (default: true).",
   "gateway.remote.url": "Remote Gateway WebSocket URL (ws:// or wss://).",
@@ -381,19 +385,19 @@ const FIELD_HELP: Record<string, string> = {
   "agents.defaults.memorySearch.remote.headers":
     "Extra headers for remote embeddings (merged; remote overrides OpenAI headers).",
   "agents.defaults.memorySearch.remote.batch.enabled":
-    "Enable OpenAI Batch API for memory embeddings (default: true).",
+    "Enable batch API for memory embeddings (OpenAI/Gemini; default: true).",
   "agents.defaults.memorySearch.remote.batch.wait":
-    "Wait for OpenAI batch completion when indexing (default: true).",
+    "Wait for batch completion when indexing (default: true).",
   "agents.defaults.memorySearch.remote.batch.concurrency":
-    "Max concurrent OpenAI batch jobs for memory indexing (default: 2).",
+    "Max concurrent embedding batch jobs for memory indexing (default: 2).",
   "agents.defaults.memorySearch.remote.batch.pollIntervalMs":
-    "Polling interval in ms for OpenAI batch status (default: 2000).",
+    "Polling interval in ms for batch status (default: 2000).",
   "agents.defaults.memorySearch.remote.batch.timeoutMinutes":
-    "Timeout in minutes for OpenAI batch indexing (default: 60).",
+    "Timeout in minutes for batch indexing (default: 60).",
   "agents.defaults.memorySearch.local.modelPath":
     "Local GGUF model path or hf: URI (node-llama-cpp).",
   "agents.defaults.memorySearch.fallback":
-    'Fallback to OpenAI when local embeddings fail ("openai" or "none").',
+    'Fallback provider when embeddings fail ("openai", "gemini", "local", or "none").',
   "agents.defaults.memorySearch.store.path":
     "SQLite index path (default: ~/.clawdbot/memory/{agentId}.sqlite).",
   "agents.defaults.memorySearch.store.vector.enabled":

@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 # AGENTS.md - Your Workspace
+=======
+# Repository Guidelines
+- Repo: https://github.com/clawdbot/clawdbot
+- GitHub issues/comments/PR comments: use literal multiline strings or `-F - <<'EOF'` (or $'...') for real newlines; never embed "\\n".
+>>>>>>> upstream/main
 
 This folder is home. Treat it that way.
 
@@ -64,7 +70,12 @@ Don't ask permission. Just do it.
 - When answering questions, respond with high-confidence answers only: verify in code; do not guess.
 - Never update the Carbon dependency.
 - Any dependency with `pnpm.patchedDependencies` must use an exact version (no `^`/`~`).
+<<<<<<< HEAD
 - CLI progress: use `src/cli/progress.ts` (`osc-progress` + `@clack/prompts` spinner); don't hand-roll spinners/bars.
+=======
+- Patching dependencies (pnpm patches, overrides, or vendored changes) requires explicit approval; do not do this by default.
+- CLI progress: use `src/cli/progress.ts` (`osc-progress` + `@clack/prompts` spinner); don’t hand-roll spinners/bars.
+>>>>>>> upstream/main
 - Status output: keep tables + ANSI-safe wrapping (`src/terminal/table.ts`); `status --all` = read-only/pasteable, `status --deep` = probes.
 - Gateway currently runs only as the menubar app; there is no separate LaunchAgent/helper label installed. Restart via the Clawdbot Mac app or `scripts/restart-mac.sh`; to verify/kill use `launchctl print gui/$UID | grep clawdbot` rather than assuming a fixed label. **When debugging on macOS, start/stop the gateway via the app, not ad-hoc tmux sessions; kill any temporary tunnels before handoff.**
 - macOS logs: use `./scripts/clawlog.sh` (aka `vtlog`) to query unified logs for the Clawdbot subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.

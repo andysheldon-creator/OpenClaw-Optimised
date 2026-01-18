@@ -31,6 +31,7 @@ import {
   isContextOverflowError,
   isFailoverAssistantError,
   isFailoverErrorMessage,
+  parseImageDimensionError,
   isRateLimitAssistantError,
   isTimeoutErrorMessage,
   pickFallbackThinkingLevel,
@@ -357,6 +358,26 @@ export async function runEmbeddedPiAgent(
           const failoverFailure = isFailoverAssistantError(lastAssistant);
           const assistantFailoverReason = classifyFailoverReason(lastAssistant?.errorMessage ?? "");
           const cloudCodeAssistFormatError = attempt.cloudCodeAssistFormatError;
+          const imageDimensionError = parseImageDimensionError(lastAssistant?.errorMessage ?? "");
+
+          if (imageDimensionError && lastProfileId) {
+            const details = [
+              imageDimensionError.messageIndex !== undefined
+                ? `message=${imageDimensionError.messageIndex}`
+                : null,
+              imageDimensionError.contentIndex !== undefined
+                ? `content=${imageDimensionError.contentIndex}`
+                : null,
+              imageDimensionError.maxDimensionPx !== undefined
+                ? `limit=${imageDimensionError.maxDimensionPx}px`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" ");
+            log.warn(
+              `Profile ${lastProfileId} rejected image payload${details ? ` (${details})` : ""}.`,
+            );
+          }
 
           // Treat timeout as potential rate limit (Antigravity hangs on rate limit)
           const shouldRotate = (!aborted && failoverFailure) || timedOut;
@@ -431,6 +452,7 @@ export async function runEmbeddedPiAgent(
             assistantTexts: attempt.assistantTexts,
             toolMetas: attempt.toolMetas,
             lastAssistant: attempt.lastAssistant,
+            lastToolError: attempt.lastToolError,
             config: params.config,
             sessionKey: params.sessionKey ?? params.sessionId,
             verboseLevel: params.verboseLevel,

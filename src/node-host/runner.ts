@@ -8,11 +8,23 @@ import type { BridgeInvokeRequestFrame } from "../infra/bridge/server/types.js";
 import {
   addAllowlistEntry,
   matchAllowlist,
+  normalizeExecApprovals,
   recordAllowlistUse,
   requestExecApprovalViaSocket,
   resolveCommandResolution,
   resolveExecApprovals,
+  ensureExecApprovals,
+  readExecApprovalsSnapshot,
+  resolveExecApprovalsSocketPath,
+  saveExecApprovals,
+  type ExecApprovalsFile,
 } from "../infra/exec-approvals.js";
+import {
+  requestExecHostViaSocket,
+  type ExecHostRequest,
+  type ExecHostResponse,
+  type ExecHostRunResult,
+} from "../infra/exec-host.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
 import { VERSION } from "../version.js";
 
@@ -43,6 +55,18 @@ type SystemWhichParams = {
   bins: string[];
 };
 
+type SystemExecApprovalsSetParams = {
+  file: ExecApprovalsFile;
+  baseHash?: string | null;
+};
+
+type ExecApprovalsSnapshot = {
+  path: string;
+  exists: boolean;
+  hash: string;
+  file: ExecApprovalsFile;
+};
+
 type RunResult = {
   exitCode?: number;
   timedOut: boolean;
@@ -67,6 +91,9 @@ type ExecEventPayload = {
 
 const OUTPUT_CAP = 200_000;
 const OUTPUT_EVENT_TAIL = 20_000;
+
+const execHostEnforced = process.env.CLAWDBOT_NODE_EXEC_HOST?.trim().toLowerCase() === "app";
+const execHostFallbackAllowed = process.env.CLAWDBOT_NODE_EXEC_FALLBACK?.trim() === "1";
 
 const blockedEnvKeys = new Set([
   "PATH",
@@ -141,6 +168,31 @@ function formatCommand(argv: string[]): string {
 function truncateOutput(raw: string, maxChars: number): { text: string; truncated: boolean } {
   if (raw.length <= maxChars) return { text: raw, truncated: false };
   return { text: `... (truncated) ${raw.slice(raw.length - maxChars)}`, truncated: true };
+}
+
+function redactExecApprovals(file: ExecApprovalsFile): ExecApprovalsFile {
+  const socketPath = file.socket?.path?.trim();
+  return {
+    ...file,
+    socket: socketPath ? { path: socketPath } : undefined,
+  };
+}
+
+function requireExecApprovalsBaseHash(
+  params: SystemExecApprovalsSetParams,
+  snapshot: ExecApprovalsSnapshot,
+) {
+  if (!snapshot.exists) return;
+  if (!snapshot.hash) {
+    throw new Error("INVALID_REQUEST: exec approvals base hash unavailable; reload and retry");
+  }
+  const baseHash = typeof params.baseHash === "string" ? params.baseHash.trim() : "";
+  if (!baseHash) {
+    throw new Error("INVALID_REQUEST: exec approvals base hash required; reload and retry");
+  }
+  if (baseHash !== snapshot.hash) {
+    throw new Error("INVALID_REQUEST: exec approvals changed; reload and retry");
+  }
 }
 
 async function runCommand(
@@ -262,6 +314,18 @@ function buildExecEventPayload(payload: ExecEventPayload): ExecEventPayload {
   return { ...payload, output: text };
 }
 
+async function runViaMacAppExecHost(params: {
+  approvals: ReturnType<typeof resolveExecApprovals>;
+  request: ExecHostRequest;
+}): Promise<ExecHostResponse | null> {
+  const { approvals, request } = params;
+  return await requestExecHostViaSocket({
+    socketPath: approvals.socketPath,
+    token: approvals.token,
+    request,
+  });
+}
+
 export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {
   const config = await ensureNodeHostConfig();
   const nodeId = opts.nodeId?.trim() || config.nodeId;
@@ -303,10 +367,16 @@ export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {
     displayName,
     platform: process.platform,
     version: VERSION,
+    coreVersion: VERSION,
     deviceFamily: os.platform(),
     modelIdentifier: os.hostname(),
     caps: ["system"],
-    commands: ["system.run", "system.which"],
+    commands: [
+      "system.run",
+      "system.which",
+      "system.execApprovals.get",
+      "system.execApprovals.set",
+    ],
     onPairToken: async (token) => {
       config.token = token;
       await saveNodeHostConfig(config);
@@ -355,6 +425,80 @@ async function handleInvoke(
   skillBins: SkillBinsCache,
 ) {
   const command = String(frame.command ?? "");
+  if (command === "system.execApprovals.get") {
+    try {
+      ensureExecApprovals();
+      const snapshot = readExecApprovalsSnapshot();
+      const payload: ExecApprovalsSnapshot = {
+        path: snapshot.path,
+        exists: snapshot.exists,
+        hash: snapshot.hash,
+        file: redactExecApprovals(snapshot.file),
+      };
+      client.sendInvokeResponse({
+        type: "invoke-res",
+        id: frame.id,
+        ok: true,
+        payloadJSON: JSON.stringify(payload),
+      });
+    } catch (err) {
+      client.sendInvokeResponse({
+        type: "invoke-res",
+        id: frame.id,
+        ok: false,
+        error: { code: "INVALID_REQUEST", message: String(err) },
+      });
+    }
+    return;
+  }
+
+  if (command === "system.execApprovals.set") {
+    try {
+      const params = decodeParams<SystemExecApprovalsSetParams>(frame.paramsJSON);
+      if (!params.file || typeof params.file !== "object") {
+        throw new Error("INVALID_REQUEST: exec approvals file required");
+      }
+      ensureExecApprovals();
+      const snapshot = readExecApprovalsSnapshot();
+      requireExecApprovalsBaseHash(params, snapshot);
+      const normalized = normalizeExecApprovals(params.file);
+      const currentSocketPath = snapshot.file.socket?.path?.trim();
+      const currentToken = snapshot.file.socket?.token?.trim();
+      const socketPath =
+        normalized.socket?.path?.trim() ?? currentSocketPath ?? resolveExecApprovalsSocketPath();
+      const token = normalized.socket?.token?.trim() ?? currentToken ?? "";
+      const next: ExecApprovalsFile = {
+        ...normalized,
+        socket: {
+          path: socketPath,
+          token,
+        },
+      };
+      saveExecApprovals(next);
+      const nextSnapshot = readExecApprovalsSnapshot();
+      const payload: ExecApprovalsSnapshot = {
+        path: nextSnapshot.path,
+        exists: nextSnapshot.exists,
+        hash: nextSnapshot.hash,
+        file: redactExecApprovals(nextSnapshot.file),
+      };
+      client.sendInvokeResponse({
+        type: "invoke-res",
+        id: frame.id,
+        ok: true,
+        payloadJSON: JSON.stringify(payload),
+      });
+    } catch (err) {
+      client.sendInvokeResponse({
+        type: "invoke-res",
+        id: frame.id,
+        ok: false,
+        error: { code: "INVALID_REQUEST", message: String(err) },
+      });
+    }
+    return;
+  }
+
   if (command === "system.which") {
     try {
       const params = decodeParams<SystemWhichParams>(frame.paramsJSON);
@@ -431,6 +575,87 @@ async function handleInvoke(
   const bins = autoAllowSkills ? await skillBins.current() : new Set<string>();
   const skillAllow =
     autoAllowSkills && resolution?.executableName ? bins.has(resolution.executableName) : false;
+
+  const useMacAppExec = process.platform === "darwin" && (execHostEnforced || !execHostFallbackAllowed);
+  if (useMacAppExec) {
+    const execRequest: ExecHostRequest = {
+      command: argv,
+      rawCommand: rawCommand || null,
+      cwd: params.cwd ?? null,
+      env: params.env ?? null,
+      timeoutMs: params.timeoutMs ?? null,
+      needsScreenRecording: params.needsScreenRecording ?? null,
+      agentId: agentId ?? null,
+      sessionKey: sessionKey ?? null,
+    };
+    const response = await runViaMacAppExecHost({ approvals, request: execRequest });
+    if (!response) {
+      client.sendEvent(
+        "exec.denied",
+        buildExecEventPayload({
+          sessionKey,
+          runId,
+          host: "node",
+          command: cmdText,
+          reason: "companion-unavailable",
+        }),
+      );
+      client.sendInvokeResponse({
+        type: "invoke-res",
+        id: frame.id,
+        ok: false,
+        error: {
+          code: "UNAVAILABLE",
+          message: "COMPANION_APP_UNAVAILABLE: macOS app exec host unreachable",
+        },
+      });
+      return;
+    }
+
+    if (!response.ok) {
+      const reason = response.error.reason ?? "approval-required";
+      client.sendEvent(
+        "exec.denied",
+        buildExecEventPayload({
+          sessionKey,
+          runId,
+          host: "node",
+          command: cmdText,
+          reason,
+        }),
+      );
+      client.sendInvokeResponse({
+        type: "invoke-res",
+        id: frame.id,
+        ok: false,
+        error: { code: "UNAVAILABLE", message: response.error.message },
+      });
+      return;
+    }
+
+    const result: ExecHostRunResult = response.payload;
+    const combined = [result.stdout, result.stderr, result.error].filter(Boolean).join("\n");
+    client.sendEvent(
+      "exec.finished",
+      buildExecEventPayload({
+        sessionKey,
+        runId,
+        host: "node",
+        command: cmdText,
+        exitCode: result.exitCode,
+        timedOut: result.timedOut,
+        success: result.success,
+        output: combined,
+      }),
+    );
+    client.sendInvokeResponse({
+      type: "invoke-res",
+      id: frame.id,
+      ok: true,
+      payloadJSON: JSON.stringify(result),
+    });
+    return;
+  }
 
   if (security === "deny") {
     client.sendEvent(
