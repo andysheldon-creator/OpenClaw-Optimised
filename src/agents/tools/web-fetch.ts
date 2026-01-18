@@ -18,6 +18,7 @@ import {
 } from "./web-shared.js";
 import {
   extractReadableContent,
+  htmlToMarkdown,
   markdownToText,
   truncateText,
   type ExtractMode,
@@ -28,6 +29,7 @@ export { extractReadableContent } from "./web-fetch-utils.js";
 const EXTRACT_MODES = ["markdown", "text"] as const;
 
 const DEFAULT_FETCH_MAX_CHARS = 50_000;
+const DEFAULT_ERROR_MAX_CHARS = 4_000;
 const DEFAULT_FIRECRAWL_BASE_URL = "https://api.firecrawl.dev";
 const DEFAULT_FIRECRAWL_MAX_AGE_MS = 172_800_000;
 const DEFAULT_FETCH_USER_AGENT =
@@ -140,6 +142,34 @@ function resolveFirecrawlMaxAgeMsOrDefault(firecrawl?: FirecrawlFetchConfig): nu
 function resolveMaxChars(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" && Number.isFinite(value) ? value : fallback;
   return Math.max(100, Math.floor(parsed));
+}
+
+function looksLikeHtml(value: string): boolean {
+  const trimmed = value.trimStart();
+  if (!trimmed) return false;
+  return (
+    trimmed.startsWith("<!doctype html") ||
+    trimmed.startsWith("<html") ||
+    trimmed.startsWith("<!DOCTYPE html") ||
+    trimmed.startsWith("<HTML")
+  );
+}
+
+function formatWebFetchErrorDetail(params: {
+  detail: string;
+  contentType?: string | null;
+  maxChars: number;
+}): string {
+  const { detail, contentType, maxChars } = params;
+  if (!detail) return "";
+  let text = detail;
+  if (contentType?.includes("text/html") || looksLikeHtml(detail)) {
+    const rendered = htmlToMarkdown(detail);
+    const withTitle = rendered.title ? `${rendered.title}\n${rendered.text}` : rendered.text;
+    text = markdownToText(withTitle);
+  }
+  const truncated = truncateText(text.trim(), maxChars);
+  return truncated.text;
 }
 
 export async function fetchFirecrawlContent(params: {
@@ -329,7 +359,12 @@ async function runWebFetch(params: {
       writeCache(FETCH_CACHE, cacheKey, payload, params.cacheTtlMs);
       return payload;
     }
-    const detail = await readResponseText(res);
+    const rawDetail = await readResponseText(res);
+    const detail = formatWebFetchErrorDetail({
+      detail: rawDetail,
+      contentType: res.headers.get("content-type"),
+      maxChars: DEFAULT_ERROR_MAX_CHARS,
+    });
     throw new Error(`Web fetch failed (${res.status}): ${detail || res.statusText}`);
   }
 
