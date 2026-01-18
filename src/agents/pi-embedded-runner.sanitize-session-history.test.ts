@@ -1,4 +1,5 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import type { TextContent, ThinkingContent, ToolCall, UserMessage } from "@mariozechner/pi-ai";
 import type { SessionManager } from "@mariozechner/pi-coding-agent";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as helpers from "./pi-embedded-helpers.js";
@@ -27,7 +28,26 @@ describe("sanitizeSessionHistory", () => {
     appendCustomEntry: vi.fn(),
   } as unknown as SessionManager;
 
-  const mockMessages: AgentMessage[] = [{ role: "user", content: "hello" }];
+  const mockMessages: AgentMessage[] = [{ role: "user", content: "hello", timestamp: 1 }];
+  const makeAssistant = (
+    content: Array<TextContent | ThinkingContent | ToolCall>,
+  ): AgentMessage => ({
+    role: "assistant",
+    api: "openai-responses",
+    provider: "openai",
+    model: "gpt-5.2",
+    usage: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      totalTokens: 0,
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    },
+    stopReason: "stop",
+    timestamp: Date.now(),
+    content,
+  });
 
   beforeEach(async () => {
     vi.resetAllMocks();
@@ -35,7 +55,8 @@ describe("sanitizeSessionHistory", () => {
     // Default mock implementation
     vi.mocked(helpers.downgradeGeminiHistory).mockImplementation((msgs) => {
       if (!msgs) return [];
-      return [...msgs, { role: "system", content: "downgraded" }];
+      const downgraded: UserMessage = { role: "user", content: "downgraded", timestamp: 2 };
+      return [...msgs, downgraded];
     });
     vi.resetModules();
     ({ sanitizeSessionHistory } = await import("./pi-embedded-runner/google.js"));
@@ -55,7 +76,7 @@ describe("sanitizeSessionHistory", () => {
     expect(helpers.isGoogleModelApi).toHaveBeenCalledWith("google-gemini");
     expect(helpers.downgradeGeminiHistory).toHaveBeenCalled();
     // Check if the result contains the downgraded message
-    expect(result).toContainEqual({ role: "system", content: "downgraded" });
+    expect(result).toContainEqual({ role: "user", content: "downgraded", timestamp: 2 });
   });
 
   it("should NOT downgrade history for google-antigravity provider", async () => {
@@ -73,8 +94,9 @@ describe("sanitizeSessionHistory", () => {
     expect(helpers.downgradeGeminiHistory).not.toHaveBeenCalled();
     // Result should not contain the downgraded message
     expect(result).not.toContainEqual({
-      role: "system",
+      role: "user",
       content: "downgraded",
+      timestamp: 2,
     });
   });
 
@@ -106,5 +128,50 @@ describe("sanitizeSessionHistory", () => {
 
     expect(helpers.isGoogleModelApi).toHaveBeenCalledWith("google-gemini");
     expect(helpers.downgradeGeminiHistory).toHaveBeenCalled();
+  });
+
+  it("reorders reasoning blocks for OpenAI Responses history", async () => {
+    vi.mocked(helpers.isGoogleModelApi).mockReturnValue(false);
+    const input: AgentMessage[] = [
+      makeAssistant([
+        { type: "text", text: "Answer" },
+        { type: "thinking", thinking: "Internal" },
+        { type: "toolCall", id: "call_1", name: "noop", arguments: {} },
+      ]),
+    ];
+
+    const result = await sanitizeSessionHistory({
+      messages: input,
+      modelApi: "openai-responses",
+      provider: "openai",
+      sessionManager: mockSessionManager,
+      sessionId: "test-session",
+    });
+
+    const content = (result[0] as Extract<AgentMessage, { role: "assistant" }>).content ?? [];
+    expect(Array.isArray(content)).toBe(true);
+    expect((content as Array<{ type?: string }>)[0]?.type).toBe("thinking");
+  });
+
+  it("does not reorder reasoning blocks for other APIs", async () => {
+    vi.mocked(helpers.isGoogleModelApi).mockReturnValue(false);
+    const input: AgentMessage[] = [
+      makeAssistant([
+        { type: "text", text: "Answer" },
+        { type: "thinking", thinking: "Internal" },
+      ]),
+    ];
+
+    const result = await sanitizeSessionHistory({
+      messages: input,
+      modelApi: "anthropic-messages",
+      provider: "anthropic",
+      sessionManager: mockSessionManager,
+      sessionId: "test-session",
+    });
+
+    const content = (result[0] as Extract<AgentMessage, { role: "assistant" }>).content ?? [];
+    expect(Array.isArray(content)).toBe(true);
+    expect((content as Array<{ type?: string }>)[0]?.type).toBe("text");
   });
 });

@@ -46,10 +46,56 @@ const OPENAI_TOOL_CALL_ID_APIS = new Set([
   "openai-responses",
   "openai-codex-responses",
 ]);
+const OPENAI_RESPONSES_REASONING_ORDER_APIS = new Set([
+  "openai-responses",
+  "openai-codex-responses",
+]);
 
 function shouldSanitizeToolCallIds(modelApi?: string | null): boolean {
   if (!modelApi) return false;
   return isGoogleModelApi(modelApi) || OPENAI_TOOL_CALL_ID_APIS.has(modelApi);
+}
+
+function isOpenAIResponsesReasoningApi(modelApi?: string | null): boolean {
+  if (!modelApi) return false;
+  return OPENAI_RESPONSES_REASONING_ORDER_APIS.has(modelApi);
+}
+
+function reorderOpenAIResponsesReasoning(messages: AgentMessage[]): AgentMessage[] {
+  let changed = false;
+  const out = messages.map((message) => {
+    if (!message || typeof message !== "object") return message;
+    if ((message as { role?: unknown }).role !== "assistant") return message;
+    const assistant = message as Extract<AgentMessage, { role: "assistant" }>;
+    if (!Array.isArray(assistant.content)) return message;
+
+    const isReasoningBlock = (block: unknown): boolean => {
+      if (!block || typeof block !== "object") return false;
+      const type = (block as { type?: unknown }).type;
+      return type === "thinking" || type === "reasoning";
+    };
+
+    let sawNonReasoning = false;
+    let needsReorder = false;
+    for (const block of assistant.content) {
+      if (isReasoningBlock(block)) {
+        if (sawNonReasoning) {
+          needsReorder = true;
+          break;
+        }
+      } else {
+        sawNonReasoning = true;
+      }
+    }
+    if (!needsReorder) return message;
+
+    const reasoningBlocks = assistant.content.filter(isReasoningBlock);
+    const restBlocks = assistant.content.filter((block) => !isReasoningBlock(block));
+    changed = true;
+    return { ...assistant, content: [...reasoningBlocks, ...restBlocks] };
+  });
+
+  return changed ? out : messages;
 }
 
 function findUnsupportedSchemaKeywords(schema: unknown, path: string): string[] {
@@ -218,9 +264,12 @@ export async function sanitizeSessionHistory(params: {
   const downgraded = shouldDowngradeHistory
     ? downgradeGeminiHistory(downgradedThinking)
     : downgradedThinking;
+  const reorderedForOpenAI = isOpenAIResponsesReasoningApi(params.modelApi)
+    ? reorderOpenAIResponsesReasoning(downgraded)
+    : downgraded;
 
   return applyGoogleTurnOrderingFix({
-    messages: downgraded,
+    messages: reorderedForOpenAI,
     modelApi: params.modelApi,
     sessionManager: params.sessionManager,
     sessionId: params.sessionId,
