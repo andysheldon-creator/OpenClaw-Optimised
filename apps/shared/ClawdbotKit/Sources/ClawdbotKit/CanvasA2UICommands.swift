@@ -1,3 +1,4 @@
+import ClawdbotProtocol
 import Foundation
 
 public enum ClawdbotCanvasA2UICommand: String, Codable, Sendable {

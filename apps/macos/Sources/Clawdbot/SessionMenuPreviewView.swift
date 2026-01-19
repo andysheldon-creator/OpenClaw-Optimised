@@ -1,3 +1,4 @@
+import ClawdbotProtocol
 import ClawdbotChatUI
 import ClawdbotKit
 import OSLog
@@ -225,7 +226,7 @@ enum SessionMenuPreviewLoader {
         from payload: ClawdbotChatHistoryPayload,
         maxItems: Int) -> [SessionPreviewItem]
     {
-        let raw: [ClawdbotKit.AnyCodable] = payload.messages ?? []
+        let raw: [ClawdbotProtocol.AnyCodable] = payload.messages ?? []
         let messages = self.decodeMessages(raw)
         let built = messages.compactMap { message -> SessionPreviewItem? in
             guard let text = self.previewText(for: message) else { return nil }
@@ -239,7 +240,7 @@ enum SessionMenuPreviewLoader {
         return Array(trimmed.reversed())
     }
 
-    private static func decodeMessages(_ raw: [ClawdbotKit.AnyCodable]) -> [ClawdbotChatMessage] {
+    private static func decodeMessages(_ raw: [ClawdbotProtocol.AnyCodable]) -> [ClawdbotChatMessage] {
         raw.compactMap { item in
             guard let data = try? JSONEncoder().encode(item) else { return nil }
             return try? JSONDecoder().decode(ClawdbotChatMessage.self, from: data)

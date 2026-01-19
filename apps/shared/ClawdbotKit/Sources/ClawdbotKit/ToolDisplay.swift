@@ -1,3 +1,4 @@
+import ClawdbotProtocol
 import Foundation
 
 public struct ToolDisplaySummary: Sendable, Equatable {

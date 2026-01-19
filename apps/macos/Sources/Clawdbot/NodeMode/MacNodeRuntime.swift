@@ -1,3 +1,4 @@
+import ClawdbotProtocol
 import AppKit
 import ClawdbotIPC
 import ClawdbotKit
@@ -354,7 +355,7 @@ actor MacNodeRuntime {
 
     private func handleA2UIPush(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
         let command = req.command
-        let messages: [ClawdbotKit.AnyCodable]
+        let messages: [ClawdbotProtocol.AnyCodable]
         if command == ClawdbotCanvasA2UICommand.pushJSONL.rawValue {
             let params = try Self.decodeParams(ClawdbotCanvasA2UIPushJSONLParams.self, from: req.paramsJSON)
             messages = try ClawdbotCanvasA2UIJSONL.decodeMessagesFromJSONL(params.jsonl)

@@ -236,10 +236,10 @@ final class WorkActivityStore {
         return display.label
     }
 
-    private static func wrapToolArgs(_ args: [String: ClawdbotProtocol.AnyCodable]?) -> ClawdbotKit.AnyCodable? {
+    private static func wrapToolArgs(_ args: [String: ClawdbotProtocol.AnyCodable]?) -> ClawdbotProtocol.AnyCodable? {
         guard let args else { return nil }
         let converted: [String: Any] = args.mapValues { self.unwrapJSONValue($0.value) }
-        return ClawdbotKit.AnyCodable(converted)
+        return ClawdbotProtocol.AnyCodable(converted)
     }
 
     private static func unwrapJSONValue(_ value: Any) -> Any {

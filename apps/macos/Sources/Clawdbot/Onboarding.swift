@@ -1,3 +1,4 @@
+import ClawdbotKit
 import AppKit
 import ClawdbotChatUI
 import ClawdbotDiscovery

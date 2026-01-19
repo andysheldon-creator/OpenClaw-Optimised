@@ -1,3 +1,4 @@
+import ClawdbotProtocol
 import ClawdbotKit
 import Foundation
 import Observation
