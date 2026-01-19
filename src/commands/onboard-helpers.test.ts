@@ -1,18 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { openUrl, resolveBrowserOpenCommand } from "./onboard-helpers.js";
-=======
-import {
-  openUrl,
-  resolveBrowserOpenCommand,
-  resolveControlUiLinks,
-} from "./onboard-helpers.js";
->>>>>>> upstream/main
-=======
 import { openUrl, resolveBrowserOpenCommand, resolveControlUiLinks } from "./onboard-helpers.js";
->>>>>>> upstream/main
 
 const mocks = vi.hoisted(() => ({
   runCommandWithTimeout: vi.fn(async () => ({
@@ -22,23 +10,17 @@ const mocks = vi.hoisted(() => ({
     signal: null,
     killed: false,
   })),
-<<<<<<< HEAD
-=======
   pickPrimaryTailnetIPv4: vi.fn(() => undefined),
->>>>>>> upstream/main
 }));
 
 vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout: mocks.runCommandWithTimeout,
 }));
 
-<<<<<<< HEAD
-=======
 vi.mock("../infra/tailnet.js", () => ({
   pickPrimaryTailnetIPv4: mocks.pickPrimaryTailnetIPv4,
 }));
 
->>>>>>> upstream/main
 describe("openUrl", () => {
   it("quotes URLs on win32 so '&' is not treated as cmd separator", async () => {
     vi.spyOn(process, "platform", "get").mockReturnValue("win32");
@@ -68,8 +50,6 @@ describe("resolveBrowserOpenCommand", () => {
     expect(resolved.quoteUrl).toBe(true);
   });
 });
-<<<<<<< HEAD
-=======
 
 describe("resolveControlUiLinks", () => {
   it("uses customBindHost for custom bind", () => {
@@ -92,4 +72,3 @@ describe("resolveControlUiLinks", () => {
     expect(links.wsUrl).toBe("ws://127.0.0.1:18789");
   });
 });
->>>>>>> upstream/main

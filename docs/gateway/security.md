@@ -98,8 +98,6 @@ Clawdbot’s stance:
 - **Scope next:** decide where the bot is allowed to act (group allowlists + mention gating, tools, sandboxing, device permissions).
 - **Model last:** assume the model can be manipulated; design so manipulation has limited blast radius.
 
-<<<<<<< HEAD
-=======
 ## Plugins/extensions
 
 Plugins run **in-process** with the Gateway. Treat them as trusted code:
@@ -115,7 +113,6 @@ Plugins run **in-process** with the Gateway. Treat them as trusted code:
 
 Details: [Plugins](/plugin)
 
->>>>>>> upstream/main
 ## DM access model (pairing / allowlist / open / disabled)
 
 All current DM-capable channels support a DM policy (`dmPolicy` or `*.dm.policy`) that gates inbound DMs **before** the message is processed:

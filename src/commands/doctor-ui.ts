@@ -23,12 +23,6 @@ export async function maybeRepairUiProtocolFreshness(
 
   try {
     const [schemaStats, uiStats] = await Promise.all([
-<<<<<<< HEAD
-      fs.stat(schemaPath),
-      fs.stat(uiIndexPath),
-    ]);
-
-=======
       fs.stat(schemaPath).catch(() => null),
       fs.stat(uiIndexPath).catch(() => null),
     ]);
@@ -75,7 +69,6 @@ export async function maybeRepairUiProtocolFreshness(
 
     if (!schemaStats || !uiStats) return;
 
->>>>>>> upstream/main
     if (schemaStats.mtime > uiStats.mtime) {
       const uiMtimeIso = uiStats.mtime.toISOString();
       // Find changes since the UI build

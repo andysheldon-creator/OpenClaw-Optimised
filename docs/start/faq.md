@@ -540,8 +540,6 @@ Legacy single‑agent path: `~/.clawdbot/agent/*` (migrated by `clawdbot doctor`
 
 Your **workspace** (AGENTS.md, memory files, skills, etc.) is separate and configured via `agents.defaults.workspace` (default: `~/clawd`).
 
-<<<<<<< HEAD
-=======
 ### Where should AGENTS.md / SOUL.md / USER.md / MEMORY.md live?
 
 These files live in the **agent workspace**, not `~/.clawdbot`.
@@ -569,7 +567,6 @@ See [Agent workspace](/concepts/agent-workspace) and [Memory](/concepts/memory).
 
 See the dedicated guide: [Uninstall](/install/uninstall).
 
->>>>>>> upstream/main
 ### Can agents work outside the workspace?
 
 Yes. The workspace is the **default cwd** and memory anchor, not a hard sandbox.
@@ -890,11 +887,6 @@ See [/concepts/model-providers](/concepts/model-providers) and [/environment](/e
 
 Send `/new` or `/reset` as a standalone message. See [Session management](/concepts/session).
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-### How do I completely reset Clawdbot (but keep it installed)?
-=======
 ### Do sessions reset automatically if I never send `/new`?
 
 Yes. Sessions expire after `session.idleMinutes` (default **60**). The **next**
@@ -910,7 +902,6 @@ transcripts — it just starts a new session.
 ```
 
 ### How do I completely reset Clawdbot but keep it installed?
->>>>>>> upstream/main
 
 Use the reset command:
 
@@ -957,9 +948,6 @@ If it keeps happening:
 
 Docs: [Compaction](/concepts/compaction), [Session pruning](/concepts/session-pruning), [Session management](/concepts/session).
 
-<<<<<<< HEAD
->>>>>>> upstream/main
-=======
 ### Why am I getting heartbeat messages every 30 minutes?
 
 Heartbeats run every **30m** by default. Tune or disable them:
@@ -978,7 +966,6 @@ Heartbeats run every **30m** by default. Tune or disable them:
 
 Per-agent overrides use `agents.list[].heartbeat`. Docs: [Heartbeat](/gateway/heartbeat).
 
->>>>>>> upstream/main
 ### Do I need to add a “bot account” to a WhatsApp group?
 
 No. Clawdbot runs on **your own account**, so if you’re in the group, Clawdbot can see it.

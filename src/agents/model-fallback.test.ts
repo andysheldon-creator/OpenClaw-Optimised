@@ -117,8 +117,6 @@ describe("runWithModelFallback", () => {
     expect(run.mock.calls[1]?.[1]).toBe("claude-haiku-3-5");
   });
 
-<<<<<<< HEAD
-=======
   it("does not append configured primary when fallbacksOverride is set", async () => {
     const cfg = makeCfg({
       agents: {
@@ -243,7 +241,6 @@ describe("runWithModelFallback", () => {
     expect(calls).toEqual([{ provider: "openai", model: "gpt-4.1-mini" }]);
   });
 
->>>>>>> upstream/main
   it("falls back on missing API key errors", async () => {
     const cfg = makeCfg();
     const run = vi

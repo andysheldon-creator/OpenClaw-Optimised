@@ -209,93 +209,7 @@ function parseButtonsParam(params: Record<string, unknown>): void {
   }
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-const CONTEXT_GUARDED_ACTIONS = new Set<ProviderMessageActionName>([
-=======
-const CONTEXT_GUARDED_ACTIONS = new Set<ChannelMessageActionName>([
->>>>>>> upstream/main
-  "send",
-  "poll",
-  "thread-create",
-  "thread-reply",
-  "sticker",
-]);
-
-function resolveContextGuardTarget(
-<<<<<<< HEAD
-  action: ProviderMessageActionName,
-=======
-  action: ChannelMessageActionName,
->>>>>>> upstream/main
-  params: Record<string, unknown>,
-): string | undefined {
-  if (!CONTEXT_GUARDED_ACTIONS.has(action)) return undefined;
-
-  if (action === "thread-reply" || action === "thread-create") {
-    return (
-      readStringParam(params, "channelId") ?? readStringParam(params, "to")
-    );
-  }
-
-  return readStringParam(params, "to") ?? readStringParam(params, "channelId");
-}
-
-function enforceContextIsolation(params: {
-<<<<<<< HEAD
-  provider: ProviderId;
-  action: ProviderMessageActionName;
-  params: Record<string, unknown>;
-  toolContext?: ProviderThreadingToolContext;
-=======
-  channel: ChannelId;
-  action: ChannelMessageActionName;
-  params: Record<string, unknown>;
-  toolContext?: ChannelThreadingToolContext;
->>>>>>> upstream/main
-}): void {
-  const currentTarget = params.toolContext?.currentChannelId?.trim();
-  if (!currentTarget) return;
-  if (!CONTEXT_GUARDED_ACTIONS.has(params.action)) return;
-
-  const target = resolveContextGuardTarget(params.action, params.params);
-  if (!target) return;
-
-  const normalizedTarget =
-<<<<<<< HEAD
-    normalizeTargetForProvider(params.provider, target) ?? target.toLowerCase();
-  const normalizedCurrent =
-    normalizeTargetForProvider(params.provider, currentTarget) ??
-=======
-    normalizeTargetForProvider(params.channel, target) ?? target.toLowerCase();
-  const normalizedCurrent =
-    normalizeTargetForProvider(params.channel, currentTarget) ??
->>>>>>> upstream/main
-    currentTarget.toLowerCase();
-
-  if (!normalizedTarget || !normalizedCurrent) return;
-  if (normalizedTarget === normalizedCurrent) return;
-
-  throw new Error(
-<<<<<<< HEAD
-    `Cross-context messaging denied: action=${params.action} target="${target}" while bound to "${currentTarget}" (provider=${params.provider}).`,
-  );
-}
-
-async function resolveProvider(
-=======
-    `Cross-context messaging denied: action=${params.action} target="${target}" while bound to "${currentTarget}" (channel=${params.channel}).`,
-  );
-}
-
-async function resolveChannel(
->>>>>>> upstream/main
-  cfg: ClawdbotConfig,
-  params: Record<string, unknown>,
-) {
-=======
 async function resolveChannel(cfg: ClawdbotConfig, params: Record<string, unknown>) {
->>>>>>> upstream/main
   const channelHint = readStringParam(params, "channel");
   const selection = await resolveMessageChannelSelection({
     cfg,
@@ -450,12 +364,6 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
       allowEmpty: true,
     }) ?? "";
 
-<<<<<<< HEAD
-  enforceContextIsolation({
-<<<<<<< HEAD
-    provider,
-=======
-=======
   const parsed = parseReplyDirectives(message);
   message = parsed.text;
   params.message = message;
@@ -466,9 +374,7 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
 
   message = await maybeApplyCrossContextMarker({
     cfg,
->>>>>>> upstream/main
     channel,
->>>>>>> upstream/main
     action,
     target: to,
     toolContext: input.toolContext,

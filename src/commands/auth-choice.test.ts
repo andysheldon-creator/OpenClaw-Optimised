@@ -179,17 +179,7 @@ describe("applyAuthChoice", () => {
       mode: "api_key",
     });
 
-<<<<<<< HEAD
-    const authProfilePath = path.join(
-      tempStateDir,
-      "agents",
-      "main",
-      "agent",
-      "auth-profiles.json",
-    );
-=======
     const authProfilePath = authProfilePathFor(requireAgentDir());
->>>>>>> upstream/main
     const raw = await fs.readFile(authProfilePath, "utf8");
     const parsed = JSON.parse(raw) as {
       profiles?: Record<string, { key?: string }>;

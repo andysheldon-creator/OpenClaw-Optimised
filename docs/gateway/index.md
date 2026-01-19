@@ -270,11 +270,7 @@ Windows installs should use **WSL2** and follow the Linux systemd section above.
 
 ## Operational checks
 - Liveness: open WS and send `req:connect` → expect `res` with `payload.type="hello-ok"` (with snapshot).
-<<<<<<< HEAD
-- Readiness: call `health` → expect `ok: true` and `web.linked=true`.
-=======
 - Readiness: call `health` → expect `ok: true` and a linked channel in `linkChannel` (when applicable).
->>>>>>> upstream/main
 - Debug: subscribe to `tick` and `presence` events; ensure `status` shows linked/auth age; presence entries show Gateway host and connected clients.
 
 ## Safety guarantees

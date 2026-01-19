@@ -12,8 +12,7 @@ vi.mock("../agents/pi-embedded.js", () => ({
   isEmbeddedPiRunStreaming: vi.fn().mockReturnValue(false),
   runEmbeddedPiAgent: vi.fn(),
   queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
-  resolveEmbeddedSessionLane: (key: string) =>
-    `session:${key.trim() || "main"}`,
+  resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
 }));
 
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
@@ -21,16 +20,8 @@ import { resetInboundDedupe } from "../auto-reply/reply/inbound-dedupe.js";
 import { getReplyFromConfig } from "../auto-reply/reply.js";
 import type { ClawdbotConfig } from "../config/config.js";
 import { resetLogger, setLoggerOverride } from "../logging.js";
-import {
-  HEARTBEAT_TOKEN,
-  monitorWebChannel,
-  SILENT_REPLY_TOKEN,
-} from "./auto-reply.js";
-import {
-  resetBaileysMocks,
-  resetLoadConfigMock,
-  setLoadConfigMock,
-} from "./test-helpers.js";
+import { HEARTBEAT_TOKEN, monitorWebProvider, SILENT_REPLY_TOKEN } from "./auto-reply.js";
+import { resetBaileysMocks, resetLoadConfigMock, setLoadConfigMock } from "./test-helpers.js";
 
 let previousHome: string | undefined;
 let tempHome: string | undefined;
@@ -115,12 +106,14 @@ describe("partial reply gating", () => {
     const replyResolver = vi.fn().mockResolvedValue({ text: "final reply" });
 
     const mockConfig: ClawdbotConfig = {
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
     };
 
     setLoadConfigMock(mockConfig);
 
-    await monitorWebChannel(
+    await monitorWebProvider(
       false,
       async ({ onMessage }) => {
         await onMessage({
@@ -159,25 +152,14 @@ describe("partial reply gating", () => {
     const replyResolver = vi.fn().mockResolvedValue({ text: "final reply" });
 
     const mockConfig: ClawdbotConfig = {
-<<<<<<< HEAD
       whatsapp: {
         allowFrom: ["*"],
-=======
-      channels: {
-        whatsapp: {
-          allowFrom: ["*"],
-        },
->>>>>>> upstream/main
       },
     };
 
     setLoadConfigMock(mockConfig);
 
-<<<<<<< HEAD
     await monitorWebProvider(
-=======
-    await monitorWebChannel(
->>>>>>> upstream/main
       false,
       async ({ onMessage }) => {
         await onMessage({
@@ -219,13 +201,15 @@ describe("partial reply gating", () => {
     const replyResolver = vi.fn().mockResolvedValue(undefined);
 
     const mockConfig: ClawdbotConfig = {
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
       session: { store: store.storePath },
     };
 
     setLoadConfigMock(mockConfig);
 
-    await monitorWebChannel(
+    await monitorWebProvider(
       false,
       async ({ onMessage }) => {
         await onMessage({
@@ -247,21 +231,17 @@ describe("partial reply gating", () => {
       replyResolver,
     );
 
-    let stored: Record<
-      string,
-      { lastChannel?: string; lastTo?: string }
-    > | null = null;
+    let stored: Record<string, { lastProvider?: string; lastTo?: string }> | null = null;
     for (let attempt = 0; attempt < 50; attempt += 1) {
       stored = JSON.parse(await fs.readFile(store.storePath, "utf8")) as Record<
         string,
-        { lastChannel?: string; lastTo?: string }
+        { lastProvider?: string; lastTo?: string }
       >;
-      if (stored[mainSessionKey]?.lastChannel && stored[mainSessionKey]?.lastTo)
-        break;
+      if (stored[mainSessionKey]?.lastProvider && stored[mainSessionKey]?.lastTo) break;
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
     if (!stored) throw new Error("store not loaded");
-    expect(stored[mainSessionKey]?.lastChannel).toBe("whatsapp");
+    expect(stored[mainSessionKey]?.lastProvider).toBe("whatsapp");
     expect(stored[mainSessionKey]?.lastTo).toBe("+1000");
 
     resetLoadConfigMock();
@@ -278,13 +258,15 @@ describe("partial reply gating", () => {
     const replyResolver = vi.fn().mockResolvedValue(undefined);
 
     const mockConfig: ClawdbotConfig = {
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
       session: { store: store.storePath },
     };
 
     setLoadConfigMock(mockConfig);
 
-    await monitorWebChannel(
+    await monitorWebProvider(
       false,
       async ({ onMessage }) => {
         await onMessage({
@@ -312,15 +294,15 @@ describe("partial reply gating", () => {
 
     let stored: Record<
       string,
-      { lastChannel?: string; lastTo?: string; lastAccountId?: string }
+      { lastProvider?: string; lastTo?: string; lastAccountId?: string }
     > | null = null;
     for (let attempt = 0; attempt < 50; attempt += 1) {
       stored = JSON.parse(await fs.readFile(store.storePath, "utf8")) as Record<
         string,
-        { lastChannel?: string; lastTo?: string; lastAccountId?: string }
+        { lastProvider?: string; lastTo?: string; lastAccountId?: string }
       >;
       if (
-        stored[groupSessionKey]?.lastChannel &&
+        stored[groupSessionKey]?.lastProvider &&
         stored[groupSessionKey]?.lastTo &&
         stored[groupSessionKey]?.lastAccountId
       )
@@ -328,7 +310,7 @@ describe("partial reply gating", () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
     if (!stored) throw new Error("store not loaded");
-    expect(stored[groupSessionKey]?.lastChannel).toBe("whatsapp");
+    expect(stored[groupSessionKey]?.lastProvider).toBe("whatsapp");
     expect(stored[groupSessionKey]?.lastTo).toBe("123@g.us");
     expect(stored[groupSessionKey]?.lastAccountId).toBe("work");
 
@@ -396,12 +378,14 @@ describe("typing controller idle", () => {
     });
 
     const mockConfig: ClawdbotConfig = {
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
     };
 
     setLoadConfigMock(mockConfig);
 
-    await monitorWebChannel(
+    await monitorWebProvider(
       false,
       async ({ onMessage }) => {
         await onMessage({
@@ -459,7 +443,7 @@ describe("web auto-reply", () => {
       exit: vi.fn(),
     };
     const controller = new AbortController();
-    const run = monitorWebChannel(
+    const run = monitorWebProvider(
       false,
       listenerFactory,
       true,
@@ -479,18 +463,13 @@ describe("web auto-reply", () => {
     closeResolvers[0]?.();
     const waitForSecondCall = async () => {
       const started = Date.now();
-      while (
-        listenerFactory.mock.calls.length < 2 &&
-        Date.now() - started < 200
-      ) {
+      while (listenerFactory.mock.calls.length < 2 && Date.now() - started < 200) {
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
     };
     await waitForSecondCall();
     expect(listenerFactory).toHaveBeenCalledTimes(2);
-    expect(runtime.error).toHaveBeenCalledWith(
-      expect.stringContaining("Retry 1"),
-    );
+    expect(runtime.error).toHaveBeenCalledWith(expect.stringContaining("Retry 1"));
 
     controller.abort();
     closeResolvers[1]?.();
@@ -507,9 +486,7 @@ describe("web auto-reply", () => {
       | undefined;
     const listenerFactory = vi.fn(
       async (opts: {
-        onMessage: (
-          msg: import("./inbound.js").WebInboundMessage,
-        ) => Promise<void>;
+        onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
       }) => {
         capturedOnMessage = opts.onMessage;
         let resolveClose: (reason: unknown) => void = () => {};
@@ -530,7 +507,7 @@ describe("web auto-reply", () => {
       exit: vi.fn(),
     };
     const controller = new AbortController();
-    const run = monitorWebChannel(
+    const run = monitorWebProvider(
       false,
       listenerFactory,
       true,
@@ -573,52 +550,46 @@ describe("web auto-reply", () => {
     await run;
   }, 15_000);
 
-  it(
-    "stops after hitting max reconnect attempts",
-    { timeout: 20000 },
-    async () => {
-      const closeResolvers: Array<() => void> = [];
-      const sleep = vi.fn(async () => {});
-      const listenerFactory = vi.fn(async () => {
-        const onClose = new Promise<void>((res) => closeResolvers.push(res));
-        return { close: vi.fn(), onClose };
-      });
-      const runtime = {
-        log: vi.fn(),
-        error: vi.fn(),
-        exit: vi.fn(),
-      };
+  it("stops after hitting max reconnect attempts", { timeout: 20000 }, async () => {
+    const closeResolvers: Array<() => void> = [];
+    const sleep = vi.fn(async () => {});
+    const listenerFactory = vi.fn(async () => {
+      const onClose = new Promise<void>((res) => closeResolvers.push(res));
+      return { close: vi.fn(), onClose };
+    });
+    const runtime = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn(),
+    };
 
-      const run = monitorWebChannel(
-        false,
-        listenerFactory,
-        true,
-        async () => ({ text: "ok" }),
-        runtime as never,
-        undefined,
-        {
-          heartbeatSeconds: 1,
-          reconnect: { initialMs: 5, maxMs: 5, maxAttempts: 2, factor: 1.1 },
-          sleep,
-        },
-      );
+    const run = monitorWebProvider(
+      false,
+      listenerFactory,
+      true,
+      async () => ({ text: "ok" }),
+      runtime as never,
+      undefined,
+      {
+        heartbeatSeconds: 1,
+        reconnect: { initialMs: 5, maxMs: 5, maxAttempts: 2, factor: 1.1 },
+        sleep,
+      },
+    );
 
-      await Promise.resolve();
-      expect(listenerFactory).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    expect(listenerFactory).toHaveBeenCalledTimes(1);
 
-      closeResolvers.shift()?.();
-      await new Promise((resolve) => setTimeout(resolve, 15));
-      expect(listenerFactory).toHaveBeenCalledTimes(2);
+    closeResolvers.shift()?.();
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    expect(listenerFactory).toHaveBeenCalledTimes(2);
 
-      closeResolvers.shift()?.();
-      await new Promise((resolve) => setTimeout(resolve, 15));
-      await run;
+    closeResolvers.shift()?.();
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    await run;
 
-      expect(runtime.error).toHaveBeenCalledWith(
-        expect.stringContaining("max attempts reached"),
-      );
-    },
-  );
+    expect(runtime.error).toHaveBeenCalledWith(expect.stringContaining("max attempts reached"));
+  });
 
   it("processes inbound messages without batching and preserves timestamps", async () => {
     const originalTz = process.env.TZ;
@@ -641,9 +612,7 @@ describe("web auto-reply", () => {
         | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
         | undefined;
       const listenerFactory = async (opts: {
-        onMessage: (
-          msg: import("./inbound.js").WebInboundMessage,
-        ) => Promise<void>;
+        onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
       }) => {
         capturedOnMessage = opts.onMessage;
         return { close: vi.fn() };
@@ -653,7 +622,7 @@ describe("web auto-reply", () => {
         session: { store: store.storePath },
       }));
 
-      await monitorWebChannel(false, listenerFactory, false, resolver);
+      await monitorWebProvider(false, listenerFactory, false, resolver);
       expect(capturedOnMessage).toBeDefined();
 
       // Two messages from the same sender with fixed timestamps
@@ -681,13 +650,9 @@ describe("web auto-reply", () => {
       expect(resolver).toHaveBeenCalledTimes(2);
       const firstArgs = resolver.mock.calls[0][0];
       const secondArgs = resolver.mock.calls[1][0];
-      expect(firstArgs.Body).toContain(
-        "[WhatsApp +1 2025-01-01T00:00Z] [clawdbot] first",
-      );
+      expect(firstArgs.Body).toContain("[WhatsApp +1 2025-01-01T00:00Z] [clawdbot] first");
       expect(firstArgs.Body).not.toContain("second");
-      expect(secondArgs.Body).toContain(
-        "[WhatsApp +1 2025-01-01T01:00Z] [clawdbot] second",
-      );
+      expect(secondArgs.Body).toContain("[WhatsApp +1 2025-01-01T01:00Z] [clawdbot] second");
       expect(secondArgs.Body).not.toContain("first");
 
       // Max listeners bumped to avoid warnings in multi-instance test runs
@@ -712,9 +677,7 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -734,15 +697,12 @@ describe("web auto-reply", () => {
       ok: true,
       body: true,
       arrayBuffer: async () =>
-        smallPng.buffer.slice(
-          smallPng.byteOffset,
-          smallPng.byteOffset + smallPng.byteLength,
-        ),
+        smallPng.buffer.slice(smallPng.byteOffset, smallPng.byteOffset + smallPng.byteLength),
       headers: { get: () => "image/png" },
       status: 200,
     } as Response);
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
 
     expect(capturedOnMessage).toBeDefined();
     await capturedOnMessage?.({
@@ -775,9 +735,7 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -791,7 +749,7 @@ describe("web auto-reply", () => {
       headers: { get: () => "text/plain" },
     } as unknown as Response);
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -826,9 +784,7 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -850,15 +806,12 @@ describe("web auto-reply", () => {
       ok: true,
       body: true,
       arrayBuffer: async () =>
-        bigPng.buffer.slice(
-          bigPng.byteOffset,
-          bigPng.byteOffset + bigPng.byteLength,
-        ),
+        bigPng.buffer.slice(bigPng.byteOffset, bigPng.byteOffset + bigPng.byteLength),
       headers: { get: () => "image/png" },
       status: 200,
     } as Response);
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -885,108 +838,101 @@ describe("web auto-reply", () => {
     fetchMock.mockRestore();
   });
 
-  it(
-    "compresses common formats to jpeg under the cap",
-    { timeout: 45_000 },
-    async () => {
-      const formats = [
-        {
-          name: "png",
-          mime: "image/png",
-          make: (buf: Buffer, opts: { width: number; height: number }) =>
-            sharp(buf, {
-              raw: { width: opts.width, height: opts.height, channels: 3 },
-            })
-              .png({ compressionLevel: 0 })
-              .toBuffer(),
-        },
-        {
-          name: "jpeg",
-          mime: "image/jpeg",
-          make: (buf: Buffer, opts: { width: number; height: number }) =>
-            sharp(buf, {
-              raw: { width: opts.width, height: opts.height, channels: 3 },
-            })
-              .jpeg({ quality: 100, chromaSubsampling: "4:4:4" })
-              .toBuffer(),
-        },
-        {
-          name: "webp",
-          mime: "image/webp",
-          make: (buf: Buffer, opts: { width: number; height: number }) =>
-            sharp(buf, {
-              raw: { width: opts.width, height: opts.height, channels: 3 },
-            })
-              .webp({ quality: 100 })
-              .toBuffer(),
-        },
-      ] as const;
+  it("compresses common formats to jpeg under the cap", { timeout: 45_000 }, async () => {
+    const formats = [
+      {
+        name: "png",
+        mime: "image/png",
+        make: (buf: Buffer, opts: { width: number; height: number }) =>
+          sharp(buf, {
+            raw: { width: opts.width, height: opts.height, channels: 3 },
+          })
+            .png({ compressionLevel: 0 })
+            .toBuffer(),
+      },
+      {
+        name: "jpeg",
+        mime: "image/jpeg",
+        make: (buf: Buffer, opts: { width: number; height: number }) =>
+          sharp(buf, {
+            raw: { width: opts.width, height: opts.height, channels: 3 },
+          })
+            .jpeg({ quality: 100, chromaSubsampling: "4:4:4" })
+            .toBuffer(),
+      },
+      {
+        name: "webp",
+        mime: "image/webp",
+        make: (buf: Buffer, opts: { width: number; height: number }) =>
+          sharp(buf, {
+            raw: { width: opts.width, height: opts.height, channels: 3 },
+          })
+            .webp({ quality: 100 })
+            .toBuffer(),
+      },
+    ] as const;
 
-      for (const fmt of formats) {
-        // Force a small cap to ensure compression is exercised for every format.
-        setLoadConfigMock(() => ({ agents: { defaults: { mediaMaxMb: 1 } } }));
-        const sendMedia = vi.fn();
-        const reply = vi.fn().mockResolvedValue(undefined);
-        const sendComposing = vi.fn();
-        const resolver = vi.fn().mockResolvedValue({
-          text: "hi",
-          mediaUrl: `https://example.com/big.${fmt.name}`,
-        });
+    for (const fmt of formats) {
+      // Force a small cap to ensure compression is exercised for every format.
+      setLoadConfigMock(() => ({ agents: { defaults: { mediaMaxMb: 1 } } }));
+      const sendMedia = vi.fn();
+      const reply = vi.fn().mockResolvedValue(undefined);
+      const sendComposing = vi.fn();
+      const resolver = vi.fn().mockResolvedValue({
+        text: "hi",
+        mediaUrl: `https://example.com/big.${fmt.name}`,
+      });
 
-        let capturedOnMessage:
-          | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
-          | undefined;
-        const listenerFactory = async (opts: {
-          onMessage: (
-            msg: import("./inbound.js").WebInboundMessage,
-          ) => Promise<void>;
-        }) => {
-          capturedOnMessage = opts.onMessage;
-          return { close: vi.fn() };
-        };
+      let capturedOnMessage:
+        | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
+        | undefined;
+      const listenerFactory = async (opts: {
+        onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
+      }) => {
+        capturedOnMessage = opts.onMessage;
+        return { close: vi.fn() };
+      };
 
-        const width = 1200;
-        const height = 1200;
-        const raw = crypto.randomBytes(width * height * 3);
-        const big = await fmt.make(raw, { width, height });
-        expect(big.length).toBeGreaterThan(1 * 1024 * 1024);
+      const width = 1200;
+      const height = 1200;
+      const raw = crypto.randomBytes(width * height * 3);
+      const big = await fmt.make(raw, { width, height });
+      expect(big.length).toBeGreaterThan(1 * 1024 * 1024);
 
-        const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-          ok: true,
-          body: true,
-          arrayBuffer: async () =>
-            big.buffer.slice(big.byteOffset, big.byteOffset + big.byteLength),
-          headers: { get: () => fmt.mime },
-          status: 200,
-        } as Response);
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        body: true,
+        arrayBuffer: async () => big.buffer.slice(big.byteOffset, big.byteOffset + big.byteLength),
+        headers: { get: () => fmt.mime },
+        status: 200,
+      } as Response);
 
-        await monitorWebChannel(false, listenerFactory, false, resolver);
-        expect(capturedOnMessage).toBeDefined();
+      await monitorWebProvider(false, listenerFactory, false, resolver);
+      expect(capturedOnMessage).toBeDefined();
 
-        await capturedOnMessage?.({
-          body: "hello",
-          from: "+1",
-          to: "+2",
-          id: `msg-${fmt.name}`,
-          sendComposing,
-          reply,
-          sendMedia,
-        });
+      await capturedOnMessage?.({
+        body: "hello",
+        from: "+1",
+        to: "+2",
+        id: `msg-${fmt.name}`,
+        sendComposing,
+        reply,
+        sendMedia,
+      });
 
-        expect(sendMedia).toHaveBeenCalledTimes(1);
-        const payload = sendMedia.mock.calls[0][0] as {
-          image: Buffer;
-          mimetype?: string;
-        };
-        expect(payload.image.length).toBeLessThanOrEqual(1 * 1024 * 1024);
-        expect(payload.mimetype).toBe("image/jpeg");
-        expect(reply).not.toHaveBeenCalled();
+      expect(sendMedia).toHaveBeenCalledTimes(1);
+      const payload = sendMedia.mock.calls[0][0] as {
+        image: Buffer;
+        mimetype?: string;
+      };
+      expect(payload.image.length).toBeLessThanOrEqual(1 * 1024 * 1024);
+      expect(payload.mimetype).toBe("image/jpeg");
+      expect(reply).not.toHaveBeenCalled();
 
-        fetchMock.mockRestore();
-        resetLoadConfigMock();
-      }
-    },
-  );
+      fetchMock.mockRestore();
+      resetLoadConfigMock();
+    }
+  });
 
   it("honors mediaMaxMb from config", async () => {
     setLoadConfigMock(() => ({ agents: { defaults: { mediaMaxMb: 1 } } }));
@@ -1002,9 +948,7 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -1026,15 +970,12 @@ describe("web auto-reply", () => {
       ok: true,
       body: true,
       arrayBuffer: async () =>
-        bigPng.buffer.slice(
-          bigPng.byteOffset,
-          bigPng.byteOffset + bigPng.byteLength,
-        ),
+        bigPng.buffer.slice(bigPng.byteOffset, bigPng.byteOffset + bigPng.byteLength),
       headers: { get: () => "image/png" },
       status: 200,
     } as Response);
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1073,9 +1014,7 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -1089,7 +1028,7 @@ describe("web auto-reply", () => {
       status: 200,
     } as Response);
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1126,15 +1065,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1192,17 +1129,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    const authDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "clawdbot-wa-auth-"),
-    );
+    const authDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-wa-auth-"));
 
     try {
       await fs.writeFile(
@@ -1211,17 +1144,15 @@ describe("web auto-reply", () => {
       );
 
       setLoadConfigMock(() => ({
-        channels: {
-          whatsapp: {
-            allowFrom: ["*"],
-            accounts: {
-              default: { authDir },
-            },
+        whatsapp: {
+          allowFrom: ["*"],
+          accounts: {
+            default: { authDir },
           },
         },
       }));
 
-      await monitorWebChannel(false, listenerFactory, false, resolver);
+      await monitorWebProvider(false, listenerFactory, false, resolver);
       expect(capturedOnMessage).toBeDefined();
 
       await capturedOnMessage?.({
@@ -1275,17 +1206,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    const authDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "clawdbot-wa-auth-"),
-    );
+    const authDir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-wa-auth-"));
 
     try {
       await fs.writeFile(
@@ -1294,17 +1221,15 @@ describe("web auto-reply", () => {
       );
 
       setLoadConfigMock(() => ({
-        channels: {
-          whatsapp: {
-            allowFrom: ["*"],
-            accounts: {
-              default: { authDir },
-            },
+        whatsapp: {
+          allowFrom: ["*"],
+          accounts: {
+            default: { authDir },
           },
         },
       }));
 
-      await monitorWebChannel(false, listenerFactory, false, resolver);
+      await monitorWebProvider(false, listenerFactory, false, resolver);
       expect(capturedOnMessage).toBeDefined();
 
       await capturedOnMessage?.({
@@ -1341,15 +1266,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1377,11 +1300,9 @@ describe("web auto-reply", () => {
     const resolver = vi.fn().mockResolvedValue({ text: "ok" });
 
     setLoadConfigMock(() => ({
-      channels: {
-        whatsapp: {
-          allowFrom: ["*"],
-          groups: { "*": { requireMention: true } },
-        },
+      whatsapp: {
+        allowFrom: ["*"],
+        groups: { "*": { requireMention: true } },
       },
       messages: {
         groupChat: { mentionPatterns: ["@global"] },
@@ -1409,15 +1330,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1462,11 +1381,9 @@ describe("web auto-reply", () => {
     const resolver = vi.fn().mockResolvedValue({ text: "ok" });
 
     setLoadConfigMock(() => ({
-      channels: {
-        whatsapp: {
-          allowFrom: ["*"],
-          groups: { "*": { requireMention: false } },
-        },
+      whatsapp: {
+        allowFrom: ["*"],
+        groups: { "*": { requireMention: false } },
       },
       messages: { groupChat: { mentionPatterns: ["@clawd"] } },
     }));
@@ -1475,15 +1392,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1513,11 +1428,9 @@ describe("web auto-reply", () => {
     const resolver = vi.fn().mockResolvedValue({ text: "ok" });
 
     setLoadConfigMock(() => ({
-      channels: {
-        whatsapp: {
-          allowFrom: ["*"],
-          groups: { "999@g.us": { requireMention: false } },
-        },
+      whatsapp: {
+        allowFrom: ["*"],
+        groups: { "999@g.us": { requireMention: false } },
       },
       messages: { groupChat: { mentionPatterns: ["@clawd"] } },
     }));
@@ -1526,15 +1439,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1566,13 +1477,11 @@ describe("web auto-reply", () => {
     const resolver = vi.fn().mockResolvedValue({ text: "ok" });
 
     setLoadConfigMock(() => ({
-      channels: {
-        whatsapp: {
-          allowFrom: ["*"],
-          groups: {
-            "*": { requireMention: true },
-            "123@g.us": { requireMention: false },
-          },
+      whatsapp: {
+        allowFrom: ["*"],
+        groups: {
+          "*": { requireMention: true },
+          "123@g.us": { requireMention: false },
         },
       },
       messages: { groupChat: { mentionPatterns: ["@clawd"] } },
@@ -1582,15 +1491,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1641,15 +1548,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1706,12 +1611,10 @@ describe("web auto-reply", () => {
     const resolver = vi.fn().mockResolvedValue({ text: "ok" });
 
     setLoadConfigMock(() => ({
-      channels: {
-        whatsapp: {
-          // Self-chat heuristic: allowFrom includes selfE164.
-          allowFrom: ["+999"],
-          groups: { "*": { requireMention: true } },
-        },
+      whatsapp: {
+        // Self-chat heuristic: allowFrom includes selfE164.
+        allowFrom: ["+999"],
+        groups: { "*": { requireMention: true } },
       },
       messages: {
         groupChat: {
@@ -1724,15 +1627,13 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     // WhatsApp @mention of the owner should NOT trigger the bot in self-chat mode.
@@ -1798,7 +1699,7 @@ describe("web auto-reply", () => {
       return { close: vi.fn(), onClose };
     });
 
-    const run = monitorWebChannel(
+    const run = monitorWebProvider(
       false,
       listenerFactory,
       true,
@@ -1830,16 +1731,14 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
     const resolver = vi.fn().mockResolvedValue({ text: "auto" });
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1860,7 +1759,9 @@ describe("web auto-reply", () => {
   it("prefixes body with same-phone marker when from === to", async () => {
     // Enable messagePrefix for same-phone mode testing
     setLoadConfigMock(() => ({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
       messages: {
         messagePrefix: "[same-phone]",
         responsePrefix: undefined,
@@ -1871,9 +1772,7 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -1881,7 +1780,7 @@ describe("web auto-reply", () => {
 
     const resolver = vi.fn().mockResolvedValue({ text: "reply" });
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1907,9 +1806,7 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -1917,7 +1814,7 @@ describe("web auto-reply", () => {
 
     const resolver = vi.fn().mockResolvedValue({ text: "reply" });
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1941,9 +1838,7 @@ describe("web auto-reply", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -1951,7 +1846,7 @@ describe("web auto-reply", () => {
 
     const resolver = vi.fn().mockResolvedValue({ text: "reply" });
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -1982,7 +1877,9 @@ describe("web auto-reply", () => {
 
   it("applies responsePrefix to regular replies", async () => {
     setLoadConfigMock(() => ({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
       messages: {
         messagePrefix: undefined,
         responsePrefix: "🦞",
@@ -1994,9 +1891,7 @@ describe("web auto-reply", () => {
       | undefined;
     const reply = vi.fn();
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -2004,7 +1899,7 @@ describe("web auto-reply", () => {
 
     const resolver = vi.fn().mockResolvedValue({ text: "hello there" });
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2024,7 +1919,9 @@ describe("web auto-reply", () => {
 
   it("does not deliver HEARTBEAT_OK responses", async () => {
     setLoadConfigMock(() => ({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
       messages: {
         messagePrefix: undefined,
         responsePrefix: "🦞",
@@ -2036,9 +1933,7 @@ describe("web auto-reply", () => {
       | undefined;
     const reply = vi.fn();
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -2047,7 +1942,7 @@ describe("web auto-reply", () => {
     // Resolver returns exact HEARTBEAT_OK
     const resolver = vi.fn().mockResolvedValue({ text: HEARTBEAT_TOKEN });
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2066,7 +1961,9 @@ describe("web auto-reply", () => {
 
   it("does not double-prefix if responsePrefix already present", async () => {
     setLoadConfigMock(() => ({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
       messages: {
         messagePrefix: undefined,
         responsePrefix: "🦞",
@@ -2078,9 +1975,7 @@ describe("web auto-reply", () => {
       | undefined;
     const reply = vi.fn();
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -2089,7 +1984,7 @@ describe("web auto-reply", () => {
     // Resolver returns text that already has prefix
     const resolver = vi.fn().mockResolvedValue({ text: "🦞 already prefixed" });
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2109,7 +2004,9 @@ describe("web auto-reply", () => {
 
   it("sends tool summaries immediately with responsePrefix", async () => {
     setLoadConfigMock(() => ({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: {
+        allowFrom: ["*"],
+      },
       messages: {
         messagePrefix: undefined,
         responsePrefix: "🦞",
@@ -2121,9 +2018,7 @@ describe("web auto-reply", () => {
       | undefined;
     const reply = vi.fn();
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -2132,17 +2027,14 @@ describe("web auto-reply", () => {
     const resolver = vi
       .fn()
       .mockImplementation(
-        async (
-          _ctx,
-          opts?: { onToolResult?: (r: { text: string }) => Promise<void> },
-        ) => {
+        async (_ctx, opts?: { onToolResult?: (r: { text: string }) => Promise<void> }) => {
           await opts?.onToolResult?.({ text: "🧩 tool1" });
           await opts?.onToolResult?.({ text: "🧩 tool2" });
           return { text: "final" };
         },
       );
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2179,7 +2071,7 @@ describe("web auto-reply", () => {
         {
           agentId: "rich",
           match: {
-            channel: "whatsapp",
+            provider: "whatsapp",
             peer: { kind: "dm", id: "+1555" },
           },
         },
@@ -2191,9 +2083,7 @@ describe("web auto-reply", () => {
       | undefined;
     const reply = vi.fn();
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -2201,7 +2091,7 @@ describe("web auto-reply", () => {
 
     const resolver = vi.fn().mockResolvedValue({ text: "hello" });
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2241,7 +2131,7 @@ describe("web auto-reply", () => {
         {
           agentId: "rich",
           match: {
-            channel: "whatsapp",
+            provider: "whatsapp",
             peer: { kind: "dm", id: "+1555" },
           },
         },
@@ -2253,9 +2143,7 @@ describe("web auto-reply", () => {
       | undefined;
     const reply = vi.fn();
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
@@ -2263,7 +2151,7 @@ describe("web auto-reply", () => {
 
     const resolver = vi.fn().mockResolvedValue({ text: "hello there" });
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2285,7 +2173,7 @@ describe("web auto-reply", () => {
 describe("broadcast groups", () => {
   it("broadcasts sequentially in configured order", async () => {
     setLoadConfigMock({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: { allowFrom: ["*"] },
       agents: {
         defaults: { maxConcurrent: 10 },
         list: [{ id: "alfred" }, { id: "baerbel" }],
@@ -2309,15 +2197,13 @@ describe("broadcast groups", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2342,7 +2228,7 @@ describe("broadcast groups", () => {
 
   it("shares group history across broadcast agents and clears after replying", async () => {
     setLoadConfigMock({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: { allowFrom: ["*"] },
       agents: {
         defaults: { maxConcurrent: 10 },
         list: [{ id: "alfred" }, { id: "baerbel" }],
@@ -2362,15 +2248,13 @@ describe("broadcast groups", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2449,7 +2333,7 @@ describe("broadcast groups", () => {
 
   it("broadcasts in parallel by default", async () => {
     setLoadConfigMock({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: { allowFrom: ["*"] },
       agents: {
         defaults: { maxConcurrent: 10 },
         list: [{ id: "alfred" }, { id: "baerbel" }],
@@ -2484,15 +2368,13 @@ describe("broadcast groups", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({
@@ -2515,7 +2397,7 @@ describe("broadcast groups", () => {
 
   it("skips unknown broadcast agent ids when agents.list is present", async () => {
     setLoadConfigMock({
-      channels: { whatsapp: { allowFrom: ["*"] } },
+      whatsapp: { allowFrom: ["*"] },
       agents: {
         defaults: { maxConcurrent: 10 },
         list: [{ id: "alfred" }],
@@ -2538,15 +2420,13 @@ describe("broadcast groups", () => {
       | ((msg: import("./inbound.js").WebInboundMessage) => Promise<void>)
       | undefined;
     const listenerFactory = async (opts: {
-      onMessage: (
-        msg: import("./inbound.js").WebInboundMessage,
-      ) => Promise<void>;
+      onMessage: (msg: import("./inbound.js").WebInboundMessage) => Promise<void>;
     }) => {
       capturedOnMessage = opts.onMessage;
       return { close: vi.fn() };
     };
 
-    await monitorWebChannel(false, listenerFactory, false, resolver);
+    await monitorWebProvider(false, listenerFactory, false, resolver);
     expect(capturedOnMessage).toBeDefined();
 
     await capturedOnMessage?.({

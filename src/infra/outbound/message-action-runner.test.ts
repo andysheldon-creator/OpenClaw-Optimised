@@ -9,17 +9,11 @@ import { whatsappPlugin } from "../../../extensions/whatsapp/src/channel.js";
 import { runMessageAction } from "./message-action-runner.js";
 
 const slackConfig = {
-<<<<<<< HEAD
-  slack: {
-    botToken: "xoxb-test",
-    appToken: "xapp-test",
-=======
   channels: {
     slack: {
       botToken: "xoxb-test",
       appToken: "xapp-test",
     },
->>>>>>> upstream/main
   },
 } as ClawdbotConfig;
 
@@ -75,16 +69,8 @@ describe("runMessageAction context isolation", () => {
       cfg: slackConfig,
       action: "send",
       params: {
-<<<<<<< HEAD
-        provider: "slack",
-=======
         channel: "slack",
-<<<<<<< HEAD
->>>>>>> upstream/main
-        to: "#C123",
-=======
         target: "#C12345678",
->>>>>>> upstream/main
         message: "hi",
       },
       toolContext: { currentChannelId: "C12345678" },
@@ -116,14 +102,7 @@ describe("runMessageAction context isolation", () => {
         cfg: slackConfig,
         action: "send",
         params: {
-<<<<<<< HEAD
-          provider: "slack",
-=======
           channel: "slack",
-<<<<<<< HEAD
->>>>>>> upstream/main
-          to: "channel:C999",
-=======
           target: "#C12345678",
         },
         toolContext: { currentChannelId: "C12345678" },
@@ -239,7 +218,6 @@ describe("runMessageAction context isolation", () => {
         params: {
           channel: "telegram",
           target: "telegram:@ops",
->>>>>>> upstream/main
           message: "hi",
         },
         toolContext: { currentChannelId: "C12345678", currentChannelProvider: "slack" },
@@ -265,16 +243,8 @@ describe("runMessageAction context isolation", () => {
         cfg,
         action: "send",
         params: {
-<<<<<<< HEAD
-          provider: "slack",
-=======
           channel: "slack",
-<<<<<<< HEAD
->>>>>>> upstream/main
-          channelId: "C999",
-=======
           target: "channel:C99999999",
->>>>>>> upstream/main
           message: "hi",
         },
         toolContext: { currentChannelId: "C12345678", currentChannelProvider: "slack" },

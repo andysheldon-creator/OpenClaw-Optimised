@@ -5,14 +5,10 @@ read_when:
 ---
 # Gateway lifecycle on macOS
 
-<<<<<<< HEAD
-The macOS app **manages the Gateway via launchd** by default. This gives you
-=======
 The macOS app **manages the Gateway via launchd** by default and does not spawn
 the Gateway as a child process. It first tries to attach to an already‑running
 Gateway on the configured port; if none is reachable, it enables the launchd
 service via the external `clawdbot` CLI (no embedded runtime). This gives you
->>>>>>> upstream/main
 reliable auto‑start at login and restart on crashes.
 
 Child‑process mode (Gateway spawned directly by the app) is **not in use** today.

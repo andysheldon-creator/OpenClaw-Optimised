@@ -83,15 +83,9 @@ Key behaviors:
 - `wakeMode: "now"` triggers an immediate heartbeat after posting the summary.
 - If `payload.deliver: true`, output is delivered to a channel; otherwise it stays internal.
 
-Use isolated jobs for noisy, frequent, or “background chores” that shouldn’t spam
+Use isolated jobs for noisy, frequent, or "background chores" that shouldn't spam
 your main chat history.
 
-<<<<<<< HEAD
-### Delivery (provider + target)
-Isolated jobs can deliver output to a provider. The job payload can specify:
-- `provider`: `whatsapp` / `telegram` / `discord` / `slack` / `signal` / `imessage` / `last`
-- `to`: provider-specific recipient target
-=======
 ### Payload shapes (what runs)
 Two payload kinds are supported:
 - `systemEvent`: main-session only, routed through the heartbeat prompt.
@@ -129,10 +123,13 @@ Resolution priority:
 Isolated jobs can deliver output to a channel. The job payload can specify:
 - `channel`: `whatsapp` / `telegram` / `discord` / `slack` / `signal` / `imessage` / `last`
 - `to`: channel-specific recipient target
->>>>>>> upstream/main
 
 If `channel` or `to` is omitted, cron can fall back to the main session’s “last route”
 (the last place the agent replied).
+
+Target format reminders:
+- Slack/Discord targets should use explicit prefixes (e.g. `channel:<id>`, `user:<id>`) to avoid ambiguity.
+- Telegram topics should use the `:topic:` form (see below).
 
 #### Telegram delivery targets (topics / forum threads)
 Telegram supports forum topics via `message_thread_id`. For cron delivery, you can encode
@@ -243,6 +240,14 @@ clawdbot cron edit <jobId> --clear-agent
 Manual run (debug):
 ```bash
 clawdbot cron run <jobId> --force
+```
+
+Edit an existing job (patch fields):
+```bash
+clawdbot cron edit <jobId> \
+  --message "Updated prompt" \
+  --model "opus" \
+  --thinking low
 ```
 
 Run history:

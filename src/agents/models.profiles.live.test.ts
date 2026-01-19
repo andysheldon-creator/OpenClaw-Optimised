@@ -326,12 +326,8 @@ describeLive("live models (profile keys)", () => {
                 {
                   apiKey,
                   reasoning: resolveTestReasoning(model),
-<<<<<<< HEAD
-                  maxTokens: 64,
-=======
                   // Headroom: reasoning summary can consume most of the output budget.
                   maxTokens: 256,
->>>>>>> upstream/main
                 },
                 perModelTimeoutMs,
               );

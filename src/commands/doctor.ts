@@ -76,10 +76,7 @@ export async function doctorCommand(
   if (updateResult.handled) return;
 
   await maybeRepairUiProtocolFreshness(runtime, prompter);
-<<<<<<< HEAD
-=======
   noteSourceInstallIssues(root);
->>>>>>> upstream/main
 
   const configResult = await loadAndMaybeMigrateDoctorConfig({
     options,

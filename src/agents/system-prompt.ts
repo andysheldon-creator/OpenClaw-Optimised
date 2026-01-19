@@ -196,20 +196,9 @@ export function buildAgentSystemPrompt(params: {
     browser: "Control web browser",
     canvas: "Present/eval/snapshot the Canvas",
     nodes: "List/describe/notify/camera/screen on paired nodes",
-<<<<<<< HEAD
-    cron: "Manage cron jobs and wake events (use for reminders)",
-<<<<<<< HEAD
-    message: "Send messages and provider actions",
-=======
-    message: "Send messages and channel actions",
->>>>>>> upstream/main
-    gateway:
-      "Restart, apply config, or run updates on the running Clawdbot process",
-=======
     cron: "Manage cron jobs and wake events (use for reminders; include recent context in reminder text if appropriate)",
     message: "Send messages and channel actions",
     gateway: "Restart, apply config, or run updates on the running Clawdbot process",
->>>>>>> upstream/main
     agents_list: "List agent ids allowed for sessions_spawn",
     sessions_list: "List other sessions (incl. sub-agents) with filters/last",
     sessions_history: "Fetch history for another session/sub-agent",

@@ -19,11 +19,7 @@ type ResolvedAgentConfig = {
   name?: string;
   workspace?: string;
   agentDir?: string;
-<<<<<<< HEAD
-  model?: string | { primary?: string; fallbacks?: string[] };
-=======
   model?: AgentEntry["model"];
->>>>>>> upstream/main
   memorySearch?: AgentEntry["memorySearch"];
   humanDelay?: AgentEntry["humanDelay"];
   heartbeat?: AgentEntry["heartbeat"];
@@ -103,18 +99,8 @@ export function resolveAgentConfig(
     workspace: typeof entry.workspace === "string" ? entry.workspace : undefined,
     agentDir: typeof entry.agentDir === "string" ? entry.agentDir : undefined,
     model:
-<<<<<<< HEAD
-      typeof entry.model === "string" ||
-<<<<<<< HEAD
-      (typeof entry.model === "object" && entry.model && !Array.isArray(entry.model))
-        ? (entry.model as ResolvedAgentConfig["model"])
-=======
-      (entry.model && typeof entry.model === "object")
-=======
       typeof entry.model === "string" || (entry.model && typeof entry.model === "object")
->>>>>>> upstream/main
         ? entry.model
->>>>>>> upstream/main
         : undefined,
     memorySearch: entry.memorySearch,
     humanDelay: entry.humanDelay,

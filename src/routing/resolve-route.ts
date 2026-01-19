@@ -91,16 +91,6 @@ function listAgents(cfg: ClawdbotConfig) {
   return Array.isArray(agents) ? agents : [];
 }
 
-<<<<<<< HEAD
-function pickFirstExistingAgentId(
-  cfg: ClawdbotConfig,
-  agentId: string,
-): string {
-  // We trust explicit bindings. If the agent doesn't exist, we want to fail
-  // or let the runtime handle it, rather than silently falling back to 'main'
-  // which causes session pollution and identity confusion.
-  return normalizeAgentId(agentId);
-=======
 function pickFirstExistingAgentId(cfg: ClawdbotConfig, agentId: string): string {
   const normalized = normalizeAgentId(agentId);
   const agents = listAgents(cfg);
@@ -109,7 +99,6 @@ function pickFirstExistingAgentId(cfg: ClawdbotConfig, agentId: string): string 
     return normalized;
   }
   return normalizeAgentId(resolveDefaultAgentId(cfg));
->>>>>>> upstream/main
 }
 
 function matchesChannel(

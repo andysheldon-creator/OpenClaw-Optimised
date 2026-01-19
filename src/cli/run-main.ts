@@ -39,17 +39,8 @@ export async function runCli(argv: string[] = process.argv) {
   // These log the error and exit gracefully instead of crashing without trace.
   installUnhandledRejectionHandler();
 
-<<<<<<< HEAD
-  // @ts-expect-error - process.on type mismatch with @types/node
-  process.on("uncaughtException", (error: Error) => {
-    console.error(
-      "[clawdbot] Uncaught exception:",
-      error.stack ?? error.message,
-    );
-=======
   process.on("uncaughtException", (error) => {
     console.error("[clawdbot] Uncaught exception:", error.stack ?? error.message);
->>>>>>> upstream/main
     process.exit(1);
   });
 

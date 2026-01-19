@@ -10,26 +10,6 @@ import {
 import type { ClawdbotConfig } from "../../config/config.js";
 import { loadConfig } from "../../config/config.js";
 import {
-<<<<<<< HEAD
-  GATEWAY_CLIENT_IDS,
-  GATEWAY_CLIENT_MODES,
-} from "../../gateway/protocol/client-info.js";
-import { runMessageAction } from "../../infra/outbound/message-action-runner.js";
-<<<<<<< HEAD
-import {
-  listProviderMessageActions,
-  supportsProviderMessageButtons,
-} from "../../providers/plugins/message-actions.js";
-import {
-  PROVIDER_MESSAGE_ACTION_NAMES,
-  type ProviderMessageActionName,
-} from "../../providers/plugins/types.js";
-import { normalizeAccountId } from "../../routing/session-key.js";
-=======
-import { normalizeAccountId } from "../../routing/session-key.js";
-import { stringEnum } from "../schema/typebox.js";
->>>>>>> upstream/main
-=======
   appendAssistantMessageToSessionTranscript,
   resolveMirroredTranscriptText,
 } from "../../config/sessions.js";
@@ -38,7 +18,6 @@ import { getToolResult, runMessageAction } from "../../infra/outbound/message-ac
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { normalizeAccountId } from "../../routing/session-key.js";
 import { channelTargetSchema, channelTargetsSchema, stringEnum } from "../schema/typebox.js";
->>>>>>> upstream/main
 import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";
 

@@ -1,9 +1,5 @@
 ---
-<<<<<<< HEAD:docs/concepts/provider-routing.md
-summary: "Routing rules per provider (WhatsApp, Telegram, Discord, web) and shared context"
-=======
 summary: "Routing rules per channel (WhatsApp, Telegram, Discord, Slack) and shared context"
->>>>>>> upstream/main:docs/concepts/channel-routing.md
 read_when:
   - Changing channel routing or inbox behavior
 ---

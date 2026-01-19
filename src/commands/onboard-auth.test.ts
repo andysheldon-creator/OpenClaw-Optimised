@@ -18,10 +18,7 @@ import {
   OPENROUTER_DEFAULT_MODEL_REF,
   SYNTHETIC_DEFAULT_MODEL_ID,
   SYNTHETIC_DEFAULT_MODEL_REF,
-<<<<<<< HEAD
-=======
   setMinimaxApiKey,
->>>>>>> upstream/main
   writeOAuthCredentials,
 } from "./onboard-auth.js";
 

@@ -2541,9 +2541,6 @@ Example:
 }
 ```
 
-<<<<<<< HEAD
-### `browser` (clawd-managed Chrome)
-=======
 ### `plugins` (extensions)
 
 Controls plugin discovery, allow/deny, and per-plugin config. Plugins are loaded
@@ -2583,7 +2580,6 @@ Example:
 ```
 
 ### `browser` (clawd-managed browser)
->>>>>>> upstream/main
 
 Clawdbot can start a **dedicated, isolated** Chrome/Brave/Edge/Chromium instance for clawd and expose a small loopback control server.
 Profiles can point at a **remote** Chromium-based browser via `profiles.<name>.cdpUrl`. Remote
@@ -2756,6 +2752,7 @@ Requires full Gateway restart:
 - `bridge`
 - `discovery`
 - `canvasHost`
+- `plugins`
 - Any unknown/unsupported config path (defaults to restart for safety)
 
 ### Multi-instance isolation

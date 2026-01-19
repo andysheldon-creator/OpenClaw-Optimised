@@ -3,18 +3,9 @@ import crypto from "node:crypto";
 import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
 import { ensureSkillsWatcher, getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
 import type { ClawdbotConfig } from "../../config/config.js";
-<<<<<<< HEAD
-import { type SessionEntry, saveSessionStore } from "../../config/sessions.js";
-<<<<<<< HEAD
-import { buildProviderSummary } from "../../infra/provider-summary.js";
-=======
-import { buildChannelSummary } from "../../infra/channel-summary.js";
->>>>>>> upstream/main
-=======
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
 import { buildChannelSummary } from "../../infra/channel-summary.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
->>>>>>> upstream/main
 import { drainSystemEventEntries } from "../../infra/system-events.js";
 
 export async function prependSystemEvents(params: {
