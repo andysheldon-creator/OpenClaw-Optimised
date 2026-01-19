@@ -22,6 +22,7 @@
 - Installer UX: support `CLAWDBOT_NO_ONBOARD=1` for non-interactive installs; fix npm prefix on Linux and auto-install git.
 
 ### Fixes
+- GChat: fix auth credential logs leaking into messages as raw ANSI text by downgrading to debug level.
 - Gateway/WebChat: include handshake validation details in the WebSocket close reason for easier debugging.
 - Gateway/Auth: send invalid connect responses before closing the handshake; stabilize invalid-connect auth test.
 - Doctor: surface plugin diagnostics in the report.
