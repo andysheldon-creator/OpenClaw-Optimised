@@ -41,11 +41,20 @@ if [ "$UPSTREAM_CHANGES" -eq 1 ] || [ "$LOCAL_CHANGES" -eq 1 ]; then
     git push origin main
 fi
 
-# 4. Output for notification (only if changes)
+# 4. Build status message
+STATUS=""
 if [ "$UPSTREAM_CHANGES" -eq 1 ]; then
-    echo "🔄 Synced $UPSTREAM_COUNT commits from upstream"
+    STATUS="🔄 Synced $UPSTREAM_COUNT commits from upstream"
 elif [ "$LOCAL_CHANGES" -eq 1 ]; then
-    echo "✅ Pushed local changes"
+    STATUS="✅ Pushed local changes"
+else
+    STATUS="✅ sync-skills: already up to date"
 fi
 
-# If nothing happened, output nothing (silent ack)
+echo "$STATUS"
+
+# 5. Notify via Telegram (if clawdbot available and gateway running)
+CLAWDBOT="/Users/steve/Library/pnpm/clawdbot"
+if [ -x "$CLAWDBOT" ] && curl -s --max-time 2 http://localhost:18789/__clawdbot__/health >/dev/null 2>&1; then
+    "$CLAWDBOT" agent --agent main --message "$STATUS" --deliver --reply-channel telegram --reply-to 1191367022 >/dev/null 2>&1 &
+fi
