@@ -4,12 +4,21 @@ Docs: https://docs.clawd.bot
 
 ## 2026.1.19-1
 
+### Breaking
+- **BREAKING:** Reject invalid/unknown config entries and refuse to start the gateway for safety; run `clawdbot doctor --fix` to repair. 
+
 ### Changes
 - Usage: add `/usage cost` summaries and macOS menu cost submenu with daily charting.
+- Agents: clarify node_modules read-only guidance in agent instructions.
 
 ### Fixes
 - Plugins: surface plugin load/register/config errors in gateway logs with plugin/source context.
+<<<<<<< Updated upstream
 - Agents: propagate accountId into embedded runs so sub-agent announce routing honors the originating account. (#1058)
+||||||| Stash base
+=======
+- Compaction: include tool failure summaries in safeguard compaction to prevent retry loops. (#1084)
+>>>>>>> Stashed changes
 
 ## 2026.1.18-5
 
