@@ -1,25 +1,88 @@
 #!/usr/bin/env npx tsx
-import { exec } from "node:child_process";
+import { spawn } from "node:child_process";
+import { writeFileSync, unlinkSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import express, { type Request, type Response } from "express";
 
 const PORT = 18792;
 const app = express();
 app.use(express.json());
 
-// Path to the gchat sender script
-const GCHAT_SENDER = "/Users/justinmassa/chief-of-staff/scripts/gchat_sender.py";
 const PYTHON = "/Users/justinmassa/chief-of-staff/.venv/bin/python";
+const GCHAT_SENDER = "/Users/justinmassa/chief-of-staff/scripts/gchat_send_file.py";
 
-// Send message via Chat API (async, no timeout concerns)
+// Send message via Chat API using temp file (avoids escaping issues)
 function sendChatMessage(spaceId: string, text: string): void {
-  const escapedText = text.replace(/'/g, "'\\''").replace(/\n/g, "\\n");
-  exec(
-    `${PYTHON} -c "import sys; sys.path.insert(0, '/Users/justinmassa/chief-of-staff/scripts'); from gchat_sender import send_message; send_message('${escapedText}', '${spaceId}')"`,
-    { timeout: 30000 },
-    (err) => {
-      if (err) console.error("[googlechat] Failed to send response:", err.message);
+  const tmpFile = join(tmpdir(), `gchat-${Date.now()}.txt`);
+
+  try {
+    writeFileSync(tmpFile, text);
+
+    const proc = spawn(PYTHON, [GCHAT_SENDER, spaceId, tmpFile], {
+      timeout: 30000,
+    });
+
+    proc.stdout.on("data", (data) => {
+      console.log("[googlechat] Message sent:", data.toString().trim());
+    });
+
+    proc.stderr.on("data", (data) => {
+      console.error("[googlechat] Send stderr:", data.toString().trim());
+    });
+
+    proc.on("close", (code) => {
+      try { unlinkSync(tmpFile); } catch {}
+      if (code !== 0) {
+        console.error(`[googlechat] Send failed with code ${code}`);
+      }
+    });
+
+    proc.on("error", (err) => {
+      console.error("[googlechat] Send error:", err.message);
+      try { unlinkSync(tmpFile); } catch {}
+    });
+
+  } catch (e) {
+    console.error("[googlechat] Failed to write temp file:", e);
+  }
+}
+
+// Run clawdbot agent (no shell, direct spawn)
+function runAgent(message: string, sessionId: string, callback: (err: Error | null, response: string) => void): void {
+  const proc = spawn("clawdbot", [
+    "agent",
+    "--message", message,
+    "--session-id", sessionId,
+    "--local"
+  ], {
+    timeout: 300000,
+    env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` }
+  });
+
+  let stdout = "";
+  let stderr = "";
+
+  proc.stdout.on("data", (data) => {
+    stdout += data.toString();
+  });
+
+  proc.stderr.on("data", (data) => {
+    stderr += data.toString();
+  });
+
+  proc.on("close", (code) => {
+    if (code !== 0) {
+      console.error(`[googlechat] Agent stderr: ${stderr}`);
+      callback(new Error(`Agent exited with code ${code}: ${stderr}`), "");
+    } else {
+      callback(null, stdout.trim());
     }
-  );
+  });
+
+  proc.on("error", (err) => {
+    callback(err, "");
+  });
 }
 
 // Health check
@@ -66,32 +129,21 @@ app.post("/webhook/googlechat", async (req: Request, res: Response) => {
       // Acknowledge immediately - no blocking!
       res.json({});
 
-      // Process AI response asynchronously (can take minutes, that's fine)
-      const escapedText = text.replace(/'/g, "'\\''");
       const sessionId = `googlechat:${spaceId}`;
-
       console.log(`[googlechat] Processing async for space ${spaceId}...`);
 
-      exec(
-        `clawdbot agent --message '${escapedText}' --session-id '${sessionId}' --local`,
-        {
-          timeout: 300000, // 5 minute timeout
-          maxBuffer: 1024 * 1024,
-        },
-        (err, stdout, stderr) => {
-          if (err) {
-            console.error(`[googlechat] AI error:`, err.message);
-            sendChatMessage(spaceId, "Sorry, I encountered an error processing your message.");
-            return;
-          }
-
-          const responseText = stdout.trim() || "I processed your message but have no response.";
-          console.log(`[googlechat] AI Response (${responseText.length} chars): ${responseText.slice(0, 100)}...`);
-
-          // Send response via Chat API
-          sendChatMessage(spaceId, responseText);
+      runAgent(text, sessionId, (err, response) => {
+        if (err) {
+          console.error(`[googlechat] AI error:`, err.message);
+          sendChatMessage(spaceId, "Sorry, I encountered an error processing your message.");
+          return;
         }
-      );
+
+        const responseText = response || "I processed your message but have no response.";
+        console.log(`[googlechat] AI Response (${responseText.length} chars): ${responseText.slice(0, 100)}...`);
+
+        sendChatMessage(spaceId, responseText);
+      });
 
       return;
     }
@@ -105,5 +157,5 @@ app.post("/webhook/googlechat", async (req: Request, res: Response) => {
 
 app.listen(PORT, () => {
   console.log(`[googlechat] Webhook server running on port ${PORT}`);
-  console.log(`[googlechat] Mode: ASYNC (responds via Chat API, no timeout issues)`);
+  console.log(`[googlechat] Mode: ASYNC with spawn (no shell escaping issues)`);
 });
