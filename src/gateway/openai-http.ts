@@ -319,16 +319,26 @@ export async function handleOpenAiHttpRequest(
   let wroteRole = false;
   let sawAssistantDelta = false;
   let closed = false;
+  let lastSeq = 0; // Track last processed seq to dedupe
+  let lastContent = ""; // Track last content to dedupe
 
   const unsubscribe = onAgentEvent((evt) => {
     if (evt.runId !== runId) return;
     if (closed) return;
+
+    // Dedupe: skip if we've already processed this seq or higher
+    if (evt.seq <= lastSeq) return;
+    lastSeq = evt.seq;
 
     if (evt.stream === "assistant") {
       const delta = evt.data?.delta;
       const text = evt.data?.text;
       const content = typeof delta === "string" ? delta : typeof text === "string" ? text : "";
       if (!content) return;
+
+      // Additional dedupe: skip if exact same content as last write
+      if (content === lastContent) return;
+      lastContent = content;
 
       if (!wroteRole) {
         wroteRole = true;

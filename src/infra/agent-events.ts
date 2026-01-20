@@ -20,6 +20,8 @@ export type AgentRunContext = {
 const seqByRun = new Map<string, number>();
 const listeners = new Set<(evt: AgentEventPayload) => void>();
 const runContextById = new Map<string, AgentRunContext>();
+// Dedupe assistant events - track last emitted text per runId
+const lastAssistantTextByRun = new Map<string, string>();
 
 export function registerAgentRunContext(runId: string, context: AgentRunContext) {
   if (!runId) return;
@@ -49,6 +51,18 @@ export function resetAgentRunContextForTest() {
 }
 
 export function emitAgentEvent(event: Omit<AgentEventPayload, "seq" | "ts">) {
+  // Dedupe assistant events by text content
+  if (event.stream === "assistant") {
+    const text = typeof event.data?.text === "string" ? event.data.text : "";
+    const lastText = lastAssistantTextByRun.get(event.runId);
+    if (text && text === lastText) return; // Skip duplicate
+    if (text) lastAssistantTextByRun.set(event.runId, text);
+  }
+  // Clear dedupe state on lifecycle end
+  if (event.stream === "lifecycle" && (event.data?.phase === "end" || event.data?.phase === "error")) {
+    lastAssistantTextByRun.delete(event.runId);
+  }
+
   const nextSeq = (seqByRun.get(event.runId) ?? 0) + 1;
   seqByRun.set(event.runId, nextSeq);
   const context = runContextById.get(event.runId);

@@ -399,6 +399,9 @@ export async function agentCommand(
             extraSystemPrompt: opts.extraSystemPrompt,
             agentDir,
             onAgentEvent: (evt) => {
+              // Track lifecycle end for fallback emission below.
+              // Note: Do NOT call emitAgentEvent here - the source (handleMessageUpdate etc.)
+              // already calls emitAgentEvent. Calling it again causes duplicate SSE chunks.
               if (
                 evt.stream === "lifecycle" &&
                 typeof evt.data?.phase === "string" &&
@@ -406,11 +409,6 @@ export async function agentCommand(
               ) {
                 lifecycleEnded = true;
               }
-              emitAgentEvent({
-                runId,
-                stream: evt.stream,
-                data: evt.data,
-              });
             },
           });
         },

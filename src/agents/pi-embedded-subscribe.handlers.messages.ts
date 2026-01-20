@@ -112,9 +112,12 @@ export function handleMessageUpdate(
     ctx.state.lastStreamedAssistant = next;
     const { text: cleanedText, mediaUrls } = parseReplyDirectives(next);
     const { text: previousCleanedText } = parseReplyDirectives(previousText);
+    // Compute incremental delta. If cleaned text doesn't start with previous
+    // (can happen when stripping changes mid-stream), emit empty delta to avoid
+    // duplication in SSE consumers that accumulate deltas (e.g., Open WebUI).
     const deltaText = cleanedText.startsWith(previousCleanedText)
       ? cleanedText.slice(previousCleanedText.length)
-      : cleanedText;
+      : "";
     emitAgentEvent({
       runId: ctx.params.runId,
       stream: "assistant",
