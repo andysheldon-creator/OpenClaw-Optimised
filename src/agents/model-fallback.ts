@@ -53,6 +53,11 @@ function resetCircuitBreaker(provider: string, model: string): void {
   circuitBreakerState.delete(key);
 }
 
+/** @internal Clear all circuit breaker state - for testing only */
+export function _resetAllCircuitBreakers(): void {
+  circuitBreakerState.clear();
+}
+
 type FallbackAttempt = {
   provider: string;
   model: string;
@@ -62,8 +67,9 @@ type FallbackAttempt = {
 /**
  * Check if an error is a user-initiated abort (not a timeout).
  * Timeout errors should trigger fallback; user aborts (Ctrl+C) should not.
+ * @internal Exported for testing
  */
-function isAbortError(err: unknown): boolean {
+export function isAbortError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const name = "name" in err ? String(err.name) : "";
 
