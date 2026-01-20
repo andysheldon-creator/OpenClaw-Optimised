@@ -6,6 +6,7 @@ import type {
   ChannelsStatusSnapshot,
   DiscordStatus,
   IMessageStatus,
+  NostrStatus,
   SignalStatus,
   SlackStatus,
   TelegramStatus,
@@ -20,6 +21,8 @@ import { channelEnabled, renderChannelAccountCount } from "./channels.shared";
 import { renderChannelConfigSection } from "./channels.config";
 import { renderDiscordCard } from "./channels.discord";
 import { renderIMessageCard } from "./channels.imessage";
+import { renderNostrCard } from "./channels.nostr";
+import type { NostrProfileFormState, NostrProfileFormCallbacks } from "./channels.nostr-profile-form";
 import { renderSignalCard } from "./channels.signal";
 import { renderSlackCard } from "./channels.slack";
 import { renderTelegramCard } from "./channels.telegram";
@@ -37,6 +40,7 @@ export function renderChannels(props: ChannelsProps) {
   const slack = (channels?.slack ?? null) as SlackStatus | null;
   const signal = (channels?.signal ?? null) as SignalStatus | null;
   const imessage = (channels?.imessage ?? null) as IMessageStatus | null;
+  const nostr = (channels?.nostr ?? null) as NostrStatus | null;
   const channelOrder = resolveChannelOrder(props.snapshot);
   const orderedChannels = channelOrder
     .map((key, index) => ({
@@ -59,6 +63,7 @@ export function renderChannels(props: ChannelsProps) {
           slack,
           signal,
           imessage,
+          nostr,
           channelAccounts: props.snapshot?.channelAccounts ?? null,
         }),
       )}
@@ -138,6 +143,49 @@ function renderChannel(
         imessage: data.imessage,
         accountCountLabel,
       });
+    case "nostr": {
+      // Build profile form state and callbacks if editing
+      let profileFormState: NostrProfileFormState | null = null;
+      let profileFormCallbacks: NostrProfileFormCallbacks | null = null;
+      
+      if (props.nostrProfileEditing && props.nostrProfileForm) {
+        const nostrStatus = data.nostr;
+        const currentProfile = nostrStatus?.profile ?? {};
+        
+        profileFormState = {
+          values: props.nostrProfileForm,
+          original: currentProfile,
+          saving: props.nostrProfileSaving ?? false,
+          importing: props.nostrProfileImporting ?? false,
+          error: props.nostrProfileError ?? null,
+          success: props.nostrProfileSuccess ?? null,
+          fieldErrors: {},
+          showAdvanced: false,
+        };
+        
+        profileFormCallbacks = {
+          onFieldChange: (field, value) => props.onNostrProfileFieldChange?.(field, value),
+          onSave: () => props.onNostrSaveProfile?.(),
+          onImport: () => props.onNostrImportProfile?.(),
+          onCancel: () => props.onNostrCancelEdit?.(),
+          onToggleAdvanced: () => {
+            if (profileFormState) {
+              profileFormState.showAdvanced = !profileFormState.showAdvanced;
+            }
+          },
+        };
+      }
+      
+      return renderNostrCard({
+        props,
+        nostr: data.nostr,
+        nostrAccounts: data.channelAccounts?.nostr ?? [],
+        accountCountLabel,
+        profileFormState,
+        profileFormCallbacks,
+        onEditProfile: () => props.onNostrEditProfile?.(),
+      });
+    }
     default:
       return renderGenericChannelCard(key, props, data.channelAccounts ?? {});
   }

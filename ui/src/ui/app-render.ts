@@ -40,7 +40,14 @@ import { renderOverview } from "./views/overview";
 import { renderSessions } from "./views/sessions";
 import { renderSkills } from "./views/skills";
 import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.helpers";
-import { loadChannels } from "./controllers/channels";
+import {
+  loadChannels,
+  startNostrProfileEdit,
+  cancelNostrProfileEdit,
+  updateNostrProfileField,
+  saveNostrProfile,
+  importNostrProfile,
+} from "./controllers/channels";
 import { loadPresence } from "./controllers/presence";
 import { deleteSession, loadSessions, patchSession } from "./controllers/sessions";
 import {
@@ -221,6 +228,18 @@ export function renderApp(state: AppViewState) {
               onConfigPatch: (path, value) => updateConfigFormValue(state, path, value),
               onConfigSave: () => state.handleChannelConfigSave(),
               onConfigReload: () => state.handleChannelConfigReload(),
+              // Nostr profile editing
+              nostrProfileEditing: state.nostrProfileEditing,
+              nostrProfileForm: state.nostrProfileForm,
+              nostrProfileSaving: state.nostrProfileSaving,
+              nostrProfileImporting: state.nostrProfileImporting,
+              nostrProfileError: state.nostrProfileError,
+              nostrProfileSuccess: state.nostrProfileSuccess,
+              onNostrEditProfile: () => startNostrProfileEdit(state),
+              onNostrCancelEdit: () => cancelNostrProfileEdit(state),
+              onNostrProfileFieldChange: (field, value) => updateNostrProfileField(state, field, value),
+              onNostrSaveProfile: () => saveNostrProfile(state),
+              onNostrImportProfile: () => importNostrProfile(state),
             })
           : nothing}
 

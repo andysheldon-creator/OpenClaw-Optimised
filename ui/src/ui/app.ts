@@ -15,6 +15,7 @@ import type {
   HealthSnapshot,
   LogEntry,
   LogLevel,
+  NostrProfile,
   PresenceEntry,
   ChannelsStatusSnapshot,
   SessionsListResult,
@@ -142,6 +143,14 @@ export class ClawdbotApp extends LitElement {
   @state() whatsappLoginQrDataUrl: string | null = null;
   @state() whatsappLoginConnected: boolean | null = null;
   @state() whatsappBusy = false;
+
+  // Nostr profile editing
+  @state() nostrProfileEditing = false;
+  @state() nostrProfileForm: NostrProfile | null = null;
+  @state() nostrProfileSaving = false;
+  @state() nostrProfileImporting = false;
+  @state() nostrProfileError: string | null = null;
+  @state() nostrProfileSuccess: string | null = null;
 
   @state() presenceLoading = false;
   @state() presenceEntries: PresenceEntry[] = [];

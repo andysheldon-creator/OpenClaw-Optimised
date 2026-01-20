@@ -4,6 +4,8 @@ import type {
   ConfigUiHints,
   DiscordStatus,
   IMessageStatus,
+  NostrStatus,
+  NostrProfile,
   SignalStatus,
   SlackStatus,
   TelegramStatus,
@@ -35,6 +37,18 @@ export type ChannelsProps = {
   onConfigPatch: (path: Array<string | number>, value: unknown) => void;
   onConfigSave: () => void;
   onConfigReload: () => void;
+  // Nostr profile editing
+  nostrProfileEditing?: boolean;
+  nostrProfileForm?: NostrProfile | null;
+  nostrProfileSaving?: boolean;
+  nostrProfileImporting?: boolean;
+  nostrProfileError?: string | null;
+  nostrProfileSuccess?: string | null;
+  onNostrEditProfile?: () => void;
+  onNostrCancelEdit?: () => void;
+  onNostrProfileFieldChange?: (field: keyof NostrProfile, value: string) => void;
+  onNostrSaveProfile?: () => void;
+  onNostrImportProfile?: () => void;
 };
 
 export type ChannelsChannelData = {
@@ -44,5 +58,6 @@ export type ChannelsChannelData = {
   slack?: SlackStatus | null;
   signal?: SignalStatus | null;
   imessage?: IMessageStatus | null;
+  nostr?: NostrStatus | null;
   channelAccounts?: Record<string, ChannelAccountSnapshot[]> | null;
 };

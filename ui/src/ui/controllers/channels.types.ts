@@ -1,5 +1,5 @@
 import type { GatewayBrowserClient } from "../gateway";
-import type { ChannelsStatusSnapshot } from "../types";
+import type { ChannelsStatusSnapshot, NostrProfile } from "../types";
 
 export type ChannelsState = {
   client: GatewayBrowserClient | null;
@@ -12,4 +12,11 @@ export type ChannelsState = {
   whatsappLoginQrDataUrl: string | null;
   whatsappLoginConnected: boolean | null;
   whatsappBusy: boolean;
+  // Nostr profile editing
+  nostrProfileEditing: boolean;
+  nostrProfileForm: NostrProfile | null;
+  nostrProfileSaving: boolean;
+  nostrProfileImporting: boolean;
+  nostrProfileError: string | null;
+  nostrProfileSuccess: string | null;
 };

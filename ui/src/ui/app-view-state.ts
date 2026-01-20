@@ -12,6 +12,7 @@ import type {
   HealthSnapshot,
   LogEntry,
   LogLevel,
+  NostrProfile,
   PresenceEntry,
   SessionsListResult,
   SkillStatusReport,
@@ -78,6 +79,13 @@ export type AppViewState = {
   whatsappLoginConnected: boolean | null;
   whatsappBusy: boolean;
   configFormDirty: boolean;
+  // Nostr profile editing
+  nostrProfileEditing: boolean;
+  nostrProfileForm: NostrProfile | null;
+  nostrProfileSaving: boolean;
+  nostrProfileImporting: boolean;
+  nostrProfileError: string | null;
+  nostrProfileSuccess: string | null;
   presenceLoading: boolean;
   presenceEntries: PresenceEntry[];
   presenceError: string | null;
