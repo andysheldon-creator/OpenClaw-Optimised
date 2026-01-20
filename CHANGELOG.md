@@ -8,6 +8,9 @@ Docs: https://docs.clawd.bot
 - Android: remove legacy bridge transport code now that nodes use the gateway protocol.
 - Android: send structured payloads in node events/invokes and include user-agent metadata in gateway connects.
 
+### Fixes
+- Gateway: strip inbound envelope headers from chat history messages to keep clients clean.
+
 ## 2026.1.19-2
 
 ### Changes
@@ -36,6 +39,7 @@ Docs: https://docs.clawd.bot
 - Agents: propagate accountId into embedded runs so sub-agent announce routing honors the originating account. (#1058)
 - Compaction: include tool failure summaries in safeguard compaction to prevent retry loops. (#1084)
 - Daemon: include HOME in service environments to avoid missing HOME errors. (#1214) — thanks @ameno-.
+- Memory: show total file counts + scan issues in `clawdbot memory status`; fall back to non-batch embeddings after repeated batch failures.
 - TUI: show generic empty-state text for searchable pickers. (#1201) — thanks @vignesh07.
 - Doctor: canonicalize legacy session keys in session stores to prevent stale metadata. (#1169)
 - CLI: centralize CLI command registration to keep fast-path routing and program wiring in sync. (#1207) — thanks @gumadeiras.
