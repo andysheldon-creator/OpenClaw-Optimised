@@ -115,7 +115,13 @@ export async function compactEmbeddedPiSession(params: {
           agentDir,
         });
 
-        if (model.provider === "github-copilot") {
+        if (!apiKeyInfo.apiKey) {
+          if (apiKeyInfo.mode !== "aws-sdk") {
+            throw new Error(
+              `No API key resolved for provider "${model.provider}" (auth mode: ${apiKeyInfo.mode}).`,
+            );
+          }
+        } else if (model.provider === "github-copilot") {
           const { resolveCopilotApiToken } =
             await import("../../providers/github-copilot-token.js");
           const copilotToken = await resolveCopilotApiToken({
@@ -286,7 +292,10 @@ export async function compactEmbeddedPiSession(params: {
         });
         try {
           await prewarmSessionFile(params.sessionFile);
-          const sessionManager = guardSessionManager(SessionManager.open(params.sessionFile));
+          const sessionManager = guardSessionManager(SessionManager.open(params.sessionFile), {
+            agentId: sessionAgentId,
+            sessionKey: params.sessionKey,
+          });
           trackSessionManagerAccess(params.sessionFile);
           const settingsManager = SettingsManager.create(effectiveWorkspace, agentDir);
           ensurePiCompactionReserveTokens({

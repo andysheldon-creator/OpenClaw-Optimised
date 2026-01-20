@@ -5,8 +5,13 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct CLIInstallerTests {
+<<<<<<< HEAD
     @Test func installedLocationOnlyAcceptsEmbeddedHelper() throws {
         let fm = FileManager.default
+=======
+    @Test func installedLocationFindsExecutable() throws {
+        let fm = FileManager()
+>>>>>>> upstream/main
         let root = fm.temporaryDirectory.appendingPathComponent(
             "clawdbot-cli-installer-\(UUID().uuidString)")
         defer { try? fm.removeItem(at: root) }

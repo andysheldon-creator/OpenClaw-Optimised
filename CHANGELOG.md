@@ -2,14 +2,27 @@
 
 Docs: https://docs.clawd.bot
 
+## 2026.1.20-1
+
+### Changes
+- Repo: remove the Peekaboo git submodule now that the SPM release is used.
+
+### Fixes
+- Web search: infer Perplexity base URL from API key source (direct vs OpenRouter).
+- TUI: keep thinking blocks ordered before content during streaming and isolate per-run assembly. (#1202) — thanks @aaronveklabs.
+- CLI: avoid duplicating --profile/--dev flags when formatting commands.
+
 ## 2026.1.19-3
 
 ### Changes
 - Android: remove legacy bridge transport code now that nodes use the gateway protocol.
 - Android: send structured payloads in node events/invokes and include user-agent metadata in gateway connects.
+- Gateway: expand `/v1/responses` to support file/image inputs, tool_choice, usage, and output limits. (#1229) — thanks @RyanLisse.
+- Docs: surface Amazon Bedrock in provider lists and clarify Bedrock auth env vars. (#1289) — thanks @steipete.
 
 ### Fixes
 - Gateway: strip inbound envelope headers from chat history messages to keep clients clean.
+- UI: prevent double-scroll in Control UI chat by locking chat layout to the viewport. (#1283) — thanks @bradleypriest.
 
 ## 2026.1.19-2
 
@@ -28,6 +41,7 @@ Docs: https://docs.clawd.bot
 - **BREAKING:** Reject invalid/unknown config entries and refuse to start the gateway for safety; run `clawdbot doctor --fix` to repair. 
 
 ### Changes
+- Gateway: add `/v1/responses` endpoint (OpenResponses API) for agentic workflows with item-based input and semantic streaming events. Enable via `gateway.http.endpoints.responses.enabled: true`.
 - Usage: add `/usage cost` summaries and macOS menu cost submenu with daily charting.
 - Agents: clarify node_modules read-only guidance in agent instructions.
 - TUI: add syntax highlighting for code blocks. (#1200) — thanks @vignesh07.
@@ -68,8 +82,8 @@ Docs: https://docs.clawd.bot
 ## 2026.1.18-4
 
 ### Changes
-- macOS: switch PeekabooBridge integration to the tagged Swift Package Manager release (no submodule).
-- macOS: stop syncing Peekaboo as a git submodule in postinstall.
+- macOS: switch PeekabooBridge integration to the tagged Swift Package Manager release.
+- macOS: stop syncing Peekaboo in postinstall.
 - Swabble: use the tagged Commander Swift package release.
 - CLI: add `clawdbot acp client` interactive ACP harness for debugging.
 - Plugins: route command detection/text chunking helpers through the plugin runtime and drop runtime exports from the SDK.

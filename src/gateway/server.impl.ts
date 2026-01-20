@@ -4,6 +4,7 @@ import { registerSkillsChangeListener } from "../agents/skills/refresh.js";
 import type { CanvasHostServer } from "../canvas-host/server.js";
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
 import { createDefaultDeps } from "../cli/deps.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import {
   CONFIG_PATH_CLAWDBOT,
   isNixMode,
@@ -112,6 +113,11 @@ export type GatewayServerOptions = {
    */
   openAiChatCompletionsEnabled?: boolean;
   /**
+   * If false, do not serve `POST /v1/responses` (OpenResponses API).
+   * Default: config `gateway.http.endpoints.responses.enabled` (or false when absent).
+   */
+  openResponsesEnabled?: boolean;
+  /**
    * Override gateway auth configuration (merges with config).
    */
   auth?: import("../config/config.js").GatewayAuthConfig;
@@ -150,7 +156,7 @@ export async function startGatewayServer(
     const { config: migrated, changes } = migrateLegacyConfig(configSnapshot.parsed);
     if (!migrated) {
       throw new Error(
-        'Legacy config entries detected but auto-migration failed. Run "clawdbot doctor" to migrate.',
+        `Legacy config entries detected but auto-migration failed. Run "${formatCliCommand("clawdbot doctor")}" to migrate.`,
       );
     }
     await writeConfigFile(migrated);
@@ -172,7 +178,7 @@ export async function startGatewayServer(
             .join("\n")
         : "Unknown validation issue.";
     throw new Error(
-      `Invalid config at ${configSnapshot.path}.\n${issues}\nRun "clawdbot doctor" to repair, then retry.`,
+      `Invalid config at ${configSnapshot.path}.\n${issues}\nRun "${formatCliCommand("clawdbot doctor")}" to repair, then retry.`,
     );
   }
 
@@ -205,6 +211,7 @@ export async function startGatewayServer(
     host: opts.host,
     controlUiEnabled: opts.controlUiEnabled,
     openAiChatCompletionsEnabled: opts.openAiChatCompletionsEnabled,
+    openResponsesEnabled: opts.openResponsesEnabled,
     auth: opts.auth,
     tailscale: opts.tailscale,
   });
@@ -212,6 +219,8 @@ export async function startGatewayServer(
     bindHost,
     controlUiEnabled,
     openAiChatCompletionsEnabled,
+    openResponsesEnabled,
+    openResponsesConfig,
     controlUiBasePath,
     resolvedAuth,
     tailscaleConfig,
@@ -250,6 +259,8 @@ export async function startGatewayServer(
     controlUiEnabled,
     controlUiBasePath,
     openAiChatCompletionsEnabled,
+    openResponsesEnabled,
+    openResponsesConfig,
     resolvedAuth,
     gatewayTls,
     hooksConfig: () => hooksConfig,
