@@ -351,6 +351,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     argv1: process.argv[1],
     timeoutMs,
     progress,
+    interactive: !opts.json,
     tag,
   });
 

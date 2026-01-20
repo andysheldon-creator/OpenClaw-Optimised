@@ -58,6 +58,7 @@ export const updateHandlers: GatewayRequestHandlers = {
         timeoutMs,
         cwd: root,
         argv1: process.argv[1],
+        interactive: false,
       });
     } catch (err) {
       result = {

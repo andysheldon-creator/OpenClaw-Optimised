@@ -49,6 +49,7 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
     const result = await runGatewayUpdate({
       cwd: params.root,
       argv1: process.argv[1],
+      interactive: params.options.nonInteractive !== true,
     });
     note(
       [

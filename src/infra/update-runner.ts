@@ -2,7 +2,14 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { confirm, isCancel } from "@clack/prompts";
+
 import { type CommandOptions, runCommandWithTimeout } from "../process/exec.js";
+import { defaultRuntime } from "../runtime.js";
+import { stylePromptMessage } from "../terminal/prompt-style.js";
+import { theme } from "../terminal/theme.js";
+import { compareSemverStrings } from "./update-check.js";
+import { parseSemver } from "./runtime-guard.js";
 import { trimLogTail } from "./restart-sentinel.js";
 
 export type UpdateStepResult = {
@@ -56,6 +63,7 @@ type UpdateRunnerOptions = {
   timeoutMs?: number;
   runCommand?: CommandRunner;
   progress?: UpdateStepProgress;
+  interactive?: boolean;
 };
 
 const DEFAULT_TIMEOUT_MS = 20 * 60_000;
@@ -104,6 +112,37 @@ async function readPackageVersion(root: string) {
   } catch {
     return null;
   }
+}
+
+async function readBranchName(
+  runCommand: CommandRunner,
+  root: string,
+  timeoutMs: number,
+): Promise<string | null> {
+  const res = await runCommand(["git", "-C", root, "rev-parse", "--abbrev-ref", "HEAD"], {
+    timeoutMs,
+  }).catch(() => null);
+  if (!res || res.code !== 0) return null;
+  const branch = res.stdout.trim();
+  return branch || null;
+}
+
+async function resolveLatestGitTag(
+  runCommand: CommandRunner,
+  root: string,
+  timeoutMs: number,
+): Promise<string | null> {
+  const res = await runCommand(["git", "-C", root, "describe", "--abbrev=0", "--tags"], {
+    timeoutMs,
+  }).catch(() => null);
+  if (!res || res.code !== 0) return null;
+  const tag = res.stdout.trim();
+  return tag || null;
+}
+
+function normalizeGitTagVersion(tag: string): string | null {
+  const cleaned = tag.startsWith("v") ? tag.slice(1) : tag;
+  return parseSemver(cleaned) ? cleaned : null;
 }
 
 async function resolveGitRoot(
@@ -363,6 +402,49 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
         steps,
         durationMs: Date.now() - startedAt,
       };
+    }
+
+    const isInteractive =
+      opts.interactive !== false && Boolean(process.stdin.isTTY && process.stdout.isTTY);
+    if (isInteractive) {
+      const branch = await readBranchName(runCommand, gitRoot, timeoutMs);
+      if (branch === "main") {
+        const currentVersion = await readPackageVersion(gitRoot);
+        const latestTag = await resolveLatestGitTag(runCommand, gitRoot, timeoutMs);
+        const latestVersion = latestTag ? normalizeGitTagVersion(latestTag) : null;
+        const cmp =
+          currentVersion && latestVersion
+            ? compareSemverStrings(currentVersion, latestVersion)
+            : null;
+
+        if (currentVersion && latestVersion && cmp != null && cmp > 0) {
+          const warning = [
+            "If you live on the bleeding edge, there will be bugs!",
+            "If you want to just have sth that works, use the tagged releases:",
+            "  git checkout --tag latest",
+            "  clawdbot update latest",
+            "If you go for bleeding edge, be our guest: There's a reason I call it hackable install on the website.",
+          ].join("\n");
+
+          defaultRuntime.log(theme.warn(warning));
+
+          const proceed = await confirm({
+            message: stylePromptMessage("Continue with bleeding edge?"),
+            initialValue: false,
+          });
+          if (isCancel(proceed) || proceed === false) {
+            return {
+              status: "skipped",
+              mode: "git",
+              root: gitRoot,
+              reason: "user-chose-stable",
+              before: { sha: beforeSha, version: beforeVersion },
+              steps,
+              durationMs: Date.now() - startedAt,
+            };
+          }
+        }
+      }
     }
 
     const upstreamStep = await runStep(
