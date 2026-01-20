@@ -88,7 +88,8 @@ export function resolveSkillCommandInvocation(params: {
   if (!trimmed.startsWith("/")) return null;
   const match = trimmed.match(/^\/([^\s]+)(?:\s+([\s\S]+))?$/);
   if (!match) return null;
-  const commandName = match[1]?.trim().toLowerCase();
+  const rawCommandName = match[1]?.trim();
+  const commandName = rawCommandName?.toLowerCase();
   if (!commandName) return null;
   if (commandName === "skill") {
     const remainder = match[2]?.trim();
@@ -100,7 +101,7 @@ export function resolveSkillCommandInvocation(params: {
     const args = skillMatch[2]?.trim();
     return { command: skillCommand, args: args || undefined };
   }
-  const command = params.skillCommands.find((entry) => entry.name.toLowerCase() === commandName);
+  const command = findSkillCommand(params.skillCommands, rawCommandName ?? "");
   if (!command) return null;
   const args = match[2]?.trim();
   return { command, args: args || undefined };

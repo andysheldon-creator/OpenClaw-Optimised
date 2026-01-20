@@ -61,6 +61,46 @@ function summarizeGuilds(entries?: Record<string, unknown>) {
   return `${sample.join(", ")}${suffix}`;
 }
 
+const DISCORD_COMMAND_LIMIT = 100;
+
+function resolveDiscordCommandSpecs(params: {
+  cfg: ClawdbotConfig;
+  nativeEnabled: boolean;
+  nativeSkillsEnabled: boolean;
+  runtime?: RuntimeEnv;
+}): {
+  skillCommands: ReturnType<typeof listSkillCommandsForAgents>;
+  commandSpecs: ReturnType<typeof listNativeCommandSpecsForConfig>;
+} {
+  if (!params.nativeEnabled) return { skillCommands: [], commandSpecs: [] };
+
+  let skillCommands = params.nativeSkillsEnabled
+    ? listSkillCommandsForAgents({ cfg: params.cfg })
+    : [];
+  let commandSpecs = listNativeCommandSpecsForConfig(params.cfg, { skillCommands });
+  const initialCommandCount = commandSpecs.length;
+
+  if (params.nativeSkillsEnabled && commandSpecs.length > DISCORD_COMMAND_LIMIT) {
+    skillCommands = [];
+    commandSpecs = listNativeCommandSpecsForConfig(params.cfg, { skillCommands: [] });
+    params.runtime?.log?.(
+      warn(
+        `discord: ${initialCommandCount} commands exceeds limit; removing per-skill commands and keeping /skill.`,
+      ),
+    );
+  }
+
+  if (commandSpecs.length > DISCORD_COMMAND_LIMIT) {
+    params.runtime?.log?.(
+      warn(
+        `discord: ${commandSpecs.length} commands exceeds limit; some commands may fail to deploy.`,
+      ),
+    );
+  }
+
+  return { skillCommands, commandSpecs };
+}
+
 export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
   const cfg = opts.config ?? loadConfig();
   const account = resolveDiscordAccount({
@@ -321,27 +361,12 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     throw new Error("Failed to resolve Discord application id");
   }
 
-  const maxDiscordCommands = 100;
-  let skillCommands =
-    nativeEnabled && nativeSkillsEnabled ? listSkillCommandsForAgents({ cfg }) : [];
-  let commandSpecs = nativeEnabled ? listNativeCommandSpecsForConfig(cfg, { skillCommands }) : [];
-  const initialCommandCount = commandSpecs.length;
-  if (nativeEnabled && nativeSkillsEnabled && commandSpecs.length > maxDiscordCommands) {
-    skillCommands = [];
-    commandSpecs = listNativeCommandSpecsForConfig(cfg, { skillCommands: [] });
-    runtime.log?.(
-      warn(
-        `discord: ${initialCommandCount} commands exceeds limit; removing per-skill commands and keeping /skill.`,
-      ),
-    );
-  }
-  if (nativeEnabled && commandSpecs.length > maxDiscordCommands) {
-    runtime.log?.(
-      warn(
-        `discord: ${commandSpecs.length} commands exceeds limit; some commands may fail to deploy.`,
-      ),
-    );
-  }
+  const { skillCommands, commandSpecs } = resolveDiscordCommandSpecs({
+    cfg,
+    nativeEnabled,
+    nativeSkillsEnabled,
+    runtime,
+  });
   const commands = commandSpecs.map((spec) =>
     createDiscordNativeCommand({
       command: spec,

@@ -377,6 +377,10 @@ export function buildStatusMessage(args: StatusArgs): string {
 }
 
 export function buildHelpMessage(cfg?: ClawdbotConfig): string {
+  const skillCommand = listChatCommands().find((command) => command.key === "skill");
+  const skillHelpLine = skillCommand
+    ? `Skills: /${skillCommand.nativeName ?? skillCommand.key} <name> [input]`
+    : null;
   const options = [
     "/think <level>",
     "/verbose on|full|off",
@@ -391,7 +395,7 @@ export function buildHelpMessage(cfg?: ClawdbotConfig): string {
     "ℹ️ Help",
     "Shortcuts: /new reset | /compact [instructions] | /restart relink (if enabled)",
     `Options: ${options.join(" | ")}`,
-    "Skills: /skill <name> [input]",
+    skillHelpLine,
     "More: /commands for all slash commands",
   ].join("\n");
 }
