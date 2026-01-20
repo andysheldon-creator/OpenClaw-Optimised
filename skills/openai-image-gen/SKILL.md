@@ -13,7 +13,7 @@ Generate a handful of “random but structured” prompts and render them via th
 
 ```bash
 python3 {baseDir}/scripts/gen.py
-open ~/Projects/tmp/openai-image-gen-*/index.html  # if ~/Projects/tmp exists; else ./tmp/...
+open /projects/tmp/openai-image-gen-*/index.html  # if /projects/tmp exists; else ./tmp/...
 ```
 
 Useful flags:

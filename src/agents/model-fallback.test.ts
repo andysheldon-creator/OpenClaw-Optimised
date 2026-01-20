@@ -1,10 +1,6 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import {
-  isAbortError,
-  runWithModelFallback,
-  _resetAllCircuitBreakers,
-} from "./model-fallback.js";
+import { isAbortError, runWithModelFallback } from "./model-fallback.js";
 
 describe("isAbortError", () => {
   it("returns false for null/undefined", () => {
@@ -47,10 +43,6 @@ describe("isAbortError", () => {
 });
 
 describe("runWithModelFallback", () => {
-  beforeEach(() => {
-    _resetAllCircuitBreakers();
-  });
-
   it("returns result from first successful provider", async () => {
     const result = await runWithModelFallback({
       cfg: undefined,
@@ -98,10 +90,10 @@ describe("runWithModelFallback", () => {
             "test-provider/fallback-model": {},
           },
         },
-      } as any,
+      } as Parameters<typeof runWithModelFallback>[0]["cfg"],
       provider: "test-provider",
       model: "test-model",
-      run: async (provider, model) => {
+      run: async (_provider, _model) => {
         callCount++;
         if (callCount === 1) {
           throw timeoutErr;
@@ -128,7 +120,7 @@ describe("runWithModelFallback", () => {
             "test-provider/fallback-model": {},
           },
         },
-      } as any,
+      } as Parameters<typeof runWithModelFallback>[0]["cfg"],
       provider: "test-provider",
       model: "test-model",
       run: async () => {
@@ -142,56 +134,5 @@ describe("runWithModelFallback", () => {
 
     expect(result.attempts).toHaveLength(1);
     expect(result.attempts[0]?.error).toBe("First provider failed");
-  });
-
-  it("skips provider after circuit breaker threshold", async () => {
-    const errors: string[] = [];
-
-    // Fail 3 times to trigger circuit breaker
-    for (let i = 0; i < 3; i++) {
-      try {
-        await runWithModelFallback({
-          cfg: undefined,
-          provider: "failing-provider",
-          model: "failing-model",
-          run: async () => {
-            throw new Error(`Failure ${i + 1}`);
-          },
-        });
-      } catch (e) {
-        errors.push((e as Error).message);
-      }
-    }
-
-    expect(errors).toHaveLength(3);
-
-    // Fourth attempt should skip due to circuit breaker
-    const result = await runWithModelFallback({
-      cfg: {
-        agent: {
-          model: {
-            primary: "failing-provider/failing-model",
-            fallbacks: ["backup-provider/backup-model"],
-          },
-          models: {
-            "failing-provider/failing-model": {},
-            "backup-provider/backup-model": {},
-          },
-        },
-      } as any,
-      provider: "failing-provider",
-      model: "failing-model",
-      run: async (provider) => {
-        if (provider === "failing-provider") {
-          throw new Error("Should be skipped");
-        }
-        return "backup-success";
-      },
-    });
-
-    expect(result.result).toBe("backup-success");
-    expect(result.attempts.some((a) => a.error.includes("Circuit breaker"))).toBe(
-      true,
-    );
   });
 });

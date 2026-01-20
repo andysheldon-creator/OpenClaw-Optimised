@@ -599,7 +599,7 @@ extension AppState {
         state.canvasEnabled = true
         state.remoteTarget = "user@example.com"
         state.remoteIdentity = "~/.ssh/id_ed25519"
-        state.remoteProjectRoot = "~/Projects/clawdbot"
+        state.remoteProjectRoot = "/projects/clawdbot"
         state.remoteCliPath = ""
         state.attachExistingGatewayOnly = false
         return state

@@ -132,7 +132,7 @@ Example (repo as default cwd):
 ```json5
 {
   agent: {
-    workspace: "~/Projects/my-repo"
+    workspace: "/projects/my-repo"
   }
 }
 ```

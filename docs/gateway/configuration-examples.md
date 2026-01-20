@@ -357,7 +357,7 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
   skills: {
     allowBundled: ["brave-search", "gemini"],
     load: {
-      extraDirs: ["~/Projects/agent-scripts/skills"]
+      extraDirs: ["/projects/robot-tools/agent-scripts/skills"]
     },
     install: {
       preferBrew: true,

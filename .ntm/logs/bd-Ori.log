@@ -1,0 +1,24 @@
+Warning: --start is deprecated, use 'bd daemon start' instead
+Error: no database path configured (run 'bd init' or set BEADS_DB)
+[supervisor] daemon exited with error: exit status 1
+[supervisor] restarting in 1s (attempt 1/5)
+Warning: --start is deprecated, use 'bd daemon start' instead
+Error: no database path configured (run 'bd init' or set BEADS_DB)
+[supervisor] daemon exited with error: exit status 1
+[supervisor] restarting in 2s (attempt 2/5)
+Warning: --start is deprecated, use 'bd daemon start' instead
+Error: no database path configured (run 'bd init' or set BEADS_DB)
+[supervisor] daemon exited with error: exit status 1
+[supervisor] restarting in 4s (attempt 3/5)
+Warning: --start is deprecated, use 'bd daemon start' instead
+Error: no database path configured (run 'bd init' or set BEADS_DB)
+[supervisor] daemon exited with error: exit status 1
+[supervisor] restarting in 8s (attempt 4/5)
+Warning: --start is deprecated, use 'bd daemon start' instead
+Error: no database path configured (run 'bd init' or set BEADS_DB)
+[supervisor] daemon exited with error: exit status 1
+[supervisor] restarting in 16s (attempt 5/5)
+Warning: --start is deprecated, use 'bd daemon start' instead
+Error: no database path configured (run 'bd init' or set BEADS_DB)
+[supervisor] daemon exited with error: exit status 1
+[supervisor] max restarts (5) exceeded, not restarting

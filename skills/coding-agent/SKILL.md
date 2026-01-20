@@ -55,12 +55,12 @@ bash workdir:~/project background:true command:"codex --yolo \"Build a snake gam
 ### Reviewing PRs (vanilla, no flags)
 
 **⚠️ CRITICAL: Never review PRs in Clawdbot's own project folder!**
-- Either use the project where the PR is submitted (if it's NOT ~/Projects/clawdbot)
+- Either use the project where the PR is submitted (if it's NOT /projects/clawdbot)
 - Or clone to a temp folder first
 
 ```bash
 # Option 1: Review in the actual project (if NOT clawdbot)
-bash workdir:~/Projects/some-other-repo background:true command:"codex review --base main"
+bash workdir:/projects/some-other-repo background:true command:"codex review --base main"
 
 # Option 2: Clone to temp folder for safe review (REQUIRED for clawdbot PRs!)
 REVIEW_DIR=$(mktemp -d)
@@ -204,7 +204,7 @@ git worktree remove /tmp/issue-99
 5. **vanilla for reviewing** — no special flags needed
 6. **Parallel is OK** — run many Codex processes at once for batch work
 7. **NEVER start Codex in ~/clawd/** — it'll read your soul docs and get weird ideas about the org chart! Use the target project dir or /tmp for blank slate chats
-8. **NEVER checkout branches in ~/Projects/clawdbot/** — that's the LIVE Clawdbot instance! Clone to /tmp or use git worktree for PR reviews
+8. **NEVER checkout branches in /projects/clawdbot/** — that's the LIVE Clawdbot instance! Clone to /tmp or use git worktree for PR reviews
 
 ---
 

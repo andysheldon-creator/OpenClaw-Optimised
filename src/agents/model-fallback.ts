@@ -12,52 +12,6 @@ type ModelCandidate = {
   model: string;
 };
 
-// Circuit breaker state to auto-skip chronically failing providers
-interface CircuitBreakerEntry {
-  failures: number;
-  lastFailure: number;
-}
-
-const circuitBreakerState = new Map<string, CircuitBreakerEntry>();
-const CIRCUIT_BREAKER_THRESHOLD = 3; // failures before opening circuit
-const CIRCUIT_BREAKER_RESET_MS = 5 * 60 * 1000; // 5 minutes
-
-function getCircuitBreakerKey(provider: string, model: string): string {
-  return `${provider}/${model}`;
-}
-
-function shouldSkipDueToCircuitBreaker(provider: string, model: string): boolean {
-  const key = getCircuitBreakerKey(provider, model);
-  const entry = circuitBreakerState.get(key);
-  if (!entry) return false;
-
-  // Reset if enough time has passed
-  if (Date.now() - entry.lastFailure > CIRCUIT_BREAKER_RESET_MS) {
-    circuitBreakerState.delete(key);
-    return false;
-  }
-
-  return entry.failures >= CIRCUIT_BREAKER_THRESHOLD;
-}
-
-function recordCircuitBreakerFailure(provider: string, model: string): void {
-  const key = getCircuitBreakerKey(provider, model);
-  const entry = circuitBreakerState.get(key) ?? { failures: 0, lastFailure: 0 };
-  entry.failures += 1;
-  entry.lastFailure = Date.now();
-  circuitBreakerState.set(key, entry);
-}
-
-function resetCircuitBreaker(provider: string, model: string): void {
-  const key = getCircuitBreakerKey(provider, model);
-  circuitBreakerState.delete(key);
-}
-
-/** @internal Clear all circuit breaker state - for testing only */
-export function _resetAllCircuitBreakers(): void {
-  circuitBreakerState.clear();
-}
-
 type FallbackAttempt = {
   provider: string;
   model: string;
@@ -248,21 +202,8 @@ export async function runWithModelFallback<T>(params: {
 
   for (let i = 0; i < candidates.length; i += 1) {
     const candidate = candidates[i] as ModelCandidate;
-
-    // Skip if circuit breaker is open for this provider/model
-    if (shouldSkipDueToCircuitBreaker(candidate.provider, candidate.model)) {
-      attempts.push({
-        provider: candidate.provider,
-        model: candidate.model,
-        error: "Circuit breaker open - skipped due to recent failures",
-      });
-      continue;
-    }
-
     try {
       const result = await params.run(candidate.provider, candidate.model);
-      // Success - reset circuit breaker for this provider/model
-      resetCircuitBreaker(candidate.provider, candidate.model);
       return {
         result,
         provider: candidate.provider,
@@ -272,8 +213,6 @@ export async function runWithModelFallback<T>(params: {
     } catch (err) {
       if (isAbortError(err)) throw err;
       lastError = err;
-      // Record failure for circuit breaker
-      recordCircuitBreakerFailure(candidate.provider, candidate.model);
       attempts.push({
         provider: candidate.provider,
         model: candidate.model,
@@ -338,21 +277,8 @@ export async function runWithImageModelFallback<T>(params: {
 
   for (let i = 0; i < candidates.length; i += 1) {
     const candidate = candidates[i] as ModelCandidate;
-
-    // Skip if circuit breaker is open for this provider/model
-    if (shouldSkipDueToCircuitBreaker(candidate.provider, candidate.model)) {
-      attempts.push({
-        provider: candidate.provider,
-        model: candidate.model,
-        error: "Circuit breaker open - skipped due to recent failures",
-      });
-      continue;
-    }
-
     try {
       const result = await params.run(candidate.provider, candidate.model);
-      // Success - reset circuit breaker for this provider/model
-      resetCircuitBreaker(candidate.provider, candidate.model);
       return {
         result,
         provider: candidate.provider,
@@ -362,8 +288,6 @@ export async function runWithImageModelFallback<T>(params: {
     } catch (err) {
       if (isAbortError(err)) throw err;
       lastError = err;
-      // Record failure for circuit breaker
-      recordCircuitBreakerFailure(candidate.provider, candidate.model);
       attempts.push({
         provider: candidate.provider,
         model: candidate.model,

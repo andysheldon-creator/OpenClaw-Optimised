@@ -287,6 +287,7 @@ Runbook: [iOS connect](https://docs.clawd.bot/ios).
 - Workspace root: `~/clawd` (configurable via `agent.workspace`).
 - Injected prompt files: `AGENTS.md`, `SOUL.md`, `TOOLS.md`.
 - Skills: `~/clawd/skills/<skill>/SKILL.md`.
+If you're scripting, prefer `$HOME/clawd` so non-interactive shells don't mis-expand `~`.
 
 ## Configuration
 

@@ -1507,8 +1507,8 @@ Example:
     allowBundled: ["brave-search", "gemini"],
     load: {
       extraDirs: [
-        "~/Projects/agent-scripts/skills",
-        "~/Projects/oss/some-skill-pack/skills"
+        "/projects/robot-tools/agent-scripts/skills",
+        "/projects/oss/some-skill-pack/skills"
       ]
     },
     install: {
