@@ -2614,6 +2614,7 @@ Defaults:
     // noSandbox: false,
     // executablePath: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
     // attachOnly: false, // set true when tunneling a remote CDP to localhost
+    // snapshotDefaults: { mode: "efficient" }, // default snapshot preset
   }
 }
 ```
