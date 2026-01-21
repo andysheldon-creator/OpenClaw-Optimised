@@ -32,6 +32,7 @@ import { formatCliCommand } from "./command-format.js";
 import { stylePromptMessage } from "../terminal/prompt-style.js";
 import { theme } from "../terminal/theme.js";
 import { renderTable } from "../terminal/table.js";
+import { formatHelpExamples } from "./help-format.js";
 import {
   formatUpdateAvailableHint,
   formatUpdateOneLiner,
@@ -45,6 +46,7 @@ export type UpdateCommandOptions = {
   channel?: string;
   tag?: string;
   timeout?: string;
+  yes?: boolean;
 };
 export type UpdateStatusOptions = {
   json?: boolean;
@@ -375,6 +377,8 @@ function printResult(result: UpdateRunResult, opts: PrintResultOptions) {
 }
 
 export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
+  process.noDeprecation = true;
+  process.env.NODE_NO_WARNINGS = "1";
   const timeoutMs = opts.timeout ? Number.parseInt(opts.timeout, 10) * 1000 : undefined;
 
   if (timeoutMs !== undefined && (Number.isNaN(timeoutMs) || timeoutMs <= 0)) {
@@ -427,7 +431,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     const needsConfirm =
       currentVersion != null && (targetVersion == null || (cmp != null && cmp > 0));
 
-    if (needsConfirm) {
+    if (needsConfirm && !opts.yes) {
       if (!process.stdin.isTTY || opts.json) {
         defaultRuntime.error(
           [
@@ -667,27 +671,46 @@ export function registerUpdateCli(program: Command) {
     .option("--channel <stable|beta|dev>", "Persist update channel (git + npm)")
     .option("--tag <dist-tag|version>", "Override npm dist-tag or version for this update")
     .option("--timeout <seconds>", "Timeout for each update step in seconds (default: 1200)")
-    .addHelpText(
-      "after",
-      () =>
-        `
-Examples:
-  clawdbot update                   # Update a source checkout (git)
-  clawdbot update --channel beta    # Switch to beta channel (git + npm)
-  clawdbot update --channel dev     # Switch to dev channel (git + npm)
-  clawdbot update --tag beta        # One-off update to a dist-tag or version
-  clawdbot update --restart         # Update and restart the daemon
-  clawdbot update --json            # Output result as JSON
-  clawdbot --update                 # Shorthand for clawdbot update
+    .option("--yes", "Skip confirmation prompts (non-interactive)", false)
+    .addHelpText("after", () => {
+      const examples = [
+        ["clawdbot update", "Update a source checkout (git)"],
+        ["clawdbot update --channel beta", "Switch to beta channel (git + npm)"],
+        ["clawdbot update --channel dev", "Switch to dev channel (git + npm)"],
+        ["clawdbot update --tag beta", "One-off update to a dist-tag or version"],
+        ["clawdbot update --restart", "Update and restart the daemon"],
+        ["clawdbot update --json", "Output result as JSON"],
+        ["clawdbot update --yes", "Non-interactive (accept downgrade prompts)"],
+        ["clawdbot --update", "Shorthand for clawdbot update"],
+      ] as const;
+      const fmtExamples = examples
+        .map(([cmd, desc]) => `  ${theme.command(cmd)} ${theme.muted(`# ${desc}`)}`)
+        .join("\n");
+      return `
+${theme.heading("What this does:")}
+  - Git checkouts: fetches, rebases, installs deps, builds, and runs doctor
+  - npm installs: updates via detected package manager
 
-Notes:
-  - For git installs: fetches, rebases, installs deps, builds, and runs doctor
+${theme.heading("Switch channels:")}
+  - Use --channel stable|beta|dev to persist the update channel in config
+  - Run clawdbot update status to see the active channel and source
+  - Use --tag <dist-tag|version> for a one-off npm update without persisting
+
+${theme.heading("Non-interactive:")}
+  - Use --yes to accept downgrade prompts
+  - Combine with --channel/--tag/--restart/--json/--timeout as needed
+
+${theme.heading("Examples:")}
+${fmtExamples}
+
+${theme.heading("Notes:")}
+  - Switch channels with --channel stable|beta|dev
   - For global installs: auto-updates via detected package manager when possible (see docs/install/updating.md)
   - Downgrades require confirmation (can break configuration)
   - Skips update if the working directory has uncommitted changes
 
-${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.clawd.bot/cli/update")}`,
-    )
+${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.clawd.bot/cli/update")}`;
+    })
     .action(async (opts) => {
       try {
         await updateCommand({
@@ -696,6 +719,7 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.clawd.bot/cli/upda
           channel: opts.channel as string | undefined,
           tag: opts.tag as string | undefined,
           timeout: opts.timeout as string | undefined,
+          yes: Boolean(opts.yes),
         });
       } catch (err) {
         defaultRuntime.error(String(err));
@@ -711,17 +735,15 @@ ${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.clawd.bot/cli/upda
     .addHelpText(
       "after",
       () =>
-        `
-Examples:
-  clawdbot update status
-  clawdbot update status --json
-  clawdbot update status --timeout 10
-
-Notes:
-  - Shows current update channel (stable/beta/dev) and source
-  - Includes git tag/branch/SHA for source checkouts
-
-${theme.muted("Docs:")} ${formatDocsLink("/cli/update", "docs.clawd.bot/cli/update")}`,
+        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
+          ["clawdbot update status", "Show channel + version status."],
+          ["clawdbot update status --json", "JSON output."],
+          ["clawdbot update status --timeout 10", "Custom timeout."],
+        ])}\n\n${theme.heading("Notes:")}\n${theme.muted(
+          "- Shows current update channel (stable/beta/dev) and source",
+        )}\n${theme.muted("- Includes git tag/branch/SHA for source checkouts")}\n\n${theme.muted(
+          "Docs:",
+        )} ${formatDocsLink("/cli/update", "docs.clawd.bot/cli/update")}`,
     )
     .action(async (opts) => {
       try {

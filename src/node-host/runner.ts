@@ -104,7 +104,8 @@ const OUTPUT_CAP = 200_000;
 const OUTPUT_EVENT_TAIL = 20_000;
 
 const execHostEnforced = process.env.CLAWDBOT_NODE_EXEC_HOST?.trim().toLowerCase() === "app";
-const execHostFallbackAllowed = process.env.CLAWDBOT_NODE_EXEC_FALLBACK?.trim() === "1";
+const execHostFallbackAllowed =
+  process.env.CLAWDBOT_NODE_EXEC_FALLBACK?.trim().toLowerCase() !== "0";
 
 const blockedEnvKeys = new Set([
   "PATH",
@@ -545,7 +546,7 @@ async function handleInvoke(
   const rawCommand = typeof params.rawCommand === "string" ? params.rawCommand.trim() : "";
   const cmdText = rawCommand || formatCommand(argv);
   const agentId = params.agentId?.trim() || undefined;
-  const approvals = resolveExecApprovals(agentId);
+  const approvals = resolveExecApprovals(agentId, { security: "allowlist" });
   const security = approvals.agent.security;
   const ask = approvals.agent.ask;
   const autoAllowSkills = approvals.agent.autoAllowSkills;
@@ -559,8 +560,7 @@ async function handleInvoke(
   const skillAllow =
     autoAllowSkills && resolution?.executableName ? bins.has(resolution.executableName) : false;
 
-  const useMacAppExec =
-    process.platform === "darwin" && (execHostEnforced || !execHostFallbackAllowed);
+  const useMacAppExec = process.platform === "darwin";
   if (useMacAppExec) {
     const approvalDecision =
       params.approvalDecision === "allow-once" || params.approvalDecision === "allow-always"
@@ -579,28 +579,28 @@ async function handleInvoke(
     };
     const response = await runViaMacAppExecHost({ approvals, request: execRequest });
     if (!response) {
-      await sendNodeEvent(
-        client,
-        "exec.denied",
-        buildExecEventPayload({
-          sessionKey,
-          runId,
-          host: "node",
-          command: cmdText,
-          reason: "companion-unavailable",
-        }),
-      );
-      await sendInvokeResult(client, frame, {
-        ok: false,
-        error: {
-          code: "UNAVAILABLE",
-          message: "COMPANION_APP_UNAVAILABLE: macOS app exec host unreachable",
-        },
-      });
-      return;
-    }
-
-    if (!response.ok) {
+      if (execHostEnforced || !execHostFallbackAllowed) {
+        await sendNodeEvent(
+          client,
+          "exec.denied",
+          buildExecEventPayload({
+            sessionKey,
+            runId,
+            host: "node",
+            command: cmdText,
+            reason: "companion-unavailable",
+          }),
+        );
+        await sendInvokeResult(client, frame, {
+          ok: false,
+          error: {
+            code: "UNAVAILABLE",
+            message: "COMPANION_APP_UNAVAILABLE: macOS app exec host unreachable",
+          },
+        });
+        return;
+      }
+    } else if (!response.ok) {
       const reason = response.error.reason ?? "approval-required";
       await sendNodeEvent(
         client,
@@ -618,29 +618,29 @@ async function handleInvoke(
         error: { code: "UNAVAILABLE", message: response.error.message },
       });
       return;
+    } else {
+      const result: ExecHostRunResult = response.payload;
+      const combined = [result.stdout, result.stderr, result.error].filter(Boolean).join("\n");
+      await sendNodeEvent(
+        client,
+        "exec.finished",
+        buildExecEventPayload({
+          sessionKey,
+          runId,
+          host: "node",
+          command: cmdText,
+          exitCode: result.exitCode,
+          timedOut: result.timedOut,
+          success: result.success,
+          output: combined,
+        }),
+      );
+      await sendInvokeResult(client, frame, {
+        ok: true,
+        payloadJSON: JSON.stringify(result),
+      });
+      return;
     }
-
-    const result: ExecHostRunResult = response.payload;
-    const combined = [result.stdout, result.stderr, result.error].filter(Boolean).join("\n");
-    await sendNodeEvent(
-      client,
-      "exec.finished",
-      buildExecEventPayload({
-        sessionKey,
-        runId,
-        host: "node",
-        command: cmdText,
-        exitCode: result.exitCode,
-        timedOut: result.timedOut,
-        success: result.success,
-        output: combined,
-      }),
-    );
-    await sendInvokeResult(client, frame, {
-      ok: true,
-      payloadJSON: JSON.stringify(result),
-    });
-    return;
   }
 
   if (security === "deny") {
@@ -833,17 +833,50 @@ async function sendInvokeResult(
   },
 ) {
   try {
-    await client.request("node.invoke.result", {
-      id: frame.id,
-      nodeId: frame.nodeId,
-      ok: result.ok,
-      payload: result.payload,
-      payloadJSON: result.payloadJSON ?? null,
-      error: result.error ?? null,
-    });
+    await client.request("node.invoke.result", buildNodeInvokeResultParams(frame, result));
   } catch {
     // ignore: node invoke responses are best-effort
   }
+}
+
+export function buildNodeInvokeResultParams(
+  frame: NodeInvokeRequestPayload,
+  result: {
+    ok: boolean;
+    payload?: unknown;
+    payloadJSON?: string | null;
+    error?: { code?: string; message?: string } | null;
+  },
+): {
+  id: string;
+  nodeId: string;
+  ok: boolean;
+  payload?: unknown;
+  payloadJSON?: string;
+  error?: { code?: string; message?: string };
+} {
+  const params: {
+    id: string;
+    nodeId: string;
+    ok: boolean;
+    payload?: unknown;
+    payloadJSON?: string;
+    error?: { code?: string; message?: string };
+  } = {
+    id: frame.id,
+    nodeId: frame.nodeId,
+    ok: result.ok,
+  };
+  if (result.payload !== undefined) {
+    params.payload = result.payload;
+  }
+  if (typeof result.payloadJSON === "string") {
+    params.payloadJSON = result.payloadJSON;
+  }
+  if (result.error) {
+    params.error = result.error;
+  }
+  return params;
 }
 
 async function sendNodeEvent(client: GatewayClient, event: string, payload: unknown) {

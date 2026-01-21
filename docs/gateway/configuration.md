@@ -1774,6 +1774,7 @@ Note: `applyPatch` is only under `tools.exec`.
 - `tools.web.fetch.maxChars` (default 50000)
 - `tools.web.fetch.timeoutSeconds` (default 30)
 - `tools.web.fetch.cacheTtlMinutes` (default 15)
+- `tools.web.fetch.maxRedirects` (default 3)
 - `tools.web.fetch.userAgent` (optional override)
 - `tools.web.fetch.readability` (default true; disable to use basic HTML cleanup only)
 - `tools.web.fetch.firecrawl.enabled` (default true when an API key is set)
@@ -2614,9 +2615,12 @@ Defaults:
     // noSandbox: false,
     // executablePath: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
     // attachOnly: false, // set true when tunneling a remote CDP to localhost
+    // snapshotDefaults: { mode: "efficient" }, // tool/CLI default snapshot preset
   }
 }
 ```
+
+Note: `browser.snapshotDefaults` only affects Clawdbot's browser tool + CLI. Direct HTTP clients must pass `mode` explicitly.
 
 ### `ui` (Appearance)
 

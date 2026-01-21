@@ -172,6 +172,10 @@ actor GatewayEndpointStore {
             return configToken
         }
 
+        if isRemote {
+            return nil
+        }
+
         if let token = launchdSnapshot?.token?.trimmingCharacters(in: .whitespacesAndNewlines),
            !token.isEmpty
         {
@@ -548,13 +552,16 @@ actor GatewayEndpointStore {
     {
         switch bindMode {
         case "tailnet":
-            tailscaleIP ?? "127.0.0.1"
+            return tailscaleIP ?? "127.0.0.1"
         case "auto":
-            "127.0.0.1"
+            if let tailscaleIP, !tailscaleIP.isEmpty {
+                return tailscaleIP
+            }
+            return "127.0.0.1"
         case "custom":
-            customBindHost ?? "127.0.0.1"
+            return customBindHost ?? "127.0.0.1"
         default:
-            "127.0.0.1"
+            return "127.0.0.1"
         }
     }
 }
@@ -625,11 +632,12 @@ extension GatewayEndpointStore {
 
     static func _testResolveLocalGatewayHost(
         bindMode: String?,
-        tailscaleIP: String?) -> String
+        tailscaleIP: String?,
+        customBindHost: String? = nil) -> String
     {
         self.resolveLocalGatewayHost(
             bindMode: bindMode,
-            customBindHost: nil,
+            customBindHost: customBindHost,
             tailscaleIP: tailscaleIP)
     }
 }

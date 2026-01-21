@@ -400,7 +400,7 @@ export function createExecTool(
         host = "gateway";
       }
 
-      const configuredSecurity = defaults?.security ?? "deny";
+      const configuredSecurity = defaults?.security ?? (host === "sandbox" ? "deny" : "allowlist");
       const requestedSecurity = normalizeExecSecurity(params.security);
       let security = minSecurity(configuredSecurity, requestedSecurity ?? configuredSecurity);
       if (elevatedRequested) {
@@ -447,7 +447,10 @@ export function createExecTool(
       applyPathPrepend(env, defaultPathPrepend);
 
       if (host === "node") {
-        const approvals = resolveExecApprovals(defaults?.agentId);
+        const approvals = resolveExecApprovals(
+          defaults?.agentId,
+          host === "node" ? { security: "allowlist" } : undefined,
+        );
         const hostSecurity = minSecurity(security, approvals.agent.security);
         const hostAsk = maxAsk(ask, approvals.agent.ask);
         const askFallback = approvals.agent.askFallback;
@@ -491,12 +494,7 @@ export function createExecTool(
         if (nodeEnv) {
           applyPathPrepend(nodeEnv, defaultPathPrepend, { requireExisting: true });
         }
-        const resolution = resolveCommandResolution(params.command, workdir, env);
-        const allowlistMatch =
-          hostSecurity === "allowlist" ? matchAllowlist(approvals.allowlist, resolution) : null;
-        const requiresAsk =
-          hostAsk === "always" ||
-          (hostAsk === "on-miss" && hostSecurity === "allowlist" && !allowlistMatch);
+        const requiresAsk = hostAsk === "always" || hostAsk === "on-miss";
 
         let approvedByAsk = false;
         let approvalDecision: "allow-once" | "allow-always" | null = null;
@@ -511,7 +509,7 @@ export function createExecTool(
               security: hostSecurity,
               ask: hostAsk,
               agentId: defaults?.agentId,
-              resolvedPath: resolution?.resolvedPath ?? null,
+              resolvedPath: null,
               sessionKey: defaults?.sessionKey ?? null,
               timeoutMs: 120_000,
             },
@@ -529,11 +527,7 @@ export function createExecTool(
               approvedByAsk = true;
               approvalDecision = "allow-once";
             } else if (askFallback === "allowlist") {
-              if (!allowlistMatch) {
-                throw new Error("exec denied: approval required (approval UI not available)");
-              }
-              approvedByAsk = true;
-              approvalDecision = "allow-once";
+              // Defer allowlist enforcement to the node host.
             } else {
               throw new Error("exec denied: approval required (approval UI not available)");
             }
@@ -545,31 +539,7 @@ export function createExecTool(
           if (decision === "allow-always") {
             approvedByAsk = true;
             approvalDecision = "allow-always";
-            if (hostSecurity === "allowlist") {
-              const pattern =
-                resolution?.resolvedPath ??
-                resolution?.rawExecutable ??
-                params.command.split(/\s+/).shift() ??
-                "";
-              if (pattern) {
-                addAllowlistEntry(approvals.file, defaults?.agentId, pattern);
-              }
-            }
           }
-        }
-
-        if (hostSecurity === "allowlist" && !allowlistMatch && !approvedByAsk) {
-          throw new Error("exec denied: allowlist miss");
-        }
-
-        if (allowlistMatch) {
-          recordAllowlistUse(
-            approvals.file,
-            defaults?.agentId,
-            allowlistMatch,
-            params.command,
-            resolution?.resolvedPath,
-          );
         }
         const invokeParams: Record<string, unknown> = {
           nodeId,
@@ -616,7 +586,7 @@ export function createExecTool(
       }
 
       if (host === "gateway") {
-        const approvals = resolveExecApprovals(defaults?.agentId);
+        const approvals = resolveExecApprovals(defaults?.agentId, { security: "allowlist" });
         const hostSecurity = minSecurity(security, approvals.agent.security);
         const hostAsk = maxAsk(ask, approvals.agent.ask);
         const askFallback = approvals.agent.askFallback;

@@ -6,9 +6,11 @@ Docs: https://docs.clawd.bot
 
 ### Changes
 - Deps: update workspace + memory-lancedb dependencies.
+- Dev: use tsgo for dev/watch builds by default; set `CLAWDBOT_TS_COMPILER=tsc` to opt out.
 - Repo: remove the Peekaboo git submodule now that the SPM release is used.
 - Update: sync plugin sources on channel switches and update npm-installed plugins during `clawdbot update`.
 - Plugins: share npm plugin update logic between `clawdbot update` and `clawdbot plugins update`.
+- Browser: allow config defaults for efficient snapshots in the tool/CLI. (#1336) — thanks @sebslight.
 - Channels: add the Nostr plugin channel with profile management + onboarding install defaults. (#1323) — thanks @joelklabo.
 - Plugins: require manifest-embedded config schemas, validate configs without loading plugin code, and surface plugin config warnings. (#1272) — thanks @thewilloftheshadow.
 - Plugins: move channel catalog metadata into plugin manifests; align Nextcloud Talk policy helpers with core patterns. (#1290) — thanks @NicholaiVogel.
@@ -20,19 +22,29 @@ Docs: https://docs.clawd.bot
 - Security: warn when <=300B models run without sandboxing and with web tools enabled.
 - Skills: add download installs with OS-filtered install options; add local sherpa-onnx-tts skill.
 - Docs: clarify WhatsApp voice notes and Windows WSL portproxy LAN access notes.
+- UI: add copy-as-markdown with error feedback and drop legacy list view. (#1345) — thanks @bradleypriest.
+- TUI: add input history (up/down) for submitted messages. (#1348) — thanks @vignesh07.
 ### Fixes
 - Discovery: shorten Bonjour DNS-SD service type to `_clawdbot-gw._tcp` and update discovery clients/docs.
 - Agents: preserve subagent announce thread/topic routing + queued replies across channels. (#1241) — thanks @gnarco.
 - Agents: avoid treating timeout errors with "aborted" messages as user aborts, so model fallback still runs.
 - Diagnostics: export OTLP logs, correct queue depth tracking, and document message-flow telemetry.
 - Diagnostics: emit message-flow diagnostics across channels via shared dispatch; gate heartbeat/webhook logging. (#1244) — thanks @oscargavin.
+- CLI: preserve cron delivery settings when editing message payloads. (#1322) — thanks @KrauseFx.
+- CLI: keep `clawdbot logs` output resilient to broken pipes while preserving progress output.
 - Model catalog: avoid caching import failures, log transient discovery errors, and keep partial results. (#1332) — thanks @dougvk.
 - Doctor: clarify plugin auto-enable hint text in the startup banner.
 - Gateway: clarify unauthorized handshake responses with token/password mismatch guidance.
+- Gateway: clarify connect/validation errors for gateway params. (#1347) — thanks @vignesh07.
+- Gateway: preserve restart wake routing + thread replies across restarts. (#1337) — thanks @John-Rood.
 - Gateway: reschedule per-agent heartbeats on config hot reload without restarting the runner.
+- Config: log invalid config issues once per run and keep invalid-config errors stackless.
+- Exec: default gateway/node exec security to allowlist when unset (sandbox stays deny).
 - UI: keep config form enums typed, preserve empty strings, protect sensitive defaults, and deepen config search. (#1315) — thanks @MaudeBot.
 - UI: preserve ordered list numbering in chat markdown. (#1341) — thanks @bradleypriest.
+- UI: allow Control UI to read gatewayUrl from URL params for remote WebSocket targets. (#1342) — thanks @ameno-.
 - Web search: infer Perplexity base URL from API key source (direct vs OpenRouter).
+- Web fetch: harden SSRF protection with shared hostname checks and redirect limits. (#1346) — thanks @fogboots.
 - TUI: keep thinking blocks ordered before content during streaming and isolate per-run assembly. (#1202) — thanks @aaronveklabs.
 - TUI: align custom editor initialization with the latest pi-tui API. (#1298) — thanks @sibbl.
 - CLI: avoid duplicating --profile/--dev flags when formatting commands.

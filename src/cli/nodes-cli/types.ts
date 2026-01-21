@@ -8,6 +8,8 @@ export type NodesRpcOpts = {
   params?: string;
   invokeTimeout?: string;
   idempotencyKey?: string;
+  connected?: boolean;
+  lastConnected?: string;
   target?: string;
   x?: string;
   y?: string;
@@ -56,6 +58,7 @@ export type NodeListNode = {
   permissions?: Record<string, boolean>;
   paired?: boolean;
   connected?: boolean;
+  connectedAtMs?: number;
 };
 
 export type PendingRequest = {
@@ -83,6 +86,7 @@ export type PairedNode = {
   permissions?: Record<string, boolean>;
   createdAtMs?: number;
   approvedAtMs?: number;
+  lastConnectedAtMs?: number;
 };
 
 export type PairingList = {
