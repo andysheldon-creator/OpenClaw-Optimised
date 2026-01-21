@@ -24,7 +24,7 @@ Unknown keys, malformed types, or invalid values cause the Gateway to **refuse t
 
 When validation fails:
 - The Gateway does not boot.
-- Only diagnostic commands are allowed (for example: `clawdbot doctor`, `clawdbot logs`, `clawdbot health`, `clawdbot status`, `clawdbot daemon`, `clawdbot help`).
+- Only diagnostic commands are allowed (for example: `clawdbot doctor`, `clawdbot logs`, `clawdbot health`, `clawdbot status`, `clawdbot gateway status`, `clawdbot gateway probe`, `clawdbot help`).
 - Run `clawdbot doctor` to see the exact issues.
 - Run `clawdbot doctor --fix` (or `--yes`) to apply migrations/repairs.
 
@@ -1414,7 +1414,7 @@ Each `agents.defaults.models` entry can include:
 - `alias` (optional model shortcut, e.g. `/opus`).
 - `params` (optional provider-specific API params passed through to the model request).
 
-`params` is also applied to streaming runs (embedded agent + compaction). Supported keys today: `temperature`, `maxTokens`, `cacheControlTtl` (`"5m"` or `"1h"`, Anthropic API + OpenRouter Anthropic models only; ignored for Anthropic OAuth/Claude Code tokens). These merge with call-time options; caller-supplied values win. `temperature` is an advanced knob—leave unset unless you know the model’s defaults and need a change. Anthropic API defaults to `"1h"` unless you override (`cacheControlTtl: "5m"`). Clawdbot includes the `extended-cache-ttl-2025-04-11` beta flag for Anthropic API; keep it if you override provider headers.
+`params` is also applied to streaming runs (embedded agent + compaction). Supported keys today: `temperature`, `maxTokens`, `cacheControlTtl` (`"5m"` or `"1h"`, Anthropic API + OpenRouter Anthropic models only; ignored for Anthropic OAuth/Claude Code tokens). These merge with call-time options; caller-supplied values win. `temperature` is an advanced knob—leave unset unless you know the model’s defaults and need a change. Clawdbot includes the `extended-cache-ttl-2025-04-11` beta flag for Anthropic API; keep it if you override provider headers.
 
 Example:
 
@@ -1569,7 +1569,7 @@ Example:
 }
 ```
 
-#### `agents.defaults.contextPruning` (tool-result pruning)
+#### `agents.defaults.contextPruning` (TTL-aware tool-result pruning)
 
 `agents.defaults.contextPruning` prunes **old tool results** from the in-memory context right before a request is sent to the LLM.
 It does **not** modify the session history on disk (`*.jsonl` remains complete).
@@ -1580,11 +1580,9 @@ High level:
 - Never touches user/assistant messages.
 - Protects the last `keepLastAssistants` assistant messages (no tool results after that point are pruned).
 - Protects the bootstrap prefix (nothing before the first user message is pruned).
-- Modes:
-  - `adaptive`: soft-trims oversized tool results (keep head/tail) when the estimated context ratio crosses `softTrimRatio`.
-    Then hard-clears the oldest eligible tool results when the estimated context ratio crosses `hardClearRatio` **and**
-    there’s enough prunable tool-result bulk (`minPrunableToolChars`).
-  - `aggressive`: always replaces eligible tool results before the cutoff with the `hardClear.placeholder` (no ratio checks).
+- Mode:
+  - `cache-ttl`: pruning only runs when the last Anthropic call for the session is **older** than `ttl`.
+    When it runs, it uses the same soft-trim + hard-clear behavior as before.
 
 Soft vs hard pruning (what changes in the context sent to the LLM):
 - **Soft-trim**: only for *oversized* tool results. Keeps the beginning + end and inserts `...` in the middle.
@@ -1598,44 +1596,41 @@ Notes / current limitations:
 - Tool results containing **image blocks are skipped** (never trimmed/cleared) right now.
 - The estimated “context ratio” is based on **characters** (approximate), not exact tokens.
 - If the session doesn’t contain at least `keepLastAssistants` assistant messages yet, pruning is skipped.
-- In `aggressive` mode, `hardClear.enabled` is ignored (eligible tool results are always replaced with `hardClear.placeholder`).
+- `cache-ttl` only activates for Anthropic API calls (and OpenRouter Anthropic models).
+- After a prune, the TTL window resets so subsequent requests keep cache until `ttl` expires again.
+- For best results, match `contextPruning.ttl` to the model `cacheControlTtl` you set in `agents.defaults.models.*.params`.
 
-Default (adaptive):
-```json5
-{
-  agents: { defaults: { contextPruning: { mode: "adaptive" } } }
-}
-```
-
-To disable:
+Default (off, unless Anthropic auth profiles are detected):
 ```json5
 {
   agents: { defaults: { contextPruning: { mode: "off" } } }
 }
 ```
 
-Defaults (when `mode` is `"adaptive"` or `"aggressive"`):
-- `keepLastAssistants`: `3`
-- `softTrimRatio`: `0.3` (adaptive only)
-- `hardClearRatio`: `0.5` (adaptive only)
-- `minPrunableToolChars`: `50000` (adaptive only)
-- `softTrim`: `{ maxChars: 4000, headChars: 1500, tailChars: 1500 }` (adaptive only)
-- `hardClear`: `{ enabled: true, placeholder: "[Old tool result content cleared]" }`
-
-Example (aggressive, minimal):
+Enable TTL-aware pruning:
 ```json5
 {
-  agents: { defaults: { contextPruning: { mode: "aggressive" } } }
+  agents: { defaults: { contextPruning: { mode: "cache-ttl" } } }
 }
 ```
 
-Example (adaptive tuned):
+Defaults (when `mode` is `"cache-ttl"`):
+- `ttl`: `"5m"`
+- `keepLastAssistants`: `3`
+- `softTrimRatio`: `0.3`
+- `hardClearRatio`: `0.5`
+- `minPrunableToolChars`: `50000`
+- `softTrim`: `{ maxChars: 4000, headChars: 1500, tailChars: 1500 }`
+- `hardClear`: `{ enabled: true, placeholder: "[Old tool result content cleared]" }`
+
+Example (cache-ttl tuned):
 ```json5
 {
   agents: {
     defaults: {
       contextPruning: {
-        mode: "adaptive",
+        mode: "cache-ttl",
+        ttl: "5m",
         keepLastAssistants: 3,
         softTrimRatio: 0.3,
         hardClearRatio: 0.5,
@@ -1742,6 +1737,10 @@ Z.AI models are available as `zai/<model>` (e.g. `zai/glm-4.7`) and require
   `30m`. Set `0m` to disable.
 - `model`: optional override model for heartbeat runs (`provider/model`).
 - `includeReasoning`: when `true`, heartbeats will also deliver the separate `Reasoning:` message when available (same shape as `/reasoning on`). Default: `false`.
+- `activeHours`: optional local-time window that controls when heartbeats run.
+  - `start`: start time (HH:MM, 24h). Inclusive.
+  - `end`: end time (HH:MM, 24h). Exclusive. Use `"24:00"` for end-of-day.
+  - `timezone`: `"user"` (default), `"local"`, or an IANA timezone id.
 - `target`: optional delivery channel (`last`, `whatsapp`, `telegram`, `discord`, `slack`, `signal`, `imessage`, `none`). Default: `last`.
 - `to`: optional recipient override (channel-specific id, e.g. E.164 for WhatsApp, chat id for Telegram).
 - `prompt`: optional override for the heartbeat body (default: `Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK.`). Overrides are sent verbatim; include a `Read HEARTBEAT.md` line if you still want the file read.
@@ -2453,6 +2452,9 @@ Controls session scoping, reset policy, reset triggers, and where the session st
       dm: { mode: "idle", idleMinutes: 240 },
       group: { mode: "idle", idleMinutes: 120 }
     },
+    resetByChannel: {
+      discord: { mode: "idle", idleMinutes: 10080 }
+    },
     resetTriggers: ["/new", "/reset"],
     // Default is already per-agent under ~/.clawdbot/agents/<agentId>/sessions/sessions.json
     // You can override with {agentId} templating:
@@ -2488,7 +2490,7 @@ Fields:
   - `idleMinutes`: sliding idle window in minutes. When daily + idle are both configured, whichever expires first wins.
 - `resetByType`: per-session overrides for `dm`, `group`, and `thread`.
   - If you only set legacy `session.idleMinutes` without any `reset`/`resetByType`, Clawdbot stays in idle-only mode for backward compatibility.
-- `heartbeatIdleMinutes`: optional idle override for heartbeat checks (daily reset still applies when enabled).
+- `resetByChannel`: channel-specific reset policy overrides (keyed by channel id, applies to all session types for that channel; overrides `reset`/`resetByType`).
 - `agentToAgent.maxPingPongTurns`: max reply-back turns between requester/target (0–5, default 5).
 - `sendPolicy.default`: `allow` or `deny` fallback when no rule matches.
 - `sendPolicy.rules[]`: match by `channel`, `chatType` (`direct|group|room`), or `keyPrefix` (e.g. `cron:`). First deny wins; otherwise allow.
@@ -2645,6 +2647,13 @@ Defaults:
 - bind: `loopback`
 - port: `18789` (single port for WS + HTTP)
 
+Bind modes:
+- `loopback`: `127.0.0.1` (local-only)
+- `lan`: `0.0.0.0` (all interfaces)
+- `tailnet`: Tailscale IPv4 address (100.64.0.0/10)
+- `auto`: prefer loopback, fall back to LAN if loopback cannot bind
+- `custom`: `gateway.customBindHost` (IPv4), fallback to LAN if unavailable
+
 ```json5
 {
   gateway: {
@@ -2675,7 +2684,7 @@ Notes:
 - OpenAI Chat Completions endpoint: **disabled by default**; enable with `gateway.http.endpoints.chatCompletions.enabled: true`.
 - OpenResponses endpoint: **disabled by default**; enable with `gateway.http.endpoints.responses.enabled: true`.
 - Precedence: `--port` > `CLAWDBOT_GATEWAY_PORT` > `gateway.port` > default `18789`.
-- Non-loopback binds (`lan`/`tailnet`/`auto`) require auth. Use `gateway.auth.token` (or `CLAWDBOT_GATEWAY_TOKEN`).
+- Non-loopback binds (`lan`/`tailnet`/`custom`, or `auto` when loopback is unavailable) require auth. Use `gateway.auth.token` (or `CLAWDBOT_GATEWAY_TOKEN`).
 - The onboarding wizard generates a gateway token by default (even on loopback).
 - `gateway.remote.token` is **only** for remote CLI calls; it does not enable local gateway auth. `gateway.token` is ignored.
 
@@ -3022,6 +3031,9 @@ Template placeholders are expanded in `tools.media.*.models[].args` and `tools.m
 | `{{From}}` | Sender identifier (E.164 for WhatsApp; may differ per channel) |
 | `{{To}}` | Destination identifier |
 | `{{MessageSid}}` | Channel message id (when available) |
+| `{{MessageSidFull}}` | Provider-specific full message id when `MessageSid` is shortened |
+| `{{ReplyToId}}` | Reply-to message id (when available) |
+| `{{ReplyToIdFull}}` | Provider-specific full reply-to id when `ReplyToId` is shortened |
 | `{{SessionId}}` | Current session UUID |
 | `{{IsNewSession}}` | `"true"` when a new session was created |
 | `{{MediaUrl}}` | Inbound media pseudo-URL (if present) |

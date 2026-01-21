@@ -36,10 +36,10 @@ clawdbot onboard --anthropic-api-key "$ANTHROPIC_API_KEY"
 
 ## Prompt caching (Anthropic API)
 
-Clawdbot enables **1-hour prompt caching by default** for Anthropic API keys.
+Clawdbot does **not** override Anthropic’s default cache TTL unless you set it.
 This is **API-only**; Claude Code CLI OAuth ignores TTL settings.
 
-To override the TTL per model, set `cacheControlTtl` in the model `params`:
+To set the TTL per model, use `cacheControlTtl` in the model `params`:
 
 ```json5
 {

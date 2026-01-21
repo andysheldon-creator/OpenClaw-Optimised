@@ -1,5 +1,9 @@
+type FetchWithPreconnect = typeof fetch & {
+  preconnect: (url: string, init?: { credentials?: RequestCredentials }) => void;
+};
+
 export function wrapFetchWithAbortSignal(fetchImpl: typeof fetch): typeof fetch {
-  return (input: RequestInfo | URL, init?: RequestInit) => {
+  const wrapped = ((input: RequestInfo | URL, init?: RequestInit) => {
     const signal = init?.signal;
     if (!signal) return fetchImpl(input, init);
     if (typeof AbortSignal !== "undefined" && signal instanceof AbortSignal) {
@@ -25,5 +29,19 @@ export function wrapFetchWithAbortSignal(fetchImpl: typeof fetch): typeof fetch 
       });
     }
     return response;
-  };
+  }) as FetchWithPreconnect;
+
+  const fetchWithPreconnect = fetchImpl as FetchWithPreconnect;
+  wrapped.preconnect =
+    typeof fetchWithPreconnect.preconnect === "function"
+      ? fetchWithPreconnect.preconnect.bind(fetchWithPreconnect)
+      : () => {};
+
+  return Object.assign(wrapped, fetchImpl);
+}
+
+export function resolveFetch(fetchImpl?: typeof fetch): typeof fetch | undefined {
+  const resolved = fetchImpl ?? globalThis.fetch;
+  if (!resolved) return undefined;
+  return wrapFetchWithAbortSignal(resolved);
 }
