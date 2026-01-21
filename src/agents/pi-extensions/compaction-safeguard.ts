@@ -194,7 +194,7 @@ async function summarizeChunks(params: {
 
 export default function compactionSafeguardExtension(api: ExtensionAPI): void {
   api.on("session_before_compact", async (event, ctx) => {
-    const { preparation, customInstructions, signal } = event;
+    const { preparation } = event;
     const { readFiles, modifiedFiles } = computeFileLists(preparation.fileOps);
     const fileOpsSummary = formatFileOperations(readFiles, modifiedFiles);
     const toolFailures = collectToolFailures([
@@ -204,89 +204,19 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
     const toolFailureSection = formatToolFailuresSection(toolFailures);
     const fallbackSummary = `${FALLBACK_SUMMARY}${toolFailureSection}${fileOpsSummary}`;
 
-    const model = ctx.model;
-    if (!model) {
-      return {
-        compaction: {
-          summary: fallbackSummary,
-          firstKeptEntryId: preparation.firstKeptEntryId,
-          tokensBefore: preparation.tokensBefore,
-          details: { readFiles, modifiedFiles },
-        },
-      };
-    }
-
-    const apiKey = await ctx.modelRegistry.getApiKey(model);
-    if (!apiKey) {
-      return {
-        compaction: {
-          summary: fallbackSummary,
-          firstKeptEntryId: preparation.firstKeptEntryId,
-          tokensBefore: preparation.tokensBefore,
-          details: { readFiles, modifiedFiles },
-        },
-      };
-    }
-
-    try {
-      const contextWindowTokens = Math.max(
-        1,
-        Math.floor(model.contextWindow ?? DEFAULT_CONTEXT_TOKENS),
-      );
-      const maxChunkTokens = Math.max(1, Math.floor(contextWindowTokens * MAX_CHUNK_RATIO));
-      const reserveTokens = Math.max(1, Math.floor(preparation.settings.reserveTokens));
-
-      const historySummary = await summarizeChunks({
-        messages: preparation.messagesToSummarize,
-        model,
-        apiKey,
-        signal,
-        reserveTokens,
-        maxChunkTokens,
-        customInstructions,
-        previousSummary: preparation.previousSummary,
-      });
-
-      let summary = historySummary;
-      if (preparation.isSplitTurn && preparation.turnPrefixMessages.length > 0) {
-        const prefixSummary = await summarizeChunks({
-          messages: preparation.turnPrefixMessages,
-          model,
-          apiKey,
-          signal,
-          reserveTokens,
-          maxChunkTokens,
-          customInstructions: TURN_PREFIX_INSTRUCTIONS,
-        });
-        summary = `${historySummary}\n\n---\n\n**Turn Context (split turn):**\n\n${prefixSummary}`;
-      }
-
-      summary += toolFailureSection;
-      summary += fileOpsSummary;
-
-      return {
-        compaction: {
-          summary,
-          firstKeptEntryId: preparation.firstKeptEntryId,
-          tokensBefore: preparation.tokensBefore,
-          details: { readFiles, modifiedFiles },
-        },
-      };
-    } catch (error) {
-      console.warn(
-        `Compaction summarization failed; truncating history: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-      return {
-        compaction: {
-          summary: fallbackSummary,
-          firstKeptEntryId: preparation.firstKeptEntryId,
-          tokensBefore: preparation.tokensBefore,
-          details: { readFiles, modifiedFiles },
-        },
-      };
-    }
+    // Skip LLM summarization to prevent context overflow during compaction.
+    // Use trailing truncation via context pruning instead.
+    console.warn(
+      `[compaction-safeguard] Skipping summarization, using trailing truncation fallback.`,
+    );
+    return {
+      compaction: {
+        summary: fallbackSummary,
+        firstKeptEntryId: preparation.firstKeptEntryId,
+        tokensBefore: preparation.tokensBefore,
+        details: { readFiles, modifiedFiles },
+      },
+    };
   });
 }
 
