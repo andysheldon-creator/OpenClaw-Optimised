@@ -14,6 +14,7 @@ import {
 import type { ClawdbotConfig, ReplyToMode } from "../../config/config.js";
 import { loadConfig } from "../../config/config.js";
 import { danger, logVerbose, shouldLogVerbose, warn } from "../../globals.js";
+import { formatErrorMessage } from "../../infra/errors.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import { resolveDiscordAccount } from "../accounts.js";
@@ -196,7 +197,9 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
           summarizeMapping("discord channels", mapping, unresolved, runtime);
         }
       } catch (err) {
-        runtime.log?.(`discord channel resolve failed; using config entries. ${String(err)}`);
+        runtime.log?.(
+          `discord channel resolve failed; using config entries. ${formatErrorMessage(err)}`,
+        );
       }
     }
 
@@ -222,7 +225,9 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
         allowFrom = mergeAllowlist({ existing: allowFrom, additions });
         summarizeMapping("discord users", mapping, unresolved, runtime);
       } catch (err) {
-        runtime.log?.(`discord user resolve failed; using config entries. ${String(err)}`);
+        runtime.log?.(
+          `discord user resolve failed; using config entries. ${formatErrorMessage(err)}`,
+        );
       }
     }
 
@@ -303,7 +308,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
           summarizeMapping("discord channel users", mapping, unresolved, runtime);
         } catch (err) {
           runtime.log?.(
-            `discord channel user resolve failed; using config entries. ${String(err)}`,
+            `discord channel user resolve failed; using config entries. ${formatErrorMessage(err)}`,
           );
         }
       }
@@ -464,6 +469,9 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
   const abortSignal = opts.abortSignal;
   const onAbort = () => {
     if (!gateway) return;
+    // Carbon emits an error when maxAttempts is 0; keep a one-shot listener to avoid
+    // an unhandled error after we tear down listeners during abort.
+    gatewayEmitter?.once("error", () => {});
     gateway.options.reconnect = { maxAttempts: 0 };
     gateway.disconnect();
   };

@@ -2,9 +2,9 @@ import {
   Editor,
   type EditorOptions,
   type EditorTheme,
+  type TUI,
   Key,
   matchesKey,
-  type TUI,
 } from "@mariozechner/pi-tui";
 
 export class CustomEditor extends Editor {

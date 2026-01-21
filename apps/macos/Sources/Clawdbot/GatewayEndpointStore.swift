@@ -469,6 +469,35 @@ actor GatewayEndpointStore {
         }
     }
 
+    func maybeFallbackToTailnet(from currentURL: URL) async -> GatewayConnection.Config? {
+        let mode = await self.deps.mode()
+        guard mode == .local else { return nil }
+
+        let root = ClawdbotConfigFile.loadDict()
+        let bind = GatewayEndpointStore.resolveGatewayBindMode(
+            root: root,
+            env: ProcessInfo.processInfo.environment)
+        guard bind == "auto" else { return nil }
+
+        let currentHost = currentURL.host?.lowercased() ?? ""
+        guard currentHost == "127.0.0.1" || currentHost == "localhost" else { return nil }
+
+        let tailscaleIP = await MainActor.run { TailscaleService.shared.tailscaleIP }
+        guard let tailscaleIP, !tailscaleIP.isEmpty else { return nil }
+
+        let scheme = GatewayEndpointStore.resolveGatewayScheme(
+            root: root,
+            env: ProcessInfo.processInfo.environment)
+        let port = self.deps.localPort()
+        let token = self.deps.token()
+        let password = self.deps.password()
+        let url = URL(string: "\(scheme)://\(tailscaleIP):\(port)")!
+
+        self.logger.info("auto bind fallback to tailnet host=\(tailscaleIP, privacy: .public)")
+        self.setState(.ready(mode: .local, url: url, token: token, password: password))
+        return (url, token, password)
+    }
+
     private static func resolveGatewayBindMode(
         root: [String: Any],
         env: [String: String]) -> String?
@@ -524,12 +553,17 @@ actor GatewayEndpointStore {
         tailscaleIP: String?) -> String
     {
         switch bindMode {
-        case "tailnet", "auto":
-            tailscaleIP ?? "127.0.0.1"
+        case "tailnet":
+            return tailscaleIP ?? "127.0.0.1"
+        case "auto":
+            if let tailscaleIP, !tailscaleIP.isEmpty {
+                return tailscaleIP
+            }
+            return "127.0.0.1"
         case "custom":
-            customBindHost ?? "127.0.0.1"
+            return customBindHost ?? "127.0.0.1"
         default:
-            "127.0.0.1"
+            return "127.0.0.1"
         }
     }
 }

@@ -310,8 +310,37 @@ export const validateWebLoginStartParams =
 export const validateWebLoginWaitParams = ajv.compile<WebLoginWaitParams>(WebLoginWaitParamsSchema);
 
 export function formatValidationErrors(errors: ErrorObject[] | null | undefined) {
-  if (!errors) return "unknown validation error";
-  return ajv.errorsText(errors, { separator: "; " });
+  if (!errors?.length) return "unknown validation error";
+
+  const parts: string[] = [];
+
+  for (const err of errors) {
+    const keyword = typeof err?.keyword === "string" ? err.keyword : "";
+    const instancePath = typeof err?.instancePath === "string" ? err.instancePath : "";
+
+    if (keyword === "additionalProperties") {
+      const params = err?.params as { additionalProperty?: unknown } | undefined;
+      const additionalProperty = params?.additionalProperty;
+      if (typeof additionalProperty === "string" && additionalProperty.trim()) {
+        const where = instancePath ? `at ${instancePath}` : "at root";
+        parts.push(`${where}: unexpected property '${additionalProperty}'`);
+        continue;
+      }
+    }
+
+    const message =
+      typeof err?.message === "string" && err.message.trim() ? err.message : "validation error";
+    const where = instancePath ? `at ${instancePath}: ` : "";
+    parts.push(`${where}${message}`);
+  }
+
+  // De-dupe while preserving order.
+  const unique = Array.from(new Set(parts.filter((part) => part.trim())));
+  if (!unique.length) {
+    const fallback = ajv.errorsText(errors, { separator: "; " });
+    return fallback || "unknown validation error";
+  }
+  return unique.join("; ");
 }
 
 export {

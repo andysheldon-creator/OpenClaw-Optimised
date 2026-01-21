@@ -25,7 +25,7 @@ import type { ResolvedGatewayAuth } from "../../auth.js";
 import { authorizeGatewayConnect } from "../../auth.js";
 import { loadConfig } from "../../../config/config.js";
 import { buildDeviceAuthPayload } from "../../device-auth.js";
-import { isLoopbackAddress } from "../../net.js";
+import { isLocalGatewayAddress } from "../../net.js";
 import { resolveNodeCommandAllowlist } from "../../node-command-policy.js";
 import {
   type ConnectParams,
@@ -57,6 +57,44 @@ import type { GatewayWsClient } from "../ws-types.js";
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
 const DEVICE_SIGNATURE_SKEW_MS = 10 * 60 * 1000;
+
+type AuthProvidedKind = "token" | "password" | "none";
+
+function formatGatewayAuthFailureMessage(params: {
+  authMode: ResolvedGatewayAuth["mode"];
+  authProvided: AuthProvidedKind;
+  reason?: string;
+}): string {
+  const { authMode, authProvided, reason } = params;
+  switch (reason) {
+    case "token_missing":
+      return "unauthorized: gateway token missing (set gateway.remote.token to match gateway.auth.token)";
+    case "token_mismatch":
+      return "unauthorized: gateway token mismatch (set gateway.remote.token to match gateway.auth.token)";
+    case "token_missing_config":
+      return "unauthorized: gateway token not configured on gateway (set gateway.auth.token)";
+    case "password_missing":
+      return "unauthorized: gateway password missing (set gateway.remote.password to match gateway.auth.password)";
+    case "password_mismatch":
+      return "unauthorized: gateway password mismatch (set gateway.remote.password to match gateway.auth.password)";
+    case "password_missing_config":
+      return "unauthorized: gateway password not configured on gateway (set gateway.auth.password)";
+    case "tailscale_user_missing":
+      return "unauthorized: tailscale identity missing (use Tailscale Serve auth or gateway token/password)";
+    case "tailscale_proxy_missing":
+      return "unauthorized: tailscale proxy headers missing (use Tailscale Serve or gateway token/password)";
+    default:
+      break;
+  }
+
+  if (authMode === "token" && authProvided === "none") {
+    return "unauthorized: gateway token missing (set gateway.remote.token to match gateway.auth.token)";
+  }
+  if (authMode === "password" && authProvided === "none") {
+    return "unauthorized: gateway password missing (set gateway.remote.password to match gateway.auth.password)";
+  }
+  return "unauthorized";
+}
 
 export function attachGatewayWsMessageHandler(params: {
   socket: WebSocket;
@@ -254,7 +292,9 @@ export function attachGatewayWsMessageHandler(params: {
 
         const device = connectParams.device;
         let devicePublicKey: string | null = null;
-        if (!device) {
+        // Allow token-authenticated connections (e.g., control-ui) to skip device identity
+        const hasTokenAuth = !!connectParams.auth?.token;
+        if (!device && !hasTokenAuth) {
           setHandshakeState("failed");
           setCloseCause("device-required", {
             client: connectParams.client.id,
@@ -309,7 +349,7 @@ export function attachGatewayWsMessageHandler(params: {
             close(1008, "device signature expired");
             return;
           }
-          const nonceRequired = !isLoopbackAddress(remoteAddr);
+          const nonceRequired = !isLocalGatewayAddress(remoteAddr);
           const providedNonce = typeof device.nonce === "string" ? device.nonce.trim() : "";
           if (nonceRequired && !providedNonce) {
             setHandshakeState("failed");
@@ -427,7 +467,7 @@ export function attachGatewayWsMessageHandler(params: {
         });
         let authOk = authResult.ok;
         let authMethod = authResult.method ?? "none";
-        if (!authOk && connectParams.auth?.token) {
+        if (!authOk && connectParams.auth?.token && device) {
           const tokenCheck = await verifyDeviceToken({
             deviceId: device.id,
             token: connectParams.auth.token,
@@ -442,13 +482,18 @@ export function attachGatewayWsMessageHandler(params: {
         if (!authOk) {
           setHandshakeState("failed");
           logWsControl.warn(
-            `unauthorized conn=${connId} remote=${remoteAddr ?? "?"} client=${clientLabel} ${connectParams.client.mode} v${connectParams.client.version}`,
+            `unauthorized conn=${connId} remote=${remoteAddr ?? "?"} client=${clientLabel} ${connectParams.client.mode} v${connectParams.client.version} reason=${authResult.reason ?? "unknown"}`,
           );
-          const authProvided = connectParams.auth?.token
+          const authProvided: AuthProvidedKind = connectParams.auth?.token
             ? "token"
             : connectParams.auth?.password
               ? "password"
               : "none";
+          const authMessage = formatGatewayAuthFailureMessage({
+            authMode: resolvedAuth.mode,
+            authProvided,
+            reason: authResult.reason,
+          });
           setCloseCause("unauthorized", {
             authMode: resolvedAuth.mode,
             authProvided,
@@ -463,9 +508,9 @@ export function attachGatewayWsMessageHandler(params: {
             type: "res",
             id: frame.id,
             ok: false,
-            error: errorShape(ErrorCodes.INVALID_REQUEST, "unauthorized"),
+            error: errorShape(ErrorCodes.INVALID_REQUEST, authMessage),
           });
-          close(1008, "unauthorized");
+          close(1008, truncateCloseReason(authMessage));
           return;
         }
 
@@ -481,7 +526,7 @@ export function attachGatewayWsMessageHandler(params: {
               role,
               scopes,
               remoteIp: remoteAddr,
-              silent: isLoopbackAddress(remoteAddr),
+              silent: isLocalGatewayAddress(remoteAddr),
             });
             const context = buildRequestContext();
             if (pairing.request.silent === true) {
@@ -613,7 +658,7 @@ export function attachGatewayWsMessageHandler(params: {
         if (presenceKey) {
           upsertPresence(presenceKey, {
             host: connectParams.client.displayName ?? connectParams.client.id ?? os.hostname(),
-            ip: isLoopbackAddress(remoteAddr) ? undefined : remoteAddr,
+            ip: isLocalGatewayAddress(remoteAddr) ? undefined : remoteAddr,
             version: connectParams.client.version,
             platform: connectParams.client.platform,
             deviceFamily: connectParams.client.deviceFamily,
