@@ -1,3 +1,5 @@
+import type { WebClient as SlackWebClient } from "@slack/web-api";
+
 import { resolveAckReaction } from "../../../agents/identity.js";
 import { hasControlCommand } from "../../../auto-reply/command-detection.js";
 import { shouldHandleTextCommands } from "../../../auto-reply/commands-registry.js";
@@ -41,13 +43,41 @@ import { resolveSlackMedia, resolveSlackThreadStarter } from "../media.js";
 
 import type { PreparedSlackMessage } from "./types.js";
 
+async function resolveSlackThreadTsFromHistory(params: {
+  client: SlackWebClient;
+  channelId: string;
+  messageTs: string;
+}): Promise<string | undefined> {
+  try {
+    const response = (await params.client.conversations.history({
+      channel: params.channelId,
+      latest: params.messageTs,
+      oldest: params.messageTs,
+      inclusive: true,
+      limit: 1,
+    })) as { messages?: Array<{ ts?: string; thread_ts?: string }> };
+    const message =
+      response.messages?.find((entry) => entry.ts === params.messageTs) ?? response.messages?.[0];
+    const threadTs = message?.thread_ts?.trim();
+    return threadTs || undefined;
+  } catch (err) {
+    if (shouldLogVerbose()) {
+      logVerbose(
+        `slack inbound: failed to resolve thread_ts via conversations.history for channel=${params.channelId} ts=${params.messageTs}: ${String(err)}`,
+      );
+    }
+    return undefined;
+  }
+}
+
 export async function prepareSlackMessage(params: {
   ctx: SlackMonitorContext;
   account: ResolvedSlackAccount;
   message: SlackMessageEvent;
   opts: { source: "message" | "app_mention"; wasMentioned?: boolean };
 }): Promise<PreparedSlackMessage | null> {
-  const { ctx, account, message, opts } = params;
+  const { ctx, account, opts } = params;
+  let message = params.message;
   const cfg = ctx.cfg;
 
   let channelInfo: {
@@ -187,6 +217,33 @@ export async function prepareSlackMessage(params: {
       id: isDirectMessage ? (message.user ?? "unknown") : message.channel,
     },
   });
+
+  // Slack occasionally delivers events that include parent_user_id (so they're thread replies)
+  // but omit thread_ts. If we don't recover the thread_ts, replies can end up in the channel root.
+  if (!message.thread_ts && message.parent_user_id && message.ts) {
+    if (shouldLogVerbose()) {
+      logVerbose(
+        `slack inbound: missing thread_ts for thread reply channel=${message.channel} ts=${message.ts} source=${opts.source}`,
+      );
+    }
+    const resolved = await resolveSlackThreadTsFromHistory({
+      client: ctx.app.client,
+      channelId: message.channel,
+      messageTs: message.ts,
+    });
+    if (resolved) {
+      message = { ...message, thread_ts: resolved };
+      if (shouldLogVerbose()) {
+        logVerbose(
+          `slack inbound: resolved missing thread_ts channel=${message.channel} ts=${message.ts} -> thread_ts=${resolved}`,
+        );
+      }
+    } else if (shouldLogVerbose()) {
+      logVerbose(
+        `slack inbound: could not resolve missing thread_ts channel=${message.channel} ts=${message.ts}`,
+      );
+    }
+  }
 
   const baseSessionKey = route.sessionKey;
   const threadTs = message.thread_ts;

@@ -50,6 +50,12 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
   const incomingThreadTs = message.thread_ts;
   let didSetStatus = false;
 
+  if (shouldLogVerbose()) {
+    logVerbose(
+      `slack threading: inbound channel=${message.channel} ts=${messageTs ?? "unknown"} thread_ts=${incomingThreadTs ?? "none"} replyToMode=${ctx.replyToMode}`,
+    );
+  }
+
   // Shared mutable ref for "replyToMode=first". Both tool + auto-reply flows
   // mark this to ensure only the first reply is threaded.
   const hasRepliedRef = { value: false };
@@ -78,8 +84,13 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
     responsePrefix: resolveEffectiveMessagesConfig(cfg, route.agentId).responsePrefix,
     responsePrefixContextProvider: () => prefixContext,
     humanDelay: resolveHumanDelayConfig(cfg, route.agentId),
-    deliver: async (payload) => {
+    deliver: async (payload, info) => {
       const replyThreadTs = replyPlan.nextThreadTs();
+      if (shouldLogVerbose()) {
+        logVerbose(
+          `slack threading: deliver kind=${info.kind} target=${prepared.replyTarget} thread_ts=${replyThreadTs ?? "none"} payload.replyToId=${payload.replyToId ?? "none"}`,
+        );
+      }
       await deliverReplies({
         replies: [payload],
         target: prepared.replyTarget,

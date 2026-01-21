@@ -29,9 +29,15 @@ export function createSlackMessageHandler(params: {
     buildKey: (entry) => {
       const senderId = entry.message.user ?? entry.message.bot_id;
       if (!senderId) return null;
+      const messageTs = entry.message.ts ?? entry.message.event_ts;
+      // If we get a Slack event that looks like a thread reply (has parent_user_id)
+      // but is missing thread_ts, avoid debouncing it into the channel root bucket.
+      // We'll attempt to resolve the missing thread_ts later in prepareSlackMessage.
       const threadKey = entry.message.thread_ts
         ? `${entry.message.channel}:${entry.message.thread_ts}`
-        : entry.message.channel;
+        : entry.message.parent_user_id && messageTs
+          ? `${entry.message.channel}:maybe-thread:${messageTs}`
+          : entry.message.channel;
       return `slack:${ctx.accountId}:${threadKey}:${senderId}`;
     },
     shouldDebounce: (entry) => {
