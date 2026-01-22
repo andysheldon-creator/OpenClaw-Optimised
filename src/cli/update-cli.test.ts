@@ -236,7 +236,7 @@ describe("update-cli", () => {
         durationMs: 100,
       });
 
-      await updateCommand({});
+      await updateCommand({ yes: true });
 
       const call = vi.mocked(runGatewayUpdate).mock.calls[0]?.[0];
       expect(call?.channel).toBe("stable");
@@ -273,7 +273,7 @@ describe("update-cli", () => {
     try {
       await fs.writeFile(
         path.join(tempDir, "package.json"),
-        JSON.stringify({ name: "clawdbot", version: "2026.1.18-1" }),
+        JSON.stringify({ name: "clawdbot", version: "1.0.0" }),
         "utf-8",
       );
 
@@ -302,7 +302,7 @@ describe("update-cli", () => {
       });
       vi.mocked(resolveNpmChannelTag).mockResolvedValue({
         tag: "latest",
-        version: "2026.1.20-1",
+        version: "1.2.3-1",
       });
       vi.mocked(runGatewayUpdate).mockResolvedValue({
         status: "ok",

@@ -85,6 +85,7 @@ function buildMessagingSection(params: {
   messageChannelOptions: string;
   inlineButtonsEnabled: boolean;
   runtimeChannel?: string;
+  messageToolHints?: string[];
 }) {
   if (params.isMinimal) return [];
   return [
@@ -105,6 +106,7 @@ function buildMessagingSection(params: {
             : params.runtimeChannel
               ? `- Inline buttons not enabled for ${params.runtimeChannel}. If you need them, ask to set ${params.runtimeChannel}.capabilities.inlineButtons ("dm"|"group"|"all"|"allowlist").`
               : "",
+          ...(params.messageToolHints ?? []),
         ]
           .filter(Boolean)
           .join("\n")
@@ -158,7 +160,9 @@ export function buildAgentSystemPrompt(params: {
     defaultModel?: string;
     channel?: string;
     capabilities?: string[];
+    repoRoot?: string;
   };
+  messageToolHints?: string[];
   sandboxInfo?: {
     enabled: boolean;
     workspaceDir?: string;
@@ -197,7 +201,7 @@ export function buildAgentSystemPrompt(params: {
     browser: "Control web browser",
     canvas: "Present/eval/snapshot the Canvas",
     nodes: "List/describe/notify/camera/screen on paired nodes",
-    cron: "Manage cron jobs and wake events (use for reminders; include recent context in reminder text if appropriate)",
+    cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
     message: "Send messages and channel actions",
     gateway: "Restart, apply config, or run updates on the running Clawdbot process",
     agents_list: "List agent ids allowed for sessions_spawn",
@@ -348,7 +352,7 @@ export function buildAgentSystemPrompt(params: {
           "- browser: control clawd's dedicated browser",
           "- canvas: present/eval/snapshot the Canvas",
           "- nodes: list/describe/notify/camera/screen on paired nodes",
-          "- cron: manage cron jobs and wake events (use for reminders; include recent context in reminder text if appropriate)",
+          "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
           "- sessions_list: list sessions",
           "- sessions_history: fetch session history",
           "- sessions_send: send to another session",
@@ -468,6 +472,7 @@ export function buildAgentSystemPrompt(params: {
       messageChannelOptions,
       inlineButtonsEnabled,
       runtimeChannel,
+      messageToolHints: params.messageToolHints,
     }),
   ];
 
@@ -566,6 +571,7 @@ export function buildRuntimeLine(
     node?: string;
     model?: string;
     defaultModel?: string;
+    repoRoot?: string;
   },
   runtimeChannel?: string,
   runtimeCapabilities: string[] = [],
@@ -574,6 +580,7 @@ export function buildRuntimeLine(
   return `Runtime: ${[
     runtimeInfo?.agentId ? `agent=${runtimeInfo.agentId}` : "",
     runtimeInfo?.host ? `host=${runtimeInfo.host}` : "",
+    runtimeInfo?.repoRoot ? `repo=${runtimeInfo.repoRoot}` : "",
     runtimeInfo?.os
       ? `os=${runtimeInfo.os}${runtimeInfo?.arch ? ` (${runtimeInfo.arch})` : ""}`
       : runtimeInfo?.arch

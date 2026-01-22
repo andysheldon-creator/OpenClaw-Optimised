@@ -191,6 +191,12 @@ export const ClawdbotSchema = z
     bindings: BindingsSchema,
     broadcast: BroadcastSchema,
     audio: AudioSchema,
+    media: z
+      .object({
+        preserveFilenames: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     messages: MessagesSchema,
     commands: CommandsSchema,
     session: SessionSchema,
@@ -270,12 +276,19 @@ export const ClawdbotSchema = z
         port: z.number().int().positive().optional(),
         mode: z.union([z.literal("local"), z.literal("remote")]).optional(),
         bind: z
-          .union([z.literal("auto"), z.literal("lan"), z.literal("loopback"), z.literal("custom")])
+          .union([
+            z.literal("auto"),
+            z.literal("lan"),
+            z.literal("loopback"),
+            z.literal("custom"),
+            z.literal("tailnet"),
+          ])
           .optional(),
         controlUi: z
           .object({
             enabled: z.boolean().optional(),
             basePath: z.string().optional(),
+            allowInsecureAuth: z.boolean().optional(),
           })
           .strict()
           .optional(),
