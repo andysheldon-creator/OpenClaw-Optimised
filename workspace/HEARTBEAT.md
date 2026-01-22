@@ -45,6 +45,11 @@ If it's Sunday after 7 PM and weekly review hasn't been sent:
 - Thu 2026-01-22: NO WORKOUT - Driving Leo to parents before office. Rest day, focus on no late-night snacking.
 - Sat-Sun 2026-01-24-25: Miami trip - skip to-do reminders unless asked
 
+### Daily Midnight - Workspace Backup
+Once per day (around midnight ET), sync workspace to GitHub:
+1. Copy memory files to /tmp/clawdbot-check/workspace/
+2. Commit and push changes to https://github.com/IWONTHEMONEY-01/clawdbot
+
 ---
 
 Guidance (to avoid nagging):
