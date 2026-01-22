@@ -1,6 +1,8 @@
 #!/bin/bash
 # Daily weather greeting with Steve image
 
+export GEMINI_API_KEY="AIzaSyAHB0Uo-OkqcxV_c_Cp4iJaZ3e02-sc_7c"
+
 STEVE_REF="/Users/steve/clawd/assets/steve-full.jpg"
 OUTPUT="/tmp/steve-weather-$(date +%Y%m%d).png"
 
