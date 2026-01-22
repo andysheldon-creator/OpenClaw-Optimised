@@ -12,6 +12,7 @@ import { registerMemoryCli, runMemoryStatus } from "../memory-cli.js";
 import { registerAgentCommands } from "./register.agent.js";
 import { registerConfigureCommand } from "./register.configure.js";
 import { registerMaintenanceCommands } from "./register.maintenance.js";
+import { registerMcpCommand } from "./register.mcp.js";
 import { registerMessageCommands } from "./register.message.js";
 import { registerOnboardCommand } from "./register.onboard.js";
 import { registerSetupCommand } from "./register.setup.js";
@@ -127,6 +128,10 @@ export const commandRegistry: CommandRegistration[] = [
   {
     id: "message",
     register: ({ program, ctx }) => registerMessageCommands(program, ctx),
+  },
+  {
+    id: "mcp",
+    register: ({ program }) => registerMcpCommand(program),
   },
   {
     id: "memory",

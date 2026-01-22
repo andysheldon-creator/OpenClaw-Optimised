@@ -32,6 +32,7 @@
     "dist/infra/**",
     "dist/macos/**",
     "dist/media/**",
+    "dist/mcp-server/**",
     "dist/media-understanding/**",
     "dist/process/**",
     "dist/plugins/**",
@@ -149,6 +150,7 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "0.13.1",
     "@aws-sdk/client-bedrock": "^3.975.0",
+    "@modelcontextprotocol/sdk": "1.25.3",
     "@buape/carbon": "0.14.0",
     "@clack/prompts": "^0.11.0",
     "@grammyjs/runner": "^2.0.3",
