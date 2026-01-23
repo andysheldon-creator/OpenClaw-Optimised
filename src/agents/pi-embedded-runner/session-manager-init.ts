@@ -43,8 +43,19 @@ export async function prepareSessionManagerForRun(params: {
 
   if (params.hadSessionFile && header && !hasAssistant) {
     // Reset file so the first assistant flush includes header+user+assistant in order.
-    await fs.writeFile(params.sessionFile, "", "utf-8");
+    // Write header atomically to prevent data loss if crash occurs before first flush.
+    header.id = params.sessionId;
+    header.cwd = params.cwd;
+    const headerEntry = {
+      type: "session",
+      version: 3,
+      id: params.sessionId,
+      timestamp: new Date().toISOString(),
+      cwd: params.cwd,
+    };
+    await fs.writeFile(params.sessionFile, JSON.stringify(headerEntry) + "\n", "utf-8");
     sm.fileEntries = [header];
+    sm.sessionId = params.sessionId;
     sm.byId?.clear?.();
     sm.labelsById?.clear?.();
     sm.leafId = null;
