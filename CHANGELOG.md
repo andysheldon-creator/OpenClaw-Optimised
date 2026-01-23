@@ -4,8 +4,12 @@ Docs: https://docs.clawd.bot
 
 ## 2026.1.23
 
+### Changes
+- CLI: restart the gateway by default after `clawdbot update`; add `--no-restart` to skip it.
+
 ### Fixes
 - Media: preserve PNG alpha when possible; fall back to JPEG when still over size cap. (#1491) Thanks @robbyczgw-cla.
+- Agents: treat plugin-only tool allowlists as opt-ins; keep core tools enabled. (#1467)
 
 ## 2026.1.22
 
@@ -40,6 +44,7 @@ Docs: https://docs.clawd.bot
 - Docs: fix gog auth services example to include docs scope. (#1454) Thanks @zerone0x.
 - Slack: reduce WebClient retries to avoid duplicate sends. (#1481)
 - Slack: read thread replies for message reads when threadId is provided (replies-only). (#1450) Thanks @rodrigouroz.
+- Discord: honor accountId across message actions and cron deliveries. (#1492) Thanks @svkozak.
 - macOS: prefer linked channels in gateway summary to avoid false “not linked” status.
 - macOS/tests: fix gateway summary lookup after guard unwrap; prevent browser opens during tests. (ECID-1483)
 
