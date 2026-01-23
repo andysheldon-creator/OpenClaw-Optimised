@@ -21,6 +21,19 @@ export function isEmptyAssistantMessageContent(
   });
 }
 
+/**
+ * Sanitizes session messages before sending to LLM APIs.
+ *
+ * NOTE: Despite the name, this function handles more than just images.
+ * It performs general session message sanitization including:
+ * - Image resizing/format normalization
+ * - Tool call ID sanitization for strict providers
+ * - Empty text block filtering
+ * - Thinking signature handling
+ * - Tool call arguments normalization (ensuring input/arguments field exists)
+ *
+ * The name is historical - consider renaming to sanitizeSessionMessages.
+ */
 export async function sanitizeSessionMessagesImages(
   messages: AgentMessage[],
   label: string,
