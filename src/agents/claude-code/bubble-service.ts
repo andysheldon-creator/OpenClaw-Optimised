@@ -35,7 +35,7 @@ const log = createSubsystemLogger("claude-code/bubble-service");
 // Persistent bubble registry for recovery on restart
 const BUBBLE_REGISTRY_PATH = path.join(os.homedir(), ".clawdbot", "bubble-registry.json");
 
-interface BubbleRegistryEntry {
+export interface BubbleRegistryEntry {
   sessionId: string;
   resumeToken: string;
   chatId: string;
@@ -364,7 +364,7 @@ const activeBubbles = new Map<string, ActiveBubble>();
 /**
  * Load bubble registry from disk.
  */
-function loadBubbleRegistry(): BubbleRegistryEntry[] {
+export function loadBubbleRegistry(): BubbleRegistryEntry[] {
   try {
     if (!fs.existsSync(BUBBLE_REGISTRY_PATH)) {
       return [];
