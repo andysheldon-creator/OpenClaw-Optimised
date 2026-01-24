@@ -1303,6 +1303,88 @@ describe("BlueBubbles webhook monitor", () => {
     });
   });
 
+  describe("tapback text parsing", () => {
+    it("does not rewrite tapback-like text without metadata", async () => {
+      const account = createMockAccount({ dmPolicy: "open" });
+      const config: ClawdbotConfig = {};
+      const core = createMockRuntime();
+      setBlueBubblesRuntime(core);
+
+      unregister = registerBlueBubblesWebhookTarget({
+        account,
+        config,
+        runtime: { log: vi.fn(), error: vi.fn() },
+        core,
+        path: "/bluebubbles-webhook",
+      });
+
+      const payload = {
+        type: "new-message",
+        data: {
+          text: "Loved this idea",
+          handle: { address: "+15551234567" },
+          isGroup: false,
+          isFromMe: false,
+          guid: "msg-1",
+          chatGuid: "iMessage;-;+15551234567",
+          date: Date.now(),
+        },
+      };
+
+      const req = createMockRequest("POST", "/bluebubbles-webhook", payload);
+      const res = createMockResponse();
+
+      await handleBlueBubblesWebhookRequest(req, res);
+      await flushAsync();
+
+      expect(mockDispatchReplyWithBufferedBlockDispatcher).toHaveBeenCalled();
+      const callArgs = mockDispatchReplyWithBufferedBlockDispatcher.mock.calls[0][0];
+      expect(callArgs.ctx.RawBody).toBe("Loved this idea");
+      expect(callArgs.ctx.Body).toContain("Loved this idea");
+      expect(callArgs.ctx.Body).not.toContain("reacted with");
+    });
+
+    it("parses tapback text with custom emoji when metadata is present", async () => {
+      const account = createMockAccount({ dmPolicy: "open" });
+      const config: ClawdbotConfig = {};
+      const core = createMockRuntime();
+      setBlueBubblesRuntime(core);
+
+      unregister = registerBlueBubblesWebhookTarget({
+        account,
+        config,
+        runtime: { log: vi.fn(), error: vi.fn() },
+        core,
+        path: "/bluebubbles-webhook",
+      });
+
+      const payload = {
+        type: "new-message",
+        data: {
+          text: 'Reacted 😅 to "nice one"',
+          handle: { address: "+15551234567" },
+          isGroup: false,
+          isFromMe: false,
+          guid: "msg-2",
+          chatGuid: "iMessage;-;+15551234567",
+          date: Date.now(),
+        },
+      };
+
+      const req = createMockRequest("POST", "/bluebubbles-webhook", payload);
+      const res = createMockResponse();
+
+      await handleBlueBubblesWebhookRequest(req, res);
+      await flushAsync();
+
+      expect(mockDispatchReplyWithBufferedBlockDispatcher).toHaveBeenCalled();
+      const callArgs = mockDispatchReplyWithBufferedBlockDispatcher.mock.calls[0][0];
+      expect(callArgs.ctx.RawBody).toBe("reacted with 😅");
+      expect(callArgs.ctx.Body).toContain("reacted with 😅");
+      expect(callArgs.ctx.Body).not.toContain("[[reply_to:");
+    });
+  });
+
   describe("ack reactions", () => {
     it("sends ack reaction when configured", async () => {
       const { sendBlueBubblesReaction } = await import("./reactions.js");

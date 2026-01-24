@@ -632,6 +632,10 @@ type NormalizedWebhookMessage = {
   fromMe?: boolean;
   attachments?: BlueBubblesAttachment[];
   balloonBundleId?: string;
+  associatedMessageGuid?: string;
+  associatedMessageType?: number;
+  associatedMessageEmoji?: string;
+  isTapback?: boolean;
   participants?: BlueBubblesParticipant[];
   replyToId?: string;
   replyToBody?: string;
@@ -685,24 +689,92 @@ const TAPBACK_TEXT_MAP = new Map<string, { emoji: string; action: "added" | "rem
   ["removed a question from", { emoji: "❓", action: "removed" }],
 ]);
 
+const TAPBACK_EMOJI_REGEX =
+  /(?:\p{Regional_Indicator}{2})|(?:[0-9#*]\uFE0F?\u20E3)|(?:\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?(?:\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?(?:\p{Emoji_Modifier})?)*)/u;
+
+function extractFirstEmoji(text: string): string | null {
+  const match = text.match(TAPBACK_EMOJI_REGEX);
+  return match ? match[0] : null;
+}
+
+function extractQuotedTapbackText(text: string): string | null {
+  const match = text.match(/[“"]([^”"]+)[”"]/s);
+  return match ? match[1] : null;
+}
+
+function isTapbackAssociatedType(type: number | undefined): boolean {
+  return typeof type === "number" && Number.isFinite(type) && type >= 2000 && type < 4000;
+}
+
+function resolveTapbackActionHint(type: number | undefined): "added" | "removed" | undefined {
+  if (typeof type !== "number" || !Number.isFinite(type)) return undefined;
+  if (type >= 3000 && type < 4000) return "removed";
+  if (type >= 2000 && type < 3000) return "added";
+  return undefined;
+}
+
+function resolveTapbackContext(message: NormalizedWebhookMessage): {
+  emojiHint?: string;
+  actionHint?: "added" | "removed";
+  replyToId?: string;
+} | null {
+  const associatedType = message.associatedMessageType;
+  const hasTapbackType = isTapbackAssociatedType(associatedType);
+  const hasTapbackMarker = Boolean(message.associatedMessageEmoji) || Boolean(message.isTapback);
+  if (!hasTapbackType && !hasTapbackMarker) return null;
+  const replyToId = message.associatedMessageGuid?.trim() || message.replyToId?.trim() || undefined;
+  const actionHint = resolveTapbackActionHint(associatedType);
+  const emojiHint =
+    message.associatedMessageEmoji?.trim() || REACTION_TYPE_MAP.get(associatedType ?? -1)?.emoji;
+  return { emojiHint, actionHint, replyToId };
+}
+
 // Detects tapback text patterns like 'Loved "message"' and converts to structured format
-function parseTapbackText(text: string): {
+function parseTapbackText(params: {
+  text: string;
+  emojiHint?: string;
+  actionHint?: "added" | "removed";
+  requireQuoted?: boolean;
+}): {
   emoji: string;
   action: "added" | "removed";
   quotedText: string;
 } | null {
-  const trimmed = text.trim();
+  const trimmed = params.text.trim();
   const lower = trimmed.toLowerCase();
+  if (!trimmed) return null;
 
   for (const [pattern, { emoji, action }] of TAPBACK_TEXT_MAP) {
     if (lower.startsWith(pattern)) {
       // Extract quoted text if present (e.g., 'Loved "hello"' -> "hello")
       const afterPattern = trimmed.slice(pattern.length).trim();
-      // Handle both "quoted" and "quoted" formats
-      const quoteMatch = afterPattern.match(/^[""](.*)[""]$/s);
-      const quotedText = quoteMatch ? quoteMatch[1] : afterPattern;
+      if (params.requireQuoted) {
+        const strictMatch = afterPattern.match(/^[“"](.+)[”"]$/s);
+        if (!strictMatch) return null;
+        return { emoji, action, quotedText: strictMatch[1] };
+      }
+      const quotedText =
+        extractQuotedTapbackText(afterPattern) ?? extractQuotedTapbackText(trimmed) ?? afterPattern;
       return { emoji, action, quotedText };
     }
+  }
+
+  if (lower.startsWith("reacted")) {
+    const emoji = extractFirstEmoji(trimmed) ?? params.emojiHint;
+    if (!emoji) return null;
+    const quotedText = extractQuotedTapbackText(trimmed);
+    if (params.requireQuoted && !quotedText) return null;
+    const fallback = trimmed.slice("reacted".length).trim();
+    return { emoji, action: params.actionHint ?? "added", quotedText: quotedText ?? fallback };
+  }
+
+  if (lower.startsWith("removed")) {
+    const emoji = extractFirstEmoji(trimmed) ?? params.emojiHint;
+    if (!emoji) return null;
+    const quotedText = extractQuotedTapbackText(trimmed);
+    if (params.requireQuoted && !quotedText) return null;
+    const fallback = trimmed.slice("removed".length).trim();
+    return { emoji, action: params.actionHint ?? "removed", quotedText: quotedText ?? fallback };
   }
   return null;
 }
@@ -854,6 +926,25 @@ function normalizeWebhookMessage(payload: Record<string, unknown>): NormalizedWe
     readString(message, "messageId") ??
     undefined;
   const balloonBundleId = readString(message, "balloonBundleId");
+  const associatedMessageGuid =
+    readString(message, "associatedMessageGuid") ??
+    readString(message, "associated_message_guid") ??
+    readString(message, "associatedMessageId") ??
+    undefined;
+  const associatedMessageType =
+    readNumberLike(message, "associatedMessageType") ??
+    readNumberLike(message, "associated_message_type");
+  const associatedMessageEmoji =
+    readString(message, "associatedMessageEmoji") ??
+    readString(message, "associated_message_emoji") ??
+    readString(message, "reactionEmoji") ??
+    readString(message, "reaction_emoji") ??
+    undefined;
+  const isTapback =
+    readBoolean(message, "isTapback") ??
+    readBoolean(message, "is_tapback") ??
+    readBoolean(message, "tapback") ??
+    undefined;
 
   const timestampRaw =
     readNumber(message, "date") ??
@@ -884,6 +975,10 @@ function normalizeWebhookMessage(payload: Record<string, unknown>): NormalizedWe
     fromMe,
     attachments: extractAttachments(message),
     balloonBundleId,
+    associatedMessageGuid,
+    associatedMessageType,
+    associatedMessageEmoji,
+    isTapback,
     participants: normalizedParticipants,
     replyToId: replyMetadata.replyToId,
     replyToBody: replyMetadata.replyToBody,
@@ -905,8 +1000,13 @@ function normalizeWebhookReaction(payload: Record<string, unknown>): NormalizedW
   if (!associatedGuid || associatedType === undefined) return null;
 
   const mapping = REACTION_TYPE_MAP.get(associatedType);
-  const emoji = mapping?.emoji ?? `reaction:${associatedType}`;
-  const action = mapping?.action ?? "added";
+  const associatedEmoji =
+    readString(message, "associatedMessageEmoji") ??
+    readString(message, "associated_message_emoji") ??
+    readString(message, "reactionEmoji") ??
+    readString(message, "reaction_emoji");
+  const emoji = (associatedEmoji?.trim() || mapping?.emoji) ?? `reaction:${associatedType}`;
+  const action = mapping?.action ?? resolveTapbackActionHint(associatedType) ?? "added";
 
   const handleValue = message.handle ?? message.sender;
   const handle =
@@ -1173,7 +1273,13 @@ async function processMessage(
   const placeholder = buildMessagePlaceholder(message);
   // Check if text is a tapback pattern (e.g., 'Loved "hello"') and transform to emoji format
   // For tapbacks, we'll append [[reply_to:N]] at the end; for regular messages, prepend it
-  const tapbackParsed = parseTapbackText(text);
+  const tapbackContext = resolveTapbackContext(message);
+  const tapbackParsed = parseTapbackText({
+    text,
+    emojiHint: tapbackContext?.emojiHint,
+    actionHint: tapbackContext?.actionHint,
+    requireQuoted: !tapbackContext,
+  });
   const isTapbackMessage = Boolean(tapbackParsed);
   const rawBody = tapbackParsed
     ? tapbackParsed.action === "removed"
@@ -1505,6 +1611,10 @@ async function processMessage(
   let replyToBody = message.replyToBody;
   let replyToSender = message.replyToSender;
   let replyToShortId: string | undefined;
+
+  if (isTapbackMessage && tapbackContext?.replyToId) {
+    replyToId = tapbackContext.replyToId;
+  }
 
   if (replyToId && (!replyToBody || !replyToSender)) {
     const cached = resolveReplyContextFromCache({
