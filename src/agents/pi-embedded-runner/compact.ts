@@ -68,7 +68,7 @@ import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../d
 import { describeUnknownError, mapThinkingLevel, resolveExecToolDefaults } from "./utils.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 
-export async function compactEmbeddedPiSession(params: {
+export type CompactEmbeddedPiSessionParams = {
   sessionId: string;
   sessionKey?: string;
   messageChannel?: string;
@@ -97,13 +97,15 @@ export async function compactEmbeddedPiSession(params: {
   enqueue?: typeof enqueueCommand;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
-}): Promise<EmbeddedPiCompactResult> {
-  const sessionLane = resolveSessionLane(params.sessionKey?.trim() || params.sessionId);
-  const globalLane = resolveGlobalLane(params.lane);
-  const enqueueGlobal =
-    params.enqueue ?? ((task, opts) => enqueueCommandInLane(globalLane, task, opts));
-  return enqueueCommandInLane(sessionLane, () =>
-    enqueueGlobal(async () => {
+};
+
+/**
+ * Core compaction logic without lane queueing.
+ * Use this when already inside a session/global lane to avoid deadlocks.
+ */
+export async function compactEmbeddedPiSessionDirect(
+  params: CompactEmbeddedPiSessionParams,
+): Promise<EmbeddedPiCompactResult> {
       const resolvedWorkspace = resolveUserPath(params.workspaceDir);
       const prevCwd = process.cwd();
 
@@ -445,6 +447,21 @@ export async function compactEmbeddedPiSession(params: {
         restoreSkillEnv?.();
         process.chdir(prevCwd);
       }
-    }),
+}
+
+/**
+ * Compacts a session with lane queueing (session lane + global lane).
+ * Use this from outside a lane context. If already inside a lane, use
+ * `compactEmbeddedPiSessionDirect` to avoid deadlocks.
+ */
+export async function compactEmbeddedPiSession(
+  params: CompactEmbeddedPiSessionParams,
+): Promise<EmbeddedPiCompactResult> {
+  const sessionLane = resolveSessionLane(params.sessionKey?.trim() || params.sessionId);
+  const globalLane = resolveGlobalLane(params.lane);
+  const enqueueGlobal =
+    params.enqueue ?? ((task, opts) => enqueueCommandInLane(globalLane, task, opts));
+  return enqueueCommandInLane(sessionLane, () =>
+    enqueueGlobal(async () => compactEmbeddedPiSessionDirect(params)),
   );
 }
