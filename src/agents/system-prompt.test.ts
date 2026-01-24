@@ -132,9 +132,9 @@ describe("buildAgentSystemPrompt", () => {
       userTimeFormat: "12",
     });
 
-    expect(prompt).toContain("## Current Date & Time");
-    expect(prompt).toContain("Monday, January 5th, 2026 — 3:26 PM (America/Chicago)");
-    expect(prompt).toContain("Time format: 12-hour");
+    expect(prompt).not.toContain("## Current Date & Time");
+    expect(prompt).not.toContain("Monday, January 5th, 2026 — 3:26 PM (America/Chicago)");
+    expect(prompt).not.toContain("Time format: 12-hour");
   });
 
   it("includes user time when provided (24-hour)", () => {
@@ -145,9 +145,9 @@ describe("buildAgentSystemPrompt", () => {
       userTimeFormat: "24",
     });
 
-    expect(prompt).toContain("## Current Date & Time");
-    expect(prompt).toContain("Monday, January 5th, 2026 — 15:26 (America/Chicago)");
-    expect(prompt).toContain("Time format: 24-hour");
+    expect(prompt).not.toContain("## Current Date & Time");
+    expect(prompt).not.toContain("Monday, January 5th, 2026 — 15:26 (America/Chicago)");
+    expect(prompt).not.toContain("Time format: 24-hour");
   });
 
   it("shows UTC fallback when only timezone is provided", () => {
@@ -157,10 +157,8 @@ describe("buildAgentSystemPrompt", () => {
       userTimeFormat: "24",
     });
 
-    expect(prompt).toContain("## Current Date & Time");
-    expect(prompt).toContain(
-      "Time zone: America/Chicago. Current time unknown; assume UTC for date/time references.",
-    );
+    expect(prompt).not.toContain("## Current Date & Time");
+    expect(prompt).not.toContain("Time zone: America/Chicago.");
   });
 
   it("includes model alias guidance when aliases are provided", () => {

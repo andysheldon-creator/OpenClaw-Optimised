@@ -49,24 +49,6 @@ function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: bool
   return ["## User Identity", ownerLine, ""];
 }
 
-function buildTimeSection(params: {
-  userTimezone?: string;
-  userTime?: string;
-  userTimeFormat?: ResolvedTimeFormat;
-}) {
-  if (!params.userTimezone && !params.userTime) return [];
-  return [
-    "## Current Date & Time",
-    params.userTime
-      ? `${params.userTime} (${params.userTimezone ?? "unknown"})`
-      : `Time zone: ${params.userTimezone}. Current time unknown; assume UTC for date/time references.`,
-    params.userTimeFormat
-      ? `Time format: ${params.userTimeFormat === "24" ? "24-hour" : "12-hour"}`
-      : "",
-    "",
-  ];
-}
-
 function buildReplyTagsSection(isMinimal: boolean) {
   if (isMinimal) return [];
   return [
@@ -301,8 +283,6 @@ export function buildAgentSystemPrompt(params: {
       ].join(" ")
     : undefined;
   const reasoningLevel = params.reasoningLevel ?? "off";
-  const userTimezone = params.userTimezone?.trim();
-  const userTime = params.userTime?.trim();
   const skillsPrompt = params.skillsPrompt?.trim();
   const heartbeatPrompt = params.heartbeatPrompt?.trim();
   const heartbeatPromptLine = heartbeatPrompt
@@ -368,6 +348,7 @@ export function buildAgentSystemPrompt(params: {
     "Narrate only when it helps: multi-step work, complex/challenging problems, sensitive actions (e.g., deletions), or when the user explicitly asks.",
     "Keep narration brief and value-dense; avoid repeating obvious steps.",
     "Use plain human language for narration unless in a technical context.",
+    `When you need the current date/time, use ${execToolName} to query the system clock (e.g., "date" or "Get-Date") rather than guessing.`,
     "",
     "## Clawdbot CLI Quick Reference",
     "Clawdbot is controlled via subcommands. Do not invent commands.",
@@ -463,11 +444,6 @@ export function buildAgentSystemPrompt(params: {
       : "",
     params.sandboxInfo?.enabled ? "" : "",
     ...buildUserIdentitySection(ownerLine, isMinimal),
-    ...buildTimeSection({
-      userTimezone,
-      userTime,
-      userTimeFormat: params.userTimeFormat,
-    }),
     "## Workspace Files (injected)",
     "These user-editable files are loaded by Clawdbot and included below in Project Context.",
     "",
