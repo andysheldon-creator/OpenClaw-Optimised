@@ -1,5 +1,5 @@
 import { isMessagingToolDuplicate } from "../../agents/pi-embedded-helpers.js";
-import { normalizeTargetForProvider } from "../../agents/pi-embedded-messaging.js";
+import { normalizeTargetForProvider } from "../../infra/outbound/target-normalization.js";
 import type { MessagingToolSend } from "../../agents/pi-embedded-runner.js";
 import type { ReplyToMode } from "../../config/types.js";
 import type { OriginatingChannelType } from "../templating.js";
@@ -43,8 +43,9 @@ export function applyReplyTagsToPayload(
 export function isRenderablePayload(payload: ReplyPayload): boolean {
   return Boolean(
     payload.text ||
-      payload.mediaUrl ||
-      (payload.mediaUrls && payload.mediaUrls.length > 0),
+    payload.mediaUrl ||
+    (payload.mediaUrls && payload.mediaUrls.length > 0) ||
+    payload.audioAsVoice,
   );
 }
 
@@ -55,10 +56,7 @@ export function applyReplyThreading(params: {
   currentMessageId?: string;
 }): ReplyPayload[] {
   const { payloads, replyToMode, replyToChannel, currentMessageId } = params;
-  const applyReplyToMode = createReplyToModeFilterForChannel(
-    replyToMode,
-    replyToChannel,
-  );
+  const applyReplyToMode = createReplyToModeFilterForChannel(replyToMode, replyToChannel);
   return payloads
     .map((payload) => applyReplyTagsToPayload(payload, currentMessageId))
     .filter(isRenderablePayload)
@@ -71,9 +69,7 @@ export function filterMessagingToolDuplicates(params: {
 }): ReplyPayload[] {
   const { payloads, sentTexts } = params;
   if (sentTexts.length === 0) return payloads;
-  return payloads.filter(
-    (payload) => !isMessagingToolDuplicate(payload.text ?? "", sentTexts),
-  );
+  return payloads.filter((payload) => !isMessagingToolDuplicate(payload.text ?? "", sentTexts));
 }
 
 function normalizeAccountId(value?: string): string | undefined {
@@ -89,10 +85,7 @@ export function shouldSuppressMessagingToolReplies(params: {
 }): boolean {
   const provider = params.messageProvider?.trim().toLowerCase();
   if (!provider) return false;
-  const originTarget = normalizeTargetForProvider(
-    provider,
-    params.originatingTo,
-  );
+  const originTarget = normalizeTargetForProvider(provider, params.originatingTo);
   if (!originTarget) return false;
   const originAccount = normalizeAccountId(params.accountId);
   const sentTargets = params.messagingToolSentTargets ?? [];

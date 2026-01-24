@@ -25,14 +25,67 @@ describe("sandbox explain helpers", () => {
     };
 
     const resolved = resolveSandboxConfigForAgent(cfg, "work");
-    expect(resolved.tools.allow).toEqual(["write"]);
+    expect(resolved.tools.allow).toEqual(["write", "image"]);
     expect(resolved.tools.deny).toEqual(["browser"]);
 
     const policy = resolveSandboxToolPolicyForAgent(cfg, "work");
-    expect(policy.allow).toEqual(["write"]);
+    expect(policy.allow).toEqual(["write", "image"]);
     expect(policy.sources.allow.source).toBe("agent");
     expect(policy.deny).toEqual(["browser"]);
     expect(policy.sources.deny.source).toBe("global");
+  });
+
+  it("expands group tool shorthands inside sandbox tool policy", () => {
+    const cfg: ClawdbotConfig = {
+      agents: {
+        defaults: {
+          sandbox: { mode: "all", scope: "agent" },
+        },
+        list: [
+          {
+            id: "work",
+            workspace: "~/clawd-work",
+            tools: {
+              sandbox: { tools: { allow: ["group:memory", "group:fs"] } },
+            },
+          },
+        ],
+      },
+    };
+
+    const policy = resolveSandboxToolPolicyForAgent(cfg, "work");
+    expect(policy.allow).toEqual([
+      "memory_search",
+      "memory_get",
+      "read",
+      "write",
+      "edit",
+      "apply_patch",
+      "image",
+    ]);
+  });
+
+  it("denies still win after group expansion", () => {
+    const cfg: ClawdbotConfig = {
+      agents: {
+        defaults: {
+          sandbox: { mode: "all", scope: "agent" },
+        },
+      },
+      tools: {
+        sandbox: {
+          tools: {
+            allow: ["group:memory"],
+            deny: ["memory_get"],
+          },
+        },
+      },
+    };
+
+    const policy = resolveSandboxToolPolicyForAgent(cfg, "main");
+    expect(policy.allow).toContain("memory_search");
+    expect(policy.allow).toContain("memory_get");
+    expect(policy.deny).toContain("memory_get");
   });
 
   it("includes config key paths + main-session hint for non-main mode", () => {
@@ -53,7 +106,7 @@ describe("sandbox explain helpers", () => {
 
     const msg = formatSandboxToolPolicyBlockedMessage({
       cfg,
-      sessionKey: "agent:main:whatsapp:group:G1",
+      sessionKey: "agent:main:whatsapp:group:g1",
       toolName: "browser",
     });
     expect(msg).toBeTruthy();

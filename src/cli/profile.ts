@@ -1,6 +1,8 @@
 import os from "node:os";
 import path from "node:path";
 
+import { isValidProfileName } from "./profile-utils.js";
+
 export type CliProfileParseResult =
   | { ok: true; profile: string | null; argv: string[] }
   | { ok: false; error: string };
@@ -19,12 +21,6 @@ function takeValue(
   }
   const trimmed = (next ?? "").trim();
   return { value: trimmed || null, consumedNext: Boolean(next) };
-}
-
-function isValidProfileName(value: string): boolean {
-  if (!value) return false;
-  // Keep it path-safe + shell-friendly.
-  return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(value);
 }
 
 export function parseCliProfileArgs(argv: string[]): CliProfileParseResult {
@@ -84,10 +80,7 @@ export function parseCliProfileArgs(argv: string[]): CliProfileParseResult {
   return { ok: true, profile, argv: out };
 }
 
-function resolveProfileStateDir(
-  profile: string,
-  homedir: () => string,
-): string {
+function resolveProfileStateDir(profile: string, homedir: () => string): string {
   const suffix = profile.toLowerCase() === "default" ? "" : `-${profile}`;
   return path.join(homedir(), `.clawdbot${suffix}`);
 }
@@ -105,8 +98,7 @@ export function applyCliProfileEnv(params: {
   // Convenience only: fill defaults, never override explicit env values.
   env.CLAWDBOT_PROFILE = profile;
 
-  const stateDir =
-    env.CLAWDBOT_STATE_DIR?.trim() || resolveProfileStateDir(profile, homedir);
+  const stateDir = env.CLAWDBOT_STATE_DIR?.trim() || resolveProfileStateDir(profile, homedir);
   if (!env.CLAWDBOT_STATE_DIR?.trim()) env.CLAWDBOT_STATE_DIR = stateDir;
 
   if (!env.CLAWDBOT_CONFIG_PATH?.trim()) {

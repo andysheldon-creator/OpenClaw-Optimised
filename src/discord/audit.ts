@@ -1,8 +1,5 @@
 import type { ClawdbotConfig } from "../config/config.js";
-import type {
-  DiscordGuildChannelConfig,
-  DiscordGuildEntry,
-} from "../config/types.js";
+import type { DiscordGuildChannelConfig, DiscordGuildEntry } from "../config/types.js";
 import { resolveDiscordAccount } from "./accounts.js";
 import { fetchChannelPermissionsDiscord } from "./send.js";
 
@@ -11,6 +8,8 @@ export type DiscordChannelPermissionsAuditEntry = {
   ok: boolean;
   missing?: string[];
   error?: string | null;
+  matchKey?: string;
+  matchSource?: "id";
 };
 
 export type DiscordChannelPermissionsAudit = {
@@ -27,9 +26,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function shouldAuditChannelConfig(
-  config: DiscordGuildChannelConfig | undefined,
-) {
+function shouldAuditChannelConfig(config: DiscordGuildChannelConfig | undefined) {
   if (!config) return true;
   if (config.allow === false) return false;
   if (config.enabled === false) return false;
@@ -48,12 +45,7 @@ function listConfiguredGuildChannelKeys(
     for (const [key, value] of Object.entries(channelsRaw)) {
       const channelId = String(key).trim();
       if (!channelId) continue;
-      if (
-        !shouldAuditChannelConfig(
-          value as DiscordGuildChannelConfig | undefined,
-        )
-      )
-        continue;
+      if (!shouldAuditChannelConfig(value as DiscordGuildChannelConfig | undefined)) continue;
       ids.add(channelId);
     }
   }
@@ -107,12 +99,16 @@ export async function auditDiscordChannelPermissions(params: {
         ok: missing.length === 0,
         missing: missing.length ? missing : undefined,
         error: null,
+        matchKey: channelId,
+        matchSource: "id",
       });
     } catch (err) {
       channels.push({
         channelId,
         ok: false,
         error: err instanceof Error ? err.message : String(err),
+        matchKey: channelId,
+        matchSource: "id",
       });
     }
   }

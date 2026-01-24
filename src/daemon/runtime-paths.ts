@@ -1,5 +1,9 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
+
+import { isSupportedNodeVersion } from "../infra/runtime-guard.js";
 
 const VERSION_MANAGER_MARKERS = [
   "/.nvm/",
@@ -38,8 +42,7 @@ function buildSystemNodeCandidates(
   if (platform === "win32") {
     const pathModule = getPathModule(platform);
     const programFiles = env.ProgramFiles ?? "C:\\Program Files";
-    const programFilesX86 =
-      env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+    const programFilesX86 = env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
     return [
       pathModule.join(programFiles, "nodejs", "node.exe"),
       pathModule.join(programFilesX86, "nodejs", "node.exe"),
@@ -47,6 +50,35 @@ function buildSystemNodeCandidates(
   }
   return [];
 }
+
+type ExecFileAsync = (
+  file: string,
+  args: readonly string[],
+  options: { encoding: "utf8" },
+) => Promise<{ stdout: string; stderr: string }>;
+
+const execFileAsync = promisify(execFile) as unknown as ExecFileAsync;
+
+async function resolveNodeVersion(
+  nodePath: string,
+  execFileImpl: ExecFileAsync,
+): Promise<string | null> {
+  try {
+    const { stdout } = await execFileImpl(nodePath, ["-p", "process.versions.node"], {
+      encoding: "utf8",
+    });
+    const value = stdout.trim();
+    return value ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export type SystemNodeInfo = {
+  path: string;
+  version: string | null;
+  supported: boolean;
+};
 
 export function isVersionManagedNodePath(
   nodePath: string,
@@ -84,11 +116,42 @@ export async function resolveSystemNodePath(
   return null;
 }
 
+export async function resolveSystemNodeInfo(params: {
+  env?: Record<string, string | undefined>;
+  platform?: NodeJS.Platform;
+  execFile?: ExecFileAsync;
+}): Promise<SystemNodeInfo | null> {
+  const env = params.env ?? process.env;
+  const platform = params.platform ?? process.platform;
+  const systemNode = await resolveSystemNodePath(env, platform);
+  if (!systemNode) return null;
+
+  const version = await resolveNodeVersion(systemNode, params.execFile ?? execFileAsync);
+  return {
+    path: systemNode,
+    version,
+    supported: isSupportedNodeVersion(version),
+  };
+}
+
+export function renderSystemNodeWarning(
+  systemNode: SystemNodeInfo | null,
+  selectedNodePath?: string,
+): string | null {
+  if (!systemNode || systemNode.supported) return null;
+  const versionLabel = systemNode.version ?? "unknown";
+  const selectedLabel = selectedNodePath ? ` Using ${selectedNodePath} for the daemon.` : "";
+  return `System Node ${versionLabel} at ${systemNode.path} is below the required Node 22+.${selectedLabel} Install Node 22+ from nodejs.org or Homebrew.`;
+}
+
 export async function resolvePreferredNodePath(params: {
   env?: Record<string, string | undefined>;
   runtime?: string;
+  platform?: NodeJS.Platform;
+  execFile?: ExecFileAsync;
 }): Promise<string | undefined> {
   if (params.runtime !== "node") return undefined;
-  const systemNode = await resolveSystemNodePath(params.env);
-  return systemNode ?? undefined;
+  const systemNode = await resolveSystemNodeInfo(params);
+  if (!systemNode?.supported) return undefined;
+  return systemNode.path;
 }

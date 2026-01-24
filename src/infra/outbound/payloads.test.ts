@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  formatOutboundPayloadLog,
-  normalizeOutboundPayloadsForJson,
-} from "./payloads.js";
+import { formatOutboundPayloadLog, normalizeOutboundPayloadsForJson } from "./payloads.js";
 
 describe("normalizeOutboundPayloadsForJson", () => {
   it("normalizes payloads with mediaUrl and mediaUrls", () => {
@@ -24,6 +21,22 @@ describe("normalizeOutboundPayloadsForJson", () => {
         text: "multi",
         mediaUrl: null,
         mediaUrls: ["https://x.test/1.png"],
+      },
+    ]);
+  });
+
+  it("keeps mediaUrl null for multi MEDIA tags", () => {
+    expect(
+      normalizeOutboundPayloadsForJson([
+        {
+          text: "MEDIA:https://x.test/a.png\nMEDIA:https://x.test/b.png",
+        },
+      ]),
+    ).toEqual([
+      {
+        text: "",
+        mediaUrl: null,
+        mediaUrls: ["https://x.test/a.png", "https://x.test/b.png"],
       },
     ]);
   });

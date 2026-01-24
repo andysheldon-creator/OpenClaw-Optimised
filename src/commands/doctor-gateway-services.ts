@@ -2,29 +2,18 @@ import path from "node:path";
 
 import type { ClawdbotConfig } from "../config/config.js";
 import { resolveGatewayPort, resolveIsNixMode } from "../config/paths.js";
-import { resolveGatewayLaunchAgentLabel } from "../daemon/constants.js";
-import {
-  findExtraGatewayServices,
-  renderGatewayServiceCleanupHints,
-} from "../daemon/inspect.js";
-import {
-  findLegacyGatewayServices,
-  uninstallLegacyGatewayServices,
-} from "../daemon/legacy.js";
-import { resolveGatewayProgramArguments } from "../daemon/program-args.js";
-import {
-  resolvePreferredNodePath,
-  resolveSystemNodePath,
-} from "../daemon/runtime-paths.js";
+import { findExtraGatewayServices, renderGatewayServiceCleanupHints } from "../daemon/inspect.js";
+import { findLegacyGatewayServices, uninstallLegacyGatewayServices } from "../daemon/legacy.js";
+import { renderSystemNodeWarning, resolveSystemNodeInfo } from "../daemon/runtime-paths.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import {
   auditGatewayServiceConfig,
   needsNodeRuntimeMigration,
   SERVICE_AUDIT_CODES,
 } from "../daemon/service-audit.js";
-import { buildServiceEnvironment } from "../daemon/service-env.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { note } from "../terminal/note.js";
+import { buildGatewayInstallPlan, gatewayInstallErrorHint } from "./daemon-install-helpers.js";
 import {
   DEFAULT_GATEWAY_DAEMON_RUNTIME,
   GATEWAY_DAEMON_RUNTIME_OPTIONS,
@@ -32,9 +21,7 @@ import {
 } from "./daemon-runtime.js";
 import type { DoctorOptions, DoctorPrompter } from "./doctor-prompter.js";
 
-function detectGatewayRuntime(
-  programArguments: string[] | undefined,
-): GatewayDaemonRuntime {
+function detectGatewayRuntime(programArguments: string[] | undefined): GatewayDaemonRuntime {
   const first = programArguments?.[0];
   if (first) {
     const base = path.basename(first).toLowerCase();
@@ -65,14 +52,12 @@ export async function maybeMigrateLegacyGatewayService(
   if (legacyServices.length === 0) return;
 
   note(
-    legacyServices
-      .map((svc) => `- ${svc.label} (${svc.platform}, ${svc.detail})`)
-      .join("\n"),
-    "Legacy Clawdis services detected",
+    legacyServices.map((svc) => `- ${svc.label} (${svc.platform}, ${svc.detail})`).join("\n"),
+    "Legacy gateway services detected",
   );
 
   const migrate = await prompter.confirmSkipInNonInteractive({
-    message: "Migrate legacy Clawdis services to Clawdbot now?",
+    message: "Migrate legacy gateway services to Clawdbot now?",
     initialValue: true,
   });
   if (!migrate) return;
@@ -98,9 +83,7 @@ export async function maybeMigrateLegacyGatewayService(
   }
 
   const service = resolveGatewayService();
-  const loaded = await service.isLoaded({
-    profile: process.env.CLAWDBOT_PROFILE,
-  });
+  const loaded = await service.isLoaded({ env: process.env });
   if (loaded) {
     note(`Clawdbot ${service.label} already ${service.loadedText}.`, "Gateway");
     return;
@@ -114,43 +97,32 @@ export async function maybeMigrateLegacyGatewayService(
 
   const daemonRuntime = await prompter.select<GatewayDaemonRuntime>(
     {
-      message: "Gateway daemon runtime",
+      message: "Gateway service runtime",
       options: GATEWAY_DAEMON_RUNTIME_OPTIONS,
       initialValue: DEFAULT_GATEWAY_DAEMON_RUNTIME,
     },
     DEFAULT_GATEWAY_DAEMON_RUNTIME,
   );
-  const devMode =
-    process.argv[1]?.includes(`${path.sep}src${path.sep}`) &&
-    process.argv[1]?.endsWith(".ts");
   const port = resolveGatewayPort(cfg, process.env);
-  const nodePath = await resolvePreferredNodePath({
-    env: process.env,
-    runtime: daemonRuntime,
-  });
-  const { programArguments, workingDirectory } =
-    await resolveGatewayProgramArguments({
-      port,
-      dev: devMode,
-      runtime: daemonRuntime,
-      nodePath,
-    });
-  const environment = buildServiceEnvironment({
+  const { programArguments, workingDirectory, environment } = await buildGatewayInstallPlan({
     env: process.env,
     port,
     token: cfg.gateway?.auth?.token ?? process.env.CLAWDBOT_GATEWAY_TOKEN,
-    launchdLabel:
-      process.platform === "darwin"
-        ? resolveGatewayLaunchAgentLabel(process.env.CLAWDBOT_PROFILE)
-        : undefined,
+    runtime: daemonRuntime,
+    warn: (message, title) => note(message, title),
   });
-  await service.install({
-    env: process.env,
-    stdout: process.stdout,
-    programArguments,
-    workingDirectory,
-    environment,
-  });
+  try {
+    await service.install({
+      env: process.env,
+      stdout: process.stdout,
+      programArguments,
+      workingDirectory,
+      environment,
+    });
+  } catch (err) {
+    runtime.error(`Gateway service install failed: ${String(err)}`);
+    note(gatewayInstallErrorHint(), "Gateway");
+  }
 }
 
 export async function maybeRepairGatewayServiceConfig(
@@ -183,35 +155,35 @@ export async function maybeRepairGatewayServiceConfig(
     command,
   });
   const needsNodeRuntime = needsNodeRuntimeMigration(audit.issues);
-  const systemNodePath = needsNodeRuntime
-    ? await resolveSystemNodePath(process.env)
+  const systemNodeInfo = needsNodeRuntime
+    ? await resolveSystemNodeInfo({ env: process.env })
     : null;
+  const systemNodePath = systemNodeInfo?.supported ? systemNodeInfo.path : null;
   if (needsNodeRuntime && !systemNodePath) {
+    const warning = renderSystemNodeWarning(systemNodeInfo);
+    if (warning) note(warning, "Gateway runtime");
     note(
       "System Node 22+ not found. Install via Homebrew/apt/choco and rerun doctor to migrate off Bun/version managers.",
       "Gateway runtime",
     );
   }
 
-  const devMode =
-    process.argv[1]?.includes(`${path.sep}src${path.sep}`) &&
-    process.argv[1]?.endsWith(".ts");
   const port = resolveGatewayPort(cfg, process.env);
   const runtimeChoice = detectGatewayRuntime(command.programArguments);
-  const { programArguments, workingDirectory } =
-    await resolveGatewayProgramArguments({
-      port,
-      dev: devMode,
-      runtime: needsNodeRuntime && systemNodePath ? "node" : runtimeChoice,
-      nodePath: systemNodePath ?? undefined,
-    });
+  const { programArguments, workingDirectory, environment } = await buildGatewayInstallPlan({
+    env: process.env,
+    port,
+    token: cfg.gateway?.auth?.token ?? process.env.CLAWDBOT_GATEWAY_TOKEN,
+    runtime: needsNodeRuntime && systemNodePath ? "node" : runtimeChoice,
+    nodePath: systemNodePath ?? undefined,
+    warn: (message, title) => note(message, title),
+  });
   const expectedEntrypoint = findGatewayEntrypoint(programArguments);
   const currentEntrypoint = findGatewayEntrypoint(command.programArguments);
   if (
     expectedEntrypoint &&
     currentEntrypoint &&
-    normalizeExecutablePath(expectedEntrypoint) !==
-      normalizeExecutablePath(currentEntrypoint)
+    normalizeExecutablePath(expectedEntrypoint) !== normalizeExecutablePath(currentEntrypoint)
   ) {
     audit.issues.push({
       code: SERVICE_AUDIT_CODES.gatewayEntrypointMismatch,
@@ -226,17 +198,13 @@ export async function maybeRepairGatewayServiceConfig(
   note(
     audit.issues
       .map((issue) =>
-        issue.detail
-          ? `- ${issue.message} (${issue.detail})`
-          : `- ${issue.message}`,
+        issue.detail ? `- ${issue.message} (${issue.detail})` : `- ${issue.message}`,
       )
       .join("\n"),
     "Gateway service config",
   );
 
-  const aggressiveIssues = audit.issues.filter(
-    (issue) => issue.level === "aggressive",
-  );
+  const aggressiveIssues = audit.issues.filter((issue) => issue.level === "aggressive");
   const needsAggressive = aggressiveIssues.length > 0;
 
   if (needsAggressive && !prompter.shouldForce) {
@@ -252,21 +220,10 @@ export async function maybeRepairGatewayServiceConfig(
         initialValue: Boolean(prompter.shouldForce),
       })
     : await prompter.confirmRepair({
-        message:
-          "Update gateway service config to the recommended defaults now?",
+        message: "Update gateway service config to the recommended defaults now?",
         initialValue: true,
       });
   if (!repair) return;
-  const environment = buildServiceEnvironment({
-    env: process.env,
-    port,
-    token: cfg.gateway?.auth?.token ?? process.env.CLAWDBOT_GATEWAY_TOKEN,
-    launchdLabel:
-      process.platform === "darwin"
-        ? resolveGatewayLaunchAgentLabel(process.env.CLAWDBOT_PROFILE)
-        : undefined,
-  });
-
   try {
     await service.install({
       env: process.env,
@@ -287,9 +244,7 @@ export async function maybeScanExtraGatewayServices(options: DoctorOptions) {
   if (extraServices.length === 0) return;
 
   note(
-    extraServices
-      .map((svc) => `- ${svc.label} (${svc.scope}, ${svc.detail})`)
-      .join("\n"),
+    extraServices.map((svc) => `- ${svc.label} (${svc.scope}, ${svc.detail})`).join("\n"),
     "Other gateway-like services detected",
   );
 
@@ -300,9 +255,9 @@ export async function maybeScanExtraGatewayServices(options: DoctorOptions) {
 
   note(
     [
-      "Recommendation: run a single gateway per machine.",
+      "Recommendation: run a single gateway per machine for most setups.",
       "One gateway supports multiple agents.",
-      "If you need multiple gateways, isolate ports + config/state (see docs: /gateway#multiple-gateways-same-host).",
+      "If you need multiple gateways (e.g., a rescue bot on the same host), isolate ports + config/state (see docs: /gateway#multiple-gateways-same-host).",
     ].join("\n"),
     "Gateway recommendation",
   );

@@ -1,8 +1,6 @@
-import {
-  buildModelAliasIndex,
-  resolveModelRefFromString,
-} from "../../agents/model-selection.js";
-import { CONFIG_PATH_CLAWDBOT, loadConfig } from "../../config/config.js";
+import { buildModelAliasIndex, resolveModelRefFromString } from "../../agents/model-selection.js";
+import { loadConfig } from "../../config/config.js";
+import { logConfigUpdated } from "../../config/logging.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import {
   DEFAULT_PROVIDER,
@@ -37,10 +35,7 @@ export async function modelsFallbacksListCommand(
   for (const entry of fallbacks) runtime.log(`- ${entry}`);
 }
 
-export async function modelsFallbacksAddCommand(
-  modelRaw: string,
-  runtime: RuntimeEnv,
-) {
+export async function modelsFallbacksAddCommand(modelRaw: string, runtime: RuntimeEnv) {
   const updated = await updateConfig((cfg) => {
     const resolved = resolveModelTarget({ raw: modelRaw, cfg });
     const targetKey = modelKey(resolved.provider, resolved.model);
@@ -75,9 +70,7 @@ export async function modelsFallbacksAddCommand(
         defaults: {
           ...cfg.agents?.defaults,
           model: {
-            ...(existingModel?.primary
-              ? { primary: existingModel.primary }
-              : undefined),
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
             fallbacks: [...existing, targetKey],
           },
           models: nextModels,
@@ -86,16 +79,11 @@ export async function modelsFallbacksAddCommand(
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
-  runtime.log(
-    `Fallbacks: ${(updated.agents?.defaults?.model?.fallbacks ?? []).join(", ")}`,
-  );
+  logConfigUpdated(runtime);
+  runtime.log(`Fallbacks: ${(updated.agents?.defaults?.model?.fallbacks ?? []).join(", ")}`);
 }
 
-export async function modelsFallbacksRemoveCommand(
-  modelRaw: string,
-  runtime: RuntimeEnv,
-) {
+export async function modelsFallbacksRemoveCommand(modelRaw: string, runtime: RuntimeEnv) {
   const updated = await updateConfig((cfg) => {
     const resolved = resolveModelTarget({ raw: modelRaw, cfg });
     const targetKey = modelKey(resolved.provider, resolved.model);
@@ -111,10 +99,7 @@ export async function modelsFallbacksRemoveCommand(
         aliasIndex,
       });
       if (!resolvedEntry) return true;
-      return (
-        modelKey(resolvedEntry.ref.provider, resolvedEntry.ref.model) !==
-        targetKey
-      );
+      return modelKey(resolvedEntry.ref.provider, resolvedEntry.ref.model) !== targetKey;
     });
 
     if (filtered.length === existing.length) {
@@ -132,9 +117,7 @@ export async function modelsFallbacksRemoveCommand(
         defaults: {
           ...cfg.agents?.defaults,
           model: {
-            ...(existingModel?.primary
-              ? { primary: existingModel.primary }
-              : undefined),
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
             fallbacks: filtered,
           },
         },
@@ -142,10 +125,8 @@ export async function modelsFallbacksRemoveCommand(
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
-  runtime.log(
-    `Fallbacks: ${(updated.agents?.defaults?.model?.fallbacks ?? []).join(", ")}`,
-  );
+  logConfigUpdated(runtime);
+  runtime.log(`Fallbacks: ${(updated.agents?.defaults?.model?.fallbacks ?? []).join(", ")}`);
 }
 
 export async function modelsFallbacksClearCommand(runtime: RuntimeEnv) {
@@ -160,9 +141,7 @@ export async function modelsFallbacksClearCommand(runtime: RuntimeEnv) {
         defaults: {
           ...cfg.agents?.defaults,
           model: {
-            ...(existingModel?.primary
-              ? { primary: existingModel.primary }
-              : undefined),
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
             fallbacks: [],
           },
         },
@@ -170,6 +149,6 @@ export async function modelsFallbacksClearCommand(runtime: RuntimeEnv) {
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
+  logConfigUpdated(runtime);
   runtime.log("Fallback list cleared.");
 }

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { getReplyFromConfig } from "./auto-reply/reply.js";
 import { applyTemplate } from "./auto-reply/templating.js";
+import { monitorWebChannel } from "./channel-web.js";
 import { createDefaultDeps } from "./cli/deps.js";
 import { promptYesNo } from "./cli/prompt.js";
 import { waitForever } from "./cli/wait.js";
@@ -27,11 +28,11 @@ import {
   PortInUseError,
 } from "./infra/ports.js";
 import { assertSupportedRuntime } from "./infra/runtime-guard.js";
+import { formatUncaughtError } from "./infra/errors.js";
 import { installUnhandledRejectionHandler } from "./infra/unhandled-rejections.js";
 import { enableConsoleCapture } from "./logging.js";
 import { runCommandWithTimeout, runExec } from "./process/exec.js";
-import { monitorWebProvider } from "./provider-web.js";
-import { assertProvider, normalizeE164, toWhatsappJid } from "./utils.js";
+import { assertWebChannel, normalizeE164, toWhatsappJid } from "./utils.js";
 
 loadDotEnv({ quiet: true });
 normalizeEnv();
@@ -48,7 +49,7 @@ import { buildProgram } from "./cli/program.js";
 const program = buildProgram();
 
 export {
-  assertProvider,
+  assertWebChannel,
   applyTemplate,
   createDefaultDeps,
   deriveSessionKey,
@@ -59,7 +60,7 @@ export {
   handlePortError,
   loadConfig,
   loadSessionStore,
-  monitorWebProvider,
+  monitorWebChannel,
   normalizeE164,
   PortInUseError,
   promptYesNo,
@@ -82,18 +83,12 @@ if (isMain) {
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
-    console.error(
-      "[clawdbot] Uncaught exception:",
-      error.stack ?? error.message,
-    );
+    console.error("[clawdbot] Uncaught exception:", formatUncaughtError(error));
     process.exit(1);
   });
 
   void program.parseAsync(process.argv).catch((err) => {
-    console.error(
-      "[clawdbot] CLI failed:",
-      err instanceof Error ? (err.stack ?? err.message) : err,
-    );
+    console.error("[clawdbot] CLI failed:", formatUncaughtError(err));
     process.exit(1);
   });
 }

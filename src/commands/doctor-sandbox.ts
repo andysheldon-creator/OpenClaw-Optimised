@@ -11,7 +11,6 @@ import type { ClawdbotConfig } from "../config/config.js";
 import { runCommandWithTimeout, runExec } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { note } from "../terminal/note.js";
-import { replaceModernName } from "./doctor-legacy-config.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
 
 type SandboxScriptInfo = {
@@ -39,16 +38,10 @@ function resolveSandboxScript(scriptRel: string): SandboxScriptInfo | null {
   return null;
 }
 
-async function runSandboxScript(
-  scriptRel: string,
-  runtime: RuntimeEnv,
-): Promise<boolean> {
+async function runSandboxScript(scriptRel: string, runtime: RuntimeEnv): Promise<boolean> {
   const script = resolveSandboxScript(scriptRel);
   if (!script) {
-    note(
-      `Unable to locate ${scriptRel}. Run it from the repo root.`,
-      "Sandbox",
-    );
+    note(`Unable to locate ${scriptRel}. Run it from the repo root.`, "Sandbox");
     return false;
   }
 
@@ -85,8 +78,12 @@ async function dockerImageExists(image: string): Promise<boolean> {
   try {
     await runExec("docker", ["image", "inspect", image], { timeoutMs: 5_000 });
     return true;
-  } catch {
-    return false;
+  } catch (error: any) {
+    const stderr = error?.stderr || error?.message || "";
+    if (String(stderr).includes("No such image")) {
+      return false;
+    }
+    throw error;
   }
 }
 
@@ -100,10 +97,7 @@ function resolveSandboxBrowserImage(cfg: ClawdbotConfig): string {
   return image ? image : DEFAULT_SANDBOX_BROWSER_IMAGE;
 }
 
-function updateSandboxDockerImage(
-  cfg: ClawdbotConfig,
-  image: string,
-): ClawdbotConfig {
+function updateSandboxDockerImage(cfg: ClawdbotConfig, image: string): ClawdbotConfig {
   return {
     ...cfg,
     agents: {
@@ -122,10 +116,7 @@ function updateSandboxDockerImage(
   };
 }
 
-function updateSandboxBrowserImage(
-  cfg: ClawdbotConfig,
-  image: string,
-): ClawdbotConfig {
+function updateSandboxBrowserImage(cfg: ClawdbotConfig, image: string): ClawdbotConfig {
   return {
     ...cfg,
     agents: {
@@ -162,10 +153,7 @@ async function handleMissingSandboxImage(
   const buildHint = params.buildScript
     ? `Build it with ${params.buildScript}.`
     : "Build or pull it first.";
-  note(
-    `Sandbox ${params.label} image missing: ${params.image}. ${buildHint}`,
-    "Sandbox",
-  );
+  note(`Sandbox ${params.label} image missing: ${params.image}. ${buildHint}`, "Sandbox");
 
   let built = false;
   if (params.buildScript) {
@@ -179,19 +167,6 @@ async function handleMissingSandboxImage(
   }
 
   if (built) return;
-
-  const legacyImage = replaceModernName(params.image);
-  if (!legacyImage || legacyImage === params.image) return;
-  const legacyExists = await dockerImageExists(legacyImage);
-  if (!legacyExists) return;
-
-  const fallback = await prompter.confirmSkipInNonInteractive({
-    message: `Switch config to legacy image ${legacyImage}?`,
-    initialValue: false,
-  });
-  if (!fallback) return;
-
-  params.updateConfig(legacyImage);
 }
 
 export async function maybeRepairSandboxImages(
@@ -240,9 +215,7 @@ export async function maybeRepairSandboxImages(
         buildScript: "scripts/sandbox-browser-setup.sh",
         updateConfig: (image) => {
           next = updateSandboxBrowserImage(next, image);
-          changes.push(
-            `Updated agents.defaults.sandbox.browser.image → ${image}`,
-          );
+          changes.push(`Updated agents.defaults.sandbox.browser.image → ${image}`);
         },
       },
       runtime,
@@ -289,9 +262,7 @@ export function noteSandboxScopeWarnings(cfg: ClawdbotConfig) {
 
     warnings.push(
       [
-        `- agents.list (id "${agentId}") sandbox ${overrides.join(
-          "/",
-        )} overrides ignored.`,
+        `- agents.list (id "${agentId}") sandbox ${overrides.join("/")} overrides ignored.`,
         `  scope resolves to "shared".`,
       ].join("\n"),
     );

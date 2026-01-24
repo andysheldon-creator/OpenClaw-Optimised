@@ -1,13 +1,16 @@
 {
-  "name": "voice-call",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@clawdbot/voice-call",
+  "version": "2026.1.23",
   "type": "module",
-  "description": "Clawdbot voice-call plugin (example)",
+  "description": "Clawdbot voice-call plugin",
   "dependencies": {
-    "@sinclair/typebox": "0.34.47"
+    "@sinclair/typebox": "0.34.47",
+    "ws": "^8.19.0",
+    "zod": "^4.3.6"
   },
   "clawdbot": {
-    "extensions": ["./index.ts"]
+    "extensions": [
+      "./index.ts"
+    ]
   }
 }

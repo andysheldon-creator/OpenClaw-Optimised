@@ -1,4 +1,5 @@
 import { visibleWidth } from "./ansi.js";
+import { displayString } from "../utils.js";
 
 type Align = "left" | "right" | "center";
 
@@ -90,24 +91,38 @@ function wrapLine(text: string, width: number): string[] {
     i += ch.length;
   }
 
+  const firstCharIndex = tokens.findIndex((t) => t.kind === "char");
+  if (firstCharIndex < 0) return [text];
+  let lastCharIndex = -1;
+  for (let i = tokens.length - 1; i >= 0; i -= 1) {
+    if (tokens[i]?.kind === "char") {
+      lastCharIndex = i;
+      break;
+    }
+  }
+  const prefixAnsi = tokens
+    .slice(0, firstCharIndex)
+    .filter((t) => t.kind === "ansi")
+    .map((t) => t.value)
+    .join("");
+  const suffixAnsi = tokens
+    .slice(lastCharIndex + 1)
+    .filter((t) => t.kind === "ansi")
+    .map((t) => t.value)
+    .join("");
+  const coreTokens = tokens.slice(firstCharIndex, lastCharIndex + 1);
+
   const lines: string[] = [];
   const isBreakChar = (ch: string) =>
-    ch === " " ||
-    ch === "\t" ||
-    ch === "\n" ||
-    ch === "\r" ||
-    ch === "/" ||
-    ch === "-" ||
-    ch === "_" ||
-    ch === ".";
+    ch === " " || ch === "\t" || ch === "/" || ch === "-" || ch === "_" || ch === ".";
   const isSpaceChar = (ch: string) => ch === " " || ch === "\t";
+  let skipNextLf = false;
 
   const buf: Token[] = [];
   let bufVisible = 0;
   let lastBreakIndex: number | null = null;
 
-  const bufToString = (slice?: Token[]) =>
-    (slice ?? buf).map((t) => t.value).join("");
+  const bufToString = (slice?: Token[]) => (slice ?? buf).map((t) => t.value).join("");
 
   const bufVisibleWidth = (slice: Token[]) =>
     slice.reduce((acc, t) => acc + (t.kind === "char" ? 1 : 0), 0);
@@ -132,11 +147,7 @@ function wrapLine(text: string, width: number): string[] {
     const rest = buf.slice(breakAt);
     pushLine(bufToString(left));
 
-    while (
-      rest.length > 0 &&
-      rest[0]?.kind === "char" &&
-      isSpaceChar(rest[0].value)
-    ) {
+    while (rest.length > 0 && rest[0]?.kind === "char" && isSpaceChar(rest[0].value)) {
       rest.shift();
     }
 
@@ -146,13 +157,22 @@ function wrapLine(text: string, width: number): string[] {
     lastBreakIndex = null;
   };
 
-  for (const token of tokens) {
+  for (const token of coreTokens) {
     if (token.kind === "ansi") {
       buf.push(token);
       continue;
     }
 
     const ch = token.value;
+    if (skipNextLf) {
+      skipNextLf = false;
+      if (ch === "\n") continue;
+    }
+    if (ch === "\n" || ch === "\r") {
+      flushAt(buf.length);
+      if (ch === "\r") skipNextLf = true;
+      continue;
+    }
     if (bufVisible + 1 > width && bufVisible > 0) {
       flushAt(lastBreakIndex);
     }
@@ -163,7 +183,12 @@ function wrapLine(text: string, width: number): string[] {
   }
 
   flushAt(buf.length);
-  return lines.length ? lines : [""];
+  if (!lines.length) return [""];
+  if (!prefixAnsi && !suffixAnsi) return lines;
+  return lines.map((line) => {
+    if (!line) return line;
+    return `${prefixAnsi}${line}${suffixAnsi}`;
+  });
 }
 
 function normalizeWidth(n: number | undefined): number | undefined {
@@ -173,14 +198,18 @@ function normalizeWidth(n: number | undefined): number | undefined {
 }
 
 export function renderTable(opts: RenderTableOptions): string {
+  const rows = opts.rows.map((row) => {
+    const next: Record<string, string> = {};
+    for (const [key, value] of Object.entries(row)) {
+      next[key] = displayString(value);
+    }
+    return next;
+  });
   const border = opts.border ?? "unicode";
   if (border === "none") {
     const columns = opts.columns;
     const header = columns.map((c) => c.header).join(" | ");
-    const lines = [
-      header,
-      ...opts.rows.map((r) => columns.map((c) => r[c.key] ?? "").join(" | ")),
-    ];
+    const lines = [header, ...rows.map((r) => columns.map((c) => r[c.key] ?? "").join(" | "))];
     return `${lines.join("\n")}\n`;
   }
 
@@ -189,10 +218,7 @@ export function renderTable(opts: RenderTableOptions): string {
 
   const metrics = columns.map((c) => {
     const headerW = visibleWidth(c.header);
-    const cellW = Math.max(
-      0,
-      ...opts.rows.map((r) => visibleWidth(r[c.key] ?? "")),
-    );
+    const cellW = Math.max(0, ...rows.map((r) => visibleWidth(r[c.key] ?? "")));
     return { headerW, cellW };
   });
 
@@ -272,8 +298,7 @@ export function renderTable(opts: RenderTableOptions): string {
         while (extra > 0) {
           let progressed = false;
           for (const i of flexCols) {
-            if ((widths[i] ?? 0) >= (caps[i] ?? Number.POSITIVE_INFINITY))
-              continue;
+            if ((widths[i] ?? 0) >= (caps[i] ?? Number.POSITIVE_INFINITY)) continue;
             widths[i] = (widths[i] ?? 0) + 1;
             extra -= 1;
             progressed = true;
@@ -321,20 +346,14 @@ export function renderTable(opts: RenderTableOptions): string {
   const padStr = repeat(" ", padding);
 
   const renderRow = (record: Record<string, string>, isHeader = false) => {
-    const cells = columns.map((c) =>
-      isHeader ? c.header : (record[c.key] ?? ""),
-    );
+    const cells = columns.map((c) => (isHeader ? c.header : (record[c.key] ?? "")));
     const wrapped = cells.map((cell, i) => wrapLine(cell, contentWidthFor(i)));
     const height = Math.max(...wrapped.map((w) => w.length));
     const out: string[] = [];
     for (let li = 0; li < height; li += 1) {
       const parts = wrapped.map((lines, i) => {
         const raw = lines[li] ?? "";
-        const aligned = padCell(
-          raw,
-          contentWidthFor(i),
-          columns[i]?.align ?? "left",
-        );
+        const aligned = padCell(raw, contentWidthFor(i), columns[i]?.align ?? "left");
         return `${padStr}${aligned}${padStr}`;
       });
       out.push(`${box.v}${parts.join(box.v)}${box.v}`);
@@ -346,7 +365,7 @@ export function renderTable(opts: RenderTableOptions): string {
   lines.push(hLine(box.tl, box.t, box.tr));
   lines.push(...renderRow({}, true));
   lines.push(hLine(box.ml, box.m, box.mr));
-  for (const row of opts.rows) {
+  for (const row of rows) {
     lines.push(...renderRow(row, false));
   }
   lines.push(hLine(box.bl, box.b, box.br));

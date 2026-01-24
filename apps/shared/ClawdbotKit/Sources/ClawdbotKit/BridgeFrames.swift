@@ -63,6 +63,8 @@ public struct BridgeHello: Codable, Sendable {
     public let token: String?
     public let platform: String?
     public let version: String?
+    public let coreVersion: String?
+    public let uiVersion: String?
     public let deviceFamily: String?
     public let modelIdentifier: String?
     public let caps: [String]?
@@ -76,6 +78,8 @@ public struct BridgeHello: Codable, Sendable {
         token: String?,
         platform: String?,
         version: String?,
+        coreVersion: String? = nil,
+        uiVersion: String? = nil,
         deviceFamily: String? = nil,
         modelIdentifier: String? = nil,
         caps: [String]? = nil,
@@ -88,6 +92,8 @@ public struct BridgeHello: Codable, Sendable {
         self.token = token
         self.platform = platform
         self.version = version
+        self.coreVersion = coreVersion
+        self.uiVersion = uiVersion
         self.deviceFamily = deviceFamily
         self.modelIdentifier = modelIdentifier
         self.caps = caps
@@ -100,11 +106,18 @@ public struct BridgeHelloOk: Codable, Sendable {
     public let type: String
     public let serverName: String
     public let canvasHostUrl: String?
+    public let mainSessionKey: String?
 
-    public init(type: String = "hello-ok", serverName: String, canvasHostUrl: String? = nil) {
+    public init(
+        type: String = "hello-ok",
+        serverName: String,
+        canvasHostUrl: String? = nil,
+        mainSessionKey: String? = nil)
+    {
         self.type = type
         self.serverName = serverName
         self.canvasHostUrl = canvasHostUrl
+        self.mainSessionKey = mainSessionKey
     }
 }
 
@@ -114,6 +127,8 @@ public struct BridgePairRequest: Codable, Sendable {
     public let displayName: String?
     public let platform: String?
     public let version: String?
+    public let coreVersion: String?
+    public let uiVersion: String?
     public let deviceFamily: String?
     public let modelIdentifier: String?
     public let caps: [String]?
@@ -128,6 +143,8 @@ public struct BridgePairRequest: Codable, Sendable {
         displayName: String?,
         platform: String?,
         version: String?,
+        coreVersion: String? = nil,
+        uiVersion: String? = nil,
         deviceFamily: String? = nil,
         modelIdentifier: String? = nil,
         caps: [String]? = nil,
@@ -141,6 +158,8 @@ public struct BridgePairRequest: Codable, Sendable {
         self.displayName = displayName
         self.platform = platform
         self.version = version
+        self.coreVersion = coreVersion
+        self.uiVersion = uiVersion
         self.deviceFamily = deviceFamily
         self.modelIdentifier = modelIdentifier
         self.caps = caps

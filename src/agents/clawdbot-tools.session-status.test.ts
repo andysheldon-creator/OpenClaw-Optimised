@@ -1,16 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
 
 const loadSessionStoreMock = vi.fn();
-const saveSessionStoreMock = vi.fn();
+const updateSessionStoreMock = vi.fn();
 
 vi.mock("../config/sessions.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config/sessions.js")>();
   return {
     ...actual,
     loadSessionStore: (storePath: string) => loadSessionStoreMock(storePath),
-    saveSessionStore: (storePath: string, store: Record<string, unknown>) =>
-      saveSessionStoreMock(storePath, store),
-    resolveStorePath: () => "/tmp/sessions.json",
+    updateSessionStore: async (
+      storePath: string,
+      mutator: (store: Record<string, unknown>) => Promise<void> | void,
+    ) => {
+      const store = loadSessionStoreMock(storePath) as Record<string, unknown>;
+      await mutator(store);
+      updateSessionStoreMock(storePath, store);
+      return store;
+    },
+    resolveStorePath: (_store: string | undefined, opts?: { agentId?: string }) =>
+      opts?.agentId === "support" ? "/tmp/support/sessions.json" : "/tmp/main/sessions.json",
   };
 });
 
@@ -68,12 +76,13 @@ vi.mock("../infra/provider-usage.js", () => ({
   formatUsageSummaryLine: () => null,
 }));
 
+import "./test-helpers/fast-core-tools.js";
 import { createClawdbotTools } from "./clawdbot-tools.js";
 
 describe("session_status tool", () => {
   it("returns a status card for the current session", async () => {
     loadSessionStoreMock.mockReset();
-    saveSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
     loadSessionStoreMock.mockReturnValue({
       main: {
         sessionId: "s1",
@@ -92,11 +101,12 @@ describe("session_status tool", () => {
     expect(details.ok).toBe(true);
     expect(details.statusText).toContain("Clawdbot");
     expect(details.statusText).toContain("🧠 Model:");
+    expect(details.statusText).not.toContain("OAuth/token status");
   });
 
   it("errors for unknown session keys", async () => {
     loadSessionStoreMock.mockReset();
-    saveSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
     loadSessionStoreMock.mockReturnValue({
       main: { sessionId: "s1", updatedAt: 10 },
     });
@@ -108,14 +118,121 @@ describe("session_status tool", () => {
     if (!tool) throw new Error("missing session_status tool");
 
     await expect(tool.execute("call2", { sessionKey: "nope" })).rejects.toThrow(
-      "Unknown sessionKey",
+      "Unknown sessionId",
     );
-    expect(saveSessionStoreMock).not.toHaveBeenCalled();
+    expect(updateSessionStoreMock).not.toHaveBeenCalled();
+  });
+
+  it("resolves sessionId inputs", async () => {
+    loadSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
+    const sessionId = "sess-main";
+    loadSessionStoreMock.mockReturnValue({
+      "agent:main:main": {
+        sessionId,
+        updatedAt: 10,
+      },
+    });
+
+    const tool = createClawdbotTools({ agentSessionKey: "main" }).find(
+      (candidate) => candidate.name === "session_status",
+    );
+    expect(tool).toBeDefined();
+    if (!tool) throw new Error("missing session_status tool");
+
+    const result = await tool.execute("call3", { sessionKey: sessionId });
+    const details = result.details as { ok?: boolean; sessionKey?: string };
+    expect(details.ok).toBe(true);
+    expect(details.sessionKey).toBe("agent:main:main");
+  });
+
+  it("uses non-standard session keys without sessionId resolution", async () => {
+    loadSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
+    loadSessionStoreMock.mockReturnValue({
+      "temp:slug-generator": {
+        sessionId: "sess-temp",
+        updatedAt: 10,
+      },
+    });
+
+    const tool = createClawdbotTools({ agentSessionKey: "main" }).find(
+      (candidate) => candidate.name === "session_status",
+    );
+    expect(tool).toBeDefined();
+    if (!tool) throw new Error("missing session_status tool");
+
+    const result = await tool.execute("call4", { sessionKey: "temp:slug-generator" });
+    const details = result.details as { ok?: boolean; sessionKey?: string };
+    expect(details.ok).toBe(true);
+    expect(details.sessionKey).toBe("temp:slug-generator");
+  });
+
+  it("blocks cross-agent session_status without agent-to-agent access", async () => {
+    loadSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
+    loadSessionStoreMock.mockReturnValue({
+      "agent:other:main": {
+        sessionId: "s2",
+        updatedAt: 10,
+      },
+    });
+
+    const tool = createClawdbotTools({ agentSessionKey: "agent:main:main" }).find(
+      (candidate) => candidate.name === "session_status",
+    );
+    expect(tool).toBeDefined();
+    if (!tool) throw new Error("missing session_status tool");
+
+    await expect(tool.execute("call5", { sessionKey: "agent:other:main" })).rejects.toThrow(
+      "Agent-to-agent status is disabled",
+    );
+  });
+
+  it("scopes bare session keys to the requester agent", async () => {
+    loadSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
+    const stores = new Map<string, Record<string, unknown>>([
+      [
+        "/tmp/main/sessions.json",
+        {
+          "agent:main:main": { sessionId: "s-main", updatedAt: 10 },
+        },
+      ],
+      [
+        "/tmp/support/sessions.json",
+        {
+          main: { sessionId: "s-support", updatedAt: 20 },
+        },
+      ],
+    ]);
+    loadSessionStoreMock.mockImplementation((storePath: string) => {
+      return stores.get(storePath) ?? {};
+    });
+    updateSessionStoreMock.mockImplementation(
+      (_storePath: string, store: Record<string, unknown>) => {
+        // Keep map in sync for resolveSessionEntry fallbacks if needed.
+        if (_storePath) {
+          stores.set(_storePath, store);
+        }
+      },
+    );
+
+    const tool = createClawdbotTools({ agentSessionKey: "agent:support:main" }).find(
+      (candidate) => candidate.name === "session_status",
+    );
+    expect(tool).toBeDefined();
+    if (!tool) throw new Error("missing session_status tool");
+
+    const result = await tool.execute("call6", { sessionKey: "main" });
+    const details = result.details as { ok?: boolean; sessionKey?: string };
+    expect(details.ok).toBe(true);
+    expect(details.sessionKey).toBe("main");
   });
 
   it("resets per-session model override via model=default", async () => {
     loadSessionStoreMock.mockReset();
-    saveSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
     loadSessionStoreMock.mockReturnValue({
       main: {
         sessionId: "s1",
@@ -133,8 +250,8 @@ describe("session_status tool", () => {
     if (!tool) throw new Error("missing session_status tool");
 
     await tool.execute("call3", { model: "default" });
-    expect(saveSessionStoreMock).toHaveBeenCalled();
-    const [, savedStore] = saveSessionStoreMock.mock.calls.at(-1) as [
+    expect(updateSessionStoreMock).toHaveBeenCalled();
+    const [, savedStore] = updateSessionStoreMock.mock.calls.at(-1) as [
       string,
       Record<string, unknown>,
     ];

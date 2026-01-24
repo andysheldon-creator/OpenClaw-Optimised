@@ -16,9 +16,21 @@ describe("resolveTelegramToken", () => {
     vi.unstubAllEnvs();
   });
 
-  it("prefers env token over config", () => {
+  it("prefers config token over env", () => {
     vi.stubEnv("TELEGRAM_BOT_TOKEN", "env-token");
-    const cfg = { telegram: { botToken: "cfg-token" } } as ClawdbotConfig;
+    const cfg = {
+      channels: { telegram: { botToken: "cfg-token" } },
+    } as ClawdbotConfig;
+    const res = resolveTelegramToken(cfg);
+    expect(res.token).toBe("cfg-token");
+    expect(res.source).toBe("config");
+  });
+
+  it("uses env token when config is missing", () => {
+    vi.stubEnv("TELEGRAM_BOT_TOKEN", "env-token");
+    const cfg = {
+      channels: { telegram: {} },
+    } as ClawdbotConfig;
     const res = resolveTelegramToken(cfg);
     expect(res.token).toBe("env-token");
     expect(res.source).toBe("env");
@@ -29,7 +41,7 @@ describe("resolveTelegramToken", () => {
     const dir = withTempDir();
     const tokenFile = path.join(dir, "token.txt");
     fs.writeFileSync(tokenFile, "file-token\n", "utf-8");
-    const cfg = { telegram: { tokenFile } } as ClawdbotConfig;
+    const cfg = { channels: { telegram: { tokenFile } } } as ClawdbotConfig;
     const res = resolveTelegramToken(cfg);
     expect(res.token).toBe("file-token");
     expect(res.source).toBe("tokenFile");
@@ -38,7 +50,9 @@ describe("resolveTelegramToken", () => {
 
   it("falls back to config token when no env or tokenFile", () => {
     vi.stubEnv("TELEGRAM_BOT_TOKEN", "");
-    const cfg = { telegram: { botToken: "cfg-token" } } as ClawdbotConfig;
+    const cfg = {
+      channels: { telegram: { botToken: "cfg-token" } },
+    } as ClawdbotConfig;
     const res = resolveTelegramToken(cfg);
     expect(res.token).toBe("cfg-token");
     expect(res.source).toBe("config");
@@ -49,7 +63,7 @@ describe("resolveTelegramToken", () => {
     const dir = withTempDir();
     const tokenFile = path.join(dir, "missing-token.txt");
     const cfg = {
-      telegram: { tokenFile, botToken: "cfg-token" },
+      channels: { telegram: { tokenFile, botToken: "cfg-token" } },
     } as ClawdbotConfig;
     const res = resolveTelegramToken(cfg);
     expect(res.token).toBe("");

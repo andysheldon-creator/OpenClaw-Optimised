@@ -44,13 +44,13 @@ clawdbot doctor
 If you’d rather not manage env vars yourself, the onboarding wizard can store
 API keys for daemon use: `clawdbot onboard`.
 
-See [/start/faq](/start/faq) for details on env inheritance (`env.shellEnv`,
+See [Help](/help) for details on env inheritance (`env.shellEnv`,
 `~/.clawdbot/.env`, systemd/launchd).
 
-## Anthropic: Claude CLI setup-token (supported)
+## Anthropic: Claude Code CLI setup-token (supported)
 
 For Anthropic, the recommended path is an **API key**. If you’re already using
-Claude Code, the Claude CLI setup-token is also supported.
+Claude Code CLI, the setup-token flow is also supported.
 Run it on the **gateway host**:
 
 ```bash
@@ -66,6 +66,10 @@ clawdbot doctor
 
 This should create (or refresh) an auth profile like `anthropic:claude-cli` in
 the agent auth store.
+
+Clawdbot config sets `auth.profiles["anthropic:claude-cli"].mode` to `"oauth"` so
+the profile accepts both OAuth and setup-token credentials. Older configs that
+used `"token"` are auto-migrated on load.
 
 If you see an Anthropic error like:
 
@@ -114,7 +118,9 @@ clawdbot doctor
 
 ### Per-session (chat command)
 
-Use `/model <alias-or-id>@<profileId>` to pin a specific provider credential for the current session (example profile ids: `anthropic:claude-cli`, `anthropic:default`). Use `/model status` to see candidates + which one is next.
+Use `/model <alias-or-id>@<profileId>` to pin a specific provider credential for the current session (example profile ids: `anthropic:claude-cli`, `anthropic:default`).
+
+Use `/model` (or `/model list`) for a compact picker; use `/model status` for the full view (candidates + next auth profile, plus provider endpoint details when configured).
 
 ### Per-agent (CLI override)
 
@@ -136,7 +142,7 @@ Use `--agent <id>` to target a specific agent; omit it to use the configured def
    `~/.clawdbot/agents/<agentId>/agent/auth-profiles.json` when the auth store is
    loaded.
 3. Refreshable OAuth profiles can be refreshed automatically on use. Static
-   token profiles (including Claude CLI setup-token) are not refreshable by
+   token profiles (including Claude Code CLI setup-token) are not refreshable by
    Clawdbot.
 
 ## Troubleshooting

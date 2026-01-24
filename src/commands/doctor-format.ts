@@ -4,6 +4,12 @@ import {
   resolveGatewayWindowsTaskName,
 } from "../daemon/constants.js";
 import { resolveGatewayLogPaths } from "../daemon/launchd.js";
+import {
+  isSystemdUnavailableDetail,
+  renderSystemdUnavailableHints,
+} from "../daemon/systemd-hints.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import { isWSLEnv } from "../infra/wsl.js";
 import type { GatewayServiceRuntime } from "../daemon/service-runtime.js";
 import { getResolvedLoggerSettings } from "../logging.js";
 
@@ -54,22 +60,25 @@ export function buildGatewayRuntimeHints(
       return null;
     }
   })();
+  if (platform === "linux" && isSystemdUnavailableDetail(runtime.detail)) {
+    hints.push(...renderSystemdUnavailableHints({ wsl: isWSLEnv() }));
+    if (fileLog) hints.push(`File logs: ${fileLog}`);
+    return hints;
+  }
   if (runtime.cachedLabel && platform === "darwin") {
     const label = resolveGatewayLaunchAgentLabel(env.CLAWDBOT_PROFILE);
     hints.push(
       `LaunchAgent label cached but plist missing. Clear with: launchctl bootout gui/$UID/${label}`,
     );
-    hints.push("Then reinstall: clawdbot daemon install");
+    hints.push(`Then reinstall: ${formatCliCommand("clawdbot gateway install", env)}`);
   }
   if (runtime.missingUnit) {
-    hints.push("Service not installed. Run: clawdbot daemon install");
+    hints.push(`Service not installed. Run: ${formatCliCommand("clawdbot gateway install", env)}`);
     if (fileLog) hints.push(`File logs: ${fileLog}`);
     return hints;
   }
   if (runtime.status === "stopped") {
-    hints.push(
-      "Service is loaded but not running (likely exited immediately).",
-    );
+    hints.push("Service is loaded but not running (likely exited immediately).");
     if (fileLog) hints.push(`File logs: ${fileLog}`);
     if (platform === "darwin") {
       const logs = resolveGatewayLogPaths(env);
@@ -77,9 +86,7 @@ export function buildGatewayRuntimeHints(
       hints.push(`Launchd stderr (if installed): ${logs.stderrPath}`);
     } else if (platform === "linux") {
       const unit = resolveGatewaySystemdServiceName(env.CLAWDBOT_PROFILE);
-      hints.push(
-        `Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`,
-      );
+      hints.push(`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`);
     } else if (platform === "win32") {
       const task = resolveGatewayWindowsTaskName(env.CLAWDBOT_PROFILE);
       hints.push(`Logs: schtasks /Query /TN "${task}" /V /FO LIST`);

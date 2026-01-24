@@ -4,16 +4,44 @@ import { describe, expect, it, vi } from "vitest";
 import { renderConfig } from "./config";
 
 describe("config view", () => {
+  const baseProps = () => ({
+    raw: "{\n}\n",
+    valid: true,
+    issues: [],
+    loading: false,
+    saving: false,
+    applying: false,
+    updating: false,
+    connected: true,
+    schema: {
+      type: "object",
+      properties: {},
+    },
+    schemaLoading: false,
+    uiHints: {},
+    formMode: "form" as const,
+    formValue: {},
+    originalValue: {},
+    searchQuery: "",
+    activeSection: null,
+    activeSubsection: null,
+    onRawChange: vi.fn(),
+    onFormModeChange: vi.fn(),
+    onFormPatch: vi.fn(),
+    onSearchChange: vi.fn(),
+    onSectionChange: vi.fn(),
+    onReload: vi.fn(),
+    onSave: vi.fn(),
+    onApply: vi.fn(),
+    onUpdate: vi.fn(),
+    onSubsectionChange: vi.fn(),
+  });
+
   it("disables save when form is unsafe", () => {
     const container = document.createElement("div");
     render(
       renderConfig({
-        raw: "{\n}\n",
-        valid: true,
-        issues: [],
-        loading: false,
-        saving: false,
-        connected: true,
+        ...baseProps(),
         schema: {
           type: "object",
           properties: {
@@ -26,11 +54,6 @@ describe("config view", () => {
         uiHints: {},
         formMode: "form",
         formValue: { mixed: "x" },
-        onRawChange: vi.fn(),
-        onFormModeChange: vi.fn(),
-        onFormPatch: vi.fn(),
-        onReload: vi.fn(),
-        onSave: vi.fn(),
       }),
       container,
     );
@@ -42,5 +65,71 @@ describe("config view", () => {
       | undefined;
     expect(saveButton).not.toBeUndefined();
     expect(saveButton?.disabled).toBe(true);
+  });
+
+  it("switches mode via the sidebar toggle", () => {
+    const container = document.createElement("div");
+    const onFormModeChange = vi.fn();
+    render(
+      renderConfig({
+        ...baseProps(),
+        onFormModeChange,
+      }),
+      container,
+    );
+
+    const btn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.trim() === "Raw",
+    ) as HTMLButtonElement | undefined;
+    expect(btn).toBeTruthy();
+    btn?.click();
+    expect(onFormModeChange).toHaveBeenCalledWith("raw");
+  });
+
+  it("switches sections from the sidebar", () => {
+    const container = document.createElement("div");
+    const onSectionChange = vi.fn();
+    render(
+      renderConfig({
+        ...baseProps(),
+        onSectionChange,
+        schema: {
+          type: "object",
+          properties: {
+            gateway: { type: "object", properties: {} },
+            agents: { type: "object", properties: {} },
+          },
+        },
+      }),
+      container,
+    );
+
+    const btn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.trim() === "Gateway",
+    ) as HTMLButtonElement | undefined;
+    expect(btn).toBeTruthy();
+    btn?.click();
+    expect(onSectionChange).toHaveBeenCalledWith("gateway");
+  });
+
+  it("wires search input to onSearchChange", () => {
+    const container = document.createElement("div");
+    const onSearchChange = vi.fn();
+    render(
+      renderConfig({
+        ...baseProps(),
+        onSearchChange,
+      }),
+      container,
+    );
+
+    const input = container.querySelector(
+      ".config-search__input",
+    ) as HTMLInputElement | null;
+    expect(input).not.toBeNull();
+    if (!input) return;
+    input.value = "gateway";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(onSearchChange).toHaveBeenCalledWith("gateway");
   });
 });

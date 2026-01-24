@@ -1,16 +1,30 @@
+import { getChannelDock } from "../../channels/dock.js";
+import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import type { ClawdbotConfig } from "../../config/config.js";
-import type {
-  GroupKeyResolution,
-  SessionEntry,
-} from "../../config/sessions.js";
-import { getProviderDock } from "../../providers/dock.js";
-import {
-  getChatProviderMeta,
-  normalizeProviderId,
-} from "../../providers/registry.js";
-import { isInternalMessageProvider } from "../../utils/message-provider.js";
+import type { GroupKeyResolution, SessionEntry } from "../../config/sessions.js";
+import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import { normalizeGroupActivation } from "../group-activation.js";
 import type { TemplateContext } from "../templating.js";
+
+function extractGroupId(raw: string | undefined | null): string | undefined {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return undefined;
+  const parts = trimmed.split(":").filter(Boolean);
+  if (parts.length >= 3 && (parts[1] === "group" || parts[1] === "channel")) {
+    return parts.slice(2).join(":") || undefined;
+  }
+  if (
+    parts.length >= 2 &&
+    parts[0]?.toLowerCase() === "whatsapp" &&
+    trimmed.toLowerCase().includes("@g.us")
+  ) {
+    return parts.slice(1).join(":") || undefined;
+  }
+  if (parts.length >= 2 && (parts[0] === "group" || parts[0] === "channel")) {
+    return parts.slice(1).join(":") || undefined;
+  }
+  return trimmed;
+}
 
 export function resolveGroupRequireMention(params: {
   cfg: ClawdbotConfig;
@@ -18,18 +32,16 @@ export function resolveGroupRequireMention(params: {
   groupResolution?: GroupKeyResolution;
 }): boolean {
   const { cfg, ctx, groupResolution } = params;
-  const rawProvider = groupResolution?.provider ?? ctx.Provider?.trim();
-  const provider = normalizeProviderId(rawProvider);
-  if (!provider) return true;
-  const groupId = groupResolution?.id ?? ctx.From?.replace(/^group:/, "");
-  const groupRoom = ctx.GroupRoom?.trim() ?? ctx.GroupSubject?.trim();
+  const rawChannel = groupResolution?.channel ?? ctx.Provider?.trim();
+  const channel = normalizeChannelId(rawChannel);
+  if (!channel) return true;
+  const groupId = groupResolution?.id ?? extractGroupId(ctx.From);
+  const groupChannel = ctx.GroupChannel?.trim() ?? ctx.GroupSubject?.trim();
   const groupSpace = ctx.GroupSpace?.trim();
-  const requireMention = getProviderDock(
-    provider,
-  )?.groups?.resolveRequireMention?.({
+  const requireMention = getChannelDock(channel)?.groups?.resolveRequireMention?.({
     cfg,
     groupId,
-    groupRoom,
+    groupChannel,
     groupSpace,
     accountId: ctx.AccountId,
   });
@@ -37,9 +49,7 @@ export function resolveGroupRequireMention(params: {
   return true;
 }
 
-export function defaultGroupActivation(
-  requireMention: boolean,
-): "always" | "mention" {
+export function defaultGroupActivation(requireMention: boolean): "always" | "mention" {
   return requireMention === false ? "always" : "mention";
 }
 
@@ -51,17 +61,16 @@ export function buildGroupIntro(params: {
   silentToken: string;
 }): string {
   const activation =
-    normalizeGroupActivation(params.sessionEntry?.groupActivation) ??
-    params.defaultActivation;
+    normalizeGroupActivation(params.sessionEntry?.groupActivation) ?? params.defaultActivation;
   const subject = params.sessionCtx.GroupSubject?.trim();
   const members = params.sessionCtx.GroupMembers?.trim();
   const rawProvider = params.sessionCtx.Provider?.trim();
   const providerKey = rawProvider?.toLowerCase() ?? "";
-  const providerId = normalizeProviderId(rawProvider);
+  const providerId = normalizeChannelId(rawProvider);
   const providerLabel = (() => {
     if (!providerKey) return "chat";
-    if (isInternalMessageProvider(providerKey)) return "WebChat";
-    if (providerId) return getChatProviderMeta(providerId).label;
+    if (isInternalMessageChannel(providerKey)) return "WebChat";
+    if (providerId) return getChannelPlugin(providerId)?.meta.label ?? providerId;
     return `${providerKey.at(0)?.toUpperCase() ?? ""}${providerKey.slice(1)}`;
   })();
   const subjectLine = subject
@@ -72,14 +81,14 @@ export function buildGroupIntro(params: {
     activation === "always"
       ? "Activation: always-on (you receive every group message)."
       : "Activation: trigger-only (you are invoked only when explicitly mentioned; recent context may be included).";
-  const groupId = params.sessionCtx.From?.replace(/^group:/, "");
-  const groupRoom = params.sessionCtx.GroupRoom?.trim() ?? subject;
+  const groupId = params.sessionEntry?.groupId ?? extractGroupId(params.sessionCtx.From);
+  const groupChannel = params.sessionCtx.GroupChannel?.trim() ?? subject;
   const groupSpace = params.sessionCtx.GroupSpace?.trim();
   const providerIdsLine = providerId
-    ? getProviderDock(providerId)?.groups?.resolveGroupIntroHint?.({
+    ? getChannelDock(providerId)?.groups?.resolveGroupIntroHint?.({
         cfg: params.cfg,
         groupId,
-        groupRoom,
+        groupChannel,
         groupSpace,
         accountId: params.sessionCtx.AccountId,
       })
@@ -94,6 +103,8 @@ export function buildGroupIntro(params: {
       : undefined;
   const lurkLine =
     "Be a good group participant: mostly lurk and follow the conversation; reply only when directly addressed or you can add clear value. Emoji reactions are welcome when available.";
+  const styleLine =
+    "Write like a human. Avoid Markdown tables. Don't type literal \\n sequences; use real line breaks sparingly.";
   return [
     subjectLine,
     membersLine,
@@ -102,6 +113,7 @@ export function buildGroupIntro(params: {
     silenceLine,
     cautionLine,
     lurkLine,
+    styleLine,
   ]
     .filter(Boolean)
     .join(" ")

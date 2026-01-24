@@ -4,12 +4,16 @@ RUN corepack enable
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json vitest.config.ts ./
-COPY patches ./patches
+ENV NODE_OPTIONS="--disable-warning=ExperimentalWarning"
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json vitest.config.ts vitest.e2e.config.ts ./
 COPY src ./src
+COPY test ./test
 COPY scripts ./scripts
 COPY docs ./docs
 COPY skills ./skills
+COPY patches ./patches
+COPY extensions/memory-core ./extensions/memory-core
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm build

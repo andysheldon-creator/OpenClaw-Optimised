@@ -1,7 +1,7 @@
-import {
-  classifyFailoverReason,
-  type FailoverReason,
-} from "./pi-embedded-helpers.js";
+import { classifyFailoverReason, type FailoverReason } from "./pi-embedded-helpers.js";
+
+const TIMEOUT_HINT_RE = /timeout|timed out|deadline exceeded|context deadline exceeded/i;
+const ABORT_TIMEOUT_RE = /request was aborted|request aborted/i;
 
 export class FailoverError extends Error {
   readonly reason: FailoverReason;
@@ -38,9 +38,7 @@ export function isFailoverError(err: unknown): err is FailoverError {
   return err instanceof FailoverError;
 }
 
-export function resolveFailoverStatus(
-  reason: FailoverReason,
-): number | undefined {
+export function resolveFailoverStatus(reason: FailoverReason): number | undefined {
   switch (reason) {
     case "billing":
       return 402;
@@ -69,6 +67,11 @@ function getStatusCode(err: unknown): number | undefined {
   return undefined;
 }
 
+function getErrorName(err: unknown): string {
+  if (!err || typeof err !== "object") return "";
+  return "name" in err ? String(err.name) : "";
+}
+
 function getErrorCode(err: unknown): string | undefined {
   if (!err || typeof err !== "object") return undefined;
   const candidate = (err as { code?: unknown }).code;
@@ -80,11 +83,7 @@ function getErrorCode(err: unknown): string | undefined {
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
-  if (
-    typeof err === "number" ||
-    typeof err === "boolean" ||
-    typeof err === "bigint"
-  ) {
+  if (typeof err === "number" || typeof err === "boolean" || typeof err === "bigint") {
     return String(err);
   }
   if (typeof err === "symbol") return err.description ?? "";
@@ -95,9 +94,25 @@ function getErrorMessage(err: unknown): string {
   return "";
 }
 
-export function resolveFailoverReasonFromError(
-  err: unknown,
-): FailoverReason | null {
+function hasTimeoutHint(err: unknown): boolean {
+  if (!err) return false;
+  if (getErrorName(err) === "TimeoutError") return true;
+  const message = getErrorMessage(err);
+  return Boolean(message && TIMEOUT_HINT_RE.test(message));
+}
+
+export function isTimeoutError(err: unknown): boolean {
+  if (hasTimeoutHint(err)) return true;
+  if (!err || typeof err !== "object") return false;
+  if (getErrorName(err) !== "AbortError") return false;
+  const message = getErrorMessage(err);
+  if (message && ABORT_TIMEOUT_RE.test(message)) return true;
+  const cause = "cause" in err ? (err as { cause?: unknown }).cause : undefined;
+  const reason = "reason" in err ? (err as { reason?: unknown }).reason : undefined;
+  return hasTimeoutHint(cause) || hasTimeoutHint(reason);
+}
+
+export function resolveFailoverReasonFromError(err: unknown): FailoverReason | null {
   if (isFailoverError(err)) return err.reason;
 
   const status = getStatusCode(err);
@@ -107,13 +122,10 @@ export function resolveFailoverReasonFromError(
   if (status === 408) return "timeout";
 
   const code = (getErrorCode(err) ?? "").toUpperCase();
-  if (
-    ["ETIMEDOUT", "ESOCKETTIMEDOUT", "ECONNRESET", "ECONNABORTED"].includes(
-      code,
-    )
-  ) {
+  if (["ETIMEDOUT", "ESOCKETTIMEDOUT", "ECONNRESET", "ECONNABORTED"].includes(code)) {
     return "timeout";
   }
+  if (isTimeoutError(err)) return "timeout";
 
   const message = getErrorMessage(err);
   if (!message) return null;

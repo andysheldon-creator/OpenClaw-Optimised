@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import path from "node:path";
 
 type LockFilePayload = {
   pid: number;
@@ -23,9 +24,7 @@ function isAlive(pid: number): boolean {
   }
 }
 
-async function readLockPayload(
-  lockPath: string,
-): Promise<LockFilePayload | null> {
+async function readLockPayload(lockPath: string): Promise<LockFilePayload | null> {
   try {
     const raw = await fs.readFile(lockPath, "utf8");
     const parsed = JSON.parse(raw) as Partial<LockFilePayload>;
@@ -46,19 +45,28 @@ export async function acquireSessionWriteLock(params: {
 }> {
   const timeoutMs = params.timeoutMs ?? 10_000;
   const staleMs = params.staleMs ?? 30 * 60 * 1000;
-  const sessionFile = params.sessionFile;
-  const lockPath = `${sessionFile}.lock`;
+  const sessionFile = path.resolve(params.sessionFile);
+  const sessionDir = path.dirname(sessionFile);
+  await fs.mkdir(sessionDir, { recursive: true });
+  let normalizedDir = sessionDir;
+  try {
+    normalizedDir = await fs.realpath(sessionDir);
+  } catch {
+    // Fall back to the resolved path if realpath fails (permissions, transient FS).
+  }
+  const normalizedSessionFile = path.join(normalizedDir, path.basename(sessionFile));
+  const lockPath = `${normalizedSessionFile}.lock`;
 
-  const held = HELD_LOCKS.get(sessionFile);
+  const held = HELD_LOCKS.get(normalizedSessionFile);
   if (held) {
     held.count += 1;
     return {
       release: async () => {
-        const current = HELD_LOCKS.get(sessionFile);
+        const current = HELD_LOCKS.get(normalizedSessionFile);
         if (!current) return;
         current.count -= 1;
         if (current.count > 0) return;
-        HELD_LOCKS.delete(sessionFile);
+        HELD_LOCKS.delete(normalizedSessionFile);
         await current.handle.close();
         await fs.rm(current.lockPath, { force: true });
       },
@@ -72,21 +80,17 @@ export async function acquireSessionWriteLock(params: {
     try {
       const handle = await fs.open(lockPath, "wx");
       await handle.writeFile(
-        JSON.stringify(
-          { pid: process.pid, createdAt: new Date().toISOString() },
-          null,
-          2,
-        ),
+        JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() }, null, 2),
         "utf8",
       );
-      HELD_LOCKS.set(sessionFile, { count: 1, handle, lockPath });
+      HELD_LOCKS.set(normalizedSessionFile, { count: 1, handle, lockPath });
       return {
         release: async () => {
-          const current = HELD_LOCKS.get(sessionFile);
+          const current = HELD_LOCKS.get(normalizedSessionFile);
           if (!current) return;
           current.count -= 1;
           if (current.count > 0) return;
-          HELD_LOCKS.delete(sessionFile);
+          HELD_LOCKS.delete(normalizedSessionFile);
           await current.handle.close();
           await fs.rm(current.lockPath, { force: true });
         },
@@ -95,11 +99,8 @@ export async function acquireSessionWriteLock(params: {
       const code = (err as { code?: unknown }).code;
       if (code !== "EEXIST") throw err;
       const payload = await readLockPayload(lockPath);
-      const createdAt = payload?.createdAt
-        ? Date.parse(payload.createdAt)
-        : NaN;
-      const stale =
-        !Number.isFinite(createdAt) || Date.now() - createdAt > staleMs;
+      const createdAt = payload?.createdAt ? Date.parse(payload.createdAt) : NaN;
+      const stale = !Number.isFinite(createdAt) || Date.now() - createdAt > staleMs;
       const alive = payload?.pid ? isAlive(payload.pid) : false;
       if (stale || !alive) {
         await fs.rm(lockPath, { force: true });
@@ -113,7 +114,5 @@ export async function acquireSessionWriteLock(params: {
 
   const payload = await readLockPayload(lockPath);
   const owner = payload?.pid ? `pid=${payload.pid}` : "unknown";
-  throw new Error(
-    `session file locked (timeout ${timeoutMs}ms): ${owner} ${lockPath}`,
-  );
+  throw new Error(`session file locked (timeout ${timeoutMs}ms): ${owner} ${lockPath}`);
 }

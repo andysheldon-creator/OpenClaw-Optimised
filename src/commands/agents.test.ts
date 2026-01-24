@@ -34,9 +34,9 @@ describe("agents helpers", () => {
       bindings: [
         {
           agentId: "work",
-          match: { provider: "whatsapp", accountId: "biz" },
+          match: { channel: "whatsapp", accountId: "biz" },
         },
-        { agentId: "main", match: { provider: "telegram" } },
+        { agentId: "main", match: { channel: "telegram" } },
       ],
     };
 
@@ -48,9 +48,7 @@ describe("agents helpers", () => {
     expect(main?.workspace).toBe(path.join(os.homedir(), "clawd-main"));
     expect(main?.bindings).toBe(1);
     expect(main?.model).toBe("anthropic/claude");
-    expect(main?.agentDir.endsWith(path.join("agents", "main", "agent"))).toBe(
-      true,
-    );
+    expect(main?.agentDir.endsWith(path.join("agents", "main", "agent"))).toBe(true);
 
     expect(work).toBeTruthy();
     expect(work?.name).toBe("Work");
@@ -86,7 +84,7 @@ describe("agents helpers", () => {
       bindings: [
         {
           agentId: "main",
-          match: { provider: "whatsapp", accountId: "default" },
+          match: { channel: "whatsapp", accountId: "default" },
         },
       ],
     };
@@ -94,15 +92,15 @@ describe("agents helpers", () => {
     const result = applyAgentBindings(cfg, [
       {
         agentId: "main",
-        match: { provider: "whatsapp", accountId: "default" },
+        match: { channel: "whatsapp", accountId: "default" },
       },
       {
         agentId: "work",
-        match: { provider: "whatsapp", accountId: "default" },
+        match: { channel: "whatsapp", accountId: "default" },
       },
       {
         agentId: "work",
-        match: { provider: "telegram" },
+        match: { channel: "telegram" },
       },
     ]);
 
@@ -121,8 +119,8 @@ describe("agents helpers", () => {
         ],
       },
       bindings: [
-        { agentId: "work", match: { provider: "whatsapp" } },
-        { agentId: "home", match: { provider: "telegram" } },
+        { agentId: "work", match: { channel: "whatsapp" } },
+        { agentId: "home", match: { channel: "telegram" } },
       ],
       tools: {
         agentToAgent: { enabled: true, allow: ["work", "home"] },
@@ -130,12 +128,8 @@ describe("agents helpers", () => {
     };
 
     const result = pruneAgentConfig(cfg, "work");
-    expect(
-      result.config.agents?.list?.some((agent) => agent.id === "work"),
-    ).toBe(false);
-    expect(
-      result.config.agents?.list?.some((agent) => agent.id === "home"),
-    ).toBe(true);
+    expect(result.config.agents?.list?.some((agent) => agent.id === "work")).toBe(false);
+    expect(result.config.agents?.list?.some((agent) => agent.id === "home")).toBe(true);
     expect(result.config.bindings).toHaveLength(1);
     expect(result.config.bindings?.[0]?.agentId).toBe("home");
     expect(result.config.tools?.agentToAgent?.allow).toEqual(["home"]);

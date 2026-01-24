@@ -45,7 +45,10 @@ To disable bootstrap file creation entirely (for pre-seeded workspaces), set:
 
 ## Built-in tools
 
-Core tools (read/bash/edit/write and related system tools) are always available. `TOOLS.md` does **not** control which tools exist; it’s guidance for how *you* want them used.
+Core tools (read/exec/edit/write and related system tools) are always available,
+subject to tool policy. `apply_patch` is optional and gated by
+`tools.exec.applyPatch`. `TOOLS.md` does **not** control which tools exist; it’s
+guidance for how *you* want them used.
 
 ## Skills
 
@@ -89,17 +92,25 @@ Tune the boundary via `agents.defaults.blockStreamingBreak` (`text_end` vs `mess
 Control soft block chunking with `agents.defaults.blockStreamingChunk` (defaults to
 800–1200 chars; prefers paragraph breaks, then newlines; sentences last).
 Coalesce streamed chunks with `agents.defaults.blockStreamingCoalesce` to reduce
-single-line spam (idle-based merging before send). Non-Telegram providers require
+single-line spam (idle-based merging before send). Non-Telegram channels require
 explicit `*.blockStreaming: true` to enable block replies.
 Verbose tool summaries are emitted at tool start (no debounce); Control UI
 streams tool output via agent events when available.
 More details: [Streaming + chunking](/concepts/streaming).
 
+## Model refs
+
+Model refs in config (for example `agents.defaults.model` and `agents.defaults.models`) are parsed by splitting on the **first** `/`.
+
+- Use `provider/model` when configuring models.
+- If the model ID itself contains `/` (OpenRouter-style), include the provider prefix (example: `openrouter/moonshotai/kimi-k2`).
+- If you omit the provider, Clawdbot treats the input as an alias or a model for the **default provider** (only works when there is no `/` in the model ID).
+
 ## Configuration (minimal)
 
 At minimum, set:
 - `agents.defaults.workspace`
-- `whatsapp.allowFrom` (strongly recommended)
+- `channels.whatsapp.allowFrom` (strongly recommended)
 
 ---
 

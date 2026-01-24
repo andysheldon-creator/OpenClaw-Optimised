@@ -1,13 +1,13 @@
 packages:
   - .
   - ui
+  - extensions/*
 
 onlyBuiltDependencies:
   - '@whiskeysockets/baileys'
+  - '@lydell/node-pty'
+  - '@matrix-org/matrix-sdk-crypto-nodejs'
   - authenticate-pam
   - esbuild
   - protobufjs
   - sharp
-
-patchedDependencies:
-  '@mariozechner/pi-ai@0.42.2': patches/@mariozechner__pi-ai@0.42.2.patch

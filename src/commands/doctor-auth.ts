@@ -13,6 +13,7 @@ import {
 } from "../agents/auth-profiles.js";
 import type { ClawdbotConfig } from "../config/config.js";
 import { note } from "../terminal/note.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
 
 export async function maybeRepairAnthropicOAuthProfileId(
@@ -45,26 +46,18 @@ type AuthIssue = {
 };
 
 function formatAuthIssueHint(issue: AuthIssue): string | null {
-  if (
-    issue.provider === "anthropic" &&
-    issue.profileId === CLAUDE_CLI_PROFILE_ID
-  ) {
+  if (issue.provider === "anthropic" && issue.profileId === CLAUDE_CLI_PROFILE_ID) {
     return "Run `claude setup-token` on the gateway host.";
   }
-  if (
-    issue.provider === "openai-codex" &&
-    issue.profileId === CODEX_CLI_PROFILE_ID
-  ) {
-    return "Run `codex login` (or `clawdbot configure` → OpenAI Codex OAuth).";
+  if (issue.provider === "openai-codex" && issue.profileId === CODEX_CLI_PROFILE_ID) {
+    return `Run \`codex login\` (or \`${formatCliCommand("clawdbot configure")}\` → OpenAI Codex OAuth).`;
   }
-  return "Re-auth via `clawdbot configure` or `clawdbot onboard`.";
+  return `Re-auth via \`${formatCliCommand("clawdbot configure")}\` or \`${formatCliCommand("clawdbot onboard")}\`.`;
 }
 
 function formatAuthIssueLine(issue: AuthIssue): string {
   const remaining =
-    issue.remainingMs !== undefined
-      ? ` (${formatRemainingShort(issue.remainingMs)})`
-      : "";
+    issue.remainingMs !== undefined ? ` (${formatRemainingShort(issue.remainingMs)})` : "";
   const hint = formatAuthIssueHint(issue);
   return `- ${issue.profileId}: ${issue.status}${remaining}${hint ? ` — ${hint}` : ""}`;
 }
@@ -92,9 +85,7 @@ export async function noteAuthProfileHealth(params: {
       const hint = kind.startsWith("disabled:billing")
         ? "Top up credits (provider billing) or switch provider."
         : "Wait for cooldown or switch provider.";
-      out.push(
-        `- ${profileId}: ${kind} (${remaining})${hint ? ` — ${hint}` : ""}`,
-      );
+      out.push(`- ${profileId}: ${kind} (${remaining})${hint ? ` — ${hint}` : ""}`);
     }
     return out;
   })();
@@ -129,8 +120,7 @@ export async function noteAuthProfileHealth(params: {
   if (shouldRefresh) {
     const refreshTargets = issues.filter(
       (issue) =>
-        issue.type === "oauth" &&
-        ["expired", "expiring", "missing"].includes(issue.status),
+        issue.type === "oauth" && ["expired", "expiring", "missing"].includes(issue.status),
     );
     const errors: string[] = [];
     for (const profile of refreshTargets) {
@@ -141,9 +131,7 @@ export async function noteAuthProfileHealth(params: {
           profileId: profile.profileId,
         });
       } catch (err) {
-        errors.push(
-          `- ${profile.profileId}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        errors.push(`- ${profile.profileId}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
     if (errors.length > 0) {

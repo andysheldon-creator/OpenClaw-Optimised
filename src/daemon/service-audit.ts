@@ -6,7 +6,7 @@ import {
   isVersionManagedNodePath,
   resolveSystemNodePath,
 } from "./runtime-paths.js";
-import { getMinimalServicePathParts } from "./service-env.js";
+import { getMinimalServicePathPartsFromEnv } from "./service-env.js";
 import { resolveSystemdUserUnitPath } from "./systemd.js";
 
 export type GatewayServiceCommand = {
@@ -44,9 +44,7 @@ export const SERVICE_AUDIT_CODES = {
   systemdWantsNetworkOnline: "systemd-wants-network-online",
 } as const;
 
-export function needsNodeRuntimeMigration(
-  issues: ServiceConfigIssue[],
-): boolean {
+export function needsNodeRuntimeMigration(issues: ServiceConfigIssue[]): boolean {
   return issues.some(
     (issue) =>
       issue.code === SERVICE_AUDIT_CODES.gatewayRuntimeBun ||
@@ -171,10 +169,7 @@ async function auditLaunchdPlist(
   }
 }
 
-function auditGatewayCommand(
-  programArguments: string[] | undefined,
-  issues: ServiceConfigIssue[],
-) {
+function auditGatewayCommand(programArguments: string[] | undefined, issues: ServiceConfigIssue[]) {
   if (!programArguments || programArguments.length === 0) return;
   if (!hasGatewaySubcommand(programArguments)) {
     issues.push({
@@ -211,6 +206,7 @@ function normalizePathEntry(entry: string, platform: NodeJS.Platform): string {
 function auditGatewayServicePath(
   command: GatewayServiceCommand,
   issues: ServiceConfigIssue[],
+  env: Record<string, string | undefined>,
   platform: NodeJS.Platform,
 ) {
   if (platform === "win32") return;
@@ -218,21 +214,19 @@ function auditGatewayServicePath(
   if (!servicePath) {
     issues.push({
       code: SERVICE_AUDIT_CODES.gatewayPathMissing,
-      message:
-        "Gateway service PATH is not set; the daemon should use a minimal PATH.",
+      message: "Gateway service PATH is not set; the daemon should use a minimal PATH.",
       level: "recommended",
     });
     return;
   }
 
-  const expected = getMinimalServicePathParts({ platform });
+  const expected = getMinimalServicePathPartsFromEnv({ platform, env });
   const parts = servicePath
     .split(getPathModule(platform).delimiter)
     .map((entry) => entry.trim())
     .filter(Boolean);
-  const normalizedParts = parts.map((entry) =>
-    normalizePathEntry(entry, platform),
-  );
+  const normalizedParts = parts.map((entry) => normalizePathEntry(entry, platform));
+  const normalizedExpected = new Set(expected.map((entry) => normalizePathEntry(entry, platform)));
   const missing = expected.filter((entry) => {
     const normalized = normalizePathEntry(entry, platform);
     return !normalizedParts.includes(normalized);
@@ -247,6 +241,9 @@ function auditGatewayServicePath(
 
   const nonMinimal = parts.filter((entry) => {
     const normalized = normalizePathEntry(entry, platform);
+    if (normalizedExpected.has(normalized)) {
+      return false;
+    }
     return (
       normalized.includes("/.nvm/") ||
       normalized.includes("/.fnm/") ||
@@ -284,8 +281,7 @@ async function auditGatewayRuntime(
   if (isBunRuntime(execPath)) {
     issues.push({
       code: SERVICE_AUDIT_CODES.gatewayRuntimeBun,
-      message:
-        "Gateway service uses Bun; Bun is incompatible with WhatsApp + Telegram providers.",
+      message: "Gateway service uses Bun; Bun is incompatible with WhatsApp + Telegram channels.",
       detail: execPath,
       level: "recommended",
     });
@@ -297,8 +293,7 @@ async function auditGatewayRuntime(
   if (isVersionManagedNodePath(execPath, platform)) {
     issues.push({
       code: SERVICE_AUDIT_CODES.gatewayRuntimeNodeVersionManager,
-      message:
-        "Gateway service uses Node from a version manager; it can break after upgrades.",
+      message: "Gateway service uses Node from a version manager; it can break after upgrades.",
       detail: execPath,
       level: "recommended",
     });
@@ -325,7 +320,7 @@ export async function auditGatewayServiceConfig(params: {
   const platform = params.platform ?? process.platform;
 
   auditGatewayCommand(params.command?.programArguments, issues);
-  auditGatewayServicePath(params.command, issues, platform);
+  auditGatewayServicePath(params.command, issues, params.env, platform);
   await auditGatewayRuntime(params.env, params.command, issues, platform);
 
   if (platform === "linux") {

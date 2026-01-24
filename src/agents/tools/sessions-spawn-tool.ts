@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import { Type } from "@sinclair/typebox";
 
+import { formatThinkingLevels, normalizeThinkLevel } from "../../auto-reply/thinking.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import {
@@ -9,9 +10,11 @@ import {
   normalizeAgentId,
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
-import type { GatewayMessageProvider } from "../../utils/message-provider.js";
+import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
+import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
+import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import { registerSubagentRun } from "../subagent-registry.js";
 import type { AnyAgentTool } from "./common.js";
@@ -27,17 +30,42 @@ const SessionsSpawnToolSchema = Type.Object({
   label: Type.Optional(Type.String()),
   agentId: Type.Optional(Type.String()),
   model: Type.Optional(Type.String()),
+  thinking: Type.Optional(Type.String()),
   runTimeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   // Back-compat alias. Prefer runTimeoutSeconds.
   timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
-  cleanup: Type.Optional(
-    Type.Union([Type.Literal("delete"), Type.Literal("keep")]),
-  ),
+  cleanup: optionalStringEnum(["delete", "keep"] as const),
 });
+
+function splitModelRef(ref?: string) {
+  if (!ref) return { provider: undefined, model: undefined };
+  const trimmed = ref.trim();
+  if (!trimmed) return { provider: undefined, model: undefined };
+  const [provider, model] = trimmed.split("/", 2);
+  if (model) return { provider, model };
+  return { provider: undefined, model: trimmed };
+}
+
+function normalizeModelSelection(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+  if (!value || typeof value !== "object") return undefined;
+  const primary = (value as { primary?: unknown }).primary;
+  if (typeof primary === "string" && primary.trim()) return primary.trim();
+  return undefined;
+}
 
 export function createSessionsSpawnTool(opts?: {
   agentSessionKey?: string;
-  agentProvider?: GatewayMessageProvider;
+  agentChannel?: GatewayMessageChannel;
+  agentAccountId?: string;
+  agentTo?: string;
+  agentThreadId?: string | number;
+  agentGroupId?: string | null;
+  agentGroupChannel?: string | null;
+  agentGroupSpace?: string | null;
   sandboxed?: boolean;
 }): AnyAgentTool {
   return {
@@ -51,21 +79,26 @@ export function createSessionsSpawnTool(opts?: {
       const task = readStringParam(params, "task", { required: true });
       const label = typeof params.label === "string" ? params.label.trim() : "";
       const requestedAgentId = readStringParam(params, "agentId");
-      const model = readStringParam(params, "model");
+      const modelOverride = readStringParam(params, "model");
+      const thinkingOverrideRaw = readStringParam(params, "thinking");
       const cleanup =
         params.cleanup === "keep" || params.cleanup === "delete"
           ? (params.cleanup as "keep" | "delete")
           : "keep";
+      const requesterOrigin = normalizeDeliveryContext({
+        channel: opts?.agentChannel,
+        accountId: opts?.agentAccountId,
+        to: opts?.agentTo,
+        threadId: opts?.agentThreadId,
+      });
       const runTimeoutSeconds = (() => {
         const explicit =
-          typeof params.runTimeoutSeconds === "number" &&
-          Number.isFinite(params.runTimeoutSeconds)
+          typeof params.runTimeoutSeconds === "number" && Number.isFinite(params.runTimeoutSeconds)
             ? Math.max(0, Math.floor(params.runTimeoutSeconds))
             : undefined;
         if (explicit !== undefined) return explicit;
         const legacy =
-          typeof params.timeoutSeconds === "number" &&
-          Number.isFinite(params.timeoutSeconds)
+          typeof params.timeoutSeconds === "number" && Number.isFinite(params.timeoutSeconds)
             ? Math.max(0, Math.floor(params.timeoutSeconds))
             : undefined;
         return legacy ?? 0;
@@ -76,10 +109,7 @@ export function createSessionsSpawnTool(opts?: {
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const requesterSessionKey = opts?.agentSessionKey;
-      if (
-        typeof requesterSessionKey === "string" &&
-        isSubagentSessionKey(requesterSessionKey)
-      ) {
+      if (typeof requesterSessionKey === "string" && isSubagentSessionKey(requesterSessionKey)) {
         return jsonResult({
           status: "forbidden",
           error: "sessions_spawn is not allowed from sub-agent sessions",
@@ -105,9 +135,7 @@ export function createSessionsSpawnTool(opts?: {
         ? normalizeAgentId(requestedAgentId)
         : requesterAgentId;
       if (targetAgentId !== requesterAgentId) {
-        const allowAgents =
-          resolveAgentConfig(cfg, requesterAgentId)?.subagents?.allowAgents ??
-          [];
+        const allowAgents = resolveAgentConfig(cfg, requesterAgentId)?.subagents?.allowAgents ?? [];
         const allowAny = allowAgents.some((value) => value.trim() === "*");
         const normalizedTargetId = targetAgentId.toLowerCase();
         const allowSet = new Set(
@@ -128,25 +156,38 @@ export function createSessionsSpawnTool(opts?: {
         }
       }
       const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
-      const shouldPatchSpawnedBy = opts?.sandboxed === true;
-      if (model) {
+      const spawnedByKey = requesterInternalKey;
+      const targetAgentConfig = resolveAgentConfig(cfg, targetAgentId);
+      const resolvedModel =
+        normalizeModelSelection(modelOverride) ??
+        normalizeModelSelection(targetAgentConfig?.subagents?.model) ??
+        normalizeModelSelection(cfg.agents?.defaults?.subagents?.model);
+      let thinkingOverride: string | undefined;
+      if (thinkingOverrideRaw) {
+        const normalized = normalizeThinkLevel(thinkingOverrideRaw);
+        if (!normalized) {
+          const { provider, model } = splitModelRef(resolvedModel);
+          const hint = formatThinkingLevels(provider, model);
+          return jsonResult({
+            status: "error",
+            error: `Invalid thinking level "${thinkingOverrideRaw}". Use one of: ${hint}.`,
+          });
+        }
+        thinkingOverride = normalized;
+      }
+      if (resolvedModel) {
         try {
           await callGateway({
             method: "sessions.patch",
-            params: { key: childSessionKey, model },
+            params: { key: childSessionKey, model: resolvedModel },
             timeoutMs: 10_000,
           });
           modelApplied = true;
         } catch (err) {
           const messageText =
-            err instanceof Error
-              ? err.message
-              : typeof err === "string"
-                ? err
-                : "error";
+            err instanceof Error ? err.message : typeof err === "string" ? err : "error";
           const recoverable =
-            messageText.includes("invalid model") ||
-            messageText.includes("model not allowed");
+            messageText.includes("invalid model") || messageText.includes("model not allowed");
           if (!recoverable) {
             return jsonResult({
               status: "error",
@@ -159,7 +200,7 @@ export function createSessionsSpawnTool(opts?: {
       }
       const childSystemPrompt = buildSubagentSystemPrompt({
         requesterSessionKey,
-        requesterProvider: opts?.agentProvider,
+        requesterOrigin,
         childSessionKey,
         label: label || undefined,
         task,
@@ -173,14 +214,18 @@ export function createSessionsSpawnTool(opts?: {
           params: {
             message: task,
             sessionKey: childSessionKey,
-            provider: opts?.agentProvider,
+            channel: requesterOrigin?.channel,
             idempotencyKey: childIdem,
             deliver: false,
             lane: AGENT_LANE_SUBAGENT,
             extraSystemPrompt: childSystemPrompt,
+            thinking: thinkingOverride,
             timeout: runTimeoutSeconds > 0 ? runTimeoutSeconds : undefined,
             label: label || undefined,
-            spawnedBy: shouldPatchSpawnedBy ? requesterInternalKey : undefined,
+            spawnedBy: spawnedByKey,
+            groupId: opts?.agentGroupId ?? undefined,
+            groupChannel: opts?.agentGroupChannel ?? undefined,
+            groupSpace: opts?.agentGroupSpace ?? undefined,
           },
           timeoutMs: 10_000,
         })) as { runId?: string };
@@ -189,11 +234,7 @@ export function createSessionsSpawnTool(opts?: {
         }
       } catch (err) {
         const messageText =
-          err instanceof Error
-            ? err.message
-            : typeof err === "string"
-              ? err
-              : "error";
+          err instanceof Error ? err.message : typeof err === "string" ? err : "error";
         return jsonResult({
           status: "error",
           error: messageText,
@@ -206,18 +247,19 @@ export function createSessionsSpawnTool(opts?: {
         runId: childRunId,
         childSessionKey,
         requesterSessionKey: requesterInternalKey,
-        requesterProvider: opts?.agentProvider,
+        requesterOrigin,
         requesterDisplayKey,
         task,
         cleanup,
         label: label || undefined,
+        runTimeoutSeconds,
       });
 
       return jsonResult({
         status: "accepted",
         childSessionKey,
         runId: childRunId,
-        modelApplied: model ? modelApplied : undefined,
+        modelApplied: resolvedModel ? modelApplied : undefined,
         warning: modelWarning,
       });
     },

@@ -9,7 +9,7 @@ summary: "Community-built projects and integrations powered by Clawdbot"
 Real projects from the community. See what people are building with Clawdbot.
 
 <Info>
-**Want to be featured?** Share your project in [#showcase on Discord](https://discord.gg/clawdbot) or [tag @clawdbot on X](https://x.com/clawdbot).
+**Want to be featured?** Share your project in [#showcase on Discord](https://discord.gg/clawd) or [tag @clawdbot on X](https://x.com/clawdbot).
 </Info>
 
 ## 🎥 Clawdbot in Action
@@ -38,9 +38,69 @@ Full setup walkthrough (28m) by VelvetShark.
 
 [Watch on YouTube](https://www.youtube.com/watch?v=SaWSPZoPX34)
 
+<div
+  style={{
+    position: "relative",
+    paddingBottom: "56.25%",
+    height: 0,
+    overflow: "hidden",
+    borderRadius: 16,
+  }}
+>
+  <iframe
+    src="https://www.youtube-nocookie.com/embed/mMSKQvlmFuQ"
+    title="Clawdbot showcase video"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    loading="lazy"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowFullScreen
+  />
+</div>
+
+[Watch on YouTube](https://www.youtube.com/watch?v=mMSKQvlmFuQ)
+
+<div
+  style={{
+    position: "relative",
+    paddingBottom: "56.25%",
+    height: 0,
+    overflow: "hidden",
+    borderRadius: 16,
+  }}
+>
+  <iframe
+    src="https://www.youtube-nocookie.com/embed/5kkIJNUGFho"
+    title="Clawdbot community showcase"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    loading="lazy"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowFullScreen
+  />
+</div>
+
+[Watch on YouTube](https://www.youtube.com/watch?v=5kkIJNUGFho)
+
 ## 🆕 Fresh from Discord
 
 <CardGroup cols={2}>
+
+<Card title="PR Review → Telegram Feedback" icon="code-pull-request" href="https://x.com/i/status/2010878524543131691">
+  **@bangnokia** • `review` `github` `telegram`
+
+  OpenCode finishes the change → opens a PR → Clawdbot reviews the diff and replies in Telegram with “minor suggestions” plus a clear merge verdict (including critical fixes to apply first).
+
+  <img src="/assets/showcase/pr-review-telegram.jpg" alt="Clawdbot PR review feedback delivered in Telegram" />
+</Card>
+
+<Card title="Wine Cellar Skill in Minutes" icon="wine-glass" href="https://x.com/i/status/2010916352454791216">
+  **@prades_maxime** • `skills` `local` `csv`
+
+  Asked “Robby” (@clawdbot) for a local wine cellar skill. It requests a sample CSV export + where to store it, then builds/tests the skill fast (962 bottles in the example).
+
+  <img src="/assets/showcase/wine-cellar-skill.jpg" alt="Clawdbot building a local wine cellar skill from CSV" />
+</Card>
 
 <Card title="Tesco Shop Autopilot" icon="cart-shopping" href="https://x.com/i/status/2009724862470689131">
   **@marchattonhere** • `automation` `browser` `shopping`
@@ -125,33 +185,50 @@ Full setup walkthrough (28m) by VelvetShark.
 
   <img src="/assets/showcase/oura-health.png" alt="Oura ring health assistant" />
 </Card>
-<Card title="Multi-Agent Swarm (14+ Agents)" icon="robot" href="https://github.com/adam91holt/clawdspace">
-  **@adam91holt** • `multi-agent` `slack` `orchestration` `swarm`
+<Card title="Kev's Dream Team (14+ Agents)" icon="robot" href="https://github.com/adam91holt/orchestrated-ai-articles">
+  **@adam91holt** • `multi-agent` `orchestration` `architecture` `manifesto`
 
-  14+ Clawdbot agents under one gateway. Opus 4.5 orchestrator delegates to Codex workers. Self-maintaining agents that continuously improve. Open-sourced clawdspace for agent sandboxing.
+  14+ agents under one gateway with Opus 4.5 orchestrator delegating to Codex workers. Comprehensive [technical write-up](https://github.com/adam91holt/orchestrated-ai-articles) covering the Dream Team roster, model selection, sandboxing, webhooks, heartbeats, and delegation flows. [Clawdspace](https://github.com/adam91holt/clawdspace) for agent sandboxing. [Blog post](https://adams-ai-journey.ghost.io/2026-the-year-of-the-orchestrator/).
 </Card>
+
+<Card title="Linear CLI" icon="terminal" href="https://github.com/Finesssee/linear-cli">
+  **@NessZerra** • `devtools` `linear` `cli` `issues`
+
+  CLI for Linear that integrates with agentic workflows (Claude Code, Clawdbot). Manage issues, projects, and workflows from the terminal. First external PR merged!
+</Card>
+
+<Card title="Beeper CLI" icon="message" href="https://github.com/blqke/beepcli">
+  **@jules** • `messaging` `beeper` `cli` `automation`
+
+  Read, send, and archive messages via Beeper Desktop. Uses Beeper local MCP API so agents can manage all your chats (iMessage, WhatsApp, etc.) in one place.
+</Card>
+
 </CardGroup>
 
 ## 🤖 Automation & Workflows
 
 <CardGroup cols={2}>
 
+<Card title="Winix Air Purifier Control" icon="wind" href="https://x.com/antonplex/status/2010518442471006253">
+  **@antonplex** • `automation` `hardware` `air-quality`
+
+  Claude Code discovered and confirmed the purifier controls, then Clawdbot takes over to manage room air quality.
+
+  <img src="/assets/showcase/winix-air-purifier.jpg" alt="Winix air purifier control via Clawdbot" />
+</Card>
+
+<Card title="Pretty Sky Camera Shots" icon="camera" href="https://x.com/signalgaining/status/2010523120604746151">
+  **@signalgaining** • `automation` `camera` `skill` `images`
+
+  Triggered by a roof camera: ask Clawdbot to snap a sky photo whenever it looks pretty — it designed a skill and took the shot.
+
+  <img src="/assets/showcase/roof-camera-sky.jpg" alt="Roof camera sky snapshot captured by Clawdbot" />
+</Card>
+
 <Card title="Visual Morning Briefing Scene" icon="robot" href="https://x.com/buddyhadry/status/2010005331925954739">
   **@buddyhadry** • `automation` `briefing` `images` `telegram`
 
   A scheduled prompt generates a single "scene" image each morning (weather, tasks, date, favorite post/quote) via a Clawdbot persona.
-</Card>
-
-<Card title="Grocery Autopilot" icon="cart-shopping" href="https://github.com/timkrase/clawdis-picnic-skill">
-  **@timkrase** • `automation` `groceries` `api`
-  
-  Skill built around the Picnic API. Pulls order history, infers preferred brands, maps recipes to cart, completes orders in minutes.
-</Card>
-
-<Card title="German Rail Planning" icon="train" href="https://github.com/timkrase/clawdis-skills/tree/main/db-bahn">
-  **@timkrase** • `automation` `travel` `cli`
-  
-  Go CLI for Deutsche Bahn; skill picks best train connections given time windows and preferences.
 </Card>
 
 <Card title="Padel Court Booking" icon="calendar-check" href="https://github.com/joshp123/padel-cli">
@@ -178,6 +255,18 @@ Full setup walkthrough (28m) by VelvetShark.
   **@attol8** • `automation` `api` `skill`
 
   Searches job listings, matches against CV keywords, and returns relevant opportunities with links. Built in 30 minutes using JSearch API.
+</Card>
+
+<Card title="Jira Skill Builder" icon="diagram-project" href="https://x.com/jdrhyne/status/2008336434827002232">
+  **@jdrhyne** • `automation` `jira` `skill` `devtools`
+
+  Clawdbot connected to Jira, then generated a new skill on the fly (before it existed on ClawdHub).
+</Card>
+
+<Card title="Todoist Skill via Telegram" icon="list-check" href="https://x.com/iamsubhrajyoti/status/2009949389884920153">
+  **@iamsubhrajyoti** • `automation` `todoist` `skill` `telegram`
+
+  Automated Todoist tasks and had Clawdbot generate the skill directly in Telegram chat.
 </Card>
 
 <Card title="TradingView Analysis" icon="chart-line">
@@ -238,14 +327,8 @@ Full setup walkthrough (28m) by VelvetShark.
 
 <Card title="OpenRouter Transcription" icon="microphone" href="https://clawdhub.com/obviyus/openrouter-transcribe">
   **@obviyus** • `transcription` `multilingual` `skill`
-  
-  Multi-lingual audio transcription via OpenRouter (Gemini, etc). Available on ClawdHub.
-</Card>
 
-<Card title="Google Docs Editor" icon="file-word">
-  **Community** • `docs` `editing` `skill`
-  
-  Rich-text Google Docs editing skill. Built rapidly with Claude Code.
+  Multi-lingual audio transcription via OpenRouter (Gemini, etc). Available on ClawdHub.
 </Card>
 
 </CardGroup>
@@ -322,7 +405,7 @@ Have something to share? We'd love to feature it!
 
 <Steps>
   <Step title="Share It">
-    Post in [#showcase on Discord](https://discord.gg/clawdbot) or [tweet @clawdbot](https://x.com/clawdbot)
+    Post in [#showcase on Discord](https://discord.gg/clawd) or [tweet @clawdbot](https://x.com/clawdbot)
   </Step>
   <Step title="Include Details">
     Tell us what it does, link to the repo/demo, share a screenshot if you have one

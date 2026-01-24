@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ClawdbotApp } from "./app";
+import "../styles.css";
 
 const originalConnect = ClawdbotApp.prototype.connect;
 
@@ -75,7 +76,7 @@ describe("control UI routing", () => {
     await app.updateComplete;
 
     const link = app.querySelector<HTMLAnchorElement>(
-      'a.nav-item[href="/connections"]',
+      'a.nav-item[href="/channels"]',
     );
     expect(link).not.toBeNull();
     link?.dispatchEvent(
@@ -83,8 +84,36 @@ describe("control UI routing", () => {
     );
 
     await app.updateComplete;
-    expect(app.tab).toBe("connections");
-    expect(window.location.pathname).toBe("/connections");
+    expect(app.tab).toBe("channels");
+    expect(window.location.pathname).toBe("/channels");
+  });
+
+  it("keeps chat and nav usable on narrow viewports", async () => {
+    const app = mountApp("/chat");
+    await app.updateComplete;
+
+    expect(window.matchMedia("(max-width: 768px)").matches).toBe(true);
+
+    const split = app.querySelector(".chat-split-container") as HTMLElement | null;
+    expect(split).not.toBeNull();
+    if (split) {
+      expect(getComputedStyle(split).position).not.toBe("fixed");
+    }
+
+    const chatMain = app.querySelector(".chat-main") as HTMLElement | null;
+    expect(chatMain).not.toBeNull();
+    if (chatMain) {
+      expect(getComputedStyle(chatMain).display).not.toBe("none");
+    }
+
+    if (split) {
+      split.classList.add("chat-split-container--open");
+      await app.updateComplete;
+      expect(getComputedStyle(split).position).toBe("fixed");
+    }
+    if (chatMain) {
+      expect(getComputedStyle(chatMain).display).toBe("none");
+    }
   });
 
   it("auto-scrolls chat history to the latest message", async () => {
@@ -138,7 +167,7 @@ describe("control UI routing", () => {
     expect(window.location.search).toBe("");
   });
 
-  it("strips auth params even when settings already set", async () => {
+  it("hydrates token from URL params even when settings already set", async () => {
     localStorage.setItem(
       "clawdbot.control.settings.v1",
       JSON.stringify({ token: "existing-token" }),
@@ -146,7 +175,7 @@ describe("control UI routing", () => {
     const app = mountApp("/ui/overview?token=abc123");
     await app.updateComplete;
 
-    expect(app.settings.token).toBe("existing-token");
+    expect(app.settings.token).toBe("abc123");
     expect(window.location.pathname).toBe("/ui/overview");
     expect(window.location.search).toBe("");
   });

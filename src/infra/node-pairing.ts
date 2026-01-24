@@ -9,6 +9,8 @@ export type NodePairingPendingRequest = {
   displayName?: string;
   platform?: string;
   version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
   deviceFamily?: string;
   modelIdentifier?: string;
   caps?: string[];
@@ -26,14 +28,18 @@ export type NodePairingPairedNode = {
   displayName?: string;
   platform?: string;
   version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
   deviceFamily?: string;
   modelIdentifier?: string;
   caps?: string[];
   commands?: string[];
+  bins?: string[];
   permissions?: Record<string, boolean>;
   remoteIp?: string;
   createdAtMs: number;
   approvedAtMs: number;
+  lastConnectedAtMs?: number;
 };
 
 export type NodePairingList = {
@@ -72,7 +78,17 @@ async function writeJSONAtomic(filePath: string, value: unknown) {
   await fs.mkdir(dir, { recursive: true });
   const tmp = `${filePath}.${randomUUID()}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(value, null, 2), "utf8");
+  try {
+    await fs.chmod(tmp, 0o600);
+  } catch {
+    // best-effort; ignore on platforms without chmod
+  }
   await fs.rename(tmp, filePath);
+  try {
+    await fs.chmod(filePath, 0o600);
+  } catch {
+    // best-effort; ignore on platforms without chmod
+  }
 }
 
 function pruneExpiredPending(
@@ -131,9 +147,7 @@ function newToken() {
   return randomUUID().replaceAll("-", "");
 }
 
-export async function listNodePairing(
-  baseDir?: string,
-): Promise<NodePairingList> {
+export async function listNodePairing(baseDir?: string): Promise<NodePairingList> {
   const state = await loadState(baseDir);
   const pending = Object.values(state.pendingById).sort((a, b) => b.ts - a.ts);
   const paired = Object.values(state.pairedByNodeId).sort(
@@ -165,9 +179,7 @@ export async function requestNodePairing(
       throw new Error("nodeId required");
     }
 
-    const existing = Object.values(state.pendingById).find(
-      (p) => p.nodeId === nodeId,
-    );
+    const existing = Object.values(state.pendingById).find((p) => p.nodeId === nodeId);
     if (existing) {
       return { status: "pending", request: existing, created: false };
     }
@@ -179,6 +191,8 @@ export async function requestNodePairing(
       displayName: req.displayName,
       platform: req.platform,
       version: req.version,
+      coreVersion: req.coreVersion,
+      uiVersion: req.uiVersion,
       deviceFamily: req.deviceFamily,
       modelIdentifier: req.modelIdentifier,
       caps: req.caps,
@@ -212,6 +226,8 @@ export async function approveNodePairing(
       displayName: pending.displayName,
       platform: pending.platform,
       version: pending.version,
+      coreVersion: pending.coreVersion,
+      uiVersion: pending.uiVersion,
       deviceFamily: pending.deviceFamily,
       modelIdentifier: pending.modelIdentifier,
       caps: pending.caps,
@@ -257,12 +273,7 @@ export async function verifyNodeToken(
 
 export async function updatePairedNodeMetadata(
   nodeId: string,
-  patch: Partial<
-    Omit<
-      NodePairingPairedNode,
-      "nodeId" | "token" | "createdAtMs" | "approvedAtMs"
-    >
-  >,
+  patch: Partial<Omit<NodePairingPairedNode, "nodeId" | "token" | "createdAtMs" | "approvedAtMs">>,
   baseDir?: string,
 ) {
   await withLock(async () => {
@@ -276,12 +287,16 @@ export async function updatePairedNodeMetadata(
       displayName: patch.displayName ?? existing.displayName,
       platform: patch.platform ?? existing.platform,
       version: patch.version ?? existing.version,
+      coreVersion: patch.coreVersion ?? existing.coreVersion,
+      uiVersion: patch.uiVersion ?? existing.uiVersion,
       deviceFamily: patch.deviceFamily ?? existing.deviceFamily,
       modelIdentifier: patch.modelIdentifier ?? existing.modelIdentifier,
       remoteIp: patch.remoteIp ?? existing.remoteIp,
       caps: patch.caps ?? existing.caps,
       commands: patch.commands ?? existing.commands,
+      bins: patch.bins ?? existing.bins,
       permissions: patch.permissions ?? existing.permissions,
+      lastConnectedAtMs: patch.lastConnectedAtMs ?? existing.lastConnectedAtMs,
     };
 
     state.pairedByNodeId[normalized] = next;

@@ -38,15 +38,18 @@ applies: workspace wins, then managed/local, then bundled.
 
 ## Plugins + skills
 
-Plugins can ship their own skills (for example, `voice-call`) and gate them via
-`metadata.clawdbot.requires.config` on the plugin’s config entry. See
-[Plugins](/plugin) for plugin discovery/config and [Tools](/tools) for the tool
-surface those skills teach.
+Plugins can ship their own skills by listing `skills` directories in
+`clawdbot.plugin.json` (paths relative to the plugin root). Plugin skills load
+when the plugin is enabled and participate in the normal skill precedence rules.
+You can gate them via `metadata.clawdbot.requires.config` on the plugin’s config
+entry. See [Plugins](/plugin) for discovery/config and [Tools](/tools) for the
+tool surface those skills teach.
 
 ## ClawdHub (install + sync)
 
-ClawdHub is the public skills registry for Clawdbot. Use it to discover,
-install, update, and back up skills. Full guide: [ClawdHub](/tools/clawdhub).
+ClawdHub is the public skills registry for Clawdbot. Browse at
+https://clawdhub.com. Use it to discover, install, update, and back up skills.
+Full guide: [ClawdHub](/tools/clawdhub).
 
 Common flows:
 
@@ -58,7 +61,8 @@ Common flows:
   - `clawdhub sync --all`
 
 By default, `clawdhub` installs into `./skills` under your current working
-directory; Clawdbot picks that up as `<workspace>/skills` on the next session.
+directory (or falls back to the configured Clawdbot workspace). Clawdbot picks
+that up as `<workspace>/skills` on the next session.
 
 ## Format (AgentSkills + Pi-compatible)
 
@@ -78,6 +82,14 @@ Notes:
 - Use `{baseDir}` in instructions to reference the skill folder path.
 - Optional frontmatter keys:
   - `homepage` — URL surfaced as “Website” in the macOS Skills UI (also supported via `metadata.clawdbot.homepage`).
+  - `user-invocable` — `true|false` (default: `true`). When `true`, the skill is exposed as a user slash command.
+  - `disable-model-invocation` — `true|false` (default: `false`). When `true`, the skill is excluded from the model prompt (still available via user invocation).
+  - `command-dispatch` — `tool` (optional). When set to `tool`, the slash command bypasses the model and dispatches directly to a tool.
+  - `command-tool` — tool name to invoke when `command-dispatch: tool` is set.
+  - `command-arg-mode` — `raw` (default). For tool dispatch, forwards the raw args string to the tool (no core parsing).
+
+    The tool is invoked with params:
+    `{ command: "<raw args>", commandName: "<slash command>", skillName: "<skill name>" }`.
 
 ## Gating (load-time filters)
 
@@ -101,7 +113,16 @@ Fields under `metadata.clawdbot`:
 - `requires.env` — list; env var must exist **or** be provided in config.
 - `requires.config` — list of `clawdbot.json` paths that must be truthy.
 - `primaryEnv` — env var name associated with `skills.entries.<name>.apiKey`.
-- `install` — optional array of installer specs used by the macOS Skills UI (brew/node/go/uv).
+- `install` — optional array of installer specs used by the macOS Skills UI (brew/node/go/uv/download).
+
+Note on sandboxing:
+- `requires.bins` is checked on the **host** at skill load time.
+- If an agent is sandboxed, the binary must also exist **inside the container**.
+  Install it via `agents.defaults.sandbox.docker.setupCommand` (or a custom image).
+  `setupCommand` runs once after the container is created.
+  Package installs also require network egress, a writable root FS, and a root user in the sandbox.
+  Example: the `summarize` skill (`skills/summarize/SKILL.md`) needs the `summarize` CLI
+  in the sandbox container to run there.
 
 Installer example:
 
@@ -115,8 +136,13 @@ metadata: {"clawdbot":{"emoji":"♊️","requires":{"bins":["gemini"]},"install"
 
 Notes:
 - If multiple installers are listed, the gateway picks a **single** preferred option (brew when available, otherwise node).
+- If all installers are `download`, Clawdbot lists each entry so you can see the available artifacts.
+- Installer specs can include `os: ["darwin"|"linux"|"win32"]` to filter options by platform.
 - Node installs honor `skills.install.nodeManager` in `clawdbot.json` (default: npm; options: npm/pnpm/yarn/bun).
+  This only affects **skill installs**; the Gateway runtime should still be Node
+  (Bun is not recommended for WhatsApp/Telegram).
 - Go installs: if `go` is missing and `brew` is available, the gateway installs Go via Homebrew first and sets `GOBIN` to Homebrew’s `bin` when possible.
+ - Download installs: `url` (required), `archive` (`tar.gz` | `tar.bz2` | `zip`), `extract` (default: auto when archive detected), `stripComponents`, `targetDir` (default: `~/.clawdbot/tools/<skillKey>`).
 
 If no `metadata.clawdbot` is present, the skill is always eligible (unless
 disabled in config or blocked by `skills.allowBundled` for bundled skills).
@@ -134,6 +160,10 @@ Bundled/managed skills can be toggled and supplied with env values:
         apiKey: "GEMINI_KEY_HERE",
         env: {
           GEMINI_API_KEY: "GEMINI_KEY_HERE"
+        },
+        config: {
+          endpoint: "https://example.invalid",
+          model: "nano-pro"
         }
       },
       peekaboo: { enabled: true },
@@ -152,6 +182,7 @@ Rules:
 - `enabled: false` disables the skill even if it’s bundled/installed.
 - `env`: injected **only if** the variable isn’t already set in the process.
 - `apiKey`: convenience for skills that declare `metadata.clawdbot.primaryEnv`.
+- `config`: optional bag for custom per-skill fields; custom keys must live here.
 - `allowBundled`: optional allowlist for **bundled** skills only. If set, only
   bundled skills in the list are eligible (managed/workspace skills unaffected).
 
@@ -169,6 +200,29 @@ This is **scoped to the agent run**, not a global shell environment.
 ## Session snapshot (performance)
 
 Clawdbot snapshots the eligible skills **when a session starts** and reuses that list for subsequent turns in the same session. Changes to skills or config take effect on the next new session.
+
+Skills can also refresh mid-session when the skills watcher is enabled or when a new eligible remote node appears (see below). Think of this as a **hot reload**: the refreshed list is picked up on the next agent turn.
+
+## Remote macOS nodes (Linux gateway)
+
+If the Gateway is running on Linux but a **macOS node** is connected **with `system.run` allowed** (Exec approvals security not set to `deny`), Clawdbot can treat macOS-only skills as eligible when the required binaries are present on that node. The agent should execute those skills via the `nodes` tool (typically `nodes.run`).
+
+This relies on the node reporting its command support and on a bin probe via `system.run`. If the macOS node goes offline later, the skills remain visible; invocations may fail until the node reconnects.
+
+## Skills watcher (auto-refresh)
+
+By default, Clawdbot watches skill folders and bumps the skills snapshot when `SKILL.md` files change. Configure this under `skills.load`:
+
+```json5
+{
+  skills: {
+    load: {
+      watch: true,
+      watchDebounceMs: 250
+    }
+  }
+}
+```
 
 ## Token impact (skills list)
 
@@ -200,6 +254,6 @@ See [Skills config](/tools/skills-config) for the full configuration schema.
 
 ## Looking for more skills?
 
-Browse [ClawdHub](/tools/clawdhub).
+Browse https://clawdhub.com.
 
 ---

@@ -10,6 +10,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+# Default to universal binary for distribution builds (supports both Apple Silicon and Intel Macs)
+export BUILD_ARCHS="${BUILD_ARCHS:-all}"
+
 "$ROOT_DIR/scripts/package-mac-app.sh"
 
 APP="$ROOT_DIR/dist/Clawdbot.app"
@@ -45,5 +48,9 @@ echo "💿 DMG: $DMG"
 "$ROOT_DIR/scripts/create-dmg.sh" "$APP" "$DMG"
 
 if [[ "$NOTARIZE" == "1" ]]; then
+  if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+    echo "🔏 Signing DMG: $DMG"
+    /usr/bin/codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG"
+  fi
   "$ROOT_DIR/scripts/notarize-mac-artifact.sh" "$DMG"
 fi

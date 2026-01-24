@@ -1,4 +1,4 @@
-import { listProviderPlugins } from "../../providers/plugins/index.js";
+import { listChannelPlugins } from "../../channels/plugins/index.js";
 import {
   ErrorCodes,
   errorShape,
@@ -12,10 +12,8 @@ import type { GatewayRequestHandlers } from "./types.js";
 const WEB_LOGIN_METHODS = new Set(["web.login.start", "web.login.wait"]);
 
 const resolveWebLoginProvider = () =>
-  listProviderPlugins().find((plugin) =>
-    (plugin.gatewayMethods ?? []).some((method) =>
-      WEB_LOGIN_METHODS.has(method),
-    ),
+  listChannelPlugins().find((plugin) =>
+    (plugin.gatewayMethods ?? []).some((method) => WEB_LOGIN_METHODS.has(method)),
   ) ?? null;
 
 export const webHandlers: GatewayRequestHandlers = {
@@ -41,14 +39,11 @@ export const webHandlers: GatewayRequestHandlers = {
         respond(
           false,
           undefined,
-          errorShape(
-            ErrorCodes.INVALID_REQUEST,
-            "web login provider is not available",
-          ),
+          errorShape(ErrorCodes.INVALID_REQUEST, "web login provider is not available"),
         );
         return;
       }
-      await context.stopProvider(provider.id, accountId);
+      await context.stopChannel(provider.id, accountId);
       if (!provider.gateway?.loginWithQrStart) {
         respond(
           false,
@@ -71,11 +66,7 @@ export const webHandlers: GatewayRequestHandlers = {
       });
       respond(true, result, undefined);
     } catch (err) {
-      respond(
-        false,
-        undefined,
-        errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)),
-      );
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
     }
   },
   "web.login.wait": async ({ params, respond, context }) => {
@@ -100,10 +91,7 @@ export const webHandlers: GatewayRequestHandlers = {
         respond(
           false,
           undefined,
-          errorShape(
-            ErrorCodes.INVALID_REQUEST,
-            "web login provider is not available",
-          ),
+          errorShape(ErrorCodes.INVALID_REQUEST, "web login provider is not available"),
         );
         return;
       }
@@ -126,15 +114,11 @@ export const webHandlers: GatewayRequestHandlers = {
         accountId,
       });
       if (result.connected) {
-        await context.startProvider(provider.id, accountId);
+        await context.startChannel(provider.id, accountId);
       }
       respond(true, result, undefined);
     } catch (err) {
-      respond(
-        false,
-        undefined,
-        errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)),
-      );
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
     }
   },
 };

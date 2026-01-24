@@ -3,6 +3,7 @@ import { runCommandWithTimeout } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { isRich, theme } from "../terminal/theme.js";
+import { formatCliCommand } from "../cli/command-format.js";
 
 const SEARCH_TOOL = "https://docs.clawd.bot/mcp.SearchClawdbot";
 const SEARCH_TIMEOUT_MS = 30_000;
@@ -30,11 +31,7 @@ function resolveNodeRunner(): NodeRunner {
   throw new Error("Missing pnpm or npx; install a Node package runner.");
 }
 
-async function runNodeTool(
-  tool: string,
-  toolArgs: string[],
-  options: ToolRunOptions = {},
-) {
+async function runNodeTool(tool: string, toolArgs: string[], options: ToolRunOptions = {}) {
   const runner = resolveNodeRunner();
   const argv = [runner.cmd, ...runner.args, tool, ...toolArgs];
   return await runCommandWithTimeout(argv, {
@@ -43,11 +40,7 @@ async function runNodeTool(
   });
 }
 
-async function runTool(
-  tool: string,
-  toolArgs: string[],
-  options: ToolRunOptions = {},
-) {
+async function runTool(tool: string, toolArgs: string[], options: ToolRunOptions = {}) {
   if (hasBinary(tool)) {
     return await runCommandWithTimeout([tool, ...toolArgs], {
       timeoutMs: options.timeoutMs ?? SEARCH_TIMEOUT_MS,
@@ -130,11 +123,7 @@ function formatLinkLabel(link: string): string {
   return link.replace(/^https?:\/\//i, "");
 }
 
-function renderRichResults(
-  query: string,
-  results: DocResult[],
-  runtime: RuntimeEnv,
-) {
+function renderRichResults(query: string, results: DocResult[], runtime: RuntimeEnv) {
   runtime.log(`${theme.heading("Docs search:")} ${theme.info(query)}`);
   if (results.length === 0) {
     runtime.log(theme.muted("No results."));
@@ -156,19 +145,16 @@ async function renderMarkdown(markdown: string, runtime: RuntimeEnv) {
   runtime.log(markdown.trimEnd());
 }
 
-export async function docsSearchCommand(
-  queryParts: string[],
-  runtime: RuntimeEnv,
-) {
+export async function docsSearchCommand(queryParts: string[], runtime: RuntimeEnv) {
   const query = queryParts.join(" ").trim();
   if (!query) {
     const docs = formatDocsLink("/", "docs.clawd.bot");
     if (isRich()) {
       runtime.log(`${theme.muted("Docs:")} ${docs}`);
-      runtime.log(`${theme.muted("Search:")} clawdbot docs "your query"`);
+      runtime.log(`${theme.muted("Search:")} ${formatCliCommand('clawdbot docs "your query"')}`);
     } else {
       runtime.log("Docs: https://docs.clawd.bot/");
-      runtime.log('Search: clawdbot docs "your query"');
+      runtime.log(`Search: ${formatCliCommand('clawdbot docs "your query"')}`);
     }
     return;
   }

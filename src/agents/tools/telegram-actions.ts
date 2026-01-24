@@ -1,12 +1,16 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-
 import type { ClawdbotConfig } from "../../config/config.js";
-import { resolveProviderCapabilities } from "../../config/provider-capabilities.js";
+import { resolveTelegramReactionLevel } from "../../telegram/reaction-level.js";
 import {
+  deleteMessageTelegram,
   reactMessageTelegram,
   sendMessageTelegram,
 } from "../../telegram/send.js";
 import { resolveTelegramToken } from "../../telegram/token.js";
+import {
+  resolveTelegramInlineButtonsScope,
+  resolveTelegramTargetChatType,
+} from "../../telegram/inline-buttons.js";
 import {
   createActionGate,
   jsonResult,
@@ -20,19 +24,6 @@ type TelegramButton = {
   text: string;
   callback_data: string;
 };
-
-function hasInlineButtonsCapability(params: {
-  cfg: ClawdbotConfig;
-  accountId?: string | undefined;
-}): boolean {
-  const caps =
-    resolveProviderCapabilities({
-      cfg: params.cfg,
-      provider: "telegram",
-      accountId: params.accountId,
-    }) ?? [];
-  return caps.some((cap) => cap.toLowerCase() === "inlinebuttons");
-}
 
 export function readTelegramButtons(
   params: Record<string, unknown>,
@@ -48,23 +39,18 @@ export function readTelegramButtons(
     }
     return row.map((button, buttonIndex) => {
       if (!button || typeof button !== "object") {
-        throw new Error(
-          `buttons[${rowIndex}][${buttonIndex}] must be an object`,
-        );
+        throw new Error(`buttons[${rowIndex}][${buttonIndex}] must be an object`);
       }
       const text =
         typeof (button as { text?: unknown }).text === "string"
           ? (button as { text: string }).text.trim()
           : "";
       const callbackData =
-        typeof (button as { callback_data?: unknown }).callback_data ===
-        "string"
+        typeof (button as { callback_data?: unknown }).callback_data === "string"
           ? (button as { callback_data: string }).callback_data.trim()
           : "";
       if (!text || !callbackData) {
-        throw new Error(
-          `buttons[${rowIndex}][${buttonIndex}] requires text and callback_data`,
-        );
+        throw new Error(`buttons[${rowIndex}][${buttonIndex}] requires text and callback_data`);
       }
       if (callbackData.length > 64) {
         throw new Error(
@@ -84,11 +70,23 @@ export async function handleTelegramAction(
 ): Promise<AgentToolResult<unknown>> {
   const action = readStringParam(params, "action", { required: true });
   const accountId = readStringParam(params, "accountId");
-  const isActionEnabled = createActionGate(cfg.telegram?.actions);
+  const isActionEnabled = createActionGate(cfg.channels?.telegram?.actions);
 
   if (action === "react") {
+    // Check reaction level first
+    const reactionLevelInfo = resolveTelegramReactionLevel({
+      cfg,
+      accountId: accountId ?? undefined,
+    });
+    if (!reactionLevelInfo.agentReactionsEnabled) {
+      throw new Error(
+        `Telegram agent reactions disabled (reactionLevel="${reactionLevelInfo.level}"). ` +
+          `Set channels.telegram.reactionLevel to "minimal" or "extensive" to enable.`,
+      );
+    }
+    // Also check the existing action gate for backward compatibility
     if (!isActionEnabled("reactions")) {
-      throw new Error("Telegram reactions are disabled.");
+      throw new Error("Telegram reactions are disabled via actions.reactions.");
     }
     const chatId = readStringOrNumberParam(params, "chatId", {
       required: true,
@@ -103,7 +101,7 @@ export async function handleTelegramAction(
     const token = resolveTelegramToken(cfg, { accountId }).token;
     if (!token) {
       throw new Error(
-        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or telegram.botToken.",
+        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or channels.telegram.botToken.",
       );
     }
     await reactMessageTelegram(chatId ?? "", messageId ?? 0, emoji ?? "", {
@@ -122,16 +120,40 @@ export async function handleTelegramAction(
       throw new Error("Telegram sendMessage is disabled.");
     }
     const to = readStringParam(params, "to", { required: true });
-    const content = readStringParam(params, "content", { required: true });
     const mediaUrl = readStringParam(params, "mediaUrl");
+    // Allow content to be omitted when sending media-only (e.g., voice notes)
+    const content =
+      readStringParam(params, "content", {
+        required: !mediaUrl,
+        allowEmpty: true,
+      }) ?? "";
     const buttons = readTelegramButtons(params);
-    if (
-      buttons &&
-      !hasInlineButtonsCapability({ cfg, accountId: accountId ?? undefined })
-    ) {
-      throw new Error(
-        'Telegram inline buttons requested but not enabled. Add "inlineButtons" to telegram.capabilities (or telegram.accounts.<id>.capabilities).',
-      );
+    if (buttons) {
+      const inlineButtonsScope = resolveTelegramInlineButtonsScope({
+        cfg,
+        accountId: accountId ?? undefined,
+      });
+      if (inlineButtonsScope === "off") {
+        throw new Error(
+          'Telegram inline buttons are disabled. Set channels.telegram.capabilities.inlineButtons to "dm", "group", "all", or "allowlist".',
+        );
+      }
+      if (inlineButtonsScope === "dm" || inlineButtonsScope === "group") {
+        const targetType = resolveTelegramTargetChatType(to);
+        if (targetType === "unknown") {
+          throw new Error(
+            `Telegram inline buttons require a numeric chat id when inlineButtons="${inlineButtonsScope}".`,
+          );
+        }
+        if (inlineButtonsScope === "dm" && targetType !== "direct") {
+          throw new Error('Telegram inline buttons are limited to DMs when inlineButtons="dm".');
+        }
+        if (inlineButtonsScope === "group" && targetType !== "group") {
+          throw new Error(
+            'Telegram inline buttons are limited to groups when inlineButtons="group".',
+          );
+        }
+      }
     }
     // Optional threading parameters for forum topics and reply chains
     const replyToMessageId = readNumberParam(params, "replyToMessageId", {
@@ -143,7 +165,7 @@ export async function handleTelegramAction(
     const token = resolveTelegramToken(cfg, { accountId }).token;
     if (!token) {
       throw new Error(
-        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or telegram.botToken.",
+        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or channels.telegram.botToken.",
       );
     }
     const result = await sendMessageTelegram(to, content, {
@@ -153,12 +175,37 @@ export async function handleTelegramAction(
       buttons,
       replyToMessageId: replyToMessageId ?? undefined,
       messageThreadId: messageThreadId ?? undefined,
+      asVoice: typeof params.asVoice === "boolean" ? params.asVoice : undefined,
     });
     return jsonResult({
       ok: true,
       messageId: result.messageId,
       chatId: result.chatId,
     });
+  }
+
+  if (action === "deleteMessage") {
+    if (!isActionEnabled("deleteMessage")) {
+      throw new Error("Telegram deleteMessage is disabled.");
+    }
+    const chatId = readStringOrNumberParam(params, "chatId", {
+      required: true,
+    });
+    const messageId = readNumberParam(params, "messageId", {
+      required: true,
+      integer: true,
+    });
+    const token = resolveTelegramToken(cfg, { accountId }).token;
+    if (!token) {
+      throw new Error(
+        "Telegram bot token missing. Set TELEGRAM_BOT_TOKEN or channels.telegram.botToken.",
+      );
+    }
+    await deleteMessageTelegram(chatId ?? "", messageId ?? 0, {
+      token,
+      accountId: accountId ?? undefined,
+    });
+    return jsonResult({ ok: true, deleted: true });
   }
 
   throw new Error(`Unsupported Telegram action: ${action}`);

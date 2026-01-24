@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAgentSystemPrompt } from "./system-prompt.js";
+import { buildAgentSystemPrompt, buildRuntimeLine } from "./system-prompt.js";
 
 describe("buildAgentSystemPrompt", () => {
   it("includes owner numbers when provided", () => {
@@ -23,6 +23,44 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).not.toContain("Owner numbers:");
   });
 
+  it("omits extended sections in minimal prompt mode", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      promptMode: "minimal",
+      ownerNumbers: ["+123"],
+      skillsPrompt:
+        "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
+      heartbeatPrompt: "ping",
+      toolNames: ["message", "memory_search"],
+      docsPath: "/tmp/clawd/docs",
+      extraSystemPrompt: "Subagent details",
+      ttsHint: "Voice (TTS) is enabled.",
+    });
+
+    expect(prompt).not.toContain("## User Identity");
+    expect(prompt).not.toContain("## Skills");
+    expect(prompt).not.toContain("## Memory Recall");
+    expect(prompt).not.toContain("## Documentation");
+    expect(prompt).not.toContain("## Reply Tags");
+    expect(prompt).not.toContain("## Messaging");
+    expect(prompt).not.toContain("## Voice (TTS)");
+    expect(prompt).not.toContain("## Silent Replies");
+    expect(prompt).not.toContain("## Heartbeats");
+    expect(prompt).toContain("## Subagent Context");
+    expect(prompt).not.toContain("## Group Chat Context");
+    expect(prompt).toContain("Subagent details");
+  });
+
+  it("includes voice hint when provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      ttsHint: "Voice (TTS) is enabled.",
+    });
+
+    expect(prompt).toContain("## Voice (TTS)");
+    expect(prompt).toContain("Voice (TTS) is enabled.");
+  });
+
   it("adds reasoning tag hint when enabled", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
@@ -34,10 +72,20 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("<final>...</final>");
   });
 
+  it("includes a CLI quick reference section", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+    });
+
+    expect(prompt).toContain("## Clawdbot CLI Quick Reference");
+    expect(prompt).toContain("clawdbot gateway restart");
+    expect(prompt).toContain("Do not invent commands");
+  });
+
   it("lists available tools when provided", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
-      toolNames: ["bash", "sessions_list", "sessions_history", "sessions_send"],
+      toolNames: ["exec", "sessions_list", "sessions_history", "sessions_send"],
     });
 
     expect(prompt).toContain("Tool availability (filtered by policy):");
@@ -49,28 +97,78 @@ describe("buildAgentSystemPrompt", () => {
   it("preserves tool casing in the prompt", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
-      toolNames: ["Read", "Bash", "process"],
+      toolNames: ["Read", "Exec", "process"],
       skillsPrompt:
         "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
+      docsPath: "/tmp/clawd/docs",
     });
 
     expect(prompt).toContain("- Read: Read file contents");
-    expect(prompt).toContain("- Bash: Run shell commands");
+    expect(prompt).toContain("- Exec: Run shell commands");
     expect(prompt).toContain(
-      "Use `Read` to load the SKILL.md at the location listed for that skill.",
+      "- If exactly one skill clearly applies: read its SKILL.md at <location> with `Read`, then follow it.",
+    );
+    expect(prompt).toContain("Clawdbot docs: /tmp/clawd/docs");
+    expect(prompt).toContain(
+      "For Clawdbot behavior, commands, config, or architecture: consult local docs first.",
     );
   });
 
-  it("includes user time when provided", () => {
+  it("includes docs guidance when docsPath is provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      docsPath: "/tmp/clawd/docs",
+    });
+
+    expect(prompt).toContain("## Documentation");
+    expect(prompt).toContain("Clawdbot docs: /tmp/clawd/docs");
+    expect(prompt).toContain(
+      "For Clawdbot behavior, commands, config, or architecture: consult local docs first.",
+    );
+  });
+
+  it("includes workspace notes when provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      workspaceNotes: ["Reminder: commit your changes in this workspace after edits."],
+    });
+
+    expect(prompt).toContain("Reminder: commit your changes in this workspace after edits.");
+  });
+
+  it("includes user timezone when provided (12-hour)", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
       userTimezone: "America/Chicago",
-      userTime: "Monday 2026-01-05 15:26",
+      userTime: "Monday, January 5th, 2026 — 3:26 PM",
+      userTimeFormat: "12",
     });
 
-    expect(prompt).toContain(
-      "Time: assume UTC unless stated. User TZ=America/Chicago. Current user time (converted)=Monday 2026-01-05 15:26.",
-    );
+    expect(prompt).toContain("## Current Date & Time");
+    expect(prompt).toContain("Time zone: America/Chicago");
+  });
+
+  it("includes user timezone when provided (24-hour)", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      userTimezone: "America/Chicago",
+      userTime: "Monday, January 5th, 2026 — 15:26",
+      userTimeFormat: "24",
+    });
+
+    expect(prompt).toContain("## Current Date & Time");
+    expect(prompt).toContain("Time zone: America/Chicago");
+  });
+
+  it("shows timezone when only timezone is provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      userTimezone: "America/Chicago",
+      userTimeFormat: "24",
+    });
+
+    expect(prompt).toContain("## Current Date & Time");
+    expect(prompt).toContain("Time zone: America/Chicago");
   });
 
   it("includes model alias guidance when aliases are provided", () => {
@@ -90,7 +188,7 @@ describe("buildAgentSystemPrompt", () => {
   it("adds ClaudeBot self-update guidance when gateway tool is available", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
-      toolNames: ["gateway", "bash"],
+      toolNames: ["gateway", "exec"],
     });
 
     expect(prompt).toContain("## Clawdbot Self-Update");
@@ -107,7 +205,7 @@ describe("buildAgentSystemPrompt", () => {
 
     expect(prompt).toContain("## Skills");
     expect(prompt).toContain(
-      "Use `read` to load the SKILL.md at the location listed for that skill.",
+      "- If exactly one skill clearly applies: read its SKILL.md at <location> with `read`, then follow it.",
     );
   });
 
@@ -147,27 +245,58 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Bravo");
   });
 
+  it("adds SOUL guidance when a soul file is present", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      contextFiles: [
+        { path: "./SOUL.md", content: "Persona" },
+        { path: "dir\\SOUL.md", content: "Persona Windows" },
+      ],
+    });
+
+    expect(prompt).toContain(
+      "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it.",
+    );
+  });
+
   it("summarizes the message tool when available", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
       toolNames: ["message"],
     });
 
-    expect(prompt).toContain("message: Send messages and provider actions");
+    expect(prompt).toContain("message: Send messages and channel actions");
     expect(prompt).toContain("### message tool");
+    expect(prompt).toContain("respond with ONLY: NO_REPLY");
   });
 
   it("includes runtime provider capabilities when present", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
       runtimeInfo: {
-        provider: "telegram",
+        channel: "telegram",
         capabilities: ["inlineButtons"],
       },
     });
 
-    expect(prompt).toContain("provider=telegram");
+    expect(prompt).toContain("channel=telegram");
     expect(prompt).toContain("capabilities=inlineButtons");
+  });
+
+  it("includes agent id in runtime when provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      runtimeInfo: {
+        agentId: "work",
+        host: "host",
+        os: "macOS",
+        arch: "arm64",
+        node: "v20",
+        model: "anthropic/claude",
+      },
+    });
+
+    expect(prompt).toContain("agent=work");
   });
 
   it("includes reasoning visibility hint", () => {
@@ -179,6 +308,35 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Reasoning: off");
     expect(prompt).toContain("/reasoning");
     expect(prompt).toContain("/status shows Reasoning");
+  });
+
+  it("builds runtime line with agent and channel details", () => {
+    const line = buildRuntimeLine(
+      {
+        agentId: "work",
+        host: "host",
+        repoRoot: "/repo",
+        os: "macOS",
+        arch: "arm64",
+        node: "v20",
+        model: "anthropic/claude",
+        defaultModel: "anthropic/claude-opus-4-5",
+      },
+      "telegram",
+      ["inlineButtons"],
+      "low",
+    );
+
+    expect(line).toContain("agent=work");
+    expect(line).toContain("host=host");
+    expect(line).toContain("repo=/repo");
+    expect(line).toContain("os=macOS (arm64)");
+    expect(line).toContain("node=v20");
+    expect(line).toContain("model=anthropic/claude");
+    expect(line).toContain("default_model=anthropic/claude-opus-4-5");
+    expect(line).toContain("channel=telegram");
+    expect(line).toContain("capabilities=inlineButtons");
+    expect(line).toContain("thinking=low");
   });
 
   it("describes sandboxed runtime and elevated when allowed", () => {
@@ -195,7 +353,20 @@ describe("buildAgentSystemPrompt", () => {
 
     expect(prompt).toContain("You are running in a sandboxed runtime");
     expect(prompt).toContain("Sub-agents stay sandboxed");
-    expect(prompt).toContain("User can toggle with /elevated on|off.");
+    expect(prompt).toContain("User can toggle with /elevated on|off|ask|full.");
     expect(prompt).toContain("Current elevated level: on");
+  });
+
+  it("includes reaction guidance when provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      reactionGuidance: {
+        level: "minimal",
+        channel: "Telegram",
+      },
+    });
+
+    expect(prompt).toContain("## Reactions");
+    expect(prompt).toContain("Reactions are enabled for Telegram in MINIMAL mode.");
   });
 });

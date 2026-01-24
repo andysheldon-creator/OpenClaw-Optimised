@@ -31,13 +31,13 @@ Manual steps (same result):
 1) Stop the gateway service:
 
 ```bash
-clawdbot daemon stop
+clawdbot gateway stop
 ```
 
 2) Uninstall the gateway service (launchd/systemd/schtasks):
 
 ```bash
-clawdbot daemon uninstall
+clawdbot gateway uninstall
 ```
 
 3) Delete state + config:
@@ -118,7 +118,7 @@ Remove it with `npm rm -g clawdbot` (or `pnpm remove -g` / `bun remove -g` if yo
 
 ### Source checkout (git clone)
 
-If you run from a repo checkout (`git clone` + `pnpm clawdbot ...` / `bun run clawdbot ...`):
+If you run from a repo checkout (`git clone` + `clawdbot ...` / `bun run clawdbot ...`):
 
 1) Uninstall the gateway service **before** deleting the repo (use the easy path above or manual service removal).
 2) Delete the repo directory.

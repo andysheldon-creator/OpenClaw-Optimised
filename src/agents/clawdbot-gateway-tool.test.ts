@@ -3,10 +3,16 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
+import "./test-helpers/fast-core-tools.js";
 import { createClawdbotTools } from "./clawdbot-tools.js";
 
 vi.mock("./tools/gateway.js", () => ({
-  callGatewayTool: vi.fn(async () => ({ ok: true })),
+  callGatewayTool: vi.fn(async (method: string) => {
+    if (method === "config.get") {
+      return { hash: "hash-1" };
+    }
+    return { ok: true };
+  }),
 }));
 
 describe("gateway tool", () => {
@@ -41,9 +47,7 @@ describe("gateway tool", () => {
         payload?: { kind?: string; doctorHint?: string | null };
       };
       expect(parsed.payload?.kind).toBe("restart");
-      expect(parsed.payload?.doctorHint).toBe(
-        "Run: clawdbot doctor --non-interactive",
-      );
+      expect(parsed.payload?.doctorHint).toBe("Run: clawdbot doctor --non-interactive");
 
       expect(kill).not.toHaveBeenCalled();
       await vi.runAllTimersAsync();
@@ -73,11 +77,13 @@ describe("gateway tool", () => {
       raw,
     });
 
+    expect(callGatewayTool).toHaveBeenCalledWith("config.get", expect.any(Object), {});
     expect(callGatewayTool).toHaveBeenCalledWith(
       "config.apply",
       expect.any(Object),
       expect.objectContaining({
         raw: raw.trim(),
+        baseHash: "hash-1",
         sessionKey: "agent:main:whatsapp:dm:+15555550123",
       }),
     );

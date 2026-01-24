@@ -15,6 +15,13 @@ Clawdbot supports “subscription auth” via OAuth for providers that offer it 
 - how we **reuse external CLI tokens** (Claude Code / Codex CLI)
 - how to handle **multiple accounts** (profiles + per-session overrides)
 
+Clawdbot also supports **provider plugins** that ship their own OAuth or API‑key
+flows. Run them via:
+
+```bash
+clawdbot models auth login --provider <id>
+```
+
 ## The token sink (why it exists)
 
 OAuth providers commonly mint a **new refresh token** during login/refresh flows. Some providers (or OAuth clients) can invalidate older refresh tokens when a new one is issued for the same user/app.
@@ -56,13 +63,13 @@ How to verify:
 
 ```bash
 clawdbot models status
-clawdbot providers list
+clawdbot channels list
 ```
 
 Or JSON:
 
 ```bash
-clawdbot providers list --json
+clawdbot channels list --json
 ```
 
 ## OAuth exchange (how login works)
@@ -148,7 +155,7 @@ Example (session override):
 - `/model Opus@anthropic:work`
 
 How to see what profile IDs exist:
-- `clawdbot providers list --json` (shows `auth[]`)
+- `clawdbot channels list --json` (shows `auth[]`)
 
 Related docs:
 - [/concepts/model-failover](/concepts/model-failover) (rotation + cooldown rules)

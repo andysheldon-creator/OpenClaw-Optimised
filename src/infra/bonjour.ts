@@ -4,6 +4,7 @@ import { logDebug, logWarn } from "../logger.js";
 import { getLogger } from "../logging.js";
 import { ignoreCiaoCancellationRejection } from "./bonjour-ciao.js";
 import { formatBonjourError } from "./bonjour-errors.js";
+import { isTruthyEnvValue } from "./env.js";
 import { registerUnhandledRejectionHandler } from "./unhandled-rejections.js";
 
 export type GatewayBonjourAdvertiser = {
@@ -14,14 +15,15 @@ export type GatewayBonjourAdvertiseOpts = {
   instanceName?: string;
   gatewayPort: number;
   sshPort?: number;
-  bridgePort?: number;
+  gatewayTlsEnabled?: boolean;
+  gatewayTlsFingerprintSha256?: string;
   canvasPort?: number;
   tailnetDns?: string;
   cliPath?: string;
 };
 
 function isDisabledByEnv() {
-  if (process.env.CLAWDBOT_DISABLE_BONJOUR === "1") return true;
+  if (isTruthyEnvValue(process.env.CLAWDBOT_DISABLE_BONJOUR)) return true;
   if (process.env.NODE_ENV === "test") return true;
   if (process.env.VITEST) return true;
   return false;
@@ -66,8 +68,7 @@ function serviceSummary(label: string, svc: BonjourService): string {
   } catch {
     // ignore
   }
-  const state =
-    typeof svc.serviceState === "string" ? svc.serviceState : "unknown";
+  const state = typeof svc.serviceState === "string" ? svc.serviceState : "unknown";
   return `${label} fqdn=${fqdn} host=${hostname} port=${port} state=${state}`;
 }
 
@@ -102,8 +103,11 @@ export async function startGatewayBonjourAdvertiser(
     lanHost: `${hostname}.local`,
     displayName,
   };
-  if (typeof opts.bridgePort === "number" && opts.bridgePort > 0) {
-    txtBase.bridgePort = String(opts.bridgePort);
+  if (opts.gatewayTlsEnabled) {
+    txtBase.gatewayTls = "1";
+    if (opts.gatewayTlsFingerprintSha256) {
+      txtBase.gatewayTlsSha256 = opts.gatewayTlsFingerprintSha256;
+    }
   }
   if (typeof opts.canvasPort === "number" && opts.canvasPort > 0) {
     txtBase.canvasPort = String(opts.canvasPort);
@@ -117,26 +121,23 @@ export async function startGatewayBonjourAdvertiser(
 
   const services: Array<{ label: string; svc: BonjourService }> = [];
 
-  // Bridge beacon (used by macOS/iOS/Android nodes and the mac app onboarding flow).
-  if (typeof opts.bridgePort === "number" && opts.bridgePort > 0) {
-    const bridge = responder.createService({
-      name: safeServiceName(instanceName),
-      type: "clawdbot-bridge",
-      protocol: Protocol.TCP,
-      port: opts.bridgePort,
-      domain: "local",
-      hostname,
-      txt: {
-        ...txtBase,
-        sshPort: String(opts.sshPort ?? 22),
-        transport: "bridge",
-      },
-    });
-    services.push({
-      label: "bridge",
-      svc: bridge as unknown as BonjourService,
-    });
-  }
+  const gateway = responder.createService({
+    name: safeServiceName(instanceName),
+    type: "clawdbot-gw",
+    protocol: Protocol.TCP,
+    port: opts.gatewayPort,
+    domain: "local",
+    hostname,
+    txt: {
+      ...txtBase,
+      sshPort: String(opts.sshPort ?? 22),
+      transport: "gateway",
+    },
+  });
+  services.push({
+    label: "gateway",
+    svc: gateway as unknown as BonjourService,
+  });
 
   let ciaoCancellationRejectionHandler: (() => void) | undefined;
   if (services.length > 0) {
@@ -148,32 +149,23 @@ export async function startGatewayBonjourAdvertiser(
   logDebug(
     `bonjour: starting (hostname=${hostname}, instance=${JSON.stringify(
       safeServiceName(instanceName),
-    )}, gatewayPort=${opts.gatewayPort}, bridgePort=${opts.bridgePort ?? 0}, sshPort=${
-      opts.sshPort ?? 22
-    })`,
+    )}, gatewayPort=${opts.gatewayPort}, sshPort=${opts.sshPort ?? 22})`,
   );
 
   for (const { label, svc } of services) {
     try {
       svc.on("name-change", (name: unknown) => {
         const next = typeof name === "string" ? name : String(name);
-        logWarn(
-          `bonjour: ${label} name conflict resolved; newName=${JSON.stringify(next)}`,
-        );
+        logWarn(`bonjour: ${label} name conflict resolved; newName=${JSON.stringify(next)}`);
       });
       svc.on("hostname-change", (nextHostname: unknown) => {
-        const next =
-          typeof nextHostname === "string"
-            ? nextHostname
-            : String(nextHostname);
+        const next = typeof nextHostname === "string" ? nextHostname : String(nextHostname);
         logWarn(
           `bonjour: ${label} hostname conflict resolved; newHostname=${JSON.stringify(next)}`,
         );
       });
     } catch (err) {
-      logDebug(
-        `bonjour: failed to attach listeners for ${label}: ${String(err)}`,
-      );
+      logDebug(`bonjour: failed to attach listeners for ${label}: ${String(err)}`);
     }
   }
 
@@ -207,8 +199,7 @@ export async function startGatewayBonjourAdvertiser(
     for (const { label, svc } of services) {
       const stateUnknown = (svc as { serviceState?: unknown }).serviceState;
       if (typeof stateUnknown !== "string") continue;
-      if (stateUnknown === "announced" || stateUnknown === "announcing")
-        continue;
+      if (stateUnknown === "announced" || stateUnknown === "announcing") continue;
 
       let key = label;
       try {

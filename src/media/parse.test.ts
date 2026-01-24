@@ -9,11 +9,42 @@ describe("splitMediaFromOutput", () => {
     expect(result.text).toBe("Hello world");
   });
 
+  it("captures media paths with spaces", () => {
+    const result = splitMediaFromOutput("MEDIA:/Users/pete/My File.png");
+    expect(result.mediaUrls).toEqual(["/Users/pete/My File.png"]);
+    expect(result.text).toBe("");
+  });
+
+  it("captures quoted media paths with spaces", () => {
+    const result = splitMediaFromOutput('MEDIA:"/Users/pete/My File.png"');
+    expect(result.mediaUrls).toEqual(["/Users/pete/My File.png"]);
+    expect(result.text).toBe("");
+  });
+
+  it("captures tilde media paths with spaces", () => {
+    const result = splitMediaFromOutput("MEDIA:~/Pictures/My File.png");
+    expect(result.mediaUrls).toEqual(["~/Pictures/My File.png"]);
+    expect(result.text).toBe("");
+  });
+
   it("keeps audio_as_voice detection stable across calls", () => {
     const input = "Hello [[audio_as_voice]]";
     const first = splitMediaFromOutput(input);
     const second = splitMediaFromOutput(input);
     expect(first.audioAsVoice).toBe(true);
     expect(second.audioAsVoice).toBe(true);
+  });
+
+  it("keeps MEDIA mentions in prose", () => {
+    const input = "The MEDIA: tag fails to deliver";
+    const result = splitMediaFromOutput(input);
+    expect(result.mediaUrls).toBeUndefined();
+    expect(result.text).toBe(input);
+  });
+
+  it("parses MEDIA tags with leading whitespace", () => {
+    const result = splitMediaFromOutput("  MEDIA:/tmp/screenshot.png");
+    expect(result.mediaUrls).toEqual(["/tmp/screenshot.png"]);
+    expect(result.text).toBe("");
   });
 });

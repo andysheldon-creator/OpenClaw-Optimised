@@ -1,29 +1,37 @@
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 
-const listProviderPairingRequests = vi.fn();
-const approveProviderPairingCode = vi.fn();
+const listChannelPairingRequests = vi.fn();
+const approveChannelPairingCode = vi.fn();
 const notifyPairingApproved = vi.fn();
 const pairingIdLabels: Record<string, string> = {
   telegram: "telegramUserId",
   discord: "discordUserId",
 };
-const requirePairingAdapter = vi.fn((provider: string) => ({
-  idLabel: pairingIdLabels[provider] ?? "userId",
+const normalizeChannelId = vi.fn((raw: string) => {
+  if (!raw) return null;
+  if (raw === "imsg") return "imessage";
+  if (["telegram", "discord", "imessage"].includes(raw)) return raw;
+  return null;
+});
+const getPairingAdapter = vi.fn((channel: string) => ({
+  idLabel: pairingIdLabels[channel] ?? "userId",
 }));
-const listPairingProviders = vi.fn(() => ["telegram", "discord"]);
-const resolvePairingProvider = vi.fn((raw: string) => raw);
+const listPairingChannels = vi.fn(() => ["telegram", "discord", "imessage"]);
 
 vi.mock("../pairing/pairing-store.js", () => ({
-  listProviderPairingRequests,
-  approveProviderPairingCode,
+  listChannelPairingRequests,
+  approveChannelPairingCode,
 }));
 
-vi.mock("../providers/plugins/pairing.js", () => ({
-  listPairingProviders,
-  resolvePairingProvider,
+vi.mock("../channels/plugins/pairing.js", () => ({
+  listPairingChannels,
   notifyPairingApproved,
-  requirePairingAdapter,
+  getPairingAdapter,
+}));
+
+vi.mock("../channels/plugins/index.js", () => ({
+  normalizeChannelId,
 }));
 
 vi.mock("../config/config.js", () => ({
@@ -31,9 +39,22 @@ vi.mock("../config/config.js", () => ({
 }));
 
 describe("pairing cli", () => {
+  it("evaluates pairing channels when registering the CLI (not at import)", async () => {
+    listPairingChannels.mockClear();
+
+    const { registerPairingCli } = await import("./pairing-cli.js");
+    expect(listPairingChannels).not.toHaveBeenCalled();
+
+    const program = new Command();
+    program.name("test");
+    registerPairingCli(program);
+
+    expect(listPairingChannels).toHaveBeenCalledTimes(1);
+  });
+
   it("labels Telegram ids as telegramUserId", async () => {
     const { registerPairingCli } = await import("./pairing-cli.js");
-    listProviderPairingRequests.mockResolvedValueOnce([
+    listChannelPairingRequests.mockResolvedValueOnce([
       {
         id: "123",
         code: "ABC123",
@@ -47,29 +68,55 @@ describe("pairing cli", () => {
     const program = new Command();
     program.name("test");
     registerPairingCli(program);
-    await program.parseAsync(["pairing", "list", "--provider", "telegram"], {
+    await program.parseAsync(["pairing", "list", "--channel", "telegram"], {
       from: "user",
     });
-    expect(log).toHaveBeenCalledWith(
-      expect.stringContaining("telegramUserId=123"),
-    );
+    const output = log.mock.calls.map((call) => call.join(" ")).join("\n");
+    expect(output).toContain("telegramUserId");
+    expect(output).toContain("123");
   });
 
-  it("accepts provider as positional for list", async () => {
+  it("accepts channel as positional for list", async () => {
     const { registerPairingCli } = await import("./pairing-cli.js");
-    listProviderPairingRequests.mockResolvedValueOnce([]);
+    listChannelPairingRequests.mockResolvedValueOnce([]);
 
     const program = new Command();
     program.name("test");
     registerPairingCli(program);
     await program.parseAsync(["pairing", "list", "telegram"], { from: "user" });
 
-    expect(listProviderPairingRequests).toHaveBeenCalledWith("telegram");
+    expect(listChannelPairingRequests).toHaveBeenCalledWith("telegram");
+  });
+
+  it("normalizes channel aliases", async () => {
+    const { registerPairingCli } = await import("./pairing-cli.js");
+    listChannelPairingRequests.mockResolvedValueOnce([]);
+
+    const program = new Command();
+    program.name("test");
+    registerPairingCli(program);
+    await program.parseAsync(["pairing", "list", "imsg"], { from: "user" });
+
+    expect(normalizeChannelId).toHaveBeenCalledWith("imsg");
+    expect(listChannelPairingRequests).toHaveBeenCalledWith("imessage");
+  });
+
+  it("accepts extension channels outside the registry", async () => {
+    const { registerPairingCli } = await import("./pairing-cli.js");
+    listChannelPairingRequests.mockResolvedValueOnce([]);
+
+    const program = new Command();
+    program.name("test");
+    registerPairingCli(program);
+    await program.parseAsync(["pairing", "list", "zalo"], { from: "user" });
+
+    expect(normalizeChannelId).toHaveBeenCalledWith("zalo");
+    expect(listChannelPairingRequests).toHaveBeenCalledWith("zalo");
   });
 
   it("labels Discord ids as discordUserId", async () => {
     const { registerPairingCli } = await import("./pairing-cli.js");
-    listProviderPairingRequests.mockResolvedValueOnce([
+    listChannelPairingRequests.mockResolvedValueOnce([
       {
         id: "999",
         code: "DEF456",
@@ -83,17 +130,17 @@ describe("pairing cli", () => {
     const program = new Command();
     program.name("test");
     registerPairingCli(program);
-    await program.parseAsync(["pairing", "list", "--provider", "discord"], {
+    await program.parseAsync(["pairing", "list", "--channel", "discord"], {
       from: "user",
     });
-    expect(log).toHaveBeenCalledWith(
-      expect.stringContaining("discordUserId=999"),
-    );
+    const output = log.mock.calls.map((call) => call.join(" ")).join("\n");
+    expect(output).toContain("discordUserId");
+    expect(output).toContain("999");
   });
 
-  it("accepts provider as positional for approve (npm-run compatible)", async () => {
+  it("accepts channel as positional for approve (npm-run compatible)", async () => {
     const { registerPairingCli } = await import("./pairing-cli.js");
-    approveProviderPairingCode.mockResolvedValueOnce({
+    approveChannelPairingCode.mockResolvedValueOnce({
       id: "123",
       entry: {
         id: "123",
@@ -111,8 +158,8 @@ describe("pairing cli", () => {
       from: "user",
     });
 
-    expect(approveProviderPairingCode).toHaveBeenCalledWith({
-      provider: "telegram",
+    expect(approveChannelPairingCode).toHaveBeenCalledWith({
+      channel: "telegram",
       code: "ABCDEFGH",
     });
     expect(log).toHaveBeenCalledWith(expect.stringContaining("Approved"));

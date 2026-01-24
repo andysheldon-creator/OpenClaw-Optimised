@@ -2,16 +2,15 @@ import type { ModelCatalogEntry } from "../../agents/model-catalog.js";
 import type { createDefaultDeps } from "../../cli/deps.js";
 import type { HealthSummary } from "../../commands/health.js";
 import type { CronService } from "../../cron/service.js";
-import type { startNodeBridgeServer } from "../../infra/bridge/server.js";
 import type { WizardSession } from "../../wizard/session.js";
 import type { ChatAbortControllerEntry } from "../chat-abort.js";
-import type {
-  ConnectParams,
-  ErrorShape,
-  RequestFrame,
-} from "../protocol/index.js";
-import type { ProviderRuntimeSnapshot } from "../server-providers.js";
+import type { NodeRegistry } from "../node-registry.js";
+import type { ConnectParams, ErrorShape, RequestFrame } from "../protocol/index.js";
+import type { ChannelRuntimeSnapshot } from "../server-channels.js";
 import type { DedupeEntry } from "../server-shared.js";
+import type { createSubsystemLogger } from "../../logging/subsystem.js";
+
+type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
 export type GatewayClient = {
   connect: ConnectParams;
@@ -32,7 +31,7 @@ export type GatewayRequestContext = {
   getHealthCache: () => HealthSummary | null;
   refreshHealthSnapshot: (opts?: { probe?: boolean }) => Promise<HealthSummary>;
   logHealth: { error: (message: string) => void };
-  logGateway: { warn: (message: string) => void };
+  logGateway: SubsystemLogger;
   incrementPresenceVersion: () => number;
   getHealthVersion: () => number;
   broadcast: (
@@ -43,22 +42,19 @@ export type GatewayRequestContext = {
       stateVersion?: { presence?: number; health?: number };
     },
   ) => void;
-  bridge: Awaited<ReturnType<typeof startNodeBridgeServer>> | null;
-  bridgeSendToSession: (
-    sessionKey: string,
-    event: string,
-    payload: unknown,
-  ) => void;
+  nodeSendToSession: (sessionKey: string, event: string, payload: unknown) => void;
+  nodeSendToAllSubscribed: (event: string, payload: unknown) => void;
+  nodeSubscribe: (nodeId: string, sessionKey: string) => void;
+  nodeUnsubscribe: (nodeId: string, sessionKey: string) => void;
+  nodeUnsubscribeAll: (nodeId: string) => void;
   hasConnectedMobileNode: () => boolean;
+  nodeRegistry: NodeRegistry;
   agentRunSeq: Map<string, number>;
   chatAbortControllers: Map<string, ChatAbortControllerEntry>;
   chatAbortedRuns: Map<string, number>;
   chatRunBuffers: Map<string, string>;
   chatDeltaSentAt: Map<string, number>;
-  addChatRun: (
-    sessionId: string,
-    entry: { sessionKey: string; clientRunId: string },
-  ) => void;
+  addChatRun: (sessionId: string, entry: { sessionKey: string; clientRunId: string }) => void;
   removeChatRun: (
     sessionId: string,
     clientRunId: string,
@@ -68,17 +64,17 @@ export type GatewayRequestContext = {
   wizardSessions: Map<string, WizardSession>;
   findRunningWizard: () => string | null;
   purgeWizardSession: (id: string) => void;
-  getRuntimeSnapshot: () => ProviderRuntimeSnapshot;
-  startProvider: (
-    provider: import("../../providers/plugins/types.js").ProviderId,
+  getRuntimeSnapshot: () => ChannelRuntimeSnapshot;
+  startChannel: (
+    channel: import("../../channels/plugins/types.js").ChannelId,
     accountId?: string,
   ) => Promise<void>;
-  stopProvider: (
-    provider: import("../../providers/plugins/types.js").ProviderId,
+  stopChannel: (
+    channel: import("../../channels/plugins/types.js").ChannelId,
     accountId?: string,
   ) => Promise<void>;
-  markProviderLoggedOut: (
-    providerId: import("../../providers/plugins/types.js").ProviderId,
+  markChannelLoggedOut: (
+    channelId: import("../../channels/plugins/types.js").ChannelId,
     cleared: boolean,
     accountId?: string,
   ) => void;
@@ -107,8 +103,6 @@ export type GatewayRequestHandlerOptions = {
   context: GatewayRequestContext;
 };
 
-export type GatewayRequestHandler = (
-  opts: GatewayRequestHandlerOptions,
-) => Promise<void> | void;
+export type GatewayRequestHandler = (opts: GatewayRequestHandlerOptions) => Promise<void> | void;
 
 export type GatewayRequestHandlers = Record<string, GatewayRequestHandler>;

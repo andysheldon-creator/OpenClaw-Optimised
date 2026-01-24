@@ -8,11 +8,19 @@ export async function ensureDir(dir: string) {
   await fs.promises.mkdir(dir, { recursive: true });
 }
 
-export type Provider = "web";
+export function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
 
-export function assertProvider(input: string): asserts input is Provider {
+export function clampInt(value: number, min: number, max: number): number {
+  return clampNumber(Math.floor(value), min, max);
+}
+
+export type WebChannel = "web";
+
+export function assertWebChannel(input: string): asserts input is WebChannel {
   if (input !== "web") {
-    throw new Error("Provider must be 'web'");
+    throw new Error("Web channel must be 'web'");
   }
 }
 
@@ -34,7 +42,7 @@ export function normalizeE164(number: string): string {
 
 /**
  * "Self-chat mode" heuristic (single phone): the gateway is logged in as the owner's own WhatsApp account,
- * and `whatsapp.allowFrom` includes that same number. Used to avoid side-effects that make no sense when the
+ * and `channels.whatsapp.allowFrom` includes that same number. Used to avoid side-effects that make no sense when the
  * "bot" and the human are the same WhatsApp identity (e.g. auto read receipts, @mention JID triggers).
  */
 export function isSelfChatMode(
@@ -85,10 +93,7 @@ function resolveLidMappingDirs(opts?: JidToE164Options): string[] {
   return [...dirs];
 }
 
-function readLidReverseMapping(
-  lid: string,
-  opts?: JidToE164Options,
-): string | null {
+function readLidReverseMapping(lid: string, opts?: JidToE164Options): string | null {
   const mappingFilename = `lid-mapping-${lid}_reverse.json`;
   const mappingDirs = resolveLidMappingDirs(opts);
   for (const dir of mappingDirs) {
@@ -161,20 +166,11 @@ function isLowSurrogate(codeUnit: number): boolean {
   return codeUnit >= 0xdc00 && codeUnit <= 0xdfff;
 }
 
-export function sliceUtf16Safe(
-  input: string,
-  start: number,
-  end?: number,
-): string {
+export function sliceUtf16Safe(input: string, start: number, end?: number): string {
   const len = input.length;
 
   let from = start < 0 ? Math.max(len + start, 0) : Math.min(start, len);
-  let to =
-    end === undefined
-      ? len
-      : end < 0
-        ? Math.max(len + end, 0)
-        : Math.min(end, len);
+  let to = end === undefined ? len : end < 0 ? Math.max(len + end, 0) : Math.min(end, len);
 
   if (to < from) {
     const tmp = from;
@@ -184,10 +180,7 @@ export function sliceUtf16Safe(
 
   if (from > 0 && from < len) {
     const codeUnit = input.charCodeAt(from);
-    if (
-      isLowSurrogate(codeUnit) &&
-      isHighSurrogate(input.charCodeAt(from - 1))
-    ) {
+    if (isLowSurrogate(codeUnit) && isHighSurrogate(input.charCodeAt(from - 1))) {
       from += 1;
     }
   }
@@ -256,6 +249,14 @@ export function shortenHomeInString(input: string): string {
   return input.split(home).join("~");
 }
 
+export function displayPath(input: string): string {
+  return shortenHomePath(input);
+}
+
+export function displayString(input: string): string {
+  return shortenHomeInString(input);
+}
+
 export function formatTerminalLink(
   label: string,
   url: string,
@@ -265,11 +266,7 @@ export function formatTerminalLink(
   const safeLabel = label.replaceAll(esc, "");
   const safeUrl = url.replaceAll(esc, "");
   const allow =
-    opts?.force === true
-      ? true
-      : opts?.force === false
-        ? false
-        : Boolean(process.stdout.isTTY);
+    opts?.force === true ? true : opts?.force === false ? false : Boolean(process.stdout.isTTY);
   if (!allow) {
     return opts?.fallback ?? `${safeLabel} (${safeUrl})`;
   }

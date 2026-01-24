@@ -12,6 +12,7 @@ This document explains how Clawdbot manages sessions end-to-end:
 - **Session routing** (how inbound messages map to a `sessionKey`)
 - **Session store** (`sessions.json`) and what it tracks
 - **Transcript persistence** (`*.jsonl`) and its structure
+- **Transcript hygiene** (provider-specific fixups before runs)
 - **Context limits** (context window vs tracked tokens)
 - **Compaction** (manual + auto-compaction) and where to hook pre-compaction work
 - **Silent housekeeping** (e.g. memory writes that shouldn’t produce user-visible output)
@@ -20,6 +21,7 @@ If you want a higher-level overview first, start with:
 - [/concepts/session](/concepts/session)
 - [/concepts/compaction](/concepts/compaction)
 - [/concepts/session-pruning](/concepts/session-pruning)
+- [/reference/transcript-hygiene](/reference/transcript-hygiene)
 
 ---
 
@@ -67,8 +69,8 @@ A `sessionKey` identifies *which conversation bucket* you’re in (routing + iso
 Common patterns:
 
 - Main/direct chat (per agent): `agent:<agentId>:<mainKey>` (default `main`)
-- Group: `agent:<agentId>:<provider>:group:<id>`
-- Room/channel (Discord/Slack): `agent:<agentId>:<provider>:channel:<id>` or `...:room:<id>`
+- Group: `agent:<agentId>:<channel>:group:<id>`
+- Room/channel (Discord/Slack): `agent:<agentId>:<channel>:channel:<id>` or `...:room:<id>`
 - Cron: `cron:<job.id>`
 - Webhook: `hook:<uuid>` (unless overridden)
 
@@ -82,7 +84,8 @@ Each `sessionKey` points at a current `sessionId` (the transcript file that cont
 
 Rules of thumb:
 - **Reset** (`/new`, `/reset`) creates a new `sessionId` for that `sessionKey`.
-- **Idle expiry** (`session.idleMinutes`) creates a new `sessionId` when a message arrives after the idle window.
+- **Daily reset** (default 4:00 AM local time on the gateway host) creates a new `sessionId` on the next message after the reset boundary.
+- **Idle expiry** (`session.reset.idleMinutes` or legacy `session.idleMinutes`) creates a new `sessionId` when a message arrives after the idle window. When daily + idle are both configured, whichever expires first wins.
 
 Implementation detail: the decision happens in `initSessionState()` in `src/auto-reply/reply/session.ts`.
 
@@ -107,6 +110,8 @@ Key fields (not exhaustive):
 - Token counters (best-effort / provider-dependent):
   - `inputTokens`, `outputTokens`, `totalTokens`, `contextTokens`
 - `compactionCount`: how often auto-compaction completed for this session key
+- `memoryFlushAt`: timestamp for the last pre-compaction memory flush
+- `memoryFlushCompactionCount`: compaction count when the last flush ran
 
 The store is safe to edit, but the Gateway is the authority: it may rewrite or rehydrate entries as sessions run.
 
@@ -191,12 +196,15 @@ Pi’s compaction settings live in Pi settings:
 
 Clawdbot also enforces a safety floor for embedded runs:
 
-- If `compaction.reserveTokens < 20000`, Clawdbot bumps it to 20000.
+- If `compaction.reserveTokens < reserveTokensFloor`, Clawdbot bumps it.
+- Default floor is `20000` tokens.
+- Set `agents.defaults.compaction.reserveTokensFloor: 0` to disable the floor.
 - If it’s already higher, Clawdbot leaves it alone.
 
 Why: leave enough headroom for multi-turn “housekeeping” (like memory writes) before compaction becomes unavoidable.
 
-Implementation: `ensurePiCompactionReserveTokens()` in `src/agents/pi-settings.ts` (called from `src/agents/pi-embedded-runner.ts`).
+Implementation: `ensurePiCompactionReserveTokens()` in `src/agents/pi-settings.ts`
+(called from `src/agents/pi-embedded-runner.ts`).
 
 ---
 
@@ -223,22 +231,34 @@ As of `2026.1.10`, Clawdbot also suppresses **draft/typing streaming** when a pa
 
 ---
 
-## Pre-compaction “memory flush” (design)
+## Pre-compaction “memory flush” (implemented)
 
-Goal: before auto-compaction happens, run a short sequence of turns that writes durable state to disk (e.g. `memory/YYYY-MM-DD.md` in the agent workspace) so compaction can’t erase critical context.
+Goal: before auto-compaction happens, run a silent agentic turn that writes durable
+state to disk (e.g. `memory/YYYY-MM-DD.md` in the agent workspace) so compaction can’t
+erase critical context.
 
-Two viable hooks:
+Clawdbot uses the **pre-threshold flush** approach:
 
-1) **Pre-threshold flush (Clawdbot-side)**
-   - Monitor session context usage.
-   - When it crosses a “soft threshold” (below Pi’s real compaction threshold), enqueue a silent “write memory now” directive to the agent.
-   - Use `NO_REPLY` so the user sees nothing.
+1) Monitor session context usage.
+2) When it crosses a “soft threshold” (below Pi’s compaction threshold), run a silent
+   “write memory now” directive to the agent.
+3) Use `NO_REPLY` so the user sees nothing.
 
-2) **Pi extension hook (`session_before_compact`)**
-   - Pi’s extension API exposes a `session_before_compact` event that receives compaction preparation details and can cancel or replace compaction.
-   - Clawdbot can ship an extension that reacts here and performs housekeeping (and/or produces a custom compaction result).
+Config (`agents.defaults.compaction.memoryFlush`):
+- `enabled` (default: `true`)
+- `softThresholdTokens` (default: `4000`)
+- `prompt` (user message for the flush turn)
+- `systemPrompt` (extra system prompt appended for the flush turn)
 
-Clawdbot currently documents the *concept* of daily memory in the workspace template (see [/concepts/agent-workspace](/concepts/agent-workspace)) but does not yet ship an automated pre-compaction flush loop.
+Notes:
+- The default prompt/system prompt include a `NO_REPLY` hint to suppress delivery.
+- The flush runs once per compaction cycle (tracked in `sessions.json`).
+- The flush runs only for embedded Pi sessions (CLI backends skip it).
+- The flush is skipped when the session workspace is read-only (`workspaceAccess: "ro"` or `"none"`).
+- See [Memory](/concepts/memory) for the workspace file layout and write patterns.
+
+Pi also exposes a `session_before_compact` hook in the extension API, but Clawdbot’s
+flush logic lives on the Gateway side today.
 
 ---
 
@@ -251,4 +271,3 @@ Clawdbot currently documents the *concept* of daily memory in the workspace temp
   - compaction settings (`reserveTokens` too high for the model window can cause earlier compaction)
   - tool-result bloat: enable/tune session pruning
 - Silent turns leaking? Confirm the reply starts with `NO_REPLY` (exact token) and you’re on a build that includes the streaming suppression fix.
-

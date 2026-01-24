@@ -152,7 +152,6 @@ WORKDIR /app
 # Cache dependencies unless package metadata changes
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY ui/package.json ./ui/package.json
-COPY patches ./patches
 COPY scripts ./scripts
 
 RUN pnpm install --frozen-lockfile
@@ -167,26 +166,26 @@ ENV NODE_ENV=production
 CMD ["node","dist/index.js"]
 ```
 
-### Provider setup (optional)
+### Channel setup (optional)
 
-Use the CLI container to configure providers, then restart the gateway if needed.
+Use the CLI container to configure channels, then restart the gateway if needed.
 
 WhatsApp (QR):
 ```bash
-docker compose run --rm clawdbot-cli providers login
+docker compose run --rm clawdbot-cli channels login
 ```
 
 Telegram (bot token):
 ```bash
-docker compose run --rm clawdbot-cli providers add --provider telegram --token "<token>"
+docker compose run --rm clawdbot-cli channels add --channel telegram --token "<token>"
 ```
 
 Discord (bot token):
 ```bash
-docker compose run --rm clawdbot-cli providers add --provider discord --token "<token>"
+docker compose run --rm clawdbot-cli channels add --channel discord --token "<token>"
 ```
 
-Docs: [WhatsApp](/providers/whatsapp), [Telegram](/providers/telegram), [Discord](/providers/discord)
+Docs: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram), [Discord](/channels/discord)
 
 ### Health check
 
@@ -246,14 +245,22 @@ precedence, and troubleshooting.
 - Image: `clawdbot-sandbox:bookworm-slim`
 - One container per agent
 - Agent workspace access: `workspaceAccess: "none"` (default) uses `~/.clawdbot/sandboxes`
-  - `"ro"` keeps the sandbox workspace at `/workspace` and mounts the agent workspace read-only at `/agent` (disables `write`/`edit`)
+  - `"ro"` keeps the sandbox workspace at `/workspace` and mounts the agent workspace read-only at `/agent` (disables `write`/`edit`/`apply_patch`)
   - `"rw"` mounts the agent workspace read/write at `/workspace`
 - Auto-prune: idle > 24h OR age > 7d
 - Network: `none` by default (explicitly opt-in if you need egress)
-- Default allow: `bash`, `process`, `read`, `write`, `edit`, `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `session_status`
+- Default allow: `exec`, `process`, `read`, `write`, `edit`, `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `session_status`
 - Default deny: `browser`, `canvas`, `nodes`, `cron`, `discord`, `gateway`
 
 ### Enable sandboxing
+
+If you plan to install packages in `setupCommand`, note:
+- Default `docker.network` is `"none"` (no egress).
+- `readOnlyRoot: true` blocks package installs.
+- `user` must be root for `apt-get` (omit `user` or set `user: "0:0"`).
+Clawdbot auto-recreates containers when `setupCommand` (or docker config) changes
+unless the container was **recently used** (within ~5 minutes). Hot containers
+log a warning with the exact `clawdbot sandbox recreate ...` command.
 
 ```json5
 {
@@ -297,7 +304,7 @@ precedence, and troubleshooting.
   tools: {
     sandbox: {
       tools: {
-        allow: ["bash", "process", "read", "write", "edit", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "session_status"],
+        allow: ["exec", "process", "read", "write", "edit", "sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "session_status"],
         deny: ["browser", "canvas", "nodes", "cron", "discord", "gateway"]
       }
     }
@@ -424,7 +431,7 @@ Example:
 
 ### Security notes
 
-- Hard wall only applies to **tools** (bash/read/write/edit).  
+- Hard wall only applies to **tools** (exec/read/write/edit/apply_patch).  
 - Host-only tools like browser/camera/canvas are blocked by default.  
 - Allowing `browser` in sandbox **breaks isolation** (browser runs on host).
 
@@ -434,3 +441,7 @@ Example:
 - Container not running: it will auto-create per session on demand.
 - Permission errors in sandbox: set `docker.user` to a UID:GID that matches your
   mounted workspace ownership (or chown the workspace folder).
+- Custom tools not found: Clawdbot runs commands with `sh -lc` (login shell), which
+  sources `/etc/profile` and may reset PATH. Set `docker.env.PATH` to prepend your
+  custom tool paths (e.g., `/custom/bin:/usr/local/share/npm-global/bin`), or add
+  a script under `/etc/profile.d/` in your Dockerfile.

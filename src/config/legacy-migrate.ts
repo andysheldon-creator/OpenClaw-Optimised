@@ -1,6 +1,6 @@
 import { applyLegacyMigrations } from "./legacy.js";
 import type { ClawdbotConfig } from "./types.js";
-import { validateConfigObject } from "./validation.js";
+import { validateConfigObjectWithPlugins } from "./validation.js";
 
 export function migrateLegacyConfig(raw: unknown): {
   config: ClawdbotConfig | null;
@@ -8,11 +8,9 @@ export function migrateLegacyConfig(raw: unknown): {
 } {
   const { next, changes } = applyLegacyMigrations(raw);
   if (!next) return { config: null, changes: [] };
-  const validated = validateConfigObject(next);
+  const validated = validateConfigObjectWithPlugins(next);
   if (!validated.ok) {
-    changes.push(
-      "Migration applied, but config still invalid; fix remaining issues manually.",
-    );
+    changes.push("Migration applied, but config still invalid; fix remaining issues manually.");
     return { config: null, changes };
   }
   return { config: validated.config, changes };

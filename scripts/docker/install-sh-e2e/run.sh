@@ -3,6 +3,12 @@ set -euo pipefail
 
 INSTALL_URL="${CLAWDBOT_INSTALL_URL:-https://clawd.bot/install.sh}"
 MODELS_MODE="${CLAWDBOT_E2E_MODELS:-both}" # both|openai|anthropic
+INSTALL_TAG="${CLAWDBOT_INSTALL_TAG:-latest}"
+E2E_PREVIOUS_VERSION="${CLAWDBOT_INSTALL_E2E_PREVIOUS:-}"
+SKIP_PREVIOUS="${CLAWDBOT_INSTALL_E2E_SKIP_PREVIOUS:-0}"
+OPENAI_API_KEY="${OPENAI_API_KEY:-}"
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+ANTHROPIC_API_TOKEN="${ANTHROPIC_API_TOKEN:-}"
 
 if [[ "$MODELS_MODE" != "both" && "$MODELS_MODE" != "openai" && "$MODELS_MODE" != "anthropic" ]]; then
   echo "ERROR: CLAWDBOT_E2E_MODELS must be one of: both|openai|anthropic" >&2
@@ -10,40 +16,62 @@ if [[ "$MODELS_MODE" != "both" && "$MODELS_MODE" != "openai" && "$MODELS_MODE" !
 fi
 
 if [[ "$MODELS_MODE" == "both" ]]; then
-  if [[ -z "${OPENAI_API_KEY:-}" || -z "${ANTHROPIC_API_KEY:-}" ]]; then
-    echo "ERROR: CLAWDBOT_E2E_MODELS=both requires OPENAI_API_KEY and ANTHROPIC_API_KEY." >&2
+  if [[ -z "$OPENAI_API_KEY" ]]; then
+    echo "ERROR: CLAWDBOT_E2E_MODELS=both requires OPENAI_API_KEY." >&2
     exit 2
   fi
-elif [[ "$MODELS_MODE" == "openai" && -z "${OPENAI_API_KEY:-}" ]]; then
+  if [[ -z "$ANTHROPIC_API_TOKEN" && -z "$ANTHROPIC_API_KEY" ]]; then
+    echo "ERROR: CLAWDBOT_E2E_MODELS=both requires ANTHROPIC_API_TOKEN or ANTHROPIC_API_KEY." >&2
+    exit 2
+  fi
+elif [[ "$MODELS_MODE" == "openai" && -z "$OPENAI_API_KEY" ]]; then
   echo "ERROR: CLAWDBOT_E2E_MODELS=openai requires OPENAI_API_KEY." >&2
   exit 2
-elif [[ "$MODELS_MODE" == "anthropic" && -z "${ANTHROPIC_API_KEY:-}" ]]; then
-  echo "ERROR: CLAWDBOT_E2E_MODELS=anthropic requires ANTHROPIC_API_KEY." >&2
+elif [[ "$MODELS_MODE" == "anthropic" && -z "$ANTHROPIC_API_TOKEN" && -z "$ANTHROPIC_API_KEY" ]]; then
+  echo "ERROR: CLAWDBOT_E2E_MODELS=anthropic requires ANTHROPIC_API_TOKEN or ANTHROPIC_API_KEY." >&2
   exit 2
 fi
 
 echo "==> Resolve npm versions"
-LATEST_VERSION="$(npm view clawdbot version)"
-PREVIOUS_VERSION="$(node - <<'NODE'
+EXPECTED_VERSION="$(npm view "clawdbot@${INSTALL_TAG}" version)"
+if [[ -z "$EXPECTED_VERSION" || "$EXPECTED_VERSION" == "undefined" || "$EXPECTED_VERSION" == "null" ]]; then
+  echo "ERROR: unable to resolve clawdbot@${INSTALL_TAG} version" >&2
+  exit 2
+fi
+if [[ -n "$E2E_PREVIOUS_VERSION" ]]; then
+  PREVIOUS_VERSION="$E2E_PREVIOUS_VERSION"
+else
+  PREVIOUS_VERSION="$(node - <<'NODE'
 const { execSync } = require("node:child_process");
 const versions = JSON.parse(execSync("npm view clawdbot versions --json", { encoding: "utf8" }));
 if (!Array.isArray(versions) || versions.length === 0) process.exit(1);
 process.stdout.write(versions.length >= 2 ? versions[versions.length - 2] : versions[0]);
 NODE
-)"
-echo "latest=$LATEST_VERSION previous=$PREVIOUS_VERSION"
+  )"
+fi
+echo "expected=$EXPECTED_VERSION previous=$PREVIOUS_VERSION"
 
-echo "==> Preinstall previous (forces installer upgrade path; avoids read() prompt)"
-npm install -g "clawdbot@${PREVIOUS_VERSION}"
+if [[ "$SKIP_PREVIOUS" == "1" ]]; then
+  echo "==> Skip preinstall previous (CLAWDBOT_INSTALL_E2E_SKIP_PREVIOUS=1)"
+else
+  echo "==> Preinstall previous (forces installer upgrade path; avoids read() prompt)"
+  npm install -g "clawdbot@${PREVIOUS_VERSION}"
+fi
 
 echo "==> Run official installer one-liner"
-curl -fsSL "$INSTALL_URL" | bash
+if [[ "$INSTALL_TAG" == "beta" ]]; then
+  CLAWDBOT_BETA=1 curl -fsSL "$INSTALL_URL" | bash
+elif [[ "$INSTALL_TAG" != "latest" ]]; then
+  CLAWDBOT_VERSION="$INSTALL_TAG" curl -fsSL "$INSTALL_URL" | bash
+else
+  curl -fsSL "$INSTALL_URL" | bash
+fi
 
 echo "==> Verify installed version"
 INSTALLED_VERSION="$(clawdbot --version 2>/dev/null | head -n 1 | tr -d '\r')"
-echo "installed=$INSTALLED_VERSION expected=$LATEST_VERSION"
-if [[ "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
-  echo "ERROR: expected clawdbot@$LATEST_VERSION, got clawdbot@$INSTALLED_VERSION" >&2
+echo "installed=$INSTALLED_VERSION expected=$EXPECTED_VERSION"
+if [[ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]]; then
+  echo "ERROR: expected clawdbot@$EXPECTED_VERSION, got clawdbot@$INSTALLED_VERSION" >&2
   exit 1
 fi
 
@@ -209,17 +237,20 @@ if (expectProvider && provider && provider !== expectProvider) {
 NODE
 }
 
-extract_first_text() {
+extract_matching_text() {
   local path="$1"
-  node - <<'NODE' "$path"
+  local expected="$2"
+  node - <<'NODE' "$path" "$expected"
 const fs = require("node:fs");
 const p = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const expected = String(process.argv[3] ?? "");
 const payloads =
   Array.isArray(p?.result?.payloads) ? p.result.payloads :
   Array.isArray(p?.payloads) ? p.payloads :
   [];
-const text = payloads.map((x) => String(x?.text ?? "").trim()).filter(Boolean)[0] ?? "";
-process.stdout.write(text);
+const texts = payloads.map((x) => String(x?.text ?? "").trim()).filter(Boolean);
+const match = texts.find((text) => text === expected);
+process.stdout.write(match ?? texts[0] ?? "");
 NODE
 }
 
@@ -265,7 +296,7 @@ function walk(node, parent) {
     if (name) seen.add(name);
   }
   if (typeof obj.name === "string" && typeof obj.input === "object" && obj.input) {
-    // Many tool-use blocks look like { type: "...", name: "bash", input: {...} }
+    // Many tool-use blocks look like { type: "...", name: "exec", input: {...} }
     // but some transcripts omit/rename type.
     seen.add(obj.name);
   }
@@ -306,26 +337,41 @@ run_profile() {
   local workspace="$3"
   local agent_model_provider="$4" # "openai"|"anthropic"
 
-  echo "==> Onboard ($profile)"
-  if [[ "$agent_model_provider" == "openai" ]]; then
-    clawdbot --profile "$profile" onboard \
-      --non-interactive \
-      --flow quickstart \
-      --auth-choice openai-api-key \
-      --openai-api-key "$OPENAI_API_KEY" \
-      --gateway-port "$port" \
+	  echo "==> Onboard ($profile)"
+	  if [[ "$agent_model_provider" == "openai" ]]; then
+	    clawdbot --profile "$profile" onboard \
+	      --non-interactive \
+	      --accept-risk \
+	      --flow quickstart \
+	      --auth-choice openai-api-key \
+	      --openai-api-key "$OPENAI_API_KEY" \
+	      --gateway-port "$port" \
+	      --gateway-bind loopback \
+      --gateway-auth token \
+      --workspace "$workspace" \
+      --skip-health
+	  elif [[ -n "$ANTHROPIC_API_TOKEN" ]]; then
+	    clawdbot --profile "$profile" onboard \
+	      --non-interactive \
+	      --accept-risk \
+	      --flow quickstart \
+	      --auth-choice token \
+	      --token-provider anthropic \
+	      --token "$ANTHROPIC_API_TOKEN" \
+	      --gateway-port "$port" \
       --gateway-bind loopback \
       --gateway-auth token \
       --workspace "$workspace" \
       --skip-health
-  else
-    clawdbot --profile "$profile" onboard \
-      --non-interactive \
-      --flow quickstart \
-      --auth-choice apiKey \
-      --anthropic-api-key "$ANTHROPIC_API_KEY" \
-      --gateway-port "$port" \
-      --gateway-bind loopback \
+	  else
+	    clawdbot --profile "$profile" onboard \
+	      --non-interactive \
+	      --accept-risk \
+	      --flow quickstart \
+	      --auth-choice apiKey \
+	      --anthropic-api-key "$ANTHROPIC_API_KEY" \
+	      --gateway-port "$port" \
+	      --gateway-bind loopback \
       --gateway-auth token \
       --workspace "$workspace" \
       --skip-health
@@ -405,19 +451,19 @@ run_profile() {
   TURN4_JSON="/tmp/agent-${profile}-4.json"
 
   run_agent_turn "$profile" "$SESSION_ID" \
-    "Use the read tool (not bash) to read proof.txt. Reply with the exact contents only (no extra whitespace)." \
+    "Use the read tool (not exec) to read proof.txt. Reply with the exact contents only (no extra whitespace)." \
     "$TURN1_JSON"
   assert_agent_json_has_text "$TURN1_JSON"
   assert_agent_json_ok "$TURN1_JSON" "$agent_model_provider"
   local reply1
-  reply1="$(extract_first_text "$TURN1_JSON" | tr -d '\r\n')"
+  reply1="$(extract_matching_text "$TURN1_JSON" "$PROOF_VALUE" | tr -d '\r\n')"
   if [[ "$reply1" != "$PROOF_VALUE" ]]; then
     echo "ERROR: agent did not read proof.txt correctly ($profile): $reply1" >&2
     exit 1
   fi
 
   local prompt2
-  prompt2=$'Use the write tool (not bash) to write exactly this string into copy.txt:\n'"${reply1}"$'\nThen use the read tool (not bash) to read copy.txt and reply with the exact contents only (no extra whitespace).'
+  prompt2=$'Use the write tool (not exec) to write exactly this string into copy.txt:\n'"${reply1}"$'\nThen use the read tool (not exec) to read copy.txt and reply with the exact contents only (no extra whitespace).'
   run_agent_turn "$profile" "$SESSION_ID" "$prompt2" "$TURN2_JSON"
   assert_agent_json_has_text "$TURN2_JSON"
   assert_agent_json_ok "$TURN2_JSON" "$agent_model_provider"
@@ -428,14 +474,14 @@ run_profile() {
     exit 1
   fi
   local reply2
-  reply2="$(extract_first_text "$TURN2_JSON" | tr -d '\r\n')"
+  reply2="$(extract_matching_text "$TURN2_JSON" "$PROOF_VALUE" | tr -d '\r\n')"
   if [[ "$reply2" != "$PROOF_VALUE" ]]; then
     echo "ERROR: agent did not read copy.txt correctly ($profile): $reply2" >&2
     exit 1
   fi
 
   local prompt3
-  prompt3=$'Use the bash tool to run: cat /etc/hostname\nThen use the write tool to write the exact stdout (trim trailing newline) into hostname.txt. Reply with the hostname only.'
+  prompt3=$'Use the exec tool to run: cat /etc/hostname\nThen use the write tool to write the exact stdout (trim trailing newline) into hostname.txt. Reply with the hostname only.'
   run_agent_turn "$profile" "$SESSION_ID" "$prompt3" "$TURN3_JSON"
   assert_agent_json_has_text "$TURN3_JSON"
   assert_agent_json_ok "$TURN3_JSON" "$agent_model_provider"
@@ -454,7 +500,7 @@ run_profile() {
     exit 1
   fi
   local reply4
-  reply4="$(extract_first_text "$TURN4_JSON")"
+  reply4="$(extract_matching_text "$TURN4_JSON" "LEFT=RED RIGHT=GREEN")"
   if [[ "$reply4" != "LEFT=RED RIGHT=GREEN" ]]; then
     echo "ERROR: agent reply did not contain expected marker ($profile): $reply4" >&2
     exit 1
@@ -468,7 +514,7 @@ run_profile() {
     ls -la "/root/.clawdbot-${profile}/agents/main/sessions" >&2 || true
     exit 1
   fi
-  assert_session_used_tools "$SESSION_JSONL" read write bash image
+  assert_session_used_tools "$SESSION_JSONL" read write exec image
 
   cleanup_profile
   trap - EXIT

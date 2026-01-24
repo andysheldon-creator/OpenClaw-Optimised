@@ -12,10 +12,14 @@ import com.clawdbot.android.chat.ChatMessage
 import com.clawdbot.android.chat.ChatPendingToolCall
 import com.clawdbot.android.chat.ChatSessionEntry
 import com.clawdbot.android.chat.OutgoingAttachment
-import com.clawdbot.android.bridge.BridgeDiscovery
-import com.clawdbot.android.bridge.BridgeEndpoint
-import com.clawdbot.android.bridge.BridgePairingClient
-import com.clawdbot.android.bridge.BridgeSession
+import com.clawdbot.android.gateway.DeviceAuthStore
+import com.clawdbot.android.gateway.DeviceIdentityStore
+import com.clawdbot.android.gateway.GatewayClientInfo
+import com.clawdbot.android.gateway.GatewayConnectOptions
+import com.clawdbot.android.gateway.GatewayDiscovery
+import com.clawdbot.android.gateway.GatewayEndpoint
+import com.clawdbot.android.gateway.GatewaySession
+import com.clawdbot.android.gateway.GatewayTlsParams
 import com.clawdbot.android.node.CameraCaptureManager
 import com.clawdbot.android.node.LocationCaptureManager
 import com.clawdbot.android.BuildConfig
@@ -59,6 +63,7 @@ class NodeRuntime(context: Context) {
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
   val prefs = SecurePrefs(appContext)
+  private val deviceAuthStore = DeviceAuthStore(prefs)
   val canvas = CanvasController()
   val camera = CameraCaptureManager(appContext)
   val location = LocationCaptureManager(appContext)
@@ -73,12 +78,12 @@ class NodeRuntime(context: Context) {
       context = appContext,
       scope = scope,
       onCommand = { command ->
-        session.sendEvent(
+        nodeSession.sendNodeEvent(
           event = "agent.request",
           payloadJson =
             buildJsonObject {
               put("message", JsonPrimitive(command))
-              put("sessionKey", JsonPrimitive(mainSessionKey.value))
+              put("sessionKey", JsonPrimitive(resolveMainSessionKey()))
               put("thinking", JsonPrimitive(chatThinkingLevel.value))
               put("deliver", JsonPrimitive(false))
             }.toString(),
@@ -102,9 +107,11 @@ class NodeRuntime(context: Context) {
   val talkIsSpeaking: StateFlow<Boolean>
     get() = talkMode.isSpeaking
 
-  private val discovery = BridgeDiscovery(appContext, scope = scope)
-  val bridges: StateFlow<List<BridgeEndpoint>> = discovery.bridges
+  private val discovery = GatewayDiscovery(appContext, scope = scope)
+  val gateways: StateFlow<List<GatewayEndpoint>> = discovery.gateways
   val discoveryStatusText: StateFlow<String> = discovery.statusText
+
+  private val identityStore = DeviceIdentityStore(appContext)
 
   private val _isConnected = MutableStateFlow(false)
   val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
@@ -138,43 +145,116 @@ class NodeRuntime(context: Context) {
   val isForeground: StateFlow<Boolean> = _isForeground.asStateFlow()
 
   private var lastAutoA2uiUrl: String? = null
+  private var operatorConnected = false
+  private var nodeConnected = false
+  private var operatorStatusText: String = "Offline"
+  private var nodeStatusText: String = "Offline"
+  private var connectedEndpoint: GatewayEndpoint? = null
 
-  private val session =
-    BridgeSession(
+  private val operatorSession =
+    GatewaySession(
       scope = scope,
-      onConnected = { name, remote ->
-        _statusText.value = "Connected"
+      identityStore = identityStore,
+      deviceAuthStore = deviceAuthStore,
+      onConnected = { name, remote, mainSessionKey ->
+        operatorConnected = true
+        operatorStatusText = "Connected"
         _serverName.value = name
         _remoteAddress.value = remote
-        _isConnected.value = true
         _seamColorArgb.value = DEFAULT_SEAM_COLOR_ARGB
+        applyMainSessionKey(mainSessionKey)
+        updateStatus()
         scope.launch { refreshBrandingFromGateway() }
         scope.launch { refreshWakeWordsFromGateway() }
-        maybeNavigateToA2uiOnConnect()
       },
-      onDisconnected = { message -> handleSessionDisconnected(message) },
+      onDisconnected = { message ->
+        operatorConnected = false
+        operatorStatusText = message
+        _serverName.value = null
+        _remoteAddress.value = null
+        _seamColorArgb.value = DEFAULT_SEAM_COLOR_ARGB
+        if (!isCanonicalMainSessionKey(_mainSessionKey.value)) {
+          _mainSessionKey.value = "main"
+        }
+        val mainKey = resolveMainSessionKey()
+        talkMode.setMainSessionKey(mainKey)
+        chat.applyMainSessionKey(mainKey)
+        chat.onDisconnected(message)
+        updateStatus()
+      },
       onEvent = { event, payloadJson ->
-        handleBridgeEvent(event, payloadJson)
-      },
-      onInvoke = { req ->
-        handleInvoke(req.command, req.paramsJson)
+        handleGatewayEvent(event, payloadJson)
       },
     )
 
-  private val chat = ChatController(scope = scope, session = session, json = json)
+  private val nodeSession =
+    GatewaySession(
+      scope = scope,
+      identityStore = identityStore,
+      deviceAuthStore = deviceAuthStore,
+      onConnected = { _, _, _ ->
+        nodeConnected = true
+        nodeStatusText = "Connected"
+        updateStatus()
+        maybeNavigateToA2uiOnConnect()
+      },
+      onDisconnected = { message ->
+        nodeConnected = false
+        nodeStatusText = message
+        updateStatus()
+        showLocalCanvasOnDisconnect()
+      },
+      onEvent = { _, _ -> },
+      onInvoke = { req ->
+        handleInvoke(req.command, req.paramsJson)
+      },
+      onTlsFingerprint = { stableId, fingerprint ->
+        prefs.saveGatewayTlsFingerprint(stableId, fingerprint)
+      },
+    )
+
+  private val chat: ChatController =
+    ChatController(
+      scope = scope,
+      session = operatorSession,
+      json = json,
+      supportsChatSubscribe = false,
+    )
   private val talkMode: TalkModeManager by lazy {
-    TalkModeManager(context = appContext, scope = scope).also { it.attachSession(session) }
+    TalkModeManager(
+      context = appContext,
+      scope = scope,
+      session = operatorSession,
+      supportsChatSubscribe = false,
+      isConnected = { operatorConnected },
+    )
   }
 
-  private fun handleSessionDisconnected(message: String) {
-    _statusText.value = message
-    _serverName.value = null
-    _remoteAddress.value = null
-    _isConnected.value = false
-    _seamColorArgb.value = DEFAULT_SEAM_COLOR_ARGB
-    _mainSessionKey.value = "main"
-    chat.onDisconnected(message)
-    showLocalCanvasOnDisconnect()
+  private fun applyMainSessionKey(candidate: String?) {
+    val trimmed = candidate?.trim().orEmpty()
+    if (trimmed.isEmpty()) return
+    if (isCanonicalMainSessionKey(_mainSessionKey.value)) return
+    if (_mainSessionKey.value == trimmed) return
+    _mainSessionKey.value = trimmed
+    talkMode.setMainSessionKey(trimmed)
+    chat.applyMainSessionKey(trimmed)
+  }
+
+  private fun updateStatus() {
+    _isConnected.value = operatorConnected
+    _statusText.value =
+      when {
+        operatorConnected && nodeConnected -> "Connected"
+        operatorConnected && !nodeConnected -> "Connected (node offline)"
+        !operatorConnected && nodeConnected -> "Connected (operator offline)"
+        operatorStatusText.isNotBlank() && operatorStatusText != "Offline" -> operatorStatusText
+        else -> nodeStatusText
+      }
+  }
+
+  private fun resolveMainSessionKey(): String {
+    val trimmed = _mainSessionKey.value.trim()
+    return if (trimmed.isEmpty()) "main" else trimmed
   }
 
   private fun maybeNavigateToA2uiOnConnect() {
@@ -203,6 +283,7 @@ class NodeRuntime(context: Context) {
   val manualEnabled: StateFlow<Boolean> = prefs.manualEnabled
   val manualHost: StateFlow<String> = prefs.manualHost
   val manualPort: StateFlow<Int> = prefs.manualPort
+  val manualTls: StateFlow<Boolean> = prefs.manualTls
   val lastDiscoveredStableId: StateFlow<String> = prefs.lastDiscoveredStableId
   val canvasDebugStatusEnabled: StateFlow<Boolean> = prefs.canvasDebugStatusEnabled
 
@@ -263,24 +344,21 @@ class NodeRuntime(context: Context) {
     }
 
     scope.launch(Dispatchers.Default) {
-      bridges.collect { list ->
+      gateways.collect { list ->
         if (list.isNotEmpty()) {
-          // Persist the last discovered bridge (best-effort UX parity with iOS).
+          // Persist the last discovered gateway (best-effort UX parity with iOS).
           prefs.setLastDiscoveredStableId(list.last().stableId)
         }
 
         if (didAutoConnect) return@collect
         if (_isConnected.value) return@collect
 
-        val token = prefs.loadBridgeToken()
-        if (token.isNullOrBlank()) return@collect
-
         if (manualEnabled.value) {
           val host = manualHost.value.trim()
           val port = manualPort.value
           if (host.isNotEmpty() && port in 1..65535) {
             didAutoConnect = true
-            connect(BridgeEndpoint.manual(host = host, port = port))
+            connect(GatewayEndpoint.manual(host = host, port = port))
           }
           return@collect
         }
@@ -346,6 +424,10 @@ class NodeRuntime(context: Context) {
     prefs.setManualPort(value)
   }
 
+  fun setManualTls(value: Boolean) {
+    prefs.setManualTls(value)
+  }
+
   fun setCanvasDebugStatusEnabled(value: Boolean) {
     prefs.setCanvasDebugStatusEnabled(value)
   }
@@ -404,93 +486,87 @@ class NodeRuntime(context: Context) {
       }
     }
 
-  private fun buildPairingHello(token: String?): BridgePairingClient.Hello {
-    val modelIdentifier = listOfNotNull(Build.MANUFACTURER, Build.MODEL)
-      .joinToString(" ")
-      .trim()
-      .ifEmpty { null }
+  private fun resolvedVersionName(): String {
     val versionName = BuildConfig.VERSION_NAME.trim().ifEmpty { "dev" }
-    val advertisedVersion =
-      if (BuildConfig.DEBUG && !versionName.contains("dev", ignoreCase = true)) {
-        "$versionName-dev"
-      } else {
-        versionName
-      }
-    return BridgePairingClient.Hello(
-      nodeId = instanceId.value,
-      displayName = displayName.value,
-      token = token,
-      platform = "Android",
-      version = advertisedVersion,
-      deviceFamily = "Android",
-      modelIdentifier = modelIdentifier,
-      caps = buildCapabilities(),
-      commands = buildInvokeCommands(),
-    )
-  }
-
-  private fun buildSessionHello(token: String?): BridgeSession.Hello {
-    val modelIdentifier = listOfNotNull(Build.MANUFACTURER, Build.MODEL)
-      .joinToString(" ")
-      .trim()
-      .ifEmpty { null }
-    val versionName = BuildConfig.VERSION_NAME.trim().ifEmpty { "dev" }
-    val advertisedVersion =
-      if (BuildConfig.DEBUG && !versionName.contains("dev", ignoreCase = true)) {
-        "$versionName-dev"
-      } else {
-        versionName
-      }
-    return BridgeSession.Hello(
-      nodeId = instanceId.value,
-      displayName = displayName.value,
-      token = token,
-      platform = "Android",
-      version = advertisedVersion,
-      deviceFamily = "Android",
-      modelIdentifier = modelIdentifier,
-      caps = buildCapabilities(),
-      commands = buildInvokeCommands(),
-    )
-  }
-
-  fun refreshBridgeHello() {
-    scope.launch {
-      if (!_isConnected.value) return@launch
-      val token = prefs.loadBridgeToken()
-      if (token.isNullOrBlank()) return@launch
-      session.updateHello(buildSessionHello(token))
+    return if (BuildConfig.DEBUG && !versionName.contains("dev", ignoreCase = true)) {
+      "$versionName-dev"
+    } else {
+      versionName
     }
   }
 
-  fun connect(endpoint: BridgeEndpoint) {
-    scope.launch {
-      _statusText.value = "Connecting…"
-      val storedToken = prefs.loadBridgeToken()
-      val resolved =
-        if (storedToken.isNullOrBlank()) {
-          _statusText.value = "Pairing…"
-          BridgePairingClient().pairAndHello(
-            endpoint = endpoint,
-            hello = buildPairingHello(token = null),
-          )
-        } else {
-          BridgePairingClient.PairResult(ok = true, token = storedToken.trim())
-        }
+  private fun resolveModelIdentifier(): String? {
+    return listOfNotNull(Build.MANUFACTURER, Build.MODEL)
+      .joinToString(" ")
+      .trim()
+      .ifEmpty { null }
+  }
 
-      if (!resolved.ok || resolved.token.isNullOrBlank()) {
-        val errorMessage = resolved.error?.trim().orEmpty().ifEmpty { "pairing required" }
-        _statusText.value = "Failed: $errorMessage"
-        return@launch
-      }
+  private fun buildUserAgent(): String {
+    val version = resolvedVersionName()
+    val release = Build.VERSION.RELEASE?.trim().orEmpty()
+    val releaseLabel = if (release.isEmpty()) "unknown" else release
+    return "ClawdbotAndroid/$version (Android $releaseLabel; SDK ${Build.VERSION.SDK_INT})"
+  }
 
-      val authToken = requireNotNull(resolved.token).trim()
-      prefs.saveBridgeToken(authToken)
-      session.connect(
-        endpoint = endpoint,
-        hello = buildSessionHello(token = authToken),
-      )
-    }
+  private fun buildClientInfo(clientId: String, clientMode: String): GatewayClientInfo {
+    return GatewayClientInfo(
+      id = clientId,
+      displayName = displayName.value,
+      version = resolvedVersionName(),
+      platform = "android",
+      mode = clientMode,
+      instanceId = instanceId.value,
+      deviceFamily = "Android",
+      modelIdentifier = resolveModelIdentifier(),
+    )
+  }
+
+  private fun buildNodeConnectOptions(): GatewayConnectOptions {
+    return GatewayConnectOptions(
+      role = "node",
+      scopes = emptyList(),
+      caps = buildCapabilities(),
+      commands = buildInvokeCommands(),
+      permissions = emptyMap(),
+      client = buildClientInfo(clientId = "clawdbot-android", clientMode = "node"),
+      userAgent = buildUserAgent(),
+    )
+  }
+
+  private fun buildOperatorConnectOptions(): GatewayConnectOptions {
+    return GatewayConnectOptions(
+      role = "operator",
+      scopes = emptyList(),
+      caps = emptyList(),
+      commands = emptyList(),
+      permissions = emptyMap(),
+      client = buildClientInfo(clientId = "clawdbot-control-ui", clientMode = "ui"),
+      userAgent = buildUserAgent(),
+    )
+  }
+
+  fun refreshGatewayConnection() {
+    val endpoint = connectedEndpoint ?: return
+    val token = prefs.loadGatewayToken()
+    val password = prefs.loadGatewayPassword()
+    val tls = resolveTlsParams(endpoint)
+    operatorSession.connect(endpoint, token, password, buildOperatorConnectOptions(), tls)
+    nodeSession.connect(endpoint, token, password, buildNodeConnectOptions(), tls)
+    operatorSession.reconnect()
+    nodeSession.reconnect()
+  }
+
+  fun connect(endpoint: GatewayEndpoint) {
+    connectedEndpoint = endpoint
+    operatorStatusText = "Connecting…"
+    nodeStatusText = "Connecting…"
+    updateStatus()
+    val token = prefs.loadGatewayToken()
+    val password = prefs.loadGatewayPassword()
+    val tls = resolveTlsParams(endpoint)
+    operatorSession.connect(endpoint, token, password, buildOperatorConnectOptions(), tls)
+    nodeSession.connect(endpoint, token, password, buildNodeConnectOptions(), tls)
   }
 
   private fun hasRecordAudioPermission(): Boolean {
@@ -528,11 +604,49 @@ class NodeRuntime(context: Context) {
       _statusText.value = "Failed: invalid manual host/port"
       return
     }
-    connect(BridgeEndpoint.manual(host = host, port = port))
+    connect(GatewayEndpoint.manual(host = host, port = port))
   }
 
   fun disconnect() {
-    session.disconnect()
+    connectedEndpoint = null
+    operatorSession.disconnect()
+    nodeSession.disconnect()
+  }
+
+  private fun resolveTlsParams(endpoint: GatewayEndpoint): GatewayTlsParams? {
+    val stored = prefs.loadGatewayTlsFingerprint(endpoint.stableId)
+    val hinted = endpoint.tlsEnabled || !endpoint.tlsFingerprintSha256.isNullOrBlank()
+    val manual = endpoint.stableId.startsWith("manual|")
+
+    if (manual) {
+      if (!manualTls.value) return null
+      return GatewayTlsParams(
+        required = true,
+        expectedFingerprint = endpoint.tlsFingerprintSha256 ?: stored,
+        allowTOFU = stored == null,
+        stableId = endpoint.stableId,
+      )
+    }
+
+    if (hinted) {
+      return GatewayTlsParams(
+        required = true,
+        expectedFingerprint = endpoint.tlsFingerprintSha256 ?: stored,
+        allowTOFU = stored == null,
+        stableId = endpoint.stableId,
+      )
+    }
+
+    if (!stored.isNullOrBlank()) {
+      return GatewayTlsParams(
+        required = true,
+        expectedFingerprint = stored,
+        allowTOFU = false,
+        stableId = endpoint.stableId,
+      )
+    }
+
+    return null
   }
 
   fun handleCanvasA2UIActionFromWebView(payloadJson: String) {
@@ -559,7 +673,7 @@ class NodeRuntime(context: Context) {
         (userActionObj["sourceComponentId"] as? JsonPrimitive)?.content?.trim().orEmpty().ifEmpty { "-" }
       val contextJson = (userActionObj["context"] as? JsonObject)?.toString()
 
-      val sessionKey = "main"
+      val sessionKey = resolveMainSessionKey()
       val message =
         ClawdbotCanvasA2UIAction.formatAgentMessage(
           actionName = name,
@@ -571,11 +685,11 @@ class NodeRuntime(context: Context) {
           contextJson = contextJson,
         )
 
-      val connected = isConnected.value
+      val connected = nodeConnected
       var error: String? = null
       if (connected) {
         try {
-          session.sendEvent(
+          nodeSession.sendNodeEvent(
             event = "agent.request",
             payloadJson =
               buildJsonObject {
@@ -590,7 +704,7 @@ class NodeRuntime(context: Context) {
           error = e.message ?: "send failed"
         }
       } else {
-        error = "bridge not connected"
+        error = "gateway not connected"
       }
 
       try {
@@ -607,8 +721,9 @@ class NodeRuntime(context: Context) {
     }
   }
 
-  fun loadChat(sessionKey: String = "main") {
-    chat.load(sessionKey)
+  fun loadChat(sessionKey: String) {
+    val key = sessionKey.trim().ifEmpty { resolveMainSessionKey() }
+    chat.load(key)
   }
 
   fun refreshChat() {
@@ -635,7 +750,7 @@ class NodeRuntime(context: Context) {
     chat.sendMessage(message = message, thinkingLevel = thinking, attachments = attachments)
   }
 
-  private fun handleBridgeEvent(event: String, payloadJson: String?) {
+  private fun handleGatewayEvent(event: String, payloadJson: String?) {
     if (event == "voicewake.changed") {
       if (payloadJson.isNullOrBlank()) return
       try {
@@ -649,8 +764,8 @@ class NodeRuntime(context: Context) {
       return
     }
 
-    talkMode.handleBridgeEvent(event, payloadJson)
-    chat.handleBridgeEvent(event, payloadJson)
+    talkMode.handleGatewayEvent(event, payloadJson)
+    chat.handleGatewayEvent(event, payloadJson)
   }
 
   private fun applyWakeWordsFromGateway(words: List<String>) {
@@ -671,7 +786,7 @@ class NodeRuntime(context: Context) {
         val jsonList = snapshot.joinToString(separator = ",") { it.toJsonString() }
         val params = """{"triggers":[$jsonList]}"""
         try {
-          session.request("voicewake.set", params)
+          operatorSession.request("voicewake.set", params)
         } catch (_: Throwable) {
           // ignore
         }
@@ -681,7 +796,7 @@ class NodeRuntime(context: Context) {
   private suspend fun refreshWakeWordsFromGateway() {
     if (!_isConnected.value) return
     try {
-      val res = session.request("voicewake.get", "{}")
+      val res = operatorSession.request("voicewake.get", "{}")
       val payload = json.parseToJsonElement(res).asObjectOrNull() ?: return
       val array = payload["triggers"] as? JsonArray ?: return
       val triggers = array.mapNotNull { it.asStringOrNull() }
@@ -694,14 +809,14 @@ class NodeRuntime(context: Context) {
   private suspend fun refreshBrandingFromGateway() {
     if (!_isConnected.value) return
     try {
-      val res = session.request("config.get", "{}")
+      val res = operatorSession.request("config.get", "{}")
       val root = json.parseToJsonElement(res).asObjectOrNull()
       val config = root?.get("config").asObjectOrNull()
       val ui = config?.get("ui").asObjectOrNull()
       val raw = ui?.get("seamColor").asStringOrNull()?.trim()
       val sessionCfg = config?.get("session").asObjectOrNull()
       val mainKey = normalizeMainKey(sessionCfg?.get("mainKey").asStringOrNull())
-      _mainSessionKey.value = mainKey
+      applyMainSessionKey(mainKey)
 
       val parsed = parseHexColorArgb(raw)
       _seamColorArgb.value = parsed ?: DEFAULT_SEAM_COLOR_ARGB
@@ -710,7 +825,7 @@ class NodeRuntime(context: Context) {
     }
   }
 
-  private suspend fun handleInvoke(command: String, paramsJson: String?): BridgeSession.InvokeResult {
+  private suspend fun handleInvoke(command: String, paramsJson: String?): GatewaySession.InvokeResult {
     if (
       command.startsWith(ClawdbotCanvasCommand.NamespacePrefix) ||
         command.startsWith(ClawdbotCanvasA2UICommand.NamespacePrefix) ||
@@ -718,14 +833,14 @@ class NodeRuntime(context: Context) {
         command.startsWith(ClawdbotScreenCommand.NamespacePrefix)
       ) {
       if (!isForeground.value) {
-        return BridgeSession.InvokeResult.error(
+        return GatewaySession.InvokeResult.error(
           code = "NODE_BACKGROUND_UNAVAILABLE",
           message = "NODE_BACKGROUND_UNAVAILABLE: canvas/camera/screen commands require foreground",
         )
       }
     }
     if (command.startsWith(ClawdbotCameraCommand.NamespacePrefix) && !cameraEnabled.value) {
-      return BridgeSession.InvokeResult.error(
+      return GatewaySession.InvokeResult.error(
         code = "CAMERA_DISABLED",
         message = "CAMERA_DISABLED: enable Camera in Settings",
       )
@@ -733,7 +848,7 @@ class NodeRuntime(context: Context) {
     if (command.startsWith(ClawdbotLocationCommand.NamespacePrefix) &&
       locationMode.value == LocationMode.Off
     ) {
-      return BridgeSession.InvokeResult.error(
+      return GatewaySession.InvokeResult.error(
         code = "LOCATION_DISABLED",
         message = "LOCATION_DISABLED: enable Location in Settings",
       )
@@ -743,18 +858,18 @@ class NodeRuntime(context: Context) {
       ClawdbotCanvasCommand.Present.rawValue -> {
         val url = CanvasController.parseNavigateUrl(paramsJson)
         canvas.navigate(url)
-        BridgeSession.InvokeResult.ok(null)
+        GatewaySession.InvokeResult.ok(null)
       }
-      ClawdbotCanvasCommand.Hide.rawValue -> BridgeSession.InvokeResult.ok(null)
+      ClawdbotCanvasCommand.Hide.rawValue -> GatewaySession.InvokeResult.ok(null)
       ClawdbotCanvasCommand.Navigate.rawValue -> {
         val url = CanvasController.parseNavigateUrl(paramsJson)
         canvas.navigate(url)
-        BridgeSession.InvokeResult.ok(null)
+        GatewaySession.InvokeResult.ok(null)
       }
       ClawdbotCanvasCommand.Eval.rawValue -> {
         val js =
           CanvasController.parseEvalJs(paramsJson)
-            ?: return BridgeSession.InvokeResult.error(
+            ?: return GatewaySession.InvokeResult.error(
               code = "INVALID_REQUEST",
               message = "INVALID_REQUEST: javaScript required",
             )
@@ -762,12 +877,12 @@ class NodeRuntime(context: Context) {
           try {
             canvas.eval(js)
           } catch (err: Throwable) {
-            return BridgeSession.InvokeResult.error(
+            return GatewaySession.InvokeResult.error(
               code = "NODE_BACKGROUND_UNAVAILABLE",
               message = "NODE_BACKGROUND_UNAVAILABLE: canvas unavailable",
             )
           }
-        BridgeSession.InvokeResult.ok("""{"result":${result.toJsonString()}}""")
+        GatewaySession.InvokeResult.ok("""{"result":${result.toJsonString()}}""")
       }
       ClawdbotCanvasCommand.Snapshot.rawValue -> {
         val snapshotParams = CanvasController.parseSnapshotParams(paramsJson)
@@ -779,51 +894,51 @@ class NodeRuntime(context: Context) {
               maxWidth = snapshotParams.maxWidth,
             )
           } catch (err: Throwable) {
-            return BridgeSession.InvokeResult.error(
+            return GatewaySession.InvokeResult.error(
               code = "NODE_BACKGROUND_UNAVAILABLE",
               message = "NODE_BACKGROUND_UNAVAILABLE: canvas unavailable",
             )
           }
-        BridgeSession.InvokeResult.ok("""{"format":"${snapshotParams.format.rawValue}","base64":"$base64"}""")
+        GatewaySession.InvokeResult.ok("""{"format":"${snapshotParams.format.rawValue}","base64":"$base64"}""")
       }
       ClawdbotCanvasA2UICommand.Reset.rawValue -> {
         val a2uiUrl = resolveA2uiHostUrl()
-          ?: return BridgeSession.InvokeResult.error(
+          ?: return GatewaySession.InvokeResult.error(
             code = "A2UI_HOST_NOT_CONFIGURED",
             message = "A2UI_HOST_NOT_CONFIGURED: gateway did not advertise canvas host",
           )
         val ready = ensureA2uiReady(a2uiUrl)
         if (!ready) {
-          return BridgeSession.InvokeResult.error(
+          return GatewaySession.InvokeResult.error(
             code = "A2UI_HOST_UNAVAILABLE",
             message = "A2UI host not reachable",
           )
         }
         val res = canvas.eval(a2uiResetJS)
-        BridgeSession.InvokeResult.ok(res)
+        GatewaySession.InvokeResult.ok(res)
       }
       ClawdbotCanvasA2UICommand.Push.rawValue, ClawdbotCanvasA2UICommand.PushJSONL.rawValue -> {
         val messages =
           try {
             decodeA2uiMessages(command, paramsJson)
           } catch (err: Throwable) {
-            return BridgeSession.InvokeResult.error(code = "INVALID_REQUEST", message = err.message ?: "invalid A2UI payload")
+            return GatewaySession.InvokeResult.error(code = "INVALID_REQUEST", message = err.message ?: "invalid A2UI payload")
           }
         val a2uiUrl = resolveA2uiHostUrl()
-          ?: return BridgeSession.InvokeResult.error(
+          ?: return GatewaySession.InvokeResult.error(
             code = "A2UI_HOST_NOT_CONFIGURED",
             message = "A2UI_HOST_NOT_CONFIGURED: gateway did not advertise canvas host",
           )
         val ready = ensureA2uiReady(a2uiUrl)
         if (!ready) {
-          return BridgeSession.InvokeResult.error(
+          return GatewaySession.InvokeResult.error(
             code = "A2UI_HOST_UNAVAILABLE",
             message = "A2UI host not reachable",
           )
         }
         val js = a2uiApplyMessagesJS(messages)
         val res = canvas.eval(js)
-        BridgeSession.InvokeResult.ok(res)
+        GatewaySession.InvokeResult.ok(res)
       }
       ClawdbotCameraCommand.Snap.rawValue -> {
         showCameraHud(message = "Taking photo…", kind = CameraHudKind.Photo)
@@ -834,10 +949,10 @@ class NodeRuntime(context: Context) {
           } catch (err: Throwable) {
             val (code, message) = invokeErrorFromThrowable(err)
             showCameraHud(message = message, kind = CameraHudKind.Error, autoHideMs = 2200)
-            return BridgeSession.InvokeResult.error(code = code, message = message)
+            return GatewaySession.InvokeResult.error(code = code, message = message)
           }
         showCameraHud(message = "Photo captured", kind = CameraHudKind.Success, autoHideMs = 1600)
-        BridgeSession.InvokeResult.ok(res.payloadJson)
+        GatewaySession.InvokeResult.ok(res.payloadJson)
       }
       ClawdbotCameraCommand.Clip.rawValue -> {
         val includeAudio = paramsJson?.contains("\"includeAudio\":true") != false
@@ -850,10 +965,10 @@ class NodeRuntime(context: Context) {
             } catch (err: Throwable) {
               val (code, message) = invokeErrorFromThrowable(err)
               showCameraHud(message = message, kind = CameraHudKind.Error, autoHideMs = 2400)
-              return BridgeSession.InvokeResult.error(code = code, message = message)
+              return GatewaySession.InvokeResult.error(code = code, message = message)
             }
           showCameraHud(message = "Clip captured", kind = CameraHudKind.Success, autoHideMs = 1800)
-          BridgeSession.InvokeResult.ok(res.payloadJson)
+          GatewaySession.InvokeResult.ok(res.payloadJson)
         } finally {
           if (includeAudio) externalAudioCaptureActive.value = false
         }
@@ -861,19 +976,19 @@ class NodeRuntime(context: Context) {
       ClawdbotLocationCommand.Get.rawValue -> {
         val mode = locationMode.value
         if (!isForeground.value && mode != LocationMode.Always) {
-          return BridgeSession.InvokeResult.error(
+          return GatewaySession.InvokeResult.error(
             code = "LOCATION_BACKGROUND_UNAVAILABLE",
             message = "LOCATION_BACKGROUND_UNAVAILABLE: background location requires Always",
           )
         }
         if (!hasFineLocationPermission() && !hasCoarseLocationPermission()) {
-          return BridgeSession.InvokeResult.error(
+          return GatewaySession.InvokeResult.error(
             code = "LOCATION_PERMISSION_REQUIRED",
             message = "LOCATION_PERMISSION_REQUIRED: grant Location permission",
           )
         }
         if (!isForeground.value && mode == LocationMode.Always && !hasBackgroundLocationPermission()) {
-          return BridgeSession.InvokeResult.error(
+          return GatewaySession.InvokeResult.error(
             code = "LOCATION_PERMISSION_REQUIRED",
             message = "LOCATION_PERMISSION_REQUIRED: enable Always in system Settings",
           )
@@ -900,15 +1015,15 @@ class NodeRuntime(context: Context) {
               timeoutMs = timeoutMs,
               isPrecise = accuracy == "precise",
             )
-          BridgeSession.InvokeResult.ok(payload.payloadJson)
+          GatewaySession.InvokeResult.ok(payload.payloadJson)
         } catch (err: TimeoutCancellationException) {
-          BridgeSession.InvokeResult.error(
+          GatewaySession.InvokeResult.error(
             code = "LOCATION_TIMEOUT",
             message = "LOCATION_TIMEOUT: no fix in time",
           )
         } catch (err: Throwable) {
           val message = err.message ?: "LOCATION_UNAVAILABLE: no fix"
-          BridgeSession.InvokeResult.error(code = "LOCATION_UNAVAILABLE", message = message)
+          GatewaySession.InvokeResult.error(code = "LOCATION_UNAVAILABLE", message = message)
         }
       }
       ClawdbotScreenCommand.Record.rawValue -> {
@@ -920,9 +1035,9 @@ class NodeRuntime(context: Context) {
               screenRecorder.record(paramsJson)
             } catch (err: Throwable) {
               val (code, message) = invokeErrorFromThrowable(err)
-              return BridgeSession.InvokeResult.error(code = code, message = message)
+              return GatewaySession.InvokeResult.error(code = code, message = message)
             }
-          BridgeSession.InvokeResult.ok(res.payloadJson)
+          GatewaySession.InvokeResult.ok(res.payloadJson)
         } finally {
           _screenRecordActive.value = false
         }
@@ -930,16 +1045,16 @@ class NodeRuntime(context: Context) {
       ClawdbotSmsCommand.Send.rawValue -> {
         val res = sms.send(paramsJson)
         if (res.ok) {
-          BridgeSession.InvokeResult.ok(res.payloadJson)
+          GatewaySession.InvokeResult.ok(res.payloadJson)
         } else {
           val error = res.error ?: "SMS_SEND_FAILED"
           val idx = error.indexOf(':')
           val code = if (idx > 0) error.substring(0, idx).trim() else "SMS_SEND_FAILED"
-          BridgeSession.InvokeResult.error(code = code, message = error)
+          GatewaySession.InvokeResult.error(code = code, message = error)
         }
       }
       else ->
-        BridgeSession.InvokeResult.error(
+        GatewaySession.InvokeResult.error(
           code = "INVALID_REQUEST",
           message = "INVALID_REQUEST: unknown command",
         )
@@ -995,7 +1110,9 @@ class NodeRuntime(context: Context) {
   }
 
   private fun resolveA2uiHostUrl(): String? {
-    val raw = session.currentCanvasHostUrl()?.trim().orEmpty()
+    val nodeRaw = nodeSession.currentCanvasHostUrl()?.trim().orEmpty()
+    val operatorRaw = operatorSession.currentCanvasHostUrl()?.trim().orEmpty()
+    val raw = if (nodeRaw.isNotBlank()) nodeRaw else operatorRaw
     if (raw.isBlank()) return null
     val base = raw.trimEnd('/')
     return "${base}/__clawdbot__/a2ui/?platform=android"

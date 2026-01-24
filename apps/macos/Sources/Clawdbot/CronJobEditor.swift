@@ -1,10 +1,12 @@
 import ClawdbotProtocol
+import Observation
 import SwiftUI
 
 struct CronJobEditor: View {
     let job: CronJob?
     @Binding var isSaving: Bool
     @Binding var error: String?
+    @Bindable var channelsStore: ChannelsStore
     let onCancel: () -> Void
     let onSave: ([String: AnyCodable]) -> Void
 
@@ -18,7 +20,7 @@ struct CronJobEditor: View {
     static let scheduleKindNote =
         "“At” runs once, “Every” repeats with a duration, “Cron” uses a 5-field Unix expression."
     static let isolatedPayloadNote =
-        "Isolated jobs always run an agent turn. The result can be delivered to a provider, "
+        "Isolated jobs always run an agent turn. The result can be delivered to a channel, "
             + "and a short summary is posted back to your main chat."
     static let mainPayloadNote =
         "System events are injected into the current main session. Agent turns require an isolated session target."
@@ -27,9 +29,11 @@ struct CronJobEditor: View {
 
     @State var name: String = ""
     @State var description: String = ""
+    @State var agentId: String = ""
     @State var enabled: Bool = true
     @State var sessionTarget: CronSessionTarget = .main
     @State var wakeMode: CronWakeMode = .nextHeartbeat
+    @State var deleteAfterRun: Bool = false
 
     enum ScheduleKind: String, CaseIterable, Identifiable { case at, every, cron; var id: String { rawValue } }
     @State var scheduleKind: ScheduleKind = .every
@@ -43,12 +47,28 @@ struct CronJobEditor: View {
     @State var systemEventText: String = ""
     @State var agentMessage: String = ""
     @State var deliver: Bool = false
-    @State var provider: GatewayAgentProvider = .last
+    @State var channel: String = "last"
     @State var to: String = ""
     @State var thinking: String = ""
     @State var timeoutSeconds: String = ""
     @State var bestEffortDeliver: Bool = false
     @State var postPrefix: String = "Cron"
+
+    var channelOptions: [String] {
+        let ordered = self.channelsStore.orderedChannelIds()
+        var options = ["last"] + ordered
+        let trimmed = self.channel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, !options.contains(trimmed) {
+            options.append(trimmed)
+        }
+        var seen = Set<String>()
+        return options.filter { seen.insert($0).inserted }
+    }
+
+    func channelLabel(for id: String) -> String {
+        if id == "last" { return "last" }
+        return self.channelsStore.resolveChannelLabel(id)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -74,6 +94,12 @@ struct CronJobEditor: View {
                             GridRow {
                                 self.gridLabel("Description")
                                 TextField("Optional notes", text: self.$description)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            GridRow {
+                                self.gridLabel("Agent ID")
+                                TextField("Optional (default agent)", text: self.$agentId)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(maxWidth: .infinity)
                             }
@@ -148,6 +174,11 @@ struct CronJobEditor: View {
                                         displayedComponents: [.date, .hourAndMinute])
                                         .labelsHidden()
                                         .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                GridRow {
+                                    self.gridLabel("Auto-delete")
+                                    Toggle("Delete after successful run", isOn: self.$deleteAfterRun)
+                                        .toggleStyle(.switch)
                                 }
                             case .every:
                                 GridRow {
@@ -310,7 +341,7 @@ struct CronJobEditor: View {
                 }
                 GridRow {
                     self.gridLabel("Deliver")
-                    Toggle("Deliver result to a provider", isOn: self.$deliver)
+                    Toggle("Deliver result to a channel", isOn: self.$deliver)
                         .toggleStyle(.switch)
                 }
             }
@@ -318,15 +349,11 @@ struct CronJobEditor: View {
             if self.deliver {
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 14, verticalSpacing: 10) {
                     GridRow {
-                        self.gridLabel("Provider")
-                        Picker("", selection: self.$provider) {
-                            Text("last").tag(GatewayAgentProvider.last)
-                            Text("whatsapp").tag(GatewayAgentProvider.whatsapp)
-                            Text("telegram").tag(GatewayAgentProvider.telegram)
-                            Text("discord").tag(GatewayAgentProvider.discord)
-                            Text("slack").tag(GatewayAgentProvider.slack)
-                            Text("signal").tag(GatewayAgentProvider.signal)
-                            Text("imessage").tag(GatewayAgentProvider.imessage)
+                        self.gridLabel("Channel")
+                        Picker("", selection: self.$channel) {
+                            ForEach(self.channelOptions, id: \.self) { channel in
+                                Text(self.channelLabel(for: channel)).tag(channel)
+                            }
                         }
                         .labelsHidden()
                         .pickerStyle(.segmented)

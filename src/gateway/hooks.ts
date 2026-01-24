@@ -1,15 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
+import { listChannelPlugins } from "../channels/plugins/index.js";
+import type { ChannelId } from "../channels/plugins/types.js";
 import type { ClawdbotConfig } from "../config/config.js";
-import {
-  listProviderPlugins,
-  type ProviderId,
-} from "../providers/plugins/index.js";
-import { normalizeMessageProvider } from "../utils/message-provider.js";
-import {
-  type HookMappingResolved,
-  resolveHookMappings,
-} from "./hooks-mapping.js";
+import { normalizeMessageChannel } from "../utils/message-channel.js";
+import { type HookMappingResolved, resolveHookMappings } from "./hooks-mapping.js";
 
 const DEFAULT_HOOKS_PATH = "/hooks";
 const DEFAULT_HOOKS_MAX_BODY_BYTES = 256 * 1024;
@@ -21,9 +16,7 @@ export type HooksConfigResolved = {
   mappings: HookMappingResolved[];
 };
 
-export function resolveHooksConfig(
-  cfg: ClawdbotConfig,
-): HooksConfigResolved | null {
+export function resolveHooksConfig(cfg: ClawdbotConfig): HooksConfigResolved | null {
   if (cfg.hooks?.enabled !== true) return null;
   const token = cfg.hooks?.token?.trim();
   if (!token) {
@@ -31,8 +24,7 @@ export function resolveHooksConfig(
   }
   const rawPath = cfg.hooks?.path?.trim() || DEFAULT_HOOKS_PATH;
   const withSlash = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
-  const trimmed =
-    withSlash.length > 1 ? withSlash.replace(/\/+$/, "") : withSlash;
+  const trimmed = withSlash.length > 1 ? withSlash.replace(/\/+$/, "") : withSlash;
   if (trimmed === "/") {
     throw new Error("hooks.path may not be '/'");
   }
@@ -49,14 +41,9 @@ export function resolveHooksConfig(
   };
 }
 
-export function extractHookToken(
-  req: IncomingMessage,
-  url: URL,
-): string | undefined {
+export function extractHookToken(req: IncomingMessage, url: URL): string | undefined {
   const auth =
-    typeof req.headers.authorization === "string"
-      ? req.headers.authorization.trim()
-      : "";
+    typeof req.headers.authorization === "string" ? req.headers.authorization.trim() : "";
   if (auth.toLowerCase().startsWith("bearer ")) {
     const token = auth.slice(7).trim();
     if (token) return token;
@@ -142,29 +129,26 @@ export type HookAgentPayload = {
   wakeMode: "now" | "next-heartbeat";
   sessionKey: string;
   deliver: boolean;
-  provider: HookMessageProvider;
+  channel: HookMessageChannel;
   to?: string;
   model?: string;
   thinking?: string;
   timeoutSeconds?: number;
 };
 
-const HOOK_PROVIDER_VALUES = [
-  "last",
-  ...listProviderPlugins().map((plugin) => plugin.id),
-];
+const listHookChannelValues = () => ["last", ...listChannelPlugins().map((plugin) => plugin.id)];
 
-export type HookMessageProvider = ProviderId | "last";
+export type HookMessageChannel = ChannelId | "last";
 
-const hookProviderSet = new Set<string>(HOOK_PROVIDER_VALUES);
-export const HOOK_PROVIDER_ERROR = `provider must be ${HOOK_PROVIDER_VALUES.join("|")}`;
+const getHookChannelSet = () => new Set<string>(listHookChannelValues());
+export const getHookChannelError = () => `channel must be ${listHookChannelValues().join("|")}`;
 
-export function resolveHookProvider(raw: unknown): HookMessageProvider | null {
+export function resolveHookChannel(raw: unknown): HookMessageChannel | null {
   if (raw === undefined) return "last";
   if (typeof raw !== "string") return null;
-  const normalized = normalizeMessageProvider(raw);
-  if (!normalized || !hookProviderSet.has(normalized)) return null;
-  return normalized as HookMessageProvider;
+  const normalized = normalizeMessageChannel(raw);
+  if (!normalized || !getHookChannelSet().has(normalized)) return null;
+  return normalized as HookMessageChannel;
 }
 
 export function resolveHookDeliver(raw: unknown): boolean {
@@ -180,44 +164,33 @@ export function normalizeAgentPayload(
       value: HookAgentPayload;
     }
   | { ok: false; error: string } {
-  const message =
-    typeof payload.message === "string" ? payload.message.trim() : "";
+  const message = typeof payload.message === "string" ? payload.message.trim() : "";
   if (!message) return { ok: false, error: "message required" };
   const nameRaw = payload.name;
-  const name =
-    typeof nameRaw === "string" && nameRaw.trim() ? nameRaw.trim() : "Hook";
-  const wakeMode =
-    payload.wakeMode === "next-heartbeat" ? "next-heartbeat" : "now";
+  const name = typeof nameRaw === "string" && nameRaw.trim() ? nameRaw.trim() : "Hook";
+  const wakeMode = payload.wakeMode === "next-heartbeat" ? "next-heartbeat" : "now";
   const sessionKeyRaw = payload.sessionKey;
   const idFactory = opts?.idFactory ?? randomUUID;
   const sessionKey =
     typeof sessionKeyRaw === "string" && sessionKeyRaw.trim()
       ? sessionKeyRaw.trim()
       : `hook:${idFactory()}`;
-  const provider = resolveHookProvider(payload.provider);
-  if (!provider) return { ok: false, error: HOOK_PROVIDER_ERROR };
+  const channel = resolveHookChannel(payload.channel);
+  if (!channel) return { ok: false, error: getHookChannelError() };
   const toRaw = payload.to;
-  const to =
-    typeof toRaw === "string" && toRaw.trim() ? toRaw.trim() : undefined;
+  const to = typeof toRaw === "string" && toRaw.trim() ? toRaw.trim() : undefined;
   const modelRaw = payload.model;
-  const model =
-    typeof modelRaw === "string" && modelRaw.trim()
-      ? modelRaw.trim()
-      : undefined;
+  const model = typeof modelRaw === "string" && modelRaw.trim() ? modelRaw.trim() : undefined;
   if (modelRaw !== undefined && !model) {
     return { ok: false, error: "model required" };
   }
   const deliver = resolveHookDeliver(payload.deliver);
   const thinkingRaw = payload.thinking;
   const thinking =
-    typeof thinkingRaw === "string" && thinkingRaw.trim()
-      ? thinkingRaw.trim()
-      : undefined;
+    typeof thinkingRaw === "string" && thinkingRaw.trim() ? thinkingRaw.trim() : undefined;
   const timeoutRaw = payload.timeoutSeconds;
   const timeoutSeconds =
-    typeof timeoutRaw === "number" &&
-    Number.isFinite(timeoutRaw) &&
-    timeoutRaw > 0
+    typeof timeoutRaw === "number" && Number.isFinite(timeoutRaw) && timeoutRaw > 0
       ? Math.floor(timeoutRaw)
       : undefined;
   return {
@@ -228,7 +201,7 @@ export function normalizeAgentPayload(
       wakeMode,
       sessionKey,
       deliver,
-      provider,
+      channel,
       to,
       model,
       thinking,

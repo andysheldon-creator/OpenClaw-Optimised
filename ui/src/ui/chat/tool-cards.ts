@@ -1,7 +1,5 @@
 import { html, nothing } from "lit";
-import { unsafeHTML } from "lit/directives/unsafe-html.js";
 
-import { toSanitizedMarkdownHtml } from "../markdown";
 import { formatToolDetail, resolveToolDisplay } from "../tool-display";
 import type { ToolCard } from "../types/chat-types";
 import { TOOL_INLINE_THRESHOLD } from "./constants";
@@ -10,7 +8,7 @@ import {
   getTruncatedPreview,
 } from "./tool-helpers";
 import { isToolResultMessage } from "./message-normalizer";
-import { extractText } from "./message-extract";
+import { extractTextCached } from "./message-extract";
 
 export function extractToolCards(message: unknown): ToolCard[] {
   const m = message as Record<string, unknown>;
@@ -47,65 +45,11 @@ export function extractToolCards(message: unknown): ToolCard[] {
       (typeof m.toolName === "string" && m.toolName) ||
       (typeof m.tool_name === "string" && m.tool_name) ||
       "tool";
-    const text = extractText(message) ?? undefined;
+    const text = extractTextCached(message) ?? undefined;
     cards.push({ kind: "result", name, text });
   }
 
   return cards;
-}
-
-export function renderToolCardLegacy(
-  card: ToolCard,
-  opts?: {
-    id: string;
-    expanded: boolean;
-    onToggle?: (id: string, expanded: boolean) => void;
-  },
-) {
-  const display = resolveToolDisplay({ name: card.name, args: card.args });
-  const detail = formatToolDetail(display);
-  const hasOutput = typeof card.text === "string" && card.text.length > 0;
-  const expanded = opts?.expanded ?? false;
-  const id = opts?.id ?? `${card.name}-${Math.random()}`;
-  return html`
-    <div class="chat-tool-card">
-      <div class="chat-tool-card__header">
-        <div class="chat-tool-card__title">
-          <span class="chat-tool-card__icon">${display.emoji}</span>
-          <span>${display.label}</span>
-        </div>
-        ${!hasOutput ? html`<span class="chat-tool-card__status">✓</span>` : nothing}
-      </div>
-      ${detail
-        ? html`<div class="chat-tool-card__detail">${detail}</div>`
-        : nothing}
-      ${hasOutput
-        ? html`
-            <details
-              class="chat-tool-card__details"
-              ?open=${expanded}
-              @toggle=${(e: Event) => {
-                if (!opts?.onToggle) return;
-                const target = e.currentTarget as HTMLDetailsElement;
-                opts.onToggle(id, target.open);
-              }}
-            >
-              <summary class="chat-tool-card__summary">
-                ${expanded ? "Hide output" : "Show output"}
-                <span class="chat-tool-card__summary-meta">
-                  (${card.text?.length ?? 0} chars)
-                </span>
-              </summary>
-              ${expanded
-                ? html`<div class="chat-tool-card__output chat-text">
-                    ${unsafeHTML(toSanitizedMarkdownHtml(card.text ?? ""))}
-                  </div>`
-                : nothing}
-            </details>
-          `
-        : nothing}
-    </div>
-  `;
 }
 
 export function renderToolCardSidebar(
@@ -197,4 +141,3 @@ function extractToolText(item: Record<string, unknown>): string | undefined {
   if (typeof item.content === "string") return item.content;
   return undefined;
 }
-

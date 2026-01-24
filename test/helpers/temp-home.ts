@@ -10,7 +10,6 @@ type EnvSnapshot = {
   homeDrive: string | undefined;
   homePath: string | undefined;
   stateDir: string | undefined;
-  legacyStateDir: string | undefined;
 };
 
 function snapshotEnv(): EnvSnapshot {
@@ -20,7 +19,6 @@ function snapshotEnv(): EnvSnapshot {
     homeDrive: process.env.HOMEDRIVE,
     homePath: process.env.HOMEPATH,
     stateDir: process.env.CLAWDBOT_STATE_DIR,
-    legacyStateDir: process.env.CLAWDIS_STATE_DIR,
   };
 }
 
@@ -34,7 +32,6 @@ function restoreEnv(snapshot: EnvSnapshot) {
   restoreKey("HOMEDRIVE", snapshot.homeDrive);
   restoreKey("HOMEPATH", snapshot.homePath);
   restoreKey("CLAWDBOT_STATE_DIR", snapshot.stateDir);
-  restoreKey("CLAWDIS_STATE_DIR", snapshot.legacyStateDir);
 }
 
 function snapshotExtraEnv(keys: string[]): Record<string, string | undefined> {
@@ -54,7 +51,6 @@ function setTempHome(base: string) {
   process.env.HOME = base;
   process.env.USERPROFILE = base;
   process.env.CLAWDBOT_STATE_DIR = path.join(base, ".clawdbot");
-  process.env.CLAWDIS_STATE_DIR = path.join(base, ".clawdbot");
 
   if (process.platform !== "win32") return;
   const match = base.match(/^([A-Za-z]:)(.*)$/);
@@ -67,24 +63,18 @@ export async function withTempHome<T>(
   fn: (home: string) => Promise<T>,
   opts: { env?: Record<string, EnvValue>; prefix?: string } = {},
 ): Promise<T> {
-  const base = await fs.mkdtemp(
-    path.join(os.tmpdir(), opts.prefix ?? "clawdbot-test-home-"),
-  );
+  const base = await fs.mkdtemp(path.join(os.tmpdir(), opts.prefix ?? "clawdbot-test-home-"));
   const snapshot = snapshotEnv();
   const envKeys = Object.keys(opts.env ?? {});
   for (const key of envKeys) {
-    if (
-      key === "HOME" ||
-      key === "USERPROFILE" ||
-      key === "HOMEDRIVE" ||
-      key === "HOMEPATH"
-    ) {
+    if (key === "HOME" || key === "USERPROFILE" || key === "HOMEDRIVE" || key === "HOMEPATH") {
       throw new Error(`withTempHome: use built-in home env (got ${key})`);
     }
   }
   const envSnapshot = snapshotExtraEnv(envKeys);
 
   setTempHome(base);
+  await fs.mkdir(path.join(base, ".clawdbot", "agents", "main", "sessions"), { recursive: true });
   if (opts.env) {
     for (const [key, raw] of Object.entries(opts.env)) {
       const value = typeof raw === "function" ? raw(base) : raw;

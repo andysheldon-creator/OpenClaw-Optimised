@@ -15,6 +15,7 @@ struct MenuContent: View {
     private let controlChannel = ControlChannel.shared
     private let activityStore = WorkActivityStore.shared
     @Bindable private var pairingPrompter = NodePairingApprovalPrompter.shared
+    @Bindable private var devicePairingPrompter = DevicePairingApprovalPrompter.shared
     @Environment(\.openSettings) private var openSettings
     @State private var availableMics: [AudioInputDevice] = []
     @State private var loadingMics = false
@@ -31,6 +32,12 @@ struct MenuContent: View {
         self._updateStatus = Bindable(wrappedValue: updater?.updateStatus ?? UpdateStatus.disabled)
     }
 
+    private var execApprovalModeBinding: Binding<ExecApprovalQuickMode> {
+        Binding(
+            get: { self.state.execApprovalMode },
+            set: { self.state.execApprovalMode = $0 })
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Toggle(isOn: self.activeBinding) {
@@ -42,6 +49,13 @@ struct MenuContent: View {
                         let repairSuffix = repairCount > 0 ? " · \(repairCount) repair" : ""
                         self.statusLine(
                             label: "Pairing approval pending (\(self.pairingPrompter.pendingCount))\(repairSuffix)",
+                            color: .orange)
+                    }
+                    if self.devicePairingPrompter.pendingCount > 0 {
+                        let repairCount = self.devicePairingPrompter.pendingRepairCount
+                        let repairSuffix = repairCount > 0 ? " · \(repairCount) repair" : ""
+                        self.statusLine(
+                            label: "Device pairing pending (\(self.devicePairingPrompter.pendingCount))\(repairSuffix)",
                             color: .orange)
                     }
                 }
@@ -67,6 +81,13 @@ struct MenuContent: View {
             }
             Toggle(isOn: self.$cameraEnabled) {
                 Label("Allow Camera", systemImage: "camera")
+            }
+            Picker(selection: self.execApprovalModeBinding) {
+                ForEach(ExecApprovalQuickMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            } label: {
+                Label("Exec Approvals", systemImage: "terminal")
             }
             Toggle(isOn: Binding(get: { self.state.canvasEnabled }, set: { self.state.canvasEnabled = $0 })) {
                 Label("Allow Canvas", systemImage: "rectangle.and.pencil.and.ellipsis")
@@ -102,11 +123,14 @@ struct MenuContent: View {
             }
             if self.state.canvasEnabled {
                 Button {
-                    if self.state.canvasPanelVisible {
-                        CanvasManager.shared.hideAll()
-                    } else {
-                        // Don't force a navigation on re-open: preserve the current web view state.
-                        _ = try? CanvasManager.shared.show(sessionKey: "main", path: nil)
+                    Task { @MainActor in
+                        if self.state.canvasPanelVisible {
+                            CanvasManager.shared.hideAll()
+                        } else {
+                            let sessionKey = await GatewayConnection.shared.mainSessionKey()
+                            // Don't force a navigation on re-open: preserve the current web view state.
+                            _ = try? CanvasManager.shared.show(sessionKey: sessionKey, path: nil)
+                        }
                     }
                 } label: {
                     Label(
@@ -279,7 +303,7 @@ struct MenuContent: View {
                     Label("Send Test Notification", systemImage: "bell")
                 }
                 Divider()
-                if self.state.connectionMode == .local, !AppStateStore.attachExistingGatewayOnly {
+                if self.state.connectionMode == .local {
                     Button {
                         DebugActions.restartGateway()
                     } label: {
@@ -313,27 +337,7 @@ struct MenuContent: View {
     private func openDashboard() async {
         do {
             let config = try await GatewayEndpointStore.shared.requireConfig()
-            let wsURL = config.url
-            guard var components = URLComponents(url: wsURL, resolvingAgainstBaseURL: false) else {
-                throw NSError(domain: "Dashboard", code: 1, userInfo: [
-                    NSLocalizedDescriptionKey: "Invalid gateway URL",
-                ])
-            }
-            switch components.scheme?.lowercased() {
-            case "ws":
-                components.scheme = "http"
-            case "wss":
-                components.scheme = "https"
-            default:
-                components.scheme = "http"
-            }
-            components.path = "/"
-            components.query = nil
-            guard let url = components.url else {
-                throw NSError(domain: "Dashboard", code: 2, userInfo: [
-                    NSLocalizedDescriptionKey: "Failed to build dashboard URL",
-                ])
-            }
+            let url = try GatewayEndpointStore.dashboardURL(for: config)
             NSWorkspace.shared.open(url)
         } catch {
             let alert = NSAlert()

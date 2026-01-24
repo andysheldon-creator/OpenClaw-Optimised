@@ -9,7 +9,9 @@ describe("resolveTelegramAccount", () => {
     process.env.TELEGRAM_BOT_TOKEN = "";
     try {
       const cfg: ClawdbotConfig = {
-        telegram: { accounts: { work: { botToken: "tok-work" } } },
+        channels: {
+          telegram: { accounts: { work: { botToken: "tok-work" } } },
+        },
       };
 
       const account = resolveTelegramAccount({ cfg });
@@ -25,12 +27,14 @@ describe("resolveTelegramAccount", () => {
     }
   });
 
-  it("prefers TELEGRAM_BOT_TOKEN when accountId is omitted", () => {
+  it("uses TELEGRAM_BOT_TOKEN when default account config is missing", () => {
     const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;
     process.env.TELEGRAM_BOT_TOKEN = "tok-env";
     try {
       const cfg: ClawdbotConfig = {
-        telegram: { accounts: { work: { botToken: "tok-work" } } },
+        channels: {
+          telegram: { accounts: { work: { botToken: "tok-work" } } },
+        },
       };
 
       const account = resolveTelegramAccount({ cfg });
@@ -46,12 +50,37 @@ describe("resolveTelegramAccount", () => {
     }
   });
 
+  it("prefers default config token over TELEGRAM_BOT_TOKEN", () => {
+    const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;
+    process.env.TELEGRAM_BOT_TOKEN = "tok-env";
+    try {
+      const cfg: ClawdbotConfig = {
+        channels: {
+          telegram: { botToken: "tok-config" },
+        },
+      };
+
+      const account = resolveTelegramAccount({ cfg });
+      expect(account.accountId).toBe("default");
+      expect(account.token).toBe("tok-config");
+      expect(account.tokenSource).toBe("config");
+    } finally {
+      if (prevTelegramToken === undefined) {
+        delete process.env.TELEGRAM_BOT_TOKEN;
+      } else {
+        process.env.TELEGRAM_BOT_TOKEN = prevTelegramToken;
+      }
+    }
+  });
+
   it("does not fall back when accountId is explicitly provided", () => {
     const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;
     process.env.TELEGRAM_BOT_TOKEN = "";
     try {
       const cfg: ClawdbotConfig = {
-        telegram: { accounts: { work: { botToken: "tok-work" } } },
+        channels: {
+          telegram: { accounts: { work: { botToken: "tok-work" } } },
+        },
       };
 
       const account = resolveTelegramAccount({ cfg, accountId: "default" });

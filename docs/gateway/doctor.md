@@ -56,25 +56,27 @@ cat ~/.clawdbot/clawdbot.json
 
 ## What it does (summary)
 - Optional pre-flight update for git installs (interactive only).
+- UI protocol freshness check (rebuilds Control UI when the protocol schema is newer).
 - Health check + restart prompt.
 - Skills status summary (eligible/missing/blocked).
-- Legacy config migration and normalization.
+- Config normalization for legacy values.
 - OpenCode Zen provider override warnings (`models.providers.opencode`).
 - Legacy on-disk state migration (sessions/agent dir/WhatsApp auth).
 - State integrity and permissions checks (sessions, transcripts, state dir).
 - Config file permission checks (chmod 600) when running locally.
 - Model auth health: checks OAuth expiry, can refresh expiring tokens, and reports auth-profile cooldown/disabled states.
-- Legacy workspace dir detection (`~/clawdis`, `~/clawdbot`).
+- Extra workspace dir detection (`~/clawdbot`).
 - Sandbox image repair when sandboxing is enabled.
 - Legacy service migration and extra gateway detection.
 - Gateway runtime checks (service installed but not running; cached launchd label).
-- Provider status warnings (probed from the running gateway).
+- Channel status warnings (probed from the running gateway).
 - Supervisor config audit (launchd/systemd/schtasks) with optional repair.
 - Gateway runtime best-practice checks (Node vs Bun, version-manager paths).
 - Gateway port collision diagnostics (default `18789`).
 - Security warnings for open DM policies.
 - Gateway auth warnings when no `gateway.auth.token` is set (local mode; offers token generation).
 - systemd linger check on Linux.
+- Source install checks (pnpm workspace mismatch, missing UI assets, missing tsx binary).
 - Writes updated config + wizard metadata.
 
 ## Detailed behavior and rationale
@@ -83,10 +85,10 @@ cat ~/.clawdbot/clawdbot.json
 If this is a git checkout and doctor is running interactively, it offers to
 update (fetch/rebase/build) before running doctor.
 
-### 1) Legacy config file migration
-If `~/.clawdis/clawdis.json` exists and `~/.clawdbot/clawdbot.json` does not,
-doctor migrates the file and normalizes old paths/image names. This prevents
-new installs from silently booting with the wrong schema.
+### 1) Config normalization
+If the config contains legacy value shapes (for example `messages.ackReaction`
+without a channel-specific override), doctor normalizes them into the current
+schema.
 
 ### 2) Legacy config key migrations
 When the config contains deprecated keys, other commands refuse to run and ask
@@ -101,17 +103,18 @@ The Gateway also auto-runs doctor migrations on startup when it detects a
 legacy config format, so stale configs are repaired without manual intervention.
 
 Current migrations:
-- `routing.allowFrom` → `whatsapp.allowFrom`
-- `routing.groupChat.requireMention` → `whatsapp/telegram/imessage.groups."*".requireMention`
+- `routing.allowFrom` → `channels.whatsapp.allowFrom`
+- `routing.groupChat.requireMention` → `channels.whatsapp/telegram/imessage.groups."*".requireMention`
 - `routing.groupChat.historyLimit` → `messages.groupChat.historyLimit`
 - `routing.groupChat.mentionPatterns` → `messages.groupChat.mentionPatterns`
 - `routing.queue` → `messages.queue`
 - `routing.bindings` → top-level `bindings`
 - `routing.agents`/`routing.defaultAgentId` → `agents.list` + `agents.list[].default`
 - `routing.agentToAgent` → `tools.agentToAgent`
-- `routing.transcribeAudio` → `tools.audio.transcription`
+- `routing.transcribeAudio` → `tools.media.audio.models`
+- `bindings[].match.accountID` → `bindings[].match.accountId`
 - `identity` → `agents.list[].identity`
-- `agent.*` → `agents.defaults` + `tools.*` (tools/elevated/bash/sandbox/subagents)
+- `agent.*` → `agents.defaults` + `tools.*` (tools/elevated/exec/sandbox/subagents)
 - `agent.model`/`allowedModels`/`modelAliases`/`modelFallbacks`/`imageModelFallbacks`
   → `agents.defaults.models` + `agents.defaults.model.primary/fallbacks` + `agents.defaults.imageModel.primary/fallbacks`
 
@@ -163,7 +166,7 @@ Doctor checks:
 ### 5) Model auth health (OAuth expiry)
 Doctor inspects OAuth profiles in the auth store, warns when tokens are
 expiring/expired, and can refresh them when safe. If the Anthropic Claude Code
-profile is stale, it suggests `claude setup-token` on the gateway host.
+profile is stale, it suggests running `claude setup-token` (or pasting a setup-token).
 Refresh prompts only appear when running interactively (TTY); `--non-interactive`
 skips refresh attempts.
 
@@ -180,7 +183,7 @@ When sandboxing is enabled, doctor checks Docker images and offers to build or
 switch to legacy names if the current image is missing.
 
 ### 8) Gateway service migrations and cleanup hints
-Doctor detects legacy Clawdis gateway services (launchd/systemd/schtasks) and
+Doctor detects legacy gateway services (launchd/systemd/schtasks) and
 offers to remove them and install the Clawdbot service using the current gateway
 port. It can also scan for extra gateway-like services and print cleanup hints.
 Profile-named Clawdbot gateway services are considered first-class and are not
@@ -207,8 +210,8 @@ creation in automation.
 Doctor runs a health check and offers to restart the gateway when it looks
 unhealthy.
 
-### 14) Provider status warnings
-If the gateway is healthy, doctor runs a provider status probe and reports
+### 14) Channel status warnings
+If the gateway is healthy, doctor runs a channel status probe and reports
 warnings with suggested fixes.
 
 ### 15) Supervisor config audit + repair
@@ -222,18 +225,18 @@ Notes:
 - `clawdbot doctor --yes` accepts the default repair prompts.
 - `clawdbot doctor --repair` applies recommended fixes without prompts.
 - `clawdbot doctor --repair --force` overwrites custom supervisor configs.
-- You can always force a full rewrite via `clawdbot daemon install --force`.
+- You can always force a full rewrite via `clawdbot gateway install --force`.
 
 ### 16) Gateway runtime + port diagnostics
-Doctor inspects the daemon runtime (PID, last exit status) and warns when the
+Doctor inspects the service runtime (PID, last exit status) and warns when the
 service is installed but not actually running. It also checks for port collisions
 on the gateway port (default `18789`) and reports likely causes (gateway already
 running, SSH tunnel).
 
 ### 17) Gateway runtime best practices
 Doctor warns when the gateway service runs on Bun or a version-managed Node path
-(`nvm`, `fnm`, `volta`, `asdf`, etc.). WhatsApp + Telegram providers require Node,
-and version-manager paths can break after upgrades because the daemon does not
+(`nvm`, `fnm`, `volta`, `asdf`, etc.). WhatsApp + Telegram channels require Node,
+and version-manager paths can break after upgrades because the service does not
 load your shell init. Doctor offers to migrate to a system Node install when
 available (Homebrew/apt/choco).
 

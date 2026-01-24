@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 import { callGateway } from "../../gateway/call.js";
-import { INTERNAL_MESSAGE_PROVIDER } from "../../utils/message-provider.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
 import { extractAssistantText, stripToolMessages } from "./sessions-helpers.js";
 
@@ -13,9 +13,7 @@ export async function readLatestAssistantReply(params: {
     method: "chat.history",
     params: { sessionKey: params.sessionKey, limit: params.limit ?? 50 },
   })) as { messages?: unknown[] };
-  const filtered = stripToolMessages(
-    Array.isArray(history?.messages) ? history.messages : [],
-  );
+  const filtered = stripToolMessages(Array.isArray(history?.messages) ? history.messages : []);
   const last = filtered.length > 0 ? filtered[filtered.length - 1] : undefined;
   return last ? extractAssistantText(last) : undefined;
 }
@@ -25,7 +23,7 @@ export async function runAgentStep(params: {
   message: string;
   extraSystemPrompt: string;
   timeoutMs: number;
-  provider?: string;
+  channel?: string;
   lane?: string;
 }): Promise<string | undefined> {
   const stepIdem = crypto.randomUUID();
@@ -36,15 +34,14 @@ export async function runAgentStep(params: {
       sessionKey: params.sessionKey,
       idempotencyKey: stepIdem,
       deliver: false,
-      provider: params.provider ?? INTERNAL_MESSAGE_PROVIDER,
+      channel: params.channel ?? INTERNAL_MESSAGE_CHANNEL,
       lane: params.lane ?? AGENT_LANE_NESTED,
       extraSystemPrompt: params.extraSystemPrompt,
     },
     timeoutMs: 10_000,
   })) as { runId?: string; acceptedAt?: number };
 
-  const stepRunId =
-    typeof response?.runId === "string" && response.runId ? response.runId : "";
+  const stepRunId = typeof response?.runId === "string" && response.runId ? response.runId : "";
   const resolvedRunId = stepRunId || stepIdem;
   const stepWaitMs = Math.min(params.timeoutMs, 60_000);
   const wait = (await callGateway({

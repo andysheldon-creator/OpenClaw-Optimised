@@ -1,11 +1,8 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type {
-  ExtensionAPI,
-  ExtensionContext,
-} from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it } from "vitest";
 
-import { setContextPruningRuntime } from "./context-pruning/runtime.js";
+import { getContextPruningRuntime, setContextPruningRuntime } from "./context-pruning/runtime.js";
 
 import {
   computeEffectiveSettings,
@@ -21,13 +18,8 @@ function toolText(msg: AgentMessage): string {
   return first.text;
 }
 
-function findToolResult(
-  messages: AgentMessage[],
-  toolCallId: string,
-): AgentMessage {
-  const msg = messages.find(
-    (m) => m.role === "toolResult" && m.toolCallId === toolCallId,
-  );
+function findToolResult(messages: AgentMessage[], toolCallId: string): AgentMessage {
+  const msg = messages.find((m) => m.role === "toolResult" && m.toolCallId === toolCallId);
   if (!msg) throw new Error(`missing toolResult: ${toolCallId}`);
   return msg;
 }
@@ -94,28 +86,28 @@ describe("context-pruning", () => {
       makeAssistant("a1"),
       makeToolResult({
         toolCallId: "t1",
-        toolName: "bash",
+        toolName: "exec",
         text: "x".repeat(20_000),
       }),
       makeUser("u2"),
       makeAssistant("a2"),
       makeToolResult({
         toolCallId: "t2",
-        toolName: "bash",
+        toolName: "exec",
         text: "y".repeat(20_000),
       }),
       makeUser("u3"),
       makeAssistant("a3"),
       makeToolResult({
         toolCallId: "t3",
-        toolName: "bash",
+        toolName: "exec",
         text: "z".repeat(20_000),
       }),
       makeUser("u4"),
       makeAssistant("a4"),
       makeToolResult({
         toolCallId: "t4",
-        toolName: "bash",
+        toolName: "exec",
         text: "w".repeat(20_000),
       }),
     ];
@@ -143,12 +135,15 @@ describe("context-pruning", () => {
   });
 
   it("never prunes tool results before the first user message", () => {
-    const settings = computeEffectiveSettings({
-      mode: "aggressive",
+    const settings = {
+      ...DEFAULT_CONTEXT_PRUNING_SETTINGS,
       keepLastAssistants: 0,
-      hardClear: { placeholder: "[cleared]" },
-    });
-    if (!settings) throw new Error("expected settings");
+      softTrimRatio: 0.0,
+      hardClearRatio: 0.0,
+      minPrunableToolChars: 0,
+      hardClear: { enabled: true, placeholder: "[cleared]" },
+      softTrim: { maxChars: 10, headChars: 3, tailChars: 3 },
+    };
 
     const messages: AgentMessage[] = [
       makeAssistant("bootstrap tool calls"),
@@ -161,7 +156,7 @@ describe("context-pruning", () => {
       makeUser("u1"),
       makeToolResult({
         toolCallId: "t1",
-        toolName: "bash",
+        toolName: "exec",
         text: "y".repeat(20_000),
       }),
     ];
@@ -178,34 +173,36 @@ describe("context-pruning", () => {
     expect(toolText(findToolResult(next, "t1"))).toBe("[cleared]");
   });
 
-  it("mode aggressive clears eligible tool results before cutoff", () => {
+  it("hard-clear removes eligible tool results before cutoff", () => {
     const messages: AgentMessage[] = [
       makeUser("u1"),
       makeAssistant("a1"),
       makeToolResult({
         toolCallId: "t1",
-        toolName: "bash",
+        toolName: "exec",
         text: "x".repeat(20_000),
       }),
       makeToolResult({
         toolCallId: "t2",
-        toolName: "bash",
+        toolName: "exec",
         text: "y".repeat(20_000),
       }),
       makeUser("u2"),
       makeAssistant("a2"),
       makeToolResult({
         toolCallId: "t3",
-        toolName: "bash",
+        toolName: "exec",
         text: "z".repeat(20_000),
       }),
     ];
 
     const settings = {
       ...DEFAULT_CONTEXT_PRUNING_SETTINGS,
-      mode: "aggressive",
       keepLastAssistants: 1,
-      hardClear: { enabled: false, placeholder: "[cleared]" },
+      softTrimRatio: 10.0,
+      hardClearRatio: 0.0,
+      minPrunableToolChars: 0,
+      hardClear: { enabled: true, placeholder: "[cleared]" },
     };
 
     const ctx = {
@@ -225,7 +222,7 @@ describe("context-pruning", () => {
       makeAssistant("a1"),
       makeToolResult({
         toolCallId: "t1",
-        toolName: "bash",
+        toolName: "exec",
         text: "x".repeat(20_000),
       }),
       makeAssistant("a2"),
@@ -266,6 +263,7 @@ describe("context-pruning", () => {
       },
       contextWindowTokens: 1000,
       isToolPrunable: () => true,
+      lastCacheTouchAt: Date.now() - DEFAULT_CONTEXT_PRUNING_SETTINGS.ttlMs - 1000,
     });
 
     const messages: AgentMessage[] = [
@@ -273,7 +271,7 @@ describe("context-pruning", () => {
       makeAssistant("a1"),
       makeToolResult({
         toolCallId: "t1",
-        toolName: "bash",
+        toolName: "exec",
         text: "x".repeat(20_000),
       }),
       makeAssistant("a2"),
@@ -308,12 +306,78 @@ describe("context-pruning", () => {
     expect(toolText(findToolResult(result.messages, "t1"))).toBe("[cleared]");
   });
 
+  it("cache-ttl prunes once and resets the ttl window", () => {
+    const sessionManager = {};
+    const lastTouch = Date.now() - DEFAULT_CONTEXT_PRUNING_SETTINGS.ttlMs - 1000;
+
+    setContextPruningRuntime(sessionManager, {
+      settings: {
+        ...DEFAULT_CONTEXT_PRUNING_SETTINGS,
+        keepLastAssistants: 0,
+        softTrimRatio: 0,
+        hardClearRatio: 0,
+        minPrunableToolChars: 0,
+        hardClear: { enabled: true, placeholder: "[cleared]" },
+        softTrim: { maxChars: 10, headChars: 3, tailChars: 3 },
+      },
+      contextWindowTokens: 1000,
+      isToolPrunable: () => true,
+      lastCacheTouchAt: lastTouch,
+    });
+
+    const messages: AgentMessage[] = [
+      makeUser("u1"),
+      makeAssistant("a1"),
+      makeToolResult({
+        toolCallId: "t1",
+        toolName: "exec",
+        text: "x".repeat(20_000),
+      }),
+    ];
+
+    let handler:
+      | ((
+          event: { messages: AgentMessage[] },
+          ctx: ExtensionContext,
+        ) => { messages: AgentMessage[] } | undefined)
+      | undefined;
+
+    const api = {
+      on: (name: string, fn: unknown) => {
+        if (name === "context") {
+          handler = fn as typeof handler;
+        }
+      },
+      appendEntry: (_type: string, _data?: unknown) => {},
+    } as unknown as ExtensionAPI;
+
+    contextPruningExtension(api);
+    if (!handler) throw new Error("missing context handler");
+
+    const first = handler({ messages }, {
+      model: undefined,
+      sessionManager,
+    } as unknown as ExtensionContext);
+    if (!first) throw new Error("expected first prune");
+    expect(toolText(findToolResult(first.messages, "t1"))).toBe("[cleared]");
+
+    const runtime = getContextPruningRuntime(sessionManager);
+    if (!runtime?.lastCacheTouchAt) throw new Error("expected lastCacheTouchAt");
+    expect(runtime.lastCacheTouchAt).toBeGreaterThan(lastTouch);
+
+    const second = handler({ messages }, {
+      model: undefined,
+      sessionManager,
+    } as unknown as ExtensionContext);
+    expect(second).toBeUndefined();
+  });
+
   it("respects tools allow/deny (deny wins; wildcards supported)", () => {
     const messages: AgentMessage[] = [
       makeUser("u1"),
       makeToolResult({
         toolCallId: "t1",
-        toolName: "Bash",
+        toolName: "Exec",
         text: "x".repeat(20_000),
       }),
       makeToolResult({
@@ -329,7 +393,7 @@ describe("context-pruning", () => {
       softTrimRatio: 0.0,
       hardClearRatio: 0.0,
       minPrunableToolChars: 0,
-      tools: { allow: ["ba*"], deny: ["bash"] },
+      tools: { allow: ["ex*"], deny: ["exec"] },
       hardClear: { enabled: true, placeholder: "[cleared]" },
       softTrim: { maxChars: 10, headChars: 3, tailChars: 3 },
     };
@@ -339,7 +403,7 @@ describe("context-pruning", () => {
     } as unknown as ExtensionContext;
     const next = pruneContextMessages({ messages, settings, ctx });
 
-    // Deny wins => bash is not pruned, even though allow matches.
+    // Deny wins => exec is not pruned, even though allow matches.
     expect(toolText(findToolResult(next, "t1"))).toContain("x".repeat(20_000));
     // allow is non-empty and browser is not allowed => never pruned.
     expect(toolText(findToolResult(next, "t2"))).toContain("y".repeat(20_000));
@@ -350,7 +414,7 @@ describe("context-pruning", () => {
       makeUser("u1"),
       makeImageToolResult({
         toolCallId: "t1",
-        toolName: "bash",
+        toolName: "exec",
         text: "x".repeat(20_000),
       }),
     ];
@@ -384,7 +448,7 @@ describe("context-pruning", () => {
       {
         role: "toolResult",
         toolCallId: "t1",
-        toolName: "bash",
+        toolName: "exec",
         content: [
           { type: "text", text: "AAAAA" },
           { type: "text", text: "BBBBB" },
@@ -418,7 +482,7 @@ describe("context-pruning", () => {
       makeUser("u1"),
       makeToolResult({
         toolCallId: "t1",
-        toolName: "bash",
+        toolName: "exec",
         text: "abcdefghij".repeat(1000),
       }),
     ];

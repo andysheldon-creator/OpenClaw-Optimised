@@ -77,7 +77,7 @@ extension OnboardingView {
                 .font(.largeTitle.weight(.semibold))
             Text(
                 "Clawdbot uses a single Gateway that stays running. Pick this Mac, " +
-                    "connect to a discovered bridge nearby for pairing, or configure later.")
+                    "connect to a discovered gateway nearby, or configure later.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -126,13 +126,13 @@ extension OnboardingView {
                     }
 
                     if self.gatewayDiscovery.gateways.isEmpty {
-                        Text("Searching for nearby bridges…")
+                        Text("Searching for nearby gateways…")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.leading, 4)
                     } else {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Nearby bridges (pairing only)")
+                            Text("Nearby gateways")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .padding(.leading, 4)
@@ -229,12 +229,12 @@ extension OnboardingView {
             let portSuffix = gateway.sshPort != 22 ? " · ssh \(gateway.sshPort)" : ""
             return "\(host)\(portSuffix)"
         }
-        return "Bridge pairing only"
+        return "Gateway pairing only"
     }
 
     func isSelectedGateway(_ gateway: GatewayDiscoveryModel.DiscoveredGateway) -> Bool {
         guard self.state.connectionMode == .remote else { return false }
-        let preferred = self.preferredGatewayID ?? BridgeDiscoveryPreferences.preferredStableID()
+        let preferred = self.preferredGatewayID ?? GatewayDiscoveryPreferences.preferredStableID()
         return preferred == gateway.stableID
     }
 
@@ -694,10 +694,11 @@ extension OnboardingView {
                     systemImage: "bubble.left.and.bubble.right")
                 self.featureActionRow(
                     title: "Connect WhatsApp or Telegram",
-                    subtitle: "Open Settings → Connections to link providers and monitor status.",
-                    systemImage: "link")
+                    subtitle: "Open Settings → Channels to link channels and monitor status.",
+                    systemImage: "link",
+                    buttonTitle: "Open Settings → Channels")
                 {
-                    self.openSettings(tab: .connections)
+                    self.openSettings(tab: .channels)
                 }
                 self.featureRow(
                     title: "Try Voice Wake",
@@ -711,7 +712,8 @@ extension OnboardingView {
                 self.featureActionRow(
                     title: "Give your agent more powers",
                     subtitle: "Enable optional skills (Peekaboo, oracle, camsnap, …) from Settings → Skills.",
-                    systemImage: "sparkles")
+                    systemImage: "sparkles",
+                    buttonTitle: "Open Settings → Skills")
                 {
                     self.openSettings(tab: .skills)
                 }

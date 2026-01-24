@@ -4,40 +4,44 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
+import type { TlsOptions } from "node:tls";
 import type { WebSocketServer } from "ws";
 import { handleA2uiHttpRequest } from "../canvas-host/a2ui.js";
 import type { CanvasHostHandler } from "../canvas-host/server.js";
-import type { createSubsystemLogger } from "../logging.js";
-import { handleControlUiHttpRequest } from "./control-ui.js";
+import { loadConfig } from "../config/config.js";
+import type { createSubsystemLogger } from "../logging/subsystem.js";
+import { handleSlackHttpRequest } from "../slack/http/index.js";
+import { resolveAgentAvatar } from "../agents/identity-avatar.js";
+import { handleControlUiAvatarRequest, handleControlUiHttpRequest } from "./control-ui.js";
 import {
   extractHookToken,
-  HOOK_PROVIDER_ERROR,
-  type HookMessageProvider,
+  getHookChannelError,
+  type HookMessageChannel,
   type HooksConfigResolved,
   normalizeAgentPayload,
   normalizeHookHeaders,
   normalizeWakePayload,
   readJsonBody,
+  resolveHookChannel,
   resolveHookDeliver,
-  resolveHookProvider,
 } from "./hooks.js";
 import { applyHookMappings } from "./hooks-mapping.js";
 import { handleOpenAiHttpRequest } from "./openai-http.js";
+import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
+import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
 type HookDispatchers = {
-  dispatchWakeHook: (value: {
-    text: string;
-    mode: "now" | "next-heartbeat";
-  }) => void;
+  dispatchWakeHook: (value: { text: string; mode: "now" | "next-heartbeat" }) => void;
   dispatchAgentHook: (value: {
     message: string;
     name: string;
     wakeMode: "now" | "next-heartbeat";
     sessionKey: string;
     deliver: boolean;
-    provider: HookMessageProvider;
+    channel: HookMessageChannel;
     to?: string;
     model?: string;
     thinking?: string;
@@ -51,10 +55,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-export type HooksRequestHandler = (
-  req: IncomingMessage,
-  res: ServerResponse,
-) => Promise<boolean>;
+export type HooksRequestHandler = (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
 
 export function createHooksRequestHandler(
   opts: {
@@ -64,14 +65,7 @@ export function createHooksRequestHandler(
     logHooks: SubsystemLogger;
   } & HookDispatchers,
 ): HooksRequestHandler {
-  const {
-    getHooksConfig,
-    bindHost,
-    port,
-    logHooks,
-    dispatchAgentHook,
-    dispatchWakeHook,
-  } = opts;
+  const { getHooksConfig, bindHost, port, logHooks, dispatchAgentHook, dispatchWakeHook } = opts;
   return async (req, res) => {
     const hooksConfig = getHooksConfig();
     if (!hooksConfig) return false;
@@ -112,14 +106,11 @@ export function createHooksRequestHandler(
       return true;
     }
 
-    const payload =
-      typeof body.value === "object" && body.value !== null ? body.value : {};
+    const payload = typeof body.value === "object" && body.value !== null ? body.value : {};
     const headers = normalizeHookHeaders(req);
 
     if (subPath === "wake") {
-      const normalized = normalizeWakePayload(
-        payload as Record<string, unknown>,
-      );
+      const normalized = normalizeWakePayload(payload as Record<string, unknown>);
       if (!normalized.ok) {
         sendJson(res, 400, { ok: false, error: normalized.error });
         return true;
@@ -130,9 +121,7 @@ export function createHooksRequestHandler(
     }
 
     if (subPath === "agent") {
-      const normalized = normalizeAgentPayload(
-        payload as Record<string, unknown>,
-      );
+      const normalized = normalizeAgentPayload(payload as Record<string, unknown>);
       if (!normalized.ok) {
         sendJson(res, 400, { ok: false, error: normalized.error });
         return true;
@@ -168,9 +157,9 @@ export function createHooksRequestHandler(
             sendJson(res, 200, { ok: true, mode: mapped.action.mode });
             return true;
           }
-          const provider = resolveHookProvider(mapped.action.provider);
-          if (!provider) {
-            sendJson(res, 400, { ok: false, error: HOOK_PROVIDER_ERROR });
+          const channel = resolveHookChannel(mapped.action.channel);
+          if (!channel) {
+            sendJson(res, 400, { ok: false, error: getHookChannelError() });
             return true;
           }
           const runId = dispatchAgentHook({
@@ -179,7 +168,7 @@ export function createHooksRequestHandler(
             wakeMode: mapped.action.wakeMode,
             sessionKey: mapped.action.sessionKey ?? "",
             deliver: resolveHookDeliver(mapped.action.deliver),
-            provider,
+            channel,
             to: mapped.action.to,
             model: mapped.action.model,
             thinking: mapped.action.thinking,
@@ -207,26 +196,52 @@ export function createGatewayHttpServer(opts: {
   controlUiEnabled: boolean;
   controlUiBasePath: string;
   openAiChatCompletionsEnabled: boolean;
+  openResponsesEnabled: boolean;
+  openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
   handleHooksRequest: HooksRequestHandler;
+  handlePluginRequest?: HooksRequestHandler;
   resolvedAuth: import("./auth.js").ResolvedGatewayAuth;
+  tlsOptions?: TlsOptions;
 }): HttpServer {
   const {
     canvasHost,
     controlUiEnabled,
     controlUiBasePath,
     openAiChatCompletionsEnabled,
+    openResponsesEnabled,
+    openResponsesConfig,
     handleHooksRequest,
+    handlePluginRequest,
     resolvedAuth,
   } = opts;
-  const httpServer: HttpServer = createHttpServer((req, res) => {
+  const httpServer: HttpServer = opts.tlsOptions
+    ? createHttpsServer(opts.tlsOptions, (req, res) => {
+        void handleRequest(req, res);
+      })
+    : createHttpServer((req, res) => {
+        void handleRequest(req, res);
+      });
+
+  async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     // Don't interfere with WebSocket upgrades; ws handles the 'upgrade' event.
     if (String(req.headers.upgrade ?? "").toLowerCase() === "websocket") return;
 
-    void (async () => {
+    try {
       if (await handleHooksRequest(req, res)) return;
-      if (openAiChatCompletionsEnabled) {
-        if (await handleOpenAiHttpRequest(req, res, { auth: resolvedAuth }))
+      if (await handleSlackHttpRequest(req, res)) return;
+      if (handlePluginRequest && (await handlePluginRequest(req, res))) return;
+      if (await handleToolsInvokeHttpRequest(req, res, { auth: resolvedAuth })) return;
+      if (openResponsesEnabled) {
+        if (
+          await handleOpenResponsesHttpRequest(req, res, {
+            auth: resolvedAuth,
+            config: openResponsesConfig,
+          })
+        )
           return;
+      }
+      if (openAiChatCompletionsEnabled) {
+        if (await handleOpenAiHttpRequest(req, res, { auth: resolvedAuth })) return;
       }
       if (canvasHost) {
         if (await handleA2uiHttpRequest(req, res)) return;
@@ -234,8 +249,16 @@ export function createGatewayHttpServer(opts: {
       }
       if (controlUiEnabled) {
         if (
+          handleControlUiAvatarRequest(req, res, {
+            basePath: controlUiBasePath,
+            resolveAvatar: (agentId) => resolveAgentAvatar(loadConfig(), agentId),
+          })
+        )
+          return;
+        if (
           handleControlUiHttpRequest(req, res, {
             basePath: controlUiBasePath,
+            config: loadConfig(),
           })
         )
           return;
@@ -244,12 +267,12 @@ export function createGatewayHttpServer(opts: {
       res.statusCode = 404;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.end("Not Found");
-    })().catch((err) => {
+    } catch (err) {
       res.statusCode = 500;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.end(String(err));
-    });
-  });
+    }
+  }
 
   return httpServer;
 }

@@ -18,14 +18,14 @@ Security context: [Security](/gateway/security)
 
 ## 1) DM pairing (inbound chat access)
 
-When a provider is configured with DM policy `pairing`, unknown senders get a short code and their message is **not processed** until you approve.
+When a channel is configured with DM policy `pairing`, unknown senders get a short code and their message is **not processed** until you approve.
 
 Default DM policies are documented in: [Security](/gateway/security)
 
 Pairing codes:
 - 8 characters, uppercase, no ambiguous chars (`0O1I`).
 - **Expire after 1 hour**. The bot only sends the pairing message when a new request is created (roughly once per hour per sender).
-- Pending DM pairing requests are capped at **3 per provider** by default; additional requests are ignored until one expires or is approved.
+- Pending DM pairing requests are capped at **3 per channel** by default; additional requests are ignored until one expires or is approved.
 
 ### Approve a sender
 
@@ -34,48 +34,50 @@ clawdbot pairing list telegram
 clawdbot pairing approve telegram <CODE>
 ```
 
-Supported providers: `telegram`, `whatsapp`, `signal`, `imessage`, `discord`, `slack`.
+Supported channels: `telegram`, `whatsapp`, `signal`, `imessage`, `discord`, `slack`.
 
 ### Where the state lives
 
 Stored under `~/.clawdbot/credentials/`:
-- Pending requests: `<provider>-pairing.json`
-- Approved allowlist store: `<provider>-allowFrom.json`
+- Pending requests: `<channel>-pairing.json`
+- Approved allowlist store: `<channel>-allowFrom.json`
 
 Treat these as sensitive (they gate access to your assistant).
 
 
-## 2) Node pairing (iOS/Android nodes joining the gateway)
+## 2) Node device pairing (iOS/Android/macOS/headless nodes)
 
-Nodes (iOS/Android, future hardware, etc.) connect to the Gateway and request to join.
-The Gateway keeps an authoritative allowlist; new nodes require explicit approve/reject.
+Nodes connect to the Gateway as **devices** with `role: node`. The Gateway
+creates a device pairing request that must be approved.
 
-### Approve a node
+### Approve a node device
 
 ```bash
-clawdbot nodes pending
-clawdbot nodes approve <requestId>
+clawdbot devices list
+clawdbot devices approve <requestId>
+clawdbot devices reject <requestId>
 ```
 
 ### Where the state lives
 
-Stored under `~/.clawdbot/nodes/`:
+Stored under `~/.clawdbot/devices/`:
 - `pending.json` (short-lived; pending requests expire)
-- `paired.json` (paired nodes + tokens)
+- `paired.json` (paired devices + tokens)
 
-### Details
+### Notes
 
-Full protocol + design notes: [Gateway pairing](/gateway/pairing)
+- The legacy `node.pair.*` API (CLI: `clawdbot nodes pending/approve`) is a
+  separate gateway-owned pairing store. WS nodes still require device pairing.
 
 
 ## Related docs
 
 - Security model + prompt injection: [Security](/gateway/security)
 - Updating safely (run doctor): [Updating](/install/updating)
-- Provider configs:
-  - Telegram: [Telegram](/providers/telegram)
-  - WhatsApp: [WhatsApp](/providers/whatsapp)
-  - Signal: [Signal](/providers/signal)
-  - iMessage: [iMessage](/providers/imessage)
-  - Discord: [Discord](/providers/discord)
-  - Slack: [Slack](/providers/slack)
+- Channel configs:
+  - Telegram: [Telegram](/channels/telegram)
+  - WhatsApp: [WhatsApp](/channels/whatsapp)
+  - Signal: [Signal](/channels/signal)
+  - iMessage: [iMessage](/channels/imessage)
+  - Discord: [Discord](/channels/discord)
+  - Slack: [Slack](/channels/slack)

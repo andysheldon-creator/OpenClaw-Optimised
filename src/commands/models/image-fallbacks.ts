@@ -1,8 +1,6 @@
-import {
-  buildModelAliasIndex,
-  resolveModelRefFromString,
-} from "../../agents/model-selection.js";
-import { CONFIG_PATH_CLAWDBOT, loadConfig } from "../../config/config.js";
+import { buildModelAliasIndex, resolveModelRefFromString } from "../../agents/model-selection.js";
+import { loadConfig } from "../../config/config.js";
+import { logConfigUpdated } from "../../config/logging.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import {
   DEFAULT_PROVIDER,
@@ -37,10 +35,7 @@ export async function modelsImageFallbacksListCommand(
   for (const entry of fallbacks) runtime.log(`- ${entry}`);
 }
 
-export async function modelsImageFallbacksAddCommand(
-  modelRaw: string,
-  runtime: RuntimeEnv,
-) {
+export async function modelsImageFallbacksAddCommand(modelRaw: string, runtime: RuntimeEnv) {
   const updated = await updateConfig((cfg) => {
     const resolved = resolveModelTarget({ raw: modelRaw, cfg });
     const targetKey = modelKey(resolved.provider, resolved.model);
@@ -75,9 +70,7 @@ export async function modelsImageFallbacksAddCommand(
         defaults: {
           ...cfg.agents?.defaults,
           imageModel: {
-            ...(existingModel?.primary
-              ? { primary: existingModel.primary }
-              : undefined),
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
             fallbacks: [...existing, targetKey],
           },
           models: nextModels,
@@ -86,16 +79,13 @@ export async function modelsImageFallbacksAddCommand(
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
+  logConfigUpdated(runtime);
   runtime.log(
     `Image fallbacks: ${(updated.agents?.defaults?.imageModel?.fallbacks ?? []).join(", ")}`,
   );
 }
 
-export async function modelsImageFallbacksRemoveCommand(
-  modelRaw: string,
-  runtime: RuntimeEnv,
-) {
+export async function modelsImageFallbacksRemoveCommand(modelRaw: string, runtime: RuntimeEnv) {
   const updated = await updateConfig((cfg) => {
     const resolved = resolveModelTarget({ raw: modelRaw, cfg });
     const targetKey = modelKey(resolved.provider, resolved.model);
@@ -111,10 +101,7 @@ export async function modelsImageFallbacksRemoveCommand(
         aliasIndex,
       });
       if (!resolvedEntry) return true;
-      return (
-        modelKey(resolvedEntry.ref.provider, resolvedEntry.ref.model) !==
-        targetKey
-      );
+      return modelKey(resolvedEntry.ref.provider, resolvedEntry.ref.model) !== targetKey;
     });
 
     if (filtered.length === existing.length) {
@@ -132,9 +119,7 @@ export async function modelsImageFallbacksRemoveCommand(
         defaults: {
           ...cfg.agents?.defaults,
           imageModel: {
-            ...(existingModel?.primary
-              ? { primary: existingModel.primary }
-              : undefined),
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
             fallbacks: filtered,
           },
         },
@@ -142,7 +127,7 @@ export async function modelsImageFallbacksRemoveCommand(
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
+  logConfigUpdated(runtime);
   runtime.log(
     `Image fallbacks: ${(updated.agents?.defaults?.imageModel?.fallbacks ?? []).join(", ")}`,
   );
@@ -160,9 +145,7 @@ export async function modelsImageFallbacksClearCommand(runtime: RuntimeEnv) {
         defaults: {
           ...cfg.agents?.defaults,
           imageModel: {
-            ...(existingModel?.primary
-              ? { primary: existingModel.primary }
-              : undefined),
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
             fallbacks: [],
           },
         },
@@ -170,6 +153,6 @@ export async function modelsImageFallbacksClearCommand(runtime: RuntimeEnv) {
     };
   });
 
-  runtime.log(`Updated ${CONFIG_PATH_CLAWDBOT}`);
+  logConfigUpdated(runtime);
   runtime.log("Image fallback list cleared.");
 }

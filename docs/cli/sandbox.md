@@ -89,6 +89,15 @@ clawdbot sandbox recreate --all
 clawdbot sandbox recreate --all
 ```
 
+### After changing setupCommand
+
+```bash
+clawdbot sandbox recreate --all
+# or just one agent:
+clawdbot sandbox recreate --agent family
+```
+
+
 ### For a specific agent only
 
 ```bash
@@ -104,6 +113,9 @@ clawdbot sandbox recreate --agent alfred
 - Regularly-used agents keep old containers running indefinitely
 
 **Solution:** Use `clawdbot sandbox recreate` to force removal of old containers. They'll be recreated automatically with current settings when next needed.
+
+Tip: prefer `clawdbot sandbox recreate` over manual `docker rm`. It uses the
+Gateway’s container naming and avoids mismatches when scope/session keys change.
 
 ## Configuration
 

@@ -15,9 +15,9 @@ status: experimental
 
 Broadcast Groups enable multiple agents to process and respond to the same message simultaneously. This allows you to create specialized agent teams that work together in a single WhatsApp group or DM — all using one phone number.
 
-Current scope: **WhatsApp only** (web provider).
+Current scope: **WhatsApp only** (web channel).
 
-Broadcast groups are evaluated after provider allowlists and group activation rules. In WhatsApp groups, this means broadcasts happen when Clawdbot would normally reply (for example: on mention, depending on your group settings).
+Broadcast groups are evaluated after channel allowlists and group activation rules. In WhatsApp groups, this means broadcasts happen when Clawdbot would normally reply (for example: on mention, depending on your group settings).
 
 ## Use Cases
 
@@ -152,7 +152,7 @@ Agents process in order (one waits for previous to finish):
 4. **If not in broadcast list**:
    - Normal routing applies (first matching binding)
 
-Note: broadcast groups do not bypass provider allowlists or group activation rules (mentions/commands/etc). They only change *which agents run* when a message is eligible for processing.
+Note: broadcast groups do not bypass channel allowlists or group activation rules (mentions/commands/etc). They only change *which agents run* when a message is eligible for processing.
 
 ### Session Isolation
 
@@ -180,7 +180,7 @@ In group `120363403215116621@g.us` with agents `["alfred", "baerbel"]`:
 Session: agent:alfred:whatsapp:group:120363403215116621@g.us
 History: [user message, alfred's previous responses]
 Workspace: /Users/pascal/clawd-alfred/
-Tools: read, write, bash
+Tools: read, write, exec
 ```
 
 **Bärbel's context:**
@@ -230,10 +230,10 @@ Give agents only the tools they need:
 {
   "agents": {
     "reviewer": {
-      "tools": { "allow": ["read", "bash"] }  // Read-only
+      "tools": { "allow": ["read", "exec"] }  // Read-only
     },
     "fixer": {
-      "tools": { "allow": ["read", "write", "edit", "bash"] }  // Read-write
+      "tools": { "allow": ["read", "write", "edit", "exec"] }  // Read-write
     }
   }
 }
@@ -272,7 +272,7 @@ Broadcast groups work alongside existing routing:
 ```json
 {
   "bindings": [
-    { "match": { "provider": "whatsapp", "peer": { "kind": "group", "id": "GROUP_A" } }, "agentId": "alfred" }
+    { "match": { "channel": "whatsapp", "peer": { "kind": "group", "id": "GROUP_A" } }, "agentId": "alfred" }
   ],
   "broadcast": {
     "GROUP_B": ["agent1", "agent2"]
@@ -330,8 +330,8 @@ tail -f ~/.clawdbot/logs/gateway.log | grep broadcast
   "agents": {
     "list": [
       { "id": "code-formatter", "workspace": "~/agents/formatter", "tools": { "allow": ["read", "write"] } },
-      { "id": "security-scanner", "workspace": "~/agents/security", "tools": { "allow": ["read", "bash"] } },
-      { "id": "test-coverage", "workspace": "~/agents/testing", "tools": { "allow": ["read", "bash"] } },
+      { "id": "security-scanner", "workspace": "~/agents/security", "tools": { "allow": ["read", "exec"] } },
+      { "id": "test-coverage", "workspace": "~/agents/testing", "tools": { "allow": ["read", "exec"] } },
       { "id": "docs-checker", "workspace": "~/agents/docs", "tools": { "allow": ["read"] } }
     ]
   }
@@ -403,5 +403,5 @@ Planned features:
 ## See Also
 
 - [Multi-Agent Configuration](/multi-agent-sandbox-tools)
-- [Routing Configuration](/concepts/provider-routing)
+- [Routing Configuration](/concepts/channel-routing)
 - [Session Management](/concepts/sessions)

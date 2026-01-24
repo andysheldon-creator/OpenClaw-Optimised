@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { pollUntil } from "../../test/helpers/poll.js";
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
 import {
   isEmbeddedPiRunActive,
@@ -14,8 +15,7 @@ vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
   runEmbeddedPiAgent: vi.fn(),
   queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
-  resolveEmbeddedSessionLane: (key: string) =>
-    `session:${key.trim() || "main"}`,
+  resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
   isEmbeddedPiRunStreaming: vi.fn().mockReturnValue(false),
 }));
@@ -48,7 +48,7 @@ function makeCfg(home: string, queue?: Record<string, unknown>) {
         workspace: path.join(home, "clawd"),
       },
     },
-    whatsapp: { allowFrom: ["*"] },
+    channels: { whatsapp: { allowFrom: ["*"] } },
     session: { store: path.join(home, "sessions.json") },
     messages: queue ? { queue } : undefined,
   };
@@ -82,7 +82,7 @@ describe("queue followups", () => {
       });
 
       const first = await getReplyFromConfig(
-        { Body: "first", From: "+1001", To: "+2000" },
+        { Body: "first", From: "+1001", To: "+2000", MessageSid: "m-1" },
         {},
         cfg,
       );
@@ -101,20 +101,19 @@ describe("queue followups", () => {
       const secondText = Array.isArray(second) ? second[0]?.text : second?.text;
       expect(secondText).toBe("main");
 
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(500);
       await Promise.resolve();
 
       expect(runEmbeddedPiAgent).toHaveBeenCalledTimes(2);
-      expect(
-        prompts.some((p) =>
-          p.includes("[Queued messages while agent was busy]"),
-        ),
-      ).toBe(true);
+      const queuedPrompt = prompts.find((p) =>
+        p.includes("[Queued messages while agent was busy]"),
+      );
+      expect(queuedPrompt).toBeTruthy();
+      expect(queuedPrompt).toContain("[message_id: m-1]");
     });
   });
 
   it("summarizes dropped followups when cap is exceeded", async () => {
-    vi.useFakeTimers();
     await withTempHome(async (home) => {
       const prompts: string[] = [];
       vi.mocked(runEmbeddedPiAgent).mockImplementation(async (params) => {
@@ -132,26 +131,16 @@ describe("queue followups", () => {
         drop: "summarize",
       });
 
-      await getReplyFromConfig(
-        { Body: "one", From: "+1002", To: "+2000" },
-        {},
-        cfg,
-      );
-      await getReplyFromConfig(
-        { Body: "two", From: "+1002", To: "+2000" },
-        {},
-        cfg,
-      );
+      await getReplyFromConfig({ Body: "one", From: "+1002", To: "+2000" }, {}, cfg);
+      await getReplyFromConfig({ Body: "two", From: "+1002", To: "+2000" }, {}, cfg);
 
       vi.mocked(isEmbeddedPiRunActive).mockReturnValue(false);
-      await getReplyFromConfig(
-        { Body: "three", From: "+1002", To: "+2000" },
-        {},
-        cfg,
-      );
+      await getReplyFromConfig({ Body: "three", From: "+1002", To: "+2000" }, {}, cfg);
 
-      await vi.runAllTimersAsync();
-      await Promise.resolve();
+      await pollUntil(
+        async () => (prompts.some((p) => p.includes("[Queue overflow]")) ? true : null),
+        { timeoutMs: 2000 },
+      );
 
       expect(prompts.some((p) => p.includes("[Queue overflow]"))).toBe(true);
     });

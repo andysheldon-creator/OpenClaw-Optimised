@@ -170,6 +170,17 @@ final class AppState {
         didSet { self.ifNotPreview { UserDefaults.standard.set(self.canvasEnabled, forKey: canvasEnabledKey) } }
     }
 
+    var execApprovalMode: ExecApprovalQuickMode {
+        didSet {
+            self.ifNotPreview {
+                ExecApprovalsStore.updateDefaults { defaults in
+                    defaults.security = self.execApprovalMode.security
+                    defaults.ask = self.execApprovalMode.ask
+                }
+            }
+        }
+    }
+
     /// Tracks whether the Canvas panel is currently visible (not persisted).
     var canvasPanelVisible: Bool = false
 
@@ -178,14 +189,6 @@ final class AppState {
             self.ifNotPreview {
                 UserDefaults.standard.set(self.peekabooBridgeEnabled, forKey: peekabooBridgeEnabledKey)
                 Task { await PeekabooBridgeHostCoordinator.shared.setEnabled(self.peekabooBridgeEnabled) }
-            }
-        }
-    }
-
-    var attachExistingGatewayOnly: Bool {
-        didSet {
-            self.ifNotPreview {
-                UserDefaults.standard.set(self.attachExistingGatewayOnly, forKey: attachExistingGatewayOnlyKey)
             }
         }
     }
@@ -212,7 +215,7 @@ final class AppState {
     private var earBoostTask: Task<Void, Never>?
 
     init(preview: Bool = false) {
-        self.isPreview = preview
+        self.isPreview = preview || ProcessInfo.processInfo.isRunningTests
         let onboardingSeen = UserDefaults.standard.bool(forKey: "clawdbot.onboardingSeen")
         self.isPaused = UserDefaults.standard.bool(forKey: pauseDefaultsKey)
         self.launchAtLogin = false
@@ -261,30 +264,8 @@ final class AppState {
 
         let configRoot = ClawdbotConfigFile.loadDict()
         let configGateway = configRoot["gateway"] as? [String: Any]
-        let configModeRaw = (configGateway?["mode"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let configMode: ConnectionMode? = switch configModeRaw {
-        case "local":
-            .local
-        case "remote":
-            .remote
-        default:
-            nil
-        }
         let configRemoteUrl = (configGateway?["remote"] as? [String: Any])?["url"] as? String
-        let configHasRemoteUrl = !(configRemoteUrl?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .isEmpty ?? true)
-
-        let storedMode = UserDefaults.standard.string(forKey: connectionModeKey)
-        let resolvedConnectionMode: ConnectionMode = if let configMode {
-            configMode
-        } else if configHasRemoteUrl {
-            .remote
-        } else if let storedMode {
-            ConnectionMode(rawValue: storedMode) ?? .local
-        } else {
-            onboardingSeen ? .local : .unconfigured
-        }
+        let resolvedConnectionMode = ConnectionModeResolver.resolve(root: configRoot).mode
         self.connectionMode = resolvedConnectionMode
 
         let storedRemoteTarget = UserDefaults.standard.string(forKey: remoteTargetKey) ?? ""
@@ -300,10 +281,10 @@ final class AppState {
         self.remoteProjectRoot = UserDefaults.standard.string(forKey: remoteProjectRootKey) ?? ""
         self.remoteCliPath = UserDefaults.standard.string(forKey: remoteCliPathKey) ?? ""
         self.canvasEnabled = UserDefaults.standard.object(forKey: canvasEnabledKey) as? Bool ?? true
+        let execDefaults = ExecApprovalsStore.resolveDefaults()
+        self.execApprovalMode = ExecApprovalQuickMode.from(security: execDefaults.security, ask: execDefaults.ask)
         self.peekabooBridgeEnabled = UserDefaults.standard
             .object(forKey: peekabooBridgeEnabledKey) as? Bool ?? true
-        self.attachExistingGatewayOnly = UserDefaults.standard.bool(forKey: attachExistingGatewayOnlyKey)
-
         if !self.isPreview {
             Task.detached(priority: .utility) { [weak self] in
                 let current = await LaunchAgentManager.status()
@@ -344,6 +325,15 @@ final class AppState {
             return nil
         }
         return host
+    }
+
+    private static func sanitizeSSHTarget(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("ssh ") {
+            return trimmed.replacingOccurrences(of: "ssh ", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return trimmed
     }
 
     private func startConfigWatcher() {
@@ -411,6 +401,7 @@ final class AppState {
 
         let connectionMode = self.connectionMode
         let remoteTarget = self.remoteTarget
+        let remoteIdentity = self.remoteIdentity
         let desiredMode: String? = switch connectionMode {
         case .local:
             "local"
@@ -440,15 +431,46 @@ final class AppState {
                 changed = true
             }
 
-            if connectionMode == .remote, let host = remoteHost {
+            if connectionMode == .remote {
                 var remote = gateway["remote"] as? [String: Any] ?? [:]
-                let existingUrl = (remote["url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                let parsedExisting = existingUrl.isEmpty ? nil : URL(string: existingUrl)
-                let scheme = parsedExisting?.scheme?.isEmpty == false ? parsedExisting?.scheme : "ws"
-                let port = parsedExisting?.port ?? 18789
-                let desiredUrl = "\(scheme ?? "ws")://\(host):\(port)"
-                if existingUrl != desiredUrl {
-                    remote["url"] = desiredUrl
+                var remoteChanged = false
+
+                if let host = remoteHost {
+                    let existingUrl = (remote["url"] as? String)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let parsedExisting = existingUrl.isEmpty ? nil : URL(string: existingUrl)
+                    let scheme = parsedExisting?.scheme?.isEmpty == false ? parsedExisting?.scheme : "ws"
+                    let port = parsedExisting?.port ?? 18789
+                    let desiredUrl = "\(scheme ?? "ws")://\(host):\(port)"
+                    if existingUrl != desiredUrl {
+                        remote["url"] = desiredUrl
+                        remoteChanged = true
+                    }
+                }
+
+                let sanitizedTarget = Self.sanitizeSSHTarget(remoteTarget)
+                if !sanitizedTarget.isEmpty {
+                    if (remote["sshTarget"] as? String) != sanitizedTarget {
+                        remote["sshTarget"] = sanitizedTarget
+                        remoteChanged = true
+                    }
+                } else if remote["sshTarget"] != nil {
+                    remote.removeValue(forKey: "sshTarget")
+                    remoteChanged = true
+                }
+
+                let trimmedIdentity = remoteIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedIdentity.isEmpty {
+                    if (remote["sshIdentity"] as? String) != trimmedIdentity {
+                        remote["sshIdentity"] = trimmedIdentity
+                        remoteChanged = true
+                    }
+                } else if remote["sshIdentity"] != nil {
+                    remote.removeValue(forKey: "sshIdentity")
+                    remoteChanged = true
+                }
+
+                if remoteChanged {
                     gateway["remote"] = remote
                     changed = true
                 }
@@ -604,7 +626,6 @@ extension AppState {
         state.remoteIdentity = "~/.ssh/id_ed25519"
         state.remoteProjectRoot = "~/Projects/clawdbot"
         state.remoteCliPath = ""
-        state.attachExistingGatewayOnly = false
         return state
     }
 }
@@ -622,10 +643,6 @@ enum AppStateStore {
 
     static var canvasEnabled: Bool {
         UserDefaults.standard.object(forKey: canvasEnabledKey) as? Bool ?? true
-    }
-
-    static var attachExistingGatewayOnly: Bool {
-        UserDefaults.standard.bool(forKey: attachExistingGatewayOnlyKey)
     }
 }
 

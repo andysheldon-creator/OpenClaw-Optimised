@@ -33,6 +33,7 @@ export type GatewayServiceInstallArgs = {
   programArguments: string[];
   workingDirectory?: string;
   environment?: Record<string, string | undefined>;
+  description?: string;
 };
 
 export type GatewayService = {
@@ -45,23 +46,21 @@ export type GatewayService = {
     stdout: NodeJS.WritableStream;
   }) => Promise<void>;
   stop: (args: {
-    profile?: string;
+    env?: Record<string, string | undefined>;
     stdout: NodeJS.WritableStream;
   }) => Promise<void>;
   restart: (args: {
-    profile?: string;
+    env?: Record<string, string | undefined>;
     stdout: NodeJS.WritableStream;
   }) => Promise<void>;
-  isLoaded: (args: { profile?: string }) => Promise<boolean>;
+  isLoaded: (args: { env?: Record<string, string | undefined> }) => Promise<boolean>;
   readCommand: (env: Record<string, string | undefined>) => Promise<{
     programArguments: string[];
     workingDirectory?: string;
     environment?: Record<string, string>;
     sourcePath?: string;
   } | null>;
-  readRuntime: (
-    env: Record<string, string | undefined>,
-  ) => Promise<GatewayServiceRuntime>;
+  readRuntime: (env: Record<string, string | undefined>) => Promise<GatewayServiceRuntime>;
 };
 
 export function resolveGatewayService(): GatewayService {
@@ -77,15 +76,18 @@ export function resolveGatewayService(): GatewayService {
         await uninstallLaunchAgent(args);
       },
       stop: async (args) => {
-        await stopLaunchAgent({ stdout: args.stdout, profile: args.profile });
+        await stopLaunchAgent({
+          stdout: args.stdout,
+          env: args.env,
+        });
       },
       restart: async (args) => {
         await restartLaunchAgent({
           stdout: args.stdout,
-          profile: args.profile,
+          env: args.env,
         });
       },
-      isLoaded: async (args) => isLaunchAgentLoaded(args.profile),
+      isLoaded: async (args) => isLaunchAgentLoaded(args),
       readCommand: readLaunchAgentProgramArguments,
       readRuntime: readLaunchAgentRuntime,
     };
@@ -105,16 +107,16 @@ export function resolveGatewayService(): GatewayService {
       stop: async (args) => {
         await stopSystemdService({
           stdout: args.stdout,
-          profile: args.profile,
+          env: args.env,
         });
       },
       restart: async (args) => {
         await restartSystemdService({
           stdout: args.stdout,
-          profile: args.profile,
+          env: args.env,
         });
       },
-      isLoaded: async (args) => isSystemdServiceEnabled(args.profile),
+      isLoaded: async (args) => isSystemdServiceEnabled(args),
       readCommand: readSystemdServiceExecStart,
       readRuntime: async (env) => await readSystemdServiceRuntime(env),
     };
@@ -132,21 +134,22 @@ export function resolveGatewayService(): GatewayService {
         await uninstallScheduledTask(args);
       },
       stop: async (args) => {
-        await stopScheduledTask({ stdout: args.stdout, profile: args.profile });
+        await stopScheduledTask({
+          stdout: args.stdout,
+          env: args.env,
+        });
       },
       restart: async (args) => {
         await restartScheduledTask({
           stdout: args.stdout,
-          profile: args.profile,
+          env: args.env,
         });
       },
-      isLoaded: async (args) => isScheduledTaskInstalled(args.profile),
+      isLoaded: async (args) => isScheduledTaskInstalled(args),
       readCommand: readScheduledTaskCommand,
       readRuntime: async (env) => await readScheduledTaskRuntime(env),
     };
   }
 
-  throw new Error(
-    `Gateway service install not supported on ${process.platform}`,
-  );
+  throw new Error(`Gateway service install not supported on ${process.platform}`);
 }

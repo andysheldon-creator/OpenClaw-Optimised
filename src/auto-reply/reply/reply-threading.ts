@@ -1,7 +1,7 @@
+import { getChannelDock } from "../../channels/dock.js";
+import { normalizeChannelId } from "../../channels/plugins/index.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import type { ReplyToMode } from "../../config/types.js";
-import { getProviderDock } from "../../providers/dock.js";
-import { normalizeProviderId } from "../../providers/registry.js";
 import type { OriginatingChannelType } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 
@@ -9,12 +9,14 @@ export function resolveReplyToMode(
   cfg: ClawdbotConfig,
   channel?: OriginatingChannelType,
   accountId?: string | null,
+  chatType?: string | null,
 ): ReplyToMode {
-  const provider = normalizeProviderId(channel);
+  const provider = normalizeChannelId(channel);
   if (!provider) return "all";
-  const resolved = getProviderDock(provider)?.threading?.resolveReplyToMode?.({
+  const resolved = getChannelDock(provider)?.threading?.resolveReplyToMode?.({
     cfg,
     accountId,
+    chatType,
   });
   return resolved ?? "all";
 }
@@ -43,9 +45,9 @@ export function createReplyToModeFilterForChannel(
   mode: ReplyToMode,
   channel?: OriginatingChannelType,
 ) {
-  const provider = normalizeProviderId(channel);
+  const provider = normalizeChannelId(channel);
   const allowTagsWhenOff = provider
-    ? Boolean(getProviderDock(provider)?.threading?.allowTagsWhenOff)
+    ? Boolean(getChannelDock(provider)?.threading?.allowTagsWhenOff)
     : false;
   return createReplyToModeFilter(mode, {
     allowTagsWhenOff,

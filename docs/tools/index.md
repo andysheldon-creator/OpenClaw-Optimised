@@ -14,11 +14,141 @@ and the agent should rely on them directly.
 ## Disabling tools
 
 You can globally allow/deny tools via `tools.allow` / `tools.deny` in `clawdbot.json`
-(deny wins). This prevents disallowed tools from being sent to providers.
+(deny wins). This prevents disallowed tools from being sent to model providers.
 
 ```json5
 {
   tools: { deny: ["browser"] }
+}
+```
+
+Notes:
+- Matching is case-insensitive.
+- `*` wildcards are supported (`"*"` means all tools).
+- If `tools.allow` only references unknown or unloaded plugin tool names, Clawdbot logs a warning and ignores the allowlist so core tools stay available.
+
+## Tool profiles (base allowlist)
+
+`tools.profile` sets a **base tool allowlist** before `tools.allow`/`tools.deny`.
+Per-agent override: `agents.list[].tools.profile`.
+
+Profiles:
+- `minimal`: `session_status` only
+- `coding`: `group:fs`, `group:runtime`, `group:sessions`, `group:memory`, `image`
+- `messaging`: `group:messaging`, `sessions_list`, `sessions_history`, `sessions_send`, `session_status`
+- `full`: no restriction (same as unset)
+
+Example (messaging-only by default, allow Slack + Discord tools too):
+```json5
+{
+  tools: {
+    profile: "messaging",
+    allow: ["slack", "discord"]
+  }
+}
+```
+
+Example (coding profile, but deny exec/process everywhere):
+```json5
+{
+  tools: {
+    profile: "coding",
+    deny: ["group:runtime"]
+  }
+}
+```
+
+Example (global coding profile, messaging-only support agent):
+```json5
+{
+  tools: { profile: "coding" },
+  agents: {
+    list: [
+      {
+        id: "support",
+        tools: { profile: "messaging", allow: ["slack"] }
+      }
+    ]
+  }
+}
+```
+
+## Provider-specific tool policy
+
+Use `tools.byProvider` to **further restrict** tools for specific providers
+(or a single `provider/model`) without changing your global defaults.
+Per-agent override: `agents.list[].tools.byProvider`.
+
+This is applied **after** the base tool profile and **before** allow/deny lists,
+so it can only narrow the tool set.
+Provider keys accept either `provider` (e.g. `google-antigravity`) or
+`provider/model` (e.g. `openai/gpt-5.2`).
+
+Example (keep global coding profile, but minimal tools for Google Antigravity):
+```json5
+{
+  tools: {
+    profile: "coding",
+    byProvider: {
+      "google-antigravity": { profile: "minimal" }
+    }
+  }
+}
+```
+
+Example (provider/model-specific allowlist for a flaky endpoint):
+```json5
+{
+  tools: {
+    allow: ["group:fs", "group:runtime", "sessions_list"],
+    byProvider: {
+      "openai/gpt-5.2": { allow: ["group:fs", "sessions_list"] }
+    }
+  }
+}
+```
+
+Example (agent-specific override for a single provider):
+```json5
+{
+  agents: {
+    list: [
+      {
+        id: "support",
+        tools: {
+          byProvider: {
+            "google-antigravity": { allow: ["message", "sessions_list"] }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+## Tool groups (shorthands)
+
+Tool policies (global, agent, sandbox) support `group:*` entries that expand to multiple tools.
+Use these in `tools.allow` / `tools.deny`.
+
+Available groups:
+- `group:runtime`: `exec`, `bash`, `process`
+- `group:fs`: `read`, `write`, `edit`, `apply_patch`
+- `group:sessions`: `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `session_status`
+- `group:memory`: `memory_search`, `memory_get`
+- `group:web`: `web_search`, `web_fetch`
+- `group:ui`: `browser`, `canvas`
+- `group:automation`: `cron`, `gateway`
+- `group:messaging`: `message`
+- `group:nodes`: `nodes`
+- `group:clawdbot`: all built-in Clawdbot tools (excludes provider plugins)
+
+Example (allow only file tools + browser):
+```json5
+{
+  tools: {
+    allow: ["group:fs", "browser"]
+  }
 }
 ```
 
@@ -29,9 +159,17 @@ See [Plugins](/plugin) for install + config, and [Skills](/tools/skills) for how
 tool usage guidance is injected into prompts. Some plugins ship their own skills
 alongside tools (for example, the voice-call plugin).
 
+Optional plugin tools:
+- [Lobster](/tools/lobster): typed workflow runtime with resumable approvals (requires the Lobster CLI on the gateway host).
+- [LLM Task](/tools/llm-task): JSON-only LLM step for structured workflow output (optional schema validation).
+
 ## Tool inventory
 
-### `bash`
+### `apply_patch`
+Apply structured patches across one or more files. Use for multi-hunk edits.
+Experimental: enable via `tools.exec.applyPatch.enabled` (OpenAI models only).
+
+### `exec`
 Run shell commands in the workspace.
 
 Core parameters:
@@ -40,17 +178,23 @@ Core parameters:
 - `background` (immediate background)
 - `timeout` (seconds; kills the process if exceeded, default 1800)
 - `elevated` (bool; run on host if elevated mode is enabled/allowed; only changes behavior when the agent is sandboxed)
-- Need a real TTY? Use the tmux skill.
+- `host` (`sandbox | gateway | node`)
+- `security` (`deny | allowlist | full`)
+- `ask` (`off | on-miss | always`)
+- `node` (node id/name for `host=node`)
+- Need a real TTY? Set `pty: true`.
 
 Notes:
 - Returns `status: "running"` with a `sessionId` when backgrounded.
 - Use `process` to poll/log/write/kill/clear background sessions.
-- If `process` is disallowed, `bash` runs synchronously and ignores `yieldMs`/`background`.
-- `elevated` is gated by `tools.elevated` plus any `agents.list[].tools.elevated` override (both must allow) and runs on the host.
+- If `process` is disallowed, `exec` runs synchronously and ignores `yieldMs`/`background`.
+- `elevated` is gated by `tools.elevated` plus any `agents.list[].tools.elevated` override (both must allow) and is an alias for `host=gateway` + `security=full`.
 - `elevated` only changes behavior when the agent is sandboxed (otherwise it’s a no-op).
+- `host=node` can target a macOS companion app or a headless node host (`clawdbot node run`).
+- gateway/node approvals and allowlists: [Exec approvals](/tools/exec-approvals).
 
 ### `process`
-Manage background bash sessions.
+Manage background exec sessions.
 
 Core actions:
 - `list`, `poll`, `log`, `write`, `kill`, `clear`, `remove`
@@ -59,6 +203,34 @@ Notes:
 - `poll` returns new output and exit status when complete.
 - `log` supports line-based `offset`/`limit` (omit `offset` to grab the last N lines).
 - `process` is scoped per agent; sessions from other agents are not visible.
+
+### `web_search`
+Search the web using Brave Search API.
+
+Core parameters:
+- `query` (required)
+- `count` (1–10; default from `tools.web.search.maxResults`)
+
+Notes:
+- Requires a Brave API key (recommended: `clawdbot configure --section web`, or set `BRAVE_API_KEY`).
+- Enable via `tools.web.search.enabled`.
+- Responses are cached (default 15 min).
+- See [Web tools](/tools/web) for setup.
+
+### `web_fetch`
+Fetch and extract readable content from a URL (HTML → markdown/text).
+
+Core parameters:
+- `url` (required)
+- `extractMode` (`markdown` | `text`)
+- `maxChars` (truncate long pages)
+
+Notes:
+- Enable via `tools.web.fetch.enabled`.
+- Responses are cached (default 15 min).
+- For JS-heavy sites, prefer the browser tool.
+- See [Web tools](/tools/web) for setup.
+- See [Firecrawl](/tools/firecrawl) for the optional anti-bot fallback.
 
 ### `browser`
 Control the dedicated clawd browser.
@@ -83,12 +255,13 @@ Notes:
 - Requires `browser.enabled=true` (default is `true`; set `false` to disable).
 - Uses `browser.controlUrl` unless `controlUrl` is passed explicitly.
 - All actions accept optional `profile` parameter for multi-instance support.
-- When `profile` is omitted, uses `browser.defaultProfile` (defaults to "clawd").
+- When `profile` is omitted, uses `browser.defaultProfile` (defaults to "chrome").
 - Profile names: lowercase alphanumeric + hyphens only (max 64 chars).
 - Port range: 18800-18899 (~100 profiles max).
 - Remote profiles are attach-only (no start/stop/reset).
-- `snapshot` defaults to `ai`; use `aria` for the accessibility tree.
-- `act` requires `ref` from `snapshot --format ai`; use `evaluate` for rare CSS selector needs.
+- `snapshot` defaults to `ai` when Playwright is installed; use `aria` for the accessibility tree.
+- `snapshot` also supports role-snapshot options (`interactive`, `compact`, `depth`, `selector`) which return refs like `e12`.
+- `act` requires `ref` from `snapshot` (numeric `12` from AI snapshots, or `e12` from role snapshots); use `evaluate` for rare CSS selector needs.
 - Avoid `act` → `wait` by default; use it only in exceptional cases (no reliable UI state to wait on).
 - `upload` can optionally pass a `ref` to auto-click after arming.
 - `upload` also supports `inputRef` (aria ref) or `element` (CSS selector) to set `<input type="file">` directly.
@@ -148,14 +321,14 @@ Core parameters:
 - `maxBytesMb` (optional size cap)
 
 Notes:
-- Only available when `agents.defaults.imageModel` is configured (primary or fallbacks).
+- Only available when `agents.defaults.imageModel` is configured (primary or fallbacks), or when an implicit image model can be inferred from your default model + configured auth (best-effort pairing).
 - Uses the image model directly (independent of the main chat model).
 
 ### `message`
-Send messages and provider actions across Discord/Slack/Telegram/WhatsApp/Signal/iMessage/MS Teams.
+Send messages and channel actions across Discord/Slack/Telegram/WhatsApp/Signal/iMessage/MS Teams.
 
 Core actions:
-- `send` (text + optional media)
+- `send` (text + optional media; MS Teams also supports `card` for Adaptive Cards)
 - `poll` (WhatsApp/Discord/MS Teams polls)
 - `react` / `reactions` / `read` / `edit` / `delete`
 - `pin` / `unpin` / `list-pins`
@@ -172,8 +345,9 @@ Core actions:
 - `timeout` / `kick` / `ban`
 
 Notes:
-- `send` routes WhatsApp via the Gateway; other providers go direct.
+- `send` routes WhatsApp via the Gateway; other channels go direct.
 - `poll` uses the Gateway for WhatsApp and MS Teams; Discord polls go direct.
+- When a message tool call is bound to an active chat session, sends are constrained to that session’s target to avoid cross-context leaks.
 
 ### `cron`
 Manage Gateway cron jobs and wakeups.
@@ -191,7 +365,7 @@ Notes:
 Restart or apply updates to the running Gateway process (in-place).
 
 Core actions:
-- `restart` (sends `SIGUSR1` to the current process; `clawdbot gateway` restart in-place)
+- `restart` (authorizes + sends `SIGUSR1` for in-process restart; `clawdbot gateway` restart in-place)
 - `config.get` / `config.schema`
 - `config.apply` (validate + write config + restart + wake)
 - `update.run` (run update + restart + wake)
@@ -205,10 +379,10 @@ List sessions, inspect transcript history, or send to another session.
 
 Core parameters:
 - `sessions_list`: `kinds?`, `limit?`, `activeMinutes?`, `messageLimit?` (0 = none)
-- `sessions_history`: `sessionKey`, `limit?`, `includeTools?`
-- `sessions_send`: `sessionKey`, `message`, `timeoutSeconds?` (0 = fire-and-forget)
+- `sessions_history`: `sessionKey` (or `sessionId`), `limit?`, `includeTools?`
+- `sessions_send`: `sessionKey` (or `sessionId`), `message`, `timeoutSeconds?` (0 = fire-and-forget)
 - `sessions_spawn`: `task`, `label?`, `agentId?`, `model?`, `runTimeoutSeconds?`, `cleanup?`
-- `session_status`: `sessionKey?` (default current), `model?` (`default` clears override)
+- `session_status`: `sessionKey?` (default current; accepts `sessionId`), `model?` (`default` clears override)
 
 Notes:
 - `main` is the canonical direct-chat key; global/unknown are hidden.

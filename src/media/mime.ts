@@ -5,6 +5,8 @@ import { type MediaKind, mediaKindFromMime } from "./constants.js";
 
 // Map common mimes to preferred file extensions.
 const EXT_BY_MIME: Record<string, string> = {
+  "image/heic": ".heic",
+  "image/heif": ".heif",
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
@@ -22,19 +24,19 @@ const EXT_BY_MIME: Record<string, string> = {
   "application/msword": ".doc",
   "application/vnd.ms-excel": ".xls",
   "application/vnd.ms-powerpoint": ".ppt",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    ".docx",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-    ".pptx",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
   "text/csv": ".csv",
   "text/plain": ".txt",
   "text/markdown": ".md",
 };
 
-const MIME_BY_EXT: Record<string, string> = Object.fromEntries(
-  Object.entries(EXT_BY_MIME).map(([mime, ext]) => [ext, mime]),
-);
+const MIME_BY_EXT: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(EXT_BY_MIME).map(([mime, ext]) => [ext, mime])),
+  // Additional extension aliases
+  ".jpeg": "image/jpeg",
+};
 
 const AUDIO_FILE_EXTENSIONS = new Set([
   ".aac",
@@ -133,14 +135,16 @@ export function isGifMedia(opts: {
   return ext === ".gif";
 }
 
-export function imageMimeFromFormat(
-  format?: string | null,
-): string | undefined {
+export function imageMimeFromFormat(format?: string | null): string | undefined {
   if (!format) return undefined;
   switch (format.toLowerCase()) {
     case "jpg":
     case "jpeg":
       return "image/jpeg";
+    case "heic":
+      return "image/heic";
+    case "heif":
+      return "image/heif";
     case "png":
       return "image/png";
     case "webp":

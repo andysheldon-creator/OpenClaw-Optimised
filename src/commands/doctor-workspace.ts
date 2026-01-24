@@ -8,6 +8,7 @@ import {
   DEFAULT_SOUL_FILENAME,
   DEFAULT_USER_FILENAME,
 } from "../agents/workspace.js";
+import { shortenHomePath } from "../utils.js";
 
 export const MEMORY_SYSTEM_PROMPT = [
   "Memory system not found in workspace.",
@@ -18,13 +19,8 @@ export const MEMORY_SYSTEM_PROMPT = [
   "https://github.com/clawdbot/clawdbot/commit/7d1fee70e76f2f634f1b41fca927ee663914183a",
 ].join("\n");
 
-export async function shouldSuggestMemorySystem(
-  workspaceDir: string,
-): Promise<boolean> {
-  const memoryPaths = [
-    path.join(workspaceDir, "MEMORY.md"),
-    path.join(workspaceDir, "memory.md"),
-  ];
+export async function shouldSuggestMemorySystem(workspaceDir: string): Promise<boolean> {
+  const memoryPaths = [path.join(workspaceDir, "MEMORY.md"), path.join(workspaceDir, "memory.md")];
 
   for (const memoryPath of memoryPaths) {
     try {
@@ -51,10 +47,7 @@ export type LegacyWorkspaceDetection = {
   legacyDirs: string[];
 };
 
-function looksLikeWorkspaceDir(
-  dir: string,
-  exists: (value: string) => boolean,
-) {
+function looksLikeWorkspaceDir(dir: string, exists: (value: string) => boolean) {
   const markers = [
     DEFAULT_AGENTS_FILENAME,
     DEFAULT_SOUL_FILENAME,
@@ -73,7 +66,7 @@ export function detectLegacyWorkspaceDirs(params: {
   const exists = params.exists ?? fs.existsSync;
   const home = homedir();
   const activeWorkspace = path.resolve(params.workspaceDir);
-  const candidates = [path.join(home, "clawdis"), path.join(home, "clawdbot")];
+  const candidates = [path.join(home, "clawdbot")];
   const legacyDirs = candidates
     .filter((candidate) => {
       if (!exists(candidate)) return false;
@@ -85,13 +78,11 @@ export function detectLegacyWorkspaceDirs(params: {
   return { activeWorkspace, legacyDirs };
 }
 
-export function formatLegacyWorkspaceWarning(
-  detection: LegacyWorkspaceDetection,
-): string {
+export function formatLegacyWorkspaceWarning(detection: LegacyWorkspaceDetection): string {
   return [
-    "Legacy workspace directories detected (may contain old agent files):",
-    ...detection.legacyDirs.map((dir) => `- ${dir}`),
-    `Active workspace: ${detection.activeWorkspace}`,
-    "If unused, archive or move to Trash (e.g. trash ~/clawdis).",
+    "Extra workspace directories detected (may contain old agent files):",
+    ...detection.legacyDirs.map((dir) => `- ${shortenHomePath(dir)}`),
+    `Active workspace: ${shortenHomePath(detection.activeWorkspace)}`,
+    "If unused, archive or move to Trash (e.g. trash ~/clawdbot).",
   ].join("\n");
 }

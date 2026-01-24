@@ -1,6 +1,9 @@
 import type { IncomingMessage } from "node:http";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import type { ClawdbotConfig } from "../config/config.js";
+import type { ChannelPlugin } from "../channels/plugins/types.js";
+import { setActivePluginRegistry } from "../plugins/runtime.js";
+import { createIMessageTestPlugin, createTestRegistry } from "../test-utils/channel-plugins.js";
 import {
   extractHookToken,
   normalizeAgentPayload,
@@ -9,6 +12,13 @@ import {
 } from "./hooks.js";
 
 describe("gateway hooks helpers", () => {
+  beforeEach(() => {
+    setActivePluginRegistry(emptyRegistry);
+  });
+
+  afterEach(() => {
+    setActivePluginRegistry(emptyRegistry);
+  });
   test("resolveHooksConfig normalizes paths + requires token", () => {
     const base = {
       hooks: {
@@ -56,15 +66,12 @@ describe("gateway hooks helpers", () => {
     expect(normalizeWakePayload({ text: "  ", mode: "now" }).ok).toBe(false);
   });
 
-  test("normalizeAgentPayload defaults + validates provider", () => {
-    const ok = normalizeAgentPayload(
-      { message: "hello" },
-      { idFactory: () => "fixed" },
-    );
+  test("normalizeAgentPayload defaults + validates channel", () => {
+    const ok = normalizeAgentPayload({ message: "hello" }, { idFactory: () => "fixed" });
     expect(ok.ok).toBe(true);
     if (ok.ok) {
       expect(ok.value.sessionKey).toBe("hook:fixed");
-      expect(ok.value.provider).toBe("last");
+      expect(ok.value.channel).toBe("last");
       expect(ok.value.name).toBe("Hook");
       expect(ok.value.deliver).toBe(true);
     }
@@ -78,25 +85,62 @@ describe("gateway hooks helpers", () => {
       expect(explicitNoDeliver.value.deliver).toBe(false);
     }
 
+    setActivePluginRegistry(
+      createTestRegistry([
+        {
+          pluginId: "imessage",
+          source: "test",
+          plugin: createIMessageTestPlugin(),
+        },
+      ]),
+    );
     const imsg = normalizeAgentPayload(
-      { message: "yo", provider: "imsg" },
+      { message: "yo", channel: "imsg" },
       { idFactory: () => "x" },
     );
     expect(imsg.ok).toBe(true);
     if (imsg.ok) {
-      expect(imsg.value.provider).toBe("imessage");
+      expect(imsg.value.channel).toBe("imessage");
     }
 
+    setActivePluginRegistry(
+      createTestRegistry([
+        {
+          pluginId: "msteams",
+          source: "test",
+          plugin: createMSTeamsPlugin({ aliases: ["teams"] }),
+        },
+      ]),
+    );
     const teams = normalizeAgentPayload(
-      { message: "yo", provider: "teams" },
+      { message: "yo", channel: "teams" },
       { idFactory: () => "x" },
     );
     expect(teams.ok).toBe(true);
     if (teams.ok) {
-      expect(teams.value.provider).toBe("msteams");
+      expect(teams.value.channel).toBe("msteams");
     }
 
-    const bad = normalizeAgentPayload({ message: "yo", provider: "sms" });
+    const bad = normalizeAgentPayload({ message: "yo", channel: "sms" });
     expect(bad.ok).toBe(false);
   });
+});
+
+const emptyRegistry = createTestRegistry([]);
+
+const createMSTeamsPlugin = (params: { aliases?: string[] }): ChannelPlugin => ({
+  id: "msteams",
+  meta: {
+    id: "msteams",
+    label: "Microsoft Teams",
+    selectionLabel: "Microsoft Teams (Bot Framework)",
+    docsPath: "/channels/msteams",
+    blurb: "Bot Framework; enterprise support.",
+    aliases: params.aliases,
+  },
+  capabilities: { chatTypes: ["direct"] },
+  config: {
+    listAccountIds: () => [],
+    resolveAccount: () => ({}),
+  },
 });

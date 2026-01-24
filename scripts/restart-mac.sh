@@ -20,6 +20,7 @@ SIGN=0
 AUTO_DETECT_SIGNING=1
 GATEWAY_WAIT_SECONDS="${CLAWDBOT_GATEWAY_WAIT_SECONDS:-0}"
 LAUNCHAGENT_DISABLE_MARKER="${HOME}/.clawdbot/disable-launchagent"
+ATTACH_ONLY=1
 
 log()  { printf '%s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -81,23 +82,25 @@ for arg in "$@"; do
     --wait|-w) WAIT_FOR_LOCK=1 ;;
     --no-sign) NO_SIGN=1; AUTO_DETECT_SIGNING=0 ;;
     --sign) SIGN=1; AUTO_DETECT_SIGNING=0 ;;
+    --attach-only) ATTACH_ONLY=1 ;;
+    --no-attach-only) ATTACH_ONLY=0 ;;
     --help|-h)
-      log "Usage: $(basename "$0") [--wait] [--no-sign] [--sign]"
+      log "Usage: $(basename "$0") [--wait] [--no-sign] [--sign] [--attach-only|--no-attach-only]"
       log "  --wait    Wait for other restart to complete instead of exiting"
       log "  --no-sign Force no code signing (fastest for development)"
       log "  --sign    Force code signing (will fail if no signing key available)"
+      log "  --attach-only    Launch app with --attach-only (skip launchd install)"
+      log "  --no-attach-only Launch app without attach-only override"
       log ""
       log "Env:"
       log "  CLAWDBOT_GATEWAY_WAIT_SECONDS=0  Wait time before gateway port check (unsigned only)"
       log ""
       log "Unsigned recovery:"
-      log "  defaults write <bundle-id> clawdbot.gateway.attachExistingOnly -bool YES"
       log "  node dist/entry.js daemon install --force --runtime node"
       log "  node dist/entry.js daemon restart"
       log ""
       log "Reset unsigned overrides:"
       log "  rm ~/.clawdbot/disable-launchagent"
-      log "  defaults write <bundle-id> clawdbot.gateway.attachExistingOnly -bool NO"
       log ""
       log "Default behavior: Auto-detect signing keys, fallback to --no-sign if none found"
       exit 0
@@ -116,6 +119,9 @@ exec > >(tee "$LOG_PATH") 2>&1
 log "==> Log: ${LOG_PATH}"
 if [[ "$NO_SIGN" -eq 1 ]]; then
   log "==> Using --no-sign (unsigned flow enabled)"
+fi
+if [[ "$ATTACH_ONLY" -eq 1 ]]; then
+  log "==> Using --attach-only (skip launchd install)"
 fi
 
 acquire_lock
@@ -203,20 +209,39 @@ choose_app_bundle() {
 
 choose_app_bundle
 
-APP_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "${APP_BUNDLE}/Contents/Info.plist" 2>/dev/null || true)"
-
-# When unsigned, avoid the app overwriting the LaunchAgent while iterating.
-if [ "$NO_SIGN" -eq 1 ]; then
-  if [[ -n "${APP_BUNDLE_ID}" ]]; then
-    run_step "set attach-existing-only" \
-      /usr/bin/defaults write "${APP_BUNDLE_ID}" clawdbot.gateway.attachExistingOnly -bool YES
-  fi
-elif [[ -f "${LAUNCHAGENT_DISABLE_MARKER}" ]]; then
+# When signed, clear any previous launchagent override marker.
+if [[ "$NO_SIGN" -ne 1 && "$ATTACH_ONLY" -ne 1 && -f "${LAUNCHAGENT_DISABLE_MARKER}" ]]; then
   run_step "clear launchagent disable marker" /bin/rm -f "${LAUNCHAGENT_DISABLE_MARKER}"
-  if [[ -n "${APP_BUNDLE_ID}" ]]; then
-    run_step "unset attach-existing-only" \
-      /usr/bin/defaults write "${APP_BUNDLE_ID}" clawdbot.gateway.attachExistingOnly -bool NO
+fi
+
+# When unsigned, ensure the gateway LaunchAgent targets the repo CLI (before the app launches).
+# This reduces noisy "could not connect" errors during app startup.
+if [ "$NO_SIGN" -eq 1 ] && [ "$ATTACH_ONLY" -ne 1 ]; then
+  run_step "install gateway launch agent (unsigned)" bash -lc "cd '${ROOT_DIR}' && node dist/entry.js daemon install --force --runtime node"
+  run_step "restart gateway daemon (unsigned)" bash -lc "cd '${ROOT_DIR}' && node dist/entry.js daemon restart"
+  if [[ "${GATEWAY_WAIT_SECONDS}" -gt 0 ]]; then
+    run_step "wait for gateway (unsigned)" sleep "${GATEWAY_WAIT_SECONDS}"
   fi
+  GATEWAY_PORT="$(
+    node -e '
+      const fs = require("node:fs");
+      const path = require("node:path");
+      try {
+        const raw = fs.readFileSync(path.join(process.env.HOME, ".clawdbot", "clawdbot.json"), "utf8");
+        const cfg = JSON.parse(raw);
+        const port = cfg && cfg.gateway && typeof cfg.gateway.port === "number" ? cfg.gateway.port : 18789;
+        process.stdout.write(String(port));
+      } catch {
+        process.stdout.write("18789");
+      }
+    '
+  )"
+  run_step "verify gateway port ${GATEWAY_PORT} (unsigned)" bash -lc "lsof -iTCP:${GATEWAY_PORT} -sTCP:LISTEN | head -n 5 || true"
+fi
+
+ATTACH_ONLY_ARGS=()
+if [[ "$ATTACH_ONLY" -eq 1 ]]; then
+  ATTACH_ONLY_ARGS+=(--args --attach-only)
 fi
 
 # 4) Launch the installed app in the foreground so the menu bar extra appears.
@@ -229,7 +254,7 @@ run_step "launch app" env -i \
   TMPDIR="${TMPDIR:-/tmp}" \
   PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
   LANG="${LANG:-en_US.UTF-8}" \
-  /usr/bin/open "${APP_BUNDLE}"
+  /usr/bin/open "${APP_BUNDLE}" ${ATTACH_ONLY_ARGS[@]:+"${ATTACH_ONLY_ARGS[@]}"}
 
 # 5) Verify the app is alive.
 sleep 1.5
@@ -239,13 +264,6 @@ else
   fail "App exited immediately. Check ${LOG_PATH} or Console.app (User Reports)."
 fi
 
-# When unsigned, ensure the gateway LaunchAgent targets the repo CLI (after the app launches).
-if [ "$NO_SIGN" -eq 1 ]; then
-  run_step "install gateway launch agent (unsigned)" bash -lc "cd '${ROOT_DIR}' && node dist/entry.js daemon install --force --runtime node"
-  run_step "restart gateway daemon (unsigned)" bash -lc "cd '${ROOT_DIR}' && node dist/entry.js daemon restart"
-  if [[ "${GATEWAY_WAIT_SECONDS}" -gt 0 ]]; then
-    run_step "wait for gateway (unsigned)" sleep "${GATEWAY_WAIT_SECONDS}"
-  fi
-  run_step "verify gateway port 18789 (unsigned)" bash -lc "lsof -iTCP:18789 -sTCP:LISTEN | head -n 5 || true"
+if [ "$NO_SIGN" -eq 1 ] && [ "$ATTACH_ONLY" -ne 1 ]; then
   run_step "show gateway launch agent args (unsigned)" bash -lc "/usr/bin/plutil -p '${HOME}/Library/LaunchAgents/com.clawdbot.gateway.plist' | head -n 40 || true"
 fi

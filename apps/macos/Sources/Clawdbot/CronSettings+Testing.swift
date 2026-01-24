@@ -7,9 +7,11 @@ struct CronSettings_Previews: PreviewProvider {
         store.jobs = [
             CronJob(
                 id: "job-1",
+                agentId: "ops",
                 name: "Daily summary",
                 description: nil,
                 enabled: true,
+                deleteAfterRun: nil,
                 createdAtMs: 0,
                 updatedAtMs: 0,
                 schedule: .every(everyMs: 86_400_000, anchorMs: nil),
@@ -20,7 +22,7 @@ struct CronSettings_Previews: PreviewProvider {
                     thinking: "low",
                     timeoutSeconds: 600,
                     deliver: true,
-                    provider: "last",
+                    channel: "last",
                     to: nil,
                     bestEffortDeliver: true),
                 isolation: CronIsolation(postToMainPrefix: "Cron"),
@@ -45,7 +47,7 @@ struct CronSettings_Previews: PreviewProvider {
                 durationMs: 1234,
                 nextRunAtMs: nil),
         ]
-        return CronSettings(store: store)
+        return CronSettings(store: store, channelsStore: ChannelsStore(isPreview: true))
             .frame(width: SettingsTab.windowWidth, height: SettingsTab.windowHeight)
     }
 }
@@ -59,9 +61,11 @@ extension CronSettings {
 
         let job = CronJob(
             id: "job-1",
+            agentId: "ops",
             name: "Daily summary",
             description: "Summary job",
             enabled: true,
+            deleteAfterRun: nil,
             createdAtMs: 1_700_000_000_000,
             updatedAtMs: 1_700_000_100_000,
             schedule: .cron(expr: "0 8 * * *", tz: "UTC"),
@@ -72,7 +76,7 @@ extension CronSettings {
                 thinking: "low",
                 timeoutSeconds: 120,
                 deliver: true,
-                provider: "whatsapp",
+                channel: "whatsapp",
                 to: "+15551234567",
                 bestEffortDeliver: true),
             isolation: CronIsolation(postToMainPrefix: "[cron] "),
@@ -99,7 +103,7 @@ extension CronSettings {
         store.selectedJobId = job.id
         store.runEntries = [run]
 
-        let view = CronSettings(store: store)
+        let view = CronSettings(store: store, channelsStore: ChannelsStore(isPreview: true))
         _ = view.body
         _ = view.jobRow(job)
         _ = view.jobContextMenu(job)

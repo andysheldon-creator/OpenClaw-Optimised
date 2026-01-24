@@ -21,8 +21,8 @@ android {
     applicationId = "com.clawdbot.android"
     minSdk = 31
     targetSdk = 36
-    versionCode = 20260109
-    versionName = "2026.1.9"
+    versionCode = 202601240
+    versionName = "2026.1.24"
   }
 
   buildTypes {
@@ -103,6 +103,7 @@ dependencies {
 
   implementation("androidx.security:security-crypto:1.1.0")
   implementation("androidx.exifinterface:exifinterface:1.4.2")
+  implementation("com.squareup.okhttp3:okhttp:5.3.2")
 
   // CameraX (for node.invoke camera.* parity)
   implementation("androidx.camera:camera-core:1.5.2")
@@ -112,14 +113,14 @@ dependencies {
   implementation("androidx.camera:camera-view:1.5.2")
 
   // Unicast DNS-SD (Wide-Area Bonjour) for tailnet discovery domains.
-  implementation("dnsjava:dnsjava:3.6.3")
+  implementation("dnsjava:dnsjava:3.6.4")
 
   testImplementation("junit:junit:4.13.2")
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
   testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.7")
   testImplementation("io.kotest:kotest-assertions-core-jvm:6.0.7")
   testImplementation("org.robolectric:robolectric:4.16")
-  testRuntimeOnly("org.junit.vintage:junit-vintage-engine:6.0.1")
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine:6.0.2")
 }
 
 tasks.withType<Test>().configureEach {

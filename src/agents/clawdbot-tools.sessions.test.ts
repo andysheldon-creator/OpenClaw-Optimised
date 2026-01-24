@@ -20,7 +20,18 @@ vi.mock("../config/config.js", async (importOriginal) => {
   };
 });
 
+import "./test-helpers/fast-core-tools.js";
 import { createClawdbotTools } from "./clawdbot-tools.js";
+
+const waitForCalls = async (getCount: () => number, count: number, timeoutMs = 2000) => {
+  const start = Date.now();
+  while (getCount() < count) {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`timed out waiting for ${count} calls`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+};
 
 describe("sessions tools", () => {
   it("uses number (not integer) in tool schemas for Gemini compatibility", () => {
@@ -54,9 +65,8 @@ describe("sessions tools", () => {
     expect(schemaProp("sessions_list", "activeMinutes").type).toBe("number");
     expect(schemaProp("sessions_list", "messageLimit").type).toBe("number");
     expect(schemaProp("sessions_send", "timeoutSeconds").type).toBe("number");
-    expect(schemaProp("sessions_spawn", "runTimeoutSeconds").type).toBe(
-      "number",
-    );
+    expect(schemaProp("sessions_spawn", "thinking").type).toBe("string");
+    expect(schemaProp("sessions_spawn", "runTimeoutSeconds").type).toBe("number");
     expect(schemaProp("sessions_spawn", "timeoutSeconds").type).toBe("number");
   });
 
@@ -73,14 +83,14 @@ describe("sessions tools", () => {
               kind: "direct",
               sessionId: "s-main",
               updatedAt: 10,
-              lastProvider: "whatsapp",
+              lastChannel: "whatsapp",
             },
             {
               key: "discord:group:dev",
               kind: "group",
               sessionId: "s-group",
               updatedAt: 11,
-              provider: "discord",
+              channel: "discord",
               displayName: "discord:g-dev",
             },
             {
@@ -108,9 +118,7 @@ describe("sessions tools", () => {
       return {};
     });
 
-    const tool = createClawdbotTools().find(
-      (candidate) => candidate.name === "sessions_list",
-    );
+    const tool = createClawdbotTools().find((candidate) => candidate.name === "sessions_list");
     expect(tool).toBeDefined();
     if (!tool) throw new Error("missing sessions_list tool");
 
@@ -120,7 +128,7 @@ describe("sessions tools", () => {
     };
     expect(details.sessions).toHaveLength(3);
     const main = details.sessions?.find((s) => s.key === "main");
-    expect(main?.provider).toBe("whatsapp");
+    expect(main?.channel).toBe("whatsapp");
     expect(main?.messages?.length).toBe(1);
     expect(main?.messages?.[0]?.role).toBe("assistant");
 
@@ -147,9 +155,7 @@ describe("sessions tools", () => {
       return {};
     });
 
-    const tool = createClawdbotTools().find(
-      (candidate) => candidate.name === "sessions_history",
-    );
+    const tool = createClawdbotTools().find((candidate) => candidate.name === "sessions_history");
     expect(tool).toBeDefined();
     if (!tool) throw new Error("missing sessions_history tool");
 
@@ -164,6 +170,62 @@ describe("sessions tools", () => {
     });
     const withToolsDetails = withTools.details as { messages?: unknown[] };
     expect(withToolsDetails.messages).toHaveLength(2);
+  });
+
+  it("sessions_history resolves sessionId inputs", async () => {
+    callGatewayMock.mockReset();
+    const sessionId = "sess-group";
+    const targetKey = "agent:main:discord:channel:1457165743010611293";
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string; params?: Record<string, unknown> };
+      if (request.method === "sessions.resolve") {
+        return {
+          key: targetKey,
+        };
+      }
+      if (request.method === "chat.history") {
+        return {
+          messages: [{ role: "assistant", content: [{ type: "text", text: "ok" }] }],
+        };
+      }
+      return {};
+    });
+
+    const tool = createClawdbotTools().find((candidate) => candidate.name === "sessions_history");
+    expect(tool).toBeDefined();
+    if (!tool) throw new Error("missing sessions_history tool");
+
+    const result = await tool.execute("call5", { sessionKey: sessionId });
+    const details = result.details as { messages?: unknown[] };
+    expect(details.messages).toHaveLength(1);
+    const historyCall = callGatewayMock.mock.calls.find(
+      (call) => (call[0] as { method?: string }).method === "chat.history",
+    );
+    expect(historyCall?.[0]).toMatchObject({
+      method: "chat.history",
+      params: { sessionKey: targetKey },
+    });
+  });
+
+  it("sessions_history errors on missing sessionId", async () => {
+    callGatewayMock.mockReset();
+    const sessionId = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string };
+      if (request.method === "sessions.resolve") {
+        throw new Error("No session found");
+      }
+      return {};
+    });
+
+    const tool = createClawdbotTools().find((candidate) => candidate.name === "sessions_history");
+    expect(tool).toBeDefined();
+    if (!tool) throw new Error("missing sessions_history tool");
+
+    const result = await tool.execute("call6", { sessionKey: sessionId });
+    const details = result.details as { status?: string; error?: string };
+    expect(details.status).toBe("error");
+    expect(details.error).toMatch(/Session not found|No session found/);
   });
 
   it("sessions_send supports fire-and-forget and wait", async () => {
@@ -181,9 +243,7 @@ describe("sessions tools", () => {
       if (request.method === "agent") {
         agentCallCount += 1;
         const runId = `run-${agentCallCount}`;
-        const params = request.params as
-          | { message?: string; sessionKey?: string }
-          | undefined;
+        const params = request.params as { message?: string; sessionKey?: string } | undefined;
         const message = params?.message ?? "";
         let reply = "REPLY_SKIP";
         if (message === "ping" || message === "wait") {
@@ -207,8 +267,7 @@ describe("sessions tools", () => {
       }
       if (request.method === "chat.history") {
         _historyCallCount += 1;
-        const text =
-          (lastWaitedRunId && replyByRunId.get(lastWaitedRunId)) ?? "";
+        const text = (lastWaitedRunId && replyByRunId.get(lastWaitedRunId)) ?? "";
         return {
           messages: [
             {
@@ -233,7 +292,7 @@ describe("sessions tools", () => {
 
     const tool = createClawdbotTools({
       agentSessionKey: requesterKey,
-      agentProvider: "discord",
+      agentChannel: "discord",
     }).find((candidate) => candidate.name === "sessions_send");
     expect(tool).toBeDefined();
     if (!tool) throw new Error("missing sessions_send tool");
@@ -248,8 +307,9 @@ describe("sessions tools", () => {
       runId: "run-1",
       delivery: { status: "pending", mode: "announce" },
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitForCalls(() => calls.filter((call) => call.method === "agent").length, 4);
+    await waitForCalls(() => calls.filter((call) => call.method === "agent.wait").length, 4);
+    await waitForCalls(() => calls.filter((call) => call.method === "chat.history").length, 4);
 
     const waitPromise = tool.execute("call6", {
       sessionKey: "main",
@@ -263,54 +323,94 @@ describe("sessions tools", () => {
       delivery: { status: "pending", mode: "announce" },
     });
     expect(typeof (waited.details as { runId?: string }).runId).toBe("string");
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitForCalls(() => calls.filter((call) => call.method === "agent").length, 8);
+    await waitForCalls(() => calls.filter((call) => call.method === "agent.wait").length, 8);
+    await waitForCalls(() => calls.filter((call) => call.method === "chat.history").length, 8);
 
     const agentCalls = calls.filter((call) => call.method === "agent");
     const waitCalls = calls.filter((call) => call.method === "agent.wait");
-    const historyOnlyCalls = calls.filter(
-      (call) => call.method === "chat.history",
-    );
+    const historyOnlyCalls = calls.filter((call) => call.method === "chat.history");
     expect(agentCalls).toHaveLength(8);
     for (const call of agentCalls) {
       expect(call.params).toMatchObject({
         lane: "nested",
-        provider: "webchat",
+        channel: "webchat",
       });
     }
     expect(
       agentCalls.some(
         (call) =>
-          typeof (call.params as { extraSystemPrompt?: string })
-            ?.extraSystemPrompt === "string" &&
-          (
-            call.params as { extraSystemPrompt?: string }
-          )?.extraSystemPrompt?.includes("Agent-to-agent message context"),
+          typeof (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt === "string" &&
+          (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt?.includes(
+            "Agent-to-agent message context",
+          ),
       ),
     ).toBe(true);
     expect(
       agentCalls.some(
         (call) =>
-          typeof (call.params as { extraSystemPrompt?: string })
-            ?.extraSystemPrompt === "string" &&
-          (
-            call.params as { extraSystemPrompt?: string }
-          )?.extraSystemPrompt?.includes("Agent-to-agent reply step"),
+          typeof (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt === "string" &&
+          (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt?.includes(
+            "Agent-to-agent reply step",
+          ),
       ),
     ).toBe(true);
     expect(
       agentCalls.some(
         (call) =>
-          typeof (call.params as { extraSystemPrompt?: string })
-            ?.extraSystemPrompt === "string" &&
-          (
-            call.params as { extraSystemPrompt?: string }
-          )?.extraSystemPrompt?.includes("Agent-to-agent announce step"),
+          typeof (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt === "string" &&
+          (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt?.includes(
+            "Agent-to-agent announce step",
+          ),
       ),
     ).toBe(true);
     expect(waitCalls).toHaveLength(8);
     expect(historyOnlyCalls).toHaveLength(8);
     expect(sendCallCount).toBe(0);
+  });
+
+  it("sessions_send resolves sessionId inputs", async () => {
+    callGatewayMock.mockReset();
+    const sessionId = "sess-send";
+    const targetKey = "agent:main:discord:channel:123";
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string; params?: Record<string, unknown> };
+      if (request.method === "sessions.resolve") {
+        return { key: targetKey };
+      }
+      if (request.method === "agent") {
+        return { runId: "run-1", acceptedAt: 123 };
+      }
+      if (request.method === "agent.wait") {
+        return { status: "ok" };
+      }
+      if (request.method === "chat.history") {
+        return { messages: [] };
+      }
+      return {};
+    });
+
+    const tool = createClawdbotTools({
+      agentSessionKey: "main",
+      agentChannel: "discord",
+    }).find((candidate) => candidate.name === "sessions_send");
+    expect(tool).toBeDefined();
+    if (!tool) throw new Error("missing sessions_send tool");
+
+    const result = await tool.execute("call7", {
+      sessionKey: sessionId,
+      message: "ping",
+      timeoutSeconds: 0,
+    });
+    const details = result.details as { status?: string };
+    expect(details.status).toBe("accepted");
+    const agentCall = callGatewayMock.mock.calls.find(
+      (call) => (call[0] as { method?: string }).method === "agent",
+    );
+    expect(agentCall?.[0]).toMatchObject({
+      method: "agent",
+      params: { sessionKey: targetKey },
+    });
   });
 
   it("sessions_send runs ping-pong then announces", async () => {
@@ -321,7 +421,7 @@ describe("sessions tools", () => {
     const replyByRunId = new Map<string, string>();
     const requesterKey = "discord:group:req";
     const targetKey = "discord:group:target";
-    let sendParams: { to?: string; provider?: string; message?: string } = {};
+    let sendParams: { to?: string; channel?: string; message?: string } = {};
     callGatewayMock.mockImplementation(async (opts: unknown) => {
       const request = opts as { method?: string; params?: unknown };
       calls.push(request);
@@ -339,9 +439,7 @@ describe("sessions tools", () => {
         if (params?.extraSystemPrompt?.includes("Agent-to-agent reply step")) {
           reply = params.sessionKey === requesterKey ? "pong-1" : "pong-2";
         }
-        if (
-          params?.extraSystemPrompt?.includes("Agent-to-agent announce step")
-        ) {
+        if (params?.extraSystemPrompt?.includes("Agent-to-agent announce step")) {
           reply = "announce now";
         }
         replyByRunId.set(runId, reply);
@@ -357,8 +455,7 @@ describe("sessions tools", () => {
         return { runId: params?.runId ?? "run-1", status: "ok" };
       }
       if (request.method === "chat.history") {
-        const text =
-          (lastWaitedRunId && replyByRunId.get(lastWaitedRunId)) ?? "";
+        const text = (lastWaitedRunId && replyByRunId.get(lastWaitedRunId)) ?? "";
         return {
           messages: [
             {
@@ -371,11 +468,11 @@ describe("sessions tools", () => {
       }
       if (request.method === "send") {
         const params = request.params as
-          | { to?: string; provider?: string; message?: string }
+          | { to?: string; channel?: string; message?: string }
           | undefined;
         sendParams = {
           to: params?.to,
-          provider: params?.provider,
+          channel: params?.channel,
           message: params?.message,
         };
         return { messageId: "m-announce" };
@@ -385,7 +482,7 @@ describe("sessions tools", () => {
 
     const tool = createClawdbotTools({
       agentSessionKey: requesterKey,
-      agentProvider: "discord",
+      agentChannel: "discord",
     }).find((candidate) => candidate.name === "sessions_send");
     expect(tool).toBeDefined();
     if (!tool) throw new Error("missing sessions_send tool");
@@ -407,23 +504,22 @@ describe("sessions tools", () => {
     for (const call of agentCalls) {
       expect(call.params).toMatchObject({
         lane: "nested",
-        provider: "webchat",
+        channel: "webchat",
       });
     }
 
     const replySteps = calls.filter(
       (call) =>
         call.method === "agent" &&
-        typeof (call.params as { extraSystemPrompt?: string })
-          ?.extraSystemPrompt === "string" &&
-        (
-          call.params as { extraSystemPrompt?: string }
-        )?.extraSystemPrompt?.includes("Agent-to-agent reply step"),
+        typeof (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt === "string" &&
+        (call.params as { extraSystemPrompt?: string })?.extraSystemPrompt?.includes(
+          "Agent-to-agent reply step",
+        ),
     );
     expect(replySteps).toHaveLength(2);
     expect(sendParams).toMatchObject({
       to: "channel:target",
-      provider: "discord",
+      channel: "discord",
       message: "announce now",
     });
   });

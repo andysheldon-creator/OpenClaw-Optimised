@@ -23,6 +23,7 @@ Clawdbot selects models in this order:
 Related:
 - `agents.defaults.models` is the allowlist/catalog of models Clawdbot can use (plus aliases).
 - `agents.defaults.imageModel` is used **only when** the primary model can’t accept images.
+- Per-agent defaults can override `agents.defaults.model` via `agents.list[].model` plus bindings (see [/concepts/multi-agent](/concepts/multi-agent)).
 
 ## Quick model picks (anecdotal)
 
@@ -85,6 +86,28 @@ Example allowlist config:
 }
 ```
 
+## Switching models in chat (`/model`)
+
+You can switch models for the current session without restarting:
+
+```
+/model
+/model list
+/model 3
+/model openai/gpt-5.2
+/model status
+```
+
+Notes:
+- `/model` (and `/model list`) is a compact, numbered picker (model family + available providers).
+- `/model <#>` selects from that picker.
+- `/model status` is the detailed view (auth candidates and, when configured, provider endpoint `baseUrl` + `api` mode).
+- Model refs are parsed by splitting on the **first** `/`. Use `provider/model` when typing `/model <ref>`.
+- If the model ID itself contains `/` (OpenRouter-style), you must include the provider prefix (example: `/model openrouter/moonshotai/kimi-k2`).
+- If you omit the provider, Clawdbot treats the input as an alias or a model for the **default provider** (only works when there is no `/` in the model ID).
+
+Full command behavior/config: [Slash commands](/tools/slash-commands).
+
 ## CLI commands
 
 ```bash
@@ -132,7 +155,7 @@ JSON includes `auth.oauth` (warn window + profiles) and `auth.providers`
 (effective auth per provider).
 Use `--check` for automation (exit `1` when missing/expired, `2` when expiring).
 
-Preferred Anthropic auth is the Claude CLI setup-token (run on the gateway host):
+Preferred Anthropic auth is the Claude Code CLI setup-token (run anywhere; paste on the gateway host if needed):
 
 ```bash
 claude setup-token

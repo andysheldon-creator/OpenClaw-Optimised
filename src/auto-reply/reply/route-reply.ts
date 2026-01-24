@@ -9,9 +9,9 @@
 
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveEffectiveMessagesConfig } from "../../agents/identity.js";
+import { normalizeChannelId } from "../../channels/plugins/index.js";
 import type { ClawdbotConfig } from "../../config/config.js";
-import { normalizeProviderId } from "../../providers/registry.js";
-import { INTERNAL_MESSAGE_PROVIDER } from "../../utils/message-provider.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import type { OriginatingChannelType } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import { normalizeReplyPayload } from "./normalize-reply.js";
@@ -27,8 +27,8 @@ export type RouteReplyParams = {
   sessionKey?: string;
   /** Provider account id (multi-account). */
   accountId?: string;
-  /** Telegram message thread id (forum topics). */
-  threadId?: number;
+  /** Thread id for replies (Telegram topic id or Matrix thread event id). */
+  threadId?: string | number;
   /** Config for provider-specific settings. */
   cfg: ClawdbotConfig;
   /** Optional abort signal for cooperative cancellation. */
@@ -52,11 +52,8 @@ export type RouteReplyResult = {
  * back to the originating channel when OriginatingChannel/OriginatingTo
  * are set.
  */
-export async function routeReply(
-  params: RouteReplyParams,
-): Promise<RouteReplyResult> {
-  const { payload, channel, to, accountId, threadId, cfg, abortSignal } =
-    params;
+export async function routeReply(params: RouteReplyParams): Promise<RouteReplyResult> {
+  const { payload, channel, to, accountId, threadId, cfg, abortSignal } = params;
 
   // Debug: `pnpm test src/auto-reply/reply/route-reply.test.ts`
   const responsePrefix = params.sessionKey
@@ -75,8 +72,8 @@ export async function routeReply(
   });
   if (!normalized) return { ok: true };
 
-  const text = normalized.text ?? "";
-  const mediaUrls = (normalized.mediaUrls?.filter(Boolean) ?? []).length
+  let text = normalized.text ?? "";
+  let mediaUrls = (normalized.mediaUrls?.filter(Boolean) ?? []).length
     ? (normalized.mediaUrls?.filter(Boolean) as string[])
     : normalized.mediaUrl
       ? [normalized.mediaUrl]
@@ -88,37 +85,49 @@ export async function routeReply(
     return { ok: true };
   }
 
-  if (channel === INTERNAL_MESSAGE_PROVIDER) {
+  if (channel === INTERNAL_MESSAGE_CHANNEL) {
     return {
       ok: false,
       error: "Webchat routing not supported for queued replies",
     };
   }
 
-  const provider = normalizeProviderId(channel) ?? null;
-  if (!provider) {
+  const channelId = normalizeChannelId(channel) ?? null;
+  if (!channelId) {
     return { ok: false, error: `Unknown channel: ${String(channel)}` };
   }
   if (abortSignal?.aborted) {
     return { ok: false, error: "Reply routing aborted" };
   }
 
+  const resolvedReplyToId =
+    replyToId ??
+    (channelId === "slack" && threadId != null && threadId !== "" ? String(threadId) : undefined);
+  const resolvedThreadId = channelId === "slack" ? null : (threadId ?? null);
+
   try {
     // Provider docking: this is an execution boundary (we're about to send).
     // Keep the module cheap to import by loading outbound plumbing lazily.
-    const { deliverOutboundPayloads } = await import(
-      "../../infra/outbound/deliver.js"
-    );
+    const { deliverOutboundPayloads } = await import("../../infra/outbound/deliver.js");
     const results = await deliverOutboundPayloads({
       cfg,
-      provider,
+      channel: channelId,
       to,
       accountId: accountId ?? undefined,
       payloads: [normalized],
-      replyToId: replyToId ?? null,
-      threadId: threadId ?? null,
+      replyToId: resolvedReplyToId ?? null,
+      threadId: resolvedThreadId,
       abortSignal,
+      mirror: params.sessionKey
+        ? {
+            sessionKey: params.sessionKey,
+            agentId: resolveSessionAgentId({ sessionKey: params.sessionKey, config: cfg }),
+            text,
+            mediaUrls,
+          }
+        : undefined,
     });
+
     const last = results.at(-1);
     return { ok: true, messageId: last?.messageId };
   } catch (err) {
@@ -138,10 +147,7 @@ export async function routeReply(
  */
 export function isRoutableChannel(
   channel: OriginatingChannelType | undefined,
-): channel is Exclude<
-  OriginatingChannelType,
-  typeof INTERNAL_MESSAGE_PROVIDER
-> {
-  if (!channel || channel === INTERNAL_MESSAGE_PROVIDER) return false;
-  return normalizeProviderId(channel) !== null;
+): channel is Exclude<OriginatingChannelType, typeof INTERNAL_MESSAGE_CHANNEL> {
+  if (!channel || channel === INTERNAL_MESSAGE_CHANNEL) return false;
+  return normalizeChannelId(channel) !== null;
 }

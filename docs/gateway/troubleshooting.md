@@ -7,9 +7,9 @@ read_when:
 
 When Clawdbot misbehaves, here's how to fix it.
 
-Start with the FAQ’s [First 60 seconds](/start/faq#first-60-seconds-if-somethings-broken) if you just want a quick triage recipe. This page goes deeper on runtime failures and diagnostics.
+Start with the FAQ’s [First 60 seconds](/help/faq#first-60-seconds-if-somethings-broken) if you just want a quick triage recipe. This page goes deeper on runtime failures and diagnostics.
 
-Provider-specific shortcuts: [/providers/troubleshooting](/providers/troubleshooting)
+Provider-specific shortcuts: [/channels/troubleshooting](/channels/troubleshooting)
 
 ## Status & Diagnostics
 
@@ -17,12 +17,12 @@ Quick triage commands (in order):
 
 | Command | What it tells you | When to use it |
 |---|---|---|
-| `clawdbot status` | Local summary: OS + update, gateway reachability/mode, daemon, agents/sessions, provider config state | First check, quick overview |
+| `clawdbot status` | Local summary: OS + update, gateway reachability/mode, service, agents/sessions, provider config state | First check, quick overview |
 | `clawdbot status --all` | Full local diagnosis (read-only, pasteable, safe-ish) incl. log tail | When you need to share a debug report |
 | `clawdbot status --deep` | Runs gateway health checks (incl. provider probes; requires reachable gateway) | When “configured” doesn’t mean “working” |
-| `clawdbot gateway status` | Gateway discovery + reachability (local + remote targets) | When you suspect you’re probing the wrong gateway |
-| `clawdbot providers status --probe` | Asks the running gateway for provider status (and optionally probes) | When gateway is reachable but providers misbehave |
-| `clawdbot daemon status` | Supervisor state (launchd/systemd/schtasks), runtime PID/exit, last gateway error | When the daemon “looks loaded” but nothing runs |
+| `clawdbot gateway probe` | Gateway discovery + reachability (local + remote targets) | When you suspect you’re probing the wrong gateway |
+| `clawdbot channels status --probe` | Asks the running gateway for channel status (and optionally probes) | When gateway is reachable but channels misbehave |
+| `clawdbot gateway status` | Supervisor state (launchd/systemd/schtasks), runtime PID/exit, last gateway error | When the service “looks loaded” but nothing runs |
 | `clawdbot logs --follow` | Live logs (best signal for runtime issues) | When you need the actual failure reason |
 
 **Sharing output:** prefer `clawdbot status --all` (it redacts tokens). If you paste `clawdbot status`, consider setting `CLAWDBOT_SHOW_SECRETS=0` first (token previews).
@@ -31,18 +31,64 @@ See also: [Health checks](/gateway/health) and [Logging](/logging).
 
 ## Common Issues
 
+### OAuth token refresh failed (Anthropic Claude subscription)
+
+This means the stored Anthropic OAuth token expired and the refresh failed.
+If you’re on a Claude subscription (no API key), the most reliable fix is to
+switch to a **Claude Code setup-token** or re-sync Claude Code CLI OAuth on the
+**gateway host**.
+
+**Recommended (setup-token):**
+
+```bash
+# Run on the gateway host (runs Claude Code CLI)
+clawdbot models auth setup-token --provider anthropic
+clawdbot models status
+```
+
+If you generated the token elsewhere:
+
+```bash
+clawdbot models auth paste-token --provider anthropic
+clawdbot models status
+```
+
+**If you want to keep OAuth reuse:**
+log in with Claude Code CLI on the gateway host, then run `clawdbot models status`
+to sync the refreshed token into Clawdbot’s auth store.
+
+More detail: [Anthropic](/providers/anthropic) and [OAuth](/concepts/oauth).
+
+### Control UI fails on HTTP ("device identity required" / "connect failed")
+
+If you open the dashboard over plain HTTP (e.g. `http://<lan-ip>:18789/` or
+`http://<tailscale-ip>:18789/`), the browser runs in a **non-secure context** and
+blocks WebCrypto, so device identity can’t be generated.
+
+**Fix:**
+- Prefer HTTPS via [Tailscale Serve](/gateway/tailscale).
+- Or open locally on the gateway host: `http://127.0.0.1:18789/`.
+- If you must stay on HTTP, enable `gateway.controlUi.allowInsecureAuth: true` and
+  use a gateway token (token-only; no device identity/pairing). See
+  [Control UI](/web/control-ui#insecure-http).
+
+### CI Secrets Scan Failed
+
+This means `detect-secrets` found new candidates not yet in the baseline.
+Follow [Secret scanning](/gateway/security#secret-scanning-detect-secrets).
+
 ### Service Installed but Nothing is Running
 
-If the gateway service is installed but the process exits immediately, the daemon
+If the gateway service is installed but the process exits immediately, the service
 can appear “loaded” while nothing is running.
 
 **Check:**
 ```bash
-clawdbot daemon status
+clawdbot gateway status
 clawdbot doctor
 ```
 
-Doctor/daemon will show runtime state (PID/last exit) and log hints.
+Doctor/service will show runtime state (PID/last exit) and log hints.
 
 **Logs:**
 - Preferred: `clawdbot logs --follow`
@@ -64,20 +110,62 @@ Doctor/daemon will show runtime state (PID/last exit) and log hints.
 
 See [/logging](/logging) for a full overview of formats, config, and access.
 
+### "Gateway start blocked: set gateway.mode=local"
+
+This means the config exists but `gateway.mode` is unset (or not `local`), so the
+Gateway refuses to start.
+
+**Fix (recommended):**
+- Run the wizard and set the Gateway run mode to **Local**:
+  ```bash
+  clawdbot configure
+  ```
+- Or set it directly:
+  ```bash
+  clawdbot config set gateway.mode local
+  ```
+
+**If you meant to run a remote Gateway instead:**
+- Set a remote URL and keep `gateway.mode=remote`:
+  ```bash
+  clawdbot config set gateway.mode remote
+  clawdbot config set gateway.remote.url "wss://gateway.example.com"
+  ```
+
+**Ad-hoc/dev only:** pass `--allow-unconfigured` to start the gateway without
+`gateway.mode=local`.
+
+**No config file yet?** Run `clawdbot setup` to create a starter config, then rerun
+the gateway.
+
 ### Service Environment (PATH + runtime)
 
-The gateway daemon runs with a **minimal PATH** to avoid shell/manager cruft:
+The gateway service runs with a **minimal PATH** to avoid shell/manager cruft:
 - macOS: `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, `/bin`
 - Linux: `/usr/local/bin`, `/usr/bin`, `/bin`
 
 This intentionally excludes version managers (nvm/fnm/volta/asdf) and package
-managers (pnpm/npm) because the daemon does not load your shell init. Runtime
+managers (pnpm/npm) because the service does not load your shell init. Runtime
 variables like `DISPLAY` should live in `~/.clawdbot/.env` (loaded early by the
 gateway).
+Exec runs on `host=gateway` merge your login-shell `PATH` into the exec environment,
+so missing tools usually mean your shell init isn’t exporting them (or set
+`tools.exec.pathPrepend`). See [/tools/exec](/tools/exec).
 
-WhatsApp + Telegram providers require **Node**; Bun is unsupported. If your
+WhatsApp + Telegram channels require **Node**; Bun is unsupported. If your
 service was installed with Bun or a version-managed Node path, run `clawdbot doctor`
 to migrate to a system Node install.
+
+### Skill missing API key in sandbox
+
+**Symptom:** Skill works on host but fails in sandbox with missing API key.
+
+**Why:** sandboxed exec runs inside Docker and does **not** inherit host `process.env`.
+
+**Fix:**
+- set `agents.defaults.sandbox.docker.env` (or per-agent `agents.list[].sandbox.docker.env`)
+- or bake the key into your custom sandbox image
+- then run `clawdbot sandbox recreate --agent <id>` (or `--all`)
 
 ### Service Running but Port Not Listening
 
@@ -87,31 +175,31 @@ the Gateway likely refused to bind.
 **What "running" means here**
 - `Runtime: running` means your supervisor (launchd/systemd/schtasks) thinks the process is alive.
 - `RPC probe` means the CLI could actually connect to the gateway WebSocket and call `status`.
-- Always trust `Probe target:` + `Config (daemon):` as the “what did we actually try?” lines.
+- Always trust `Probe target:` + `Config (service):` as the “what did we actually try?” lines.
 
 **Check:**
-- `gateway.mode` must be `local` for `clawdbot gateway` and the daemon.
-- If you set `gateway.mode=remote`, the **CLI defaults** to a remote URL. The daemon can still be running locally, but your CLI may be probing the wrong place. Use `clawdbot daemon status` to see the daemon’s resolved port + probe target (or pass `--url`).
-- `clawdbot daemon status` and `clawdbot doctor` surface the **last gateway error** from logs when the service looks running but the port is closed.
-- Non-loopback binds (`lan`/`tailnet`/`auto`) require auth:
+- `gateway.mode` must be `local` for `clawdbot gateway` and the service.
+- If you set `gateway.mode=remote`, the **CLI defaults** to a remote URL. The service can still be running locally, but your CLI may be probing the wrong place. Use `clawdbot gateway status` to see the service’s resolved port + probe target (or pass `--url`).
+- `clawdbot gateway status` and `clawdbot doctor` surface the **last gateway error** from logs when the service looks running but the port is closed.
+- Non-loopback binds (`lan`/`tailnet`/`custom`, or `auto` when loopback is unavailable) require auth:
   `gateway.auth.token` (or `CLAWDBOT_GATEWAY_TOKEN`).
 - `gateway.remote.token` is for remote CLI calls only; it does **not** enable local auth.
 - `gateway.token` is ignored; use `gateway.auth.token`.
 
-**If `clawdbot daemon status` shows a config mismatch**
-- `Config (cli): ...` and `Config (daemon): ...` should normally match.
-- If they don’t, you’re almost certainly editing one config while the daemon is running another.
-- Fix: rerun `clawdbot daemon install --force` from the same `--profile` / `CLAWDBOT_STATE_DIR` you want the daemon to use.
+**If `clawdbot gateway status` shows a config mismatch**
+- `Config (cli): ...` and `Config (service): ...` should normally match.
+- If they don’t, you’re almost certainly editing one config while the service is running another.
+- Fix: rerun `clawdbot gateway install --force` from the same `--profile` / `CLAWDBOT_STATE_DIR` you want the service to use.
 
-**If `clawdbot daemon status` reports service config issues**
+**If `clawdbot gateway status` reports service config issues**
 - The supervisor config (launchd/systemd/schtasks) is missing current defaults.
-- Fix: run `clawdbot doctor` to update it (or `clawdbot daemon install --force` for a full rewrite).
+- Fix: run `clawdbot doctor` to update it (or `clawdbot gateway install --force` for a full rewrite).
 
 **If `Last gateway error:` mentions “refusing to bind … without auth”**
-- You set `gateway.bind` to a non-loopback mode (`lan`/`tailnet`/`auto`) but left auth off.
-- Fix: set `gateway.auth.mode` + `gateway.auth.token` (or export `CLAWDBOT_GATEWAY_TOKEN`) and restart the daemon.
+- You set `gateway.bind` to a non-loopback mode (`lan`/`tailnet`/`custom`, or `auto` when loopback is unavailable) but left auth off.
+- Fix: set `gateway.auth.mode` + `gateway.auth.token` (or export `CLAWDBOT_GATEWAY_TOKEN`) and restart the service.
 
-**If `clawdbot daemon status` says `bind=tailnet` but no tailnet interface was found**
+**If `clawdbot gateway status` says `bind=tailnet` but no tailnet interface was found**
 - The gateway tried to bind to a Tailscale IP (100.64.0.0/10) but none were detected on the host.
 - Fix: bring up Tailscale on that machine (or change `gateway.bind` to `loopback`/`lan`).
 
@@ -125,20 +213,20 @@ This means something is already listening on the gateway port.
 
 **Check:**
 ```bash
-clawdbot daemon status
+clawdbot gateway status
 ```
 
 It will show the listener(s) and likely causes (gateway already running, SSH tunnel).
 If needed, stop the service or pick a different port.
 
-### Legacy Workspace Folders Detected
+### Extra Workspace Folders Detected
 
-If you upgraded from older installs, you might still have `~/clawdis` or
-`~/clawdbot` on disk. Multiple workspace directories can cause confusing auth
-or state drift because only one workspace is active.
+If you upgraded from older installs, you might still have `~/clawdbot` on disk.
+Multiple workspace directories can cause confusing auth or state drift because
+only one workspace is active.
 
 **Fix:** keep a single active workspace and archive/remove the rest. See
-[Agent workspace](/concepts/agent-workspace#legacy-workspace-folders).
+[Agent workspace](/concepts/agent-workspace#extra-workspace-folders).
 
 ### Main chat running in a sandbox workspace
 
@@ -164,6 +252,20 @@ The agent was interrupted mid-response.
 
 **Fix:** Just send another message. The session continues.
 
+### "Agent failed before reply: Unknown model: anthropic/claude-haiku-3-5"
+
+Clawdbot intentionally rejects **older/insecure models** (especially those more
+vulnerable to prompt injection). If you see this error, the model name is no
+longer supported.
+
+**Fix:**
+- Pick a **latest** model for the provider and update your config or model alias.
+- If you’re unsure which models are available, run `clawdbot models list` or
+  `clawdbot models scan` and choose a supported one.
+- Check gateway logs for the detailed failure reason.
+
+See also: [Models CLI](/cli/models) and [Model providers](/concepts/model-providers).
+
 ### Messages Not Triggering
 
 **Check 1:** Is the sender allowlisted?
@@ -174,9 +276,9 @@ Look for `AllowFrom: ...` in the output.
 
 **Check 2:** For group chats, is mention required?
 ```bash
-# The message must match mentionPatterns or explicit mentions; defaults live in provider groups/guilds.
+# The message must match mentionPatterns or explicit mentions; defaults live in channel groups/guilds.
 # Multi-agent: `agents.list[].groupChat.mentionPatterns` overrides global patterns.
-grep -n "agents\\|groupChat\\|mentionPatterns\\|whatsapp\\.groups\\|telegram\\.groups\\|imessage\\.groups\\|discord\\.guilds" \
+grep -n "agents\\|groupChat\\|mentionPatterns\\|channels\\.whatsapp\\.groups\\|channels\\.telegram\\.groups\\|channels\\.imessage\\.groups\\|channels\\.discord\\.guilds" \
   "${CLAWDBOT_CONFIG_PATH:-$HOME/.clawdbot/clawdbot.json}"
 ```
 
@@ -193,17 +295,17 @@ If `dmPolicy` is `pairing`, unknown senders should receive a code and their mess
 
 **Check 1:** Is a pending request already waiting?
 ```bash
-clawdbot pairing list <provider>
+clawdbot pairing list <channel>
 ```
 
-Pending DM pairing requests are capped at **3 per provider** by default. If the list is full, new requests won’t generate a code until one is approved or expires.
+Pending DM pairing requests are capped at **3 per channel** by default. If the list is full, new requests won’t generate a code until one is approved or expires.
 
 **Check 2:** Did the request get created but no reply was sent?
 ```bash
 clawdbot logs --follow | grep "pairing request"
 ```
 
-**Check 3:** Confirm `dmPolicy` isn’t `open`/`allowlist` for that provider.
+**Check 3:** Confirm `dmPolicy` isn’t `open`/`allowlist` for that channel.
 
 ### Image + Mention Not Working
 
@@ -220,11 +322,15 @@ Known issue: When you send an image with ONLY a mention (no other text), WhatsAp
 ls -la ~/.clawdbot/agents/<agentId>/sessions/
 ```
 
-**Check 2:** Is `idleMinutes` too short?
+**Check 2:** Is the reset window too short?
 ```json
 {
   "session": {
-    "idleMinutes": 10080  // 7 days
+    "reset": {
+      "mode": "daily",
+      "atHour": 4,
+      "idleMinutes": 10080  // 7 days
+    }
   }
 }
 ```
@@ -250,7 +356,7 @@ Or use the `process` tool to background long commands.
 ```bash
 # Check local status (creds, sessions, queued events)
 clawdbot status
-# Probe the running gateway + providers (WA connect + Telegram + Discord APIs)
+# Probe the running gateway + channels (WA connect + Telegram + Discord APIs)
 clawdbot status --deep
 
 # View recent connection events
@@ -266,9 +372,9 @@ clawdbot gateway --verbose
 If you’re logged out / unlinked:
 
 ```bash
-clawdbot providers logout
+clawdbot channels logout
 trash "${CLAWDBOT_STATE_DIR:-$HOME/.clawdbot}/credentials" # if logout can't cleanly remove everything
-clawdbot providers login --verbose       # re-scan QR
+clawdbot channels login --verbose       # re-scan QR
 ```
 
 ### Media Send Failing
@@ -301,6 +407,154 @@ Clawdbot keeps conversation history in memory.
 }
 ```
 
+## Common troubleshooting
+
+### “Gateway won’t start — configuration invalid”
+
+Clawdbot now refuses to start when the config contains unknown keys, malformed values, or invalid types.
+This is intentional for safety.
+
+Fix it with Doctor:
+```bash
+clawdbot doctor
+clawdbot doctor --fix
+```
+
+Notes:
+- `clawdbot doctor` reports every invalid entry.
+- `clawdbot doctor --fix` applies migrations/repairs and rewrites the config.
+- Diagnostic commands like `clawdbot logs`, `clawdbot health`, `clawdbot status`, `clawdbot gateway status`, and `clawdbot gateway probe` still run even if the config is invalid.
+
+### “All models failed” — what should I check first?
+
+- **Credentials** present for the provider(s) being tried (auth profiles + env vars).
+- **Model routing**: confirm `agents.defaults.model.primary` and fallbacks are models you can access.
+- **Gateway logs** in `/tmp/clawdbot/…` for the exact provider error.
+- **Model status**: use `/model status` (chat) or `clawdbot models status` (CLI).
+
+### I’m running on my personal WhatsApp number — why is self-chat weird?
+
+Enable self-chat mode and allowlist your own number:
+
+```json5
+{
+  channels: {
+    whatsapp: {
+      selfChatMode: true,
+      dmPolicy: "allowlist",
+      allowFrom: ["+15555550123"]
+    }
+  }
+}
+```
+
+See [WhatsApp setup](/channels/whatsapp).
+
+### WhatsApp logged me out. How do I re‑auth?
+
+Run the login command again and scan the QR code:
+
+```bash
+clawdbot channels login
+```
+
+### Build errors on `main` — what’s the standard fix path?
+
+1) `git pull origin main && pnpm install`
+2) `clawdbot doctor`
+3) Check GitHub issues or Discord
+4) Temporary workaround: check out an older commit
+
+### npm install fails (allow-build-scripts / missing tar or yargs). What now?
+
+If you’re running from source, use the repo’s package manager: **pnpm** (preferred).
+The repo declares `packageManager: "pnpm@…"`.
+
+Typical recovery:
+```bash
+git status   # ensure you’re in the repo root
+pnpm install
+pnpm build
+clawdbot doctor
+clawdbot gateway restart
+```
+
+Why: pnpm is the configured package manager for this repo.
+
+### How do I switch between git installs and npm installs?
+
+Use the **website installer** and select the install method with a flag. It
+upgrades in place and rewrites the gateway service to point at the new install.
+
+Switch **to git install**:
+```bash
+curl -fsSL https://clawd.bot/install.sh | bash -s -- --install-method git --no-onboard
+```
+
+Switch **to npm global**:
+```bash
+curl -fsSL https://clawd.bot/install.sh | bash
+```
+
+Notes:
+- The git flow only rebases if the repo is clean. Commit or stash changes first.
+- After switching, run:
+  ```bash
+  clawdbot doctor
+  clawdbot gateway restart
+  ```
+
+### Telegram block streaming isn’t splitting text between tool calls. Why?
+
+Block streaming only sends **completed text blocks**. Common reasons you see a single message:
+- `agents.defaults.blockStreamingDefault` is still `"off"`.
+- `channels.telegram.blockStreaming` is set to `false`.
+- `channels.telegram.streamMode` is `partial` or `block` **and draft streaming is active**
+  (private chat + topics). Draft streaming disables block streaming in that case.
+- Your `minChars` / coalesce settings are too high, so chunks get merged.
+- The model emits one large text block (no mid‑reply flush points).
+
+Fix checklist:
+1) Put block streaming settings under `agents.defaults`, not the root.
+2) Set `channels.telegram.streamMode: "off"` if you want real multi‑message block replies.
+3) Use smaller chunk/coalesce thresholds while debugging.
+
+See [Streaming](/concepts/streaming).
+
+### Discord doesn’t reply in my server even with `requireMention: false`. Why?
+
+`requireMention` only controls mention‑gating **after** the channel passes allowlists.
+By default `channels.discord.groupPolicy` is **allowlist**, so guilds must be explicitly enabled.
+If you set `channels.discord.guilds.<guildId>.channels`, only the listed channels are allowed; omit it to allow all channels in the guild.
+
+Fix checklist:
+1) Set `channels.discord.groupPolicy: "open"` **or** add a guild allowlist entry (and optionally a channel allowlist).
+2) Use **numeric channel IDs** in `channels.discord.guilds.<guildId>.channels`.
+3) Put `requireMention: false` **under** `channels.discord.guilds` (global or per‑channel).
+   Top‑level `channels.discord.requireMention` is not a supported key.
+4) Ensure the bot has **Message Content Intent** and channel permissions.
+5) Run `clawdbot channels status --probe` for audit hints.
+
+Docs: [Discord](/channels/discord), [Channels troubleshooting](/channels/troubleshooting).
+
+### Cloud Code Assist API error: invalid tool schema (400). What now?
+
+This is almost always a **tool schema compatibility** issue. The Cloud Code Assist
+endpoint accepts a strict subset of JSON Schema. Clawdbot scrubs/normalizes tool
+schemas in current `main`, but the fix is not in the last release yet (as of
+January 13, 2026).
+
+Fix checklist:
+1) **Update Clawdbot**:
+   - If you can run from source, pull `main` and restart the gateway.
+   - Otherwise, wait for the next release that includes the schema scrubber.
+2) Avoid unsupported keywords like `anyOf/oneOf/allOf`, `patternProperties`,
+   `additionalProperties`, `minLength`, `maxLength`, `format`, etc.
+3) If you define custom tools, keep the top‑level schema as `type: "object"` with
+   `properties` and simple enums.
+
+See [Tools](/tools) and [TypeBox schemas](/concepts/typebox).
+
 ## macOS Specific Issues
 
 ### App Crashes when Granting Permissions (Speech/Mic)
@@ -322,8 +576,8 @@ The app connects to a local gateway on port `18789`. If it stays stuck:
 **Fix 1: Stop the supervisor (preferred)**
 If the gateway is supervised by launchd, killing the PID will just respawn it. Stop the supervisor first:
 ```bash
-clawdbot daemon status
-clawdbot daemon stop
+clawdbot gateway status
+clawdbot gateway stop
 # Or: launchctl bootout gui/$UID/com.clawdbot.gateway (replace with com.clawdbot.<profile> if needed)
 ```
 
@@ -356,7 +610,7 @@ Get verbose logging:
 #
 # Then run verbose commands to mirror debug output to stdout:
 clawdbot gateway --verbose
-clawdbot providers login --verbose
+clawdbot channels login --verbose
 ```
 
 ## Log Locations
@@ -373,9 +627,9 @@ clawdbot providers login --verbose
 
 ```bash
 # Supervisor + probe target + config paths
-clawdbot daemon status
+clawdbot gateway status
 # Include system-level scans (legacy/extra services, port listeners)
-clawdbot daemon status --deep
+clawdbot gateway status --deep
 
 # Is the gateway reachable?
 clawdbot health --json
@@ -396,13 +650,13 @@ tail -20 /tmp/clawdbot/clawdbot-*.log
 Nuclear option:
 
 ```bash
-clawdbot daemon stop
+clawdbot gateway stop
 # If you installed a service and want a clean install:
-# clawdbot daemon uninstall
+# clawdbot gateway uninstall
 
 trash "${CLAWDBOT_STATE_DIR:-$HOME/.clawdbot}"
-clawdbot providers login         # re-pair WhatsApp
-clawdbot daemon restart           # or: clawdbot gateway
+clawdbot channels login         # re-pair WhatsApp
+clawdbot gateway restart           # or: clawdbot gateway
 ```
 
 ⚠️ This loses all sessions and requires re-pairing WhatsApp.

@@ -15,7 +15,7 @@ Examples below are aligned with the current config schema. For the exhaustive re
 ```json5
 {
   agent: { workspace: "~/clawd" },
-  whatsapp: { allowFrom: ["+15555550123"] }
+  channels: { whatsapp: { allowFrom: ["+15555550123"] } }
 }
 ```
 
@@ -33,9 +33,11 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
     workspace: "~/clawd",
     model: { primary: "anthropic/claude-sonnet-4-5" }
   },
-  whatsapp: {
-    allowFrom: ["+15555550123"],
-    groups: { "*": { requireMention: true } }
+  channels: {
+    whatsapp: {
+      allowFrom: ["+15555550123"],
+      groups: { "*": { requireMention: true } }
+    }
   }
 }
 ```
@@ -108,7 +110,7 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
       debounceMs: 1000,
       cap: 20,
       drop: "summarize",
-      byProvider: {
+      byChannel: {
         whatsapp: "collect",
         telegram: "collect",
         discord: "collect",
@@ -122,10 +124,21 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
 
   // Tooling
   tools: {
-    audio: {
-      transcription: {
-        args: ["--model", "base", "{{MediaPath}}"],
+    media: {
+      audio: {
+        enabled: true,
+        maxBytes: 20971520,
+        models: [
+          { provider: "openai", model: "gpt-4o-mini-transcribe" },
+          // Optional CLI fallback (Whisper binary):
+          // { type: "cli", command: "whisper", args: ["--model", "base", "{{MediaPath}}"] }
+        ],
         timeoutSeconds: 120
+      },
+      video: {
+        enabled: true,
+        maxBytes: 52428800,
+        models: [{ provider: "google", model: "gemini-3-flash-preview" }]
       }
     }
   },
@@ -133,64 +146,74 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
   // Session behavior
   session: {
     scope: "per-sender",
-    idleMinutes: 60,
-    heartbeatIdleMinutes: 120,
+    reset: {
+      mode: "daily",
+      atHour: 4,
+      idleMinutes: 60
+    },
+    resetByChannel: {
+      discord: { mode: "idle", idleMinutes: 10080 }
+    },
     resetTriggers: ["/new", "/reset"],
     store: "~/.clawdbot/agents/default/sessions/sessions.json",
     typingIntervalSeconds: 5,
     sendPolicy: {
       default: "allow",
       rules: [
-        { action: "deny", match: { provider: "discord", chatType: "group" } }
+        { action: "deny", match: { channel: "discord", chatType: "group" } }
       ]
     }
   },
 
-  // Providers
-  whatsapp: {
-    dmPolicy: "pairing",
-    allowFrom: ["+15555550123"],
-    groupPolicy: "open",
-    groups: { "*": { requireMention: true } }
-  },
+  // Channels
+  channels: {
+    whatsapp: {
+      dmPolicy: "pairing",
+      allowFrom: ["+15555550123"],
+      groupPolicy: "allowlist",
+      groupAllowFrom: ["+15555550123"],
+      groups: { "*": { requireMention: true } }
+    },
 
-  telegram: {
-    enabled: true,
-    botToken: "YOUR_TELEGRAM_BOT_TOKEN",
-    allowFrom: ["123456789"],
-    groupPolicy: "open",
-    groups: { "*": { requireMention: true } }
-  },
+    telegram: {
+      enabled: true,
+      botToken: "YOUR_TELEGRAM_BOT_TOKEN",
+      allowFrom: ["123456789"],
+      groupPolicy: "allowlist",
+      groupAllowFrom: ["123456789"],
+      groups: { "*": { requireMention: true } }
+    },
 
-  discord: {
-    enabled: true,
-    token: "YOUR_DISCORD_BOT_TOKEN",
-    dm: { enabled: true, allowFrom: ["steipete"] },
-    guilds: {
-      "123456789012345678": {
-        slug: "friends-of-clawd",
-        requireMention: false,
-        channels: {
-          general: { allow: true },
-          help: { allow: true, requireMention: true }
+    discord: {
+      enabled: true,
+      token: "YOUR_DISCORD_BOT_TOKEN",
+      dm: { enabled: true, allowFrom: ["steipete"] },
+      guilds: {
+        "123456789012345678": {
+          slug: "friends-of-clawd",
+          requireMention: false,
+          channels: {
+            general: { allow: true },
+            help: { allow: true, requireMention: true }
+          }
         }
       }
-    }
-  },
-
-  slack: {
-    enabled: true,
-    botToken: "xoxb-REPLACE_ME",
-    appToken: "xapp-REPLACE_ME",
-    channels: {
-      "#general": { allow: true, requireMention: true }
     },
-    dm: { enabled: true, allowFrom: ["U123"] },
-    slashCommand: {
+
+    slack: {
       enabled: true,
-      name: "clawd",
-      sessionPrefix: "slack:slash",
-      ephemeral: true
+      botToken: "xoxb-REPLACE_ME",
+      appToken: "xapp-REPLACE_ME",
+      channels: {
+        "#general": { allow: true, requireMention: true }
+      },
+      dm: { enabled: true, allowFrom: ["U123"] },
+      slashCommand: {
+        enabled: true,
+        name: "clawd",
+        sessionPrefix: "slack:slash",
+        ephemeral: true
+      }
     }
   },
 
@@ -237,7 +260,14 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
         target: "last",
         to: "+15555550123",
         prompt: "HEARTBEAT",
-        ackMaxChars: 30
+        ackMaxChars: 300
+      },
+      memorySearch: {
+        provider: "gemini",
+        model: "gemini-embedding-001",
+        remote: {
+          apiKey: "${GEMINI_API_KEY}"
+        }
       },
       sandbox: {
         mode: "non-main",
@@ -259,9 +289,9 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
   },
 
   tools: {
-    allow: ["bash", "process", "read", "write", "edit"],
+    allow: ["exec", "process", "read", "write", "edit", "apply_patch"],
     deny: ["browser", "canvas"],
-    bash: {
+    exec: {
       backgroundMs: 10000,
       timeoutSec: 1800,
       cleanupMs: 1800000
@@ -331,7 +361,7 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
         messageTemplate: "From: {{messages[0].from}}\nSubject: {{messages[0].subject}}",
         textTemplate: "{{messages[0].snippet}}",
         deliver: true,
-        provider: "last",
+        channel: "last",
         to: "+15555550123",
         thinking: "low",
         timeoutSeconds: 300,
@@ -370,7 +400,7 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
   },
 
   skills: {
-    allowBundled: ["brave-search", "gemini"],
+    allowBundled: ["gemini", "peekaboo"],
     load: {
       extraDirs: ["~/Projects/agent-scripts/skills"]
     },
@@ -396,16 +426,18 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
 ```json5
 {
   agent: { workspace: "~/clawd" },
-  whatsapp: { allowFrom: ["+15555550123"] },
-  telegram: {
-    enabled: true,
-    botToken: "YOUR_TOKEN",
-    allowFrom: ["123456789"]
-  },
-  discord: {
-    enabled: true,
-    token: "YOUR_TOKEN",
-    dm: { allowFrom: ["yourname"] }
+  channels: {
+    whatsapp: { allowFrom: ["+15555550123"] },
+    telegram: {
+      enabled: true,
+      botToken: "YOUR_TOKEN",
+      allowFrom: ["123456789"]
+    },
+    discord: {
+      enabled: true,
+      token: "YOUR_TOKEN",
+      dm: { allowFrom: ["yourname"] }
+    }
   }
 }
 ```
@@ -439,6 +471,44 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
 }
 ```
 
+### Anthropic subscription + API key, MiniMax fallback
+```json5
+{
+  auth: {
+    profiles: {
+      "anthropic:subscription": {
+        provider: "anthropic",
+        mode: "oauth",
+        email: "user@example.com"
+      },
+      "anthropic:api": {
+        provider: "anthropic",
+        mode: "api_key"
+      }
+    },
+    order: {
+      anthropic: ["anthropic:subscription", "anthropic:api"]
+    }
+  },
+  models: {
+    providers: {
+      minimax: {
+        baseUrl: "https://api.minimax.io/anthropic",
+        api: "anthropic-messages",
+        apiKey: "${MINIMAX_API_KEY}"
+      }
+    }
+  },
+  agent: {
+    workspace: "~/clawd",
+    model: {
+      primary: "anthropic/claude-opus-4-5",
+      fallbacks: ["minimax/MiniMax-M2.1"]
+    }
+  }
+}
+```
+
 ### Work bot (restricted access)
 ```json5
 {
@@ -450,12 +520,14 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
     workspace: "~/work-clawd",
     elevated: { enabled: false }
   },
-  slack: {
-    enabled: true,
-    botToken: "xoxb-...",
-    channels: {
-      "#engineering": { allow: true, requireMention: true },
-      "#general": { allow: true, requireMention: true }
+  channels: {
+    slack: {
+      enabled: true,
+      botToken: "xoxb-...",
+      channels: {
+        "#engineering": { allow: true, requireMention: true },
+        "#general": { allow: true, requireMention: true }
+      }
     }
   }
 }
@@ -496,5 +568,5 @@ Save to `~/.clawdbot/clawdbot.json` and you can DM the bot from that number.
 
 - If you set `dmPolicy: "open"`, the matching `allowFrom` list must include `"*"`.
 - Provider IDs differ (phone numbers, user IDs, channel IDs). Use the provider docs to confirm the format.
-- Optional sections to add later: `web`, `browser`, `ui`, `bridge`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
-- See [Providers](/providers/whatsapp) and [Troubleshooting](/gateway/troubleshooting) for deeper setup notes.
+- Optional sections to add later: `web`, `browser`, `ui`, `discovery`, `canvasHost`, `talk`, `signal`, `imessage`.
+- See [Providers](/channels/whatsapp) and [Troubleshooting](/gateway/troubleshooting) for deeper setup notes.

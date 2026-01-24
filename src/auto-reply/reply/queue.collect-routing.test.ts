@@ -91,9 +91,7 @@ describe("followup queue deduplication", () => {
     scheduleFollowupDrain(key, runFollowup);
     await expect.poll(() => calls.length).toBe(1);
     // Should collect both unique messages
-    expect(calls[0]?.prompt).toContain(
-      "[Queued messages while agent was busy]",
-    );
+    expect(calls[0]?.prompt).toContain("[Queued messages while agent was busy]");
   });
 
   it("deduplicates exact prompt when routing matches and no message id", async () => {
@@ -117,7 +115,7 @@ describe("followup queue deduplication", () => {
     );
     expect(first).toBe(true);
 
-    // Second enqueue with same prompt should be deduplicated
+    // Second enqueue with same prompt should be allowed (default dedupe: message id only)
     const second = enqueueFollowupRun(
       key,
       createRun({
@@ -127,7 +125,7 @@ describe("followup queue deduplication", () => {
       }),
       settings,
     );
-    expect(second).toBe(false);
+    expect(second).toBe(true);
 
     // Third enqueue with different prompt should succeed
     const third = enqueueFollowupRun(
@@ -172,6 +170,40 @@ describe("followup queue deduplication", () => {
       settings,
     );
     expect(second).toBe(true);
+  });
+
+  it("can opt-in to prompt-based dedupe when message id is absent", async () => {
+    const key = `test-dedup-prompt-mode-${Date.now()}`;
+    const settings: QueueSettings = {
+      mode: "collect",
+      debounceMs: 0,
+      cap: 50,
+      dropPolicy: "summarize",
+    };
+
+    const first = enqueueFollowupRun(
+      key,
+      createRun({
+        prompt: "Hello world",
+        originatingChannel: "whatsapp",
+        originatingTo: "+1234567890",
+      }),
+      settings,
+      "prompt",
+    );
+    expect(first).toBe(true);
+
+    const second = enqueueFollowupRun(
+      key,
+      createRun({
+        prompt: "Hello world",
+        originatingChannel: "whatsapp",
+        originatingTo: "+1234567890",
+      }),
+      settings,
+      "prompt",
+    );
+    expect(second).toBe(false);
   });
 });
 
@@ -248,9 +280,7 @@ describe("followup queue collect routing", () => {
 
     scheduleFollowupDrain(key, runFollowup);
     await expect.poll(() => calls.length).toBe(1);
-    expect(calls[0]?.prompt).toContain(
-      "[Queued messages while agent was busy]",
-    );
+    expect(calls[0]?.prompt).toContain("[Queued messages while agent was busy]");
     expect(calls[0]?.originatingChannel).toBe("slack");
     expect(calls[0]?.originatingTo).toBe("channel:A");
   });

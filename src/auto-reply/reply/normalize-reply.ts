@@ -1,13 +1,16 @@
 import { stripHeartbeatToken } from "../heartbeat.js";
-import {
-  HEARTBEAT_TOKEN,
-  isSilentReplyText,
-  SILENT_REPLY_TOKEN,
-} from "../tokens.js";
+import { HEARTBEAT_TOKEN, isSilentReplyText, SILENT_REPLY_TOKEN } from "../tokens.js";
 import type { ReplyPayload } from "../types.js";
+import { sanitizeUserFacingText } from "../../agents/pi-embedded-helpers.js";
+import {
+  resolveResponsePrefixTemplate,
+  type ResponsePrefixContext,
+} from "./response-prefix-template.js";
 
 export type NormalizeReplyOptions = {
   responsePrefix?: string;
+  /** Context for template variable interpolation in responsePrefix */
+  responsePrefixContext?: ResponsePrefixContext;
   onHeartbeatStrip?: () => void;
   stripHeartbeat?: boolean;
   silentToken?: string;
@@ -17,9 +20,7 @@ export function normalizeReplyPayload(
   payload: ReplyPayload,
   opts: NormalizeReplyOptions = {},
 ): ReplyPayload | null {
-  const hasMedia = Boolean(
-    payload.mediaUrl || (payload.mediaUrls?.length ?? 0) > 0,
-  );
+  const hasMedia = Boolean(payload.mediaUrl || (payload.mediaUrls?.length ?? 0) > 0);
   const trimmed = payload.text?.trim() ?? "";
   if (!trimmed && !hasMedia) return null;
 
@@ -42,13 +43,23 @@ export function normalizeReplyPayload(
     text = stripped.text;
   }
 
+  if (text) {
+    text = sanitizeUserFacingText(text);
+  }
+  if (!text?.trim() && !hasMedia) return null;
+
+  // Resolve template variables in responsePrefix if context is provided
+  const effectivePrefix = opts.responsePrefixContext
+    ? resolveResponsePrefixTemplate(opts.responsePrefix, opts.responsePrefixContext)
+    : opts.responsePrefix;
+
   if (
-    opts.responsePrefix &&
+    effectivePrefix &&
     text &&
     text.trim() !== HEARTBEAT_TOKEN &&
-    !text.startsWith(opts.responsePrefix)
+    !text.startsWith(effectivePrefix)
   ) {
-    text = `${opts.responsePrefix} ${text}`;
+    text = `${effectivePrefix} ${text}`;
   }
 
   return { ...payload, text };

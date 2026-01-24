@@ -1,6 +1,6 @@
 package com.clawdbot.android.chat
 
-import com.clawdbot.android.bridge.BridgeSession
+import com.clawdbot.android.gateway.GatewaySession
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
@@ -20,8 +20,9 @@ import kotlinx.serialization.json.buildJsonObject
 
 class ChatController(
   private val scope: CoroutineScope,
-  private val session: BridgeSession,
+  private val session: GatewaySession,
   private val json: Json,
+  private val supportsChatSubscribe: Boolean,
 ) {
   private val _sessionKey = MutableStateFlow("main")
   val sessionKey: StateFlow<String> = _sessionKey.asStateFlow()
@@ -71,9 +72,18 @@ class ChatController(
     _sessionId.value = null
   }
 
-  fun load(sessionKey: String = "main") {
+  fun load(sessionKey: String) {
     val key = sessionKey.trim().ifEmpty { "main" }
     _sessionKey.value = key
+    scope.launch { bootstrap(forceHealth = true) }
+  }
+
+  fun applyMainSessionKey(mainSessionKey: String) {
+    val trimmed = mainSessionKey.trim()
+    if (trimmed.isEmpty()) return
+    if (_sessionKey.value == trimmed) return
+    if (_sessionKey.value != "main") return
+    _sessionKey.value = trimmed
     scope.launch { bootstrap(forceHealth = true) }
   }
 
@@ -215,7 +225,7 @@ class ChatController(
     }
   }
 
-  fun handleBridgeEvent(event: String, payloadJson: String?) {
+  fun handleGatewayEvent(event: String, payloadJson: String?) {
     when (event) {
       "tick" -> {
         scope.launch { pollHealthIfNeeded(force = false) }
@@ -250,10 +260,12 @@ class ChatController(
 
     val key = _sessionKey.value
     try {
-      try {
-        session.sendEvent("chat.subscribe", """{"sessionKey":"$key"}""")
-      } catch (_: Throwable) {
-        // best-effort
+      if (supportsChatSubscribe) {
+        try {
+          session.sendNodeEvent("chat.subscribe", """{"sessionKey":"$key"}""")
+        } catch (_: Throwable) {
+          // best-effort
+        }
       }
 
       val historyJson = session.request("chat.history", """{"sessionKey":"$key"}""")

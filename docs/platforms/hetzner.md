@@ -129,7 +129,6 @@ CLAWDBOT_IMAGE=clawdbot:latest
 CLAWDBOT_GATEWAY_TOKEN=change-me-now
 CLAWDBOT_GATEWAY_BIND=lan
 CLAWDBOT_GATEWAY_PORT=18789
-CLAWDBOT_BRIDGE_PORT=18790
 
 CLAWDBOT_CONFIG_DIR=/root/.clawdbot
 CLAWDBOT_WORKSPACE_DIR=/root/clawd
@@ -166,7 +165,6 @@ services:
       - TERM=xterm-256color
       - CLAWDBOT_GATEWAY_BIND=${CLAWDBOT_GATEWAY_BIND}
       - CLAWDBOT_GATEWAY_PORT=${CLAWDBOT_GATEWAY_PORT}
-      - CLAWDBOT_BRIDGE_PORT=${CLAWDBOT_BRIDGE_PORT}
       - CLAWDBOT_GATEWAY_TOKEN=${CLAWDBOT_GATEWAY_TOKEN}
       - GOG_KEYRING_PASSWORD=${GOG_KEYRING_PASSWORD}
       - XDG_CONFIG_HOME=${XDG_CONFIG_HOME}
@@ -179,15 +177,14 @@ services:
       # To expose it publicly, remove the `127.0.0.1:` prefix and firewall accordingly.
       - "127.0.0.1:${CLAWDBOT_GATEWAY_PORT}:18789"
 
-      # Optional: only if you run iOS/Android nodes against this VPS.
-      # If you expose these publicly, read /gateway/security and firewall accordingly.
-      # - "${CLAWDBOT_BRIDGE_PORT}:18790"
+      # Optional: only if you run iOS/Android nodes against this VPS and need Canvas host.
+      # If you expose this publicly, read /gateway/security and firewall accordingly.
       # - "18793:18793"
     command:
       [
         "node",
         "dist/index.js",
-        "gateway-daemon",
+        "gateway",
         "--bind",
         "${CLAWDBOT_GATEWAY_BIND}",
         "--port",
@@ -241,7 +238,6 @@ RUN curl -L https://github.com/steipete/wacli/releases/latest/download/wacli_Lin
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY ui/package.json ./ui/package.json
-COPY patches ./patches
 COPY scripts ./scripts
 
 RUN corepack enable

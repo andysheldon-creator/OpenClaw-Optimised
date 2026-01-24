@@ -74,12 +74,12 @@ enum CronPayload: Codable, Equatable {
         thinking: String?,
         timeoutSeconds: Int?,
         deliver: Bool?,
-        provider: String?,
+        channel: String?,
         to: String?,
         bestEffortDeliver: Bool?)
 
     enum CodingKeys: String, CodingKey {
-        case kind, text, message, thinking, timeoutSeconds, deliver, provider, to, bestEffortDeliver
+        case kind, text, message, thinking, timeoutSeconds, deliver, channel, provider, to, bestEffortDeliver
     }
 
     var kind: String {
@@ -101,7 +101,8 @@ enum CronPayload: Codable, Equatable {
                 thinking: container.decodeIfPresent(String.self, forKey: .thinking),
                 timeoutSeconds: container.decodeIfPresent(Int.self, forKey: .timeoutSeconds),
                 deliver: container.decodeIfPresent(Bool.self, forKey: .deliver),
-                provider: container.decodeIfPresent(String.self, forKey: .provider),
+                channel: container.decodeIfPresent(String.self, forKey: .channel)
+                    ?? container.decodeIfPresent(String.self, forKey: .provider),
                 to: container.decodeIfPresent(String.self, forKey: .to),
                 bestEffortDeliver: container.decodeIfPresent(Bool.self, forKey: .bestEffortDeliver))
         default:
@@ -118,12 +119,12 @@ enum CronPayload: Codable, Equatable {
         switch self {
         case let .systemEvent(text):
             try container.encode(text, forKey: .text)
-        case let .agentTurn(message, thinking, timeoutSeconds, deliver, provider, to, bestEffortDeliver):
+        case let .agentTurn(message, thinking, timeoutSeconds, deliver, channel, to, bestEffortDeliver):
             try container.encode(message, forKey: .message)
             try container.encodeIfPresent(thinking, forKey: .thinking)
             try container.encodeIfPresent(timeoutSeconds, forKey: .timeoutSeconds)
             try container.encodeIfPresent(deliver, forKey: .deliver)
-            try container.encodeIfPresent(provider, forKey: .provider)
+            try container.encodeIfPresent(channel, forKey: .channel)
             try container.encodeIfPresent(to, forKey: .to)
             try container.encodeIfPresent(bestEffortDeliver, forKey: .bestEffortDeliver)
         }
@@ -145,9 +146,11 @@ struct CronJobState: Codable, Equatable {
 
 struct CronJob: Identifiable, Codable, Equatable {
     let id: String
+    let agentId: String?
     var name: String
     var description: String?
     var enabled: Bool
+    var deleteAfterRun: Bool?
     let createdAtMs: Int
     let updatedAtMs: Int
     let schedule: CronSchedule
