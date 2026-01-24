@@ -1701,7 +1701,7 @@ async function processMessage(
             account.config.textChunkLimit && account.config.textChunkLimit > 0
               ? account.config.textChunkLimit
               : DEFAULT_TEXT_LIMIT;
-          const chunkMode = account.config.chunkMode ?? "newline";
+          const chunkMode = account.config.chunkMode ?? "length";
           const tableMode = core.channel.text.resolveMarkdownTableMode({
             cfg: config,
             channel: "bluebubbles",
@@ -1725,7 +1725,9 @@ async function processMessage(
             sentMessage = true;
             statusSink?.({ lastOutboundAt: Date.now() });
             // In newline mode, restart typing after each chunk if more chunks remain
+            // Small delay allows the Apple API to finish clearing the typing state from message send
             if (chunkMode === "newline" && i < chunks.length - 1 && chatGuidForActions) {
+              await new Promise((r) => setTimeout(r, 150));
               sendBlueBubblesTyping(chatGuidForActions, true, {
                 cfg: config,
                 accountId: account.accountId,

@@ -296,6 +296,7 @@ describe("resolveChunkMode", () => {
   it("returns length as default", () => {
     expect(resolveChunkMode(undefined, "telegram")).toBe("length");
     expect(resolveChunkMode({}, "discord")).toBe("length");
+    expect(resolveChunkMode(undefined, "bluebubbles")).toBe("length");
   });
 
   it("returns length for internal channel", () => {
