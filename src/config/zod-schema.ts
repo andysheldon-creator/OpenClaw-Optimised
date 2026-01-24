@@ -332,6 +332,7 @@ export const ClawdbotSchema = z
         remote: z
           .object({
             url: z.string().optional(),
+            transport: z.union([z.literal("ssh"), z.literal("direct")]).optional(),
             token: z.string().optional(),
             password: z.string().optional(),
             tlsFingerprint: z.string().optional(),
