@@ -349,7 +349,7 @@ export async function startGatewayServer(
   // takes time to complete. A 30-second delay ensures we batch changes together.
   let skillsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   const skillsRefreshDelayMs = 30_000;
-  registerSkillsChangeListener(() => {
+  const skillsChangeUnsub = registerSkillsChangeListener(() => {
     if (skillsRefreshTimer) return;
     skillsRefreshTimer = setTimeout(() => {
       skillsRefreshTimer = null;
@@ -553,6 +553,8 @@ export async function startGatewayServer(
       if (diagnosticsEnabled) {
         stopDiagnosticHeartbeat();
       }
+      if (skillsRefreshTimer) clearTimeout(skillsRefreshTimer);
+      skillsChangeUnsub();
       await close(opts);
     },
   };
