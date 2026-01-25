@@ -35,22 +35,36 @@ describe("security audit", () => {
   });
 
   it("flags non-loopback bind without auth as critical", async () => {
-    const cfg: ClawdbotConfig = {
-      gateway: {
-        bind: "lan",
-        auth: {},
-      },
-    };
+    // Clear env tokens so resolveGatewayAuth defaults to mode=none
+    const prevToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
+    const prevPassword = process.env.CLAWDBOT_GATEWAY_PASSWORD;
+    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+    delete process.env.CLAWDBOT_GATEWAY_PASSWORD;
 
-    const res = await runSecurityAudit({
-      config: cfg,
-      includeFilesystem: false,
-      includeChannelSecurity: false,
-    });
+    try {
+      const cfg: ClawdbotConfig = {
+        gateway: {
+          bind: "lan",
+          auth: {},
+        },
+      };
 
-    expect(
-      res.findings.some((f) => f.checkId === "gateway.bind_no_auth" && f.severity === "critical"),
-    ).toBe(true);
+      const res = await runSecurityAudit({
+        config: cfg,
+        includeFilesystem: false,
+        includeChannelSecurity: false,
+      });
+
+      expect(
+        res.findings.some((f) => f.checkId === "gateway.bind_no_auth" && f.severity === "critical"),
+      ).toBe(true);
+    } finally {
+      // Restore env
+      if (prevToken === undefined) delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+      else process.env.CLAWDBOT_GATEWAY_TOKEN = prevToken;
+      if (prevPassword === undefined) delete process.env.CLAWDBOT_GATEWAY_PASSWORD;
+      else process.env.CLAWDBOT_GATEWAY_PASSWORD = prevPassword;
+    }
   });
 
   it("warns when loopback control UI lacks trusted proxies", async () => {
@@ -293,6 +307,125 @@ describe("security audit", () => {
       expect.arrayContaining([
         expect.objectContaining({
           checkId: "gateway.control_ui.insecure_auth",
+          severity: "warn",
+        }),
+      ]),
+    );
+  });
+
+  it("flags trusted-proxy auth mode as critical warning", async () => {
+    const cfg: ClawdbotConfig = {
+      gateway: {
+        bind: "lan",
+        trustedProxies: ["10.0.0.1"],
+        auth: {
+          mode: "trusted-proxy",
+          trustedProxy: {
+            userHeader: "x-forwarded-user",
+          },
+        },
+      },
+    };
+
+    const res = await runSecurityAudit({
+      config: cfg,
+      includeFilesystem: false,
+      includeChannelSecurity: false,
+    });
+
+    expect(res.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          checkId: "gateway.trusted_proxy_auth",
+          severity: "critical",
+        }),
+      ]),
+    );
+  });
+
+  it("flags trusted-proxy auth without trustedProxies configured", async () => {
+    const cfg: ClawdbotConfig = {
+      gateway: {
+        bind: "lan",
+        trustedProxies: [],
+        auth: {
+          mode: "trusted-proxy",
+          trustedProxy: {
+            userHeader: "x-forwarded-user",
+          },
+        },
+      },
+    };
+
+    const res = await runSecurityAudit({
+      config: cfg,
+      includeFilesystem: false,
+      includeChannelSecurity: false,
+    });
+
+    expect(res.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          checkId: "gateway.trusted_proxy_no_proxies",
+          severity: "critical",
+        }),
+      ]),
+    );
+  });
+
+  it("flags trusted-proxy auth without userHeader configured", async () => {
+    const cfg: ClawdbotConfig = {
+      gateway: {
+        bind: "lan",
+        trustedProxies: ["10.0.0.1"],
+        auth: {
+          mode: "trusted-proxy",
+          trustedProxy: {} as never,
+        },
+      },
+    };
+
+    const res = await runSecurityAudit({
+      config: cfg,
+      includeFilesystem: false,
+      includeChannelSecurity: false,
+    });
+
+    expect(res.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          checkId: "gateway.trusted_proxy_no_user_header",
+          severity: "critical",
+        }),
+      ]),
+    );
+  });
+
+  it("warns when trusted-proxy auth allows all users", async () => {
+    const cfg: ClawdbotConfig = {
+      gateway: {
+        bind: "lan",
+        trustedProxies: ["10.0.0.1"],
+        auth: {
+          mode: "trusted-proxy",
+          trustedProxy: {
+            userHeader: "x-forwarded-user",
+            allowUsers: [],
+          },
+        },
+      },
+    };
+
+    const res = await runSecurityAudit({
+      config: cfg,
+      includeFilesystem: false,
+      includeChannelSecurity: false,
+    });
+
+    expect(res.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          checkId: "gateway.trusted_proxy_no_allowlist",
           severity: "warn",
         }),
       ]),
