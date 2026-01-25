@@ -1,0 +1,10 @@
+{
+  "name": "@clawdbot/extension-action-receipts",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "clawdbot/plugin-sdk": "workspace:*",
+    "@sinclair/typebox": "^0.34.0"
+  }
+}
