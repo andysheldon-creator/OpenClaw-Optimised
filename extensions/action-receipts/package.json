@@ -1,11 +1,14 @@
 {
   "name": "@clawdbot/action-receipts",
-  "version": "0.1.0",
+  "version": "2026.1.25",
   "type": "module",
-  "description": "Optional reference extension: write tool-call receipts to local state for debugging/audit.",
+  "description": "Clawdbot plugin that records tool invocation receipts via hooks",
   "clawdbot": {
     "extensions": [
       "./index.ts"
     ]
+  },
+  "peerDependencies": {
+    "clawdbot": ">=2026.1.24"
   }
 }

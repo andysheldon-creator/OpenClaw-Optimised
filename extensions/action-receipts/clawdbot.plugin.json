@@ -1,22 +1,8 @@
 {
   "id": "action-receipts",
-  "name": "Action Receipts",
-  "description": "Record tool calls as local receipts for debugging and audits.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
-    "properties": {
-      "enabled": {
-        "type": "boolean",
-        "default": true
-      },
-      "receiptsDir": {
-        "type": "string"
-      },
-      "includeParams": {
-        "type": "boolean",
-        "default": true
-      }
-    }
+    "properties": {}
   }
 }

@@ -19,7 +19,6 @@ import { listChannelAgentTools } from "./channel-tools.js";
 import { createClawdbotTools } from "./clawdbot-tools.js";
 import type { ModelAuthMode } from "./model-auth.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
-import { wrapToolWithPluginHooks } from "./pi-tools.hooks.js";
 import {
   filterToolsByPolicy,
   isToolAllowedByPolicies,
@@ -50,6 +49,7 @@ import {
   stripPluginOnlyAllowlist,
 } from "./tool-policy.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
+import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { logWarn } from "../logger.js";
 
 function isOpenAIProvider(provider?: string) {
@@ -389,13 +389,73 @@ export function createClawdbotCodingTools(options?: {
     : sandboxed;
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
-  const normalized = subagentFiltered.map(normalizeToolParameters);
-  const withHooks = normalized.map((tool) =>
-    wrapToolWithPluginHooks(tool, { agentId, sessionKey: options?.sessionKey }),
-  );
+  const hookRunner = getGlobalHookRunner();
+  const withHooks =
+    hookRunner && hookRunner.hasHooks("before_tool_call")
+      ? subagentFiltered.map((tool) => {
+          const execute = (tool as AnyAgentTool).execute;
+          if (typeof execute !== "function") return tool;
+
+          return {
+            ...tool,
+            execute: async (toolCallId: string, args: unknown, signal: AbortSignal, onUpdate: any) => {
+              const startedAt = Date.now();
+              const ctx: any = {
+                agentId,
+                sessionKey: options?.sessionKey,
+                toolName: tool.name,
+                toolCallId,
+              };
+
+              const paramsRecord =
+                args && typeof args === "object"
+                  ? (args as Record<string, unknown>)
+                  : { value: args };
+
+              const before = await hookRunner.runBeforeToolCall(
+                { toolName: tool.name, params: paramsRecord },
+                ctx,
+              );
+              if (before?.block) {
+                const reason = before.blockReason?.trim() || "Blocked by plugin hook.";
+                throw new Error(reason);
+              }
+
+              const effectiveArgs = before?.params ? before.params : paramsRecord;
+
+              try {
+                const result = await execute(toolCallId, effectiveArgs, signal, onUpdate);
+                await hookRunner.runAfterToolCall(
+                  {
+                    toolName: tool.name,
+                    params: effectiveArgs,
+                    result,
+                    durationMs: Date.now() - startedAt,
+                  },
+                  ctx,
+                );
+                return result;
+              } catch (err: any) {
+                await hookRunner.runAfterToolCall(
+                  {
+                    toolName: tool.name,
+                    params: effectiveArgs,
+                    error: err?.message ? String(err.message) : String(err),
+                    durationMs: Date.now() - startedAt,
+                  },
+                  ctx,
+                );
+                throw err;
+              }
+            },
+          };
+        })
+      : subagentFiltered;
+
+  const normalized = withHooks.map(normalizeToolParameters);
   const withAbort = options?.abortSignal
-    ? withHooks.map((tool) => wrapToolWithAbortSignal(tool, options.abortSignal))
-    : withHooks;
+    ? normalized.map((tool) => wrapToolWithAbortSignal(tool, options.abortSignal))
+    : normalized;
 
   // NOTE: Keep canonical (lowercase) tool names here.
   // pi-ai's Anthropic OAuth transport remaps tool names to Claude Code-style names
