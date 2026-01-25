@@ -1423,6 +1423,111 @@
   box-shadow: 0 0 0 3px var(--focus);
 }
 
+/* Compact toggle variant - smaller track */
+.cfg-toggle--sm .cfg-toggle__track {
+  width: 40px;
+  height: 24px;
+}
+
+.cfg-toggle--sm .cfg-toggle__track::after {
+  width: 18px;
+  height: 18px;
+  top: 2px;
+  left: 2px;
+}
+
+.cfg-toggle--sm input:checked + .cfg-toggle__track::after {
+  transform: translateX(16px);
+}
+
+/* Inline Toggle - compact style without card wrapper */
+.cfg-toggle-inline {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.cfg-toggle-inline:hover:not(.disabled) {
+  opacity: 0.9;
+}
+
+.cfg-toggle-inline.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cfg-toggle-inline__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cfg-toggle-inline__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.cfg-toggle-inline__help {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Inline toggle responsive - wrap help text below on narrow screens */
+@media (max-width: 480px) {
+  .cfg-toggle-inline {
+    flex-wrap: wrap;
+  }
+
+  .cfg-toggle-inline__content {
+    order: 2;
+    flex-basis: calc(100% - 52px);
+  }
+
+  .cfg-toggle-inline__help {
+    margin-top: 4px;
+  }
+}
+
+/* Flat Object - non-collapsible nested object for wizard context */
+.cfg-object-flat {
+  border-left: 3px solid var(--accent-muted);
+  padding-left: 16px;
+  margin-left: 4px;
+}
+
+.cfg-object-flat__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cfg-object-flat__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cfg-object-flat__help {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.cfg-object-flat__content {
+  display: grid;
+  gap: 12px;
+}
+
 /* Object (collapsible) */
 .cfg-object {
   border: 1px solid var(--border);

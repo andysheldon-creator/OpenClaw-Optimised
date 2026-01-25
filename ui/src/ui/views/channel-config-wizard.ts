@@ -25,6 +25,16 @@ import {
 // Types
 // ============================================================================
 
+/** Group of related fields within a section */
+export type FieldGroup = {
+  /** Group identifier */
+  id: string;
+  /** Display title for the group */
+  title: string;
+  /** Fields belonging to this group */
+  fields: string[];
+};
+
 export type WizardSection = {
   id: string;
   label: string;
@@ -32,6 +42,8 @@ export type WizardSection = {
   description: string;
   /** Fields in this section (JSON path segments from channel root) */
   fields?: string[];
+  /** Optional field groupings within this section */
+  fieldGroups?: FieldGroup[];
   /** Whether this section has validation issues */
   hasErrors?: boolean;
   /** Whether this section has required unfilled fields */
@@ -78,6 +90,11 @@ export const DEFAULT_CHANNEL_SECTIONS: WizardSection[] = [
     icon: "check-circle",
     description: "DM policies, group policies, and allowlists",
     fields: ["dmPolicy", "dm", "groupPolicy", "allowFrom", "groupAllowFrom", "allowBots", "requireMention", "allowlist", "blocklist", "adminOnly"],
+    fieldGroups: [
+      { id: "dms", title: "Direct Messages", fields: ["dmPolicy", "dm", "allowFrom"] },
+      { id: "groups", title: "Groups & Channels", fields: ["groupPolicy", "groupAllowFrom", "allowBots", "requireMention"] },
+      { id: "permissions", title: "Permissions", fields: ["allowlist", "blocklist", "adminOnly"] },
+    ],
   },
   {
     id: "messaging",
@@ -85,6 +102,11 @@ export const DEFAULT_CHANNEL_SECTIONS: WizardSection[] = [
     icon: "message-square",
     description: "Text handling, streaming, and message formatting",
     fields: ["textChunkLimit", "blockStreaming", "blockStreamingCoalesce", "markdown", "commands", "configWrites", "replyToMode", "typing", "readReceipts"],
+    fieldGroups: [
+      { id: "text", title: "Text Handling", fields: ["textChunkLimit", "markdown"] },
+      { id: "streaming", title: "Streaming", fields: ["blockStreaming", "blockStreamingCoalesce"] },
+      { id: "features", title: "Features", fields: ["commands", "configWrites", "replyToMode", "typing", "readReceipts"] },
+    ],
   },
   {
     id: "history",
@@ -261,6 +283,49 @@ function sectionHasFields(
 // ============================================================================
 
 /**
+ * Render the horizontal progress indicator
+ */
+function renderProgressIndicator(params: {
+  sections: WizardSection[];
+  activeSection: string;
+  channelSchema: JsonSchema | null;
+}): TemplateResult {
+  const { sections, activeSection, channelSchema } = params;
+
+  const visibleSections = sections.filter((s) => sectionHasFields(s, channelSchema));
+  const totalSteps = visibleSections.length;
+  const currentIndex = visibleSections.findIndex((s) => s.id === activeSection);
+  const completionPercent = totalSteps > 1 ? (currentIndex / (totalSteps - 1)) * 100 : 0;
+
+  return html`
+    <div class="channel-wizard__progress">
+      <div class="channel-wizard__progress-track">
+        <div
+          class="channel-wizard__progress-fill"
+          style="width: ${completionPercent}%"
+        ></div>
+      </div>
+      <div class="channel-wizard__progress-dots">
+        ${visibleSections.map((section, idx) => {
+          const isActive = section.id === activeSection;
+          const isCompleted = idx < currentIndex;
+          const statusClass = isActive
+            ? "channel-wizard__progress-dot--active"
+            : isCompleted
+              ? "channel-wizard__progress-dot--completed"
+              : "";
+          return html`
+            <div class="channel-wizard__progress-dot ${statusClass}" title="${section.label}">
+              <span class="channel-wizard__progress-dot-number">${idx + 1}</span>
+            </div>
+          `;
+        })}
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Render the sidebar navigation
  */
 function renderSidebar(params: {
@@ -310,6 +375,58 @@ function renderSidebar(params: {
 }
 
 /**
+ * Render fields for a single group
+ */
+function renderFieldGroup(params: {
+  group: FieldGroup;
+  channelId: ChannelKey;
+  channelSchema: JsonSchema;
+  channelValue: Record<string, unknown>;
+  uiHints: ConfigUiHints;
+  unsupported: Set<string>;
+  disabled: boolean;
+  onPatch: (path: Array<string | number>, value: unknown) => void;
+}): TemplateResult | typeof nothing {
+  const { group, channelId, channelSchema, channelValue, uiHints, unsupported, disabled, onPatch } = params;
+
+  // Filter to only fields that exist in schema
+  const existingFields = group.fields.filter((field) => channelSchema.properties?.[field]);
+  if (existingFields.length === 0) return nothing;
+
+  const groupProperties: Record<string, JsonSchema> = {};
+  for (const field of existingFields) {
+    if (channelSchema.properties?.[field]) {
+      groupProperties[field] = channelSchema.properties[field];
+    }
+  }
+
+  const groupSchema: JsonSchema = {
+    type: "object",
+    properties: groupProperties,
+  };
+
+  return html`
+    <div class="channel-wizard__field-group">
+      <div class="channel-wizard__group-title">${group.title}</div>
+      <div class="channel-wizard__group-fields">
+        ${renderNode({
+          schema: groupSchema,
+          value: channelValue,
+          path: ["channels", channelId],
+          hints: uiHints,
+          unsupported,
+          disabled,
+          showLabel: false,
+          compactToggles: true,
+          flattenObjects: true,
+          onPatch,
+        })}
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Render the content area for the active section
  */
 function renderContent(params: {
@@ -331,7 +448,7 @@ function renderContent(params: {
           <h3 class="channel-wizard__section-title">${section.label}</h3>
           <p class="channel-wizard__section-desc">${section.description}</p>
         </div>
-        <div class="channel-wizard__content-body">
+        <div class="channel-wizard__content-body channel-wizard__content-body--animate">
           <div class="callout danger">Schema unavailable for this channel.</div>
         </div>
       </div>
@@ -340,7 +457,51 @@ function renderContent(params: {
 
   const sectionFields = getSectionFields(section, channelSchema);
 
-  // Build a filtered schema with only this section's fields
+  // If section has field groups, render with groupings
+  if (section.fieldGroups && section.fieldGroups.length > 0) {
+    // Find fields not covered by any group (for fallback rendering)
+    const groupedFields = new Set(section.fieldGroups.flatMap((g) => g.fields));
+    const ungroupedFields = sectionFields.filter((f) => !groupedFields.has(f));
+
+    return html`
+      <div class="channel-wizard__content">
+        <div class="channel-wizard__content-header">
+          <h3 class="channel-wizard__section-title">${section.label}</h3>
+          <p class="channel-wizard__section-desc">${section.description}</p>
+        </div>
+        <div class="channel-wizard__content-body channel-wizard__content-body--animate">
+          <div class="channel-wizard__form channel-wizard__form--grouped">
+            ${section.fieldGroups.map((group) =>
+              renderFieldGroup({
+                group,
+                channelId,
+                channelSchema,
+                channelValue,
+                uiHints,
+                unsupported,
+                disabled,
+                onPatch,
+              })
+            )}
+            ${ungroupedFields.length > 0
+              ? renderFieldGroup({
+                  group: { id: "other", title: "Other", fields: ungroupedFields },
+                  channelId,
+                  channelSchema,
+                  channelValue,
+                  uiHints,
+                  unsupported,
+                  disabled,
+                  onPatch,
+                })
+              : nothing}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Default rendering without groups
   const filteredProperties: Record<string, JsonSchema> = {};
   for (const field of sectionFields) {
     if (channelSchema.properties[field]) {
@@ -359,7 +520,7 @@ function renderContent(params: {
         <h3 class="channel-wizard__section-title">${section.label}</h3>
         <p class="channel-wizard__section-desc">${section.description}</p>
       </div>
-      <div class="channel-wizard__content-body">
+      <div class="channel-wizard__content-body channel-wizard__content-body--animate">
         <div class="channel-wizard__form">
           ${renderNode({
             schema: filteredSchema,
@@ -369,6 +530,8 @@ function renderContent(params: {
             unsupported,
             disabled,
             showLabel: false,
+            compactToggles: true,
+            flattenObjects: true,
             onPatch,
           })}
         </div>
@@ -495,6 +658,13 @@ export function renderChannelWizard(params: ChannelWizardProps): TemplateResult 
           </button>
         </div>
       </div>
+
+      <!-- Progress Indicator -->
+      ${renderProgressIndicator({
+        sections,
+        activeSection: state.activeSection,
+        channelSchema,
+      })}
 
       <!-- Body -->
       <div class="channel-wizard__body">

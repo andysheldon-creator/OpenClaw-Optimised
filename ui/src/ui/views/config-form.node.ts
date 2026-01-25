@@ -45,10 +45,16 @@ export function renderNode(params: {
   disabled: boolean;
   showLabel?: boolean;
   validation?: ConfigValidationMap;
+  /** Render boolean toggles in compact inline style (no card wrapper) */
+  compactToggles?: boolean;
+  /** Render nested objects flat (no collapsible details) */
+  flattenObjects?: boolean;
   onPatch: (path: Array<string | number>, value: unknown) => void;
 }): TemplateResult | typeof nothing {
   const { schema, value, path, hints, unsupported, disabled, onPatch } = params;
   const showLabel = params.showLabel ?? true;
+  const compactToggles = params.compactToggles ?? false;
+  const flattenObjects = params.flattenObjects ?? false;
   const type = schemaType(schema);
   const hint = hintForPath(path, hints);
   const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
@@ -185,19 +191,48 @@ export function renderNode(params: {
     return renderSelect({ ...params, options, value: value ?? schema.default });
   }
 
-  // Object type - collapsible section
+  // Object type - collapsible or flat section
   if (type === "object") {
-    return renderObject(params);
+    return renderObject({ ...params, flattenObjects });
   }
 
   // Array type
   if (type === "array") {
-    return renderArray(params);
+    return renderArray({ ...params, compactToggles, flattenObjects });
   }
 
-  // Boolean - toggle row
+  // Boolean - toggle row (compact or card style)
   if (type === "boolean") {
     const displayValue = typeof value === "boolean" ? value : typeof schema.default === "boolean" ? schema.default : false;
+
+    // Compact inline toggle (no card wrapper)
+    if (compactToggles) {
+      return html`
+        <label
+          class="cfg-toggle-inline ${disabled ? 'disabled' : ''} ${severity ? `cfg-field--invalid cfg-field--${severity}` : ""}"
+          data-config-path=${key}
+        >
+          <div class="cfg-toggle cfg-toggle--sm">
+            <input
+              type="checkbox"
+              .checked=${displayValue}
+              ?disabled=${disabled}
+              @change=${(e: Event) => onPatch(path, (e.target as HTMLInputElement).checked)}
+            />
+            <span class="cfg-toggle__track"></span>
+          </div>
+          <div class="cfg-toggle-inline__content">
+            <span class="cfg-toggle-inline__label">${label}</span>
+            ${help ? html`<span class="cfg-toggle-inline__help">${help}</span>` : nothing}
+          </div>
+          ${severity
+            ? html`<span class="cfg-field__validation">${validationMessage}</span>`
+            : nothing}
+        </label>
+      `;
+    }
+
+    // Default card-style toggle
     return html`
       <label
         class="cfg-toggle-row ${disabled ? 'disabled' : ''} ${severity ? `cfg-field--invalid cfg-field--${severity}` : ""}"
@@ -443,21 +478,25 @@ function renderObject(params: {
   disabled: boolean;
   showLabel?: boolean;
   validation?: ConfigValidationMap;
+  flattenObjects?: boolean;
+  compactToggles?: boolean;
   onPatch: (path: Array<string | number>, value: unknown) => void;
 }): TemplateResult {
   const { schema, value, path, hints, unsupported, disabled, onPatch } = params;
   const showLabel = params.showLabel ?? true;
+  const flattenObjects = params.flattenObjects ?? false;
+  const compactToggles = params.compactToggles ?? false;
   const hint = hintForPath(path, hints);
   const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
   const help = hint?.help ?? schema.description;
-  
+
   const fallback = value ?? schema.default;
   const obj = fallback && typeof fallback === "object" && !Array.isArray(fallback)
     ? (fallback as Record<string, unknown>)
     : {};
   const props = schema.properties ?? {};
   const entries = Object.entries(props);
-  
+
   // Sort by hint order
   const sorted = entries.sort((a, b) => {
     const orderA = hintForPath([...path, a[0]], hints)?.order ?? 0;
@@ -483,6 +522,8 @@ function renderObject(params: {
             unsupported,
             disabled,
             validation: params.validation,
+            compactToggles,
+            flattenObjects,
             onPatch,
           })
         )}
@@ -501,7 +542,46 @@ function renderObject(params: {
     `;
   }
 
-  // Nested objects get collapsible treatment
+  // Flat object rendering (for wizard context) - only for shallow nesting (path.length <= 3)
+  if (flattenObjects && path.length <= 3) {
+    return html`
+      <div class="cfg-object-flat" data-config-path=${pathKey(path)}>
+        <div class="cfg-object-flat__header">
+          <span class="cfg-object-flat__title">${label}</span>
+        </div>
+        ${help ? html`<div class="cfg-object-flat__help">${help}</div>` : nothing}
+        <div class="cfg-object-flat__content">
+          ${sorted.map(([propKey, node]) =>
+            renderNode({
+              schema: node,
+              value: obj[propKey],
+              path: [...path, propKey],
+              hints,
+              unsupported,
+              disabled,
+              validation: params.validation,
+              compactToggles,
+              flattenObjects,
+              onPatch,
+            })
+          )}
+          ${allowExtra ? renderMapField({
+            schema: additional as JsonSchema,
+            value: obj,
+            path,
+            hints,
+            unsupported,
+            disabled,
+            reservedKeys: reserved,
+            validation: params.validation,
+            onPatch,
+          }) : nothing}
+        </div>
+      </div>
+    `;
+  }
+
+  // Deep nested objects still get collapsible treatment
   return html`
     <details class="cfg-object" open data-config-path=${pathKey(path)}>
       <summary class="cfg-object__header">
@@ -519,6 +599,8 @@ function renderObject(params: {
             unsupported,
             disabled,
             validation: params.validation,
+            compactToggles,
+            flattenObjects,
             onPatch,
           })
         )}
@@ -547,10 +629,14 @@ function renderArray(params: {
   disabled: boolean;
   showLabel?: boolean;
   validation?: ConfigValidationMap;
+  compactToggles?: boolean;
+  flattenObjects?: boolean;
   onPatch: (path: Array<string | number>, value: unknown) => void;
 }): TemplateResult {
   const { schema, value, path, hints, unsupported, disabled, onPatch } = params;
   const showLabel = params.showLabel ?? true;
+  const compactToggles = params.compactToggles ?? false;
+  const flattenObjects = params.flattenObjects ?? false;
   const hint = hintForPath(path, hints);
   const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
   const help = hint?.help ?? schema.description;
@@ -586,7 +672,7 @@ function renderArray(params: {
         </button>
       </div>
       ${help ? html`<div class="cfg-array__help">${help}</div>` : nothing}
-      
+
       ${arr.length === 0 ? html`
         <div class="cfg-array__empty">
           No items yet. Click "Add" to create one.
@@ -621,6 +707,8 @@ function renderArray(params: {
                   disabled,
                   showLabel: false,
                   validation: params.validation,
+                  compactToggles,
+                  flattenObjects,
                   onPatch,
                 })}
               </div>
