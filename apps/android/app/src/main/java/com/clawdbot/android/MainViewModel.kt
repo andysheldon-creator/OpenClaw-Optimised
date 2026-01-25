@@ -51,6 +51,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
   val manualHost: StateFlow<String> = runtime.manualHost
   val manualPort: StateFlow<Int> = runtime.manualPort
   val manualTls: StateFlow<Boolean> = runtime.manualTls
+  val manualPassword: StateFlow<String> = runtime.manualPassword
   val canvasDebugStatusEnabled: StateFlow<Boolean> = runtime.canvasDebugStatusEnabled
 
   val chatSessionKey: StateFlow<String> = runtime.chatSessionKey
@@ -102,6 +103,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
   fun setManualTls(value: Boolean) {
     runtime.setManualTls(value)
+  }
+
+  fun setManualPassword(value: String) {
+    runtime.setManualPassword(value)
   }
 
   fun setCanvasDebugStatusEnabled(value: Boolean) {

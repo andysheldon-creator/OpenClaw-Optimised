@@ -284,6 +284,7 @@ class NodeRuntime(context: Context) {
   val manualHost: StateFlow<String> = prefs.manualHost
   val manualPort: StateFlow<Int> = prefs.manualPort
   val manualTls: StateFlow<Boolean> = prefs.manualTls
+  val manualPassword: StateFlow<String> = prefs.manualPassword
   val lastDiscoveredStableId: StateFlow<String> = prefs.lastDiscoveredStableId
   val canvasDebugStatusEnabled: StateFlow<Boolean> = prefs.canvasDebugStatusEnabled
 
@@ -428,6 +429,10 @@ class NodeRuntime(context: Context) {
     prefs.setManualTls(value)
   }
 
+  fun setManualPassword(value: String) {
+    prefs.setManualPassword(value)
+  }
+
   fun setCanvasDebugStatusEnabled(value: Boolean) {
     prefs.setCanvasDebugStatusEnabled(value)
   }
@@ -563,7 +568,12 @@ class NodeRuntime(context: Context) {
     nodeStatusText = "Connecting…"
     updateStatus()
     val token = prefs.loadGatewayToken()
-    val password = prefs.loadGatewayPassword()
+    // For manual endpoints, use the manual password if set; otherwise fall back to stored password.
+    val password = if (endpoint.stableId.startsWith("manual|")) {
+      manualPassword.value.takeIf { it.isNotEmpty() } ?: prefs.loadGatewayPassword()
+    } else {
+      prefs.loadGatewayPassword()
+    }
     val tls = resolveTlsParams(endpoint)
     operatorSession.connect(endpoint, token, password, buildOperatorConnectOptions(), tls)
     nodeSession.connect(endpoint, token, password, buildNodeConnectOptions(), tls)

@@ -74,6 +74,10 @@ class SecurePrefs(context: Context) {
     MutableStateFlow(readBoolWithMigration("gateway.manual.tls", null, true))
   val manualTls: StateFlow<Boolean> = _manualTls
 
+  private val _manualPassword =
+    MutableStateFlow(prefs.getString("gateway.manual.password", null)?.trim() ?: "")
+  val manualPassword: StateFlow<String> = _manualPassword
+
   private val _lastDiscoveredStableId =
     MutableStateFlow(
       readStringWithMigration(
@@ -148,6 +152,12 @@ class SecurePrefs(context: Context) {
   fun setManualTls(value: Boolean) {
     prefs.edit { putBoolean("gateway.manual.tls", value) }
     _manualTls.value = value
+  }
+
+  fun setManualPassword(value: String) {
+    val trimmed = value.trim()
+    prefs.edit { putString("gateway.manual.password", trimmed) }
+    _manualPassword.value = trimmed
   }
 
   fun setCanvasDebugStatusEnabled(value: Boolean) {
