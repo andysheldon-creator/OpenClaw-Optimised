@@ -93,7 +93,7 @@ clawdbot molt init
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         MOLT AGENT                              │
+│                         MOLT UPDATE FLOW                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐     │
@@ -104,16 +104,51 @@ clawdbot molt init
 │       ▼              ▼              ▼              ▼            │
 │  Acquire lock   git pull       Health check   Slack/Log        │
 │  Check remote   pnpm install   Module checks  Changelog        │
-│  Save state     Restart        Stability wait Fix attempt      │
+│  Save state     Restart        Stability wait Update history   │
 │                                                                 │
 │                      │                                          │
 │                      ▼ (on failure)                             │
 │               ┌──────────────┐                                  │
-│               │   Recovery   │                                  │
-│               │  (agentic)   │                                  │
-│               └──────────────┘                                  │
+│               │   Rollback   │                                  │
+│               └──────┬───────┘                                  │
+│                      │                                          │
+│          ┌──────────┴──────────┐                               │
+│          ▼                     ▼                                │
+│   ┌─────────────┐      ┌─────────────┐                         │
+│   │  Rollback   │      │  Rollback   │                         │
+│   │  SUCCEEDS   │      │   FAILS     │                         │
+│   └──────┬──────┘      └──────┬──────┘                         │
+│          │                    │                                 │
+│          ▼                    ▼                                 │
+│   ┌─────────────┐      ┌─────────────┐                         │
+│   │ AUTONOMOUS  │      │  RECOVERY   │                         │
+│   │  RECOVERY   │      │    .md      │                         │
+│   │             │      │  (manual)   │                         │
+│   │ Gateway UP  │      └─────────────┘                         │
+│   │ Agent runs  │                                               │
+│   │ Diagnose    │                                               │
+│   │ Fix & retry │                                               │
+│   └─────────────┘                                               │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+**Autonomous Recovery Flow:**
+```
+Rollback succeeds
+       │
+       ▼
+Gateway is UP (old version)
+       │
+       ▼
+clawdbot wake --text "diagnose and fix"
+       │
+       ▼
+Agent reads crash log
+       │
+       ├──▶ Fixable? ──▶ Apply fix ──▶ Retry molt.sh ──▶ Success!
+       │
+       └──▶ Not fixable? ──▶ Report to user via Slack
 ```
 
 ## Phases
@@ -262,65 +297,97 @@ case $OUTCOME in
 esac
 ```
 
-### Recovery (Agentic)
+### Recovery (Agentic & Autonomous)
 
-When verification fails, Molt doesn't just blindly rollback. It:
+When verification fails, Molt doesn't just rollback and give up. It leverages the fact that **after a successful rollback, Clawdbot is running again** — so it can use Clawdbot's own agent system to diagnose and fix the issue.
 
-1. **Captures context** — Gateway logs, error messages, what failed
-2. **Attempts simple rollback** — `git checkout $OLD_HEAD && pnpm install && restart`
-3. **If rollback fails, escalates** — Provides context for the AI or human to fix
+**The key insight:** Rollback restores the old (working) version → Gateway is up → Agent can run → Agent diagnoses and fixes → Retry update.
+
+```
+Update fails → Rollback succeeds → Gateway UP → Trigger agent → Diagnose & fix → Retry
+```
+
+**Recovery flow:**
+
+1. **Capture context** — Crash logs, error messages, failed commit
+2. **Rollback** — `git checkout $OLD_HEAD && pnpm install && restart`
+3. **If rollback succeeds** — Trigger autonomous recovery agent via `clawdbot wake`
+4. **If rollback fails** — Write RECOVERY.md for manual intervention
+
+**Autonomous recovery agent prompt:**
 
 ```bash
-recover() {
-  # Capture what went wrong
-  journalctl --user -u clawdbot-gateway -n 100 > ~/.clawdbot/molt/crash-log.txt
+# After successful rollback, wake the agent to diagnose and fix
+clawdbot wake --mode now --text "$(cat <<'EOF'
+🦞 MOLT AUTONOMOUS RECOVERY
 
-  # Try simple rollback
-  git checkout $(cat ~/.clawdbot/molt/pre-update-head)
-  pnpm install --frozen-lockfile --prefer-offline
-  clawdbot daemon restart
+The nightly update failed, but rollback succeeded. I'm running on the old version.
 
-  # Verify rollback worked
-  sleep 10
-  if clawdbot ping --timeout 10; then
-    notify "Rolled back successfully. See crash log for details."
-    return 0
-  fi
+## Your Mission
+1. Diagnose what went wrong
+2. If fixable, fix it and retry the update
+3. If not fixable, report findings to the user
 
-  # Rollback failed - this needs human/AI intervention
-  notify "CRITICAL: Rollback failed. Gateway is down. Manual fix required."
-  notify "Crash log: ~/.clawdbot/molt/crash-log.txt"
-  notify "Pre-update HEAD: $(cat ~/.clawdbot/molt/pre-update-head)"
+## Context
+- Old HEAD (current): ${CURRENT_HEAD}
+- Failed HEAD: ${NEW_HEAD}
+- Crash log: ~/.clawdbot/molt/crash-log.txt
 
-  # Write instructions for the next agent/human
-  cat > ~/.clawdbot/molt/RECOVERY.md << 'EOF'
+## Steps
+1. Read the crash log: cat ~/.clawdbot/molt/crash-log.txt
+2. Identify the error (common causes below)
+3. If you can fix it:
+   - Apply the fix
+   - Run: ~/.clawdbot/molt/molt.sh
+   - If it succeeds, we're done!
+4. If you can't fix it:
+   - Explain what went wrong
+   - Message the user via Slack with your findings
+
+## Common Fixable Issues
+- "Cannot find module X" → Try: cd ~/clawd && pnpm install --force
+- "ENOSPC" (disk full) → Try: pnpm store prune && pnpm cache clean
+- Network timeout during install → Just retry: ~/.clawdbot/molt/molt.sh
+- Lockfile conflict → Try: rm pnpm-lock.yaml && git checkout pnpm-lock.yaml && pnpm install
+
+## Important
+- You have 1 retry attempt. If molt.sh fails again, report to the user.
+- Don't get stuck in a loop - if unsure, ask for help.
+EOF
+)"
+```
+
+**Why this works:**
+- Uses existing Clawdbot infrastructure (no new agent framework)
+- Agent has full access to bash, file reading, etc.
+- Agent can iterate: try fix → retry molt → verify
+- Falls back to human if truly stuck
+
+**Fallback (rollback fails):**
+
+If rollback itself fails, Clawdbot is down and can't help. In this case, Molt writes a `RECOVERY.md` file with:
+- What happened
+- Crash log location
+- Manual recovery steps
+- Context for an external AI (like Claude Code via SSH) to fix
+
+```markdown
 # Molt Recovery Required
 
 The nightly update failed and automatic rollback also failed.
 
 ## What happened
-- Update started at: $TIMESTAMP
-- Old HEAD: $OLD_HEAD
-- New HEAD: $NEW_HEAD (attempted)
-- Error: $ERROR
+- Old HEAD: abc123
+- Failed HEAD: def456
+- Error: Gateway didn't start
 
 ## Crash log
-See: ~/.clawdbot/molt/crash-log.txt
+~/.clawdbot/molt/crash-log.txt
 
-## Manual recovery steps
-1. Check the crash log for the root cause
-2. Try: `cd ~/clawd && git checkout $OLD_HEAD && pnpm install && clawdbot daemon restart`
-3. If that fails, see CLAUDE.md for nuclear options
-
-## Context for AI recovery
-The gateway failed to start after update. Common causes:
-- Missing dependency (check for "Cannot find module" in logs)
-- Syntax error in new code (check for "SyntaxError" in logs)
-- Config incompatibility (check for "Invalid config" in logs)
-EOF
-
-  return 1
-}
+## Manual recovery
+1. SSH into the server
+2. cd ~/clawd && git checkout abc123 && pnpm install && pnpm build
+3. systemctl --user restart clawdbot-gateway
 ```
 
 ## Configuration

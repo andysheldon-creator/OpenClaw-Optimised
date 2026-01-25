@@ -211,6 +211,9 @@ if ! $gateway_up; then
     if systemctl --user is-active --quiet clawdbot-gateway.service; then
         log "Rollback successful - gateway is running on ${CURRENT_HEAD:0:8}"
 
+        # Save the failed HEAD for the agent to analyze
+        echo "$NEW_HEAD" > "${MOLT_DIR}/attempted-head"
+
         # Update changelog to reflect rollback
         cat >> "${WORKSPACE_DIR}/update-changelog.md" << EOF
 
@@ -220,7 +223,54 @@ Gateway didn't come up after update.
 See crash log: ~/.clawdbot/molt/crash-log.txt
 EOF
 
-        die "Update failed, rolled back successfully"
+        # Log rollback to history
+        echo "{\"timestamp\":\"$(timestamp)\",\"from\":\"${CURRENT_HEAD}\",\"to\":\"${NEW_HEAD}\",\"commits\":${COMMIT_COUNT},\"status\":\"rollback\",\"reason\":\"health_check_failed\"}" >> "${MOLT_DIR}/history.jsonl"
+
+        # === AUTONOMOUS RECOVERY ===
+        # Gateway is back up on old version - trigger agent to diagnose and fix
+        log "Triggering autonomous recovery agent..."
+
+        cd "$CLAWDBOT_DIR"
+        node dist/entry.js wake --mode now --text "$(cat <<AGENT_PROMPT
+🦞 MOLT AUTONOMOUS RECOVERY
+
+The nightly update failed, but rollback succeeded. I'm running on the old version now.
+
+## Your Mission
+1. Diagnose what went wrong
+2. If fixable, fix it and retry the update
+3. If not fixable, report findings to Corey
+
+## Context
+- Old HEAD (current): ${CURRENT_HEAD:0:8}
+- Failed HEAD: ${NEW_HEAD:0:8}
+- Commits attempted: ${COMMIT_COUNT}
+- Crash log: ~/.clawdbot/molt/crash-log.txt
+
+## Steps
+1. Read the crash log: cat ~/.clawdbot/molt/crash-log.txt
+2. Identify the error (common causes below)
+3. If you can fix it:
+   - Apply the fix
+   - Run: ~/.clawdbot/molt/molt.sh
+   - If it succeeds, we're done!
+4. If you can't fix it:
+   - Explain what went wrong
+   - Message Corey via Slack with your findings
+
+## Common Fixable Issues
+- "Cannot find module X" → Try: cd ~/clawd && pnpm install --force
+- "ENOSPC" (disk full) → Try: pnpm store prune && pnpm cache clean
+- Network timeout during install → Just retry: ~/.clawdbot/molt/molt.sh
+- Lockfile conflict → Try: cd ~/clawd && rm pnpm-lock.yaml && git checkout pnpm-lock.yaml && pnpm install
+
+## Important
+- You have 1 retry attempt. If molt.sh fails again, report to Corey.
+- Don't get stuck in a loop - if unsure, ask for help.
+AGENT_PROMPT
+)" 2>&1 || log "Warning: Could not trigger recovery agent"
+
+        exit 1  # Exit with error so cron knows it failed
     else
         log "CRITICAL: Rollback also failed!"
 
@@ -270,6 +320,9 @@ if ! systemctl --user is-active --quiet clawdbot-gateway.service; then
     pnpm build 2>&1 || true
     systemctl --user restart clawdbot-gateway.service
 
+    # Save the failed HEAD
+    echo "$NEW_HEAD" > "${MOLT_DIR}/attempted-head"
+
     cat >> "${WORKSPACE_DIR}/update-changelog.md" << EOF
 
 ## ROLLBACK
@@ -277,7 +330,33 @@ Update failed - crashed during stability window. Rolled back to \`${CURRENT_HEAD
 See crash log: ~/.clawdbot/molt/crash-log.txt
 EOF
 
-    die "Gateway crashed during stability window, rolled back"
+    # Log rollback
+    echo "{\"timestamp\":\"$(timestamp)\",\"from\":\"${CURRENT_HEAD}\",\"to\":\"${NEW_HEAD}\",\"commits\":${COMMIT_COUNT},\"status\":\"rollback\",\"reason\":\"stability_window_crash\"}" >> "${MOLT_DIR}/history.jsonl"
+
+    # Trigger autonomous recovery
+    log "Triggering autonomous recovery agent..."
+    sleep 5  # Give gateway a moment to stabilize
+
+    cd "$CLAWDBOT_DIR"
+    node dist/entry.js wake --mode now --text "$(cat <<AGENT_PROMPT
+🦞 MOLT AUTONOMOUS RECOVERY
+
+Update crashed during stability window. Rolled back successfully.
+
+## Context
+- Old HEAD (current): ${CURRENT_HEAD:0:8}
+- Failed HEAD: ${NEW_HEAD:0:8}
+- Crash log: ~/.clawdbot/molt/crash-log.txt
+
+## Steps
+1. Read crash log: cat ~/.clawdbot/molt/crash-log.txt
+2. Diagnose the crash (likely a runtime error, not build error)
+3. If fixable, fix and retry: ~/.clawdbot/molt/molt.sh
+4. If not, report to Corey via Slack
+AGENT_PROMPT
+)" 2>&1 || log "Warning: Could not trigger recovery agent"
+
+    exit 1
 fi
 
 # Final health check
