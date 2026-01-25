@@ -76,13 +76,16 @@ export const handleTtsCommands: CommandHandler = async (params, allowTextCommand
     action === "on" ? "always" : action === "off" ? "off" : action,
   );
   if (requestedAuto) {
-    if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-      params.sessionEntry.ttsAuto = requestedAuto;
-      params.sessionEntry.updatedAt = Date.now();
-      params.sessionStore[params.sessionKey] = params.sessionEntry;
+    const entry = params.sessionEntry;
+    const sessionKey = params.sessionKey;
+    const store = params.sessionStore;
+    if (entry && store && sessionKey) {
+      entry.ttsAuto = requestedAuto;
+      entry.updatedAt = Date.now();
+      store[sessionKey] = entry;
       if (params.storePath) {
         await updateSessionStore(params.storePath, (store) => {
-          store[params.sessionKey] = params.sessionEntry;
+          store[sessionKey] = entry;
         });
       }
     }

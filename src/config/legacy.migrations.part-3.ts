@@ -57,7 +57,7 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_3: LegacyConfigMigration[] = [
       if (typeof tts.enabled !== "boolean") return;
       tts.auto = tts.enabled ? "always" : "off";
       delete tts.enabled;
-      changes.push(`Moved messages.tts.enabled → messages.tts.auto (${tts.auto}).`);
+      changes.push(`Moved messages.tts.enabled → messages.tts.auto (${String(tts.auto)}).`);
     },
   },
   {

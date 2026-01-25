@@ -306,7 +306,7 @@ function resolveTtsAutoModeFromPrefs(prefs: TtsUserPrefs): TtsAutoMode | undefin
 export function resolveTtsAutoMode(params: {
   config: ResolvedTtsConfig;
   prefsPath: string;
-  sessionAuto?: TtsAutoMode | string;
+  sessionAuto?: string;
 }): TtsAutoMode {
   const sessionAuto = normalizeTtsAutoMode(params.sessionAuto);
   if (sessionAuto) return sessionAuto;
@@ -372,7 +372,7 @@ function updatePrefs(prefsPath: string, update: (prefs: TtsUserPrefs) => void): 
 export function isTtsEnabled(
   config: ResolvedTtsConfig,
   prefsPath: string,
-  sessionAuto?: TtsAutoMode | string,
+  sessionAuto?: string,
 ): boolean {
   return resolveTtsAutoMode({ config, prefsPath, sessionAuto }) !== "off";
 }
@@ -1216,7 +1216,7 @@ export async function maybeApplyTtsToPayload(params: {
   channel?: string;
   kind?: "tool" | "block" | "final";
   inboundAudio?: boolean;
-  ttsAuto?: TtsAutoMode | string;
+  ttsAuto?: string;
 }): Promise<ReplyPayload> {
   const config = resolveTtsConfig(params.cfg);
   const prefsPath = resolveTtsPrefsPath(config);
