@@ -179,7 +179,7 @@ describe("Agent Unit Tests", () => {
     it("should parse agent ID from session key", () => {
       const agentId = resolveSessionAgentId({
         config: mockConfig,
-        sessionKey: "agent:specialist",
+        sessionKey: "agent:specialist:active",
       });
 
       expect(agentId).toBe("specialist");
@@ -188,7 +188,7 @@ describe("Agent Unit Tests", () => {
     it("should normalize session key and agent ID", () => {
       const agentId = resolveSessionAgentId({
         config: mockConfig,
-        sessionKey: "  AGENT:SPECIALIST  ",
+        sessionKey: "  AGENT:SPECIALIST:ACTIVE  ",
       });
 
       expect(agentId).toBe("specialist");
@@ -218,7 +218,7 @@ describe("Agent Unit Tests", () => {
     it("should return both default and session agent IDs", () => {
       const result = resolveSessionAgentIds({
         config: mockConfig,
-        sessionKey: "agent:specialist",
+        sessionKey: "agent:specialist:active",
       });
 
       expect(result.defaultAgentId).toBe("main");
@@ -535,10 +535,10 @@ describe("Agent Unit Tests", () => {
       const agent1 = resolveSessionAgentId({ config });
       expect(agent1).toBe("main");
 
-      // With session key → use specialist
+      // With session key → use specialist (format: agent:agentId:rest)
       const agent2 = resolveSessionAgentId({
         config,
-        sessionKey: "agent:specialist",
+        sessionKey: "agent:specialist:active",
       });
       expect(agent2).toBe("specialist");
     });

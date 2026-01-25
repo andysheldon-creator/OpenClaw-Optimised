@@ -6,6 +6,7 @@ const include = baseTest.include ?? [
   "src/**/*.test.ts",
   "extensions/**/*.test.ts",
   "test/format-error.test.ts",
+  "test/unit/**/*.test.ts",
 ];
 const exclude = baseTest.exclude ?? [];
 

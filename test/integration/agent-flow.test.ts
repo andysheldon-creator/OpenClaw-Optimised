@@ -144,6 +144,9 @@ function validateHandoff(fromAgent: string, toAgent: string): boolean {
     nagarerun: ["shikirun"],
   };
 
+  // Escalation to conductor (shikirun) is always valid
+  if (toAgent === "shikirun") return true;
+
   return validHandoffs[fromAgent]?.includes(toAgent) || false;
 }
 

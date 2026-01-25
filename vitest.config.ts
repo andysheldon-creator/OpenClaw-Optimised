@@ -24,6 +24,8 @@ export default defineConfig({
       "src/**/*.test.ts",
       "extensions/**/*.test.ts",
       "test/format-error.test.ts",
+      "test/unit/**/*.test.ts",
+      "test/integration/**/*.test.ts",
     ],
     setupFiles: ["test/setup.ts"],
     exclude: [

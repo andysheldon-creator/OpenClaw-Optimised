@@ -8,7 +8,7 @@
  * 4. PR creation/review
  */
 
-import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { execSync } from "child_process";
 import { readFileSync, unlinkSync, existsSync } from "fs";
 import { join } from "path";
