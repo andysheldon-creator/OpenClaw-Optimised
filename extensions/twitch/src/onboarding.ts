@@ -235,7 +235,7 @@ async function configureWithEnvToken(
   const username = await promptUsername(prompter, account);
   const clientId = await promptClientId(prompter, account);
 
-  let next = setTwitchAccount(cfg, {
+  const cfgWithAccount = setTwitchAccount(cfg, {
     username,
     clientId,
     token: "", // Will use env var
@@ -243,10 +243,10 @@ async function configureWithEnvToken(
   });
 
   if (forceAllowFrom && dmPolicy.promptAllowFrom) {
-    next = await dmPolicy.promptAllowFrom({ cfg: next, prompter });
+    return { cfg: await dmPolicy.promptAllowFrom({ cfg: cfgWithAccount, prompter }) };
   }
 
-  return { cfg: next };
+  return { cfg: cfgWithAccount };
 }
 
 /**
@@ -323,8 +323,7 @@ export const twitchOnboardingAdapter: ChannelOnboardingAdapter = {
     };
   },
   configure: async ({ cfg, prompter, forceAllowFrom }) => {
-    let next = cfg as ClawdbotConfig;
-    const account = getTwitchAccount(next);
+    const account = getTwitchAccount(cfg);
 
     if (!isTwitchConfigured(account)) {
       await noteTwitchSetupHelp(prompter);
@@ -335,7 +334,7 @@ export const twitchOnboardingAdapter: ChannelOnboardingAdapter = {
     // Check if env var is set and config is empty
     if (envToken && !account?.token) {
       const envResult = await configureWithEnvToken(
-        next,
+        cfg,
         prompter,
         account,
         envToken,
@@ -354,7 +353,7 @@ export const twitchOnboardingAdapter: ChannelOnboardingAdapter = {
     const channelName = await promptChannelName(prompter, account);
     const { clientSecret, refreshToken } = await promptRefreshTokenSetup(prompter, account);
 
-    next = setTwitchAccount(next, {
+    const cfgWithAccount = setTwitchAccount(cfg, {
       username,
       token,
       clientId,
@@ -364,9 +363,10 @@ export const twitchOnboardingAdapter: ChannelOnboardingAdapter = {
       enabled: true,
     });
 
-    if (forceAllowFrom && dmPolicy.promptAllowFrom) {
-      next = await dmPolicy.promptAllowFrom({ cfg: next, prompter });
-    }
+    const cfgWithAllowFrom =
+      forceAllowFrom && dmPolicy.promptAllowFrom
+        ? await dmPolicy.promptAllowFrom({ cfg: cfgWithAccount, prompter })
+        : cfgWithAccount;
 
     // Prompt for access control if allowFrom not set
     if (!account?.allowFrom || account.allowFrom.length === 0) {
@@ -392,11 +392,16 @@ export const twitchOnboardingAdapter: ChannelOnboardingAdapter = {
               : [];
 
         const requireMention = accessConfig.policy === "open";
-        next = setTwitchAccessControl(next, allowedRoles, requireMention);
+        const cfgWithAccessControl = setTwitchAccessControl(
+          cfgWithAllowFrom,
+          allowedRoles,
+          requireMention,
+        );
+        return { cfg: cfgWithAccessControl };
       }
     }
 
-    return { cfg: next };
+    return { cfg: cfgWithAllowFrom };
   },
   dmPolicy,
   disable: (cfg) => {
