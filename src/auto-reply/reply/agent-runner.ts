@@ -46,6 +46,7 @@ import {
   createStatusUpdateRunContext,
   completeStatusUpdate,
   cleanupStatusUpdate,
+  handleAgentEventForStatus,
   noopStatusCallbacks,
   type StatusUpdateRunContext,
 } from "./status-updates-integration.js";
@@ -122,6 +123,10 @@ export async function runReplyAgent(params: {
     mode: typingMode,
     isHeartbeat,
   });
+
+  // Ensure we have a runId for event tracking
+  const runId = opts?.runId ?? crypto.randomUUID();
+  const optsWithRunId = opts?.runId ? opts : { ...opts, runId };
 
   const shouldEmitToolResult = createShouldEmitToolResult({
     sessionKey,
@@ -316,9 +321,18 @@ export async function runReplyAgent(params: {
 
   log.info(`Setting up status updates for agentId=${agentId}, channel=${replyToChannel}`);
 
-  // TODO: Create proper callbacks that integrate with the channel's send/edit methods
-  // For now, using noop callbacks to trace the integration path
-  const statusCallbacks = noopStatusCallbacks;
+  // Create callbacks using onBlockReply if available
+  const statusCallbacks =
+    optsWithRunId?.onBlockReply
+      ? {
+          sendStatus: async (text: string, _messageId?: string) => {
+            log.debug(`Sending status update: ${text}`);
+            await optsWithRunId.onBlockReply?.({ text }, { timeoutMs: 3000 });
+            return undefined; // Inline mode doesn't track message IDs
+          },
+          supportsEdit: () => false, // Use inline mode for now
+        }
+      : noopStatusCallbacks;
 
   const statusController = createAgentStatusController({
     cfg,
@@ -330,6 +344,23 @@ export async function runReplyAgent(params: {
   log.info(
     `Status update context created, controller=${statusController ? "present" : "undefined"}`,
   );
+
+  // Subscribe to agent events for status phase updates
+  let removeEventListener: (() => void) | undefined;
+  if (statusUpdateContext.controller) {
+    const { onAgentEvent } = await import("../../infra/agent-events.js");
+    removeEventListener = onAgentEvent((evt) => {
+      // Only handle events for this run
+      if (evt.runId === runId) {
+        handleAgentEventForStatus(statusUpdateContext, {
+          stream: evt.stream,
+          data: evt.data,
+        }).catch((err) => {
+          log.debug(`Error handling agent event for status: ${String(err)}`);
+        });
+      }
+    });
+  }
   // ===== END STATUS UPDATES INTEGRATION =====
 
   try {
@@ -338,7 +369,7 @@ export async function runReplyAgent(params: {
       commandBody,
       followupRun,
       sessionCtx,
-      opts,
+      opts: optsWithRunId,
       typingSignals,
       blockReplyPipeline,
       blockStreamingEnabled,
@@ -560,6 +591,9 @@ export async function runReplyAgent(params: {
     typing.markRunComplete();
 
     // ===== STATUS UPDATES: Cleanup =====
+    if (removeEventListener) {
+      removeEventListener();
+    }
     if (statusUpdateContext) {
       log.info(`Cleaning up status update context`);
       await cleanupStatusUpdate(statusUpdateContext);
