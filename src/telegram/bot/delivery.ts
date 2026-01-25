@@ -163,8 +163,11 @@ export async function deliverReplies(params: {
             // Fall back to text if voice messages are forbidden in this chat.
             // This happens when the recipient has Telegram Premium privacy settings
             // that block voice messages (Settings > Privacy > Voice Messages).
-            const errMsg = String(voiceErr);
+            const errMsg = formatErrorMessage(voiceErr);
             if (errMsg.includes("VOICE_MESSAGES_FORBIDDEN")) {
+              if (!reply.text?.trim()) {
+                throw voiceErr;
+              }
               logVerbose(
                 "telegram sendVoice forbidden (recipient has voice messages blocked in privacy settings); falling back to text",
               );

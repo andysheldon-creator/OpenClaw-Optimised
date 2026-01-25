@@ -237,4 +237,38 @@ describe("deliverReplies", () => {
     // Text fallback should NOT be attempted for other errors
     expect(sendMessage).not.toHaveBeenCalled();
   });
+
+  it("rethrows VOICE_MESSAGES_FORBIDDEN when no text fallback is available", async () => {
+    const runtime = { error: vi.fn(), log: vi.fn() };
+    const sendVoice = vi
+      .fn()
+      .mockRejectedValue(
+        new Error(
+          "GrammyError: Call to 'sendVoice' failed! (400: Bad Request: VOICE_MESSAGES_FORBIDDEN)",
+        ),
+      );
+    const sendMessage = vi.fn();
+    const bot = { api: { sendVoice, sendMessage } } as unknown as Bot;
+
+    loadWebMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("voice"),
+      contentType: "audio/ogg",
+      fileName: "note.ogg",
+    });
+
+    await expect(
+      deliverReplies({
+        replies: [{ mediaUrl: "https://example.com/note.ogg", audioAsVoice: true }],
+        chatId: "123",
+        token: "tok",
+        runtime,
+        bot,
+        replyToMode: "off",
+        textLimit: 4000,
+      }),
+    ).rejects.toThrow("VOICE_MESSAGES_FORBIDDEN");
+
+    expect(sendVoice).toHaveBeenCalledTimes(1);
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
 });
