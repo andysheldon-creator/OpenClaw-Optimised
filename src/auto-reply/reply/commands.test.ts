@@ -10,6 +10,7 @@ import {
 } from "../../agents/subagent-registry.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import * as internalHooks from "../../hooks/internal-hooks.js";
+import { clearPluginCommands, registerPluginCommand } from "../../plugins/commands.js";
 import type { MsgContext } from "../templating.js";
 import { resetBashChatCommandForTests } from "./bash-command.js";
 import { buildCommandContext, handleCommands } from "./commands.js";
@@ -140,6 +141,29 @@ describe("handleCommands bash alias", () => {
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
     expect(result.reply?.text).toContain("No active bash job");
+  });
+});
+
+describe("handleCommands plugin commands", () => {
+  it("dispatches registered plugin commands", async () => {
+    clearPluginCommands();
+    const result = registerPluginCommand("test-plugin", {
+      name: "card",
+      description: "Test card",
+      handler: async () => ({ text: "from plugin" }),
+    });
+    expect(result.ok).toBe(true);
+
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as ClawdbotConfig;
+    const params = buildParams("/card", cfg);
+    const commandResult = await handleCommands(params);
+
+    expect(commandResult.shouldContinue).toBe(false);
+    expect(commandResult.reply?.text).toBe("from plugin");
+    clearPluginCommands();
   });
 });
 
