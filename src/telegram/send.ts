@@ -198,20 +198,25 @@ export async function sendMessageTelegram(
   });
   const renderHtmlText = (value: string) => renderTelegramHtmlText(value, { textMode, tableMode });
 
+  // Resolve link preview setting from config (default: enabled).
+  const linkPreviewEnabled = account.config.linkPreview ?? true;
+  const linkPreviewOptions = linkPreviewEnabled ? undefined : { is_disabled: true };
+
   const sendTelegramText = async (
     rawText: string,
     params?: Record<string, unknown>,
     fallbackText?: string,
   ) => {
     const htmlText = renderHtmlText(rawText);
-    const sendParams = params
-      ? {
-          parse_mode: "HTML" as const,
-          ...params,
-        }
-      : {
-          parse_mode: "HTML" as const,
-        };
+    const baseParams = params ? { ...params } : {};
+    if (linkPreviewOptions) {
+      baseParams.link_preview_options = linkPreviewOptions;
+    }
+    const hasBaseParams = Object.keys(baseParams).length > 0;
+    const sendParams = {
+      parse_mode: "HTML" as const,
+      ...baseParams,
+    };
     const res = await request(() => api.sendMessage(chatId, htmlText, sendParams), "message").catch(
       async (err) => {
         // Telegram rejects malformed HTML (e.g., unsupported tags or entities).
@@ -222,7 +227,7 @@ export async function sendMessageTelegram(
             console.warn(`telegram HTML parse failed, retrying as plain text: ${errText}`);
           }
           const fallback = fallbackText ?? rawText;
-          const plainParams = params && Object.keys(params).length > 0 ? { ...params } : undefined;
+          const plainParams = hasBaseParams ? baseParams : undefined;
           return await request(
             () =>
               plainParams

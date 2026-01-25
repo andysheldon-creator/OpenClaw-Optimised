@@ -24,6 +24,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [How do I try the latest bits?](#how-do-i-try-the-latest-bits)
   - [How long does install and onboarding usually take?](#how-long-does-install-and-onboarding-usually-take)
   - [Installer stuck? How do I get more feedback?](#installer-stuck-how-do-i-get-more-feedback)
+  - [Windows install says git not found or clawdbot not recognized](#windows-install-says-git-not-found-or-clawdbot-not-recognized)
   - [The docs didn’t answer my question - how do I get a better answer?](#the-docs-didnt-answer-my-question-how-do-i-get-a-better-answer)
   - [How do I install Clawdbot on Linux?](#how-do-i-install-clawdbot-on-linux)
   - [How do I install Clawdbot on a VPS?](#how-do-i-install-clawdbot-on-a-vps)
@@ -31,6 +32,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Can I ask Clawd to update itself?](#can-i-ask-clawd-to-update-itself)
   - [What does the onboarding wizard actually do?](#what-does-the-onboarding-wizard-actually-do)
   - [Do I need a Claude or OpenAI subscription to run this?](#do-i-need-a-claude-or-openai-subscription-to-run-this)
+  - [Can I use Claude Max subscription without an API key](#can-i-use-claude-max-subscription-without-an-api-key)
   - [How does Anthropic "setup-token" auth work?](#how-does-anthropic-setuptoken-auth-work)
   - [Where do I find an Anthropic setup-token?](#where-do-i-find-an-anthropic-setuptoken)
   - [Do you support Claude subscription auth (Claude Code OAuth)?](#do-you-support-claude-subscription-auth-claude-code-oauth)
@@ -38,6 +40,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Is AWS Bedrock supported?](#is-aws-bedrock-supported)
   - [How does Codex auth work?](#how-does-codex-auth-work)
   - [Do you support OpenAI subscription auth (Codex OAuth)?](#do-you-support-openai-subscription-auth-codex-oauth)
+  - [How do I set up Gemini CLI OAuth](#how-do-i-set-up-gemini-cli-oauth)
   - [Is a local model OK for casual chats?](#is-a-local-model-ok-for-casual-chats)
   - [How do I keep hosted model traffic in a specific region?](#how-do-i-keep-hosted-model-traffic-in-a-specific-region)
   - [Do I have to buy a Mac Mini to install this?](#do-i-have-to-buy-a-mac-mini-to-install-this)
@@ -53,9 +56,14 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Should I run the Gateway on my laptop or a VPS?](#should-i-run-the-gateway-on-my-laptop-or-a-vps)
   - [How important is it to run Clawdbot on a dedicated machine?](#how-important-is-it-to-run-clawdbot-on-a-dedicated-machine)
   - [What are the minimum VPS requirements and recommended OS?](#what-are-the-minimum-vps-requirements-and-recommended-os)
+  - [Can I run Clawdbot in a VM and what are the requirements](#can-i-run-clawdbot-in-a-vm-and-what-are-the-requirements)
 - [What is Clawdbot?](#what-is-clawdbot)
   - [What is Clawdbot, in one paragraph?](#what-is-clawdbot-in-one-paragraph)
   - [What’s the value proposition?](#whats-the-value-proposition)
+  - [I just set it up what should I do first](#i-just-set-it-up-what-should-i-do-first)
+  - [What are the top five everyday use cases for Clawdbot](#what-are-the-top-five-everyday-use-cases-for-clawdbot)
+  - [Can Clawdbot help with lead gen outreach ads and blogs for a SaaS](#can-clawdbot-help-with-lead-gen-outreach-ads-and-blogs-for-a-saas)
+  - [What are the advantages vs Claude Code for web development?](#what-are-the-advantages-vs-claude-code-for-web-development)
 - [Skills and automation](#skills-and-automation)
   - [How do I customize skills without keeping the repo dirty?](#how-do-i-customize-skills-without-keeping-the-repo-dirty)
   - [Can I load skills from a custom folder?](#can-i-load-skills-from-a-custom-folder)
@@ -173,10 +181,12 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   - [Is it safe to expose Clawdbot to inbound DMs?](#is-it-safe-to-expose-clawdbot-to-inbound-dms)
   - [Is prompt injection only a concern for public bots?](#is-prompt-injection-only-a-concern-for-public-bots)
   - [Should my bot have its own email GitHub account or phone number](#should-my-bot-have-its-own-email-github-account-or-phone-number)
+  - [Can I give it autonomy over my text messages and is that safe](#can-i-give-it-autonomy-over-my-text-messages-and-is-that-safe)
   - [Can I use cheaper models for personal assistant tasks?](#can-i-use-cheaper-models-for-personal-assistant-tasks)
   - [I ran `/start` in Telegram but didn’t get a pairing code](#i-ran-start-in-telegram-but-didnt-get-a-pairing-code)
   - [WhatsApp: will it message my contacts? How does pairing work?](#whatsapp-will-it-message-my-contacts-how-does-pairing-work)
 - [Chat commands, aborting tasks, and “it won’t stop”](#chat-commands-aborting-tasks-and-it-wont-stop)
+  - [How do I stop internal system messages from showing in chat](#how-do-i-stop-internal-system-messages-from-showing-in-chat)
   - [How do I stop/cancel a running task?](#how-do-i-stopcancel-a-running-task)
   - [How do I send a Discord message from Telegram? (“Cross-context messaging denied”)](#how-do-i-send-a-discord-message-from-telegram-crosscontext-messaging-denied)
   - [Why does it feel like the bot “ignores” rapid‑fire messages?](#why-does-it-feel-like-the-bot-ignores-rapidfire-messages)
@@ -327,7 +337,7 @@ Node **>= 22** is required. `pnpm` is recommended. Bun is **not recommended** fo
 
 ### Does it run on Raspberry Pi
 
-Yes. The Gateway is lightweight - docs list **512MB–1GB RAM**, **1 core**, and about **500MB**
+Yes. The Gateway is lightweight - docs list **512MB-1GB RAM**, **1 core**, and about **500MB**
 disk as enough for personal use, and note that a **Raspberry Pi 4 can run it**.
 
 If you want extra headroom (logs, media, other services), **2GB is recommended**, but it’s
@@ -503,6 +513,26 @@ curl -fsSL https://clawd.bot/install.sh | bash -s -- --install-method git --verb
 
 More options: [Installer flags](/install/installer).
 
+### Windows install says git not found or clawdbot not recognized
+
+Two common Windows issues:
+
+**1) npm error spawn git / git not found**
+- Install **Git for Windows** and make sure `git` is on your PATH.
+- Close and reopen PowerShell, then re-run the installer.
+
+**2) clawdbot is not recognized after install**
+- Your npm global bin folder is not on PATH.
+- Check the path:
+  ```powershell
+  npm config get prefix
+  ```
+- Ensure `<prefix>\\bin` is on PATH (on most systems it is `%AppData%\\npm`).
+- Close and reopen PowerShell after updating PATH.
+
+If you want the smoothest Windows setup, use **WSL2** instead of native Windows.
+Docs: [Windows](/platforms/windows).
+
 ### The docs didnt answer my question how do I get a better answer
 
 Use the **hackable (git) install** so you have the full source and docs locally, then ask
@@ -597,6 +627,16 @@ Pro/Max or OpenAI Codex) are optional ways to authenticate those providers.
 Docs: [Anthropic](/providers/anthropic), [OpenAI](/providers/openai),
 [Local models](/gateway/local-models), [Models](/concepts/models).
 
+### Can I use Claude Max subscription without an API key
+
+Yes. You can authenticate with **Claude Code CLI OAuth** or a **setup-token**
+instead of an API key. This is the subscription path.
+
+Claude Pro/Max subscriptions **do not include an API key**, so this is the
+correct approach for subscription accounts. Important: you must verify with
+Anthropic that this usage is allowed under their subscription policy and terms.
+If you want the most explicit, supported path, use an Anthropic API key.
+
 ### How does Anthropic setuptoken auth work
 
 `claude setup-token` generates a **token string** via the Claude Code CLI (it is not available in the web console). You can run it on **any machine**. If Claude Code CLI credentials are present on the gateway host, Clawdbot can reuse them; otherwise choose **Anthropic token (paste setup-token)** and paste the string. The token is stored as an auth profile for the **anthropic** provider and used like an API key or OAuth profile. More detail: [OAuth](/concepts/oauth).
@@ -646,6 +686,16 @@ existing Codex CLI login (`~/.codex/auth.json`) on the gateway host. The onboard
 can import the CLI login or run the OAuth flow for you.
 
 See [OAuth](/concepts/oauth), [Model providers](/concepts/model-providers), and [Wizard](/start/wizard).
+
+### How do I set up Gemini CLI OAuth
+
+Gemini CLI uses a **plugin auth flow**, not a client id or secret in `clawdbot.json`.
+
+Steps:
+1) Enable the plugin: `clawdbot plugins enable google-gemini-cli-auth`
+2) Login: `clawdbot models auth login --provider google-gemini-cli --set-default`
+
+This stores OAuth tokens in auth profiles on the gateway host. Details: [Model providers](/concepts/model-providers).
 
 ### Is a local model OK for casual chats
 
@@ -814,6 +864,20 @@ OS: use **Ubuntu LTS** (or any modern Debian/Ubuntu). The Linux install path is 
 
 Docs: [Linux](/platforms/linux), [VPS hosting](/vps).
 
+### Can I run Clawdbot in a VM and what are the requirements
+
+Yes. Treat a VM the same as a VPS: it needs to be always on, reachable, and have enough
+RAM for the Gateway and any channels you enable.
+
+Baseline guidance:
+- **Absolute minimum:** 1 vCPU, 1GB RAM.
+- **Recommended:** 2GB RAM or more if you run multiple channels, browser automation, or media tools.
+- **OS:** Ubuntu LTS or another modern Debian/Ubuntu.
+
+If you are on Windows, **WSL2 is the easiest VM style setup** and has the best tooling
+compatibility. See [Windows](/platforms/windows), [VPS hosting](/vps).
+If you are running macOS in a VM, see [macOS VM](/platforms/macos-vm).
+
 ## What is Clawdbot?
 
 ### What is Clawdbot in one paragraph
@@ -841,6 +905,52 @@ Highlights:
 
 Docs: [Gateway](/gateway), [Channels](/channels), [Multi‑agent](/concepts/multi-agent),
 [Memory](/concepts/memory).
+
+### I just set it up what should I do first
+
+Good first projects:
+- Build a website (WordPress, Shopify, or a simple static site).
+- Prototype a mobile app (outline, screens, API plan).
+- Organize files and folders (cleanup, naming, tagging).
+- Connect Gmail and automate summaries or follow ups.
+
+It can handle large tasks, but it works best when you split them into phases and
+use sub agents for parallel work.
+
+### What are the top five everyday use cases for Clawdbot
+
+Everyday wins usually look like:
+- **Personal briefings:** summaries of inbox, calendar, and news you care about.
+- **Research and drafting:** quick research, summaries, and first drafts for emails or docs.
+- **Reminders and follow ups:** cron or heartbeat driven nudges and checklists.
+- **Browser automation:** filling forms, collecting data, and repeating web tasks.
+- **Cross device coordination:** send a task from your phone, let the Gateway run it on a server, and get the result back in chat.
+
+### Can Clawdbot help with lead gen outreach ads and blogs for a SaaS
+
+Yes for **research, qualification, and drafting**. It can scan sites, build shortlists,
+summarize prospects, and write outreach or ad copy drafts.
+
+For **outreach or ad runs**, keep a human in the loop. Avoid spam, follow local laws and
+platform policies, and review anything before it is sent. The safest pattern is to let
+Clawdbot draft and you approve.
+
+Docs: [Security](/gateway/security).
+
+### What are the advantages vs Claude Code for web development
+
+Clawdbot is a **personal assistant** and coordination layer, not an IDE replacement. Use
+Claude Code or Codex for the fastest direct coding loop inside a repo. Use Clawdbot when you
+want durable memory, cross-device access, and tool orchestration.
+
+Advantages:
+- **Persistent memory + workspace** across sessions
+- **Multi-platform access** (WhatsApp, Telegram, TUI, WebChat)
+- **Tool orchestration** (browser, files, scheduling, hooks)
+- **Always-on Gateway** (run on a VPS, interact from anywhere)
+- **Nodes** for local browser/screen/camera/exec
+
+Showcase: https://clawd.bot/showcase
 
 ## Skills and automation
 
@@ -2461,6 +2571,16 @@ later if required.
 
 Docs: [Security](/gateway/security), [Pairing](/start/pairing).
 
+### Can I give it autonomy over my text messages and is that safe
+
+We do **not** recommend full autonomy over your personal messages. The safest pattern is:
+- Keep DMs in **pairing mode** or a tight allowlist.
+- Use a **separate number or account** if you want it to message on your behalf.
+- Let it draft, then **approve before sending**.
+
+If you want to experiment, do it on a dedicated account and keep it isolated. See
+[Security](/gateway/security).
+
 ### Can I use cheaper models for personal assistant tasks
 
 Yes, **if** the agent is chat-only and the input is trusted. Smaller tiers are
@@ -2500,6 +2620,23 @@ clawdbot pairing list whatsapp
 Wizard phone number prompt: it’s used to set your **allowlist/owner** so your own DMs are permitted. It’s not used for auto-sending. If you run on your personal WhatsApp number, use that number and enable `channels.whatsapp.selfChatMode`.
 
 ## Chat commands, aborting tasks, and “it won’t stop”
+
+### How do I stop internal system messages from showing in chat
+
+Most internal or tool messages only appear when **verbose** or **reasoning** is enabled
+for that session.
+
+Fix in the chat where you see it:
+```
+/verbose off
+/reasoning off
+```
+
+If it is still noisy, check the session settings in the Control UI and set verbose
+to **inherit**. Also confirm you are not using a bot profile with `verboseDefault` set
+to `on` in config.
+
+Docs: [Thinking and verbose](/tools/thinking), [Security](/gateway/security#reasoning--verbose-output-in-groups).
 
 ### How do I stopcancel a running task
 

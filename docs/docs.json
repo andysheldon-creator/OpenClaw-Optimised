@@ -1051,6 +1051,7 @@
         "pages": [
           "platforms",
           "platforms/macos",
+          "platforms/macos-vm",
           "platforms/ios",
           "platforms/android",
           "platforms/windows",
