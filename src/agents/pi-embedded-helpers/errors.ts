@@ -83,6 +83,29 @@ function stripFinalTagsFromText(text: string): string {
   return text.replace(FINAL_TAG_RE, "");
 }
 
+function collapseConsecutiveDuplicateBlocks(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+  const blocks = trimmed.split(/\n{2,}/);
+  if (blocks.length < 2) return text;
+
+  const normalizeBlock = (value: string) => value.trim().replace(/\s+/g, " ");
+  const result: string[] = [];
+  let lastNormalized: string | null = null;
+
+  for (const block of blocks) {
+    const normalized = normalizeBlock(block);
+    if (lastNormalized && normalized === lastNormalized) {
+      continue;
+    }
+    result.push(block.trim());
+    lastNormalized = normalized;
+  }
+
+  if (result.length === blocks.length) return text;
+  return result.join("\n\n");
+}
+
 function isLikelyHttpErrorText(raw: string): boolean {
   const match = raw.match(HTTP_STATUS_PREFIX_RE);
   if (!match) return false;
@@ -327,7 +350,7 @@ export function sanitizeUserFacingText(text: string): string {
     return formatRawAssistantErrorForUi(trimmed);
   }
 
-  return stripped;
+  return collapseConsecutiveDuplicateBlocks(stripped);
 }
 
 export function isRateLimitAssistantError(msg: AssistantMessage | undefined): boolean {
