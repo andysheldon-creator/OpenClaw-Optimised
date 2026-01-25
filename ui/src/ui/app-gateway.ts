@@ -126,6 +126,7 @@ export function connectGateway(host: GatewayHost) {
     mode: "webchat",
     onHello: (hello) => {
       host.connected = true;
+      host.lastError = null;
       host.hello = hello;
       applySnapshot(host, hello);
       toast.success("Connected to gateway");
