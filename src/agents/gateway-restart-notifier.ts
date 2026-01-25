@@ -44,19 +44,57 @@ export async function writeRestartMarker(): Promise<void> {
   try {
     const registry = loadBubbleRegistry();
 
-    // Check for pending task file (written by DyDo before committing/building)
+    // Capture main session context (chatId and threadId)
     let mainSessionContext: RestartMarker["mainSessionContext"] = undefined;
+
+    // CORRECT APPROACH: Read from sentinel which contains the sessionKey
+    try {
+      const { readRestartSentinel } = await import("../infra/restart-sentinel.js");
+      const sentinel = await readRestartSentinel();
+
+      if (sentinel?.payload?.sessionKey) {
+        const sessionKey = sentinel.payload.sessionKey;
+        log.info(`Reading session context from sentinel: ${sessionKey}`);
+
+        // Parse sessionKey: "agent:main:telegram:group:-1003455795513:topic:8"
+        // Extract chatId and threadId from the key itself
+        const groupMatch = sessionKey.match(/telegram:group:(-?\d+)/);
+        const topicMatch = sessionKey.match(/:topic:(\d+)$/);
+
+        if (groupMatch) {
+          const chatId = groupMatch[1]; // "-1003455795513"
+          const threadId = topicMatch ? parseInt(topicMatch[1], 10) : undefined;
+
+          mainSessionContext = {
+            chatId,
+            threadId,
+            lastMessages: [],
+          };
+
+          log.info(`Extracted from sentinel: chatId=${chatId}, threadId=${threadId || "none"}`);
+        }
+      }
+    } catch (err) {
+      log.warn(`Could not read restart sentinel: ${err}`);
+    }
+
+    // Fallback to hardcoded user ID if we couldn't get context
+    if (!mainSessionContext) {
+      log.warn("No session context from sentinel, using fallback");
+      mainSessionContext = {
+        chatId: "1359438700",
+        lastMessages: [],
+      };
+    }
+
+    // Check for pending task file (written by DyDo before committing/building)
     const pendingTaskPath = path.join(os.homedir(), ".clawdbot", "pending-task.txt");
 
     if (fs.existsSync(pendingTaskPath)) {
       try {
         const pendingTask = fs.readFileSync(pendingTaskPath, "utf-8").trim();
-        if (pendingTask) {
-          mainSessionContext = {
-            chatId: "1359438700", // Hsc's user ID
-            lastMessages: [],
-            pendingTask,
-          };
+        if (pendingTask && mainSessionContext) {
+          mainSessionContext.pendingTask = pendingTask;
           log.info(`Captured pending task: ${pendingTask.slice(0, 100)}`);
         }
       } catch (err) {
@@ -133,15 +171,20 @@ export async function notifyGatewayRestart(): Promise<void> {
     }
 
     // Send to main session via Telegram
-    // Hardcoded for now - send to Hsc's user ID
     const { sendMessageTelegram } = await import("../telegram/send.js");
-    const targetChatId = "1359438700"; // Hsc's Telegram user ID
+
+    // Use captured chatId and threadId from marker
+    const targetChatId = marker.mainSessionContext?.chatId || "1359438700";
+    const targetThreadId = marker.mainSessionContext?.threadId;
 
     await sendMessageTelegram(targetChatId, message, {
       disableLinkPreview: true,
+      messageThreadId: targetThreadId, // Preserve topic context
     });
 
-    log.info(`Sent restart notification to ${targetChatId}`);
+    log.info(
+      `Sent restart notification to ${targetChatId}${targetThreadId ? ` (topic: ${targetThreadId})` : ""}`,
+    );
 
     // Clean up marker
     fs.unlinkSync(RESTART_MARKER_PATH);

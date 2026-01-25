@@ -152,6 +152,7 @@ export async function deliverAgentCommandResult(params: {
         channel: deliveryChannel,
         to: deliveryTarget,
         accountId: resolvedAccountId,
+        threadId: opts.messageThreadId, // Preserve topic/thread ID
         payloads: deliveryPayloads,
         bestEffort: bestEffortDeliver,
         onError: (err) => logDeliveryError(err),

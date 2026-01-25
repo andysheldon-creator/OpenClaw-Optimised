@@ -42,6 +42,8 @@ export type AgentCommandOpts = {
   channel?: string; // delivery channel (whatsapp|telegram|...)
   /** Account ID for multi-account channel routing (e.g., WhatsApp account). */
   accountId?: string;
+  /** Forum topic thread ID (for Telegram forum topics). */
+  messageThreadId?: number;
   /** Context for embedded run routing (channel/account/thread). */
   runContext?: AgentRunContext;
   deliveryTargetMode?: ChannelOutboundTargetMode;

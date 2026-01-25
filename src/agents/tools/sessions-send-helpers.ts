@@ -14,6 +14,7 @@ export type AnnounceTarget = {
   channel: string;
   to: string;
   accountId?: string;
+  messageThreadId?: number;
 };
 
 export function resolveAnnounceTargetFromKey(sessionKey: string): AnnounceTarget | null {
@@ -22,7 +23,18 @@ export function resolveAnnounceTargetFromKey(sessionKey: string): AnnounceTarget
   if (parts.length < 3) return null;
   const [channelRaw, kind, ...rest] = parts;
   if (kind !== "group" && kind !== "channel") return null;
-  const id = rest.join(":").trim();
+
+  // Extract topic/thread ID from rest (e.g., ["-1003455795513", "topic", "8"])
+  let messageThreadId: number | undefined;
+  const restJoined = rest.join(":");
+  const topicMatch = restJoined.match(/:topic:(\d+)$/);
+  if (topicMatch) {
+    messageThreadId = parseInt(topicMatch[1], 10);
+  }
+
+  // Remove :topic:N suffix from ID for target
+  const id = topicMatch ? restJoined.replace(/:topic:\d+$/, "") : restJoined.trim();
+
   if (!id) return null;
   if (!channelRaw) return null;
   const normalizedChannel = normalizeAnyChannelId(channelRaw) ?? normalizeChatChannelId(channelRaw);
@@ -37,7 +49,11 @@ export function resolveAnnounceTargetFromKey(sessionKey: string): AnnounceTarget
   const normalized = normalizedChannel
     ? getChannelPlugin(normalizedChannel)?.messaging?.normalizeTarget?.(kindTarget)
     : undefined;
-  return { channel, to: normalized ?? kindTarget };
+  return {
+    channel,
+    to: normalized ?? kindTarget,
+    messageThreadId,
+  };
 }
 
 export function buildAgentToAgentMessageContext(params: {
