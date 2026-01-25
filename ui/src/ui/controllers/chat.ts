@@ -109,6 +109,26 @@ export async function abortChatRun(state: ChatState): Promise<boolean> {
   }
 }
 
+export async function interruptChatRun(
+  state: ChatState,
+  message: string,
+): Promise<boolean> {
+  if (!state.client || !state.connected) return false;
+  const msg = message.trim();
+  if (!msg) return false;
+
+  try {
+    const res = (await state.client.request("chat.interrupt", {
+      sessionKey: state.sessionKey,
+      message: msg,
+    })) as { ok?: boolean; queued?: boolean };
+    return res.ok === true && res.queued === true;
+  } catch (err) {
+    state.lastError = String(err);
+    return false;
+  }
+}
+
 export function handleChatEvent(
   state: ChatState,
   payload?: ChatEventPayload,

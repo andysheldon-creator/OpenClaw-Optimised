@@ -62,6 +62,14 @@ export const ChatInjectParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ChatInterruptParamsSchema = Type.Object(
+  {
+    sessionKey: NonEmptyString,
+    message: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
 export const ChatEventSchema = Type.Object(
   {
     runId: NonEmptyString,

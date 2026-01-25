@@ -60,6 +60,7 @@ import {
 } from "./app-settings";
 import {
   handleAbortChat as handleAbortChatInternal,
+  handleInterruptChat as handleInterruptChatInternal,
   handleSendChat as handleSendChatInternal,
   removeQueuedMessage as removeQueuedMessageInternal,
 } from "./app-chat";
@@ -382,6 +383,13 @@ export class ClawdbotApp extends LitElement {
       this as unknown as Parameters<typeof handleSendChatInternal>[0],
       messageOverride,
       opts,
+    );
+  }
+
+  async handleInterruptChat(message?: string) {
+    await handleInterruptChatInternal(
+      this as unknown as Parameters<typeof handleInterruptChatInternal>[0],
+      message,
     );
   }
 

@@ -30,8 +30,10 @@ import {
   validateChatAbortParams,
   validateChatHistoryParams,
   validateChatInjectParams,
+  validateChatInterruptParams,
   validateChatSendParams,
 } from "../protocol/index.js";
+import { queueEmbeddedPiMessage } from "../../agents/pi-embedded.js";
 import { getMaxChatHistoryMessagesBytes } from "../server-constants.js";
 import {
   capArrayByJsonBytes,
@@ -668,5 +670,47 @@ export const chatHandlers: GatewayRequestHandlers = {
     context.nodeSendToSession(p.sessionKey, "chat", chatPayload);
 
     respond(true, { ok: true, messageId });
+  },
+  "chat.interrupt": async ({ params, respond }) => {
+    if (!validateChatInterruptParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid chat.interrupt params: ${formatValidationErrors(validateChatInterruptParams.errors)}`,
+        ),
+      );
+      return;
+    }
+    const p = params as {
+      sessionKey: string;
+      message: string;
+    };
+
+    // Load session to get sessionId
+    const { entry } = loadSessionEntry(p.sessionKey);
+    const sessionId = entry?.sessionId;
+    if (!sessionId) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "session not found"));
+      return;
+    }
+
+    // Queue the message to the active run via steer()
+    // This will inject the message and interrupt the model after the current tool call
+    const queued = queueEmbeddedPiMessage(sessionId, p.message);
+    if (!queued) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          "no active run to interrupt, or run is not streaming",
+        ),
+      );
+      return;
+    }
+
+    respond(true, { ok: true, queued: true });
   },
 };

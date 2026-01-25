@@ -478,6 +478,7 @@ export function renderApp(state: AppViewState) {
               onChatScroll: (event) => state.handleChatScroll(event),
               onDraftChange: (next) => (state.chatMessage = next),
               onSend: () => state.handleSendChat(),
+              onInterrupt: () => state.handleInterruptChat(),
               canAbort: Boolean(state.chatRunId),
               onAbort: () => void state.handleAbortChat(),
               onQueueRemove: (id) => state.removeQueuedMessage(id),

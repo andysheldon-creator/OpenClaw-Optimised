@@ -57,6 +57,7 @@ export type ChatProps = {
   onToggleFocusMode: () => void;
   onDraftChange: (next: string) => void;
   onSend: () => void;
+  onInterrupt?: () => void;
   onAbort?: () => void;
   onQueueRemove: (id: string) => void;
   onNewSession: () => void;
@@ -261,6 +262,18 @@ export function renderChat(props: ChatProps) {
           >
             ${canAbort ? "Stop" : "New session"}
           </button>
+          ${isBusy && props.onInterrupt
+            ? html`
+                <button
+                  class="btn"
+                  ?disabled=${!props.connected || !props.draft.trim()}
+                  @click=${props.onInterrupt}
+                  title="Interrupt the current generation after the next tool call and inject this message"
+                >
+                  Interrupt
+                </button>
+              `
+            : nothing}
           <button
             class="btn primary"
             ?disabled=${!props.connected}

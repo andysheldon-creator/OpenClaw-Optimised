@@ -1,4 +1,4 @@
-import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat";
+import { abortChatRun, interruptChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat";
 import { loadSessions } from "./controllers/sessions";
 import { generateUUID } from "./uuid";
 import { resetToolStream } from "./app-tool-stream";
@@ -99,7 +99,7 @@ export function removeQueuedMessage(host: ChatHost, id: string) {
 export async function handleSendChat(
   host: ChatHost,
   messageOverride?: string,
-  opts?: { restoreDraft?: boolean },
+  opts?: { restoreDraft?: boolean; interrupt?: boolean },
 ) {
   if (!host.connected) return;
   const previousDraft = host.chatMessage;
@@ -116,6 +116,18 @@ export async function handleSendChat(
   }
 
   if (isChatBusy(host)) {
+    if (opts?.interrupt) {
+      // Try to interrupt the current run with the new message
+      const interrupted = await interruptChatRun(
+        host as unknown as Parameters<typeof interruptChatRun>[0],
+        message,
+      );
+      if (interrupted) {
+        // Message was queued to interrupt after next tool call
+        return;
+      }
+      // Fall back to queuing if interrupt failed
+    }
     enqueueChatMessage(host, message);
     return;
   }
@@ -124,6 +136,28 @@ export async function handleSendChat(
     previousDraft: messageOverride == null ? previousDraft : undefined,
     restoreDraft: Boolean(messageOverride && opts?.restoreDraft),
   });
+}
+
+export async function handleInterruptChat(host: ChatHost, message?: string) {
+  if (!host.connected) return;
+  const msg = (message ?? host.chatMessage).trim();
+  if (!msg) return;
+
+  if (!isChatBusy(host)) {
+    // Not busy, just send normally
+    await handleSendChat(host, msg);
+    return;
+  }
+
+  host.chatMessage = "";
+  const interrupted = await interruptChatRun(
+    host as unknown as Parameters<typeof interruptChatRun>[0],
+    msg,
+  );
+  if (!interrupted) {
+    // Fall back to queue if interrupt failed
+    enqueueChatMessage(host, msg);
+  }
 }
 
 export async function refreshChat(host: ChatHost) {
