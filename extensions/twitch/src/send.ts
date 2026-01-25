@@ -56,7 +56,6 @@ export async function sendMessageTwitchInternal(
   stripMarkdown: boolean = true,
   logger: Console = console,
 ): Promise<SendMessageResult> {
-  // Resolve account
   const account = getAccountConfig(cfg, accountId);
   if (!account) {
     const availableIds = Object.keys(cfg.channels?.twitch?.accounts ?? {});
@@ -78,7 +77,6 @@ export async function sendMessageTwitchInternal(
     };
   }
 
-  // Normalize channel (parameter override, then account channel)
   const normalizedChannel = channel || account.channel;
   if (!normalizedChannel) {
     return {
@@ -88,7 +86,6 @@ export async function sendMessageTwitchInternal(
     };
   }
 
-  // Strip markdown if enabled
   const cleanedText = stripMarkdown ? stripMarkdownForTwitch(text) : text;
   if (!cleanedText) {
     return {
@@ -97,7 +94,6 @@ export async function sendMessageTwitchInternal(
     };
   }
 
-  // Get client manager from registry
   const clientManager = getRegistryClientManager(accountId);
   if (!clientManager) {
     return {

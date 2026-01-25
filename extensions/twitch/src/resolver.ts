@@ -51,7 +51,6 @@ export async function resolveTwitchTargets(
 ): Promise<ChannelResolveResult[]> {
   const log = createLogger(logger);
 
-  // Validate credentials
   if (!account.clientId || !account.token) {
     log.error("Missing Twitch client ID or token");
     return inputs.map((input) => ({
@@ -61,20 +60,16 @@ export async function resolveTwitchTargets(
     }));
   }
 
-  // Normalize token - strip oauth: prefix if present
   const normalizedToken = normalizeToken(account.token);
 
-  // Create auth provider and API client
   const authProvider = new StaticAuthProvider(account.clientId, normalizedToken);
   const apiClient = new ApiClient({ authProvider });
 
   const results: ChannelResolveResult[] = [];
 
-  // Process each input
   for (const input of inputs) {
     const normalized = normalizeUsername(input);
 
-    // Skip empty inputs
     if (!normalized) {
       results.push({
         input,
@@ -84,12 +79,10 @@ export async function resolveTwitchTargets(
       continue;
     }
 
-    // If it looks like a user ID (numeric), validate it exists
     const looksLikeUserId = /^\d+$/.test(normalized);
 
     try {
       if (looksLikeUserId) {
-        // Validate user ID by fetching the user
         const user = await apiClient.users.getUserById(normalized);
 
         if (user) {
@@ -109,7 +102,6 @@ export async function resolveTwitchTargets(
           log.warn(`User ID ${normalized} not found`);
         }
       } else {
-        // Resolve username to user ID
         const user = await apiClient.users.getUserByName(normalized);
 
         if (user) {

@@ -108,12 +108,10 @@ export const twitchOutbound: ChannelOutboundAdapter = {
   sendText: async (params: ChannelOutboundContext): Promise<OutboundDeliveryResult> => {
     const { cfg, to, text, accountId, signal } = params;
 
-    // Check for abort signal
     if (signal?.aborted) {
       throw new Error("Outbound delivery aborted");
     }
 
-    // Resolve account
     const resolvedAccountId = accountId ?? DEFAULT_ACCOUNT_ID;
     const account = getAccountConfig(cfg, resolvedAccountId);
     if (!account) {
@@ -124,19 +122,16 @@ export const twitchOutbound: ChannelOutboundAdapter = {
       );
     }
 
-    // Get channel (support target parameter override)
     const channel = to || account.channel;
     if (!channel) {
       throw new Error("No channel specified and no default channel in account config");
     }
 
-    // Get plugin config for markdown stripping
     const pluginCfg = parsePluginConfig(
       // biome-ignore lint/suspicious/noExplicitAny: pluginConfig is not part of CoreConfig
       (cfg as any).pluginConfig ?? {},
     );
 
-    // Send message
     const result = await sendMessageTwitchInternal(
       normalizeTwitchChannel(channel),
       text,
@@ -179,15 +174,12 @@ export const twitchOutbound: ChannelOutboundAdapter = {
   sendMedia: async (params: ChannelOutboundContext): Promise<OutboundDeliveryResult> => {
     const { text, mediaUrl, signal } = params;
 
-    // Check for abort signal
     if (signal?.aborted) {
       throw new Error("Outbound delivery aborted");
     }
 
-    // Combine text and media URL
     const message = mediaUrl ? `${text || ""} ${mediaUrl}`.trim() : text;
 
-    // Delegate to sendText
     if (!twitchOutbound.sendText) {
       throw new Error("sendText not implemented");
     }

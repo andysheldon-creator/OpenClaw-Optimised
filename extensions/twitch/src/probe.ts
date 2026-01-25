@@ -41,10 +41,8 @@ export async function probeTwitch(
   let client: ChatClient | undefined;
 
   try {
-    // Create auth provider with the token
     const authProvider = new StaticAuthProvider(account.clientId ?? "", rawToken);
 
-    // Create chat client
     client = new ChatClient({
       authProvider,
     });
@@ -59,7 +57,6 @@ export async function probeTwitch(
       const cleanup = () => {
         if (settled) return;
         settled = true;
-        // Remove all listeners
         connectListener?.unbind();
         disconnectListener?.unbind();
         authFailListener?.unbind();
@@ -84,20 +81,16 @@ export async function probeTwitch(
       });
     });
 
-    // Create timeout promise
     const timeout = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error(`timeout after ${timeoutMs}ms`)), timeoutMs);
     });
 
-    // Set up listeners BEFORE connecting, then race against timeout
     client.connect();
     await Promise.race([connectionPromise, timeout]);
 
-    // Clean up connection before returning
     client.quit();
     client = undefined;
 
-    // If we got here, connection was successful
     return {
       ok: true,
       connected: true,
@@ -114,7 +107,6 @@ export async function probeTwitch(
       elapsedMs: Date.now() - started,
     };
   } finally {
-    // Always clean up the client
     if (client) {
       try {
         client.quit();

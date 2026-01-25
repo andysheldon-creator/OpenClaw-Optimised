@@ -45,7 +45,6 @@ async function processTwitchMessage(params: {
 }): Promise<void> {
   const { message, account, accountId, config, runtime, core, statusSink } = params;
 
-  // Resolve route for this message
   const route = core.channel.routing.resolveAgentRoute({
     cfg: config as Parameters<typeof core.channel.routing.resolveAgentRoute>[0]["cfg"],
     channel: "twitch",
@@ -56,7 +55,6 @@ async function processTwitchMessage(params: {
     },
   });
 
-  // Build message body
   const rawBody = message.message;
   const body = core.channel.reply.formatAgentEnvelope({
     channel: "Twitch",
@@ -68,7 +66,6 @@ async function processTwitchMessage(params: {
     body: rawBody,
   });
 
-  // Build context payload
   const ctxPayload = core.channel.reply.finalizeInboundContext({
     Body: body,
     RawBody: rawBody,
@@ -89,7 +86,6 @@ async function processTwitchMessage(params: {
     OriginatingTo: `twitch:channel:${message.channel}`,
   });
 
-  // Record session
   const storePath = core.channel.session.resolveStorePath(
     (config as Parameters<typeof core.channel.session.resolveStorePath>[0]["cfg"])?.session?.store,
     { agentId: route.agentId },
@@ -103,14 +99,12 @@ async function processTwitchMessage(params: {
     },
   });
 
-  // Resolve markdown table mode
   const tableMode = core.channel.text.resolveMarkdownTableMode({
     cfg: config as Parameters<typeof core.channel.text.resolveMarkdownTableMode>[0]["cfg"],
     channel: "twitch",
     accountId,
   });
 
-  // Dispatch reply
   await core.channel.reply.dispatchReplyWithBufferedBlockDispatcher({
     ctx: ctxPayload,
     cfg: config as Parameters<
@@ -191,7 +185,6 @@ export async function monitorTwitchProvider(
   const core = getTwitchRuntime();
   let stopped = false;
 
-  // Create logger for client manager
   const logger = {
     info: (msg: string) => runtime.log?.(`[twitch] ${msg}`),
     warn: (msg: string) => runtime.log?.(`[twitch] ${msg}`),
@@ -199,10 +192,8 @@ export async function monitorTwitchProvider(
     debug: (msg: string) => runtime.log?.(`[twitch] ${msg}`),
   };
 
-  // Get or create client manager
   const clientManager = getOrCreateClientManager(accountId, logger);
 
-  // Establish connection
   try {
     await clientManager.getClient(
       account,
@@ -216,7 +207,6 @@ export async function monitorTwitchProvider(
     throw error;
   }
 
-  // Register message handler
   const unregisterHandler = clientManager.onMessage(account, async (message) => {
     if (stopped) return;
 
@@ -256,13 +246,11 @@ export async function monitorTwitchProvider(
     }
   });
 
-  // Stop function
   const stop = () => {
     stopped = true;
     unregisterHandler();
   };
 
-  // Handle abort signal
   abortSignal.addEventListener("abort", stop, { once: true });
 
   return { stop };

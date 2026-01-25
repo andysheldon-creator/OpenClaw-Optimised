@@ -26,14 +26,11 @@ export class TwitchClientManager {
     }
 
     if (account.clientSecret) {
-      // Use RefreshingAuthProvider - can handle tokens with or without refresh tokens
       const authProvider = new RefreshingAuthProvider({
         clientId: account.clientId,
         clientSecret: account.clientSecret,
       });
 
-      // Use addUserForToken to figure out the user ID from the token
-      // This works whether we have a refresh token or not
       await authProvider
         .addUserForToken({
           accessToken: normalizedToken,
@@ -52,14 +49,12 @@ export class TwitchClientManager {
           );
         });
 
-      // Set up token refresh event listener (only fires if refreshToken is provided)
       authProvider.onRefresh((userId, token) => {
         this.logger.info(
           `[twitch] Access token refreshed for user ${userId} (expires in ${token.expiresIn ? `${token.expiresIn}s` : "unknown"})`,
         );
       });
 
-      // Set up token refresh failure listener
       authProvider.onRefreshFailure((userId, error) => {
         this.logger.error(
           `[twitch] Failed to refresh access token for user ${userId}: ${error.message}`,
@@ -76,7 +71,6 @@ export class TwitchClientManager {
       return authProvider;
     }
 
-    // Fall back to StaticAuthProvider for backward compatibility (no clientSecret)
     this.logger.info(
       `[twitch] Using StaticAuthProvider for ${account.username} (no clientSecret provided)`,
     );
@@ -98,7 +92,6 @@ export class TwitchClientManager {
       return existing;
     }
 
-    // Resolve token from config or environment
     const tokenResolution = resolveTwitchToken(cfg, {
       accountId,
     });
@@ -119,13 +112,10 @@ export class TwitchClientManager {
       throw new Error("Missing Twitch client ID");
     }
 
-    // Normalize token - strip oauth: prefix if present (Twurple doesn't need it)
     const normalizedToken = normalizeToken(tokenResolution.token);
 
-    // Create auth provider
     const authProvider = await this.createAuthProvider(account, normalizedToken);
 
-    // Create chat client
     const client = new ChatClient({
       authProvider,
       channels: [account.channel],
@@ -160,10 +150,8 @@ export class TwitchClientManager {
       },
     });
 
-    // Set up event handlers
     this.setupClientHandlers(client, account);
 
-    // Connect
     client.connect();
 
     this.clients.set(key, client);

@@ -35,10 +35,8 @@ export function collectTwitchStatusIssues(
   for (const entry of accounts) {
     const accountId = entry.accountId;
 
-    // Skip if not a Twitch account
     if (!accountId) continue;
 
-    // Get full account config if available
     let account: ReturnType<typeof getAccountConfig> | null = null;
     let cfg: Parameters<typeof resolveTwitchToken>[0] | undefined;
     if (getCfg) {
@@ -52,7 +50,6 @@ export function collectTwitchStatusIssues(
       }
     }
 
-    // Check 1: Account not configured
     if (!entry.configured) {
       issues.push({
         channel: "twitch",
@@ -61,10 +58,9 @@ export function collectTwitchStatusIssues(
         message: "Twitch account is not properly configured",
         fix: "Add required fields: username, token, and clientId to your account configuration",
       });
-      continue; // Skip further checks if not configured
+      continue;
     }
 
-    // Check 2: Account disabled
     if (entry.enabled === false) {
       issues.push({
         channel: "twitch",
@@ -73,10 +69,9 @@ export function collectTwitchStatusIssues(
         message: "Twitch account is disabled",
         fix: "Set enabled: true in your account configuration to enable this account",
       });
-      continue; // Skip further checks if disabled
+      continue;
     }
 
-    // Check 3: Missing clientId (check if username/token present but no clientId)
     if (account && account.username && account.token && !account.clientId) {
       issues.push({
         channel: "twitch",
@@ -87,12 +82,10 @@ export function collectTwitchStatusIssues(
       });
     }
 
-    // Checks that require account config
     const tokenResolution = cfg
       ? resolveTwitchToken(cfg as Parameters<typeof resolveTwitchToken>[0], { accountId })
       : { token: "", source: "none" };
     if (account && isAccountConfigured(account, tokenResolution.token)) {
-      // Check 4: Token format warning (normalized, but may indicate config issue)
       if (account.token?.startsWith("oauth:")) {
         issues.push({
           channel: "twitch",
@@ -103,7 +96,6 @@ export function collectTwitchStatusIssues(
         });
       }
 
-      // Check 5: clientSecret provided without refreshToken
       if (account.clientSecret && !account.refreshToken) {
         issues.push({
           channel: "twitch",
@@ -114,7 +106,6 @@ export function collectTwitchStatusIssues(
         });
       }
 
-      // Check 6: Access control warnings
       if (account.allowFrom && account.allowFrom.length === 0) {
         issues.push({
           channel: "twitch",
@@ -125,7 +116,6 @@ export function collectTwitchStatusIssues(
         });
       }
 
-      // Check 7: Invalid role combinations
       if (
         account.allowedRoles?.includes("all") &&
         account.allowFrom &&
@@ -141,7 +131,6 @@ export function collectTwitchStatusIssues(
       }
     }
 
-    // Check 8: Runtime errors
     if (entry.lastError) {
       issues.push({
         channel: "twitch",
@@ -152,7 +141,6 @@ export function collectTwitchStatusIssues(
       });
     }
 
-    // Check 9: Account never connected successfully
     if (
       entry.configured &&
       !entry.running &&
@@ -169,7 +157,6 @@ export function collectTwitchStatusIssues(
       });
     }
 
-    // Check 10: Long-running connection may need reconnection
     if (entry.running && entry.lastStartAt) {
       const uptime = Date.now() - entry.lastStartAt;
       const daysSinceStart = uptime / (1000 * 60 * 60 * 24);

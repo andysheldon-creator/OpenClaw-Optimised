@@ -38,7 +38,6 @@ export function checkTwitchAccessControl(params: {
 }): TwitchAccessControlResult {
   const { message, account, botUsername } = params;
 
-  // Check mention requirement first
   if (account.requireMention) {
     const mentions = extractMentions(message.message);
     if (!mentions.includes(botUsername.toLowerCase())) {
@@ -49,7 +48,6 @@ export function checkTwitchAccessControl(params: {
     }
   }
 
-  // Check allowlist (by user ID)
   if (account.allowFrom && account.allowFrom.length > 0) {
     const allowFrom = account.allowFrom;
     const senderId = message.userId;
@@ -61,7 +59,6 @@ export function checkTwitchAccessControl(params: {
       };
     }
 
-    // Check if sender is in allowlist
     if (!allowFrom.includes(senderId)) {
       return {
         allowed: false,
@@ -69,7 +66,6 @@ export function checkTwitchAccessControl(params: {
       };
     }
 
-    // Sender is in allowlist, no need to check role restrictions
     return {
       allowed: true,
       matchKey: senderId,
@@ -77,7 +73,6 @@ export function checkTwitchAccessControl(params: {
     };
   }
 
-  // Check role-based restrictions
   if (account.allowedRoles && account.allowedRoles.length > 0) {
     const allowedRoles = account.allowedRoles;
 
@@ -90,7 +85,6 @@ export function checkTwitchAccessControl(params: {
       };
     }
 
-    // Check if sender has any of the allowed roles
     const hasAllowedRole = checkSenderRoles({
       message,
       allowedRoles,
@@ -110,7 +104,6 @@ export function checkTwitchAccessControl(params: {
     };
   }
 
-  // No restrictions configured - allow everyone
   return {
     allowed: true,
   };

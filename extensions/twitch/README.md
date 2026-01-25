@@ -30,11 +30,11 @@ Minimal config:
           username: "clawdbot",
           token: "oauth:abc123...",
           clientId: "your_client_id_here",
-          channel: "vevisk"
-        }
-      }
-    }
-  }
+          channel: "vevisk",
+        },
+      },
+    },
+  },
 }
 ```
 
