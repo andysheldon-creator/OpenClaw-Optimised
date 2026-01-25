@@ -47,3 +47,9 @@ clawdbot onboard --auth-choice chutes
 - Chutes models are available under the `chutes/` provider prefix.
 - The default model is `chutes/zai-org/GLM-4.6-TEE`.
 - Chutes uses OpenAI-compatible endpoints.
+- For a full list of available models, see the [Chutes Models API](https://llm.chutes.ai/v1/models). Popular models include:
+  - `deepseek-ai/DeepSeek-V3.2-TEE`
+  - `Qwen/Qwen3-235B-A22B-Instruct-2507-TEE`
+  - `mistralai/Mistral-Small-24B-Instruct-2501-TEE`
+  - `NousResearch/Hermes-4-14B`
+
