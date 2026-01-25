@@ -844,7 +844,7 @@ export async function runEmbeddedPiAgent(
             verboseLevel: params.verboseLevel,
             reasoningLevel: params.reasoningLevel,
             toolResultFormat: resolvedToolResultFormat,
-            inlineToolResultsAllowed: !params.onPartialReply && !params.onToolResult,
+            inlineToolResultsAllowed: false,
           });
 
           log.debug(
