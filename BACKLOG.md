@@ -34,11 +34,11 @@ Branch: `landing-page-ux` | Design doc: `docs/plans/2026-01-25-landing-page-desi
 Existing code: `src/infra/overseer/`, `src/infra/decisions/`, `ui/src/ui/views/overseer*.ts`
 UX audit: `docs/audits/agentic-workflow-ux-audit.md`
 
-### Goal Lifecycle (Web UI) — Currently CLI-only
-- [ ] Create goal from Web UI (with guided wizard)
-- [ ] Pause/resume goals from Web UI
-- [ ] Mark work done / block work nodes from Web UI
-- [ ] Wire the broken "Retry" button (`overseer.ts:1112`)
+### Goal Lifecycle (Web UI)
+- [x] Create goal from Web UI (with guided wizard) — PR #14
+- [x] Pause/resume goals from Web UI — PR #14
+- [x] Mark work done / block work nodes from Web UI — PR #14
+- [x] Wire the "Retry" button — PR #14 (overseer.goal.resume + work.update endpoints)
 - [ ] Inline goal editing (title, constraints, success criteria)
 - [ ] Goal templates (common workflow presets)
 
@@ -86,7 +86,7 @@ Reference: `dgarson/IMPROVEMENT-IDEAS.md` (198 incomplete items across 14 catego
 - [ ] See `dgarson/COMMAND-PALETTE.md` for full design doc
 
 ### Loading States
-- [ ] Add skeleton screens for views that load data
+- [~] Add skeleton screens for views that load data (sessions, agents, nodes, skills, logs, chat already done; overseer + cron added in `autodev-skeleton-screens`)
 - [ ] Add progress indicators for long-running operations
 - [ ] Implement optimistic UI updates
 
