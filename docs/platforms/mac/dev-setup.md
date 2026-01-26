@@ -14,15 +14,7 @@ Before building the app, ensure you have the following installed:
 1.  **Xcode 26.2+**: Required for Swift development.
 2.  **Node.js 22+ & pnpm**: Required for the gateway, CLI, and packaging scripts.
 
-## 1. Initialize Submodules
-
-Clawdbot depends on several submodules (like `Peekaboo`). You must initialize these recursively:
-
-```bash
-git submodule update --init --recursive
-```
-
-## 2. Install Dependencies
+## 1. Install Dependencies
 
 Install the project-wide dependencies:
 
@@ -30,7 +22,7 @@ Install the project-wide dependencies:
 pnpm install
 ```
 
-## 3. Build and Package the App
+## 2. Build and Package the App
 
 To build the macOS app and package it into `dist/Clawdbot.app`, run:
 
@@ -40,9 +32,12 @@ To build the macOS app and package it into `dist/Clawdbot.app`, run:
 
 If you don't have an Apple Developer ID certificate, the script will automatically use **ad-hoc signing** (`-`). 
 
+For dev run modes, signing flags, and Team ID troubleshooting, see the macOS app README:
+https://github.com/clawdbot/clawdbot/blob/main/apps/macos/README.md
+
 > **Note**: Ad-hoc signed apps may trigger security prompts. If the app crashes immediately with "Abort trap 6", see the [Troubleshooting](#troubleshooting) section.
 
-## 4. Install the CLI
+## 3. Install the CLI
 
 The macOS app expects a global `clawdbot` CLI install to manage background tasks.
 
@@ -87,8 +82,8 @@ If the app crashes when you try to allow **Speech Recognition** or **Microphone*
 If the gateway status stays on "Starting...", check if a zombie process is holding the port:
 
 ```bash
-clawdbot daemon status
-clawdbot daemon stop
+clawdbot gateway status
+clawdbot gateway stop
 
 # If you’re not using a LaunchAgent (dev mode / manual runs), find the listener:
 lsof -nP -iTCP:18789 -sTCP:LISTEN

@@ -1,15 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import { sanitizeSessionMessagesImages } from "./pi-embedded-helpers.js";
-import { DEFAULT_AGENTS_FILENAME } from "./workspace.js";
 
-const _makeFile = (overrides: Partial<WorkspaceBootstrapFile>): WorkspaceBootstrapFile => ({
-  name: DEFAULT_AGENTS_FILENAME,
-  path: "/tmp/AGENTS.md",
-  content: "",
-  missing: false,
-  ...overrides,
-});
 describe("sanitizeSessionMessagesImages", () => {
   it("removes empty assistant text blocks but preserves tool calls", async () => {
     const input = [
@@ -30,7 +22,8 @@ describe("sanitizeSessionMessagesImages", () => {
     expect(content).toHaveLength(1);
     expect((content as Array<{ type?: string }>)[0]?.type).toBe("toolCall");
   });
-  it("sanitizes tool ids for assistant blocks and tool results when enabled", async () => {
+
+  it("sanitizes tool ids in strict mode (alphanumeric only)", async () => {
     const input = [
       {
         role: "assistant",
@@ -53,14 +46,16 @@ describe("sanitizeSessionMessagesImages", () => {
 
     const out = await sanitizeSessionMessagesImages(input, "test", {
       sanitizeToolCallIds: true,
+      toolCallIdMode: "strict",
     });
 
+    // Strict mode strips all non-alphanumeric characters
     const assistant = out[0] as { content?: Array<{ id?: string }> };
-    expect(assistant.content?.[0]?.id).toBe("call_abc_item_123");
-    expect(assistant.content?.[1]?.id).toBe("call_abc_item_456");
+    expect(assistant.content?.[0]?.id).toBe("callabcitem123");
+    expect(assistant.content?.[1]?.id).toBe("callabcitem456");
 
     const toolResult = out[1] as { toolUseId?: string };
-    expect(toolResult.toolUseId).toBe("call_abc_item_123");
+    expect(toolResult.toolUseId).toBe("callabcitem123");
   });
   it("filters whitespace-only assistant text blocks", async () => {
     const input = [
@@ -92,7 +87,7 @@ describe("sanitizeSessionMessagesImages", () => {
     expect(out).toHaveLength(1);
     expect(out[0]?.role).toBe("user");
   });
-  it("drops empty assistant error messages", async () => {
+  it("keeps empty assistant error messages", async () => {
     const input = [
       { role: "user", content: "hello" },
       { role: "assistant", stopReason: "error", content: [] },
@@ -101,8 +96,10 @@ describe("sanitizeSessionMessagesImages", () => {
 
     const out = await sanitizeSessionMessagesImages(input, "test");
 
-    expect(out).toHaveLength(1);
+    expect(out).toHaveLength(3);
     expect(out[0]?.role).toBe("user");
+    expect(out[1]?.role).toBe("assistant");
+    expect(out[2]?.role).toBe("assistant");
   });
   it("leaves non-assistant messages unchanged", async () => {
     const input = [

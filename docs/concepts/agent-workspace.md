@@ -86,6 +86,10 @@ These are the standard files Clawdbot expects inside the workspace:
   - Optional tiny checklist for heartbeat runs.
   - Keep it short to avoid token burn.
 
+- `BOOT.md`
+  - Optional startup checklist executed on gateway restart when internal hooks are enabled.
+  - Keep it short; use the message tool for outbound sends.
+
 - `BOOTSTRAP.md`
   - One-time first-run ritual.
   - Only created for a brand-new workspace.
@@ -135,6 +139,9 @@ Run these steps on the machine where the Gateway runs (that is where the
 workspace lives).
 
 ### 1) Initialize the repo
+
+If git is installed, brand-new workspaces are initialized automatically. If this
+workspace is not already a repo, run:
 
 ```bash
 cd ~/clawd

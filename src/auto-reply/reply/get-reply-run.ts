@@ -5,15 +5,12 @@ import {
   isEmbeddedPiRunStreaming,
   resolveEmbeddedSessionLane,
 } from "../../agents/pi-embedded.js";
-import {
-  ensureAuthProfileStore,
-  isProfileInCooldown,
-  resolveAuthProfileOrder,
-} from "../../agents/auth-profiles.js";
+import { resolveSessionAuthProfileOverride } from "../../agents/auth-profiles/session-override.js";
+import type { ExecToolDefaults } from "../../agents/bash-tools.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import {
+  resolveGroupSessionKey,
   resolveSessionFilePath,
-  saveSessionStore,
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
@@ -37,6 +34,7 @@ import { SILENT_REPLY_TOKEN } from "../tokens.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import { runReplyAgent } from "./agent-runner.js";
 import { applySessionHints } from "./body.js";
+import { routeReply } from "./route-reply.js";
 import type { buildCommandContext } from "./commands.js";
 import type { InlineDirectives } from "./directive-handling.js";
 import { buildGroupIntro } from "./groups.js";
@@ -44,12 +42,13 @@ import type { createModelSelectionState } from "./model-selection.js";
 import { resolveQueueSettings } from "./queue.js";
 import { ensureSkillSnapshot, prependSystemEvents } from "./session-updates.js";
 import type { TypingController } from "./typing.js";
-import { createTypingSignaler, resolveTypingMode } from "./typing-mode.js";
+import { resolveTypingMode } from "./typing-mode.js";
 
 type AgentDefaults = NonNullable<ClawdbotConfig["agents"]>["defaults"];
+type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
 
 const BARE_SESSION_RESET_PROMPT =
-  "A new session was started via /new or /reset. Say hi briefly (1-2 sentences) and ask what the user wants to do next. Do not mention internal steps, files, tools, or reasoning.";
+  "A new session was started via /new or /reset. Say hi briefly (1-2 sentences) and ask what the user wants to do next. If the runtime model differs from default_model in the system prompt, mention the default model in the greeting. Do not mention internal steps, files, tools, or reasoning.";
 
 type RunPreparedReplyParams = {
   ctx: MsgContext;
@@ -69,6 +68,7 @@ type RunPreparedReplyParams = {
   resolvedVerboseLevel: VerboseLevel | undefined;
   resolvedReasoningLevel: ReasoningLevel;
   resolvedElevatedLevel: ElevatedLevel;
+  execOverrides?: ExecOverrides;
   elevatedEnabled: boolean;
   elevatedAllowed: boolean;
   blockStreamingEnabled: boolean;
@@ -87,12 +87,13 @@ type RunPreparedReplyParams = {
     cap?: number;
     dropPolicy?: InlineDirectives["dropPolicy"];
   };
-  transcribedText?: string;
   typing: TypingController;
   opts?: GetReplyOptions;
+  defaultProvider: string;
   defaultModel: string;
   timeoutMs: number;
   isNewSession: boolean;
+  resetTriggered: boolean;
   systemSent: boolean;
   sessionEntry?: SessionEntry;
   sessionStore?: Record<string, SessionEntry>;
@@ -102,86 +103,6 @@ type RunPreparedReplyParams = {
   workspaceDir: string;
   abortedLastRun: boolean;
 };
-
-async function resolveSessionAuthProfileOverride(params: {
-  cfg: ClawdbotConfig;
-  provider: string;
-  agentDir: string;
-  sessionEntry?: SessionEntry;
-  sessionStore?: Record<string, SessionEntry>;
-  sessionKey?: string;
-  storePath?: string;
-  isNewSession: boolean;
-}): Promise<string | undefined> {
-  const {
-    cfg,
-    provider,
-    agentDir,
-    sessionEntry,
-    sessionStore,
-    sessionKey,
-    storePath,
-    isNewSession,
-  } = params;
-  if (!sessionEntry || !sessionStore || !sessionKey) return sessionEntry?.authProfileOverride;
-
-  const store = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
-  const order = resolveAuthProfileOrder({ cfg, store, provider });
-  if (order.length === 0) return sessionEntry.authProfileOverride;
-
-  const pickFirstAvailable = () =>
-    order.find((profileId) => !isProfileInCooldown(store, profileId)) ?? order[0];
-  const pickNextAvailable = (current: string) => {
-    const startIndex = order.indexOf(current);
-    if (startIndex < 0) return pickFirstAvailable();
-    for (let offset = 1; offset <= order.length; offset += 1) {
-      const candidate = order[(startIndex + offset) % order.length];
-      if (!isProfileInCooldown(store, candidate)) return candidate;
-    }
-    return order[startIndex] ?? order[0];
-  };
-
-  const compactionCount = sessionEntry.compactionCount ?? 0;
-  const storedCompaction =
-    typeof sessionEntry.authProfileOverrideCompactionCount === "number"
-      ? sessionEntry.authProfileOverrideCompactionCount
-      : compactionCount;
-
-  let current = sessionEntry.authProfileOverride?.trim();
-  if (current && !order.includes(current)) current = undefined;
-
-  const source = sessionEntry.authProfileOverrideSource ?? (current ? "user" : undefined);
-  if (source === "user" && current && !isNewSession) {
-    return current;
-  }
-
-  let next = current;
-  if (isNewSession) {
-    next = current ? pickNextAvailable(current) : pickFirstAvailable();
-  } else if (current && compactionCount > storedCompaction) {
-    next = pickNextAvailable(current);
-  } else if (!current || isProfileInCooldown(store, current)) {
-    next = pickFirstAvailable();
-  }
-
-  if (!next) return current;
-  const shouldPersist =
-    next !== sessionEntry.authProfileOverride ||
-    sessionEntry.authProfileOverrideSource !== "auto" ||
-    sessionEntry.authProfileOverrideCompactionCount !== compactionCount;
-  if (shouldPersist) {
-    sessionEntry.authProfileOverride = next;
-    sessionEntry.authProfileOverrideSource = "auto";
-    sessionEntry.authProfileOverrideCompactionCount = compactionCount;
-    sessionEntry.updatedAt = Date.now();
-    sessionStore[sessionKey] = sessionEntry;
-    if (storePath) {
-      await saveSessionStore(storePath, sessionStore);
-    }
-  }
-
-  return next;
-}
 
 export async function runPreparedReply(
   params: RunPreparedReplyParams,
@@ -210,12 +131,13 @@ export async function runPreparedReply(
     model,
     perMessageQueueMode,
     perMessageQueueOptions,
-    transcribedText,
     typing,
     opts,
+    defaultProvider,
     defaultModel,
     timeoutMs,
     isNewSession,
+    resetTriggered,
     systemSent,
     sessionKey,
     sessionId,
@@ -229,6 +151,7 @@ export async function runPreparedReply(
     resolvedVerboseLevel,
     resolvedReasoningLevel,
     resolvedElevatedLevel,
+    execOverrides,
     abortedLastRun,
   } = params;
   let currentSystemSent = systemSent;
@@ -241,11 +164,6 @@ export async function runPreparedReply(
     configured: sessionCfg?.typingMode ?? agentCfg?.typingMode,
     isGroupChat,
     wasMentioned,
-    isHeartbeat,
-  });
-  const typingSignals = createTypingSignaler({
-    typing,
-    mode: typingMode,
     isHeartbeat,
   });
   const shouldInjectGroupIntro = Boolean(
@@ -275,8 +193,10 @@ export async function runPreparedReply(
     typing.cleanup();
     return undefined;
   }
+  const isBareNewOrReset = rawBodyTrimmed === "/new" || rawBodyTrimmed === "/reset";
   const isBareSessionReset =
-    isNewSession && baseBodyTrimmedRaw.length === 0 && rawBodyTrimmed.length > 0;
+    isNewSession &&
+    ((baseBodyTrimmedRaw.length === 0 && rawBodyTrimmed.length > 0) || isBareNewOrReset);
   const baseBodyFinal = isBareSessionReset ? BARE_SESSION_RESET_PROMPT : baseBody;
   const baseBodyTrimmed = baseBodyFinal.trim();
   if (!baseBodyTrimmed) {
@@ -297,7 +217,7 @@ export async function runPreparedReply(
     abortKey: command.abortKey,
     messageId: sessionCtx.MessageSid,
   });
-  const isGroupSession = sessionEntry?.chatType === "group" || sessionEntry?.chatType === "room";
+  const isGroupSession = sessionEntry?.chatType === "group" || sessionEntry?.chatType === "channel";
   const isMainSession = !isGroupSession && sessionKey === normalizeMainKey(sessionCfg?.mainKey);
   prefixedBodyBase = await prependSystemEvents({
     cfg,
@@ -325,14 +245,10 @@ export async function runPreparedReply(
   sessionEntry = skillResult.sessionEntry ?? sessionEntry;
   currentSystemSent = skillResult.systemSent;
   const skillsSnapshot = skillResult.skillsSnapshot;
-  const prefixedBody = transcribedText
-    ? [threadStarterNote, prefixedBodyBase, `Transcript:\n${transcribedText}`]
-        .filter(Boolean)
-        .join("\n\n")
-    : [threadStarterNote, prefixedBodyBase].filter(Boolean).join("\n\n");
+  const prefixedBody = [threadStarterNote, prefixedBodyBase].filter(Boolean).join("\n\n");
   const mediaNote = buildInboundMediaNote(ctx);
   const mediaReplyHint = mediaNote
-    ? "To send an image back, add a line like: MEDIA:https://example.com/image.jpg (no spaces). Keep caption in the text body."
+    ? "To send an image back, prefer the message tool (media/path/filePath). If you must inline, use MEDIA:/path or MEDIA:https://example.com/image.jpg (spaces ok, quote if needed). Keep caption in the text body."
     : undefined;
   let prefixedCommandBody = mediaNote
     ? [mediaNote, mediaReplyHint, prefixedBody ?? ""].filter(Boolean).join("\n").trim()
@@ -368,16 +284,38 @@ export async function runPreparedReply(
       }
     }
   }
+  if (resetTriggered && command.isAuthorizedSender) {
+    const channel = ctx.OriginatingChannel || (command.channel as any);
+    const to = ctx.OriginatingTo || command.from || command.to;
+    if (channel && to) {
+      const modelLabel = `${provider}/${model}`;
+      const defaultLabel = `${defaultProvider}/${defaultModel}`;
+      const text =
+        modelLabel === defaultLabel
+          ? `✅ New session started · model: ${modelLabel}`
+          : `✅ New session started · model: ${modelLabel} (default: ${defaultLabel})`;
+      await routeReply({
+        payload: { text },
+        channel,
+        to,
+        sessionKey,
+        accountId: ctx.AccountId,
+        threadId: ctx.MessageThreadId,
+        cfg,
+      });
+    }
+  }
   const sessionIdFinal = sessionId ?? crypto.randomUUID();
   const sessionFile = resolveSessionFilePath(sessionIdFinal, sessionEntry);
-  const queueBodyBase = transcribedText
-    ? [threadStarterNote, baseBodyFinal, `Transcript:\n${transcribedText}`]
-        .filter(Boolean)
-        .join("\n\n")
-    : [threadStarterNote, baseBodyFinal].filter(Boolean).join("\n\n");
-  const queuedBody = mediaNote
-    ? [mediaNote, mediaReplyHint, queueBodyBase].filter(Boolean).join("\n").trim()
+  const queueBodyBase = [threadStarterNote, baseBodyFinal].filter(Boolean).join("\n\n");
+  const queueMessageId = sessionCtx.MessageSid?.trim();
+  const queueMessageIdHint = queueMessageId ? `[message_id: ${queueMessageId}]` : "";
+  const queueBodyWithId = queueMessageIdHint
+    ? `${queueBodyBase}\n${queueMessageIdHint}`
     : queueBodyBase;
+  const queuedBody = mediaNote
+    ? [mediaNote, mediaReplyHint, queueBodyWithId].filter(Boolean).join("\n").trim()
+    : queueBodyWithId;
   const resolvedQueue = resolveQueueSettings({
     cfg,
     channel: sessionCtx.Provider,
@@ -410,9 +348,10 @@ export async function runPreparedReply(
     storePath,
     isNewSession,
   });
+  const authProfileIdSource = sessionEntry?.authProfileOverrideSource;
   const followupRun = {
     prompt: queuedBody,
-    messageId: sessionCtx.MessageSid,
+    messageId: sessionCtx.MessageSidFull ?? sessionCtx.MessageSid,
     summaryLine: baseBodyTrimmedRaw,
     enqueuedAt: Date.now(),
     // Originating channel for reply routing.
@@ -420,6 +359,7 @@ export async function runPreparedReply(
     originatingTo: ctx.OriginatingTo,
     originatingAccountId: ctx.AccountId,
     originatingThreadId: ctx.MessageThreadId,
+    originatingChatType: ctx.ChatType,
     run: {
       agentId,
       agentDir,
@@ -427,6 +367,9 @@ export async function runPreparedReply(
       sessionKey,
       messageProvider: sessionCtx.Provider?.trim().toLowerCase() || undefined,
       agentAccountId: sessionCtx.AccountId,
+      groupId: resolveGroupSessionKey(sessionCtx)?.id ?? undefined,
+      groupChannel: sessionCtx.GroupChannel?.trim() ?? sessionCtx.GroupSubject?.trim(),
+      groupSpace: sessionCtx.GroupSpace?.trim() ?? undefined,
       sessionFile,
       workspaceDir,
       config: cfg,
@@ -434,10 +377,12 @@ export async function runPreparedReply(
       provider,
       model,
       authProfileId,
+      authProfileIdSource,
       thinkLevel: resolvedThinkLevel,
       verboseLevel: resolvedVerboseLevel,
       reasoningLevel: resolvedReasoningLevel,
       elevatedLevel: resolvedElevatedLevel,
+      execOverrides,
       bashElevated: {
         enabled: elevatedEnabled,
         allowed: elevatedAllowed,
@@ -450,10 +395,6 @@ export async function runPreparedReply(
       ...(isReasoningTagProvider(provider) ? { enforceFinalTag: true } : {}),
     },
   };
-
-  if (typingSignals.shouldStartImmediately) {
-    await typingSignals.signalRunStart();
-  }
 
   return runReplyAgent({
     commandBody: prefixedCommandBody,

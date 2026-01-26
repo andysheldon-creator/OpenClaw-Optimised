@@ -1,15 +1,18 @@
 import type { ClawdbotConfig } from "../config/config.js";
+import type { ModelDefinitionConfig } from "../config/types.models.js";
 import {
   DEFAULT_COPILOT_API_BASE_URL,
   resolveCopilotApiToken,
 } from "../providers/github-copilot-token.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
-import { resolveEnvApiKey } from "./model-auth.js";
+import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
+import { discoverBedrockModels } from "./bedrock-discovery.js";
 import {
   buildSyntheticModelDefinition,
   SYNTHETIC_BASE_URL,
   SYNTHETIC_MODEL_CATALOG,
 } from "./synthetic-models.js";
+import { discoverVeniceModels, VENICE_BASE_URL } from "./venice-models.js";
 
 type ModelsConfig = NonNullable<ClawdbotConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
@@ -37,6 +40,93 @@ const MOONSHOT_DEFAULT_COST = {
   cacheRead: 0,
   cacheWrite: 0,
 };
+const KIMI_CODE_BASE_URL = "https://api.kimi.com/coding/v1";
+const KIMI_CODE_MODEL_ID = "kimi-for-coding";
+const KIMI_CODE_CONTEXT_WINDOW = 262144;
+const KIMI_CODE_MAX_TOKENS = 32768;
+const KIMI_CODE_HEADERS = { "User-Agent": "KimiCLI/0.77" } as const;
+const KIMI_CODE_COMPAT = { supportsDeveloperRole: false } as const;
+const KIMI_CODE_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+const QWEN_PORTAL_BASE_URL = "https://portal.qwen.ai/v1";
+const QWEN_PORTAL_OAUTH_PLACEHOLDER = "qwen-oauth";
+const QWEN_PORTAL_DEFAULT_CONTEXT_WINDOW = 128000;
+const QWEN_PORTAL_DEFAULT_MAX_TOKENS = 8192;
+const QWEN_PORTAL_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+const OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1";
+const OLLAMA_API_BASE_URL = "http://127.0.0.1:11434";
+const OLLAMA_DEFAULT_CONTEXT_WINDOW = 128000;
+const OLLAMA_DEFAULT_MAX_TOKENS = 8192;
+const OLLAMA_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+interface OllamaModel {
+  name: string;
+  modified_at: string;
+  size: number;
+  digest: string;
+  details?: {
+    family?: string;
+    parameter_size?: string;
+  };
+}
+
+interface OllamaTagsResponse {
+  models: OllamaModel[];
+}
+
+async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
+  // Skip Ollama discovery in test environments
+  if (process.env.VITEST || process.env.NODE_ENV === "test") {
+    return [];
+  }
+  try {
+    const response = await fetch(`${OLLAMA_API_BASE_URL}/api/tags`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) {
+      console.warn(`Failed to discover Ollama models: ${response.status}`);
+      return [];
+    }
+    const data = (await response.json()) as OllamaTagsResponse;
+    if (!data.models || data.models.length === 0) {
+      console.warn("No Ollama models found on local instance");
+      return [];
+    }
+    return data.models.map((model) => {
+      const modelId = model.name;
+      const isReasoning =
+        modelId.toLowerCase().includes("r1") || modelId.toLowerCase().includes("reasoning");
+      return {
+        id: modelId,
+        name: modelId,
+        reasoning: isReasoning,
+        input: ["text"],
+        cost: OLLAMA_DEFAULT_COST,
+        contextWindow: OLLAMA_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: OLLAMA_DEFAULT_MAX_TOKENS,
+      };
+    });
+  } catch (error) {
+    console.warn(`Failed to discover Ollama models: ${String(error)}`);
+    return [];
+  }
+}
 
 function normalizeApiKeyConfig(value: string): string {
   const trimmed = value.trim();
@@ -49,6 +139,10 @@ function resolveEnvApiKeyVarName(provider: string): string | undefined {
   if (!resolved) return undefined;
   const match = /^(?:env: |shell env: )([A-Z0-9_]+)$/.exec(resolved.source);
   return match ? match[1] : undefined;
+}
+
+function resolveAwsSdkApiKeyVarName(): string {
+  return resolveAwsSdkEnvVarName() ?? "AWS_PROFILE";
 }
 
 function resolveApiKeyFromProfiles(params: {
@@ -115,15 +209,23 @@ export function normalizeProviders(params: {
     const hasModels =
       Array.isArray(normalizedProvider.models) && normalizedProvider.models.length > 0;
     if (hasModels && !normalizedProvider.apiKey?.trim()) {
-      const fromEnv = resolveEnvApiKeyVarName(normalizedKey);
-      const fromProfiles = resolveApiKeyFromProfiles({
-        provider: normalizedKey,
-        store: authStore,
-      });
-      const apiKey = fromEnv ?? fromProfiles;
-      if (apiKey?.trim()) {
+      const authMode =
+        normalizedProvider.auth ?? (normalizedKey === "amazon-bedrock" ? "aws-sdk" : undefined);
+      if (authMode === "aws-sdk") {
+        const apiKey = resolveAwsSdkApiKeyVarName();
         mutated = true;
         normalizedProvider = { ...normalizedProvider, apiKey };
+      } else {
+        const fromEnv = resolveEnvApiKeyVarName(normalizedKey);
+        const fromProfiles = resolveApiKeyFromProfiles({
+          provider: normalizedKey,
+          store: authStore,
+        });
+        const apiKey = fromEnv ?? fromProfiles;
+        if (apiKey?.trim()) {
+          mutated = true;
+          normalizedProvider = { ...normalizedProvider, apiKey };
+        }
       }
     }
 
@@ -184,6 +286,53 @@ function buildMoonshotProvider(): ProviderConfig {
   };
 }
 
+function buildKimiCodeProvider(): ProviderConfig {
+  return {
+    baseUrl: KIMI_CODE_BASE_URL,
+    api: "openai-completions",
+    models: [
+      {
+        id: KIMI_CODE_MODEL_ID,
+        name: "Kimi For Coding",
+        reasoning: true,
+        input: ["text"],
+        cost: KIMI_CODE_DEFAULT_COST,
+        contextWindow: KIMI_CODE_CONTEXT_WINDOW,
+        maxTokens: KIMI_CODE_MAX_TOKENS,
+        headers: KIMI_CODE_HEADERS,
+        compat: KIMI_CODE_COMPAT,
+      },
+    ],
+  };
+}
+
+function buildQwenPortalProvider(): ProviderConfig {
+  return {
+    baseUrl: QWEN_PORTAL_BASE_URL,
+    api: "openai-completions",
+    models: [
+      {
+        id: "coder-model",
+        name: "Qwen Coder",
+        reasoning: false,
+        input: ["text"],
+        cost: QWEN_PORTAL_DEFAULT_COST,
+        contextWindow: QWEN_PORTAL_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: QWEN_PORTAL_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "vision-model",
+        name: "Qwen Vision",
+        reasoning: false,
+        input: ["text", "image"],
+        cost: QWEN_PORTAL_DEFAULT_COST,
+        contextWindow: QWEN_PORTAL_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: QWEN_PORTAL_DEFAULT_MAX_TOKENS,
+      },
+    ],
+  };
+}
+
 function buildSyntheticProvider(): ProviderConfig {
   return {
     baseUrl: SYNTHETIC_BASE_URL,
@@ -192,7 +341,27 @@ function buildSyntheticProvider(): ProviderConfig {
   };
 }
 
-export function resolveImplicitProviders(params: { agentDir: string }): ModelsConfig["providers"] {
+async function buildVeniceProvider(): Promise<ProviderConfig> {
+  const models = await discoverVeniceModels();
+  return {
+    baseUrl: VENICE_BASE_URL,
+    api: "openai-completions",
+    models,
+  };
+}
+
+async function buildOllamaProvider(): Promise<ProviderConfig> {
+  const models = await discoverOllamaModels();
+  return {
+    baseUrl: OLLAMA_BASE_URL,
+    api: "openai-completions",
+    models,
+  };
+}
+
+export async function resolveImplicitProviders(params: {
+  agentDir: string;
+}): Promise<ModelsConfig["providers"]> {
   const providers: Record<string, ProviderConfig> = {};
   const authStore = ensureAuthProfileStore(params.agentDir, {
     allowKeychainPrompt: false,
@@ -212,11 +381,41 @@ export function resolveImplicitProviders(params: { agentDir: string }): ModelsCo
     providers.moonshot = { ...buildMoonshotProvider(), apiKey: moonshotKey };
   }
 
+  const kimiCodeKey =
+    resolveEnvApiKeyVarName("kimi-code") ??
+    resolveApiKeyFromProfiles({ provider: "kimi-code", store: authStore });
+  if (kimiCodeKey) {
+    providers["kimi-code"] = { ...buildKimiCodeProvider(), apiKey: kimiCodeKey };
+  }
+
   const syntheticKey =
     resolveEnvApiKeyVarName("synthetic") ??
     resolveApiKeyFromProfiles({ provider: "synthetic", store: authStore });
   if (syntheticKey) {
     providers.synthetic = { ...buildSyntheticProvider(), apiKey: syntheticKey };
+  }
+
+  const veniceKey =
+    resolveEnvApiKeyVarName("venice") ??
+    resolveApiKeyFromProfiles({ provider: "venice", store: authStore });
+  if (veniceKey) {
+    providers.venice = { ...(await buildVeniceProvider()), apiKey: veniceKey };
+  }
+
+  const qwenProfiles = listProfilesForProvider(authStore, "qwen-portal");
+  if (qwenProfiles.length > 0) {
+    providers["qwen-portal"] = {
+      ...buildQwenPortalProvider(),
+      apiKey: QWEN_PORTAL_OAUTH_PLACEHOLDER,
+    };
+  }
+
+  // Ollama provider - only add if explicitly configured
+  const ollamaKey =
+    resolveEnvApiKeyVarName("ollama") ??
+    resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
+  if (ollamaKey) {
+    providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
   }
 
   return providers;
@@ -227,7 +426,7 @@ export async function resolveImplicitCopilotProvider(params: {
   env?: NodeJS.ProcessEnv;
 }): Promise<ProviderConfig | null> {
   const env = params.env ?? process.env;
-  const authStore = ensureAuthProfileStore(params.agentDir);
+  const authStore = ensureAuthProfileStore(params.agentDir, { allowKeychainPrompt: false });
   const hasProfile = listProfilesForProvider(authStore, "github-copilot").length > 0;
   const envToken = env.COPILOT_GITHUB_TOKEN ?? env.GH_TOKEN ?? env.GITHUB_TOKEN;
   const githubToken = (envToken ?? "").trim();
@@ -276,5 +475,29 @@ export async function resolveImplicitCopilotProvider(params: {
   return {
     baseUrl,
     models: [],
+  } satisfies ProviderConfig;
+}
+
+export async function resolveImplicitBedrockProvider(params: {
+  agentDir: string;
+  config?: ClawdbotConfig;
+  env?: NodeJS.ProcessEnv;
+}): Promise<ProviderConfig | null> {
+  const env = params.env ?? process.env;
+  const discoveryConfig = params.config?.models?.bedrockDiscovery;
+  const enabled = discoveryConfig?.enabled;
+  const hasAwsCreds = resolveAwsSdkEnvVarName(env) !== undefined;
+  if (enabled === false) return null;
+  if (enabled !== true && !hasAwsCreds) return null;
+
+  const region = discoveryConfig?.region ?? env.AWS_REGION ?? env.AWS_DEFAULT_REGION ?? "us-east-1";
+  const models = await discoverBedrockModels({ region, config: discoveryConfig });
+  if (models.length === 0) return null;
+
+  return {
+    baseUrl: `https://bedrock-runtime.${region}.amazonaws.com`,
+    api: "bedrock-converse-stream",
+    auth: "aws-sdk",
+    models,
   } satisfies ProviderConfig;
 }

@@ -26,7 +26,7 @@ describe("buildAuthChoiceOptions", () => {
 
     const claudeCli = options.find((opt) => opt.value === "claude-cli");
     expect(claudeCli).toBeDefined();
-    expect(claudeCli?.hint).toBe("requires Keychain access");
+    expect(claudeCli?.hint).toBe("reuses existing Claude Code auth · requires Keychain access");
   });
 
   it("skips missing Claude Code CLI option off macOS", () => {
@@ -100,6 +100,19 @@ describe("buildAuthChoiceOptions", () => {
     });
 
     expect(options.some((opt) => opt.value === "moonshot-api-key")).toBe(true);
+    expect(options.some((opt) => opt.value === "kimi-code-api-key")).toBe(true);
+  });
+
+  it("includes Vercel AI Gateway auth choice", () => {
+    const store: AuthProfileStore = { version: 1, profiles: {} };
+    const options = buildAuthChoiceOptions({
+      store,
+      includeSkip: false,
+      includeClaudeCliIfMissing: true,
+      platform: "darwin",
+    });
+
+    expect(options.some((opt) => opt.value === "ai-gateway-api-key")).toBe(true);
   });
 
   it("includes Synthetic auth choice", () => {
@@ -124,5 +137,17 @@ describe("buildAuthChoiceOptions", () => {
     });
 
     expect(options.some((opt) => opt.value === "chutes")).toBe(true);
+  });
+
+  it("includes Qwen auth choice", () => {
+    const store: AuthProfileStore = { version: 1, profiles: {} };
+    const options = buildAuthChoiceOptions({
+      store,
+      includeSkip: false,
+      includeClaudeCliIfMissing: true,
+      platform: "darwin",
+    });
+
+    expect(options.some((opt) => opt.value === "qwen-portal")).toBe(true);
   });
 });

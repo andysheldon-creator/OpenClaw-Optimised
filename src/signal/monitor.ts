@@ -1,13 +1,13 @@
-import { chunkText, resolveTextChunkLimit } from "../auto-reply/chunk.js";
+import { chunkTextWithMode, resolveChunkMode, resolveTextChunkLimit } from "../auto-reply/chunk.js";
 import { DEFAULT_GROUP_HISTORY_LIMIT, type HistoryEntry } from "../auto-reply/reply/history.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import type { ClawdbotConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import type { SignalReactionNotificationMode } from "../config/types.js";
-import { danger } from "../globals.js";
 import { saveMediaBuffer } from "../media/store.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { normalizeE164 } from "../utils.js";
+import { waitForTransportReady } from "../infra/transport-ready.js";
 import { resolveSignalAccount } from "./accounts.js";
 import { signalCheck, signalRpcRequest } from "./client.js";
 import { spawnSignalDaemon } from "./daemon.js";
@@ -43,6 +43,7 @@ export type MonitorSignalOpts = {
   config?: ClawdbotConfig;
   baseUrl?: string;
   autoStart?: boolean;
+  startupTimeoutMs?: number;
   cliPath?: string;
   httpHost?: string;
   httpPort?: number;
@@ -145,23 +146,27 @@ async function waitForSignalDaemonReady(params: {
   baseUrl: string;
   abortSignal?: AbortSignal;
   timeoutMs: number;
+  logAfterMs: number;
+  logIntervalMs?: number;
   runtime: RuntimeEnv;
 }): Promise<void> {
-  const started = Date.now();
-  let lastError: string | null = null;
-
-  while (Date.now() - started < params.timeoutMs) {
-    if (params.abortSignal?.aborted) return;
-    const res = await signalCheck(params.baseUrl, 1000);
-    if (res.ok) return;
-    lastError = res.error ?? (res.status ? `HTTP ${res.status}` : "unreachable");
-    await new Promise((r) => setTimeout(r, 150));
-  }
-
-  params.runtime.error?.(
-    danger(`daemon not ready after ${params.timeoutMs}ms (${lastError ?? "unknown error"})`),
-  );
-  throw new Error(`signal daemon not ready (${lastError ?? "unknown error"})`);
+  await waitForTransportReady({
+    label: "signal daemon",
+    timeoutMs: params.timeoutMs,
+    logAfterMs: params.logAfterMs,
+    logIntervalMs: params.logIntervalMs,
+    pollIntervalMs: 150,
+    abortSignal: params.abortSignal,
+    runtime: params.runtime,
+    check: async () => {
+      const res = await signalCheck(params.baseUrl, 1000);
+      if (res.ok) return { ok: true };
+      return {
+        ok: false,
+        error: res.error ?? (res.status ? `HTTP ${res.status}` : "unreachable"),
+      };
+    },
+  });
 }
 
 async function fetchAttachment(params: {
@@ -210,14 +215,16 @@ async function deliverReplies(params: {
   runtime: RuntimeEnv;
   maxBytes: number;
   textLimit: number;
+  chunkMode: "length" | "newline";
 }) {
-  const { replies, target, baseUrl, account, accountId, runtime, maxBytes, textLimit } = params;
+  const { replies, target, baseUrl, account, accountId, runtime, maxBytes, textLimit, chunkMode } =
+    params;
   for (const payload of replies) {
     const mediaList = payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []);
     const text = payload.text ?? "";
     if (!text && mediaList.length === 0) continue;
     if (mediaList.length === 0) {
-      for (const chunk of chunkText(text, textLimit)) {
+      for (const chunk of chunkTextWithMode(text, textLimit, chunkMode)) {
         await sendMessageSignal(target, chunk, {
           baseUrl,
           account,
@@ -258,6 +265,7 @@ export async function monitorSignalProvider(opts: MonitorSignalOpts = {}): Promi
   );
   const groupHistories = new Map<string, HistoryEntry[]>();
   const textLimit = resolveTextChunkLimit(cfg, "signal", accountInfo.accountId);
+  const chunkMode = resolveChunkMode(cfg, "signal", accountInfo.accountId);
   const baseUrl = opts.baseUrl?.trim() || accountInfo.baseUrl;
   const account = opts.account?.trim() || accountInfo.config.account?.trim();
   const dmPolicy = accountInfo.config.dmPolicy ?? "pairing";
@@ -269,13 +277,20 @@ export async function monitorSignalProvider(opts: MonitorSignalOpts = {}): Promi
         ? accountInfo.config.allowFrom
         : []),
   );
-  const groupPolicy = accountInfo.config.groupPolicy ?? "allowlist";
+  const defaultGroupPolicy = cfg.channels?.defaults?.groupPolicy;
+  const groupPolicy = accountInfo.config.groupPolicy ?? defaultGroupPolicy ?? "allowlist";
   const reactionMode = accountInfo.config.reactionNotifications ?? "own";
   const reactionAllowlist = normalizeAllowList(accountInfo.config.reactionAllowlist);
   const mediaMaxBytes = (opts.mediaMaxMb ?? accountInfo.config.mediaMaxMb ?? 8) * 1024 * 1024;
   const ignoreAttachments = opts.ignoreAttachments ?? accountInfo.config.ignoreAttachments ?? false;
+  const sendReadReceipts = Boolean(opts.sendReadReceipts ?? accountInfo.config.sendReadReceipts);
 
   const autoStart = opts.autoStart ?? accountInfo.config.autoStart ?? !accountInfo.config.httpUrl;
+  const startupTimeoutMs = Math.min(
+    120_000,
+    Math.max(1_000, opts.startupTimeoutMs ?? accountInfo.config.startupTimeoutMs ?? 30_000),
+  );
+  const readReceiptsViaDaemon = Boolean(autoStart && sendReadReceipts);
   let daemonHandle: ReturnType<typeof spawnSignalDaemon> | null = null;
 
   if (autoStart) {
@@ -290,7 +305,7 @@ export async function monitorSignalProvider(opts: MonitorSignalOpts = {}): Promi
       receiveMode: opts.receiveMode ?? accountInfo.config.receiveMode,
       ignoreAttachments: opts.ignoreAttachments ?? accountInfo.config.ignoreAttachments,
       ignoreStories: opts.ignoreStories ?? accountInfo.config.ignoreStories,
-      sendReadReceipts: opts.sendReadReceipts ?? accountInfo.config.sendReadReceipts,
+      sendReadReceipts,
       runtime,
     });
   }
@@ -305,7 +320,9 @@ export async function monitorSignalProvider(opts: MonitorSignalOpts = {}): Promi
       await waitForSignalDaemonReady({
         baseUrl,
         abortSignal: opts.abortSignal,
-        timeoutMs: 10_000,
+        timeoutMs: startupTimeoutMs,
+        logAfterMs: 10_000,
+        logIntervalMs: 10_000,
         runtime,
       });
     }
@@ -328,8 +345,10 @@ export async function monitorSignalProvider(opts: MonitorSignalOpts = {}): Promi
       reactionAllowlist,
       mediaMaxBytes,
       ignoreAttachments,
+      sendReadReceipts,
+      readReceiptsViaDaemon,
       fetchAttachment,
-      deliverReplies,
+      deliverReplies: (params) => deliverReplies({ ...params, chunkMode }),
       resolveSignalReactionTargets,
       isSignalReactionMessage,
       shouldEmitSignalReactionNotification,

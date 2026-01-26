@@ -15,6 +15,7 @@ struct MenuContent: View {
     private let controlChannel = ControlChannel.shared
     private let activityStore = WorkActivityStore.shared
     @Bindable private var pairingPrompter = NodePairingApprovalPrompter.shared
+    @Bindable private var devicePairingPrompter = DevicePairingApprovalPrompter.shared
     @Environment(\.openSettings) private var openSettings
     @State private var availableMics: [AudioInputDevice] = []
     @State private var loadingMics = false
@@ -31,10 +32,10 @@ struct MenuContent: View {
         self._updateStatus = Bindable(wrappedValue: updater?.updateStatus ?? UpdateStatus.disabled)
     }
 
-    private var systemRunPolicyBinding: Binding<SystemRunPolicy> {
+    private var execApprovalModeBinding: Binding<ExecApprovalQuickMode> {
         Binding(
-            get: { self.state.systemRunPolicy },
-            set: { self.state.systemRunPolicy = $0 })
+            get: { self.state.execApprovalMode },
+            set: { self.state.execApprovalMode = $0 })
     }
 
     var body: some View {
@@ -48,6 +49,13 @@ struct MenuContent: View {
                         let repairSuffix = repairCount > 0 ? " · \(repairCount) repair" : ""
                         self.statusLine(
                             label: "Pairing approval pending (\(self.pairingPrompter.pendingCount))\(repairSuffix)",
+                            color: .orange)
+                    }
+                    if self.devicePairingPrompter.pendingCount > 0 {
+                        let repairCount = self.devicePairingPrompter.pendingRepairCount
+                        let repairSuffix = repairCount > 0 ? " · \(repairCount) repair" : ""
+                        self.statusLine(
+                            label: "Device pairing pending (\(self.devicePairingPrompter.pendingCount))\(repairSuffix)",
                             color: .orange)
                     }
                 }
@@ -74,12 +82,12 @@ struct MenuContent: View {
             Toggle(isOn: self.$cameraEnabled) {
                 Label("Allow Camera", systemImage: "camera")
             }
-            Picker(selection: self.systemRunPolicyBinding) {
-                ForEach(SystemRunPolicy.allCases) { policy in
-                    Text(policy.title).tag(policy)
+            Picker(selection: self.execApprovalModeBinding) {
+                ForEach(ExecApprovalQuickMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
                 }
             } label: {
-                Label("Node Run Commands", systemImage: "terminal")
+                Label("Exec Approvals", systemImage: "terminal")
             }
             Toggle(isOn: Binding(get: { self.state.canvasEnabled }, set: { self.state.canvasEnabled = $0 })) {
                 Label("Allow Canvas", systemImage: "rectangle.and.pencil.and.ellipsis")

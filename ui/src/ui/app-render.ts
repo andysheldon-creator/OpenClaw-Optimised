@@ -2,6 +2,7 @@ import { html, nothing } from "lit";
 
 import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway";
 import type { AppViewState } from "./app-view-state";
+import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
 import {
   TAB_GROUPS,
   iconForTab,
@@ -10,6 +11,7 @@ import {
   titleForTab,
   type Tab,
 } from "./navigation";
+import { icons } from "./icons";
 import type { UiSettings } from "./storage";
 import type { ThemeMode } from "./theme";
 import type { ThemeTransitionContext } from "./theme-transition";
@@ -27,18 +29,11 @@ import type {
   SkillStatusReport,
   StatusSummary,
 } from "./types";
-import type {
-  ChatQueueItem,
-  CronFormState,
-  DiscordForm,
-  IMessageForm,
-  SlackForm,
-  SignalForm,
-  TelegramForm,
-} from "./ui-types";
+import type { ChatQueueItem, CronFormState } from "./ui-types";
+import { refreshChatAvatar } from "./app-chat";
 import { renderChat } from "./views/chat";
 import { renderConfig } from "./views/config";
-import { renderConnections } from "./views/connections";
+import { renderChannels } from "./views/channels";
 import { renderCron } from "./views/cron";
 import { renderDebug } from "./views/debug";
 import { renderInstances } from "./views/instances";
@@ -46,18 +41,19 @@ import { renderLogs } from "./views/logs";
 import { renderNodes } from "./views/nodes";
 import { renderOverview } from "./views/overview";
 import { renderSessions } from "./views/sessions";
+import { renderExecApprovalPrompt } from "./views/exec-approval";
+import {
+  approveDevicePairing,
+  loadDevices,
+  rejectDevicePairing,
+  revokeDeviceToken,
+  rotateDeviceToken,
+} from "./controllers/devices";
 import { renderSkills } from "./views/skills";
 import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.helpers";
-import {
-  loadChannels,
-  updateDiscordForm,
-  updateIMessageForm,
-  updateSlackForm,
-  updateSignalForm,
-  updateTelegramForm,
-} from "./controllers/connections";
+import { loadChannels } from "./controllers/channels";
 import { loadPresence } from "./controllers/presence";
-import { loadSessions, patchSession } from "./controllers/sessions";
+import { deleteSession, loadSessions, patchSession } from "./controllers/sessions";
 import {
   installSkill,
   loadSkills,
@@ -74,10 +70,35 @@ import {
   runUpdate,
   saveConfig,
   updateConfigFormValue,
+  removeConfigFormValue,
 } from "./controllers/config";
+import {
+  loadExecApprovals,
+  removeExecApprovalsFormValue,
+  saveExecApprovals,
+  updateExecApprovalsFormValue,
+} from "./controllers/exec-approvals";
 import { loadCronRuns, toggleCronJob, runCronJob, removeCronJob, addCronJob } from "./controllers/cron";
 import { loadDebug, callDebugMethod } from "./controllers/debug";
 import { loadLogs } from "./controllers/logs";
+
+const AVATAR_DATA_RE = /^data:/i;
+const AVATAR_HTTP_RE = /^https?:\/\//i;
+
+function resolveAssistantAvatarUrl(state: AppViewState): string | undefined {
+  const list = state.agentsList?.agents ?? [];
+  const parsed = parseAgentSessionKey(state.sessionKey);
+  const agentId =
+    parsed?.agentId ??
+    state.agentsList?.defaultId ??
+    "main";
+  const agent = list.find((entry) => entry.id === agentId);
+  const identity = agent?.identity;
+  const candidate = identity?.avatarUrl ?? identity?.avatar;
+  if (!candidate) return undefined;
+  if (AVATAR_DATA_RE.test(candidate) || AVATAR_HTTP_RE.test(candidate)) return candidate;
+  return identity?.avatarUrl;
+}
 
 export function renderApp(state: AppViewState) {
   const presenceCount = state.presenceEntries.length;
@@ -85,10 +106,13 @@ export function renderApp(state: AppViewState) {
   const cronNext = state.cronStatus?.nextWakeAtMs ?? null;
   const chatDisabledReason = state.connected ? null : "Disconnected from gateway.";
   const isChat = state.tab === "chat";
-  const chatFocus = isChat && state.settings.chatFocusMode;
+  const chatFocus = isChat && (state.settings.chatFocusMode || state.onboarding);
+  const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
+  const assistantAvatarUrl = resolveAssistantAvatarUrl(state);
+  const chatAvatarUrl = state.chatAvatarUrl ?? assistantAvatarUrl ?? null;
 
   return html`
-    <div class="shell ${isChat ? "shell--chat" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""}">
+    <div class="shell ${isChat ? "shell--chat" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
       <header class="topbar">
         <div class="topbar-left">
           <button
@@ -101,11 +125,16 @@ export function renderApp(state: AppViewState) {
             title="${state.settings.navCollapsed ? "Expand sidebar" : "Collapse sidebar"}"
             aria-label="${state.settings.navCollapsed ? "Expand sidebar" : "Collapse sidebar"}"
           >
-            <span class="nav-collapse-toggle__icon">☰</span>
+            <span class="nav-collapse-toggle__icon">${icons.menu}</span>
           </button>
           <div class="brand">
-            <div class="brand-title">CLAWDBOT</div>
-            <div class="brand-sub">Gateway Dashboard</div>
+            <div class="brand-logo">
+              <img src="https://mintcdn.com/clawdhub/4rYvG-uuZrMK_URE/assets/pixel-lobster.svg?fit=max&auto=format&n=4rYvG-uuZrMK_URE&q=85&s=da2032e9eac3b5d9bfe7eb96ca6a8a26" alt="Clawdbot" />
+            </div>
+            <div class="brand-text">
+              <div class="brand-title">CLAWDBOT</div>
+              <div class="brand-sub">Gateway Dashboard</div>
+            </div>
           </div>
         </div>
         <div class="topbar-status">
@@ -156,7 +185,7 @@ export function renderApp(state: AppViewState) {
               rel="noreferrer"
               title="Docs (opens in new tab)"
             >
-              <span class="nav-item__icon" aria-hidden="true">📚</span>
+              <span class="nav-item__icon" aria-hidden="true">${icons.book}</span>
               <span class="nav-item__text">Docs</span>
             </a>
           </div>
@@ -199,14 +228,15 @@ export function renderApp(state: AppViewState) {
                   sessionKey: next,
                   lastActiveSessionKey: next,
                 });
+                void state.loadAssistantIdentity();
               },
               onConnect: () => state.connect(),
               onRefresh: () => state.loadOverview(),
             })
           : nothing}
 
-        ${state.tab === "connections"
-          ? renderConnections({
+        ${state.tab === "channels"
+          ? renderChannels({
               connected: state.connected,
               loading: state.channelsLoading,
               snapshot: state.channelsSnapshot,
@@ -216,39 +246,29 @@ export function renderApp(state: AppViewState) {
               whatsappQrDataUrl: state.whatsappLoginQrDataUrl,
               whatsappConnected: state.whatsappLoginConnected,
               whatsappBusy: state.whatsappBusy,
-              telegramForm: state.telegramForm,
-              telegramTokenLocked: state.telegramTokenLocked,
-              telegramSaving: state.telegramSaving,
-              telegramStatus: state.telegramConfigStatus,
-              discordForm: state.discordForm,
-              discordTokenLocked: state.discordTokenLocked,
-              discordSaving: state.discordSaving,
-              discordStatus: state.discordConfigStatus,
-              slackForm: state.slackForm,
-              slackTokenLocked: state.slackTokenLocked,
-              slackAppTokenLocked: state.slackAppTokenLocked,
-              slackSaving: state.slackSaving,
-              slackStatus: state.slackConfigStatus,
-              signalForm: state.signalForm,
-              signalSaving: state.signalSaving,
-              signalStatus: state.signalConfigStatus,
-              imessageForm: state.imessageForm,
-              imessageSaving: state.imessageSaving,
-              imessageStatus: state.imessageConfigStatus,
+              configSchema: state.configSchema,
+              configSchemaLoading: state.configSchemaLoading,
+              configForm: state.configForm,
+              configUiHints: state.configUiHints,
+              configSaving: state.configSaving,
+              configFormDirty: state.configFormDirty,
+              nostrProfileFormState: state.nostrProfileFormState,
+              nostrProfileAccountId: state.nostrProfileAccountId,
               onRefresh: (probe) => loadChannels(state, probe),
               onWhatsAppStart: (force) => state.handleWhatsAppStart(force),
               onWhatsAppWait: () => state.handleWhatsAppWait(),
               onWhatsAppLogout: () => state.handleWhatsAppLogout(),
-              onTelegramChange: (patch) => updateTelegramForm(state, patch),
-              onTelegramSave: () => state.handleTelegramSave(),
-              onDiscordChange: (patch) => updateDiscordForm(state, patch),
-              onDiscordSave: () => state.handleDiscordSave(),
-              onSlackChange: (patch) => updateSlackForm(state, patch),
-              onSlackSave: () => state.handleSlackSave(),
-              onSignalChange: (patch) => updateSignalForm(state, patch),
-              onSignalSave: () => state.handleSignalSave(),
-              onIMessageChange: (patch) => updateIMessageForm(state, patch),
-              onIMessageSave: () => state.handleIMessageSave(),
+              onConfigPatch: (path, value) => updateConfigFormValue(state, path, value),
+              onConfigSave: () => state.handleChannelConfigSave(),
+              onConfigReload: () => state.handleChannelConfigReload(),
+              onNostrProfileEdit: (accountId, profile) =>
+                state.handleNostrProfileEdit(accountId, profile),
+              onNostrProfileCancel: () => state.handleNostrProfileCancel(),
+              onNostrProfileFieldChange: (field, value) =>
+                state.handleNostrProfileFieldChange(field, value),
+              onNostrProfileSave: () => state.handleNostrProfileSave(),
+              onNostrProfileImport: () => state.handleNostrProfileImport(),
+              onNostrProfileToggleAdvanced: () => state.handleNostrProfileToggleAdvanced(),
             })
           : nothing}
 
@@ -277,11 +297,12 @@ export function renderApp(state: AppViewState) {
                 state.sessionsFilterLimit = next.limit;
                 state.sessionsIncludeGlobal = next.includeGlobal;
                 state.sessionsIncludeUnknown = next.includeUnknown;
-              },
-              onRefresh: () => loadSessions(state),
-              onPatch: (key, patch) => patchSession(state, key, patch),
-            })
-          : nothing}
+	              },
+	              onRefresh: () => loadSessions(state),
+	              onPatch: (key, patch) => patchSession(state, key, patch),
+	              onDelete: (key) => deleteSession(state, key),
+	            })
+	          : nothing}
 
         ${state.tab === "cron"
           ? renderCron({
@@ -291,6 +312,11 @@ export function renderApp(state: AppViewState) {
               error: state.cronError,
               busy: state.cronBusy,
               form: state.cronForm,
+              channels: state.channelsSnapshot?.channelMeta?.length
+                ? state.channelsSnapshot.channelMeta.map((entry) => entry.id)
+                : state.channelsSnapshot?.channelOrder ?? [],
+              channelLabels: state.channelsSnapshot?.channelLabels ?? {},
+              channelMeta: state.channelsSnapshot?.channelMeta ?? [],
               runsJobId: state.cronRunsJobId,
               runs: state.cronRuns,
               onFormChange: (patch) => (state.cronForm = { ...state.cronForm, ...patch }),
@@ -326,7 +352,76 @@ export function renderApp(state: AppViewState) {
           ? renderNodes({
               loading: state.nodesLoading,
               nodes: state.nodes,
+              devicesLoading: state.devicesLoading,
+              devicesError: state.devicesError,
+              devicesList: state.devicesList,
+              configForm: state.configForm ?? (state.configSnapshot?.config as Record<string, unknown> | null),
+              configLoading: state.configLoading,
+              configSaving: state.configSaving,
+              configDirty: state.configFormDirty,
+              configFormMode: state.configFormMode,
+              execApprovalsLoading: state.execApprovalsLoading,
+              execApprovalsSaving: state.execApprovalsSaving,
+              execApprovalsDirty: state.execApprovalsDirty,
+              execApprovalsSnapshot: state.execApprovalsSnapshot,
+              execApprovalsForm: state.execApprovalsForm,
+              execApprovalsSelectedAgent: state.execApprovalsSelectedAgent,
+              execApprovalsTarget: state.execApprovalsTarget,
+              execApprovalsTargetNodeId: state.execApprovalsTargetNodeId,
               onRefresh: () => loadNodes(state),
+              onDevicesRefresh: () => loadDevices(state),
+              onDeviceApprove: (requestId) => approveDevicePairing(state, requestId),
+              onDeviceReject: (requestId) => rejectDevicePairing(state, requestId),
+              onDeviceRotate: (deviceId, role, scopes) =>
+                rotateDeviceToken(state, { deviceId, role, scopes }),
+              onDeviceRevoke: (deviceId, role) =>
+                revokeDeviceToken(state, { deviceId, role }),
+              onLoadConfig: () => loadConfig(state),
+              onLoadExecApprovals: () => {
+                const target =
+                  state.execApprovalsTarget === "node" && state.execApprovalsTargetNodeId
+                    ? { kind: "node" as const, nodeId: state.execApprovalsTargetNodeId }
+                    : { kind: "gateway" as const };
+                return loadExecApprovals(state, target);
+              },
+              onBindDefault: (nodeId) => {
+                if (nodeId) {
+                  updateConfigFormValue(state, ["tools", "exec", "node"], nodeId);
+                } else {
+                  removeConfigFormValue(state, ["tools", "exec", "node"]);
+                }
+              },
+              onBindAgent: (agentIndex, nodeId) => {
+                const basePath = ["agents", "list", agentIndex, "tools", "exec", "node"];
+                if (nodeId) {
+                  updateConfigFormValue(state, basePath, nodeId);
+                } else {
+                  removeConfigFormValue(state, basePath);
+                }
+              },
+              onSaveBindings: () => saveConfig(state),
+              onExecApprovalsTargetChange: (kind, nodeId) => {
+                state.execApprovalsTarget = kind;
+                state.execApprovalsTargetNodeId = nodeId;
+                state.execApprovalsSnapshot = null;
+                state.execApprovalsForm = null;
+                state.execApprovalsDirty = false;
+                state.execApprovalsSelectedAgent = null;
+              },
+              onExecApprovalsSelectAgent: (agentId) => {
+                state.execApprovalsSelectedAgent = agentId;
+              },
+              onExecApprovalsPatch: (path, value) =>
+                updateExecApprovalsFormValue(state, path, value),
+              onExecApprovalsRemove: (path) =>
+                removeExecApprovalsFormValue(state, path),
+              onSaveExecApprovals: () => {
+                const target =
+                  state.execApprovalsTarget === "node" && state.execApprovalsTargetNodeId
+                    ? { kind: "node" as const, nodeId: state.execApprovalsTargetNodeId }
+                    : { kind: "gateway" as const };
+                return saveExecApprovals(state, target);
+              },
             })
           : nothing}
 
@@ -336,6 +431,7 @@ export function renderApp(state: AppViewState) {
               onSessionKeyChange: (next) => {
                 state.sessionKey = next;
                 state.chatMessage = "";
+                state.chatAttachments = [];
                 state.chatStream = null;
                 state.chatStreamStartedAt = null;
                 state.chatRunId = null;
@@ -347,11 +443,16 @@ export function renderApp(state: AppViewState) {
                   sessionKey: next,
                   lastActiveSessionKey: next,
                 });
+                void state.loadAssistantIdentity();
                 void loadChatHistory(state);
+                void refreshChatAvatar(state);
               },
               thinkingLevel: state.chatThinkingLevel,
+              showThinking,
               loading: state.chatLoading,
               sending: state.chatSending,
+              compactionStatus: state.compactionStatus,
+              assistantAvatarUrl: chatAvatarUrl,
               messages: state.chatMessages,
               toolMessages: state.chatToolMessages,
               stream: state.chatStream,
@@ -363,27 +464,22 @@ export function renderApp(state: AppViewState) {
               disabledReason: chatDisabledReason,
               error: state.lastError,
               sessions: state.sessionsResult,
-              isToolOutputExpanded: (id) => state.toolOutputExpanded.has(id),
-              onToolOutputToggle: (id, expanded) =>
-                state.toggleToolOutput(id, expanded),
-              focusMode: state.settings.chatFocusMode,
-              useNewChatLayout: state.settings.useNewChatLayout,
+              focusMode: chatFocus,
               onRefresh: () => {
                 state.resetToolStream();
-                return loadChatHistory(state);
+                return Promise.all([loadChatHistory(state), refreshChatAvatar(state)]);
               },
-              onToggleFocusMode: () =>
+              onToggleFocusMode: () => {
+                if (state.onboarding) return;
                 state.applySettings({
                   ...state.settings,
                   chatFocusMode: !state.settings.chatFocusMode,
-                }),
-              onToggleLayout: () =>
-                state.applySettings({
-                  ...state.settings,
-                  useNewChatLayout: !state.settings.useNewChatLayout,
-                }),
+                });
+              },
               onChatScroll: (event) => state.handleChatScroll(event),
               onDraftChange: (next) => (state.chatMessage = next),
+              attachments: state.chatAttachments,
+              onAttachmentsChange: (next) => (state.chatAttachments = next),
               onSend: () => state.handleSendChat(),
               canAbort: Boolean(state.chatRunId),
               onAbort: () => void state.handleAbortChat(),
@@ -398,12 +494,15 @@ export function renderApp(state: AppViewState) {
               onOpenSidebar: (content: string) => state.handleOpenSidebar(content),
               onCloseSidebar: () => state.handleCloseSidebar(),
               onSplitRatioChange: (ratio: number) => state.handleSplitRatioChange(ratio),
+              assistantName: state.assistantName,
+              assistantAvatar: state.assistantAvatar,
             })
           : nothing}
 
         ${state.tab === "config"
           ? renderConfig({
               raw: state.configRaw,
+              originalRaw: state.configRawOriginal,
               valid: state.configValid,
               issues: state.configIssues,
               loading: state.configLoading,
@@ -416,9 +515,21 @@ export function renderApp(state: AppViewState) {
               uiHints: state.configUiHints,
               formMode: state.configFormMode,
               formValue: state.configForm,
-              onRawChange: (next) => (state.configRaw = next),
+              originalValue: state.configFormOriginal,
+              searchQuery: state.configSearchQuery,
+              activeSection: state.configActiveSection,
+              activeSubsection: state.configActiveSubsection,
+              onRawChange: (next) => {
+                state.configRaw = next;
+              },
               onFormModeChange: (mode) => (state.configFormMode = mode),
               onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
+              onSearchChange: (query) => (state.configSearchQuery = query),
+              onSectionChange: (section) => {
+                state.configActiveSection = section;
+                state.configActiveSubsection = null;
+              },
+              onSubsectionChange: (section) => (state.configActiveSubsection = section),
               onReload: () => loadConfig(state),
               onSave: () => saveConfig(state),
               onApply: () => applyConfig(state),
@@ -466,6 +577,7 @@ export function renderApp(state: AppViewState) {
             })
           : nothing}
       </main>
+      ${renderExecApprovalPrompt(state)}
     </div>
   `;
 }

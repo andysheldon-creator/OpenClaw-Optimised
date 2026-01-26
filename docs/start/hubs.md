@@ -15,7 +15,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Wizard](/start/wizard)
 - [Setup](/start/setup)
 - [Dashboard (local Gateway)](http://127.0.0.1:18789/)
-- [FAQ](/start/faq)
+- [Help](/help)
 - [Configuration](/gateway/configuration)
 - [Configuration examples](/gateway/configuration-examples)
 - [Clawdbot assistant (Clawd)](/start/clawd)
@@ -32,6 +32,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 ## Core concepts
 
 - [Architecture](/concepts/architecture)
+- [Network hub](/network)
 - [Agent runtime](/concepts/agent)
 - [Agent workspace](/concepts/agent-workspace)
 - [Memory](/concepts/memory)
@@ -66,6 +67,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Telegram (grammY notes)](/channels/grammy)
 - [Slack](/channels/slack)
 - [Discord](/channels/discord)
+- [Mattermost](/channels/mattermost) (plugin)
 - [Signal](/channels/signal)
 - [iMessage](/channels/imessage)
 - [Location parsing](/channels/location)
@@ -95,10 +97,12 @@ Use these hubs to discover every page, including deep dives and reference docs t
 ## Tools + automation
 
 - [Tools surface](/tools)
+- [OpenProse](/prose)
 - [CLI reference](/cli)
 - [Exec tool](/tools/exec)
 - [Elevated mode](/tools/elevated)
 - [Cron jobs](/automation/cron-jobs)
+- [Cron vs Heartbeat](/automation/cron-vs-heartbeat)
 - [Thinking + verbose](/tools/thinking)
 - [Models](/concepts/models)
 - [Sub-agents](/tools/subagents)

@@ -1,4 +1,8 @@
-import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
+import {
+  getChannelPlugin,
+  normalizeChannelId as normalizeAnyChannelId,
+} from "../../channels/plugins/index.js";
+import { normalizeChannelId as normalizeChatChannelId } from "../../channels/registry.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 
 const ANNOUNCE_SKIP_TOKEN = "ANNOUNCE_SKIP";
@@ -10,6 +14,7 @@ export type AnnounceTarget = {
   channel: string;
   to: string;
   accountId?: string;
+  threadId?: string; // Forum topic/thread ID
 };
 
 export function resolveAnnounceTargetFromKey(sessionKey: string): AnnounceTarget | null {
@@ -18,20 +23,41 @@ export function resolveAnnounceTargetFromKey(sessionKey: string): AnnounceTarget
   if (parts.length < 3) return null;
   const [channelRaw, kind, ...rest] = parts;
   if (kind !== "group" && kind !== "channel") return null;
-  const id = rest.join(":").trim();
+
+  // Extract topic/thread ID from rest (supports both :topic: and :thread:)
+  // Telegram uses :topic:, other platforms use :thread:
+  let threadId: string | undefined;
+  const restJoined = rest.join(":");
+  const topicMatch = restJoined.match(/:topic:(\d+)$/);
+  const threadMatch = restJoined.match(/:thread:(\d+)$/);
+  const match = topicMatch || threadMatch;
+
+  if (match) {
+    threadId = match[1]; // Keep as string to match AgentCommandOpts.threadId
+  }
+
+  // Remove :topic:N or :thread:N suffix from ID for target
+  const id = match ? restJoined.replace(/:(topic|thread):\d+$/, "") : restJoined.trim();
+
   if (!id) return null;
   if (!channelRaw) return null;
-  const normalizedChannel = normalizeChannelId(channelRaw);
+  const normalizedChannel = normalizeAnyChannelId(channelRaw) ?? normalizeChatChannelId(channelRaw);
   const channel = normalizedChannel ?? channelRaw.toLowerCase();
-  const kindTarget = normalizedChannel
-    ? kind === "channel"
-      ? `channel:${id}`
-      : `group:${id}`
-    : id;
+  const kindTarget = (() => {
+    if (!normalizedChannel) return id;
+    if (normalizedChannel === "discord" || normalizedChannel === "slack") {
+      return `channel:${id}`;
+    }
+    return kind === "channel" ? `channel:${id}` : `group:${id}`;
+  })();
   const normalized = normalizedChannel
     ? getChannelPlugin(normalizedChannel)?.messaging?.normalizeTarget?.(kindTarget)
     : undefined;
-  return { channel, to: normalized ?? kindTarget };
+  return {
+    channel,
+    to: normalized ?? kindTarget,
+    threadId,
+  };
 }
 
 export function buildAgentToAgentMessageContext(params: {

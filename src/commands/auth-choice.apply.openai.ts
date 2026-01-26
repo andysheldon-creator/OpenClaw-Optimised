@@ -2,7 +2,7 @@ import { loginOpenAICodex } from "@mariozechner/pi-ai";
 import { CODEX_CLI_PROFILE_ID, ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import { resolveEnvApiKey } from "../agents/model-auth.js";
 import { upsertSharedEnvVar } from "../infra/env-file.js";
-import { isRemoteEnvironment } from "./antigravity-oauth.js";
+import { isRemoteEnvironment } from "./oauth-env.js";
 import {
   formatApiKeyPreview,
   normalizeApiKeyInput,
@@ -20,7 +20,12 @@ import {
 export async function applyAuthChoiceOpenAI(
   params: ApplyAuthChoiceParams,
 ): Promise<ApplyAuthChoiceResult | null> {
-  if (params.authChoice === "openai-api-key") {
+  let authChoice = params.authChoice;
+  if (authChoice === "apiKey" && params.opts?.tokenProvider === "openai") {
+    authChoice = "openai-api-key";
+  }
+
+  if (authChoice === "openai-api-key") {
     const envKey = resolveEnvApiKey("openai");
     if (envKey) {
       const useExisting = await params.prompter.confirm({
@@ -43,10 +48,16 @@ export async function applyAuthChoiceOpenAI(
       }
     }
 
-    const key = await params.prompter.text({
-      message: "Enter OpenAI API key",
-      validate: validateApiKeyInput,
-    });
+    let key: string | undefined;
+    if (params.opts?.token && params.opts?.tokenProvider === "openai") {
+      key = params.opts.token;
+    } else {
+      key = await params.prompter.text({
+        message: "Enter OpenAI API key",
+        validate: validateApiKeyInput,
+      });
+    }
+
     const trimmed = normalizeApiKeyInput(String(key));
     const result = upsertSharedEnvVar({
       key: "OPENAI_API_KEY",

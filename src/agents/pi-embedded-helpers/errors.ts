@@ -7,15 +7,33 @@ import type { FailoverReason } from "./types.js";
 export function isContextOverflowError(errorMessage?: string): boolean {
   if (!errorMessage) return false;
   const lower = errorMessage.toLowerCase();
+  const hasRequestSizeExceeds = lower.includes("request size exceeds");
+  const hasContextWindow =
+    lower.includes("context window") ||
+    lower.includes("context length") ||
+    lower.includes("maximum context length");
   return (
     lower.includes("request_too_large") ||
     lower.includes("request exceeds the maximum size") ||
     lower.includes("context length exceeded") ||
     lower.includes("maximum context length") ||
     lower.includes("prompt is too long") ||
+    lower.includes("exceeds model context window") ||
+    (hasRequestSizeExceeds && hasContextWindow) ||
     lower.includes("context overflow") ||
     (lower.includes("413") && lower.includes("too large"))
   );
+}
+
+const CONTEXT_WINDOW_TOO_SMALL_RE = /context window.*(too small|minimum is)/i;
+const CONTEXT_OVERFLOW_HINT_RE =
+  /context.*overflow|context window.*(too (?:large|long)|exceed|over|limit|max(?:imum)?|requested|sent|tokens)|(?:prompt|request|input).*(too (?:large|long)|exceed|over|limit|max(?:imum)?)/i;
+
+export function isLikelyContextOverflowError(errorMessage?: string): boolean {
+  if (!errorMessage) return false;
+  if (CONTEXT_WINDOW_TOO_SMALL_RE.test(errorMessage)) return false;
+  if (isContextOverflowError(errorMessage)) return true;
+  return CONTEXT_OVERFLOW_HINT_RE.test(errorMessage);
 }
 
 export function isCompactionFailureError(errorMessage?: string): boolean {
@@ -57,6 +75,29 @@ const HTTP_ERROR_HINTS = [
 function stripFinalTagsFromText(text: string): string {
   if (!text) return text;
   return text.replace(FINAL_TAG_RE, "");
+}
+
+function collapseConsecutiveDuplicateBlocks(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+  const blocks = trimmed.split(/\n{2,}/);
+  if (blocks.length < 2) return text;
+
+  const normalizeBlock = (value: string) => value.trim().replace(/\s+/g, " ");
+  const result: string[] = [];
+  let lastNormalized: string | null = null;
+
+  for (const block of blocks) {
+    const normalized = normalizeBlock(block);
+    if (lastNormalized && normalized === lastNormalized) {
+      continue;
+    }
+    result.push(block.trim());
+    lastNormalized = normalized;
+  }
+
+  if (result.length === blocks.length) return text;
+  return result.join("\n\n");
 }
 
 function isLikelyHttpErrorText(raw: string): boolean {
@@ -190,6 +231,14 @@ export function formatRawAssistantErrorForUi(raw?: string): string {
   const trimmed = (raw ?? "").trim();
   if (!trimmed) return "LLM request failed with an unknown error.";
 
+  const httpMatch = trimmed.match(HTTP_STATUS_PREFIX_RE);
+  if (httpMatch) {
+    const rest = httpMatch[2].trim();
+    if (!rest.startsWith("{")) {
+      return `HTTP ${httpMatch[1]}: ${rest}`;
+    }
+  }
+
   const info = parseApiErrorInfo(trimmed);
   if (info?.message) {
     const prefix = info.httpCode ? `HTTP ${info.httpCode}` : "LLM error";
@@ -250,8 +299,8 @@ export function formatAssistantErrorText(
     return "The AI service is temporarily overloaded. Please try again in a moment.";
   }
 
-  if (isRawApiErrorPayload(raw)) {
-    return "The AI service returned an error. Please try again.";
+  if (isLikelyHttpErrorText(raw) || isRawApiErrorPayload(raw)) {
+    return formatRawAssistantErrorForUi(raw);
   }
 
   // Never return raw unhandled errors - log for debugging but return safe message
@@ -282,7 +331,7 @@ export function sanitizeUserFacingText(text: string): string {
   }
 
   if (isRawApiErrorPayload(trimmed) || isLikelyHttpErrorText(trimmed)) {
-    return "The AI service returned an error. Please try again.";
+    return formatRawAssistantErrorForUi(trimmed);
   }
 
   if (ERROR_PREFIX_RE.test(trimmed)) {
@@ -292,10 +341,10 @@ export function sanitizeUserFacingText(text: string): string {
     if (isTimeoutErrorMessage(trimmed)) {
       return "LLM request timed out.";
     }
-    return "The AI service returned an error. Please try again.";
+    return formatRawAssistantErrorForUi(trimmed);
   }
 
-  return stripped;
+  return collapseConsecutiveDuplicateBlocks(stripped);
 }
 
 export function isRateLimitAssistantError(msg: AssistantMessage | undefined): boolean {
@@ -328,6 +377,8 @@ const ERROR_PATTERNS = {
     "incorrect api key",
     "invalid token",
     "authentication",
+    "re-authenticate",
+    "oauth token refresh failed",
     "unauthorized",
     "forbidden",
     "access denied",
@@ -339,7 +390,6 @@ const ERROR_PATTERNS = {
     "no api key found",
   ],
   format: [
-    "invalid_request_error",
     "string should match pattern",
     "tool_use.id",
     "tool_use_id",
@@ -347,6 +397,10 @@ const ERROR_PATTERNS = {
     "invalid request format",
   ],
 } as const;
+
+const IMAGE_DIMENSION_ERROR_RE =
+  /image dimensions exceed max allowed size for many-image requests:\s*(\d+)\s*pixels/i;
+const IMAGE_DIMENSION_PATH_RE = /messages\.(\d+)\.content\.(\d+)\.image/i;
 
 function matchesErrorPatterns(raw: string, patterns: readonly ErrorPattern[]): boolean {
   if (!raw) return false;
@@ -390,8 +444,31 @@ export function isOverloadedErrorMessage(raw: string): boolean {
   return matchesErrorPatterns(raw, ERROR_PATTERNS.overloaded);
 }
 
+export function parseImageDimensionError(raw: string): {
+  maxDimensionPx?: number;
+  messageIndex?: number;
+  contentIndex?: number;
+  raw: string;
+} | null {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (!lower.includes("image dimensions exceed max allowed size")) return null;
+  const limitMatch = raw.match(IMAGE_DIMENSION_ERROR_RE);
+  const pathMatch = raw.match(IMAGE_DIMENSION_PATH_RE);
+  return {
+    maxDimensionPx: limitMatch?.[1] ? Number.parseInt(limitMatch[1], 10) : undefined,
+    messageIndex: pathMatch?.[1] ? Number.parseInt(pathMatch[1], 10) : undefined,
+    contentIndex: pathMatch?.[2] ? Number.parseInt(pathMatch[2], 10) : undefined,
+    raw,
+  };
+}
+
+export function isImageDimensionErrorMessage(raw: string): boolean {
+  return Boolean(parseImageDimensionError(raw));
+}
+
 export function isCloudCodeAssistFormatError(raw: string): boolean {
-  return matchesErrorPatterns(raw, ERROR_PATTERNS.format);
+  return !isImageDimensionErrorMessage(raw) && matchesErrorPatterns(raw, ERROR_PATTERNS.format);
 }
 
 export function isAuthAssistantError(msg: AssistantMessage | undefined): boolean {
@@ -400,6 +477,7 @@ export function isAuthAssistantError(msg: AssistantMessage | undefined): boolean
 }
 
 export function classifyFailoverReason(raw: string): FailoverReason | null {
+  if (isImageDimensionErrorMessage(raw)) return null;
   if (isRateLimitErrorMessage(raw)) return "rate_limit";
   if (isOverloadedErrorMessage(raw)) return "rate_limit";
   if (isCloudCodeAssistFormatError(raw)) return "format";

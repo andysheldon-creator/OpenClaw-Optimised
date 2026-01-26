@@ -17,8 +17,9 @@ docker build \
   "$ROOT_DIR/scripts/docker/install-sh-e2e"
 
 echo "==> Run E2E installer test"
-docker run --rm -t \
+docker run --rm \
   -e CLAWDBOT_INSTALL_URL="$INSTALL_URL" \
+  -e CLAWDBOT_INSTALL_TAG="${CLAWDBOT_INSTALL_TAG:-latest}" \
   -e CLAWDBOT_E2E_MODELS="$CLAWDBOT_E2E_MODELS" \
   -e CLAWDBOT_INSTALL_E2E_PREVIOUS="${CLAWDBOT_INSTALL_E2E_PREVIOUS:-}" \
   -e CLAWDBOT_INSTALL_E2E_SKIP_PREVIOUS="${CLAWDBOT_INSTALL_E2E_SKIP_PREVIOUS:-0}" \

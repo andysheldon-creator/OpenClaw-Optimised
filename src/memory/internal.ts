@@ -70,7 +70,19 @@ export async function listMemoryFiles(workspaceDir: string): Promise<string[]> {
   if (await exists(memoryDir)) {
     await walkDir(memoryDir, result);
   }
-  return result;
+  if (result.length <= 1) return result;
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const entry of result) {
+    let key = entry;
+    try {
+      key = await fs.realpath(entry);
+    } catch {}
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(entry);
+  }
+  return deduped;
 }
 
 export function hashText(value: string): string {
@@ -144,13 +156,23 @@ export function chunkMarkdown(
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
     const lineNo = i + 1;
-    const lineSize = line.length + 1;
-    if (currentChars + lineSize > maxChars && current.length > 0) {
-      flush();
-      carryOverlap();
+    const segments: string[] = [];
+    if (line.length === 0) {
+      segments.push("");
+    } else {
+      for (let start = 0; start < line.length; start += maxChars) {
+        segments.push(line.slice(start, start + maxChars));
+      }
     }
-    current.push({ line, lineNo });
-    currentChars += lineSize;
+    for (const segment of segments) {
+      const lineSize = segment.length + 1;
+      if (currentChars + lineSize > maxChars && current.length > 0) {
+        flush();
+        carryOverlap();
+      }
+      current.push({ line: segment, lineNo });
+      currentChars += lineSize;
+    }
   }
   flush();
   return chunks;

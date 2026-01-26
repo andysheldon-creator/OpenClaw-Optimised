@@ -43,6 +43,11 @@ vi.mock("../tui/tui.js", () => ({ runTui }));
 vi.mock("../gateway/call.js", () => ({
   callGateway,
   randomIdempotencyKey: () => "idem-test",
+  buildGatewayConnectionDetails: () => ({
+    url: "ws://127.0.0.1:1234",
+    urlSource: "test",
+    message: "Gateway target: ws://127.0.0.1:1234",
+  }),
 }));
 vi.mock("./deps.js", () => ({ createDefaultDeps: () => ({}) }));
 
@@ -56,9 +61,31 @@ describe("cli program (smoke)", () => {
 
   it("runs message with required options", async () => {
     const program = buildProgram();
-    await program.parseAsync(["message", "send", "--to", "+1", "--message", "hi"], {
+    await program.parseAsync(["message", "send", "--target", "+1", "--message", "hi"], {
       from: "user",
     });
+    expect(messageCommand).toHaveBeenCalled();
+  });
+
+  it("runs message react with signal author fields", async () => {
+    const program = buildProgram();
+    await program.parseAsync(
+      [
+        "message",
+        "react",
+        "--channel",
+        "signal",
+        "--target",
+        "signal:group:abc123",
+        "--message-id",
+        "1737630212345",
+        "--emoji",
+        "✅",
+        "--target-author-uuid",
+        "123e4567-e89b-12d3-a456-426614174000",
+      ],
+      { from: "user" },
+    );
     expect(messageCommand).toHaveBeenCalled();
   });
 
@@ -66,6 +93,12 @@ describe("cli program (smoke)", () => {
     const program = buildProgram();
     await program.parseAsync(["status"], { from: "user" });
     expect(statusCommand).toHaveBeenCalled();
+  });
+
+  it("registers memory command", () => {
+    const program = buildProgram();
+    const names = program.commands.map((command) => command.name());
+    expect(names).toContain("memory");
   });
 
   it("runs tui without overriding timeout", async () => {
@@ -111,119 +144,62 @@ describe("cli program (smoke)", () => {
     expect(setupCommand).not.toHaveBeenCalled();
   });
 
-  it("passes opencode-zen api key to onboard", async () => {
-    const program = buildProgram();
-    await program.parseAsync(
-      [
-        "onboard",
-        "--non-interactive",
-        "--auth-choice",
-        "opencode-zen",
-        "--opencode-zen-api-key",
-        "sk-opencode-zen-test",
-      ],
-      { from: "user" },
-    );
-    expect(onboardCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        nonInteractive: true,
+  it("passes auth api keys to onboard", async () => {
+    const cases = [
+      {
         authChoice: "opencode-zen",
-        opencodeZenApiKey: "sk-opencode-zen-test",
-      }),
-      runtime,
-    );
-  });
-
-  it("passes openrouter api key to onboard", async () => {
-    const program = buildProgram();
-    await program.parseAsync(
-      [
-        "onboard",
-        "--non-interactive",
-        "--auth-choice",
-        "openrouter-api-key",
-        "--openrouter-api-key",
-        "sk-openrouter-test",
-      ],
-      { from: "user" },
-    );
-    expect(onboardCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        nonInteractive: true,
+        flag: "--opencode-zen-api-key",
+        key: "sk-opencode-zen-test",
+        field: "opencodeZenApiKey",
+      },
+      {
         authChoice: "openrouter-api-key",
-        openrouterApiKey: "sk-openrouter-test",
-      }),
-      runtime,
-    );
-  });
-
-  it("passes moonshot api key to onboard", async () => {
-    const program = buildProgram();
-    await program.parseAsync(
-      [
-        "onboard",
-        "--non-interactive",
-        "--auth-choice",
-        "moonshot-api-key",
-        "--moonshot-api-key",
-        "sk-moonshot-test",
-      ],
-      { from: "user" },
-    );
-    expect(onboardCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        nonInteractive: true,
+        flag: "--openrouter-api-key",
+        key: "sk-openrouter-test",
+        field: "openrouterApiKey",
+      },
+      {
         authChoice: "moonshot-api-key",
-        moonshotApiKey: "sk-moonshot-test",
-      }),
-      runtime,
-    );
-  });
-
-  it("passes synthetic api key to onboard", async () => {
-    const program = buildProgram();
-    await program.parseAsync(
-      [
-        "onboard",
-        "--non-interactive",
-        "--auth-choice",
-        "synthetic-api-key",
-        "--synthetic-api-key",
-        "sk-synthetic-test",
-      ],
-      { from: "user" },
-    );
-    expect(onboardCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        nonInteractive: true,
+        flag: "--moonshot-api-key",
+        key: "sk-moonshot-test",
+        field: "moonshotApiKey",
+      },
+      {
+        authChoice: "kimi-code-api-key",
+        flag: "--kimi-code-api-key",
+        key: "sk-kimi-code-test",
+        field: "kimiCodeApiKey",
+      },
+      {
         authChoice: "synthetic-api-key",
-        syntheticApiKey: "sk-synthetic-test",
-      }),
-      runtime,
-    );
-  });
-
-  it("passes zai api key to onboard", async () => {
-    const program = buildProgram();
-    await program.parseAsync(
-      [
-        "onboard",
-        "--non-interactive",
-        "--auth-choice",
-        "zai-api-key",
-        "--zai-api-key",
-        "sk-zai-test",
-      ],
-      { from: "user" },
-    );
-    expect(onboardCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        nonInteractive: true,
+        flag: "--synthetic-api-key",
+        key: "sk-synthetic-test",
+        field: "syntheticApiKey",
+      },
+      {
         authChoice: "zai-api-key",
-        zaiApiKey: "sk-zai-test",
-      }),
-      runtime,
-    );
+        flag: "--zai-api-key",
+        key: "sk-zai-test",
+        field: "zaiApiKey",
+      },
+    ] as const;
+
+    for (const entry of cases) {
+      const program = buildProgram();
+      await program.parseAsync(
+        ["onboard", "--non-interactive", "--auth-choice", entry.authChoice, entry.flag, entry.key],
+        { from: "user" },
+      );
+      expect(onboardCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nonInteractive: true,
+          authChoice: entry.authChoice,
+          [entry.field]: entry.key,
+        }),
+        runtime,
+      );
+      onboardCommand.mockClear();
+    }
   });
 
   it("runs channels login", async () => {

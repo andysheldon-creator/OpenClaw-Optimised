@@ -1,22 +1,26 @@
-import {
-  resolveEffectiveMessagesConfig,
-  resolveHumanDelayConfig,
-  resolveIdentityName,
-} from "../../agents/identity.js";
-import {
-  extractShortModelName,
-  type ResponsePrefixContext,
-} from "../../auto-reply/reply/response-prefix-template.js";
+import { resolveHumanDelayConfig } from "../../agents/identity.js";
 import { hasControlCommand } from "../../auto-reply/command-detection.js";
-import { formatAgentEnvelope } from "../../auto-reply/envelope.js";
+import {
+  formatInboundEnvelope,
+  formatInboundFromLabel,
+  resolveEnvelopeFormatOptions,
+} from "../../auto-reply/envelope.js";
 import {
   createInboundDebouncer,
   resolveInboundDebounceMs,
 } from "../../auto-reply/inbound-debounce.js";
-import { dispatchReplyFromConfig } from "../../auto-reply/reply/dispatch-from-config.js";
-import { buildHistoryContextFromMap, clearHistoryEntries } from "../../auto-reply/reply/history.js";
-import { createReplyDispatcher } from "../../auto-reply/reply/reply-dispatcher.js";
-import { resolveStorePath, updateLastRoute } from "../../config/sessions.js";
+import { dispatchInboundMessage } from "../../auto-reply/dispatch.js";
+import {
+  buildPendingHistoryContextFromMap,
+  clearHistoryEntriesIfEnabled,
+} from "../../auto-reply/reply/history.js";
+import { finalizeInboundContext } from "../../auto-reply/reply/inbound-context.js";
+import { createReplyDispatcherWithTyping } from "../../auto-reply/reply/reply-dispatcher.js";
+import { logInboundDrop, logTypingFailure } from "../../channels/logging.js";
+import { createReplyPrefixContext } from "../../channels/reply-prefix.js";
+import { recordInboundSession } from "../../channels/session.js";
+import { createTypingCallbacks } from "../../channels/typing.js";
+import { readSessionUpdatedAt, resolveStorePath } from "../../config/sessions.js";
 import { danger, logVerbose, shouldLogVerbose } from "../../globals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { mediaKindFromMime } from "../../media/constants.js";
@@ -27,6 +31,7 @@ import {
 } from "../../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
 import { normalizeE164 } from "../../utils.js";
+import { resolveControlCommandGate } from "../../channels/command-gating.js";
 import {
   formatSignalPairingIdLine,
   formatSignalSenderDisplay,
@@ -36,7 +41,7 @@ import {
   resolveSignalRecipient,
   resolveSignalSender,
 } from "../identity.js";
-import { sendMessageSignal } from "../send.js";
+import { sendMessageSignal, sendReadReceiptSignal, sendTypingSignal } from "../send.js";
 
 import type { SignalEventHandlerDeps, SignalReceivePayload } from "./event-handler.types.js";
 
@@ -60,41 +65,14 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
   };
 
   async function handleSignalInboundMessage(entry: SignalInboundEntry) {
-    const fromLabel = entry.isGroup
-      ? `${entry.groupName ?? "Signal Group"} id:${entry.groupId}`
-      : `${entry.senderName} id:${entry.senderDisplay}`;
-    const body = formatAgentEnvelope({
-      channel: "Signal",
-      from: fromLabel,
-      timestamp: entry.timestamp ?? undefined,
-      body: entry.bodyText,
+    const fromLabel = formatInboundFromLabel({
+      isGroup: entry.isGroup,
+      groupLabel: entry.groupName ?? undefined,
+      groupId: entry.groupId ?? "unknown",
+      groupFallback: "Group",
+      directLabel: entry.senderName,
+      directId: entry.senderDisplay,
     });
-    let combinedBody = body;
-    const historyKey = entry.isGroup ? String(entry.groupId ?? "unknown") : undefined;
-    if (entry.isGroup && historyKey && deps.historyLimit > 0) {
-      combinedBody = buildHistoryContextFromMap({
-        historyMap: deps.groupHistories,
-        historyKey,
-        limit: deps.historyLimit,
-        entry: {
-          sender: entry.senderName,
-          body: entry.bodyText,
-          timestamp: entry.timestamp ?? undefined,
-          messageId: entry.messageId,
-        },
-        currentMessage: combinedBody,
-        formatEntry: (historyEntry) =>
-          formatAgentEnvelope({
-            channel: "Signal",
-            from: fromLabel,
-            timestamp: historyEntry.timestamp,
-            body: `${historyEntry.sender}: ${historyEntry.body}${
-              historyEntry.messageId ? ` [id:${historyEntry.messageId}]` : ""
-            }`,
-          }),
-      });
-    }
-
     const route = resolveAgentRoute({
       cfg: deps.cfg,
       channel: "signal",
@@ -104,8 +82,48 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
         id: entry.isGroup ? (entry.groupId ?? "unknown") : entry.senderPeerId,
       },
     });
+    const storePath = resolveStorePath(deps.cfg.session?.store, {
+      agentId: route.agentId,
+    });
+    const envelopeOptions = resolveEnvelopeFormatOptions(deps.cfg);
+    const previousTimestamp = readSessionUpdatedAt({
+      storePath,
+      sessionKey: route.sessionKey,
+    });
+    const body = formatInboundEnvelope({
+      channel: "Signal",
+      from: fromLabel,
+      timestamp: entry.timestamp ?? undefined,
+      body: entry.bodyText,
+      chatType: entry.isGroup ? "group" : "direct",
+      sender: { name: entry.senderName, id: entry.senderDisplay },
+      previousTimestamp,
+      envelope: envelopeOptions,
+    });
+    let combinedBody = body;
+    const historyKey = entry.isGroup ? String(entry.groupId ?? "unknown") : undefined;
+    if (entry.isGroup && historyKey) {
+      combinedBody = buildPendingHistoryContextFromMap({
+        historyMap: deps.groupHistories,
+        historyKey,
+        limit: deps.historyLimit,
+        currentMessage: combinedBody,
+        formatEntry: (historyEntry) =>
+          formatInboundEnvelope({
+            channel: "Signal",
+            from: fromLabel,
+            timestamp: historyEntry.timestamp,
+            body: `${historyEntry.body}${
+              historyEntry.messageId ? ` [id:${historyEntry.messageId}]` : ""
+            }`,
+            chatType: "group",
+            senderLabel: historyEntry.sender,
+            envelope: envelopeOptions,
+          }),
+      });
+    }
     const signalTo = entry.isGroup ? `group:${entry.groupId}` : `signal:${entry.senderRecipient}`;
-    const ctxPayload = {
+    const ctxPayload = finalizeInboundContext({
       Body: combinedBody,
       RawBody: entry.bodyText,
       CommandBody: entry.bodyText,
@@ -116,6 +134,7 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
       SessionKey: route.sessionKey,
       AccountId: route.accountId,
       ChatType: entry.isGroup ? "group" : "direct",
+      ConversationLabel: fromLabel,
       GroupSubject: entry.isGroup ? (entry.groupName ?? undefined) : undefined,
       SenderName: entry.senderName,
       SenderId: entry.senderDisplay,
@@ -129,37 +148,54 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
       CommandAuthorized: entry.commandAuthorized,
       OriginatingChannel: "signal" as const,
       OriginatingTo: signalTo,
-    };
+    });
 
-    if (!entry.isGroup) {
-      const sessionCfg = deps.cfg.session;
-      const storePath = resolveStorePath(sessionCfg?.store, {
-        agentId: route.agentId,
-      });
-      await updateLastRoute({
-        storePath,
-        sessionKey: route.mainSessionKey,
-        channel: "signal",
-        to: entry.senderRecipient,
-        accountId: route.accountId,
-      });
-    }
+    await recordInboundSession({
+      storePath,
+      sessionKey: ctxPayload.SessionKey ?? route.sessionKey,
+      ctx: ctxPayload,
+      updateLastRoute: !entry.isGroup
+        ? {
+            sessionKey: route.mainSessionKey,
+            channel: "signal",
+            to: entry.senderRecipient,
+            accountId: route.accountId,
+          }
+        : undefined,
+      onRecordError: (err) => {
+        logVerbose(`signal: failed updating session meta: ${String(err)}`);
+      },
+    });
 
     if (shouldLogVerbose()) {
       const preview = body.slice(0, 200).replace(/\\n/g, "\\\\n");
       logVerbose(`signal inbound: from=${ctxPayload.From} len=${body.length} preview="${preview}"`);
     }
 
-    let didSendReply = false;
+    const prefixContext = createReplyPrefixContext({ cfg: deps.cfg, agentId: route.agentId });
 
-    // Create mutable context for response prefix template interpolation
-    let prefixContext: ResponsePrefixContext = {
-      identityName: resolveIdentityName(deps.cfg, route.agentId),
-    };
+    const typingCallbacks = createTypingCallbacks({
+      start: async () => {
+        if (!ctxPayload.To) return;
+        await sendTypingSignal(ctxPayload.To, {
+          baseUrl: deps.baseUrl,
+          account: deps.account,
+          accountId: deps.accountId,
+        });
+      },
+      onStartError: (err) => {
+        logTypingFailure({
+          log: logVerbose,
+          channel: "signal",
+          target: ctxPayload.To ?? undefined,
+          error: err,
+        });
+      },
+    });
 
-    const dispatcher = createReplyDispatcher({
-      responsePrefix: resolveEffectiveMessagesConfig(deps.cfg, route.agentId).responsePrefix,
-      responsePrefixContextProvider: () => prefixContext,
+    const { dispatcher, replyOptions, markDispatchIdle } = createReplyDispatcherWithTyping({
+      responsePrefix: prefixContext.responsePrefix,
+      responsePrefixContextProvider: prefixContext.responsePrefixContextProvider,
       humanDelay: resolveHumanDelayConfig(deps.cfg, route.agentId),
       deliver: async (payload) => {
         await deps.deliverReplies({
@@ -172,37 +208,43 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
           maxBytes: deps.mediaMaxBytes,
           textLimit: deps.textLimit,
         });
-        didSendReply = true;
       },
       onError: (err, info) => {
         deps.runtime.error?.(danger(`signal ${info.kind} reply failed: ${String(err)}`));
       },
+      onReplyStart: typingCallbacks.onReplyStart,
     });
 
-    const { queuedFinal } = await dispatchReplyFromConfig({
+    const { queuedFinal } = await dispatchInboundMessage({
       ctx: ctxPayload,
       cfg: deps.cfg,
       dispatcher,
       replyOptions: {
+        ...replyOptions,
         disableBlockStreaming:
           typeof deps.blockStreaming === "boolean" ? !deps.blockStreaming : undefined,
         onModelSelected: (ctx) => {
-          // Mutate the object directly instead of reassigning to ensure the closure sees updates
-          prefixContext.provider = ctx.provider;
-          prefixContext.model = extractShortModelName(ctx.model);
-          prefixContext.modelFull = `${ctx.provider}/${ctx.model}`;
-          prefixContext.thinkingLevel = ctx.thinkLevel ?? "off";
+          prefixContext.onModelSelected(ctx);
         },
       },
     });
+    markDispatchIdle();
     if (!queuedFinal) {
-      if (entry.isGroup && historyKey && deps.historyLimit > 0 && didSendReply) {
-        clearHistoryEntries({ historyMap: deps.groupHistories, historyKey });
+      if (entry.isGroup && historyKey) {
+        clearHistoryEntriesIfEnabled({
+          historyMap: deps.groupHistories,
+          historyKey,
+          limit: deps.historyLimit,
+        });
       }
       return;
     }
-    if (entry.isGroup && historyKey && deps.historyLimit > 0 && didSendReply) {
-      clearHistoryEntries({ historyMap: deps.groupHistories, historyKey });
+    if (entry.isGroup && historyKey) {
+      clearHistoryEntriesIfEnabled({
+        historyMap: deps.groupHistories,
+        historyKey,
+        limit: deps.historyLimit,
+      });
     }
   }
 
@@ -400,11 +442,29 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
       }
     }
 
-    const commandAuthorized = isGroup
-      ? effectiveGroupAllow.length > 0
-        ? isSignalSenderAllowed(sender, effectiveGroupAllow)
-        : true
-      : dmAllowed;
+    const useAccessGroups = deps.cfg.commands?.useAccessGroups !== false;
+    const ownerAllowedForCommands = isSignalSenderAllowed(sender, effectiveDmAllow);
+    const groupAllowedForCommands = isSignalSenderAllowed(sender, effectiveGroupAllow);
+    const hasControlCommandInMessage = hasControlCommand(messageText, deps.cfg);
+    const commandGate = resolveControlCommandGate({
+      useAccessGroups,
+      authorizers: [
+        { configured: effectiveDmAllow.length > 0, allowed: ownerAllowedForCommands },
+        { configured: effectiveGroupAllow.length > 0, allowed: groupAllowedForCommands },
+      ],
+      allowTextCommands: true,
+      hasControlCommand: hasControlCommandInMessage,
+    });
+    const commandAuthorized = isGroup ? commandGate.commandAuthorized : dmAllowed;
+    if (isGroup && commandGate.shouldBlock) {
+      logInboundDrop({
+        log: logVerbose,
+        channel: "signal",
+        reason: "control command (unauthorized)",
+        target: senderDisplay,
+      });
+      return;
+    }
 
     let mediaPath: string | undefined;
     let mediaType: string | undefined;
@@ -435,6 +495,31 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
 
     const bodyText = messageText || placeholder || dataMessage.quote?.text?.trim() || "";
     if (!bodyText) return;
+
+    const receiptTimestamp =
+      typeof envelope.timestamp === "number"
+        ? envelope.timestamp
+        : typeof dataMessage.timestamp === "number"
+          ? dataMessage.timestamp
+          : undefined;
+    if (deps.sendReadReceipts && !deps.readReceiptsViaDaemon && !isGroup && receiptTimestamp) {
+      try {
+        await sendReadReceiptSignal(`signal:${senderRecipient}`, receiptTimestamp, {
+          baseUrl: deps.baseUrl,
+          account: deps.account,
+          accountId: deps.accountId,
+        });
+      } catch (err) {
+        logVerbose(`signal read receipt failed for ${senderDisplay}: ${String(err)}`);
+      }
+    } else if (
+      deps.sendReadReceipts &&
+      !deps.readReceiptsViaDaemon &&
+      !isGroup &&
+      !receiptTimestamp
+    ) {
+      logVerbose(`signal read receipt skipped (missing timestamp) for ${senderDisplay}`);
+    }
 
     const senderName = envelope.sourceName ?? senderDisplay;
     const messageId =

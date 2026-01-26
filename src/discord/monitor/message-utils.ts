@@ -16,6 +16,7 @@ export type DiscordChannelInfo = {
   name?: string;
   topic?: string;
   parentId?: string;
+  ownerId?: string;
 };
 
 type DiscordSnapshotAuthor = {
@@ -44,6 +45,10 @@ const DISCORD_CHANNEL_INFO_CACHE = new Map<
   { value: DiscordChannelInfo | null; expiresAt: number }
 >();
 
+export function __resetDiscordChannelInfoCacheForTest() {
+  DISCORD_CHANNEL_INFO_CACHE.clear();
+}
+
 export async function resolveDiscordChannelInfo(
   client: Client,
   channelId: string,
@@ -65,11 +70,13 @@ export async function resolveDiscordChannelInfo(
     const name = "name" in channel ? (channel.name ?? undefined) : undefined;
     const topic = "topic" in channel ? (channel.topic ?? undefined) : undefined;
     const parentId = "parentId" in channel ? (channel.parentId ?? undefined) : undefined;
+    const ownerId = "ownerId" in channel ? (channel.ownerId ?? undefined) : undefined;
     const payload: DiscordChannelInfo = {
       type: channel.type,
       name,
       topic,
       parentId,
+      ownerId,
     };
     DISCORD_CHANNEL_INFO_CACHE.set(channelId, {
       value: payload,

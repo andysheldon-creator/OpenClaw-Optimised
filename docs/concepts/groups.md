@@ -149,6 +149,14 @@ Control how group/room messages are handled per channel:
     slack: {
       groupPolicy: "allowlist",
       channels: { "#general": { allow: true } }
+    },
+    matrix: {
+      groupPolicy: "allowlist",
+      groupAllowFrom: ["@owner:example.org"],
+      groups: {
+        "!roomId:example.org": { allow: true },
+        "#alias:example.org": { allow: true }
+      }
     }
   }
 }
@@ -165,6 +173,7 @@ Notes:
 - WhatsApp/Telegram/Signal/iMessage/Microsoft Teams: use `groupAllowFrom` (fallback: explicit `allowFrom`).
 - Discord: allowlist uses `channels.discord.guilds.<id>.channels`.
 - Slack: allowlist uses `channels.slack.channels`.
+- Matrix: allowlist uses `channels.matrix.groups` (room IDs, aliases, or names). Use `channels.matrix.groupAllowFrom` to restrict senders; per-room `users` allowlists are also supported.
 - Group DMs are controlled separately (`channels.discord.dm.*`, `channels.slack.dm.*`).
 - Telegram allowlist can match user IDs (`"123456789"`, `"telegram:123456789"`, `"tg:123456789"`) or usernames (`"@alice"` or `"alice"`); prefixes are case-insensitive.
 - Default is `groupPolicy: "allowlist"`; if your group allowlist is empty, group messages are blocked.
@@ -176,6 +185,8 @@ Quick mental model (evaluation order for group messages):
 
 ## Mention gating (default)
 Group messages require a mention unless overridden per group. Defaults live per subsystem under `*.groups."*"`.
+
+Replying to a bot message counts as an implicit mention (when the channel supports reply metadata). This applies to Telegram, WhatsApp, Slack, Discord, and Microsoft Teams.
 
 ```json5
 {
@@ -219,7 +230,7 @@ Notes:
 - Per-agent override: `agents.list[].groupChat.mentionPatterns` (useful when multiple agents share a group).
 - Mention gating is only enforced when mention detection is possible (native mentions or `mentionPatterns` are configured).
 - Discord defaults live in `channels.discord.guilds."*"` (overridable per guild/channel).
-- Group history context is wrapped uniformly across channels; use `messages.groupChat.historyLimit` for the global default and `channels.<channel>.historyLimit` (or `channels.<channel>.accounts.*.historyLimit`) for overrides. Set `0` to disable.
+- Group history context is wrapped uniformly across channels and is **pending-only** (messages skipped due to mention gating); use `messages.groupChat.historyLimit` for the global default and `channels.<channel>.historyLimit` (or `channels.<channel>.accounts.*.historyLimit`) for overrides. Set `0` to disable.
 
 ## Group allowlists
 When `channels.whatsapp.groups`, `channels.telegram.groups`, or `channels.imessage.groups` is configured, the keys act as a group allowlist. Use `"*"` to allow all groups while still setting default mention behavior.

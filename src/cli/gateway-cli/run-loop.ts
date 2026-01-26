@@ -1,5 +1,10 @@
 import type { startGatewayServer } from "../../gateway/server.js";
-import { createSubsystemLogger } from "../../logging.js";
+import { acquireGatewayLock } from "../../infra/gateway-lock.js";
+import {
+  consumeGatewaySigusr1RestartAuthorization,
+  isGatewaySigusr1RestartExternallyAllowed,
+} from "../../infra/restart.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { defaultRuntime } from "../../runtime.js";
 
 const gatewayLog = createSubsystemLogger("gateway");
@@ -10,6 +15,7 @@ export async function runGatewayLoop(params: {
   start: () => Promise<Awaited<ReturnType<typeof startGatewayServer>>>;
   runtime: typeof defaultRuntime;
 }) {
+  const lock = await acquireGatewayLock();
   let server: Awaited<ReturnType<typeof startGatewayServer>> | null = null;
   let shuttingDown = false;
   let restartResolver: (() => void) | null = null;
@@ -67,6 +73,13 @@ export async function runGatewayLoop(params: {
   };
   const onSigusr1 = () => {
     gatewayLog.info("signal SIGUSR1 received");
+    const authorized = consumeGatewaySigusr1RestartAuthorization();
+    if (!authorized && !isGatewaySigusr1RestartExternallyAllowed()) {
+      gatewayLog.warn(
+        "SIGUSR1 restart ignored (not authorized; enable commands.restart or use gateway tool).",
+      );
+      return;
+    }
     request("restart", "SIGUSR1");
   };
 
@@ -85,6 +98,7 @@ export async function runGatewayLoop(params: {
       });
     }
   } finally {
+    await lock?.release();
     cleanupSignals();
   }
 }

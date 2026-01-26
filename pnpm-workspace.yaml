@@ -5,10 +5,9 @@ packages:
 
 onlyBuiltDependencies:
   - '@whiskeysockets/baileys'
+  - '@lydell/node-pty'
+  - '@matrix-org/matrix-sdk-crypto-nodejs'
   - authenticate-pam
   - esbuild
   - protobufjs
   - sharp
-
-patchedDependencies:
-  '@mariozechner/pi-ai@0.45.7': patches/@mariozechner__pi-ai@0.45.7.patch

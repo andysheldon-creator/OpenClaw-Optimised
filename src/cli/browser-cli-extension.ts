@@ -11,6 +11,8 @@ import { defaultRuntime } from "../runtime.js";
 import { movePathToTrash } from "../browser/trash.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
+import { shortenHomePath } from "../utils.js";
+import { formatCliCommand } from "./command-format.js";
 
 function bundledExtensionRootDir() {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -76,7 +78,8 @@ export function registerBrowserExtensionCommands(
         defaultRuntime.log(JSON.stringify({ ok: true, path: installed.path }, null, 2));
         return;
       }
-      defaultRuntime.log(installed.path);
+      const displayPath = shortenHomePath(installed.path);
+      defaultRuntime.log(displayPath);
       const copied = await copyToClipboard(installed.path).catch(() => false);
       defaultRuntime.error(
         info(
@@ -84,7 +87,7 @@ export function registerBrowserExtensionCommands(
             copied ? "Copied to clipboard." : "Copy to clipboard unavailable.",
             "Next:",
             `- Chrome → chrome://extensions → enable “Developer mode”`,
-            `- “Load unpacked” → select: ${installed.path}`,
+            `- “Load unpacked” → select: ${displayPath}`,
             `- Pin “Clawdbot Browser Relay”, then click it on the tab (badge shows ON)`,
             "",
             `${theme.muted("Docs:")} ${formatDocsLink("/tools/chrome-extension", "docs.clawd.bot/tools/chrome-extension")}`,
@@ -103,7 +106,7 @@ export function registerBrowserExtensionCommands(
         defaultRuntime.error(
           danger(
             [
-              'Chrome extension is not installed. Run: "clawdbot browser extension install"',
+              `Chrome extension is not installed. Run: "${formatCliCommand("clawdbot browser extension install")}"`,
               `Docs: ${formatDocsLink("/tools/chrome-extension", "docs.clawd.bot/tools/chrome-extension")}`,
             ].join("\n"),
           ),
@@ -114,7 +117,8 @@ export function registerBrowserExtensionCommands(
         defaultRuntime.log(JSON.stringify({ path: dir }, null, 2));
         return;
       }
-      defaultRuntime.log(dir);
+      const displayPath = shortenHomePath(dir);
+      defaultRuntime.log(displayPath);
       const copied = await copyToClipboard(dir).catch(() => false);
       if (copied) defaultRuntime.error(info("Copied to clipboard."));
     });

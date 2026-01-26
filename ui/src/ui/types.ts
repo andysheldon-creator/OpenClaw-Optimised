@@ -2,10 +2,22 @@ export type ChannelsStatusSnapshot = {
   ts: number;
   channelOrder: string[];
   channelLabels: Record<string, string>;
+  channelDetailLabels?: Record<string, string>;
+  channelSystemImages?: Record<string, string>;
+  channelMeta?: ChannelUiMetaEntry[];
   channels: Record<string, unknown>;
   channelAccounts: Record<string, ChannelAccountSnapshot[]>;
   channelDefaultAccountId: Record<string, string>;
 };
+
+export type ChannelUiMetaEntry = {
+  id: string;
+  label: string;
+  detailLabel: string;
+  systemImage?: string;
+};
+
+export const CRON_CHANNEL_LAST = "last";
 
 export type ChannelAccountSnapshot = {
   accountId: string;
@@ -29,6 +41,11 @@ export type ChannelAccountSnapshot = {
   tokenSource?: string | null;
   botTokenSource?: string | null;
   appTokenSource?: string | null;
+  credentialSource?: string | null;
+  audienceType?: string | null;
+  audience?: string | null;
+  webhookPath?: string | null;
+  webhookUrl?: string | null;
   baseUrl?: string | null;
   allowUnmentionedGroups?: boolean | null;
   cliPath?: string | null;
@@ -121,6 +138,28 @@ export type DiscordStatus = {
   lastProbeAt?: number | null;
 };
 
+export type GoogleChatProbe = {
+  ok: boolean;
+  status?: number | null;
+  error?: string | null;
+  elapsedMs?: number | null;
+};
+
+export type GoogleChatStatus = {
+  configured: boolean;
+  credentialSource?: string | null;
+  audienceType?: string | null;
+  audience?: string | null;
+  webhookPath?: string | null;
+  webhookUrl?: string | null;
+  running: boolean;
+  lastStartAt?: number | null;
+  lastStopAt?: number | null;
+  lastError?: string | null;
+  probe?: GoogleChatProbe | null;
+  lastProbeAt?: number | null;
+};
+
 export type SlackBot = {
   id?: string | null;
   name?: string | null;
@@ -186,6 +225,27 @@ export type IMessageStatus = {
   dbPath?: string | null;
   probe?: IMessageProbe | null;
   lastProbeAt?: number | null;
+};
+
+export type NostrProfile = {
+  name?: string | null;
+  displayName?: string | null;
+  about?: string | null;
+  picture?: string | null;
+  banner?: string | null;
+  website?: string | null;
+  nip05?: string | null;
+  lud16?: string | null;
+};
+
+export type NostrStatus = {
+  configured: boolean;
+  publicKey?: string | null;
+  running: boolean;
+  lastStartAt?: number | null;
+  lastStopAt?: number | null;
+  lastError?: string | null;
+  profile?: NostrProfile | null;
 };
 
 export type MSTeamsProbe = {
@@ -261,6 +321,25 @@ export type GatewaySessionsDefaults = {
   contextTokens: number | null;
 };
 
+export type GatewayAgentRow = {
+  id: string;
+  name?: string;
+  identity?: {
+    name?: string;
+    theme?: string;
+    emoji?: string;
+    avatar?: string;
+    avatarUrl?: string;
+  };
+};
+
+export type AgentsListResult = {
+  defaultId: string;
+  mainKey: string;
+  scope: string;
+  agents: GatewayAgentRow[];
+};
+
 export type GatewaySessionRow = {
   key: string;
   kind: "direct" | "group" | "global" | "unknown";
@@ -282,6 +361,7 @@ export type GatewaySessionRow = {
   outputTokens?: number;
   totalTokens?: number;
   model?: string;
+  modelProvider?: string;
   contextTokens?: number;
 };
 

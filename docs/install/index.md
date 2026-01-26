@@ -7,17 +7,43 @@ read_when:
 
 # Install
 
-Runtime baseline: **Node >=22**.
+Use the installer unless you have a reason not to. It sets up the CLI and runs onboarding.
 
-## Recommended (installer script)
+## Quick install (recommended)
 
 ```bash
 curl -fsSL https://clawd.bot/install.sh | bash
 ```
 
-This installs the `clawdbot` CLI globally via npm and then starts onboarding.
+Windows (PowerShell):
 
-See installer flags:
+```powershell
+iwr -useb https://clawd.bot/install.ps1 | iex
+```
+
+Next step (if you skipped onboarding):
+
+```bash
+clawdbot onboard --install-daemon
+```
+
+## System requirements
+
+- **Node >=22**
+- macOS, Linux, or Windows via WSL2
+- `pnpm` only if you build from source
+
+## Choose your install path
+
+### 1) Installer script (recommended)
+
+Installs `clawdbot` globally via npm and runs onboarding.
+
+```bash
+curl -fsSL https://clawd.bot/install.sh | bash
+```
+
+Installer flags:
 
 ```bash
 curl -fsSL https://clawd.bot/install.sh | bash -s -- --help
@@ -31,7 +57,62 @@ Non-interactive (skip onboarding):
 curl -fsSL https://clawd.bot/install.sh | bash -s -- --no-onboard
 ```
 
-## Install method: npm vs git
+### 2) Global install (manual)
+
+If you already have Node:
+
+```bash
+npm install -g clawdbot@latest
+```
+
+If you have libvips installed globally (common on macOS via Homebrew) and `sharp` fails to install, force prebuilt binaries:
+
+```bash
+SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g clawdbot@latest
+```
+
+If you see `sharp: Please add node-gyp to your dependencies`, either install build tooling (macOS: Xcode CLT + `npm install -g node-gyp`) or use the `SHARP_IGNORE_GLOBAL_LIBVIPS=1` workaround above to skip the native build.
+
+Or:
+
+```bash
+pnpm add -g clawdbot@latest
+```
+
+Then:
+
+```bash
+clawdbot onboard --install-daemon
+```
+
+### 3) From source (contributors/dev)
+
+```bash
+git clone https://github.com/clawdbot/clawdbot.git
+cd clawdbot
+pnpm install
+pnpm ui:build # auto-installs UI deps on first run
+pnpm build
+clawdbot onboard --install-daemon
+```
+
+Tip: if you don’t have a global install yet, run repo commands via `pnpm clawdbot ...`.
+
+### 4) Other install options
+
+- Docker: [Docker](/install/docker)
+- Nix: [Nix](/install/nix)
+- Ansible: [Ansible](/install/ansible)
+- Bun (CLI only): [Bun](/install/bun)
+
+## After install
+
+- Run onboarding: `clawdbot onboard --install-daemon`
+- Quick check: `clawdbot doctor`
+- Check gateway health: `clawdbot status` + `clawdbot health`
+- Open the dashboard: `clawdbot dashboard`
+
+## Install method: npm vs git (installer)
 
 The installer supports two methods:
 
@@ -69,28 +150,31 @@ Equivalent env vars (useful for automation):
 - `CLAWDBOT_NO_ONBOARD=1`
 - `SHARP_IGNORE_GLOBAL_LIBVIPS=0|1` (default: `1`; avoids `sharp` building against system libvips)
 
-## Global install (manual)
+## Troubleshooting: `clawdbot` not found (PATH)
 
-If you already have Node:
-
-```bash
-npm install -g clawdbot@latest
-```
-
-If you have libvips installed globally (common on macOS via Homebrew) and `sharp` fails to install, force prebuilt binaries:
+Quick diagnosis:
 
 ```bash
-SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g clawdbot@latest
+node -v
+npm -v
+npm prefix -g
+echo "$PATH"
 ```
 
-Or:
+If `$(npm prefix -g)/bin` (macOS/Linux) or `$(npm prefix -g)` (Windows) is **not** present inside `echo "$PATH"`, your shell can’t find global npm binaries (including `clawdbot`).
+
+Fix: add it to your shell startup file (zsh: `~/.zshrc`, bash: `~/.bashrc`):
 
 ```bash
-pnpm add -g clawdbot@latest
+# macOS / Linux
+export PATH="$(npm prefix -g)/bin:$PATH"
 ```
 
-Then:
+On Windows, add the output of `npm prefix -g` to your PATH.
 
-```bash
-clawdbot onboard --install-daemon
-```
+Then open a new terminal (or `rehash` in zsh / `hash -r` in bash).
+
+## Update / uninstall
+
+- Updates: [Updating](/install/updating)
+- Uninstall: [Uninstall](/install/uninstall)

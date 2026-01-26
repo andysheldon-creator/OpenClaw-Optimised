@@ -1,26 +1,15 @@
-import { chunkMarkdownText } from "../../../src/auto-reply/chunk.js";
-import type { ChannelOutboundAdapter } from "../../../src/channels/plugins/types.js";
+import type { ChannelOutboundAdapter } from "clawdbot/plugin-sdk";
 
 import { createMSTeamsPollStoreFs } from "./polls.js";
+import { getMSTeamsRuntime } from "./runtime.js";
 import { sendMessageMSTeams, sendPollMSTeams } from "./send.js";
 
 export const msteamsOutbound: ChannelOutboundAdapter = {
   deliveryMode: "direct",
-  chunker: chunkMarkdownText,
+  chunker: (text, limit) => getMSTeamsRuntime().channel.text.chunkMarkdownText(text, limit),
+  chunkerMode: "markdown",
   textChunkLimit: 4000,
   pollMaxOptions: 12,
-  resolveTarget: ({ to }) => {
-    const trimmed = to?.trim();
-    if (!trimmed) {
-      return {
-        ok: false,
-        error: new Error(
-          "Delivering to MS Teams requires --to <conversationId|user:ID|conversation:ID>",
-        ),
-      };
-    }
-    return { ok: true, to: trimmed };
-  },
   sendText: async ({ cfg, to, text, deps }) => {
     const send = deps?.sendMSTeams ?? ((to, text) => sendMessageMSTeams({ cfg, to, text }));
     const result = await send(to, text);

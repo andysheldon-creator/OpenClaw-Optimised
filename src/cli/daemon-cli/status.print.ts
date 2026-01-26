@@ -5,19 +5,49 @@ import {
 } from "../../daemon/constants.js";
 import { renderGatewayServiceCleanupHints } from "../../daemon/inspect.js";
 import { resolveGatewayLogPaths } from "../../daemon/launchd.js";
+import {
+  isSystemdUnavailableDetail,
+  renderSystemdUnavailableHints,
+} from "../../daemon/systemd-hints.js";
+import { isWSLEnv } from "../../infra/wsl.js";
 import { getResolvedLoggerSettings } from "../../logging.js";
 import { defaultRuntime } from "../../runtime.js";
 import { colorize, isRich, theme } from "../../terminal/theme.js";
-import { formatRuntimeStatus, renderRuntimeHints, safeDaemonEnv } from "./shared.js";
+import { shortenHomePath } from "../../utils.js";
+import { formatCliCommand } from "../command-format.js";
+import {
+  filterDaemonEnv,
+  formatRuntimeStatus,
+  renderRuntimeHints,
+  safeDaemonEnv,
+} from "./shared.js";
 import {
   type DaemonStatus,
   renderPortDiagnosticsForCli,
   resolvePortListeningAddresses,
 } from "./status.gather.js";
 
+function sanitizeDaemonStatusForJson(status: DaemonStatus): DaemonStatus {
+  const command = status.service.command;
+  if (!command?.environment) return status;
+  const safeEnv = filterDaemonEnv(command.environment);
+  const nextCommand = {
+    ...command,
+    environment: Object.keys(safeEnv).length > 0 ? safeEnv : undefined,
+  };
+  return {
+    ...status,
+    service: {
+      ...status.service,
+      command: nextCommand,
+    },
+  };
+}
+
 export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean }) {
   if (opts.json) {
-    defaultRuntime.log(JSON.stringify(status, null, 2));
+    const sanitized = sanitizeDaemonStatusForJson(status);
+    defaultRuntime.log(JSON.stringify(sanitized, null, 2));
     return;
   }
 
@@ -37,7 +67,7 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
   defaultRuntime.log(`${label("Service:")} ${accent(service.label)} (${serviceStatus})`);
   try {
     const logFile = getResolvedLoggerSettings().file;
-    defaultRuntime.log(`${label("File logs:")} ${infoText(logFile)}`);
+    defaultRuntime.log(`${label("File logs:")} ${infoText(shortenHomePath(logFile))}`);
   } catch {
     // ignore missing config/log resolution
   }
@@ -47,14 +77,18 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
     );
   }
   if (service.command?.sourcePath) {
-    defaultRuntime.log(`${label("Service file:")} ${infoText(service.command.sourcePath)}`);
+    defaultRuntime.log(
+      `${label("Service file:")} ${infoText(shortenHomePath(service.command.sourcePath))}`,
+    );
   }
   if (service.command?.workingDirectory) {
-    defaultRuntime.log(`${label("Working dir:")} ${infoText(service.command.workingDirectory)}`);
+    defaultRuntime.log(
+      `${label("Working dir:")} ${infoText(shortenHomePath(service.command.workingDirectory))}`,
+    );
   }
   const daemonEnvLines = safeDaemonEnv(service.command?.environment);
   if (daemonEnvLines.length > 0) {
-    defaultRuntime.log(`${label("Daemon env:")} ${daemonEnvLines.join(" ")}`);
+    defaultRuntime.log(`${label("Service env:")} ${daemonEnvLines.join(" ")}`);
   }
   spacer();
 
@@ -65,12 +99,14 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
       defaultRuntime.error(`${warnText("Service config issue:")} ${issue.message}${detail}`);
     }
     defaultRuntime.error(
-      warnText('Recommendation: run "clawdbot doctor" (or "clawdbot doctor --repair").'),
+      warnText(
+        `Recommendation: run "${formatCliCommand("clawdbot doctor")}" (or "${formatCliCommand("clawdbot doctor --repair")}").`,
+      ),
     );
   }
 
   if (status.config) {
-    const cliCfg = `${status.config.cli.path}${status.config.cli.exists ? "" : " (missing)"}${status.config.cli.valid ? "" : " (invalid)"}`;
+    const cliCfg = `${shortenHomePath(status.config.cli.path)}${status.config.cli.exists ? "" : " (missing)"}${status.config.cli.valid ? "" : " (invalid)"}`;
     defaultRuntime.log(`${label("Config (cli):")} ${infoText(cliCfg)}`);
     if (!status.config.cli.valid && status.config.cli.issues?.length) {
       for (const issue of status.config.cli.issues.slice(0, 5)) {
@@ -80,12 +116,12 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
       }
     }
     if (status.config.daemon) {
-      const daemonCfg = `${status.config.daemon.path}${status.config.daemon.exists ? "" : " (missing)"}${status.config.daemon.valid ? "" : " (invalid)"}`;
-      defaultRuntime.log(`${label("Config (daemon):")} ${infoText(daemonCfg)}`);
+      const daemonCfg = `${shortenHomePath(status.config.daemon.path)}${status.config.daemon.exists ? "" : " (missing)"}${status.config.daemon.valid ? "" : " (invalid)"}`;
+      defaultRuntime.log(`${label("Config (service):")} ${infoText(daemonCfg)}`);
       if (!status.config.daemon.valid && status.config.daemon.issues?.length) {
         for (const issue of status.config.daemon.issues.slice(0, 5)) {
           defaultRuntime.error(
-            `${errorText("Daemon config issue:")} ${issue.path || "<root>"}: ${issue.message}`,
+            `${errorText("Service config issue:")} ${issue.path || "<root>"}: ${issue.message}`,
           );
         }
       }
@@ -93,12 +129,12 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
     if (status.config.mismatch) {
       defaultRuntime.error(
         errorText(
-          "Root cause: CLI and daemon are using different config paths (likely a profile/state-dir mismatch).",
+          "Root cause: CLI and service are using different config paths (likely a profile/state-dir mismatch).",
         ),
       );
       defaultRuntime.error(
         errorText(
-          "Fix: rerun `clawdbot daemon install --force` from the same --profile / CLAWDBOT_STATE_DIR you expect.",
+          `Fix: rerun \`${formatCliCommand("clawdbot gateway install --force")}\` from the same --profile / CLAWDBOT_STATE_DIR you expect.`,
         ),
       );
     }
@@ -164,6 +200,16 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
     spacer();
   }
 
+  const systemdUnavailable =
+    process.platform === "linux" && isSystemdUnavailableDetail(service.runtime?.detail);
+  if (systemdUnavailable) {
+    defaultRuntime.error(errorText("systemd user services unavailable."));
+    for (const hint of renderSystemdUnavailableHints({ wsl: isWSLEnv() })) {
+      defaultRuntime.error(errorText(hint));
+    }
+    spacer();
+  }
+
   if (service.runtime?.missingUnit) {
     defaultRuntime.error(errorText("Service unit not found."));
     for (const hint of renderRuntimeHints(service.runtime)) {
@@ -190,7 +236,9 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
         `LaunchAgent label cached but plist missing. Clear with: launchctl bootout gui/$UID/${labelValue}`,
       ),
     );
-    defaultRuntime.error(errorText("Then reinstall: clawdbot daemon install"));
+    defaultRuntime.error(
+      errorText(`Then reinstall: ${formatCliCommand("clawdbot gateway install")}`),
+    );
     spacer();
   }
 
@@ -233,8 +281,8 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
       const logs = resolveGatewayLogPaths(
         (service.command?.environment ?? process.env) as NodeJS.ProcessEnv,
       );
-      defaultRuntime.error(`${errorText("Logs:")} ${logs.stdoutPath}`);
-      defaultRuntime.error(`${errorText("Errors:")} ${logs.stderrPath}`);
+      defaultRuntime.error(`${errorText("Logs:")} ${shortenHomePath(logs.stdoutPath)}`);
+      defaultRuntime.error(`${errorText("Errors:")} ${shortenHomePath(logs.stderrPath)}`);
     }
     spacer();
   }
@@ -244,7 +292,7 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
     for (const svc of legacyServices) {
       defaultRuntime.error(`- ${errorText(svc.label)} (${svc.detail})`);
     }
-    defaultRuntime.error(errorText("Cleanup: clawdbot doctor"));
+    defaultRuntime.error(errorText(`Cleanup: ${formatCliCommand("clawdbot doctor")}`));
     spacer();
   }
 
@@ -273,6 +321,6 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
     spacer();
   }
 
-  defaultRuntime.log(`${label("Troubles:")} run clawdbot status`);
+  defaultRuntime.log(`${label("Troubles:")} run ${formatCliCommand("clawdbot status")}`);
   defaultRuntime.log(`${label("Troubleshooting:")} https://docs.clawd.bot/troubleshooting`);
 }

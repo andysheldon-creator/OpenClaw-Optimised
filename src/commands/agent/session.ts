@@ -9,9 +9,13 @@ import {
 } from "../../auto-reply/thinking.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import {
-  DEFAULT_IDLE_MINUTES,
+  evaluateSessionFreshness,
   loadSessionStore,
   resolveAgentIdFromSessionKey,
+  resolveChannelResetConfig,
+  resolveExplicitAgentSessionKey,
+  resolveSessionResetPolicy,
+  resolveSessionResetType,
   resolveSessionKey,
   resolveStorePath,
   type SessionEntry,
@@ -29,46 +33,86 @@ export type SessionResolution = {
   persistedVerbose?: VerboseLevel;
 };
 
-export function resolveSession(opts: {
+type SessionKeyResolution = {
+  sessionKey?: string;
+  sessionStore: Record<string, SessionEntry>;
+  storePath: string;
+};
+
+export function resolveSessionKeyForRequest(opts: {
   cfg: ClawdbotConfig;
   to?: string;
   sessionId?: string;
   sessionKey?: string;
-}): SessionResolution {
+  agentId?: string;
+}): SessionKeyResolution {
   const sessionCfg = opts.cfg.session;
   const scope = sessionCfg?.scope ?? "per-sender";
   const mainKey = normalizeMainKey(sessionCfg?.mainKey);
-  const idleMinutes = Math.max(sessionCfg?.idleMinutes ?? DEFAULT_IDLE_MINUTES, 1);
-  const idleMs = idleMinutes * 60_000;
-  const explicitSessionKey = opts.sessionKey?.trim();
+  const explicitSessionKey =
+    opts.sessionKey?.trim() ||
+    resolveExplicitAgentSessionKey({
+      cfg: opts.cfg,
+      agentId: opts.agentId,
+    });
   const storeAgentId = resolveAgentIdFromSessionKey(explicitSessionKey);
   const storePath = resolveStorePath(sessionCfg?.store, {
     agentId: storeAgentId,
   });
   const sessionStore = loadSessionStore(storePath);
-  const now = Date.now();
 
   const ctx: MsgContext | undefined = opts.to?.trim() ? { From: opts.to } : undefined;
   let sessionKey: string | undefined =
     explicitSessionKey ?? (ctx ? resolveSessionKey(scope, ctx, mainKey) : undefined);
-  let sessionEntry = sessionKey ? sessionStore[sessionKey] : undefined;
 
   // If a session id was provided, prefer to re-use its entry (by id) even when no key was derived.
   if (
     !explicitSessionKey &&
     opts.sessionId &&
-    (!sessionEntry || sessionEntry.sessionId !== opts.sessionId)
+    (!sessionKey || sessionStore[sessionKey]?.sessionId !== opts.sessionId)
   ) {
     const foundKey = Object.keys(sessionStore).find(
       (key) => sessionStore[key]?.sessionId === opts.sessionId,
     );
-    if (foundKey) {
-      sessionKey = sessionKey ?? foundKey;
-      sessionEntry = sessionStore[foundKey];
-    }
+    if (foundKey) sessionKey = foundKey;
   }
 
-  const fresh = sessionEntry && sessionEntry.updatedAt >= now - idleMs;
+  return { sessionKey, sessionStore, storePath };
+}
+
+export function resolveSession(opts: {
+  cfg: ClawdbotConfig;
+  to?: string;
+  sessionId?: string;
+  sessionKey?: string;
+  agentId?: string;
+}): SessionResolution {
+  const sessionCfg = opts.cfg.session;
+  const { sessionKey, sessionStore, storePath } = resolveSessionKeyForRequest({
+    cfg: opts.cfg,
+    to: opts.to,
+    sessionId: opts.sessionId,
+    sessionKey: opts.sessionKey,
+    agentId: opts.agentId,
+  });
+  const now = Date.now();
+
+  const sessionEntry = sessionKey ? sessionStore[sessionKey] : undefined;
+
+  const resetType = resolveSessionResetType({ sessionKey });
+  const channelReset = resolveChannelResetConfig({
+    sessionCfg,
+    channel: sessionEntry?.lastChannel ?? sessionEntry?.channel,
+  });
+  const resetPolicy = resolveSessionResetPolicy({
+    sessionCfg,
+    resetType,
+    resetOverride: channelReset,
+  });
+  const fresh = sessionEntry
+    ? evaluateSessionFreshness({ updatedAt: sessionEntry.updatedAt, now, policy: resetPolicy })
+        .fresh
+    : false;
   const sessionId =
     opts.sessionId?.trim() || (fresh ? sessionEntry?.sessionId : undefined) || crypto.randomUUID();
   const isNewSession = !fresh && !opts.sessionId;

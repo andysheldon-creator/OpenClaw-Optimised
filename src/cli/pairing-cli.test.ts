@@ -39,6 +39,19 @@ vi.mock("../config/config.js", () => ({
 }));
 
 describe("pairing cli", () => {
+  it("evaluates pairing channels when registering the CLI (not at import)", async () => {
+    listPairingChannels.mockClear();
+
+    const { registerPairingCli } = await import("./pairing-cli.js");
+    expect(listPairingChannels).not.toHaveBeenCalled();
+
+    const program = new Command();
+    program.name("test");
+    registerPairingCli(program);
+
+    expect(listPairingChannels).toHaveBeenCalledTimes(1);
+  });
+
   it("labels Telegram ids as telegramUserId", async () => {
     const { registerPairingCli } = await import("./pairing-cli.js");
     listChannelPairingRequests.mockResolvedValueOnce([
@@ -58,7 +71,9 @@ describe("pairing cli", () => {
     await program.parseAsync(["pairing", "list", "--channel", "telegram"], {
       from: "user",
     });
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("telegramUserId=123"));
+    const output = log.mock.calls.map((call) => call.join(" ")).join("\n");
+    expect(output).toContain("telegramUserId");
+    expect(output).toContain("123");
   });
 
   it("accepts channel as positional for list", async () => {
@@ -118,7 +133,9 @@ describe("pairing cli", () => {
     await program.parseAsync(["pairing", "list", "--channel", "discord"], {
       from: "user",
     });
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("discordUserId=999"));
+    const output = log.mock.calls.map((call) => call.join(" ")).join("\n");
+    expect(output).toContain("discordUserId");
+    expect(output).toContain("999");
   });
 
   it("accepts channel as positional for approve (npm-run compatible)", async () => {

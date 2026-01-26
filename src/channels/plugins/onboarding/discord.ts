@@ -1,14 +1,22 @@
 import type { ClawdbotConfig } from "../../../config/config.js";
 import type { DmPolicy } from "../../../config/types.js";
+import type { DiscordGuildEntry } from "../../../config/types.discord.js";
 import {
   listDiscordAccountIds,
   resolveDefaultDiscordAccountId,
   resolveDiscordAccount,
 } from "../../../discord/accounts.js";
+import { normalizeDiscordSlug } from "../../../discord/monitor/allow-list.js";
+import { resolveDiscordUserAllowlist } from "../../../discord/resolve-users.js";
+import {
+  resolveDiscordChannelAllowlist,
+  type DiscordChannelResolution,
+} from "../../../discord/resolve-channels.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../../routing/session-key.js";
 import { formatDocsLink } from "../../../terminal/links.js";
 import type { WizardPrompter } from "../../../wizard/prompts.js";
 import type { ChannelOnboardingAdapter, ChannelOnboardingDmPolicy } from "../onboarding-types.js";
+import { promptChannelAccessConfig } from "./channel-access.js";
 import { addWildcardAllowFrom, promptAccountId } from "./helpers.js";
 
 const channel = "discord" as const;
@@ -39,11 +47,211 @@ async function noteDiscordTokenHelp(prompter: WizardPrompter): Promise<void> {
       "1) Discord Developer Portal → Applications → New Application",
       "2) Bot → Add Bot → Reset Token → copy token",
       "3) OAuth2 → URL Generator → scope 'bot' → invite to your server",
-      "Tip: enable Message Content Intent if you need message text.",
+      "Tip: enable Message Content Intent if you need message text. (Bot → Privileged Gateway Intents → Message Content Intent)",
       `Docs: ${formatDocsLink("/discord", "discord")}`,
     ].join("\n"),
     "Discord bot token",
   );
+}
+
+function setDiscordGroupPolicy(
+  cfg: ClawdbotConfig,
+  accountId: string,
+  groupPolicy: "open" | "allowlist" | "disabled",
+): ClawdbotConfig {
+  if (accountId === DEFAULT_ACCOUNT_ID) {
+    return {
+      ...cfg,
+      channels: {
+        ...cfg.channels,
+        discord: {
+          ...cfg.channels?.discord,
+          enabled: true,
+          groupPolicy,
+        },
+      },
+    };
+  }
+  return {
+    ...cfg,
+    channels: {
+      ...cfg.channels,
+      discord: {
+        ...cfg.channels?.discord,
+        enabled: true,
+        accounts: {
+          ...cfg.channels?.discord?.accounts,
+          [accountId]: {
+            ...cfg.channels?.discord?.accounts?.[accountId],
+            enabled: cfg.channels?.discord?.accounts?.[accountId]?.enabled ?? true,
+            groupPolicy,
+          },
+        },
+      },
+    },
+  };
+}
+
+function setDiscordGuildChannelAllowlist(
+  cfg: ClawdbotConfig,
+  accountId: string,
+  entries: Array<{
+    guildKey: string;
+    channelKey?: string;
+  }>,
+): ClawdbotConfig {
+  const baseGuilds =
+    accountId === DEFAULT_ACCOUNT_ID
+      ? (cfg.channels?.discord?.guilds ?? {})
+      : (cfg.channels?.discord?.accounts?.[accountId]?.guilds ?? {});
+  const guilds: Record<string, DiscordGuildEntry> = { ...baseGuilds };
+  for (const entry of entries) {
+    const guildKey = entry.guildKey || "*";
+    const existing = guilds[guildKey] ?? {};
+    if (entry.channelKey) {
+      const channels = { ...existing.channels };
+      channels[entry.channelKey] = { allow: true };
+      guilds[guildKey] = { ...existing, channels };
+    } else {
+      guilds[guildKey] = existing;
+    }
+  }
+  if (accountId === DEFAULT_ACCOUNT_ID) {
+    return {
+      ...cfg,
+      channels: {
+        ...cfg.channels,
+        discord: {
+          ...cfg.channels?.discord,
+          enabled: true,
+          guilds,
+        },
+      },
+    };
+  }
+  return {
+    ...cfg,
+    channels: {
+      ...cfg.channels,
+      discord: {
+        ...cfg.channels?.discord,
+        enabled: true,
+        accounts: {
+          ...cfg.channels?.discord?.accounts,
+          [accountId]: {
+            ...cfg.channels?.discord?.accounts?.[accountId],
+            enabled: cfg.channels?.discord?.accounts?.[accountId]?.enabled ?? true,
+            guilds,
+          },
+        },
+      },
+    },
+  };
+}
+
+function setDiscordAllowFrom(cfg: ClawdbotConfig, allowFrom: string[]): ClawdbotConfig {
+  return {
+    ...cfg,
+    channels: {
+      ...cfg.channels,
+      discord: {
+        ...cfg.channels?.discord,
+        dm: {
+          ...cfg.channels?.discord?.dm,
+          enabled: cfg.channels?.discord?.dm?.enabled ?? true,
+          allowFrom,
+        },
+      },
+    },
+  };
+}
+
+function parseDiscordAllowFromInput(raw: string): string[] {
+  return raw
+    .split(/[\n,;]+/g)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+async function promptDiscordAllowFrom(params: {
+  cfg: ClawdbotConfig;
+  prompter: WizardPrompter;
+  accountId?: string;
+}): Promise<ClawdbotConfig> {
+  const accountId =
+    params.accountId && normalizeAccountId(params.accountId)
+      ? (normalizeAccountId(params.accountId) ?? DEFAULT_ACCOUNT_ID)
+      : resolveDefaultDiscordAccountId(params.cfg);
+  const resolved = resolveDiscordAccount({ cfg: params.cfg, accountId });
+  const token = resolved.token;
+  const existing = params.cfg.channels?.discord?.dm?.allowFrom ?? [];
+  await params.prompter.note(
+    [
+      "Allowlist Discord DMs by username (we resolve to user ids).",
+      "Examples:",
+      "- 123456789012345678",
+      "- @alice",
+      "- alice#1234",
+      "Multiple entries: comma-separated.",
+      `Docs: ${formatDocsLink("/discord", "discord")}`,
+    ].join("\n"),
+    "Discord allowlist",
+  );
+
+  const parseInputs = (value: string) => parseDiscordAllowFromInput(value);
+  const parseId = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const mention = trimmed.match(/^<@!?(\d+)>$/);
+    if (mention) return mention[1];
+    const prefixed = trimmed.replace(/^(user:|discord:)/i, "");
+    if (/^\d+$/.test(prefixed)) return prefixed;
+    return null;
+  };
+
+  while (true) {
+    const entry = await params.prompter.text({
+      message: "Discord allowFrom (usernames or ids)",
+      placeholder: "@alice, 123456789012345678",
+      initialValue: existing[0] ? String(existing[0]) : undefined,
+      validate: (value) => (String(value ?? "").trim() ? undefined : "Required"),
+    });
+    const parts = parseInputs(String(entry));
+    if (!token) {
+      const ids = parts.map(parseId).filter(Boolean) as string[];
+      if (ids.length !== parts.length) {
+        await params.prompter.note(
+          "Bot token missing; use numeric user ids (or mention form) only.",
+          "Discord allowlist",
+        );
+        continue;
+      }
+      const unique = [...new Set([...existing.map((v) => String(v).trim()), ...ids])].filter(
+        Boolean,
+      );
+      return setDiscordAllowFrom(params.cfg, unique);
+    }
+
+    const results = await resolveDiscordUserAllowlist({
+      token,
+      entries: parts,
+    }).catch(() => null);
+    if (!results) {
+      await params.prompter.note("Failed to resolve usernames. Try again.", "Discord allowlist");
+      continue;
+    }
+    const unresolved = results.filter((res) => !res.resolved || !res.id);
+    if (unresolved.length > 0) {
+      await params.prompter.note(
+        `Could not resolve: ${unresolved.map((res) => res.input).join(", ")}`,
+        "Discord allowlist",
+      );
+      continue;
+    }
+    const ids = results.map((res) => res.id as string);
+    const unique = [...new Set([...existing.map((v) => String(v).trim()).filter(Boolean), ...ids])];
+    return setDiscordAllowFrom(params.cfg, unique);
+  }
 }
 
 const dmPolicy: ChannelOnboardingDmPolicy = {
@@ -53,6 +261,7 @@ const dmPolicy: ChannelOnboardingDmPolicy = {
   allowFromKey: "channels.discord.dm.allowFrom",
   getCurrent: (cfg) => cfg.channels?.discord?.dm?.policy ?? "pairing",
   setPolicy: (cfg, policy) => setDiscordDmPolicy(cfg, policy),
+  promptAllowFrom: promptDiscordAllowFrom,
 };
 
 export const discordOnboardingAdapter: ChannelOnboardingAdapter = {
@@ -171,6 +380,94 @@ export const discordOnboardingAdapter: ChannelOnboardingAdapter = {
             },
           },
         };
+      }
+    }
+
+    const currentEntries = Object.entries(resolvedAccount.config.guilds ?? {}).flatMap(
+      ([guildKey, value]) => {
+        const channels = value?.channels ?? {};
+        const channelKeys = Object.keys(channels);
+        if (channelKeys.length === 0) return [guildKey];
+        return channelKeys.map((channelKey) => `${guildKey}/${channelKey}`);
+      },
+    );
+    const accessConfig = await promptChannelAccessConfig({
+      prompter,
+      label: "Discord channels",
+      currentPolicy: resolvedAccount.config.groupPolicy ?? "allowlist",
+      currentEntries,
+      placeholder: "My Server/#general, guildId/channelId, #support",
+      updatePrompt: Boolean(resolvedAccount.config.guilds),
+    });
+    if (accessConfig) {
+      if (accessConfig.policy !== "allowlist") {
+        next = setDiscordGroupPolicy(next, discordAccountId, accessConfig.policy);
+      } else {
+        const accountWithTokens = resolveDiscordAccount({
+          cfg: next,
+          accountId: discordAccountId,
+        });
+        let resolved: DiscordChannelResolution[] = accessConfig.entries.map((input) => ({
+          input,
+          resolved: false,
+        }));
+        if (accountWithTokens.token && accessConfig.entries.length > 0) {
+          try {
+            resolved = await resolveDiscordChannelAllowlist({
+              token: accountWithTokens.token,
+              entries: accessConfig.entries,
+            });
+            const resolvedChannels = resolved.filter((entry) => entry.resolved && entry.channelId);
+            const resolvedGuilds = resolved.filter(
+              (entry) => entry.resolved && entry.guildId && !entry.channelId,
+            );
+            const unresolved = resolved
+              .filter((entry) => !entry.resolved)
+              .map((entry) => entry.input);
+            if (resolvedChannels.length > 0 || resolvedGuilds.length > 0 || unresolved.length > 0) {
+              const summary: string[] = [];
+              if (resolvedChannels.length > 0) {
+                summary.push(
+                  `Resolved channels: ${resolvedChannels
+                    .map((entry) => entry.channelId)
+                    .filter(Boolean)
+                    .join(", ")}`,
+                );
+              }
+              if (resolvedGuilds.length > 0) {
+                summary.push(
+                  `Resolved guilds: ${resolvedGuilds
+                    .map((entry) => entry.guildId)
+                    .filter(Boolean)
+                    .join(", ")}`,
+                );
+              }
+              if (unresolved.length > 0) {
+                summary.push(`Unresolved (kept as typed): ${unresolved.join(", ")}`);
+              }
+              await prompter.note(summary.join("\n"), "Discord channels");
+            }
+          } catch (err) {
+            await prompter.note(
+              `Channel lookup failed; keeping entries as typed. ${String(err)}`,
+              "Discord channels",
+            );
+          }
+        }
+        const allowlistEntries: Array<{ guildKey: string; channelKey?: string }> = [];
+        for (const entry of resolved) {
+          const guildKey =
+            entry.guildId ??
+            (entry.guildName ? normalizeDiscordSlug(entry.guildName) : undefined) ??
+            "*";
+          const channelKey =
+            entry.channelId ??
+            (entry.channelName ? normalizeDiscordSlug(entry.channelName) : undefined);
+          if (!channelKey && guildKey === "*") continue;
+          allowlistEntries.push({ guildKey, ...(channelKey ? { channelKey } : {}) });
+        }
+        next = setDiscordGroupPolicy(next, discordAccountId, "allowlist");
+        next = setDiscordGuildChannelAllowlist(next, discordAccountId, allowlistEntries);
       }
     }
 

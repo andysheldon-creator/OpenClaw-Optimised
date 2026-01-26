@@ -17,9 +17,9 @@ import { loadWebMedia } from "../../web/media.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "../auth-profiles.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import { minimaxUnderstandImage } from "../minimax-vlm.js";
-import { getApiKeyForModel, resolveEnvApiKey } from "../model-auth.js";
+import { getApiKeyForModel, requireApiKey, resolveEnvApiKey } from "../model-auth.js";
 import { runWithImageModelFallback } from "../model-fallback.js";
-import { parseModelRef } from "../model-selection.js";
+import { resolveConfiguredModelRef } from "../model-selection.js";
 import { ensureClawdbotModelsJson } from "../models-config.js";
 import { assertSandboxPath } from "../sandbox-paths.js";
 import type { AnyAgentTool } from "./common.js";
@@ -42,12 +42,15 @@ function resolveDefaultModelRef(cfg?: ClawdbotConfig): {
   provider: string;
   model: string;
 } {
-  const modelConfig = cfg?.agents?.defaults?.model as { primary?: string } | string | undefined;
-  const raw = typeof modelConfig === "string" ? modelConfig.trim() : modelConfig?.primary?.trim();
-  const parsed =
-    parseModelRef(raw ?? "", DEFAULT_PROVIDER) ??
-    ({ provider: DEFAULT_PROVIDER, model: DEFAULT_MODEL } as const);
-  return { provider: parsed.provider, model: parsed.model };
+  if (cfg) {
+    const resolved = resolveConfiguredModelRef({
+      cfg,
+      defaultProvider: DEFAULT_PROVIDER,
+      defaultModel: DEFAULT_MODEL,
+    });
+    return { provider: resolved.provider, model: resolved.model };
+  }
+  return { provider: DEFAULT_PROVIDER, model: DEFAULT_MODEL };
 }
 
 function hasAuthForProvider(params: { provider: string; agentDir: string }): boolean {
@@ -70,6 +73,10 @@ export function resolveImageModelConfigForTool(params: {
   cfg?: ClawdbotConfig;
   agentDir: string;
 }): ImageModelConfig | null {
+  // Note: We intentionally do NOT gate based on primarySupportsImages here.
+  // Even when the primary model supports images, we keep the tool available
+  // because images are auto-injected into prompts (see attempt.ts detectAndLoadPromptImages).
+  // The tool description is adjusted via modelHasVision to discourage redundant usage.
   const explicit = coerceImageModelConfig(params.cfg);
   if (explicit.primary?.trim() || (explicit.fallbacks?.length ?? 0) > 0) {
     return explicit;
@@ -245,12 +252,13 @@ async function runImagePrompt(params: {
         cfg: effectiveCfg,
         agentDir: params.agentDir,
       });
-      authStorage.setRuntimeApiKey(model.provider, apiKeyInfo.apiKey);
+      const apiKey = requireApiKey(apiKeyInfo, model.provider);
+      authStorage.setRuntimeApiKey(model.provider, apiKey);
       const imageDataUrl = `data:${params.mimeType};base64,${params.base64}`;
 
       if (model.provider === "minimax") {
         const text = await minimaxUnderstandImage({
-          apiKey: apiKeyInfo.apiKey,
+          apiKey,
           prompt: params.prompt,
           imageDataUrl,
           modelBaseUrl: model.baseUrl,
@@ -260,7 +268,7 @@ async function runImagePrompt(params: {
 
       const context = buildImageContext(params.prompt, params.base64, params.mimeType);
       const message = (await complete(model, context, {
-        apiKey: apiKeyInfo.apiKey,
+        apiKey,
         maxTokens: 512,
       })) as AssistantMessage;
       const text = coerceImageAssistantText({
@@ -288,6 +296,8 @@ export function createImageTool(options?: {
   config?: ClawdbotConfig;
   agentDir?: string;
   sandboxRoot?: string;
+  /** If true, the model has native vision capability and images in the prompt are auto-injected */
+  modelHasVision?: boolean;
 }): AnyAgentTool | null {
   const agentDir = options?.agentDir?.trim();
   if (!agentDir) {
@@ -302,11 +312,17 @@ export function createImageTool(options?: {
     agentDir,
   });
   if (!imageModelConfig) return null;
+
+  // If model has native vision, images in the prompt are auto-injected
+  // so this tool is only needed when image wasn't provided in the prompt
+  const description = options?.modelHasVision
+    ? "Analyze an image with a vision model. Only use this tool when the image was NOT already provided in the user's message. Images mentioned in the prompt are automatically visible to you."
+    : "Analyze an image with the configured image model (agents.defaults.imageModel). Provide a prompt and image path or URL.";
+
   return {
     label: "Image",
     name: "image",
-    description:
-      "Analyze an image with the configured image model (agents.defaults.imageModel). Provide a prompt and image path or URL.",
+    description,
     parameters: Type.Object({
       prompt: Type.Optional(Type.String()),
       image: Type.String(),

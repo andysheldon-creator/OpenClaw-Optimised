@@ -1,9 +1,12 @@
+import { createRequire } from "node:module";
 import util from "node:util";
 
-import { type ClawdbotConfig, loadConfig } from "../config/config.js";
+import type { ClawdbotConfig } from "../config/types.js";
 import { isVerbose } from "../globals.js";
+import { stripAnsi } from "../terminal/ansi.js";
 import { type LogLevel, normalizeLogLevel } from "./levels.js";
 import { getLogger, type LoggerSettings } from "./logger.js";
+import { readLoggingConfig } from "./config.js";
 import { loggingState } from "./state.js";
 
 export type ConsoleStyle = "pretty" | "compact" | "json";
@@ -12,6 +15,8 @@ type ConsoleSettings = {
   style: ConsoleStyle;
 };
 export type ConsoleLoggerSettings = ConsoleSettings;
+
+const requireConfig = createRequire(import.meta.url);
 
 function normalizeConsoleLevel(level?: string): LogLevel {
   if (isVerbose()) return "debug";
@@ -27,8 +32,25 @@ function normalizeConsoleStyle(style?: string): ConsoleStyle {
 }
 
 function resolveConsoleSettings(): ConsoleSettings {
-  const cfg: ClawdbotConfig["logging"] | undefined =
-    (loggingState.overrideSettings as LoggerSettings | null) ?? loadConfig().logging;
+  let cfg: ClawdbotConfig["logging"] | undefined =
+    (loggingState.overrideSettings as LoggerSettings | null) ?? readLoggingConfig();
+  if (!cfg) {
+    if (loggingState.resolvingConsoleSettings) {
+      cfg = undefined;
+    } else {
+      loggingState.resolvingConsoleSettings = true;
+      try {
+        const loaded = requireConfig("../config/config.js") as {
+          loadConfig?: () => ClawdbotConfig;
+        };
+        cfg = loaded.loadConfig?.().logging;
+      } catch {
+        cfg = undefined;
+      } finally {
+        loggingState.resolvingConsoleSettings = false;
+      }
+    }
+  }
   const level = normalizeConsoleLevel(cfg?.consoleLevel);
   const style = normalizeConsoleStyle(cfg?.consoleStyle);
   return { level, style };
@@ -67,6 +89,10 @@ export function setConsoleSubsystemFilter(filters?: string[] | null): void {
   loggingState.consoleSubsystemFilter = normalized.length > 0 ? normalized : null;
 }
 
+export function setConsoleTimestampPrefix(enabled: boolean): void {
+  loggingState.consoleTimestampPrefix = enabled;
+}
+
 export function shouldLogSubsystemToConsole(subsystem: string): boolean {
   const filter = loggingState.consoleSubsystemFilter;
   if (!filter || filter.length === 0) {
@@ -85,12 +111,42 @@ const SUPPRESSED_CONSOLE_PREFIXES = [
 
 function shouldSuppressConsoleMessage(message: string): boolean {
   if (isVerbose()) return false;
-  return SUPPRESSED_CONSOLE_PREFIXES.some((prefix) => message.startsWith(prefix));
+  if (SUPPRESSED_CONSOLE_PREFIXES.some((prefix) => message.startsWith(prefix))) {
+    return true;
+  }
+  if (
+    message.startsWith("[EventQueue] Slow listener detected") &&
+    message.includes("DiscordMessageListener")
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function isEpipeError(err: unknown): boolean {
   const code = (err as { code?: string })?.code;
   return code === "EPIPE" || code === "EIO";
+}
+
+function formatConsoleTimestamp(style: ConsoleStyle): string {
+  const now = new Date().toISOString();
+  if (style === "pretty") return now.slice(11, 19);
+  return now;
+}
+
+function hasTimestampPrefix(value: string): boolean {
+  return /^(?:\d{2}:\d{2}:\d{2}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/.test(value);
+}
+
+function isJsonPayload(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false;
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -101,7 +157,13 @@ export function enableConsoleCapture(): void {
   if (loggingState.consolePatched) return;
   loggingState.consolePatched = true;
 
-  const logger = getLogger();
+  let logger: ReturnType<typeof getLogger> | null = null;
+  const getLoggerLazy = () => {
+    if (!logger) {
+      logger = getLogger();
+    }
+    return logger;
+  };
 
   const original = {
     log: console.log,
@@ -123,20 +185,30 @@ export function enableConsoleCapture(): void {
     (...args: unknown[]) => {
       const formatted = util.format(...args);
       if (shouldSuppressConsoleMessage(formatted)) return;
+      const trimmed = stripAnsi(formatted).trimStart();
+      const shouldPrefixTimestamp =
+        loggingState.consoleTimestampPrefix &&
+        trimmed.length > 0 &&
+        !hasTimestampPrefix(trimmed) &&
+        !isJsonPayload(trimmed);
+      const timestamp = shouldPrefixTimestamp
+        ? formatConsoleTimestamp(getConsoleSettings().style)
+        : "";
       try {
+        const resolvedLogger = getLoggerLazy();
         // Map console levels to file logger
         if (level === "trace") {
-          logger.trace(formatted);
+          resolvedLogger.trace(formatted);
         } else if (level === "debug") {
-          logger.debug(formatted);
+          resolvedLogger.debug(formatted);
         } else if (level === "info") {
-          logger.info(formatted);
+          resolvedLogger.info(formatted);
         } else if (level === "warn") {
-          logger.warn(formatted);
+          resolvedLogger.warn(formatted);
         } else if (level === "error" || level === "fatal") {
-          logger.error(formatted);
+          resolvedLogger.error(formatted);
         } else {
-          logger.info(formatted);
+          resolvedLogger.info(formatted);
         }
       } catch {
         // never block console output on logging failures
@@ -144,14 +216,27 @@ export function enableConsoleCapture(): void {
       if (loggingState.forceConsoleToStderr) {
         // in RPC/JSON mode, keep stdout clean
         try {
-          process.stderr.write(`${formatted}\n`);
+          const line = timestamp ? `${timestamp} ${formatted}` : formatted;
+          process.stderr.write(`${line}\n`);
         } catch (err) {
           if (isEpipeError(err)) return;
           throw err;
         }
       } else {
         try {
-          orig.apply(console, args as []);
+          if (!timestamp) {
+            orig.apply(console, args as []);
+            return;
+          }
+          if (args.length === 0) {
+            orig.call(console, timestamp);
+            return;
+          }
+          if (typeof args[0] === "string") {
+            orig.call(console, `${timestamp} ${args[0]}`, ...args.slice(1));
+            return;
+          }
+          orig.call(console, timestamp, ...args);
         } catch (err) {
           if (isEpipeError(err)) return;
           throw err;

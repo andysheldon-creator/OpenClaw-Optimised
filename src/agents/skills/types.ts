@@ -2,12 +2,18 @@ import type { Skill } from "@mariozechner/pi-coding-agent";
 
 export type SkillInstallSpec = {
   id?: string;
-  kind: "brew" | "node" | "go" | "uv";
+  kind: "brew" | "node" | "go" | "uv" | "download";
   label?: string;
   bins?: string[];
+  os?: string[];
   formula?: string;
   package?: string;
   module?: string;
+  url?: string;
+  archive?: string;
+  extract?: boolean;
+  stripComponents?: number;
+  targetDir?: string;
 };
 
 export type ClawdbotSkillMetadata = {
@@ -26,6 +32,30 @@ export type ClawdbotSkillMetadata = {
   install?: SkillInstallSpec[];
 };
 
+export type SkillInvocationPolicy = {
+  userInvocable: boolean;
+  disableModelInvocation: boolean;
+};
+
+export type SkillCommandDispatchSpec = {
+  kind: "tool";
+  /** Name of the tool to invoke (AnyAgentTool.name). */
+  toolName: string;
+  /**
+   * How to forward user-provided args to the tool.
+   * - raw: forward the raw args string (no core parsing).
+   */
+  argMode?: "raw";
+};
+
+export type SkillCommandSpec = {
+  name: string;
+  skillName: string;
+  description: string;
+  /** Optional deterministic dispatch behavior for this command. */
+  dispatch?: SkillCommandDispatchSpec;
+};
+
 export type SkillsInstallPreferences = {
   preferBrew: boolean;
   nodeManager: "npm" | "pnpm" | "yarn" | "bun";
@@ -37,6 +67,7 @@ export type SkillEntry = {
   skill: Skill;
   frontmatter: ParsedSkillFrontmatter;
   clawdbot?: ClawdbotSkillMetadata;
+  invocation?: SkillInvocationPolicy;
 };
 
 export type SkillEligibilityContext = {

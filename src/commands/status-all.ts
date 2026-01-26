@@ -1,10 +1,13 @@
 import { buildWorkspaceSkillStatus } from "../agents/skills-status.js";
 import { withProgress } from "../cli/progress.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import { loadConfig, readConfigFileSnapshot, resolveGatewayPort } from "../config/config.js";
 import { readLastGatewayErrorLine } from "../daemon/diagnostics.js";
+import type { GatewayService } from "../daemon/service.js";
 import { resolveGatewayService } from "../daemon/service.js";
+import { resolveNodeService } from "../daemon/node-service.js";
 import { buildGatewayConnectionDetails, callGateway } from "../gateway/call.js";
-import { normalizeControlUiBasePath } from "../gateway/control-ui.js";
+import { normalizeControlUiBasePath } from "../gateway/control-ui-shared.js";
 import { probeGateway } from "../gateway/probe.js";
 import { collectChannelStatusIssues } from "../infra/channels-status-issues.js";
 import { resolveClawdbotPackageRoot } from "../infra/clawdbot-root.js";
@@ -13,6 +16,11 @@ import { inspectPortUsage } from "../infra/ports.js";
 import { readRestartSentinel } from "../infra/restart-sentinel.js";
 import { readTailscaleStatusJson } from "../infra/tailscale.js";
 import { checkUpdateStatus, compareSemverStrings } from "../infra/update-check.js";
+import {
+  formatUpdateChannelLabel,
+  normalizeUpdateChannel,
+  resolveEffectiveUpdateChannel,
+} from "../infra/update-channels.js";
 import { getRemoteSkillEligibility } from "../infra/skills-remote.js";
 import { runExec } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -84,6 +92,33 @@ export async function statusAllCommand(
       fetchGit: true,
       includeRegistry: true,
     });
+    const configChannel = normalizeUpdateChannel(cfg.update?.channel);
+    const channelInfo = resolveEffectiveUpdateChannel({
+      configChannel,
+      installKind: update.installKind,
+      git: update.git ? { tag: update.git.tag, branch: update.git.branch } : undefined,
+    });
+    const channelLabel = formatUpdateChannelLabel({
+      channel: channelInfo.channel,
+      source: channelInfo.source,
+      gitTag: update.git?.tag ?? null,
+      gitBranch: update.git?.branch ?? null,
+    });
+    const gitLabel =
+      update.installKind === "git"
+        ? (() => {
+            const shortSha = update.git?.sha ? update.git.sha.slice(0, 8) : null;
+            const branch =
+              update.git?.branch && update.git.branch !== "HEAD" ? update.git.branch : null;
+            const tag = update.git?.tag ?? null;
+            const parts = [
+              branch ?? (tag ? "detached" : "git"),
+              tag ? `tag ${tag}` : null,
+              shortSha ? `@ ${shortSha}` : null,
+            ].filter(Boolean);
+            return parts.join(" · ");
+          })()
+        : null;
     progress.tick();
 
     progress.setLabel("Probing gateway…");
@@ -130,10 +165,9 @@ export async function statusAllCommand(
     const gatewaySelf = pickGatewaySelfPresence(gatewayProbe?.presence ?? null);
     progress.tick();
 
-    progress.setLabel("Checking daemon…");
-    const daemon = await (async () => {
+    progress.setLabel("Checking services…");
+    const readServiceSummary = async (service: GatewayService) => {
       try {
-        const service = resolveGatewayService();
         const [loaded, runtimeInfo, command] = await Promise.all([
           service.isLoaded({ env: process.env }).catch(() => false),
           service.readRuntime(process.env).catch(() => undefined),
@@ -150,7 +184,9 @@ export async function statusAllCommand(
       } catch {
         return null;
       }
-    })();
+    };
+    const daemon = await readServiceSummary(resolveGatewayService());
+    const nodeService = await readServiceSummary(resolveNodeService());
     progress.tick();
 
     progress.setLabel("Scanning agents…");
@@ -329,24 +365,35 @@ export async function statusAllCommand(
               ? `${tailscaleMode} · ${tailscale.backendState ?? "unknown"} · ${tailscale.dnsName} · ${tailscaleHttpsUrl}`
               : `${tailscaleMode} · ${tailscale.backendState ?? "unknown"} · magicdns unknown`,
       },
+      { Item: "Channel", Value: channelLabel },
+      ...(gitLabel ? [{ Item: "Git", Value: gitLabel }] : []),
       { Item: "Update", Value: updateLine },
       {
         Item: "Gateway",
         Value: `${gatewayMode}${remoteUrlMissing ? " (remote.url missing)" : ""} · ${gatewayTarget} (${connection.urlSource}) · ${gatewayStatus}${gatewayAuth}`,
       },
-      { Item: "Security", Value: "Run: clawdbot security audit --deep" },
+      { Item: "Security", Value: `Run: ${formatCliCommand("clawdbot security audit --deep")}` },
       gatewaySelfLine
         ? { Item: "Gateway self", Value: gatewaySelfLine }
         : { Item: "Gateway self", Value: "unknown" },
       daemon
         ? {
-            Item: "Daemon",
+            Item: "Gateway service",
             Value:
               daemon.installed === false
                 ? `${daemon.label} not installed`
                 : `${daemon.label} ${daemon.installed ? "installed · " : ""}${daemon.loadedText}${daemon.runtime?.status ? ` · ${daemon.runtime.status}` : ""}${daemon.runtime?.pid ? ` (pid ${daemon.runtime.pid})` : ""}`,
           }
-        : { Item: "Daemon", Value: "unknown" },
+        : { Item: "Gateway service", Value: "unknown" },
+      nodeService
+        ? {
+            Item: "Node service",
+            Value:
+              nodeService.installed === false
+                ? `${nodeService.label} not installed`
+                : `${nodeService.label} ${nodeService.installed ? "installed · " : ""}${nodeService.loadedText}${nodeService.runtime?.status ? ` · ${nodeService.runtime.status}` : ""}${nodeService.runtime?.pid ? ` (pid ${nodeService.runtime.pid})` : ""}`,
+          }
+        : { Item: "Node service", Value: "unknown" },
       {
         Item: "Agents",
         Value: `${agentStatus.agents.length} total · ${agentStatus.bootstrapPendingCount} bootstrapping · ${aliveAgents} active · ${agentStatus.totalSessions} sessions`,

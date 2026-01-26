@@ -172,6 +172,7 @@ describe("runReplyAgent typing (heartbeat)", () => {
 
     const { run, typing } = createMinimalRun({
       opts: { isHeartbeat: false, onPartialReply },
+      typingMode: "message",
     });
     await run();
 
@@ -179,7 +180,7 @@ describe("runReplyAgent typing (heartbeat)", () => {
     expect(typing.startTypingOnText).not.toHaveBeenCalled();
     expect(typing.startTypingLoop).not.toHaveBeenCalled();
   });
-  it("starts typing on assistant message start in message mode", async () => {
+  it("does not start typing on assistant message start without prior text in message mode", async () => {
     runEmbeddedPiAgentMock.mockImplementationOnce(async (params: EmbeddedPiAgentParams) => {
       await params.onAssistantMessageStart?.();
       return { payloads: [{ text: "final" }], meta: {} };
@@ -190,7 +191,8 @@ describe("runReplyAgent typing (heartbeat)", () => {
     });
     await run();
 
-    expect(typing.startTypingLoop).toHaveBeenCalled();
+    // Typing only starts when there's actual renderable text, not on message start alone
+    expect(typing.startTypingLoop).not.toHaveBeenCalled();
     expect(typing.startTypingOnText).not.toHaveBeenCalled();
   });
   it("starts typing from reasoning stream in thinking mode", async () => {

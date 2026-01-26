@@ -1,49 +1,151 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { vi } from "vitest";
 
-export type BridgeClientInfo = {
-  nodeId: string;
-  displayName?: string;
-  platform?: string;
-  version?: string;
-  remoteIp?: string;
-  deviceFamily?: string;
-  modelIdentifier?: string;
-  caps?: string[];
-  commands?: string[];
+import type { ChannelPlugin, ChannelOutboundAdapter } from "../channels/plugins/types.js";
+import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
+import type { AgentBinding } from "../config/types.agents.js";
+import type { HooksConfig } from "../config/types.hooks.js";
+import type { PluginRegistry } from "../plugins/registry.js";
+import { setActivePluginRegistry } from "../plugins/runtime.js";
+import { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
+
+type StubChannelOptions = {
+  id: ChannelPlugin["id"];
+  label: string;
+  summary?: Record<string, unknown>;
 };
 
-export type BridgeStartOpts = {
-  onAuthenticated?: (node: BridgeClientInfo) => Promise<void> | void;
-  onDisconnected?: (node: BridgeClientInfo) => Promise<void> | void;
-  onPairRequested?: (request: unknown) => Promise<void> | void;
-  onEvent?: (
-    nodeId: string,
-    evt: { event: string; payloadJSON?: string | null },
-  ) => Promise<void> | void;
-  onRequest?: (
-    nodeId: string,
-    req: { id: string; method: string; paramsJSON?: string | null },
-  ) => Promise<
-    | { ok: true; payloadJSON?: string | null }
-    | { ok: false; error: { code: string; message: string; details?: unknown } }
-  >;
-};
+const createStubOutboundAdapter = (channelId: ChannelPlugin["id"]): ChannelOutboundAdapter => ({
+  deliveryMode: "direct",
+  sendText: async () => ({
+    channel: channelId,
+    messageId: `${channelId}-msg`,
+  }),
+  sendMedia: async () => ({
+    channel: channelId,
+    messageId: `${channelId}-msg`,
+  }),
+});
+
+const createStubChannelPlugin = (params: StubChannelOptions): ChannelPlugin => ({
+  id: params.id,
+  meta: {
+    id: params.id,
+    label: params.label,
+    selectionLabel: params.label,
+    docsPath: `/channels/${params.id}`,
+    blurb: "test stub.",
+  },
+  capabilities: { chatTypes: ["direct"] },
+  config: {
+    listAccountIds: () => [DEFAULT_ACCOUNT_ID],
+    resolveAccount: () => ({}),
+    isConfigured: async () => false,
+  },
+  status: {
+    buildChannelSummary: async () => ({
+      configured: false,
+      ...(params.summary ? params.summary : {}),
+    }),
+  },
+  outbound: createStubOutboundAdapter(params.id),
+  messaging: {
+    normalizeTarget: (raw) => raw,
+  },
+  gateway: {
+    logoutAccount: async () => ({
+      cleared: false,
+      envToken: false,
+      loggedOut: false,
+    }),
+  },
+});
+
+const createStubPluginRegistry = (): PluginRegistry => ({
+  plugins: [],
+  tools: [],
+  hooks: [],
+  typedHooks: [],
+  channels: [
+    {
+      pluginId: "whatsapp",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "whatsapp", label: "WhatsApp" }),
+    },
+    {
+      pluginId: "telegram",
+      source: "test",
+      plugin: createStubChannelPlugin({
+        id: "telegram",
+        label: "Telegram",
+        summary: { tokenSource: "none", lastProbeAt: null },
+      }),
+    },
+    {
+      pluginId: "discord",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "discord", label: "Discord" }),
+    },
+    {
+      pluginId: "slack",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "slack", label: "Slack" }),
+    },
+    {
+      pluginId: "signal",
+      source: "test",
+      plugin: createStubChannelPlugin({
+        id: "signal",
+        label: "Signal",
+        summary: { lastProbeAt: null },
+      }),
+    },
+    {
+      pluginId: "imessage",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "imessage", label: "iMessage" }),
+    },
+    {
+      pluginId: "msteams",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "msteams", label: "Microsoft Teams" }),
+    },
+    {
+      pluginId: "matrix",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "matrix", label: "Matrix" }),
+    },
+    {
+      pluginId: "zalo",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "zalo", label: "Zalo" }),
+    },
+    {
+      pluginId: "zalouser",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "zalouser", label: "Zalo Personal" }),
+    },
+    {
+      pluginId: "bluebubbles",
+      source: "test",
+      plugin: createStubChannelPlugin({ id: "bluebubbles", label: "BlueBubbles" }),
+    },
+  ],
+  providers: [],
+  gatewayHandlers: {},
+  httpHandlers: [],
+  httpRoutes: [],
+  cliRegistrars: [],
+  services: [],
+  commands: [],
+  diagnostics: [],
+});
 
 const hoisted = vi.hoisted(() => ({
-  bridgeStartCalls: [] as BridgeStartOpts[],
-  bridgeInvoke: vi.fn(async () => ({
-    type: "invoke-res",
-    id: "1",
-    ok: true,
-    payloadJSON: JSON.stringify({ ok: true }),
-    error: null,
-  })),
-  bridgeListConnected: vi.fn(() => [] as BridgeClientInfo[]),
-  bridgeSendEvent: vi.fn(),
   testTailnetIPv4: { value: undefined as string | undefined },
   piSdkMock: {
     enabled: false,
@@ -66,7 +168,24 @@ const hoisted = vi.hoisted(() => ({
     waitCalls: [] as string[],
     waitResults: new Map<string, boolean>(),
   },
+  getReplyFromConfig: vi.fn().mockResolvedValue(undefined),
+  sendWhatsAppMock: vi.fn().mockResolvedValue({ messageId: "msg-1", toJid: "jid-1" }),
 }));
+
+const pluginRegistryState = {
+  registry: createStubPluginRegistry(),
+};
+setActivePluginRegistry(pluginRegistryState.registry);
+
+export const setTestPluginRegistry = (registry: PluginRegistry) => {
+  pluginRegistryState.registry = registry;
+  setActivePluginRegistry(registry);
+};
+
+export const resetTestPluginRegistry = () => {
+  pluginRegistryState.registry = createStubPluginRegistry();
+  setActivePluginRegistry(pluginRegistryState.registry);
+};
 
 const testConfigRoot = {
   value: path.join(os.tmpdir(), `clawdbot-gateway-test-${process.pid}-${crypto.randomUUID()}`),
@@ -74,21 +193,20 @@ const testConfigRoot = {
 
 export const setTestConfigRoot = (root: string) => {
   testConfigRoot.value = root;
+  process.env.CLAWDBOT_CONFIG_PATH = path.join(root, "clawdbot.json");
 };
 
-export const bridgeStartCalls = hoisted.bridgeStartCalls;
-export const bridgeInvoke = hoisted.bridgeInvoke;
-export const bridgeListConnected = hoisted.bridgeListConnected;
-export const bridgeSendEvent = hoisted.bridgeSendEvent;
 export const testTailnetIPv4 = hoisted.testTailnetIPv4;
 export const piSdkMock = hoisted.piSdkMock;
 export const cronIsolatedRun = hoisted.cronIsolatedRun;
 export const agentCommand = hoisted.agentCommand;
+export const getReplyFromConfig = hoisted.getReplyFromConfig;
 
 export const testState = {
   agentConfig: undefined as Record<string, unknown> | undefined,
   agentsConfig: undefined as Record<string, unknown> | undefined,
-  bindingsConfig: undefined as Array<Record<string, unknown>> | undefined,
+  bindingsConfig: undefined as AgentBinding[] | undefined,
+  channelsConfig: undefined as Record<string, unknown> | undefined,
   sessionStorePath: undefined as string | undefined,
   sessionConfig: undefined as Record<string, unknown> | undefined,
   allowFrom: undefined as string[] | undefined,
@@ -96,7 +214,8 @@ export const testState = {
   cronEnabled: false as boolean | undefined,
   gatewayBind: undefined as "auto" | "lan" | "tailnet" | "loopback" | undefined,
   gatewayAuth: undefined as Record<string, unknown> | undefined,
-  hooksConfig: undefined as Record<string, unknown> | undefined,
+  gatewayControlUi: undefined as Record<string, unknown> | undefined,
+  hooksConfig: undefined as HooksConfig | undefined,
   canvasHostPort: undefined as number | undefined,
   legacyIssues: [] as Array<{ path: string; message: string }>,
   legacyParsed: {} as Record<string, unknown>,
@@ -124,19 +243,6 @@ vi.mock("@mariozechner/pi-coding-agent", async () => {
     },
   };
 });
-
-vi.mock("../infra/bridge/server.js", () => ({
-  startNodeBridgeServer: vi.fn(async (opts: BridgeStartOpts) => {
-    bridgeStartCalls.push(opts);
-    return {
-      port: 18790,
-      close: async () => {},
-      listConnected: bridgeListConnected,
-      invoke: bridgeInvoke,
-      sendEvent: bridgeSendEvent,
-    };
-  }),
-}));
 
 vi.mock("../cron/isolated-agent.js", () => ({
   runCronIsolatedAgentTurn: (...args: unknown[]) =>
@@ -257,49 +363,127 @@ vi.mock("../config/config.js", async () => {
       config: testState.migrationConfig ?? (raw as Record<string, unknown>),
       changes: testState.migrationChanges,
     }),
-    loadConfig: () => ({
-      agents: (() => {
-        const defaults = {
-          model: "anthropic/claude-opus-4-5",
-          workspace: path.join(os.tmpdir(), "clawd-gateway-test"),
-          ...testState.agentConfig,
-        };
-        if (testState.agentsConfig) {
-          return { ...testState.agentsConfig, defaults };
+    loadConfig: () => {
+      const configPath = resolveConfigPath();
+      let fileConfig: Record<string, unknown> = {};
+      try {
+        if (fsSync.existsSync(configPath)) {
+          const raw = fsSync.readFileSync(configPath, "utf-8");
+          fileConfig = JSON.parse(raw) as Record<string, unknown>;
         }
-        return { defaults };
-      })(),
-      bindings: testState.bindingsConfig,
-      channels: {
-        whatsapp: {
+      } catch {
+        fileConfig = {};
+      }
+
+      const fileAgents =
+        fileConfig.agents &&
+        typeof fileConfig.agents === "object" &&
+        !Array.isArray(fileConfig.agents)
+          ? (fileConfig.agents as Record<string, unknown>)
+          : {};
+      const fileDefaults =
+        fileAgents.defaults &&
+        typeof fileAgents.defaults === "object" &&
+        !Array.isArray(fileAgents.defaults)
+          ? (fileAgents.defaults as Record<string, unknown>)
+          : {};
+      const defaults = {
+        model: { primary: "anthropic/claude-opus-4-5" },
+        workspace: path.join(os.tmpdir(), "clawd-gateway-test"),
+        ...fileDefaults,
+        ...testState.agentConfig,
+      };
+      const agents = testState.agentsConfig
+        ? { ...fileAgents, ...testState.agentsConfig, defaults }
+        : { ...fileAgents, defaults };
+
+      const fileBindings = Array.isArray(fileConfig.bindings)
+        ? (fileConfig.bindings as AgentBinding[])
+        : undefined;
+
+      const fileChannels =
+        fileConfig.channels &&
+        typeof fileConfig.channels === "object" &&
+        !Array.isArray(fileConfig.channels)
+          ? ({ ...(fileConfig.channels as Record<string, unknown>) } as Record<string, unknown>)
+          : {};
+      const overrideChannels =
+        testState.channelsConfig && typeof testState.channelsConfig === "object"
+          ? { ...(testState.channelsConfig as Record<string, unknown>) }
+          : {};
+      const mergedChannels = { ...fileChannels, ...overrideChannels };
+      if (testState.allowFrom !== undefined) {
+        const existing =
+          mergedChannels.whatsapp &&
+          typeof mergedChannels.whatsapp === "object" &&
+          !Array.isArray(mergedChannels.whatsapp)
+            ? (mergedChannels.whatsapp as Record<string, unknown>)
+            : {};
+        mergedChannels.whatsapp = {
+          ...existing,
           allowFrom: testState.allowFrom,
-        },
-      },
-      session: {
-        mainKey: "main",
-        store: testState.sessionStorePath,
-        ...testState.sessionConfig,
-      },
-      gateway: (() => {
-        const gateway: Record<string, unknown> = {};
-        if (testState.gatewayBind) gateway.bind = testState.gatewayBind;
-        if (testState.gatewayAuth) gateway.auth = testState.gatewayAuth;
-        return Object.keys(gateway).length > 0 ? gateway : undefined;
-      })(),
-      canvasHost: (() => {
-        const canvasHost: Record<string, unknown> = {};
-        if (typeof testState.canvasHostPort === "number")
-          canvasHost.port = testState.canvasHostPort;
-        return Object.keys(canvasHost).length > 0 ? canvasHost : undefined;
-      })(),
-      hooks: testState.hooksConfig,
-      cron: (() => {
-        const cron: Record<string, unknown> = {};
-        if (typeof testState.cronEnabled === "boolean") cron.enabled = testState.cronEnabled;
-        if (typeof testState.cronStorePath === "string") cron.store = testState.cronStorePath;
-        return Object.keys(cron).length > 0 ? cron : undefined;
-      })(),
-    }),
+        };
+      }
+      const channels = Object.keys(mergedChannels).length > 0 ? mergedChannels : undefined;
+
+      const fileSession =
+        fileConfig.session &&
+        typeof fileConfig.session === "object" &&
+        !Array.isArray(fileConfig.session)
+          ? (fileConfig.session as Record<string, unknown>)
+          : {};
+      const session: Record<string, unknown> = {
+        ...fileSession,
+        mainKey: fileSession.mainKey ?? "main",
+      };
+      if (typeof testState.sessionStorePath === "string")
+        session.store = testState.sessionStorePath;
+      if (testState.sessionConfig) Object.assign(session, testState.sessionConfig);
+
+      const fileGateway =
+        fileConfig.gateway &&
+        typeof fileConfig.gateway === "object" &&
+        !Array.isArray(fileConfig.gateway)
+          ? ({ ...(fileConfig.gateway as Record<string, unknown>) } as Record<string, unknown>)
+          : {};
+      if (testState.gatewayBind) fileGateway.bind = testState.gatewayBind;
+      if (testState.gatewayAuth) fileGateway.auth = testState.gatewayAuth;
+      if (testState.gatewayControlUi) fileGateway.controlUi = testState.gatewayControlUi;
+      const gateway = Object.keys(fileGateway).length > 0 ? fileGateway : undefined;
+
+      const fileCanvasHost =
+        fileConfig.canvasHost &&
+        typeof fileConfig.canvasHost === "object" &&
+        !Array.isArray(fileConfig.canvasHost)
+          ? ({ ...(fileConfig.canvasHost as Record<string, unknown>) } as Record<string, unknown>)
+          : {};
+      if (typeof testState.canvasHostPort === "number")
+        fileCanvasHost.port = testState.canvasHostPort;
+      const canvasHost = Object.keys(fileCanvasHost).length > 0 ? fileCanvasHost : undefined;
+
+      const hooks = testState.hooksConfig ?? (fileConfig.hooks as HooksConfig | undefined);
+
+      const fileCron =
+        fileConfig.cron && typeof fileConfig.cron === "object" && !Array.isArray(fileConfig.cron)
+          ? ({ ...(fileConfig.cron as Record<string, unknown>) } as Record<string, unknown>)
+          : {};
+      if (typeof testState.cronEnabled === "boolean") fileCron.enabled = testState.cronEnabled;
+      if (typeof testState.cronStorePath === "string") fileCron.store = testState.cronStorePath;
+      const cron = Object.keys(fileCron).length > 0 ? fileCron : undefined;
+
+      const config = {
+        ...fileConfig,
+        agents,
+        bindings: testState.bindingsConfig ?? fileBindings,
+        channels,
+        session,
+        gateway,
+        canvasHost,
+        hooks,
+        cron,
+      };
+      return applyPluginAutoEnable({ config, env: process.env }).config;
+    },
     parseConfigJson5: (raw: string) => {
       try {
         return { ok: true, parsed: JSON.parse(raw) as unknown };
@@ -342,10 +526,39 @@ vi.mock("../commands/status.js", () => ({
   getStatusSummary: vi.fn().mockResolvedValue({ ok: true }),
 }));
 vi.mock("../web/outbound.js", () => ({
-  sendMessageWhatsApp: vi.fn().mockResolvedValue({ messageId: "msg-1", toJid: "jid-1" }),
+  sendMessageWhatsApp: (...args: unknown[]) =>
+    (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
+  sendPollWhatsApp: (...args: unknown[]) =>
+    (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
 }));
+vi.mock("../channels/web/index.js", async () => {
+  const actual = await vi.importActual<typeof import("../channels/web/index.js")>(
+    "../channels/web/index.js",
+  );
+  return {
+    ...actual,
+    sendMessageWhatsApp: (...args: unknown[]) =>
+      (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
+  };
+});
 vi.mock("../commands/agent.js", () => ({
   agentCommand,
 }));
+vi.mock("../auto-reply/reply.js", () => ({
+  getReplyFromConfig,
+}));
+vi.mock("../cli/deps.js", async () => {
+  const actual = await vi.importActual<typeof import("../cli/deps.js")>("../cli/deps.js");
+  const base = actual.createDefaultDeps();
+  return {
+    ...actual,
+    createDefaultDeps: () => ({
+      ...base,
+      sendMessageWhatsApp: (...args: unknown[]) =>
+        (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
+    }),
+  };
+});
 
 process.env.CLAWDBOT_SKIP_CHANNELS = "1";
+process.env.CLAWDBOT_SKIP_CRON = "1";

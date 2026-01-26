@@ -4,6 +4,12 @@ import {
   resolveGatewayWindowsTaskName,
 } from "../daemon/constants.js";
 import { resolveGatewayLogPaths } from "../daemon/launchd.js";
+import {
+  isSystemdUnavailableDetail,
+  renderSystemdUnavailableHints,
+} from "../daemon/systemd-hints.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import { isWSLEnv } from "../infra/wsl.js";
 import type { GatewayServiceRuntime } from "../daemon/service-runtime.js";
 import { getResolvedLoggerSettings } from "../logging.js";
 
@@ -54,15 +60,20 @@ export function buildGatewayRuntimeHints(
       return null;
     }
   })();
+  if (platform === "linux" && isSystemdUnavailableDetail(runtime.detail)) {
+    hints.push(...renderSystemdUnavailableHints({ wsl: isWSLEnv() }));
+    if (fileLog) hints.push(`File logs: ${fileLog}`);
+    return hints;
+  }
   if (runtime.cachedLabel && platform === "darwin") {
     const label = resolveGatewayLaunchAgentLabel(env.CLAWDBOT_PROFILE);
     hints.push(
       `LaunchAgent label cached but plist missing. Clear with: launchctl bootout gui/$UID/${label}`,
     );
-    hints.push("Then reinstall: clawdbot daemon install");
+    hints.push(`Then reinstall: ${formatCliCommand("clawdbot gateway install", env)}`);
   }
   if (runtime.missingUnit) {
-    hints.push("Service not installed. Run: clawdbot daemon install");
+    hints.push(`Service not installed. Run: ${formatCliCommand("clawdbot gateway install", env)}`);
     if (fileLog) hints.push(`File logs: ${fileLog}`);
     return hints;
   }

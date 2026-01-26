@@ -3,6 +3,7 @@ import Darwin
 import Foundation
 import MenuBarExtraAccess
 import Observation
+import OSLog
 import Security
 import SwiftUI
 
@@ -10,9 +11,11 @@ import SwiftUI
 struct ClawdbotApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var state: AppState
+    private static let logger = Logger(subsystem: "com.clawdbot", category: "app")
     private let gatewayManager = GatewayProcessManager.shared
     private let controlChannel = ControlChannel.shared
     private let activityStore = WorkActivityStore.shared
+    private let connectivityCoordinator = GatewayConnectivityCoordinator.shared
     @State private var statusItem: NSStatusItem?
     @State private var isMenuPresented = false
     @State private var isPanelVisible = false
@@ -30,6 +33,7 @@ struct ClawdbotApp: App {
 
     init() {
         ClawdbotLogging.bootstrapIfNeeded()
+        Self.applyAttachOnlyOverrideIfNeeded()
         _state = State(initialValue: AppStateStore.shared)
     }
 
@@ -88,6 +92,22 @@ struct ClawdbotApp: App {
 
     private func applyStatusItemAppearance(paused: Bool, sleeping: Bool) {
         self.statusItem?.button?.appearsDisabled = paused || sleeping
+    }
+
+    private static func applyAttachOnlyOverrideIfNeeded() {
+        let args = CommandLine.arguments
+        guard args.contains("--attach-only") || args.contains("--no-launchd") else { return }
+        if let error = GatewayLaunchAgentManager.setLaunchAgentWriteDisabled(true) {
+            Self.logger.error("attach-only flag failed: \(error, privacy: .public)")
+            return
+        }
+        Task {
+            _ = await GatewayLaunchAgentManager.set(
+                enabled: false,
+                bundlePath: Bundle.main.bundlePath,
+                port: GatewayEnvironment.gatewayPort())
+        }
+        Self.logger.info("attach-only flag enabled")
     }
 
     private var isGatewaySleeping: Bool {
@@ -256,6 +276,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         TerminationSignalWatcher.shared.start()
         NodePairingApprovalPrompter.shared.start()
+        DevicePairingApprovalPrompter.shared.start()
+        ExecApprovalsPromptServer.shared.start()
+        ExecApprovalsGatewayPrompter.shared.start()
         MacNodeModeCoordinator.shared.start()
         VoiceWakeGlobalSettingsSync.shared.start()
         Task { PresenceReporter.shared.start() }
@@ -280,6 +303,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         PresenceReporter.shared.stop()
         NodePairingApprovalPrompter.shared.stop()
+        DevicePairingApprovalPrompter.shared.stop()
+        ExecApprovalsPromptServer.shared.stop()
+        ExecApprovalsGatewayPrompter.shared.stop()
         MacNodeModeCoordinator.shared.stop()
         TerminationSignalWatcher.shared.stop()
         VoiceWakeGlobalSettingsSync.shared.stop()

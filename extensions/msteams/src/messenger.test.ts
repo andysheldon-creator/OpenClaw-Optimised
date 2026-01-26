@@ -1,18 +1,45 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import { SILENT_REPLY_TOKEN } from "../../../src/auto-reply/tokens.js";
+import { SILENT_REPLY_TOKEN, type PluginRuntime } from "clawdbot/plugin-sdk";
 import type { StoredConversationReference } from "./conversation-store.js";
 import {
   type MSTeamsAdapter,
   renderReplyPayloadsToMessages,
   sendMSTeamsMessages,
 } from "./messenger.js";
+import { setMSTeamsRuntime } from "./runtime.js";
+
+const chunkMarkdownText = (text: string, limit: number) => {
+  if (!text) return [];
+  if (limit <= 0 || text.length <= limit) return [text];
+  const chunks: string[] = [];
+  for (let index = 0; index < text.length; index += limit) {
+    chunks.push(text.slice(index, index + limit));
+  }
+  return chunks;
+};
+
+const runtimeStub = {
+  channel: {
+    text: {
+      chunkMarkdownText,
+      chunkMarkdownTextWithMode: chunkMarkdownText,
+      resolveMarkdownTableMode: () => "code",
+      convertMarkdownTables: (text: string) => text,
+    },
+  },
+} as unknown as PluginRuntime;
 
 describe("msteams messenger", () => {
+  beforeEach(() => {
+    setMSTeamsRuntime(runtimeStub);
+  });
+
   describe("renderReplyPayloadsToMessages", () => {
     it("filters silent replies", () => {
       const messages = renderReplyPayloadsToMessages([{ text: SILENT_REPLY_TOKEN }], {
         textChunkLimit: 4000,
+        tableMode: "code",
       });
       expect(messages).toEqual([]);
     });
@@ -20,7 +47,7 @@ describe("msteams messenger", () => {
     it("filters silent reply prefixes", () => {
       const messages = renderReplyPayloadsToMessages(
         [{ text: `${SILENT_REPLY_TOKEN} -- ignored` }],
-        { textChunkLimit: 4000 },
+        { textChunkLimit: 4000, tableMode: "code" },
       );
       expect(messages).toEqual([]);
     });
@@ -28,23 +55,24 @@ describe("msteams messenger", () => {
     it("splits media into separate messages by default", () => {
       const messages = renderReplyPayloadsToMessages(
         [{ text: "hi", mediaUrl: "https://example.com/a.png" }],
-        { textChunkLimit: 4000 },
+        { textChunkLimit: 4000, tableMode: "code" },
       );
-      expect(messages).toEqual(["hi", "https://example.com/a.png"]);
+      expect(messages).toEqual([{ text: "hi" }, { mediaUrl: "https://example.com/a.png" }]);
     });
 
     it("supports inline media mode", () => {
       const messages = renderReplyPayloadsToMessages(
         [{ text: "hi", mediaUrl: "https://example.com/a.png" }],
-        { textChunkLimit: 4000, mediaMode: "inline" },
+        { textChunkLimit: 4000, mediaMode: "inline", tableMode: "code" },
       );
-      expect(messages).toEqual(["hi\n\nhttps://example.com/a.png"]);
+      expect(messages).toEqual([{ text: "hi", mediaUrl: "https://example.com/a.png" }]);
     });
 
     it("chunks long text when enabled", () => {
       const long = "hello ".repeat(200);
       const messages = renderReplyPayloadsToMessages([{ text: long }], {
         textChunkLimit: 50,
+        tableMode: "code",
       });
       expect(messages.length).toBeGreaterThan(1);
     });
@@ -80,7 +108,7 @@ describe("msteams messenger", () => {
         appId: "app123",
         conversationRef: baseRef,
         context: ctx,
-        messages: ["one", "two"],
+        messages: [{ text: "one" }, { text: "two" }],
       });
 
       expect(sent).toEqual(["one", "two"]);
@@ -108,7 +136,7 @@ describe("msteams messenger", () => {
         adapter,
         appId: "app123",
         conversationRef: baseRef,
-        messages: ["hello"],
+        messages: [{ text: "hello" }],
       });
 
       expect(seen.texts).toEqual(["hello"]);
@@ -147,7 +175,7 @@ describe("msteams messenger", () => {
         appId: "app123",
         conversationRef: baseRef,
         context: ctx,
-        messages: ["one"],
+        messages: [{ text: "one" }],
         retry: { maxAttempts: 2, baseDelayMs: 0, maxDelayMs: 0 },
         onRetry: (e) => retryEvents.push({ nextAttempt: e.nextAttempt, delayMs: e.delayMs }),
       });
@@ -175,7 +203,7 @@ describe("msteams messenger", () => {
           appId: "app123",
           conversationRef: baseRef,
           context: ctx,
-          messages: ["one"],
+          messages: [{ text: "one" }],
           retry: { maxAttempts: 3, baseDelayMs: 0, maxDelayMs: 0 },
         }),
       ).rejects.toMatchObject({ statusCode: 400 });
@@ -206,7 +234,7 @@ describe("msteams messenger", () => {
         adapter,
         appId: "app123",
         conversationRef: baseRef,
-        messages: ["hello"],
+        messages: [{ text: "hello" }],
         retry: { maxAttempts: 2, baseDelayMs: 0, maxDelayMs: 0 },
       });
 

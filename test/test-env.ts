@@ -54,6 +54,7 @@ export function installTestEnv(): { cleanup: () => void; tempHome: string } {
   }
 
   const restore: RestoreEntry[] = [
+    { key: "CLAWDBOT_TEST_FAST", value: process.env.CLAWDBOT_TEST_FAST },
     { key: "HOME", value: process.env.HOME },
     { key: "USERPROFILE", value: process.env.USERPROFILE },
     { key: "XDG_CONFIG_HOME", value: process.env.XDG_CONFIG_HOME },
@@ -62,7 +63,21 @@ export function installTestEnv(): { cleanup: () => void; tempHome: string } {
     { key: "XDG_CACHE_HOME", value: process.env.XDG_CACHE_HOME },
     { key: "CLAWDBOT_STATE_DIR", value: process.env.CLAWDBOT_STATE_DIR },
     { key: "CLAWDBOT_CONFIG_PATH", value: process.env.CLAWDBOT_CONFIG_PATH },
+    { key: "CLAWDBOT_GATEWAY_PORT", value: process.env.CLAWDBOT_GATEWAY_PORT },
+    { key: "CLAWDBOT_BRIDGE_ENABLED", value: process.env.CLAWDBOT_BRIDGE_ENABLED },
+    { key: "CLAWDBOT_BRIDGE_HOST", value: process.env.CLAWDBOT_BRIDGE_HOST },
+    { key: "CLAWDBOT_BRIDGE_PORT", value: process.env.CLAWDBOT_BRIDGE_PORT },
+    { key: "CLAWDBOT_CANVAS_HOST_PORT", value: process.env.CLAWDBOT_CANVAS_HOST_PORT },
     { key: "CLAWDBOT_TEST_HOME", value: process.env.CLAWDBOT_TEST_HOME },
+    { key: "TELEGRAM_BOT_TOKEN", value: process.env.TELEGRAM_BOT_TOKEN },
+    { key: "DISCORD_BOT_TOKEN", value: process.env.DISCORD_BOT_TOKEN },
+    { key: "SLACK_BOT_TOKEN", value: process.env.SLACK_BOT_TOKEN },
+    { key: "SLACK_APP_TOKEN", value: process.env.SLACK_APP_TOKEN },
+    { key: "SLACK_USER_TOKEN", value: process.env.SLACK_USER_TOKEN },
+    { key: "COPILOT_GITHUB_TOKEN", value: process.env.COPILOT_GITHUB_TOKEN },
+    { key: "GH_TOKEN", value: process.env.GH_TOKEN },
+    { key: "GITHUB_TOKEN", value: process.env.GITHUB_TOKEN },
+    { key: "NODE_OPTIONS", value: process.env.NODE_OPTIONS },
   ];
 
   const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-test-home-"));
@@ -70,11 +85,29 @@ export function installTestEnv(): { cleanup: () => void; tempHome: string } {
   process.env.HOME = tempHome;
   process.env.USERPROFILE = tempHome;
   process.env.CLAWDBOT_TEST_HOME = tempHome;
+  process.env.CLAWDBOT_TEST_FAST = "1";
 
   // Ensure test runs never touch the developer's real config/state, even if they have overrides set.
   delete process.env.CLAWDBOT_CONFIG_PATH;
   // Prefer deriving state dir from HOME so nested tests that change HOME also isolate correctly.
   delete process.env.CLAWDBOT_STATE_DIR;
+  // Prefer test-controlled ports over developer overrides (avoid port collisions across tests/workers).
+  delete process.env.CLAWDBOT_GATEWAY_PORT;
+  delete process.env.CLAWDBOT_BRIDGE_ENABLED;
+  delete process.env.CLAWDBOT_BRIDGE_HOST;
+  delete process.env.CLAWDBOT_BRIDGE_PORT;
+  delete process.env.CLAWDBOT_CANVAS_HOST_PORT;
+  // Avoid leaking real GitHub/Copilot tokens into non-live test runs.
+  delete process.env.TELEGRAM_BOT_TOKEN;
+  delete process.env.DISCORD_BOT_TOKEN;
+  delete process.env.SLACK_BOT_TOKEN;
+  delete process.env.SLACK_APP_TOKEN;
+  delete process.env.SLACK_USER_TOKEN;
+  delete process.env.COPILOT_GITHUB_TOKEN;
+  delete process.env.GH_TOKEN;
+  delete process.env.GITHUB_TOKEN;
+  // Avoid leaking local dev tooling flags into tests (e.g. --inspect).
+  delete process.env.NODE_OPTIONS;
 
   // Windows: prefer the legacy default state dir so auth/profile tests match real paths.
   if (process.platform === "win32") {
@@ -96,4 +129,8 @@ export function installTestEnv(): { cleanup: () => void; tempHome: string } {
   };
 
   return { cleanup, tempHome };
+}
+
+export function withIsolatedTestHome(): { cleanup: () => void; tempHome: string } {
+  return installTestEnv();
 }

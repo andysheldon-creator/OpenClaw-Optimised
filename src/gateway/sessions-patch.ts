@@ -19,6 +19,7 @@ import { isSubagentSessionKey } from "../routing/session-key.js";
 import { applyVerboseOverride, parseVerboseOverride } from "../sessions/level-overrides.js";
 import { normalizeSendPolicy } from "../sessions/send-policy.js";
 import { parseSessionLabel } from "../sessions/session-label.js";
+import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
 import {
   ErrorCodes,
   type ErrorShape,
@@ -28,6 +29,30 @@ import {
 
 function invalid(message: string): { ok: false; error: ErrorShape } {
   return { ok: false, error: errorShape(ErrorCodes.INVALID_REQUEST, message) };
+}
+
+function normalizeExecHost(raw: string): "sandbox" | "gateway" | "node" | undefined {
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "sandbox" || normalized === "gateway" || normalized === "node") {
+    return normalized;
+  }
+  return undefined;
+}
+
+function normalizeExecSecurity(raw: string): "deny" | "allowlist" | "full" | undefined {
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "deny" || normalized === "allowlist" || normalized === "full") {
+    return normalized;
+  }
+  return undefined;
+}
+
+function normalizeExecAsk(raw: string): "off" | "on-miss" | "always" | undefined {
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "off" || normalized === "on-miss" || normalized === "always") {
+    return normalized;
+  }
+  return undefined;
 }
 
 export async function applySessionsPatchToStore(params: {
@@ -132,7 +157,7 @@ export async function applySessionsPatchToStore(params: {
       delete next.responseUsage;
     } else if (raw !== undefined) {
       const normalized = normalizeUsageDisplay(String(raw));
-      if (!normalized) return invalid('invalid responseUsage (use "on"|"off")');
+      if (!normalized) return invalid('invalid responseUsage (use "off"|"tokens"|"full")');
       if (normalized === "off") delete next.responseUsage;
       else next.responseUsage = normalized;
     }
@@ -144,26 +169,75 @@ export async function applySessionsPatchToStore(params: {
       delete next.elevatedLevel;
     } else if (raw !== undefined) {
       const normalized = normalizeElevatedLevel(String(raw));
-      if (!normalized) return invalid('invalid elevatedLevel (use "on"|"off")');
+      if (!normalized) return invalid('invalid elevatedLevel (use "on"|"off"|"ask"|"full")');
       // Persist "off" explicitly so patches can override defaults.
       next.elevatedLevel = normalized;
     }
   }
 
+  if ("execHost" in patch) {
+    const raw = patch.execHost;
+    if (raw === null) {
+      delete next.execHost;
+    } else if (raw !== undefined) {
+      const normalized = normalizeExecHost(String(raw));
+      if (!normalized) return invalid('invalid execHost (use "sandbox"|"gateway"|"node")');
+      next.execHost = normalized;
+    }
+  }
+
+  if ("execSecurity" in patch) {
+    const raw = patch.execSecurity;
+    if (raw === null) {
+      delete next.execSecurity;
+    } else if (raw !== undefined) {
+      const normalized = normalizeExecSecurity(String(raw));
+      if (!normalized) return invalid('invalid execSecurity (use "deny"|"allowlist"|"full")');
+      next.execSecurity = normalized;
+    }
+  }
+
+  if ("execAsk" in patch) {
+    const raw = patch.execAsk;
+    if (raw === null) {
+      delete next.execAsk;
+    } else if (raw !== undefined) {
+      const normalized = normalizeExecAsk(String(raw));
+      if (!normalized) return invalid('invalid execAsk (use "off"|"on-miss"|"always")');
+      next.execAsk = normalized;
+    }
+  }
+
+  if ("execNode" in patch) {
+    const raw = patch.execNode;
+    if (raw === null) {
+      delete next.execNode;
+    } else if (raw !== undefined) {
+      const trimmed = String(raw).trim();
+      if (!trimmed) return invalid("invalid execNode: empty");
+      next.execNode = trimmed;
+    }
+  }
+
   if ("model" in patch) {
     const raw = patch.model;
+    const resolvedDefault = resolveConfiguredModelRef({
+      cfg,
+      defaultProvider: DEFAULT_PROVIDER,
+      defaultModel: DEFAULT_MODEL,
+    });
     if (raw === null) {
-      delete next.providerOverride;
-      delete next.modelOverride;
+      applyModelOverrideToSessionEntry({
+        entry: next,
+        selection: {
+          provider: resolvedDefault.provider,
+          model: resolvedDefault.model,
+          isDefault: true,
+        },
+      });
     } else if (raw !== undefined) {
       const trimmed = String(raw).trim();
       if (!trimmed) return invalid("invalid model: empty");
-
-      const resolvedDefault = resolveConfiguredModelRef({
-        cfg,
-        defaultProvider: DEFAULT_PROVIDER,
-        defaultModel: DEFAULT_MODEL,
-      });
       if (!params.loadGatewayModelCatalog) {
         return {
           ok: false,
@@ -181,16 +255,17 @@ export async function applySessionsPatchToStore(params: {
       if ("error" in resolved) {
         return invalid(resolved.error);
       }
-      if (
+      const isDefault =
         resolved.ref.provider === resolvedDefault.provider &&
-        resolved.ref.model === resolvedDefault.model
-      ) {
-        delete next.providerOverride;
-        delete next.modelOverride;
-      } else {
-        next.providerOverride = resolved.ref.provider;
-        next.modelOverride = resolved.ref.model;
-      }
+        resolved.ref.model === resolvedDefault.model;
+      applyModelOverrideToSessionEntry({
+        entry: next,
+        selection: {
+          provider: resolved.ref.provider,
+          model: resolved.ref.model,
+          isDefault,
+        },
+      });
     }
   }
 

@@ -21,7 +21,7 @@ handle_sudo_error() {
     echo -e "\n${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${YELLOW}⚠️  Password Required for Log Access${NC}"
     echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
-    echo -e "vtlog needs to use sudo to show complete log data (Apple hides sensitive info by default)."
+    echo -e "clawlog needs to use sudo to show complete log data (Apple hides sensitive info by default)."
     echo -e "\nTo avoid password prompts, configure passwordless sudo for the log command:"
     echo -e "See: ${BLUE}apple/docs/logging-private-fix.md${NC}\n"
     echo -e "Quick fix:"
@@ -51,7 +51,7 @@ show_usage() {
 clawlog - Clawdbot Logging Utility
 
 USAGE:
-    vtlog [OPTIONS]
+    clawlog [OPTIONS]
 
 DESCRIPTION:
     View Clawdbot logs with full details (bypasses Apple's privacy redaction).
@@ -69,10 +69,10 @@ LOG CATEGORIES (examples):
     • shell               - ShellExecutor
 
 QUICK START:
-    vtlog -n 100             Show last 100 lines from all components
-    vtlog -f                 Follow logs in real-time
-    vtlog -e                 Show only errors
-    vtlog -c ServerManager   Show logs from ServerManager only
+    clawlog -n 100             Show last 100 lines from all components
+    clawlog -f                 Follow logs in real-time
+    clawlog -e                 Show only errors
+    clawlog -c ServerManager   Show logs from ServerManager only
 
 OPTIONS:
     -h, --help              Show this help message
@@ -91,15 +91,15 @@ OPTIONS:
     --json                  Output in JSON format
 
 EXAMPLES:
-    vtlog                   Show last 50 lines from past 5 minutes (default)
-    vtlog -f                Stream logs continuously
-    vtlog -n 100            Show last 100 lines
-    vtlog -e                Show only recent errors
-    vtlog -l 30m -n 200     Show last 200 lines from past 30 minutes
-    vtlog -c ServerManager  Show recent ServerManager logs
-    vtlog -s "fail"         Search for "fail" in recent logs
-    vtlog --server -e       Show recent server errors
-    vtlog -f -d             Stream debug logs continuously
+    clawlog                   Show last 50 lines from past 5 minutes (default)
+    clawlog -f                Stream logs continuously
+    clawlog -n 100            Show last 100 lines
+    clawlog -e                Show only recent errors
+    clawlog -l 30m -n 200     Show last 200 lines from past 30 minutes
+    clawlog -c ServerManager  Show recent ServerManager logs
+    clawlog -s "fail"         Search for "fail" in recent logs
+    clawlog --server -e       Show recent server errors
+    clawlog -f -d             Stream debug logs continuously
 
 CATEGORIES:
     Common categories include:
@@ -124,7 +124,7 @@ EOF
 # Function to list categories
 list_categories() {
     echo -e "${BLUE}Fetching VibeTunnel log categories from the last hour...${NC}\n"
-    
+
     # Get unique categories from recent logs
     log show --predicate "subsystem == \"$SUBSYSTEM\"" --last 1h 2>/dev/null | \
         grep -E "category: \"[^\"]+\"" | \
@@ -133,7 +133,7 @@ list_categories() {
         while read -r cat; do
             echo "  • $cat"
         done
-    
+
     echo -e "\n${YELLOW}Note: Only categories with recent activity are shown${NC}"
 }
 
@@ -230,29 +230,29 @@ fi
 if [[ "$STREAM_MODE" == true ]]; then
     # Streaming mode
     CMD="sudo log stream --predicate '$PREDICATE' --level $LOG_LEVEL --info"
-    
+
     echo -e "${GREEN}Streaming VibeTunnel logs continuously...${NC}"
     echo -e "${YELLOW}Press Ctrl+C to stop${NC}\n"
 else
     # Show mode
     CMD="sudo log show --predicate '$PREDICATE'"
-    
+
     # Add log level for show command
     if [[ "$LOG_LEVEL" == "debug" ]]; then
         CMD="$CMD --debug"
     else
         CMD="$CMD --info"
     fi
-    
+
     # Add time range
     CMD="$CMD --last $TIME_RANGE"
-    
+
     if [[ "$SHOW_TAIL" == true ]]; then
         echo -e "${GREEN}Showing last $TAIL_LINES log lines from the past $TIME_RANGE${NC}"
     else
         echo -e "${GREEN}Showing all logs from the past $TIME_RANGE${NC}"
     fi
-    
+
     # Show applied filters
     if [[ "$ERRORS_ONLY" == true ]]; then
         echo -e "${RED}Filter: Errors only${NC}"
@@ -277,14 +277,14 @@ if [[ -n "$OUTPUT_FILE" ]]; then
     if sudo -n /usr/bin/log show --last 1s 2>&1 | grep -q "password"; then
         handle_sudo_error
     fi
-    
+
     echo -e "${BLUE}Exporting logs to: $OUTPUT_FILE${NC}\n"
     if [[ "$SHOW_TAIL" == true ]] && [[ "$STREAM_MODE" == false ]]; then
         eval "$CMD" 2>&1 | tail -n "$TAIL_LINES" > "$OUTPUT_FILE"
     else
         eval "$CMD" > "$OUTPUT_FILE" 2>&1
     fi
-    
+
     # Check if file was created and has content
     if [[ -s "$OUTPUT_FILE" ]]; then
         LINE_COUNT=$(wc -l < "$OUTPUT_FILE" | tr -d ' ')
@@ -298,7 +298,7 @@ else
     if sudo -n /usr/bin/log show --last 1s 2>&1 | grep -q "password"; then
         handle_sudo_error
     fi
-    
+
     if [[ "$SHOW_TAIL" == true ]] && [[ "$STREAM_MODE" == false ]]; then
         # Apply tail for non-streaming mode
         eval "$CMD" 2>&1 | tail -n "$TAIL_LINES"

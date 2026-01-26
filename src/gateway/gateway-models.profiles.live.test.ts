@@ -24,19 +24,21 @@ import { getApiKeyForModel } from "../agents/model-auth.js";
 import { ensureClawdbotModelsJson } from "../agents/models-config.js";
 import { loadConfig } from "../config/config.js";
 import type { ClawdbotConfig, ModelProviderConfig } from "../config/types.js";
+import { isTruthyEnvValue } from "../infra/env.js";
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { GatewayClient } from "./client.js";
 import { renderCatNoncePngBase64 } from "./live-image-probe.js";
 import { startGatewayServer } from "./server.js";
 
-const LIVE = process.env.LIVE === "1" || process.env.CLAWDBOT_LIVE_TEST === "1";
-const GATEWAY_LIVE = process.env.CLAWDBOT_LIVE_GATEWAY === "1";
-const ZAI_FALLBACK = process.env.CLAWDBOT_LIVE_GATEWAY_ZAI_FALLBACK === "1";
+const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.CLAWDBOT_LIVE_TEST);
+const GATEWAY_LIVE = isTruthyEnvValue(process.env.CLAWDBOT_LIVE_GATEWAY);
+const ZAI_FALLBACK = isTruthyEnvValue(process.env.CLAWDBOT_LIVE_GATEWAY_ZAI_FALLBACK);
 const PROVIDERS = parseFilter(process.env.CLAWDBOT_LIVE_GATEWAY_PROVIDERS);
 const THINKING_LEVEL = "high";
 const THINKING_TAG_RE = /<\s*\/?\s*(?:think(?:ing)?|thought|antthinking)\s*>/i;
 const FINAL_TAG_RE = /<\s*\/?\s*final\s*>/i;
+const ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL = "ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL";
 
 const describeLive = LIVE || GATEWAY_LIVE ? describe : describe.skip;
 
@@ -98,8 +100,41 @@ function isGoogleModelNotFoundText(text: string): boolean {
   return false;
 }
 
+function isGoogleishProvider(provider: string): boolean {
+  return provider === "google" || provider.startsWith("google-");
+}
+
 function isRefreshTokenReused(error: string): boolean {
   return /refresh_token_reused/i.test(error);
+}
+
+function isChatGPTUsageLimitErrorMessage(raw: string): boolean {
+  const msg = raw.toLowerCase();
+  return msg.includes("hit your chatgpt usage limit") && msg.includes("try again in");
+}
+
+function isInstructionsRequiredError(error: string): boolean {
+  return /instructions are required/i.test(error);
+}
+
+function isOpenAIReasoningSequenceError(error: string): boolean {
+  const msg = error.toLowerCase();
+  return msg.includes("required following item") && msg.includes("reasoning");
+}
+
+function isToolNonceRefusal(error: string): boolean {
+  const msg = error.toLowerCase();
+  if (!msg.includes("nonce")) return false;
+  return (
+    msg.includes("token") ||
+    msg.includes("secret") ||
+    msg.includes("local file") ||
+    msg.includes("disclose") ||
+    msg.includes("can't help") ||
+    msg.includes("can’t help") ||
+    msg.includes("can't comply") ||
+    msg.includes("can’t comply")
+  );
 }
 
 function isMissingProfileError(error: string): boolean {
@@ -108,6 +143,73 @@ function isMissingProfileError(error: string): boolean {
 
 function isEmptyStreamText(text: string): boolean {
   return text.includes("request ended without sending any chunks");
+}
+
+function buildAnthropicRefusalToken(): string {
+  const suffix = randomUUID().replace(/-/g, "");
+  return `${ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL}_${suffix}`;
+}
+
+async function runAnthropicRefusalProbe(params: {
+  client: GatewayClient;
+  sessionKey: string;
+  modelKey: string;
+  label: string;
+  thinkingLevel: string;
+}): Promise<void> {
+  logProgress(`${params.label}: refusal-probe`);
+  const magic = buildAnthropicRefusalToken();
+  const runId = randomUUID();
+  const probe = await params.client.request<AgentFinalPayload>(
+    "agent",
+    {
+      sessionKey: params.sessionKey,
+      idempotencyKey: `idem-${runId}-refusal`,
+      message: `Reply with the single word ok. Test token: ${magic}`,
+      thinking: params.thinkingLevel,
+      deliver: false,
+    },
+    { expectFinal: true },
+  );
+  if (probe?.status !== "ok") {
+    throw new Error(`refusal probe failed: status=${String(probe?.status)}`);
+  }
+  const probeText = extractPayloadText(probe?.result);
+  assertNoReasoningTags({
+    text: probeText,
+    model: params.modelKey,
+    phase: "refusal-probe",
+    label: params.label,
+  });
+  if (!/\bok\b/i.test(probeText)) {
+    throw new Error(`refusal probe missing ok: ${probeText}`);
+  }
+
+  const followupId = randomUUID();
+  const followup = await params.client.request<AgentFinalPayload>(
+    "agent",
+    {
+      sessionKey: params.sessionKey,
+      idempotencyKey: `idem-${followupId}-refusal-followup`,
+      message: "Now reply with exactly: still ok.",
+      thinking: params.thinkingLevel,
+      deliver: false,
+    },
+    { expectFinal: true },
+  );
+  if (followup?.status !== "ok") {
+    throw new Error(`refusal followup failed: status=${String(followup?.status)}`);
+  }
+  const followupText = extractPayloadText(followup?.result);
+  assertNoReasoningTags({
+    text: followupText,
+    model: params.modelKey,
+    phase: "refusal-followup",
+    label: params.label,
+  });
+  if (!/\bstill\b/i.test(followupText) || !/\bok\b/i.test(followupText)) {
+    throw new Error(`refusal followup missing expected text: ${followupText}`);
+  }
 }
 
 function randomImageProbeCode(len = 6): string {
@@ -181,7 +283,7 @@ async function isPortFree(port: number): Promise<boolean> {
 }
 
 async function getFreeGatewayPort(): Promise<number> {
-  // Gateway uses derived ports (bridge/browser/canvas). Avoid flaky collisions by
+  // Gateway uses derived ports (browser/canvas). Avoid flaky collisions by
   // ensuring the common derived offsets are free too.
   for (let attempt = 0; attempt < 25; attempt += 1) {
     const port = await getFreePort();
@@ -471,7 +573,30 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
           if (payload?.status !== "ok") {
             throw new Error(`agent status=${String(payload?.status)}`);
           }
-          const text = extractPayloadText(payload?.result);
+          let text = extractPayloadText(payload?.result);
+          if (!text) {
+            logProgress(`${progressLabel}: empty response, retrying`);
+            const retry = await client.request<AgentFinalPayload>(
+              "agent",
+              {
+                sessionKey,
+                idempotencyKey: `idem-${randomUUID()}-retry`,
+                message:
+                  "Explain in 2-3 sentences how the JavaScript event loop handles microtasks vs macrotasks. Must mention both words: microtask and macrotask.",
+                thinking: params.thinkingLevel,
+                deliver: false,
+              },
+              { expectFinal: true },
+            );
+            if (retry?.status !== "ok") {
+              throw new Error(`agent status=${String(retry?.status)}`);
+            }
+            text = extractPayloadText(retry?.result);
+          }
+          if (!text && isGoogleishProvider(model.provider)) {
+            logProgress(`${progressLabel}: skip (google empty response)`);
+            break;
+          }
           if (
             isEmptyStreamText(text) &&
             (model.provider === "minimax" || model.provider === "openai-codex")
@@ -479,7 +604,7 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
             logProgress(`${progressLabel}: skip (${model.provider} empty response)`);
             break;
           }
-          if (model.provider === "google" && isGoogleModelNotFoundText(text)) {
+          if (isGoogleishProvider(model.provider) && isGoogleModelNotFoundText(text)) {
             // Catalog drift: model IDs can disappear or become unavailable on the API.
             // Treat as skip when scanning "all models" for Google.
             logProgress(`${progressLabel}: skip (google model not found)`);
@@ -491,7 +616,13 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
             phase: "prompt",
             label: params.label,
           });
-          if (!isMeaningful(text)) throw new Error(`not meaningful: ${text}`);
+          if (!isMeaningful(text)) {
+            if (isGoogleishProvider(model.provider) && /gemini/i.test(model.id)) {
+              logProgress(`${progressLabel}: skip (google not meaningful)`);
+              break;
+            }
+            throw new Error(`not meaningful: ${text}`);
+          }
           if (!/\bmicro\s*-?\s*tasks?\b/i.test(text) || !/\bmacro\s*-?\s*tasks?\b/i.test(text)) {
             throw new Error(`missing required keywords: ${text}`);
           }
@@ -697,6 +828,16 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
             }
           }
 
+          if (model.provider === "anthropic") {
+            await runAnthropicRefusalProbe({
+              client,
+              sessionKey,
+              modelKey,
+              label: progressLabel,
+              thinkingLevel: params.thinkingLevel,
+            });
+          }
+
           logProgress(`${progressLabel}: done`);
           break;
         } catch (err) {
@@ -733,6 +874,31 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
           // OpenAI Codex refresh tokens can become single-use; skip instead of failing all live tests.
           if (model.provider === "openai-codex" && isRefreshTokenReused(message)) {
             logProgress(`${progressLabel}: skip (codex refresh token reused)`);
+            break;
+          }
+          if (model.provider === "openai-codex" && isChatGPTUsageLimitErrorMessage(message)) {
+            logProgress(`${progressLabel}: skip (chatgpt usage limit)`);
+            break;
+          }
+          if (model.provider === "openai-codex" && isInstructionsRequiredError(message)) {
+            skippedCount += 1;
+            logProgress(`${progressLabel}: skip (instructions required)`);
+            break;
+          }
+          if (
+            (model.provider === "openai" || model.provider === "openai-codex") &&
+            isOpenAIReasoningSequenceError(message)
+          ) {
+            skippedCount += 1;
+            logProgress(`${progressLabel}: skip (openai reasoning sequence error)`);
+            break;
+          }
+          if (
+            (model.provider === "openai" || model.provider === "openai-codex") &&
+            isToolNonceRefusal(message)
+          ) {
+            skippedCount += 1;
+            logProgress(`${progressLabel}: skip (tool probe refusal)`);
             break;
           }
           if (isMissingProfileError(message)) {

@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { resetInboundDedupe } from "../auto-reply/reply/inbound-dedupe.js";
-import { createTelegramBot } from "./bot.js";
+
+let createTelegramBot: typeof import("./bot.js").createTelegramBot;
+let resetInboundDedupe: typeof import("../auto-reply/reply/inbound-dedupe.js").resetInboundDedupe;
+
+const { sessionStorePath } = vi.hoisted(() => ({
+  sessionStorePath: `/tmp/clawdbot-telegram-${Math.random().toString(16).slice(2)}.json`,
+}));
 
 const { loadWebMedia } = vi.hoisted(() => ({
   loadWebMedia: vi.fn(),
@@ -18,6 +23,14 @@ vi.mock("../config/config.js", async (importOriginal) => {
   return {
     ...actual,
     loadConfig,
+  };
+});
+
+vi.mock("../config/sessions.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../config/sessions.js")>();
+  return {
+    ...actual,
+    resolveStorePath: vi.fn((storePath) => storePath ?? sessionStorePath),
   };
 });
 
@@ -110,7 +123,7 @@ vi.mock("../auto-reply/reply.js", () => {
   return { getReplyFromConfig: replySpy, __replySpy: replySpy };
 });
 
-const replyModule = await import("../auto-reply/reply.js");
+let replyModule: typeof import("../auto-reply/reply.js");
 
 const getOnHandler = (event: string) => {
   const handler = onSpy.mock.calls.find((call) => call[0] === event)?.[1];
@@ -119,7 +132,11 @@ const getOnHandler = (event: string) => {
 };
 
 describe("createTelegramBot", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
+    ({ resetInboundDedupe } = await import("../auto-reply/reply/inbound-dedupe.js"));
+    ({ createTelegramBot } = await import("./bot.js"));
+    replyModule = await import("../auto-reply/reply.js");
     resetInboundDedupe();
     loadConfig.mockReturnValue({
       channels: {
@@ -283,7 +300,7 @@ describe("createTelegramBot", () => {
       expect.objectContaining({ message_thread_id: 99 }),
     );
   });
-  it("streams tool summaries for native slash commands", async () => {
+  it("skips tool summaries for native slash commands", async () => {
     onSpy.mockReset();
     sendMessageSpy.mockReset();
     commandSpy.mockReset();
@@ -296,9 +313,11 @@ describe("createTelegramBot", () => {
 
     loadConfig.mockReturnValue({
       commands: { native: true },
-      telegram: {
-        dmPolicy: "open",
-        allowFrom: ["*"],
+      channels: {
+        telegram: {
+          dmPolicy: "open",
+          allowFrom: ["*"],
+        },
       },
     });
 
@@ -319,9 +338,8 @@ describe("createTelegramBot", () => {
       match: "on",
     });
 
-    expect(sendMessageSpy).toHaveBeenCalledTimes(2);
-    expect(sendMessageSpy.mock.calls[0]?.[1]).toContain("tool update");
-    expect(sendMessageSpy.mock.calls[1]?.[1]).toContain("final reply");
+    expect(sendMessageSpy).toHaveBeenCalledTimes(1);
+    expect(sendMessageSpy.mock.calls[0]?.[1]).toContain("final reply");
   });
   it("dedupes duplicate message updates by update_id", async () => {
     onSpy.mockReset();

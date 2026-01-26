@@ -11,6 +11,7 @@ import type {
 import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
+import { runCommandWithRuntime } from "../cli-utils.js";
 
 function resolveInstallDaemonFlag(
   command: unknown,
@@ -47,11 +48,11 @@ export function registerOnboardCommand(program: Command) {
       "Acknowledge that agents are powerful and full system access is risky (required for --non-interactive)",
       false,
     )
-    .option("--flow <flow>", "Wizard flow: quickstart|advanced")
+    .option("--flow <flow>", "Wizard flow: quickstart|advanced|manual")
     .option("--mode <mode>", "Wizard mode: local|remote")
     .option(
       "--auth-choice <choice>",
-      "Auth: setup-token|claude-cli|token|chutes|openai-codex|openai-api-key|openrouter-api-key|moonshot-api-key|synthetic-api-key|codex-cli|antigravity|gemini-api-key|zai-api-key|apiKey|minimax-api|minimax-api-lightning|opencode-zen|skip",
+      "Auth: setup-token|claude-cli|token|chutes|openai-codex|openai-api-key|openrouter-api-key|ai-gateway-api-key|moonshot-api-key|kimi-code-api-key|synthetic-api-key|venice-api-key|codex-cli|gemini-api-key|zai-api-key|apiKey|minimax-api|minimax-api-lightning|opencode-zen|skip",
     )
     .option(
       "--token-provider <id>",
@@ -66,14 +67,17 @@ export function registerOnboardCommand(program: Command) {
     .option("--anthropic-api-key <key>", "Anthropic API key")
     .option("--openai-api-key <key>", "OpenAI API key")
     .option("--openrouter-api-key <key>", "OpenRouter API key")
+    .option("--ai-gateway-api-key <key>", "Vercel AI Gateway API key")
     .option("--moonshot-api-key <key>", "Moonshot API key")
+    .option("--kimi-code-api-key <key>", "Kimi Code API key")
     .option("--gemini-api-key <key>", "Gemini API key")
     .option("--zai-api-key <key>", "Z.AI API key")
     .option("--minimax-api-key <key>", "MiniMax API key")
     .option("--synthetic-api-key <key>", "Synthetic API key")
+    .option("--venice-api-key <key>", "Venice API key")
     .option("--opencode-zen-api-key <key>", "OpenCode Zen API key")
     .option("--gateway-port <port>", "Gateway port")
-    .option("--gateway-bind <mode>", "Gateway bind: loopback|lan|auto|custom")
+    .option("--gateway-bind <mode>", "Gateway bind: loopback|tailnet|lan|auto|custom")
     .option("--gateway-auth <mode>", "Gateway auth: off|token|password")
     .option("--gateway-token <token>", "Gateway token (token auth)")
     .option("--gateway-password <password>", "Gateway password (password auth)")
@@ -81,9 +85,9 @@ export function registerOnboardCommand(program: Command) {
     .option("--remote-token <token>", "Remote Gateway token (optional)")
     .option("--tailscale <mode>", "Tailscale: off|serve|funnel")
     .option("--tailscale-reset-on-exit", "Reset tailscale serve/funnel on exit")
-    .option("--install-daemon", "Install gateway daemon")
-    .option("--no-install-daemon", "Skip gateway daemon install")
-    .option("--skip-daemon", "Skip gateway daemon install")
+    .option("--install-daemon", "Install gateway service")
+    .option("--no-install-daemon", "Skip gateway service install")
+    .option("--skip-daemon", "Skip gateway service install")
     .option("--daemon-runtime <runtime>", "Daemon runtime: node|bun")
     .option("--skip-channels", "Skip channel setup")
     .option("--skip-skills", "Skip skills setup")
@@ -92,7 +96,7 @@ export function registerOnboardCommand(program: Command) {
     .option("--node-manager <name>", "Node manager for skills: npm|pnpm|bun")
     .option("--json", "Output JSON summary", false)
     .action(async (opts, command) => {
-      try {
+      await runCommandWithRuntime(defaultRuntime, async () => {
         const installDaemon = resolveInstallDaemonFlag(command, {
           installDaemon: Boolean(opts.installDaemon),
         });
@@ -103,7 +107,7 @@ export function registerOnboardCommand(program: Command) {
             workspace: opts.workspace as string | undefined,
             nonInteractive: Boolean(opts.nonInteractive),
             acceptRisk: Boolean(opts.acceptRisk),
-            flow: opts.flow as "quickstart" | "advanced" | undefined,
+            flow: opts.flow as "quickstart" | "advanced" | "manual" | undefined,
             mode: opts.mode as "local" | "remote" | undefined,
             authChoice: opts.authChoice as AuthChoice | undefined,
             tokenProvider: opts.tokenProvider as string | undefined,
@@ -113,11 +117,14 @@ export function registerOnboardCommand(program: Command) {
             anthropicApiKey: opts.anthropicApiKey as string | undefined,
             openaiApiKey: opts.openaiApiKey as string | undefined,
             openrouterApiKey: opts.openrouterApiKey as string | undefined,
+            aiGatewayApiKey: opts.aiGatewayApiKey as string | undefined,
             moonshotApiKey: opts.moonshotApiKey as string | undefined,
+            kimiCodeApiKey: opts.kimiCodeApiKey as string | undefined,
             geminiApiKey: opts.geminiApiKey as string | undefined,
             zaiApiKey: opts.zaiApiKey as string | undefined,
             minimaxApiKey: opts.minimaxApiKey as string | undefined,
             syntheticApiKey: opts.syntheticApiKey as string | undefined,
+            veniceApiKey: opts.veniceApiKey as string | undefined,
             opencodeZenApiKey: opts.opencodeZenApiKey as string | undefined,
             gatewayPort:
               typeof gatewayPort === "number" && Number.isFinite(gatewayPort)
@@ -143,9 +150,6 @@ export function registerOnboardCommand(program: Command) {
           },
           defaultRuntime,
         );
-      } catch (err) {
-        defaultRuntime.error(String(err));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 }

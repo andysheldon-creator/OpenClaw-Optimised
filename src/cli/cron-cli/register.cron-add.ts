@@ -1,8 +1,8 @@
 import type { Command } from "commander";
 import type { CronJob } from "../../cron/types.js";
 import { danger } from "../../globals.js";
-import { normalizeAgentId } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
+import { sanitizeAgentId } from "../../routing/session-key.js";
 import type { GatewayRpcOpts } from "../gateway-rpc.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
 import { parsePositiveIntOrUndefined } from "../program/helpers.js";
@@ -80,14 +80,24 @@ export function registerCronAddCommand(cron: Command) {
       .option("--thinking <level>", "Thinking level for agent jobs (off|minimal|low|medium|high)")
       .option("--model <model>", "Model override for agent jobs (provider/model or alias)")
       .option("--timeout-seconds <n>", "Timeout seconds for agent jobs")
-      .option("--deliver", "Deliver agent output", false)
+      .option(
+        "--deliver",
+        "Deliver agent output (required when using last-route delivery without --to)",
+        false,
+      )
       .option("--channel <channel>", `Delivery channel (${getCronChannelOptions()})`, "last")
       .option(
         "--to <dest>",
         "Delivery destination (E.164, Telegram chatId, or Discord channel/user)",
       )
       .option("--best-effort-deliver", "Do not fail the job if delivery fails", false)
-      .option("--post-prefix <prefix>", "Prefix for summary system event", "Cron")
+      .option("--post-prefix <prefix>", "Prefix for main-session post", "Cron")
+      .option(
+        "--post-mode <mode>",
+        "What to post back to main for isolated jobs (summary|full)",
+        "summary",
+      )
+      .option("--post-max-chars <n>", "Max chars when --post-mode=full (default 8000)", "8000")
       .option("--json", "Output JSON", false)
       .action(async (opts: GatewayRpcOpts & Record<string, unknown>) => {
         try {
@@ -130,7 +140,7 @@ export function registerCronAddCommand(cron: Command) {
 
           const agentId =
             typeof opts.agent === "string" && opts.agent.trim()
-              ? normalizeAgentId(opts.agent)
+              ? sanitizeAgentId(opts.agent.trim())
               : undefined;
 
           const payload = (() => {
@@ -153,10 +163,10 @@ export function registerCronAddCommand(cron: Command) {
                   : undefined,
               timeoutSeconds:
                 timeoutSeconds && Number.isFinite(timeoutSeconds) ? timeoutSeconds : undefined,
-              deliver: Boolean(opts.deliver),
+              deliver: opts.deliver ? true : undefined,
               channel: typeof opts.channel === "string" ? opts.channel : "last",
               to: typeof opts.to === "string" && opts.to.trim() ? opts.to.trim() : undefined,
-              bestEffortDeliver: Boolean(opts.bestEffortDeliver),
+              bestEffortDeliver: opts.bestEffortDeliver ? true : undefined,
             };
           })();
 
@@ -174,6 +184,14 @@ export function registerCronAddCommand(cron: Command) {
                     typeof opts.postPrefix === "string" && opts.postPrefix.trim()
                       ? opts.postPrefix.trim()
                       : "Cron",
+                  postToMainMode:
+                    opts.postMode === "full" || opts.postMode === "summary"
+                      ? opts.postMode
+                      : undefined,
+                  postToMainMaxChars:
+                    typeof opts.postMaxChars === "string" && /^\d+$/.test(opts.postMaxChars)
+                      ? Number.parseInt(opts.postMaxChars, 10)
+                      : undefined,
                 }
               : undefined;
 

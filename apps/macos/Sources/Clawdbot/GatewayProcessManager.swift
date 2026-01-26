@@ -42,10 +42,20 @@ final class GatewayProcessManager {
     private var environmentRefreshTask: Task<Void, Never>?
     private var lastEnvironmentRefresh: Date?
     private var logRefreshTask: Task<Void, Never>?
+    #if DEBUG
+    private var testingConnection: GatewayConnection?
+    #endif
     private let logger = Logger(subsystem: "com.clawdbot", category: "gateway.process")
 
     private let logLimit = 20000 // characters to keep in-memory
     private let environmentRefreshMinInterval: TimeInterval = 30
+    private var connection: GatewayConnection {
+        #if DEBUG
+        return self.testingConnection ?? .shared
+        #else
+        return .shared
+        #endif
+    }
 
     func setActive(_ active: Bool) {
         // Remote mode should never spawn a local gateway; treat as stopped.
@@ -69,6 +79,11 @@ final class GatewayProcessManager {
 
     func ensureLaunchAgentEnabledIfNeeded() async {
         guard !CommandResolver.connectionModeIsRemote() else { return }
+        if GatewayLaunchAgentManager.isLaunchAgentWriteDisabled() {
+            self.appendLog("[gateway] launchd auto-enable skipped (attach-only)\n")
+            self.logger.info("gateway launchd auto-enable skipped (disable marker set)")
+            return
+        }
         let enabled = await GatewayLaunchAgentManager.isLoaded()
         guard !enabled else { return }
         let bundlePath = Bundle.main.bundleURL.path
@@ -114,6 +129,9 @@ final class GatewayProcessManager {
         self.lastFailureReason = nil
         self.status = .stopped
         self.logger.info("gateway stop requested")
+        if CommandResolver.connectionModeIsRemote() {
+            return
+        }
         let bundlePath = Bundle.main.bundleURL.path
         Task {
             _ = await GatewayLaunchAgentManager.set(
@@ -121,6 +139,10 @@ final class GatewayProcessManager {
                 bundlePath: bundlePath,
                 port: GatewayEnvironment.gatewayPort())
         }
+    }
+
+    func clearLastFailure() {
+        self.lastFailureReason = nil
     }
 
     func refreshEnvironmentStatus(force: Bool = false) {
@@ -175,7 +197,7 @@ final class GatewayProcessManager {
         let hasListener = instance != nil
 
         let attemptAttach = {
-            try await GatewayConnection.shared.requestRaw(method: .health, timeoutMs: 2000)
+            try await self.connection.requestRaw(method: .health, timeoutMs: 2000)
         }
 
         for attempt in 0..<(hasListener ? 3 : 1) {
@@ -184,6 +206,7 @@ final class GatewayProcessManager {
                 let snap = decodeHealthSnapshot(from: data)
                 let details = self.describe(details: instanceText, port: port, snap: snap)
                 self.existingGatewayDetails = details
+                self.clearLastFailure()
                 self.status = .attachedExisting(details: details)
                 self.appendLog("[gateway] using existing instance: \(details)\n")
                 self.logger.info("gateway using existing instance details=\(details)")
@@ -219,19 +242,17 @@ final class GatewayProcessManager {
     private func describe(details instance: String?, port: Int, snap: HealthSnapshot?) -> String {
         let instanceText = instance ?? "pid unknown"
         if let snap {
-            let linkId = snap.channelOrder?.first(where: {
-                if let summary = snap.channels[$0] { return summary.linked != nil }
-                return false
-            }) ?? snap.channels.keys.first(where: {
-                if let summary = snap.channels[$0] { return summary.linked != nil }
-                return false
-            })
-            let linked = linkId.flatMap { snap.channels[$0]?.linked } ?? false
-            let authAge = linkId.flatMap { snap.channels[$0]?.authAgeMs }.flatMap(msToAge) ?? "unknown age"
+            let order = snap.channelOrder ?? Array(snap.channels.keys)
+            let linkId = order.first(where: { snap.channels[$0]?.linked == true })
+                ?? order.first(where: { snap.channels[$0]?.linked != nil })
+            guard let linkId else {
+                return "port \(port), health probe succeeded, \(instanceText)"
+            }
+            let linked = snap.channels[linkId]?.linked ?? false
+            let authAge = snap.channels[linkId]?.authAgeMs.flatMap(msToAge) ?? "unknown age"
             let label =
-                linkId.flatMap { snap.channelLabels?[$0] } ??
-                linkId?.capitalized ??
-                "channel"
+                snap.channelLabels?[linkId] ??
+                linkId.capitalized
             let linkText = linked ? "linked" : "not linked"
             return "port \(port), \(label) \(linkText), auth \(authAge), \(instanceText)"
         }
@@ -290,6 +311,15 @@ final class GatewayProcessManager {
             return
         }
 
+        if GatewayLaunchAgentManager.isLaunchAgentWriteDisabled() {
+            let message = "Launchd disabled; start the Gateway manually or disable attach-only."
+            self.status = .failed(message)
+            self.lastFailureReason = "launchd disabled"
+            self.appendLog("[gateway] launchd disabled; skipping auto-start\n")
+            self.logger.info("gateway launchd enable skipped (disable marker set)")
+            return
+        }
+
         let bundlePath = Bundle.main.bundleURL.path
         let port = GatewayEnvironment.gatewayPort()
         self.appendLog("[gateway] enabling launchd job (\(gatewayLaunchdLabel)) on port \(port)\n")
@@ -307,9 +337,10 @@ final class GatewayProcessManager {
         while Date() < deadline {
             if !self.desiredActive { return }
             do {
-                _ = try await GatewayConnection.shared.requestRaw(method: .health, timeoutMs: 1500)
+                _ = try await self.connection.requestRaw(method: .health, timeoutMs: 1500)
                 let instance = await PortGuardian.shared.describe(port: port)
                 let details = instance.map { "pid \($0.pid)" }
+                self.clearLastFailure()
                 self.status = .running(details: details)
                 self.logger.info("gateway started details=\(details ?? "ok")")
                 self.refreshControlChannelIfNeeded(reason: "gateway started")
@@ -349,7 +380,8 @@ final class GatewayProcessManager {
         while Date() < deadline {
             if !self.desiredActive { return false }
             do {
-                _ = try await GatewayConnection.shared.requestRaw(method: .health, timeoutMs: 1500)
+                _ = try await self.connection.requestRaw(method: .health, timeoutMs: 1500)
+                self.clearLastFailure()
                 return true
             } catch {
                 try? await Task.sleep(nanoseconds: 300_000_000)
@@ -362,7 +394,7 @@ final class GatewayProcessManager {
 
     func clearLog() {
         self.log = ""
-        try? FileManager.default.removeItem(atPath: GatewayLaunchAgentManager.launchdGatewayLogPath())
+        try? FileManager().removeItem(atPath: GatewayLaunchAgentManager.launchdGatewayLogPath())
         self.logger.debug("gateway log cleared")
     }
 
@@ -375,10 +407,26 @@ final class GatewayProcessManager {
     }
 
     private nonisolated static func readGatewayLog(path: String, limit: Int) -> String {
-        guard FileManager.default.fileExists(atPath: path) else { return "" }
+        guard FileManager().fileExists(atPath: path) else { return "" }
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return "" }
         let text = String(data: data, encoding: .utf8) ?? ""
         if text.count <= limit { return text }
         return String(text.suffix(limit))
     }
 }
+
+#if DEBUG
+extension GatewayProcessManager {
+    func setTestingConnection(_ connection: GatewayConnection?) {
+        self.testingConnection = connection
+    }
+
+    func setTestingDesiredActive(_ active: Bool) {
+        self.desiredActive = active
+    }
+
+    func setTestingLastFailureReason(_ reason: String?) {
+        self.lastFailureReason = reason
+    }
+}
+#endif

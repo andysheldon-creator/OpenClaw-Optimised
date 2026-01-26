@@ -17,6 +17,18 @@ export const AgentSummarySchema = Type.Object(
   {
     id: NonEmptyString,
     name: Type.Optional(NonEmptyString),
+    identity: Type.Optional(
+      Type.Object(
+        {
+          name: Type.Optional(NonEmptyString),
+          theme: Type.Optional(NonEmptyString),
+          emoji: Type.Optional(NonEmptyString),
+          avatar: Type.Optional(NonEmptyString),
+          avatarUrl: Type.Optional(NonEmptyString),
+        },
+        { additionalProperties: false },
+      ),
+    ),
   },
   { additionalProperties: false },
 );
@@ -43,6 +55,15 @@ export const ModelsListResultSchema = Type.Object(
 );
 
 export const SkillsStatusParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const SkillsBinsParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const SkillsBinsResultSchema = Type.Object(
+  {
+    bins: Type.Array(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
 
 export const SkillsInstallParamsSchema = Type.Object(
   {

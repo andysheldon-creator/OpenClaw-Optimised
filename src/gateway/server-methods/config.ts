@@ -5,7 +5,7 @@ import {
   parseConfigJson5,
   readConfigFileSnapshot,
   resolveConfigSnapshotHash,
-  validateConfigObject,
+  validateConfigObjectWithPlugins,
   writeConfigFile,
 } from "../../config/config.js";
 import { applyLegacyMigrations } from "../../config/legacy.js";
@@ -13,10 +13,11 @@ import { applyMergePatch } from "../../config/merge-patch.js";
 import { buildConfigSchema } from "../../config/schema.js";
 import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
 import {
-  DOCTOR_NONINTERACTIVE_HINT,
+  formatDoctorNonInteractiveHint,
   type RestartSentinelPayload,
   writeRestartSentinel,
 } from "../../infra/restart-sentinel.js";
+import { listChannelPlugins } from "../../channels/plugins/index.js";
 import { loadClawdbotPlugins } from "../../plugins/loader.js";
 import {
   ErrorCodes,
@@ -127,11 +128,14 @@ export const configHandlers: GatewayRequestHandlers = {
         name: plugin.name,
         description: plugin.description,
         configUiHints: plugin.configUiHints,
+        configSchema: plugin.configJsonSchema,
       })),
-      channels: pluginRegistry.channels.map((entry) => ({
-        id: entry.plugin.id,
-        label: entry.plugin.meta.label,
-        description: entry.plugin.meta.blurb,
+      channels: listChannelPlugins().map((entry) => ({
+        id: entry.id,
+        label: entry.meta.label,
+        description: entry.meta.blurb,
+        configSchema: entry.configSchema?.schema,
+        configUiHints: entry.configSchema?.uiHints,
       })),
     });
     respond(true, schema, undefined);
@@ -166,7 +170,7 @@ export const configHandlers: GatewayRequestHandlers = {
       respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, parsedRes.error));
       return;
     }
-    const validated = validateConfigObject(parsedRes.parsed);
+    const validated = validateConfigObjectWithPlugins(parsedRes.parsed);
     if (!validated.ok) {
       respond(
         false,
@@ -244,7 +248,7 @@ export const configHandlers: GatewayRequestHandlers = {
     const merged = applyMergePatch(snapshot.config, parsedRes.parsed);
     const migrated = applyLegacyMigrations(merged);
     const resolved = migrated.next ?? merged;
-    const validated = validateConfigObject(resolved);
+    const validated = validateConfigObjectWithPlugins(resolved);
     if (!validated.ok) {
       respond(
         false,
@@ -256,12 +260,54 @@ export const configHandlers: GatewayRequestHandlers = {
       return;
     }
     await writeConfigFile(validated.config);
+
+    const sessionKey =
+      typeof (params as { sessionKey?: unknown }).sessionKey === "string"
+        ? (params as { sessionKey?: string }).sessionKey?.trim() || undefined
+        : undefined;
+    const note =
+      typeof (params as { note?: unknown }).note === "string"
+        ? (params as { note?: string }).note?.trim() || undefined
+        : undefined;
+    const restartDelayMsRaw = (params as { restartDelayMs?: unknown }).restartDelayMs;
+    const restartDelayMs =
+      typeof restartDelayMsRaw === "number" && Number.isFinite(restartDelayMsRaw)
+        ? Math.max(0, Math.floor(restartDelayMsRaw))
+        : undefined;
+
+    const payload: RestartSentinelPayload = {
+      kind: "config-apply",
+      status: "ok",
+      ts: Date.now(),
+      sessionKey,
+      message: note ?? null,
+      doctorHint: formatDoctorNonInteractiveHint(),
+      stats: {
+        mode: "config.patch",
+        root: CONFIG_PATH_CLAWDBOT,
+      },
+    };
+    let sentinelPath: string | null = null;
+    try {
+      sentinelPath = await writeRestartSentinel(payload);
+    } catch {
+      sentinelPath = null;
+    }
+    const restart = scheduleGatewaySigusr1Restart({
+      delayMs: restartDelayMs,
+      reason: "config.patch",
+    });
     respond(
       true,
       {
         ok: true,
         path: CONFIG_PATH_CLAWDBOT,
         config: validated.config,
+        restart,
+        sentinel: {
+          path: sentinelPath,
+          payload,
+        },
       },
       undefined,
     );
@@ -299,7 +345,7 @@ export const configHandlers: GatewayRequestHandlers = {
       respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, parsedRes.error));
       return;
     }
-    const validated = validateConfigObject(parsedRes.parsed);
+    const validated = validateConfigObjectWithPlugins(parsedRes.parsed);
     if (!validated.ok) {
       respond(
         false,
@@ -332,7 +378,7 @@ export const configHandlers: GatewayRequestHandlers = {
       ts: Date.now(),
       sessionKey,
       message: note ?? null,
-      doctorHint: DOCTOR_NONINTERACTIVE_HINT,
+      doctorHint: formatDoctorNonInteractiveHint(),
       stats: {
         mode: "config.apply",
         root: CONFIG_PATH_CLAWDBOT,

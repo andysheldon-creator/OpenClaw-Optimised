@@ -1,4 +1,5 @@
 import type { QueueDropPolicy, QueueMode, QueueModeByProvider } from "./types.queue.js";
+import type { TtsConfig } from "./types.tts.js";
 
 export type GroupChatConfig = {
   mentionPatterns?: string[];
@@ -13,20 +14,13 @@ export type QueueConfig = {
   mode?: QueueMode;
   byChannel?: QueueModeByProvider;
   debounceMs?: number;
+  /** Per-channel debounce overrides (ms). */
+  debounceMsByChannel?: InboundDebounceByProvider;
   cap?: number;
   drop?: QueueDropPolicy;
 };
 
-export type InboundDebounceByProvider = {
-  whatsapp?: number;
-  telegram?: number;
-  discord?: number;
-  slack?: number;
-  signal?: number;
-  imessage?: number;
-  msteams?: number;
-  webchat?: number;
-};
+export type InboundDebounceByProvider = Record<string, number>;
 
 export type InboundDebounceConfig = {
   debounceMs?: number;
@@ -47,7 +41,7 @@ export type BroadcastConfig = {
 };
 
 export type AudioConfig = {
-  /** @deprecated Use tools.audio.transcription instead. */
+  /** @deprecated Use tools.media.audio.models instead. */
   transcription?: {
     // Optional CLI to turn inbound audio into text; templated args, must output transcript to stdout.
     command: string[];
@@ -88,6 +82,8 @@ export type MessagesConfig = {
   ackReactionScope?: "group-mentions" | "group-all" | "direct" | "all";
   /** Remove ack reaction after reply is sent (default: false). */
   removeAckAfterReply?: boolean;
+  /** Text-to-speech settings for outbound replies. */
+  tts?: TtsConfig;
 };
 
 export type NativeCommandsSetting = boolean | "auto";
@@ -95,6 +91,8 @@ export type NativeCommandsSetting = boolean | "auto";
 export type CommandsConfig = {
   /** Enable native command registration when supported (default: "auto"). */
   native?: NativeCommandsSetting;
+  /** Enable native skill command registration when supported (default: "auto"). */
+  nativeSkills?: NativeCommandsSetting;
   /** Enable text command parsing (default: true). */
   text?: boolean;
   /** Allow bash chat command (`!`; `/bash` alias) (default: false). */
@@ -114,4 +112,6 @@ export type CommandsConfig = {
 export type ProviderCommandsConfig = {
   /** Override native command registration for this provider (bool or "auto"). */
   native?: NativeCommandsSetting;
+  /** Override native skill command registration for this provider (bool or "auto"). */
+  nativeSkills?: NativeCommandsSetting;
 };

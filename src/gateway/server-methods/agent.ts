@@ -1,34 +1,44 @@
 import { randomUUID } from "node:crypto";
-import { DEFAULT_CHAT_CHANNEL } from "../../channels/registry.js";
 import { agentCommand } from "../../commands/agent.js";
+import { listAgentIds } from "../../agents/agent-scope.js";
 import { loadConfig } from "../../config/config.js";
 import {
   resolveAgentIdFromSessionKey,
+  resolveExplicitAgentSessionKey,
   resolveAgentMainSessionKey,
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
-import { resolveOutboundTarget } from "../../infra/outbound/targets.js";
+import {
+  resolveAgentDeliveryPlan,
+  resolveAgentOutboundTarget,
+} from "../../infra/outbound/agent-delivery.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
+import { normalizeSessionDeliveryFields } from "../../utils/delivery-context.js";
 import {
   INTERNAL_MESSAGE_CHANNEL,
   isDeliverableMessageChannel,
   isGatewayMessageChannel,
   normalizeMessageChannel,
 } from "../../utils/message-channel.js";
+import { normalizeAgentId } from "../../routing/session-key.js";
 import { parseMessageWithAttachments } from "../chat-attachments.js";
 import {
+  type AgentIdentityParams,
   type AgentWaitParams,
   ErrorCodes,
   errorShape,
   formatValidationErrors,
+  validateAgentIdentityParams,
   validateAgentParams,
   validateAgentWaitParams,
 } from "../protocol/index.js";
 import { loadSessionEntry } from "../session-utils.js";
 import { formatForLog } from "../ws-log.js";
+import { resolveAssistantIdentity } from "../assistant-identity.js";
+import { resolveAssistantAvatarUrl } from "../control-ui-shared.js";
 import { waitForAgentJob } from "./agent-job.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
@@ -48,7 +58,9 @@ export const agentHandlers: GatewayRequestHandlers = {
     }
     const request = p as {
       message: string;
+      agentId?: string;
       to?: string;
+      replyTo?: string;
       sessionId?: string;
       sessionKey?: string;
       thinking?: string;
@@ -60,6 +72,13 @@ export const agentHandlers: GatewayRequestHandlers = {
         content?: unknown;
       }>;
       channel?: string;
+      replyChannel?: string;
+      accountId?: string;
+      replyAccountId?: string;
+      threadId?: string;
+      groupId?: string;
+      groupChannel?: string;
+      groupSpace?: string;
       lane?: string;
       extraSystemPrompt?: string;
       idempotencyKey: string;
@@ -67,7 +86,17 @@ export const agentHandlers: GatewayRequestHandlers = {
       label?: string;
       spawnedBy?: string;
     };
+    const cfg = loadConfig();
     const idem = request.idempotencyKey;
+    const groupIdRaw = typeof request.groupId === "string" ? request.groupId.trim() : "";
+    const groupChannelRaw =
+      typeof request.groupChannel === "string" ? request.groupChannel.trim() : "";
+    const groupSpaceRaw = typeof request.groupSpace === "string" ? request.groupSpace.trim() : "";
+    let resolvedGroupId: string | undefined = groupIdRaw || undefined;
+    let resolvedGroupChannel: string | undefined = groupChannelRaw || undefined;
+    let resolvedGroupSpace: string | undefined = groupSpaceRaw || undefined;
+    let spawnedByValue =
+      typeof request.spawnedBy === "string" ? request.spawnedBy.trim() : undefined;
     const cached = context.dedupe.get(`agent:${idem}`);
     if (cached) {
       respond(cached.ok, cached.payload, cached.error, {
@@ -109,9 +138,12 @@ export const agentHandlers: GatewayRequestHandlers = {
         return;
       }
     }
-    const rawChannel = typeof request.channel === "string" ? request.channel.trim() : "";
-    if (rawChannel) {
-      const isKnownGatewayChannel = (value: string): boolean => isGatewayMessageChannel(value);
+    const isKnownGatewayChannel = (value: string): boolean => isGatewayMessageChannel(value);
+    const channelHints = [request.channel, request.replyChannel]
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    for (const rawChannel of channelHints) {
       const normalized = normalizeMessageChannel(rawChannel);
       if (normalized && normalized !== "last" && !isKnownGatewayChannel(normalized)) {
         respond(
@@ -126,10 +158,47 @@ export const agentHandlers: GatewayRequestHandlers = {
       }
     }
 
-    const requestedSessionKey =
+    const agentIdRaw = typeof request.agentId === "string" ? request.agentId.trim() : "";
+    const agentId = agentIdRaw ? normalizeAgentId(agentIdRaw) : undefined;
+    if (agentId) {
+      const knownAgents = listAgentIds(cfg);
+      if (!knownAgents.includes(agentId)) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `invalid agent params: unknown agent id "${request.agentId}"`,
+          ),
+        );
+        return;
+      }
+    }
+
+    const requestedSessionKeyRaw =
       typeof request.sessionKey === "string" && request.sessionKey.trim()
         ? request.sessionKey.trim()
         : undefined;
+    const requestedSessionKey =
+      requestedSessionKeyRaw ??
+      resolveExplicitAgentSessionKey({
+        cfg,
+        agentId,
+      });
+    if (agentId && requestedSessionKeyRaw) {
+      const sessionAgentId = resolveAgentIdFromSessionKey(requestedSessionKeyRaw);
+      if (sessionAgentId !== agentId) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `invalid agent params: agent "${request.agentId}" does not match session key agent "${sessionAgentId}"`,
+          ),
+        );
+        return;
+      }
+    }
     let resolvedSessionId = request.sessionId?.trim() || undefined;
     let sessionEntry: SessionEntry | undefined;
     let bestEffortDeliver = false;
@@ -141,7 +210,26 @@ export const agentHandlers: GatewayRequestHandlers = {
       const now = Date.now();
       const sessionId = entry?.sessionId ?? randomUUID();
       const labelValue = request.label?.trim() || entry?.label;
-      const spawnedByValue = request.spawnedBy?.trim() || entry?.spawnedBy;
+      spawnedByValue = spawnedByValue || entry?.spawnedBy;
+      let inheritedGroup:
+        | { groupId?: string; groupChannel?: string; groupSpace?: string }
+        | undefined;
+      if (spawnedByValue && (!resolvedGroupId || !resolvedGroupChannel || !resolvedGroupSpace)) {
+        try {
+          const parentEntry = loadSessionEntry(spawnedByValue)?.entry;
+          inheritedGroup = {
+            groupId: parentEntry?.groupId,
+            groupChannel: parentEntry?.groupChannel,
+            groupSpace: parentEntry?.space,
+          };
+        } catch {
+          inheritedGroup = undefined;
+        }
+      }
+      resolvedGroupId = resolvedGroupId || inheritedGroup?.groupId;
+      resolvedGroupChannel = resolvedGroupChannel || inheritedGroup?.groupChannel;
+      resolvedGroupSpace = resolvedGroupSpace || inheritedGroup?.groupSpace;
+      const deliveryFields = normalizeSessionDeliveryFields(entry);
       const nextEntry: SessionEntry = {
         sessionId,
         updatedAt: now,
@@ -151,12 +239,20 @@ export const agentHandlers: GatewayRequestHandlers = {
         systemSent: entry?.systemSent,
         sendPolicy: entry?.sendPolicy,
         skillsSnapshot: entry?.skillsSnapshot,
-        lastChannel: entry?.lastChannel,
-        lastTo: entry?.lastTo,
+        deliveryContext: deliveryFields.deliveryContext,
+        lastChannel: deliveryFields.lastChannel ?? entry?.lastChannel,
+        lastTo: deliveryFields.lastTo ?? entry?.lastTo,
+        lastAccountId: deliveryFields.lastAccountId ?? entry?.lastAccountId,
         modelOverride: entry?.modelOverride,
         providerOverride: entry?.providerOverride,
         label: labelValue,
         spawnedBy: spawnedByValue,
+        channel: entry?.channel ?? request.channel?.trim(),
+        groupId: resolvedGroupId ?? entry?.groupId,
+        groupChannel: resolvedGroupChannel ?? entry?.groupChannel,
+        space: resolvedGroupSpace ?? entry?.space,
+        cliSessionIds: entry?.cliSessionIds,
+        claudeCliSessionId: entry?.claudeCliSessionId,
       };
       sessionEntry = nextEntry;
       const sendPolicy = resolveSendPolicy({
@@ -195,51 +291,41 @@ export const agentHandlers: GatewayRequestHandlers = {
 
     const runId = idem;
 
-    const requestedChannel = normalizeMessageChannel(request.channel) ?? "last";
-
-    const lastChannel = sessionEntry?.lastChannel;
-    const lastTo = typeof sessionEntry?.lastTo === "string" ? sessionEntry.lastTo.trim() : "";
-
     const wantsDelivery = request.deliver === true;
-
-    const resolvedChannel = (() => {
-      if (requestedChannel === "last") {
-        // WebChat is not a deliverable surface. Treat it as "unset" for routing,
-        // so VoiceWake and CLI callers don't get stuck with deliver=false.
-        if (lastChannel && lastChannel !== INTERNAL_MESSAGE_CHANNEL) {
-          return lastChannel;
-        }
-        return wantsDelivery ? DEFAULT_CHAT_CHANNEL : INTERNAL_MESSAGE_CHANNEL;
-      }
-
-      if (isGatewayMessageChannel(requestedChannel)) return requestedChannel;
-
-      if (lastChannel && lastChannel !== INTERNAL_MESSAGE_CHANNEL) {
-        return lastChannel;
-      }
-      return wantsDelivery ? DEFAULT_CHAT_CHANNEL : INTERNAL_MESSAGE_CHANNEL;
-    })();
-
     const explicitTo =
-      typeof request.to === "string" && request.to.trim() ? request.to.trim() : undefined;
-    const deliveryTargetMode = explicitTo
-      ? "explicit"
-      : isDeliverableMessageChannel(resolvedChannel)
-        ? "implicit"
+      typeof request.replyTo === "string" && request.replyTo.trim()
+        ? request.replyTo.trim()
+        : typeof request.to === "string" && request.to.trim()
+          ? request.to.trim()
+          : undefined;
+    const explicitThreadId =
+      typeof request.threadId === "string" && request.threadId.trim()
+        ? request.threadId.trim()
         : undefined;
-    let resolvedTo =
-      explicitTo ||
-      (isDeliverableMessageChannel(resolvedChannel) ? lastTo || undefined : undefined);
+    const deliveryPlan = resolveAgentDeliveryPlan({
+      sessionEntry,
+      requestedChannel: request.replyChannel ?? request.channel,
+      explicitTo,
+      explicitThreadId,
+      accountId: request.replyAccountId ?? request.accountId,
+      wantsDelivery,
+    });
+
+    const resolvedChannel = deliveryPlan.resolvedChannel;
+    const deliveryTargetMode = deliveryPlan.deliveryTargetMode;
+    const resolvedAccountId = deliveryPlan.resolvedAccountId;
+    let resolvedTo = deliveryPlan.resolvedTo;
+
     if (!resolvedTo && isDeliverableMessageChannel(resolvedChannel)) {
-      const cfg = cfgForAgent ?? loadConfig();
-      const fallback = resolveOutboundTarget({
-        channel: resolvedChannel,
-        cfg,
-        accountId: sessionEntry?.lastAccountId ?? undefined,
-        mode: "implicit",
+      const cfgResolved = cfgForAgent ?? cfg;
+      const fallback = resolveAgentOutboundTarget({
+        cfg: cfgResolved,
+        plan: deliveryPlan,
+        targetMode: "implicit",
+        validateExplicitTarget: false,
       });
-      if (fallback.ok) {
-        resolvedTo = fallback.to;
+      if (fallback.resolvedTarget?.ok) {
+        resolvedTo = fallback.resolvedTo;
       }
     }
 
@@ -258,6 +344,8 @@ export const agentHandlers: GatewayRequestHandlers = {
     });
     respond(true, accepted, undefined, { runId });
 
+    const resolvedThreadId = explicitThreadId ?? deliveryPlan.resolvedThreadId;
+
     void agentCommand(
       {
         message,
@@ -269,6 +357,20 @@ export const agentHandlers: GatewayRequestHandlers = {
         deliver,
         deliveryTargetMode,
         channel: resolvedChannel,
+        accountId: resolvedAccountId,
+        threadId: resolvedThreadId,
+        runContext: {
+          messageChannel: resolvedChannel,
+          accountId: resolvedAccountId,
+          groupId: resolvedGroupId,
+          groupChannel: resolvedGroupChannel,
+          groupSpace: resolvedGroupSpace,
+          currentThreadTs: resolvedThreadId != null ? String(resolvedThreadId) : undefined,
+        },
+        groupId: resolvedGroupId,
+        groupChannel: resolvedGroupChannel,
+        groupSpace: resolvedGroupSpace,
+        spawnedBy: spawnedByValue,
         timeout: request.timeout?.toString(),
         bestEffortDeliver,
         messageChannel: resolvedChannel,
@@ -313,6 +415,49 @@ export const agentHandlers: GatewayRequestHandlers = {
           error: formatForLog(err),
         });
       });
+  },
+  "agent.identity.get": ({ params, respond }) => {
+    if (!validateAgentIdentityParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid agent.identity.get params: ${formatValidationErrors(
+            validateAgentIdentityParams.errors,
+          )}`,
+        ),
+      );
+      return;
+    }
+    const p = params as AgentIdentityParams;
+    const agentIdRaw = typeof p.agentId === "string" ? p.agentId.trim() : "";
+    const sessionKeyRaw = typeof p.sessionKey === "string" ? p.sessionKey.trim() : "";
+    let agentId = agentIdRaw ? normalizeAgentId(agentIdRaw) : undefined;
+    if (sessionKeyRaw) {
+      const resolved = resolveAgentIdFromSessionKey(sessionKeyRaw);
+      if (agentId && resolved !== agentId) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `invalid agent.identity.get params: agent "${agentIdRaw}" does not match session key agent "${resolved}"`,
+          ),
+        );
+        return;
+      }
+      agentId = resolved;
+    }
+    const cfg = loadConfig();
+    const identity = resolveAssistantIdentity({ cfg, agentId });
+    const avatarValue =
+      resolveAssistantAvatarUrl({
+        avatar: identity.avatar,
+        agentId: identity.agentId,
+        basePath: cfg.gateway?.controlUi?.basePath,
+      }) ?? identity.avatar;
+    respond(true, { ...identity, avatar: avatarValue }, undefined);
   },
   "agent.wait": async ({ params, respond }) => {
     if (!validateAgentWaitParams(params)) {

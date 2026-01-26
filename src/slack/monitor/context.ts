@@ -8,10 +8,11 @@ import { createDedupeCache } from "../../infra/dedupe.js";
 import { getChildLogger } from "../../logging.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { SlackMessageEvent } from "../types.js";
+import { formatAllowlistMatchMeta } from "../../channels/allowlist-match.js";
 
 import { normalizeAllowList, normalizeAllowListLower, normalizeSlackSlug } from "./allow-list.js";
 import { resolveSlackChannelConfig } from "./channel-config.js";
-import { isSlackRoomAllowedByPolicy } from "./policy.js";
+import { isSlackChannelAllowedByPolicy } from "./policy.js";
 
 export function inferSlackChannelType(
   channelId?: string | null,
@@ -186,7 +187,7 @@ export function createSlackMonitorContext(params: {
       : isGroup
         ? `slack:group:${channelId}`
         : `slack:channel:${channelId}`;
-    const chatType = isDirectMessage ? "direct" : isGroup ? "group" : "room";
+    const chatType = isDirectMessage ? "direct" : isGroup ? "group" : "channel";
     return resolveSessionKey(
       params.sessionScope,
       { From: from, ChatType: chatType, Provider: "slack" },
@@ -310,19 +311,31 @@ export function createSlackMonitorContext(params: {
         channels: params.channelsConfig,
         defaultRequireMention,
       });
+      const channelMatchMeta = formatAllowlistMatchMeta(channelConfig);
       const channelAllowed = channelConfig?.allowed !== false;
       const channelAllowlistConfigured =
         Boolean(params.channelsConfig) && Object.keys(params.channelsConfig ?? {}).length > 0;
       if (
-        !isSlackRoomAllowedByPolicy({
+        !isSlackChannelAllowedByPolicy({
           groupPolicy: params.groupPolicy,
           channelAllowlistConfigured,
           channelAllowed,
         })
       ) {
+        logVerbose(
+          `slack: drop channel ${p.channelId} (groupPolicy=${params.groupPolicy}, ${channelMatchMeta})`,
+        );
         return false;
       }
-      if (!channelAllowed) return false;
+      // When groupPolicy is "open", only block channels that are EXPLICITLY denied
+      // (i.e., have a matching config entry with allow:false). Channels not in the
+      // config (matchSource undefined) should be allowed under open policy.
+      const hasExplicitConfig = Boolean(channelConfig?.matchSource);
+      if (!channelAllowed && (params.groupPolicy !== "open" || hasExplicitConfig)) {
+        logVerbose(`slack: drop channel ${p.channelId} (${channelMatchMeta})`);
+        return false;
+      }
+      logVerbose(`slack: allow channel ${p.channelId} (${channelMatchMeta})`);
     }
 
     return true;

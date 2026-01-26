@@ -3,8 +3,9 @@ import path from "node:path";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import type { ChannelPluginCatalogEntry } from "../../channels/plugins/catalog.js";
 import type { ClawdbotConfig } from "../../config/config.js";
-import { createSubsystemLogger } from "../../logging.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { recordPluginInstall } from "../../plugins/installs.js";
+import { enablePluginInConfig } from "../../plugins/enable.js";
 import { loadClawdbotPlugins } from "../../plugins/loader.js";
 import { installPluginFromNpmSpec } from "../../plugins/install.js";
 import type { RuntimeEnv } from "../../runtime.js";
@@ -48,37 +49,6 @@ function resolveLocalPath(
   return null;
 }
 
-function ensurePluginEnabled(cfg: ClawdbotConfig, pluginId: string): ClawdbotConfig {
-  const entries = {
-    ...cfg.plugins?.entries,
-    [pluginId]: {
-      ...(cfg.plugins?.entries?.[pluginId] as Record<string, unknown> | undefined),
-      enabled: true,
-    },
-  };
-  const next: ClawdbotConfig = {
-    ...cfg,
-    plugins: {
-      ...cfg.plugins,
-      ...(cfg.plugins?.enabled === false ? { enabled: true } : {}),
-      entries,
-    },
-  };
-  return ensurePluginAllowlist(next, pluginId);
-}
-
-function ensurePluginAllowlist(cfg: ClawdbotConfig, pluginId: string): ClawdbotConfig {
-  const allow = cfg.plugins?.allow;
-  if (!allow || allow.includes(pluginId)) return cfg;
-  return {
-    ...cfg,
-    plugins: {
-      ...cfg.plugins,
-      allow: [...allow, pluginId],
-    },
-  };
-}
-
 function addPluginLoadPath(cfg: ClawdbotConfig, pluginPath: string): ClawdbotConfig {
   const existing = cfg.plugins?.load?.paths ?? [];
   const merged = Array.from(new Set([...existing, pluginPath]));
@@ -97,9 +67,10 @@ function addPluginLoadPath(cfg: ClawdbotConfig, pluginPath: string): ClawdbotCon
 async function promptInstallChoice(params: {
   entry: ChannelPluginCatalogEntry;
   localPath?: string | null;
+  defaultChoice: InstallChoice;
   prompter: WizardPrompter;
 }): Promise<InstallChoice> {
-  const { entry, localPath, prompter } = params;
+  const { entry, localPath, prompter, defaultChoice } = params;
   const localOptions: Array<{ value: InstallChoice; label: string; hint?: string }> = localPath
     ? [
         {
@@ -114,12 +85,32 @@ async function promptInstallChoice(params: {
     ...localOptions,
     { value: "skip", label: "Skip for now" },
   ];
-  const initialValue: InstallChoice = localPath ? "local" : "npm";
+  const initialValue: InstallChoice =
+    defaultChoice === "local" && !localPath ? "npm" : defaultChoice;
   return await prompter.select<InstallChoice>({
     message: `Install ${entry.meta.label} plugin?`,
     options,
     initialValue,
   });
+}
+
+function resolveInstallDefaultChoice(params: {
+  cfg: ClawdbotConfig;
+  entry: ChannelPluginCatalogEntry;
+  localPath?: string | null;
+}): InstallChoice {
+  const { cfg, entry, localPath } = params;
+  const updateChannel = cfg.update?.channel;
+  if (updateChannel === "dev") {
+    return localPath ? "local" : "npm";
+  }
+  if (updateChannel === "stable" || updateChannel === "beta") {
+    return "npm";
+  }
+  const entryDefault = entry.install.defaultChoice;
+  if (entryDefault === "local") return localPath ? "local" : "npm";
+  if (entryDefault === "npm") return "npm";
+  return localPath ? "local" : "npm";
 }
 
 export async function ensureOnboardingPluginInstalled(params: {
@@ -133,9 +124,15 @@ export async function ensureOnboardingPluginInstalled(params: {
   let next = params.cfg;
   const allowLocal = hasGitWorkspace(workspaceDir);
   const localPath = resolveLocalPath(entry, workspaceDir, allowLocal);
+  const defaultChoice = resolveInstallDefaultChoice({
+    cfg: next,
+    entry,
+    localPath,
+  });
   const choice = await promptInstallChoice({
     entry,
     localPath,
+    defaultChoice,
     prompter,
   });
 
@@ -145,7 +142,7 @@ export async function ensureOnboardingPluginInstalled(params: {
 
   if (choice === "local" && localPath) {
     next = addPluginLoadPath(next, localPath);
-    next = ensurePluginEnabled(next, entry.id);
+    next = enablePluginInConfig(next, entry.id).config;
     return { cfg: next, installed: true };
   }
 
@@ -158,7 +155,7 @@ export async function ensureOnboardingPluginInstalled(params: {
   });
 
   if (result.ok) {
-    next = ensurePluginEnabled(next, result.pluginId);
+    next = enablePluginInConfig(next, result.pluginId).config;
     next = recordPluginInstall(next, {
       pluginId: result.pluginId,
       source: "npm",
@@ -181,7 +178,7 @@ export async function ensureOnboardingPluginInstalled(params: {
     });
     if (fallback) {
       next = addPluginLoadPath(next, localPath);
-      next = ensurePluginEnabled(next, entry.id);
+      next = enablePluginInConfig(next, entry.id).config;
       return { cfg: next, installed: true };
     }
   }

@@ -3,8 +3,9 @@ import path from "node:path";
 import chokidar, { type FSWatcher } from "chokidar";
 
 import type { ClawdbotConfig } from "../../config/config.js";
-import { createSubsystemLogger } from "../../logging.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { CONFIG_DIR, resolveUserPath } from "../../utils.js";
+import { resolvePluginSkillDirs } from "./plugin-skills.js";
 
 type SkillsChangeEvent = {
   workspaceDir?: string;
@@ -25,6 +26,12 @@ const listeners = new Set<(event: SkillsChangeEvent) => void>();
 const workspaceVersions = new Map<string, number>();
 const watchers = new Map<string, SkillsWatchState>();
 let globalVersion = 0;
+
+export const DEFAULT_SKILLS_WATCH_IGNORED: RegExp[] = [
+  /(^|[\\/])\.git([\\/]|$)/,
+  /(^|[\\/])node_modules([\\/]|$)/,
+  /(^|[\\/])dist([\\/]|$)/,
+];
 
 function bumpVersion(current: number): number {
   const now = Date.now();
@@ -53,6 +60,8 @@ function resolveWatchPaths(workspaceDir: string, config?: ClawdbotConfig): strin
     .filter(Boolean)
     .map((dir) => resolveUserPath(dir));
   paths.push(...extraDirs);
+  const pluginSkillDirs = resolvePluginSkillDirs({ workspaceDir, config });
+  paths.push(...pluginSkillDirs);
   return paths;
 }
 
@@ -125,6 +134,9 @@ export function ensureSkillsWatcher(params: { workspaceDir: string; config?: Cla
       stabilityThreshold: debounceMs,
       pollInterval: 100,
     },
+    // Avoid FD exhaustion on macOS when a workspace contains huge trees.
+    // This watcher only needs to react to skill changes.
+    ignored: DEFAULT_SKILLS_WATCH_IGNORED,
   });
 
   const state: SkillsWatchState = { watcher, pathsKey, debounceMs };

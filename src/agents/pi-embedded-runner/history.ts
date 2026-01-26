@@ -2,6 +2,13 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 
 import type { ClawdbotConfig } from "../../config/config.js";
 
+const THREAD_SUFFIX_REGEX = /^(.*)(?::(?:thread|topic):\d+)$/i;
+
+function stripThreadSuffix(value: string): string {
+  const match = value.match(THREAD_SUFFIX_REGEX);
+  return match?.[1] ?? value;
+}
+
 /**
  * Limits conversation history to the last N user turns (and their associated
  * assistant responses). This reduces token usage for long-running DM sessions.
@@ -44,7 +51,8 @@ export function getDmHistoryLimitFromSessionKey(
   if (!provider) return undefined;
 
   const kind = providerParts[1]?.toLowerCase();
-  const userId = providerParts.slice(2).join(":");
+  const userIdRaw = providerParts.slice(2).join(":");
+  const userId = stripThreadSuffix(userIdRaw);
   if (kind !== "dm") return undefined;
 
   const getLimit = (
@@ -62,22 +70,16 @@ export function getDmHistoryLimitFromSessionKey(
     return providerConfig.dmHistoryLimit;
   };
 
-  switch (provider) {
-    case "telegram":
-      return getLimit(config.channels?.telegram);
-    case "whatsapp":
-      return getLimit(config.channels?.whatsapp);
-    case "discord":
-      return getLimit(config.channels?.discord);
-    case "slack":
-      return getLimit(config.channels?.slack);
-    case "signal":
-      return getLimit(config.channels?.signal);
-    case "imessage":
-      return getLimit(config.channels?.imessage);
-    case "msteams":
-      return getLimit(config.channels?.msteams);
-    default:
-      return undefined;
-  }
+  const resolveProviderConfig = (
+    cfg: ClawdbotConfig | undefined,
+    providerId: string,
+  ): { dmHistoryLimit?: number; dms?: Record<string, { historyLimit?: number }> } | undefined => {
+    const channels = cfg?.channels;
+    if (!channels || typeof channels !== "object") return undefined;
+    const entry = (channels as Record<string, unknown>)[providerId];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return undefined;
+    return entry as { dmHistoryLimit?: number; dms?: Record<string, { historyLimit?: number }> };
+  };
+
+  return getLimit(resolveProviderConfig(config, provider));
 }

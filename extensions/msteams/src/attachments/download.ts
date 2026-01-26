@@ -1,9 +1,8 @@
-import { detectMime } from "../../../../src/media/mime.js";
-import { saveMediaBuffer } from "../../../../src/media/store.js";
+import { getMSTeamsRuntime } from "../runtime.js";
 import {
   extractInlineImageCandidates,
   inferPlaceholder,
-  isLikelyImageAttachment,
+  isDownloadableAttachment,
   isRecord,
   isUrlAllowed,
   normalizeContentType,
@@ -69,10 +68,10 @@ function scopeCandidatesForUrl(url: string): string[] {
       host.endsWith("1drv.ms") ||
       host.includes("sharepoint");
     return looksLikeGraph
-      ? ["https://graph.microsoft.com/.default", "https://api.botframework.com/.default"]
-      : ["https://api.botframework.com/.default", "https://graph.microsoft.com/.default"];
+      ? ["https://graph.microsoft.com", "https://api.botframework.com"]
+      : ["https://api.botframework.com", "https://graph.microsoft.com"];
   } catch {
-    return ["https://api.botframework.com/.default", "https://graph.microsoft.com/.default"];
+    return ["https://api.botframework.com", "https://graph.microsoft.com"];
   }
 }
 
@@ -103,23 +102,31 @@ async function fetchWithAuthFallback(params: {
   return firstAttempt;
 }
 
-export async function downloadMSTeamsImageAttachments(params: {
+/**
+ * Download all file attachments from a Teams message (images, documents, etc.).
+ * Renamed from downloadMSTeamsImageAttachments to support all file types.
+ */
+export async function downloadMSTeamsAttachments(params: {
   attachments: MSTeamsAttachmentLike[] | undefined;
   maxBytes: number;
   tokenProvider?: MSTeamsAccessTokenProvider;
   allowHosts?: string[];
   fetchFn?: typeof fetch;
+  /** When true, embeds original filename in stored path for later extraction. */
+  preserveFilenames?: boolean;
 }): Promise<MSTeamsInboundMedia[]> {
   const list = Array.isArray(params.attachments) ? params.attachments : [];
   if (list.length === 0) return [];
   const allowHosts = resolveAllowedHosts(params.allowHosts);
 
-  const candidates: DownloadCandidate[] = list
-    .filter(isLikelyImageAttachment)
+  // Download ANY downloadable attachment (not just images)
+  const downloadable = list.filter(isDownloadableAttachment);
+  const candidates: DownloadCandidate[] = downloadable
     .map(resolveDownloadCandidate)
     .filter(Boolean) as DownloadCandidate[];
 
   const inlineCandidates = extractInlineImageCandidates(list);
+
   const seenUrls = new Set<string>();
   for (const inline of inlineCandidates) {
     if (inline.kind === "url") {
@@ -134,7 +141,6 @@ export async function downloadMSTeamsImageAttachments(params: {
       });
     }
   }
-
   if (candidates.length === 0 && inlineCandidates.length === 0) return [];
 
   const out: MSTeamsInboundMedia[] = [];
@@ -142,7 +148,8 @@ export async function downloadMSTeamsImageAttachments(params: {
     if (inline.kind !== "data") continue;
     if (inline.data.byteLength > params.maxBytes) continue;
     try {
-      const saved = await saveMediaBuffer(
+      // Data inline candidates (base64 data URLs) don't have original filenames
+      const saved = await getMSTeamsRuntime().channel.media.saveMediaBuffer(
         inline.data,
         inline.contentType,
         "inbound",
@@ -168,16 +175,18 @@ export async function downloadMSTeamsImageAttachments(params: {
       if (!res.ok) continue;
       const buffer = Buffer.from(await res.arrayBuffer());
       if (buffer.byteLength > params.maxBytes) continue;
-      const mime = await detectMime({
+      const mime = await getMSTeamsRuntime().media.detectMime({
         buffer,
         headerMime: res.headers.get("content-type"),
         filePath: candidate.fileHint ?? candidate.url,
       });
-      const saved = await saveMediaBuffer(
+      const originalFilename = params.preserveFilenames ? candidate.fileHint : undefined;
+      const saved = await getMSTeamsRuntime().channel.media.saveMediaBuffer(
         buffer,
         mime ?? candidate.contentTypeHint,
         "inbound",
         params.maxBytes,
+        originalFilename,
       );
       out.push({
         path: saved.path,
@@ -185,8 +194,13 @@ export async function downloadMSTeamsImageAttachments(params: {
         placeholder: candidate.placeholder,
       });
     } catch {
-      // Ignore download failures and continue.
+      // Ignore download failures and continue with next candidate.
     }
   }
   return out;
 }
+
+/**
+ * @deprecated Use `downloadMSTeamsAttachments` instead (supports all file types).
+ */
+export const downloadMSTeamsImageAttachments = downloadMSTeamsAttachments;

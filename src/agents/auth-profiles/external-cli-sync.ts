@@ -1,12 +1,14 @@
 import {
   readClaudeCliCredentialsCached,
   readCodexCliCredentialsCached,
+  readQwenCliCredentialsCached,
 } from "../cli-credentials.js";
 import {
   CLAUDE_CLI_PROFILE_ID,
   CODEX_CLI_PROFILE_ID,
   EXTERNAL_CLI_NEAR_EXPIRY_MS,
   EXTERNAL_CLI_SYNC_TTL_MS,
+  QWEN_CLI_PROFILE_ID,
   log,
 } from "./constants.js";
 import type {
@@ -45,11 +47,35 @@ function shallowEqualTokenCredentials(a: TokenCredential | undefined, b: TokenCr
 function isExternalProfileFresh(cred: AuthProfileCredential | undefined, now: number): boolean {
   if (!cred) return false;
   if (cred.type !== "oauth" && cred.type !== "token") return false;
-  if (cred.provider !== "anthropic" && cred.provider !== "openai-codex") {
+  if (
+    cred.provider !== "anthropic" &&
+    cred.provider !== "openai-codex" &&
+    cred.provider !== "qwen-portal"
+  ) {
     return false;
   }
   if (typeof cred.expires !== "number") return true;
   return cred.expires > now + EXTERNAL_CLI_NEAR_EXPIRY_MS;
+}
+
+/**
+ * Find any existing openai-codex profile (other than codex-cli) that has the same
+ * access and refresh tokens. This prevents creating a duplicate codex-cli profile
+ * when the user has already set up a custom profile with the same credentials.
+ */
+export function findDuplicateCodexProfile(
+  store: AuthProfileStore,
+  creds: OAuthCredential,
+): string | undefined {
+  for (const [profileId, profile] of Object.entries(store.profiles)) {
+    if (profileId === CODEX_CLI_PROFILE_ID) continue;
+    if (profile.type !== "oauth") continue;
+    if (profile.provider !== "openai-codex") continue;
+    if (profile.access === creds.access && profile.refresh === creds.refresh) {
+      return profileId;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -137,30 +163,83 @@ export function syncExternalCliCredentials(
 
   // Sync from Codex CLI
   const existingCodex = store.profiles[CODEX_CLI_PROFILE_ID];
+  const existingCodexOAuth = existingCodex?.type === "oauth" ? existingCodex : undefined;
+  const duplicateExistingId = existingCodexOAuth
+    ? findDuplicateCodexProfile(store, existingCodexOAuth)
+    : undefined;
+  if (duplicateExistingId) {
+    delete store.profiles[CODEX_CLI_PROFILE_ID];
+    mutated = true;
+    log.info("removed codex-cli profile: credentials already exist in another profile", {
+      existingProfileId: duplicateExistingId,
+      removedProfileId: CODEX_CLI_PROFILE_ID,
+    });
+  }
   const shouldSyncCodex =
     !existingCodex ||
     existingCodex.provider !== "openai-codex" ||
     !isExternalProfileFresh(existingCodex, now);
-  const codexCreds = shouldSyncCodex
-    ? readCodexCliCredentialsCached({ ttlMs: EXTERNAL_CLI_SYNC_TTL_MS })
-    : null;
+  const codexCreds =
+    shouldSyncCodex || duplicateExistingId
+      ? readCodexCliCredentialsCached({ ttlMs: EXTERNAL_CLI_SYNC_TTL_MS })
+      : null;
   if (codexCreds) {
-    const existing = store.profiles[CODEX_CLI_PROFILE_ID];
-    const existingOAuth = existing?.type === "oauth" ? existing : undefined;
+    const duplicateProfileId = findDuplicateCodexProfile(store, codexCreds);
+    if (duplicateProfileId) {
+      if (store.profiles[CODEX_CLI_PROFILE_ID]) {
+        delete store.profiles[CODEX_CLI_PROFILE_ID];
+        mutated = true;
+        log.info("removed codex-cli profile: credentials already exist in another profile", {
+          existingProfileId: duplicateProfileId,
+          removedProfileId: CODEX_CLI_PROFILE_ID,
+        });
+      }
+    } else {
+      const existing = store.profiles[CODEX_CLI_PROFILE_ID];
+      const existingOAuth = existing?.type === "oauth" ? existing : undefined;
 
-    // Codex creds don't carry expiry; use file mtime heuristic for freshness.
+      // Codex creds don't carry expiry; use file mtime heuristic for freshness.
+      const shouldUpdate =
+        !existingOAuth ||
+        existingOAuth.provider !== "openai-codex" ||
+        existingOAuth.expires <= now ||
+        codexCreds.expires > existingOAuth.expires;
+
+      if (shouldUpdate && !shallowEqualOAuthCredentials(existingOAuth, codexCreds)) {
+        store.profiles[CODEX_CLI_PROFILE_ID] = codexCreds;
+        mutated = true;
+        log.info("synced openai-codex credentials from codex cli", {
+          profileId: CODEX_CLI_PROFILE_ID,
+          expires: new Date(codexCreds.expires).toISOString(),
+        });
+      }
+    }
+  }
+
+  // Sync from Qwen Code CLI
+  const existingQwen = store.profiles[QWEN_CLI_PROFILE_ID];
+  const shouldSyncQwen =
+    !existingQwen ||
+    existingQwen.provider !== "qwen-portal" ||
+    !isExternalProfileFresh(existingQwen, now);
+  const qwenCreds = shouldSyncQwen
+    ? readQwenCliCredentialsCached({ ttlMs: EXTERNAL_CLI_SYNC_TTL_MS })
+    : null;
+  if (qwenCreds) {
+    const existing = store.profiles[QWEN_CLI_PROFILE_ID];
+    const existingOAuth = existing?.type === "oauth" ? existing : undefined;
     const shouldUpdate =
       !existingOAuth ||
-      existingOAuth.provider !== "openai-codex" ||
+      existingOAuth.provider !== "qwen-portal" ||
       existingOAuth.expires <= now ||
-      codexCreds.expires > existingOAuth.expires;
+      qwenCreds.expires > existingOAuth.expires;
 
-    if (shouldUpdate && !shallowEqualOAuthCredentials(existingOAuth, codexCreds)) {
-      store.profiles[CODEX_CLI_PROFILE_ID] = codexCreds;
+    if (shouldUpdate && !shallowEqualOAuthCredentials(existingOAuth, qwenCreds)) {
+      store.profiles[QWEN_CLI_PROFILE_ID] = qwenCreds;
       mutated = true;
-      log.info("synced openai-codex credentials from codex cli", {
-        profileId: CODEX_CLI_PROFILE_ID,
-        expires: new Date(codexCreds.expires).toISOString(),
+      log.info("synced qwen credentials from qwen cli", {
+        profileId: QWEN_CLI_PROFILE_ID,
+        expires: new Date(qwenCreds.expires).toISOString(),
       });
     }
   }

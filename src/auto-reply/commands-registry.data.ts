@@ -1,4 +1,5 @@
 import { listChannelDocks } from "../channels/dock.js";
+import { getActivePluginRegistry } from "../plugins/runtime.js";
 import { listThinkingLevels } from "./thinking.js";
 import { COMMAND_ARG_FORMATTERS } from "./commands-args.js";
 import type { ChatCommandDefinition, CommandScope } from "./commands-registry.types.js";
@@ -111,7 +112,12 @@ function assertCommandRegistry(commands: ChatCommandDefinition[]): void {
   }
 }
 
-export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
+let cachedCommands: ChatCommandDefinition[] | null = null;
+let cachedRegistry: ReturnType<typeof getActivePluginRegistry> | null = null;
+let cachedNativeCommandSurfaces: Set<string> | null = null;
+let cachedNativeRegistry: ReturnType<typeof getActivePluginRegistry> | null = null;
+
+function buildChatCommands(): ChatCommandDefinition[] {
   const commands: ChatCommandDefinition[] = [
     defineChatCommand({
       key: "help",
@@ -126,10 +132,44 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
       textAlias: "/commands",
     }),
     defineChatCommand({
+      key: "skill",
+      nativeName: "skill",
+      description: "Run a skill by name.",
+      textAlias: "/skill",
+      args: [
+        {
+          name: "name",
+          description: "Skill name",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "input",
+          description: "Skill input",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+    }),
+    defineChatCommand({
       key: "status",
       nativeName: "status",
       description: "Show current status.",
       textAlias: "/status",
+    }),
+    defineChatCommand({
+      key: "allowlist",
+      description: "List/add/remove allowlist entries.",
+      textAlias: "/allowlist",
+      acceptsArgs: true,
+      scope: "text",
+    }),
+    defineChatCommand({
+      key: "approve",
+      nativeName: "approve",
+      description: "Approve or deny exec requests.",
+      textAlias: "/approve",
+      acceptsArgs: true,
     }),
     defineChatCommand({
       key: "context",
@@ -139,10 +179,43 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
       acceptsArgs: true,
     }),
     defineChatCommand({
+      key: "tts",
+      nativeName: "tts",
+      description: "Configure text-to-speech.",
+      textAlias: "/tts",
+      acceptsArgs: true,
+    }),
+    defineChatCommand({
       key: "whoami",
       nativeName: "whoami",
       description: "Show your sender id.",
       textAlias: "/whoami",
+    }),
+    defineChatCommand({
+      key: "subagents",
+      nativeName: "subagents",
+      description: "List/stop/log/info subagent runs for this session.",
+      textAlias: "/subagents",
+      args: [
+        {
+          name: "action",
+          description: "list | stop | log | info | send",
+          type: "string",
+          choices: ["list", "stop", "log", "info", "send"],
+        },
+        {
+          name: "target",
+          description: "Run id, index, or session key",
+          type: "string",
+        },
+        {
+          name: "value",
+          description: "Additional input (limit/message)",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+      argsMenu: "auto",
     }),
     defineChatCommand({
       key: "config",
@@ -199,16 +272,16 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
       formatArgs: COMMAND_ARG_FORMATTERS.debug,
     }),
     defineChatCommand({
-      key: "cost",
-      nativeName: "cost",
-      description: "Toggle per-response usage line.",
-      textAlias: "/cost",
+      key: "usage",
+      nativeName: "usage",
+      description: "Usage footer or cost summary.",
+      textAlias: "/usage",
       args: [
         {
           name: "mode",
-          description: "on or off",
+          description: "off, tokens, full, or cost",
           type: "string",
-          choices: ["on", "off"],
+          choices: ["off", "tokens", "full", "cost"],
         },
       ],
       argsMenu: "auto",
@@ -260,12 +333,14 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
       nativeName: "reset",
       description: "Reset the current session.",
       textAlias: "/reset",
+      acceptsArgs: true,
     }),
     defineChatCommand({
       key: "new",
       nativeName: "new",
       description: "Start a new session.",
       textAlias: "/new",
+      acceptsArgs: true,
     }),
     defineChatCommand({
       key: "compact",
@@ -334,12 +409,26 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
       args: [
         {
           name: "mode",
-          description: "on or off",
+          description: "on, off, ask, or full",
           type: "string",
-          choices: ["on", "off"],
+          choices: ["on", "off", "ask", "full"],
         },
       ],
       argsMenu: "auto",
+    }),
+    defineChatCommand({
+      key: "exec",
+      nativeName: "exec",
+      description: "Set exec defaults for this session.",
+      textAlias: "/exec",
+      args: [
+        {
+          name: "options",
+          description: "host=... security=... ask=... node=...",
+          type: "string",
+        },
+      ],
+      argsParsing: "none",
     }),
     defineChatCommand({
       key: "model",
@@ -353,6 +442,14 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
           type: "string",
         },
       ],
+    }),
+    defineChatCommand({
+      key: "models",
+      nativeName: "models",
+      description: "List model providers or provider models.",
+      textAlias: "/models",
+      argsParsing: "none",
+      acceptsArgs: true,
     }),
     defineChatCommand({
       key: "queue",
@@ -405,27 +502,36 @@ export const CHAT_COMMANDS: ChatCommandDefinition[] = (() => {
       .map((dock) => defineDockCommand(dock)),
   ];
 
-  registerAlias(commands, "status", "/usage");
   registerAlias(commands, "whoami", "/id");
   registerAlias(commands, "think", "/thinking", "/t");
   registerAlias(commands, "verbose", "/v");
   registerAlias(commands, "reasoning", "/reason");
   registerAlias(commands, "elevated", "/elev");
-  registerAlias(commands, "model", "/models");
 
   assertCommandRegistry(commands);
   return commands;
-})();
+}
 
-let cachedNativeCommandSurfaces: Set<string> | null = null;
+export function getChatCommands(): ChatCommandDefinition[] {
+  const registry = getActivePluginRegistry();
+  if (cachedCommands && registry === cachedRegistry) return cachedCommands;
+  const commands = buildChatCommands();
+  cachedCommands = commands;
+  cachedRegistry = registry;
+  cachedNativeCommandSurfaces = null;
+  return commands;
+}
 
-export const getNativeCommandSurfaces = (): Set<string> => {
-  if (!cachedNativeCommandSurfaces) {
-    cachedNativeCommandSurfaces = new Set(
-      listChannelDocks()
-        .filter((dock) => dock.capabilities.nativeCommands)
-        .map((dock) => dock.id),
-    );
+export function getNativeCommandSurfaces(): Set<string> {
+  const registry = getActivePluginRegistry();
+  if (cachedNativeCommandSurfaces && registry === cachedNativeRegistry) {
+    return cachedNativeCommandSurfaces;
   }
+  cachedNativeCommandSurfaces = new Set(
+    listChannelDocks()
+      .filter((dock) => dock.capabilities.nativeCommands)
+      .map((dock) => dock.id),
+  );
+  cachedNativeRegistry = registry;
   return cachedNativeCommandSurfaces;
-};
+}

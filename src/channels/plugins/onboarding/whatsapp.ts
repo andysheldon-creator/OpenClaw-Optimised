@@ -7,6 +7,7 @@ import type { DmPolicy } from "../../../config/types.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../../routing/session-key.js";
 import type { RuntimeEnv } from "../../../runtime.js";
 import { formatDocsLink } from "../../../terminal/links.js";
+import { formatCliCommand } from "../../../cli/command-format.js";
 import { normalizeE164 } from "../../../utils.js";
 import {
   listWhatsAppAccountIds,
@@ -25,16 +26,6 @@ function setWhatsAppDmPolicy(cfg: ClawdbotConfig, dmPolicy: DmPolicy): ClawdbotC
 
 function setWhatsAppAllowFrom(cfg: ClawdbotConfig, allowFrom?: string[]): ClawdbotConfig {
   return mergeWhatsAppConfig(cfg, { allowFrom }, { unsetOnUndefined: ["allowFrom"] });
-}
-
-function setMessagesResponsePrefix(cfg: ClawdbotConfig, responsePrefix?: string): ClawdbotConfig {
-  return {
-    ...cfg,
-    messages: {
-      ...cfg.messages,
-      responsePrefix,
-    },
-  };
 }
 
 function setWhatsAppSelfChatMode(cfg: ClawdbotConfig, selfChatMode: boolean): ClawdbotConfig {
@@ -65,7 +56,6 @@ async function promptWhatsAppAllowFrom(
   const existingPolicy = cfg.channels?.whatsapp?.dmPolicy ?? "pairing";
   const existingAllowFrom = cfg.channels?.whatsapp?.allowFrom ?? [];
   const existingLabel = existingAllowFrom.length > 0 ? existingAllowFrom.join(", ") : "unset";
-  const existingResponsePrefix = cfg.messages?.responsePrefix;
 
   if (options?.forceAllowlist) {
     await prompter.note(
@@ -96,17 +86,8 @@ async function promptWhatsAppAllowFrom(
     let next = setWhatsAppSelfChatMode(cfg, true);
     next = setWhatsAppDmPolicy(next, "allowlist");
     next = setWhatsAppAllowFrom(next, unique);
-    if (existingResponsePrefix === undefined) {
-      next = setMessagesResponsePrefix(next, "[clawdbot]");
-    }
     await prompter.note(
-      [
-        "Allowlist mode enabled.",
-        `- allowFrom includes ${normalized}`,
-        existingResponsePrefix === undefined
-          ? "- responsePrefix set to [clawdbot]"
-          : "- responsePrefix left unchanged",
-      ].join("\n"),
+      ["Allowlist mode enabled.", `- allowFrom includes ${normalized}`].join("\n"),
       "WhatsApp allowlist",
     );
     return next;
@@ -163,17 +144,11 @@ async function promptWhatsAppAllowFrom(
     let next = setWhatsAppSelfChatMode(cfg, true);
     next = setWhatsAppDmPolicy(next, "allowlist");
     next = setWhatsAppAllowFrom(next, unique);
-    if (existingResponsePrefix === undefined) {
-      next = setMessagesResponsePrefix(next, "[clawdbot]");
-    }
     await prompter.note(
       [
         "Personal phone mode enabled.",
         "- dmPolicy set to allowlist (pairing skipped)",
         `- allowFrom includes ${normalized}`,
-        existingResponsePrefix === undefined
-          ? "- responsePrefix set to [clawdbot]"
-          : "- responsePrefix left unchanged",
       ].join("\n"),
       "WhatsApp personal phone",
     );
@@ -347,7 +322,10 @@ export const whatsappOnboardingAdapter: ChannelOnboardingAdapter = {
         await prompter.note(`Docs: ${formatDocsLink("/whatsapp", "whatsapp")}`, "WhatsApp help");
       }
     } else if (!linked) {
-      await prompter.note("Run `clawdbot channels login` later to link WhatsApp.", "WhatsApp");
+      await prompter.note(
+        `Run \`${formatCliCommand("clawdbot channels login")}\` later to link WhatsApp.`,
+        "WhatsApp",
+      );
     }
 
     next = await promptWhatsAppAllowFrom(next, runtime, prompter, {

@@ -34,6 +34,27 @@ export function normalizeIMessageHandle(raw: string): string {
   if (lowered.startsWith("imessage:")) return normalizeIMessageHandle(trimmed.slice(9));
   if (lowered.startsWith("sms:")) return normalizeIMessageHandle(trimmed.slice(4));
   if (lowered.startsWith("auto:")) return normalizeIMessageHandle(trimmed.slice(5));
+
+  // Normalize chat_id/chat_guid/chat_identifier prefixes case-insensitively
+  for (const prefix of CHAT_ID_PREFIXES) {
+    if (lowered.startsWith(prefix)) {
+      const value = trimmed.slice(prefix.length).trim();
+      return `chat_id:${value}`;
+    }
+  }
+  for (const prefix of CHAT_GUID_PREFIXES) {
+    if (lowered.startsWith(prefix)) {
+      const value = trimmed.slice(prefix.length).trim();
+      return `chat_guid:${value}`;
+    }
+  }
+  for (const prefix of CHAT_IDENTIFIER_PREFIXES) {
+    if (lowered.startsWith(prefix)) {
+      const value = trimmed.slice(prefix.length).trim();
+      return `chat_identifier:${value}`;
+    }
+  }
+
   if (trimmed.includes("@")) return trimmed.toLowerCase();
   const normalized = normalizeE164(trimmed);
   if (normalized) return normalized;
@@ -53,8 +74,7 @@ export function parseIMessageTarget(raw: string): IMessageTarget {
       const isChatTarget =
         CHAT_ID_PREFIXES.some((p) => remainderLower.startsWith(p)) ||
         CHAT_GUID_PREFIXES.some((p) => remainderLower.startsWith(p)) ||
-        CHAT_IDENTIFIER_PREFIXES.some((p) => remainderLower.startsWith(p)) ||
-        remainderLower.startsWith("group:");
+        CHAT_IDENTIFIER_PREFIXES.some((p) => remainderLower.startsWith(p));
       if (isChatTarget) {
         return parseIMessageTarget(remainder);
       }
@@ -87,16 +107,6 @@ export function parseIMessageTarget(raw: string): IMessageTarget {
       if (!value) throw new Error("chat_identifier is required");
       return { kind: "chat_identifier", chatIdentifier: value };
     }
-  }
-
-  if (lower.startsWith("group:")) {
-    const value = stripPrefix(trimmed, "group:");
-    const chatId = Number.parseInt(value, 10);
-    if (Number.isFinite(chatId)) {
-      return { kind: "chat_id", chatId };
-    }
-    if (!value) throw new Error("group target is required");
-    return { kind: "chat_guid", chatGuid: value };
   }
 
   return { kind: "handle", to: trimmed, service: "auto" };
@@ -135,13 +145,6 @@ export function parseIMessageAllowTarget(raw: string): IMessageAllowTarget {
       const value = stripPrefix(trimmed, prefix);
       if (value) return { kind: "chat_identifier", chatIdentifier: value };
     }
-  }
-
-  if (lower.startsWith("group:")) {
-    const value = stripPrefix(trimmed, "group:");
-    const chatId = Number.parseInt(value, 10);
-    if (Number.isFinite(chatId)) return { kind: "chat_id", chatId };
-    if (value) return { kind: "chat_guid", chatGuid: value };
   }
 
   return { kind: "handle", handle: normalizeIMessageHandle(trimmed) };

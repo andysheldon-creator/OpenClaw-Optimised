@@ -22,6 +22,11 @@ You can globally allow/deny tools via `tools.allow` / `tools.deny` in `clawdbot.
 }
 ```
 
+Notes:
+- Matching is case-insensitive.
+- `*` wildcards are supported (`"*"` means all tools).
+- If `tools.allow` only references unknown or unloaded plugin tool names, Clawdbot logs a warning and ignores the allowlist so core tools stay available.
+
 ## Tool profiles (base allowlist)
 
 `tools.profile` sets a **base tool allowlist** before `tools.allow`/`tools.deny`.
@@ -154,6 +159,10 @@ See [Plugins](/plugin) for install + config, and [Skills](/tools/skills) for how
 tool usage guidance is injected into prompts. Some plugins ship their own skills
 alongside tools (for example, the voice-call plugin).
 
+Optional plugin tools:
+- [Lobster](/tools/lobster): typed workflow runtime with resumable approvals (requires the Lobster CLI on the gateway host).
+- [LLM Task](/tools/llm-task): JSON-only LLM step for structured workflow output (optional schema validation).
+
 ## Tool inventory
 
 ### `apply_patch`
@@ -169,14 +178,20 @@ Core parameters:
 - `background` (immediate background)
 - `timeout` (seconds; kills the process if exceeded, default 1800)
 - `elevated` (bool; run on host if elevated mode is enabled/allowed; only changes behavior when the agent is sandboxed)
-- Need a real TTY? Use the tmux skill.
+- `host` (`sandbox | gateway | node`)
+- `security` (`deny | allowlist | full`)
+- `ask` (`off | on-miss | always`)
+- `node` (node id/name for `host=node`)
+- Need a real TTY? Set `pty: true`.
 
 Notes:
 - Returns `status: "running"` with a `sessionId` when backgrounded.
 - Use `process` to poll/log/write/kill/clear background sessions.
 - If `process` is disallowed, `exec` runs synchronously and ignores `yieldMs`/`background`.
-- `elevated` is gated by `tools.elevated` plus any `agents.list[].tools.elevated` override (both must allow) and runs on the host.
+- `elevated` is gated by `tools.elevated` plus any `agents.list[].tools.elevated` override (both must allow) and is an alias for `host=gateway` + `security=full`.
 - `elevated` only changes behavior when the agent is sandboxed (otherwise it’s a no-op).
+- `host=node` can target a macOS companion app or a headless node host (`clawdbot node run`).
+- gateway/node approvals and allowlists: [Exec approvals](/tools/exec-approvals).
 
 ### `process`
 Manage background exec sessions.
@@ -215,6 +230,7 @@ Notes:
 - Responses are cached (default 15 min).
 - For JS-heavy sites, prefer the browser tool.
 - See [Web tools](/tools/web) for setup.
+- See [Firecrawl](/tools/firecrawl) for the optional anti-bot fallback.
 
 ### `browser`
 Control the dedicated clawd browser.
@@ -309,10 +325,10 @@ Notes:
 - Uses the image model directly (independent of the main chat model).
 
 ### `message`
-Send messages and channel actions across Discord/Slack/Telegram/WhatsApp/Signal/iMessage/MS Teams.
+Send messages and channel actions across Discord/Google Chat/Slack/Telegram/WhatsApp/Signal/iMessage/MS Teams.
 
 Core actions:
-- `send` (text + optional media)
+- `send` (text + optional media; MS Teams also supports `card` for Adaptive Cards)
 - `poll` (WhatsApp/Discord/MS Teams polls)
 - `react` / `reactions` / `read` / `edit` / `delete`
 - `pin` / `unpin` / `list-pins`
@@ -349,9 +365,10 @@ Notes:
 Restart or apply updates to the running Gateway process (in-place).
 
 Core actions:
-- `restart` (sends `SIGUSR1` to the current process; `clawdbot gateway` restart in-place)
+- `restart` (authorizes + sends `SIGUSR1` for in-process restart; `clawdbot gateway` restart in-place)
 - `config.get` / `config.schema`
 - `config.apply` (validate + write config + restart + wake)
+- `config.patch` (merge partial update + restart + wake)
 - `update.run` (run update + restart + wake)
 
 Notes:
@@ -363,10 +380,10 @@ List sessions, inspect transcript history, or send to another session.
 
 Core parameters:
 - `sessions_list`: `kinds?`, `limit?`, `activeMinutes?`, `messageLimit?` (0 = none)
-- `sessions_history`: `sessionKey`, `limit?`, `includeTools?`
-- `sessions_send`: `sessionKey`, `message`, `timeoutSeconds?` (0 = fire-and-forget)
+- `sessions_history`: `sessionKey` (or `sessionId`), `limit?`, `includeTools?`
+- `sessions_send`: `sessionKey` (or `sessionId`), `message`, `timeoutSeconds?` (0 = fire-and-forget)
 - `sessions_spawn`: `task`, `label?`, `agentId?`, `model?`, `runTimeoutSeconds?`, `cleanup?`
-- `session_status`: `sessionKey?` (default current), `model?` (`default` clears override)
+- `session_status`: `sessionKey?` (default current; accepts `sessionId`), `model?` (`default` clears override)
 
 Notes:
 - `main` is the canonical direct-chat key; global/unknown are hidden.

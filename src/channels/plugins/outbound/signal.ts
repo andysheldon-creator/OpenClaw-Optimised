@@ -6,19 +6,8 @@ import type { ChannelOutboundAdapter } from "../types.js";
 export const signalOutbound: ChannelOutboundAdapter = {
   deliveryMode: "direct",
   chunker: chunkText,
+  chunkerMode: "text",
   textChunkLimit: 4000,
-  resolveTarget: ({ to }) => {
-    const trimmed = to?.trim();
-    if (!trimmed) {
-      return {
-        ok: false,
-        error: new Error(
-          "Delivering to Signal requires --to <E.164|group:ID|signal:group:ID|signal:+E.164>",
-        ),
-      };
-    }
-    return { ok: true, to: trimmed };
-  },
   sendText: async ({ cfg, to, text, accountId, deps }) => {
     const send = deps?.sendSignal ?? sendMessageSignal;
     const maxBytes = resolveChannelMediaMaxBytes({

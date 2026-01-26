@@ -118,7 +118,7 @@ describe("gateway-cli coverage", () => {
     expect(runtimeLogs.join("\n")).toContain('"ok": true');
   }, 30_000);
 
-  it("registers gateway status and routes to gatewayStatusCommand", async () => {
+  it("registers gateway probe and routes to gatewayStatusCommand", async () => {
     runtimeLogs.length = 0;
     runtimeErrors.length = 0;
     gatewayStatusCommand.mockClear();
@@ -128,7 +128,7 @@ describe("gateway-cli coverage", () => {
     program.exitOverride();
     registerGatewayCli(program);
 
-    await program.parseAsync(["gateway", "status", "--json"], { from: "user" });
+    await program.parseAsync(["gateway", "probe", "--json"], { from: "user" });
 
     expect(gatewayStatusCommand).toHaveBeenCalledTimes(1);
   }, 30_000);
@@ -146,7 +146,6 @@ describe("gateway-cli coverage", () => {
         lanHost: "studio.local",
         tailnetDns: "studio.tailnet.ts.net",
         gatewayPort: 18789,
-        bridgePort: 18790,
         sshPort: 22,
       },
     ]);
@@ -179,7 +178,6 @@ describe("gateway-cli coverage", () => {
         lanHost: "studio.local",
         tailnetDns: "studio.tailnet.ts.net",
         gatewayPort: 18789,
-        bridgePort: 18790,
         sshPort: 22,
       },
     ]);
@@ -313,7 +311,7 @@ describe("gateway-cli coverage", () => {
 
     expect(startGatewayServer).toHaveBeenCalled();
     expect(runtimeErrors.join("\n")).toContain("Gateway failed to start:");
-    expect(runtimeErrors.join("\n")).toContain("clawdbot daemon stop");
+    expect(runtimeErrors.join("\n")).toContain("clawdbot gateway stop");
   });
 
   it("uses env/config port when --port is omitted", async () => {

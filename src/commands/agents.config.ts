@@ -1,12 +1,14 @@
-import fs from "node:fs";
-import path from "node:path";
-
 import {
   resolveAgentDir,
   resolveAgentWorkspaceDir,
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
-import { DEFAULT_IDENTITY_FILENAME } from "../agents/workspace.js";
+import type { AgentIdentityFile } from "../agents/identity-file.js";
+import {
+  identityHasValues,
+  loadAgentIdentityFromWorkspace,
+  parseIdentityMarkdown as parseIdentityMarkdownFile,
+} from "../agents/identity-file.js";
 import type { ClawdbotConfig } from "../config/config.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 
@@ -28,12 +30,7 @@ export type AgentSummary = {
 
 type AgentEntry = NonNullable<NonNullable<ClawdbotConfig["agents"]>["list"]>[number];
 
-type AgentIdentity = {
-  name?: string;
-  emoji?: string;
-  creature?: string;
-  vibe?: string;
-};
+export type AgentIdentity = AgentIdentityFile;
 
 export function listAgentEntries(cfg: ClawdbotConfig): AgentEntry[] {
   const list = cfg.agents?.list;
@@ -71,33 +68,14 @@ function resolveAgentModel(cfg: ClawdbotConfig, agentId: string) {
   return raw?.primary?.trim() || undefined;
 }
 
-function parseIdentityMarkdown(content: string): AgentIdentity {
-  const identity: AgentIdentity = {};
-  const lines = content.split(/\r?\n/);
-  for (const line of lines) {
-    const match = line.match(/^\s*(?:-\s*)?([A-Za-z ]+):\s*(.+?)\s*$/);
-    if (!match) continue;
-    const label = match[1]?.trim().toLowerCase();
-    const value = match[2]?.trim();
-    if (!value) continue;
-    if (label === "name") identity.name = value;
-    if (label === "emoji") identity.emoji = value;
-    if (label === "creature") identity.creature = value;
-    if (label === "vibe") identity.vibe = value;
-  }
-  return identity;
+export function parseIdentityMarkdown(content: string): AgentIdentity {
+  return parseIdentityMarkdownFile(content);
 }
 
-function loadAgentIdentity(workspace: string): AgentIdentity | null {
-  const identityPath = path.join(workspace, DEFAULT_IDENTITY_FILENAME);
-  try {
-    const content = fs.readFileSync(identityPath, "utf-8");
-    const parsed = parseIdentityMarkdown(content);
-    if (!parsed.name && !parsed.emoji) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+export function loadAgentIdentity(workspace: string): AgentIdentity | null {
+  const parsed = loadAgentIdentityFromWorkspace(workspace);
+  if (!parsed) return null;
+  return identityHasValues(parsed) ? parsed : null;
 }
 
 export function buildAgentSummaries(cfg: ClawdbotConfig): AgentSummary[] {

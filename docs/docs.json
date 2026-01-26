@@ -110,6 +110,14 @@
       "destination": "/providers/opencode"
     },
     {
+      "source": "/mattermost",
+      "destination": "/channels/mattermost"
+    },
+    {
+      "source": "/mattermost/",
+      "destination": "/channels/mattermost"
+    },
+    {
       "source": "/glm",
       "destination": "/providers/glm"
     },
@@ -142,6 +150,14 @@
       "destination": "/channels/discord"
     },
     {
+      "source": "/providers/googlechat",
+      "destination": "/channels/googlechat"
+    },
+    {
+      "source": "/providers/googlechat/",
+      "destination": "/channels/googlechat"
+    },
+    {
       "source": "/providers/grammy",
       "destination": "/channels/grammy"
     },
@@ -164,6 +180,14 @@
     {
       "source": "/providers/location/",
       "destination": "/channels/location"
+    },
+    {
+      "source": "/providers/mattermost",
+      "destination": "/channels/mattermost"
+    },
+    {
+      "source": "/providers/mattermost/",
+      "destination": "/channels/mattermost"
     },
     {
       "source": "/providers/msteams",
@@ -334,6 +358,14 @@
       "destination": "/automation/cron-jobs"
     },
     {
+      "source": "/cron-vs-heartbeat",
+      "destination": "/automation/cron-vs-heartbeat"
+    },
+    {
+      "source": "/cron-vs-heartbeat/",
+      "destination": "/automation/cron-vs-heartbeat"
+    },
+    {
       "source": "/dashboard",
       "destination": "/web/dashboard"
     },
@@ -363,7 +395,7 @@
     },
     {
       "source": "/faq",
-      "destination": "/start/faq"
+      "destination": "/help/faq"
     },
     {
       "source": "/gateway-lock",
@@ -424,10 +456,6 @@
     {
       "source": "/location-command",
       "destination": "/nodes/location-command"
-    },
-    {
-      "source": "/logging",
-      "destination": "/gateway/logging"
     },
     {
       "source": "/lore",
@@ -658,6 +686,10 @@
       "destination": "/reference/templates/AGENTS"
     },
     {
+      "source": "/templates/BOOT",
+      "destination": "/reference/templates/BOOT"
+    },
+    {
       "source": "/templates/BOOTSTRAP",
       "destination": "/reference/templates/BOOTSTRAP"
     },
@@ -734,12 +766,36 @@
       "destination": "/start/wizard"
     },
     {
+      "source": "/start/faq",
+      "destination": "/help/faq"
+    },
+    {
+      "source": "/start/faq/",
+      "destination": "/help/faq"
+    },
+    {
       "source": "/oauth",
       "destination": "/concepts/oauth"
     },
     {
       "source": "/plugins",
       "destination": "/plugin"
+    },
+    {
+      "source": "/install/railway",
+      "destination": "/railway"
+    },
+    {
+      "source": "/install/railway/",
+      "destination": "/railway"
+    },
+    {
+      "source": "/gcp",
+      "destination": "/platforms/gcp"
+    },
+    {
+      "source": "/gcp/",
+      "destination": "/platforms/gcp"
     }
   ],
   "navigation": {
@@ -752,7 +808,6 @@
           "start/wizard",
           "start/setup",
           "start/pairing",
-          "start/faq",
           "start/clawd",
           "start/showcase",
           "start/hubs",
@@ -761,15 +816,26 @@
         ]
       },
       {
+        "group": "Help",
+        "pages": [
+          "help/index",
+          "help/troubleshooting",
+          "help/faq"
+        ]
+      },
+      {
         "group": "Install & Updates",
         "pages": [
           "install/index",
           "install/installer",
           "install/updating",
+          "install/development-channels",
           "install/uninstall",
           "install/ansible",
           "install/nix",
           "install/docker",
+          "railway",
+          "render",
           "install/bun"
         ]
       },
@@ -792,17 +858,18 @@
           "cli/health",
           "cli/sessions",
           "cli/channels",
+          "cli/directory",
           "cli/skills",
           "cli/plugins",
           "cli/memory",
           "cli/models",
           "cli/logs",
+          "cli/system",
           "cli/nodes",
+          "cli/approvals",
           "cli/gateway",
-          "cli/daemon",
           "cli/tui",
           "cli/voicecall",
-          "cli/wake",
           "cli/cron",
           "cli/dns",
           "cli/docs",
@@ -863,6 +930,7 @@
           "gateway/configuration-examples",
           "gateway/authentication",
           "gateway/openai-http-api",
+          "gateway/tools-invoke-http-api",
           "gateway/cli-backends",
           "gateway/local-models",
           "gateway/background-process",
@@ -870,7 +938,6 @@
           "gateway/heartbeat",
           "gateway/doctor",
           "gateway/logging",
-          "logging",
           "gateway/security",
           "gateway/sandbox-vs-tool-policy-vs-elevated",
           "gateway/sandboxing",
@@ -902,11 +969,14 @@
           "channels/grammy",
           "channels/discord",
           "channels/slack",
+          "channels/googlechat",
+          "channels/mattermost",
           "channels/signal",
           "channels/imessage",
           "channels/msteams",
           "channels/matrix",
           "channels/zalo",
+          "channels/zalouser",
           "broadcast-groups",
           "channels/troubleshooting",
           "channels/location"
@@ -922,6 +992,7 @@
           "bedrock",
           "providers/moonshot",
           "providers/minimax",
+          "providers/vercel-ai-gateway",
           "providers/openrouter",
           "providers/synthetic",
           "providers/opencode",
@@ -932,10 +1003,13 @@
       {
         "group": "Automation & Hooks",
         "pages": [
+          "hooks",
+          "hooks/soul-evil",
           "automation/auth-monitoring",
           "automation/webhook",
           "automation/gmail-pubsub",
           "automation/cron-jobs",
+          "automation/cron-vs-heartbeat",
           "automation/poll"
         ]
       },
@@ -943,8 +1017,11 @@
         "group": "Tools & Skills",
         "pages": [
           "tools",
+          "tools/lobster",
+          "tools/llm-task",
           "plugin",
           "plugins/voice-call",
+          "plugins/zalouser",
           "tools/exec",
           "tools/web",
           "tools/apply-patch",
@@ -981,11 +1058,14 @@
         "pages": [
           "platforms",
           "platforms/macos",
+          "platforms/macos-vm",
           "platforms/ios",
           "platforms/android",
           "platforms/windows",
           "platforms/linux",
+          "platforms/fly",
           "platforms/hetzner",
+          "platforms/gcp",
           "platforms/exe-dev"
         ]
       },
@@ -1024,6 +1104,7 @@
           "reference/RELEASING",
           "reference/AGENTS.default",
           "reference/templates/AGENTS",
+          "reference/templates/BOOT",
           "reference/templates/BOOTSTRAP",
           "reference/templates/HEARTBEAT",
           "reference/templates/IDENTITY",

@@ -1,27 +1,13 @@
-export type BridgeBindMode = "auto" | "lan" | "loopback" | "custom";
+export type GatewayBindMode = "auto" | "lan" | "loopback" | "custom" | "tailnet";
 
-export type BridgeConfig = {
-  enabled?: boolean;
-  port?: number;
-  /**
-   * Bind address policy for the node bridge server.
-   * - auto: Tailnet IPv4 if available, else 0.0.0.0 (fallback to all interfaces)
-   * - lan: 0.0.0.0 (all interfaces, no fallback)
-   * - loopback: 127.0.0.1 (local-only)
-   * - custom: User-specified IP, fallback to 0.0.0.0 if unavailable (requires customBindHost on gateway)
-   */
-  bind?: BridgeBindMode;
-  tls?: BridgeTlsConfig;
-};
-
-export type BridgeTlsConfig = {
-  /** Enable TLS for the node bridge server. */
+export type GatewayTlsConfig = {
+  /** Enable TLS for the gateway server. */
   enabled?: boolean;
   /** Auto-generate a self-signed cert if cert/key are missing (default: true). */
   autoGenerate?: boolean;
-  /** PEM certificate path for the bridge server. */
+  /** PEM certificate path for the gateway server. */
   certPath?: string;
-  /** PEM private key path for the bridge server. */
+  /** PEM private key path for the gateway server. */
   keyPath?: string;
   /** Optional PEM CA bundle for TLS clients (mTLS or custom roots). */
   caPath?: string;
@@ -65,6 +51,8 @@ export type GatewayControlUiConfig = {
   enabled?: boolean;
   /** Optional base path prefix for the Control UI (e.g. "/clawdbot"). */
   basePath?: string;
+  /** Allow token-only auth over insecure HTTP (default: false). */
+  allowInsecureAuth?: boolean;
 };
 
 export type GatewayAuthMode = "token" | "password";
@@ -92,10 +80,14 @@ export type GatewayTailscaleConfig = {
 export type GatewayRemoteConfig = {
   /** Remote Gateway WebSocket URL (ws:// or wss://). */
   url?: string;
+  /** Transport for macOS remote connections (ssh tunnel or direct WS). */
+  transport?: "ssh" | "direct";
   /** Token for remote auth (when the gateway requires token auth). */
   token?: string;
   /** Password for remote auth (when the gateway requires password auth). */
   password?: string;
+  /** Expected TLS certificate fingerprint (sha256) for remote gateways. */
+  tlsFingerprint?: string;
   /** SSH target for tunneling remote Gateway (user@host). */
   sshTarget?: string;
   /** SSH identity file path for tunneling remote Gateway. */
@@ -119,12 +111,83 @@ export type GatewayHttpChatCompletionsConfig = {
   enabled?: boolean;
 };
 
+export type GatewayHttpResponsesConfig = {
+  /**
+   * If false, the Gateway will not serve `POST /v1/responses` (OpenResponses API).
+   * Default: false when absent.
+   */
+  enabled?: boolean;
+  /**
+   * Max request body size in bytes for `/v1/responses`.
+   * Default: 20MB.
+   */
+  maxBodyBytes?: number;
+  /** File inputs (input_file). */
+  files?: GatewayHttpResponsesFilesConfig;
+  /** Image inputs (input_image). */
+  images?: GatewayHttpResponsesImagesConfig;
+};
+
+export type GatewayHttpResponsesFilesConfig = {
+  /** Allow URL fetches for input_file. Default: true. */
+  allowUrl?: boolean;
+  /** Allowed MIME types (case-insensitive). */
+  allowedMimes?: string[];
+  /** Max bytes per file. Default: 5MB. */
+  maxBytes?: number;
+  /** Max decoded characters per file. Default: 200k. */
+  maxChars?: number;
+  /** Max redirects when fetching a URL. Default: 3. */
+  maxRedirects?: number;
+  /** Fetch timeout in ms. Default: 10s. */
+  timeoutMs?: number;
+  /** PDF handling (application/pdf). */
+  pdf?: GatewayHttpResponsesPdfConfig;
+};
+
+export type GatewayHttpResponsesPdfConfig = {
+  /** Max pages to parse/render. Default: 4. */
+  maxPages?: number;
+  /** Max pixels per rendered page. Default: 4M. */
+  maxPixels?: number;
+  /** Minimum extracted text length to skip rasterization. Default: 200 chars. */
+  minTextChars?: number;
+};
+
+export type GatewayHttpResponsesImagesConfig = {
+  /** Allow URL fetches for input_image. Default: true. */
+  allowUrl?: boolean;
+  /** Allowed MIME types (case-insensitive). */
+  allowedMimes?: string[];
+  /** Max bytes per image. Default: 10MB. */
+  maxBytes?: number;
+  /** Max redirects when fetching a URL. Default: 3. */
+  maxRedirects?: number;
+  /** Fetch timeout in ms. Default: 10s. */
+  timeoutMs?: number;
+};
+
 export type GatewayHttpEndpointsConfig = {
   chatCompletions?: GatewayHttpChatCompletionsConfig;
+  responses?: GatewayHttpResponsesConfig;
 };
 
 export type GatewayHttpConfig = {
   endpoints?: GatewayHttpEndpointsConfig;
+};
+
+export type GatewayNodesConfig = {
+  /** Browser routing policy for node-hosted browser proxies. */
+  browser?: {
+    /** Routing mode (default: auto). */
+    mode?: "auto" | "manual" | "off";
+    /** Pin to a specific node id/name (optional). */
+    node?: string;
+  };
+  /** Additional node.invoke commands to allow on the gateway. */
+  allowCommands?: string[];
+  /** Commands to deny even if they appear in the defaults or node claims. */
+  denyCommands?: string[];
 };
 
 export type GatewayConfig = {
@@ -137,13 +200,14 @@ export type GatewayConfig = {
   mode?: "local" | "remote";
   /**
    * Bind address policy for the Gateway WebSocket + Control UI HTTP server.
-   * - auto: Tailnet IPv4 if available, else 0.0.0.0 (fallback to all interfaces)
+   * - auto: Loopback (127.0.0.1) if available, else 0.0.0.0 (fallback to all interfaces)
    * - lan: 0.0.0.0 (all interfaces, no fallback)
    * - loopback: 127.0.0.1 (local-only)
+   * - tailnet: Tailnet IPv4 if available (100.64.0.0/10), else loopback
    * - custom: User-specified IP, fallback to 0.0.0.0 if unavailable (requires customBindHost)
    * Default: loopback (127.0.0.1).
    */
-  bind?: BridgeBindMode;
+  bind?: GatewayBindMode;
   /** Custom IP address for bind="custom" mode. Fallback: 0.0.0.0. */
   customBindHost?: string;
   controlUi?: GatewayControlUiConfig;
@@ -151,5 +215,13 @@ export type GatewayConfig = {
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;
   reload?: GatewayReloadConfig;
+  tls?: GatewayTlsConfig;
   http?: GatewayHttpConfig;
+  nodes?: GatewayNodesConfig;
+  /**
+   * IPs of trusted reverse proxies (e.g. Traefik, nginx). When a connection
+   * arrives from one of these IPs, the Gateway trusts `x-forwarded-for` (or
+   * `x-real-ip`) to determine the client IP for local pairing and HTTP checks.
+   */
+  trustedProxies?: string[];
 };

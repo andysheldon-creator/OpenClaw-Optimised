@@ -1,4 +1,4 @@
-import { normalizeAgentId } from "../routing/session-key.js";
+import { sanitizeAgentId } from "../routing/session-key.js";
 import { parseAbsoluteTimeMs } from "./parse.js";
 import { migrateLegacyCronPayload } from "./payload-migration.js";
 import type { CronJobCreate, CronJobPatch } from "./types.js";
@@ -51,12 +51,6 @@ function coerceSchedule(schedule: UnknownRecord) {
 
 function coercePayload(payload: UnknownRecord) {
   const next: UnknownRecord = { ...payload };
-  const kind = typeof payload.kind === "string" ? payload.kind : undefined;
-  if (!kind) {
-    if (typeof payload.text === "string") next.kind = "systemEvent";
-    else if (typeof payload.message === "string") next.kind = "agentTurn";
-  }
-
   // Back-compat: older configs used `provider` for delivery channel.
   migrateLegacyCronPayload(next);
   return next;
@@ -82,7 +76,7 @@ export function normalizeCronJobInput(
       next.agentId = null;
     } else if (typeof agentId === "string") {
       const trimmed = agentId.trim();
-      if (trimmed) next.agentId = normalizeAgentId(trimmed);
+      if (trimmed) next.agentId = sanitizeAgentId(trimmed);
       else delete next.agentId;
     }
   }

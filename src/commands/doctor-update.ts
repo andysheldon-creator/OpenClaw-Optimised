@@ -1,7 +1,9 @@
 import { runGatewayUpdate } from "../infra/update-runner.js";
+import { isTruthyEnvValue } from "../infra/env.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { note } from "../terminal/note.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import type { DoctorOptions } from "./doctor-prompter.js";
 
 async function detectClawdbotGitCheckout(root: string): Promise<"git" | "not-git" | "unknown"> {
@@ -27,7 +29,7 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
   confirm: (p: { message: string; initialValue: boolean }) => Promise<boolean>;
   outro: (message: string) => void;
 }) {
-  const updateInProgress = process.env.CLAWDBOT_UPDATE_IN_PROGRESS === "1";
+  const updateInProgress = isTruthyEnvValue(process.env.CLAWDBOT_UPDATE_IN_PROGRESS);
   const canOfferUpdate =
     !updateInProgress &&
     params.options.nonInteractive !== true &&
@@ -70,10 +72,7 @@ export async function maybeOfferUpdateBeforeDoctor(params: {
     note(
       [
         "This install is not a git checkout.",
-        "Update via your package manager, then rerun doctor:",
-        "- npm i -g clawdbot@latest",
-        "- pnpm add -g clawdbot@latest",
-        "- bun add -g clawdbot@latest",
+        `Run \`${formatCliCommand("clawdbot update")}\` to update via your package manager (npm/pnpm), then rerun doctor.`,
       ].join("\n"),
       "Update",
     );

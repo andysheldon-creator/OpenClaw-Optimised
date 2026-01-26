@@ -5,7 +5,6 @@ import {
   resolveAuthProfileDisplayLabel,
   resolveAuthProfileOrder,
 } from "../../agents/auth-profiles.js";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../../agents/defaults.js";
 import { getCustomProviderApiKey, resolveEnvApiKey } from "../../agents/model-auth.js";
 import { loadModelCatalog } from "../../agents/model-catalog.js";
 import {
@@ -13,9 +12,10 @@ import {
   buildModelAliasIndex,
   modelKey,
   normalizeProviderId,
-  resolveConfiguredModelRef,
+  resolveDefaultModelForAgent,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
+import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
 import { normalizeGroupActivation } from "../../auto-reply/group-activation.js";
 import { getFollowupQueueDepth, resolveQueueSettings } from "../../auto-reply/reply/queue.js";
 import { buildStatusMessage } from "../../auto-reply/status.js";
@@ -37,9 +37,16 @@ import {
   DEFAULT_AGENT_ID,
   resolveAgentIdFromSessionKey,
 } from "../../routing/session-key.js";
+import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import type { AnyAgentTool } from "./common.js";
 import { readStringParam } from "./common.js";
-import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
+import {
+  shouldResolveSessionIdInput,
+  resolveInternalSessionKey,
+  resolveMainSessionAlias,
+  createAgentToAgentPolicy,
+} from "./sessions-helpers.js";
+import { loadCombinedSessionStoreForGateway } from "../../gateway/session-utils.js";
 
 const SessionStatusToolSchema = Type.Object({
   sessionKey: Type.Optional(Type.String()),
@@ -148,10 +155,27 @@ function resolveSessionEntry(params: {
   return null;
 }
 
+function resolveSessionKeyFromSessionId(params: {
+  cfg: ClawdbotConfig;
+  sessionId: string;
+  agentId?: string;
+}): string | null {
+  const trimmed = params.sessionId.trim();
+  if (!trimmed) return null;
+  const { store } = loadCombinedSessionStoreForGateway(params.cfg);
+  const match = Object.entries(store).find(([key, entry]) => {
+    if (entry?.sessionId !== trimmed) return false;
+    if (!params.agentId) return true;
+    return resolveAgentIdFromSessionKey(key) === params.agentId;
+  });
+  return match?.[0] ?? null;
+}
+
 async function resolveModelOverride(params: {
   cfg: ClawdbotConfig;
   raw: string;
   sessionEntry?: SessionEntry;
+  agentId: string;
 }): Promise<
   | { kind: "reset" }
   | {
@@ -165,10 +189,9 @@ async function resolveModelOverride(params: {
   if (!raw) return { kind: "reset" };
   if (raw.toLowerCase() === "default") return { kind: "reset" };
 
-  const configDefault = resolveConfiguredModelRef({
+  const configDefault = resolveDefaultModelForAgent({
     cfg: params.cfg,
-    defaultProvider: DEFAULT_PROVIDER,
-    defaultModel: DEFAULT_MODEL,
+    agentId: params.agentId,
   });
   const currentProvider = params.sessionEntry?.providerOverride?.trim() || configDefault.provider;
   const currentModel = params.sessionEntry?.modelOverride?.trim() || configDefault.model;
@@ -215,32 +238,83 @@ export function createSessionStatusTool(opts?: {
     label: "Session Status",
     name: "session_status",
     description:
-      "Show a /status-equivalent session status card. Optional: set per-session model override (model=default resets overrides). Includes usage + cost when available.",
+      "Show a /status-equivalent session status card (usage + time + cost when available). Use for model-use questions (📊 session_status). Optional: set per-session model override (model=default resets overrides).",
     parameters: SessionStatusToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
       const cfg = opts?.config ?? loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
+      const a2aPolicy = createAgentToAgentPolicy(cfg);
 
-      const requestedKeyRaw = readStringParam(params, "sessionKey") ?? opts?.agentSessionKey;
+      const requestedKeyParam = readStringParam(params, "sessionKey");
+      let requestedKeyRaw = requestedKeyParam ?? opts?.agentSessionKey;
       if (!requestedKeyRaw?.trim()) {
         throw new Error("sessionKey required");
       }
 
-      const agentId = resolveAgentIdFromSessionKey(opts?.agentSessionKey ?? requestedKeyRaw);
-      const storePath = resolveStorePath(cfg.session?.store, { agentId });
-      const store = loadSessionStore(storePath);
+      const requesterAgentId = resolveAgentIdFromSessionKey(
+        opts?.agentSessionKey ?? requestedKeyRaw,
+      );
+      const ensureAgentAccess = (targetAgentId: string) => {
+        if (targetAgentId === requesterAgentId) return;
+        // Gate cross-agent access behind tools.agentToAgent settings.
+        if (!a2aPolicy.enabled) {
+          throw new Error(
+            "Agent-to-agent status is disabled. Set tools.agentToAgent.enabled=true to allow cross-agent access.",
+          );
+        }
+        if (!a2aPolicy.isAllowed(requesterAgentId, targetAgentId)) {
+          throw new Error("Agent-to-agent session status denied by tools.agentToAgent.allow.");
+        }
+      };
 
-      const resolved = resolveSessionEntry({
+      if (requestedKeyRaw.startsWith("agent:")) {
+        ensureAgentAccess(resolveAgentIdFromSessionKey(requestedKeyRaw));
+      }
+
+      const isExplicitAgentKey = requestedKeyRaw.startsWith("agent:");
+      let agentId = isExplicitAgentKey
+        ? resolveAgentIdFromSessionKey(requestedKeyRaw)
+        : requesterAgentId;
+      let storePath = resolveStorePath(cfg.session?.store, { agentId });
+      let store = loadSessionStore(storePath);
+
+      // Resolve against the requester-scoped store first to avoid leaking default agent data.
+      let resolved = resolveSessionEntry({
         store,
         keyRaw: requestedKeyRaw,
         alias,
         mainKey,
       });
-      if (!resolved) {
-        throw new Error(`Unknown sessionKey: ${requestedKeyRaw}`);
+
+      if (!resolved && shouldResolveSessionIdInput(requestedKeyRaw)) {
+        const resolvedKey = resolveSessionKeyFromSessionId({
+          cfg,
+          sessionId: requestedKeyRaw,
+          agentId: a2aPolicy.enabled ? undefined : requesterAgentId,
+        });
+        if (resolvedKey) {
+          // If resolution points at another agent, enforce A2A policy before switching stores.
+          ensureAgentAccess(resolveAgentIdFromSessionKey(resolvedKey));
+          requestedKeyRaw = resolvedKey;
+          agentId = resolveAgentIdFromSessionKey(resolvedKey);
+          storePath = resolveStorePath(cfg.session?.store, { agentId });
+          store = loadSessionStore(storePath);
+          resolved = resolveSessionEntry({
+            store,
+            keyRaw: requestedKeyRaw,
+            alias,
+            mainKey,
+          });
+        }
       }
 
+      if (!resolved) {
+        const kind = shouldResolveSessionIdInput(requestedKeyRaw) ? "sessionId" : "sessionKey";
+        throw new Error(`Unknown ${kind}: ${requestedKeyRaw}`);
+      }
+
+      const configured = resolveDefaultModelForAgent({ cfg, agentId });
       const modelRaw = readStringParam(params, "model");
       let changedModel = false;
       if (typeof modelRaw === "string") {
@@ -248,38 +322,35 @@ export function createSessionStatusTool(opts?: {
           cfg,
           raw: modelRaw,
           sessionEntry: resolved.entry,
+          agentId,
         });
-        const nextEntry: SessionEntry = {
-          ...resolved.entry,
-          updatedAt: Date.now(),
-        };
-        if (selection.kind === "reset" || selection.isDefault) {
-          delete nextEntry.providerOverride;
-          delete nextEntry.modelOverride;
-          delete nextEntry.authProfileOverride;
-          delete nextEntry.authProfileOverrideSource;
-          delete nextEntry.authProfileOverrideCompactionCount;
-        } else {
-          nextEntry.providerOverride = selection.provider;
-          nextEntry.modelOverride = selection.model;
-          delete nextEntry.authProfileOverride;
-          delete nextEntry.authProfileOverrideSource;
-          delete nextEntry.authProfileOverrideCompactionCount;
+        const nextEntry: SessionEntry = { ...resolved.entry };
+        const applied = applyModelOverrideToSessionEntry({
+          entry: nextEntry,
+          selection:
+            selection.kind === "reset"
+              ? {
+                  provider: configured.provider,
+                  model: configured.model,
+                  isDefault: true,
+                }
+              : {
+                  provider: selection.provider,
+                  model: selection.model,
+                  isDefault: selection.isDefault,
+                },
+        });
+        if (applied.updated) {
+          store[resolved.key] = nextEntry;
+          await updateSessionStore(storePath, (nextStore) => {
+            nextStore[resolved.key] = nextEntry;
+          });
+          resolved.entry = nextEntry;
+          changedModel = true;
         }
-        store[resolved.key] = nextEntry;
-        await updateSessionStore(storePath, (nextStore) => {
-          nextStore[resolved.key] = nextEntry;
-        });
-        resolved.entry = nextEntry;
-        changedModel = true;
       }
 
       const agentDir = resolveAgentDir(cfg, agentId);
-      const configured = resolveConfiguredModelRef({
-        cfg,
-        defaultProvider: DEFAULT_PROVIDER,
-        defaultModel: DEFAULT_MODEL,
-      });
       const providerForCard = resolved.entry.providerOverride?.trim() || configured.provider;
       const usageProvider = resolveUsageProviderId(providerForCard);
       let usageLine: string | undefined;
@@ -290,9 +361,7 @@ export function createSessionStatusTool(opts?: {
             providers: [usageProvider],
             agentDir,
           });
-          const snapshot = usageSummary.providers.find(
-            (entry) => entry.provider === usageProvider,
-          );
+          const snapshot = usageSummary.providers.find((entry) => entry.provider === usageProvider);
           if (snapshot) {
             const formatted = formatUsageWindowSummary(snapshot, {
               now: Date.now(),
@@ -310,8 +379,7 @@ export function createSessionStatusTool(opts?: {
 
       const isGroup =
         resolved.entry.chatType === "group" ||
-        resolved.entry.chatType === "room" ||
-        resolved.key.startsWith("group:") ||
+        resolved.entry.chatType === "channel" ||
         resolved.key.includes(":group:") ||
         resolved.key.includes(":channel:");
       const groupActivation = isGroup
@@ -329,9 +397,25 @@ export function createSessionStatusTool(opts?: {
         resolved.entry.queueDebounceMs ?? resolved.entry.queueCap ?? resolved.entry.queueDrop,
       );
 
+      const userTimezone = resolveUserTimezone(cfg.agents?.defaults?.userTimezone);
+      const userTimeFormat = resolveUserTimeFormat(cfg.agents?.defaults?.timeFormat);
+      const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
+      const timeLine = userTime
+        ? `🕒 Time: ${userTime} (${userTimezone})`
+        : `🕒 Time zone: ${userTimezone}`;
+
+      const agentDefaults = cfg.agents?.defaults ?? {};
+      const defaultLabel = `${configured.provider}/${configured.model}`;
+      const agentModel =
+        typeof agentDefaults.model === "object" && agentDefaults.model
+          ? { ...agentDefaults.model, primary: defaultLabel }
+          : { primary: defaultLabel };
       const statusText = buildStatusMessage({
         config: cfg,
-        agent: cfg.agents?.defaults ?? {},
+        agent: {
+          ...agentDefaults,
+          model: agentModel,
+        },
         sessionEntry: resolved.entry,
         sessionKey: resolved.key,
         groupActivation,
@@ -342,6 +426,7 @@ export function createSessionStatusTool(opts?: {
           agentDir,
         }),
         usageLine,
+        timeLine,
         queue: {
           mode: queueSettings.mode,
           depth: queueDepth,

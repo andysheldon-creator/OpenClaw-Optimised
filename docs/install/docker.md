@@ -152,7 +152,6 @@ WORKDIR /app
 # Cache dependencies unless package metadata changes
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY ui/package.json ./ui/package.json
-COPY patches ./patches
 COPY scripts ./scripts
 
 RUN pnpm install --frozen-lockfile
@@ -254,6 +253,14 @@ precedence, and troubleshooting.
 - Default deny: `browser`, `canvas`, `nodes`, `cron`, `discord`, `gateway`
 
 ### Enable sandboxing
+
+If you plan to install packages in `setupCommand`, note:
+- Default `docker.network` is `"none"` (no egress).
+- `readOnlyRoot: true` blocks package installs.
+- `user` must be root for `apt-get` (omit `user` or set `user: "0:0"`).
+Clawdbot auto-recreates containers when `setupCommand` (or docker config) changes
+unless the container was **recently used** (within ~5 minutes). Hot containers
+log a warning with the exact `clawdbot sandbox recreate ...` command.
 
 ```json5
 {

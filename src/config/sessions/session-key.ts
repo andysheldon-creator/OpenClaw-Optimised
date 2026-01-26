@@ -23,7 +23,7 @@ export function deriveSessionKey(scope: SessionScope, ctx: MsgContext) {
  */
 export function resolveSessionKey(scope: SessionScope, ctx: MsgContext, mainKey?: string) {
   const explicit = ctx.SessionKey?.trim();
-  if (explicit) return explicit;
+  if (explicit) return explicit.toLowerCase();
   const raw = deriveSessionKey(scope, ctx);
   if (scope === "global") return raw;
   const canonicalMainKey = normalizeMainKey(mainKey);
@@ -31,7 +31,7 @@ export function resolveSessionKey(scope: SessionScope, ctx: MsgContext, mainKey?
     agentId: DEFAULT_AGENT_ID,
     mainKey: canonicalMainKey,
   });
-  const isGroup = raw.startsWith("group:") || raw.includes(":group:") || raw.includes(":channel:");
+  const isGroup = raw.includes(":group:") || raw.includes(":channel:");
   if (!isGroup) return canonical;
   return `agent:${DEFAULT_AGENT_ID}:${raw}`;
 }

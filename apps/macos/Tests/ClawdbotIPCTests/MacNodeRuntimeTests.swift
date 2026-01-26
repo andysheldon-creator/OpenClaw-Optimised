@@ -59,7 +59,7 @@ struct MacNodeRuntimeTests {
                 includeAudio: Bool?,
                 outPath: String?) async throws -> (path: String, hasAudio: Bool)
             {
-                let url = FileManager.default.temporaryDirectory
+                let url = FileManager().temporaryDirectory
                     .appendingPathComponent("clawdbot-test-screen-record-\(UUID().uuidString).mp4")
                 try Data("ok".utf8).write(to: url)
                 return (path: url.path, hasAudio: false)
@@ -73,10 +73,6 @@ struct MacNodeRuntimeTests {
                 timeoutMs: Int?) async throws -> CLLocation
             {
                 CLLocation(latitude: 0, longitude: 0)
-            }
-
-            func confirmSystemRun(command: String, cwd: String?) async -> SystemRunDecision {
-                .allowOnce
             }
         }
 

@@ -1,32 +1,35 @@
-import type { ClawdbotConfig } from "../../../src/config/types.js";
-import type { getChildLogger as getChildLoggerFn } from "../../../src/logging.js";
+import { resolveChannelMediaMaxBytes, type ClawdbotConfig, type PluginRuntime } from "clawdbot/plugin-sdk";
+import type { MSTeamsAccessTokenProvider } from "./attachments/types.js";
 import type {
   MSTeamsConversationStore,
   StoredConversationReference,
 } from "./conversation-store.js";
 import { createMSTeamsConversationStoreFs } from "./conversation-store-fs.js";
 import type { MSTeamsAdapter } from "./messenger.js";
+import { getMSTeamsRuntime } from "./runtime.js";
 import { createMSTeamsAdapter, loadMSTeamsSdkWithAuth } from "./sdk.js";
 import { resolveMSTeamsCredentials } from "./token.js";
 
-let _log: ReturnType<typeof getChildLoggerFn> | undefined;
-const getLog = async (): Promise<ReturnType<typeof getChildLoggerFn>> => {
-  if (_log) return _log;
-  const { getChildLogger } = await import("../logging.js");
-  _log = getChildLogger({ name: "msteams:send" });
-  return _log;
-};
+export type MSTeamsConversationType = "personal" | "groupChat" | "channel";
 
 export type MSTeamsProactiveContext = {
   appId: string;
   conversationId: string;
   ref: StoredConversationReference;
   adapter: MSTeamsAdapter;
-  log: Awaited<ReturnType<typeof getLog>>;
+  log: ReturnType<PluginRuntime["logging"]["getChildLogger"]>;
+  /** The type of conversation: personal (1:1), groupChat, or channel */
+  conversationType: MSTeamsConversationType;
+  /** Token provider for Graph API / OneDrive operations */
+  tokenProvider: MSTeamsAccessTokenProvider;
+  /** SharePoint site ID for file uploads in group chats/channels */
+  sharePointSiteId?: string;
+  /** Resolved media max bytes from config (default: 100MB) */
+  mediaMaxBytes?: number;
 };
 
 /**
- * Parse the --to argument into a conversation reference lookup key.
+ * Parse the target value into a conversation reference lookup key.
  * Supported formats:
  * - conversation:19:abc@thread.tacv2 → lookup by conversation ID
  * - user:aad-object-id → lookup by user AAD object ID
@@ -40,7 +43,7 @@ function parseRecipient(to: string): {
   const finalize = (type: "conversation" | "user", id: string) => {
     const normalized = id.trim();
     if (!normalized) {
-      throw new Error(`Invalid --to value: missing ${type} id`);
+      throw new Error(`Invalid target value: missing ${type} id`);
     }
     return { type, id: normalized };
   };
@@ -109,10 +112,35 @@ export async function resolveMSTeamsSendContext(params: {
   }
 
   const { conversationId, ref } = found;
-  const log = await getLog();
+  const core = getMSTeamsRuntime();
+  const log = core.logging.getChildLogger({ name: "msteams:send" });
 
   const { sdk, authConfig } = await loadMSTeamsSdkWithAuth(creds);
   const adapter = createMSTeamsAdapter(authConfig, sdk);
+
+  // Create token provider for Graph API / OneDrive operations
+  const tokenProvider = new sdk.MsalTokenProvider(authConfig) as MSTeamsAccessTokenProvider;
+
+  // Determine conversation type from stored reference
+  const storedConversationType = ref.conversation?.conversationType?.toLowerCase() ?? "";
+  let conversationType: MSTeamsConversationType;
+  if (storedConversationType === "personal") {
+    conversationType = "personal";
+  } else if (storedConversationType === "channel") {
+    conversationType = "channel";
+  } else {
+    // groupChat, or unknown defaults to groupChat behavior
+    conversationType = "groupChat";
+  }
+
+  // Get SharePoint site ID from config (required for file uploads in group chats/channels)
+  const sharePointSiteId = msteamsCfg.sharePointSiteId;
+
+  // Resolve media max bytes from config
+  const mediaMaxBytes = resolveChannelMediaMaxBytes({
+    cfg: params.cfg,
+    resolveChannelLimitMb: ({ cfg }) => cfg.channels?.msteams?.mediaMaxMb,
+  });
 
   return {
     appId: creds.appId,
@@ -120,5 +148,9 @@ export async function resolveMSTeamsSendContext(params: {
     ref,
     adapter: adapter as unknown as MSTeamsAdapter,
     log,
+    conversationType,
+    tokenProvider,
+    sharePointSiteId,
+    mediaMaxBytes,
   };
 }

@@ -152,6 +152,62 @@ describe("sendMessageTelegram", () => {
     expect(res.messageId).toBe("42");
   });
 
+  it("adds link_preview_options when previews are disabled in config", async () => {
+    const chatId = "123";
+    const sendMessage = vi.fn().mockResolvedValue({
+      message_id: 7,
+      chat: { id: chatId },
+    });
+    const api = { sendMessage } as unknown as {
+      sendMessage: typeof sendMessage;
+    };
+
+    loadConfig.mockReturnValue({
+      channels: { telegram: { linkPreview: false } },
+    });
+
+    await sendMessageTelegram(chatId, "hi", { token: "tok", api });
+
+    expect(sendMessage).toHaveBeenCalledWith(chatId, "hi", {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+  });
+
+  it("keeps link_preview_options on plain-text fallback when disabled", async () => {
+    const chatId = "123";
+    const parseErr = new Error(
+      "400: Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 9",
+    );
+    const sendMessage = vi
+      .fn()
+      .mockRejectedValueOnce(parseErr)
+      .mockResolvedValueOnce({
+        message_id: 42,
+        chat: { id: chatId },
+      });
+    const api = { sendMessage } as unknown as {
+      sendMessage: typeof sendMessage;
+    };
+
+    loadConfig.mockReturnValue({
+      channels: { telegram: { linkPreview: false } },
+    });
+
+    await sendMessageTelegram(chatId, "_oops_", {
+      token: "tok",
+      api,
+    });
+
+    expect(sendMessage).toHaveBeenNthCalledWith(1, chatId, "<i>oops</i>", {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+    expect(sendMessage).toHaveBeenNthCalledWith(2, chatId, "_oops_", {
+      link_preview_options: { is_disabled: true },
+    });
+  });
+
   it("uses native fetch for BAN compatibility when api is omitted", async () => {
     const originalFetch = globalThis.fetch;
     const originalBun = (globalThis as { Bun?: unknown }).Bun;
@@ -164,12 +220,10 @@ describe("sendMessageTelegram", () => {
     });
     try {
       await sendMessageTelegram("123", "hi", { token: "tok" });
-      expect(botCtorSpy).toHaveBeenCalledWith(
-        "tok",
-        expect.objectContaining({
-          client: expect.objectContaining({ fetch: fetchSpy }),
-        }),
-      );
+      const clientFetch = (botCtorSpy.mock.calls[0]?.[1] as { client?: { fetch?: unknown } })
+        ?.client?.fetch;
+      expect(clientFetch).toBeTypeOf("function");
+      expect(clientFetch).not.toBe(fetchSpy);
     } finally {
       globalThis.fetch = originalFetch;
       if (originalBun === undefined) {
@@ -287,6 +341,7 @@ describe("sendMessageTelegram", () => {
     expect(sendAnimation).toHaveBeenCalledTimes(1);
     expect(sendAnimation).toHaveBeenCalledWith(chatId, expect.anything(), {
       caption: "caption",
+      parse_mode: "HTML",
     });
     expect(res.messageId).toBe("9");
   });
@@ -320,6 +375,7 @@ describe("sendMessageTelegram", () => {
 
     expect(sendAudio).toHaveBeenCalledWith(chatId, expect.anything(), {
       caption: "caption",
+      parse_mode: "HTML",
     });
     expect(sendVoice).not.toHaveBeenCalled();
   });
@@ -356,6 +412,7 @@ describe("sendMessageTelegram", () => {
 
     expect(sendVoice).toHaveBeenCalledWith(chatId, expect.anything(), {
       caption: "voice note",
+      parse_mode: "HTML",
       message_thread_id: 271,
       reply_to_message_id: 500,
     });
@@ -392,6 +449,7 @@ describe("sendMessageTelegram", () => {
 
     expect(sendAudio).toHaveBeenCalledWith(chatId, expect.anything(), {
       caption: "caption",
+      parse_mode: "HTML",
     });
     expect(sendVoice).not.toHaveBeenCalled();
   });

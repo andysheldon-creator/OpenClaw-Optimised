@@ -24,7 +24,7 @@ actor PortGuardian {
     private var records: [Record] = []
     private let logger = Logger(subsystem: "com.clawdbot", category: "portguard")
     private nonisolated static let appSupportDir: URL = {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let base = FileManager().urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return base.appendingPathComponent("Clawdbot", isDirectory: true)
     }()
 
@@ -71,7 +71,7 @@ actor PortGuardian {
     }
 
     func record(port: Int, pid: Int32, command: String, mode: AppState.ConnectionMode) async {
-        try? FileManager.default.createDirectory(at: Self.appSupportDir, withIntermediateDirectories: true)
+        try? FileManager().createDirectory(at: Self.appSupportDir, withIntermediateDirectories: true)
         self.records.removeAll { $0.pid == pid }
         self.records.append(
             Record(
@@ -184,6 +184,14 @@ actor PortGuardian {
         }
     }
 
+    func isListening(port: Int, pid: Int32? = nil) async -> Bool {
+        let listeners = await self.listeners(on: port)
+        if let pid {
+            return listeners.contains(where: { $0.pid == pid })
+        }
+        return !listeners.isEmpty
+    }
+
     private func listeners(on port: Int) async -> [Listener] {
         let res = await ShellExecutor.run(
             command: ["lsof", "-nP", "-iTCP:\(port)", "-sTCP:LISTEN", "-Fpcn"],
@@ -203,15 +211,13 @@ actor PortGuardian {
         proc.standardOutput = pipe
         proc.standardError = Pipe()
         do {
-            try proc.run()
-            proc.waitUntilExit()
+            let data = try proc.runAndReadToEnd(from: pipe)
+            guard !data.isEmpty else { return nil }
+            return String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
             return nil
         }
-        let data = pipe.fileHandleForReading.readToEndSafely()
-        guard !data.isEmpty else { return nil }
-        return String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func parseListeners(from text: String) -> [Listener] {

@@ -1,9 +1,12 @@
 import { callGatewayTool, type GatewayCallOptions } from "./gateway.js";
 
-type NodeListNode = {
+export type NodeListNode = {
   nodeId: string;
   displayName?: string;
   platform?: string;
+  version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
   remoteIp?: string;
   deviceFamily?: string;
   modelIdentifier?: string;
@@ -20,6 +23,8 @@ type PendingRequest = {
   displayName?: string;
   platform?: string;
   version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
   remoteIp?: string;
   isRepair?: boolean;
   ts: number;
@@ -31,6 +36,8 @@ type PairedNode = {
   displayName?: string;
   platform?: string;
   version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
   remoteIp?: string;
   permissions?: Record<string, boolean>;
   createdAtMs?: number;
@@ -99,12 +106,15 @@ function pickDefaultNode(nodes: NodeListNode[]): NodeListNode | null {
   return null;
 }
 
-export async function resolveNodeId(
-  opts: GatewayCallOptions,
+export async function listNodes(opts: GatewayCallOptions): Promise<NodeListNode[]> {
+  return loadNodes(opts);
+}
+
+export function resolveNodeIdFromList(
+  nodes: NodeListNode[],
   query?: string,
   allowDefault = false,
-) {
-  const nodes = await loadNodes(opts);
+): string {
   const q = String(query ?? "").trim();
   if (!q) {
     if (allowDefault) {
@@ -137,4 +147,13 @@ export async function resolveNodeId(
       .map((n) => n.displayName || n.remoteIp || n.nodeId)
       .join(", ")})`,
   );
+}
+
+export async function resolveNodeId(
+  opts: GatewayCallOptions,
+  query?: string,
+  allowDefault = false,
+) {
+  const nodes = await loadNodes(opts);
+  return resolveNodeIdFromList(nodes, query, allowDefault);
 }

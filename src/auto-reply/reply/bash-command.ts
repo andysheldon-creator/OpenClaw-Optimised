@@ -4,7 +4,9 @@ import { createExecTool } from "../../agents/bash-tools.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { killProcessTree } from "../../agents/shell-utils.js";
 import type { ClawdbotConfig } from "../../config/config.js";
+import { formatCliCommand } from "../../cli/command-format.js";
 import { logVerbose } from "../../globals.js";
+import { clampInt } from "../../utils.js";
 import type { MsgContext } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
@@ -31,14 +33,10 @@ type ActiveBashJob =
 
 let activeJob: ActiveBashJob | null = null;
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
 function resolveForegroundMs(cfg: ClawdbotConfig): number {
   const raw = cfg.commands?.bashForegroundMs;
   if (typeof raw !== "number" || Number.isNaN(raw)) return DEFAULT_FOREGROUND_MS;
-  return clampNumber(Math.floor(raw), 0, MAX_FOREGROUND_MS);
+  return clampInt(raw, 0, MAX_FOREGROUND_MS);
 }
 
 function formatSessionSnippet(sessionId: string) {
@@ -170,7 +168,9 @@ function formatElevatedUnavailableMessage(params: {
   lines.push("- agents.list[].tools.elevated.enabled");
   lines.push("- agents.list[].tools.elevated.allowFrom.<provider>");
   if (params.sessionKey) {
-    lines.push(`See: clawdbot sandbox explain --session ${params.sessionKey}`);
+    lines.push(
+      `See: ${formatCliCommand(`clawdbot sandbox explain --session ${params.sessionKey}`)}`,
+    );
   }
   return lines.join("\n");
 }
@@ -189,7 +189,7 @@ export async function handleBashChatCommand(params: {
 }): Promise<ReplyPayload> {
   if (params.cfg.commands?.bash !== true) {
     return {
-      text: "⚠️ bash is disabled. Set commands.bash=true to enable.",
+      text: "⚠️ bash is disabled. Set commands.bash=true to enable. Docs: https://docs.clawd.bot/tools/slash-commands#config",
     };
   }
 
@@ -328,11 +328,14 @@ export async function handleBashChatCommand(params: {
   try {
     const foregroundMs = resolveForegroundMs(params.cfg);
     const shouldBackgroundImmediately = foregroundMs <= 0;
-    const timeoutSec = params.cfg.tools?.exec?.timeoutSec ?? params.cfg.tools?.bash?.timeoutSec;
+    const timeoutSec = params.cfg.tools?.exec?.timeoutSec;
+    const notifyOnExit = params.cfg.tools?.exec?.notifyOnExit;
     const execTool = createExecTool({
       scopeKey: CHAT_BASH_SCOPE_KEY,
       allowBackground: true,
       timeoutSec,
+      sessionKey: params.sessionKey,
+      notifyOnExit,
       elevated: {
         enabled: params.elevated.enabled,
         allowed: params.elevated.allowed,

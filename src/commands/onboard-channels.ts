@@ -1,13 +1,21 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { listChannelPluginCatalogEntries } from "../channels/plugins/catalog.js";
 import { listChannelPlugins, getChannelPlugin } from "../channels/plugins/index.js";
-import { formatChannelPrimerLine, formatChannelSelectionLine } from "../channels/registry.js";
+import type { ChannelMeta } from "../channels/plugins/types.js";
+import {
+  formatChannelPrimerLine,
+  formatChannelSelectionLine,
+  listChatChannels,
+} from "../channels/registry.js";
 import type { ClawdbotConfig } from "../config/config.js";
+import { isChannelConfigured } from "../config/plugin-auto-enable.js";
 import type { DmPolicy } from "../config/types.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
+import { formatCliCommand } from "../cli/command-format.js";
+import { enablePluginInConfig } from "../plugins/enable.js";
 import type { WizardPrompter, WizardSelectOption } from "../wizard/prompts.js";
 import type { ChannelChoice } from "./onboard-types.js";
 import {
@@ -103,7 +111,8 @@ async function collectChannelStatus(params: {
 }): Promise<ChannelStatusSummary> {
   const installedPlugins = listChannelPlugins();
   const installedIds = new Set(installedPlugins.map((plugin) => plugin.id));
-  const catalogEntries = listChannelPluginCatalogEntries().filter(
+  const workspaceDir = resolveAgentWorkspaceDir(params.cfg, resolveDefaultAgentId(params.cfg));
+  const catalogEntries = listChannelPluginCatalogEntries({ workspaceDir }).filter(
     (entry) => !installedIds.has(entry.id),
   );
   const statusEntries = await Promise.all(
@@ -115,6 +124,20 @@ async function collectChannelStatus(params: {
       }),
     ),
   );
+  const statusByChannel = new Map(statusEntries.map((entry) => [entry.channel, entry]));
+  const fallbackStatuses = listChatChannels()
+    .filter((meta) => !statusByChannel.has(meta.id))
+    .map((meta) => {
+      const configured = isChannelConfigured(params.cfg, meta.id);
+      const statusLabel = configured ? "configured (plugin disabled)" : "not configured";
+      return {
+        channel: meta.id,
+        configured,
+        statusLines: [`${meta.label}: ${statusLabel}`],
+        selectionHint: configured ? "configured · plugin disabled" : "not configured",
+        quickstartScore: 0,
+      };
+    });
   const catalogStatuses = catalogEntries.map((entry) => ({
     channel: entry.id,
     configured: false,
@@ -122,13 +145,13 @@ async function collectChannelStatus(params: {
     selectionHint: "plugin · install",
     quickstartScore: 0,
   }));
-  const combinedStatuses = [...statusEntries, ...catalogStatuses];
-  const statusByChannel = new Map(combinedStatuses.map((entry) => [entry.channel, entry]));
+  const combinedStatuses = [...statusEntries, ...fallbackStatuses, ...catalogStatuses];
+  const mergedStatusByChannel = new Map(combinedStatuses.map((entry) => [entry.channel, entry]));
   const statusLines = combinedStatuses.flatMap((entry) => entry.statusLines);
   return {
     installedPlugins,
     catalogEntries,
-    statusByChannel,
+    statusByChannel: mergedStatusByChannel,
     statusLines,
   };
 }
@@ -165,7 +188,7 @@ async function noteChannelPrimer(
   await prompter.note(
     [
       "DM security: default is pairing; unknown DMs get a pairing code.",
-      "Approve with: clawdbot pairing approve <channel> <code>",
+      `Approve with: ${formatCliCommand("clawdbot pairing approve <channel> <code>")}`,
       'Public DMs require dmPolicy="open" + allowFrom=["*"].',
       'Multi-user DMs: set session.dmScope="per-channel-peer" to isolate sessions.',
       `Docs: ${formatDocsLink("/start/pairing", "start/pairing")}`,
@@ -193,8 +216,9 @@ async function maybeConfigureDmPolicies(params: {
   cfg: ClawdbotConfig;
   selection: ChannelChoice[];
   prompter: WizardPrompter;
+  accountIdsByChannel?: Map<ChannelChoice, string>;
 }): Promise<ClawdbotConfig> {
-  const { selection, prompter } = params;
+  const { selection, prompter, accountIdsByChannel } = params;
   const dmPolicies = selection
     .map((channel) => getChannelOnboardingAdapter(channel)?.dmPolicy)
     .filter(Boolean) as ChannelOnboardingDmPolicy[];
@@ -211,7 +235,8 @@ async function maybeConfigureDmPolicies(params: {
     await prompter.note(
       [
         "Default: pairing (unknown DMs get a pairing code).",
-        `Approve: clawdbot pairing approve ${policy.channel} <code>`,
+        `Approve: ${formatCliCommand(`clawdbot pairing approve ${policy.channel} <code>`)}`,
+        `Allowlist DMs: ${policy.policyKey}="allowlist" + ${policy.allowFromKey} entries.`,
         `Public DMs: ${policy.policyKey}="open" + ${policy.allowFromKey} includes "*".`,
         'Multi-user DMs: set session.dmScope="per-channel-peer" to isolate sessions.',
         `Docs: ${formatDocsLink("/start/pairing", "start/pairing")}`,
@@ -222,6 +247,7 @@ async function maybeConfigureDmPolicies(params: {
       message: `${policy.label} DM policy`,
       options: [
         { value: "pairing", label: "Pairing (recommended)" },
+        { value: "allowlist", label: "Allowlist (specific users only)" },
         { value: "open", label: "Open (public inbound DMs)" },
         { value: "disabled", label: "Disabled (ignore DMs)" },
       ],
@@ -233,6 +259,13 @@ async function maybeConfigureDmPolicies(params: {
     const nextPolicy = await selectPolicy(policy);
     if (nextPolicy !== current) {
       cfg = policy.setPolicy(cfg, nextPolicy);
+    }
+    if (nextPolicy === "allowlist" && policy.promptAllowFrom) {
+      cfg = await policy.promptAllowFrom({
+        cfg,
+        prompter,
+        accountId: accountIdsByChannel?.get(policy.channel),
+      });
     }
   }
 
@@ -270,17 +303,28 @@ export async function setupChannels(
       });
   if (!shouldConfigure) return cfg;
 
+  const corePrimer = listChatChannels().map((meta) => ({
+    id: meta.id as ChannelChoice,
+    label: meta.label,
+    blurb: meta.blurb,
+  }));
+  const coreIds = new Set(corePrimer.map((entry) => entry.id));
   const primerChannels = [
-    ...installedPlugins.map((plugin) => ({
-      id: plugin.id as ChannelChoice,
-      label: plugin.meta.label,
-      blurb: plugin.meta.blurb,
-    })),
-    ...catalogEntries.map((entry) => ({
-      id: entry.id as ChannelChoice,
-      label: entry.meta.label,
-      blurb: entry.meta.blurb,
-    })),
+    ...corePrimer,
+    ...installedPlugins
+      .filter((plugin) => !coreIds.has(plugin.id as ChannelChoice))
+      .map((plugin) => ({
+        id: plugin.id as ChannelChoice,
+        label: plugin.meta.label,
+        blurb: plugin.meta.blurb,
+      })),
+    ...catalogEntries
+      .filter((entry) => !coreIds.has(entry.id as ChannelChoice))
+      .map((entry) => ({
+        id: entry.id as ChannelChoice,
+        label: entry.meta.label,
+        blurb: entry.meta.blurb,
+      })),
   ];
   await noteChannelPrimer(prompter, primerChannels);
 
@@ -288,10 +332,12 @@ export async function setupChannels(
     options?.initialSelection?.[0] ?? resolveQuickstartDefault(statusByChannel);
 
   const shouldPromptAccountIds = options?.promptAccountIds === true;
+  const accountIdsByChannel = new Map<ChannelChoice, string>();
   const recordAccount = (channel: ChannelChoice, accountId: string) => {
     options?.onAccountId?.(channel, accountId);
     const adapter = getChannelOnboardingAdapter(channel);
     adapter?.onAccountRecorded?.(accountId, options);
+    accountIdsByChannel.set(channel, accountId);
   };
 
   const selection: ChannelChoice[] = [];
@@ -301,7 +347,11 @@ export async function setupChannels(
 
   const resolveDisabledHint = (channel: ChannelChoice): string | undefined => {
     const plugin = getChannelPlugin(channel);
-    if (!plugin) return undefined;
+    if (!plugin) {
+      if (next.plugins?.entries?.[channel]?.enabled === false) return "plugin disabled";
+      if (next.plugins?.enabled === false) return "plugins disabled";
+      return undefined;
+    }
     const accountId = resolveChannelDefaultAccountId({ plugin, cfg: next });
     const account = plugin.config.resolveAccount(next, accountId);
     let enabled: boolean | undefined;
@@ -336,21 +386,29 @@ export async function setupChannels(
     });
 
   const getChannelEntries = () => {
+    const core = listChatChannels();
     const installed = listChannelPlugins();
     const installedIds = new Set(installed.map((plugin) => plugin.id));
-    const catalog = listChannelPluginCatalogEntries().filter(
+    const workspaceDir = resolveAgentWorkspaceDir(next, resolveDefaultAgentId(next));
+    const catalog = listChannelPluginCatalogEntries({ workspaceDir }).filter(
       (entry) => !installedIds.has(entry.id),
     );
-    const entries = [
-      ...installed.map((plugin) => ({
-        id: plugin.id as ChannelChoice,
-        meta: plugin.meta,
-      })),
-      ...catalog.map((entry) => ({
-        id: entry.id as ChannelChoice,
-        meta: entry.meta,
-      })),
-    ];
+    const metaById = new Map<string, ChannelMeta>();
+    for (const meta of core) {
+      metaById.set(meta.id, meta);
+    }
+    for (const plugin of installed) {
+      metaById.set(plugin.id, plugin.meta);
+    }
+    for (const entry of catalog) {
+      if (!metaById.has(entry.id)) {
+        metaById.set(entry.id, entry.meta);
+      }
+    }
+    const entries = Array.from(metaById, ([id, meta]) => ({
+      id: id as ChannelChoice,
+      meta,
+    }));
     return {
       entries,
       catalog,
@@ -363,6 +421,31 @@ export async function setupChannels(
     if (!adapter) return;
     const status = await adapter.getStatus({ cfg: next, options, accountOverrides });
     statusByChannel.set(channel, status);
+  };
+
+  const ensureBundledPluginEnabled = async (channel: ChannelChoice): Promise<boolean> => {
+    if (getChannelPlugin(channel)) return true;
+    const result = enablePluginInConfig(next, channel);
+    next = result.config;
+    if (!result.enabled) {
+      await prompter.note(
+        `Cannot enable ${channel}: ${result.reason ?? "plugin disabled"}.`,
+        "Channel setup",
+      );
+      return false;
+    }
+    const workspaceDir = resolveAgentWorkspaceDir(next, resolveDefaultAgentId(next));
+    reloadOnboardingPluginRegistry({
+      cfg: next,
+      runtime,
+      workspaceDir,
+    });
+    if (!getChannelPlugin(channel)) {
+      await prompter.note(`${channel} plugin not available.`, "Channel setup");
+      return false;
+    }
+    await refreshStatus(channel);
+    return true;
   };
 
   const configureChannel = async (channel: ChannelChoice) => {
@@ -476,6 +559,9 @@ export async function setupChannels(
         workspaceDir,
       });
       await refreshStatus(channel);
+    } else {
+      const enabled = await ensureBundledPluginEnabled(channel);
+      if (!enabled) return;
     }
 
     const plugin = getChannelPlugin(channel);
@@ -498,7 +584,7 @@ export async function setupChannels(
         {
           value: "__skip__",
           label: "Skip for now",
-          hint: "You can add channels later via `clawdbot channels add`",
+          hint: `You can add channels later via \`${formatCliCommand("clawdbot channels add")}\``,
         },
       ],
       initialValue: quickstartDefault,
@@ -531,10 +617,8 @@ export async function setupChannels(
   options?.onSelection?.(selection);
 
   const selectionNotes = new Map<string, string>();
-  for (const plugin of listChannelPlugins()) {
-    selectionNotes.set(plugin.id, formatChannelSelectionLine(plugin.meta, formatDocsLink));
-  }
-  for (const entry of listChannelPluginCatalogEntries()) {
+  const { entries: selectionEntries } = getChannelEntries();
+  for (const entry of selectionEntries) {
     selectionNotes.set(entry.id, formatChannelSelectionLine(entry.meta, formatDocsLink));
   }
   const selectedLines = selection
@@ -545,7 +629,12 @@ export async function setupChannels(
   }
 
   if (!options?.skipDmPolicyPrompt) {
-    next = await maybeConfigureDmPolicies({ cfg: next, selection, prompter });
+    next = await maybeConfigureDmPolicies({
+      cfg: next,
+      selection,
+      prompter,
+      accountIdsByChannel,
+    });
   }
 
   return next;

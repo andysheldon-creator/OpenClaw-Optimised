@@ -10,14 +10,21 @@ import type { ClawdbotConfig } from "../config/config.js";
 import { CONFIG_PATH_CLAWDBOT } from "../config/config.js";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
-import { normalizeControlUiBasePath } from "../gateway/control-ui.js";
+import { normalizeControlUiBasePath } from "../gateway/control-ui-shared.js";
 import { isSafeExecutableValue } from "../infra/exec-safety.js";
 import { pickPrimaryTailnetIPv4 } from "../infra/tailnet.js";
+import { isWSL } from "../infra/wsl.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { stylePromptTitle } from "../terminal/prompt-style.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
-import { CONFIG_DIR, resolveUserPath, sleep } from "../utils.js";
+import {
+  CONFIG_DIR,
+  resolveUserPath,
+  shortenHomeInString,
+  shortenHomePath,
+  sleep,
+} from "../utils.js";
 import { VERSION } from "../version.js";
 import type { NodeManagerChoice, OnboardMode, ResetScope } from "./onboard-types.js";
 
@@ -32,21 +39,21 @@ export function guardCancel<T>(value: T | symbol, runtime: RuntimeEnv): T {
 export function summarizeExistingConfig(config: ClawdbotConfig): string {
   const rows: string[] = [];
   const defaults = config.agents?.defaults;
-  if (defaults?.workspace) rows.push(`workspace: ${defaults.workspace}`);
+  if (defaults?.workspace) rows.push(shortenHomeInString(`workspace: ${defaults.workspace}`));
   if (defaults?.model) {
     const model = typeof defaults.model === "string" ? defaults.model : defaults.model.primary;
-    if (model) rows.push(`model: ${model}`);
+    if (model) rows.push(shortenHomeInString(`model: ${model}`));
   }
-  if (config.gateway?.mode) rows.push(`gateway.mode: ${config.gateway.mode}`);
+  if (config.gateway?.mode) rows.push(shortenHomeInString(`gateway.mode: ${config.gateway.mode}`));
   if (typeof config.gateway?.port === "number") {
-    rows.push(`gateway.port: ${config.gateway.port}`);
+    rows.push(shortenHomeInString(`gateway.port: ${config.gateway.port}`));
   }
-  if (config.gateway?.bind) rows.push(`gateway.bind: ${config.gateway.bind}`);
+  if (config.gateway?.bind) rows.push(shortenHomeInString(`gateway.bind: ${config.gateway.bind}`));
   if (config.gateway?.remote?.url) {
-    rows.push(`gateway.remote.url: ${config.gateway.remote.url}`);
+    rows.push(shortenHomeInString(`gateway.remote.url: ${config.gateway.remote.url}`));
   }
   if (config.skills?.install?.nodeManager) {
-    rows.push(`skills.nodeManager: ${config.skills.install.nodeManager}`);
+    rows.push(shortenHomeInString(`skills.nodeManager: ${config.skills.install.nodeManager}`));
   }
   return rows.length ? rows.join("\n") : "No key settings detected.";
 }
@@ -90,27 +97,6 @@ type BrowserOpenSupport = {
   reason?: string;
   command?: string;
 };
-
-let wslCached: boolean | null = null;
-
-async function isWSL(): Promise<boolean> {
-  if (wslCached !== null) return wslCached;
-  if (process.platform !== "linux") {
-    wslCached = false;
-    return wslCached;
-  }
-  if (process.env.WSL_INTEROP || process.env.WSL_DISTRO_NAME || process.env.WSLENV) {
-    wslCached = true;
-    return wslCached;
-  }
-  try {
-    const release = (await fs.readFile("/proc/version", "utf8")).toLowerCase();
-    wslCached = release.includes("microsoft") || release.includes("wsl");
-  } catch {
-    wslCached = false;
-  }
-  return wslCached;
-}
 
 type BrowserOpenCommand = {
   argv: string[] | null;
@@ -206,6 +192,7 @@ function resolveSshTargetHint(): string {
 }
 
 export async function openUrl(url: string): Promise<boolean> {
+  if (shouldSkipBrowserOpenInTests()) return false;
   const resolved = await resolveBrowserOpenCommand();
   if (!resolved.argv) return false;
   const quoteUrl = resolved.quoteUrl === true;
@@ -231,6 +218,20 @@ export async function openUrl(url: string): Promise<boolean> {
   }
 }
 
+export async function openUrlInBackground(url: string): Promise<boolean> {
+  if (shouldSkipBrowserOpenInTests()) return false;
+  if (process.platform !== "darwin") return false;
+  const resolved = await resolveBrowserOpenCommand();
+  if (!resolved.argv || resolved.command !== "open") return false;
+  const command = ["open", "-g", url];
+  try {
+    await runCommandWithTimeout(command, { timeoutMs: 5_000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function ensureWorkspaceAndSessions(
   workspaceDir: string,
   runtime: RuntimeEnv,
@@ -240,10 +241,10 @@ export async function ensureWorkspaceAndSessions(
     dir: workspaceDir,
     ensureBootstrapFiles: !options?.skipBootstrap,
   });
-  runtime.log(`Workspace OK: ${ws.dir}`);
+  runtime.log(`Workspace OK: ${shortenHomePath(ws.dir)}`);
   const sessionsDir = resolveSessionTranscriptsDirForAgent(options?.agentId);
   await fs.mkdir(sessionsDir, { recursive: true });
-  runtime.log(`Sessions OK: ${sessionsDir}`);
+  runtime.log(`Sessions OK: ${shortenHomePath(sessionsDir)}`);
 }
 
 export function resolveNodeManagerOptions(): Array<{
@@ -266,9 +267,9 @@ export async function moveToTrash(pathname: string, runtime: RuntimeEnv): Promis
   }
   try {
     await runCommandWithTimeout(["trash", pathname], { timeoutMs: 5000 });
-    runtime.log(`Moved to Trash: ${pathname}`);
+    runtime.log(`Moved to Trash: ${shortenHomePath(pathname)}`);
   } catch {
-    runtime.log(`Failed to move to Trash (manual delete): ${pathname}`);
+    runtime.log(`Failed to move to Trash (manual delete): ${shortenHomePath(pathname)}`);
   }
 }
 
@@ -307,6 +308,11 @@ export async function detectBinary(name: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function shouldSkipBrowserOpenInTests(): boolean {
+  if (process.env.VITEST) return true;
+  return process.env.NODE_ENV === "test";
 }
 
 export async function probeGatewayReachable(params: {
@@ -386,7 +392,7 @@ export const DEFAULT_WORKSPACE = DEFAULT_AGENT_WORKSPACE_DIR;
 
 export function resolveControlUiLinks(params: {
   port: number;
-  bind?: "auto" | "lan" | "loopback" | "custom";
+  bind?: "auto" | "lan" | "loopback" | "custom" | "tailnet";
   customBindHost?: string;
   basePath?: string;
 }): { httpUrl: string; wsUrl: string } {
@@ -398,7 +404,7 @@ export function resolveControlUiLinks(params: {
     if (bind === "custom" && customBindHost && isValidIPv4(customBindHost)) {
       return customBindHost;
     }
-    if (bind === "auto" && tailnetIPv4) return tailnetIPv4 ?? "127.0.0.1";
+    if (bind === "tailnet" && tailnetIPv4) return tailnetIPv4 ?? "127.0.0.1";
     return "127.0.0.1";
   })();
   const basePath = normalizeControlUiBasePath(params.basePath);

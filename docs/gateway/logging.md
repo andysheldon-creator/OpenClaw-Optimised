@@ -17,6 +17,7 @@ Clawdbot has two log “surfaces”:
 ## File-based logger
 
 - Default rolling log file is under `/tmp/clawdbot/` (one file per day): `clawdbot-YYYY-MM-DD.log`
+  - Date uses the gateway host's local timezone.
 - The log file path and level can be configured via `~/.clawdbot/clawdbot.json`:
   - `logging.file`
   - `logging.level`
@@ -50,7 +51,7 @@ You can tune console verbosity independently via:
 
 ## Tool summary redaction
 
-Verbose tool summaries (e.g. `🛠️ exec: ...`) can mask sensitive tokens before they hit the
+Verbose tool summaries (e.g. `🛠️ Exec: ...`) can mask sensitive tokens before they hit the
 console stream. This is **tools-only** and does not alter file logs.
 
 - `logging.redactSensitive`: `off` | `tools` (default: `tools`)

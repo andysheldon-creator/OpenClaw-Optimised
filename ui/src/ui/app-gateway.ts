@@ -1,9 +1,11 @@
 import { loadChatHistory } from "./controllers/chat";
+import { loadDevices } from "./controllers/devices";
 import { loadNodes } from "./controllers/nodes";
+import { loadAgents } from "./controllers/agents";
 import type { GatewayEventFrame, GatewayHelloOk } from "./gateway";
 import { GatewayBrowserClient } from "./gateway";
 import type { EventLogEntry } from "./app-events";
-import type { PresenceEntry, HealthSnapshot, StatusSummary } from "./types";
+import type { AgentsListResult, PresenceEntry, HealthSnapshot, StatusSummary } from "./types";
 import type { Tab } from "./navigation";
 import type { UiSettings } from "./storage";
 import { handleAgentEvent, resetToolStream, type AgentEventPayload } from "./app-tool-stream";
@@ -15,7 +17,15 @@ import {
   setLastActiveSessionKey,
 } from "./app-settings";
 import { handleChatEvent, type ChatEventPayload } from "./controllers/chat";
+import {
+  addExecApproval,
+  parseExecApprovalRequested,
+  parseExecApprovalResolved,
+  removeExecApproval,
+} from "./controllers/exec-approval";
 import type { ClawdbotApp } from "./app";
+import type { ExecApprovalRequest } from "./controllers/exec-approval";
+import { loadAssistantIdentity } from "./controllers/assistant-identity";
 
 type GatewayHost = {
   settings: UiSettings;
@@ -24,15 +34,24 @@ type GatewayHost = {
   connected: boolean;
   hello: GatewayHelloOk | null;
   lastError: string | null;
+  onboarding?: boolean;
   eventLogBuffer: EventLogEntry[];
   eventLog: EventLogEntry[];
   tab: Tab;
   presenceEntries: PresenceEntry[];
   presenceError: string | null;
   presenceStatus: StatusSummary | null;
+  agentsLoading: boolean;
+  agentsList: AgentsListResult | null;
+  agentsError: string | null;
   debugHealth: HealthSnapshot | null;
+  assistantName: string;
+  assistantAvatar: string | null;
+  assistantAgentId: string | null;
   sessionKey: string;
   chatRunId: string | null;
+  execApprovalQueue: ExecApprovalRequest[];
+  execApprovalError: string | null;
 };
 
 type SessionDefaultsSnapshot = {
@@ -93,6 +112,8 @@ export function connectGateway(host: GatewayHost) {
   host.lastError = null;
   host.hello = null;
   host.connected = false;
+  host.execApprovalQueue = [];
+  host.execApprovalError = null;
 
   host.client?.stop();
   host.client = new GatewayBrowserClient({
@@ -103,14 +124,21 @@ export function connectGateway(host: GatewayHost) {
     mode: "webchat",
     onHello: (hello) => {
       host.connected = true;
+      host.lastError = null;
       host.hello = hello;
       applySnapshot(host, hello);
+      void loadAssistantIdentity(host as unknown as ClawdbotApp);
+      void loadAgents(host as unknown as ClawdbotApp);
       void loadNodes(host as unknown as ClawdbotApp, { quiet: true });
+      void loadDevices(host as unknown as ClawdbotApp, { quiet: true });
       void refreshActiveTab(host as unknown as Parameters<typeof refreshActiveTab>[0]);
     },
     onClose: ({ code, reason }) => {
       host.connected = false;
-      host.lastError = `disconnected (${code}): ${reason || "no reason"}`;
+      // Code 1012 = Service Restart (expected during config saves, don't show as error)
+      if (code !== 1012) {
+        host.lastError = `disconnected (${code}): ${reason || "no reason"}`;
+      }
     },
     onEvent: (evt) => handleGatewayEvent(host, evt),
     onGap: ({ expected, received }) => {
@@ -121,6 +149,14 @@ export function connectGateway(host: GatewayHost) {
 }
 
 export function handleGatewayEvent(host: GatewayHost, evt: GatewayEventFrame) {
+  try {
+    handleGatewayEventUnsafe(host, evt);
+  } catch (err) {
+    console.error("[gateway] handleGatewayEvent error:", evt.event, err);
+  }
+}
+
+function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
   host.eventLogBuffer = [
     { ts: Date.now(), event: evt.event, payload: evt.payload },
     ...host.eventLogBuffer,
@@ -130,6 +166,7 @@ export function handleGatewayEvent(host: GatewayHost, evt: GatewayEventFrame) {
   }
 
   if (evt.event === "agent") {
+    if (host.onboarding) return;
     handleAgentEvent(
       host as unknown as Parameters<typeof handleAgentEvent>[0],
       evt.payload as AgentEventPayload | undefined,
@@ -168,6 +205,30 @@ export function handleGatewayEvent(host: GatewayHost, evt: GatewayEventFrame) {
 
   if (evt.event === "cron" && host.tab === "cron") {
     void loadCron(host as unknown as Parameters<typeof loadCron>[0]);
+  }
+
+  if (evt.event === "device.pair.requested" || evt.event === "device.pair.resolved") {
+    void loadDevices(host as unknown as ClawdbotApp, { quiet: true });
+  }
+
+  if (evt.event === "exec.approval.requested") {
+    const entry = parseExecApprovalRequested(evt.payload);
+    if (entry) {
+      host.execApprovalQueue = addExecApproval(host.execApprovalQueue, entry);
+      host.execApprovalError = null;
+      const delay = Math.max(0, entry.expiresAtMs - Date.now() + 500);
+      window.setTimeout(() => {
+        host.execApprovalQueue = removeExecApproval(host.execApprovalQueue, entry.id);
+      }, delay);
+    }
+    return;
+  }
+
+  if (evt.event === "exec.approval.resolved") {
+    const resolved = parseExecApprovalResolved(evt.payload);
+    if (resolved) {
+      host.execApprovalQueue = removeExecApproval(host.execApprovalQueue, resolved.id);
+    }
   }
 }
 

@@ -1,5 +1,47 @@
 # Changelog
 
+## 2026.1.25
+
+### Changes
+- Breaking: voice-call TTS now uses core `messages.tts` (plugin TTS config deep‑merges with core).
+- Telephony TTS supports OpenAI + ElevenLabs; Edge TTS is ignored for calls.
+- Removed legacy `tts.model`/`tts.voice`/`tts.instructions` plugin fields.
+
+## 2026.1.23
+
+### Changes
+- Version alignment with core Clawdbot release numbers.
+
+## 2026.1.22
+
+### Changes
+- Version alignment with core Clawdbot release numbers.
+
+## 2026.1.21
+
+### Changes
+- Version alignment with core Clawdbot release numbers.
+
+## 2026.1.20
+
+### Changes
+- Version alignment with core Clawdbot release numbers.
+
+## 2026.1.17-1
+
+### Changes
+- Version alignment with core Clawdbot release numbers.
+
+## 2026.1.17
+
+### Changes
+- Version alignment with core Clawdbot release numbers.
+
+## 2026.1.16
+
+### Changes
+- Version alignment with core Clawdbot release numbers.
+
 ## 2026.1.15
 
 ### Changes

@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { CONFIG_DIR, resolveUserPath } from "../utils.js";
+import { resolveConfigDir, resolveUserPath } from "../utils.js";
+import { resolveBundledPluginsDir } from "./bundled-dir.js";
+import type { ClawdbotPackageManifest, PackageManifest } from "./manifest.js";
 import type { PluginDiagnostic, PluginOrigin } from "./types.js";
 
 const EXTENSION_EXTS = new Set([".ts", ".js", ".mts", ".cts", ".mjs", ".cjs"]);
@@ -9,25 +11,19 @@ const EXTENSION_EXTS = new Set([".ts", ".js", ".mts", ".cts", ".mjs", ".cjs"]);
 export type PluginCandidate = {
   idHint: string;
   source: string;
+  rootDir: string;
   origin: PluginOrigin;
   workspaceDir?: string;
   packageName?: string;
   packageVersion?: string;
   packageDescription?: string;
+  packageDir?: string;
+  packageClawdbot?: ClawdbotPackageManifest;
 };
 
 export type PluginDiscoveryResult = {
   candidates: PluginCandidate[];
   diagnostics: PluginDiagnostic[];
-};
-
-type PackageManifest = {
-  name?: string;
-  version?: string;
-  description?: string;
-  clawdbot?: {
-    extensions?: string[];
-  };
 };
 
 function isExtensionFile(filePath: string): boolean {
@@ -77,9 +73,11 @@ function addCandidate(params: {
   seen: Set<string>;
   idHint: string;
   source: string;
+  rootDir: string;
   origin: PluginOrigin;
   workspaceDir?: string;
   manifest?: PackageManifest | null;
+  packageDir?: string;
 }) {
   const resolved = path.resolve(params.source);
   if (params.seen.has(resolved)) return;
@@ -88,11 +86,14 @@ function addCandidate(params: {
   params.candidates.push({
     idHint: params.idHint,
     source: resolved,
+    rootDir: path.resolve(params.rootDir),
     origin: params.origin,
     workspaceDir: params.workspaceDir,
     packageName: manifest?.name?.trim() || undefined,
     packageVersion: manifest?.version?.trim() || undefined,
     packageDescription: manifest?.description?.trim() || undefined,
+    packageDir: params.packageDir,
+    packageClawdbot: manifest?.clawdbot,
   });
 }
 
@@ -126,6 +127,7 @@ function discoverInDirectory(params: {
         seen: params.seen,
         idHint: path.basename(entry.name, path.extname(entry.name)),
         source: fullPath,
+        rootDir: path.dirname(fullPath),
         origin: params.origin,
         workspaceDir: params.workspaceDir,
       });
@@ -147,9 +149,11 @@ function discoverInDirectory(params: {
             hasMultipleExtensions: extensions.length > 1,
           }),
           source: resolved,
+          rootDir: fullPath,
           origin: params.origin,
           workspaceDir: params.workspaceDir,
           manifest,
+          packageDir: fullPath,
         });
       }
       continue;
@@ -165,8 +169,11 @@ function discoverInDirectory(params: {
         seen: params.seen,
         idHint: entry.name,
         source: indexFile,
+        rootDir: fullPath,
         origin: params.origin,
         workspaceDir: params.workspaceDir,
+        manifest,
+        packageDir: fullPath,
       });
     }
   }
@@ -183,7 +190,7 @@ function discoverFromPath(params: {
   const resolved = resolveUserPath(params.rawPath);
   if (!fs.existsSync(resolved)) {
     params.diagnostics.push({
-      level: "warn",
+      level: "error",
       message: `plugin path not found: ${resolved}`,
       source: resolved,
     });
@@ -194,7 +201,7 @@ function discoverFromPath(params: {
   if (stat.isFile()) {
     if (!isExtensionFile(resolved)) {
       params.diagnostics.push({
-        level: "warn",
+        level: "error",
         message: `plugin path is not a supported file: ${resolved}`,
         source: resolved,
       });
@@ -205,6 +212,7 @@ function discoverFromPath(params: {
       seen: params.seen,
       idHint: path.basename(resolved, path.extname(resolved)),
       source: resolved,
+      rootDir: path.dirname(resolved),
       origin: params.origin,
       workspaceDir: params.workspaceDir,
     });
@@ -227,9 +235,11 @@ function discoverFromPath(params: {
             hasMultipleExtensions: extensions.length > 1,
           }),
           source,
+          rootDir: resolved,
           origin: params.origin,
           workspaceDir: params.workspaceDir,
           manifest,
+          packageDir: resolved,
         });
       }
       return;
@@ -246,8 +256,11 @@ function discoverFromPath(params: {
         seen: params.seen,
         idHint: path.basename(resolved),
         source: indexFile,
+        rootDir: resolved,
         origin: params.origin,
         workspaceDir: params.workspaceDir,
+        manifest,
+        packageDir: resolved,
       });
       return;
     }
@@ -271,17 +284,22 @@ export function discoverClawdbotPlugins(params: {
   const candidates: PluginCandidate[] = [];
   const diagnostics: PluginDiagnostic[] = [];
   const seen = new Set<string>();
-
-  const globalDir = path.join(CONFIG_DIR, "extensions");
-  discoverInDirectory({
-    dir: globalDir,
-    origin: "global",
-    candidates,
-    diagnostics,
-    seen,
-  });
-
   const workspaceDir = params.workspaceDir?.trim();
+
+  const extra = params.extraPaths ?? [];
+  for (const extraPath of extra) {
+    if (typeof extraPath !== "string") continue;
+    const trimmed = extraPath.trim();
+    if (!trimmed) continue;
+    discoverFromPath({
+      rawPath: trimmed,
+      origin: "config",
+      workspaceDir: workspaceDir?.trim() || undefined,
+      candidates,
+      diagnostics,
+      seen,
+    });
+  }
   if (workspaceDir) {
     const workspaceRoot = resolveUserPath(workspaceDir);
     const workspaceExt = path.join(workspaceRoot, ".clawdbot", "extensions");
@@ -295,15 +313,20 @@ export function discoverClawdbotPlugins(params: {
     });
   }
 
-  const extra = params.extraPaths ?? [];
-  for (const extraPath of extra) {
-    if (typeof extraPath !== "string") continue;
-    const trimmed = extraPath.trim();
-    if (!trimmed) continue;
-    discoverFromPath({
-      rawPath: trimmed,
-      origin: "config",
-      workspaceDir: workspaceDir?.trim() || undefined,
+  const globalDir = path.join(resolveConfigDir(), "extensions");
+  discoverInDirectory({
+    dir: globalDir,
+    origin: "global",
+    candidates,
+    diagnostics,
+    seen,
+  });
+
+  const bundledDir = resolveBundledPluginsDir();
+  if (bundledDir) {
+    discoverInDirectory({
+      dir: bundledDir,
+      origin: "bundled",
       candidates,
       diagnostics,
       seen,

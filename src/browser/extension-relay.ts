@@ -477,13 +477,23 @@ export async function ensureChromeExtensionRelayServer(opts: {
           const targetType = attached?.targetInfo?.type ?? "page";
           if (targetType !== "page") return;
           if (attached?.sessionId && attached?.targetInfo?.targetId) {
-            const already = connectedTargets.has(attached.sessionId);
+            const prev = connectedTargets.get(attached.sessionId);
+            const nextTargetId = attached.targetInfo.targetId;
+            const prevTargetId = prev?.targetId;
+            const changedTarget = Boolean(prev && prevTargetId && prevTargetId !== nextTargetId);
             connectedTargets.set(attached.sessionId, {
               sessionId: attached.sessionId,
-              targetId: attached.targetInfo.targetId,
+              targetId: nextTargetId,
               targetInfo: attached.targetInfo,
             });
-            if (!already) {
+            if (changedTarget && prevTargetId) {
+              broadcastToCdpClients({
+                method: "Target.detachedFromTarget",
+                params: { sessionId: attached.sessionId, targetId: prevTargetId },
+                sessionId: attached.sessionId,
+              });
+            }
+            if (!prev || changedTarget) {
               broadcastToCdpClients({ method, params, sessionId });
             }
             return;
@@ -495,6 +505,23 @@ export async function ensureChromeExtensionRelayServer(opts: {
           if (detached?.sessionId) connectedTargets.delete(detached.sessionId);
           broadcastToCdpClients({ method, params, sessionId });
           return;
+        }
+
+        // Keep cached tab metadata fresh for /json/list.
+        // After navigation, Chrome updates URL/title via Target.targetInfoChanged.
+        if (method === "Target.targetInfoChanged") {
+          const changed = (params ?? {}) as { targetInfo?: { targetId?: string; type?: string } };
+          const targetInfo = changed?.targetInfo;
+          const targetId = targetInfo?.targetId;
+          if (targetId && (targetInfo?.type ?? "page") === "page") {
+            for (const [sid, target] of connectedTargets) {
+              if (target.targetId !== targetId) continue;
+              connectedTargets.set(sid, {
+                ...target,
+                targetInfo: { ...target.targetInfo, ...(targetInfo as object) },
+              });
+            }
+          }
         }
 
         broadcastToCdpClients({ method, params, sessionId });

@@ -3,25 +3,88 @@ summary: "How inbound audio/voice notes are downloaded, transcribed, and injecte
 read_when:
   - Changing audio transcription or media handling
 ---
-# Audio / Voice Notes — 2025-12-05
+# Audio / Voice Notes — 2026-01-17
 
 ## What works
-- **Optional transcription**: If `tools.audio.transcription` is set in `~/.clawdbot/clawdbot.json`, Clawdbot will:
-  1) Download inbound audio to a temp path when WhatsApp only provides a URL.
-  2) Run the configured CLI args (templated with `{{MediaPath}}`), expecting transcript on stdout.
-  3) Replace `Body` with the transcript, set `{{Transcript}}`, and prepend the original media path plus a `Transcript:` section in the command prompt so models see both.
-  4) Continue through the normal auto-reply pipeline (templating, sessions, Pi command).
-- **Verbose logging**: In `--verbose`, we log when transcription runs and when the transcript replaces the body.
+- **Media understanding (audio)**: If audio understanding is enabled (or auto‑detected), Clawdbot:
+  1) Locates the first audio attachment (local path or URL) and downloads it if needed.
+  2) Enforces `maxBytes` before sending to each model entry.
+  3) Runs the first eligible model entry in order (provider or CLI).
+  4) If it fails or skips (size/timeout), it tries the next entry.
+  5) On success, it replaces `Body` with an `[Audio]` block and sets `{{Transcript}}`.
+- **Command parsing**: When transcription succeeds, `CommandBody`/`RawBody` are set to the transcript so slash commands still work.
+- **Verbose logging**: In `--verbose`, we log when transcription runs and when it replaces the body.
 
-## Config example (Whisper CLI)
-Requires `whisper` CLI installed:
+## Auto-detection (default)
+If you **don’t configure models** and `tools.media.audio.enabled` is **not** set to `false`,
+Clawdbot auto-detects in this order and stops at the first working option:
+
+1) **Local CLIs** (if installed)
+   - `sherpa-onnx-offline` (requires `SHERPA_ONNX_MODEL_DIR` with encoder/decoder/joiner/tokens)
+   - `whisper-cli` (from `whisper-cpp`; uses `WHISPER_CPP_MODEL` or the bundled tiny model)
+   - `whisper` (Python CLI; downloads models automatically)
+2) **Gemini CLI** (`gemini`) using `read_many_files`
+3) **Provider keys** (OpenAI → Groq → Deepgram → Google)
+
+To disable auto-detection, set `tools.media.audio.enabled: false`.
+To customize, set `tools.media.audio.models`.
+Note: Binary detection is best-effort across macOS/Linux/Windows; ensure the CLI is on `PATH` (we expand `~`), or set an explicit CLI model with a full command path.
+
+## Config examples
+
+### Provider + CLI fallback (OpenAI + Whisper CLI)
 ```json5
 {
   tools: {
-    audio: {
-      transcription: {
-        args: ["--model", "base", "{{MediaPath}}"],
-        timeoutSeconds: 45
+    media: {
+      audio: {
+        enabled: true,
+        maxBytes: 20971520,
+        models: [
+          { provider: "openai", model: "gpt-4o-mini-transcribe" },
+          {
+            type: "cli",
+            command: "whisper",
+            args: ["--model", "base", "{{MediaPath}}"],
+            timeoutSeconds: 45
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+### Provider-only with scope gating
+```json5
+{
+  tools: {
+    media: {
+      audio: {
+        enabled: true,
+        scope: {
+          default: "allow",
+          rules: [
+            { action: "deny", match: { chatType: "group" } }
+          ]
+        },
+        models: [
+          { provider: "openai", model: "gpt-4o-mini-transcribe" }
+        ]
+      }
+    }
+  }
+}
+```
+
+### Provider-only (Deepgram)
+```json5
+{
+  tools: {
+    media: {
+      audio: {
+        enabled: true,
+        models: [{ provider: "deepgram", model: "nova-3" }]
       }
     }
   }
@@ -29,12 +92,18 @@ Requires `whisper` CLI installed:
 ```
 
 ## Notes & limits
-- We don’t ship a transcriber; you opt in with the Whisper CLI on your PATH.
-- Size guard: inbound audio must be ≤5 MB (matches the temp media store and transcript pipeline).
-- Outbound caps: web send supports audio/voice up to 16 MB (sent as a voice note with `ptt: true`).
-- If transcription fails, we fall back to the original body/media note; replies still go through.
-- Transcript is available to templates as `{{Transcript}}`; models get both the media path and a `Transcript:` block in the prompt when using command mode.
+- Provider auth follows the standard model auth order (auth profiles, env vars, `models.providers.*.apiKey`).
+- Deepgram picks up `DEEPGRAM_API_KEY` when `provider: "deepgram"` is used.
+- Deepgram setup details: [Deepgram (audio transcription)](/providers/deepgram).
+- Audio providers can override `baseUrl`, `headers`, and `providerOptions` via `tools.media.audio`.
+- Default size cap is 20MB (`tools.media.audio.maxBytes`). Oversize audio is skipped for that model and the next entry is tried.
+- Default `maxChars` for audio is **unset** (full transcript). Set `tools.media.audio.maxChars` or per-entry `maxChars` to trim output.
+- OpenAI auto default is `gpt-4o-mini-transcribe`; set `model: "gpt-4o-transcribe"` for higher accuracy.
+- Use `tools.media.audio.attachments` to process multiple voice notes (`mode: "all"` + `maxAttachments`).
+- Transcript is available to templates as `{{Transcript}}`.
+- CLI stdout is capped (5MB); keep CLI output concise.
 
 ## Gotchas
+- Scope rules use first-match wins. `chatType` is normalized to `direct`, `group`, or `room`.
 - Ensure your CLI exits 0 and prints plain text; JSON needs to be massaged via `jq -r .text`.
-- Keep timeouts reasonable (`timeoutSeconds`, default 45s) to avoid blocking the reply queue.
+- Keep timeouts reasonable (`timeoutSeconds`, default 60s) to avoid blocking the reply queue.

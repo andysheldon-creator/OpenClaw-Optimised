@@ -72,14 +72,14 @@ describe("callGateway url resolution", () => {
     closeReason = "";
   });
 
-  it("uses tailnet IP when local bind is auto and tailnet is present", async () => {
+  it("keeps loopback when local bind is auto even if tailnet is present", async () => {
     loadConfig.mockReturnValue({ gateway: { mode: "local", bind: "auto" } });
     resolveGatewayPort.mockReturnValue(18800);
     pickPrimaryTailnetIPv4.mockReturnValue("100.64.0.1");
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.url).toBe("ws://100.64.0.1:18800");
+    expect(lastClientOptions?.url).toBe("ws://127.0.0.1:18800");
   });
 
   it("falls back to loopback when local bind is auto without tailnet IP", async () => {
@@ -90,6 +90,28 @@ describe("callGateway url resolution", () => {
     await callGateway({ method: "health" });
 
     expect(lastClientOptions?.url).toBe("ws://127.0.0.1:18800");
+  });
+
+  it("uses tailnet IP when local bind is tailnet and tailnet is present", async () => {
+    loadConfig.mockReturnValue({ gateway: { mode: "local", bind: "tailnet" } });
+    resolveGatewayPort.mockReturnValue(18800);
+    pickPrimaryTailnetIPv4.mockReturnValue("100.64.0.1");
+
+    await callGateway({ method: "health" });
+
+    expect(lastClientOptions?.url).toBe("ws://100.64.0.1:18800");
+  });
+
+  it("uses url override in remote mode even when remote url is missing", async () => {
+    loadConfig.mockReturnValue({
+      gateway: { mode: "remote", bind: "loopback", remote: {} },
+    });
+    resolveGatewayPort.mockReturnValue(18789);
+    pickPrimaryTailnetIPv4.mockReturnValue(undefined);
+
+    await callGateway({ method: "health", url: "wss://override.example/ws" });
+
+    expect(lastClientOptions?.url).toBe("wss://override.example/ws");
   });
 });
 
@@ -311,5 +333,45 @@ describe("callGateway password resolution", () => {
     await callGateway({ method: "health" });
 
     expect(lastClientOptions?.password).toBe("from-env");
+  });
+});
+
+describe("callGateway token resolution", () => {
+  const originalEnvToken = process.env.CLAWDBOT_GATEWAY_TOKEN;
+
+  beforeEach(() => {
+    loadConfig.mockReset();
+    resolveGatewayPort.mockReset();
+    pickPrimaryTailnetIPv4.mockReset();
+    lastClientOptions = null;
+    startMode = "hello";
+    closeCode = 1006;
+    closeReason = "";
+    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+    resolveGatewayPort.mockReturnValue(18789);
+    pickPrimaryTailnetIPv4.mockReturnValue(undefined);
+  });
+
+  afterEach(() => {
+    if (originalEnvToken == null) {
+      delete process.env.CLAWDBOT_GATEWAY_TOKEN;
+    } else {
+      process.env.CLAWDBOT_GATEWAY_TOKEN = originalEnvToken;
+    }
+  });
+
+  it("uses remote token when remote mode uses url override", async () => {
+    process.env.CLAWDBOT_GATEWAY_TOKEN = "env-token";
+    loadConfig.mockReturnValue({
+      gateway: {
+        mode: "remote",
+        remote: { token: "remote-token" },
+        auth: { token: "local-token" },
+      },
+    });
+
+    await callGateway({ method: "health", url: "wss://override.example/ws" });
+
+    expect(lastClientOptions?.token).toBe("remote-token");
   });
 });

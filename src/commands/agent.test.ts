@@ -18,8 +18,14 @@ import { loadModelCatalog } from "../agents/model-catalog.js";
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import type { ClawdbotConfig } from "../config/config.js";
 import * as configModule from "../config/config.js";
+import { emitAgentEvent, onAgentEvent } from "../infra/agent-events.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { setActivePluginRegistry } from "../plugins/runtime.js";
+import { createPluginRuntime } from "../plugins/runtime/index.js";
+import { createTestRegistry } from "../test-utils/channel-plugins.js";
 import { agentCommand } from "./agent.js";
+import { telegramPlugin } from "../../extensions/telegram/src/channel.js";
+import { setTelegramRuntime } from "../../extensions/telegram/src/runtime.js";
 
 const runtime: RuntimeEnv = {
   log: vi.fn(),
@@ -40,6 +46,7 @@ function mockConfig(
   storePath: string,
   agentOverrides?: Partial<NonNullable<NonNullable<ClawdbotConfig["agents"]>["defaults"]>>,
   telegramOverrides?: Partial<NonNullable<ClawdbotConfig["telegram"]>>,
+  agentsList?: Array<{ id: string; default?: boolean }>,
 ) {
   configSpy.mockReturnValue({
     agents: {
@@ -49,6 +56,7 @@ function mockConfig(
         workspace: path.join(home, "clawd"),
         ...agentOverrides,
       },
+      list: agentsList,
     },
     session: { store: storePath, mainKey: "main" },
     telegram: telegramOverrides ? { ...telegramOverrides } : undefined,
@@ -132,6 +140,43 @@ describe("agentCommand", () => {
     });
   });
 
+  it("does not duplicate agent events from embedded runs", async () => {
+    await withTempHome(async (home) => {
+      const store = path.join(home, "sessions.json");
+      mockConfig(home, store);
+
+      const assistantEvents: Array<{ runId: string; text?: string }> = [];
+      const stop = onAgentEvent((evt) => {
+        if (evt.stream !== "assistant") return;
+        assistantEvents.push({
+          runId: evt.runId,
+          text: typeof evt.data?.text === "string" ? (evt.data.text as string) : undefined,
+        });
+      });
+
+      vi.mocked(runEmbeddedPiAgent).mockImplementationOnce(async (params) => {
+        const runId = (params as { runId?: string } | undefined)?.runId ?? "run";
+        const data = { text: "hello", delta: "hello" };
+        (
+          params as {
+            onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void;
+          }
+        ).onAgentEvent?.({ stream: "assistant", data });
+        emitAgentEvent({ runId, stream: "assistant", data });
+        return {
+          payloads: [{ text: "hello" }],
+          meta: { agentMeta: { provider: "p", model: "m" } },
+        } as never;
+      });
+
+      await agentCommand({ message: "hi", to: "+1555" }, runtime);
+      stop();
+
+      const matching = assistantEvents.filter((evt) => evt.text === "hello");
+      expect(matching).toHaveLength(1);
+    });
+  });
+
   it("uses provider/model from agents.defaults.model.primary", async () => {
     await withTempHome(async (home) => {
       const store = path.join(home, "sessions.json");
@@ -187,6 +232,30 @@ describe("agentCommand", () => {
         { sessionId?: string }
       >;
       expect(saved["agent:main:subagent:abc"]?.sessionId).toBe("sess-main");
+    });
+  });
+
+  it("derives session key from --agent when no routing target is provided", async () => {
+    await withTempHome(async (home) => {
+      const store = path.join(home, "sessions.json");
+      mockConfig(home, store, undefined, undefined, [{ id: "ops" }]);
+
+      await agentCommand({ message: "hi", agentId: "ops" }, runtime);
+
+      const callArgs = vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0];
+      expect(callArgs?.sessionKey).toBe("agent:ops:main");
+      expect(callArgs?.sessionFile).toContain(`${path.sep}agents${path.sep}ops${path.sep}sessions`);
+    });
+  });
+
+  it("rejects unknown agent overrides", async () => {
+    await withTempHome(async (home) => {
+      const store = path.join(home, "sessions.json");
+      mockConfig(home, store);
+
+      await expect(agentCommand({ message: "hi", agentId: "ghost" }, runtime)).rejects.toThrow(
+        'Unknown agent id "ghost"',
+      );
     });
   });
 
@@ -251,6 +320,10 @@ describe("agentCommand", () => {
     await withTempHome(async (home) => {
       const store = path.join(home, "sessions.json");
       mockConfig(home, store, undefined, { botToken: "t-1" });
+      setTelegramRuntime(createPluginRuntime());
+      setActivePluginRegistry(
+        createTestRegistry([{ pluginId: "telegram", plugin: telegramPlugin, source: "test" }]),
+      );
       const deps = {
         sendMessageWhatsApp: vi.fn(),
         sendMessageTelegram: vi.fn().mockResolvedValue({ messageId: "t1", chatId: "123" }),
@@ -285,6 +358,62 @@ describe("agentCommand", () => {
           process.env.TELEGRAM_BOT_TOKEN = prevTelegramToken;
         }
       }
+    });
+  });
+
+  it("uses reply channel as the message channel context", async () => {
+    await withTempHome(async (home) => {
+      const store = path.join(home, "sessions.json");
+      mockConfig(home, store, undefined, undefined, [{ id: "ops" }]);
+
+      await agentCommand({ message: "hi", agentId: "ops", replyChannel: "slack" }, runtime);
+
+      const callArgs = vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0];
+      expect(callArgs?.messageChannel).toBe("slack");
+    });
+  });
+
+  it("prefers runContext for embedded routing", async () => {
+    await withTempHome(async (home) => {
+      const store = path.join(home, "sessions.json");
+      mockConfig(home, store);
+
+      await agentCommand(
+        {
+          message: "hi",
+          to: "+1555",
+          channel: "whatsapp",
+          runContext: { messageChannel: "slack", accountId: "acct-2" },
+        },
+        runtime,
+      );
+
+      const callArgs = vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0];
+      expect(callArgs?.messageChannel).toBe("slack");
+      expect(callArgs?.agentAccountId).toBe("acct-2");
+    });
+  });
+
+  it("forwards accountId to embedded runs", async () => {
+    await withTempHome(async (home) => {
+      const store = path.join(home, "sessions.json");
+      mockConfig(home, store);
+
+      await agentCommand({ message: "hi", to: "+1555", accountId: "kev" }, runtime);
+
+      const callArgs = vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0];
+      expect(callArgs?.agentAccountId).toBe("kev");
+    });
+  });
+
+  it("logs output when delivery is disabled", async () => {
+    await withTempHome(async (home) => {
+      const store = path.join(home, "sessions.json");
+      mockConfig(home, store, undefined, undefined, [{ id: "ops" }]);
+
+      await agentCommand({ message: "hi", agentId: "ops" }, runtime);
+
+      expect(runtime.log).toHaveBeenCalledWith("ok");
     });
   });
 });

@@ -9,9 +9,11 @@ import type { ThinkLevel } from "../../auto-reply/thinking.js";
 import type { ClawdbotConfig } from "../../config/config.js";
 import type { CliBackendConfig } from "../../config/types.js";
 import { runExec } from "../../process/exec.js";
-import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
+import { buildSystemPromptParams } from "../system-prompt-params.js";
+import { resolveDefaultModelForAgent } from "../model-selection.js";
 import { buildAgentSystemPrompt } from "../system-prompt.js";
+import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 
 const CLI_RUN_QUEUE = new Map<string, Promise<unknown>>();
 
@@ -168,13 +170,32 @@ export function buildSystemPrompt(params: {
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
   heartbeatPrompt?: string;
+  docsPath?: string;
   tools: AgentTool[];
   contextFiles?: EmbeddedContextFile[];
   modelDisplay: string;
+  agentId?: string;
 }) {
-  const userTimezone = resolveUserTimezone(params.config?.agents?.defaults?.userTimezone);
-  const userTimeFormat = resolveUserTimeFormat(params.config?.agents?.defaults?.timeFormat);
-  const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
+  const defaultModelRef = resolveDefaultModelForAgent({
+    cfg: params.config ?? {},
+    agentId: params.agentId,
+  });
+  const defaultModelLabel = `${defaultModelRef.provider}/${defaultModelRef.model}`;
+  const { runtimeInfo, userTimezone, userTime, userTimeFormat } = buildSystemPromptParams({
+    config: params.config,
+    agentId: params.agentId,
+    workspaceDir: params.workspaceDir,
+    cwd: process.cwd(),
+    runtime: {
+      host: "clawdbot",
+      os: `${os.type()} ${os.release()}`,
+      arch: os.arch(),
+      node: process.version,
+      model: params.modelDisplay,
+      defaultModel: defaultModelLabel,
+    },
+  });
+  const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,
     defaultThinkLevel: params.defaultThinkLevel,
@@ -182,19 +203,15 @@ export function buildSystemPrompt(params: {
     ownerNumbers: params.ownerNumbers,
     reasoningTagHint: false,
     heartbeatPrompt: params.heartbeatPrompt,
-    runtimeInfo: {
-      host: "clawdbot",
-      os: `${os.type()} ${os.release()}`,
-      arch: os.arch(),
-      node: process.version,
-      model: params.modelDisplay,
-    },
+    docsPath: params.docsPath,
+    runtimeInfo,
     toolNames: params.tools.map((tool) => tool.name),
     modelAliasLines: buildModelAliasLines(params.config),
     userTimezone,
     userTime,
     userTimeFormat,
     contextFiles: params.contextFiles,
+    ttsHint,
   });
 }
 

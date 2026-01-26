@@ -25,6 +25,8 @@ vi.mock("../auto-reply/reply.js", () => ({
 
 vi.mock("./send.js", () => ({
   sendMessageSignal: (...args: unknown[]) => sendMock(...args),
+  sendTypingSignal: vi.fn().mockResolvedValue(true),
+  sendReadReceiptSignal: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock("../pairing/pairing-store.js", () => ({
@@ -35,6 +37,8 @@ vi.mock("../pairing/pairing-store.js", () => ({
 vi.mock("../config/sessions.js", () => ({
   resolveStorePath: vi.fn(() => "/tmp/clawdbot-sessions.json"),
   updateLastRoute: (...args: unknown[]) => updateLastRouteMock(...args),
+  readSessionUpdatedAt: vi.fn(() => undefined),
+  recordSessionMetaFromInbound: vi.fn().mockResolvedValue(undefined),
 }));
 
 const streamMock = vi.fn();

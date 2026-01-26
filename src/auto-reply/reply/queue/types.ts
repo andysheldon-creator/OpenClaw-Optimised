@@ -3,6 +3,7 @@ import type { ClawdbotConfig } from "../../../config/config.js";
 import type { SessionEntry } from "../../../config/sessions.js";
 import type { OriginatingChannelType } from "../../templating.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "../directives.js";
+import type { ExecToolDefaults } from "../../../agents/bash-tools.js";
 
 export type QueueMode = "steer" | "followup" | "collect" | "steer-backlog" | "interrupt" | "queue";
 
@@ -38,6 +39,8 @@ export type FollowupRun = {
   originatingAccountId?: string;
   /** Thread id for reply routing (Telegram topic id or Matrix thread event id). */
   originatingThreadId?: string | number;
+  /** Chat type for context-aware threading (e.g., DM vs channel). */
+  originatingChatType?: string;
   run: {
     agentId: string;
     agentDir: string;
@@ -45,6 +48,9 @@ export type FollowupRun = {
     sessionKey?: string;
     messageProvider?: string;
     agentAccountId?: string;
+    groupId?: string;
+    groupChannel?: string;
+    groupSpace?: string;
     sessionFile: string;
     workspaceDir: string;
     config: ClawdbotConfig;
@@ -52,10 +58,12 @@ export type FollowupRun = {
     provider: string;
     model: string;
     authProfileId?: string;
+    authProfileIdSource?: "auto" | "user";
     thinkLevel?: ThinkLevel;
     verboseLevel?: VerboseLevel;
     reasoningLevel?: ReasoningLevel;
     elevatedLevel?: ElevatedLevel;
+    execOverrides?: Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
     bashElevated?: {
       enabled: boolean;
       allowed: boolean;

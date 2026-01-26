@@ -166,6 +166,19 @@ Clawdbot preserves the auth when calling `/json/*` endpoints and when connecting
 to the CDP WebSocket. Prefer environment variables or secrets managers for
 tokens instead of committing them to config files.
 
+### Node browser proxy (zero-config default)
+
+If you run a **node host** on the machine that has your browser, Clawdbot can
+auto-route browser tool calls to that node without any custom `controlUrl`
+setup. This is the default path for remote gateways.
+
+Notes:
+- The node host exposes its local browser control server via a **proxy command**.
+- Profiles come from the node’s own `browser.profiles` config (same as local).
+- Disable if you don’t want it:
+  - On the node: `nodeHost.browserProxy.enabled=false`
+  - On the gateway: `gateway.nodes.browser.mode="off"`
+
 ### Browserless (hosted remote CDP)
 
 [Browserless](https://browserless.io) is a hosted Chromium service that exposes
@@ -500,6 +513,7 @@ Notes:
   - `--format ai` (default when Playwright is installed): returns an AI snapshot with numeric refs (`aria-ref="<n>"`).
   - `--format aria`: returns the accessibility tree (no refs; inspection only).
   - `--efficient` (or `--mode efficient`): compact role snapshot preset (interactive + compact + depth + lower maxChars).
+  - Config default (tool/CLI only): set `browser.snapshotDefaults.mode: "efficient"` to use efficient snapshots when the caller does not pass a mode (see [Gateway configuration](/gateway/configuration#browser-clawd-managed-browser)).
   - Role snapshot options (`--interactive`, `--compact`, `--depth`, `--selector`) force a role-based snapshot with refs like `ref=e12`.
   - `--frame "<iframe selector>"` scopes role snapshots to an iframe (pairs with role refs like `e12`).
   - `--interactive` outputs a flat, easy-to-pick list of interactive elements (best for driving actions).

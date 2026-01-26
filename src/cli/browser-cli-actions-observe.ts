@@ -8,6 +8,15 @@ import {
 import { danger } from "../globals.js";
 import { defaultRuntime } from "../runtime.js";
 import type { BrowserParentOpts } from "./browser-cli-shared.js";
+import { runCommandWithRuntime } from "./cli-utils.js";
+import { shortenHomePath } from "../utils.js";
+
+function runBrowserObserve(action: () => Promise<void>) {
+  return runCommandWithRuntime(defaultRuntime, action, (err) => {
+    defaultRuntime.error(danger(String(err)));
+    defaultRuntime.exit(1);
+  });
+}
 
 export function registerBrowserActionObserveCommands(
   browser: Command,
@@ -22,7 +31,7 @@ export function registerBrowserActionObserveCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserObserve(async () => {
         const result = await browserConsoleMessages(baseUrl, {
           level: opts.level?.trim() || undefined,
           targetId: opts.targetId?.trim() || undefined,
@@ -33,10 +42,7 @@ export function registerBrowserActionObserveCommands(
           return;
         }
         defaultRuntime.log(JSON.stringify(result.messages, null, 2));
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -47,7 +53,7 @@ export function registerBrowserActionObserveCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserObserve(async () => {
         const result = await browserPdfSave(baseUrl, {
           targetId: opts.targetId?.trim() || undefined,
           profile,
@@ -56,11 +62,8 @@ export function registerBrowserActionObserveCommands(
           defaultRuntime.log(JSON.stringify(result, null, 2));
           return;
         }
-        defaultRuntime.log(`PDF: ${result.path}`);
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+        defaultRuntime.log(`PDF: ${shortenHomePath(result.path)}`);
+      });
     });
 
   browser
@@ -80,7 +83,7 @@ export function registerBrowserActionObserveCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserObserve(async () => {
         const result = await browserResponseBody(baseUrl, {
           url,
           targetId: opts.targetId?.trim() || undefined,
@@ -93,9 +96,6 @@ export function registerBrowserActionObserveCommands(
           return;
         }
         defaultRuntime.log(result.response.body);
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 }

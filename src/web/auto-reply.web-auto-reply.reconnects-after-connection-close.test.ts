@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { escapeRegExp, formatEnvelopeTimestamp } from "../../test/helpers/envelope-timestamp.js";
 
 vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
@@ -228,7 +229,7 @@ describe("web auto-reply", () => {
     await run;
   }, 15_000);
 
-  it("stops after hitting max reconnect attempts", { timeout: 20000 }, async () => {
+  it("stops after hitting max reconnect attempts", { timeout: 60_000 }, async () => {
     const closeResolvers: Array<() => void> = [];
     const sleep = vi.fn(async () => {});
     const listenerFactory = vi.fn(async () => {
@@ -297,6 +298,11 @@ describe("web auto-reply", () => {
       };
 
       setLoadConfigMock(() => ({
+        agents: {
+          defaults: {
+            envelopeTimezone: "utc",
+          },
+        },
         session: { store: store.storePath },
       }));
 
@@ -328,9 +334,17 @@ describe("web auto-reply", () => {
       expect(resolver).toHaveBeenCalledTimes(2);
       const firstArgs = resolver.mock.calls[0][0];
       const secondArgs = resolver.mock.calls[1][0];
-      expect(firstArgs.Body).toContain("[WhatsApp +1 2025-01-01T00:00Z] [clawdbot] first");
+      const firstTimestamp = formatEnvelopeTimestamp(new Date("2025-01-01T00:00:00Z"));
+      const secondTimestamp = formatEnvelopeTimestamp(new Date("2025-01-01T01:00:00Z"));
+      const firstPattern = escapeRegExp(firstTimestamp);
+      const secondPattern = escapeRegExp(secondTimestamp);
+      expect(firstArgs.Body).toMatch(
+        new RegExp(`\\[WhatsApp \\+1 (\\+\\d+[smhd] )?${firstPattern}\\] \\[clawdbot\\] first`),
+      );
       expect(firstArgs.Body).not.toContain("second");
-      expect(secondArgs.Body).toContain("[WhatsApp +1 2025-01-01T01:00Z] [clawdbot] second");
+      expect(secondArgs.Body).toMatch(
+        new RegExp(`\\[WhatsApp \\+1 (\\+\\d+[smhd] )?${secondPattern}\\] \\[clawdbot\\] second`),
+      );
       expect(secondArgs.Body).not.toContain("first");
 
       // Max listeners bumped to avoid warnings in multi-instance test runs

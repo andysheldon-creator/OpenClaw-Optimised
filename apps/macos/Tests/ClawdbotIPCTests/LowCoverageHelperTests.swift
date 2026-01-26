@@ -7,15 +7,17 @@ import Testing
 
 @Suite(.serialized)
 struct LowCoverageHelperTests {
+    private typealias ProtoAnyCodable = ClawdbotProtocol.AnyCodable
+
     @Test func anyCodableHelperAccessors() throws {
-        let payload: [String: AnyCodable] = [
-            "title": AnyCodable("Hello"),
-            "flag": AnyCodable(true),
-            "count": AnyCodable(3),
-            "ratio": AnyCodable(1.25),
-            "list": AnyCodable([AnyCodable("a"), AnyCodable(2)]),
+        let payload: [String: ProtoAnyCodable] = [
+            "title": ProtoAnyCodable("Hello"),
+            "flag": ProtoAnyCodable(true),
+            "count": ProtoAnyCodable(3),
+            "ratio": ProtoAnyCodable(1.25),
+            "list": ProtoAnyCodable([ProtoAnyCodable("a"), ProtoAnyCodable(2)]),
         ]
-        let any = AnyCodable(payload)
+        let any = ProtoAnyCodable(payload)
         let dict = try #require(any.dictionaryValue)
         #expect(dict["title"]?.stringValue == "Hello")
         #expect(dict["flag"]?.boolValue == true)
@@ -76,31 +78,27 @@ struct LowCoverageHelperTests {
         #expect(result.stderr.contains("stderr-1999"))
     }
 
-    @Test func pairedNodesStorePersists() async throws {
-        let dir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("paired-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let url = dir.appendingPathComponent("nodes.json")
-        let store = PairedNodesStore(fileURL: url)
-        await store.load()
-        #expect(await store.all().isEmpty)
-
-        let node = PairedNode(
+    @Test func nodeInfoCodableRoundTrip() throws {
+        let info = NodeInfo(
             nodeId: "node-1",
             displayName: "Node One",
             platform: "macOS",
             version: "1.0",
+            coreVersion: "1.0-core",
+            uiVersion: "1.0-ui",
             deviceFamily: "Mac",
             modelIdentifier: "MacBookPro",
-            token: "token",
-            createdAtMs: 1,
-            lastSeenAtMs: nil)
-        try await store.upsert(node)
-        #expect(await store.find(nodeId: "node-1")?.displayName == "Node One")
-
-        try await store.touchSeen(nodeId: "node-1")
-        let updated = await store.find(nodeId: "node-1")
-        #expect(updated?.lastSeenAtMs != nil)
+            remoteIp: "192.168.1.2",
+            caps: ["chat"],
+            commands: ["send"],
+            permissions: ["send": true],
+            paired: true,
+            connected: false)
+        let data = try JSONEncoder().encode(info)
+        let decoded = try JSONDecoder().decode(NodeInfo.self, from: data)
+        #expect(decoded.nodeId == "node-1")
+        #expect(decoded.isPaired == true)
+        #expect(decoded.isConnected == false)
     }
 
     @Test @MainActor func presenceReporterHelpers() {
@@ -143,12 +141,12 @@ struct LowCoverageHelperTests {
     }
 
     @Test @MainActor func canvasSchemeHandlerResolvesFilesAndErrors() throws {
-        let root = FileManager.default.temporaryDirectory
+        let root = FileManager().temporaryDirectory
             .appendingPathComponent("canvas-\(UUID().uuidString)", isDirectory: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager().removeItem(at: root) }
+        try FileManager().createDirectory(at: root, withIntermediateDirectories: true)
         let session = root.appendingPathComponent("main", isDirectory: true)
-        try FileManager.default.createDirectory(at: session, withIntermediateDirectories: true)
+        try FileManager().createDirectory(at: session, withIntermediateDirectories: true)
 
         let index = session.appendingPathComponent("index.html")
         try "<h1>Hello</h1>".write(to: index, atomically: true, encoding: .utf8)

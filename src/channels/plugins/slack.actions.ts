@@ -1,6 +1,7 @@
 import { createActionGate, readNumberParam, readStringParam } from "../../agents/tools/common.js";
 import { handleSlackAction, type SlackActionContext } from "../../agents/tools/slack-actions.js";
 import { listEnabledSlackAccounts } from "../../slack/accounts.js";
+import { resolveSlackChannelId } from "../../slack/targets.js";
 import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionContext,
@@ -60,7 +61,9 @@ export function createSlackActions(providerId: string): ChannelMessageActionAdap
       const accountId = ctx.accountId ?? undefined;
       const toolContext = ctx.toolContext as SlackActionContext | undefined;
       const resolveChannelId = () =>
-        readStringParam(params, "channelId") ?? readStringParam(params, "to", { required: true });
+        resolveSlackChannelId(
+          readStringParam(params, "channelId") ?? readStringParam(params, "to", { required: true }),
+        );
 
       if (action === "send") {
         const to = readStringParam(params, "to", { required: true });
@@ -130,6 +133,7 @@ export function createSlackActions(providerId: string): ChannelMessageActionAdap
             limit,
             before: readStringParam(params, "before"),
             after: readStringParam(params, "after"),
+            threadId: readStringParam(params, "threadId"),
             accountId: accountId ?? undefined,
           },
           cfg,

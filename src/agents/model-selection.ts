@@ -1,6 +1,8 @@
 import type { ClawdbotConfig } from "../config/config.js";
 import type { ModelCatalogEntry } from "./model-catalog.js";
 import { normalizeGoogleModelId } from "./models-config.providers.js";
+import { resolveAgentModelPrimary } from "./agent-scope.js";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
 
 export type ModelRef = {
   provider: string;
@@ -26,6 +28,7 @@ export function normalizeProviderId(provider: string): string {
   const normalized = provider.trim().toLowerCase();
   if (normalized === "z.ai" || normalized === "z-ai") return "zai";
   if (normalized === "opencode-zen") return "opencode";
+  if (normalized === "qwen") return "qwen-portal";
   return normalized;
 }
 
@@ -128,16 +131,58 @@ export function resolveConfiguredModelRef(params: {
       cfg: params.cfg,
       defaultProvider: params.defaultProvider,
     });
+    if (!trimmed.includes("/")) {
+      const aliasKey = normalizeAliasKey(trimmed);
+      const aliasMatch = aliasIndex.byAlias.get(aliasKey);
+      if (aliasMatch) return aliasMatch.ref;
+
+      // Default to anthropic if no provider is specified, but warn as this is deprecated.
+      console.warn(
+        `[clawdbot] Model "${trimmed}" specified without provider. Falling back to "anthropic/${trimmed}". Please use "anthropic/${trimmed}" in your config.`,
+      );
+      return { provider: "anthropic", model: trimmed };
+    }
+
     const resolved = resolveModelRefFromString({
       raw: trimmed,
       defaultProvider: params.defaultProvider,
       aliasIndex,
     });
     if (resolved) return resolved.ref;
-    // TODO(steipete): drop this fallback once provider-less agents.defaults.model is fully deprecated.
-    return { provider: "anthropic", model: trimmed };
   }
   return { provider: params.defaultProvider, model: params.defaultModel };
+}
+
+export function resolveDefaultModelForAgent(params: {
+  cfg: ClawdbotConfig;
+  agentId?: string;
+}): ModelRef {
+  const agentModelOverride = params.agentId
+    ? resolveAgentModelPrimary(params.cfg, params.agentId)
+    : undefined;
+  const cfg =
+    agentModelOverride && agentModelOverride.length > 0
+      ? {
+          ...params.cfg,
+          agents: {
+            ...params.cfg.agents,
+            defaults: {
+              ...params.cfg.agents?.defaults,
+              model: {
+                ...(typeof params.cfg.agents?.defaults?.model === "object"
+                  ? params.cfg.agents.defaults.model
+                  : undefined),
+                primary: agentModelOverride,
+              },
+            },
+          },
+        }
+      : params.cfg;
+  return resolveConfiguredModelRef({
+    cfg,
+    defaultProvider: DEFAULT_PROVIDER,
+    defaultModel: DEFAULT_MODEL,
+  });
 }
 
 export function buildAllowedModelSet(params: {

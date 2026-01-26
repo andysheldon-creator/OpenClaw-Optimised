@@ -25,15 +25,22 @@ Run a local Gateway process:
 clawdbot gateway
 ```
 
+Foreground alias:
+
+```bash
+clawdbot gateway run
+```
+
 Notes:
 - By default, the Gateway refuses to start unless `gateway.mode=local` is set in `~/.clawdbot/clawdbot.json`. Use `--allow-unconfigured` for ad-hoc/dev runs.
 - Binding beyond loopback without auth is blocked (safety guardrail).
-- `SIGUSR1` triggers an in-process restart (useful without a supervisor).
+- `SIGUSR1` triggers an in-process restart when authorized (enable `commands.restart` or use the gateway tool/config apply/update).
+- `SIGINT`/`SIGTERM` handlers stop the gateway process, but they don’t restore any custom terminal state. If you wrap the CLI with a TUI or raw-mode input, restore the terminal before exit.
 
 ### Options
 
 - `--port <port>`: WebSocket port (default comes from config/env; usually `18789`).
-- `--bind <loopback|lan|tailnet|auto>`: listener bind mode.
+- `--bind <loopback|lan|tailnet|auto|custom>`: listener bind mode.
 - `--auth <token|password>`: auth mode override.
 - `--token <token>`: token override (also sets `CLAWDBOT_GATEWAY_TOKEN` for the process).
 - `--password <password>`: password override (also sets `CLAWDBOT_GATEWAY_PASSWORD` for the process).
@@ -74,15 +81,32 @@ clawdbot gateway health --url ws://127.0.0.1:18789
 
 ### `gateway status`
 
-`gateway status` is the “debug everything” command. It always probes:
+`gateway status` shows the Gateway service (launchd/systemd/schtasks) plus an optional RPC probe.
+
+```bash
+clawdbot gateway status
+clawdbot gateway status --json
+```
+
+Options:
+- `--url <url>`: override the probe URL.
+- `--token <token>`: token auth for the probe.
+- `--password <password>`: password auth for the probe.
+- `--timeout <ms>`: probe timeout (default `10000`).
+- `--no-probe`: skip the RPC probe (service-only view).
+- `--deep`: scan system-level services too.
+
+### `gateway probe`
+
+`gateway probe` is the “debug everything” command. It always probes:
 - your configured remote gateway (if set), and
 - localhost (loopback) **even if remote is configured**.
 
 If multiple gateways are reachable, it prints all of them. Multiple gateways are supported when you use isolated profiles/ports (e.g., a rescue bot), but most installs still run a single gateway.
 
 ```bash
-clawdbot gateway status
-clawdbot gateway status --json
+clawdbot gateway probe
+clawdbot gateway probe --json
 ```
 
 #### Remote over SSH (Mac app parity)
@@ -92,13 +116,13 @@ The macOS app “Remote over SSH” mode uses a local port-forward so the remote
 CLI equivalent:
 
 ```bash
-clawdbot gateway status --ssh user@gateway-host
+clawdbot gateway probe --ssh user@gateway-host
 ```
 
 Options:
 - `--ssh <target>`: `user@host` or `user@host:port` (port defaults to `22`).
 - `--ssh-identity <path>`: identity file.
-- `--ssh-auto`: pick the first discovered bridge host as SSH target (LAN/WAB only).
+- `--ssh-auto`: pick the first discovered gateway host as SSH target (LAN/WAB only).
 
 Config (optional, used as defaults):
 - `gateway.remote.sshTarget`
@@ -113,19 +137,36 @@ clawdbot gateway call status
 clawdbot gateway call logs.tail --params '{"sinceMs": 60000}'
 ```
 
+## Manage the Gateway service
+
+```bash
+clawdbot gateway install
+clawdbot gateway start
+clawdbot gateway stop
+clawdbot gateway restart
+clawdbot gateway uninstall
+```
+
+Notes:
+- `gateway install` supports `--port`, `--runtime`, `--token`, `--force`, `--json`.
+- Lifecycle commands accept `--json` for scripting.
+
 ## Discover gateways (Bonjour)
 
-`gateway discover` scans for Gateway bridge beacons (`_clawdbot-bridge._tcp`).
+`gateway discover` scans for Gateway beacons (`_clawdbot-gw._tcp`).
 
 - Multicast DNS-SD: `local.`
 - Unicast DNS-SD (Wide-Area Bonjour): `clawdbot.internal.` (requires split DNS + DNS server; see [/gateway/bonjour](/gateway/bonjour))
 
-Only gateways with the **bridge enabled** will advertise the discovery beacon.
+Only gateways with Bonjour discovery enabled (default) advertise the beacon.
 
 Wide-Area discovery records include (TXT):
+- `role` (gateway role hint)
+- `transport` (transport hint, e.g. `gateway`)
 - `gatewayPort` (WebSocket port, usually `18789`)
 - `sshPort` (SSH port; defaults to `22` if not present)
 - `tailnetDns` (MagicDNS hostname, when available)
+- `gatewayTls` / `gatewayTlsSha256` (TLS enabled + cert fingerprint)
 - `cliPath` (optional hint for remote installs)
 
 ### `gateway discover`

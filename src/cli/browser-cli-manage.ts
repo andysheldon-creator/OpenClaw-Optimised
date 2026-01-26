@@ -18,7 +18,16 @@ import {
 import { browserAct } from "../browser/client-actions-core.js";
 import { danger, info } from "../globals.js";
 import { defaultRuntime } from "../runtime.js";
+import { shortenHomePath } from "../utils.js";
 import type { BrowserParentOpts } from "./browser-cli-shared.js";
+import { runCommandWithRuntime } from "./cli-utils.js";
+
+function runBrowserCommand(action: () => Promise<void>) {
+  return runCommandWithRuntime(defaultRuntime, action, (err) => {
+    defaultRuntime.error(danger(String(err)));
+    defaultRuntime.exit(1);
+  });
+}
 
 export function registerBrowserManageCommands(
   browser: Command,
@@ -30,7 +39,7 @@ export function registerBrowserManageCommands(
     .action(async (_opts, cmd) => {
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
-      try {
+      await runBrowserCommand(async () => {
         const status = await browserStatus(baseUrl, {
           profile: parent?.browserProfile,
         });
@@ -38,6 +47,8 @@ export function registerBrowserManageCommands(
           defaultRuntime.log(JSON.stringify(status, null, 2));
           return;
         }
+        const detectedPath = status.detectedExecutablePath ?? status.executablePath;
+        const detectedDisplay = detectedPath ? shortenHomePath(detectedPath) : "auto";
         defaultRuntime.log(
           [
             `profile: ${status.profile ?? "clawd"}`,
@@ -48,15 +59,12 @@ export function registerBrowserManageCommands(
             `cdpUrl: ${status.cdpUrl ?? `http://127.0.0.1:${status.cdpPort}`}`,
             `browser: ${status.chosenBrowser ?? "unknown"}`,
             `detectedBrowser: ${status.detectedBrowser ?? "unknown"}`,
-            `detectedPath: ${status.detectedExecutablePath ?? status.executablePath ?? "auto"}`,
+            `detectedPath: ${detectedDisplay}`,
             `profileColor: ${status.color}`,
             ...(status.detectError ? [`detectError: ${status.detectError}`] : []),
           ].join("\n"),
         );
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -66,7 +74,7 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         await browserStart(baseUrl, { profile });
         const status = await browserStatus(baseUrl, { profile });
         if (parent?.json) {
@@ -75,10 +83,7 @@ export function registerBrowserManageCommands(
         }
         const name = status.profile ?? "clawd";
         defaultRuntime.log(info(`🦞 browser [${name}] running: ${status.running}`));
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -88,7 +93,7 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         await browserStop(baseUrl, { profile });
         const status = await browserStatus(baseUrl, { profile });
         if (parent?.json) {
@@ -97,10 +102,7 @@ export function registerBrowserManageCommands(
         }
         const name = status.profile ?? "clawd";
         defaultRuntime.log(info(`🦞 browser [${name}] running: ${status.running}`));
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -110,7 +112,7 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         const result = await browserResetProfile(baseUrl, { profile });
         if (parent?.json) {
           defaultRuntime.log(JSON.stringify(result, null, 2));
@@ -122,10 +124,7 @@ export function registerBrowserManageCommands(
         }
         const dest = result.to ?? result.from;
         defaultRuntime.log(info(`🦞 browser profile moved to Trash (${dest})`));
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -135,7 +134,7 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         const tabs = await browserTabs(baseUrl, { profile });
         if (parent?.json) {
           defaultRuntime.log(JSON.stringify({ tabs }, null, 2));
@@ -152,10 +151,7 @@ export function registerBrowserManageCommands(
             )
             .join("\n"),
         );
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   const tab = browser
@@ -165,7 +161,7 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         const result = (await browserTabAction(baseUrl, {
           action: "list",
           profile,
@@ -186,10 +182,7 @@ export function registerBrowserManageCommands(
             )
             .join("\n"),
         );
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   tab
@@ -199,7 +192,7 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         const result = await browserTabAction(baseUrl, {
           action: "new",
           profile,
@@ -209,10 +202,7 @@ export function registerBrowserManageCommands(
           return;
         }
         defaultRuntime.log("opened new tab");
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   tab
@@ -228,7 +218,7 @@ export function registerBrowserManageCommands(
         defaultRuntime.exit(1);
         return;
       }
-      try {
+      await runBrowserCommand(async () => {
         const result = await browserTabAction(baseUrl, {
           action: "select",
           index: Math.floor(index) - 1,
@@ -239,10 +229,7 @@ export function registerBrowserManageCommands(
           return;
         }
         defaultRuntime.log(`selected tab ${Math.floor(index)}`);
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   tab
@@ -260,7 +247,7 @@ export function registerBrowserManageCommands(
         defaultRuntime.exit(1);
         return;
       }
-      try {
+      await runBrowserCommand(async () => {
         const result = await browserTabAction(baseUrl, {
           action: "close",
           index: idx,
@@ -271,10 +258,7 @@ export function registerBrowserManageCommands(
           return;
         }
         defaultRuntime.log("closed tab");
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -285,17 +269,14 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         const tab = await browserOpenTab(baseUrl, url, { profile });
         if (parent?.json) {
           defaultRuntime.log(JSON.stringify(tab, null, 2));
           return;
         }
         defaultRuntime.log(`opened: ${tab.url}\nid: ${tab.targetId}`);
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -306,17 +287,14 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         await browserFocusTab(baseUrl, targetId, { profile });
         if (parent?.json) {
           defaultRuntime.log(JSON.stringify({ ok: true }, null, 2));
           return;
         }
         defaultRuntime.log(`focused tab ${targetId}`);
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -327,7 +305,7 @@ export function registerBrowserManageCommands(
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
-      try {
+      await runBrowserCommand(async () => {
         if (targetId?.trim()) {
           await browserCloseTab(baseUrl, targetId.trim(), { profile });
         } else {
@@ -338,10 +316,7 @@ export function registerBrowserManageCommands(
           return;
         }
         defaultRuntime.log("closed tab");
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   // Profile management commands
@@ -351,7 +326,7 @@ export function registerBrowserManageCommands(
     .action(async (_opts, cmd) => {
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
-      try {
+      await runBrowserCommand(async () => {
         const profiles = await browserProfiles(baseUrl);
         if (parent?.json) {
           defaultRuntime.log(JSON.stringify({ profiles }, null, 2));
@@ -373,10 +348,7 @@ export function registerBrowserManageCommands(
             })
             .join("\n"),
         );
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 
   browser
@@ -390,7 +362,7 @@ export function registerBrowserManageCommands(
       async (opts: { name: string; color?: string; cdpUrl?: string; driver?: string }, cmd) => {
         const parent = parentOpts(cmd);
         const baseUrl = resolveBrowserControlUrl(parent?.url);
-        try {
+        await runBrowserCommand(async () => {
           const result = await browserCreateProfile(baseUrl, {
             name: opts.name,
             color: opts.color,
@@ -409,10 +381,7 @@ export function registerBrowserManageCommands(
               }`,
             ),
           );
-        } catch (err) {
-          defaultRuntime.error(danger(String(err)));
-          defaultRuntime.exit(1);
-        }
+        });
       },
     );
 
@@ -423,7 +392,7 @@ export function registerBrowserManageCommands(
     .action(async (opts: { name: string }, cmd) => {
       const parent = parentOpts(cmd);
       const baseUrl = resolveBrowserControlUrl(parent?.url);
-      try {
+      await runBrowserCommand(async () => {
         const result = await browserDeleteProfile(baseUrl, opts.name);
         if (parent?.json) {
           defaultRuntime.log(JSON.stringify(result, null, 2));
@@ -433,9 +402,6 @@ export function registerBrowserManageCommands(
           ? `🦞 Deleted profile "${result.profile}" (user data removed)`
           : `🦞 Deleted profile "${result.profile}" (no user data found)`;
         defaultRuntime.log(info(msg));
-      } catch (err) {
-        defaultRuntime.error(danger(String(err)));
-        defaultRuntime.exit(1);
-      }
+      });
     });
 }

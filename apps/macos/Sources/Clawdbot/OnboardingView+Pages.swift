@@ -77,7 +77,7 @@ extension OnboardingView {
                 .font(.largeTitle.weight(.semibold))
             Text(
                 "Clawdbot uses a single Gateway that stays running. Pick this Mac, " +
-                    "connect to a discovered bridge nearby for pairing, or configure later.")
+                    "connect to a discovered gateway nearby, or configure later.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -126,13 +126,13 @@ extension OnboardingView {
                     }
 
                     if self.gatewayDiscovery.gateways.isEmpty {
-                        Text("Searching for nearby bridges…")
+                        Text("Searching for nearby gateways…")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.leading, 4)
                     } else {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Nearby bridges (pairing only)")
+                            Text("Nearby gateways")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .padding(.leading, 4)
@@ -177,42 +177,67 @@ extension OnboardingView {
                         VStack(alignment: .leading, spacing: 10) {
                             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                                 GridRow {
-                                    Text("SSH target")
+                                    Text("Transport")
                                         .font(.callout.weight(.semibold))
                                         .frame(width: labelWidth, alignment: .leading)
-                                    TextField("user@host[:port]", text: self.$state.remoteTarget)
-                                        .textFieldStyle(.roundedBorder)
-                                        .frame(width: fieldWidth)
+                                    Picker("Transport", selection: self.$state.remoteTransport) {
+                                        Text("SSH tunnel").tag(AppState.RemoteTransport.ssh)
+                                        Text("Direct (ws/wss)").tag(AppState.RemoteTransport.direct)
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .frame(width: fieldWidth)
                                 }
-                                GridRow {
-                                    Text("Identity file")
-                                        .font(.callout.weight(.semibold))
-                                        .frame(width: labelWidth, alignment: .leading)
-                                    TextField("/Users/you/.ssh/id_ed25519", text: self.$state.remoteIdentity)
-                                        .textFieldStyle(.roundedBorder)
-                                        .frame(width: fieldWidth)
+                                if self.state.remoteTransport == .direct {
+                                    GridRow {
+                                        Text("Gateway URL")
+                                            .font(.callout.weight(.semibold))
+                                            .frame(width: labelWidth, alignment: .leading)
+                                        TextField("wss://gateway.example.ts.net", text: self.$state.remoteUrl)
+                                            .textFieldStyle(.roundedBorder)
+                                            .frame(width: fieldWidth)
+                                    }
                                 }
-                                GridRow {
-                                    Text("Project root")
-                                        .font(.callout.weight(.semibold))
-                                        .frame(width: labelWidth, alignment: .leading)
-                                    TextField("/home/you/Projects/clawdbot", text: self.$state.remoteProjectRoot)
-                                        .textFieldStyle(.roundedBorder)
-                                        .frame(width: fieldWidth)
-                                }
-                                GridRow {
-                                    Text("CLI path")
-                                        .font(.callout.weight(.semibold))
-                                        .frame(width: labelWidth, alignment: .leading)
-                                    TextField(
-                                        "/Applications/Clawdbot.app/.../clawdbot",
-                                        text: self.$state.remoteCliPath)
-                                        .textFieldStyle(.roundedBorder)
-                                        .frame(width: fieldWidth)
+                                if self.state.remoteTransport == .ssh {
+                                    GridRow {
+                                        Text("SSH target")
+                                            .font(.callout.weight(.semibold))
+                                            .frame(width: labelWidth, alignment: .leading)
+                                        TextField("user@host[:port]", text: self.$state.remoteTarget)
+                                            .textFieldStyle(.roundedBorder)
+                                            .frame(width: fieldWidth)
+                                    }
+                                    GridRow {
+                                        Text("Identity file")
+                                            .font(.callout.weight(.semibold))
+                                            .frame(width: labelWidth, alignment: .leading)
+                                        TextField("/Users/you/.ssh/id_ed25519", text: self.$state.remoteIdentity)
+                                            .textFieldStyle(.roundedBorder)
+                                            .frame(width: fieldWidth)
+                                    }
+                                    GridRow {
+                                        Text("Project root")
+                                            .font(.callout.weight(.semibold))
+                                            .frame(width: labelWidth, alignment: .leading)
+                                        TextField("/home/you/Projects/clawdbot", text: self.$state.remoteProjectRoot)
+                                            .textFieldStyle(.roundedBorder)
+                                            .frame(width: fieldWidth)
+                                    }
+                                    GridRow {
+                                        Text("CLI path")
+                                            .font(.callout.weight(.semibold))
+                                            .frame(width: labelWidth, alignment: .leading)
+                                        TextField(
+                                            "/Applications/Clawdbot.app/.../clawdbot",
+                                            text: self.$state.remoteCliPath)
+                                            .textFieldStyle(.roundedBorder)
+                                            .frame(width: fieldWidth)
+                                    }
                                 }
                             }
 
-                            Text("Tip: keep Tailscale enabled so your gateway stays reachable.")
+                            Text(self.state.remoteTransport == .direct
+                                ? "Tip: use Tailscale Serve so the gateway has a valid HTTPS cert."
+                                : "Tip: keep Tailscale enabled so your gateway stays reachable.")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -225,16 +250,19 @@ extension OnboardingView {
     }
 
     func gatewaySubtitle(for gateway: GatewayDiscoveryModel.DiscoveredGateway) -> String? {
-        if let host = gateway.tailnetDns ?? gateway.lanHost {
+        if self.state.remoteTransport == .direct {
+            return GatewayDiscoveryHelpers.directUrl(for: gateway) ?? "Gateway pairing only"
+        }
+        if let host = GatewayDiscoveryHelpers.sanitizedTailnetHost(gateway.tailnetDns) ?? gateway.lanHost {
             let portSuffix = gateway.sshPort != 22 ? " · ssh \(gateway.sshPort)" : ""
             return "\(host)\(portSuffix)"
         }
-        return "Bridge pairing only"
+        return "Gateway pairing only"
     }
 
     func isSelectedGateway(_ gateway: GatewayDiscoveryModel.DiscoveredGateway) -> Bool {
         guard self.state.connectionMode == .remote else { return false }
-        let preferred = self.preferredGatewayID ?? BridgeDiscoveryPreferences.preferredStableID()
+        let preferred = self.preferredGatewayID ?? GatewayDiscoveryPreferences.preferredStableID()
         return preferred == gateway.stableID
     }
 
@@ -694,10 +722,11 @@ extension OnboardingView {
                     systemImage: "bubble.left.and.bubble.right")
                 self.featureActionRow(
                     title: "Connect WhatsApp or Telegram",
-                    subtitle: "Open Settings → Connections to link channels and monitor status.",
-                    systemImage: "link")
+                    subtitle: "Open Settings → Channels to link channels and monitor status.",
+                    systemImage: "link",
+                    buttonTitle: "Open Settings → Channels")
                 {
-                    self.openSettings(tab: .connections)
+                    self.openSettings(tab: .channels)
                 }
                 self.featureRow(
                     title: "Try Voice Wake",
@@ -711,7 +740,8 @@ extension OnboardingView {
                 self.featureActionRow(
                     title: "Give your agent more powers",
                     subtitle: "Enable optional skills (Peekaboo, oracle, camsnap, …) from Settings → Skills.",
-                    systemImage: "sparkles")
+                    systemImage: "sparkles",
+                    buttonTitle: "Open Settings → Skills")
                 {
                     self.openSettings(tab: .skills)
                 }

@@ -4,6 +4,7 @@ import {
   compareSemverStrings,
   type UpdateCheckResult,
 } from "../infra/update-check.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import { VERSION } from "../version.js";
 
 export async function getUpdateCheckResult(params: {
@@ -22,6 +23,48 @@ export async function getUpdateCheckResult(params: {
     fetchGit: params.fetchGit,
     includeRegistry: params.includeRegistry,
   });
+}
+
+export type UpdateAvailability = {
+  available: boolean;
+  hasGitUpdate: boolean;
+  hasRegistryUpdate: boolean;
+  latestVersion: string | null;
+  gitBehind: number | null;
+};
+
+export function resolveUpdateAvailability(update: UpdateCheckResult): UpdateAvailability {
+  const latestVersion = update.registry?.latestVersion ?? null;
+  const registryCmp = latestVersion ? compareSemverStrings(VERSION, latestVersion) : null;
+  const hasRegistryUpdate = registryCmp != null && registryCmp < 0;
+  const gitBehind =
+    update.installKind === "git" && typeof update.git?.behind === "number"
+      ? update.git.behind
+      : null;
+  const hasGitUpdate = gitBehind != null && gitBehind > 0;
+
+  return {
+    available: hasGitUpdate || hasRegistryUpdate,
+    hasGitUpdate,
+    hasRegistryUpdate,
+    latestVersion: hasRegistryUpdate ? latestVersion : null,
+    gitBehind,
+  };
+}
+
+export function formatUpdateAvailableHint(update: UpdateCheckResult): string | null {
+  const availability = resolveUpdateAvailability(update);
+  if (!availability.available) return null;
+
+  const details: string[] = [];
+  if (availability.hasGitUpdate && availability.gitBehind != null) {
+    details.push(`git behind ${availability.gitBehind}`);
+  }
+  if (availability.hasRegistryUpdate && availability.latestVersion) {
+    details.push(`npm ${availability.latestVersion}`);
+  }
+  const suffix = details.length > 0 ? ` (${details.join(" · ")})` : "";
+  return `Update available${suffix}. Run: ${formatCliCommand("clawdbot update")}`;
 }
 
 export function formatUpdateOneLiner(update: UpdateCheckResult): string {

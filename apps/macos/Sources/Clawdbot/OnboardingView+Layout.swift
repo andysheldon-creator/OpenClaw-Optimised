@@ -63,7 +63,7 @@ extension OnboardingView {
             await self.ensureDefaultWorkspace()
             self.refreshAnthropicOAuthStatus()
             self.refreshBootstrapStatus()
-            self.preferredGatewayID = BridgeDiscoveryPreferences.preferredStableID()
+            self.preferredGatewayID = GatewayDiscoveryPreferences.preferredStableID()
         }
     }
 
@@ -210,6 +210,7 @@ extension OnboardingView {
         title: String,
         subtitle: String,
         systemImage: String,
+        buttonTitle: String,
         action: @escaping () -> Void) -> some View
     {
         HStack(alignment: .top, spacing: 12) {
@@ -222,7 +223,7 @@ extension OnboardingView {
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Button("Open Settings → Skills", action: action)
+                Button(buttonTitle, action: action)
                     .buttonStyle(.link)
                     .padding(.top, 2)
             }

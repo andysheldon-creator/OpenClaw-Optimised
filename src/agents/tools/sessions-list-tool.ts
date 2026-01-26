@@ -4,45 +4,19 @@ import { Type } from "@sinclair/typebox";
 
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
-import {
-  isSubagentSessionKey,
-  normalizeAgentId,
-  parseAgentSessionKey,
-} from "../../routing/session-key.js";
+import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringArrayParam } from "./common.js";
 import {
+  createAgentToAgentPolicy,
   classifySessionKind,
   deriveChannel,
   resolveDisplaySessionKey,
   resolveInternalSessionKey,
   resolveMainSessionAlias,
-  type SessionKind,
+  type SessionListRow,
   stripToolMessages,
 } from "./sessions-helpers.js";
-
-type SessionListRow = {
-  key: string;
-  kind: SessionKind;
-  channel: string;
-  label?: string;
-  displayName?: string;
-  updatedAt?: number | null;
-  sessionId?: string;
-  model?: string;
-  contextTokens?: number | null;
-  totalTokens?: number | null;
-  thinkingLevel?: string;
-  verboseLevel?: string;
-  systemSent?: boolean;
-  abortedLastRun?: boolean;
-  sendPolicy?: string;
-  lastChannel?: string;
-  lastTo?: string;
-  lastAccountId?: string;
-  transcriptPath?: string;
-  messages?: unknown[];
-};
 
 const SessionsListToolSchema = Type.Object({
   kinds: Type.Optional(Type.Array(Type.String())),
@@ -121,24 +95,8 @@ export function createSessionsListTool(opts?: {
 
       const sessions = Array.isArray(list?.sessions) ? list.sessions : [];
       const storePath = typeof list?.path === "string" ? list.path : undefined;
-      const routingA2A = cfg.tools?.agentToAgent;
-      const a2aEnabled = routingA2A?.enabled === true;
-      const allowPatterns = Array.isArray(routingA2A?.allow) ? routingA2A.allow : [];
-      const matchesAllow = (agentId: string) => {
-        if (allowPatterns.length === 0) return true;
-        return allowPatterns.some((pattern) => {
-          const raw = String(pattern ?? "").trim();
-          if (!raw) return false;
-          if (raw === "*") return true;
-          if (!raw.includes("*")) return raw === agentId;
-          const escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const re = new RegExp(`^${escaped.replaceAll("\\*", ".*")}$`, "i");
-          return re.test(agentId);
-        });
-      };
-      const requesterAgentId = normalizeAgentId(
-        parseAgentSessionKey(requesterInternalKey)?.agentId,
-      );
+      const a2aPolicy = createAgentToAgentPolicy(cfg);
+      const requesterAgentId = resolveAgentIdFromSessionKey(requesterInternalKey);
       const rows: SessionListRow[] = [];
 
       for (const entry of sessions) {
@@ -146,12 +104,9 @@ export function createSessionsListTool(opts?: {
         const key = typeof entry.key === "string" ? entry.key : "";
         if (!key) continue;
 
-        const entryAgentId = normalizeAgentId(parseAgentSessionKey(key)?.agentId);
+        const entryAgentId = resolveAgentIdFromSessionKey(key);
         const crossAgent = entryAgentId !== requesterAgentId;
-        if (crossAgent) {
-          if (!a2aEnabled) continue;
-          if (!matchesAllow(requesterAgentId) || !matchesAllow(entryAgentId)) continue;
-        }
+        if (crossAgent && !a2aPolicy.isAllowed(requesterAgentId, entryAgentId)) continue;
 
         if (key === "unknown") continue;
         if (key === "global" && alias !== "global") continue;
@@ -167,9 +122,21 @@ export function createSessionsListTool(opts?: {
         });
 
         const entryChannel = typeof entry.channel === "string" ? entry.channel : undefined;
-        const lastChannel = typeof entry.lastChannel === "string" ? entry.lastChannel : undefined;
+        const deliveryContext =
+          entry.deliveryContext && typeof entry.deliveryContext === "object"
+            ? (entry.deliveryContext as Record<string, unknown>)
+            : undefined;
+        const deliveryChannel =
+          typeof deliveryContext?.channel === "string" ? deliveryContext.channel : undefined;
+        const deliveryTo = typeof deliveryContext?.to === "string" ? deliveryContext.to : undefined;
+        const deliveryAccountId =
+          typeof deliveryContext?.accountId === "string" ? deliveryContext.accountId : undefined;
+        const lastChannel =
+          deliveryChannel ??
+          (typeof entry.lastChannel === "string" ? entry.lastChannel : undefined);
         const lastAccountId =
-          typeof entry.lastAccountId === "string" ? entry.lastAccountId : undefined;
+          deliveryAccountId ??
+          (typeof entry.lastAccountId === "string" ? entry.lastAccountId : undefined);
         const derivedChannel = deriveChannel({
           key,
           kind,
@@ -189,6 +156,14 @@ export function createSessionsListTool(opts?: {
           channel: derivedChannel,
           label: typeof entry.label === "string" ? entry.label : undefined,
           displayName: typeof entry.displayName === "string" ? entry.displayName : undefined,
+          deliveryContext:
+            deliveryChannel || deliveryTo || deliveryAccountId
+              ? {
+                  channel: deliveryChannel,
+                  to: deliveryTo,
+                  accountId: deliveryAccountId,
+                }
+              : undefined,
           updatedAt: typeof entry.updatedAt === "number" ? entry.updatedAt : undefined,
           sessionId,
           model: typeof entry.model === "string" ? entry.model : undefined,
@@ -201,7 +176,7 @@ export function createSessionsListTool(opts?: {
             typeof entry.abortedLastRun === "boolean" ? entry.abortedLastRun : undefined,
           sendPolicy: typeof entry.sendPolicy === "string" ? entry.sendPolicy : undefined,
           lastChannel,
-          lastTo: typeof entry.lastTo === "string" ? entry.lastTo : undefined,
+          lastTo: deliveryTo ?? (typeof entry.lastTo === "string" ? entry.lastTo : undefined),
           lastAccountId,
           transcriptPath,
         };

@@ -1,4 +1,5 @@
 node_modules
+**/node_modules/
 .env
 docker-compose.extra.yml
 dist
@@ -31,6 +32,11 @@ apps/ios/*.xcodeproj/
 apps/ios/*.xcworkspace/
 apps/ios/.swiftpm/
 vendor/
+apps/ios/Clawdbot.xcodeproj/
+apps/ios/Clawdbot.xcodeproj/**
+apps/macos/.build/**
+**/*.bun-build
+apps/ios/*.xcfilelist
 
 # Vendor build artifacts
 vendor/a2ui/renderers/lit/dist/
@@ -43,6 +49,8 @@ apps/ios/fastlane/Preview.html
 apps/ios/fastlane/screenshots/
 apps/ios/fastlane/test_output/
 apps/ios/fastlane/logs/
+apps/ios/fastlane/.env
+apps/ios/fastlane/report.xml
 
 # fastlane build artifacts (local)
 apps/ios/*.ipa
@@ -55,3 +63,9 @@ apps/ios/*.mobileprovision
 # Local untracked files
 .local/
 .vscode/
+IDENTITY.md
+USER.md
+.tgz
+
+# local tooling
+.serena/

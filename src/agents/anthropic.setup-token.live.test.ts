@@ -6,6 +6,7 @@ import path from "node:path";
 import { type Api, completeSimple, type Model } from "@mariozechner/pi-ai";
 import { discoverAuthStorage, discoverModels } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it } from "vitest";
+import { isTruthyEnvValue } from "../infra/env.js";
 import {
   ANTHROPIC_SETUP_TOKEN_PREFIX,
   validateAnthropicSetupToken,
@@ -17,11 +18,11 @@ import {
   ensureAuthProfileStore,
   saveAuthProfileStore,
 } from "./auth-profiles.js";
-import { getApiKeyForModel } from "./model-auth.js";
+import { getApiKeyForModel, requireApiKey } from "./model-auth.js";
 import { normalizeProviderId, parseModelRef } from "./model-selection.js";
 import { ensureClawdbotModelsJson } from "./models-config.js";
 
-const LIVE = process.env.LIVE === "1" || process.env.CLAWDBOT_LIVE_TEST === "1";
+const LIVE = isTruthyEnvValue(process.env.LIVE) || isTruthyEnvValue(process.env.CLAWDBOT_LIVE_TEST);
 const SETUP_TOKEN_RAW = process.env.CLAWDBOT_LIVE_SETUP_TOKEN?.trim() ?? "";
 const SETUP_TOKEN_VALUE = process.env.CLAWDBOT_LIVE_SETUP_TOKEN_VALUE?.trim() ?? "";
 const SETUP_TOKEN_PROFILE = process.env.CLAWDBOT_LIVE_SETUP_TOKEN_PROFILE?.trim() ?? "";
@@ -177,7 +178,8 @@ describeLive("live anthropic setup-token", () => {
           profileId: tokenSource.profileId,
           agentDir: tokenSource.agentDir,
         });
-        const tokenError = validateAnthropicSetupToken(apiKeyInfo.apiKey);
+        const apiKey = requireApiKey(apiKeyInfo, model.provider);
+        const tokenError = validateAnthropicSetupToken(apiKey);
         if (tokenError) {
           throw new Error(`Resolved profile is not a setup-token: ${tokenError}`);
         }
@@ -194,7 +196,7 @@ describeLive("live anthropic setup-token", () => {
             ],
           },
           {
-            apiKey: apiKeyInfo.apiKey,
+            apiKey,
             maxTokens: 64,
             temperature: 0,
           },

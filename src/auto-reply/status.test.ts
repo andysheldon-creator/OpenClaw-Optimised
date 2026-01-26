@@ -74,6 +74,25 @@ describe("buildStatusMessage", () => {
     expect(normalized).toContain("Queue: collect");
   });
 
+  it("uses per-agent sandbox config when config and session key are provided", () => {
+    const text = buildStatusMessage({
+      config: {
+        agents: {
+          list: [
+            { id: "main", default: true },
+            { id: "discord", sandbox: { mode: "all" } },
+          ],
+        },
+      } as ClawdbotConfig,
+      agent: {},
+      sessionKey: "agent:discord:discord:channel:1456350065223270435",
+      sessionScope: "per-sender",
+      queue: { mode: "collect", depth: 0 },
+    });
+
+    expect(normalizeTestText(text)).toContain("Runtime: docker/all");
+  });
+
   it("shows verbose/elevated labels only when enabled", () => {
     const text = buildStatusMessage({
       agent: { model: "anthropic/claude-opus-4-5" },
@@ -88,6 +107,75 @@ describe("buildStatusMessage", () => {
 
     expect(text).toContain("verbose");
     expect(text).toContain("elevated");
+  });
+
+  it("includes media understanding decisions when present", () => {
+    const text = buildStatusMessage({
+      agent: { model: "anthropic/claude-opus-4-5" },
+      sessionEntry: { sessionId: "media", updatedAt: 0 },
+      sessionKey: "agent:main:main",
+      queue: { mode: "none" },
+      mediaDecisions: [
+        {
+          capability: "image",
+          outcome: "success",
+          attachments: [
+            {
+              attachmentIndex: 0,
+              attempts: [
+                {
+                  type: "provider",
+                  outcome: "success",
+                  provider: "openai",
+                  model: "gpt-5.2",
+                },
+              ],
+              chosen: {
+                type: "provider",
+                outcome: "success",
+                provider: "openai",
+                model: "gpt-5.2",
+              },
+            },
+          ],
+        },
+        {
+          capability: "audio",
+          outcome: "skipped",
+          attachments: [
+            {
+              attachmentIndex: 1,
+              attempts: [
+                {
+                  type: "provider",
+                  outcome: "skipped",
+                  reason: "maxBytes: too large",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const normalized = normalizeTestText(text);
+    expect(normalized).toContain("Media: image ok (openai/gpt-5.2) · audio skipped (maxBytes)");
+  });
+
+  it("omits media line when all decisions are none", () => {
+    const text = buildStatusMessage({
+      agent: { model: "anthropic/claude-opus-4-5" },
+      sessionEntry: { sessionId: "media-none", updatedAt: 0 },
+      sessionKey: "agent:main:main",
+      queue: { mode: "none" },
+      mediaDecisions: [
+        { capability: "image", outcome: "no-attachment", attachments: [] },
+        { capability: "audio", outcome: "no-attachment", attachments: [] },
+        { capability: "video", outcome: "no-attachment", attachments: [] },
+      ],
+    });
+
+    expect(normalizeTestText(text)).not.toContain("Media:");
   });
 
   it("does not show elevated label when session explicitly disables it", () => {
@@ -313,10 +401,27 @@ describe("buildCommandsMessage", () => {
       commands: { config: false, debug: false },
     } as ClawdbotConfig);
     expect(text).toContain("/commands - List all slash commands.");
+    expect(text).toContain("/skill - Run a skill by name.");
     expect(text).toContain("/think (aliases: /thinking, /t) - Set thinking level.");
     expect(text).toContain("/compact (text-only) - Compact the session context.");
     expect(text).not.toContain("/config");
     expect(text).not.toContain("/debug");
+  });
+
+  it("includes skill commands when provided", () => {
+    const text = buildCommandsMessage(
+      {
+        commands: { config: false, debug: false },
+      } as ClawdbotConfig,
+      [
+        {
+          name: "demo_skill",
+          skillName: "demo-skill",
+          description: "Demo skill",
+        },
+      ],
+    );
+    expect(text).toContain("/demo_skill - Demo skill");
   });
 });
 
@@ -325,6 +430,7 @@ describe("buildHelpMessage", () => {
     const text = buildHelpMessage({
       commands: { config: false, debug: false },
     } as ClawdbotConfig);
+    expect(text).toContain("Skills: /skill <name> [input]");
     expect(text).not.toContain("/config");
     expect(text).not.toContain("/debug");
   });

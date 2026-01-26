@@ -2,8 +2,10 @@ import type { Command } from "commander";
 
 import { browserSnapshot, resolveBrowserControlUrl } from "../browser/client.js";
 import { browserScreenshotAction } from "../browser/client-actions.js";
+import { loadConfig } from "../config/config.js";
 import { danger } from "../globals.js";
 import { defaultRuntime } from "../runtime.js";
+import { shortenHomePath } from "../utils.js";
 import type { BrowserParentOpts } from "./browser-cli-shared.js";
 
 export function registerBrowserInspectCommands(
@@ -35,7 +37,7 @@ export function registerBrowserInspectCommands(
           defaultRuntime.log(JSON.stringify(result, null, 2));
           return;
         }
-        defaultRuntime.log(`MEDIA:${result.path}`);
+        defaultRuntime.log(`MEDIA:${shortenHomePath(result.path)}`);
       } catch (err) {
         defaultRuntime.error(danger(String(err)));
         defaultRuntime.exit(1);
@@ -62,7 +64,11 @@ export function registerBrowserInspectCommands(
       const baseUrl = resolveBrowserControlUrl(parent?.url);
       const profile = parent?.browserProfile;
       const format = opts.format === "aria" ? "aria" : "ai";
-      const mode = opts.efficient === true || opts.mode === "efficient" ? "efficient" : undefined;
+      const configMode =
+        format === "ai" && loadConfig().browser?.snapshotDefaults?.mode === "efficient"
+          ? "efficient"
+          : undefined;
+      const mode = opts.efficient === true || opts.mode === "efficient" ? "efficient" : configMode;
       try {
         const result = await browserSnapshot(baseUrl, {
           format,
@@ -101,9 +107,9 @@ export function registerBrowserInspectCommands(
               ),
             );
           } else {
-            defaultRuntime.log(opts.out);
+            defaultRuntime.log(shortenHomePath(opts.out));
             if (result.format === "ai" && result.imagePath) {
-              defaultRuntime.log(`MEDIA:${result.imagePath}`);
+              defaultRuntime.log(`MEDIA:${shortenHomePath(result.imagePath)}`);
             }
           }
           return;
@@ -117,7 +123,7 @@ export function registerBrowserInspectCommands(
         if (result.format === "ai") {
           defaultRuntime.log(result.snapshot);
           if (result.imagePath) {
-            defaultRuntime.log(`MEDIA:${result.imagePath}`);
+            defaultRuntime.log(`MEDIA:${shortenHomePath(result.imagePath)}`);
           }
           return;
         }

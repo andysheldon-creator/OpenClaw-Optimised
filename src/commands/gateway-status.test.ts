@@ -30,7 +30,7 @@ const probeGateway = vi.fn(async ({ url }: { url: string }) => {
       close: null,
       health: { ok: true },
       status: {
-        linkProvider: {
+        linkChannel: {
           id: "whatsapp",
           label: "WhatsApp",
           linked: false,
@@ -45,7 +45,6 @@ const probeGateway = vi.fn(async ({ url }: { url: string }) => {
         valid: true,
         config: {
           gateway: { mode: "local" },
-          bridge: { enabled: true, port: 18790 },
         },
         issues: [],
         legacyIssues: [],
@@ -60,7 +59,7 @@ const probeGateway = vi.fn(async ({ url }: { url: string }) => {
     close: null,
     health: { ok: true },
     status: {
-      linkProvider: {
+      linkChannel: {
         id: "whatsapp",
         label: "WhatsApp",
         linked: true,
@@ -73,7 +72,7 @@ const probeGateway = vi.fn(async ({ url }: { url: string }) => {
       path: "/tmp/remote.json",
       exists: true,
       valid: true,
-      config: { gateway: { mode: "remote" }, bridge: { enabled: false } },
+      config: { gateway: { mode: "remote" } },
       issues: [],
       legacyIssues: [],
     },
@@ -182,6 +181,10 @@ describe("gateway-status command", () => {
 
     expect(startSshPortForward).toHaveBeenCalledTimes(1);
     expect(probeGateway).toHaveBeenCalled();
+    const tunnelCall = probeGateway.mock.calls.find(
+      (call) => typeof call?.[0]?.url === "string" && call[0].url.startsWith("ws://127.0.0.1:"),
+    )?.[0] as { auth?: { token?: string } } | undefined;
+    expect(tunnelCall?.auth?.token).toBe("rtok");
     expect(sshStop).toHaveBeenCalledTimes(1);
 
     const parsed = JSON.parse(runtimeLogs.join("\n")) as Record<string, unknown>;

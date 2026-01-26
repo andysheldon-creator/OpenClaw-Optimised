@@ -1,38 +1,18 @@
+import JSON5 from "json5";
 import type { Skill } from "@mariozechner/pi-coding-agent";
 
+import { parseFrontmatterBlock } from "../../markdown/frontmatter.js";
+import { parseBooleanValue } from "../../utils/boolean.js";
 import type {
   ClawdbotSkillMetadata,
   ParsedSkillFrontmatter,
   SkillEntry,
   SkillInstallSpec,
+  SkillInvocationPolicy,
 } from "./types.js";
 
-function stripQuotes(value: string): string {
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1);
-  }
-  return value;
-}
-
 export function parseFrontmatter(content: string): ParsedSkillFrontmatter {
-  const frontmatter: ParsedSkillFrontmatter = {};
-  const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  if (!normalized.startsWith("---")) return frontmatter;
-  const endIndex = normalized.indexOf("\n---", 3);
-  if (endIndex === -1) return frontmatter;
-  const block = normalized.slice(4, endIndex);
-  for (const line of block.split("\n")) {
-    const match = line.match(/^([\w-]+):\s*(.*)$/);
-    if (!match) continue;
-    const key = match[1];
-    const value = stripQuotes(match[2].trim());
-    if (!key || !value) continue;
-    frontmatter[key] = value;
-  }
-  return frontmatter;
+  return parseFrontmatterBlock(content);
 }
 
 function normalizeStringList(input: unknown): string[] {
@@ -55,7 +35,7 @@ function parseInstallSpec(input: unknown): SkillInstallSpec | undefined {
   const kindRaw =
     typeof raw.kind === "string" ? raw.kind : typeof raw.type === "string" ? raw.type : "";
   const kind = kindRaw.trim().toLowerCase();
-  if (kind !== "brew" && kind !== "node" && kind !== "go" && kind !== "uv") {
+  if (kind !== "brew" && kind !== "node" && kind !== "go" && kind !== "uv" && kind !== "download") {
     return undefined;
   }
 
@@ -67,9 +47,16 @@ function parseInstallSpec(input: unknown): SkillInstallSpec | undefined {
   if (typeof raw.label === "string") spec.label = raw.label;
   const bins = normalizeStringList(raw.bins);
   if (bins.length > 0) spec.bins = bins;
+  const osList = normalizeStringList(raw.os);
+  if (osList.length > 0) spec.os = osList;
   if (typeof raw.formula === "string") spec.formula = raw.formula;
   if (typeof raw.package === "string") spec.package = raw.package;
   if (typeof raw.module === "string") spec.module = raw.module;
+  if (typeof raw.url === "string") spec.url = raw.url;
+  if (typeof raw.archive === "string") spec.archive = raw.archive;
+  if (typeof raw.extract === "boolean") spec.extract = raw.extract;
+  if (typeof raw.stripComponents === "number") spec.stripComponents = raw.stripComponents;
+  if (typeof raw.targetDir === "string") spec.targetDir = raw.targetDir;
 
   return spec;
 }
@@ -79,13 +66,18 @@ function getFrontmatterValue(frontmatter: ParsedSkillFrontmatter, key: string): 
   return typeof raw === "string" ? raw : undefined;
 }
 
+function parseFrontmatterBool(value: string | undefined, fallback: boolean): boolean {
+  const parsed = parseBooleanValue(value);
+  return parsed === undefined ? fallback : parsed;
+}
+
 export function resolveClawdbotMetadata(
   frontmatter: ParsedSkillFrontmatter,
 ): ClawdbotSkillMetadata | undefined {
   const raw = getFrontmatterValue(frontmatter, "metadata");
   if (!raw) return undefined;
   try {
-    const parsed = JSON.parse(raw) as { clawdbot?: unknown };
+    const parsed = JSON5.parse(raw) as { clawdbot?: unknown };
     if (!parsed || typeof parsed !== "object") return undefined;
     const clawdbot = (parsed as { clawdbot?: unknown }).clawdbot;
     if (!clawdbot || typeof clawdbot !== "object") return undefined;
@@ -119,6 +111,18 @@ export function resolveClawdbotMetadata(
   } catch {
     return undefined;
   }
+}
+
+export function resolveSkillInvocationPolicy(
+  frontmatter: ParsedSkillFrontmatter,
+): SkillInvocationPolicy {
+  return {
+    userInvocable: parseFrontmatterBool(getFrontmatterValue(frontmatter, "user-invocable"), true),
+    disableModelInvocation: parseFrontmatterBool(
+      getFrontmatterValue(frontmatter, "disable-model-invocation"),
+      false,
+    ),
+  };
 }
 
 export function resolveSkillKey(skill: Skill, entry?: SkillEntry): string {

@@ -1,5 +1,6 @@
 import type { SlackActionMiddlewareArgs, SlackCommandMiddlewareArgs } from "@slack/bolt";
 import type { ChatCommandDefinition, CommandArgs } from "../../auto-reply/commands-registry.js";
+import { resolveChunkMode } from "../../auto-reply/chunk.js";
 import { resolveEffectiveMessagesConfig } from "../../agents/identity.js";
 import {
   buildCommandTextFromArgs,
@@ -8,8 +9,11 @@ import {
   parseCommandArgs,
   resolveCommandArgMenu,
 } from "../../auto-reply/commands-registry.js";
+import { listSkillCommandsForAgents } from "../../auto-reply/skill-commands.js";
 import { dispatchReplyWithDispatcher } from "../../auto-reply/reply/provider-dispatcher.js";
-import { resolveNativeCommandsEnabled } from "../../config/commands.js";
+import { finalizeInboundContext } from "../../auto-reply/reply/inbound-context.js";
+import { resolveNativeCommandsEnabled, resolveNativeSkillsEnabled } from "../../config/commands.js";
+import { resolveMarkdownTableMode } from "../../config/markdown-tables.js";
 import { danger, logVerbose } from "../../globals.js";
 import { buildPairingReply } from "../../pairing/pairing-messages.js";
 import {
@@ -17,19 +21,22 @@ import {
   upsertChannelPairingRequest,
 } from "../../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
+import { resolveConversationLabel } from "../../channels/conversation-label.js";
+import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
+import { formatAllowlistMatchMeta } from "../../channels/allowlist-match.js";
 
 import type { ResolvedSlackAccount } from "../accounts.js";
 
 import {
-  allowListMatches,
   normalizeAllowList,
   normalizeAllowListLower,
+  resolveSlackAllowListMatch,
   resolveSlackUserAllowed,
 } from "./allow-list.js";
 import { resolveSlackChannelConfig, type SlackChannelConfigResolved } from "./channel-config.js";
 import { buildSlackSlashCommandMatcher, resolveSlackSlashCommandConfig } from "./commands.js";
 import type { SlackMonitorContext } from "./context.js";
-import { isSlackRoomAllowedByPolicy } from "./policy.js";
+import { isSlackChannelAllowedByPolicy } from "./policy.js";
 import { deliverSlackSlashReplies } from "./replies.js";
 
 type SlackBlock = { type: string; [key: string]: unknown };
@@ -164,6 +171,7 @@ export function registerSlackMonitorSlashCommands(params: {
       const isDirectMessage = channelType === "im";
       const isGroupDm = channelType === "mpim";
       const isRoom = channelType === "channel" || channelType === "group";
+      const isRoomish = isRoom || isGroupDm;
 
       if (
         !ctx.isChannelAllowed({
@@ -196,12 +204,13 @@ export function registerSlackMonitorSlashCommands(params: {
         if (ctx.dmPolicy !== "open") {
           const sender = await ctx.resolveUserName(command.user_id);
           const senderName = sender?.name ?? undefined;
-          const permitted = allowListMatches({
+          const allowMatch = resolveSlackAllowListMatch({
             allowList: effectiveAllowFromLower,
             id: command.user_id,
             name: senderName,
           });
-          if (!permitted) {
+          const allowMatchMeta = formatAllowlistMatchMeta(allowMatch);
+          if (!allowMatch.allowed) {
             if (ctx.dmPolicy === "pairing") {
               const { code, created } = await upsertChannelPairingRequest({
                 channel: "slack",
@@ -209,6 +218,11 @@ export function registerSlackMonitorSlashCommands(params: {
                 meta: { name: senderName },
               });
               if (created) {
+                logVerbose(
+                  `slack pairing request sender=${command.user_id} name=${
+                    senderName ?? "unknown"
+                  } (${allowMatchMeta})`,
+                );
                 await respond({
                   text: buildPairingReply({
                     channel: "slack",
@@ -219,6 +233,9 @@ export function registerSlackMonitorSlashCommands(params: {
                 });
               }
             } else {
+              logVerbose(
+                `slack: blocked slash sender ${command.user_id} (dmPolicy=${ctx.dmPolicy}, ${allowMatchMeta})`,
+              );
               await respond({
                 text: "You are not authorized to use this command.",
                 response_type: "ephemeral",
@@ -242,12 +259,11 @@ export function registerSlackMonitorSlashCommands(params: {
             Boolean(ctx.channelsConfig) && Object.keys(ctx.channelsConfig ?? {}).length > 0;
           const channelAllowed = channelConfig?.allowed !== false;
           if (
-            !isSlackRoomAllowedByPolicy({
+            !isSlackChannelAllowedByPolicy({
               groupPolicy: ctx.groupPolicy,
               channelAllowlistConfigured,
               channelAllowed,
-            }) ||
-            !channelAllowed
+            })
           ) {
             await respond({
               text: "This channel is not allowed.",
@@ -255,31 +271,59 @@ export function registerSlackMonitorSlashCommands(params: {
             });
             return;
           }
-        }
-        if (ctx.useAccessGroups && channelConfig?.allowed === false) {
-          await respond({
-            text: "This channel is not allowed.",
-            response_type: "ephemeral",
-          });
-          return;
+          // When groupPolicy is "open", only block channels that are EXPLICITLY denied
+          // (i.e., have a matching config entry with allow:false). Channels not in the
+          // config (matchSource undefined) should be allowed under open policy.
+          const hasExplicitConfig = Boolean(channelConfig?.matchSource);
+          if (!channelAllowed && (ctx.groupPolicy !== "open" || hasExplicitConfig)) {
+            await respond({
+              text: "This channel is not allowed.",
+              response_type: "ephemeral",
+            });
+            return;
+          }
         }
       }
 
       const sender = await ctx.resolveUserName(command.user_id);
       const senderName = sender?.name ?? command.user_name ?? command.user_id;
-      const channelUserAllowed = isRoom
+      const channelUsersAllowlistConfigured =
+        isRoom && Array.isArray(channelConfig?.users) && channelConfig.users.length > 0;
+      const channelUserAllowed = channelUsersAllowlistConfigured
         ? resolveSlackUserAllowed({
             allowList: channelConfig?.users,
             userId: command.user_id,
             userName: senderName,
           })
-        : true;
-      if (isRoom && !channelUserAllowed) {
+        : false;
+      if (channelUsersAllowlistConfigured && !channelUserAllowed) {
         await respond({
           text: "You are not authorized to use this command here.",
           response_type: "ephemeral",
         });
         return;
+      }
+
+      const ownerAllowed = resolveSlackAllowListMatch({
+        allowList: effectiveAllowFromLower,
+        id: command.user_id,
+        name: senderName,
+      }).allowed;
+      if (isRoomish) {
+        commandAuthorized = resolveCommandAuthorizedFromAuthorizers({
+          useAccessGroups: ctx.useAccessGroups,
+          authorizers: [
+            { configured: effectiveAllowFromLower.length > 0, allowed: ownerAllowed },
+            { configured: channelUsersAllowlistConfigured, allowed: channelUserAllowed },
+          ],
+        });
+        if (ctx.useAccessGroups && !commandAuthorized) {
+          await respond({
+            text: "You are not authorized to use this command.",
+            response_type: "ephemeral",
+          });
+          return;
+        }
       }
 
       if (commandDefinition && supportsInteractiveArgMenus) {
@@ -310,7 +354,6 @@ export function registerSlackMonitorSlashCommands(params: {
 
       const channelName = channelInfo?.name;
       const roomLabel = channelName ? `#${channelName}` : `#${command.channel_id}`;
-      const isRoomish = isRoom || isGroupDm;
       const route = resolveAgentRoute({
         cfg,
         channel: "slack",
@@ -334,8 +377,10 @@ export function registerSlackMonitorSlashCommands(params: {
       const groupSystemPrompt =
         systemPromptParts.length > 0 ? systemPromptParts.join("\n\n") : undefined;
 
-      const ctxPayload = {
+      const ctxPayload = finalizeInboundContext({
         Body: prompt,
+        RawBody: prompt,
+        CommandBody: prompt,
         CommandArgs: commandArgs,
         From: isDirectMessage
           ? `slack:${command.user_id}`
@@ -343,7 +388,18 @@ export function registerSlackMonitorSlashCommands(params: {
             ? `slack:channel:${command.channel_id}`
             : `slack:group:${command.channel_id}`,
         To: `slash:${command.user_id}`,
-        ChatType: isDirectMessage ? "direct" : isRoom ? "room" : "group",
+        ChatType: isDirectMessage ? "direct" : "channel",
+        ConversationLabel:
+          resolveConversationLabel({
+            ChatType: isDirectMessage ? "direct" : "channel",
+            SenderName: senderName,
+            GroupSubject: isRoomish ? roomLabel : undefined,
+            From: isDirectMessage
+              ? `slack:${command.user_id}`
+              : isRoom
+                ? `slack:channel:${command.channel_id}`
+                : `slack:group:${command.channel_id}`,
+          }) ?? (isDirectMessage ? senderName : roomLabel),
         GroupSubject: isRoomish ? roomLabel : undefined,
         GroupSystemPrompt: isRoomish ? groupSystemPrompt : undefined,
         SenderName: senderName,
@@ -353,14 +409,15 @@ export function registerSlackMonitorSlashCommands(params: {
         WasMentioned: true,
         MessageSid: command.trigger_id,
         Timestamp: Date.now(),
-        SessionKey: `agent:${route.agentId}:${slashCommand.sessionPrefix}:${command.user_id}`,
+        SessionKey:
+          `agent:${route.agentId}:${slashCommand.sessionPrefix}:${command.user_id}`.toLowerCase(),
         CommandTargetSessionKey: route.sessionKey,
         AccountId: route.accountId,
         CommandSource: "native" as const,
         CommandAuthorized: commandAuthorized,
         OriginatingChannel: "slack" as const,
         OriginatingTo: `user:${command.user_id}`,
-      };
+      });
 
       const { counts } = await dispatchReplyWithDispatcher({
         ctx: ctxPayload,
@@ -373,6 +430,12 @@ export function registerSlackMonitorSlashCommands(params: {
               respond,
               ephemeral: slashCommand.ephemeral,
               textLimit: ctx.textLimit,
+              chunkMode: resolveChunkMode(cfg, "slack", route.accountId),
+              tableMode: resolveMarkdownTableMode({
+                cfg,
+                channel: "slack",
+                accountId: route.accountId,
+              }),
             });
           },
           onError: (err, info) => {
@@ -387,6 +450,12 @@ export function registerSlackMonitorSlashCommands(params: {
           respond,
           ephemeral: slashCommand.ephemeral,
           textLimit: ctx.textLimit,
+          chunkMode: resolveChunkMode(cfg, "slack", route.accountId),
+          tableMode: resolveMarkdownTableMode({
+            cfg,
+            channel: "slack",
+            accountId: route.accountId,
+          }),
         });
       }
     } catch (err) {
@@ -403,13 +472,22 @@ export function registerSlackMonitorSlashCommands(params: {
     providerSetting: account.config.commands?.native,
     globalSetting: cfg.commands?.native,
   });
-  const nativeCommands = nativeEnabled ? listNativeCommandSpecsForConfig(cfg) : [];
+  const nativeSkillsEnabled = resolveNativeSkillsEnabled({
+    providerId: "slack",
+    providerSetting: account.config.commands?.nativeSkills,
+    globalSetting: cfg.commands?.nativeSkills,
+  });
+  const skillCommands =
+    nativeEnabled && nativeSkillsEnabled ? listSkillCommandsForAgents({ cfg }) : [];
+  const nativeCommands = nativeEnabled
+    ? listNativeCommandSpecsForConfig(cfg, { skillCommands, provider: "slack" })
+    : [];
   if (nativeCommands.length > 0) {
     for (const command of nativeCommands) {
       ctx.app.command(
         `/${command.name}`,
         async ({ command: cmd, ack, respond }: SlackCommandMiddlewareArgs) => {
-          const commandDefinition = findCommandByNativeName(command.name);
+          const commandDefinition = findCommandByNativeName(command.name, "slack");
           const rawText = cmd.text?.trim() ?? "";
           const commandArgs = commandDefinition
             ? parseCommandArgs(commandDefinition, rawText)
@@ -483,7 +561,7 @@ export function registerSlackMonitorSlashCommands(params: {
       });
       return;
     }
-    const commandDefinition = findCommandByNativeName(parsed.command);
+    const commandDefinition = findCommandByNativeName(parsed.command, "slack");
     const commandArgs: CommandArgs = {
       values: { [parsed.arg]: parsed.value },
     };

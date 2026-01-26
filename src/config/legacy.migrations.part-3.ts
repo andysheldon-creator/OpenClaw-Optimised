@@ -25,6 +25,42 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_3: LegacyConfigMigration[] = [
     },
   },
   {
+    id: "tools.bash->tools.exec",
+    describe: "Move tools.bash to tools.exec",
+    apply: (raw, changes) => {
+      const tools = ensureRecord(raw, "tools");
+      const bash = getRecord(tools.bash);
+      if (!bash) return;
+      if (tools.exec === undefined) {
+        tools.exec = bash;
+        changes.push("Moved tools.bash → tools.exec.");
+      } else {
+        changes.push("Removed tools.bash (tools.exec already set).");
+      }
+      delete tools.bash;
+    },
+  },
+  {
+    id: "messages.tts.enabled->auto",
+    describe: "Move messages.tts.enabled to messages.tts.auto",
+    apply: (raw, changes) => {
+      const messages = getRecord(raw.messages);
+      const tts = getRecord(messages?.tts);
+      if (!tts) return;
+      if (tts.auto !== undefined) {
+        if ("enabled" in tts) {
+          delete tts.enabled;
+          changes.push("Removed messages.tts.enabled (messages.tts.auto already set).");
+        }
+        return;
+      }
+      if (typeof tts.enabled !== "boolean") return;
+      tts.auto = tts.enabled ? "always" : "off";
+      delete tts.enabled;
+      changes.push(`Moved messages.tts.enabled → messages.tts.auto (${String(tts.auto)}).`);
+    },
+  },
+  {
     id: "agent.defaults-v2",
     describe: "Move agent config to agents.defaults and tools",
     apply: (raw, changes) => {
@@ -59,13 +95,11 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_3: LegacyConfigMigration[] = [
 
       const bash = getRecord(agent.bash);
       if (bash) {
-        if (tools.exec === undefined && tools.bash === undefined) {
+        if (tools.exec === undefined) {
           tools.exec = bash;
           changes.push("Moved agent.bash → tools.exec.");
-        } else if (tools.exec !== undefined) {
-          changes.push("Removed agent.bash (tools.exec already set).");
         } else {
-          changes.push("Removed agent.bash (tools.bash already set).");
+          changes.push("Removed agent.bash (tools.exec already set).");
         }
       }
 
@@ -127,26 +161,6 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_3: LegacyConfigMigration[] = [
       agents.list = list;
       raw.agents = agents;
       delete raw.identity;
-    },
-  },
-  {
-    id: "bind-tailnet->auto",
-    describe: "Remap gateway/bridge bind 'tailnet' to 'auto'",
-    apply: (raw, changes) => {
-      const migrateBind = (obj: Record<string, unknown> | null | undefined, key: string) => {
-        if (!obj) return;
-        const bind = obj.bind;
-        if (bind === "tailnet") {
-          obj.bind = "auto";
-          changes.push(`Migrated ${key}.bind from 'tailnet' to 'auto'.`);
-        }
-      };
-
-      const gateway = getRecord(raw.gateway);
-      migrateBind(gateway, "gateway");
-
-      const bridge = getRecord(raw.bridge);
-      migrateBind(bridge, "bridge");
     },
   },
 ];

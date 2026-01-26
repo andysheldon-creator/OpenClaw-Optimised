@@ -150,8 +150,8 @@ Live tests are split into two layers so we can isolate failures:
 Tip: to see what you can test on your machine (and the exact `provider/model` ids), run:
 
 ```bash
-pnpm clawdbot models list
-pnpm clawdbot models list --json
+clawdbot models list
+clawdbot models list --json
 ```
 
 ## Live: Anthropic setup-token smoke
@@ -290,6 +290,11 @@ Live tests discover credentials the same way the CLI does. Practical implication
 
 If you want to rely on env keys (e.g. exported in your `~/.profile`), run local tests after `source ~/.profile`, or use the Docker runners below (they can mount `~/.profile` into the container).
 
+## Deepgram live (audio transcription)
+
+- Test: `src/media-understanding/providers/deepgram/audio.live.test.ts`
+- Enable: `DEEPGRAM_API_KEY=... DEEPGRAM_LIVE_TEST=1 pnpm test:live src/media-understanding/providers/deepgram/audio.live.test.ts`
+
 ## Docker runners (optional “works in Linux” checks)
 
 These run `pnpm test:live` inside the repo Docker image, mounting your local config dir and workspace (and sourcing `~/.profile` if mounted):
@@ -317,6 +322,22 @@ Run docs checks after doc edits: `pnpm docs:list`.
 These are “real pipeline” regressions without real providers:
 - Gateway tool calling (mock OpenAI, real gateway + agent loop): `src/gateway/gateway.tool-calling.mock-openai.test.ts`
 - Gateway wizard (WS `wizard.start`/`wizard.next`, writes config + auth enforced): `src/gateway/gateway.wizard.e2e.test.ts`
+
+## Agent reliability evals (skills)
+
+We already have a few CI-safe tests that behave like “agent reliability evals”:
+- Mock tool-calling through the real gateway + agent loop (`src/gateway/gateway.tool-calling.mock-openai.test.ts`).
+- End-to-end wizard flows that validate session wiring and config effects (`src/gateway/gateway.wizard.e2e.test.ts`).
+
+What’s still missing for skills (see [Skills](/tools/skills)):
+- **Decisioning:** when skills are listed in the prompt, does the agent pick the right skill (or avoid irrelevant ones)?
+- **Compliance:** does the agent read `SKILL.md` before use and follow required steps/args?
+- **Workflow contracts:** multi-turn scenarios that assert tool order, session history carryover, and sandbox boundaries.
+
+Future evals should stay deterministic first:
+- A scenario runner using mock providers to assert tool calls + order, skill file reads, and session wiring.
+- A small suite of skill-focused scenarios (use vs avoid, gating, prompt injection).
+- Optional live evals (opt-in, env-gated) only after the CI-safe suite is in place.
 
 ## Adding regressions (guidance)
 

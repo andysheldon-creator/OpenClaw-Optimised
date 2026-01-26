@@ -3,10 +3,10 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
-import { runCommandWithTimeout } from "../../../../src/process/exec.js";
-import type { RuntimeEnv } from "../../../../src/runtime.js";
+import type { RuntimeEnv } from "clawdbot/plugin-sdk";
+import { getMatrixRuntime } from "../runtime.js";
 
-const MATRIX_SDK_PACKAGE = "matrix-js-sdk";
+const MATRIX_SDK_PACKAGE = "matrix-bot-sdk";
 
 export function isMatrixSdkAvailable(): boolean {
   try {
@@ -30,9 +30,9 @@ export async function ensureMatrixSdkInstalled(params: {
   if (isMatrixSdkAvailable()) return;
   const confirm = params.confirm;
   if (confirm) {
-    const ok = await confirm("Matrix requires matrix-js-sdk. Install now?");
+    const ok = await confirm("Matrix requires matrix-bot-sdk. Install now?");
     if (!ok) {
-      throw new Error("Matrix requires matrix-js-sdk (install dependencies first).");
+      throw new Error("Matrix requires matrix-bot-sdk (install dependencies first).");
     }
   }
 
@@ -41,7 +41,7 @@ export async function ensureMatrixSdkInstalled(params: {
     ? ["pnpm", "install"]
     : ["npm", "install", "--omit=dev", "--silent"];
   params.runtime.log?.(`matrix: installing dependencies via ${command[0]} (${root})…`);
-  const result = await runCommandWithTimeout(command, {
+  const result = await getMatrixRuntime().system.runCommandWithTimeout(command, {
     cwd: root,
     timeoutMs: 300_000,
     env: { COREPACK_ENABLE_DOWNLOAD_PROMPT: "0" },
@@ -52,6 +52,6 @@ export async function ensureMatrixSdkInstalled(params: {
     );
   }
   if (!isMatrixSdkAvailable()) {
-    throw new Error("Matrix dependency install completed but matrix-js-sdk is still missing.");
+    throw new Error("Matrix dependency install completed but matrix-bot-sdk is still missing.");
   }
 }

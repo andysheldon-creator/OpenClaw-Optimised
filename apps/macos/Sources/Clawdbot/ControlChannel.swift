@@ -1,3 +1,4 @@
+import ClawdbotKit
 import ClawdbotProtocol
 import Foundation
 import Observation
@@ -19,7 +20,7 @@ struct ControlAgentEvent: Codable, Sendable, Identifiable {
     let seq: Int
     let stream: String
     let ts: Double
-    let data: [String: AnyCodable]
+    let data: [String: ClawdbotProtocol.AnyCodable]
     let summary: String?
 }
 
@@ -73,6 +74,7 @@ final class ControlChannel {
     }
 
     private(set) var lastPingMs: Double?
+    private(set) var authSourceLabel: String?
 
     private let logger = Logger(subsystem: "com.clawdbot", category: "control")
 
@@ -86,15 +88,7 @@ final class ControlChannel {
 
     func configure() async {
         self.logger.info("control channel configure mode=local")
-        self.state = .connecting
-        do {
-            try await GatewayConnection.shared.refresh()
-            self.state = .connected
-            PresenceReporter.shared.sendImmediate(reason: "connect")
-        } catch {
-            let message = self.friendlyGatewayMessage(error)
-            self.state = .degraded(message)
-        }
+        await self.refreshEndpoint(reason: "configure")
     }
 
     func configure(mode: Mode = .local) async throws {
@@ -110,7 +104,7 @@ final class ControlChannel {
                         "target=\(target, privacy: .public) identitySet=\(idSet, privacy: .public)")
                 self.state = .connecting
                 _ = try await GatewayEndpointStore.shared.ensureRemoteControlTunnel()
-                await self.configure()
+                await self.refreshEndpoint(reason: "configure")
             } catch {
                 self.state = .degraded(error.localizedDescription)
                 throw error
@@ -118,10 +112,24 @@ final class ControlChannel {
         }
     }
 
+    func refreshEndpoint(reason: String) async {
+        self.logger.info("control channel refresh endpoint reason=\(reason, privacy: .public)")
+        self.state = .connecting
+        do {
+            try await self.establishGatewayConnection()
+            self.state = .connected
+            PresenceReporter.shared.sendImmediate(reason: "connect")
+        } catch {
+            let message = self.friendlyGatewayMessage(error)
+            self.state = .degraded(message)
+        }
+    }
+
     func disconnect() async {
         await GatewayConnection.shared.shutdown()
         self.state = .disconnected
         self.lastPingMs = nil
+        self.authSourceLabel = nil
     }
 
     func health(timeout: TimeInterval? = nil) async throws -> Data {
@@ -155,8 +163,8 @@ final class ControlChannel {
         timeoutMs: Double? = nil) async throws -> Data
     {
         do {
-            let rawParams = params?.reduce(into: [String: AnyCodable]()) {
-                $0[$1.key] = AnyCodable($1.value.base)
+            let rawParams = params?.reduce(into: [String: ClawdbotKit.AnyCodable]()) {
+                $0[$1.key] = ClawdbotKit.AnyCodable($1.value.base)
             }
             let data = try await GatewayConnection.shared.request(
                 method: method,
@@ -182,8 +190,11 @@ final class ControlChannel {
            urlErr.code == .dataNotAllowed // used for WS close 1008 auth failures
         {
             let reason = urlErr.failureURLString ?? urlErr.localizedDescription
+            let tokenKey = CommandResolver.connectionModeIsRemote()
+                ? "gateway.remote.token"
+                : "gateway.auth.token"
             return
-                "Gateway rejected token; set gateway.auth.token (or CLAWDBOT_GATEWAY_TOKEN) " +
+                "Gateway rejected token; set \(tokenKey) (or CLAWDBOT_GATEWAY_TOKEN) " +
                 "or clear it on the gateway. " +
                 "Reason: \(reason)"
         }
@@ -274,15 +285,46 @@ final class ControlChannel {
                 }
             }
 
-            do {
-                try await GatewayConnection.shared.refresh()
+            await self.refreshEndpoint(reason: "recovery:\(reasonText)")
+            if case .connected = self.state {
                 self.logger.info("control channel recovery finished")
-            } catch {
-                self.logger.error(
-                    "control channel recovery failed \(error.localizedDescription, privacy: .public)")
+            } else if case let .degraded(message) = self.state {
+                self.logger.error("control channel recovery failed \(message, privacy: .public)")
             }
 
             self.recoveryTask = nil
+        }
+    }
+
+    private func establishGatewayConnection(timeoutMs: Int = 5000) async throws {
+        try await GatewayConnection.shared.refresh()
+        let ok = try await GatewayConnection.shared.healthOK(timeoutMs: timeoutMs)
+        if ok == false {
+            throw NSError(
+                domain: "Gateway",
+                code: 0,
+                userInfo: [NSLocalizedDescriptionKey: "gateway health not ok"])
+        }
+        await self.refreshAuthSourceLabel()
+    }
+
+    private func refreshAuthSourceLabel() async {
+        let isRemote = CommandResolver.connectionModeIsRemote()
+        let authSource = await GatewayConnection.shared.authSource()
+        self.authSourceLabel = Self.formatAuthSource(authSource, isRemote: isRemote)
+    }
+
+    private static func formatAuthSource(_ source: GatewayAuthSource?, isRemote: Bool) -> String? {
+        guard let source else { return nil }
+        switch source {
+        case .deviceToken:
+            return "Auth: device token (paired device)"
+        case .sharedToken:
+            return "Auth: shared token (\(isRemote ? "gateway.remote.token" : "gateway.auth.token"))"
+        case .password:
+            return "Auth: password (\(isRemote ? "gateway.remote.password" : "gateway.auth.password"))"
+        case .none:
+            return "Auth: none"
         }
     }
 
@@ -345,7 +387,7 @@ final class ControlChannel {
             let phase = event.data["phase"]?.value as? String ?? ""
             let name = event.data["name"]?.value as? String
             let meta = event.data["meta"]?.value as? String
-            let args = event.data["args"]?.value as? [String: AnyCodable]
+            let args = Self.bridgeToProtocolArgs(event.data["args"])
             WorkActivityStore.shared.handleTool(
                 sessionKey: sessionKey,
                 phase: phase,
@@ -355,6 +397,27 @@ final class ControlChannel {
         default:
             break
         }
+    }
+
+    private static func bridgeToProtocolArgs(
+        _ value: ClawdbotProtocol.AnyCodable?) -> [String: ClawdbotProtocol.AnyCodable]?
+    {
+        guard let value else { return nil }
+        if let dict = value.value as? [String: ClawdbotProtocol.AnyCodable] {
+            return dict
+        }
+        if let dict = value.value as? [String: ClawdbotKit.AnyCodable],
+           let data = try? JSONEncoder().encode(dict),
+           let decoded = try? JSONDecoder().decode([String: ClawdbotProtocol.AnyCodable].self, from: data)
+        {
+            return decoded
+        }
+        if let data = try? JSONEncoder().encode(value),
+           let decoded = try? JSONDecoder().decode([String: ClawdbotProtocol.AnyCodable].self, from: data)
+        {
+            return decoded
+        }
+        return nil
     }
 }
 

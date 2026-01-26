@@ -6,11 +6,14 @@ import {
   requestNodePairing,
   verifyNodeToken,
 } from "../../infra/node-pairing.js";
+import { listDevicePairing } from "../../infra/device-pairing.js";
 import {
   ErrorCodes,
   errorShape,
   validateNodeDescribeParams,
+  validateNodeEventParams,
   validateNodeInvokeParams,
+  validateNodeInvokeResultParams,
   validateNodeListParams,
   validateNodePairApproveParams,
   validateNodePairListParams,
@@ -25,7 +28,33 @@ import {
   safeParseJson,
   uniqueSortedStrings,
 } from "./nodes.helpers.js";
+import { loadConfig } from "../../config/config.js";
+import { isNodeCommandAllowed, resolveNodeCommandAllowlist } from "../node-command-policy.js";
 import type { GatewayRequestHandlers } from "./types.js";
+
+function isNodeEntry(entry: { role?: string; roles?: string[] }) {
+  if (entry.role === "node") return true;
+  if (Array.isArray(entry.roles) && entry.roles.includes("node")) return true;
+  return false;
+}
+
+function normalizeNodeInvokeResultParams(params: unknown): unknown {
+  if (!params || typeof params !== "object") return params;
+  const raw = params as Record<string, unknown>;
+  const normalized: Record<string, unknown> = { ...raw };
+  if (normalized.payloadJSON === null) {
+    delete normalized.payloadJSON;
+  } else if (normalized.payloadJSON !== undefined && typeof normalized.payloadJSON !== "string") {
+    if (normalized.payload === undefined) {
+      normalized.payload = normalized.payloadJSON;
+    }
+    delete normalized.payloadJSON;
+  }
+  if (normalized.error === null) {
+    delete normalized.error;
+  }
+  return normalized;
+}
 
 export const nodeHandlers: GatewayRequestHandlers = {
   "node.pair.request": async ({ params, respond, context }) => {
@@ -42,6 +71,8 @@ export const nodeHandlers: GatewayRequestHandlers = {
       displayName?: string;
       platform?: string;
       version?: string;
+      coreVersion?: string;
+      uiVersion?: string;
       deviceFamily?: string;
       modelIdentifier?: string;
       caps?: string[];
@@ -55,6 +86,8 @@ export const nodeHandlers: GatewayRequestHandlers = {
         displayName: p.displayName,
         platform: p.platform,
         version: p.version,
+        coreVersion: p.coreVersion,
+        uiVersion: p.uiVersion,
         deviceFamily: p.deviceFamily,
         modelIdentifier: p.modelIdentifier,
         caps: p.caps,
@@ -197,9 +230,29 @@ export const nodeHandlers: GatewayRequestHandlers = {
       return;
     }
     await respondUnavailableOnThrow(respond, async () => {
-      const list = await listNodePairing();
-      const pairedById = new Map(list.paired.map((n) => [n.nodeId, n]));
-      const connected = context.bridge?.listConnected?.() ?? [];
+      const list = await listDevicePairing();
+      const pairedById = new Map(
+        list.paired
+          .filter((entry) => isNodeEntry(entry))
+          .map((entry) => [
+            entry.deviceId,
+            {
+              nodeId: entry.deviceId,
+              displayName: entry.displayName,
+              platform: entry.platform,
+              version: undefined,
+              coreVersion: undefined,
+              uiVersion: undefined,
+              deviceFamily: undefined,
+              modelIdentifier: undefined,
+              remoteIp: entry.remoteIp,
+              caps: [],
+              commands: [],
+              permissions: undefined,
+            },
+          ]),
+      );
+      const connected = context.nodeRegistry.listConnected();
       const connectedById = new Map(connected.map((n) => [n.nodeId, n]));
       const nodeIds = new Set<string>([...pairedById.keys(), ...connectedById.keys()]);
 
@@ -215,12 +268,16 @@ export const nodeHandlers: GatewayRequestHandlers = {
           displayName: live?.displayName ?? paired?.displayName,
           platform: live?.platform ?? paired?.platform,
           version: live?.version ?? paired?.version,
+          coreVersion: live?.coreVersion ?? paired?.coreVersion,
+          uiVersion: live?.uiVersion ?? paired?.uiVersion,
           deviceFamily: live?.deviceFamily ?? paired?.deviceFamily,
           modelIdentifier: live?.modelIdentifier ?? paired?.modelIdentifier,
           remoteIp: live?.remoteIp ?? paired?.remoteIp,
           caps,
           commands,
+          pathEnv: live?.pathEnv,
           permissions: live?.permissions ?? paired?.permissions,
+          connectedAtMs: live?.connectedAtMs,
           paired: Boolean(paired),
           connected: Boolean(live),
         };
@@ -254,9 +311,9 @@ export const nodeHandlers: GatewayRequestHandlers = {
       return;
     }
     await respondUnavailableOnThrow(respond, async () => {
-      const list = await listNodePairing();
-      const paired = list.paired.find((n) => n.nodeId === id);
-      const connected = context.bridge?.listConnected?.() ?? [];
+      const list = await listDevicePairing();
+      const paired = list.paired.find((n) => n.deviceId === id && isNodeEntry(n));
+      const connected = context.nodeRegistry.listConnected();
       const live = connected.find((n) => n.nodeId === id);
 
       if (!paired && !live) {
@@ -264,8 +321,8 @@ export const nodeHandlers: GatewayRequestHandlers = {
         return;
       }
 
-      const caps = uniqueSortedStrings([...(live?.caps ?? paired?.caps ?? [])]);
-      const commands = uniqueSortedStrings([...(live?.commands ?? paired?.commands ?? [])]);
+      const caps = uniqueSortedStrings([...(live?.caps ?? [])]);
+      const commands = uniqueSortedStrings([...(live?.commands ?? [])]);
 
       respond(
         true,
@@ -274,13 +331,17 @@ export const nodeHandlers: GatewayRequestHandlers = {
           nodeId: id,
           displayName: live?.displayName ?? paired?.displayName,
           platform: live?.platform ?? paired?.platform,
-          version: live?.version ?? paired?.version,
-          deviceFamily: live?.deviceFamily ?? paired?.deviceFamily,
-          modelIdentifier: live?.modelIdentifier ?? paired?.modelIdentifier,
+          version: live?.version,
+          coreVersion: live?.coreVersion,
+          uiVersion: live?.uiVersion,
+          deviceFamily: live?.deviceFamily,
+          modelIdentifier: live?.modelIdentifier,
           remoteIp: live?.remoteIp ?? paired?.remoteIp,
           caps,
           commands,
-          permissions: live?.permissions ?? paired?.permissions,
+          pathEnv: live?.pathEnv,
+          permissions: live?.permissions,
+          connectedAtMs: live?.connectedAtMs,
           paired: Boolean(paired),
           connected: Boolean(live),
         },
@@ -295,11 +356,6 @@ export const nodeHandlers: GatewayRequestHandlers = {
         method: "node.invoke",
         validator: validateNodeInvokeParams,
       });
-      return;
-    }
-    const bridge = context.bridge;
-    if (!bridge) {
-      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, "bridge not running"));
       return;
     }
     const p = params as {
@@ -321,12 +377,40 @@ export const nodeHandlers: GatewayRequestHandlers = {
     }
 
     await respondUnavailableOnThrow(respond, async () => {
-      const paramsJSON = "params" in p && p.params !== undefined ? JSON.stringify(p.params) : null;
-      const res = await bridge.invoke({
+      const nodeSession = context.nodeRegistry.get(nodeId);
+      if (!nodeSession) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.UNAVAILABLE, "node not connected", {
+            details: { code: "NOT_CONNECTED" },
+          }),
+        );
+        return;
+      }
+      const cfg = loadConfig();
+      const allowlist = resolveNodeCommandAllowlist(cfg, nodeSession);
+      const allowed = isNodeCommandAllowed({
+        command,
+        declaredCommands: nodeSession.commands,
+        allowlist,
+      });
+      if (!allowed.ok) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, "node command not allowed", {
+            details: { reason: allowed.reason, command },
+          }),
+        );
+        return;
+      }
+      const res = await context.nodeRegistry.invoke({
         nodeId,
         command,
-        paramsJSON,
+        params: p.params,
         timeoutMs: p.timeoutMs,
+        idempotencyKey: p.idempotencyKey,
       });
       if (!res.ok) {
         respond(
@@ -338,7 +422,7 @@ export const nodeHandlers: GatewayRequestHandlers = {
         );
         return;
       }
-      const payload = safeParseJson(res.payloadJSON ?? null);
+      const payload = res.payloadJSON ? safeParseJson(res.payloadJSON) : res.payload;
       respond(
         true,
         {
@@ -350,6 +434,92 @@ export const nodeHandlers: GatewayRequestHandlers = {
         },
         undefined,
       );
+    });
+  },
+  "node.invoke.result": async ({ params, respond, context, client }) => {
+    const normalizedParams = normalizeNodeInvokeResultParams(params);
+    if (!validateNodeInvokeResultParams(normalizedParams)) {
+      respondInvalidParams({
+        respond,
+        method: "node.invoke.result",
+        validator: validateNodeInvokeResultParams,
+      });
+      return;
+    }
+    const p = normalizedParams as {
+      id: string;
+      nodeId: string;
+      ok: boolean;
+      payload?: unknown;
+      payloadJSON?: string | null;
+      error?: { code?: string; message?: string } | null;
+    };
+    const callerNodeId = client?.connect?.device?.id ?? client?.connect?.client?.id;
+    if (callerNodeId && callerNodeId !== p.nodeId) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "nodeId mismatch"));
+      return;
+    }
+    const ok = context.nodeRegistry.handleInvokeResult({
+      id: p.id,
+      nodeId: p.nodeId,
+      ok: p.ok,
+      payload: p.payload,
+      payloadJSON: p.payloadJSON ?? null,
+      error: p.error ?? null,
+    });
+    if (!ok) {
+      // Late-arriving results (after invoke timeout) are expected and harmless.
+      // Return success instead of error to reduce log noise; client can discard.
+      context.logGateway.debug(`late invoke result ignored: id=${p.id} node=${p.nodeId}`);
+      respond(true, { ok: true, ignored: true }, undefined);
+      return;
+    }
+    respond(true, { ok: true }, undefined);
+  },
+  "node.event": async ({ params, respond, context, client }) => {
+    if (!validateNodeEventParams(params)) {
+      respondInvalidParams({
+        respond,
+        method: "node.event",
+        validator: validateNodeEventParams,
+      });
+      return;
+    }
+    const p = params as { event: string; payload?: unknown; payloadJSON?: string | null };
+    const payloadJSON =
+      typeof p.payloadJSON === "string"
+        ? p.payloadJSON
+        : p.payload !== undefined
+          ? JSON.stringify(p.payload)
+          : null;
+    await respondUnavailableOnThrow(respond, async () => {
+      const { handleNodeEvent } = await import("../server-node-events.js");
+      const nodeId = client?.connect?.device?.id ?? client?.connect?.client?.id ?? "node";
+      const nodeContext = {
+        deps: context.deps,
+        broadcast: context.broadcast,
+        nodeSendToSession: context.nodeSendToSession,
+        nodeSubscribe: context.nodeSubscribe,
+        nodeUnsubscribe: context.nodeUnsubscribe,
+        broadcastVoiceWakeChanged: context.broadcastVoiceWakeChanged,
+        addChatRun: context.addChatRun,
+        removeChatRun: context.removeChatRun,
+        chatAbortControllers: context.chatAbortControllers,
+        chatAbortedRuns: context.chatAbortedRuns,
+        chatRunBuffers: context.chatRunBuffers,
+        chatDeltaSentAt: context.chatDeltaSentAt,
+        dedupe: context.dedupe,
+        agentRunSeq: context.agentRunSeq,
+        getHealthCache: context.getHealthCache,
+        refreshHealthSnapshot: context.refreshHealthSnapshot,
+        loadGatewayModelCatalog: context.loadGatewayModelCatalog,
+        logGateway: { warn: context.logGateway.warn },
+      };
+      await handleNodeEvent(nodeContext, nodeId, {
+        event: p.event,
+        payloadJSON,
+      });
+      respond(true, { ok: true }, undefined);
     });
   },
 };

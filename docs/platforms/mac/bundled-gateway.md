@@ -9,8 +9,9 @@ read_when:
 # Gateway on macOS (external launchd)
 
 Clawdbot.app no longer bundles Node/Bun or the Gateway runtime. The macOS app
-expects an **external** `clawdbot` CLI install and manages a per‑user launchd
-service to keep the Gateway running.
+expects an **external** `clawdbot` CLI install, does not spawn the Gateway as a
+child process, and manages a per‑user launchd service to keep the Gateway
+running (or attaches to an existing local Gateway if one is already running).
 
 ## Install the CLI (required for local mode)
 
@@ -33,11 +34,13 @@ Plist location (per‑user):
 
 Manager:
 - The macOS app owns LaunchAgent install/update in Local mode.
-- The CLI can also install it: `clawdbot daemon install`.
+- The CLI can also install it: `clawdbot gateway install`.
 
 Behavior:
 - “Clawdbot Active” enables/disables the LaunchAgent.
 - App quit does **not** stop the gateway (launchd keeps it alive).
+- If a Gateway is already running on the configured port, the app attaches to
+  it instead of starting a new one.
 
 Logging:
 - launchd stdout/err: `/tmp/clawdbot/clawdbot-gateway.log`

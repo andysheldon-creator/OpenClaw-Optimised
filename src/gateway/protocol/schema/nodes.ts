@@ -8,6 +8,8 @@ export const NodePairRequestParamsSchema = Type.Object(
     displayName: Type.Optional(NonEmptyString),
     platform: Type.Optional(NonEmptyString),
     version: Type.Optional(NonEmptyString),
+    coreVersion: Type.Optional(NonEmptyString),
+    uiVersion: Type.Optional(NonEmptyString),
     deviceFamily: Type.Optional(NonEmptyString),
     modelIdentifier: Type.Optional(NonEmptyString),
     caps: Type.Optional(Type.Array(NonEmptyString)),
@@ -54,6 +56,47 @@ export const NodeInvokeParamsSchema = Type.Object(
     params: Type.Optional(Type.Unknown()),
     timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
     idempotencyKey: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const NodeInvokeResultParamsSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    nodeId: NonEmptyString,
+    ok: Type.Boolean(),
+    payload: Type.Optional(Type.Unknown()),
+    payloadJSON: Type.Optional(Type.String()),
+    error: Type.Optional(
+      Type.Object(
+        {
+          code: Type.Optional(NonEmptyString),
+          message: Type.Optional(NonEmptyString),
+        },
+        { additionalProperties: false },
+      ),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const NodeEventParamsSchema = Type.Object(
+  {
+    event: NonEmptyString,
+    payload: Type.Optional(Type.Unknown()),
+    payloadJSON: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const NodeInvokeRequestEventSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    nodeId: NonEmptyString,
+    command: NonEmptyString,
+    paramsJSON: Type.Optional(Type.String()),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0 })),
+    idempotencyKey: Type.Optional(NonEmptyString),
   },
   { additionalProperties: false },
 );

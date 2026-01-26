@@ -19,12 +19,22 @@ describe("sanitizeUserFacingText", () => {
 
   it("sanitizes HTTP status errors with error hints", () => {
     expect(sanitizeUserFacingText("500 Internal Server Error")).toBe(
-      "The AI service returned an error. Please try again.",
+      "HTTP 500: Internal Server Error",
     );
   });
 
   it("sanitizes raw API error payloads", () => {
     const raw = '{"type":"error","error":{"message":"Something exploded","type":"server_error"}}';
-    expect(sanitizeUserFacingText(raw)).toBe("The AI service returned an error. Please try again.");
+    expect(sanitizeUserFacingText(raw)).toBe("LLM error server_error: Something exploded");
+  });
+
+  it("collapses consecutive duplicate paragraphs", () => {
+    const text = "Hello there!\n\nHello there!";
+    expect(sanitizeUserFacingText(text)).toBe("Hello there!");
+  });
+
+  it("does not collapse distinct paragraphs", () => {
+    const text = "Hello there!\n\nDifferent line.";
+    expect(sanitizeUserFacingText(text)).toBe(text);
   });
 });

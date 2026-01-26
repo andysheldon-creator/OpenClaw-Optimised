@@ -7,7 +7,14 @@ import {
 } from "../agents/model-selection.js";
 import type { CliDeps } from "../cli/deps.js";
 import type { loadConfig } from "../config/config.js";
+import { isTruthyEnvValue } from "../infra/env.js";
 import { startGmailWatcher } from "../hooks/gmail-watcher.js";
+import {
+  clearInternalHooks,
+  createInternalHookEvent,
+  triggerInternalHook,
+} from "../hooks/internal-hooks.js";
+import { loadInternalHooks } from "../hooks/loader.js";
 import type { loadClawdbotPlugins } from "../plugins/loader.js";
 import { type PluginServicesHandle, startPluginServices } from "../plugins/services.js";
 import { startBrowserControlServerIfEnabled } from "./server-browser.js";
@@ -40,7 +47,7 @@ export async function startGatewaySidecars(params: {
   }
 
   // Start Gmail watcher if configured (hooks.gmail.account).
-  if (process.env.CLAWDBOT_SKIP_GMAIL_WATCHER !== "1") {
+  if (!isTruthyEnvValue(process.env.CLAWDBOT_SKIP_GMAIL_WATCHER)) {
     try {
       const gmailResult = await startGmailWatcher(params.cfg);
       if (gmailResult.started) {
@@ -90,10 +97,25 @@ export async function startGatewaySidecars(params: {
     }
   }
 
+  // Load internal hook handlers from configuration and directory discovery.
+  try {
+    // Clear any previously registered hooks to ensure fresh loading
+    clearInternalHooks();
+    const loadedCount = await loadInternalHooks(params.cfg, params.defaultWorkspaceDir);
+    if (loadedCount > 0) {
+      params.logHooks.info(
+        `loaded ${loadedCount} internal hook handler${loadedCount > 1 ? "s" : ""}`,
+      );
+    }
+  } catch (err) {
+    params.logHooks.error(`failed to load hooks: ${String(err)}`);
+  }
+
   // Launch configured channels so gateway replies via the surface the message came from.
   // Tests can opt out via CLAWDBOT_SKIP_CHANNELS (or legacy CLAWDBOT_SKIP_PROVIDERS).
   const skipChannels =
-    process.env.CLAWDBOT_SKIP_CHANNELS === "1" || process.env.CLAWDBOT_SKIP_PROVIDERS === "1";
+    isTruthyEnvValue(process.env.CLAWDBOT_SKIP_CHANNELS) ||
+    isTruthyEnvValue(process.env.CLAWDBOT_SKIP_PROVIDERS);
   if (!skipChannels) {
     try {
       await params.startChannels();
@@ -104,6 +126,17 @@ export async function startGatewaySidecars(params: {
     params.logChannels.info(
       "skipping channel start (CLAWDBOT_SKIP_CHANNELS=1 or CLAWDBOT_SKIP_PROVIDERS=1)",
     );
+  }
+
+  if (params.cfg.hooks?.internal?.enabled) {
+    setTimeout(() => {
+      const hookEvent = createInternalHookEvent("gateway", "startup", "gateway:startup", {
+        cfg: params.cfg,
+        deps: params.deps,
+        workspaceDir: params.defaultWorkspaceDir,
+      });
+      void triggerInternalHook(hookEvent);
+    }, 250);
   }
 
   let pluginServices: PluginServicesHandle | null = null;

@@ -4,6 +4,7 @@ import type {
   HumanDelayConfig,
   TypingMode,
 } from "./types.base.js";
+import type { ChannelId } from "../channels/plugins/types.js";
 import type {
   SandboxBrowserSettings,
   SandboxDockerSettings,
@@ -23,7 +24,9 @@ export type AgentModelListConfig = {
 };
 
 export type AgentContextPruningConfig = {
-  mode?: "off" | "adaptive" | "aggressive";
+  mode?: "off" | "cache-ttl";
+  /** TTL to consider cache expired (duration string, default unit: minutes). */
+  ttl?: string;
   keepLastAssistants?: number;
   softTrimRatio?: number;
   hardClearRatio?: number;
@@ -97,6 +100,8 @@ export type AgentDefaultsConfig = {
   models?: Record<string, AgentModelEntryConfig>;
   /** Agent working directory (preferred). Used as the default cwd for agent runs. */
   workspace?: string;
+  /** Optional repository root for system prompt runtime line (overrides auto-detect). */
+  repoRoot?: string;
   /** Skip bootstrap (BOOTSTRAP.md creation, etc.) for pre-configured deployments. */
   skipBootstrap?: boolean;
   /** Max chars for injected bootstrap files before truncation (default: 20000). */
@@ -105,6 +110,18 @@ export type AgentDefaultsConfig = {
   userTimezone?: string;
   /** Time format in system prompt: auto (OS preference), 12-hour, or 24-hour. */
   timeFormat?: "auto" | "12" | "24";
+  /**
+   * Envelope timestamp timezone: "utc" (default), "local", "user", or an IANA timezone string.
+   */
+  envelopeTimezone?: string;
+  /**
+   * Include absolute timestamps in message envelopes ("on" | "off", default: "on").
+   */
+  envelopeTimestamp?: "on" | "off";
+  /**
+   * Include elapsed time in message envelopes ("on" | "off", default: "on").
+   */
+  envelopeElapsed?: "on" | "off";
   /** Optional display-only context window override (used for % in status UIs). */
   contextTokens?: number;
   /** Optional CLI backends for text-only fallback (claude-cli, etc.). */
@@ -118,9 +135,9 @@ export type AgentDefaultsConfig = {
   /** Default thinking level when no /think directive is present. */
   thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
   /** Default verbose level when no /verbose directive is present. */
-  verboseDefault?: "off" | "on";
+  verboseDefault?: "off" | "on" | "full";
   /** Default elevated level when no /elevated directive is present. */
-  elevatedDefault?: "off" | "on";
+  elevatedDefault?: "off" | "on" | "ask" | "full";
   /** Default block streaming level when no override is present. */
   blockStreamingDefault?: "off" | "on";
   /**
@@ -148,19 +165,21 @@ export type AgentDefaultsConfig = {
   heartbeat?: {
     /** Heartbeat interval (duration string, default unit: minutes; default: 30m). */
     every?: string;
+    /** Optional active-hours window (local time); heartbeats run only inside this window. */
+    activeHours?: {
+      /** Start time (24h, HH:MM). Inclusive. */
+      start?: string;
+      /** End time (24h, HH:MM). Exclusive. Use "24:00" for end-of-day. */
+      end?: string;
+      /** Timezone for the window ("user", "local", or IANA TZ id). Default: "user". */
+      timezone?: string;
+    };
     /** Heartbeat model override (provider/model). */
     model?: string;
-    /** Delivery target (last|whatsapp|telegram|discord|slack|msteams|signal|imessage|none). */
-    target?:
-      | "last"
-      | "whatsapp"
-      | "telegram"
-      | "discord"
-      | "slack"
-      | "msteams"
-      | "signal"
-      | "imessage"
-      | "none";
+    /** Session key for heartbeat runs ("main" or explicit session key). */
+    session?: string;
+    /** Delivery target ("last", "none", or a channel id). */
+    target?: "last" | "none" | ChannelId;
     /** Optional delivery override (E.164 for WhatsApp, chat id for Telegram). */
     to?: string;
     /** Override the heartbeat prompt body (default: "Read HEARTBEAT.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."). */

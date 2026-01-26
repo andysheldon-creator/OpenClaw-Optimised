@@ -111,4 +111,137 @@ describe("buildEmbeddedRunPayloads", () => {
     expect(payloads).toHaveLength(1);
     expect(payloads[0]?.text).toBe(errorJsonPretty.trim());
   });
+
+  it("adds a fallback error when a tool fails and no assistant output exists", () => {
+    const payloads = buildEmbeddedRunPayloads({
+      assistantTexts: [],
+      toolMetas: [],
+      lastAssistant: undefined,
+      lastToolError: { toolName: "browser", error: "tab not found" },
+      sessionKey: "session:telegram",
+      inlineToolResultsAllowed: false,
+      verboseLevel: "off",
+      reasoningLevel: "off",
+      toolResultFormat: "plain",
+    });
+
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0]?.isError).toBe(true);
+    expect(payloads[0]?.text).toContain("Browser");
+    expect(payloads[0]?.text).toContain("tab not found");
+  });
+
+  it("does not add tool error fallback when assistant output exists", () => {
+    const payloads = buildEmbeddedRunPayloads({
+      assistantTexts: ["All good"],
+      toolMetas: [],
+      lastAssistant: { stopReason: "end_turn" } as AssistantMessage,
+      lastToolError: { toolName: "browser", error: "tab not found" },
+      sessionKey: "session:telegram",
+      inlineToolResultsAllowed: false,
+      verboseLevel: "off",
+      reasoningLevel: "off",
+      toolResultFormat: "plain",
+    });
+
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0]?.text).toBe("All good");
+  });
+
+  it("adds tool error fallback when the assistant only invoked tools", () => {
+    const payloads = buildEmbeddedRunPayloads({
+      assistantTexts: [],
+      toolMetas: [],
+      lastAssistant: {
+        stopReason: "toolUse",
+        content: [
+          {
+            type: "toolCall",
+            id: "toolu_01",
+            name: "exec",
+            arguments: { command: "echo hi" },
+          },
+        ],
+      } as AssistantMessage,
+      lastToolError: { toolName: "exec", error: "Command exited with code 1" },
+      sessionKey: "session:telegram",
+      inlineToolResultsAllowed: false,
+      verboseLevel: "off",
+      reasoningLevel: "off",
+      toolResultFormat: "plain",
+    });
+
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0]?.isError).toBe(true);
+    expect(payloads[0]?.text).toContain("Exec");
+    expect(payloads[0]?.text).toContain("code 1");
+  });
+
+  it("suppresses recoverable tool errors containing 'required'", () => {
+    const payloads = buildEmbeddedRunPayloads({
+      assistantTexts: [],
+      toolMetas: [],
+      lastAssistant: undefined,
+      lastToolError: { toolName: "message", meta: "reply", error: "text required" },
+      sessionKey: "session:telegram",
+      inlineToolResultsAllowed: false,
+      verboseLevel: "off",
+      reasoningLevel: "off",
+      toolResultFormat: "plain",
+    });
+
+    // Recoverable errors should not be sent to the user
+    expect(payloads).toHaveLength(0);
+  });
+
+  it("suppresses recoverable tool errors containing 'missing'", () => {
+    const payloads = buildEmbeddedRunPayloads({
+      assistantTexts: [],
+      toolMetas: [],
+      lastAssistant: undefined,
+      lastToolError: { toolName: "message", error: "messageId missing" },
+      sessionKey: "session:telegram",
+      inlineToolResultsAllowed: false,
+      verboseLevel: "off",
+      reasoningLevel: "off",
+      toolResultFormat: "plain",
+    });
+
+    expect(payloads).toHaveLength(0);
+  });
+
+  it("suppresses recoverable tool errors containing 'invalid'", () => {
+    const payloads = buildEmbeddedRunPayloads({
+      assistantTexts: [],
+      toolMetas: [],
+      lastAssistant: undefined,
+      lastToolError: { toolName: "message", error: "invalid parameter: to" },
+      sessionKey: "session:telegram",
+      inlineToolResultsAllowed: false,
+      verboseLevel: "off",
+      reasoningLevel: "off",
+      toolResultFormat: "plain",
+    });
+
+    expect(payloads).toHaveLength(0);
+  });
+
+  it("shows non-recoverable tool errors to the user", () => {
+    const payloads = buildEmbeddedRunPayloads({
+      assistantTexts: [],
+      toolMetas: [],
+      lastAssistant: undefined,
+      lastToolError: { toolName: "browser", error: "connection timeout" },
+      sessionKey: "session:telegram",
+      inlineToolResultsAllowed: false,
+      verboseLevel: "off",
+      reasoningLevel: "off",
+      toolResultFormat: "plain",
+    });
+
+    // Non-recoverable errors should still be shown
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0]?.isError).toBe(true);
+    expect(payloads[0]?.text).toContain("connection timeout");
+  });
 });

@@ -23,6 +23,7 @@ import {
   filterToolsByPolicy,
   isToolAllowedByPolicies,
   resolveEffectiveToolPolicy,
+  resolveGroupToolPolicy,
   resolveSubagentToolPolicy,
 } from "./pi-tools.policy.js";
 import {
@@ -39,7 +40,16 @@ import {
 import { cleanToolSchemaForGemini, normalizeToolParameters } from "./pi-tools.schema.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxContext } from "./sandbox.js";
-import { resolveToolProfilePolicy } from "./tool-policy.js";
+import {
+  buildPluginToolGroups,
+  collectExplicitAllowlist,
+  expandPolicyWithPluginGroups,
+  normalizeToolName,
+  resolveToolProfilePolicy,
+  stripPluginOnlyAllowlist,
+} from "./tool-policy.js";
+import { getPluginToolMeta } from "../plugins/tools.js";
+import { logWarn } from "../logger.js";
 
 function isOpenAIProvider(provider?: string) {
   const normalized = provider?.trim().toLowerCase();
@@ -68,6 +78,23 @@ function isApplyPatchAllowedForModel(params: {
   });
 }
 
+function resolveExecConfig(cfg: ClawdbotConfig | undefined) {
+  const globalExec = cfg?.tools?.exec;
+  return {
+    host: globalExec?.host,
+    security: globalExec?.security,
+    ask: globalExec?.ask,
+    node: globalExec?.node,
+    pathPrepend: globalExec?.pathPrepend,
+    backgroundMs: globalExec?.backgroundMs,
+    timeoutSec: globalExec?.timeoutSec,
+    approvalRunningNoticeMs: globalExec?.approvalRunningNoticeMs,
+    cleanupMs: globalExec?.cleanupMs,
+    notifyOnExit: globalExec?.notifyOnExit,
+    applyPatch: globalExec?.applyPatch,
+  };
+}
+
 export const __testing = {
   cleanToolSchemaForGemini,
   normalizeToolParams,
@@ -80,6 +107,8 @@ export function createClawdbotCodingTools(options?: {
   exec?: ExecToolDefaults & ProcessToolDefaults;
   messageProvider?: string;
   agentAccountId?: string;
+  messageTo?: string;
+  messageThreadId?: string | number;
   sandbox?: SandboxContext | null;
   sessionKey?: string;
   agentDir?: string;
@@ -102,10 +131,20 @@ export function createClawdbotCodingTools(options?: {
   currentChannelId?: string;
   /** Current thread timestamp for auto-threading (Slack). */
   currentThreadTs?: string;
+  /** Group id for channel-level tool policy resolution. */
+  groupId?: string | null;
+  /** Group channel label (e.g. #general) for channel-level tool policy resolution. */
+  groupChannel?: string | null;
+  /** Group space label (e.g. guild/team id) for channel-level tool policy resolution. */
+  groupSpace?: string | null;
+  /** Parent session key for subagent group policy inheritance. */
+  spawnedBy?: string | null;
   /** Reply-to mode for Slack auto-threading. */
   replyToMode?: "off" | "first" | "all";
   /** Mutable ref to track if a reply was sent (for "first" mode). */
   hasRepliedRef?: { value: boolean };
+  /** If true, the model has native vision capability */
+  modelHasVision?: boolean;
 }): AnyAgentTool[] {
   const execToolName = "exec";
   const sandbox = options?.sandbox?.enabled ? options.sandbox : undefined;
@@ -123,6 +162,16 @@ export function createClawdbotCodingTools(options?: {
     modelProvider: options?.modelProvider,
     modelId: options?.modelId,
   });
+  const groupPolicy = resolveGroupToolPolicy({
+    config: options?.config,
+    sessionKey: options?.sessionKey,
+    spawnedBy: options?.spawnedBy,
+    messageProvider: options?.messageProvider,
+    groupId: options?.groupId,
+    groupChannel: options?.groupChannel,
+    groupSpace: options?.groupSpace,
+    accountId: options?.agentAccountId,
+  });
   const profilePolicy = resolveToolProfilePolicy(profile);
   const providerProfilePolicy = resolveToolProfilePolicy(providerProfile);
   const scopeKey = options?.exec?.scopeKey ?? (agentId ? `agent:${agentId}` : undefined);
@@ -137,9 +186,11 @@ export function createClawdbotCodingTools(options?: {
     globalProviderPolicy,
     agentPolicy,
     agentProviderPolicy,
+    groupPolicy,
     sandbox?.tools,
     subagentPolicy,
   ]);
+  const execConfig = resolveExecConfig(options?.config);
   const sandboxRoot = sandbox?.workspaceDir;
   const allowWorkspaceWrites = sandbox?.workspaceAccess !== "ro";
   const workspaceRoot = options?.workspaceDir ?? process.cwd();
@@ -176,11 +227,25 @@ export function createClawdbotCodingTools(options?: {
     }
     return [tool as AnyAgentTool];
   });
+  const { cleanupMs: cleanupMsOverride, ...execDefaults } = options?.exec ?? {};
   const execTool = createExecTool({
-    ...options?.exec,
+    ...execDefaults,
+    host: options?.exec?.host ?? execConfig.host,
+    security: options?.exec?.security ?? execConfig.security,
+    ask: options?.exec?.ask ?? execConfig.ask,
+    node: options?.exec?.node ?? execConfig.node,
+    pathPrepend: options?.exec?.pathPrepend ?? execConfig.pathPrepend,
+    agentId,
     cwd: options?.workspaceDir,
     allowBackground,
     scopeKey,
+    sessionKey: options?.sessionKey,
+    messageProvider: options?.messageProvider,
+    backgroundMs: options?.exec?.backgroundMs ?? execConfig.backgroundMs,
+    timeoutSec: options?.exec?.timeoutSec ?? execConfig.timeoutSec,
+    approvalRunningNoticeMs:
+      options?.exec?.approvalRunningNoticeMs ?? execConfig.approvalRunningNoticeMs,
+    notifyOnExit: options?.exec?.notifyOnExit ?? execConfig.notifyOnExit,
     sandbox: sandbox
       ? {
           containerName: sandbox.containerName,
@@ -190,13 +255,8 @@ export function createClawdbotCodingTools(options?: {
         }
       : undefined,
   });
-  const bashTool = {
-    ...(execTool as unknown as AnyAgentTool),
-    name: "bash",
-    label: "bash",
-  } satisfies AnyAgentTool;
   const processTool = createProcessTool({
-    cleanupMs: options?.exec?.cleanupMs,
+    cleanupMs: cleanupMsOverride ?? execConfig.cleanupMs,
     scopeKey,
   });
   const applyPatchTool =
@@ -215,7 +275,6 @@ export function createClawdbotCodingTools(options?: {
       : []),
     ...(applyPatchTool ? [applyPatchTool as unknown as AnyAgentTool] : []),
     execTool as unknown as AnyAgentTool,
-    bashTool,
     processTool as unknown as AnyAgentTool,
     // Channel docking: include channel-defined agent tools (login, etc.).
     ...listChannelAgentTools({ cfg: options?.config }),
@@ -228,38 +287,104 @@ export function createClawdbotCodingTools(options?: {
       agentSessionKey: options?.sessionKey,
       agentChannel: resolveGatewayMessageChannel(options?.messageProvider),
       agentAccountId: options?.agentAccountId,
+      agentTo: options?.messageTo,
+      agentThreadId: options?.messageThreadId,
+      agentGroupId: options?.groupId ?? null,
+      agentGroupChannel: options?.groupChannel ?? null,
+      agentGroupSpace: options?.groupSpace ?? null,
       agentDir: options?.agentDir,
       sandboxRoot,
       workspaceDir: options?.workspaceDir,
       sandboxed: !!sandbox,
       config: options?.config,
+      pluginToolAllowlist: collectExplicitAllowlist([
+        profilePolicy,
+        providerProfilePolicy,
+        globalPolicy,
+        globalProviderPolicy,
+        agentPolicy,
+        agentProviderPolicy,
+        groupPolicy,
+        sandbox?.tools,
+        subagentPolicy,
+      ]),
       currentChannelId: options?.currentChannelId,
       currentThreadTs: options?.currentThreadTs,
       replyToMode: options?.replyToMode,
       hasRepliedRef: options?.hasRepliedRef,
+      modelHasVision: options?.modelHasVision,
+      requesterAgentIdOverride: agentId,
     }),
   ];
-  const toolsFiltered = profilePolicy ? filterToolsByPolicy(tools, profilePolicy) : tools;
-  const providerProfileFiltered = providerProfilePolicy
-    ? filterToolsByPolicy(toolsFiltered, providerProfilePolicy)
+  const coreToolNames = new Set(
+    tools
+      .filter((tool) => !getPluginToolMeta(tool as AnyAgentTool))
+      .map((tool) => normalizeToolName(tool.name))
+      .filter(Boolean),
+  );
+  const pluginGroups = buildPluginToolGroups({
+    tools,
+    toolMeta: (tool) => getPluginToolMeta(tool as AnyAgentTool),
+  });
+  const resolvePolicy = (policy: typeof profilePolicy, label: string) => {
+    const resolved = stripPluginOnlyAllowlist(policy, pluginGroups, coreToolNames);
+    if (resolved.unknownAllowlist.length > 0) {
+      const entries = resolved.unknownAllowlist.join(", ");
+      const suffix = resolved.strippedAllowlist
+        ? "Ignoring allowlist so core tools remain available."
+        : "These entries won't match any tool unless the plugin is enabled.";
+      logWarn(`tools: ${label} allowlist contains unknown entries (${entries}). ${suffix}`);
+    }
+    return expandPolicyWithPluginGroups(resolved.policy, pluginGroups);
+  };
+  const profilePolicyExpanded = resolvePolicy(
+    profilePolicy,
+    profile ? `tools.profile (${profile})` : "tools.profile",
+  );
+  const providerProfileExpanded = resolvePolicy(
+    providerProfilePolicy,
+    providerProfile ? `tools.byProvider.profile (${providerProfile})` : "tools.byProvider.profile",
+  );
+  const globalPolicyExpanded = resolvePolicy(globalPolicy, "tools.allow");
+  const globalProviderExpanded = resolvePolicy(globalProviderPolicy, "tools.byProvider.allow");
+  const agentPolicyExpanded = resolvePolicy(
+    agentPolicy,
+    agentId ? `agents.${agentId}.tools.allow` : "agent tools.allow",
+  );
+  const agentProviderExpanded = resolvePolicy(
+    agentProviderPolicy,
+    agentId ? `agents.${agentId}.tools.byProvider.allow` : "agent tools.byProvider.allow",
+  );
+  const groupPolicyExpanded = resolvePolicy(groupPolicy, "group tools.allow");
+  const sandboxPolicyExpanded = expandPolicyWithPluginGroups(sandbox?.tools, pluginGroups);
+  const subagentPolicyExpanded = expandPolicyWithPluginGroups(subagentPolicy, pluginGroups);
+
+  const toolsFiltered = profilePolicyExpanded
+    ? filterToolsByPolicy(tools, profilePolicyExpanded)
+    : tools;
+  const providerProfileFiltered = providerProfileExpanded
+    ? filterToolsByPolicy(toolsFiltered, providerProfileExpanded)
     : toolsFiltered;
-  const globalFiltered = globalPolicy
-    ? filterToolsByPolicy(providerProfileFiltered, globalPolicy)
+  const globalFiltered = globalPolicyExpanded
+    ? filterToolsByPolicy(providerProfileFiltered, globalPolicyExpanded)
     : providerProfileFiltered;
-  const globalProviderFiltered = globalProviderPolicy
-    ? filterToolsByPolicy(globalFiltered, globalProviderPolicy)
+  const globalProviderFiltered = globalProviderExpanded
+    ? filterToolsByPolicy(globalFiltered, globalProviderExpanded)
     : globalFiltered;
-  const agentFiltered = agentPolicy
-    ? filterToolsByPolicy(globalProviderFiltered, agentPolicy)
+  const agentFiltered = agentPolicyExpanded
+    ? filterToolsByPolicy(globalProviderFiltered, agentPolicyExpanded)
     : globalProviderFiltered;
-  const agentProviderFiltered = agentProviderPolicy
-    ? filterToolsByPolicy(agentFiltered, agentProviderPolicy)
+  const agentProviderFiltered = agentProviderExpanded
+    ? filterToolsByPolicy(agentFiltered, agentProviderExpanded)
     : agentFiltered;
-  const sandboxed = sandbox
-    ? filterToolsByPolicy(agentProviderFiltered, sandbox.tools)
+  const groupFiltered = groupPolicyExpanded
+    ? filterToolsByPolicy(agentProviderFiltered, groupPolicyExpanded)
     : agentProviderFiltered;
-  const subagentFiltered = subagentPolicy
-    ? filterToolsByPolicy(sandboxed, subagentPolicy)
+  const sandboxed = sandboxPolicyExpanded
+    ? filterToolsByPolicy(groupFiltered, sandboxPolicyExpanded)
+    : groupFiltered;
+  const subagentFiltered = subagentPolicyExpanded
+    ? filterToolsByPolicy(sandboxed, subagentPolicyExpanded)
     : sandboxed;
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.

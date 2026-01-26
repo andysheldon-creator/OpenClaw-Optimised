@@ -33,6 +33,8 @@ export type RouteReplyParams = {
   cfg: ClawdbotConfig;
   /** Optional abort signal for cooperative cancellation. */
   abortSignal?: AbortSignal;
+  /** Mirror reply into session transcript (default: true when sessionKey is set). */
+  mirror?: boolean;
 };
 
 export type RouteReplyResult = {
@@ -72,8 +74,8 @@ export async function routeReply(params: RouteReplyParams): Promise<RouteReplyRe
   });
   if (!normalized) return { ok: true };
 
-  const text = normalized.text ?? "";
-  const mediaUrls = (normalized.mediaUrls?.filter(Boolean) ?? []).length
+  let text = normalized.text ?? "";
+  let mediaUrls = (normalized.mediaUrls?.filter(Boolean) ?? []).length
     ? (normalized.mediaUrls?.filter(Boolean) as string[])
     : normalized.mediaUrl
       ? [normalized.mediaUrl]
@@ -100,6 +102,11 @@ export async function routeReply(params: RouteReplyParams): Promise<RouteReplyRe
     return { ok: false, error: "Reply routing aborted" };
   }
 
+  const resolvedReplyToId =
+    replyToId ??
+    (channelId === "slack" && threadId != null && threadId !== "" ? String(threadId) : undefined);
+  const resolvedThreadId = channelId === "slack" ? null : (threadId ?? null);
+
   try {
     // Provider docking: this is an execution boundary (we're about to send).
     // Keep the module cheap to import by loading outbound plumbing lazily.
@@ -110,10 +117,20 @@ export async function routeReply(params: RouteReplyParams): Promise<RouteReplyRe
       to,
       accountId: accountId ?? undefined,
       payloads: [normalized],
-      replyToId: replyToId ?? null,
-      threadId: threadId ?? null,
+      replyToId: resolvedReplyToId ?? null,
+      threadId: resolvedThreadId,
       abortSignal,
+      mirror:
+        params.mirror !== false && params.sessionKey
+          ? {
+              sessionKey: params.sessionKey,
+              agentId: resolveSessionAgentId({ sessionKey: params.sessionKey, config: cfg }),
+              text,
+              mediaUrls,
+            }
+          : undefined,
     });
+
     const last = results.at(-1);
     return { ok: true, messageId: last?.messageId };
   } catch (err) {

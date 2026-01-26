@@ -2,52 +2,26 @@ import AppKit
 import ClawdbotDiscovery
 import ClawdbotIPC
 import ClawdbotKit
-import CoreLocation
 import Observation
 import SwiftUI
 
 struct GeneralSettings: View {
     @Bindable var state: AppState
     @AppStorage(cameraEnabledKey) private var cameraEnabled: Bool = false
-    @AppStorage(locationModeKey) private var locationModeRaw: String = ClawdbotLocationMode.off.rawValue
-    @AppStorage(locationPreciseKey) private var locationPreciseEnabled: Bool = true
     private let healthStore = HealthStore.shared
     private let gatewayManager = GatewayProcessManager.shared
     @State private var gatewayDiscovery = GatewayDiscoveryModel(
         localDisplayName: InstanceIdentity.displayName)
-    @State private var isInstallingCLI = false
-    @State private var cliStatus: String?
-    @State private var cliInstalled = false
-    @State private var cliInstallLocation: String?
     @State private var gatewayStatus: GatewayEnvironmentStatus = .checking
     @State private var remoteStatus: RemoteStatus = .idle
     @State private var showRemoteAdvanced = false
     private let isPreview = ProcessInfo.processInfo.isPreview
     private var isNixMode: Bool { ProcessInfo.processInfo.isNixMode }
-    @State private var lastLocationModeRaw: String = ClawdbotLocationMode.off.rawValue
+    private var remoteLabelWidth: CGFloat { 88 }
 
     var body: some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 18) {
-                if !self.state.onboardingSeen {
-                    Button {
-                        DebugActions.restartOnboarding()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Label("Complete onboarding to finish setup", systemImage: "arrow.counterclockwise")
-                                .font(.callout.weight(.semibold))
-                                .foregroundStyle(Color.accentColor)
-                            Spacer(minLength: 0)
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 2)
-                }
-
                 VStack(alignment: .leading, spacing: 12) {
                     SettingsToggleRow(
                         title: "Clawdbot active",
@@ -83,49 +57,6 @@ struct GeneralSettings: View {
                         subtitle: "Allow the agent to capture a photo or short video via the built-in camera.",
                         binding: self.$cameraEnabled)
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Node Run Commands")
-                            .font(.body)
-
-                        Picker("", selection: self.$state.systemRunPolicy) {
-                            ForEach(SystemRunPolicy.allCases) { policy in
-                                Text(policy.title).tag(policy)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-
-                        Text("""
-                        Controls remote command execution on this Mac when it is paired as a node. \
-                        "Always Ask" prompts on each command; "Always Allow" runs without prompts; \
-                        "Never" disables `system.run`.
-                        """)
-                        .font(.footnote)
-                        .foregroundStyle(.tertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Location Access")
-                            .font(.body)
-
-                        Picker("", selection: self.$locationModeRaw) {
-                            Text("Off").tag(ClawdbotLocationMode.off.rawValue)
-                            Text("While Using").tag(ClawdbotLocationMode.whileUsing.rawValue)
-                            Text("Always").tag(ClawdbotLocationMode.always.rawValue)
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-
-                        Toggle("Precise Location", isOn: self.$locationPreciseEnabled)
-                            .disabled(self.locationMode == .off)
-
-                        Text("Always may require System Settings to approve background location.")
-                            .font(.footnote)
-                            .foregroundStyle(.tertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
                     SettingsToggleRow(
                         title: "Enable Peekaboo Bridge",
                         subtitle: "Allow signed tools (e.g. `peekaboo`) to drive UI automation via PeekabooBridge.",
@@ -150,27 +81,11 @@ struct GeneralSettings: View {
         }
         .onAppear {
             guard !self.isPreview else { return }
-            self.refreshCLIStatus()
             self.refreshGatewayStatus()
-            self.lastLocationModeRaw = self.locationModeRaw
         }
         .onChange(of: self.state.canvasEnabled) { _, enabled in
             if !enabled {
                 CanvasManager.shared.hideAll()
-            }
-        }
-        .onChange(of: self.locationModeRaw) { _, newValue in
-            let previous = self.lastLocationModeRaw
-            self.lastLocationModeRaw = newValue
-            guard let mode = ClawdbotLocationMode(rawValue: newValue) else { return }
-            Task {
-                let granted = await self.requestLocationAuthorization(mode: mode)
-                if !granted {
-                    await MainActor.run {
-                        self.locationModeRaw = previous
-                        self.lastLocationModeRaw = previous
-                    }
-                }
             }
         }
     }
@@ -181,39 +96,20 @@ struct GeneralSettings: View {
             set: { self.state.isPaused = !$0 })
     }
 
-    private var locationMode: ClawdbotLocationMode {
-        ClawdbotLocationMode(rawValue: self.locationModeRaw) ?? .off
-    }
-
-    private func requestLocationAuthorization(mode: ClawdbotLocationMode) async -> Bool {
-        guard mode != .off else { return true }
-        guard CLLocationManager.locationServicesEnabled() else {
-            await MainActor.run { LocationPermissionHelper.openSettings() }
-            return false
-        }
-
-        let status = CLLocationManager().authorizationStatus
-        let requireAlways = mode == .always
-        if PermissionManager.isLocationAuthorized(status: status, requireAlways: requireAlways) {
-            return true
-        }
-        let updated = await LocationPermissionRequester.shared.request(always: requireAlways)
-        return PermissionManager.isLocationAuthorized(status: updated, requireAlways: requireAlways)
-    }
-
     private var connectionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Clawdbot runs")
                 .font(.title3.weight(.semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Picker("", selection: self.$state.connectionMode) {
+            Picker("Mode", selection: self.$state.connectionMode) {
                 Text("Not configured").tag(AppState.ConnectionMode.unconfigured)
                 Text("Local (this Mac)").tag(AppState.ConnectionMode.local)
-                Text("Remote over SSH").tag(AppState.ConnectionMode.remote)
+                Text("Remote (another host)").tag(AppState.ConnectionMode.remote)
             }
-            .pickerStyle(.segmented)
-            .frame(width: 380, alignment: .leading)
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(width: 260, alignment: .leading)
 
             if self.state.connectionMode == .unconfigured {
                 Text("Pick Local or Remote to start the Gateway.")
@@ -236,67 +132,56 @@ struct GeneralSettings: View {
             if self.state.connectionMode == .remote {
                 self.remoteCard
             }
-
-            self.cliInstaller
         }
     }
 
     private var remoteCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 10) {
-                Text("SSH")
-                    .font(.callout.weight(.semibold))
-                    .frame(width: 48, alignment: .leading)
-                TextField("user@host[:22]", text: self.$state.remoteTarget)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: .infinity)
-                Button {
-                    Task { await self.testRemote() }
-                } label: {
-                    if self.remoteStatus == .checking {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text("Test remote")
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(self.remoteStatus == .checking || self.state.remoteTarget
-                    .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            self.remoteTransportRow
+
+            if self.state.remoteTransport == .ssh {
+                self.remoteSshRow
+            } else {
+                self.remoteDirectRow
             }
 
             GatewayDiscoveryInlineList(
                 discovery: self.gatewayDiscovery,
-                currentTarget: self.state.remoteTarget)
+                currentTarget: self.state.remoteTarget,
+                currentUrl: self.state.remoteUrl,
+                transport: self.state.remoteTransport)
             { gateway in
                 self.applyDiscoveredGateway(gateway)
             }
-            .padding(.leading, 58)
+            .padding(.leading, self.remoteLabelWidth + 10)
 
             self.remoteStatusView
-                .padding(.leading, 58)
+                .padding(.leading, self.remoteLabelWidth + 10)
 
-            DisclosureGroup(isExpanded: self.$showRemoteAdvanced) {
-                VStack(alignment: .leading, spacing: 8) {
-                    LabeledContent("Identity file") {
-                        TextField("/Users/you/.ssh/id_ed25519", text: self.$state.remoteIdentity)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 280)
+            if self.state.remoteTransport == .ssh {
+                DisclosureGroup(isExpanded: self.$showRemoteAdvanced) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        LabeledContent("Identity file") {
+                            TextField("/Users/you/.ssh/id_ed25519", text: self.$state.remoteIdentity)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 280)
+                        }
+                        LabeledContent("Project root") {
+                            TextField("/home/you/Projects/clawdbot", text: self.$state.remoteProjectRoot)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 280)
+                        }
+                        LabeledContent("CLI path") {
+                            TextField("/Applications/Clawdbot.app/.../clawdbot", text: self.$state.remoteCliPath)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 280)
+                        }
                     }
-                    LabeledContent("Project root") {
-                        TextField("/home/you/Projects/clawdbot", text: self.$state.remoteProjectRoot)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 280)
-                    }
-                    LabeledContent("CLI path") {
-                        TextField("/Applications/Clawdbot.app/.../clawdbot", text: self.$state.remoteCliPath)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 280)
-                    }
+                    .padding(.top, 4)
+                } label: {
+                    Text("Advanced")
+                        .font(.callout.weight(.semibold))
                 }
-                .padding(.top, 4)
-            } label: {
-                Text("Advanced")
-                    .font(.callout.weight(.semibold))
             }
 
             // Diagnostics
@@ -319,16 +204,94 @@ struct GeneralSettings: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                if let authLabel = ControlChannel.shared.authSourceLabel {
+                    Text(authLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            Text("Tip: enable Tailscale for stable remote access.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            if self.state.remoteTransport == .ssh {
+                Text("Tip: enable Tailscale for stable remote access.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            } else {
+                Text("Tip: use Tailscale Serve so the gateway has a valid HTTPS cert.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
         }
         .transition(.opacity)
         .onAppear { self.gatewayDiscovery.start() }
         .onDisappear { self.gatewayDiscovery.stop() }
+    }
+
+    private var remoteTransportRow: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Text("Transport")
+                .font(.callout.weight(.semibold))
+                .frame(width: self.remoteLabelWidth, alignment: .leading)
+            Picker("Transport", selection: self.$state.remoteTransport) {
+                Text("SSH tunnel").tag(AppState.RemoteTransport.ssh)
+                Text("Direct (ws/wss)").tag(AppState.RemoteTransport.direct)
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 320)
+        }
+    }
+
+    private var remoteSshRow: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Text("SSH target")
+                .font(.callout.weight(.semibold))
+                .frame(width: self.remoteLabelWidth, alignment: .leading)
+            TextField("user@host[:22]", text: self.$state.remoteTarget)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: .infinity)
+            Button {
+                Task { await self.testRemote() }
+            } label: {
+                if self.remoteStatus == .checking {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Text("Test remote")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(self.remoteStatus == .checking || self.state.remoteTarget
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
+    private var remoteDirectRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 10) {
+                Text("Gateway")
+                    .font(.callout.weight(.semibold))
+                    .frame(width: self.remoteLabelWidth, alignment: .leading)
+                TextField("wss://gateway.example.ts.net", text: self.$state.remoteUrl)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: .infinity)
+                Button {
+                    Task { await self.testRemote() }
+                } label: {
+                    if self.remoteStatus == .checking {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text("Test remote")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(self.remoteStatus == .checking || self.state.remoteUrl
+                    .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            Text("Direct mode requires a ws:// or wss:// URL (Tailscale Serve uses wss://<magicdns>).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.leading, self.remoteLabelWidth + 10)
+        }
     }
 
     private var controlStatusLine: String {
@@ -364,59 +327,6 @@ struct GeneralSettings: View {
     private var isControlStatusDuplicate: Bool {
         guard case let .failed(message) = self.remoteStatus else { return false }
         return message == self.controlStatusLine
-    }
-
-    private var cliInstaller: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Button {
-                    Task { await self.installCLI() }
-                } label: {
-                    let title = self.cliInstalled ? "Reinstall CLI" : "Install CLI"
-                    ZStack {
-                        Text(title)
-                            .opacity(self.isInstallingCLI ? 0 : 1)
-                        if self.isInstallingCLI {
-                            ProgressView()
-                                .controlSize(.mini)
-                        }
-                    }
-                    .frame(minWidth: 150)
-                }
-                .disabled(self.isInstallingCLI)
-
-                if self.isInstallingCLI {
-                    Text("Working...")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                } else if self.cliInstalled {
-                    Label("Installed", systemImage: "checkmark.circle.fill")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Not installed")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if let status = cliStatus {
-                Text(status)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            } else if let installLocation = self.cliInstallLocation {
-                Text("Found at \(installLocation)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            } else {
-                Text("Installs a user-space Node 22+ runtime and the CLI (no Homebrew).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-        }
     }
 
     private var gatewayInstallerCard: some View {
@@ -472,22 +382,6 @@ struct GeneralSettings: View {
         .padding(12)
         .background(Color.gray.opacity(0.08))
         .cornerRadius(10)
-    }
-
-    private func installCLI() async {
-        guard !self.isInstallingCLI else { return }
-        self.isInstallingCLI = true
-        defer { isInstallingCLI = false }
-        await CLIInstaller.install { status in
-            self.cliStatus = status
-            self.refreshCLIStatus()
-        }
-    }
-
-    private func refreshCLIStatus() {
-        let installLocation = CLIInstaller.installedLocation()
-        self.cliInstallLocation = installLocation
-        self.cliInstalled = installLocation != nil
     }
 
     private func refreshGatewayStatus() {
@@ -629,24 +523,36 @@ extension GeneralSettings {
     func testRemote() async {
         self.remoteStatus = .checking
         let settings = CommandResolver.connectionSettings()
-        guard !settings.target.isEmpty else {
-            self.remoteStatus = .failed("Set an SSH target first")
-            return
+        if self.state.remoteTransport == .direct {
+            let trimmedUrl = self.state.remoteUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedUrl.isEmpty else {
+                self.remoteStatus = .failed("Set a gateway URL first")
+                return
+            }
+            guard Self.isValidWsUrl(trimmedUrl) else {
+                self.remoteStatus = .failed("Gateway URL must start with ws:// or wss://")
+                return
+            }
+        } else {
+            guard !settings.target.isEmpty else {
+                self.remoteStatus = .failed("Set an SSH target first")
+                return
+            }
+
+            // Step 1: basic SSH reachability check
+            let sshResult = await ShellExecutor.run(
+                command: Self.sshCheckCommand(target: settings.target, identity: settings.identity),
+                cwd: nil,
+                env: nil,
+                timeout: 8)
+
+            guard sshResult.ok else {
+                self.remoteStatus = .failed(self.formatSSHFailure(sshResult, target: settings.target))
+                return
+            }
         }
 
-        // Step 1: basic SSH reachability check
-        let sshResult = await ShellExecutor.run(
-            command: Self.sshCheckCommand(target: settings.target, identity: settings.identity),
-            cwd: nil,
-            env: nil,
-            timeout: 8)
-
-        guard sshResult.ok else {
-            self.remoteStatus = .failed(self.formatSSHFailure(sshResult, target: settings.target))
-            return
-        }
-
-        // Step 2: control channel health over tunnel
+        // Step 2: control channel health check
         let originalMode = AppStateStore.shared.connectionMode
         do {
             try await ControlChannel.shared.configure(mode: .remote(
@@ -671,6 +577,14 @@ extension GeneralSettings {
         case .unconfigured:
             await ControlChannel.shared.disconnect()
         }
+    }
+
+    private static func isValidWsUrl(_ raw: String) -> Bool {
+        guard let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
+        let scheme = url.scheme?.lowercased() ?? ""
+        guard scheme == "ws" || scheme == "wss" else { return false }
+        let host = url.host?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !host.isEmpty
     }
 
     private static func sshCheckCommand(target: String, identity: String) -> [String] {
@@ -736,17 +650,23 @@ extension GeneralSettings {
     }
 
     private func applyDiscoveredGateway(_ gateway: GatewayDiscoveryModel.DiscoveredGateway) {
-        MacNodeModeCoordinator.shared.setPreferredBridgeStableID(gateway.stableID)
+        MacNodeModeCoordinator.shared.setPreferredGatewayStableID(gateway.stableID)
 
         let host = gateway.tailnetDns ?? gateway.lanHost
         guard let host else { return }
         let user = NSUserName()
-        self.state.remoteTarget = GatewayDiscoveryModel.buildSSHTarget(
-            user: user,
-            host: host,
-            port: gateway.sshPort)
-        self.state.remoteCliPath = gateway.cliPath ?? ""
-        ClawdbotConfigFile.setRemoteGatewayUrl(host: host, port: gateway.gatewayPort)
+        if self.state.remoteTransport == .direct {
+            if let url = GatewayDiscoveryHelpers.directUrl(for: gateway) {
+                self.state.remoteUrl = url
+            }
+        } else {
+            self.state.remoteTarget = GatewayDiscoveryModel.buildSSHTarget(
+                user: user,
+                host: host,
+                port: gateway.sshPort)
+            self.state.remoteCliPath = gateway.cliPath ?? ""
+            ClawdbotConfigFile.setRemoteGatewayUrl(host: host, port: gateway.gatewayPort)
+        }
     }
 }
 
@@ -769,7 +689,9 @@ extension GeneralSettings {
     static func exerciseForTesting() {
         let state = AppState(preview: true)
         state.connectionMode = .remote
+        state.remoteTransport = .ssh
         state.remoteTarget = "user@host:2222"
+        state.remoteUrl = "wss://gateway.example.ts.net"
         state.remoteIdentity = "/tmp/id_ed25519"
         state.remoteProjectRoot = "/tmp/clawdbot"
         state.remoteCliPath = "/tmp/clawdbot"
@@ -783,9 +705,6 @@ extension GeneralSettings {
             message: "Gateway ready")
         view.remoteStatus = .failed("SSH failed")
         view.showRemoteAdvanced = true
-        view.cliInstalled = true
-        view.cliInstallLocation = "/usr/local/bin/clawdbot"
-        view.cliStatus = "Installed"
         _ = view.body
 
         state.connectionMode = .unconfigured

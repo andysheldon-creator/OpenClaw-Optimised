@@ -3,7 +3,8 @@ import { DisconnectReason, isJidGroup } from "@whiskeysockets/baileys";
 import { formatLocationText } from "../../channels/location.js";
 import { logVerbose, shouldLogVerbose } from "../../globals.js";
 import { recordChannelActivity } from "../../infra/channel-activity.js";
-import { createSubsystemLogger, getChildLogger } from "../../logging.js";
+import { getChildLogger } from "../../logging/logger.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { saveMediaBuffer } from "../../media/store.js";
 import { createInboundDebouncer } from "../../auto-reply/inbound-debounce.js";
 import { jidToE164, resolveJidToE164 } from "../../utils.js";
@@ -284,6 +285,8 @@ export async function monitorWebInbox(options: {
         replyToId: replyContext?.id,
         replyToBody: replyContext?.body,
         replyToSender: replyContext?.sender,
+        replyToSenderJid: replyContext?.senderJid,
+        replyToSenderE164: replyContext?.senderE164,
         groupSubject,
         groupParticipants,
         mentionedJids: mentionedJids ?? undefined,

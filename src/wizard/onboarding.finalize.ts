@@ -13,26 +13,24 @@ import {
   detectBrowserOpenSupport,
   formatControlUiSshHint,
   openUrl,
+  openUrlInBackground,
   probeGatewayReachable,
   waitForGatewayReachable,
   resolveControlUiLinks,
 } from "../commands/onboard-helpers.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import type { OnboardOptions } from "../commands/onboard-types.js";
 import type { ClawdbotConfig } from "../config/config.js";
-import { resolveGatewayLaunchAgentLabel } from "../daemon/constants.js";
-import { resolveGatewayProgramArguments } from "../daemon/program-args.js";
-import {
-  renderSystemNodeWarning,
-  resolvePreferredNodePath,
-  resolveSystemNodeInfo,
-} from "../daemon/runtime-paths.js";
 import { resolveGatewayService } from "../daemon/service.js";
-import { buildServiceEnvironment } from "../daemon/service-env.js";
 import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
 import { ensureControlUiAssetsBuilt } from "../infra/control-ui-assets.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { runTui } from "../tui/tui.js";
 import { resolveUserPath } from "../utils.js";
+import {
+  buildGatewayInstallPlan,
+  gatewayInstallErrorHint,
+} from "../commands/daemon-install-helpers.js";
 import type { GatewayWizardSettings, WizardFlow } from "./onboarding.types.js";
 import type { WizardPrompter } from "./prompts.js";
 
@@ -67,7 +65,7 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     process.platform === "linux" ? await isSystemdUserServiceAvailable() : true;
   if (process.platform === "linux" && !systemdAvailable) {
     await prompter.note(
-      "Systemd user services are unavailable. Skipping lingering checks and daemon install.",
+      "Systemd user services are unavailable. Skipping lingering checks and service install.",
       "Systemd",
     );
   }
@@ -97,15 +95,15 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     installDaemon = true;
   } else {
     installDaemon = await prompter.confirm({
-      message: "Install Gateway daemon (recommended)",
+      message: "Install Gateway service (recommended)",
       initialValue: true,
     });
   }
 
   if (process.platform === "linux" && !systemdAvailable && installDaemon) {
     await prompter.note(
-      "Systemd user services are unavailable; skipping daemon install. Use your container supervisor or `docker compose up -d`.",
-      "Gateway daemon",
+      "Systemd user services are unavailable; skipping service install. Use your container supervisor or `docker compose up -d`.",
+      "Gateway service",
     );
     installDaemon = false;
   }
@@ -115,14 +113,14 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
       flow === "quickstart"
         ? (DEFAULT_GATEWAY_DAEMON_RUNTIME as GatewayDaemonRuntime)
         : ((await prompter.select({
-            message: "Gateway daemon runtime",
+            message: "Gateway service runtime",
             options: GATEWAY_DAEMON_RUNTIME_OPTIONS,
             initialValue: opts.daemonRuntime ?? DEFAULT_GATEWAY_DAEMON_RUNTIME,
           })) as GatewayDaemonRuntime);
     if (flow === "quickstart") {
       await prompter.note(
-        "QuickStart uses Node for the Gateway daemon (stable + supported).",
-        "Gateway daemon runtime",
+        "QuickStart uses Node for the Gateway service (stable + supported).",
+        "Gateway service runtime",
       );
     }
     const service = resolveGatewayService();
@@ -138,10 +136,10 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
       })) as "restart" | "reinstall" | "skip";
       if (action === "restart") {
         await withWizardProgress(
-          "Gateway daemon",
-          { doneMessage: "Gateway daemon restarted." },
+          "Gateway service",
+          { doneMessage: "Gateway service restarted." },
           async (progress) => {
-            progress.update("Restarting Gateway daemon…");
+            progress.update("Restarting Gateway service…");
             await service.restart({
               env: process.env,
               stdout: process.stdout,
@@ -150,10 +148,10 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
         );
       } else if (action === "reinstall") {
         await withWizardProgress(
-          "Gateway daemon",
-          { doneMessage: "Gateway daemon uninstalled." },
+          "Gateway service",
+          { doneMessage: "Gateway service uninstalled." },
           async (progress) => {
-            progress.update("Uninstalling Gateway daemon…");
+            progress.update("Uninstalling Gateway service…");
             await service.uninstall({ env: process.env, stdout: process.stdout });
           },
         );
@@ -161,48 +159,38 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     }
 
     if (!loaded || (loaded && (await service.isLoaded({ env: process.env })) === false)) {
-      const devMode =
-        process.argv[1]?.includes(`${path.sep}src${path.sep}`) && process.argv[1]?.endsWith(".ts");
-      await withWizardProgress(
-        "Gateway daemon",
-        { doneMessage: "Gateway daemon installed." },
-        async (progress) => {
-          progress.update("Preparing Gateway daemon…");
-          const nodePath = await resolvePreferredNodePath({
-            env: process.env,
-            runtime: daemonRuntime,
-          });
-          const { programArguments, workingDirectory } = await resolveGatewayProgramArguments({
-            port: settings.port,
-            dev: devMode,
-            runtime: daemonRuntime,
-            nodePath,
-          });
-          if (daemonRuntime === "node") {
-            const systemNode = await resolveSystemNodeInfo({ env: process.env });
-            const warning = renderSystemNodeWarning(systemNode, programArguments[0]);
-            if (warning) await prompter.note(warning, "Gateway runtime");
-          }
-          const environment = buildServiceEnvironment({
-            env: process.env,
-            port: settings.port,
-            token: settings.gatewayToken,
-            launchdLabel:
-              process.platform === "darwin"
-                ? resolveGatewayLaunchAgentLabel(process.env.CLAWDBOT_PROFILE)
-                : undefined,
-          });
+      const progress = prompter.progress("Gateway service");
+      let installError: string | null = null;
+      try {
+        progress.update("Preparing Gateway service…");
+        const { programArguments, workingDirectory, environment } = await buildGatewayInstallPlan({
+          env: process.env,
+          port: settings.port,
+          token: settings.gatewayToken,
+          runtime: daemonRuntime,
+          warn: (message, title) => prompter.note(message, title),
+          config: nextConfig,
+        });
 
-          progress.update("Installing Gateway daemon…");
-          await service.install({
-            env: process.env,
-            stdout: process.stdout,
-            programArguments,
-            workingDirectory,
-            environment,
-          });
-        },
-      );
+        progress.update("Installing Gateway service…");
+        await service.install({
+          env: process.env,
+          stdout: process.stdout,
+          programArguments,
+          workingDirectory,
+          environment,
+        });
+      } catch (err) {
+        installError = err instanceof Error ? err.message : String(err);
+      } finally {
+        progress.stop(
+          installError ? "Gateway service install failed." : "Gateway service installed.",
+        );
+      }
+      if (installError) {
+        await prompter.note(`Gateway service install failed: ${installError}`, "Gateway");
+        await prompter.note(gatewayInstallErrorHint(), "Gateway");
+      }
     }
   }
 
@@ -296,6 +284,11 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     "Control UI",
   );
 
+  let controlUiOpened = false;
+  let controlUiOpenHint: string | undefined;
+  let seededInBackground = false;
+  let hatchChoice: "tui" | "web" | "later" | null = null;
+
   if (!opts.skipUi && gatewayProbe.ok) {
     if (hasBootstrap) {
       await prompter.note(
@@ -307,37 +300,83 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
         ].join("\n"),
         "Start TUI (best option!)",
       );
-      const wantsTui = await prompter.confirm({
-        message: "Do you want to hatch your bot now?",
-        initialValue: true,
+    }
+
+    await prompter.note(
+      [
+        "Gateway token: shared auth for the Gateway + Control UI.",
+        "Stored in: ~/.clawdbot/clawdbot.json (gateway.auth.token) or CLAWDBOT_GATEWAY_TOKEN.",
+        "Web UI stores a copy in this browser's localStorage (clawdbot.control.settings.v1).",
+        `Get the tokenized link anytime: ${formatCliCommand("clawdbot dashboard --no-open")}`,
+      ].join("\n"),
+      "Token",
+    );
+
+    hatchChoice = (await prompter.select({
+      message: "How do you want to hatch your bot?",
+      options: [
+        { value: "tui", label: "Hatch in TUI (recommended)" },
+        { value: "web", label: "Open the Web UI" },
+        { value: "later", label: "Do this later" },
+      ],
+      initialValue: "tui",
+    })) as "tui" | "web" | "later";
+
+    if (hatchChoice === "tui") {
+      await runTui({
+        url: links.wsUrl,
+        token: settings.authMode === "token" ? settings.gatewayToken : undefined,
+        password: settings.authMode === "password" ? nextConfig.gateway?.auth?.password : "",
+        // Safety: onboarding TUI should not auto-deliver to lastProvider/lastTo.
+        deliver: false,
+        message: hasBootstrap ? "Wake up, my friend!" : undefined,
       });
-      if (wantsTui) {
-        await runTui({
-          url: links.wsUrl,
-          token: settings.authMode === "token" ? settings.gatewayToken : undefined,
-          password: settings.authMode === "password" ? nextConfig.gateway?.auth?.password : "",
-          // Safety: onboarding TUI should not auto-deliver to lastProvider/lastTo.
-          deliver: false,
-          message: "Wake up, my friend!",
-        });
+      if (settings.authMode === "token" && settings.gatewayToken) {
+        seededInBackground = await openUrlInBackground(authedUrl);
       }
-    } else {
-      const browserSupport = await detectBrowserOpenSupport();
-      if (!browserSupport.ok) {
+      if (seededInBackground) {
         await prompter.note(
-          formatControlUiSshHint({
+          `Web UI seeded in the background. Open later with: ${formatCliCommand(
+            "clawdbot dashboard --no-open",
+          )}`,
+          "Web UI",
+        );
+      }
+    } else if (hatchChoice === "web") {
+      const browserSupport = await detectBrowserOpenSupport();
+      if (browserSupport.ok) {
+        controlUiOpened = await openUrl(authedUrl);
+        if (!controlUiOpened) {
+          controlUiOpenHint = formatControlUiSshHint({
             port: settings.port,
             basePath: controlUiBasePath,
-            token: settings.authMode === "token" ? settings.gatewayToken : undefined,
-          }),
-          "Open Control UI",
-        );
+            token: settings.gatewayToken,
+          });
+        }
       } else {
-        await prompter.note(
-          "Opening Control UI automatically after onboarding (no extra prompts).",
-          "Open Control UI",
-        );
+        controlUiOpenHint = formatControlUiSshHint({
+          port: settings.port,
+          basePath: controlUiBasePath,
+          token: settings.gatewayToken,
+        });
       }
+      await prompter.note(
+        [
+          `Dashboard link (with token): ${authedUrl}`,
+          controlUiOpened
+            ? "Opened in your browser. Keep that tab to control Clawdbot."
+            : "Copy/paste this URL in a browser on this machine to control Clawdbot.",
+          controlUiOpenHint,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        "Dashboard ready",
+      );
+    } else {
+      await prompter.note(
+        `When you're ready: ${formatCliCommand("clawdbot dashboard --no-open")}`,
+        "Later",
+      );
     }
   } else if (opts.skipUi) {
     await prompter.note("Skipping Control UI/TUI prompts.", "Control UI");
@@ -356,9 +395,10 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
   );
 
   const shouldOpenControlUi =
-    !opts.skipUi && settings.authMode === "token" && Boolean(settings.gatewayToken);
-  let controlUiOpened = false;
-  let controlUiOpenHint: string | undefined;
+    !opts.skipUi &&
+    settings.authMode === "token" &&
+    Boolean(settings.gatewayToken) &&
+    hatchChoice === null;
   if (shouldOpenControlUi) {
     const browserSupport = await detectBrowserOpenSupport();
     if (browserSupport.ok) {
@@ -411,7 +451,7 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
           "Clawdbot uses Brave Search for the `web_search` tool. Without a Brave Search API key, web search won’t work.",
           "",
           "Set it up interactively:",
-          "- Run: clawdbot configure --section web",
+          `- Run: ${formatCliCommand("clawdbot configure --section web")}`,
           "- Enable web_search and paste your Brave Search API key",
           "",
           "Alternative: set BRAVE_API_KEY in the Gateway environment (no config changes).",
@@ -420,9 +460,16 @@ export async function finalizeOnboardingWizard(options: FinalizeOnboardingOption
     "Web search (optional)",
   );
 
+  await prompter.note(
+    'What now: https://clawd.bot/showcase ("What People Are Building").',
+    "What now",
+  );
+
   await prompter.outro(
     controlUiOpened
       ? "Onboarding complete. Dashboard opened with your token; keep that tab to control Clawdbot."
-      : "Onboarding complete. Use the tokenized dashboard link above to control Clawdbot.",
+      : seededInBackground
+        ? "Onboarding complete. Web UI seeded in the background; open it anytime with the tokenized link above."
+        : "Onboarding complete. Use the tokenized dashboard link above to control Clawdbot.",
   );
 }

@@ -105,6 +105,11 @@ Build it once:
 scripts/sandbox-setup.sh
 ```
 
+Note: the default image does **not** include Node. If a skill needs Node (or
+other runtimes), either bake a custom image or install via
+`sandbox.docker.setupCommand` (requires network egress + writable root +
+root user).
+
 Sandboxed browser image:
 ```bash
 scripts/sandbox-browser-setup.sh
@@ -115,6 +120,22 @@ Override with `agents.defaults.sandbox.docker.network`.
 
 Docker installs and the containerized gateway live here:
 [Docker](/install/docker)
+
+## setupCommand (one-time container setup)
+`setupCommand` runs **once** after the sandbox container is created (not on every run).
+It executes inside the container via `sh -lc`.
+
+Paths:
+- Global: `agents.defaults.sandbox.docker.setupCommand`
+- Per-agent: `agents.list[].sandbox.docker.setupCommand`
+
+
+Common pitfalls:
+- Default `docker.network` is `"none"` (no egress), so package installs will fail.
+- `readOnlyRoot: true` prevents writes; set `readOnlyRoot: false` or bake a custom image.
+- `user` must be root for package installs (omit `user` or set `user: "0:0"`).
+- Sandbox exec does **not** inherit host `process.env`. Use
+  `agents.defaults.sandbox.docker.env` (or a custom image) for skill API keys.
 
 ## Tool policy + escape hatches
 Tool allow/deny policies still apply before sandbox rules. If a tool is denied

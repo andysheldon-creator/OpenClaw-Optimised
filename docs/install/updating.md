@@ -7,7 +7,7 @@ read_when:
 
 # Updating
 
-Clawdbot is moving fast (pre “1.0”). Treat updates like shipping infra: update → run checks → restart → verify.
+Clawdbot is moving fast (pre “1.0”). Treat updates like shipping infra: update → run checks → restart (or use `clawdbot update`, which restarts) → verify.
 
 ## Recommended: re-run the website installer (upgrade in place)
 
@@ -50,16 +50,30 @@ pnpm add -g clawdbot@latest
 ```
 We do **not** recommend Bun for the Gateway runtime (WhatsApp/Telegram bugs).
 
+To switch update channels (git + npm installs):
+
+```bash
+clawdbot update --channel beta
+clawdbot update --channel dev
+clawdbot update --channel stable
+```
+
+Use `--tag <dist-tag|version>` for a one-off install tag/version.
+
+See [Development channels](/install/development-channels) for channel semantics and release notes.
+
+Note: on npm installs, the gateway logs an update hint on startup (checks the current channel tag). Disable via `update.checkOnStart: false`.
+
 Then:
 
 ```bash
 clawdbot doctor
-clawdbot daemon restart
+clawdbot gateway restart
 clawdbot health
 ```
 
 Notes:
-- If your Gateway runs as a service, `clawdbot daemon restart` is preferred over killing PIDs.
+- If your Gateway runs as a service, `clawdbot gateway restart` is preferred over killing PIDs.
 - If you’re pinned to a specific version, see “Rollback / pinning” below.
 
 ## Update (`clawdbot update`)
@@ -67,15 +81,17 @@ Notes:
 For **source installs** (git checkout), prefer:
 
 ```bash
-clawdbot update --restart
+clawdbot update
 ```
 
 It runs a safe-ish update flow:
 - Requires a clean worktree.
-- Fetches + rebases against the configured upstream.
+- Switches to the selected channel (tag or branch).
+- Fetches + rebases against the configured upstream (dev channel).
 - Installs deps, builds, builds the Control UI, and runs `clawdbot doctor`.
+- Restarts the gateway by default (use `--no-restart` to skip).
 
-If you installed via **npm/pnpm** (no git metadata), `clawdbot update` will skip. Use “Update (global install)” instead.
+If you installed via **npm/pnpm** (no git metadata), `clawdbot update` will try to update via your package manager. If it can’t detect the install, use “Update (global install)” instead.
 
 ## Update (Control UI / RPC)
 
@@ -103,12 +119,13 @@ git pull
 pnpm install
 pnpm build
 pnpm ui:build # auto-installs UI deps on first run
-pnpm clawdbot doctor
-pnpm clawdbot health
+clawdbot doctor
+clawdbot health
 ```
 
 Notes:
 - `pnpm build` matters when you run the packaged `clawdbot` binary ([`dist/entry.js`](https://github.com/clawdbot/clawdbot/blob/main/dist/entry.js)) or use Node to run `dist/`.
+- If you run from a repo checkout without a global install, use `pnpm clawdbot ...` for CLI commands.
 - If you run directly from TypeScript (`pnpm clawdbot ...`), a rebuild is usually unnecessary, but **config migrations still apply** → run doctor.
 - Switching between global and git installs is easy: install the other flavor, then run `clawdbot doctor` so the gateway service entrypoint is rewritten to the current install.
 
@@ -132,9 +149,9 @@ Details: [Doctor](/gateway/doctor)
 CLI (works regardless of OS):
 
 ```bash
-clawdbot daemon status
-clawdbot daemon stop
-clawdbot daemon restart
+clawdbot gateway status
+clawdbot gateway stop
+clawdbot gateway restart
 clawdbot gateway --port 18789
 clawdbot logs --follow
 ```
@@ -143,7 +160,7 @@ If you’re supervised:
 - macOS launchd (app-bundled LaunchAgent): `launchctl kickstart -k gui/$UID/com.clawdbot.gateway` (use `com.clawdbot.<profile>` if set)
 - Linux systemd user service: `systemctl --user restart clawdbot-gateway[-<profile>].service`
 - Windows (WSL2): `systemctl --user restart clawdbot-gateway[-<profile>].service`
-  - `launchctl`/`systemctl` only work if the service is installed; otherwise run `clawdbot daemon install`.
+  - `launchctl`/`systemctl` only work if the service is installed; otherwise run `clawdbot gateway install`.
 
 Runbook + exact service labels: [Gateway runbook](/gateway)
 
@@ -167,7 +184,7 @@ Then restart + re-run doctor:
 
 ```bash
 clawdbot doctor
-clawdbot daemon restart
+clawdbot gateway restart
 ```
 
 ### Pin (source) by date
@@ -184,7 +201,7 @@ Then reinstall deps + restart:
 ```bash
 pnpm install
 pnpm build
-clawdbot daemon restart
+clawdbot gateway restart
 ```
 
 If you want to go back to latest later:

@@ -40,11 +40,6 @@ export type GatewayConfigSummary = {
     remotePasswordConfigured: boolean;
     tailscaleMode: string | null;
   };
-  bridge: {
-    enabled: boolean | null;
-    bind: string | null;
-    port: number | null;
-  };
   discovery: {
     wideAreaEnabled: boolean | null;
   };
@@ -139,7 +134,7 @@ export function resolveAuthForTarget(
     return { token: tokenOverride, password: passwordOverride };
   }
 
-  if (target.kind === "configRemote") {
+  if (target.kind === "configRemote" || target.kind === "sshTunnel") {
     const token =
       typeof cfg.gateway?.remote?.token === "string" ? cfg.gateway.remote.token.trim() : "";
     const remotePassword = (cfg.gateway?.remote as { password?: unknown } | undefined)?.password;
@@ -191,7 +186,6 @@ export function extractConfigSummary(snapshotUnknown: unknown): GatewayConfigSum
 
   const cfg = (snap?.config ?? {}) as Record<string, unknown>;
   const gateway = (cfg.gateway ?? {}) as Record<string, unknown>;
-  const bridge = (cfg.bridge ?? {}) as Record<string, unknown>;
   const discovery = (cfg.discovery ?? {}) as Record<string, unknown>;
   const wideArea = (discovery.wideArea ?? {}) as Record<string, unknown>;
 
@@ -210,10 +204,6 @@ export function extractConfigSummary(snapshotUnknown: unknown): GatewayConfigSum
     typeof remote.token === "string" ? remote.token.trim().length > 0 : false;
   const remotePasswordConfigured =
     typeof remote.password === "string" ? String(remote.password).trim().length > 0 : false;
-
-  const bridgeEnabled = typeof bridge.enabled === "boolean" ? bridge.enabled : null;
-  const bridgeBind = typeof bridge.bind === "string" ? bridge.bind : null;
-  const bridgePort = parseIntOrNull(bridge.port);
 
   const wideAreaEnabled = typeof wideArea.enabled === "boolean" ? wideArea.enabled : null;
 
@@ -245,7 +235,6 @@ export function extractConfigSummary(snapshotUnknown: unknown): GatewayConfigSum
       remotePasswordConfigured,
       tailscaleMode: typeof tailscale.mode === "string" ? tailscale.mode : null,
     },
-    bridge: { enabled: bridgeEnabled, bind: bridgeBind, port: bridgePort },
     discovery: { wideAreaEnabled },
   };
 }

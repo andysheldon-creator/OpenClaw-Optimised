@@ -8,6 +8,7 @@ import { formatAge } from "../../infra/channel-summary.js";
 import { collectChannelStatusIssues } from "../../infra/channels-status-issues.js";
 import { defaultRuntime, type RuntimeEnv } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
+import { formatCliCommand } from "../../cli/command-format.js";
 import { theme } from "../../terminal/theme.js";
 import { type ChatChannel, formatChannelAccountLabel, requireValidConfig } from "./shared.js";
 
@@ -50,6 +51,18 @@ export function formatGatewayChannelsStatusLines(payload: Record<string, unknown
       if (outboundAt) bits.push(`out:${formatAge(Date.now() - outboundAt)}`);
       if (typeof account.mode === "string" && account.mode.length > 0) {
         bits.push(`mode:${account.mode}`);
+      }
+      const botUsername = (() => {
+        const bot = account.bot as { username?: string | null } | undefined;
+        const probeBot = (account.probe as { bot?: { username?: string | null } } | undefined)?.bot;
+        const raw = bot?.username ?? probeBot?.username ?? "";
+        if (typeof raw !== "string") return "";
+        const trimmed = raw.trim();
+        if (!trimmed) return "";
+        return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+      })();
+      if (botUsername) {
+        bits.push(`bot:${botUsername}`);
       }
       if (typeof account.dmPolicy === "string" && account.dmPolicy.length > 0) {
         bits.push(`dm:${account.dmPolicy}`);
@@ -130,7 +143,7 @@ export function formatGatewayChannelsStatusLines(payload: Record<string, unknown
         `- ${issue.channel} ${issue.accountId}: ${issue.message}${issue.fix ? ` (${issue.fix})` : ""}`,
       );
     }
-    lines.push(`- Run: clawdbot doctor`);
+    lines.push(`- Run: ${formatCliCommand("clawdbot doctor")}`);
     lines.push("");
   }
   lines.push(

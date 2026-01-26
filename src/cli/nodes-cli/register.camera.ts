@@ -9,8 +9,11 @@ import {
   writeBase64ToFile,
 } from "../nodes-camera.js";
 import { parseDurationMs } from "../parse-duration.js";
+import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
 import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
+import { renderTable } from "../../terminal/table.js";
+import { shortenHomePath } from "../../utils.js";
 
 const parseFacing = (value: string): CameraFacing => {
   const v = String(value ?? "")
@@ -29,7 +32,7 @@ export function registerNodesCameraCommands(nodes: Command) {
       .description("List available cameras on a node")
       .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
       .action(async (opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("camera list", async () => {
           const nodeId = await resolveNodeId(opts, String(opts.node ?? ""));
           const raw = (await callGatewayCli("node.invoke", opts, {
             nodeId,
@@ -51,20 +54,31 @@ export function registerNodesCameraCommands(nodes: Command) {
           }
 
           if (devices.length === 0) {
-            defaultRuntime.log("No cameras reported.");
+            const { muted } = getNodesTheme();
+            defaultRuntime.log(muted("No cameras reported."));
             return;
           }
 
-          for (const device of devices) {
-            const id = typeof device.id === "string" ? device.id : "";
-            const name = typeof device.name === "string" ? device.name : "Unknown Camera";
-            const position = typeof device.position === "string" ? device.position : "unspecified";
-            defaultRuntime.log(`${name} (${position})${id ? ` — ${id}` : ""}`);
-          }
-        } catch (err) {
-          defaultRuntime.error(`nodes camera list failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          const { heading, muted } = getNodesTheme();
+          const tableWidth = Math.max(60, (process.stdout.columns ?? 120) - 1);
+          const rows = devices.map((device) => ({
+            Name: typeof device.name === "string" ? device.name : "Unknown Camera",
+            Position: typeof device.position === "string" ? device.position : muted("unspecified"),
+            ID: typeof device.id === "string" ? device.id : "",
+          }));
+          defaultRuntime.log(heading("Cameras"));
+          defaultRuntime.log(
+            renderTable({
+              width: tableWidth,
+              columns: [
+                { key: "Name", header: "Name", minWidth: 14, flex: true },
+                { key: "Position", header: "Position", minWidth: 10 },
+                { key: "ID", header: "ID", minWidth: 10, flex: true },
+              ],
+              rows,
+            }).trimEnd(),
+          );
+        });
       }),
     { timeoutMs: 60_000 },
   );
@@ -81,7 +95,7 @@ export function registerNodesCameraCommands(nodes: Command) {
       .option("--delay-ms <ms>", "Delay before capture in ms (macOS default 2000)")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 20000)", "20000")
       .action(async (opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("camera snap", async () => {
           const nodeId = await resolveNodeId(opts, String(opts.node ?? ""));
           const facingOpt = String(opts.facing ?? "both")
             .trim()
@@ -152,11 +166,8 @@ export function registerNodesCameraCommands(nodes: Command) {
             defaultRuntime.log(JSON.stringify({ files: results }, null, 2));
             return;
           }
-          defaultRuntime.log(results.map((r) => `MEDIA:${r.path}`).join("\n"));
-        } catch (err) {
-          defaultRuntime.error(`nodes camera snap failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          defaultRuntime.log(results.map((r) => `MEDIA:${shortenHomePath(r.path)}`).join("\n"));
+        });
       }),
     { timeoutMs: 60_000 },
   );
@@ -176,7 +187,7 @@ export function registerNodesCameraCommands(nodes: Command) {
       .option("--no-audio", "Disable audio capture")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 90000)", "90000")
       .action(async (opts: NodesRpcOpts & { audio?: boolean }) => {
-        try {
+        await runNodesCommand("camera clip", async () => {
           const nodeId = await resolveNodeId(opts, String(opts.node ?? ""));
           const facing = parseFacing(String(opts.facing ?? "front"));
           const durationMs = parseDurationMs(String(opts.duration ?? "3000"));
@@ -229,11 +240,8 @@ export function registerNodesCameraCommands(nodes: Command) {
             );
             return;
           }
-          defaultRuntime.log(`MEDIA:${filePath}`);
-        } catch (err) {
-          defaultRuntime.error(`nodes camera clip failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          defaultRuntime.log(`MEDIA:${shortenHomePath(filePath)}`);
+        });
       }),
     { timeoutMs: 90_000 },
   );

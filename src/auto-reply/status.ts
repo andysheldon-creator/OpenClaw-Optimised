@@ -13,6 +13,14 @@ import {
   type SessionEntry,
   type SessionScope,
 } from "../config/sessions.js";
+import {
+  getTtsMaxLength,
+  getTtsProvider,
+  isSummarizationEnabled,
+  resolveTtsAutoMode,
+  resolveTtsConfig,
+  resolveTtsPrefsPath,
+} from "../tts/tts.js";
 import { resolveCommitHash } from "../infra/git-commit.js";
 import {
   estimateUsageCost,
@@ -22,7 +30,10 @@ import {
 } from "../utils/usage-format.js";
 import { VERSION } from "../version.js";
 import { listChatCommands, listChatCommandsForConfig } from "./commands-registry.js";
+import { listPluginCommands } from "../plugins/commands.js";
+import type { SkillCommandSpec } from "../agents/skills.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "./thinking.js";
+import type { MediaUnderstandingDecision } from "../media-understanding/types.js";
 
 type AgentConfig = Partial<NonNullable<NonNullable<ClawdbotConfig["agents"]>["defaults"]>>;
 
@@ -50,10 +61,49 @@ type StatusArgs = {
   resolvedElevated?: ElevatedLevel;
   modelAuth?: string;
   usageLine?: string;
+  timeLine?: string;
   queue?: QueueStatus;
+  mediaDecisions?: MediaUnderstandingDecision[];
+  subagentsLine?: string;
   includeTranscriptUsage?: boolean;
   now?: number;
 };
+
+function resolveRuntimeLabel(
+  args: Pick<StatusArgs, "config" | "agent" | "sessionKey" | "sessionScope">,
+): string {
+  const sessionKey = args.sessionKey?.trim();
+  if (args.config && sessionKey) {
+    const runtimeStatus = resolveSandboxRuntimeStatus({
+      cfg: args.config,
+      sessionKey,
+    });
+    const sandboxMode = runtimeStatus.mode ?? "off";
+    if (sandboxMode === "off") return "direct";
+    const runtime = runtimeStatus.sandboxed ? "docker" : sessionKey ? "direct" : "unknown";
+    return `${runtime}/${sandboxMode}`;
+  }
+
+  const sandboxMode = args.agent?.sandbox?.mode ?? "off";
+  if (sandboxMode === "off") return "direct";
+  const sandboxed = (() => {
+    if (!sessionKey) return false;
+    if (sandboxMode === "all") return true;
+    if (args.config) {
+      return resolveSandboxRuntimeStatus({
+        cfg: args.config,
+        sessionKey,
+      }).sandboxed;
+    }
+    const sessionScope = args.sessionScope ?? "per-sender";
+    const mainKey = resolveMainSessionKey({
+      session: { scope: sessionScope },
+    });
+    return sessionKey !== mainKey.trim();
+  })();
+  const runtime = sandboxed ? "docker" : sessionKey ? "direct" : "unknown";
+  return `${runtime}/${sandboxMode}`;
+}
 
 const formatTokens = (total: number | null | undefined, contextTokens: number | null) => {
   const ctx = contextTokens ?? null;
@@ -166,6 +216,62 @@ const formatUsagePair = (input?: number | null, output?: number | null) => {
   return `🧮 Tokens: ${inputLabel} in / ${outputLabel} out`;
 };
 
+const formatMediaUnderstandingLine = (decisions?: MediaUnderstandingDecision[]) => {
+  if (!decisions || decisions.length === 0) return null;
+  const parts = decisions
+    .map((decision) => {
+      const count = decision.attachments.length;
+      const countLabel = count > 1 ? ` x${count}` : "";
+      if (decision.outcome === "success") {
+        const chosen = decision.attachments.find((entry) => entry.chosen)?.chosen;
+        const provider = chosen?.provider?.trim();
+        const model = chosen?.model?.trim();
+        const modelLabel = provider ? (model ? `${provider}/${model}` : provider) : null;
+        return `${decision.capability}${countLabel} ok${modelLabel ? ` (${modelLabel})` : ""}`;
+      }
+      if (decision.outcome === "no-attachment") {
+        return `${decision.capability} none`;
+      }
+      if (decision.outcome === "disabled") {
+        return `${decision.capability} off`;
+      }
+      if (decision.outcome === "scope-deny") {
+        return `${decision.capability} denied`;
+      }
+      if (decision.outcome === "skipped") {
+        const reason = decision.attachments
+          .flatMap((entry) => entry.attempts.map((attempt) => attempt.reason).filter(Boolean))
+          .find(Boolean);
+        const shortReason = reason ? reason.split(":")[0]?.trim() : undefined;
+        return `${decision.capability} skipped${shortReason ? ` (${shortReason})` : ""}`;
+      }
+      return null;
+    })
+    .filter((part): part is string => part != null);
+  if (parts.length === 0) return null;
+  if (parts.every((part) => part.endsWith(" none"))) return null;
+  return `📎 Media: ${parts.join(" · ")}`;
+};
+
+const formatVoiceModeLine = (
+  config?: ClawdbotConfig,
+  sessionEntry?: SessionEntry,
+): string | null => {
+  if (!config) return null;
+  const ttsConfig = resolveTtsConfig(config);
+  const prefsPath = resolveTtsPrefsPath(ttsConfig);
+  const autoMode = resolveTtsAutoMode({
+    config: ttsConfig,
+    prefsPath,
+    sessionAuto: sessionEntry?.ttsAuto,
+  });
+  if (autoMode === "off") return null;
+  const provider = getTtsProvider(ttsConfig, prefsPath);
+  const maxLength = getTtsMaxLength(prefsPath);
+  const summarize = isSummarizationEnabled(prefsPath) ? "on" : "off";
+  return `🔊 Voice: ${autoMode} · provider=${provider} · limit=${maxLength} · summary=${summarize}`;
+};
+
 export function buildStatusMessage(args: StatusArgs): string {
   const now = args.now ?? Date.now();
   const entry = args.sessionEntry;
@@ -217,30 +323,7 @@ export function buildStatusMessage(args: StatusArgs): string {
     args.agent?.elevatedDefault ??
     "on";
 
-  const runtime = (() => {
-    const sandboxMode = args.agent?.sandbox?.mode ?? "off";
-    if (sandboxMode === "off") return { label: "direct" };
-    const sessionKey = args.sessionKey?.trim();
-    const sandboxed = (() => {
-      if (!sessionKey) return false;
-      if (sandboxMode === "all") return true;
-      if (args.config) {
-        return resolveSandboxRuntimeStatus({
-          cfg: args.config,
-          sessionKey,
-        }).sandboxed;
-      }
-      const sessionScope = args.sessionScope ?? "per-sender";
-      const mainKey = resolveMainSessionKey({
-        session: { scope: sessionScope },
-      });
-      return sessionKey !== mainKey.trim();
-    })();
-    const runtime = sandboxed ? "docker" : sessionKey ? "direct" : "unknown";
-    return {
-      label: `${runtime}/${sandboxMode}`,
-    };
-  })();
+  const runtime = { label: resolveRuntimeLabel(args) };
 
   const updatedAt = entry?.updatedAt;
   const sessionLine = [
@@ -252,10 +335,9 @@ export function buildStatusMessage(args: StatusArgs): string {
 
   const isGroupSession =
     entry?.chatType === "group" ||
-    entry?.chatType === "room" ||
+    entry?.chatType === "channel" ||
     Boolean(args.sessionKey?.includes(":group:")) ||
-    Boolean(args.sessionKey?.includes(":channel:")) ||
-    Boolean(args.sessionKey?.startsWith("group:"));
+    Boolean(args.sessionKey?.includes(":channel:"));
   const groupActivationValue = isGroupSession
     ? (args.groupActivation ?? entry?.groupActivation ?? "mention")
     : undefined;
@@ -269,8 +351,14 @@ export function buildStatusMessage(args: StatusArgs): string {
 
   const queueMode = args.queue?.mode ?? "unknown";
   const queueDetails = formatQueueDetails(args.queue);
-  const verboseLabel = verboseLevel === "on" ? "verbose" : null;
-  const elevatedLabel = elevatedLevel === "on" ? "elevated" : null;
+  const verboseLabel =
+    verboseLevel === "full" ? "verbose:full" : verboseLevel === "on" ? "verbose" : null;
+  const elevatedLabel =
+    elevatedLevel && elevatedLevel !== "off"
+      ? elevatedLevel === "on"
+        ? "elevated"
+        : `elevated:${elevatedLevel}`
+      : null;
   const optionParts = [
     `Runtime: ${runtime.label}`,
     `Think: ${thinkLevel}`,
@@ -318,15 +406,21 @@ export function buildStatusMessage(args: StatusArgs): string {
   const costLine = costLabel ? `💵 Cost: ${costLabel}` : null;
   const usageCostLine =
     usagePair && costLine ? `${usagePair} · ${costLine}` : (usagePair ?? costLine);
+  const mediaLine = formatMediaUnderstandingLine(args.mediaDecisions);
+  const voiceLine = formatVoiceModeLine(args.config, args.sessionEntry);
 
   return [
     versionLine,
+    args.timeLine,
     modelLine,
     usageCostLine,
     `📚 ${contextLine}`,
+    mediaLine,
     args.usageLine,
     `🧵 ${sessionLine}`,
+    args.subagentsLine,
     `⚙️ ${optionsLine}`,
+    voiceLine,
     activationLine,
   ]
     .filter(Boolean)
@@ -336,11 +430,11 @@ export function buildStatusMessage(args: StatusArgs): string {
 export function buildHelpMessage(cfg?: ClawdbotConfig): string {
   const options = [
     "/think <level>",
-    "/verbose on|off",
+    "/verbose on|full|off",
     "/reasoning on|off",
-    "/elevated on|off",
+    "/elevated on|off|ask|full",
     "/model <id>",
-    "/cost on|off",
+    "/usage off|tokens|full",
   ];
   if (cfg?.commands?.config === true) options.push("/config show");
   if (cfg?.commands?.debug === true) options.push("/debug show");
@@ -348,13 +442,19 @@ export function buildHelpMessage(cfg?: ClawdbotConfig): string {
     "ℹ️ Help",
     "Shortcuts: /new reset | /compact [instructions] | /restart relink (if enabled)",
     `Options: ${options.join(" | ")}`,
+    "Skills: /skill <name> [input]",
     "More: /commands for all slash commands",
   ].join("\n");
 }
 
-export function buildCommandsMessage(cfg?: ClawdbotConfig): string {
+export function buildCommandsMessage(
+  cfg?: ClawdbotConfig,
+  skillCommands?: SkillCommandSpec[],
+): string {
   const lines = ["ℹ️ Slash commands"];
-  const commands = cfg ? listChatCommandsForConfig(cfg) : listChatCommands();
+  const commands = cfg
+    ? listChatCommandsForConfig(cfg, { skillCommands })
+    : listChatCommands({ skillCommands });
   for (const command of commands) {
     const primary = command.nativeName
       ? `/${command.nativeName}`
@@ -373,6 +473,15 @@ export function buildCommandsMessage(cfg?: ClawdbotConfig): string {
     const aliasLabel = aliases.length ? ` (aliases: ${aliases.join(", ")})` : "";
     const scopeLabel = command.scope === "text" ? " (text-only)" : "";
     lines.push(`${primary}${aliasLabel}${scopeLabel} - ${command.description}`);
+  }
+  const pluginCommands = listPluginCommands();
+  if (pluginCommands.length > 0) {
+    lines.push("");
+    lines.push("Plugin commands:");
+    for (const command of pluginCommands) {
+      const pluginLabel = command.pluginId ? ` (plugin: ${command.pluginId})` : "";
+      lines.push(`/${command.name}${pluginLabel} - ${command.description}`);
+    }
   }
   return lines.join("\n");
 }

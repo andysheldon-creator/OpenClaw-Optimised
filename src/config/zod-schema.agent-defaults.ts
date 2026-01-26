@@ -20,36 +20,43 @@ export const AgentDefaultsSchema = z
         primary: z.string().optional(),
         fallbacks: z.array(z.string()).optional(),
       })
+      .strict()
       .optional(),
     imageModel: z
       .object({
         primary: z.string().optional(),
         fallbacks: z.array(z.string()).optional(),
       })
+      .strict()
       .optional(),
     models: z
       .record(
         z.string(),
-        z.object({
-          alias: z.string().optional(),
-          /** Provider-specific API parameters (e.g., GLM-4.7 thinking mode). */
-          params: z.record(z.string(), z.unknown()).optional(),
-        }),
+        z
+          .object({
+            alias: z.string().optional(),
+            /** Provider-specific API parameters (e.g., GLM-4.7 thinking mode). */
+            params: z.record(z.string(), z.unknown()).optional(),
+          })
+          .strict(),
       )
       .optional(),
     workspace: z.string().optional(),
+    repoRoot: z.string().optional(),
     skipBootstrap: z.boolean().optional(),
     bootstrapMaxChars: z.number().int().positive().optional(),
     userTimezone: z.string().optional(),
     timeFormat: z.union([z.literal("auto"), z.literal("12"), z.literal("24")]).optional(),
+    envelopeTimezone: z.string().optional(),
+    envelopeTimestamp: z.union([z.literal("on"), z.literal("off")]).optional(),
+    envelopeElapsed: z.union([z.literal("on"), z.literal("off")]).optional(),
     contextTokens: z.number().int().positive().optional(),
     cliBackends: z.record(z.string(), CliBackendSchema).optional(),
     memorySearch: MemorySearchSchema,
     contextPruning: z
       .object({
-        mode: z
-          .union([z.literal("off"), z.literal("adaptive"), z.literal("aggressive")])
-          .optional(),
+        mode: z.union([z.literal("off"), z.literal("cache-ttl")]).optional(),
+        ttl: z.string().optional(),
         keepLastAssistants: z.number().int().nonnegative().optional(),
         softTrimRatio: z.number().min(0).max(1).optional(),
         hardClearRatio: z.number().min(0).max(1).optional(),
@@ -59,6 +66,7 @@ export const AgentDefaultsSchema = z
             allow: z.array(z.string()).optional(),
             deny: z.array(z.string()).optional(),
           })
+          .strict()
           .optional(),
         softTrim: z
           .object({
@@ -66,14 +74,17 @@ export const AgentDefaultsSchema = z
             headChars: z.number().int().nonnegative().optional(),
             tailChars: z.number().int().nonnegative().optional(),
           })
+          .strict()
           .optional(),
         hardClear: z
           .object({
             enabled: z.boolean().optional(),
             placeholder: z.string().optional(),
           })
+          .strict()
           .optional(),
       })
+      .strict()
       .optional(),
     compaction: z
       .object({
@@ -86,8 +97,10 @@ export const AgentDefaultsSchema = z
             prompt: z.string().optional(),
             systemPrompt: z.string().optional(),
           })
+          .strict()
           .optional(),
       })
+      .strict()
       .optional(),
     thinkingDefault: z
       .union([
@@ -99,8 +112,10 @@ export const AgentDefaultsSchema = z
         z.literal("xhigh"),
       ])
       .optional(),
-    verboseDefault: z.union([z.literal("off"), z.literal("on")]).optional(),
-    elevatedDefault: z.union([z.literal("off"), z.literal("on")]).optional(),
+    verboseDefault: z.union([z.literal("off"), z.literal("on"), z.literal("full")]).optional(),
+    elevatedDefault: z
+      .union([z.literal("off"), z.literal("on"), z.literal("ask"), z.literal("full")])
+      .optional(),
     blockStreamingDefault: z.union([z.literal("off"), z.literal("on")]).optional(),
     blockStreamingBreak: z.union([z.literal("text_end"), z.literal("message_end")]).optional(),
     blockStreamingChunk: BlockStreamingChunkSchema.optional(),
@@ -126,13 +141,16 @@ export const AgentDefaultsSchema = z
         model: z
           .union([
             z.string(),
-            z.object({
-              primary: z.string().optional(),
-              fallbacks: z.array(z.string()).optional(),
-            }),
+            z
+              .object({
+                primary: z.string().optional(),
+                fallbacks: z.array(z.string()).optional(),
+              })
+              .strict(),
           ])
           .optional(),
       })
+      .strict()
       .optional(),
     sandbox: z
       .object({
@@ -146,6 +164,8 @@ export const AgentDefaultsSchema = z
         browser: SandboxBrowserSchema,
         prune: SandboxPruneSchema,
       })
+      .strict()
       .optional(),
   })
+  .strict()
   .optional();

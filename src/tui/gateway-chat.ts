@@ -52,18 +52,20 @@ export type GatewaySessionList = {
     inputTokens?: number | null;
     outputTokens?: number | null;
     totalTokens?: number | null;
-    responseUsage?: "on" | "off";
+    responseUsage?: "on" | "off" | "tokens" | "full";
     modelProvider?: string;
     label?: string;
     displayName?: string;
     provider?: string;
-    room?: string;
+    groupChannel?: string;
     space?: string;
     subject?: string;
     chatType?: string;
     lastProvider?: string;
     lastTo?: string;
     lastAccountId?: string;
+    derivedTitle?: string;
+    lastMessagePreview?: string;
   }>;
 };
 
@@ -183,6 +185,8 @@ export class GatewayChatClient {
       activeMinutes: opts?.activeMinutes,
       includeGlobal: opts?.includeGlobal,
       includeUnknown: opts?.includeUnknown,
+      includeDerivedTitles: opts?.includeDerivedTitles,
+      includeLastMessage: opts?.includeLastMessage,
       agentId: opts?.agentId,
     });
   }

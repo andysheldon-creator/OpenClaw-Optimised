@@ -75,7 +75,7 @@ describe("buildThreadingToolContext", () => {
     const sessionCtx = {
       Provider: "imessage",
       ChatType: "group",
-      From: "group:7",
+      From: "imessage:group:7",
       To: "chat_id:7",
     } as TemplateContext;
 
@@ -86,5 +86,22 @@ describe("buildThreadingToolContext", () => {
     });
 
     expect(result.currentChannelId).toBe("chat_id:7");
+  });
+
+  it("prefers MessageThreadId for Slack tool threading", () => {
+    const sessionCtx = {
+      Provider: "slack",
+      To: "channel:C1",
+      MessageThreadId: "123.456",
+    } as TemplateContext;
+
+    const result = buildThreadingToolContext({
+      sessionCtx,
+      config: { channels: { slack: { replyToMode: "all" } } } as ClawdbotConfig,
+      hasRepliedRef: undefined,
+    });
+
+    expect(result.currentChannelId).toBe("C1");
+    expect(result.currentThreadTs).toBe("123.456");
   });
 });

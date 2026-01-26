@@ -13,7 +13,7 @@ Most setups should use one Gateway because a single Gateway can handle multiple 
 - `CLAWDBOT_STATE_DIR` — per-instance sessions, creds, caches
 - `agents.defaults.workspace` — per-instance workspace root
 - `gateway.port` (or `--port`) — unique per instance
-- Derived ports (bridge/browser/canvas) must not overlap
+- Derived ports (browser/canvas) must not overlap
 
 If these are shared, you will hit config races and port conflicts.
 
@@ -31,10 +31,10 @@ clawdbot --profile rescue setup
 clawdbot --profile rescue gateway --port 19001
 ```
 
-Per-profile daemons:
+Per-profile services:
 ```bash
-clawdbot --profile main daemon install
-clawdbot --profile rescue daemon install
+clawdbot --profile main gateway install
+clawdbot --profile rescue gateway install
 ```
 
 ## Rescue-bot guide
@@ -47,7 +47,7 @@ Run a second Gateway on the same host with its own:
 
 This keeps the rescue bot isolated from the main bot so it can debug or apply config changes if the primary bot is down.
 
-Port spacing: leave at least 20 ports between base ports so the derived bridge/browser/canvas/CDP ports never collide.
+Port spacing: leave at least 20 ports between base ports so the derived browser/canvas/CDP ports never collide.
 
 ### How to install (rescue bot)
 
@@ -55,7 +55,7 @@ Port spacing: leave at least 20 ports between base ports so the derived bridge/b
 # Main bot (existing or fresh, without --profile param)
 # Runs on port 18789 + Chrome CDC/Canvas/... Ports 
 clawdbot onboard
-clawdbot daemon install
+clawdbot gateway install
 
 # Rescue bot (isolated profile + ports)
 clawdbot --profile rescue onboard
@@ -65,15 +65,14 @@ clawdbot --profile rescue onboard
 #   better choose completely different base port, like 19789,
 # - rest of the onboarding is the same as normal
 
-# To install the daemon (if not happened automatically during onboarding)
-clawdbot --profile rescue daemon install
+# To install the service (if not happened automatically during onboarding)
+clawdbot --profile rescue gateway install
 ```
 
 ## Port mapping (derived)
 
 Base port = `gateway.port` (or `CLAWDBOT_GATEWAY_PORT` / `--port`).
 
-- `bridge.port = base + 1`
 - `browser.controlUrl port = base + 2`
 - `canvasHost.port = base + 4`
 - Browser profile CDP ports auto-allocate from `browser.controlPort + 9 .. + 108`

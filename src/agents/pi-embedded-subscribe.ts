@@ -1,6 +1,7 @@
 import { parseReplyDirectives } from "../auto-reply/reply/reply-directives.js";
+import { createStreamingDirectiveAccumulator } from "../auto-reply/reply/streaming-directives.js";
 import { formatToolAggregate } from "../auto-reply/tool-meta.js";
-import { createSubsystemLogger } from "../logging.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { InlineCodeState } from "../markdown/code-spans.js";
 import { buildCodeSpanIndex, createInlineCodeState } from "../markdown/code-spans.js";
 import { EmbeddedBlockChunker } from "./pi-embedded-block-chunker.js";
@@ -23,15 +24,19 @@ const log = createSubsystemLogger("agent/embedded");
 export type {
   BlockReplyChunking,
   SubscribeEmbeddedPiSessionParams,
+  ToolResultFormat,
 } from "./pi-embedded-subscribe.types.js";
 
 export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionParams) {
   const reasoningMode = params.reasoningMode ?? "off";
+  const toolResultFormat = params.toolResultFormat ?? "markdown";
+  const useMarkdown = toolResultFormat === "markdown";
   const state: EmbeddedPiSubscribeState = {
     assistantTexts: [],
     toolMetas: [],
     toolMetaById: new Map(),
     toolSummaryById: new Set(),
+    lastToolError: undefined,
     blockReplyBreak: params.blockReplyBreak ?? "text_end",
     reasoningMode,
     includeReasoning: reasoningMode === "on",
@@ -44,6 +49,10 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     lastStreamedAssistant: undefined,
     lastStreamedReasoning: undefined,
     lastBlockReplyText: undefined,
+    assistantMessageIndex: 0,
+    lastAssistantTextMessageIndex: -1,
+    lastAssistantTextNormalized: undefined,
+    lastAssistantTextTrimmed: undefined,
     assistantTextBaseline: 0,
     suppressBlockChunks: false, // Avoid late chunk inserts after final text merge.
     lastReasoningSent: undefined,
@@ -67,11 +76,13 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
   const messagingToolSentTargets = state.messagingToolSentTargets;
   const pendingMessagingTexts = state.pendingMessagingTexts;
   const pendingMessagingTargets = state.pendingMessagingTargets;
+  const replyDirectiveAccumulator = createStreamingDirectiveAccumulator();
 
   const resetAssistantMessageState = (nextAssistantTextBaseline: number) => {
     state.deltaBuffer = "";
     state.blockBuffer = "";
     blockChunker?.reset();
+    replyDirectiveAccumulator.reset();
     state.blockState.thinking = false;
     state.blockState.final = false;
     state.blockState.inlineCode = createInlineCodeState();
@@ -80,7 +91,34 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     state.lastStreamedReasoning = undefined;
     state.lastReasoningSent = undefined;
     state.suppressBlockChunks = false;
+    state.assistantMessageIndex += 1;
+    state.lastAssistantTextMessageIndex = -1;
+    state.lastAssistantTextNormalized = undefined;
+    state.lastAssistantTextTrimmed = undefined;
     state.assistantTextBaseline = nextAssistantTextBaseline;
+  };
+
+  const rememberAssistantText = (text: string) => {
+    state.lastAssistantTextMessageIndex = state.assistantMessageIndex;
+    state.lastAssistantTextTrimmed = text.trimEnd();
+    const normalized = normalizeTextForComparison(text);
+    state.lastAssistantTextNormalized = normalized.length > 0 ? normalized : undefined;
+  };
+
+  const shouldSkipAssistantText = (text: string) => {
+    if (state.lastAssistantTextMessageIndex !== state.assistantMessageIndex) return false;
+    const trimmed = text.trimEnd();
+    if (trimmed && trimmed === state.lastAssistantTextTrimmed) return true;
+    const normalized = normalizeTextForComparison(text);
+    if (normalized.length > 0 && normalized === state.lastAssistantTextNormalized) return true;
+    return false;
+  };
+
+  const pushAssistantText = (text: string) => {
+    if (!text) return;
+    if (shouldSkipAssistantText(text)) return;
+    assistantTexts.push(text);
+    rememberAssistantText(text);
   };
 
   const finalizeAssistantTexts = (args: {
@@ -99,16 +137,15 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
           assistantTexts.length - state.assistantTextBaseline,
           text,
         );
+        rememberAssistantText(text);
       } else {
-        const last = assistantTexts.at(-1);
-        if (!last || last !== text) assistantTexts.push(text);
+        pushAssistantText(text);
       }
       state.suppressBlockChunks = true;
     } else if (!addedDuringMessage && !chunkerHasBuffered && text) {
       // Non-streaming models (no text_delta): ensure assistantTexts gets the final
       // text when the chunker has nothing buffered to drain.
-      const last = assistantTexts.at(-1);
-      if (!last || last !== text) assistantTexts.push(text);
+      pushAssistantText(text);
     }
 
     state.assistantTextBaseline = assistantTexts.length;
@@ -172,11 +209,40 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
   const shouldEmitToolResult = () =>
     typeof params.shouldEmitToolResult === "function"
       ? params.shouldEmitToolResult()
-      : params.verboseLevel === "on";
+      : params.verboseLevel === "on" || params.verboseLevel === "full";
+  const shouldEmitToolOutput = () =>
+    typeof params.shouldEmitToolOutput === "function"
+      ? params.shouldEmitToolOutput()
+      : params.verboseLevel === "full";
+  const formatToolOutputBlock = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return "(no output)";
+    if (!useMarkdown) return trimmed;
+    return `\`\`\`txt\n${trimmed}\n\`\`\``;
+  };
   const emitToolSummary = (toolName?: string, meta?: string) => {
     if (!params.onToolResult) return;
-    const agg = formatToolAggregate(toolName, meta ? [meta] : undefined);
+    const agg = formatToolAggregate(toolName, meta ? [meta] : undefined, {
+      markdown: useMarkdown,
+    });
     const { text: cleanedText, mediaUrls } = parseReplyDirectives(agg);
+    if (!cleanedText && (!mediaUrls || mediaUrls.length === 0)) return;
+    try {
+      void params.onToolResult({
+        text: cleanedText,
+        mediaUrls: mediaUrls?.length ? mediaUrls : undefined,
+      });
+    } catch {
+      // ignore tool result delivery failures
+    }
+  };
+  const emitToolOutput = (toolName?: string, meta?: string, output?: string) => {
+    if (!params.onToolResult || !output) return;
+    const agg = formatToolAggregate(toolName, meta ? [meta] : undefined, {
+      markdown: useMarkdown,
+    });
+    const message = `${agg}\n${formatToolOutputBlock(output)}`;
+    const { text: cleanedText, mediaUrls } = parseReplyDirectives(message);
     if (!cleanedText && (!mediaUrls || mediaUrls.length === 0)) return;
     try {
       void params.onToolResult({
@@ -305,19 +371,36 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
       return;
     }
 
+    if (shouldSkipAssistantText(chunk)) return;
+
     state.lastBlockReplyText = chunk;
     assistantTexts.push(chunk);
+    rememberAssistantText(chunk);
     if (!params.onBlockReply) return;
-    const splitResult = parseReplyDirectives(chunk);
-    const { text: cleanedText, mediaUrls, audioAsVoice } = splitResult;
+    const splitResult = replyDirectiveAccumulator.consume(chunk);
+    if (!splitResult) return;
+    const {
+      text: cleanedText,
+      mediaUrls,
+      audioAsVoice,
+      replyToId,
+      replyToTag,
+      replyToCurrent,
+    } = splitResult;
     // Skip empty payloads, but always emit if audioAsVoice is set (to propagate the flag)
     if (!cleanedText && (!mediaUrls || mediaUrls.length === 0) && !audioAsVoice) return;
     void params.onBlockReply({
       text: cleanedText,
       mediaUrls: mediaUrls?.length ? mediaUrls : undefined,
       audioAsVoice,
+      replyToId,
+      replyToTag,
+      replyToCurrent,
     });
   };
+
+  const consumeReplyDirectives = (text: string, options?: { final?: boolean }) =>
+    replyDirectiveAccumulator.consume(text, options);
 
   const flushBlockReplyBuffer = () => {
     if (!params.onBlockReply) return;
@@ -348,6 +431,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     toolMetas.length = 0;
     toolMetaById.clear();
     toolSummaryById.clear();
+    state.lastToolError = undefined;
     messagingToolSentTexts.length = 0;
     messagingToolSentTextsNormalized.length = 0;
     messagingToolSentTargets.length = 0;
@@ -363,11 +447,14 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     blockChunking,
     blockChunker,
     shouldEmitToolResult,
+    shouldEmitToolOutput,
     emitToolSummary,
+    emitToolOutput,
     stripBlockTags,
     emitBlockChunk,
     flushBlockReplyBuffer,
     emitReasoningStream,
+    consumeReplyDirectives,
     resetAssistantMessageState,
     resetForCompactionRetry,
     finalizeAssistantTexts,
@@ -391,6 +478,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     // Used to suppress agent's confirmation text (e.g., "Respondi no Telegram!")
     // which is generated AFTER the tool sends the actual answer.
     didSendViaMessagingTool: () => messagingToolSentTexts.length > 0,
+    getLastToolError: () => (state.lastToolError ? { ...state.lastToolError } : undefined),
     waitForCompactionRetry: () => {
       if (state.compactionInFlight || state.pendingCompactionRetry > 0) {
         ensureCompactionPromise();

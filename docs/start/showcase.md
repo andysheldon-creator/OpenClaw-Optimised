@@ -38,6 +38,50 @@ Full setup walkthrough (28m) by VelvetShark.
 
 [Watch on YouTube](https://www.youtube.com/watch?v=SaWSPZoPX34)
 
+<div
+  style={{
+    position: "relative",
+    paddingBottom: "56.25%",
+    height: 0,
+    overflow: "hidden",
+    borderRadius: 16,
+  }}
+>
+  <iframe
+    src="https://www.youtube-nocookie.com/embed/mMSKQvlmFuQ"
+    title="Clawdbot showcase video"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    loading="lazy"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowFullScreen
+  />
+</div>
+
+[Watch on YouTube](https://www.youtube.com/watch?v=mMSKQvlmFuQ)
+
+<div
+  style={{
+    position: "relative",
+    paddingBottom: "56.25%",
+    height: 0,
+    overflow: "hidden",
+    borderRadius: 16,
+  }}
+>
+  <iframe
+    src="https://www.youtube-nocookie.com/embed/5kkIJNUGFho"
+    title="Clawdbot community showcase"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    loading="lazy"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowFullScreen
+  />
+</div>
+
+[Watch on YouTube](https://www.youtube.com/watch?v=5kkIJNUGFho)
+
 ## 🆕 Fresh from Discord
 
 <CardGroup cols={2}>
@@ -146,6 +190,19 @@ Full setup walkthrough (28m) by VelvetShark.
 
   14+ agents under one gateway with Opus 4.5 orchestrator delegating to Codex workers. Comprehensive [technical write-up](https://github.com/adam91holt/orchestrated-ai-articles) covering the Dream Team roster, model selection, sandboxing, webhooks, heartbeats, and delegation flows. [Clawdspace](https://github.com/adam91holt/clawdspace) for agent sandboxing. [Blog post](https://adams-ai-journey.ghost.io/2026-the-year-of-the-orchestrator/).
 </Card>
+
+<Card title="Linear CLI" icon="terminal" href="https://github.com/Finesssee/linear-cli">
+  **@NessZerra** • `devtools` `linear` `cli` `issues`
+
+  CLI for Linear that integrates with agentic workflows (Claude Code, Clawdbot). Manage issues, projects, and workflows from the terminal. First external PR merged!
+</Card>
+
+<Card title="Beeper CLI" icon="message" href="https://github.com/blqke/beepcli">
+  **@jules** • `messaging` `beeper` `cli` `automation`
+
+  Read, send, and archive messages via Beeper Desktop. Uses Beeper local MCP API so agents can manage all your chats (iMessage, WhatsApp, etc.) in one place.
+</Card>
+
 </CardGroup>
 
 ## 🤖 Automation & Workflows
@@ -270,14 +327,8 @@ Full setup walkthrough (28m) by VelvetShark.
 
 <Card title="OpenRouter Transcription" icon="microphone" href="https://clawdhub.com/obviyus/openrouter-transcribe">
   **@obviyus** • `transcription` `multilingual` `skill`
-  
-  Multi-lingual audio transcription via OpenRouter (Gemini, etc). Available on ClawdHub.
-</Card>
 
-<Card title="Google Docs Editor" icon="file-word">
-  **Community** • `docs` `editing` `skill`
-  
-  Rich-text Google Docs editing skill. Built rapidly with Claude Code.
+  Multi-lingual audio transcription via OpenRouter (Gemini, etc). Available on ClawdHub.
 </Card>
 
 </CardGroup>

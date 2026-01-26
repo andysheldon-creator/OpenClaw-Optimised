@@ -1,9 +1,12 @@
 import type { ClawdbotConfig } from "../../config/config.js";
+import type { ReplyPayload } from "../../auto-reply/types.js";
+import type { GroupToolPolicyConfig } from "../../config/types.tools.js";
 import type { OutboundDeliveryResult, OutboundSendDeps } from "../../infra/outbound/deliver.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type {
   ChannelAccountSnapshot,
   ChannelAccountState,
+  ChannelDirectoryEntry,
   ChannelGroupContext,
   ChannelHeartbeatDeps,
   ChannelLogSink,
@@ -64,6 +67,7 @@ export type ChannelConfigAdapter<ResolvedAccount> = {
 export type ChannelGroupAdapter = {
   resolveRequireMention?: (params: ChannelGroupContext) => boolean | undefined;
   resolveGroupIntroHint?: (params: ChannelGroupContext) => string | undefined;
+  resolveToolPolicy?: (params: ChannelGroupContext) => GroupToolPolicyConfig | undefined;
 };
 
 export type ChannelOutboundContext = {
@@ -78,9 +82,14 @@ export type ChannelOutboundContext = {
   deps?: OutboundSendDeps;
 };
 
+export type ChannelOutboundPayloadContext = ChannelOutboundContext & {
+  payload: ReplyPayload;
+};
+
 export type ChannelOutboundAdapter = {
   deliveryMode: "direct" | "gateway" | "hybrid";
   chunker?: ((text: string, limit: number) => string[]) | null;
+  chunkerMode?: "text" | "markdown";
   textChunkLimit?: number;
   pollMaxOptions?: number;
   resolveTarget?: (params: {
@@ -90,6 +99,7 @@ export type ChannelOutboundAdapter = {
     accountId?: string | null;
     mode?: ChannelOutboundTargetMode;
   }) => { ok: true; to: string } | { ok: false; error: Error };
+  sendPayload?: (ctx: ChannelOutboundPayloadContext) => Promise<OutboundDeliveryResult>;
   sendText?: (ctx: ChannelOutboundContext) => Promise<OutboundDeliveryResult>;
   sendMedia?: (ctx: ChannelOutboundContext) => Promise<OutboundDeliveryResult>;
   sendPoll?: (ctx: ChannelPollContext) => Promise<ChannelPollResult>;
@@ -217,6 +227,69 @@ export type ChannelHeartbeatAdapter = {
     recipients: string[];
     source: string;
   };
+};
+
+export type ChannelDirectoryAdapter = {
+  self?: (params: {
+    cfg: ClawdbotConfig;
+    accountId?: string | null;
+    runtime: RuntimeEnv;
+  }) => Promise<ChannelDirectoryEntry | null>;
+  listPeers?: (params: {
+    cfg: ClawdbotConfig;
+    accountId?: string | null;
+    query?: string | null;
+    limit?: number | null;
+    runtime: RuntimeEnv;
+  }) => Promise<ChannelDirectoryEntry[]>;
+  listPeersLive?: (params: {
+    cfg: ClawdbotConfig;
+    accountId?: string | null;
+    query?: string | null;
+    limit?: number | null;
+    runtime: RuntimeEnv;
+  }) => Promise<ChannelDirectoryEntry[]>;
+  listGroups?: (params: {
+    cfg: ClawdbotConfig;
+    accountId?: string | null;
+    query?: string | null;
+    limit?: number | null;
+    runtime: RuntimeEnv;
+  }) => Promise<ChannelDirectoryEntry[]>;
+  listGroupsLive?: (params: {
+    cfg: ClawdbotConfig;
+    accountId?: string | null;
+    query?: string | null;
+    limit?: number | null;
+    runtime: RuntimeEnv;
+  }) => Promise<ChannelDirectoryEntry[]>;
+  listGroupMembers?: (params: {
+    cfg: ClawdbotConfig;
+    accountId?: string | null;
+    groupId: string;
+    limit?: number | null;
+    runtime: RuntimeEnv;
+  }) => Promise<ChannelDirectoryEntry[]>;
+};
+
+export type ChannelResolveKind = "user" | "group";
+
+export type ChannelResolveResult = {
+  input: string;
+  resolved: boolean;
+  id?: string;
+  name?: string;
+  note?: string;
+};
+
+export type ChannelResolverAdapter = {
+  resolveTargets: (params: {
+    cfg: ClawdbotConfig;
+    accountId?: string | null;
+    inputs: string[];
+    kind: ChannelResolveKind;
+    runtime: RuntimeEnv;
+  }) => Promise<ChannelResolveResult[]>;
 };
 
 export type ChannelElevatedAdapter = {

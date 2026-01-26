@@ -130,6 +130,28 @@ export function rememberRoleRefsForTarget(opts: {
   }
 }
 
+export function storeRoleRefsForTarget(opts: {
+  page: Page;
+  cdpUrl: string;
+  targetId?: string;
+  refs: RoleRefs;
+  frameSelector?: string;
+  mode: NonNullable<PageState["roleRefsMode"]>;
+}): void {
+  const state = ensurePageState(opts.page);
+  state.roleRefs = opts.refs;
+  state.roleRefsFrameSelector = opts.frameSelector;
+  state.roleRefsMode = opts.mode;
+  if (!opts.targetId?.trim()) return;
+  rememberRoleRefsForTarget({
+    cdpUrl: opts.cdpUrl,
+    targetId: opts.targetId,
+    refs: opts.refs,
+    frameSelector: opts.frameSelector,
+    mode: opts.mode,
+  });
+}
+
 export function restoreRoleRefsForTarget(opts: {
   cdpUrl: string;
   targetId?: string;
@@ -315,11 +337,55 @@ async function pageTargetId(page: Page): Promise<string | null> {
   }
 }
 
-async function findPageByTargetId(browser: Browser, targetId: string): Promise<Page | null> {
+async function findPageByTargetId(
+  browser: Browser,
+  targetId: string,
+  cdpUrl?: string,
+): Promise<Page | null> {
   const pages = await getAllPages(browser);
+  // First, try the standard CDP session approach
   for (const page of pages) {
     const tid = await pageTargetId(page).catch(() => null);
     if (tid && tid === targetId) return page;
+  }
+  // If CDP sessions fail (e.g., extension relay blocks Target.attachToBrowserTarget),
+  // fall back to URL-based matching using the /json/list endpoint
+  if (cdpUrl) {
+    try {
+      const baseUrl = cdpUrl
+        .replace(/\/+$/, "")
+        .replace(/^ws:/, "http:")
+        .replace(/\/cdp$/, "");
+      const response = await fetch(`${baseUrl}/json/list`);
+      if (response.ok) {
+        const targets = (await response.json()) as Array<{
+          id: string;
+          url: string;
+          title?: string;
+        }>;
+        const target = targets.find((t) => t.id === targetId);
+        if (target) {
+          // Try to find a page with matching URL
+          const urlMatch = pages.filter((p) => p.url() === target.url);
+          if (urlMatch.length === 1) {
+            return urlMatch[0];
+          }
+          // If multiple URL matches, use index-based matching as fallback
+          // This works when Playwright and the relay enumerate tabs in the same order
+          if (urlMatch.length > 1) {
+            const sameUrlTargets = targets.filter((t) => t.url === target.url);
+            if (sameUrlTargets.length === urlMatch.length) {
+              const idx = sameUrlTargets.findIndex((t) => t.id === targetId);
+              if (idx >= 0 && idx < urlMatch.length) {
+                return urlMatch[idx];
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore fetch errors and fall through to return null
+    }
   }
   return null;
 }
@@ -333,7 +399,7 @@ export async function getPageForTargetId(opts: {
   if (!pages.length) throw new Error("No pages available in the connected browser.");
   const first = pages[0];
   if (!opts.targetId) return first;
-  const found = await findPageByTargetId(browser, opts.targetId);
+  const found = await findPageByTargetId(browser, opts.targetId, opts.cdpUrl);
   if (!found) {
     // Extension relays can block CDP attachment APIs (e.g. Target.attachToBrowserTarget),
     // which prevents us from resolving a page's targetId via newCDPSession(). If Playwright
@@ -388,4 +454,123 @@ export async function closePlaywrightBrowserConnection(): Promise<void> {
   cached = null;
   if (!cur) return;
   await cur.browser.close().catch(() => {});
+}
+
+/**
+ * List all pages/tabs from the persistent Playwright connection.
+ * Used for remote profiles where HTTP-based /json/list is ephemeral.
+ */
+export async function listPagesViaPlaywright(opts: { cdpUrl: string }): Promise<
+  Array<{
+    targetId: string;
+    title: string;
+    url: string;
+    type: string;
+  }>
+> {
+  const { browser } = await connectBrowser(opts.cdpUrl);
+  const pages = await getAllPages(browser);
+  const results: Array<{
+    targetId: string;
+    title: string;
+    url: string;
+    type: string;
+  }> = [];
+
+  for (const page of pages) {
+    const tid = await pageTargetId(page).catch(() => null);
+    if (tid) {
+      results.push({
+        targetId: tid,
+        title: await page.title().catch(() => ""),
+        url: page.url(),
+        type: "page",
+      });
+    }
+  }
+  return results;
+}
+
+/**
+ * Create a new page/tab using the persistent Playwright connection.
+ * Used for remote profiles where HTTP-based /json/new is ephemeral.
+ * Returns the new page's targetId and metadata.
+ */
+export async function createPageViaPlaywright(opts: { cdpUrl: string; url: string }): Promise<{
+  targetId: string;
+  title: string;
+  url: string;
+  type: string;
+}> {
+  const { browser } = await connectBrowser(opts.cdpUrl);
+  const context = browser.contexts()[0] ?? (await browser.newContext());
+  ensureContextState(context);
+
+  const page = await context.newPage();
+  ensurePageState(page);
+
+  // Navigate to the URL
+  const targetUrl = opts.url.trim() || "about:blank";
+  if (targetUrl !== "about:blank") {
+    await page.goto(targetUrl, { timeout: 30_000 }).catch(() => {
+      // Navigation might fail for some URLs, but page is still created
+    });
+  }
+
+  // Get the targetId for this page
+  const tid = await pageTargetId(page).catch(() => null);
+  if (!tid) {
+    throw new Error("Failed to get targetId for new page");
+  }
+
+  return {
+    targetId: tid,
+    title: await page.title().catch(() => ""),
+    url: page.url(),
+    type: "page",
+  };
+}
+
+/**
+ * Close a page/tab by targetId using the persistent Playwright connection.
+ * Used for remote profiles where HTTP-based /json/close is ephemeral.
+ */
+export async function closePageByTargetIdViaPlaywright(opts: {
+  cdpUrl: string;
+  targetId: string;
+}): Promise<void> {
+  const { browser } = await connectBrowser(opts.cdpUrl);
+  const page = await findPageByTargetId(browser, opts.targetId, opts.cdpUrl);
+  if (!page) {
+    throw new Error("tab not found");
+  }
+  await page.close();
+}
+
+/**
+ * Focus a page/tab by targetId using the persistent Playwright connection.
+ * Used for remote profiles where HTTP-based /json/activate can be ephemeral.
+ */
+export async function focusPageByTargetIdViaPlaywright(opts: {
+  cdpUrl: string;
+  targetId: string;
+}): Promise<void> {
+  const { browser } = await connectBrowser(opts.cdpUrl);
+  const page = await findPageByTargetId(browser, opts.targetId, opts.cdpUrl);
+  if (!page) {
+    throw new Error("tab not found");
+  }
+  try {
+    await page.bringToFront();
+  } catch (err) {
+    const session = await page.context().newCDPSession(page);
+    try {
+      await session.send("Page.bringToFront");
+      return;
+    } catch {
+      throw err;
+    } finally {
+      await session.detach().catch(() => {});
+    }
+  }
 }

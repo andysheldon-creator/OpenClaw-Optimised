@@ -1,11 +1,20 @@
-import type { BlockStreamingCoalesceConfig, DmPolicy, GroupPolicy } from "./types.base.js";
+import type {
+  BlockStreamingCoalesceConfig,
+  DmPolicy,
+  GroupPolicy,
+  MarkdownConfig,
+} from "./types.base.js";
+import type { ChannelHeartbeatVisibilityConfig } from "./types.channels.js";
 import type { DmConfig } from "./types.messages.js";
+import type { GroupToolPolicyConfig } from "./types.tools.js";
 
 export type IMessageAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
   /** Optional provider capability tags used for agent/runtime guidance. */
   capabilities?: string[];
+  /** Markdown formatting overrides (tables). */
+  markdown?: MarkdownConfig;
   /** Allow channel-initiated config writes (default: true). */
   configWrites?: boolean;
   /** If false, do not start this iMessage account. Default: true. */
@@ -14,6 +23,8 @@ export type IMessageAccountConfig = {
   cliPath?: string;
   /** Optional Messages db path override. */
   dbPath?: string;
+  /** Remote host for SCP when attachments live on a different machine (e.g., clawdbot@192.168.64.3). */
+  remoteHost?: string;
   /** Optional default send service (imessage|sms|auto). */
   service?: "imessage" | "sms" | "auto";
   /** Optional default region (used when sending SMS). */
@@ -43,6 +54,8 @@ export type IMessageAccountConfig = {
   mediaMaxMb?: number;
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;
+  /** Chunking mode: "length" (default) splits by size; "newline" splits on every newline. */
+  chunkMode?: "length" | "newline";
   blockStreaming?: boolean;
   /** Merge streamed block replies before sending. */
   blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
@@ -50,8 +63,11 @@ export type IMessageAccountConfig = {
     string,
     {
       requireMention?: boolean;
+      tools?: GroupToolPolicyConfig;
     }
   >;
+  /** Heartbeat visibility settings for this channel. */
+  heartbeat?: ChannelHeartbeatVisibilityConfig;
 };
 
 export type IMessageConfig = {

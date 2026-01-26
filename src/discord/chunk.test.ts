@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { chunkDiscordText } from "./chunk.js";
+import { chunkDiscordText, chunkDiscordTextWithMode } from "./chunk.js";
 
 function countLines(text: string) {
   return text.split("\n").length;
@@ -51,6 +51,16 @@ describe("chunkDiscordText", () => {
     expect(chunks.at(-1)).toContain("Done.");
   });
 
+  it("keeps fenced blocks intact when chunkMode is newline", () => {
+    const text = "```js\nconst a = 1;\nconst b = 2;\n```\nAfter";
+    const chunks = chunkDiscordTextWithMode(text, {
+      maxChars: 2000,
+      maxLines: 50,
+      chunkMode: "newline",
+    });
+    expect(chunks).toEqual([text]);
+  });
+
   it("reserves space for closing fences when chunking", () => {
     const body = "a".repeat(120);
     const text = `\`\`\`txt\n${body}\n\`\`\``;
@@ -61,6 +71,27 @@ describe("chunkDiscordText", () => {
       expect(chunk.length).toBeLessThanOrEqual(50);
       expect(hasBalancedFences(chunk)).toBe(true);
     }
+  });
+
+  it("preserves whitespace when splitting long lines", () => {
+    const text = Array.from({ length: 40 }, () => "word").join(" ");
+    const chunks = chunkDiscordText(text, { maxChars: 20, maxLines: 50 });
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.join("")).toBe(text);
+  });
+
+  it("preserves mixed whitespace across chunk boundaries", () => {
+    const text = "alpha  beta\tgamma   delta epsilon  zeta";
+    const chunks = chunkDiscordText(text, { maxChars: 12, maxLines: 50 });
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.join("")).toBe(text);
+  });
+
+  it("keeps leading whitespace when splitting long lines", () => {
+    const text = "    indented line with words that force splits";
+    const chunks = chunkDiscordText(text, { maxChars: 14, maxLines: 50 });
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.join("")).toBe(text);
   });
 
   it("keeps reasoning italics balanced across chunks", () => {

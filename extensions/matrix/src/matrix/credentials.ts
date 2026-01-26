@@ -2,12 +2,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { resolveStateDir } from "../../../../src/config/paths.js";
+import { getMatrixRuntime } from "../runtime.js";
 
 export type MatrixStoredCredentials = {
   homeserver: string;
   userId: string;
   accessToken: string;
+  deviceId?: string;
   createdAt: string;
   lastUsedAt?: string;
 };
@@ -16,9 +17,11 @@ const CREDENTIALS_FILENAME = "credentials.json";
 
 export function resolveMatrixCredentialsDir(
   env: NodeJS.ProcessEnv = process.env,
-  stateDir: string = resolveStateDir(env, os.homedir),
+  stateDir?: string,
 ): string {
-  return path.join(stateDir, "credentials", "matrix");
+  const resolvedStateDir =
+    stateDir ?? getMatrixRuntime().state.resolveStateDir(env, os.homedir);
+  return path.join(resolvedStateDir, "credentials", "matrix");
 }
 
 export function resolveMatrixCredentialsPath(env: NodeJS.ProcessEnv = process.env): string {
@@ -92,5 +95,9 @@ export function credentialsMatchConfig(
   stored: MatrixStoredCredentials,
   config: { homeserver: string; userId: string },
 ): boolean {
+  // If userId is empty (token-based auth), only match homeserver
+  if (!config.userId) {
+    return stored.homeserver === config.homeserver;
+  }
   return stored.homeserver === config.homeserver && stored.userId === config.userId;
 }

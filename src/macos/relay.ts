@@ -55,6 +55,7 @@ async function main() {
 
   const { assertSupportedRuntime } = await import("../infra/runtime-guard.js");
   assertSupportedRuntime();
+  const { formatUncaughtError } = await import("../infra/errors.js");
   const { installUnhandledRejectionHandler } = await import("../infra/unhandled-rejections.js");
 
   const { buildProgram } = await import("../cli/program.js");
@@ -63,11 +64,17 @@ async function main() {
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
-    console.error("[clawdbot] Uncaught exception:", error.stack ?? error.message);
+    console.error("[clawdbot] Uncaught exception:", formatUncaughtError(error));
     process.exit(1);
   });
 
   await program.parseAsync(process.argv);
 }
 
-void main();
+void main().catch((err) => {
+  console.error(
+    "[clawdbot] Relay failed:",
+    err instanceof Error ? (err.stack ?? err.message) : err,
+  );
+  process.exit(1);
+});

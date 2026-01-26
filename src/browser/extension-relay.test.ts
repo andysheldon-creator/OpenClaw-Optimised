@@ -90,6 +90,23 @@ function createMessageQueue(ws: WebSocket) {
   return { next };
 }
 
+async function waitForListMatch<T>(
+  fetchList: () => Promise<T>,
+  predicate: (value: T) => boolean,
+  timeoutMs = 2000,
+  intervalMs = 50,
+): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  while (true) {
+    const value = await fetchList();
+    if (predicate(value)) return value;
+    if (Date.now() >= deadline) {
+      throw new Error("timeout waiting for list update");
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}
+
 describe("chrome extension relay server", () => {
   let cdpUrl = "";
 
@@ -152,8 +169,47 @@ describe("chrome extension relay server", () => {
     const list = (await fetch(`${cdpUrl}/json/list`).then((r) => r.json())) as Array<{
       id?: string;
       url?: string;
+      title?: string;
     }>;
     expect(list.some((t) => t.id === "t1" && t.url === "https://example.com")).toBe(true);
+
+    // Simulate navigation updating tab metadata.
+    ext.send(
+      JSON.stringify({
+        method: "forwardCDPEvent",
+        params: {
+          method: "Target.targetInfoChanged",
+          params: {
+            targetInfo: {
+              targetId: "t1",
+              type: "page",
+              title: "DER STANDARD",
+              url: "https://www.derstandard.at/",
+            },
+          },
+        },
+      }),
+    );
+
+    const list2 = await waitForListMatch(
+      async () =>
+        (await fetch(`${cdpUrl}/json/list`).then((r) => r.json())) as Array<{
+          id?: string;
+          url?: string;
+          title?: string;
+        }>,
+      (list) =>
+        list.some(
+          (t) =>
+            t.id === "t1" && t.url === "https://www.derstandard.at/" && t.title === "DER STANDARD",
+        ),
+    );
+    expect(
+      list2.some(
+        (t) =>
+          t.id === "t1" && t.url === "https://www.derstandard.at/" && t.title === "DER STANDARD",
+      ),
+    ).toBe(true);
 
     const cdp = new WebSocket(`ws://127.0.0.1:${port}/cdp`);
     await waitForOpen(cdp);
@@ -191,4 +247,71 @@ describe("chrome extension relay server", () => {
     cdp.close();
     ext.close();
   }, 15_000);
+
+  it("rebroadcasts attach when a session id is reused for a new target", async () => {
+    const port = await getFreePort();
+    cdpUrl = `http://127.0.0.1:${port}`;
+    await ensureChromeExtensionRelayServer({ cdpUrl });
+
+    const ext = new WebSocket(`ws://127.0.0.1:${port}/extension`);
+    await waitForOpen(ext);
+
+    const cdp = new WebSocket(`ws://127.0.0.1:${port}/cdp`);
+    await waitForOpen(cdp);
+    const q = createMessageQueue(cdp);
+
+    ext.send(
+      JSON.stringify({
+        method: "forwardCDPEvent",
+        params: {
+          method: "Target.attachedToTarget",
+          params: {
+            sessionId: "shared-session",
+            targetInfo: {
+              targetId: "t1",
+              type: "page",
+              title: "First",
+              url: "https://example.com",
+            },
+            waitingForDebugger: false,
+          },
+        },
+      }),
+    );
+
+    const first = JSON.parse(await q.next()) as { method?: string; params?: unknown };
+    expect(first.method).toBe("Target.attachedToTarget");
+    expect(JSON.stringify(first.params ?? {})).toContain("t1");
+
+    ext.send(
+      JSON.stringify({
+        method: "forwardCDPEvent",
+        params: {
+          method: "Target.attachedToTarget",
+          params: {
+            sessionId: "shared-session",
+            targetInfo: {
+              targetId: "t2",
+              type: "page",
+              title: "Second",
+              url: "https://example.org",
+            },
+            waitingForDebugger: false,
+          },
+        },
+      }),
+    );
+
+    const received: Array<{ method?: string; params?: unknown }> = [];
+    received.push(JSON.parse(await q.next()) as never);
+    received.push(JSON.parse(await q.next()) as never);
+
+    const detached = received.find((m) => m.method === "Target.detachedFromTarget");
+    const attached = received.find((m) => m.method === "Target.attachedToTarget");
+    expect(JSON.stringify(detached?.params ?? {})).toContain("t1");
+    expect(JSON.stringify(attached?.params ?? {})).toContain("t2");
+
+    cdp.close();
+    ext.close();
+  });
 });

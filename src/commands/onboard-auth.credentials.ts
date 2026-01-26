@@ -73,6 +73,19 @@ export async function setMoonshotApiKey(key: string, agentDir?: string) {
   });
 }
 
+export async function setKimiCodeApiKey(key: string, agentDir?: string) {
+  // Write to resolved agent dir so gateway finds credentials on startup.
+  upsertAuthProfile({
+    profileId: "kimi-code:default",
+    credential: {
+      type: "api_key",
+      provider: "kimi-code",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
 export async function setSyntheticApiKey(key: string, agentDir?: string) {
   // Write to resolved agent dir so gateway finds credentials on startup.
   upsertAuthProfile({
@@ -86,8 +99,22 @@ export async function setSyntheticApiKey(key: string, agentDir?: string) {
   });
 }
 
+export async function setVeniceApiKey(key: string, agentDir?: string) {
+  // Write to resolved agent dir so gateway finds credentials on startup.
+  upsertAuthProfile({
+    profileId: "venice:default",
+    credential: {
+      type: "api_key",
+      provider: "venice",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
 export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
+export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.5";
 
 export async function setZaiApiKey(key: string, agentDir?: string) {
   // Write to resolved agent dir so gateway finds credentials on startup.
@@ -108,6 +135,18 @@ export async function setOpenrouterApiKey(key: string, agentDir?: string) {
     credential: {
       type: "api_key",
       provider: "openrouter",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
+export async function setVercelAiGatewayApiKey(key: string, agentDir?: string) {
+  upsertAuthProfile({
+    profileId: "vercel-ai-gateway:default",
+    credential: {
+      type: "api_key",
+      provider: "vercel-ai-gateway",
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),

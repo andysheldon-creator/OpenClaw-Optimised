@@ -3,6 +3,8 @@ import { ChannelType, MessageType } from "@buape/carbon";
 import { Routes } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { __resetDiscordChannelInfoCacheForTest } from "./monitor/message-utils.js";
+
 const sendMock = vi.fn();
 const reactMock = vi.fn();
 const updateLastRouteMock = vi.fn();
@@ -16,9 +18,15 @@ vi.mock("./send.js", () => ({
     reactMock(...args);
   },
 }));
-vi.mock("../auto-reply/reply/dispatch-from-config.js", () => ({
-  dispatchReplyFromConfig: (...args: unknown[]) => dispatchMock(...args),
-}));
+vi.mock("../auto-reply/dispatch.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../auto-reply/dispatch.js")>();
+  return {
+    ...actual,
+    dispatchInboundMessage: (...args: unknown[]) => dispatchMock(...args),
+    dispatchInboundMessageWithDispatcher: (...args: unknown[]) => dispatchMock(...args),
+    dispatchInboundMessageWithBufferedDispatcher: (...args: unknown[]) => dispatchMock(...args),
+  };
+});
 vi.mock("../pairing/pairing-store.js", () => ({
   readChannelAllowFromStore: (...args: unknown[]) => readAllowFromStoreMock(...args),
   upsertChannelPairingRequest: (...args: unknown[]) => upsertPairingRequestMock(...args),
@@ -34,15 +42,16 @@ vi.mock("../config/sessions.js", async (importOriginal) => {
 });
 
 beforeEach(() => {
+  vi.useRealTimers();
   sendMock.mockReset().mockResolvedValue(undefined);
   updateLastRouteMock.mockReset();
   dispatchMock.mockReset().mockImplementation(async ({ dispatcher }) => {
     dispatcher.sendFinalReply({ text: "hi" });
-    return { queuedFinal: true, counts: { final: 1 } };
+    return { queuedFinal: true, counts: { tool: 0, block: 0, final: 1 } };
   });
   readAllowFromStoreMock.mockReset().mockResolvedValue([]);
   upsertPairingRequestMock.mockReset().mockResolvedValue({ code: "PAIRCODE", created: true });
-  vi.resetModules();
+  __resetDiscordChannelInfoCacheForTest();
 });
 
 describe("discord tool result dispatch", () => {
@@ -125,6 +134,186 @@ describe("discord tool result dispatch", () => {
     expect(dispatchMock).toHaveBeenCalledTimes(1);
     expect(sendMock).toHaveBeenCalledTimes(1);
   }, 20_000);
+
+  it("skips guild messages when another user is explicitly mentioned", async () => {
+    const { createDiscordMessageHandler } = await import("./monitor.js");
+    const cfg = {
+      agents: {
+        defaults: {
+          model: "anthropic/claude-opus-4-5",
+          workspace: "/tmp/clawd",
+        },
+      },
+      session: { store: "/tmp/clawdbot-sessions.json" },
+      channels: {
+        discord: {
+          dm: { enabled: true, policy: "open" },
+          groupPolicy: "open",
+          guilds: { "*": { requireMention: true } },
+        },
+      },
+      messages: {
+        responsePrefix: "PFX",
+        groupChat: { mentionPatterns: ["\\bclawd\\b"] },
+      },
+    } as ReturnType<typeof import("../config/config.js").loadConfig>;
+
+    const handler = createDiscordMessageHandler({
+      cfg,
+      discordConfig: cfg.channels.discord,
+      accountId: "default",
+      token: "token",
+      runtime: {
+        log: vi.fn(),
+        error: vi.fn(),
+        exit: (code: number): never => {
+          throw new Error(`exit ${code}`);
+        },
+      },
+      botUserId: "bot-id",
+      guildHistories: new Map(),
+      historyLimit: 0,
+      mediaMaxBytes: 10_000,
+      textLimit: 2000,
+      replyToMode: "off",
+      dmEnabled: true,
+      groupDmEnabled: false,
+      guildEntries: { "*": { requireMention: true } },
+    });
+
+    const client = {
+      fetchChannel: vi.fn().mockResolvedValue({
+        type: ChannelType.GuildText,
+        name: "general",
+      }),
+    } as unknown as Client;
+
+    await handler(
+      {
+        message: {
+          id: "m2",
+          content: "clawd: hello",
+          channelId: "c1",
+          timestamp: new Date().toISOString(),
+          type: MessageType.Default,
+          attachments: [],
+          embeds: [],
+          mentionedEveryone: false,
+          mentionedUsers: [{ id: "u2", bot: false, username: "Bea" }],
+          mentionedRoles: [],
+          author: { id: "u1", bot: false, username: "Ada" },
+        },
+        author: { id: "u1", bot: false, username: "Ada" },
+        member: { nickname: "Ada" },
+        guild: { id: "g1", name: "Guild" },
+        guild_id: "g1",
+      },
+      client,
+    );
+
+    expect(dispatchMock).not.toHaveBeenCalled();
+    expect(sendMock).not.toHaveBeenCalled();
+  }, 20_000);
+
+  it("accepts guild reply-to-bot messages as implicit mentions", async () => {
+    const { createDiscordMessageHandler } = await import("./monitor.js");
+    const cfg = {
+      agents: {
+        defaults: {
+          model: "anthropic/claude-opus-4-5",
+          workspace: "/tmp/clawd",
+        },
+      },
+      session: { store: "/tmp/clawdbot-sessions.json" },
+      channels: {
+        discord: {
+          dm: { enabled: true, policy: "open" },
+          groupPolicy: "open",
+          guilds: { "*": { requireMention: true } },
+        },
+      },
+    } as ReturnType<typeof import("../config/config.js").loadConfig>;
+
+    const handler = createDiscordMessageHandler({
+      cfg,
+      discordConfig: cfg.channels.discord,
+      accountId: "default",
+      token: "token",
+      runtime: {
+        log: vi.fn(),
+        error: vi.fn(),
+        exit: (code: number): never => {
+          throw new Error(`exit ${code}`);
+        },
+      },
+      botUserId: "bot-id",
+      guildHistories: new Map(),
+      historyLimit: 0,
+      mediaMaxBytes: 10_000,
+      textLimit: 2000,
+      replyToMode: "off",
+      dmEnabled: true,
+      groupDmEnabled: false,
+      guildEntries: { "*": { requireMention: true } },
+    });
+
+    const client = {
+      fetchChannel: vi.fn().mockResolvedValue({
+        type: ChannelType.GuildText,
+        name: "general",
+      }),
+    } as unknown as Client;
+
+    await handler(
+      {
+        message: {
+          id: "m3",
+          content: "following up",
+          channelId: "c1",
+          timestamp: new Date().toISOString(),
+          type: MessageType.Default,
+          attachments: [],
+          embeds: [],
+          mentionedEveryone: false,
+          mentionedUsers: [],
+          mentionedRoles: [],
+          author: { id: "u1", bot: false, username: "Ada" },
+          referencedMessage: {
+            id: "m2",
+            channelId: "c1",
+            content: "bot reply",
+            timestamp: new Date().toISOString(),
+            type: MessageType.Default,
+            attachments: [],
+            embeds: [],
+            mentionedEveryone: false,
+            mentionedUsers: [],
+            mentionedRoles: [],
+            author: { id: "bot-id", bot: true, username: "Clawdbot" },
+          },
+        },
+        author: { id: "u1", bot: false, username: "Ada" },
+        member: { nickname: "Ada" },
+        guild: { id: "g1", name: "Guild" },
+        guild_id: "g1",
+        channel: { id: "c1", type: ChannelType.GuildText },
+        client,
+        data: {
+          id: "m3",
+          content: "following up",
+          channel_id: "c1",
+          guild_id: "g1",
+          type: MessageType.Default,
+          mentions: [],
+        },
+      },
+      client,
+    );
+
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    const payload = dispatchMock.mock.calls[0]?.[0]?.ctx as Record<string, unknown>;
+    expect(payload.WasMentioned).toBe(true);
+  });
 
   it("forks thread sessions and injects starter context", async () => {
     const { createDiscordMessageHandler } = await import("./monitor.js");

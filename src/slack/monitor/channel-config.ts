@@ -1,5 +1,11 @@
 import type { SlackReactionNotificationMode } from "../../config/config.js";
 import type { SlackMessageEvent } from "../types.js";
+import {
+  applyChannelMatchMeta,
+  buildChannelKeyCandidates,
+  resolveChannelEntryMatchWithFallback,
+  type ChannelMatchSource,
+} from "../../channels/channel-config.js";
 import { allowListMatches, normalizeAllowListLower, normalizeSlackSlug } from "./allow-list.js";
 
 export type SlackChannelConfigResolved = {
@@ -9,6 +15,8 @@ export type SlackChannelConfigResolved = {
   users?: Array<string | number>;
   skills?: string[];
   systemPrompt?: string;
+  matchKey?: string;
+  matchSource?: ChannelMatchSource;
 };
 
 function firstDefined<T>(...values: Array<T | undefined>) {
@@ -77,31 +85,18 @@ export function resolveSlackChannelConfig(params: {
   const keys = Object.keys(entries);
   const normalizedName = channelName ? normalizeSlackSlug(channelName) : "";
   const directName = channelName ? channelName.trim() : "";
-  const candidates = [
+  const candidates = buildChannelKeyCandidates(
     channelId,
-    channelName ? `#${directName}` : "",
+    channelName ? `#${directName}` : undefined,
     directName,
     normalizedName,
-  ].filter(Boolean);
-
-  let matched:
-    | {
-        enabled?: boolean;
-        allow?: boolean;
-        requireMention?: boolean;
-        allowBots?: boolean;
-        users?: Array<string | number>;
-        skills?: string[];
-        systemPrompt?: string;
-      }
-    | undefined;
-  for (const candidate of candidates) {
-    if (candidate && entries[candidate]) {
-      matched = entries[candidate];
-      break;
-    }
-  }
-  const fallback = entries["*"];
+  );
+  const match = resolveChannelEntryMatchWithFallback({
+    entries,
+    keys: candidates,
+    wildcardKey: "*",
+  });
+  const { entry: matched, wildcardEntry: fallback } = match;
 
   const requireMentionDefault = defaultRequireMention ?? true;
   if (keys.length === 0) {
@@ -122,7 +117,15 @@ export function resolveSlackChannelConfig(params: {
   const users = firstDefined(resolved.users, fallback?.users);
   const skills = firstDefined(resolved.skills, fallback?.skills);
   const systemPrompt = firstDefined(resolved.systemPrompt, fallback?.systemPrompt);
-  return { allowed, requireMention, allowBots, users, skills, systemPrompt };
+  const result: SlackChannelConfigResolved = {
+    allowed,
+    requireMention,
+    allowBots,
+    users,
+    skills,
+    systemPrompt,
+  };
+  return applyChannelMatchMeta(result, match);
 }
 
 export type { SlackMessageEvent };

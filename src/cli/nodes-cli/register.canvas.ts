@@ -6,8 +6,10 @@ import { writeBase64ToFile } from "../nodes-camera.js";
 import { canvasSnapshotTempPath, parseCanvasSnapshotPayload } from "../nodes-canvas.js";
 import { parseTimeoutMs } from "../nodes-run.js";
 import { buildA2UITextJsonl, validateA2UIJsonl } from "./a2ui-jsonl.js";
+import { getNodesTheme, runNodesCommand } from "./cli-utils.js";
 import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
+import { shortenHomePath } from "../../utils.js";
 
 async function invokeCanvas(opts: NodesRpcOpts, command: string, params?: Record<string, unknown>) {
   const nodeId = await resolveNodeId(opts, String(opts.node ?? ""));
@@ -39,7 +41,7 @@ export function registerNodesCanvasCommands(nodes: Command) {
       .option("--quality <0-1>", "JPEG quality (optional)")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 20000)", "20000")
       .action(async (opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("canvas snapshot", async () => {
           const nodeId = await resolveNodeId(opts, String(opts.node ?? ""));
           const formatOpt = String(opts.format ?? "jpg")
             .trim()
@@ -84,11 +86,8 @@ export function registerNodesCanvasCommands(nodes: Command) {
             );
             return;
           }
-          defaultRuntime.log(`MEDIA:${filePath}`);
-        } catch (err) {
-          defaultRuntime.error(`nodes canvas snapshot failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          defaultRuntime.log(`MEDIA:${shortenHomePath(filePath)}`);
+        });
       }),
     { timeoutMs: 60_000 },
   );
@@ -105,7 +104,7 @@ export function registerNodesCanvasCommands(nodes: Command) {
       .option("--height <px>", "Placement height")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms")
       .action(async (opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("canvas present", async () => {
           const placement = {
             x: opts.x ? Number.parseFloat(opts.x) : undefined,
             y: opts.y ? Number.parseFloat(opts.y) : undefined,
@@ -123,11 +122,11 @@ export function registerNodesCanvasCommands(nodes: Command) {
             params.placement = placement;
           }
           await invokeCanvas(opts, "canvas.present", params);
-          if (!opts.json) defaultRuntime.log("canvas present ok");
-        } catch (err) {
-          defaultRuntime.error(`nodes canvas present failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          if (!opts.json) {
+            const { ok } = getNodesTheme();
+            defaultRuntime.log(ok("canvas present ok"));
+          }
+        });
       }),
   );
 
@@ -138,13 +137,13 @@ export function registerNodesCanvasCommands(nodes: Command) {
       .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms")
       .action(async (opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("canvas hide", async () => {
           await invokeCanvas(opts, "canvas.hide", undefined);
-          if (!opts.json) defaultRuntime.log("canvas hide ok");
-        } catch (err) {
-          defaultRuntime.error(`nodes canvas hide failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          if (!opts.json) {
+            const { ok } = getNodesTheme();
+            defaultRuntime.log(ok("canvas hide ok"));
+          }
+        });
       }),
   );
 
@@ -156,13 +155,13 @@ export function registerNodesCanvasCommands(nodes: Command) {
       .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms")
       .action(async (url: string, opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("canvas navigate", async () => {
           await invokeCanvas(opts, "canvas.navigate", { url });
-          if (!opts.json) defaultRuntime.log("canvas navigate ok");
-        } catch (err) {
-          defaultRuntime.error(`nodes canvas navigate failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          if (!opts.json) {
+            const { ok } = getNodesTheme();
+            defaultRuntime.log(ok("canvas navigate ok"));
+          }
+        });
       }),
   );
 
@@ -175,7 +174,7 @@ export function registerNodesCanvasCommands(nodes: Command) {
       .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms")
       .action(async (jsArg: string | undefined, opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("canvas eval", async () => {
           const js = opts.js ?? jsArg;
           if (!js) throw new Error("missing --js or <js>");
           const raw = await invokeCanvas(opts, "canvas.eval", {
@@ -190,11 +189,11 @@ export function registerNodesCanvasCommands(nodes: Command) {
               ? (raw as { payload?: { result?: string } }).payload
               : undefined;
           if (payload?.result) defaultRuntime.log(payload.result);
-          else defaultRuntime.log("canvas eval ok");
-        } catch (err) {
-          defaultRuntime.error(`nodes canvas eval failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          else {
+            const { ok } = getNodesTheme();
+            defaultRuntime.log(ok("canvas eval ok"));
+          }
+        });
       }),
   );
 
@@ -209,7 +208,7 @@ export function registerNodesCanvasCommands(nodes: Command) {
       .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms")
       .action(async (opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("canvas a2ui push", async () => {
           const hasJsonl = Boolean(opts.jsonl);
           const hasText = typeof opts.text === "string";
           if (hasJsonl === hasText) {
@@ -227,14 +226,14 @@ export function registerNodesCanvasCommands(nodes: Command) {
           }
           await invokeCanvas(opts, "canvas.a2ui.pushJSONL", { jsonl });
           if (!opts.json) {
+            const { ok } = getNodesTheme();
             defaultRuntime.log(
-              `canvas a2ui push ok (v0.8, ${messageCount} message${messageCount === 1 ? "" : "s"})`,
+              ok(
+                `canvas a2ui push ok (v0.8, ${messageCount} message${messageCount === 1 ? "" : "s"})`,
+              ),
             );
           }
-        } catch (err) {
-          defaultRuntime.error(`nodes canvas a2ui push failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+        });
       }),
   );
 
@@ -245,13 +244,13 @@ export function registerNodesCanvasCommands(nodes: Command) {
       .requiredOption("--node <idOrNameOrIp>", "Node id, name, or IP")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms")
       .action(async (opts: NodesRpcOpts) => {
-        try {
+        await runNodesCommand("canvas a2ui reset", async () => {
           await invokeCanvas(opts, "canvas.a2ui.reset", undefined);
-          if (!opts.json) defaultRuntime.log("canvas a2ui reset ok");
-        } catch (err) {
-          defaultRuntime.error(`nodes canvas a2ui reset failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          if (!opts.json) {
+            const { ok } = getNodesTheme();
+            defaultRuntime.log(ok("canvas a2ui reset ok"));
+          }
+        });
       }),
   );
 }

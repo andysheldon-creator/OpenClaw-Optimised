@@ -48,6 +48,20 @@ describe("handleSlackAction", () => {
     expect(reactSlackMessage).toHaveBeenCalledWith("C1", "123.456", "✅");
   });
 
+  it("strips channel: prefix for channelId params", async () => {
+    const cfg = { channels: { slack: { botToken: "tok" } } } as ClawdbotConfig;
+    await handleSlackAction(
+      {
+        action: "react",
+        channelId: "channel:C1",
+        messageId: "123.456",
+        emoji: "✅",
+      },
+      cfg,
+    );
+    expect(reactSlackMessage).toHaveBeenCalledWith("C1", "123.456", "✅");
+  });
+
   it("removes reactions on empty emoji", async () => {
     const cfg = { channels: { slack: { botToken: "tok" } } } as ClawdbotConfig;
     await handleSlackAction(
@@ -341,6 +355,20 @@ describe("handleSlackAction", () => {
     const expectedMs = Math.round(1735689600.456 * 1000);
     expect(payload.messages[0].timestampMs).toBe(expectedMs);
     expect(payload.messages[0].timestampUtc).toBe(new Date(expectedMs).toISOString());
+  });
+
+  it("passes threadId through to readSlackMessages", async () => {
+    const cfg = { channels: { slack: { botToken: "tok" } } } as ClawdbotConfig;
+    readSlackMessages.mockClear();
+    readSlackMessages.mockResolvedValueOnce({ messages: [], hasMore: false });
+
+    await handleSlackAction(
+      { action: "readMessages", channelId: "C1", threadId: "12345.6789" },
+      cfg,
+    );
+
+    const [, opts] = readSlackMessages.mock.calls[0] ?? [];
+    expect(opts?.threadId).toBe("12345.6789");
   });
 
   it("adds normalized timestamps to pin payloads", async () => {

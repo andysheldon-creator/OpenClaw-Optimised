@@ -5,6 +5,8 @@ import { type MediaKind, mediaKindFromMime } from "./constants.js";
 
 // Map common mimes to preferred file extensions.
 const EXT_BY_MIME: Record<string, string> = {
+  "image/heic": ".heic",
+  "image/heif": ".heif",
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
@@ -30,9 +32,11 @@ const EXT_BY_MIME: Record<string, string> = {
   "text/markdown": ".md",
 };
 
-const MIME_BY_EXT: Record<string, string> = Object.fromEntries(
-  Object.entries(EXT_BY_MIME).map(([mime, ext]) => [ext, mime]),
-);
+const MIME_BY_EXT: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(EXT_BY_MIME).map(([mime, ext]) => [ext, mime])),
+  // Additional extension aliases
+  ".jpeg": "image/jpeg",
+};
 
 const AUDIO_FILE_EXTENSIONS = new Set([
   ".aac",
@@ -137,6 +141,10 @@ export function imageMimeFromFormat(format?: string | null): string | undefined 
     case "jpg":
     case "jpeg":
       return "image/jpeg";
+    case "heic":
+      return "image/heic";
+    case "heif":
+      return "image/heif";
     case "png":
       return "image/png";
     case "webp":

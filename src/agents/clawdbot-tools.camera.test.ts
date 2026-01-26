@@ -10,6 +10,7 @@ vi.mock("../media/image-ops.js", () => ({
   resizeToJpeg: vi.fn(async () => Buffer.from("jpeg")),
 }));
 
+import "./test-helpers/fast-core-tools.js";
 import { createClawdbotTools } from "./clawdbot-tools.js";
 
 describe("nodes camera_snap", () => {
@@ -91,7 +92,7 @@ describe("nodes run", () => {
   it("passes invoke and command timeouts", async () => {
     callGateway.mockImplementation(async ({ method, params }) => {
       if (method === "node.list") {
-        return { nodes: [{ nodeId: "mac-1" }] };
+        return { nodes: [{ nodeId: "mac-1", commands: ["system.run"] }] };
       }
       if (method === "node.invoke") {
         expect(params).toMatchObject({

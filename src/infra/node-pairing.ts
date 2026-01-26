@@ -9,6 +9,8 @@ export type NodePairingPendingRequest = {
   displayName?: string;
   platform?: string;
   version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
   deviceFamily?: string;
   modelIdentifier?: string;
   caps?: string[];
@@ -26,6 +28,8 @@ export type NodePairingPairedNode = {
   displayName?: string;
   platform?: string;
   version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
   deviceFamily?: string;
   modelIdentifier?: string;
   caps?: string[];
@@ -35,6 +39,7 @@ export type NodePairingPairedNode = {
   remoteIp?: string;
   createdAtMs: number;
   approvedAtMs: number;
+  lastConnectedAtMs?: number;
 };
 
 export type NodePairingList = {
@@ -186,6 +191,8 @@ export async function requestNodePairing(
       displayName: req.displayName,
       platform: req.platform,
       version: req.version,
+      coreVersion: req.coreVersion,
+      uiVersion: req.uiVersion,
       deviceFamily: req.deviceFamily,
       modelIdentifier: req.modelIdentifier,
       caps: req.caps,
@@ -219,6 +226,8 @@ export async function approveNodePairing(
       displayName: pending.displayName,
       platform: pending.platform,
       version: pending.version,
+      coreVersion: pending.coreVersion,
+      uiVersion: pending.uiVersion,
       deviceFamily: pending.deviceFamily,
       modelIdentifier: pending.modelIdentifier,
       caps: pending.caps,
@@ -278,6 +287,8 @@ export async function updatePairedNodeMetadata(
       displayName: patch.displayName ?? existing.displayName,
       platform: patch.platform ?? existing.platform,
       version: patch.version ?? existing.version,
+      coreVersion: patch.coreVersion ?? existing.coreVersion,
+      uiVersion: patch.uiVersion ?? existing.uiVersion,
       deviceFamily: patch.deviceFamily ?? existing.deviceFamily,
       modelIdentifier: patch.modelIdentifier ?? existing.modelIdentifier,
       remoteIp: patch.remoteIp ?? existing.remoteIp,
@@ -285,6 +296,7 @@ export async function updatePairedNodeMetadata(
       commands: patch.commands ?? existing.commands,
       bins: patch.bins ?? existing.bins,
       permissions: patch.permissions ?? existing.permissions,
+      lastConnectedAtMs: patch.lastConnectedAtMs ?? existing.lastConnectedAtMs,
     };
 
     state.pairedByNodeId[normalized] = next;

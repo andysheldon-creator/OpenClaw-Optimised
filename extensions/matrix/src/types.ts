@@ -18,6 +18,8 @@ export type MatrixRoomConfig = {
   allow?: boolean;
   /** Require mentioning the bot to trigger replies. */
   requireMention?: boolean;
+  /** Optional tool policy overrides for this room. */
+  tools?: { allow?: string[]; deny?: string[] };
   /** If true, reply without mention requirements. */
   autoReply?: boolean;
   /** Optional allowlist for room senders (user IDs or localparts). */
@@ -51,18 +53,24 @@ export type MatrixConfig = {
   password?: string;
   /** Optional device name when logging in via password. */
   deviceName?: string;
-  /** Initial sync limit for startup (default: matrix-js-sdk default). */
+  /** Initial sync limit for startup (default: matrix-bot-sdk default). */
   initialSyncLimit?: number;
+  /** Enable end-to-end encryption (E2EE). Default: false. */
+  encryption?: boolean;
   /** If true, enforce allowlists for groups + DMs regardless of policy. */
   allowlistOnly?: boolean;
   /** Group message policy (default: allowlist). */
   groupPolicy?: GroupPolicy;
+  /** Allowlist for group senders (user IDs or localparts). */
+  groupAllowFrom?: Array<string | number>;
   /** Control reply threading when reply tags are present (off|first|all). */
   replyToMode?: ReplyToMode;
   /** How to handle thread replies (off|inbound|always). */
   threadReplies?: "off" | "inbound" | "always";
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;
+  /** Chunking mode: "length" (default) splits by size; "newline" splits on every newline. */
+  chunkMode?: "length" | "newline";
   /** Max outbound media size in MB. */
   mediaMaxMb?: number;
   /** Auto-join invites (always|allowlist|off). Default: always. */
@@ -72,6 +80,8 @@ export type MatrixConfig = {
   /** Direct message policy + allowlist overrides. */
   dm?: MatrixDmConfig;
   /** Room config allowlist keyed by room ID, alias, or name. */
+  groups?: Record<string, MatrixRoomConfig>;
+  /** Room config allowlist keyed by room ID, alias, or name. Legacy; use groups. */
   rooms?: Record<string, MatrixRoomConfig>;
   /** Per-action tool gating (default: true for all). */
   actions?: MatrixActionConfig;

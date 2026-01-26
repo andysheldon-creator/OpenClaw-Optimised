@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { setupGitHooks } from "./setup-git-hooks.js";
 
 function detectPackageManager(ua = process.env.npm_config_user_agent ?? "") {
   // Examples:
@@ -35,6 +37,11 @@ function ensureExecutable(targetPath) {
   } catch (err) {
     console.warn(`[postinstall] chmod failed: ${err}`);
   }
+}
+
+function hasGit(repoRoot) {
+  const result = spawnSync("git", ["--version"], { cwd: repoRoot, stdio: "ignore" });
+  return result.status === 0;
 }
 
 function extractPackageName(key) {
@@ -246,6 +253,7 @@ function main() {
   process.chdir(repoRoot);
 
   ensureExecutable(path.join(repoRoot, "dist", "entry.js"));
+  setupGitHooks({ repoRoot });
 
   if (!shouldApplyPnpmPatchedDependenciesFallback()) {
     return;

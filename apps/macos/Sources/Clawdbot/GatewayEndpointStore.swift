@@ -1,3 +1,4 @@
+import ConcurrencyExtras
 import Foundation
 import OSLog
 
@@ -14,8 +15,21 @@ enum GatewayEndpointState: Sendable, Equatable {
 /// - The endpoint store owns observation + explicit "ensure tunnel" actions.
 actor GatewayEndpointStore {
     static let shared = GatewayEndpointStore()
-    private static let supportedBindModes: Set<String> = ["loopback", "tailnet", "lan", "auto"]
+    private static let supportedBindModes: Set<String> = [
+        "loopback",
+        "tailnet",
+        "lan",
+        "auto",
+        "custom",
+    ]
     private static let remoteConnectingDetail = "Connecting to remote gateway…"
+    private static let staticLogger = Logger(subsystem: "com.clawdbot", category: "gateway-endpoint")
+    private enum EnvOverrideWarningKind: Sendable {
+        case token
+        case password
+    }
+
+    private static let envOverrideWarnings = LockIsolated((token: false, password: false))
 
     struct Deps: Sendable {
         let mode: @Sendable () async -> AppState.ConnectionMode
@@ -30,16 +44,18 @@ actor GatewayEndpointStore {
             mode: { await MainActor.run { AppStateStore.shared.connectionMode } },
             token: {
                 let root = ClawdbotConfigFile.loadDict()
+                let isRemote = ConnectionModeResolver.resolve(root: root).mode == .remote
                 return GatewayEndpointStore.resolveGatewayToken(
-                    isRemote: CommandResolver.connectionModeIsRemote(),
+                    isRemote: isRemote,
                     root: root,
                     env: ProcessInfo.processInfo.environment,
                     launchdSnapshot: GatewayLaunchAgentManager.launchdConfigSnapshot())
             },
             password: {
                 let root = ClawdbotConfigFile.loadDict()
+                let isRemote = ConnectionModeResolver.resolve(root: root).mode == .remote
                 return GatewayEndpointStore.resolveGatewayPassword(
-                    isRemote: CommandResolver.connectionModeIsRemote(),
+                    isRemote: isRemote,
                     root: root,
                     env: ProcessInfo.processInfo.environment,
                     launchdSnapshot: GatewayLaunchAgentManager.launchdConfigSnapshot())
@@ -50,9 +66,12 @@ actor GatewayEndpointStore {
                 let bind = GatewayEndpointStore.resolveGatewayBindMode(
                     root: root,
                     env: ProcessInfo.processInfo.environment)
+                let customBindHost = GatewayEndpointStore.resolveGatewayCustomBindHost(root: root)
                 let tailscaleIP = await MainActor.run { TailscaleService.shared.tailscaleIP }
+                    ?? TailscaleService.fallbackTailnetIPv4()
                 return GatewayEndpointStore.resolveLocalGatewayHost(
                     bindMode: bind,
+                    customBindHost: customBindHost,
                     tailscaleIP: tailscaleIP)
             },
             remotePortIfRunning: { await RemoteTunnelManager.shared.controlTunnelPortIfRunning() },
@@ -68,6 +87,14 @@ actor GatewayEndpointStore {
         let raw = env["CLAWDBOT_GATEWAY_PASSWORD"] ?? ""
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
+            if let configPassword = self.resolveConfigPassword(isRemote: isRemote, root: root),
+               !configPassword.isEmpty
+            {
+                self.warnEnvOverrideOnce(
+                    kind: .password,
+                    envVar: "CLAWDBOT_GATEWAY_PASSWORD",
+                    configKey: isRemote ? "gateway.remote.password" : "gateway.auth.password")
+            }
             return trimmed
         }
         if isRemote {
@@ -99,6 +126,26 @@ actor GatewayEndpointStore {
         return nil
     }
 
+    private static func resolveConfigPassword(isRemote: Bool, root: [String: Any]) -> String? {
+        if isRemote {
+            if let gateway = root["gateway"] as? [String: Any],
+               let remote = gateway["remote"] as? [String: Any],
+               let password = remote["password"] as? String
+            {
+                return password.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return nil
+        }
+
+        if let gateway = root["gateway"] as? [String: Any],
+           let auth = gateway["auth"] as? [String: Any],
+           let password = auth["password"] as? String
+        {
+            return password.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return nil
+    }
+
     private static func resolveGatewayToken(
         isRemote: Bool,
         root: [String: Any],
@@ -108,35 +155,78 @@ actor GatewayEndpointStore {
         let raw = env["CLAWDBOT_GATEWAY_TOKEN"] ?? ""
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
+            if let configToken = self.resolveConfigToken(isRemote: isRemote, root: root),
+               !configToken.isEmpty,
+               configToken != trimmed
+            {
+                self.warnEnvOverrideOnce(
+                    kind: .token,
+                    envVar: "CLAWDBOT_GATEWAY_TOKEN",
+                    configKey: isRemote ? "gateway.remote.token" : "gateway.auth.token")
+            }
             return trimmed
         }
+
+        if let configToken = self.resolveConfigToken(isRemote: isRemote, root: root),
+           !configToken.isEmpty
+        {
+            return configToken
+        }
+
         if isRemote {
-            if let gateway = root["gateway"] as? [String: Any],
-               let remote = gateway["remote"] as? [String: Any],
-               let token = remote["token"] as? String
-            {
-                let value = token.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !value.isEmpty {
-                    return value
-                }
-            }
             return nil
         }
-        if let gateway = root["gateway"] as? [String: Any],
-           let auth = gateway["auth"] as? [String: Any],
-           let token = auth["token"] as? String
-        {
-            let value = token.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !value.isEmpty {
-                return value
-            }
-        }
+
         if let token = launchdSnapshot?.token?.trimmingCharacters(in: .whitespacesAndNewlines),
            !token.isEmpty
         {
             return token
         }
+
         return nil
+    }
+
+    private static func resolveConfigToken(isRemote: Bool, root: [String: Any]) -> String? {
+        if isRemote {
+            if let gateway = root["gateway"] as? [String: Any],
+               let remote = gateway["remote"] as? [String: Any],
+               let token = remote["token"] as? String
+            {
+                return token.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return nil
+        }
+
+        if let gateway = root["gateway"] as? [String: Any],
+           let auth = gateway["auth"] as? [String: Any],
+           let token = auth["token"] as? String
+        {
+            return token.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return nil
+    }
+
+    private static func warnEnvOverrideOnce(
+        kind: EnvOverrideWarningKind,
+        envVar: String,
+        configKey: String)
+    {
+        let shouldWarn = Self.envOverrideWarnings.withValue { state in
+            switch kind {
+            case .token:
+                guard !state.token else { return false }
+                state.token = true
+                return true
+            case .password:
+                guard !state.password else { return false }
+                state.password = true
+                return true
+            }
+        }
+        guard shouldWarn else { return }
+        Self.staticLogger.warning(
+            "\(envVar, privacy: .public) is set and overrides \(configKey, privacy: .public). " +
+                "If this is unintentional, clear it with: launchctl unsetenv \(envVar, privacy: .public)")
     }
 
     private let deps: Deps
@@ -161,14 +251,21 @@ actor GatewayEndpointStore {
         let bind = GatewayEndpointStore.resolveGatewayBindMode(
             root: ClawdbotConfigFile.loadDict(),
             env: ProcessInfo.processInfo.environment)
-        let host = GatewayEndpointStore.resolveLocalGatewayHost(bindMode: bind, tailscaleIP: nil)
+        let customBindHost = GatewayEndpointStore.resolveGatewayCustomBindHost(root: ClawdbotConfigFile.loadDict())
+        let scheme = GatewayEndpointStore.resolveGatewayScheme(
+            root: ClawdbotConfigFile.loadDict(),
+            env: ProcessInfo.processInfo.environment)
+        let host = GatewayEndpointStore.resolveLocalGatewayHost(
+            bindMode: bind,
+            customBindHost: customBindHost,
+            tailscaleIP: nil)
         let token = deps.token()
         let password = deps.password()
         switch initialMode {
         case .local:
             self.state = .ready(
                 mode: .local,
-                url: URL(string: "ws://\(host):\(port)")!,
+                url: URL(string: "\(scheme)://\(host):\(port)")!,
                 token: token,
                 password: password)
         case .remote:
@@ -205,12 +302,28 @@ actor GatewayEndpointStore {
             self.cancelRemoteEnsure()
             let port = self.deps.localPort()
             let host = await self.deps.localHost()
+            let scheme = GatewayEndpointStore.resolveGatewayScheme(
+                root: ClawdbotConfigFile.loadDict(),
+                env: ProcessInfo.processInfo.environment)
             self.setState(.ready(
                 mode: .local,
-                url: URL(string: "ws://\(host):\(port)")!,
+                url: URL(string: "\(scheme)://\(host):\(port)")!,
                 token: token,
                 password: password))
         case .remote:
+            let root = ClawdbotConfigFile.loadDict()
+            if GatewayRemoteConfig.resolveTransport(root: root) == .direct {
+                guard let url = GatewayRemoteConfig.resolveGatewayUrl(root: root) else {
+                    self.cancelRemoteEnsure()
+                    self.setState(.unavailable(
+                        mode: .remote,
+                        reason: "gateway.remote.url missing or invalid for direct transport"))
+                    return
+                }
+                self.cancelRemoteEnsure()
+                self.setState(.ready(mode: .remote, url: url, token: token, password: password))
+                return
+            }
             let port = await self.deps.remotePortIfRunning()
             guard let port else {
                 self.setState(.connecting(mode: .remote, detail: Self.remoteConnectingDetail))
@@ -218,9 +331,12 @@ actor GatewayEndpointStore {
                 return
             }
             self.cancelRemoteEnsure()
+            let scheme = GatewayEndpointStore.resolveGatewayScheme(
+                root: ClawdbotConfigFile.loadDict(),
+                env: ProcessInfo.processInfo.environment)
             self.setState(.ready(
                 mode: .remote,
-                url: URL(string: "ws://127.0.0.1:\(Int(port))")!,
+                url: URL(string: "\(scheme)://127.0.0.1:\(Int(port))")!,
                 token: token,
                 password: password))
         case .unconfigured:
@@ -237,6 +353,25 @@ actor GatewayEndpointStore {
                 domain: "RemoteTunnel",
                 code: 1,
                 userInfo: [NSLocalizedDescriptionKey: "Remote mode is not enabled"])
+        }
+        let root = ClawdbotConfigFile.loadDict()
+        if GatewayRemoteConfig.resolveTransport(root: root) == .direct {
+            guard let url = GatewayRemoteConfig.resolveGatewayUrl(root: root) else {
+                throw NSError(
+                    domain: "GatewayEndpoint",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "gateway.remote.url missing or invalid"])
+            }
+            guard let port = GatewayRemoteConfig.defaultPort(for: url),
+                  let portInt = UInt16(exactly: port)
+            else {
+                throw NSError(
+                    domain: "GatewayEndpoint",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid gateway.remote.url port"])
+            }
+            self.logger.info("remote transport direct; skipping SSH tunnel")
+            return portInt
         }
         let config = try await self.ensureRemoteConfig(detail: Self.remoteConnectingDetail)
         guard let portInt = config.0.port, let port = UInt16(exactly: portInt) else {
@@ -298,6 +433,21 @@ actor GatewayEndpointStore {
                 userInfo: [NSLocalizedDescriptionKey: "Remote mode is not enabled"])
         }
 
+        let root = ClawdbotConfigFile.loadDict()
+        if GatewayRemoteConfig.resolveTransport(root: root) == .direct {
+            guard let url = GatewayRemoteConfig.resolveGatewayUrl(root: root) else {
+                throw NSError(
+                    domain: "GatewayEndpoint",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "gateway.remote.url missing or invalid"])
+            }
+            let token = self.deps.token()
+            let password = self.deps.password()
+            self.cancelRemoteEnsure()
+            self.setState(.ready(mode: .remote, url: url, token: token, password: password))
+            return (url, token, password)
+        }
+
         self.kickRemoteEnsureIfNeeded(detail: detail)
         guard let ensure = self.remoteEnsure else {
             throw NSError(domain: "GatewayEndpoint", code: 1, userInfo: [NSLocalizedDescriptionKey: "Connecting…"])
@@ -319,7 +469,10 @@ actor GatewayEndpointStore {
 
             let token = self.deps.token()
             let password = self.deps.password()
-            let url = URL(string: "ws://127.0.0.1:\(Int(forwarded))")!
+            let scheme = GatewayEndpointStore.resolveGatewayScheme(
+                root: ClawdbotConfigFile.loadDict(),
+                env: ProcessInfo.processInfo.environment)
+            let url = URL(string: "\(scheme)://127.0.0.1:\(Int(forwarded))")!
             self.setState(.ready(mode: .remote, url: url, token: token, password: password))
             return (url, token, password)
         } catch let err as CancellationError {
@@ -368,6 +521,36 @@ actor GatewayEndpointStore {
         }
     }
 
+    func maybeFallbackToTailnet(from currentURL: URL) async -> GatewayConnection.Config? {
+        let mode = await self.deps.mode()
+        guard mode == .local else { return nil }
+
+        let root = ClawdbotConfigFile.loadDict()
+        let bind = GatewayEndpointStore.resolveGatewayBindMode(
+            root: root,
+            env: ProcessInfo.processInfo.environment)
+        guard bind == "tailnet" else { return nil }
+
+        let currentHost = currentURL.host?.lowercased() ?? ""
+        guard currentHost == "127.0.0.1" || currentHost == "localhost" else { return nil }
+
+        let tailscaleIP = await MainActor.run { TailscaleService.shared.tailscaleIP }
+            ?? TailscaleService.fallbackTailnetIPv4()
+        guard let tailscaleIP, !tailscaleIP.isEmpty else { return nil }
+
+        let scheme = GatewayEndpointStore.resolveGatewayScheme(
+            root: root,
+            env: ProcessInfo.processInfo.environment)
+        let port = self.deps.localPort()
+        let token = self.deps.token()
+        let password = self.deps.password()
+        let url = URL(string: "\(scheme)://\(tailscaleIP):\(port)")!
+
+        self.logger.info("auto bind fallback to tailnet host=\(tailscaleIP, privacy: .public)")
+        self.setState(.ready(mode: .local, url: url, token: token, password: password))
+        return (url, token, password)
+    }
+
     private static func resolveGatewayBindMode(
         root: [String: Any],
         env: [String: String]) -> String?
@@ -389,13 +572,46 @@ actor GatewayEndpointStore {
         return nil
     }
 
+    private static func resolveGatewayCustomBindHost(root: [String: Any]) -> String? {
+        if let gateway = root["gateway"] as? [String: Any],
+           let customBindHost = gateway["customBindHost"] as? String
+        {
+            let trimmed = customBindHost.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        return nil
+    }
+
+    private static func resolveGatewayScheme(
+        root: [String: Any],
+        env: [String: String]) -> String
+    {
+        if let envValue = env["CLAWDBOT_GATEWAY_TLS"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !envValue.isEmpty
+        {
+            return (envValue == "1" || envValue.lowercased() == "true") ? "wss" : "ws"
+        }
+        if let gateway = root["gateway"] as? [String: Any],
+           let tls = gateway["tls"] as? [String: Any],
+           let enabled = tls["enabled"] as? Bool
+        {
+            return enabled ? "wss" : "ws"
+        }
+        return "ws"
+    }
+
     private static func resolveLocalGatewayHost(
         bindMode: String?,
+        customBindHost: String?,
         tailscaleIP: String?) -> String
     {
         switch bindMode {
-        case "tailnet", "auto":
+        case "tailnet":
             tailscaleIP ?? "127.0.0.1"
+        case "auto":
+            "127.0.0.1"
+        case "custom":
+            customBindHost ?? "127.0.0.1"
         default:
             "127.0.0.1"
         }
@@ -468,9 +684,13 @@ extension GatewayEndpointStore {
 
     static func _testResolveLocalGatewayHost(
         bindMode: String?,
-        tailscaleIP: String?) -> String
+        tailscaleIP: String?,
+        customBindHost: String? = nil) -> String
     {
-        self.resolveLocalGatewayHost(bindMode: bindMode, tailscaleIP: tailscaleIP)
+        self.resolveLocalGatewayHost(
+            bindMode: bindMode,
+            customBindHost: customBindHost,
+            tailscaleIP: tailscaleIP)
     }
 }
 #endif

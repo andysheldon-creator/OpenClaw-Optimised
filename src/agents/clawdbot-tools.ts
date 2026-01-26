@@ -9,7 +9,6 @@ import type { AnyAgentTool } from "./tools/common.js";
 import { createCronTool } from "./tools/cron-tool.js";
 import { createGatewayTool } from "./tools/gateway-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
-import { createMemoryGetTool, createMemorySearchTool } from "./tools/memory-tool.js";
 import { createMessageTool } from "./tools/message-tool.js";
 import { createNodesTool } from "./tools/nodes-tool.js";
 import { createSessionStatusTool } from "./tools/session-status-tool.js";
@@ -18,6 +17,7 @@ import { createSessionsListTool } from "./tools/sessions-list-tool.js";
 import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
+import { createTtsTool } from "./tools/tts-tool.js";
 
 export function createClawdbotTools(options?: {
   browserControlUrl?: string;
@@ -28,11 +28,22 @@ export function createClawdbotTools(options?: {
   agentSessionKey?: string;
   agentChannel?: GatewayMessageChannel;
   agentAccountId?: string;
+  /** Delivery target (e.g. telegram:group:123:topic:456) for topic/thread routing. */
+  agentTo?: string;
+  /** Thread/topic identifier for routing replies to the originating thread. */
+  agentThreadId?: string | number;
+  /** Group id for channel-level tool policy inheritance. */
+  agentGroupId?: string | null;
+  /** Group channel label for channel-level tool policy inheritance. */
+  agentGroupChannel?: string | null;
+  /** Group space label for channel-level tool policy inheritance. */
+  agentGroupSpace?: string | null;
   agentDir?: string;
   sandboxRoot?: string;
   workspaceDir?: string;
   sandboxed?: boolean;
   config?: ClawdbotConfig;
+  pluginToolAllowlist?: string[];
   /** Current channel ID for auto-threading (Slack). */
   currentChannelId?: string;
   /** Current thread timestamp for auto-threading (Slack). */
@@ -41,22 +52,19 @@ export function createClawdbotTools(options?: {
   replyToMode?: "off" | "first" | "all";
   /** Mutable ref to track if a reply was sent (for "first" mode). */
   hasRepliedRef?: { value: boolean };
+  /** If true, the model has native vision capability */
+  modelHasVision?: boolean;
+  /** Explicit agent ID override for cron/hook sessions. */
+  requesterAgentIdOverride?: string;
 }): AnyAgentTool[] {
   const imageTool = options?.agentDir?.trim()
     ? createImageTool({
         config: options?.config,
         agentDir: options.agentDir,
         sandboxRoot: options?.sandboxRoot,
+        modelHasVision: options?.modelHasVision,
       })
     : null;
-  const memorySearchTool = createMemorySearchTool({
-    config: options?.config,
-    agentSessionKey: options?.agentSessionKey,
-  });
-  const memoryGetTool = createMemoryGetTool({
-    config: options?.config,
-    agentSessionKey: options?.agentSessionKey,
-  });
   const webSearchTool = createWebSearchTool({
     config: options?.config,
     sandboxed: options?.sandboxed,
@@ -74,23 +82,35 @@ export function createClawdbotTools(options?: {
       allowedControlPorts: options?.allowedControlPorts,
     }),
     createCanvasTool(),
-    createNodesTool(),
+    createNodesTool({
+      agentSessionKey: options?.agentSessionKey,
+      config: options?.config,
+    }),
     createCronTool({
       agentSessionKey: options?.agentSessionKey,
     }),
     createMessageTool({
       agentAccountId: options?.agentAccountId,
+      agentSessionKey: options?.agentSessionKey,
       config: options?.config,
       currentChannelId: options?.currentChannelId,
+      currentChannelProvider: options?.agentChannel,
       currentThreadTs: options?.currentThreadTs,
       replyToMode: options?.replyToMode,
       hasRepliedRef: options?.hasRepliedRef,
+    }),
+    createTtsTool({
+      agentChannel: options?.agentChannel,
+      config: options?.config,
     }),
     createGatewayTool({
       agentSessionKey: options?.agentSessionKey,
       config: options?.config,
     }),
-    createAgentsListTool({ agentSessionKey: options?.agentSessionKey }),
+    createAgentsListTool({
+      agentSessionKey: options?.agentSessionKey,
+      requesterAgentIdOverride: options?.requesterAgentIdOverride,
+    }),
     createSessionsListTool({
       agentSessionKey: options?.agentSessionKey,
       sandboxed: options?.sandboxed,
@@ -107,13 +127,19 @@ export function createClawdbotTools(options?: {
     createSessionsSpawnTool({
       agentSessionKey: options?.agentSessionKey,
       agentChannel: options?.agentChannel,
+      agentAccountId: options?.agentAccountId,
+      agentTo: options?.agentTo,
+      agentThreadId: options?.agentThreadId,
+      agentGroupId: options?.agentGroupId,
+      agentGroupChannel: options?.agentGroupChannel,
+      agentGroupSpace: options?.agentGroupSpace,
       sandboxed: options?.sandboxed,
+      requesterAgentIdOverride: options?.requesterAgentIdOverride,
     }),
     createSessionStatusTool({
       agentSessionKey: options?.agentSessionKey,
       config: options?.config,
     }),
-    ...(memorySearchTool && memoryGetTool ? [memorySearchTool, memoryGetTool] : []),
     ...(webSearchTool ? [webSearchTool] : []),
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
@@ -134,6 +160,7 @@ export function createClawdbotTools(options?: {
       sandboxed: options?.sandboxed,
     },
     existingToolNames: new Set(tools.map((tool) => tool.name)),
+    toolAllowlist: options?.pluginToolAllowlist,
   });
 
   return [...tools, ...pluginTools];

@@ -7,8 +7,10 @@ import {
   writeScreenRecordToFile,
 } from "../nodes-screen.js";
 import { parseDurationMs } from "../parse-duration.js";
+import { runNodesCommand } from "./cli-utils.js";
 import { callGatewayCli, nodesCallOpts, resolveNodeId } from "./rpc.js";
 import type { NodesRpcOpts } from "./types.js";
+import { shortenHomePath } from "../../utils.js";
 
 export function registerNodesScreenCommands(nodes: Command) {
   const screen = nodes
@@ -27,7 +29,7 @@ export function registerNodesScreenCommands(nodes: Command) {
       .option("--out <path>", "Output path")
       .option("--invoke-timeout <ms>", "Node invoke timeout in ms (default 120000)", "120000")
       .action(async (opts: NodesRpcOpts & { out?: string }) => {
-        try {
+        await runNodesCommand("screen record", async () => {
           const nodeId = await resolveNodeId(opts, String(opts.node ?? ""));
           const durationMs = parseDurationMs(opts.duration ?? "");
           const screenIndex = Number.parseInt(String(opts.screen ?? "0"), 10);
@@ -76,11 +78,8 @@ export function registerNodesScreenCommands(nodes: Command) {
             );
             return;
           }
-          defaultRuntime.log(`MEDIA:${written.path}`);
-        } catch (err) {
-          defaultRuntime.error(`nodes screen record failed: ${String(err)}`);
-          defaultRuntime.exit(1);
-        }
+          defaultRuntime.log(`MEDIA:${shortenHomePath(written.path)}`);
+        });
       }),
     { timeoutMs: 180_000 },
   );

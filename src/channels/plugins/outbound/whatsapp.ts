@@ -1,12 +1,14 @@
 import { chunkText } from "../../../auto-reply/chunk.js";
 import { shouldLogVerbose } from "../../../globals.js";
-import { sendMessageWhatsApp, sendPollWhatsApp } from "../../../web/outbound.js";
+import { sendPollWhatsApp } from "../../../web/outbound.js";
 import { isWhatsAppGroupJid, normalizeWhatsAppTarget } from "../../../whatsapp/normalize.js";
 import type { ChannelOutboundAdapter } from "../types.js";
+import { missingTargetError } from "../../../infra/outbound/target-errors.js";
 
 export const whatsappOutbound: ChannelOutboundAdapter = {
   deliveryMode: "gateway",
   chunker: chunkText,
+  chunkerMode: "text",
   textChunkLimit: 4000,
   pollMaxOptions: 12,
   resolveTarget: ({ to, allowFrom, mode }) => {
@@ -26,8 +28,9 @@ export const whatsappOutbound: ChannelOutboundAdapter = {
         }
         return {
           ok: false,
-          error: new Error(
-            "Delivering to WhatsApp requires --to <E.164|group JID> or channels.whatsapp.allowFrom[0]",
+          error: missingTargetError(
+            "WhatsApp",
+            "<E.164|group JID> or channels.whatsapp.allowFrom[0]",
           ),
         };
       }
@@ -51,13 +54,12 @@ export const whatsappOutbound: ChannelOutboundAdapter = {
     }
     return {
       ok: false,
-      error: new Error(
-        "Delivering to WhatsApp requires --to <E.164|group JID> or channels.whatsapp.allowFrom[0]",
-      ),
+      error: missingTargetError("WhatsApp", "<E.164|group JID> or channels.whatsapp.allowFrom[0]"),
     };
   },
   sendText: async ({ to, text, accountId, deps, gifPlayback }) => {
-    const send = deps?.sendWhatsApp ?? sendMessageWhatsApp;
+    const send =
+      deps?.sendWhatsApp ?? (await import("../../../web/outbound.js")).sendMessageWhatsApp;
     const result = await send(to, text, {
       verbose: false,
       accountId: accountId ?? undefined,
@@ -66,7 +68,8 @@ export const whatsappOutbound: ChannelOutboundAdapter = {
     return { channel: "whatsapp", ...result };
   },
   sendMedia: async ({ to, text, mediaUrl, accountId, deps, gifPlayback }) => {
-    const send = deps?.sendWhatsApp ?? sendMessageWhatsApp;
+    const send =
+      deps?.sendWhatsApp ?? (await import("../../../web/outbound.js")).sendMessageWhatsApp;
     const result = await send(to, text, {
       verbose: false,
       mediaUrl,

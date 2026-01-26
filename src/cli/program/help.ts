@@ -10,7 +10,7 @@ const EXAMPLES = [
     "Link personal WhatsApp Web and show QR + connection logs.",
   ],
   [
-    'clawdbot message send --to +15555550123 --message "Hi" --json',
+    'clawdbot message send --target +15555550123 --message "Hi" --json',
     "Send via your web session and print JSON result.",
   ],
   ["clawdbot gateway --port 18789", "Run the WebSocket Gateway locally."],
@@ -22,7 +22,7 @@ const EXAMPLES = [
     "Talk directly to the agent using the Gateway; optionally send the WhatsApp reply.",
   ],
   [
-    'clawdbot message send --channel telegram --to @mychat --message "Hi"',
+    'clawdbot message send --channel telegram --target @mychat --message "Hi"',
     "Send via your Telegram bot.",
   ],
 ] as const;
@@ -34,7 +34,7 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
     .version(ctx.programVersion)
     .option(
       "--dev",
-      "Dev profile: isolate state under ~/.clawdbot-dev, default gateway port 19001, and shift derived ports (bridge/browser/canvas)",
+      "Dev profile: isolate state under ~/.clawdbot-dev, default gateway port 19001, and shift derived ports (browser/canvas)",
     )
     .option(
       "--profile <name>",
@@ -80,7 +80,8 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
     ([cmd, desc]) => `  ${theme.command(cmd)}\n    ${theme.muted(desc)}`,
   ).join("\n");
 
-  program.addHelpText("afterAll", () => {
+  program.addHelpText("afterAll", ({ command }) => {
+    if (command !== program) return "";
     const docs = formatDocsLink("/cli", "docs.clawd.bot/cli");
     return `\n${theme.heading("Examples:")}\n${fmtExamples}\n\n${theme.muted("Docs:")} ${docs}\n`;
   });
