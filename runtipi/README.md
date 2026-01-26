@@ -8,7 +8,7 @@ This directory contains the [Runtipi](https://runtipi.io) app configuration for 
 runtipi/
 └── clawdbot/
     ├── config.json          # App metadata and form fields
-    ├── docker-compose.yml   # Docker Compose configuration
+    ├── docker-compose.json  # Dynamic compose configuration
     └── metadata/
         ├── description.md   # App description for the store
         └── logo.png         # App logo (128x128)
