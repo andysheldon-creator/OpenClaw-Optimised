@@ -26,7 +26,10 @@ const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
 const overrideWorkers = Number.parseInt(process.env.CLAWDBOT_TEST_WORKERS ?? "", 10);
 const resolvedOverride = Number.isFinite(overrideWorkers) && overrideWorkers > 0 ? overrideWorkers : null;
 const localWorkers = Math.max(4, Math.min(16, os.cpus().length));
-const perRunWorkers = Math.max(1, Math.floor(localWorkers / parallelRuns.length));
+// `pnpm test` runs multiple vitest suites in parallel.
+// Keep the total worker count sane so we don't exhaust local resources and
+// trigger vitest fork worker startup timeouts.
+const perRunWorkers = Math.max(1, Math.floor(localWorkers / (parallelRuns.length * 2)));
 const maxWorkers = isCI ? null : resolvedOverride ?? perRunWorkers;
 
 const WARNING_SUPPRESSION_FLAGS = [
