@@ -89,6 +89,14 @@ export type CliBackendConfig = {
   imageMode?: "repeat" | "list";
   /** Serialize runs for this CLI. */
   serialize?: boolean;
+  /** JSON field names for token usage parsing (in order of preference). */
+  usageFields?: {
+    input?: string[];
+    output?: string[];
+    cacheRead?: string[];
+    cacheWrite?: string[];
+    total?: string[];
+  };
 };
 
 export type AgentDefaultsConfig = {

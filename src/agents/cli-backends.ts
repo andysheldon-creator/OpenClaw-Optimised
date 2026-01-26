@@ -48,6 +48,13 @@ const DEFAULT_CLAUDE_BACKEND: CliBackendConfig = {
   systemPromptWhen: "first",
   clearEnv: ["ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_OLD"],
   serialize: true,
+  usageFields: {
+    input: ["input_tokens", "inputTokens"],
+    output: ["output_tokens", "outputTokens"],
+    cacheRead: ["cache_read_input_tokens", "cached_input_tokens", "cacheRead"],
+    cacheWrite: ["cache_creation_input_tokens", "cache_write_input_tokens", "cacheWrite"],
+    total: ["total_tokens", "total"],
+  },
 };
 
 const DEFAULT_CODEX_BACKEND: CliBackendConfig = {
@@ -72,6 +79,11 @@ const DEFAULT_CODEX_BACKEND: CliBackendConfig = {
   imageArg: "--image",
   imageMode: "repeat",
   serialize: true,
+  usageFields: {
+    input: ["prompt_tokens", "input_tokens"],
+    output: ["completion_tokens", "output_tokens"],
+    total: ["total_tokens"],
+  },
 };
 
 function normalizeBackendKey(key: string): string {
