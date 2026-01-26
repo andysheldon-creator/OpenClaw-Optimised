@@ -77,7 +77,7 @@ const AUTH_CHOICE_GROUP_DEFS: {
   {
     value: "near-ai",
     label: "NEAR AI",
-    hint: "Private inference (TEE)",
+    hint: "Private and verifiable inference (TEE)",
     choices: ["near-ai-api-key"],
   },
   {
@@ -212,7 +212,7 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "near-ai-api-key",
     label: "NEAR AI API key",
-    hint: "Private inference with Intel TDX/NVIDIA TEE",
+    hint: "Private and verifiable inference with Intel TDX/NVIDIA TEE",
   });
   options.push({
     value: "github-copilot",

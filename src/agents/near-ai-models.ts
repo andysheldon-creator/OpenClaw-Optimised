@@ -26,7 +26,7 @@ export const NEAR_AI_MODEL_CATALOG = [
   {
     id: "deepseek-ai/DeepSeek-V3.1",
     name: "DeepSeek V3.1",
-    reasoning: true,
+    reasoning: false,
     input: ["text"],
     contextWindow: 128000,
     maxTokens: 8192,
@@ -35,7 +35,7 @@ export const NEAR_AI_MODEL_CATALOG = [
   {
     id: "openai/gpt-oss-120b",
     name: "GPT OSS 120B",
-    reasoning: false,
+    reasoning: true,
     input: ["text"],
     contextWindow: 131000,
     maxTokens: 8192,
@@ -49,15 +49,6 @@ export const NEAR_AI_MODEL_CATALOG = [
     contextWindow: 262144,
     maxTokens: 8192,
     cost: { input: 0.15, output: 0.55, cacheRead: 0, cacheWrite: 0 },
-  },
-  {
-    id: "zai-org/GLM-4.6",
-    name: "GLM 4.6",
-    reasoning: false,
-    input: ["text"],
-    contextWindow: 200000,
-    maxTokens: 8192,
-    cost: { input: 0.85, output: 3.3, cacheRead: 0, cacheWrite: 0 },
   },
   {
     id: "zai-org/GLM-4.7",

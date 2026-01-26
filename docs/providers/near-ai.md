@@ -91,12 +91,13 @@ clawdbot models list | grep near-ai
 
 ## Available Models
 
+> **Note:** The model list may change. See the latest available models at [cloud.near.ai/models](https://cloud.near.ai/models).
+
 | Model ID | Name | Context | Cost ($/M tokens) |
 |----------|------|---------|-------------------|
 | `deepseek-ai/DeepSeek-V3.1` | DeepSeek V3.1 | 128K | $1.05 in / $3.10 out |
 | `openai/gpt-oss-120b` | GPT OSS 120B | 131K | $0.15 in / $0.55 out |
 | `Qwen/Qwen3-30B-A3B-Instruct-2507` | Qwen3 30B | 262K | $0.15 in / $0.55 out |
-| `zai-org/GLM-4.6` | GLM 4.6 | 200K | $0.85 in / $3.30 out |
 | `zai-org/GLM-4.7` | GLM 4.7 (default) | 131K | $0.85 in / $3.30 out |
 
 ## Configure via `clawdbot configure`

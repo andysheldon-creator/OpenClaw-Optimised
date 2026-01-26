@@ -425,7 +425,7 @@ export function applyNearAiProviderConfig(cfg: ClawdbotConfig): ClawdbotConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[NEAR_AI_DEFAULT_MODEL_REF] = {
     ...models[NEAR_AI_DEFAULT_MODEL_REF],
-    alias: models[NEAR_AI_DEFAULT_MODEL_REF]?.alias ?? "DeepSeek V3.1",
+    alias: models[NEAR_AI_DEFAULT_MODEL_REF]?.alias ?? "GLM-4.7",
   };
 
   const providers = { ...cfg.models?.providers };
