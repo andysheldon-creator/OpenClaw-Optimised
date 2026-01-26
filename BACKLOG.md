@@ -19,7 +19,7 @@ Branch: `landing-page-ux` | Design doc: `docs/plans/2026-01-25-landing-page-desi
 
 - [x] Complete landing page structure (PR #13 — `autodev-landing-page`)
 - [x] Polish landing page copy and design (PR #13)
-- [~] Mobile navigation + accessibility improvements (PR: landing-page-ux → main)
+- [~] Mobile navigation + accessibility improvements (PR #29)
 - [ ] Implement interactive demos/previews (live Overseer visualization, chat preview)
 - [~] Responsive breakpoints (mobile, tablet, desktop) — mobile hamburger menu + back-to-top added
 - [ ] Wire CTA flows (signup, waitlist, demo request)
