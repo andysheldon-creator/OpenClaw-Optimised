@@ -8,7 +8,14 @@ export type ModelCatalogEntry = {
   provider: string;
   contextWindow?: number;
   reasoning?: boolean;
+  confidentialCompute?: boolean;
   input?: Array<"text" | "image">;
+  cost?: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
 };
 
 type DiscoveredModel = {
@@ -18,6 +25,12 @@ type DiscoveredModel = {
   contextWindow?: number;
   reasoning?: boolean;
   input?: Array<"text" | "image">;
+  cost?: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
 };
 
 type PiSdkModule = typeof import("@mariozechner/pi-coding-agent");
@@ -82,10 +95,24 @@ export async function loadModelCatalog(params?: {
             ? entry.contextWindow
             : undefined;
         const reasoning = typeof entry?.reasoning === "boolean" ? entry.reasoning : undefined;
+        const confidentialCompute =
+          typeof (entry as any)?.confidentialCompute === "boolean"
+            ? (entry as any).confidentialCompute
+            : undefined;
         const input = Array.isArray(entry?.input)
           ? (entry.input as Array<"text" | "image">)
           : undefined;
-        models.push({ id, name, provider, contextWindow, reasoning, input });
+        const cost = entry?.cost ? { ...entry.cost } : undefined;
+        models.push({
+          id,
+          name,
+          provider,
+          contextWindow,
+          reasoning,
+          confidentialCompute,
+          input,
+          cost,
+        });
       }
 
       if (models.length === 0) {

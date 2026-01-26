@@ -12,6 +12,10 @@ export type ModelRow = {
   contextWindow: number | null;
   local: boolean | null;
   available: boolean | null;
+  cost?: {
+    input: number;
+    output: number;
+  };
   tags: string[];
   missing: boolean;
 };

@@ -94,6 +94,12 @@ export function toModelRow(params: {
     contextWindow: model.contextWindow ?? null,
     local,
     available,
+    cost: (model as any).cost
+      ? {
+          input: (model as any).cost.input,
+          output: (model as any).cost.output,
+        }
+      : undefined,
     tags: Array.from(mergedTags),
     missing: false,
   };
