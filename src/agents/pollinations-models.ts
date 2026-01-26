@@ -1,6 +1,6 @@
 import type { ModelDefinitionConfig } from "../config/types.js";
 
-export const POLLINATIONS_BASE_URL = "https://gen.pollinations.ai";
+export const POLLINATIONS_BASE_URL = "https://gen.pollinations.ai/v1";
 export const POLLINATIONS_DEFAULT_MODEL_ID = "openai";
 export const POLLINATIONS_DEFAULT_MODEL_REF = `pollinations/${POLLINATIONS_DEFAULT_MODEL_ID}`;
 export const POLLINATIONS_MINIMAX_MODEL_ID = "minimax";
