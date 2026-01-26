@@ -9,6 +9,16 @@ Deploy Clawdbot on Render using Infrastructure as Code. The included `render.yam
 - A [Render account](https://render.com) (free tier available)
 - An API key from your preferred [model provider](/providers)
 
+## Alternative: Wrapper with Installer
+
+For a deployment with a built-in installer and proxied Control UI (including WebSocket support), see the [render_clawdbot wrapper](https://github.com/ojusave/render_clawdbot). This wrapper provides:
+
+- **Install Wizard** at `/install` (password protected)
+- **Control UI** at `/` and `/clawdbot` (reverse-proxied, including WebSockets)
+- **Export / Import backups** to migrate deployments
+
+The wrapper handles proxy header stripping and WebSocket proxying automatically.
+
 ## Deploy with a Render Blueprint
 
 <a href="https://render.com/deploy?repo=https://github.com/clawdbot/clawdbot" target="_blank" rel="noreferrer">Deploy to Render</a>
@@ -44,6 +54,18 @@ services:
         value: /data/workspace
       - key: CLAWDBOT_GATEWAY_TOKEN
         generateValue: true  # auto-generates a secure token
+      # LLM Provider API Keys (set these in Render dashboard as secrets)
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # Add other provider keys as needed (MISTRAL_API_KEY, XAI_API_KEY, etc.)
     disk:
       name: clawdbot-data
       mountPath: /data
@@ -101,6 +123,50 @@ For debugging, open a shell session via **Dashboard → your service → Shell**
 ### Environment variables
 
 Modify variables in **Dashboard → your service → Environment**. Changes trigger an automatic redeploy.
+
+#### Configuring LLM API Keys
+
+After deployment, you need to configure at least one LLM provider API key. Set these in the Render dashboard:
+
+**Most common providers:**
+
+- **Anthropic (Claude)**: `ANTHROPIC_API_KEY` — Get from [Anthropic Console](https://console.anthropic.com/)
+- **OpenAI (GPT)**: `OPENAI_API_KEY` — Get from [OpenAI Platform](https://platform.openai.com/api-keys)
+- **Google Gemini**: `GEMINI_API_KEY` — Get from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **Groq**: `GROQ_API_KEY` — Get from [Groq Console](https://console.groq.com/keys)
+- **OpenRouter**: `OPENROUTER_API_KEY` — Get from [OpenRouter](https://openrouter.ai/keys)
+
+**Additional providers:**
+
+- `MISTRAL_API_KEY` — Mistral AI
+- `XAI_API_KEY` — xAI (Grok)
+- `OPENCODE_API_KEY` — OpenCode Zen
+- `DEEPGRAM_API_KEY` — Deepgram (speech-to-text)
+
+To set API keys:
+
+1. Go to **Dashboard → your service → Environment**
+2. Click **Add Environment Variable**
+3. Enter the variable name (e.g., `ANTHROPIC_API_KEY`)
+4. Enter your API key value
+5. Click **Save Changes**
+
+The service will automatically redeploy with the new environment variable.
+
+**Alternative: Config file method**
+
+You can also configure API keys in the `clawdbot.json` config file using the `env` block, though environment variables are preferred for security:
+
+```json5
+{
+  "env": {
+    "ANTHROPIC_API_KEY": "sk-ant-...",
+    "OPENAI_API_KEY": "sk-..."
+  }
+}
+```
+
+See [Model Providers](/concepts/model-providers) for a complete list of supported providers and their configuration.
 
 ### Auto-deploy
 
