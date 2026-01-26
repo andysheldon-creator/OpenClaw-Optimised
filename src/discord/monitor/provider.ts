@@ -39,6 +39,8 @@ import {
   createDiscordNativeCommand,
 } from "./native-command.js";
 import { createExecApprovalButton, DiscordExecApprovalHandler } from "./exec-approvals.js";
+import { createPresenceManager, type PresenceManager } from "./presence-manager.js";
+import { registerPresenceManager, unregisterPresenceManager } from "../presence-registry.js";
 
 export type MonitorDiscordOpts = {
   token?: string;
@@ -562,6 +564,20 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     emitter: gatewayEmitter,
     runtime,
   });
+
+  // Set up presence manager if enabled
+  let presenceManager: PresenceManager | undefined;
+  if (discordCfg.presence?.enabled && gateway) {
+    presenceManager = createPresenceManager({
+      gateway,
+      config: discordCfg.presence,
+      accountId: account.accountId,
+    });
+    registerPresenceManager(account.accountId, presenceManager);
+    runtime.log?.(
+      `discord: presence updates enabled (format: ${discordCfg.presence.format ?? "📊 {tokens} tokens"})`,
+    );
+  }
   const abortSignal = opts.abortSignal;
   const onAbort = () => {
     if (!gateway) return;
@@ -623,6 +639,10 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     abortSignal?.removeEventListener("abort", onAbort);
     if (execApprovalsHandler) {
       await execApprovalsHandler.stop();
+    }
+    // Cleanup presence manager
+    if (presenceManager) {
+      unregisterPresenceManager(account.accountId);
     }
   }
 }

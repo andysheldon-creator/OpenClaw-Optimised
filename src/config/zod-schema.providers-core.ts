@@ -263,6 +263,17 @@ export const DiscordAccountSchema = z
       })
       .strict()
       .optional(),
+    presence: z
+      .object({
+        enabled: z.boolean().optional(),
+        showTokenUsage: z.boolean().optional(),
+        format: z.string().optional(),
+        // Note: Bots cannot use "Custom" activity type - that's user accounts only
+        activityType: z.enum(["Playing", "Watching", "Listening", "Competing"]).optional(),
+        status: z.enum(["online", "idle", "dnd", "invisible"]).optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 

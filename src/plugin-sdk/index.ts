@@ -1,5 +1,11 @@
 export { CHANNEL_MESSAGE_ACTION_NAMES } from "../channels/plugins/message-action-names.js";
 export {
+  getPresenceManager,
+  registerPresenceManager,
+  unregisterPresenceManager,
+} from "../discord/presence-registry.js";
+export type { PresenceManager } from "../discord/monitor/presence-manager.js";
+export {
   BLUEBUBBLES_ACTIONS,
   BLUEBUBBLES_ACTION_NAMES,
   BLUEBUBBLES_GROUP_ACTIONS,
