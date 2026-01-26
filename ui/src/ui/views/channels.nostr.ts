@@ -45,7 +45,6 @@ export function renderNostrCard(params: {
   } = params;
   const primaryAccount = nostrAccounts[0];
   const summaryConfigured = nostr?.configured ?? primaryAccount?.configured ?? false;
-  const summaryRunning = nostr?.running ?? primaryAccount?.running ?? false;
   const summaryPublicKey =
     nostr?.publicKey ??
     (primaryAccount as { publicKey?: string } | undefined)?.publicKey;
@@ -178,24 +177,20 @@ export function renderNostrCard(params: {
         `
       : html`
           <div class="status-list" style="margin-top: 16px;">
-            <div>
-              <span class="label">Configured</span>
-              <span>${summaryConfigured ? "Yes" : "No"}</span>
-            </div>
-            <div>
-              <span class="label">Running</span>
-              <span>${summaryRunning ? "Yes" : "No"}</span>
-            </div>
-            <div>
-              <span class="label">Public Key</span>
-              <span class="monospace" title="${summaryPublicKey ?? ""}"
-                >${truncatePubkey(summaryPublicKey)}</span
-              >
-            </div>
-            <div>
-              <span class="label">Last start</span>
-              <span>${summaryLastStartAt ? formatAgo(summaryLastStartAt) : "n/a"}</span>
-            </div>
+            ${summaryPublicKey
+              ? html`<div>
+                  <span class="label">Public Key</span>
+                  <span class="monospace" title="${summaryPublicKey}"
+                    >${truncatePubkey(summaryPublicKey)}</span
+                  >
+                </div>`
+              : nothing}
+            ${summaryLastStartAt
+              ? html`<div>
+                  <span class="label">Last start</span>
+                  <span>${formatAgo(summaryLastStartAt)}</span>
+                </div>`
+              : nothing}
           </div>
         `}
 

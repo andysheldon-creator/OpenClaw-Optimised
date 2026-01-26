@@ -45,6 +45,24 @@ export function renderChannelAccountCount(
   return html`<div class="account-count">Accounts (${count})</div>`;
 }
 
+export function renderProbeBadge(probe: { ok: boolean; status?: unknown; error?: unknown } | null | undefined) {
+  if (!probe) return nothing;
+  const ok = probe.ok;
+  const statusStr = probe.status != null ? String(probe.status) : "";
+  const errorStr = probe.error != null ? String(probe.error) : "";
+  const label = ok
+    ? `OK${statusStr ? ` \u00b7 ${statusStr}` : ""}`
+    : `Failed${errorStr ? ` \u00b7 ${errorStr}` : statusStr ? ` \u00b7 ${statusStr}` : ""}`;
+  return html`
+    <div class="probe-badge ${ok ? "probe-badge--ok" : "probe-badge--fail"}">
+      <span class="probe-badge__icon" aria-hidden="true">
+        ${icon(ok ? "check" : "x", { size: 14 })}
+      </span>
+      <span>${label}</span>
+    </div>
+  `;
+}
+
 export type ChannelCardVisualState =
   | "connected"
   | "disconnected"
@@ -139,10 +157,14 @@ export function renderChannelIntegrationCard(params: {
         </div>
       </div>
 
-      <div class="channel-card__meta">
-        <div class="channel-card__accounts">${frame.accountsLabel}</div>
-        ${frame.hint ? html`<div class="channel-card__hint">${frame.hint}</div>` : nothing}
-      </div>
+      ${frame.accountsLabel || frame.hint
+        ? html`<div class="channel-card__meta">
+            ${frame.accountsLabel
+              ? html`<div class="channel-card__accounts">${frame.accountsLabel}</div>`
+              : nothing}
+            ${frame.hint ? html`<div class="channel-card__hint">${frame.hint}</div>` : nothing}
+          </div>`
+        : nothing}
 
       ${params.facts ? html`<div class="channel-card__facts">${params.facts}</div>` : nothing}
 
@@ -173,15 +195,15 @@ export function renderChannelIntegrationCard(params: {
                   );
                 }}
               >
-                <summary class="btn btn--sm primary channel-card__config-toggle">
+                <summary class="btn btn--sm channel-card__config-toggle">
                   <span class="channel-card__config-icon" aria-hidden="true">
-                    ${icon("settings", { size: 16 })}
+                    ${icon("chevron-right", { size: 16 })}
                   </span>
                   <span class="channel-card__config-label channel-card__config-label--closed"
-                    >Configure</span
+                    >Details</span
                   >
                   <span class="channel-card__config-label channel-card__config-label--open"
-                    >Close</span
+                    >Hide</span
                   >
                 </summary>
                 <div class="channel-card__config-body">${params.details}</div>

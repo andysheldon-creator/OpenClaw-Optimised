@@ -70,7 +70,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 6px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .status-list div:last-child {
@@ -7457,6 +7457,15 @@
   gap: 8px;
 }
 
+.channel-card__config-icon {
+  display: inline-flex;
+  transition: transform 200ms ease;
+}
+
+.channel-card__config[open] .channel-card__config-icon {
+  transform: rotate(90deg);
+}
+
 .channel-card__config-label--open {
   display: none;
 }
@@ -7501,6 +7510,33 @@
   line-height: 1.35;
   text-align: center;
   max-width: 360px;
+}
+
+.probe-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.probe-badge--ok {
+  color: var(--ok);
+  border: 1px solid rgba(43, 217, 127, 0.28);
+  background: rgba(43, 217, 127, 0.06);
+}
+
+.probe-badge--fail {
+  color: var(--danger);
+  border: 1px solid rgba(255, 107, 107, 0.28);
+  background: rgba(255, 107, 107, 0.06);
+}
+
+.probe-badge__icon {
+  display: inline-flex;
 }
 
 @keyframes channelPulse {

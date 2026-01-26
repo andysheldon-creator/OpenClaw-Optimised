@@ -271,35 +271,49 @@ function renderChannelActions(key: ChannelKey, props: ChannelsProps): TemplateRe
   `;
 
   if (key === "whatsapp") {
+    const status = resolveChannelStatusObject(props.snapshot, key);
+    const linked = typeof status?.linked === "boolean" ? (status.linked as boolean) : false;
+    const configured = typeof status?.configured === "boolean" && status.configured;
     return html`
       ${configureButton}
-      <button
-        class="btn btn--sm channel-card__action"
-        ?disabled=${props.whatsappBusy || disabled}
-        @click=${() => props.onWhatsAppStart(false)}
-      >
-        ${props.whatsappBusy ? "Working…" : "Show QR"}
-      </button>
-      <button
-        class="btn btn--sm channel-card__action"
-        ?disabled=${props.whatsappBusy || disabled}
-        @click=${() => props.onWhatsAppStart(true)}
-      >
-        Relink
-      </button>
-      <button
-        class="btn btn--sm danger channel-card__action"
-        ?disabled=${props.whatsappBusy || disabled}
-        @click=${() => props.onWhatsAppLogout()}
-      >
-        Logout
-      </button>
+      ${linked
+        ? html`
+            <button
+              class="btn btn--sm channel-card__action"
+              ?disabled=${props.whatsappBusy || disabled}
+              @click=${() => props.onWhatsAppStart(true)}
+            >
+              <span aria-hidden="true">${icon("refresh-cw", { size: 16 })}</span>
+              ${props.whatsappBusy ? "Working\u2026" : "Relink"}
+            </button>
+          `
+        : html`
+            <button
+              class="btn btn--sm primary channel-card__action"
+              ?disabled=${props.whatsappBusy || disabled}
+              @click=${() => props.onWhatsAppStart(false)}
+            >
+              <span aria-hidden="true">${icon("link", { size: 16 })}</span>
+              ${props.whatsappBusy ? "Working\u2026" : "Link"}
+            </button>
+          `}
+      ${configured
+        ? html`
+            <button
+              class="btn btn--sm danger channel-card__action"
+              ?disabled=${props.whatsappBusy || disabled}
+              @click=${() => props.onWhatsAppLogout()}
+            >
+              Logout
+            </button>
+          `
+        : nothing}
       <button
         class="btn btn--sm channel-card__action"
         ?disabled=${disabled}
         @click=${() => props.onRefresh(true)}
       >
-        <span aria-hidden="true">${icon("refresh-cw", { size: 16 })}</span>
+        <span aria-hidden="true">${icon("zap", { size: 16 })}</span>
         Probe
       </button>
     `;
@@ -360,7 +374,7 @@ function buildChannelFrame(
   });
 
   const count = getChannelAccountCount(key, channelAccounts);
-  const accountsLabel = `${count} account${count === 1 ? "" : "s"}`;
+  const accountsLabel = count > 1 ? `${count} accounts` : "";
   const hint = (() => {
     const lastProbeAt = typeof status?.lastProbeAt === "number" ? (status.lastProbeAt as number) : null;
     if (lastProbeAt) return `Last probe ${formatAgo(lastProbeAt)}`;
@@ -536,10 +550,6 @@ function renderGenericChannelCard(
   facts: TemplateResult,
   error: string | null,
 ) {
-  const status = props.snapshot?.channels?.[key] as Record<string, unknown> | undefined;
-  const configured = typeof status?.configured === "boolean" ? status.configured : undefined;
-  const running = typeof status?.running === "boolean" ? status.running : undefined;
-  const connected = typeof status?.connected === "boolean" ? status.connected : undefined;
   const accounts = channelAccounts[key] ?? [];
   const details = html`
     ${accounts.length > 0
@@ -548,22 +558,7 @@ function renderGenericChannelCard(
             ${accounts.map((account) => renderGenericAccount(account))}
           </div>
         `
-      : html`
-          <div class="status-list" style="margin-top: 16px;">
-            <div>
-              <span class="label">Configured</span>
-              <span>${configured == null ? "n/a" : configured ? "Yes" : "No"}</span>
-            </div>
-            <div>
-              <span class="label">Running</span>
-              <span>${running == null ? "n/a" : running ? "Yes" : "No"}</span>
-            </div>
-            <div>
-              <span class="label">Connected</span>
-              <span>${connected == null ? "n/a" : connected ? "Yes" : "No"}</span>
-            </div>
-          </div>
-        `}
+      : nothing}
 
     ${renderChannelConfigSection({ channelId: key, props })}
   `;

@@ -2,7 +2,7 @@ import { html, nothing, type TemplateResult } from "lit";
 
 import { formatAgo } from "../format";
 import type { ChannelAccountSnapshot, TelegramStatus } from "../types";
-import { renderChannelIntegrationCard, type ChannelCardFrame } from "./channels.shared";
+import { renderChannelIntegrationCard, renderProbeBadge, type ChannelCardFrame } from "./channels.shared";
 
 export function renderTelegramCard(params: {
   telegram?: TelegramStatus;
@@ -61,35 +61,28 @@ export function renderTelegramCard(params: {
         `
       : html`
           <div class="status-list" style="margin-top: 16px;">
-            <div>
-              <span class="label">Configured</span>
-              <span>${telegram?.configured ? "Yes" : "No"}</span>
-            </div>
-            <div>
-              <span class="label">Running</span>
-              <span>${telegram?.running ? "Yes" : "No"}</span>
-            </div>
-            <div>
-              <span class="label">Mode</span>
-              <span>${telegram?.mode ?? "n/a"}</span>
-            </div>
-            <div>
-              <span class="label">Last start</span>
-              <span>${telegram?.lastStartAt ? formatAgo(telegram.lastStartAt) : "n/a"}</span>
-            </div>
-            <div>
-              <span class="label">Last probe</span>
-              <span>${telegram?.lastProbeAt ? formatAgo(telegram.lastProbeAt) : "n/a"}</span>
-            </div>
+            ${telegram?.mode
+              ? html`<div>
+                  <span class="label">Mode</span>
+                  <span>${telegram.mode}</span>
+                </div>`
+              : nothing}
+            ${telegram?.lastStartAt
+              ? html`<div>
+                  <span class="label">Last start</span>
+                  <span>${formatAgo(telegram.lastStartAt)}</span>
+                </div>`
+              : nothing}
+            ${telegram?.lastProbeAt
+              ? html`<div>
+                  <span class="label">Last probe</span>
+                  <span>${formatAgo(telegram.lastProbeAt)}</span>
+                </div>`
+              : nothing}
           </div>
         `}
 
-    ${telegram?.probe
-      ? html`<div class="callout callout--info" style="margin-top: 12px;">
-          Probe ${telegram.probe.ok ? "ok" : "failed"} · ${telegram.probe.status ?? ""}
-          ${telegram.probe.error ?? ""}
-        </div>`
-      : nothing}
+    ${renderProbeBadge(telegram?.probe)}
   `;
 
   return renderChannelIntegrationCard({
