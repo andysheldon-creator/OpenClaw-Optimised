@@ -3,11 +3,11 @@ services:
     name: moltbot
     runtime: docker
     plan: starter
-    dockerCommand: sh scripts/render-start.sh
+    dockerCommand: node dist/index.js gateway run --port 8080 --bind lan --auth token --allow-unconfigured
     envVars:
       - key: PORT
         value: "8080"
-      - key: CLAWDBOT_GATEWAY_PASSWORD
+      - key: CLAWDBOT_GATEWAY_TOKEN
         sync: false
       - key: CLAWDBOT_STATE_DIR
         value: /data/.clawdbot
