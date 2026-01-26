@@ -1,6 +1,7 @@
 import { normalizeCronJobCreate, normalizeCronJobPatch } from "../../cron/normalize.js";
 import { readCronRunLogEntries, resolveCronRunLogPath } from "../../cron/run-log.js";
 import type { CronJobCreate, CronJobPatch } from "../../cron/types.js";
+import { normalizeAgentId } from "../../routing/session-key.js";
 import {
   ErrorCodes,
   errorShape,
@@ -15,6 +16,30 @@ import {
   validateWakeParams,
 } from "../protocol/index.js";
 import type { GatewayRequestHandlers } from "./types.js";
+
+function normalizeActorAgentId(params: unknown): string | undefined {
+  if (!params || typeof params !== "object") return undefined;
+  const raw = (params as { actorAgentId?: unknown }).actorAgentId;
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  return normalizeAgentId(trimmed);
+}
+
+async function ensureActorJobVisible(params: {
+  context: Parameters<GatewayRequestHandlers["cron.list"]>[0]["context"];
+  actorAgentId?: string;
+  jobId: string;
+}) {
+  if (!params.actorAgentId) return true;
+  const jobs = await params.context.cron.list({ includeDisabled: true });
+  return jobs.some(
+    (job) =>
+      job.id === params.jobId &&
+      typeof job.agentId === "string" &&
+      normalizeAgentId(job.agentId) === params.actorAgentId,
+  );
+}
 
 export const cronHandlers: GatewayRequestHandlers = {
   wake: ({ params, respond, context }) => {
@@ -48,11 +73,18 @@ export const cronHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const p = params as { includeDisabled?: boolean };
+    const p = params as { includeDisabled?: boolean; actorAgentId?: string };
+    const actorAgentId = normalizeActorAgentId(p);
     const jobs = await context.cron.list({
       includeDisabled: p.includeDisabled,
     });
-    respond(true, { jobs }, undefined);
+    const filtered = actorAgentId
+      ? jobs.filter(
+          (job) =>
+            typeof job.agentId === "string" && normalizeAgentId(job.agentId) === actorAgentId,
+        )
+      : jobs;
+    respond(true, { jobs: filtered }, undefined);
   },
   "cron.status": async ({ params, respond, context }) => {
     if (!validateCronStatusParams(params)) {
@@ -71,6 +103,28 @@ export const cronHandlers: GatewayRequestHandlers = {
   },
   "cron.add": async ({ params, respond, context }) => {
     const normalized = normalizeCronJobCreate(params) ?? params;
+    const actorAgentId = normalizeActorAgentId(normalized);
+    if (actorAgentId && normalized && typeof normalized === "object") {
+      const record = normalized as Record<string, unknown>;
+      const agentIdRaw = record.agentId;
+      if (agentIdRaw === null || agentIdRaw === undefined) {
+        record.agentId = actorAgentId;
+      } else if (typeof agentIdRaw === "string") {
+        const normalizedAgent = normalizeAgentId(agentIdRaw);
+        if (normalizedAgent !== actorAgentId) {
+          respond(
+            false,
+            undefined,
+            errorShape(ErrorCodes.INVALID_REQUEST, "cron agentId is not visible to this actor"),
+          );
+          return;
+        }
+        record.agentId = actorAgentId;
+      } else {
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid cron agentId"));
+        return;
+      }
+    }
     if (!validateCronAddParams(normalized)) {
       respond(
         false,
@@ -106,6 +160,7 @@ export const cronHandlers: GatewayRequestHandlers = {
       id?: string;
       jobId?: string;
       patch: Record<string, unknown>;
+      actorAgentId?: string;
     };
     const jobId = p.id ?? p.jobId;
     if (!jobId) {
@@ -113,6 +168,15 @@ export const cronHandlers: GatewayRequestHandlers = {
         false,
         undefined,
         errorShape(ErrorCodes.INVALID_REQUEST, "invalid cron.update params: missing id"),
+      );
+      return;
+    }
+    const actorAgentId = normalizeActorAgentId(p);
+    if (actorAgentId && !(await ensureActorJobVisible({ context, actorAgentId, jobId }))) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "cron job not visible to this actor"),
       );
       return;
     }
@@ -131,13 +195,22 @@ export const cronHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const p = params as { id?: string; jobId?: string };
+    const p = params as { id?: string; jobId?: string; actorAgentId?: string };
     const jobId = p.id ?? p.jobId;
     if (!jobId) {
       respond(
         false,
         undefined,
         errorShape(ErrorCodes.INVALID_REQUEST, "invalid cron.remove params: missing id"),
+      );
+      return;
+    }
+    const actorAgentId = normalizeActorAgentId(p);
+    if (actorAgentId && !(await ensureActorJobVisible({ context, actorAgentId, jobId }))) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "cron job not visible to this actor"),
       );
       return;
     }
@@ -156,13 +229,27 @@ export const cronHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const p = params as { id?: string; jobId?: string; mode?: "due" | "force" };
+    const p = params as {
+      id?: string;
+      jobId?: string;
+      mode?: "due" | "force";
+      actorAgentId?: string;
+    };
     const jobId = p.id ?? p.jobId;
     if (!jobId) {
       respond(
         false,
         undefined,
         errorShape(ErrorCodes.INVALID_REQUEST, "invalid cron.run params: missing id"),
+      );
+      return;
+    }
+    const actorAgentId = normalizeActorAgentId(p);
+    if (actorAgentId && !(await ensureActorJobVisible({ context, actorAgentId, jobId }))) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "cron job not visible to this actor"),
       );
       return;
     }
@@ -181,13 +268,22 @@ export const cronHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const p = params as { id?: string; jobId?: string; limit?: number };
+    const p = params as { id?: string; jobId?: string; limit?: number; actorAgentId?: string };
     const jobId = p.id ?? p.jobId;
     if (!jobId) {
       respond(
         false,
         undefined,
         errorShape(ErrorCodes.INVALID_REQUEST, "invalid cron.runs params: missing id"),
+      );
+      return;
+    }
+    const actorAgentId = normalizeActorAgentId(p);
+    if (actorAgentId && !(await ensureActorJobVisible({ context, actorAgentId, jobId }))) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "cron job not visible to this actor"),
       );
       return;
     }

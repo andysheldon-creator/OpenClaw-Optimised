@@ -1,9 +1,13 @@
 import { Type } from "@sinclair/typebox";
 import { normalizeCronJobCreate, normalizeCronJobPatch } from "../../cron/normalize.js";
 import { loadConfig } from "../../config/config.js";
+import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
+import { normalizeElevatedLevel } from "../../auto-reply/thinking.js";
+import { resolveSandboxConfigForAgent } from "../sandbox/config.js";
+import { resolveSandboxRuntimeStatus } from "../sandbox/runtime-status.js";
+import { normalizeAgentId } from "../../routing/session-key.js";
 import { truncateUtf16Safe } from "../../utils.js";
 import { optionalStringEnum, stringEnum } from "../schema/typebox.js";
-import { resolveSessionAgentId } from "../agent-scope.js";
 import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool, type GatewayCallOptions } from "./gateway.js";
 import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
@@ -42,6 +46,19 @@ const CronToolSchema = Type.Object({
 
 type CronToolOptions = {
   agentSessionKey?: string;
+};
+
+type CronSandboxAccess = {
+  sandboxed: boolean;
+  restricted: boolean;
+  agentId?: string;
+  sessionKey?: string;
+  policy: {
+    visibility: "agent" | "all";
+    escape: "off" | "elevated" | "elevated-full";
+    allowMainSessionJobs: boolean;
+    delivery: "off" | "last-only" | "explicit";
+  };
 };
 
 type ChatMessage = {
@@ -85,6 +102,143 @@ function extractMessageText(message: ChatMessage): { role: string; text: string 
   }
   const joined = normalizeContextText(chunks.join(" "));
   return joined ? { role, text: joined } : null;
+}
+
+function resolveCronSandboxAccess(params: {
+  cfg: ReturnType<typeof loadConfig>;
+  sessionKey?: string;
+}): CronSandboxAccess {
+  const rawSessionKey = params.sessionKey?.trim();
+  if (!rawSessionKey) {
+    return {
+      sandboxed: false,
+      restricted: false,
+      agentId: undefined,
+      sessionKey: undefined,
+      policy: {
+        visibility: "all",
+        escape: "off",
+        allowMainSessionJobs: true,
+        delivery: "explicit",
+      },
+    };
+  }
+
+  const runtime = resolveSandboxRuntimeStatus({ cfg: params.cfg, sessionKey: rawSessionKey });
+  const sandboxCfg = resolveSandboxConfigForAgent(params.cfg, runtime.agentId);
+  const policy = sandboxCfg.cron;
+  const normalizedAgentId = normalizeAgentId(runtime.agentId);
+
+  const storePath = resolveStorePath(params.cfg.session?.store, {
+    agentId: normalizedAgentId,
+  });
+  const store = loadSessionStore(storePath);
+  const entry = store[rawSessionKey];
+  const elevatedLevel = normalizeElevatedLevel(entry?.elevatedLevel) ?? "off";
+  const elevatedOn = elevatedLevel !== "off";
+  const elevatedFull = elevatedLevel === "full";
+
+  const escapeAllowed =
+    policy.escape === "elevated"
+      ? elevatedOn
+      : policy.escape === "elevated-full"
+        ? elevatedFull
+        : false;
+
+  return {
+    sandboxed: runtime.sandboxed,
+    restricted: runtime.sandboxed && !escapeAllowed,
+    agentId: normalizedAgentId,
+    sessionKey: rawSessionKey,
+    policy,
+  };
+}
+
+function jobAgentId(job: Record<string, unknown>) {
+  const raw = (job as { agentId?: unknown }).agentId;
+  if (typeof raw !== "string") return undefined;
+  return normalizeAgentId(raw);
+}
+
+function jobSessionTarget(job: Record<string, unknown>) {
+  const raw = (job as { sessionTarget?: unknown }).sessionTarget;
+  return typeof raw === "string" ? raw : undefined;
+}
+
+function jobPayload(job: Record<string, unknown>) {
+  const raw = (job as { payload?: unknown }).payload;
+  return typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : null;
+}
+
+async function resolveJobRecord(params: {
+  jobId: string;
+  gatewayOpts: GatewayCallOptions;
+  scopedAgentId?: string;
+}) {
+  const res = await callGatewayTool("cron.list", params.gatewayOpts, {
+    includeDisabled: true,
+    ...(params.scopedAgentId ? { actorAgentId: params.scopedAgentId } : {}),
+  });
+  const jobs = (res as { jobs?: unknown }).jobs;
+  if (!Array.isArray(jobs)) return undefined;
+  const match = jobs.find(
+    (job) => job && typeof job === "object" && (job as { id?: unknown }).id === params.jobId,
+  );
+  if (!match || typeof match !== "object") return undefined;
+  return match as Record<string, unknown>;
+}
+
+async function assertMainSessionJobAllowed(params: {
+  access: CronSandboxAccess;
+  jobId: string;
+  gatewayOpts: GatewayCallOptions;
+  scopedAgentId?: string;
+  jobRecord?: Record<string, unknown>;
+}) {
+  if (!params.access.restricted || params.access.policy.allowMainSessionJobs) return;
+  const sessionTarget =
+    jobSessionTarget(params.jobRecord ?? {}) ??
+    jobSessionTarget(
+      (await resolveJobRecord({
+        jobId: params.jobId,
+        gatewayOpts: params.gatewayOpts,
+        scopedAgentId: params.scopedAgentId,
+      })) ?? {},
+    );
+  if (sessionTarget === "main") {
+    throw new Error("sandboxed cron jobs cannot target main sessions");
+  }
+}
+
+function assertDeliveryPolicy(
+  policy: CronSandboxAccess["policy"],
+  payload?: Record<string, unknown> | null,
+) {
+  if (!payload) return;
+  if (payload.kind !== "agentTurn") return;
+  const deliver = typeof payload.deliver === "boolean" ? payload.deliver : undefined;
+  const channel = typeof payload.channel === "string" ? payload.channel : undefined;
+  const to = typeof payload.to === "string" ? payload.to : undefined;
+
+  if (policy.delivery === "explicit") return;
+
+  if (policy.delivery === "off") {
+    if (deliver || channel || to) {
+      throw new Error("cron delivery is disabled for sandboxed sessions");
+    }
+    return;
+  }
+
+  // last-only
+  if (to) {
+    throw new Error("cron delivery target is restricted to last route");
+  }
+  if (channel && channel !== "last") {
+    throw new Error("cron delivery channel is restricted to last route");
+  }
+  if (deliver && channel && channel !== "last") {
+    throw new Error("cron delivery channel is restricted to last route");
+  }
 }
 
 async function buildReminderContextLines(params: {
@@ -181,6 +335,13 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
       const action = readStringParam(params, "action", { required: true });
+      const cfg = loadConfig();
+      const access = resolveCronSandboxAccess({
+        cfg,
+        sessionKey: opts?.agentSessionKey,
+      });
+      const scopedAgentId =
+        access.restricted && access.policy.visibility === "agent" ? access.agentId : undefined;
       const gatewayOpts: GatewayCallOptions = {
         gatewayUrl: readStringParam(params, "gatewayUrl", { trim: false }),
         gatewayToken: readStringParam(params, "gatewayToken", { trim: false }),
@@ -194,6 +355,7 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
           return jsonResult(
             await callGatewayTool("cron.list", gatewayOpts, {
               includeDisabled: Boolean(params.includeDisabled),
+              ...(scopedAgentId ? { actorAgentId: scopedAgentId } : {}),
             }),
           );
         case "add": {
@@ -201,13 +363,31 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
             throw new Error("job required");
           }
           const job = normalizeCronJobCreate(params.job) ?? params.job;
-          if (job && typeof job === "object" && !("agentId" in job)) {
-            const cfg = loadConfig();
-            const agentId = opts?.agentSessionKey
-              ? resolveSessionAgentId({ sessionKey: opts.agentSessionKey, config: cfg })
-              : undefined;
-            if (agentId) {
-              (job as { agentId?: string }).agentId = agentId;
+          if (job && typeof job === "object") {
+            const jobRecord = job as Record<string, unknown>;
+            const sessionTarget = jobSessionTarget(jobRecord);
+            const payload = jobPayload(jobRecord);
+            if (access.restricted && !access.policy.allowMainSessionJobs) {
+              if (sessionTarget === "main") {
+                throw new Error("sandboxed cron jobs cannot target main sessions");
+              }
+            }
+            if (access.restricted) {
+              assertDeliveryPolicy(access.policy, payload);
+            }
+            const enforceAgentVisibility =
+              access.restricted && access.policy.visibility === "agent";
+            if (!("agentId" in jobRecord)) {
+              const agentId = enforceAgentVisibility ? access.agentId : undefined;
+              if (agentId) {
+                jobRecord.agentId = agentId;
+              }
+            } else if (enforceAgentVisibility && access.agentId) {
+              const requested = jobAgentId(jobRecord);
+              if (requested && requested !== access.agentId) {
+                throw new Error("cron agentId must match the sandboxed agent");
+              }
+              jobRecord.agentId = access.agentId;
             }
           }
           const contextMessages =
@@ -233,7 +413,12 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
               }
             }
           }
-          return jsonResult(await callGatewayTool("cron.add", gatewayOpts, job));
+          return jsonResult(
+            await callGatewayTool("cron.add", gatewayOpts, {
+              ...(job as Record<string, unknown>),
+              ...(scopedAgentId ? { actorAgentId: scopedAgentId } : {}),
+            }),
+          );
         }
         case "update": {
           const id = readStringParam(params, "jobId") ?? readStringParam(params, "id");
@@ -244,10 +429,37 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
             throw new Error("patch required");
           }
           const patch = normalizeCronJobPatch(params.patch) ?? params.patch;
+          if (access.restricted && patch && typeof patch === "object") {
+            const patchRecord = patch as Record<string, unknown>;
+            if (!access.policy.allowMainSessionJobs) {
+              const sessionTarget = jobSessionTarget(patchRecord);
+              if (sessionTarget === "main") {
+                throw new Error("sandboxed cron jobs cannot target main sessions");
+              }
+              if (!sessionTarget) {
+                await assertMainSessionJobAllowed({
+                  access,
+                  jobId: id,
+                  gatewayOpts,
+                  scopedAgentId,
+                });
+              }
+            }
+            assertDeliveryPolicy(access.policy, jobPayload(patchRecord));
+            const enforceAgentVisibility = access.policy.visibility === "agent" && access.agentId;
+            if (enforceAgentVisibility && "agentId" in patchRecord) {
+              const requested = jobAgentId(patchRecord);
+              if (requested && requested !== access.agentId) {
+                throw new Error("cron agentId must match the sandboxed agent");
+              }
+              patchRecord.agentId = access.agentId;
+            }
+          }
           return jsonResult(
             await callGatewayTool("cron.update", gatewayOpts, {
               id,
               patch,
+              ...(scopedAgentId ? { actorAgentId: scopedAgentId } : {}),
             }),
           );
         }
@@ -256,21 +468,71 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
           if (!id) {
             throw new Error("jobId required (id accepted for backward compatibility)");
           }
-          return jsonResult(await callGatewayTool("cron.remove", gatewayOpts, { id }));
+          await assertMainSessionJobAllowed({
+            access,
+            jobId: id,
+            gatewayOpts,
+            scopedAgentId,
+          });
+          return jsonResult(
+            await callGatewayTool("cron.remove", gatewayOpts, {
+              id,
+              ...(scopedAgentId ? { actorAgentId: scopedAgentId } : {}),
+            }),
+          );
         }
         case "run": {
           const id = readStringParam(params, "jobId") ?? readStringParam(params, "id");
           if (!id) {
             throw new Error("jobId required (id accepted for backward compatibility)");
           }
-          return jsonResult(await callGatewayTool("cron.run", gatewayOpts, { id }));
+          if (access.restricted) {
+            const needsMainSessionCheck = !access.policy.allowMainSessionJobs;
+            const needsDeliveryCheck = access.policy.delivery !== "explicit";
+            if (needsMainSessionCheck || needsDeliveryCheck) {
+              const jobRecord = await resolveJobRecord({
+                jobId: id,
+                gatewayOpts,
+                scopedAgentId,
+              });
+              if (needsMainSessionCheck) {
+                await assertMainSessionJobAllowed({
+                  access,
+                  jobId: id,
+                  gatewayOpts,
+                  scopedAgentId,
+                  jobRecord,
+                });
+              }
+              if (needsDeliveryCheck) {
+                assertDeliveryPolicy(access.policy, jobPayload(jobRecord ?? {}));
+              }
+            }
+          }
+          return jsonResult(
+            await callGatewayTool("cron.run", gatewayOpts, {
+              id,
+              ...(scopedAgentId ? { actorAgentId: scopedAgentId } : {}),
+            }),
+          );
         }
         case "runs": {
           const id = readStringParam(params, "jobId") ?? readStringParam(params, "id");
           if (!id) {
             throw new Error("jobId required (id accepted for backward compatibility)");
           }
-          return jsonResult(await callGatewayTool("cron.runs", gatewayOpts, { id }));
+          await assertMainSessionJobAllowed({
+            access,
+            jobId: id,
+            gatewayOpts,
+            scopedAgentId,
+          });
+          return jsonResult(
+            await callGatewayTool("cron.runs", gatewayOpts, {
+              id,
+              ...(scopedAgentId ? { actorAgentId: scopedAgentId } : {}),
+            }),
+          );
         }
         case "wake": {
           const text = readStringParam(params, "text", { required: true });
@@ -278,6 +540,9 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
             params.mode === "now" || params.mode === "next-heartbeat"
               ? params.mode
               : "next-heartbeat";
+          if (access.restricted && !access.policy.allowMainSessionJobs) {
+            throw new Error("sandboxed cron cannot send wake events to main sessions");
+          }
           return jsonResult(
             await callGatewayTool("wake", gatewayOpts, { mode, text }, { expectFinal: false }),
           );

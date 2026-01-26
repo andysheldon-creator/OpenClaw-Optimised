@@ -3,6 +3,31 @@ import { afterAll, afterEach, beforeEach, vi } from "vitest";
 // Ensure Vitest environment is properly set
 process.env.VITEST = "true";
 
+// Optional dependency in e2e boot path; mock to avoid module resolution failures.
+vi.mock("node-edge-tts", () => ({
+  EdgeTTS: class {
+    async ttsPromise(_text: string, _outputPath: string) {
+      return;
+    }
+  },
+}));
+
+vi.mock("@line/bot-sdk", () => ({
+  messagingApi: {
+    MessagingApiClient: class {
+      constructor(_opts: unknown) {}
+      async getBotInfo() {
+        return {
+          displayName: "mock",
+          userId: "mock",
+          basicId: "mock",
+          pictureUrl: "mock",
+        };
+      }
+    },
+  },
+}));
+
 import type {
   ChannelId,
   ChannelOutboundAdapter,

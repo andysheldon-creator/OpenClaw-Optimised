@@ -7,6 +7,7 @@ import type {
 import type { ChannelId } from "../channels/plugins/types.js";
 import type {
   SandboxBrowserSettings,
+  SandboxCronSettings,
   SandboxDockerSettings,
   SandboxPruneSettings,
 } from "./types.sandbox.js";
@@ -234,6 +235,8 @@ export type AgentDefaultsConfig = {
     browser?: SandboxBrowserSettings;
     /** Auto-prune sandbox containers. */
     prune?: SandboxPruneSettings;
+    /** Cron access policy for sandboxed sessions. */
+    cron?: SandboxCronSettings;
   };
 };
 

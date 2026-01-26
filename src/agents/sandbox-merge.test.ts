@@ -124,4 +124,35 @@ describe("sandbox config merges", () => {
     });
     expect(pruneShared).toEqual({ idleHours: 24, maxAgeDays: 7 });
   });
+
+  it("merges sandbox cron policy (agent overrides global)", async () => {
+    const { resolveSandboxCronConfig } = await import("./sandbox.js");
+
+    const resolved = resolveSandboxCronConfig({
+      globalCron: {
+        visibility: "all",
+        escape: "elevated",
+        allowMainSessionJobs: true,
+        delivery: "explicit",
+      },
+      agentCron: {
+        visibility: "agent",
+        escape: "off",
+      },
+    });
+
+    expect(resolved).toEqual({
+      visibility: "agent",
+      escape: "off",
+      allowMainSessionJobs: true,
+      delivery: "explicit",
+    });
+  });
+
+  it("uses default cron policy when none provided", async () => {
+    const { resolveSandboxCronConfig } = await import("./sandbox.js");
+    const { DEFAULT_SANDBOX_CRON_POLICY } = await import("./sandbox/constants.js");
+
+    expect(resolveSandboxCronConfig({})).toEqual(DEFAULT_SANDBOX_CRON_POLICY);
+  });
 });

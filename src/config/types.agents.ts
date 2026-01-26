@@ -3,6 +3,7 @@ import type { HumanDelayConfig, IdentityConfig } from "./types.base.js";
 import type { GroupChatConfig } from "./types.messages.js";
 import type {
   SandboxBrowserSettings,
+  SandboxCronSettings,
   SandboxDockerSettings,
   SandboxPruneSettings,
 } from "./types.sandbox.js";
@@ -58,6 +59,8 @@ export type AgentConfig = {
     browser?: SandboxBrowserSettings;
     /** Auto-prune overrides for this agent. */
     prune?: SandboxPruneSettings;
+    /** Cron access policy for sandboxed sessions. */
+    cron?: SandboxCronSettings;
   };
   tools?: AgentToolsConfig;
 };

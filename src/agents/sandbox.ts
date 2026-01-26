@@ -1,6 +1,7 @@
 export {
   resolveSandboxBrowserConfig,
   resolveSandboxConfigForAgent,
+  resolveSandboxCronConfig,
   resolveSandboxDockerConfig,
   resolveSandboxPruneConfig,
   resolveSandboxScope,
@@ -32,6 +33,7 @@ export type {
   SandboxBrowserConfig,
   SandboxBrowserContext,
   SandboxConfig,
+  SandboxCronPolicy,
   SandboxContext,
   SandboxDockerConfig,
   SandboxPruneConfig,

@@ -37,9 +37,15 @@ export const DEFAULT_TOOL_DENY = [
   ...CHANNEL_IDS,
 ] as const;
 
+export const DEFAULT_SANDBOX_CRON_POLICY = {
+  visibility: "agent",
+  escape: "off",
+  allowMainSessionJobs: false,
+  delivery: "last-only",
+} as const;
+
 export const DEFAULT_SANDBOX_BROWSER_IMAGE = "moltbot-sandbox-browser:bookworm-slim";
 export const DEFAULT_SANDBOX_COMMON_IMAGE = "moltbot-sandbox-common:bookworm-slim";
-
 export const DEFAULT_SANDBOX_BROWSER_PREFIX = "moltbot-sbx-browser-";
 export const DEFAULT_SANDBOX_BROWSER_CDP_PORT = 9222;
 export const DEFAULT_SANDBOX_BROWSER_VNC_PORT = 5900;

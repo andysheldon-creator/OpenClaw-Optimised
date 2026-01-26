@@ -1,12 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const callGatewayMock = vi.fn();
+const resolveSandboxRuntimeStatusMock = vi.fn(() => ({ sandboxed: false, agentId: "agent-123" }));
+const resolveSandboxConfigForAgentMock = vi.fn(() => ({
+  cron: {
+    visibility: "agent",
+    escape: "off",
+    allowMainSessionJobs: false,
+    delivery: "last-only",
+  },
+}));
+const loadSessionStoreMock = vi.fn(() => ({}));
+const resolveStorePathMock = vi.fn(() => "/tmp/clawdbot-sessions.json");
+
 vi.mock("../../gateway/call.js", () => ({
   callGateway: (opts: unknown) => callGatewayMock(opts),
 }));
 
-vi.mock("../agent-scope.js", () => ({
-  resolveSessionAgentId: () => "agent-123",
+vi.mock("../sandbox/runtime-status.js", () => ({
+  resolveSandboxRuntimeStatus: (opts: unknown) => resolveSandboxRuntimeStatusMock(opts),
+}));
+
+vi.mock("../sandbox/config.js", () => ({
+  resolveSandboxConfigForAgent: (cfg: unknown, agentId?: string) =>
+    resolveSandboxConfigForAgentMock(cfg, agentId),
+}));
+
+vi.mock("../../config/sessions.js", () => ({
+  loadSessionStore: (path?: string) => loadSessionStoreMock(path),
+  resolveStorePath: (cfg: unknown, opts?: unknown) => resolveStorePathMock(cfg, opts),
 }));
 
 import { createCronTool } from "./cron-tool.js";
@@ -15,6 +37,21 @@ describe("cron tool", () => {
   beforeEach(() => {
     callGatewayMock.mockReset();
     callGatewayMock.mockResolvedValue({ ok: true });
+    resolveSandboxRuntimeStatusMock.mockReset();
+    resolveSandboxRuntimeStatusMock.mockReturnValue({ sandboxed: false, agentId: "agent-123" });
+    resolveSandboxConfigForAgentMock.mockReset();
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "off",
+        allowMainSessionJobs: false,
+        delivery: "last-only",
+      },
+    });
+    loadSessionStoreMock.mockReset();
+    loadSessionStoreMock.mockReturnValue({});
+    resolveStorePathMock.mockReset();
+    resolveStorePathMock.mockReturnValue("/tmp/clawdbot-sessions.json");
   });
 
   it.each([
@@ -230,5 +267,536 @@ describe("cron tool", () => {
     };
     expect(call.method).toBe("cron.add");
     expect(call.params?.agentId).toBeNull();
+  });
+
+  it("scopes list for sandboxed agents when visibility=agent", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+    await tool.execute("call7", { action: "list" });
+
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+      params?: unknown;
+    };
+    expect(call.method).toBe("cron.list");
+    expect(call.params).toEqual({ includeDisabled: false, actorAgentId: "agent-123" });
+  });
+
+  it("skips actor scoping when sandbox escape is elevated", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "elevated",
+        allowMainSessionJobs: false,
+        delivery: "last-only",
+      },
+    });
+    loadSessionStoreMock.mockReturnValue({
+      "sess-1": { elevatedLevel: "on" },
+    });
+
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+    await tool.execute("call8", { action: "list" });
+
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      params?: unknown;
+    };
+    expect(call.params).toEqual({ includeDisabled: false });
+  });
+
+  it("keeps actor scoping when escape is elevated-full but elevated is on", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "elevated-full",
+        allowMainSessionJobs: false,
+        delivery: "last-only",
+      },
+    });
+    loadSessionStoreMock.mockReturnValue({
+      "sess-1": { elevatedLevel: "on" },
+    });
+
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+    await tool.execute("call8b", { action: "list" });
+
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      params?: unknown;
+    };
+    expect(call.params).toEqual({ includeDisabled: false, actorAgentId: "agent-123" });
+  });
+
+  it("skips actor scoping when escape is elevated-full and elevated is full", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "elevated-full",
+        allowMainSessionJobs: false,
+        delivery: "last-only",
+      },
+    });
+    loadSessionStoreMock.mockReturnValue({
+      "sess-1": { elevatedLevel: "full" },
+    });
+
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+    await tool.execute("call8c", { action: "list" });
+
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      params?: unknown;
+    };
+    expect(call.params).toEqual({ includeDisabled: false });
+  });
+
+  it("blocks main session cron jobs for sandboxed agents", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await expect(
+      tool.execute("call9", {
+        action: "add",
+        job: {
+          name: "main",
+          schedule: { atMs: 123 },
+          sessionTarget: "main",
+          payload: { kind: "systemEvent", text: "hello" },
+        },
+      }),
+    ).rejects.toThrow("sandboxed cron jobs cannot target main sessions");
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("allows main session cron jobs when allowMainSessionJobs is true", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "off",
+        allowMainSessionJobs: true,
+        delivery: "last-only",
+      },
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await tool.execute("call-main-allowed", {
+      action: "add",
+      job: {
+        name: "main",
+        schedule: { atMs: 123 },
+        sessionTarget: "main",
+        payload: { kind: "systemEvent", text: "hello" },
+      },
+    });
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+    };
+    expect(call.method).toBe("cron.add");
+  });
+
+  it("allows wake when allowMainSessionJobs is true", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "off",
+        allowMainSessionJobs: true,
+        delivery: "last-only",
+      },
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await tool.execute("call-wake-allowed", {
+      action: "wake",
+      text: "wake up",
+    });
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+    };
+    expect(call.method).toBe("wake");
+  });
+
+  it("blocks updates to main session cron jobs when patch omits sessionTarget", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    callGatewayMock.mockResolvedValueOnce({
+      jobs: [{ id: "job-1", sessionTarget: "main", agentId: "agent-123" }],
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await expect(
+      tool.execute("call-update-main", {
+        action: "update",
+        jobId: "job-1",
+        patch: { name: "updated" },
+      }),
+    ).rejects.toThrow("sandboxed cron jobs cannot target main sessions");
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+      params?: unknown;
+    };
+    expect(call.method).toBe("cron.list");
+    expect(call.params).toEqual({ includeDisabled: true, actorAgentId: "agent-123" });
+  });
+
+  it.each(["remove", "run", "runs"])(
+    "blocks %s for main session cron jobs when disallowed",
+    async (action) => {
+      resolveSandboxRuntimeStatusMock.mockReturnValue({
+        sandboxed: true,
+        agentId: "agent-123",
+      });
+      callGatewayMock.mockResolvedValueOnce({
+        jobs: [{ id: "job-1", sessionTarget: "main", agentId: "agent-123" }],
+      });
+      const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+      await expect(
+        tool.execute("call-main", {
+          action,
+          jobId: "job-1",
+        }),
+      ).rejects.toThrow("sandboxed cron jobs cannot target main sessions");
+
+      expect(callGatewayMock).toHaveBeenCalledTimes(1);
+      const call = callGatewayMock.mock.calls[0]?.[0] as {
+        method?: string;
+        params?: unknown;
+      };
+      expect(call.method).toBe("cron.list");
+      expect(call.params).toEqual({ includeDisabled: true, actorAgentId: "agent-123" });
+    },
+  );
+
+  it("rejects cross-agent cron jobs for sandboxed agents", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await expect(
+      tool.execute("call10", {
+        action: "add",
+        job: {
+          name: "other",
+          schedule: { atMs: 123 },
+          sessionTarget: "isolated",
+          agentId: "other-agent",
+          payload: { kind: "agentTurn", message: "hi" },
+        },
+      }),
+    ).rejects.toThrow("cron agentId must match the sandboxed agent");
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("allows cross-agent cron jobs when visibility=all", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "all",
+        escape: "off",
+        allowMainSessionJobs: false,
+        delivery: "last-only",
+      },
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await tool.execute("call10b", {
+      action: "add",
+      job: {
+        name: "other",
+        schedule: { atMs: 123 },
+        sessionTarget: "isolated",
+        agentId: "other-agent",
+        payload: { kind: "agentTurn", message: "hi" },
+      },
+    });
+
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+      params?: { agentId?: unknown };
+    };
+    expect(call.method).toBe("cron.add");
+    expect(call.params?.agentId).toBe("other-agent");
+  });
+
+  it("rejects agentId mismatch on update for sandboxed agents", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await expect(
+      tool.execute("call-update-agent-mismatch", {
+        action: "update",
+        jobId: "job-1",
+        patch: { agentId: "other-agent" },
+      }),
+    ).rejects.toThrow("cron agentId must match the sandboxed agent");
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+      params?: unknown;
+    };
+    expect(call.method).toBe("cron.list");
+    expect(call.params).toEqual({ includeDisabled: true, actorAgentId: "agent-123" });
+  });
+
+  it("enforces delivery restrictions for sandboxed agents", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "off",
+        allowMainSessionJobs: true,
+        delivery: "off",
+      },
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await expect(
+      tool.execute("call11", {
+        action: "add",
+        job: {
+          name: "deliver",
+          schedule: { atMs: 123 },
+          sessionTarget: "isolated",
+          payload: { kind: "agentTurn", message: "hi", deliver: true },
+        },
+      }),
+    ).rejects.toThrow("cron delivery is disabled for sandboxed sessions");
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("allows explicit delivery for sandboxed agents when policy is explicit", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "off",
+        allowMainSessionJobs: true,
+        delivery: "explicit",
+      },
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await tool.execute("call-explicit", {
+      action: "add",
+      job: {
+        name: "deliver",
+        schedule: { atMs: 123 },
+        sessionTarget: "isolated",
+        payload: {
+          kind: "agentTurn",
+          message: "hi",
+          deliver: true,
+          channel: "sms",
+          to: "555-1212",
+        },
+      },
+    });
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+    };
+    expect(call.method).toBe("cron.add");
+  });
+
+  it("allows last-only delivery when channel is last", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "off",
+        allowMainSessionJobs: true,
+        delivery: "last-only",
+      },
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await tool.execute("call-last-only", {
+      action: "add",
+      job: {
+        name: "deliver",
+        schedule: { atMs: 123 },
+        sessionTarget: "isolated",
+        payload: {
+          kind: "agentTurn",
+          message: "hi",
+          deliver: true,
+          channel: "last",
+        },
+      },
+    });
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+    };
+    expect(call.method).toBe("cron.add");
+  });
+
+  it("rejects run when delivery is disabled for sandboxed agents", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "off",
+        allowMainSessionJobs: true,
+        delivery: "off",
+      },
+    });
+    callGatewayMock.mockResolvedValueOnce({
+      jobs: [
+        {
+          id: "job-1",
+          sessionTarget: "isolated",
+          payload: { kind: "agentTurn", message: "hi", deliver: true },
+        },
+      ],
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await expect(
+      tool.execute("call-run-delivery-off", {
+        action: "run",
+        jobId: "job-1",
+      }),
+    ).rejects.toThrow("cron delivery is disabled for sandboxed sessions");
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+      params?: unknown;
+    };
+    expect(call.method).toBe("cron.list");
+    expect(call.params).toEqual({ includeDisabled: true, actorAgentId: "agent-123" });
+  });
+
+  it("rejects run when delivery is restricted to last route", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    resolveSandboxConfigForAgentMock.mockReturnValue({
+      cron: {
+        visibility: "agent",
+        escape: "off",
+        allowMainSessionJobs: true,
+        delivery: "last-only",
+      },
+    });
+    callGatewayMock.mockResolvedValueOnce({
+      jobs: [
+        {
+          id: "job-2",
+          sessionTarget: "isolated",
+          payload: { kind: "agentTurn", message: "hi", channel: "sms" },
+        },
+      ],
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await expect(
+      tool.execute("call-run-last-only", {
+        action: "run",
+        jobId: "job-2",
+      }),
+    ).rejects.toThrow("cron delivery channel is restricted to last route");
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+      params?: unknown;
+    };
+    expect(call.method).toBe("cron.list");
+    expect(call.params).toEqual({ includeDisabled: true, actorAgentId: "agent-123" });
+  });
+
+  it("adds actorAgentId on update for sandboxed agents", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+    await tool.execute("call12", {
+      action: "update",
+      jobId: "job-1",
+      patch: { name: "updated" },
+    });
+
+    const call = callGatewayMock.mock.calls.at(-1)?.[0] as {
+      params?: unknown;
+    };
+    expect(call.params).toEqual({
+      id: "job-1",
+      patch: { name: "updated" },
+      actorAgentId: "agent-123",
+    });
+  });
+
+  it("blocks wake for sandboxed agents when main session jobs are disallowed", async () => {
+    resolveSandboxRuntimeStatusMock.mockReturnValue({
+      sandboxed: true,
+      agentId: "agent-123",
+    });
+    const tool = createCronTool({ agentSessionKey: "sess-1" });
+
+    await expect(
+      tool.execute("call13", {
+        action: "wake",
+        text: "wake up",
+      }),
+    ).rejects.toThrow("sandboxed cron cannot send wake events to main sessions");
+    expect(callGatewayMock).not.toHaveBeenCalled();
   });
 });

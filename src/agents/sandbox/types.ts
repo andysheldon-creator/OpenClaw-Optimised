@@ -48,6 +48,13 @@ export type SandboxPruneConfig = {
 
 export type SandboxScope = "session" | "agent" | "shared";
 
+export type SandboxCronPolicy = {
+  visibility: "agent" | "all";
+  escape: "off" | "elevated" | "elevated-full";
+  allowMainSessionJobs: boolean;
+  delivery: "off" | "last-only" | "explicit";
+};
+
 export type SandboxConfig = {
   mode: "off" | "non-main" | "all";
   scope: SandboxScope;
@@ -57,6 +64,7 @@ export type SandboxConfig = {
   browser: SandboxBrowserConfig;
   tools: SandboxToolPolicy;
   prune: SandboxPruneConfig;
+  cron: SandboxCronPolicy;
 };
 
 export type SandboxBrowserContext = {

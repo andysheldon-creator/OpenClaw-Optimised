@@ -359,4 +359,138 @@ describe("gateway server cron", () => {
       }
     }
   }, 45_000);
+
+  test("scopes cron jobs with actorAgentId", async () => {
+    const prevSkipCron = process.env.CLAWDBOT_SKIP_CRON;
+    process.env.CLAWDBOT_SKIP_CRON = "0";
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-gw-cron-actor-"));
+    testState.cronStorePath = path.join(dir, "cron", "jobs.json");
+    testState.sessionConfig = { mainKey: "primary" };
+    testState.cronEnabled = false;
+    await fs.mkdir(path.dirname(testState.cronStorePath), { recursive: true });
+    await fs.writeFile(testState.cronStorePath, JSON.stringify({ version: 1, jobs: [] }));
+
+    const { server, ws } = await startServerWithClient();
+    await connectOk(ws);
+
+    try {
+      const alphaRes = await rpcReq(ws, "cron.add", {
+        name: "alpha",
+        enabled: true,
+        actorAgentId: " ALPHA ",
+        schedule: { kind: "every", everyMs: 60_000 },
+        sessionTarget: "main",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "systemEvent", text: "alpha" },
+      });
+      expect(alphaRes.ok).toBe(true);
+      const alphaPayload = alphaRes.payload as { id?: unknown; agentId?: unknown } | null;
+      const alphaJobIdValue = alphaPayload?.id;
+      const alphaJobId = typeof alphaJobIdValue === "string" ? alphaJobIdValue : "";
+      expect(alphaJobId.length > 0).toBe(true);
+      expect(alphaPayload?.agentId).toBe("alpha");
+
+      const betaRes = await rpcReq(ws, "cron.add", {
+        name: "beta",
+        enabled: true,
+        agentId: "beta",
+        schedule: { kind: "every", everyMs: 60_000 },
+        sessionTarget: "main",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "systemEvent", text: "beta" },
+      });
+      expect(betaRes.ok).toBe(true);
+      const betaJobIdValue = (betaRes.payload as { id?: unknown } | null)?.id;
+      const betaJobId = typeof betaJobIdValue === "string" ? betaJobIdValue : "";
+      expect(betaJobId.length > 0).toBe(true);
+
+      const alphaNullRes = await rpcReq(ws, "cron.add", {
+        name: "alpha-null",
+        enabled: true,
+        actorAgentId: "alpha",
+        agentId: null,
+        schedule: { kind: "every", everyMs: 60_000 },
+        sessionTarget: "main",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "systemEvent", text: "alpha-null" },
+      });
+      expect(alphaNullRes.ok).toBe(true);
+      const alphaNullPayload = alphaNullRes.payload as { agentId?: unknown } | null;
+      expect(alphaNullPayload?.agentId).toBe("alpha");
+
+      const listAll = await rpcReq(ws, "cron.list", { includeDisabled: true });
+      expect(listAll.ok).toBe(true);
+      const allJobs = (listAll.payload as { jobs?: unknown } | null)?.jobs;
+      expect(Array.isArray(allJobs)).toBe(true);
+      expect((allJobs as unknown[]).length).toBe(3);
+
+      const listAlpha = await rpcReq(ws, "cron.list", {
+        includeDisabled: true,
+        actorAgentId: "alpha",
+      });
+      expect(listAlpha.ok).toBe(true);
+      const alphaJobs = (listAlpha.payload as { jobs?: unknown } | null)?.jobs;
+      expect(Array.isArray(alphaJobs)).toBe(true);
+      expect((alphaJobs as unknown[]).length).toBe(2);
+      expect(
+        (alphaJobs as Array<{ agentId?: unknown }>).every((job) => job.agentId === "alpha"),
+      ).toBe(true);
+
+      const addMismatch = await rpcReq(ws, "cron.add", {
+        name: "mismatch",
+        enabled: true,
+        agentId: "beta",
+        actorAgentId: "alpha",
+        schedule: { kind: "every", everyMs: 60_000 },
+        sessionTarget: "main",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "systemEvent", text: "mismatch" },
+      });
+      expect(addMismatch.ok).toBe(false);
+      expect(addMismatch.error?.message ?? "").toContain("not visible");
+
+      const updateWrong = await rpcReq(ws, "cron.update", {
+        id: betaJobId,
+        actorAgentId: "alpha",
+        patch: { name: "oops" },
+      });
+      expect(updateWrong.ok).toBe(false);
+      expect(updateWrong.error?.message ?? "").toContain("not visible");
+
+      const runWrong = await rpcReq(ws, "cron.run", {
+        id: betaJobId,
+        mode: "force",
+        actorAgentId: "alpha",
+      });
+      expect(runWrong.ok).toBe(false);
+      expect(runWrong.error?.message ?? "").toContain("not visible");
+
+      const removeWrong = await rpcReq(ws, "cron.remove", {
+        id: betaJobId,
+        actorAgentId: "alpha",
+      });
+      expect(removeWrong.ok).toBe(false);
+      expect(removeWrong.error?.message ?? "").toContain("not visible");
+
+      const runsWrong = await rpcReq(ws, "cron.runs", {
+        id: betaJobId,
+        limit: 5,
+        actorAgentId: "alpha",
+      });
+      expect(runsWrong.ok).toBe(false);
+      expect(runsWrong.error?.message ?? "").toContain("not visible");
+    } finally {
+      ws.close();
+      await server.close();
+      await rmTempDir(dir);
+      testState.cronStorePath = undefined;
+      testState.sessionConfig = undefined;
+      testState.cronEnabled = undefined;
+      if (prevSkipCron === undefined) {
+        delete process.env.CLAWDBOT_SKIP_CRON;
+      } else {
+        process.env.CLAWDBOT_SKIP_CRON = prevSkipCron;
+      }
+    }
+  });
 });

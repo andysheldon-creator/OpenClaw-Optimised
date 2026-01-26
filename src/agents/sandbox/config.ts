@@ -11,6 +11,7 @@ import {
   DEFAULT_SANDBOX_IDLE_HOURS,
   DEFAULT_SANDBOX_IMAGE,
   DEFAULT_SANDBOX_MAX_AGE_DAYS,
+  DEFAULT_SANDBOX_CRON_POLICY,
   DEFAULT_SANDBOX_WORKDIR,
   DEFAULT_SANDBOX_WORKSPACE_ROOT,
 } from "./constants.js";
@@ -21,6 +22,7 @@ import type {
   SandboxDockerConfig,
   SandboxPruneConfig,
   SandboxScope,
+  SandboxCronPolicy,
 } from "./types.js";
 
 export function resolveSandboxScope(params: {
@@ -121,6 +123,24 @@ export function resolveSandboxPruneConfig(params: {
   };
 }
 
+export function resolveSandboxCronConfig(params: {
+  globalCron?: Partial<SandboxCronPolicy>;
+  agentCron?: Partial<SandboxCronPolicy>;
+}): SandboxCronPolicy {
+  const agentCron = params.agentCron;
+  const globalCron = params.globalCron;
+  return {
+    visibility:
+      agentCron?.visibility ?? globalCron?.visibility ?? DEFAULT_SANDBOX_CRON_POLICY.visibility,
+    escape: agentCron?.escape ?? globalCron?.escape ?? DEFAULT_SANDBOX_CRON_POLICY.escape,
+    allowMainSessionJobs:
+      agentCron?.allowMainSessionJobs ??
+      globalCron?.allowMainSessionJobs ??
+      DEFAULT_SANDBOX_CRON_POLICY.allowMainSessionJobs,
+    delivery: agentCron?.delivery ?? globalCron?.delivery ?? DEFAULT_SANDBOX_CRON_POLICY.delivery,
+  };
+}
+
 export function resolveSandboxConfigForAgent(cfg?: MoltbotConfig, agentId?: string): SandboxConfig {
   const agent = cfg?.agents?.defaults?.sandbox;
 
@@ -162,6 +182,10 @@ export function resolveSandboxConfigForAgent(cfg?: MoltbotConfig, agentId?: stri
       scope,
       globalPrune: agent?.prune,
       agentPrune: agentSandbox?.prune,
+    }),
+    cron: resolveSandboxCronConfig({
+      globalCron: agent?.cron,
+      agentCron: agentSandbox?.cron,
     }),
   };
 }

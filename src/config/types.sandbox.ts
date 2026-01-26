@@ -73,3 +73,35 @@ export type SandboxPruneSettings = {
   /** Prune if older than N days (0 disables). */
   maxAgeDays?: number;
 };
+
+export type SandboxCronVisibility = "agent" | "all";
+export type SandboxCronEscape = "off" | "elevated" | "elevated-full";
+export type SandboxCronDelivery = "off" | "last-only" | "explicit";
+
+export type SandboxCronSettings = {
+  /**
+   * Cron visibility for sandboxed sessions.
+   * - "agent": only see/manage jobs for this agent
+   * - "all": full cron visibility (admin)
+   */
+  visibility?: SandboxCronVisibility;
+  /**
+   * Escape hatch for sandboxed cron access.
+   * - "off": never escape
+   * - "elevated": allow escape when session elevated != off
+   * - "elevated-full": allow escape only when elevated=full
+   */
+  escape?: SandboxCronEscape;
+  /**
+   * Allow main-session cron jobs from sandboxed sessions.
+   * Default: false.
+   */
+  allowMainSessionJobs?: boolean;
+  /**
+   * Delivery policy for sandboxed cron jobs.
+   * - "off": forbid deliver/to/channel
+   * - "last-only": allow deliver to last route only (no explicit to)
+   * - "explicit": allow explicit delivery targets
+   */
+  delivery?: SandboxCronDelivery;
+};
