@@ -9,10 +9,10 @@
 
 import { Type } from "@sinclair/typebox";
 
-import type { ClawdbotConfig } from "../../config/config.js";
-import { stringEnum } from "../schema/typebox.js";
-import type { AnyAgentTool } from "./common.js";
-import { imageResult, jsonResult, readNumberParam, readStringParam } from "./common.js";
+import type { ClawdbotConfig } from "../../src/config/config.js";
+import { stringEnum } from "../../src/agents/schema/typebox.js";
+import type { AnyAgentTool } from "../../src/agents/tools/common.js";
+import { imageResult, jsonResult, readNumberParam, readStringParam } from "../../src/agents/tools/common.js";
 import { ComputerServerClient, ComputerServerError } from "./computer-server-client.js";
 
 const COMPUTER_ACTIONS = [
