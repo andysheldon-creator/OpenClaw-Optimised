@@ -69,8 +69,15 @@ struct ClawdbotApp: App {
         .onChange(of: self.controlChannel.state) { _, _ in
             self.applyStatusItemAppearance(paused: self.state.isPaused, sleeping: self.isGatewaySleeping)
         }
-        .onChange(of: self.gatewayManager.status) { _, _ in
+        .onChange(of: self.gatewayManager.status) { _, newStatus in
             self.applyStatusItemAppearance(paused: self.state.isPaused, sleeping: self.isGatewaySleeping)
+            // Trigger ControlChannel reconnect when gateway becomes available
+            if case .running = newStatus, case .degraded = self.controlChannel.state {
+                Task { await self.controlChannel.refreshEndpoint(reason: "gateway-running") }
+            }
+            if case .attachedExisting = newStatus, case .degraded = self.controlChannel.state {
+                Task { await self.controlChannel.refreshEndpoint(reason: "gateway-attached") }
+            }
         }
         .onChange(of: self.state.connectionMode) { _, mode in
             Task { await ConnectionModeCoordinator.shared.apply(mode: mode, paused: self.state.isPaused) }
