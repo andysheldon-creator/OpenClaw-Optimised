@@ -7,6 +7,7 @@ import { resolveModelRefFromString } from "../../agents/model-selection.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../../agents/workspace.js";
 import { type ClawdbotConfig, loadConfig } from "../../config/config.js";
+import { deleteSessionEntry, resolveSessionTranscriptPath } from "../../config/sessions.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
 import type { MsgContext } from "../templating.js";
@@ -116,6 +117,7 @@ export async function getReplyFromConfig(
     sessionId,
     isNewSession,
     resetTriggered,
+    pruneRequested,
     systemSent,
     abortedLastRun,
     storePath,
@@ -125,6 +127,19 @@ export async function getReplyFromConfig(
     triggerBodyNormalized,
     bodyStripped,
   } = sessionState;
+
+  // Handle /reset prune - delete session entry and transcript, then return confirmation
+  if (resetTriggered && pruneRequested && previousSessionEntry) {
+    const transcriptPath = previousSessionEntry.sessionId
+      ? resolveSessionTranscriptPath(previousSessionEntry.sessionId, agentId)
+      : undefined;
+    await deleteSessionEntry({
+      storePath,
+      sessionKey,
+      transcriptPath,
+    });
+    return { text: "✅ Session pruned." };
+  }
 
   await applyResetModelOverride({
     cfg,

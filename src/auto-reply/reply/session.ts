@@ -43,6 +43,8 @@ export type SessionInitResult = {
   sessionId: string;
   isNewSession: boolean;
   resetTriggered: boolean;
+  /** When true, the session entry and transcript should be deleted after reset. */
+  pruneRequested: boolean;
   systemSent: boolean;
   abortedLastRun: boolean;
   storePath: string;
@@ -125,6 +127,7 @@ export async function initSessionState(params: {
   let systemSent = false;
   let abortedLastRun = false;
   let resetTriggered = false;
+  let pruneRequested = false;
 
   let persistedThinking: string | undefined;
   let persistedVerbose: string | undefined;
@@ -184,6 +187,12 @@ export async function initSessionState(params: {
       resetTriggered = true;
       break;
     }
+  }
+
+  // Check if prune was requested (e.g., "/reset prune")
+  if (resetTriggered && bodyStripped?.toLowerCase() === "prune") {
+    pruneRequested = true;
+    bodyStripped = ""; // Clear the body since "prune" is a directive, not a message
   }
 
   sessionKey = resolveSessionKey(sessionScope, sessionCtxForState, mainKey);
@@ -364,6 +373,7 @@ export async function initSessionState(params: {
     sessionId: sessionId ?? crypto.randomUUID(),
     isNewSession,
     resetTriggered,
+    pruneRequested,
     systemSent,
     abortedLastRun,
     storePath,

@@ -438,3 +438,46 @@ export async function updateLastRoute(params: {
     return next;
   });
 }
+
+/**
+ * Delete a session entry from the store and optionally remove its transcript file.
+ * Used by `/reset prune` to fully remove a session.
+ */
+export async function deleteSessionEntry(params: {
+  storePath: string;
+  sessionKey: string;
+  /** Path to the transcript file to delete (optional). */
+  transcriptPath?: string;
+}): Promise<{ deleted: boolean; transcriptDeleted: boolean }> {
+  const { storePath, sessionKey, transcriptPath } = params;
+  let deleted = false;
+  let transcriptDeleted = false;
+
+  await withSessionStoreLock(storePath, async () => {
+    const store = loadSessionStore(storePath, { skipCache: true });
+    if (sessionKey in store) {
+      delete store[sessionKey];
+      await saveSessionStoreUnlocked(storePath, store);
+      deleted = true;
+    }
+  });
+
+  // Delete transcript file outside the lock (it's a separate file)
+  if (transcriptPath) {
+    try {
+      await fs.promises.unlink(transcriptPath);
+      transcriptDeleted = true;
+    } catch (err) {
+      const code =
+        err && typeof err === "object" && "code" in err
+          ? String((err as { code?: unknown }).code)
+          : null;
+      // Ignore if file doesn't exist
+      if (code !== "ENOENT") {
+        throw err;
+      }
+    }
+  }
+
+  return { deleted, transcriptDeleted };
+}
