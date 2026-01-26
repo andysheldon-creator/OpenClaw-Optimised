@@ -1,0 +1,53 @@
+{
+  "id": "checkins",
+  "name": "Team Check-ins",
+  "description": "Manage team standup check-ins via Discord DM",
+  "uiHints": {
+    "enabled": {
+      "label": "Enable Check-ins",
+      "help": "Enable/disable the check-ins extension"
+    },
+    "defaultTimezone": {
+      "label": "Default Timezone",
+      "help": "IANA timezone for new members (e.g., America/New_York)"
+    },
+    "defaultCheckInTime": {
+      "label": "Default Check-in Time",
+      "help": "24-hour format time for daily check-ins (e.g., 17:00)"
+    },
+    "reminderDelayMinutes": {
+      "label": "Reminder Delay (minutes)",
+      "help": "Minutes to wait before sending reminder",
+      "advanced": true
+    },
+    "abandonAfterMinutes": {
+      "label": "Abandon After (minutes)",
+      "help": "Minutes after which to abandon incomplete check-in",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "defaultTimezone": {
+        "type": "string"
+      },
+      "defaultCheckInTime": {
+        "type": "string",
+        "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+      },
+      "reminderDelayMinutes": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "abandonAfterMinutes": {
+        "type": "integer",
+        "minimum": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@clawdbot/checkins",
+  "version": "2026.1.25",
+  "type": "module",
+  "description": "Team check-in management for Discord",
+  "scripts": {
+    "build": "esbuild index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:clawdbot --external:clawdbot/* --packages=external"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "0.34.47",
+    "chrono-node": "^2.9.0",
+    "discord-api-types": "^0.37.119",
+    "timezone-search": "^0.1.5",
+    "zod": "^4.3.6"
+  },
+  "clawdbot": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  }
+}
