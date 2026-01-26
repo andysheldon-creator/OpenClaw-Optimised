@@ -35,3 +35,4 @@ if [ -f "$HOME/.clawdbot/credentials/liam.env" ]; then
     source "$HOME/.clawdbot/credentials/liam.env"
 fi
 
+. "$HOME/.cargo/env"

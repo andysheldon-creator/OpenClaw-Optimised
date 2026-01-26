@@ -10,7 +10,7 @@ RestartSec=5
 KillMode=process
 Environment="ZAI_API_KEY=cd758fc4a3ca4b0ea8f46135680704a4.LtAZJxC4YHcQspJW"
 Environment=HOME=/home/liam
-Environment="PATH=/home/liam/.local/bin:/home/liam/.npm-global/bin:/home/liam/bin:/home/liam/.nvm/current/bin:/home/liam/.fnm/current/bin:/home/liam/.volta/bin:/home/liam/.asdf/shims:/home/liam/.local/share/pnpm:/home/liam/.bun/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PATH=/home/liam/.local/bin:/home/liam/.npm-global/bin:/home/liam/go-workspace/bin:/home/liam/.cargo/bin:/home/liam/bin:/home/liam/.nvm/current/bin:/home/liam/.fnm/current/bin:/home/liam/.volta/bin:/home/liam/.asdf/shims:/home/liam/.local/share/pnpm:/home/liam/.bun/bin:/usr/local/bin:/usr/bin:/bin"
 Environment=CLAWDBOT_GATEWAY_PORT=18789
 Environment=CLAWDBOT_GATEWAY_TOKEN=2a0785d4a8288ac2edfdf1a4b2bf21c130b35dc3997e695a
 Environment="CLAWDBOT_SYSTEMD_UNIT=clawdbot-gateway.service"

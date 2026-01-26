@@ -81,3 +81,31 @@ clawdbot.json
 .cursor/projects/*/agent-transcripts/
 .cursor/projects/*/assets/
 .cursor/projects/*/terminals/
+.cursor/projects/*/agent-tools/
+.cursor/plans/
+
+# Build tools and caches
+go/
+go-workspace/
+.cargo/
+.rustup/
+.npm/
+.cache/
+.config/pi/
+.config/go/
+.config/clawdhub/
+.clawdhub/
+.landscape/
+
+# Clawdbot models (large files)
+clawdbot/models/
+
+# APEX vault (separate repo)
+clawd/apex-vault/
+
+# ClawdHub installed skills (managed externally)
+skills/agent-browser/
+skills/auto-updater/
+skills/clawddocs/
+skills/self-improving-agent/
+skills/youtube-watcher/

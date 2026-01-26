@@ -117,3 +117,8 @@ if ! shopt -oq posix; then
 fi
 export PATH=$PATH:~/.local/node_modules/.bin
 export PATH="$HOME/.local/bin:$PATH"
+export PATH=$PATH:/home/liam/go/bin:$HOME/go/bin
+export GOROOT=/home/liam/go
+export GOPATH=/home/liam/go-workspace
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+. "$HOME/.cargo/env"
