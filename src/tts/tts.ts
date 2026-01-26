@@ -1283,9 +1283,8 @@ async function checkPocketHealth(baseUrl: string, timeoutMs: number): Promise<bo
     } finally {
       clearTimeout(timeout);
     }
-  } catch (err) {
-    // Only log on explicit check, not during polling (too noisy)
-    // logVerbose(`TTS: pocket health check failed: ${err instanceof Error ? err.message : err}`);
+  } catch {
+    // Swallow errors - server not reachable is expected when not running
     return false;
   }
 }
@@ -1392,7 +1391,9 @@ async function startPocketServer(config: ResolvedTtsConfig["pocket"]): Promise<b
       pocketLastFailure = Date.now();
       return false;
     } catch (err) {
-      logVerbose(`TTS: Failed to start pocket-tts: ${err instanceof Error ? err.message : err}`);
+      logVerbose(
+        `TTS: Failed to start pocket-tts: ${err instanceof Error ? err.message : String(err)}`,
+      );
       pocketLastFailure = Date.now();
       return false;
     } finally {
