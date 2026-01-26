@@ -26,7 +26,6 @@ import {
   MOONSHOT_DEFAULT_MODEL_ID,
   MOONSHOT_DEFAULT_MODEL_REF,
   CHUTES_BASE_URL,
-  CHUTES_DEFAULT_MODEL_ID,
   CHUTES_DEFAULT_MODEL_REF,
   buildChutesModelDefinition,
 } from "./onboard-auth.models.js";
@@ -210,36 +209,16 @@ export function applyChutesProviderConfig(cfg: ClawdbotConfig): ClawdbotConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[CHUTES_DEFAULT_MODEL_REF] = {
     ...models[CHUTES_DEFAULT_MODEL_REF],
-    alias: models[CHUTES_DEFAULT_MODEL_REF]?.alias ?? "GLM 4.6",
+    alias: models[CHUTES_DEFAULT_MODEL_REF]?.alias ?? "GLM 4.7 Flash",
   };
 
   const providers = { ...cfg.models?.providers };
   const existingProvider = providers.chutes;
-  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
-
-  const toolCapableModelIds = [
-    "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE",
-    "deepseek-ai/DeepSeek-V3.2-TEE",
-    "chutesai/Mistral-Small-3.1-24B-Instruct-2503",
-    "NousResearch/Hermes-4-14B",
-  ];
-
-  const defaultModel = buildChutesModelDefinition();
-  const toolModels = toolCapableModelIds.map((id) => buildChutesModelDefinition(id));
-
-  const allChutesModels = [defaultModel, ...toolModels];
-  const mergedModels = [...existingModels];
-
-  for (const model of allChutesModels) {
-    if (!mergedModels.some((m) => m.id === model.id)) {
-      mergedModels.push(model);
-    }
-  }
 
   const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
     string,
     unknown
-  > as { apiKey?: string };
+  > as { apiKey?: string; teeOnly?: boolean };
   const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
   const normalizedApiKey = resolvedApiKey?.trim();
   providers.chutes = {
@@ -247,7 +226,9 @@ export function applyChutesProviderConfig(cfg: ClawdbotConfig): ClawdbotConfig {
     baseUrl: CHUTES_BASE_URL,
     api: "openai-completions",
     ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
-    models: mergedModels,
+    // Models will be refreshed dynamically at startup,
+    // but we can pre-populate the default one for onboarding.
+    models: existingProvider?.models || [buildChutesModelDefinition()],
   };
 
   return {

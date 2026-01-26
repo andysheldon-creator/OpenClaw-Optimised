@@ -14,7 +14,7 @@ export const MOONSHOT_DEFAULT_CONTEXT_WINDOW = 256000;
 export const MOONSHOT_DEFAULT_MAX_TOKENS = 8192;
 
 export const CHUTES_BASE_URL = "https://llm.chutes.ai/v1";
-export const CHUTES_DEFAULT_MODEL_ID = "zai-org/GLM-4.6-TEE";
+export const CHUTES_DEFAULT_MODEL_ID = "zai-org/GLM-4.7-Flash";
 export const CHUTES_DEFAULT_MODEL_REF = `chutes/${CHUTES_DEFAULT_MODEL_ID}`;
 export const CHUTES_DEFAULT_CONTEXT_WINDOW = 128000;
 export const CHUTES_DEFAULT_MAX_TOKENS = 4096;
@@ -165,7 +165,7 @@ export function buildChutesModelDefinition(
   }
   return {
     id: CHUTES_DEFAULT_MODEL_ID,
-    name: "GLM 4.6 TEE",
+    name: "GLM 4.7 Flash",
     reasoning: false,
     input: ["text"],
     cost: CHUTES_DEFAULT_COST,

@@ -6,7 +6,9 @@ read_when:
 ---
 # Chutes AI
 
-Chutes provides high-performance inference for open-weight models, including GLM 4.6 TEE. Clawdbot supports Chutes via both OAuth and API key authentication.
+Chutes provides high-performance inference for open-weight models, including GLM 4.7 Flash. Clawdbot supports Chutes via both OAuth and API key authentication.
+
+Models are fetched dynamically from the Chutes API, ensuring you always have access to the latest models, accurate pricing, and context window limits.
 
 ## CLI setup
 
@@ -47,13 +49,14 @@ If you wish to use your own OAuth application instead of the default, set these 
 ```json5
 {
   env: { CHUTES_API_KEY: "sk-..." },
-  agents: { defaults: { model: { primary: "chutes/zai-org/GLM-4.6-TEE" } } },
+  agents: { defaults: { model: { primary: "chutes/zai-org/GLM-4.7-Flash" } } },
   models: {
     providers: {
       chutes: {
         baseUrl: "https://llm.chutes.ai/v1",
         api: "openai-completions",
-        apiKey: "${CHUTES_API_KEY}"
+        apiKey: "${CHUTES_API_KEY}",
+        teeOnly: false // Set to true to filter models by Trusted Execution Environment
       }
     }
   }
@@ -63,11 +66,12 @@ If you wish to use your own OAuth application instead of the default, set these 
 ## Notes
 
 - Chutes models are available under the `chutes/` provider prefix.
-- The default model is `chutes/zai-org/GLM-4.6-TEE`.
+- The default model is `chutes/zai-org/GLM-4.7-Flash`.
 - Chutes uses OpenAI-compatible endpoints.
+- **Trusted Execution Environment (TEE)**: Models running in a TEE are marked with a "TEE" badge in the model picker. You can filter for these models by setting `teeOnly: true` in your provider config.
 - Many top models on Chutes support tool calling, including:
-  - `Qwen/Qwen3-235B-A22B-Instruct-2507-TEE`
-  - `deepseek-ai/DeepSeek-V3.2-TEE`
+  - `Qwen/Qwen3-235B-A22B-Instruct-2507-TEE` (TEE)
+  - `deepseek-ai/DeepSeek-V3.2-TEE` (TEE)
   - `chutesai/Mistral-Small-3.1-24B-Instruct-2503`
   - `NousResearch/Hermes-4-14B`
 - For a full list of available models, see the [Chutes Models API](https://llm.chutes.ai/v1/models). Popular models include:

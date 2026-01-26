@@ -7,6 +7,7 @@ import {
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
 import { discoverBedrockModels } from "./bedrock-discovery.js";
+import { discoverChutesModels } from "./chutes-models.js";
 import {
   buildSyntheticModelDefinition,
   SYNTHETIC_BASE_URL,
@@ -42,15 +43,6 @@ const MOONSHOT_DEFAULT_COST = {
 };
 
 const CHUTES_BASE_URL = "https://llm.chutes.ai/v1";
-const CHUTES_DEFAULT_MODEL_ID = "zai-org/GLM-4.6-TEE";
-const CHUTES_DEFAULT_CONTEXT_WINDOW = 128000;
-const CHUTES_DEFAULT_MAX_TOKENS = 4096;
-const CHUTES_DEFAULT_COST = {
-  input: 0,
-  output: 0,
-  cacheRead: 0,
-  cacheWrite: 0,
-};
 
 const KIMI_CODE_BASE_URL = "https://api.kimi.com/coding/v1";
 const KIMI_CODE_MODEL_ID = "kimi-for-coding";
@@ -298,57 +290,13 @@ function buildMoonshotProvider(): ProviderConfig {
   };
 }
 
-function buildChutesProvider(): ProviderConfig {
+async function buildChutesProvider(opts?: { teeOnly?: boolean }): Promise<ProviderConfig> {
+  const models = await discoverChutesModels(opts);
   return {
     baseUrl: CHUTES_BASE_URL,
     api: "openai-completions",
-    models: [
-      {
-        id: CHUTES_DEFAULT_MODEL_ID,
-        name: "GLM 4.6 TEE",
-        reasoning: false,
-        input: ["text"],
-        cost: CHUTES_DEFAULT_COST,
-        contextWindow: CHUTES_DEFAULT_CONTEXT_WINDOW,
-        maxTokens: CHUTES_DEFAULT_MAX_TOKENS,
-      },
-      {
-        id: "Qwen/Qwen3-235B-A22B-Instruct-2507-TEE",
-        name: "Qwen 3 235B (Tools)",
-        reasoning: false,
-        input: ["text"],
-        cost: CHUTES_DEFAULT_COST,
-        contextWindow: 262144,
-        maxTokens: 4096,
-      },
-      {
-        id: "deepseek-ai/DeepSeek-V3.2-TEE",
-        name: "DeepSeek V3.2 (Tools)",
-        reasoning: false,
-        input: ["text"],
-        cost: CHUTES_DEFAULT_COST,
-        contextWindow: 202752,
-        maxTokens: 4096,
-      },
-      {
-        id: "chutesai/Mistral-Small-3.1-24B-Instruct-2503",
-        name: "Mistral Small 3.1 (Tools)",
-        reasoning: false,
-        input: ["text"],
-        cost: CHUTES_DEFAULT_COST,
-        contextWindow: 131072,
-        maxTokens: 4096,
-      },
-      {
-        id: "NousResearch/Hermes-4-14B",
-        name: "Hermes 4 14B (Tools)",
-        reasoning: false,
-        input: ["text"],
-        cost: CHUTES_DEFAULT_COST,
-        contextWindow: 40960,
-        maxTokens: 4096,
-      },
-    ],
+    models,
+    teeOnly: opts?.teeOnly,
   };
 }
 
@@ -451,7 +399,7 @@ export async function resolveImplicitProviders(params: {
     resolveEnvApiKeyVarName("chutes") ??
     resolveApiKeyFromProfiles({ provider: "chutes", store: authStore });
   if (chutesKey) {
-    providers.chutes = { ...buildChutesProvider(), apiKey: chutesKey };
+    providers.chutes = { ...(await buildChutesProvider()), apiKey: chutesKey };
   }
 
   const kimiCodeKey =
