@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { runCommandWithTimeout } from "../process/exec.js";
 import { parseSemver } from "./runtime-guard.js";
+import { safeFetch } from "./safe-fetch.js";
 import { channelToNpmTag, type UpdateChannel } from "./update-channels.js";
 
 export type PackageManager = "pnpm" | "bun" | "npm" | "unknown";
@@ -275,11 +276,18 @@ export async function checkDepsStatus(params: {
   };
 }
 
-async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  timeoutMs: number,
+): Promise<{ response: Response | null; error: string | null }> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), Math.max(250, timeoutMs));
   try {
-    return await fetch(url, { signal: ctrl.signal });
+    const result = await safeFetch(url, { signal: ctrl.signal });
+    if (!result.ok) {
+      return { response: null, error: result.message };
+    }
+    return { response: result.response, error: null };
   } finally {
     clearTimeout(t);
   }
@@ -301,15 +309,22 @@ export async function fetchNpmTagVersion(params: {
 }): Promise<NpmTagStatus> {
   const timeoutMs = params?.timeoutMs ?? 3500;
   const tag = params.tag;
+
+  const { response, error } = await fetchWithTimeout(
+    `https://registry.npmjs.org/clawdbot/${encodeURIComponent(tag)}`,
+    timeoutMs,
+  );
+
+  if (error || !response) {
+    return { tag, version: null, error: error ?? "No response" };
+  }
+
+  if (!response.ok) {
+    return { tag, version: null, error: `HTTP ${response.status}` };
+  }
+
   try {
-    const res = await fetchWithTimeout(
-      `https://registry.npmjs.org/clawdbot/${encodeURIComponent(tag)}`,
-      timeoutMs,
-    );
-    if (!res.ok) {
-      return { tag, version: null, error: `HTTP ${res.status}` };
-    }
-    const json = (await res.json()) as { version?: unknown };
+    const json = (await response.json()) as { version?: unknown };
     const version = typeof json?.version === "string" ? json.version : null;
     return { tag, version };
   } catch (err) {
