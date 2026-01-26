@@ -1,0 +1,11 @@
+{
+  "name": "@clawdbot/whoop",
+  "version": "2026.1.25",
+  "type": "module",
+  "description": "Clawdbot Whoop fitness plugin - access recovery, sleep, cycles, and workout data",
+  "clawdbot": {
+    "extensions": ["./index.ts"]
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

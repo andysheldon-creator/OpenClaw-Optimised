@@ -1,0 +1,31 @@
+{
+  "id": "whoop",
+  "name": "Whoop Fitness",
+  "description": "Query Whoop fitness data including recovery scores, sleep analysis, strain/cycle data, and workout tracking",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "clientId": {
+        "type": "string",
+        "description": "Whoop API OAuth Client ID"
+      },
+      "clientSecret": {
+        "type": "string",
+        "description": "Whoop API OAuth Client Secret"
+      }
+    },
+    "required": ["clientId", "clientSecret"]
+  },
+  "uiHints": {
+    "clientId": {
+      "label": "Whoop Client ID",
+      "placeholder": "Your Client ID from developer.whoop.com"
+    },
+    "clientSecret": {
+      "label": "Whoop Client Secret",
+      "sensitive": true,
+      "placeholder": "Your Client Secret from developer.whoop.com"
+    }
+  }
+}
