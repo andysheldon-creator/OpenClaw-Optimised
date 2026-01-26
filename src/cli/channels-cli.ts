@@ -38,6 +38,12 @@ const optionNamesAdd = [
   "webhookUrl",
   "audienceType",
   "audience",
+  "oauthClientId",
+  "oauthClientSecret",
+  "oauthRedirectUri",
+  "oauthClientFile",
+  "oauthRefreshToken",
+  "oauthRefreshTokenFile",
   "useEnv",
   "homeserver",
   "userId",
@@ -175,6 +181,12 @@ export function registerChannelsCli(program: Command) {
     .option("--webhook-url <url>", "Google Chat webhook URL")
     .option("--audience-type <type>", "Google Chat audience type (app-url|project-number)")
     .option("--audience <value>", "Google Chat audience value (app URL or project number)")
+    .option("--oauth-client-id <id>", "Google Chat OAuth client ID")
+    .option("--oauth-client-secret <secret>", "Google Chat OAuth client secret")
+    .option("--oauth-redirect-uri <uri>", "Google Chat OAuth redirect URI")
+    .option("--oauth-client-file <path>", "Google Chat OAuth client JSON file")
+    .option("--oauth-refresh-token <token>", "Google Chat OAuth refresh token")
+    .option("--oauth-refresh-token-file <path>", "Google Chat OAuth refresh token file")
     .option("--homeserver <url>", "Matrix homeserver URL")
     .option("--user-id <id>", "Matrix user ID")
     .option("--access-token <token>", "Matrix access token")

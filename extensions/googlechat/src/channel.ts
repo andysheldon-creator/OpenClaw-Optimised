@@ -149,6 +149,12 @@ export const googlechatPlugin: ChannelPlugin<ResolvedGoogleChatAccount> = {
         clearBaseFields: [
           "serviceAccount",
           "serviceAccountFile",
+          "oauthClientId",
+          "oauthClientSecret",
+          "oauthRedirectUri",
+          "oauthClientFile",
+          "oauthRefreshToken",
+          "oauthRefreshTokenFile",
           "audienceType",
           "audience",
           "webhookPath",
@@ -298,10 +304,28 @@ export const googlechatPlugin: ChannelPlugin<ResolvedGoogleChatAccount> = {
       }),
     validateInput: ({ accountId, input }) => {
       if (input.useEnv && accountId !== DEFAULT_ACCOUNT_ID) {
-        return "GOOGLE_CHAT_SERVICE_ACCOUNT env vars can only be used for the default account.";
+        return "Google Chat env credentials can only be used for the default account.";
       }
-      if (!input.useEnv && !input.token && !input.tokenFile) {
-        return "Google Chat requires --token (service account JSON) or --token-file.";
+      const hasServiceAccount = Boolean(input.token || input.tokenFile);
+      const hasOauthInput = Boolean(
+        input.oauthClientId ||
+          input.oauthClientSecret ||
+          input.oauthRedirectUri ||
+          input.oauthClientFile ||
+          input.oauthRefreshToken ||
+          input.oauthRefreshTokenFile,
+      );
+      if (!input.useEnv && !hasServiceAccount && !hasOauthInput) {
+        return "Google Chat requires service account JSON or OAuth credentials.";
+      }
+      if (hasOauthInput) {
+        const hasClient =
+          Boolean(input.oauthClientFile) ||
+          (Boolean(input.oauthClientId) && Boolean(input.oauthClientSecret));
+        const hasRefresh = Boolean(input.oauthRefreshToken || input.oauthRefreshTokenFile);
+        if (!hasClient || !hasRefresh) {
+          return "Google Chat OAuth requires client id/secret (or --oauth-client-file) and a refresh token.";
+        }
       }
       return null;
     },
@@ -326,12 +350,24 @@ export const googlechatPlugin: ChannelPlugin<ResolvedGoogleChatAccount> = {
           : input.token
             ? { serviceAccount: input.token }
             : {};
+      const oauthClientId = input.oauthClientId?.trim();
+      const oauthClientSecret = input.oauthClientSecret?.trim();
+      const oauthRedirectUri = input.oauthRedirectUri?.trim();
+      const oauthClientFile = input.oauthClientFile?.trim();
+      const oauthRefreshToken = input.oauthRefreshToken?.trim();
+      const oauthRefreshTokenFile = input.oauthRefreshTokenFile?.trim();
       const audienceType = input.audienceType?.trim();
       const audience = input.audience?.trim();
       const webhookPath = input.webhookPath?.trim();
       const webhookUrl = input.webhookUrl?.trim();
       const configPatch = {
         ...patch,
+        ...(oauthClientId ? { oauthClientId } : {}),
+        ...(oauthClientSecret ? { oauthClientSecret } : {}),
+        ...(oauthRedirectUri ? { oauthRedirectUri } : {}),
+        ...(oauthClientFile ? { oauthClientFile } : {}),
+        ...(oauthRefreshToken ? { oauthRefreshToken } : {}),
+        ...(oauthRefreshTokenFile ? { oauthRefreshTokenFile } : {}),
         ...(audienceType ? { audienceType } : {}),
         ...(audience ? { audience } : {}),
         ...(webhookPath ? { webhookPath } : {}),

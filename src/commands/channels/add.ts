@@ -36,6 +36,12 @@ export type ChannelsAddOptions = {
   webhookUrl?: string;
   audienceType?: string;
   audience?: string;
+  oauthClientId?: string;
+  oauthClientSecret?: string;
+  oauthRedirectUri?: string;
+  oauthClientFile?: string;
+  oauthRefreshToken?: string;
+  oauthRefreshTokenFile?: string;
   useEnv?: boolean;
   homeserver?: string;
   userId?: string;
@@ -204,6 +210,12 @@ export async function channelsAddCommand(
       webhookUrl: opts.webhookUrl,
       audienceType: opts.audienceType,
       audience: opts.audience,
+      oauthClientId: opts.oauthClientId,
+      oauthClientSecret: opts.oauthClientSecret,
+      oauthRedirectUri: opts.oauthRedirectUri,
+      oauthClientFile: opts.oauthClientFile,
+      oauthRefreshToken: opts.oauthRefreshToken,
+      oauthRefreshTokenFile: opts.oauthRefreshTokenFile,
       homeserver: opts.homeserver,
       userId: opts.userId,
       accessToken: opts.accessToken,
@@ -247,6 +259,12 @@ export async function channelsAddCommand(
     webhookUrl: opts.webhookUrl,
     audienceType: opts.audienceType,
     audience: opts.audience,
+    oauthClientId: opts.oauthClientId,
+    oauthClientSecret: opts.oauthClientSecret,
+    oauthRedirectUri: opts.oauthRedirectUri,
+    oauthClientFile: opts.oauthClientFile,
+    oauthRefreshToken: opts.oauthRefreshToken,
+    oauthRefreshTokenFile: opts.oauthRefreshTokenFile,
     homeserver: opts.homeserver,
     userId: opts.userId,
     accessToken: opts.accessToken,

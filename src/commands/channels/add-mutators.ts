@@ -39,6 +39,12 @@ export function applyChannelAccountConfig(params: {
   webhookUrl?: string;
   audienceType?: string;
   audience?: string;
+  oauthClientId?: string;
+  oauthClientSecret?: string;
+  oauthRedirectUri?: string;
+  oauthClientFile?: string;
+  oauthRefreshToken?: string;
+  oauthRefreshTokenFile?: string;
   useEnv?: boolean;
   homeserver?: string;
   userId?: string;
@@ -76,6 +82,12 @@ export function applyChannelAccountConfig(params: {
     webhookUrl: params.webhookUrl,
     audienceType: params.audienceType,
     audience: params.audience,
+    oauthClientId: params.oauthClientId,
+    oauthClientSecret: params.oauthClientSecret,
+    oauthRedirectUri: params.oauthRedirectUri,
+    oauthClientFile: params.oauthClientFile,
+    oauthRefreshToken: params.oauthRefreshToken,
+    oauthRefreshTokenFile: params.oauthRefreshTokenFile,
     useEnv: params.useEnv,
     homeserver: params.homeserver,
     userId: params.userId,

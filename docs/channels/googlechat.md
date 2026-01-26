@@ -46,6 +46,19 @@ Status: ready for DMs + spaces via Google Chat API webhooks (HTTP only).
 8) Set the webhook audience type + value (matches your Chat app config).
 9) Start the gateway. Google Chat will POST to your webhook path.
 
+## User OAuth (optional, enables reactions)
+Service accounts cover most bot workflows, but **reactions and user-attributed actions require user OAuth**.
+
+1) Configure OAuth consent + create OAuth client credentials in your Google Cloud project.
+2) Use an OAuth 2.0 flow to request **offline** access and collect a refresh token.
+   - Required scopes for reactions include:
+     - `https://www.googleapis.com/auth/chat.messages.reactions.create`
+     - `https://www.googleapis.com/auth/chat.messages.reactions`
+     - (or) `https://www.googleapis.com/auth/chat.messages`
+3) Save the client credentials + refresh token in your config or env vars (examples below).
+
+**Tip:** user OAuth actions are attributed to the user in Google Chat.
+
 ## Add to Google Chat
 Once the gateway is running and your email is added to the visibility list:
 1) Go to [Google Chat](https://chat.google.com/).
@@ -144,6 +157,13 @@ Use these identifiers for delivery and allowlists:
     "googlechat": {
       enabled: true,
       serviceAccountFile: "/path/to/service-account.json",
+      // Optional: user OAuth for reactions + user-attributed actions
+      oauthClientFile: "/path/to/oauth-client.json",
+      oauthRefreshToken: "1//0g...",
+      // Or explicit fields:
+      // oauthClientId: "123456.apps.googleusercontent.com",
+      // oauthClientSecret: "GOCSPX-...",
+      // oauthRedirectUri: "https://your.host/googlechat/oauth/callback",
       audienceType: "app-url",
       audience: "https://gateway.example.com/googlechat",
       webhookPath: "/googlechat",
@@ -171,6 +191,10 @@ Use these identifiers for delivery and allowlists:
 
 Notes:
 - Service account credentials can also be passed inline with `serviceAccount` (JSON string).
+- User OAuth can be provided via `oauthClientFile` + `oauthRefreshToken` or the explicit client fields.
+- Env options (default account): `GOOGLE_CHAT_OAUTH_CLIENT_ID`, `GOOGLE_CHAT_OAUTH_CLIENT_SECRET`,
+  `GOOGLE_CHAT_OAUTH_REDIRECT_URI`, `GOOGLE_CHAT_OAUTH_CLIENT_FILE`,
+  `GOOGLE_CHAT_OAUTH_REFRESH_TOKEN`, `GOOGLE_CHAT_OAUTH_REFRESH_TOKEN_FILE`.
 - Default webhook path is `/googlechat` if `webhookPath` isn’t set.
 - Reactions are available via the `reactions` tool and `channels action` when `actions.reactions` is enabled.
 - `typingIndicator` supports `none`, `message` (default), and `reaction` (reaction requires user OAuth).

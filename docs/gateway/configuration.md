@@ -1135,6 +1135,8 @@ Multi-account support lives under `channels.googlechat.accounts` (see the multi-
     "googlechat": {
       enabled: true,
       serviceAccountFile: "/path/to/service-account.json",
+      oauthClientFile: "/path/to/oauth-client.json",
+      oauthRefreshToken: "1//0g...",
       audienceType: "app-url",             // app-url | project-number
       audience: "https://gateway.example.com/googlechat",
       webhookPath: "/googlechat",
@@ -1159,6 +1161,11 @@ Multi-account support lives under `channels.googlechat.accounts` (see the multi-
 Notes:
 - Service account JSON can be inline (`serviceAccount`) or file-based (`serviceAccountFile`).
 - Env fallbacks for the default account: `GOOGLE_CHAT_SERVICE_ACCOUNT` or `GOOGLE_CHAT_SERVICE_ACCOUNT_FILE`.
+- User OAuth can be provided via `oauthClientFile` + `oauthRefreshToken` (or explicit client fields).
+- Env fallbacks for user OAuth (default account): `GOOGLE_CHAT_OAUTH_CLIENT_ID`,
+  `GOOGLE_CHAT_OAUTH_CLIENT_SECRET`, `GOOGLE_CHAT_OAUTH_REDIRECT_URI`,
+  `GOOGLE_CHAT_OAUTH_CLIENT_FILE`, `GOOGLE_CHAT_OAUTH_REFRESH_TOKEN`,
+  `GOOGLE_CHAT_OAUTH_REFRESH_TOKEN_FILE`.
 - `audienceType` + `audience` must match the Chat app’s webhook auth config.
 - Use `spaces/<spaceId>` or `users/<userId|email>` when setting delivery targets.
 
