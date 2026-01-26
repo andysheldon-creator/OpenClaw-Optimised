@@ -235,7 +235,7 @@ final class AppState {
         self.onboardingSeen = onboardingSeen
         self.debugPaneEnabled = UserDefaults.standard.bool(forKey: "clawdbot.debugPaneEnabled")
         let savedVoiceWake = UserDefaults.standard.bool(forKey: swabbleEnabledKey)
-        self.swabbleEnabled = voiceWakeSupported ? savedVoiceWake : false
+        self.swabbleEnabled = if voiceWakeSupported { savedVoiceWake } else { false }
         self.swabbleTriggerWords = UserDefaults.standard
             .stringArray(forKey: swabbleTriggersKey) ?? defaultVoiceWakeTriggers
         self.voiceWakeTriggerChime = Self.loadChime(
@@ -416,7 +416,7 @@ final class AppState {
         let trimmed = self.remoteTarget.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let parsed = CommandResolver.parseSSHTarget(trimmed) else { return }
         let trimmedUser = parsed.user?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let user = (trimmedUser?.isEmpty ?? true) ? nil : trimmedUser
+        let user = if trimmedUser?.isEmpty ?? true { nil } else { trimmedUser }
         let port = parsed.port
         let assembled = if let user {
             if port == 22 {
@@ -503,8 +503,8 @@ final class AppState {
                     if let host = remoteHost {
                         let existingUrl = (remote["url"] as? String)?
                             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                        let parsedExisting = existingUrl.isEmpty ? nil : URL(string: existingUrl)
-                        let scheme = parsedExisting?.scheme?.isEmpty == false ? parsedExisting?.scheme : "ws"
+                        let parsedExisting = if existingUrl.isEmpty { nil } else { URL(string: existingUrl) }
+                        let scheme = if parsedExisting?.scheme?.isEmpty == false { parsedExisting?.scheme } else { "ws" }
                         let port = parsedExisting?.port ?? 18789
                         let desiredUrl = "\(scheme ?? "ws")://\(host):\(port)"
                         if existingUrl != desiredUrl {
