@@ -5,6 +5,17 @@
   "agents": {
     "list": [
       {
+        "id": "checkin-bot",
+        "default": true,
+        "identity": {
+          "name": "tobais",
+          "emoji": "🤖"
+        },
+        "tools": {
+          "deny": ["*"]
+        }
+      },
+      {
         "id": "main",
         "identity": {
           "name": "tobais",
@@ -21,14 +32,26 @@
       "maxConcurrent": 2
     }
   },
+  "bindings": [
+    {
+      "agentId": "main",
+      "match": {
+        "channel": "discord",
+        "peer": {
+          "kind": "dm",
+          "id": "213199879525105664"
+        }
+      }
+    }
+  ],
   "channels": {
     "discord": {
       "enabled": true,
       "groupPolicy": "allowlist",
       "dm": {
         "enabled": true,
-        "policy": "allowlist",
-        "allowFrom": ["213199879525105664"]
+        "policy": "open",
+        "allowFrom": ["*"]
       },
       "guilds": {
         "884603707658997780": {
