@@ -1,0 +1,9 @@
+{
+  "id": "kiro-auth",
+  "providers": ["kiro"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

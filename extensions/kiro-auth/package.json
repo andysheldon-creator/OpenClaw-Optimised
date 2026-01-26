@@ -1,0 +1,11 @@
+{
+  "name": "@clawdbot/kiro-auth",
+  "version": "2026.1.25",
+  "type": "module",
+  "description": "Clawdbot Kiro/Amazon Q Developer OAuth provider plugin",
+  "clawdbot": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
