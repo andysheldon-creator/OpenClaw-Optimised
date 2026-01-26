@@ -13,25 +13,66 @@ This file tracks work items for autonomous development.
 
 ---
 
-## P1 — Overseer & Agent Orchestration
+## P1 — Landing Page
 
-Existing code: `src/infra/overseer/`, `src/infra/decisions/`, `src/slack/overseer/`, `ui/src/ui/views/overseer*.ts`
+Branch: `landing-page-ux` | Design doc: `docs/plans/2026-01-25-landing-page-design.md`
 
-### Overseer Hardening
-- [ ] Audit existing overseer code for stability (error handling, edge cases)
-- [ ] Add unit tests for overseer controllers and views
-- [ ] Add tests for decision manager (`src/infra/decisions/`)
-- [ ] Ensure overseer simulator (`ui/src/ui/views/overseer-simulator.ts`) covers all flows
-
-### Overseer Features
-- [ ] Goal progress tracking and visualization
-- [ ] Agent status dashboard (real-time view of all running agents)
-- [ ] Decision audit log (history of overseer decisions with reasoning)
-- [ ] Multi-agent coordination support
+- [~] Complete landing page structure (PR #6 open)
+- [ ] Polish landing page copy and design
+- [ ] Implement interactive demos/previews (live Overseer visualization, chat preview)
+- [ ] Responsive breakpoints (mobile, tablet, desktop)
+- [ ] Wire CTA flows (signup, waitlist, demo request)
+- [ ] SEO optimization
+- [ ] Performance pass (lazy load sections, optimize animations)
 
 ---
 
-## P2 — UI Polish (from IMPROVEMENT-IDEAS.md)
+## P2 — Goal Management UI (Feature-Rich & Intuitive)
+
+**Theme:** Make managing autonomous workflows feel effortless. This is the product's core UX.
+
+Existing code: `src/infra/overseer/`, `src/infra/decisions/`, `ui/src/ui/views/overseer*.ts`
+UX audit: `docs/audits/agentic-workflow-ux-audit.md`
+
+### Goal Lifecycle (Web UI) — Currently CLI-only
+- [ ] Create goal from Web UI (with guided wizard)
+- [ ] Pause/resume goals from Web UI
+- [ ] Mark work done / block work nodes from Web UI
+- [ ] Wire the broken "Retry" button (`overseer.ts:1112`)
+- [ ] Inline goal editing (title, constraints, success criteria)
+- [ ] Goal templates (common workflow presets)
+
+### Agent Status Dashboard (Real-time)
+- [ ] Real-time view of all running agents and their current task
+- [ ] WebSocket streaming of agent events
+- [ ] Resource usage indicators (tokens, time, cost)
+- [ ] Agent health status (active, stalled, idle, errored)
+- [ ] Drill-down from agent → session → task detail
+
+### Decision Audit Log
+- [ ] Timestamped log of every Overseer decision
+- [ ] Capture reasoning chain for each decision
+- [ ] Show dispatched actions and outcomes
+- [ ] Searchable/filterable by goal, agent, time range, outcome
+- [ ] Decision replay (step through what happened)
+
+### Mid-Execution Abort (Safety Controls)
+- [ ] Abort background agent tasks from Web UI (not just streaming chat)
+- [ ] Abort Overseer-dispatched work from dashboard
+- [ ] Graceful cancellation with partial-work cleanup
+- [ ] Confirmation dialog for abort with impact summary
+- [ ] Emergency "stop all" button
+
+### Goal Progress Tracking & Visualization
+- [ ] Progress bars per goal/phase/task (completed/total with dependency awareness)
+- [ ] Plan graph visualization (building on `overseer.graph.ts`)
+- [ ] Estimated time remaining + velocity tracking
+- [ ] Phase transition animations
+- [ ] Historical progress timeline (burndown/burnup)
+
+---
+
+## P3 — UI Polish (from IMPROVEMENT-IDEAS.md)
 
 Reference: `dgarson/IMPROVEMENT-IDEAS.md` (198 incomplete items across 14 categories)
 
@@ -65,7 +106,7 @@ Reference: `dgarson/IMPROVEMENT-IDEAS.md` (198 incomplete items across 14 catego
 
 ---
 
-## P3 — Error Handling & Robustness
+## P4 — Error Handling & Robustness
 
 ### Error Handling UX
 - [ ] Implement retry patterns for failed operations
@@ -84,13 +125,7 @@ Reference: `dgarson/IMPROVEMENT-IDEAS.md` (198 incomplete items across 14 catego
 
 ---
 
-## P4 — Landing Page & SaaS
-
-### Landing Page
-- [~] Complete landing page structure (PR #6 open)
-- [ ] Polish landing page copy and design
-- [ ] Add interactive demos/previews
-- [ ] SEO optimization
+## P5 — Platform & Extensibility
 
 ### Keyboard Navigation
 - [ ] Full keyboard navigation across all views
