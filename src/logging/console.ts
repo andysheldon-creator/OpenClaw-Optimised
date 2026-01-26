@@ -8,7 +8,7 @@ import { type LogLevel, normalizeLogLevel } from "./levels.js";
 import { getLogger, type LoggerSettings } from "./logger.js";
 import { readLoggingConfig } from "./config.js";
 import { loggingState } from "./state.js";
-import { createSensitiveRedactor, getConfiguredRedactOptions } from "./redact.js";
+import { createSensitiveRedactor } from "./redact.js";
 
 export type ConsoleStyle = "pretty" | "compact" | "json";
 type ConsoleSettings = {
@@ -158,7 +158,14 @@ export function enableConsoleCapture(): void {
   if (loggingState.consolePatched) return;
   loggingState.consolePatched = true;
 
-  const redactor = createSensitiveRedactor(getConfiguredRedactOptions());
+  // Avoid config fallback (loadConfig) here: console capture is used by config loading paths,
+  // and config loading may itself log to console. Using the raw logging config keeps capture
+  // safe (non-recursive) while still respecting configured redaction.
+  const loggingCfg = readLoggingConfig();
+  const redactor = createSensitiveRedactor({
+    mode: loggingCfg?.redactSensitive,
+    patterns: loggingCfg?.redactPatterns,
+  });
 
   let logger: ReturnType<typeof getLogger> | null = null;
   const getLoggerLazy = () => {

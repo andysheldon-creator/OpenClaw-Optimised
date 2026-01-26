@@ -347,13 +347,14 @@ export function reconcileOverseerState(params: {
   for (const assignment of assignments) {
     if (!isAssignmentAllowed(cfg, assignment)) continue;
 
-    // Graceful degradation: if the store has an orphan assignment (missing goal), we can still
-    // nudge the assigned session using best-effort context from the assignment.
-    const goal = store.goals[assignment.goalId];
+    // Graceful degradation: the store can contain orphan assignments when goals are
+    // pruned/migrated/corrupted. We still want to nudge the assignee so the system
+    // can recover, even if we can’t derive plan details.
+    const goal = store.goals[assignment.goalId] ?? null;
     const goalIsActive = goal ? goal.status === "active" : true;
 
     const telemetryEntry = telemetry.assignments[assignment.assignmentId];
-    if (telemetryEntry?.structuredUpdate) {
+    if (telemetryEntry?.structuredUpdate && goal) {
       applyStructuredUpdate({
         store,
         assignment,
