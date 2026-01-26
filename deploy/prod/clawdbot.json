@@ -88,6 +88,9 @@
     "ackReaction": "👀",
     "inbound": {
       "debounceMs": 2000
+    },
+    "groupChat": {
+      "mentionPatterns": ["@tobias"]
     }
   },
   "skills": {
