@@ -6,6 +6,7 @@
 import { html, nothing } from "lit";
 import { icon, type IconName } from "../icons";
 import type { Tab } from "../navigation";
+import { getRecentCommandIds, recordCommandUsage } from "./command-history";
 
 export type Command = {
   id: string;
@@ -150,13 +151,35 @@ export function renderCommandPalette(props: CommandPaletteProps) {
 
   const filtered = filterCommands(commands, state.query);
 
-  // Group commands by category
+  // Build the "Recents" group when the query is empty.
+  const recentIds = !state.query.trim() ? getRecentCommandIds() : [];
+  const commandById = new Map(commands.map((c) => [c.id, c]));
+  const recentCommands = recentIds
+    .map((id) => commandById.get(id))
+    .filter((c): c is Command => c !== undefined);
+
+  // IDs already shown in Recents — avoid duplicating them in the main list.
+  const recentIdSet = new Set(recentCommands.map((c) => c.id));
+
+  // Group commands by category, excluding recents when they are shown.
   const grouped = new Map<string, Command[]>();
   for (const cmd of filtered) {
+    if (recentCommands.length > 0 && recentIdSet.has(cmd.id)) continue;
     const cat = cmd.category ?? "Actions";
     if (!grouped.has(cat)) grouped.set(cat, []);
     grouped.get(cat)!.push(cmd);
   }
+
+  // Wrap onSelect to record history.
+  const handleSelect = (cmd: Command) => {
+    recordCommandUsage(cmd.id);
+    onSelect(cmd);
+  };
+
+  // Total visible items = recents + remaining grouped items.
+  const totalVisible =
+    recentCommands.length +
+    [...grouped.values()].reduce((sum, cmds) => sum + cmds.length, 0);
 
   let globalIndex = 0;
   const renderItem = (cmd: Command) => {
@@ -165,7 +188,7 @@ export function renderCommandPalette(props: CommandPaletteProps) {
     return html`
       <button
         class="command-palette__item ${isSelected ? "command-palette__item--selected" : ""}"
-        @click=${() => onSelect(cmd)}
+        @click=${() => handleSelect(cmd)}
         @mouseenter=${() => onIndexChange(idx)}
         data-index=${idx}
       >
@@ -177,6 +200,9 @@ export function renderCommandPalette(props: CommandPaletteProps) {
       </button>
     `;
   };
+
+  // Build the flat list for keyboard navigation (recents first, then grouped).
+  const allVisible = [...recentCommands, ...[...grouped.values()].flat()];
 
   return html`
     <div class="command-palette-overlay" @click=${onClose}>
@@ -193,25 +219,35 @@ export function renderCommandPalette(props: CommandPaletteProps) {
               onIndexChange(0);
             }}
             @keydown=${(e: KeyboardEvent) =>
-              handlePaletteKeydown(e, state, filtered, onClose, onSelect, onIndexChange)}
+              handlePaletteKeydown(e, state, allVisible, onClose, handleSelect, onIndexChange)}
             autofocus
           />
           <kbd class="command-palette__kbd">ESC</kbd>
         </div>
         <div class="command-palette__list">
-          ${filtered.length === 0
+          ${totalVisible === 0
             ? html`<div class="command-palette__empty">
                 ${icon("search", { size: 24 })}
                 <span>No commands found</span>
               </div>`
-            : [...grouped.entries()].map(
-                ([category, cmds]) => html`
-                  <div class="command-palette__group">
-                    <div class="command-palette__group-label">${category}</div>
-                    ${cmds.map(renderItem)}
-                  </div>
-                `
-              )}
+            : html`
+                ${recentCommands.length > 0
+                  ? html`
+                      <div class="command-palette__group">
+                        <div class="command-palette__group-label">Recents</div>
+                        ${recentCommands.map(renderItem)}
+                      </div>
+                    `
+                  : nothing}
+                ${[...grouped.entries()].map(
+                  ([category, cmds]) => html`
+                    <div class="command-palette__group">
+                      <div class="command-palette__group-label">${category}</div>
+                      ${cmds.map(renderItem)}
+                    </div>
+                  `
+                )}
+              `}
         </div>
       </div>
     </div>
