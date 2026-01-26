@@ -346,11 +346,15 @@ export function reconcileOverseerState(params: {
 
   for (const assignment of assignments) {
     if (!isAssignmentAllowed(cfg, assignment)) continue;
-    const goal = store.goals[assignment.goalId];
-    if (!goal) continue;
-    const goalIsActive = goal.status === "active";
+
+    // Graceful degradation: the store can contain orphan assignments when goals are
+    // pruned/migrated/corrupted. We still want to nudge the assignee so the system
+    // can recover, even if we can’t derive plan details.
+    const goal = store.goals[assignment.goalId] ?? null;
+    const goalIsActive = goal ? goal.status === "active" : true;
+
     const telemetryEntry = telemetry.assignments[assignment.assignmentId];
-    if (telemetryEntry?.structuredUpdate) {
+    if (telemetryEntry?.structuredUpdate && goal) {
       applyStructuredUpdate({
         store,
         assignment,
@@ -438,7 +442,7 @@ export function reconcileOverseerState(params: {
     }
 
     if (assignment.status === "queued") {
-      const workNode = findWorkNode(goal, assignment.workNodeId);
+      const workNode = goal ? findWorkNode(goal, assignment.workNodeId) : null;
       const title = workNode?.name ?? assignment.workNodeId;
       const message = buildNudgeMessage({
         goalId: assignment.goalId,
