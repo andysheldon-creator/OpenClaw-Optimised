@@ -26,7 +26,7 @@ function runGhCommand(args: string): string {
     });
   } catch (error: unknown) {
     const err = error as { stdout?: string; stderr?: string };
-    throw new Error(`gh command failed: ${err.stderr || err.stdout || error}`);
+    throw new Error(`gh command failed: ${err.stderr || err.stdout || String(error)}`);
   }
 }
 
