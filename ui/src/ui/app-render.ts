@@ -45,6 +45,7 @@ import { renderExecApprovalPrompt } from "./views/exec-approval";
 import {
   renderCommandPalette,
   createDefaultCommands,
+  createContextCommands,
   type Command,
 } from "./components/command-palette";
 import {
@@ -952,15 +953,27 @@ export function renderApp(state: AppViewState) {
           query: state.commandPaletteQuery,
           selectedIndex: state.commandPaletteSelectedIndex,
         },
-        commands: createDefaultCommands(
-          (tab) => state.setTab(tab),
-          () => state.loadOverview(),
-          () => state.handleSendChat("/new", { restoreDraft: true }),
-          () => {
-            const nextTheme = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark";
-            state.setTheme(nextTheme);
-          }
-        ),
+        commands: [
+          ...createContextCommands(state.tab, {
+            newSession: () => state.handleSendChat("/new", { restoreDraft: true }),
+            clearChat: () => state.handleSendChat("/new", { restoreDraft: false }),
+            abortChat: state.chatStream ? () => state.handleAbortChat() : undefined,
+            refreshChannels: () => state.loadOverview(),
+            refreshCron: () => state.loadCron(),
+            createGoal: () => state.handleOverseerOpenCreateGoal(),
+            refreshOverseer: () => state.loadOverview(),
+            refreshNodes: () => state.loadOverview(),
+          }),
+          ...createDefaultCommands(
+            (tab) => state.setTab(tab),
+            () => state.loadOverview(),
+            () => state.handleSendChat("/new", { restoreDraft: true }),
+            () => {
+              const nextTheme = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark";
+              state.setTheme(nextTheme);
+            }
+          ),
+        ],
         onClose: () => state.closeCommandPalette(),
         onQueryChange: (query) => state.setCommandPaletteQuery(query),
         onIndexChange: (index) => state.setCommandPaletteSelectedIndex(index),

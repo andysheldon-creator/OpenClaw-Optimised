@@ -208,3 +208,61 @@ export function createDefaultCommands(
     { id: "theme-toggle", label: "Toggle Theme", icon: "sun", shortcut: `${mod}T`, category: "Actions", action: toggleTheme },
   ];
 }
+
+/** Callbacks available for context-aware commands. Provide only what applies. */
+export type ContextActions = {
+  newSession?: () => void;
+  clearChat?: () => void;
+  abortChat?: () => void;
+  refreshSessions?: () => void;
+  refreshChannels?: () => void;
+  addCronJob?: () => void;
+  refreshCron?: () => void;
+  createGoal?: () => void;
+  refreshOverseer?: () => void;
+  saveConfig?: () => void;
+  refreshNodes?: () => void;
+  clearLogs?: () => void;
+};
+
+/**
+ * Build commands that are only relevant for the currently active tab.
+ * Returned commands use the category "Current View" so they appear grouped.
+ */
+export function createContextCommands(tab: Tab, actions: ContextActions): Command[] {
+  const cmds: Command[] = [];
+  const cat = "Current View";
+
+  switch (tab) {
+    case "chat":
+      if (actions.newSession) cmds.push({ id: "ctx-new-session", label: "New Chat Session", icon: "plus", category: cat, action: actions.newSession });
+      if (actions.clearChat) cmds.push({ id: "ctx-clear-chat", label: "Clear Chat History", icon: "trash-2", category: cat, action: actions.clearChat });
+      if (actions.abortChat) cmds.push({ id: "ctx-abort-chat", label: "Abort Current Response", icon: "square", category: cat, action: actions.abortChat });
+      break;
+    case "sessions":
+      if (actions.refreshSessions) cmds.push({ id: "ctx-refresh-sessions", label: "Refresh Sessions", icon: "refresh-cw", category: cat, action: actions.refreshSessions });
+      break;
+    case "channels":
+      if (actions.refreshChannels) cmds.push({ id: "ctx-refresh-channels", label: "Refresh Channels", icon: "refresh-cw", category: cat, action: actions.refreshChannels });
+      break;
+    case "cron":
+      if (actions.addCronJob) cmds.push({ id: "ctx-add-cron", label: "Add Cron Job", icon: "plus", category: cat, action: actions.addCronJob });
+      if (actions.refreshCron) cmds.push({ id: "ctx-refresh-cron", label: "Refresh Cron Jobs", icon: "refresh-cw", category: cat, action: actions.refreshCron });
+      break;
+    case "overseer":
+      if (actions.createGoal) cmds.push({ id: "ctx-create-goal", label: "Create New Goal", icon: "target", category: cat, action: actions.createGoal });
+      if (actions.refreshOverseer) cmds.push({ id: "ctx-refresh-overseer", label: "Refresh Overseer", icon: "refresh-cw", category: cat, action: actions.refreshOverseer });
+      break;
+    case "config":
+      if (actions.saveConfig) cmds.push({ id: "ctx-save-config", label: "Save Configuration", icon: "save", category: cat, action: actions.saveConfig });
+      break;
+    case "nodes":
+      if (actions.refreshNodes) cmds.push({ id: "ctx-refresh-nodes", label: "Refresh Nodes", icon: "refresh-cw", category: cat, action: actions.refreshNodes });
+      break;
+    case "logs":
+      if (actions.clearLogs) cmds.push({ id: "ctx-clear-logs", label: "Clear Log View", icon: "trash-2", category: cat, action: actions.clearLogs });
+      break;
+  }
+
+  return cmds;
+}
