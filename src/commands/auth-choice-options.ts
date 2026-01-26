@@ -75,7 +75,7 @@ const AUTH_CHOICE_GROUP_DEFS: {
   {
     value: "fireworks",
     label: "Fireworks AI",
-    hint: "Serverless inference (DeepSeek, Qwen, Llama)",
+    hint: "US-based fast inference (DeepSeek, Qwen, Llama)",
     choices: ["fireworks-api-key"],
   },
   {
@@ -157,7 +157,7 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "fireworks-api-key",
     label: "Fireworks AI API key",
-    hint: "Serverless inference (DeepSeek, Qwen, Llama, and more)",
+    hint: "US-based fast inference (DeepSeek, Qwen, Llama, and more)",
   });
   options.push({
     value: "github-copilot",
