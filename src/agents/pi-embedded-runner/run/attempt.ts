@@ -39,6 +39,7 @@ import {
   resolveCompactionReserveTokensFloor,
 } from "../../pi-settings.js";
 import { createClawdbotCodingTools } from "../../pi-tools.js";
+import { wrapToolsWithBeforeCallHook } from "../../pi-tools.before-call-hook.js";
 import { resolveSandboxContext } from "../../sandbox.js";
 import { guardSessionManager } from "../../session-tool-result-guard-wrapper.js";
 import { resolveTranscriptPolicy } from "../../transcript-policy.js";
@@ -229,8 +230,18 @@ export async function runEmbeddedAttempt(
           hasRepliedRef: params.hasRepliedRef,
           modelHasVision,
         });
-    const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider: params.provider });
-    logToolSchemasForGoogle({ tools, provider: params.provider });
+    const toolsSanitized = sanitizeToolsForGoogle({ tools: toolsRaw, provider: params.provider });
+    logToolSchemasForGoogle({ tools: toolsSanitized, provider: params.provider });
+
+    // Wrap tools with before_tool_call hook if plugins have registered handlers
+    const hookRunner = getGlobalHookRunner();
+    const tools = hookRunner?.hasHooks("before_tool_call")
+      ? wrapToolsWithBeforeCallHook(toolsSanitized, {
+          hookRunner,
+          agentId: params.agentAccountId,
+          sessionKey: params.sessionKey ?? params.sessionId,
+        })
+      : toolsSanitized;
 
     const machineName = await getMachineDisplayName();
     const runtimeChannel = normalizeMessageChannel(params.messageChannel ?? params.messageProvider);
