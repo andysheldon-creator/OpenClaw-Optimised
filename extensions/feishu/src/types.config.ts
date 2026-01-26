@@ -21,6 +21,7 @@ export type FeishuAccountConfig = {
   enabled?: boolean;
   appId?: string;
   appSecret?: string;
+  mode?: "http" | "ws";
   verificationToken?: string;
   encryptKey?: string;
   webhookPath?: string;

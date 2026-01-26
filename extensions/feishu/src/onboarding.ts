@@ -43,9 +43,11 @@ async function noteFeishuAppHelp(prompter: WizardPrompter): Promise<void> {
   await prompter.note(
     [
       "1) Create a Feishu app and enable the bot capability",
-      "2) Configure event subscription callback: https://gateway.example.com/feishu",
-      "3) Subscribe to the im.message.receive_v1 event",
-      "4) Copy appId/appSecret + verification token (or encrypt key) into Clawdbot",
+      "2) Subscribe to the im.message.receive_v1 event",
+      "3) Choose one delivery mode:",
+      "   - HTTP callback: configure request URL (e.g. https://gateway.example.com/feishu) and copy the verification token (or encrypt key)",
+      "   - Long connection: enable long connection mode (no public URL required)",
+      "4) Copy appId/appSecret into Clawdbot",
       "Docs: https://docs.clawd.bot/channels/feishu",
     ].join("\n"),
     "Feishu bot app",
@@ -212,32 +214,43 @@ export const feishuOnboardingAdapter: ChannelOnboardingAdapter = {
         }),
       ).trim();
 
-      const validationMode = await prompter.select({
-        message: "Webhook validation",
+      const mode = await prompter.select({
+        message: "Receive events via",
         options: [
-          { value: "token", label: "Verification token", hint: "Simple shared secret check" },
-          { value: "encrypt", label: "Encrypt key", hint: "Signature + encrypted payload" },
+          { value: "http", label: "HTTP callback", hint: "Public webhook URL required" },
+          { value: "ws", label: "Long connection", hint: "WebSocket; no public URL required" },
         ],
-        initialValue: "token",
+        initialValue: resolved.config.mode ?? "http",
       });
 
-      const patch: Record<string, unknown> = { appId, appSecret };
-      if (validationMode === "encrypt") {
-        const encryptKey = String(
-          await prompter.text({
-            message: "Feishu encrypt key",
-            validate: (value) => (String(value ?? "").trim() ? undefined : "Required"),
-          }),
-        ).trim();
-        patch.encryptKey = encryptKey;
-      } else {
-        const verificationToken = String(
-          await prompter.text({
-            message: "Feishu verification token",
-            validate: (value) => (String(value ?? "").trim() ? undefined : "Required"),
-          }),
-        ).trim();
-        patch.verificationToken = verificationToken;
+      const patch: Record<string, unknown> = { appId, appSecret, mode };
+      if (mode === "http") {
+        const validationMode = await prompter.select({
+          message: "Webhook validation",
+          options: [
+            { value: "token", label: "Verification token", hint: "Simple shared secret check" },
+            { value: "encrypt", label: "Encrypt key", hint: "Signature + encrypted payload" },
+          ],
+          initialValue: "token",
+        });
+
+        if (validationMode === "encrypt") {
+          const encryptKey = String(
+            await prompter.text({
+              message: "Feishu encrypt key",
+              validate: (value) => (String(value ?? "").trim() ? undefined : "Required"),
+            }),
+          ).trim();
+          patch.encryptKey = encryptKey;
+        } else {
+          const verificationToken = String(
+            await prompter.text({
+              message: "Feishu verification token",
+              validate: (value) => (String(value ?? "").trim() ? undefined : "Required"),
+            }),
+          ).trim();
+          patch.verificationToken = verificationToken;
+        }
       }
 
       const wantsPath = await prompter.confirm({

@@ -41,7 +41,7 @@ const meta = {
   selectionLabel: "Feishu (Bot API)",
   docsPath: "/channels/feishu",
   docsLabel: "feishu",
-  blurb: "Feishu bot with HTTP webhook events.",
+  blurb: "Feishu bot events via webhook or long connection.",
   aliases: ["fs"],
   order: 85,
   quickstartAllowFrom: true,
@@ -271,6 +271,12 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
       }
       const appId = (input as { appId?: unknown }).appId;
       const appSecret = (input as { appSecret?: unknown }).appSecret;
+      const modeRaw = (input as { mode?: unknown }).mode;
+      const mode =
+        typeof modeRaw === "string" && modeRaw.trim() ? modeRaw.trim().toLowerCase() : undefined;
+      if (mode && mode !== "http" && mode !== "ws") {
+        return 'Feishu --mode must be "http" or "ws".';
+      }
       const verificationToken = (input as { verificationToken?: unknown }).verificationToken;
       const encryptKey = (input as { encryptKey?: unknown }).encryptKey;
       if (typeof appId !== "string" || !appId.trim()) {
@@ -279,11 +285,13 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
       if (typeof appSecret !== "string" || !appSecret.trim()) {
         return "Feishu requires --app-secret.";
       }
-      if (
-        (typeof verificationToken !== "string" || !verificationToken.trim()) &&
-        (typeof encryptKey !== "string" || !encryptKey.trim())
-      ) {
-        return "Feishu requires --verification-token or --encrypt-key.";
+      if (mode !== "ws") {
+        if (
+          (typeof verificationToken !== "string" || !verificationToken.trim()) &&
+          (typeof encryptKey !== "string" || !encryptKey.trim())
+        ) {
+          return 'Feishu requires --verification-token or --encrypt-key when --mode="http".';
+        }
       }
       return null;
     },
@@ -304,6 +312,10 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
 
       const appId = String((input as { appId?: unknown }).appId ?? "").trim();
       const appSecret = String((input as { appSecret?: unknown }).appSecret ?? "").trim();
+      const modeRaw = (input as { mode?: unknown }).mode;
+      const mode =
+        typeof modeRaw === "string" && modeRaw.trim() ? modeRaw.trim().toLowerCase() : undefined;
+      const normalizedMode = mode === "http" || mode === "ws" ? mode : undefined;
       const verificationTokenRaw = (input as { verificationToken?: unknown }).verificationToken;
       const encryptKeyRaw = (input as { encryptKey?: unknown }).encryptKey;
       const verificationToken =
@@ -320,6 +332,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
       const configPatch = {
         appId,
         appSecret,
+        ...(normalizedMode ? { mode: normalizedMode } : {}),
         ...(verificationToken ? { verificationToken } : {}),
         ...(encryptKey ? { encryptKey } : {}),
         ...(webhookPath ? { webhookPath } : {}),
@@ -463,6 +476,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
       lastStartAt: null,
       lastStopAt: null,
       lastError: null,
+      mode: null,
       webhookPath: null,
       lastInboundAt: null,
       lastOutboundAt: null,
@@ -470,6 +484,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
     buildChannelSummary: ({ snapshot }) => ({
       configured: snapshot.configured ?? false,
       running: snapshot.running ?? false,
+      mode: snapshot.mode ?? null,
       webhookPath: snapshot.webhookPath ?? null,
       lastInboundAt: snapshot.lastInboundAt ?? null,
       lastOutboundAt: snapshot.lastOutboundAt ?? null,
@@ -486,6 +501,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
       enabled: account.enabled,
       configured: account.credentialSource !== "none",
       credentialSource: account.credentialSource,
+      mode: runtime?.mode ?? account.config.mode ?? "http",
       webhookPath: account.config.webhookPath,
       webhookUrl: account.config.webhookUrl,
       running: runtime?.running ?? false,
@@ -500,14 +516,18 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
   gateway: {
     startAccount: async (ctx) => {
       const account = ctx.account;
-      ctx.log?.info(`[${account.accountId}] starting Feishu webhook`);
+      const mode = account.config.mode ?? "http";
+      ctx.log?.info(
+        `[${account.accountId}] starting Feishu ${mode === "ws" ? "long connection" : "webhook"}`,
+      );
       ctx.setStatus({
         accountId: account.accountId,
         running: true,
         lastStartAt: Date.now(),
-        webhookPath: resolveFeishuWebhookPath({ account }),
+        mode,
+        webhookPath: mode === "http" ? resolveFeishuWebhookPath({ account }) : null,
       });
-      const unregister = await startFeishuMonitor({
+      await startFeishuMonitor({
         account,
         config: ctx.cfg as ClawdbotConfig,
         runtime: ctx.runtime,
@@ -516,14 +536,6 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
         webhookUrl: account.config.webhookUrl,
         statusSink: (patch) => ctx.setStatus({ accountId: account.accountId, ...patch }),
       });
-      return () => {
-        unregister?.();
-        ctx.setStatus({
-          accountId: account.accountId,
-          running: false,
-          lastStopAt: Date.now(),
-        });
-      };
     },
   },
 };

@@ -22,7 +22,7 @@
       "selectionLabel": "Feishu (Bot API)",
       "docsPath": "/channels/feishu",
       "docsLabel": "feishu",
-      "blurb": "Feishu bot with HTTP webhook events.",
+      "blurb": "Feishu bot events via webhook or long connection.",
       "aliases": [
         "fs"
       ],

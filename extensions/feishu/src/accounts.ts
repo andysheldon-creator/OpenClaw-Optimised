@@ -52,9 +52,12 @@ function mergeFeishuAccountConfig(cfg: ClawdbotConfig, accountId: string): Feish
 function hasCredentials(cfg: FeishuAccountConfig): boolean {
   const appId = cfg.appId?.trim();
   const appSecret = cfg.appSecret?.trim();
+  if (!appId || !appSecret) return false;
+  const mode = cfg.mode ?? "http";
+  if (mode === "ws") return true;
   const token = cfg.verificationToken?.trim();
   const encryptKey = cfg.encryptKey?.trim();
-  return Boolean(appId && appSecret && (token || encryptKey));
+  return Boolean(token || encryptKey);
 }
 
 export function resolveFeishuAccount(params: {

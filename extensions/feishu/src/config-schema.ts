@@ -37,6 +37,7 @@ export const FeishuAccountSchema = z
     enabled: z.boolean().optional(),
     appId: z.string().optional(),
     appSecret: z.string().optional(),
+    mode: z.enum(["http", "ws"]).optional(),
     verificationToken: z.string().optional(),
     encryptKey: z.string().optional(),
     webhookPath: z.string().optional(),
@@ -68,12 +69,13 @@ export const FeishuAccountSchema = z
         path: ["appId"],
       });
     }
+    const mode = value.mode ?? "http";
     const verificationToken = value.verificationToken?.trim();
     const encryptKey = value.encryptKey?.trim();
-    if ((appId || appSecret) && !verificationToken && !encryptKey) {
+    if (mode === "http" && (appId || appSecret) && !verificationToken && !encryptKey) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "verificationToken or encryptKey is required for webhook validation",
+        message: 'verificationToken or encryptKey is required when mode="http"',
         path: ["verificationToken"],
       });
     }
