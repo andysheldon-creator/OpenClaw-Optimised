@@ -399,7 +399,7 @@ function renderFooter(params: {
 /**
  * Render the simplified onboarding wizard
  */
-export function renderOnboardingWizardV2(params: OnboardingWizardProps): TemplateResult | typeof nothing {
+export function renderOnboardingWizard(params: OnboardingWizardProps): TemplateResult | typeof nothing {
   const { state, configValue, onAddChannel, onEditChannel, onRemoveChannel, onAddModel, onEditModel, onRemoveModel } = params;
 
   if (!state.open) {
@@ -461,7 +461,7 @@ export function renderOnboardingWizardV2(params: OnboardingWizardProps): Templat
   }
 
   return html`
-    <div class="onboarding-wizard-v2-backdrop" @click=${() => state.isDirty ? params.onClose() : props.onClose()}></div>
+    <div class="onboarding-wizard-v2-backdrop" @click=${() => state.isDirty ? params.onClose() : params.onClose()}></div>
     <div class="onboarding-wizard-v2" @click=${(e: Event) => e.stopPropagation()}>
       ${renderProgressIndicator({
         currentPhase: state.currentPhase,
@@ -477,9 +477,9 @@ export function renderOnboardingWizardV2(params: OnboardingWizardProps): Templat
         hasPreviousPhase,
         canSkip,
         isSaving: state.isSaving,
-        onBack: props.onBack,
+        onBack: params.onBack,
         onSkip: params.onSkip,
-        onContinue: props.onContinue,
+        onContinue: params.onContinue,
       })}
 
       ${state.addModalOpen && state.addModalType === "channel"
@@ -542,7 +542,7 @@ export function renderOnboardingWizardV2(params: OnboardingWizardProps): Templat
 /**
  * Create initial wizard state
  */
-export function createWizardStateV2(): OnboardingWizardState {
+export function createWizardState(): OnboardingWizardState {
   return {
     open: false,
     currentPhase: "quickstart",
@@ -564,7 +564,7 @@ export function createWizardStateV2(): OnboardingWizardState {
 /**
  * Open wizard
  */
-export function openWizardV2(
+export function openWizard(
   state: OnboardingWizardState,
   config: Record<string, unknown>,
 ): OnboardingWizardState {
@@ -586,7 +586,7 @@ export function openWizardV2(
 /**
  * Close wizard
  */
-export function closeWizardV2(state: OnboardingWizardState): OnboardingWizardState {
+export function closeWizard(state: OnboardingWizardState): OnboardingWizardState {
   return {
     ...state,
     open: false,

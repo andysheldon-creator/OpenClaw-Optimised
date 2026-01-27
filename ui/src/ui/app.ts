@@ -427,22 +427,7 @@ export class ClawdbrainApp extends LitElement {
   };
 
   // Onboarding UX mode: "new" (simplified) or "legacy" (full options)
-  @state() onboardingUxMode: "new" | "legacy" = "new";
-  @state() uxSelectorOpen = false;
-
   @state() onboardingWizardState: import("./views/onboarding-wizard").OnboardingWizardState = {
-    open: false,
-    currentPhase: "essentials",
-    currentSection: "security",
-    isDirty: false,
-    showConfirmClose: false,
-    showAdvanced: false,
-    pendingAction: null,
-    progress: null,
-    healthCheckResults: {},
-  };
-
-  @state() onboardingWizardV2State: import("./views/onboarding-wizard").OnboardingWizardState = {
     open: false,
     currentPhase: "quickstart",
     step: 1,
@@ -799,8 +784,8 @@ export class ClawdbrainApp extends LitElement {
 
     // Check if onboarding is needed
     if (shouldShowOnboarding(this.configSnapshot)) {
-      // Show UX selector dialog
-      this.uxSelectorOpen = true;
+      // Show onboarding wizard
+      void this.openOnboardingWizard();
     }
   }
 
@@ -1525,25 +1510,15 @@ export class ClawdbrainApp extends LitElement {
   // Onboarding Wizard Handlers
   // ============================================================================
 
-  handleOnboardingWizardOpen() {
+  async openOnboardingWizard() {
     this.onboarding = true;
-    // Load onboarding state from config if available
-    if (this.configSnapshot?.config) {
-      const config = this.configSnapshot.config as Record<string, unknown>;
-      const wizard = config.wizard as Record<string, unknown> | undefined;
-      if (wizard?.onboarding) {
-        const onboarding = wizard.onboarding as {
-          currentPhase?: string;
-          completedPhases?: string[];
-        };
-        if (onboarding.currentPhase) {
-          this.onboardingWizardState = {
-            ...this.onboardingWizardState,
-            currentPhase: onboarding.currentPhase,
-          };
-        }
-      }
-    }
+    this.onboardingWizardState = {
+      ...this.onboardingWizardState,
+      open: true,
+      currentPhase: "quick-start",
+    };
+    // Refresh cards to show current config state
+    await this.refreshOnboardingCards();
   }
 
   handleOnboardingWizardClose() {
@@ -1552,233 +1527,12 @@ export class ClawdbrainApp extends LitElement {
       ...this.onboardingWizardState,
       open: false,
       showConfirmClose: false,
-      pendingAction: null,
     };
   }
 
-  async handleOnboardingWizardContinue() {
-    const { currentPhase } = this.onboardingWizardState;
-    const phases = ["essentials", "channels", "advanced", "health-check"];
-    const currentIndex = phases.indexOf(currentPhase);
-
-    if (currentIndex < phases.length - 1) {
-      const nextPhase = phases[currentIndex + 1];
-
-      // Save onboarding progress
-      if (this.client && this.connected && this.configSnapshot) {
-        try {
-          const config = this.configSnapshot.config as Record<string, unknown>;
-          const wizard = (config?.wizard as Record<string, unknown>) ?? {};
-          const existingOnboarding = wizard.onboarding as {
-            startedAt?: string;
-            completedPhases?: string[];
-            currentPhase?: string;
-            phaseData?: Record<string, unknown>;
-          } | undefined;
-
-          const updatedCompletedPhases = existingOnboarding?.completedPhases ?? [];
-          if (!updatedCompletedPhases.includes(currentPhase)) {
-            updatedCompletedPhases.push(currentPhase);
-          }
-
-          const onboardingMetadata = {
-            startedAt: existingOnboarding?.startedAt ?? new Date().toISOString(),
-            currentPhase: nextPhase,
-            completedPhases: updatedCompletedPhases,
-            phaseData: {
-              ...(existingOnboarding?.phaseData ?? {}),
-              [currentPhase]: {
-                completedAt: new Date().toISOString(),
-              },
-            },
-            lastSavedAt: new Date().toISOString(),
-          };
-
-          const baseHash = this.configSnapshot.hash;
-          if (baseHash) {
-            const patch = {
-              wizard: {
-                ...(config?.wizard as Record<string, unknown> ?? {}),
-                onboarding: onboardingMetadata,
-              },
-            };
-
-            const raw = JSON.stringify(patch, null, 2);
-            await this.client.request("config.patch", { raw, baseHash });
-            await this.loadConfig();
-          }
-        } catch (err) {
-          console.error("Failed to save onboarding progress:", err);
-        }
-      }
-
-      this.onboardingWizardState = {
-        ...this.onboardingWizardState,
-        currentPhase: nextPhase,
-      };
-    }
-  }
-
-  handleOnboardingWizardBack() {
-    const { currentPhase } = this.onboardingWizardState;
-    const phases = ["essentials", "channels", "advanced", "health-check"];
-    const currentIndex = phases.indexOf(currentPhase);
-
-    if (currentIndex > 0) {
-      const prevPhase = phases[currentIndex - 1];
-      this.onboardingWizardState = {
-        ...this.onboardingWizardState,
-        currentPhase: prevPhase,
-      };
-    }
-  }
-
-  handleOnboardingWizardSkip() {
-    const { currentPhase } = this.onboardingWizardState;
-    const phases = ["essentials", "channels", "advanced", "health-check"];
-    const currentIndex = phases.indexOf(currentPhase);
-
-    if (currentIndex < phases.length - 1) {
-      const nextPhase = phases[currentIndex + 1];
-      this.onboardingWizardState = {
-        ...this.onboardingWizardState,
-        currentPhase: nextPhase,
-      };
-    }
-  }
-
-  handleOnboardingWizardPhaseChange(phaseId: string) {
-    this.onboardingWizardState = {
-      ...this.onboardingWizardState,
-      currentPhase: phaseId,
-    };
-  }
-
-  handleOnboardingWizardSectionChange(sectionId: string) {
-    this.onboardingWizardState = {
-      ...this.onboardingWizardState,
-      currentSection: sectionId,
-    };
-  }
-
-  handleOnboardingWizardToggleAdvanced() {
-    this.onboardingWizardState = {
-      ...this.onboardingWizardState,
-      showAdvanced: !this.onboardingWizardState.showAdvanced,
-    };
-  }
-
-  handleOnboardingWizardConfirmClose() {
-    this.onboardingWizardState = {
-      ...this.onboardingWizardState,
-      showConfirmClose: true,
-    };
-  }
-
-  handleOnboardingWizardCancelClose() {
-    this.onboardingWizardState = {
-      ...this.onboardingWizardState,
-      showConfirmClose: false,
-      pendingAction: null,
-    };
-  }
-
-  async handleOnboardingWizardHealthCheck() {
-    if (!this.client || !this.connected) {
-      return {
-        success: false,
-        checks: [],
-        error: "Not connected to gateway",
-      };
-    }
-
-    const checks: Array<{
-      name: string;
-      status: "pending" | "success" | "error" | "warning";
-      message: string;
-    }> = [];
-
-    // Check 1: Gateway reachability
-    try {
-      await this.client.request("ping", {});
-      checks.push({ name: "Gateway", status: "success", message: "Connected and responsive" });
-    } catch {
-      checks.push({ name: "Gateway", status: "error", message: "Failed to reach gateway" });
-    }
-
-    // Check 2: Config validity
-    if (this.configSnapshot?.valid) {
-      checks.push({ name: "Configuration", status: "success", message: "Valid configuration" });
-    } else {
-      checks.push({ name: "Configuration", status: "error", message: "Invalid configuration" });
-    }
-
-    // Check 3: Auth provider configured
-    const config = this.configSnapshot?.config as Record<string, unknown> | undefined;
-    const authProvider = config?.auth?.provider;
-    if (authProvider) {
-      checks.push({ name: "Authentication", status: "success", message: `Provider: ${authProvider}` });
-    } else {
-      checks.push({ name: "Authentication", status: "warning", message: "No auth provider configured" });
-    }
-
-    // Check 4: At least one channel configured
-    const channels = config?.channels as Record<string, unknown> | undefined;
-    const channelCount = Object.keys(channels ?? {}).length;
-    if (channelCount > 0) {
-      checks.push({ name: "Channels", status: "success", message: `${channelCount} channel(s) configured` });
-    } else {
-      checks.push({ name: "Channels", status: "warning", message: "No channels configured" });
-    }
-
-    // Check 5: Model configured
-    const model = config?.agents?.defaults?.model;
-    if (model) {
-      checks.push({ name: "Model", status: "success", message: `Default: ${model}` });
-    } else {
-      checks.push({ name: "Model", status: "error", message: "No default model configured" });
-    }
-
-    const hasErrors = checks.some((c) => c.status === "error");
-    const hasWarnings = checks.some((c) => c.status === "warning");
-
-    return {
-      success: !hasErrors,
-      checks,
-      summary: hasErrors
-        ? "Setup incomplete - please address the errors above"
-        : hasWarnings
-          ? "Setup complete with warnings"
-          : "Setup complete - you're ready to go!",
-    };
-  }
-
-  // ============================================================================
-  // V2 Onboarding Wizard Handlers (New UX)
-  // ============================================================================
-
-  async openOnboardingWizardV2() {
-    this.onboarding = true;
-    this.onboardingWizardV2State = {
-      ...this.onboardingWizardV2State,
-      open: true,
-      currentPhase: "quick-start",
-    };
-    // Refresh cards to show current config state
-    await this.refreshOnboardingCards();
-  }
-
-  handleOnboardingWizardV2Close() {
-    this.onboarding = false;
-    this.onboardingWizardV2State = {
-      ...this.onboardingWizardV2State,
-      open: false,
-      showConfirmClose: false,
-    };
-  }
-
-  async handleOnboardingWizardV2Next() {
-    const { currentPhase, completedPhases } = this.onboardingWizardV2State;
+  async handleOnboardingWizardNext() {
+    const { currentPhase, progress } = this.onboardingWizardState;
+    const completedPhases = progress?.completedPhases ?? [];
     const phases = ["quick-start", "channels", "models", "ready"];
     const currentIndex = phases.indexOf(currentPhase);
 
@@ -1795,12 +1549,16 @@ export class ClawdbrainApp extends LitElement {
         await this.refreshOnboardingCards();
       }
 
-      this.onboardingWizardV2State = {
-        ...this.onboardingWizardV2State,
+      this.onboardingWizardState = {
+        ...this.onboardingWizardState,
         currentPhase: nextPhase,
-        completedPhases: completedPhases.includes(currentPhase)
-          ? completedPhases
-          : [...completedPhases, currentPhase],
+        progress: {
+          startedAt: progress?.startedAt ?? new Date().toISOString(),
+          completedPhases: completedPhases.includes(currentPhase)
+            ? completedPhases
+            : [...completedPhases, currentPhase],
+          lastSavedAt: new Date().toISOString(),
+        },
       };
     }
   }
@@ -1809,7 +1567,8 @@ export class ClawdbrainApp extends LitElement {
     if (!this.client || !this.connected || !this.configSnapshot) return;
 
     try {
-      const { completedPhases } = this.onboardingWizardV2State;
+      const { progress } = this.onboardingWizardState;
+      const completedPhases = progress?.completedPhases ?? [];
       const config = this.configSnapshot.config as Record<string, unknown> | undefined;
 
       // Build or update onboarding metadata
@@ -1863,8 +1622,8 @@ export class ClawdbrainApp extends LitElement {
     }
   }
 
-  async handleOnboardingWizardV2Back() {
-    const { currentPhase } = this.onboardingWizardV2State;
+  async handleOnboardingWizardBack() {
+    const { currentPhase } = this.onboardingWizardState;
     const phases = ["quick-start", "channels", "models", "ready"];
     const currentIndex = phases.indexOf(currentPhase);
 
@@ -1876,29 +1635,29 @@ export class ClawdbrainApp extends LitElement {
         await this.refreshOnboardingCards();
       }
 
-      this.onboardingWizardV2State = {
-        ...this.onboardingWizardV2State,
+      this.onboardingWizardState = {
+        ...this.onboardingWizardState,
         currentPhase: prevPhase,
       };
     }
   }
 
-  handleOnboardingWizardV2Skip() {
-    const { currentPhase } = this.onboardingWizardV2State;
+  handleOnboardingWizardSkip() {
+    const { currentPhase } = this.onboardingWizardState;
     const phases = ["quick-start", "channels", "models", "ready"];
     const currentIndex = phases.indexOf(currentPhase);
 
     if (currentIndex < phases.length - 1) {
       const nextPhase = phases[currentIndex + 1];
-      this.onboardingWizardV2State = {
-        ...this.onboardingWizardV2State,
+      this.onboardingWizardState = {
+        ...this.onboardingWizardState,
         currentPhase: nextPhase,
       };
     }
   }
 
   updateQuickStartFormValue(path: string[], value: unknown) {
-    const { quickStartForm } = this.onboardingWizardV2State;
+    const { quickStartForm } = this.onboardingWizardState;
     const updated = { ...quickStartForm };
     let current: Record<string, unknown> = updated;
 
@@ -1912,21 +1671,21 @@ export class ClawdbrainApp extends LitElement {
 
     current[path[path.length - 1]] = value;
 
-    this.onboardingWizardV2State = {
-      ...this.onboardingWizardV2State,
+    this.onboardingWizardState = {
+      ...this.onboardingWizardState,
       quickStartForm: updated,
     };
   }
 
   handleOpenChannelConfigModal(channelId: string) {
-    const { channelCards } = this.onboardingWizardV2State;
+    const { channelCards } = this.onboardingWizardState;
     const channel = channelCards.find((c) => c.id === channelId);
 
     if (channel) {
-      this.onboardingWizardV2State = {
-        ...this.onboardingWizardV2State,
+      this.onboardingWizardState = {
+        ...this.onboardingWizardState,
         configModal: {
-          ...this.onboardingWizardV2State.configModal,
+          ...this.onboardingWizardState.configModal,
           open: true,
           itemId: channelId,
           itemName: channel.name,
@@ -1938,14 +1697,14 @@ export class ClawdbrainApp extends LitElement {
   }
 
   handleOpenModelConfigModal(modelId: string) {
-    const { modelCards } = this.onboardingWizardV2State;
+    const { modelCards } = this.onboardingWizardState;
     const model = modelCards.find((m) => m.id === modelId);
 
     if (model) {
-      this.onboardingWizardV2State = {
-        ...this.onboardingWizardV2State,
+      this.onboardingWizardState = {
+        ...this.onboardingWizardState,
         configModal: {
-          ...this.onboardingWizardV2State.configModal,
+          ...this.onboardingWizardState.configModal,
           open: true,
           itemId: modelId,
           itemName: model.name,
@@ -1958,23 +1717,23 @@ export class ClawdbrainApp extends LitElement {
 
   handleAddChannelFromModal(channelId: string) {
     // Close the add modal and open the config modal for the selected channel
-    const { channelCards } = this.onboardingWizardV2State;
+    const { channelCards } = this.onboardingWizardState;
 
     // If channel doesn't exist in cards, create a placeholder card
     let channel = channelCards.find((c) => c.id === channelId);
     if (!channel) {
-      const channelDef = this.onboardingWizardV2State.channelCards.find((c) => c.id === channelId);
+      const channelDef = this.onboardingWizardState.channelCards.find((c) => c.id === channelId);
       if (channelDef) {
         channel = channelDef;
       }
     }
 
-    this.onboardingWizardV2State = {
-      ...this.onboardingWizardV2State,
+    this.onboardingWizardState = {
+      ...this.onboardingWizardState,
       addModalOpen: false,
       addModalType: null,
       configModal: {
-        ...this.onboardingWizardV2State.configModal,
+        ...this.onboardingWizardState.configModal,
         open: true,
         itemId: channelId,
         itemName: channel?.name || channelId,
@@ -1986,23 +1745,23 @@ export class ClawdbrainApp extends LitElement {
 
   handleAddModelFromModal(modelId: string) {
     // Close the add modal and open the config modal for the selected model
-    const { modelCards } = this.onboardingWizardV2State;
+    const { modelCards } = this.onboardingWizardState;
 
     // If model doesn't exist in cards, create a placeholder card
     let model = modelCards.find((m) => m.id === modelId);
     if (!model) {
-      const modelDef = this.onboardingWizardV2State.modelCards.find((m) => m.id === modelId);
+      const modelDef = this.onboardingWizardState.modelCards.find((m) => m.id === modelId);
       if (modelDef) {
         model = modelDef;
       }
     }
 
-    this.onboardingWizardV2State = {
-      ...this.onboardingWizardV2State,
+    this.onboardingWizardState = {
+      ...this.onboardingWizardState,
       addModalOpen: false,
       addModalType: null,
       configModal: {
-        ...this.onboardingWizardV2State.configModal,
+        ...this.onboardingWizardState.configModal,
         open: true,
         itemId: modelId,
         itemName: model?.name || modelId,
@@ -2056,7 +1815,7 @@ export class ClawdbrainApp extends LitElement {
   }
 
   async handleSaveConfigModal() {
-    const { configModal } = this.onboardingWizardV2State;
+    const { configModal } = this.onboardingWizardState;
 
     if (!configModal.itemId || !this.client || !this.connected || !this.configSnapshot) return;
 
@@ -2079,8 +1838,8 @@ export class ClawdbrainApp extends LitElement {
       await this.refreshOnboardingCards();
 
       // Close the modal
-      this.onboardingWizardV2State = {
-        ...this.onboardingWizardV2State,
+      this.onboardingWizardState = {
+        ...this.onboardingWizardState,
         configModal: {
           ...configModal,
           open: false,
@@ -2108,27 +1867,27 @@ export class ClawdbrainApp extends LitElement {
     const modelCards = getModelCards(config);
 
     // Update wizard state with refreshed cards
-    this.onboardingWizardV2State = {
-      ...this.onboardingWizardV2State,
+    this.onboardingWizardState = {
+      ...this.onboardingWizardState,
       channelCards,
       modelCards,
     };
   }
 
   handleConfigModalClose() {
-    const { configModal } = this.onboardingWizardV2State;
+    const { configModal } = this.onboardingWizardState;
 
     if (configModal.isDirty) {
-      this.onboardingWizardV2State = {
-        ...this.onboardingWizardV2State,
+      this.onboardingWizardState = {
+        ...this.onboardingWizardState,
         configModal: {
           ...configModal,
           showConfirmClose: true,
         },
       };
     } else {
-      this.onboardingWizardV2State = {
-        ...this.onboardingWizardV2State,
+      this.onboardingWizardState = {
+        ...this.onboardingWizardState,
         configModal: {
           ...configModal,
           open: false,
@@ -2139,10 +1898,10 @@ export class ClawdbrainApp extends LitElement {
   }
 
   handleConfigModalCancelClose() {
-    this.onboardingWizardV2State = {
-      ...this.onboardingWizardV2State,
+    this.onboardingWizardState = {
+      ...this.onboardingWizardState,
       configModal: {
-        ...this.onboardingWizardV2State.configModal,
+        ...this.onboardingWizardState.configModal,
         showConfirmClose: false,
       },
     };

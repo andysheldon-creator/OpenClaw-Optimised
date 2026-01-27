@@ -45,9 +45,7 @@ import { renderOverseer } from "./views/overseer";
 import { renderAgents } from "./views/agents";
 import { renderSessions, detectSessionPreset } from "./views/sessions";
 import { renderExecApprovalPrompt } from "./views/exec-approval";
-import { renderUxSelector } from "./views/onboarding-ux-selector";
 import { renderOnboardingWizard } from "./views/onboarding-wizard";
-import { renderOnboardingWizardV2 } from "./views/onboarding-wizard";
 import {
   renderCommandPalette,
   createDefaultCommands,
@@ -1575,67 +1573,26 @@ export function renderApp(state: AppViewState) {
         onFavoritesChange: () => state.bumpCommandPaletteFavVersion(),
       })}
 
-      ${renderUxSelector({
-        state: {
-          open: state.uxSelectorOpen,
-          selectedMode: state.onboardingUxMode === "new" ? "new" : "legacy",
-          showLegacyInfo: false,
-        },
-        onSelect: (mode) => {
-          state.onboardingUxMode = mode;
-          state.uxSelectorOpen = false;
-          if (mode === "new") {
-            state.openOnboardingWizardV2();
-          } else {
-            state.openOnboardingWizard();
-          }
-        },
-        onClose: () => {
-          state.uxSelectorOpen = false;
-        },
+      ${renderOnboardingWizard({
+        state: state.onboardingWizardState,
+        configSchema: state.configSchema as import("./views/config-form").JsonSchema | null,
+        configValue: state.configForm ?? {},
+        configSaving: state.configSaving,
+        configSchemaLoading: state.configSchemaLoading,
+        configUiHints: state.configUiHints,
+        unsupported: new Set(),
+        onClose: () => state.handleOnboardingWizardClose(),
+        onContinue: async () => state.handleOnboardingWizardNext(),
+        onBack: () => state.handleOnboardingWizardBack(),
+        onSkip: () => state.handleOnboardingWizardSkip(),
+        onConfigPatch: (path, value) => state.updateConfigFormValue(path, value),
+        onAddChannel: (channelId) => state.handleAddChannelFromModal(channelId),
+        onEditChannel: (channelId) => state.handleOpenChannelConfigModal(channelId),
+        onRemoveChannel: (channelId) => state.handleRemoveChannel(channelId),
+        onAddModel: (modelId) => state.handleAddModelFromModal(modelId),
+        onEditModel: (modelId) => state.handleOpenModelConfigModal(modelId),
+        onRemoveModel: (modelId) => state.handleRemoveModel(modelId),
       })}
-
-      ${state.onboardingUxMode === "new"
-        ? renderOnboardingWizardV2({
-            state: state.onboardingWizardV2State,
-            configSchema: state.configSchema as import("./views/config-form").JsonSchema | null,
-            configValue: state.configForm ?? {},
-            configSaving: state.configSaving,
-            configSchemaLoading: state.configSchemaLoading,
-            configUiHints: state.configUiHints,
-            unsupported: new Set(),
-            onClose: () => state.handleOnboardingWizardV2Close(),
-            onContinue: async () => state.handleOnboardingWizardV2Next(),
-            onBack: () => state.handleOnboardingWizardV2Back(),
-            onSkip: () => state.handleOnboardingWizardV2Skip(),
-            onConfigPatch: (path, value) => state.updateConfigFormValue(path, value),
-            onAddChannel: (channelId) => state.handleAddChannelFromModal(channelId),
-            onEditChannel: (channelId) => state.handleOpenChannelConfigModal(channelId),
-            onRemoveChannel: (channelId) => state.handleRemoveChannel(channelId),
-            onAddModel: (modelId) => state.handleAddModelFromModal(modelId),
-            onEditModel: (modelId) => state.handleOpenModelConfigModal(modelId),
-            onRemoveModel: (modelId) => state.handleRemoveModel(modelId),
-          })
-        : renderOnboardingWizard({
-            state: state.onboardingWizardState,
-            configSchema: state.configSchema as import("./views/config-form").JsonSchema | null,
-            configValue: state.configForm ?? {},
-            configSaving: state.configSaving,
-            configSchemaLoading: state.configSchemaLoading,
-            configUiHints: state.configUiHints,
-            unsupported: new Set(),
-            onClose: () => state.handleOnboardingWizardClose(),
-            onContinue: async () => state.handleOnboardingWizardContinue(),
-            onBack: () => state.handleOnboardingWizardBack(),
-            onSkip: () => state.handleOnboardingWizardSkip(),
-            onPhaseChange: (phaseId) => state.handleOnboardingWizardPhaseChange(phaseId),
-            onSectionChange: (sectionId) => state.handleOnboardingWizardSectionChange(sectionId),
-            onConfigPatch: (path, value) => state.updateConfigFormValue(path, value),
-            onToggleAdvanced: () => state.handleOnboardingWizardToggleAdvanced(),
-            onConfirmClose: () => state.handleOnboardingWizardConfirmClose(),
-            onCancelClose: () => state.handleOnboardingWizardCancelClose(),
-            onRunHealthCheck: async () => state.handleOnboardingWizardHealthCheck(),
-          })}
     </div>
   `;
 }
