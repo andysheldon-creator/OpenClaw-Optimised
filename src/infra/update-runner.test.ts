@@ -112,6 +112,7 @@ describe("runGatewayUpdate", () => {
       "pnpm install": { stdout: "" },
       "pnpm build": { stdout: "" },
       "pnpm ui:build": { stdout: "" },
+      [`git -C ${tempDir} ls-files dist/control-ui/`]: { stdout: "dist/control-ui/index.html\n" },
       [`git -C ${tempDir} checkout -- dist/control-ui/`]: { stdout: "" },
       "pnpm moltbot doctor --non-interactive": { stdout: "" },
     });
