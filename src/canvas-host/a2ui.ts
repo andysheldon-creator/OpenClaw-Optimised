@@ -51,8 +51,8 @@ async function resolveA2uiRoot(): Promise<string | null> {
   if (process.execPath) {
     candidates.unshift(path.resolve(path.dirname(process.execPath), "a2ui"));
   }
-  // Find repo root by walking up from `here` (handles vitest/vite transforms).
-  const repoRoot = await findRepoRoot(here);
+  // Find repo root by walking up from `here` or cwd (handles vitest/vite transforms).
+  const repoRoot = (await findRepoRoot(here)) ?? (await findRepoRoot(process.cwd()));
   if (repoRoot) {
     candidates.push(path.resolve(repoRoot, "src/canvas-host/a2ui"));
     candidates.push(path.resolve(repoRoot, "dist/canvas-host/a2ui"));
