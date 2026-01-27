@@ -1,47 +1,72 @@
 import { upsertAuthProfile } from "../agents/auth-profiles.js";
 import { resolveClawdbotAgentDir } from "../agents/agent-paths.js";
 import type { ClawdbotConfig } from "../config/config.js";
+import type { ModelDefinitionConfig } from "../config/types.models.js";
 import type { ApplyAuthChoiceParams, ApplyAuthChoiceResult } from "./auth-choice.apply.js";
 import { applyAuthProfileConfig } from "./onboard-auth.js";
 
 const QUOTIO_DEFAULT_BASE_URL = "http://127.0.0.1:18317/v1";
 const QUOTIO_DEFAULT_API_KEY = "quotio-local";
-const QUOTIO_DEFAULT_MODEL = "quotio/gemini-claude-sonnet-4-thinking";
 
-const QUOTIO_MODELS = [
-  {
-    id: "gemini-claude-opus-4-5-thinking",
-    name: "Claude Opus 4.5 (Quotio)",
+type QuotioModel = {
+  id: string;
+  object?: string;
+  created?: number;
+  owned_by?: string;
+};
+
+type QuotioModelsResponse = {
+  object: string;
+  data: QuotioModel[];
+};
+
+async function discoverQuotioModels(
+  baseUrl: string,
+  apiKey: string,
+): Promise<{ models: QuotioModel[]; error?: string }> {
+  try {
+    const modelsUrl = baseUrl.endsWith("/") ? `${baseUrl}models` : `${baseUrl}/models`;
+    const response = await fetch(modelsUrl, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      return { models: [], error: `HTTP ${response.status}: ${response.statusText}` };
+    }
+
+    const data = (await response.json()) as QuotioModelsResponse;
+    if (!data.data || !Array.isArray(data.data)) {
+      return { models: [], error: "Invalid response format from /models endpoint" };
+    }
+
+    return { models: data.data };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { models: [], error: message };
+  }
+}
+
+function buildModelDefinition(model: QuotioModel): ModelDefinitionConfig {
+  return {
+    id: model.id,
+    name: model.id,
     reasoning: false,
     input: ["text", "image"] as Array<"text" | "image">,
     contextWindow: 200000,
     maxTokens: 32000,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-  },
-  {
-    id: "gemini-claude-sonnet-4-thinking",
-    name: "Claude Sonnet 4 (Quotio)",
-    reasoning: false,
-    input: ["text", "image"] as Array<"text" | "image">,
-    contextWindow: 200000,
-    maxTokens: 32000,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-  },
-  {
-    id: "gemini-3-flash",
-    name: "Gemini 3 Flash (Quotio)",
-    reasoning: false,
-    input: ["text", "image"] as Array<"text" | "image">,
-    contextWindow: 1000000,
-    maxTokens: 65536,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-  },
-];
+  };
+}
 
 function applyQuotioProviderConfig(
   config: ClawdbotConfig,
   baseUrl: string,
   apiKey: string,
+  models: ModelDefinitionConfig[],
 ): ClawdbotConfig {
   return {
     ...config,
@@ -53,16 +78,16 @@ function applyQuotioProviderConfig(
           baseUrl,
           apiKey,
           api: "openai-completions",
-          models: QUOTIO_MODELS,
+          models,
         },
       },
     },
   };
 }
 
-function applyQuotioDefaultModel(config: ClawdbotConfig): ClawdbotConfig {
+function applyQuotioDefaultModel(config: ClawdbotConfig, modelRef: string): ClawdbotConfig {
   const models = { ...config.agents?.defaults?.models };
-  models[QUOTIO_DEFAULT_MODEL] = models[QUOTIO_DEFAULT_MODEL] ?? {};
+  models[modelRef] = models[modelRef] ?? {};
 
   return {
     ...config,
@@ -72,7 +97,7 @@ function applyQuotioDefaultModel(config: ClawdbotConfig): ClawdbotConfig {
         ...config.agents?.defaults,
         models,
         model: {
-          primary: QUOTIO_DEFAULT_MODEL,
+          primary: modelRef,
         },
       },
     },
@@ -90,7 +115,7 @@ export async function applyAuthChoiceQuotio(
   await params.prompter.note(
     [
       "Quotio is a local OpenAI-compatible proxy that routes to various AI models.",
-      "Make sure Quotio is running before using clawdbot.",
+      "Make sure Quotio is running before continuing.",
       "Default endpoint: http://127.0.0.1:18317/v1",
     ].join("\n"),
     "Quotio",
@@ -115,12 +140,51 @@ export async function applyAuthChoiceQuotio(
     initialValue: QUOTIO_DEFAULT_API_KEY,
   });
 
+  const normalizedBaseUrl = String(baseUrl).trim() || QUOTIO_DEFAULT_BASE_URL;
+  const normalizedApiKey = String(apiKey).trim() || QUOTIO_DEFAULT_API_KEY;
+
+  await params.prompter.note("Discovering available models from Quotio...", "Connecting");
+
+  const { models: discoveredModels, error } = await discoverQuotioModels(
+    normalizedBaseUrl,
+    normalizedApiKey,
+  );
+
+  if (error || discoveredModels.length === 0) {
+    await params.prompter.note(
+      error
+        ? `Could not fetch models: ${error}\nPlease ensure Quotio is running and try again.`
+        : "No models found. Please check your Quotio configuration.",
+      "Discovery Failed",
+    );
+    return { config: params.config };
+  }
+
+  await params.prompter.note(
+    `Found ${discoveredModels.length} model(s) available.`,
+    "Discovery Complete",
+  );
+
+  const modelOptions = discoveredModels.map((m) => ({
+    value: m.id,
+    label: m.id,
+    hint: m.owned_by ? `by ${m.owned_by}` : undefined,
+  }));
+
+  const selectedModelId = await params.prompter.select({
+    message: "Select default model",
+    options: modelOptions,
+  });
+
+  const modelDefinitions = discoveredModels.map(buildModelDefinition);
+  const defaultModelRef = `quotio/${String(selectedModelId)}`;
+
   upsertAuthProfile({
     profileId: "quotio:default",
     credential: {
       type: "api_key",
       provider: "quotio",
-      key: String(apiKey).trim() || QUOTIO_DEFAULT_API_KEY,
+      key: normalizedApiKey,
     },
     agentDir,
   });
@@ -133,18 +197,19 @@ export async function applyAuthChoiceQuotio(
 
   nextConfig = applyQuotioProviderConfig(
     nextConfig,
-    String(baseUrl).trim() || QUOTIO_DEFAULT_BASE_URL,
-    String(apiKey).trim() || QUOTIO_DEFAULT_API_KEY,
+    normalizedBaseUrl,
+    normalizedApiKey,
+    modelDefinitions,
   );
 
   let agentModelOverride: string | undefined;
   if (params.setDefaultModel) {
-    nextConfig = applyQuotioDefaultModel(nextConfig);
-    await params.prompter.note(`Default model set to ${QUOTIO_DEFAULT_MODEL}`, "Model configured");
+    nextConfig = applyQuotioDefaultModel(nextConfig, defaultModelRef);
+    await params.prompter.note(`Default model set to ${defaultModelRef}`, "Model configured");
   } else if (params.agentId) {
-    agentModelOverride = QUOTIO_DEFAULT_MODEL;
+    agentModelOverride = defaultModelRef;
     await params.prompter.note(
-      `Default model set to ${QUOTIO_DEFAULT_MODEL} for agent "${params.agentId}".`,
+      `Default model set to ${defaultModelRef} for agent "${params.agentId}".`,
       "Model configured",
     );
   }
