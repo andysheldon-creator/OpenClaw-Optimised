@@ -37,7 +37,7 @@ type BlocklistEntry = {
 const CRITICAL_BLOCKLIST: BlocklistEntry[] = [
   // Destructive filesystem operations
   {
-    pattern: /\brm\s+(-[a-zA-Z]*r[a-zA-Z]*\s+)?(-[a-zA-Z]*f[a-zA-Z]*\s+)?[\/~]\s*$/i,
+    pattern: /\brm\s+(-[a-zA-Z]*r[a-zA-Z]*\s+)?(-[a-zA-Z]*f[a-zA-Z]*\s+)?[/~]\s*$/i,
     description: "rm -rf / (root filesystem deletion)",
     severity: "critical",
     requiresExplicitApproval: true,

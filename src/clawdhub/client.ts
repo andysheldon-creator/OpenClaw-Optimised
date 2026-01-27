@@ -92,14 +92,28 @@ async function fetchJson<T>(url: string, options: RequestInit = {}, timeoutMs = 
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "User-Agent": "clawdbot-gateway",
+    };
+    if (options.headers) {
+      const h = options.headers;
+      if (h instanceof Headers) {
+        h.forEach((value, key) => {
+          headers[key] = value;
+        });
+      } else if (Array.isArray(h)) {
+        for (const [key, value] of h) {
+          headers[key] = value;
+        }
+      } else {
+        Object.assign(headers, h);
+      }
+    }
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "clawdbot-gateway",
-        ...options.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {

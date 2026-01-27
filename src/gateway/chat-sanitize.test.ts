@@ -6,7 +6,6 @@ import {
   wrapWithBoundaries,
   sanitizeIncomingMessage,
   PROMPT_BOUNDARIES,
-  type InjectionSeverity,
 } from "./chat-sanitize.js";
 
 describe("stripEnvelopeFromMessage", () => {
