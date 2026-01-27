@@ -418,3 +418,6 @@ export function createMoltbotCodingTools(options?: {
   // on the wire and maps them back for tool dispatch.
   return withAbort;
 }
+
+// Alias for backward compatibility during rebrand
+export { createMoltbotCodingTools as createClawdbotCodingTools };
