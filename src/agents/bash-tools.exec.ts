@@ -560,7 +560,8 @@ async function runExecProcess(opts: {
       config: execEventsRuntimeConfig,
       startedEmitted: false,
       completedEmitted: false,
-    } satisfies ExecEventSessionState,
+      outputBuffer: undefined,
+    } as ExecEventSessionState,
   } satisfies ProcessSession;
   addSession(session);
 
