@@ -36,6 +36,7 @@ import type { ChannelWizardState } from "./views/channel-config-wizard";
 import type { CompactionStatus } from "./app-tool-stream";
 import type { ChatTask, ChatActivityLog } from "./types/task-types";
 import type { SessionActiveTask } from "./views/sessions";
+import type { SessionNavigatorState } from "./components/session-navigator";
 import type {
   OverseerGoalStatusResult,
   OverseerStatusResult,
@@ -174,6 +175,8 @@ export type AppViewState = {
   sessionsAutoHideErroredMinutes: number;
   sessionsDrawerKey: string | null;
   sessionsDrawerExpanded: boolean;
+  // Session navigator (chat controls dropdown)
+  sessionNavigator: SessionNavigatorState;
   sessionsPreviewLoading: boolean;
   sessionsPreviewError: string | null;
   sessionsPreviewEntry: SessionsPreviewEntry | null;

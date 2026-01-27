@@ -96,6 +96,7 @@ import {
   handleWhatsAppWait as handleWhatsAppWaitInternal,
 } from "./app-channels";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form";
+import { createSessionNavigatorState, type SessionNavigatorState } from "./components/session-navigator";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity";
 import { loadCronRuns } from "./controllers/cron";
 import {
@@ -505,6 +506,7 @@ export class ClawdbrainApp extends LitElement {
   );
   @state() sessionsDrawerKey: string | null = null;
   @state() sessionsDrawerExpanded = false;
+  @state() sessionNavigator: SessionNavigatorState = createSessionNavigatorState();
   @state() sessionsPreviewLoading = false;
   @state() sessionsPreviewError: string | null = null;
   @state() sessionsPreviewEntry: SessionsPreviewEntry | null = null;

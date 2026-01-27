@@ -1,14 +1,17 @@
 import { html } from "lit";
-import { repeat } from "lit/directives/repeat.js";
 
 import type { AppViewState } from "./app-view-state";
 import { hrefForTab, titleForTab, type Tab, PRIMARY_TABS, SECONDARY_TABS, ADVANCED_TABS } from "./navigation";
 import { loadChatHistory } from "./controllers/chat";
 import { syncUrlWithSessionKey } from "./app-settings";
-import type { SessionsListResult } from "./types";
 import type { ThemeMode } from "./theme";
 import type { ThemeTransitionContext } from "./theme-transition";
 import { iconForTabSvg, icon, icons } from "./icons";
+import {
+  renderSessionNavigatorTrigger,
+  renderSessionNavigatorPanel,
+  type SessionNavigatorProps,
+} from "./components/session-navigator";
 
 export function renderNavigationTabs(state: AppViewState) {
   const showAdvanced = state.navShowAdvanced;
@@ -75,7 +78,6 @@ export function renderTab(state: AppViewState, tab: Tab) {
 }
 
 export function renderChatControls(state: AppViewState) {
-  const sessionOptions = resolveSessionOptions(state.sessionKey, state.sessionsResult);
   const disableThinkingToggle = state.onboarding;
   const disableFocusToggle = state.onboarding;
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
@@ -83,41 +85,74 @@ export function renderChatControls(state: AppViewState) {
   // Refresh icon
   const refreshIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>`;
   const focusIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h3"></path><path d="M20 7V4h-3"></path><path d="M4 17v3h3"></path><path d="M20 17v3h-3"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+
+  const selectSession = (next: string) => {
+    state.sessionKey = next;
+    state.chatMessage = "";
+    state.chatStream = null;
+    state.chatStreamStartedAt = null;
+    state.chatRunId = null;
+    state.resetToolStream();
+    state.resetChatScroll();
+    state.applySettings({
+      ...state.settings,
+      sessionKey: next,
+      lastActiveSessionKey: next,
+    });
+    void state.loadAssistantIdentity();
+    syncUrlWithSessionKey(state, next, true);
+    void loadChatHistory(state);
+  };
+
+  const navProps: SessionNavigatorProps = {
+    sessionKey: state.sessionKey,
+    connected: state.connected,
+    sessionsResult: state.sessionsResult,
+    agentsList: state.agentsList,
+    navigatorState: state.sessionNavigator,
+    onSelectSession: selectSession,
+    onToggleOpen: () => {
+      state.sessionNavigator = {
+        ...state.sessionNavigator,
+        open: !state.sessionNavigator.open,
+      };
+    },
+    onSelectAgent: (agentId: string) => {
+      state.sessionNavigator = {
+        ...state.sessionNavigator,
+        selectedAgentId: agentId,
+      };
+    },
+    onSearchChange: (search: string) => {
+      state.sessionNavigator = {
+        ...state.sessionNavigator,
+        search,
+      };
+    },
+    onToggleGroup: (groupKey: string) => {
+      const next = new Set(state.sessionNavigator.expandedGroups);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      state.sessionNavigator = {
+        ...state.sessionNavigator,
+        expandedGroups: next,
+      };
+    },
+    onClose: () => {
+      state.sessionNavigator = {
+        ...state.sessionNavigator,
+        open: false,
+        search: "",
+      };
+    },
+  };
+
   return html`
     <div class="chat-controls">
-      <label class="field chat-controls__session">
-        <select
-          .value=${state.sessionKey}
-          ?disabled=${!state.connected}
-          @change=${(e: Event) => {
-            const next = (e.target as HTMLSelectElement).value;
-            state.sessionKey = next;
-            state.chatMessage = "";
-            state.chatStream = null;
-            state.chatStreamStartedAt = null;
-            state.chatRunId = null;
-            state.resetToolStream();
-            state.resetChatScroll();
-            state.applySettings({
-              ...state.settings,
-              sessionKey: next,
-              lastActiveSessionKey: next,
-            });
-            void state.loadAssistantIdentity();
-            syncUrlWithSessionKey(state, next, true);
-            void loadChatHistory(state);
-          }}
-        >
-          ${repeat(
-            sessionOptions,
-            (entry) => entry.key,
-            (entry) =>
-              html`<option value=${entry.key}>
-                ${entry.displayName ?? entry.key}
-              </option>`,
-          )}
-        </select>
-      </label>
+      <div class="sn-wrapper">
+        ${renderSessionNavigatorTrigger(navProps)}
+        ${renderSessionNavigatorPanel(navProps)}
+      </div>
       <button
         class="btn btn--sm btn--icon"
         ?disabled=${state.chatLoading || !state.connected}
@@ -173,29 +208,6 @@ export function renderChatControls(state: AppViewState) {
       </button>
     </div>
   `;
-}
-
-function resolveSessionOptions(sessionKey: string, sessions: SessionsListResult | null) {
-  const seen = new Set<string>();
-  const options: Array<{ key: string; displayName?: string }> = [];
-
-  const resolvedCurrent = sessions?.sessions?.find((s) => s.key === sessionKey);
-
-  // Add current session key first
-  seen.add(sessionKey);
-  options.push({ key: sessionKey, displayName: resolvedCurrent?.displayName });
-
-  // Add sessions from the result
-  if (sessions?.sessions) {
-    for (const s of sessions.sessions) {
-      if (!seen.has(s.key)) {
-        seen.add(s.key);
-        options.push({ key: s.key, displayName: s.displayName });
-      }
-    }
-  }
-
-  return options;
 }
 
 const THEME_ORDER: ThemeMode[] = ["system", "light", "dark"];
