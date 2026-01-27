@@ -112,7 +112,8 @@ function isToolHookPhase(phase: string): phase is ToolHookPhase {
   return phase === "start" || phase === "update" || phase === "result";
 }
 
-let unsubscribe: (() => void) | null = null;
+let unsubscribeFromEvents: (() => void) | null = null;
+let cleanupFunction: (() => void) | null = null;
 
 /**
  * Start the agent hook bridge.
@@ -124,12 +125,12 @@ let unsubscribe: (() => void) | null = null;
  * @returns Cleanup function to stop the bridge
  */
 export function startAgentHookBridge(): () => void {
-  // Prevent double-subscription
-  if (unsubscribe) {
-    return unsubscribe;
+  // Prevent double-subscription - return same cleanup function
+  if (cleanupFunction) {
+    return cleanupFunction;
   }
 
-  unsubscribe = onAgentEvent((evt: AgentEventPayload) => {
+  unsubscribeFromEvents = onAgentEvent((evt: AgentEventPayload) => {
     // Only care about tool streams
     if (evt.stream !== "tool") return;
 
@@ -167,20 +168,22 @@ export function startAgentHookBridge(): () => void {
     void triggerInternalHook(hookPayload as InternalHookEvent);
   });
 
-  return () => {
-    if (unsubscribe) {
-      unsubscribe();
-      unsubscribe = null;
+  cleanupFunction = () => {
+    if (unsubscribeFromEvents) {
+      unsubscribeFromEvents();
+      unsubscribeFromEvents = null;
     }
+    cleanupFunction = null;
   };
+
+  return cleanupFunction;
 }
 
 /**
  * Stop the agent hook bridge if running.
  */
 export function stopAgentHookBridge(): void {
-  if (unsubscribe) {
-    unsubscribe();
-    unsubscribe = null;
+  if (cleanupFunction) {
+    cleanupFunction();
   }
 }
