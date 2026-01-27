@@ -67,25 +67,29 @@ MeshGuard solves: **"Who authorized this agent, what can it do, and who's respon
 - **Tech:** VitePress
 - **Domain:** docs.meshguard.app
 - **Guides (10):** what-is-meshguard, quickstart, getting-started, identity, policies, audit, alerting, billing, enterprise, self-hosted
-- **Integrations (9):** overview, langchain, crewai, autogpt, semantic-kernel, clawdbot, python, javascript, http
+- **Integrations (13):** overview, langchain, crewai, autogpt, semantic-kernel, clawdbot, claude-code, openai-agents, bedrock, vertex-ai, python, javascript, http
 - **API Reference (5):** overview, authentication, gateway, admin, billing
-- **Total:** ~24 pages
+- **Total:** ~28 pages
 
 ### meshguard-learn (Learning Center) — PUBLIC
 - **Path:** ~/Git/meshguard-learn
 - **Tech:** VitePress
 - **Domain:** learn.meshguard.app
-- **Guides (11):** governing-langchain-agents, securing-crewai, rate-limiting-autogpt, governing-clawdbot-agents, governing-microsoft-copilot, customer-service-agent, preventing-prompt-injection, meshguard-for-small-business, personal-vs-enterprise-governance + index
+- **Guides (15):** governing-langchain-agents, securing-crewai, rate-limiting-autogpt, governing-clawdbot-agents, governing-claude-code-agents, governing-openai-agents, governing-bedrock-agents, governing-vertex-ai-agents, governing-microsoft-copilot, customer-service-agent, preventing-prompt-injection, meshguard-for-small-business, personal-vs-enterprise-governance + index
 - **Concepts (7):** what-is-agent-governance, trust-tiers, delegation-chains, audit-logs, least-privilege, policy-design-patterns + index
 - **Comparisons (7):** vs-opa, vs-langchain-guardrails, vs-constitutional-ai, vs-azure-content-safety, vs-descope, vs-microsoft-purview + index
-- **Total:** ~25 pages
+- **Total:** ~29 pages
 
 ### meshguard-examples — PUBLIC
 - **Path:** ~/Git/meshguard-examples
-- **Examples (3):**
+- **Examples (7):**
   - `langchain-customer-service/` — Tiered permissions, governed tools, mock CRM/orders/payments, Docker, tests
   - `autogpt-governed/` — Rate limiting, circuit breaker, cost tracking, sandbox/production policies
   - `crewai-research-team/` — Multi-agent crew with per-agent policies, delegation control
+  - `claude-code-dev-assistant/` — Pre/post tool hooks, 3 policy profiles (dev-assistant, code-reviewer, ci-agent), setup script
+  - `openai-agents-support/` — OpenAI Agents SDK with governed tool calls and handoffs
+  - `bedrock-data-analyst/` — AWS Bedrock agent with data access governance
+  - `vertex-ai-multiagent/` — Google Vertex AI multi-agent with governance
 
 ### meshguard-python (Python SDK) — PUBLIC
 - **Path:** ~/Git/meshguard-python
@@ -203,7 +207,7 @@ MeshGuard solves: **"Who authorized this agent, what can it do, and who's respon
 - Granular RBAC
 - Agent-to-agent delegation chains
 - CLI policy validation & dry-run mode
-- **New integrations being built:** Amazon Bedrock, Google Vertex AI/A2A, OpenAI Agents SDK
+- **New integrations shipped (Jan 26):** Claude Code, Amazon Bedrock, Google Vertex AI, OpenAI Agents SDK — all with docs, learn guides, examples, and sidebar links
 
 ### 📋 Planned (Q2 2026)
 - SOC 2 Type II certification
