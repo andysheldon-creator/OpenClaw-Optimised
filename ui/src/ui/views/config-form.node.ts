@@ -543,12 +543,14 @@ function renderObject(params: {
   }
 
   // Flat object rendering (for wizard context) - only for shallow nesting (path.length <= 3)
+  // Uses <details open> so users can collapse nested config objects to reduce clutter
   if (flattenObjects && path.length <= 3) {
     return html`
-      <div class="cfg-object-flat" data-config-path=${pathKey(path)}>
-        <div class="cfg-object-flat__header">
+      <details class="cfg-object-flat" open data-config-path=${pathKey(path)}>
+        <summary class="cfg-object-flat__header">
           <span class="cfg-object-flat__title">${label}</span>
-        </div>
+          <span class="cfg-object-flat__chevron">${icons.chevronDown}</span>
+        </summary>
         ${help ? html`<div class="cfg-object-flat__help">${help}</div>` : nothing}
         <div class="cfg-object-flat__content">
           ${sorted.map(([propKey, node]) =>
@@ -577,7 +579,7 @@ function renderObject(params: {
             onPatch,
           }) : nothing}
         </div>
-      </div>
+      </details>
     `;
   }
 

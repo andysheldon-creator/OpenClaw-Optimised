@@ -406,8 +406,11 @@ function renderFieldGroup(params: {
   };
 
   return html`
-    <div class="channel-wizard__field-group">
-      <div class="channel-wizard__group-title">${group.title}</div>
+    <details class="channel-wizard__field-group-collapsible" open>
+      <summary>
+        <span class="channel-wizard__group-title">${group.title}</span>
+        <span class="channel-wizard__group-chevron">${icon("chevron-down", { size: 14 })}</span>
+      </summary>
       <div class="channel-wizard__group-fields">
         ${renderNode({
           schema: groupSchema,
@@ -422,7 +425,7 @@ function renderFieldGroup(params: {
           onPatch,
         })}
       </div>
-    </div>
+    </details>
   `;
 }
 

@@ -1009,12 +1009,12 @@
 
 .cfg-fields {
   display: grid;
-  gap: 22px;
+  gap: 14px;
 }
 
 .cfg-field {
   display: grid;
-  gap: 8px;
+  gap: 5px;
 }
 
 .cfg-field--error {
@@ -1025,7 +1025,7 @@
 }
 
 .cfg-field__label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text);
 }
@@ -1153,7 +1153,7 @@
 }
 
 .cfg-number__btn {
-  width: 44px;
+  width: 34px;
   border: none;
   background: var(--bg-elevated);
   color: var(--text);
@@ -1181,8 +1181,8 @@
 }
 
 .cfg-number__input {
-  width: 85px;
-  padding: 11px;
+  width: 64px;
+  padding: 8px;
   border: none;
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
@@ -1485,8 +1485,8 @@
 .cfg-toggle-inline {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 8px 0;
+  gap: 10px;
+  padding: 4px 0;
   cursor: pointer;
   transition: opacity 150ms ease;
 }
@@ -1509,7 +1509,7 @@
 }
 
 .cfg-toggle-inline__label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text);
   line-height: 1.4;
@@ -1539,8 +1539,8 @@
 
 /* Flat Object - non-collapsible nested object for wizard context */
 .cfg-object-flat {
-  border-left: 3px solid var(--accent-muted);
-  padding-left: 16px;
+  border-left: 2px solid var(--accent-muted);
+  padding-left: 12px;
   margin-left: 4px;
 }
 
@@ -1548,7 +1548,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .cfg-object-flat__title {
@@ -1566,7 +1566,44 @@
 
 .cfg-object-flat__content {
   display: grid;
-  gap: 12px;
+  gap: 6px;
+}
+
+/* Collapsible flat object (details/summary variant) */
+details.cfg-object-flat {
+  border-left: 2px solid var(--accent-muted);
+  padding-left: 12px;
+  margin-left: 4px;
+}
+
+details.cfg-object-flat > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  list-style: none;
+}
+
+details.cfg-object-flat > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.cfg-object-flat > summary .cfg-object-flat__chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  transition: transform var(--duration-normal) var(--ease-out);
+  flex-shrink: 0;
+}
+
+details.cfg-object-flat > summary .cfg-object-flat__chevron svg {
+  width: 100%;
+  height: 100%;
+}
+
+details.cfg-object-flat[open] > summary .cfg-object-flat__chevron {
+  transform: rotate(180deg);
 }
 
 /* Object (collapsible) */
