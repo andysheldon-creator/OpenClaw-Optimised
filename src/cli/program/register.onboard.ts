@@ -126,6 +126,7 @@ export function registerOnboardCommand(program: Command) {
             minimaxApiKey: opts.minimaxApiKey as string | undefined,
             syntheticApiKey: opts.syntheticApiKey as string | undefined,
             veniceApiKey: opts.veniceApiKey as string | undefined,
+            togetherApiKey: opts.togetherApiKey as string | undefined,
             opencodeZenApiKey: opts.opencodeZenApiKey as string | undefined,
             gatewayPort:
               typeof gatewayPort === "number" && Number.isFinite(gatewayPort)
