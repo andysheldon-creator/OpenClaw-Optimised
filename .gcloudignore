@@ -1,0 +1,71 @@
+# Cloud Build ignore file
+# Note: This overrides .gitignore for gcloud builds submit
+
+# Large directories not needed for build
+.git
+.worktrees
+.bun-cache
+.bun
+.tmp
+**/.tmp
+.DS_Store
+**/.DS_Store
+
+# Media files
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.mov
+*.wav
+*.mp3
+
+# Dependencies (will be installed fresh)
+node_modules
+**/node_modules
+.pnpm-store
+**/.pnpm-store
+.turbo
+**/.turbo
+.cache
+**/.cache
+.next
+**/.next
+coverage
+**/coverage
+*.log
+tmp
+**/tmp
+
+# Build artifacts (not needed, we rebuild)
+dist
+**/dist
+apps/macos/.build
+apps/ios/build
+**/*.trace
+
+# Large app trees not needed for Docker build
+apps/
+Peekaboo/
+Swabble/
+Core/
+Users/
+vendor/
+
+# Keep assets, skills, extensions, docs (needed for runtime)
+!assets/
+!skills/
+!extensions/
+!docs/
+
+# Local files
+.env
+.conda-env
+.envrc
+.local/
+.vscode/
+IDENTITY.md
+USER.md
+.serena/

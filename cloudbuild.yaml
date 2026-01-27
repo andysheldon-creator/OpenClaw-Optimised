@@ -1,0 +1,15 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.production'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/clawdbot:latest'
+      - '.'
+    timeout: '1800s'
+
+images:
+  - 'gcr.io/$PROJECT_ID/clawdbot:latest'
+
+timeout: '2400s'

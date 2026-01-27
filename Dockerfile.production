@@ -35,7 +35,8 @@ ENV CLAWDBOT_PREFER_PNPM=1
 RUN pnpm ui:install
 RUN pnpm ui:build
 
-# Prune dev dependencies for production
+# Prune dev dependencies for production (CI=true avoids TTY prompt)
+ENV CI=true
 RUN pnpm prune --prod
 
 # --------------------------------------------
@@ -52,17 +53,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy only production artifacts
+# Copy only production artifacts (dist/ includes control-ui from ui:build)
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/assets ./assets
-COPY --from=builder /app/skills ./skills
-COPY --from=builder /app/extensions ./extensions
-COPY --from=builder /app/docs ./docs
 
-# Copy UI build output if present
-COPY --from=builder /app/ui/dist ./ui/dist
+# Copy optional runtime directories if they exist (using wildcards for optional copy)
+COPY --from=builder /app/skill[s] ./skills/
+COPY --from=builder /app/extension[s] ./extensions/
+COPY --from=builder /app/doc[s] ./docs/
 
 # Create non-root user (node user already exists in node image)
 RUN chown -R node:node /app
@@ -77,4 +76,4 @@ HEALTHCHECK --interval=60s --timeout=5s --retries=2 \
 
 ENV NODE_ENV=production
 
-CMD ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+CMD ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789", "--allow-unconfigured"]
