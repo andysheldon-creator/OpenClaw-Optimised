@@ -43,14 +43,14 @@ Model note: while any model is supported, I strongly recommend **Anthropic Pro/M
 Runtime: **Node ≥22**.
 
 ```bash
-npm install -g moltbot@latest
-# or: pnpm add -g moltbot@latest
+npm install -g clawdbot@latest
+# or: pnpm add -g clawdbot@latest
 
-moltbot onboard --install-daemon
+clawdbot onboard --install-daemon
 ```
 
 The wizard installs the Gateway daemon (launchd/systemd user service) so it stays running.
-Legacy note: `clawdbot` remains available as a compatibility shim.
+Legacy note: `moltbot` remains available as a compatibility shim.
 
 ## Quick start (TL;DR)
 
@@ -59,18 +59,18 @@ Runtime: **Node ≥22**.
 Full beginner guide (auth, pairing, channels): [Getting started](https://docs.molt.bot/start/getting-started)
 
 ```bash
-moltbot onboard --install-daemon
+clawdbot onboard --install-daemon
 
-moltbot gateway --port 18789 --verbose
+clawdbot gateway --port 18789 --verbose
 
 # Send a message
-moltbot message send --to +1234567890 --message "Hello from Moltbot"
+clawdbot message send --to +1234567890 --message "Hello from Clawdbot"
 
 # Talk to the assistant (optionally deliver back to any connected channel: WhatsApp/Telegram/Slack/Discord/Google Chat/Signal/iMessage/BlueBubbles/Microsoft Teams/Matrix/Zalo/Zalo Personal/WebChat)
-moltbot agent --message "Ship checklist" --thinking high
+clawdbot agent --message "Ship checklist" --thinking high
 ```
 
-Upgrading? [Updating guide](https://docs.molt.bot/install/updating) (and run `moltbot doctor`).
+Upgrading? [Updating guide](https://docs.molt.bot/install/updating) (and run `clawdbot doctor`).
 
 ## Development channels
 
@@ -93,13 +93,13 @@ pnpm install
 pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 
-pnpm moltbot onboard --install-daemon
+pnpm clawdbot onboard --install-daemon
 
 # Dev loop (auto-reload on TS changes)
 pnpm gateway:watch
 ```
 
-Note: `pnpm moltbot ...` runs TypeScript directly (via `tsx`). `pnpm build` produces `dist/` for running via Node / the packaged `moltbot` binary.
+Note: `pnpm clawdbot ...` runs TypeScript directly (via `tsx`). `pnpm build` produces `dist/` for running via Node / the packaged `clawdbot` binary.
 
 ## Security defaults (DM access)
 
