@@ -1,0 +1,14 @@
+{
+  "name": "@clawdbot/feishu",
+  "version": "2026.1.25",
+  "type": "module",
+  "description": "Clawdbot Feishu/Lark channel plugin",
+  "clawdbot": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.56.1"
+  }
+}

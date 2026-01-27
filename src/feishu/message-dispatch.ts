@@ -1,0 +1,272 @@
+/**
+ * Feishu Message Dispatch
+ *
+ * Routes incoming Feishu messages through the agent dispatch system,
+ * similar to how Telegram messages are handled.
+ */
+
+import type { ClawdbotConfig } from "../config/config.js";
+import type { RuntimeEnv } from "../runtime.js";
+import type { ResolvedFeishuAccount } from "./accounts.js";
+import type { FeishuMessageContext } from "./monitor.js";
+import { resolveAgentRoute } from "../routing/resolve-route.js";
+import { dispatchInboundMessageWithBufferedDispatcher } from "../auto-reply/dispatch.js";
+import { formatInboundEnvelope, resolveEnvelopeFormatOptions } from "../auto-reply/envelope.js";
+import { hasControlCommand } from "../auto-reply/command-detection.js";
+import { normalizeCommandBody } from "../auto-reply/commands-registry.js";
+import {
+  resolveChannelGroupPolicy,
+  resolveChannelGroupRequireMention,
+} from "../config/group-policy.js";
+import { danger } from "../globals.js";
+import { recordChannelActivity } from "../infra/channel-activity.js";
+import { createDedupeCache } from "../infra/dedupe.js";
+import { formatUncaughtError } from "../infra/errors.js";
+import { sendMessageFeishu } from "./send.js";
+
+// Message deduplication cache to prevent processing duplicate messages
+const feishuMessageDedupe = createDedupeCache({
+  maxSize: 1000,
+  ttlMs: 60_000, // 1 minute
+});
+
+export type DispatchFeishuMessageParams = {
+  ctx: FeishuMessageContext;
+  cfg: ClawdbotConfig;
+  runtime?: RuntimeEnv;
+  account: ResolvedFeishuAccount;
+};
+
+/**
+ * Build peer ID for Feishu (group may include thread)
+ */
+function buildFeishuPeerId(chatId: string, threadId?: string): string {
+  return threadId ? `${chatId}:${threadId}` : chatId;
+}
+
+/**
+ * Check if sender is allowed based on config
+ */
+function isFeishuSenderAllowed(
+  ctx: FeishuMessageContext,
+  cfg: ClawdbotConfig,
+  account: ResolvedFeishuAccount,
+): { allowed: boolean; reason?: string } {
+  const isGroup = ctx.chatType === "group";
+  const senderId = ctx.senderId;
+
+  if (isGroup) {
+    // Check group policy
+    const groupPolicySetting = account.config.groupPolicy ?? "open";
+    if (groupPolicySetting === "disabled") {
+      return { allowed: false, reason: "group_disabled" };
+    }
+
+    const groupPolicy = resolveChannelGroupPolicy({
+      cfg,
+      channel: "feishu",
+      accountId: account.accountId,
+      groupId: ctx.chatId,
+    });
+
+    if (groupPolicy.allowlistEnabled && !groupPolicy.allowed) {
+      return { allowed: false, reason: "group_not_in_allowlist" };
+    }
+
+    // Check groupAllowFrom for sender filtering
+    const groupAllowFrom = account.config.groupAllowFrom ?? [];
+    if (groupAllowFrom.length > 0 && !groupAllowFrom.includes(senderId)) {
+      return { allowed: false, reason: "sender_not_in_group_allowlist" };
+    }
+  } else {
+    // DM policy
+    const dmPolicy = account.config.dmPolicy ?? "pairing";
+    if (dmPolicy === "disabled") {
+      return { allowed: false, reason: "dm_disabled" };
+    }
+
+    if (dmPolicy === "allowlist") {
+      const allowFrom = account.config.allowFrom ?? [];
+      if (allowFrom.length > 0 && !allowFrom.includes(senderId)) {
+        return { allowed: false, reason: "sender_not_in_allowlist" };
+      }
+    }
+
+    // TODO: Handle pairing mode for unknown DMs
+    // For now, allow through if not explicitly blocked
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Check if mention is required in group chats
+ */
+function requiresFeishuMention(
+  ctx: FeishuMessageContext,
+  cfg: ClawdbotConfig,
+  account: ResolvedFeishuAccount,
+): boolean {
+  if (ctx.chatType !== "group") return false;
+
+  return resolveChannelGroupRequireMention({
+    cfg,
+    channel: "feishu",
+    accountId: account.accountId,
+    groupId: ctx.chatId,
+  });
+}
+
+/**
+ * Dispatch a Feishu message to the agent system
+ */
+export async function dispatchFeishuMessage(params: DispatchFeishuMessageParams): Promise<void> {
+  const { ctx, cfg, runtime, account } = params;
+  const log = runtime?.log ?? console.log;
+
+  // Deduplicate messages to prevent processing the same message twice
+  const dedupeKey = `feishu:${ctx.messageId}`;
+  if (feishuMessageDedupe.check(dedupeKey)) {
+    log(`feishu: skipping duplicate message ${ctx.messageId}`);
+    return;
+  }
+
+  log(
+    `feishu: dispatchFeishuMessage called - chatId=${ctx.chatId}, senderId=${ctx.senderId}, chatType=${ctx.chatType}`,
+  );
+
+  // Record channel activity
+  recordChannelActivity({
+    channel: "feishu",
+    accountId: account.accountId,
+    direction: "inbound",
+  });
+
+  const isGroup = ctx.chatType === "group";
+  const peerId = buildFeishuPeerId(ctx.chatId, ctx.threadId);
+
+  // Resolve agent route for session key
+  const route = resolveAgentRoute({
+    cfg,
+    channel: "feishu",
+    accountId: account.accountId,
+    peer: {
+      kind: isGroup ? "group" : "dm",
+      id: peerId,
+    },
+  });
+  log(`feishu: resolved route - sessionKey=${route.sessionKey}, agentId=${route.agentId}`);
+
+  // Check if sender is allowed
+  const accessCheck = isFeishuSenderAllowed(ctx, cfg, account);
+  if (!accessCheck.allowed) {
+    log(`feishu: blocked message from ${ctx.senderId} (${accessCheck.reason})`);
+    return;
+  }
+  log(`feishu: sender allowed`);
+
+  // Check mention requirement for groups
+  if (isGroup && requiresFeishuMention(ctx, cfg, account) && !ctx.wasMentioned) {
+    log(`feishu: mention required but not mentioned in group ${ctx.chatId}`);
+    return;
+  }
+
+  // Skip empty messages
+  const messageText = ctx.text.trim();
+  if (!messageText) {
+    log(`feishu: skipping empty message`);
+    return;
+  }
+
+  // Normalize command body (strip bot mention prefix if present)
+  const commandBody = normalizeCommandBody(messageText);
+
+  // Check if this is a control command
+  const isControlCommand = hasControlCommand(commandBody, cfg, undefined);
+
+  log(
+    `feishu: processing message - text="${messageText.substring(0, 100)}", isCommand=${isControlCommand}`,
+  );
+
+  // Build message context for dispatch
+  const envelopeOpts = resolveEnvelopeFormatOptions(cfg);
+  const conversationLabel = isGroup ? `group:${ctx.chatId}` : ctx.senderId;
+
+  // Format envelope for agent context
+  const bodyForAgent = formatInboundEnvelope({
+    channel: "Feishu",
+    from: conversationLabel,
+    body: messageText,
+    chatType: isGroup ? "group" : "direct",
+    senderLabel: ctx.senderId, // TODO: resolve sender display name
+    envelope: envelopeOpts,
+  });
+
+  const msgContext = {
+    Body: bodyForAgent,
+    BodyForAgent: bodyForAgent,
+    RawBody: messageText,
+    CommandBody: commandBody,
+    BodyForCommands: commandBody,
+    From: isGroup ? `feishu:group:${ctx.chatId}` : `feishu:${ctx.chatId}`,
+    To: `feishu:${ctx.chatId}`,
+    SessionKey: route.sessionKey,
+    AccountId: account.accountId,
+    MessageSid: ctx.messageId,
+    ReplyToId: ctx.replyToMessageId,
+    ChatType: isGroup ? "group" : "direct",
+    ConversationLabel: conversationLabel,
+    Provider: "feishu",
+    Surface: "feishu",
+    WasMentioned: ctx.wasMentioned,
+    SenderId: ctx.senderId,
+    Timestamp: Date.now(),
+    MessageThreadId: ctx.threadId,
+    // Commands are authorized if sender passed access checks
+    CommandAuthorized: true,
+    // Originating channel info for reply routing
+    OriginatingChannel: "feishu" as const,
+    OriginatingTo: ctx.chatId,
+  };
+
+  log(`feishu: dispatching to agent system...`);
+
+  try {
+    // Dispatch through the agent system
+    await dispatchInboundMessageWithBufferedDispatcher({
+      ctx: msgContext,
+      cfg,
+      dispatcherOptions: {
+        deliver: async (payload) => {
+          log(
+            `feishu: deliver callback called - hasText=${!!payload.text}, textLength=${payload.text?.length ?? 0}`,
+          );
+          // Send response back to Feishu
+          if (payload.text) {
+            try {
+              log(`feishu: sending reply to ${ctx.chatId}...`);
+              await sendMessageFeishu({
+                to: ctx.chatId,
+                text: payload.text,
+                accountId: account.accountId,
+                config: cfg,
+                receiveIdType: "chat_id",
+              });
+              log(`feishu: reply sent successfully`);
+            } catch (sendErr) {
+              runtime?.error?.(
+                danger(`feishu: failed to send reply: ${formatUncaughtError(sendErr)}`),
+              );
+            }
+          }
+        },
+        onError: (err) => {
+          runtime?.error?.(danger(`feishu: dispatch error: ${formatUncaughtError(err)}`));
+        },
+      },
+    });
+    log(`feishu: dispatch completed`);
+  } catch (err) {
+    runtime?.error?.(danger(`feishu: message dispatch failed: ${formatUncaughtError(err)}`));
+  }
+}

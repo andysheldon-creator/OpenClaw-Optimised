@@ -1,0 +1,488 @@
+/**
+ * Feishu (Lark) API Client
+ *
+ * Handles authentication and API calls to Feishu Open Platform.
+ * API Base: https://open.feishu.cn/open-apis
+ */
+
+import type { FeishuCredentials } from "./token.js";
+
+const FEISHU_API_BASE = "https://open.feishu.cn/open-apis";
+
+export type FeishuApiError = {
+  code: number;
+  msg: string;
+};
+
+export type FeishuApiResponse<T> = {
+  code: number;
+  msg: string;
+  data?: T;
+};
+
+export type FeishuTenantAccessToken = {
+  tenant_access_token: string;
+  expire: number;
+};
+
+export type FeishuMessageContent = {
+  text?: string;
+  post?: FeishuPostContent;
+  image_key?: string;
+  file_key?: string;
+};
+
+export type FeishuPostContent = {
+  zh_cn?: {
+    title?: string;
+    content: FeishuPostElement[][];
+  };
+  en_us?: {
+    title?: string;
+    content: FeishuPostElement[][];
+  };
+};
+
+export type FeishuPostElement =
+  | { tag: "text"; text: string }
+  | { tag: "a"; text: string; href: string }
+  | { tag: "at"; user_id: string; user_name?: string }
+  | { tag: "img"; image_key: string }
+  | { tag: "media"; file_key: string };
+
+export type FeishuSendMessageParams = {
+  receive_id: string;
+  receive_id_type: "chat_id" | "open_id" | "user_id" | "union_id" | "email";
+  msg_type: "text" | "post" | "image" | "file" | "audio" | "media" | "sticker" | "interactive";
+  content: string; // JSON stringified content
+  uuid?: string; // Idempotency key
+};
+
+export type FeishuSendMessageResult = {
+  message_id: string;
+  root_id?: string;
+  parent_id?: string;
+  thread_id?: string;
+  msg_type: string;
+  create_time: string;
+  update_time: string;
+  deleted: boolean;
+  updated: boolean;
+  chat_id: string;
+  sender: {
+    id: string;
+    id_type: string;
+    sender_type: string;
+  };
+  body: {
+    content: string;
+  };
+};
+
+export type FeishuChatInfo = {
+  chat_id: string;
+  name?: string;
+  description?: string;
+  avatar?: string;
+  owner_id?: string;
+  owner_id_type?: string;
+  chat_mode?: string;
+  chat_type?: string;
+  chat_tag?: string;
+  external?: boolean;
+  tenant_key?: string;
+};
+
+export type FeishuUser = {
+  user_id?: string;
+  open_id?: string;
+  union_id?: string;
+  name?: string;
+  en_name?: string;
+  nickname?: string;
+  email?: string;
+  mobile?: string;
+  avatar?: {
+    avatar_72?: string;
+    avatar_240?: string;
+    avatar_640?: string;
+    avatar_origin?: string;
+  };
+};
+
+// Token cache for tenant access tokens
+const tokenCache = new Map<string, { token: string; expiresAt: number }>();
+
+/**
+ * Get tenant access token for a Feishu app
+ */
+export async function getTenantAccessToken(credentials: FeishuCredentials): Promise<string> {
+  const cacheKey = `${credentials.appId}`;
+  const cached = tokenCache.get(cacheKey);
+
+  // Return cached token if still valid (with 60s buffer)
+  if (cached && cached.expiresAt > Date.now() + 60_000) {
+    return cached.token;
+  }
+
+  const url = `${FEISHU_API_BASE}/auth/v3/tenant_access_token/internal`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      app_id: credentials.appId,
+      app_secret: credentials.appSecret,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get tenant access token: ${response.status} ${response.statusText}`);
+  }
+
+  const result = (await response.json()) as FeishuApiResponse<FeishuTenantAccessToken> & {
+    tenant_access_token?: string;
+    expire?: number;
+  };
+
+  if (result.code !== 0) {
+    throw new Error(`Feishu API error: ${result.code} ${result.msg}`);
+  }
+
+  // Handle both nested and flat response formats
+  const token = result.data?.tenant_access_token ?? result.tenant_access_token;
+  const expire = result.data?.expire ?? result.expire ?? 7200;
+
+  if (!token) {
+    throw new Error("No tenant_access_token in response");
+  }
+
+  // Cache the token
+  tokenCache.set(cacheKey, {
+    token,
+    expiresAt: Date.now() + expire * 1000,
+  });
+
+  return token;
+}
+
+/**
+ * Feishu API client instance
+ */
+export class FeishuClient {
+  private credentials: FeishuCredentials;
+  private timeoutMs: number;
+
+  constructor(credentials: FeishuCredentials, opts?: { timeoutMs?: number }) {
+    this.credentials = credentials;
+    this.timeoutMs = opts?.timeoutMs ?? 30_000;
+  }
+
+  /**
+   * Make an authenticated API request
+   */
+  async request<T>(
+    method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+    path: string,
+    opts?: {
+      params?: Record<string, string>;
+      body?: unknown;
+      headers?: Record<string, string>;
+    },
+  ): Promise<FeishuApiResponse<T>> {
+    const token = await getTenantAccessToken(this.credentials);
+
+    let url = `${FEISHU_API_BASE}${path}`;
+    if (opts?.params && Object.keys(opts.params).length > 0) {
+      const searchParams = new URLSearchParams(opts.params);
+      url += `?${searchParams.toString()}`;
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...opts?.headers,
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const fetchOpts: RequestInit = {
+        method,
+        headers,
+        signal: controller.signal,
+      };
+      // Only include body for methods that support it
+      if (opts?.body && method !== "GET") {
+        fetchOpts.body = JSON.stringify(opts.body);
+      }
+      const response = await fetch(url, fetchOpts);
+
+      if (!response.ok) {
+        // Try to read error details from response body
+        let errorDetail = "";
+        try {
+          const errorBody = (await response.json()) as { code?: number; msg?: string };
+          if (errorBody.code !== undefined || errorBody.msg) {
+            errorDetail = ` (code: ${errorBody.code}, msg: ${errorBody.msg})`;
+          }
+        } catch {
+          // Ignore JSON parse errors
+        }
+        throw new Error(
+          `Feishu API request failed: ${response.status} ${response.statusText}${errorDetail}`,
+        );
+      }
+
+      return (await response.json()) as FeishuApiResponse<T>;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /**
+   * Send a message to a chat
+   */
+  async sendMessage(params: FeishuSendMessageParams): Promise<FeishuSendMessageResult> {
+    const result = await this.request<FeishuSendMessageResult>("POST", "/im/v1/messages", {
+      params: { receive_id_type: params.receive_id_type },
+      body: {
+        receive_id: params.receive_id,
+        msg_type: params.msg_type,
+        content: params.content,
+        ...(params.uuid ? { uuid: params.uuid } : {}),
+      },
+    });
+
+    if (result.code !== 0) {
+      throw new Error(`Failed to send message: ${result.code} ${result.msg}`);
+    }
+
+    if (!result.data) {
+      throw new Error("No data in send message response");
+    }
+
+    return result.data;
+  }
+
+  /**
+   * Send a text message
+   */
+  async sendTextMessage(
+    receiveId: string,
+    text: string,
+    receiveIdType: FeishuSendMessageParams["receive_id_type"] = "chat_id",
+  ): Promise<FeishuSendMessageResult> {
+    return this.sendMessage({
+      receive_id: receiveId,
+      receive_id_type: receiveIdType,
+      msg_type: "text",
+      content: JSON.stringify({ text }),
+    });
+  }
+
+  /**
+   * Send a post (rich text) message
+   */
+  async sendPostMessage(
+    receiveId: string,
+    post: FeishuPostContent,
+    receiveIdType: FeishuSendMessageParams["receive_id_type"] = "chat_id",
+  ): Promise<FeishuSendMessageResult> {
+    return this.sendMessage({
+      receive_id: receiveId,
+      receive_id_type: receiveIdType,
+      msg_type: "post",
+      content: JSON.stringify({ post }),
+    });
+  }
+
+  /**
+   * Reply to a message
+   */
+  async replyMessage(
+    messageId: string,
+    msgType: FeishuSendMessageParams["msg_type"],
+    content: string,
+  ): Promise<FeishuSendMessageResult> {
+    const result = await this.request<FeishuSendMessageResult>(
+      "POST",
+      `/im/v1/messages/${messageId}/reply`,
+      {
+        body: {
+          msg_type: msgType,
+          content,
+        },
+      },
+    );
+
+    if (result.code !== 0) {
+      throw new Error(`Failed to reply to message: ${result.code} ${result.msg}`);
+    }
+
+    if (!result.data) {
+      throw new Error("No data in reply message response");
+    }
+
+    return result.data;
+  }
+
+  /**
+   * List chats the bot has joined
+   */
+  async listChats(opts?: {
+    pageSize?: number;
+    pageToken?: string;
+  }): Promise<{ items: FeishuChatInfo[]; has_more: boolean; page_token?: string }> {
+    const params: Record<string, string> = {};
+    if (opts?.pageSize) params.page_size = String(opts.pageSize);
+    if (opts?.pageToken) params.page_token = opts.pageToken;
+
+    const result = await this.request<{
+      items: FeishuChatInfo[];
+      has_more: boolean;
+      page_token?: string;
+    }>("GET", "/im/v1/chats", { params });
+
+    if (result.code !== 0) {
+      throw new Error(`Failed to list chats: ${result.code} ${result.msg}`);
+    }
+
+    return result.data ?? { items: [], has_more: false };
+  }
+
+  /**
+   * Get chat info by chat_id
+   */
+  async getChatInfo(chatId: string): Promise<FeishuChatInfo> {
+    const result = await this.request<FeishuChatInfo>("GET", `/im/v1/chats/${chatId}`);
+
+    if (result.code !== 0) {
+      throw new Error(`Failed to get chat info: ${result.code} ${result.msg}`);
+    }
+
+    if (!result.data) {
+      throw new Error("No data in chat info response");
+    }
+
+    return result.data;
+  }
+
+  /**
+   * Get chat members
+   */
+  async getChatMembers(
+    chatId: string,
+    opts?: { pageSize?: number; pageToken?: string },
+  ): Promise<{ items: FeishuUser[]; has_more: boolean; page_token?: string }> {
+    const params: Record<string, string> = { member_id_type: "open_id" };
+    if (opts?.pageSize) params.page_size = String(opts.pageSize);
+    if (opts?.pageToken) params.page_token = opts.pageToken;
+
+    const result = await this.request<{
+      items: Array<{ member_id: string; member_id_type: string; name?: string }>;
+      has_more: boolean;
+      page_token?: string;
+    }>("GET", `/im/v1/chats/${chatId}/members`, { params });
+
+    if (result.code !== 0) {
+      throw new Error(`Failed to get chat members: ${result.code} ${result.msg}`);
+    }
+
+    const items: FeishuUser[] = (result.data?.items ?? []).map((item) => ({
+      open_id: item.member_id,
+      name: item.name,
+    }));
+
+    return {
+      items,
+      has_more: result.data?.has_more ?? false,
+      page_token: result.data?.page_token,
+    };
+  }
+
+  /**
+   * Delete a message
+   */
+  async deleteMessage(messageId: string): Promise<void> {
+    const result = await this.request<void>("DELETE", `/im/v1/messages/${messageId}`);
+
+    if (result.code !== 0) {
+      throw new Error(`Failed to delete message: ${result.code} ${result.msg}`);
+    }
+  }
+
+  /**
+   * Update a message
+   */
+  async updateMessage(messageId: string, msgType: "text" | "post", content: string): Promise<void> {
+    const result = await this.request<void>("PATCH", `/im/v1/messages/${messageId}`, {
+      body: {
+        msg_type: msgType,
+        content,
+      },
+    });
+
+    if (result.code !== 0) {
+      throw new Error(`Failed to update message: ${result.code} ${result.msg}`);
+    }
+  }
+
+  /**
+   * Get bot info
+   */
+  async getBotInfo(): Promise<{
+    app_name: string;
+    open_id: string;
+    activate_status?: number;
+  }> {
+    // The /bot/v3/info endpoint returns bot at top level, not in data
+    type BotInfoResponse = {
+      code: number;
+      msg: string;
+      bot?: {
+        app_name: string;
+        open_id: string;
+        activate_status?: number;
+        avatar_url?: string;
+      };
+    };
+
+    const token = await getTenantAccessToken(this.credentials);
+    const url = `${FEISHU_API_BASE}/bot/v3/info`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get bot info: ${response.status} ${response.statusText}`);
+    }
+
+    const result = (await response.json()) as BotInfoResponse;
+
+    if (result.code !== 0) {
+      throw new Error(`Failed to get bot info: ${result.code} ${result.msg}`);
+    }
+
+    if (!result.bot) {
+      throw new Error("No bot info in response");
+    }
+
+    return result.bot;
+  }
+}
+
+/**
+ * Create a Feishu client from credentials
+ */
+export function createFeishuClient(
+  credentials: FeishuCredentials,
+  opts?: { timeoutMs?: number },
+): FeishuClient {
+  return new FeishuClient(credentials, opts);
+}
