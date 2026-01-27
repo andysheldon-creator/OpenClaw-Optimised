@@ -13,11 +13,7 @@ import {
   SYNTHETIC_MODEL_CATALOG,
 } from "./synthetic-models.js";
 import { discoverVeniceModels, VENICE_BASE_URL } from "./venice-models.js";
-import {
-  discoverTogetherModels,
-  TOGETHER_BASE_URL,
-  TOGETHER_MODEL_CATALOG,
-} from "./together-models.js";
+import { TOGETHER_BASE_URL, TOGETHER_MODEL_CATALOG } from "./together-models.js";
 
 type ModelsConfig = NonNullable<MoltbotConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
@@ -364,12 +360,11 @@ async function buildOllamaProvider(): Promise<ProviderConfig> {
   };
 }
 
-async function buildTogetherProvider(apiKey?: string): Promise<ProviderConfig> {
-  // Only discover models if we have an API key, otherwise use static catalog
-  const models = apiKey ? await discoverTogetherModels(apiKey) : TOGETHER_MODEL_CATALOG;
+async function buildTogetherProvider(_apiKey?: string): Promise<ProviderConfig> {
+  // Always use static catalog instead of dynamic discovery
+  // This prevents timeout issues with the Together AI API
+  const models = TOGETHER_MODEL_CATALOG;
 
-  // If we successfully discovered models, return them and let the merge logic handle conflicts
-  // If discovery failed, return empty array to fallback to static catalog
   return {
     baseUrl: TOGETHER_BASE_URL,
     api: "openai-completions",
