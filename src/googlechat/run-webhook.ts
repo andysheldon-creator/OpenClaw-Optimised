@@ -141,18 +141,29 @@ function runAgent(
   });
 
   proc.on("close", (code) => {
-    if (code !== 0) {
+    // Filter out ANSI-coded log lines that leak from the agent
+    // These look like: [33m[subsystem][39m [36mmessage[39m
+    const filtered = stdout
+      .split("\n")
+      .filter((line) => !line.match(/^\x1b\[\d+m\[/)) // Filter ANSI log lines
+      .join("\n")
+      .trim();
+
+    // IMPORTANT: clawdbot exits with code 1 when tools fail, but the agent
+    // may still have produced a valid response. Use the response if available.
+    if (filtered) {
+      if (code !== 0) {
+        console.log(`[googlechat] Agent exited with code ${code} but had response - using it`);
+        if (stderr) {
+          console.log(`[googlechat] Agent stderr (non-fatal): ${stderr.slice(0, 200)}`);
+        }
+      }
+      callback(null, filtered);
+    } else if (code !== 0) {
       console.error(`[googlechat] Agent stderr: ${stderr}`);
       callback(new Error(`Agent exited with code ${code}: ${stderr}`), "");
     } else {
-      // Filter out ANSI-coded log lines that leak from the agent
-      // These look like: [33m[subsystem][39m [36mmessage[39m
-      const filtered = stdout
-        .split("\n")
-        .filter((line) => !line.match(/^\x1b\[\d+m\[/)) // Filter ANSI log lines
-        .join("\n")
-        .trim();
-      callback(null, filtered);
+      callback(null, "");
     }
   });
 
