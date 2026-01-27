@@ -96,10 +96,47 @@ describe("resolveCredentials", () => {
   it("resolves webhookUrl from env", () => {
     const cfg: CoreConfig = {};
     const env = {
-      AGENTMAIL_WEBHOOK_URL: "https://env-gateway.example.com",
+      AGENTMAIL_WEBHOOK_URL: "https://env-gateway.example.com/hooks/email",
     };
     const result = resolveCredentials(cfg, env);
-    expect(result.webhookUrl).toBe("https://env-gateway.example.com");
+    expect(result.webhookUrl).toBe("https://env-gateway.example.com/hooks/email");
+  });
+
+  it("derives webhookPath from webhookUrl", () => {
+    const cfg: CoreConfig = {
+      channels: {
+        agentmail: {
+          webhookUrl: "https://my-gateway.ngrok.io/custom/path",
+        },
+      },
+    };
+    const result = resolveCredentials(cfg, {});
+    expect(result.webhookPath).toBe("/custom/path");
+  });
+
+  it("uses default webhookPath when URL has no path", () => {
+    const cfg: CoreConfig = {
+      channels: {
+        agentmail: {
+          webhookUrl: "https://my-gateway.ngrok.io",
+        },
+      },
+    };
+    const result = resolveCredentials(cfg, {});
+    expect(result.webhookPath).toBe("/webhooks/agentmail");
+  });
+
+  it("explicit webhookPath takes precedence over URL-derived path", () => {
+    const cfg: CoreConfig = {
+      channels: {
+        agentmail: {
+          webhookUrl: "https://my-gateway.ngrok.io/url-path",
+          webhookPath: "/explicit-path",
+        },
+      },
+    };
+    const result = resolveCredentials(cfg, {});
+    expect(result.webhookPath).toBe("/explicit-path");
   });
 });
 

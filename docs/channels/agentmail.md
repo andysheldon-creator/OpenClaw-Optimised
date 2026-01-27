@@ -81,8 +81,8 @@ Minimal config:
 | `enabled`      | boolean  | Enable/disable the channel (default: true)               |
 | `token`        | string   | AgentMail API token (required)                           |
 | `emailAddress` | string   | AgentMail inbox email address to monitor (required)      |
-| `webhookUrl`   | string   | Gateway public base URL (e.g., `https://gw.ngrok.io`)    |
-| `webhookPath`  | string   | Custom webhook path (default: `/webhooks/agentmail`)     |
+| `webhookUrl`   | string   | Full public webhook URL (e.g., `https://gw.ngrok.io/webhooks/agentmail`) |
+| `webhookPath`  | string   | Local webhook path (derived from URL or default: `/webhooks/agentmail`) |
 | `allowFrom`    | string[] | Allowed sender emails/domains (empty = allow all)        |
 
 ## Sender Filtering

@@ -173,11 +173,11 @@ export const agentmailOnboardingAdapter: ChannelOnboardingAdapter = {
     let webhookPath = DEFAULT_WEBHOOK_PATH;
 
     if (hasPublicUrl) {
-      // Get the public base URL
-      const baseUrl = String(
+      // Get the full public webhook URL
+      webhookUrl = String(
         await prompter.text({
-          message: "Gateway public URL",
-          placeholder: "https://my-gateway.ngrok.io",
+          message: "Full webhook URL",
+          placeholder: `https://my-gateway.ngrok.io${DEFAULT_WEBHOOK_PATH}`,
           validate: (v) => {
             const trimmed = v?.trim();
             if (!trimmed) return "Required";
@@ -190,42 +190,24 @@ export const agentmailOnboardingAdapter: ChannelOnboardingAdapter = {
             return undefined;
           },
         })
-      )
-        .trim()
-        .replace(/\/+$/, ""); // Remove trailing slashes
+      ).trim();
 
-      // Ask for webhook path
-      const customPath = await prompter.confirm({
-        message: `Customize webhook path? (default: ${DEFAULT_WEBHOOK_PATH})`,
-        initialValue: false,
-      });
-
-      if (customPath) {
-        const pathInput = String(
-          await prompter.text({
-            message: "Webhook path",
-            placeholder: DEFAULT_WEBHOOK_PATH,
-          })
-        ).trim();
-
-        if (pathInput) {
-          webhookPath = pathInput.startsWith("/") ? pathInput : `/${pathInput}`;
-        }
+      // Derive path from URL
+      try {
+        const parsed = new URL(webhookUrl);
+        webhookPath = parsed.pathname || DEFAULT_WEBHOOK_PATH;
+      } catch {
+        webhookPath = DEFAULT_WEBHOOK_PATH;
       }
-
-      webhookUrl = baseUrl;
 
       // Auto-register webhook with AgentMail
       try {
         await client.webhooks.create({
-          url: `${baseUrl}${webhookPath}`,
+          url: webhookUrl,
           eventTypes: ["message.received"],
-          clientId: `moltbot-${emailAddress}`, // Idempotent per inbox
+          clientId: `clawdbot-${emailAddress}`, // Idempotent per inbox
         });
-        await prompter.note(
-          `Webhook registered: ${baseUrl}${webhookPath}`,
-          "Webhook Created"
-        );
+        await prompter.note(`Webhook registered: ${webhookUrl}`, "Webhook Created");
       } catch (err) {
         // Webhook may already exist or API error - show warning but continue
         await prompter.note(
@@ -233,34 +215,15 @@ export const agentmailOnboardingAdapter: ChannelOnboardingAdapter = {
             `Could not auto-register webhook: ${String(err)}`,
             "",
             "You may need to configure it manually in the AgentMail dashboard:",
-            `  URL: ${baseUrl}${webhookPath}`,
+            `  URL: ${webhookUrl}`,
             "  Event: message.received",
           ].join("\n"),
           "Webhook Warning"
         );
       }
-    } else {
-      // No public URL - ask for path only and show manual instructions
-      const customPath = await prompter.confirm({
-        message: `Customize webhook path? (default: ${DEFAULT_WEBHOOK_PATH})`,
-        initialValue: false,
-      });
-
-      if (customPath) {
-        const pathInput = String(
-          await prompter.text({
-            message: "Webhook path",
-            placeholder: DEFAULT_WEBHOOK_PATH,
-          })
-        ).trim();
-
-        if (pathInput) {
-          webhookPath = pathInput.startsWith("/") ? pathInput : `/${pathInput}`;
-        }
-      }
     }
 
-    // Save webhook config
+    // Save webhook config (webhookPath derived from URL or default)
     next = updateAgentMailConfig(next, { webhookUrl, webhookPath });
 
     // Ask about allowFrom
