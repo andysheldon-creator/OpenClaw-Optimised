@@ -265,8 +265,11 @@ importers:
   extensions/agentmail:
     dependencies:
       agentmail:
+        specifier: ^0.2.5
+        version: 0.2.5
+      agentmail-toolkit:
         specifier: ^0.2.4
-        version: 0.2.4
+        version: 0.2.4(@napi-rs/canvas@0.1.88)(clawdbot@)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -2946,8 +2949,25 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  agentmail@0.2.4:
-    resolution: {integrity: sha512-7+23wQUc7b/pzTbvdMkjZcimfMwgQyhQ+ONkZPGBmkDh7EbaoJtlVb/2B8/7FXV44oCPvrRqk+uvM1I/K446Gg==}
+  agentmail-toolkit@0.2.4:
+    resolution: {integrity: sha512-p4gFMb9HeZ7iDd8G4U9hKcDPcWkiUOkdoLvHfy9hgpFmph+mOa/EMMoiGjS1GbmKVzUst6ItwBRrJKF2ETAVjA==}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.24.1
+      ai: ^6.0.0-beta.150
+      clawdbot: '*'
+      langchain: ^1.2.0
+    peerDependenciesMeta:
+      '@modelcontextprotocol/sdk':
+        optional: true
+      ai:
+        optional: true
+      clawdbot:
+        optional: true
+      langchain:
+        optional: true
+
+  agentmail@0.2.5:
+    resolution: {integrity: sha512-Hl68zE0xAgLRF9h+IKo5nQ4u1PMdCPwQEq6DF7ewfHmmmDCfUCnvIzRvkKi/2uOEK5VLAvxnv4+VWeHVXQoMRQ==}
     engines: {node: '>=18.0.0'}
 
   ajv-formats@3.0.1:
@@ -5330,6 +5350,14 @@ packages:
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
     engines: {node: '>= 10.0.0'}
+
+  unpdf@1.4.0:
+    resolution: {integrity: sha512-TahIk0xdH/4jh/MxfclzU79g40OyxtP00VnEUZdEkJoYtXAHWLiir6t3FC6z3vDqQTzc2ZHcla6uEiVTNjejuA==}
+    peerDependencies:
+      '@napi-rs/canvas': ^0.1.69
+    peerDependenciesMeta:
+      '@napi-rs/canvas':
+        optional: true
 
   unpipe@1.0.0:
     resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
@@ -8765,7 +8793,20 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  agentmail@0.2.4:
+  agentmail-toolkit@0.2.4(@napi-rs/canvas@0.1.88)(clawdbot@):
+    dependencies:
+      agentmail: 0.2.5
+      jszip: 3.10.1
+      unpdf: 1.4.0(@napi-rs/canvas@0.1.88)
+      zod: 4.3.6
+    optionalDependencies:
+      clawdbot: 'link:'
+    transitivePeerDependencies:
+      - '@napi-rs/canvas'
+      - bufferutil
+      - utf-8-validate
+
+  agentmail@0.2.5:
     dependencies:
       ws: 8.19.0
     transitivePeerDependencies:
@@ -11502,6 +11543,10 @@ snapshots:
 
   universalify@2.0.1:
     optional: true
+
+  unpdf@1.4.0(@napi-rs/canvas@0.1.88):
+    optionalDependencies:
+      '@napi-rs/canvas': 0.1.88
 
   unpipe@1.0.0: {}
 

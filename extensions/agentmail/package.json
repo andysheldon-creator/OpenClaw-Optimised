@@ -24,7 +24,8 @@
     }
   },
   "dependencies": {
-    "agentmail": "^0.2.4",
+    "agentmail": "^0.2.5",
+    "agentmail-toolkit": "^0.2.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
