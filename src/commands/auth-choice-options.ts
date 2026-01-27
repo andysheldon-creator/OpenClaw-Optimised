@@ -22,7 +22,8 @@ export type AuthChoiceGroupId =
   | "minimax"
   | "synthetic"
   | "venice"
-  | "qwen";
+  | "qwen"
+  | "ollama";
 
 export type AuthChoiceGroup = {
   value: AuthChoiceGroupId;
@@ -90,6 +91,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "OpenRouter",
     hint: "API key",
     choices: ["openrouter-api-key"],
+  },
+  {
+    value: "ollama",
+    label: "Ollama",
+    hint: "Open-source model runner",
+    choices: ["ollama"],
   },
   {
     value: "ai-gateway",
@@ -237,6 +244,11 @@ export function buildAuthChoiceOptions(params: {
     value: "minimax-api-lightning",
     label: "MiniMax M2.1 Lightning",
     hint: "Faster, higher output cost",
+  });
+  options.push({
+    value: "ollama",
+    label: "Ollama",
+    hint: "Open-source model runner (llama, qwen, etc.)",
   });
   if (params.includeSkip) {
     options.push({ value: "skip", label: "Skip for now" });

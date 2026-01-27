@@ -44,6 +44,11 @@ export async function promptAuthChoiceGrouped(params: {
       continue;
     }
 
+    // Auto-select if there's only one option in the group
+    if (group.options.length === 1) {
+      return group.options[0].value;
+    }
+
     const methodSelection = (await params.prompter.select({
       message: `${group.label} auth method`,
       options: [...group.options, { value: BACK_VALUE, label: "Back" }],
