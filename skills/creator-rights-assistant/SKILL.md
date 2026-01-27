@@ -3,9 +3,8 @@ name: Creator Rights Assistant
 slug: creator-rights-assistant
 version: 1.0
 description: >-
-  Preventative rights standardization and asset metadata organization for creators.
-  Focuses on provenance clarity, licensing hygiene, and attribution consistency
-  across platforms.
+  Standardize provenance, attribution, and licensing metadata at creation time
+  so your content travels cleanly across platforms.
 metadata:
   creator:
     org: OtherPowers.co + MediaBlox
@@ -33,7 +32,7 @@ metadata:
 **Intent:**  
 Help creators standardize rights-related metadata at the moment assets are finalized, so provenance, attribution, and usage context remain clear as content moves across platforms, collaborators, and time.
 
-This skill is designed to operate *before* publication or distribution. It focuses on organization, consistency, and documentation — not enforcement, dispute handling, or legal interpretation.
+This skill is designed to operate before publication or distribution. It focuses on organization, consistency, and documentation, not enforcement, dispute handling, or legal interpretation.
 
 In practice, this helps creators avoid losing track of usage constraints, attribution requirements, and provenance details as their catalogs grow or collaborators change.
 
@@ -70,15 +69,15 @@ The Creator Rights Assistant helps creators generate and maintain a consistent s
 - **Asset Identifier:** Creator-defined internal ID for tracking.
 
 ### Identity
-- **Primary Author / Creator Reference:** Human-readable name or professional profile link.
+- **Primary Author or Creator Reference:** Human-readable name or professional profile link.
 - **Contributor Context:** Optional notes on collaborators or tools involved.
 
 ### Provenance
-- **Process Type:** Human-authored, AI-assisted, or AI-generated (creator-declared).
+- **Process Type:** Human-authored, AI-assisted, or AI-generated, as declared by the creator.
 - **Provenance Notes:** Optional description of creative process or tooling.
 
 ### Licensing
-- **License Scope:** Duration, territory, and usage constraints (as documented by the creator).
+- **License Scope:** Duration, territory, and usage constraints as documented by the creator.
 - **Source Reference:** Link or identifier for licenses, permissions, or source materials.
 
 ### Attribution
@@ -103,8 +102,8 @@ The Creator Rights Assistant does not determine how platforms interpret this inf
 
 Attribution requirements vary by platform due to interface constraints and disclosure surfaces.
 
-The skill provides **organizational guidance** on:
-- Common attribution placement patterns (e.g., descriptions, captions, pinned comments)
+The skill provides organizational guidance on:
+- Common attribution placement patterns such as descriptions, captions, or pinned comments
 - Character limit considerations
 - Consistency between public-facing credits and internal records
 
@@ -141,7 +140,7 @@ Used together, they support clearer documentation across the full lifecycle of a
 
 ## 9. Scope and Limitations
 
-This skill does **not**:
+This skill does not:
 - Validate licenses or permissions
 - Assess ownership or infringement
 - Draft legal documents
@@ -157,6 +156,4 @@ The Creator Rights Assistant treats rights information as structured data rather
 
 By standardizing provenance, attribution, and licensing context at the point of creation, creators gain clearer internal records and reduce ambiguity as content circulates across platforms and collaborators.
 
-This approach emphasizes preparation, consistency, and transparency — without replacing legal counsel or platform processes.
-
-
+This approach emphasizes preparation, consistency, and transparency without replacing legal counsel or platform processes.
