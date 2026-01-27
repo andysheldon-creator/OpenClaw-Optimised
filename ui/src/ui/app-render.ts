@@ -45,6 +45,7 @@ import { renderOverseer } from "./views/overseer";
 import { renderAgents } from "./views/agents";
 import { renderSessions, detectSessionPreset } from "./views/sessions";
 import { renderExecApprovalPrompt } from "./views/exec-approval";
+import { renderOnboardingWizard } from "./views/onboarding-wizard";
 import {
   renderCommandPalette,
   createDefaultCommands,
@@ -1570,6 +1571,27 @@ export function renderApp(state: AppViewState) {
           state.closeCommandPalette();
         },
         onFavoritesChange: () => state.bumpCommandPaletteFavVersion(),
+      })}
+
+      ${renderOnboardingWizard({
+        state: state.onboardingWizardState,
+        configSchema: state.configSchema as import("./views/config-form").JsonSchema | null,
+        configValue: state.configForm ?? {},
+        configSaving: state.configSaving,
+        configSchemaLoading: state.configSchemaLoading,
+        configUiHints: state.configUiHints,
+        unsupported: new Set(),
+        onClose: () => state.handleOnboardingWizardClose(),
+        onContinue: async () => state.handleOnboardingWizardNext(),
+        onBack: () => state.handleOnboardingWizardBack(),
+        onSkip: () => state.handleOnboardingWizardSkip(),
+        onConfigPatch: (path, value) => state.updateConfigFormValue(path, value),
+        onAddChannel: (channelId) => state.handleAddChannelFromModal(channelId),
+        onEditChannel: (channelId) => state.handleOpenChannelConfigModal(channelId),
+        onRemoveChannel: (channelId) => state.handleRemoveChannel(channelId),
+        onAddModel: (modelId) => state.handleAddModelFromModal(modelId),
+        onEditModel: (modelId) => state.handleOpenModelConfigModal(modelId),
+        onRemoveModel: (modelId) => state.handleRemoveModel(modelId),
       })}
     </div>
   `;

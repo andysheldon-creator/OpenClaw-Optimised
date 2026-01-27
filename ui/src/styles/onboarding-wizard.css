@@ -1,0 +1,891 @@
+/**
+ * Onboarding Wizard V2 Styles
+ *
+ * Simplified, step-by-step wizard design.
+ * Card-based layouts for channels and models.
+ * Modal-based configuration.
+ */
+
+/* ============================================================================
+   Backdrop
+   ============================================================================ */
+
+.onboarding-wizard-v2-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  animation: onboarding-v2-backdrop-fade-in 0.2s ease-out;
+}
+
+@keyframes onboarding-v2-backdrop-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ============================================================================
+   Main Container
+   ============================================================================ */
+
+.onboarding-wizard-v2 {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 560px;
+  max-height: 85vh;
+  background: rgba(var(--panel-rgb, 30, 30, 35), 0.98);
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  z-index: 101;
+  overflow: hidden;
+  animation: onboarding-v2-wizard-slide-up 0.3s ease-out;
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2 {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes onboarding-v2-wizard-slide-up {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ============================================================================
+   Progress Indicator
+   ============================================================================ */
+
+.onboarding-wizard-v2__progress {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--panel-rgb, 30, 30, 35), 0.95);
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__progress {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+  background: rgba(245, 245, 245, 0.9);
+}
+
+.onboarding-wizard-v2__progress-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin-bottom: 8px;
+}
+
+.onboarding-wizard-v2__progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__progress-bar {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.onboarding-wizard-v2__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary, 99, 102, 241), var(--accent-secondary, 168, 85, 247));
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.onboarding-wizard-v2__progress-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ============================================================================
+   Phase Content
+   ============================================================================ */
+
+.onboarding-wizard-v2__phase {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.onboarding-wizard-v2__phase-header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.onboarding-wizard-v2__phase-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent-primary, 99, 102, 241), var(--accent-secondary, 168, 85, 247));
+  border-radius: 12px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.onboarding-wizard-v2__phase-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-strong);
+  letter-spacing: -0.02em;
+}
+
+.onboarding-wizard-v2__phase-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.onboarding-wizard-v2__phase-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ============================================================================
+   Quick Start Questions
+   ============================================================================ */
+
+.onboarding-wizard-v2__question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-wizard-v2__question-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.onboarding-wizard-v2__question-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.onboarding-wizard-v2__provider-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-wizard-v2__provider-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__provider-option {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.onboarding-wizard-v2__provider-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__provider-option:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.onboarding-wizard-v2__provider-option input:checked + .onboarding-wizard-v2__provider-label {
+  color: var(--accent-primary, 99, 102, 241);
+  font-weight: 600;
+}
+
+.onboarding-wizard-v2__provider-label {
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* ============================================================================
+   Advanced Options (Collapsible)
+   ============================================================================ */
+
+.onboarding-wizard-v2__advanced {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__advanced {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.onboarding-wizard-v2__advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-strong);
+  transition: background 0.15s ease;
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__advanced-toggle {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.onboarding-wizard-v2__advanced-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__advanced-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.onboarding-wizard-v2__advanced-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.onboarding-wizard-v2__advanced-body {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--panel-rgb, 25, 25, 30), 0.5);
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__advanced-body {
+  border-top-color: rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* ============================================================================
+   Summary
+   ============================================================================ */
+
+.onboarding-wizard-v2__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(var(--success-rgb, 34, 197, 94), 0.1);
+  border: 1px solid rgba(var(--success-rgb, 34, 197, 94), 0.2);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.onboarding-wizard-v2__summary-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.onboarding-wizard-v2__next-steps {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__next-steps {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.onboarding-wizard-v2__next-steps h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.onboarding-wizard-v2__next-steps p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.onboarding-wizard-v2__next-steps ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ============================================================================
+   Footer
+   ============================================================================ */
+
+.onboarding-wizard-v2__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--panel-rgb, 30, 30, 35), 0.95);
+}
+
+:root[data-theme="light"] .onboarding-wizard-v2__footer {
+  border-top-color: rgba(0, 0, 0, 0.08);
+  background: rgba(245, 245, 245, 0.9);
+}
+
+.onboarding-wizard-v2__footer-nav,
+.onboarding-wizard-v2__footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ============================================================================
+   Card List Styles
+   ============================================================================ */
+
+.onboarding-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.onboarding-card-list__header {
+  margin-bottom: 8px;
+}
+
+.onboarding-card-list__title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.onboarding-card-list__description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.onboarding-card-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.onboarding-card-list__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme="light"] .onboarding-card-list__add {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.onboarding-card-list__add:hover {
+  background: rgba(var(--accent-primary-rgb, 99, 102, 241), 0.1);
+  border-color: var(--accent-primary, 99, 102, 241);
+}
+
+.onboarding-card-list__add-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary, 99, 102, 241);
+}
+
+.onboarding-card-list__add-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent-primary, 99, 102, 241);
+}
+
+.onboarding-card-list__footer {
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="light"] .onboarding-card-list__footer {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+/* ============================================================================
+   Card Styles
+   ============================================================================ */
+
+.onboarding-card {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme="light"] .onboarding-card {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.onboarding-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+:root[data-theme="light"] .onboarding-card:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.onboarding-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.onboarding-card__identity {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.onboarding-card__icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--accent-primary-rgb, 99, 102, 241), 0.15);
+  border-radius: 8px;
+  color: var(--accent-primary, 99, 102, 241);
+  flex-shrink: 0;
+}
+
+.onboarding-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.onboarding-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin-bottom: 2px;
+}
+
+.onboarding-card__details {
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onboarding-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(var(--status-color), 0.15);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.onboarding-card__status-label {
+  color: var(--status-color);
+}
+
+.onboarding-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.onboarding-card__action--remove {
+  padding: 6px 10px;
+}
+
+.onboarding-card--not-configured {
+  opacity: 0.7;
+}
+
+/* ============================================================================
+   Modal Styles
+   ============================================================================ */
+
+.onboarding-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 200;
+}
+
+.onboarding-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 400px;
+  max-height: 70vh;
+  background: rgba(var(--panel-rgb, 30, 30, 35), 0.98);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  z-index: 201;
+  overflow: hidden;
+}
+
+:root[data-theme="light"] .onboarding-modal {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.onboarding-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="light"] .onboarding-modal__header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.onboarding-modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.onboarding-modal__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onboarding-modal__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-strong);
+}
+
+:root[data-theme="light"] .onboarding-modal__close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.onboarding-modal__body {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(70vh - 120px);
+}
+
+.onboarding-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.onboarding-modal__option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onboarding-modal__option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="light"] .onboarding-modal__option:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.onboarding-modal__option-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--accent-primary-rgb, 99, 102, 241), 0.15);
+  border-radius: 8px;
+  color: var(--accent-primary, 99, 102, 241);
+  flex-shrink: 0;
+}
+
+.onboarding-modal__option-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.onboarding-modal__option-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-strong);
+  margin-bottom: 2px;
+}
+
+.onboarding-modal__option-desc {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onboarding-modal__option-arrow {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+/* ============================================================================
+   Config Modal
+   ============================================================================ */
+
+.onboarding-config-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 200;
+}
+
+.onboarding-config-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  background: rgba(var(--panel-rgb, 30, 30, 35), 0.98);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:root[data-theme="light"] .onboarding-config-modal {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.onboarding-config-modal__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="light"] .onboarding-config-modal__header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.onboarding-config-modal__title-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.onboarding-config-modal__title {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.onboarding-config-modal__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.onboarding-config-modal__body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.onboarding-config-modal__dirty-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--warning, 245, 158, 11);
+  margin-bottom: 16px;
+}
+
+.onboarding-config-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.onboarding-config-modal__placeholder {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.onboarding-config-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="light"] .onboarding-config-modal__footer {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================================
+   Confirm Dialog
+   ============================================================================ */
+
+.onboarding-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 300;
+}
+
+.onboarding-confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 360px;
+  background: rgba(var(--panel-rgb, 30, 30, 35), 0.98);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  z-index: 301;
+  overflow: hidden;
+}
+
+:root[data-theme="light"] .onboarding-confirm-dialog {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.onboarding-confirm-dialog__header {
+  padding: 16px 20px;
+}
+
+.onboarding-confirm-dialog__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.onboarding-confirm-dialog__body {
+  padding: 0 20px 16px;
+}
+
+.onboarding-confirm-dialog__message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.onboarding-confirm-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="light"] .onboarding-confirm-dialog__footer {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================================
+   Responsive Design
+   ============================================================================ */
+
+@media (max-width: 600px) {
+  .onboarding-wizard-v2 {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .onboarding-wizard-v2__phase {
+    padding: 20px 16px;
+  }
+
+  .onboarding-wizard-v2__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .onboarding-wizard-v2__footer-actions {
+    flex-direction: column;
+  }
+
+  .onboarding-card__header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .onboarding-card__actions {
+    width: 100%;
+  }
+
+  .onboarding-card__action {
+    flex: 1;
+  }
+}
