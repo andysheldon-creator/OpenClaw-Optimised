@@ -71,6 +71,7 @@ export type OnboardOptions = {
   minimaxApiKey?: string;
   syntheticApiKey?: string;
   veniceApiKey?: string;
+  redpillApiKey?: string;
   opencodeZenApiKey?: string;
   gatewayPort?: number;
   gatewayBind?: GatewayBind;

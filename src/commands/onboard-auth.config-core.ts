@@ -421,16 +421,19 @@ export function applyVeniceConfig(cfg: ClawdbotConfig): ClawdbotConfig {
  * Registers Redpill models and sets up the provider, but preserves existing model selection.
  */
 export function applyRedpillProviderConfig(cfg: ClawdbotConfig): ClawdbotConfig {
-  const models = { ...cfg.agents?.defaults?.models };
-  models[REDPILL_DEFAULT_MODEL_REF] = {
-    ...models[REDPILL_DEFAULT_MODEL_REF],
-    alias: models[REDPILL_DEFAULT_MODEL_REF]?.alias ?? "DeepSeek V3.2",
-  };
-
   const providers = { ...cfg.models?.providers };
   const existingProvider = providers.redpill;
   const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
   const redpillModels = discoverRedpillModels();
+
+  // Add all Redpill models to the agent's model allowlist
+  const models = { ...cfg.agents?.defaults?.models };
+  for (const model of redpillModels) {
+    const modelRef = `redpill/${model.id}`;
+    if (!models[modelRef]) {
+      models[modelRef] = { alias: model.name.replace(" (GPU TEE)", "") };
+    }
+  }
   const mergedModels = [
     ...existingModels,
     ...redpillModels.filter(
