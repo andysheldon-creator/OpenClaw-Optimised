@@ -326,7 +326,7 @@ importers:
     devDependencies:
       clawdbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   extensions/imessage: {}
 
@@ -334,7 +334,7 @@ importers:
     devDependencies:
       clawdbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   extensions/llm-task: {}
 
@@ -360,7 +360,7 @@ importers:
     devDependencies:
       clawdbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   extensions/mattermost: {}
 
@@ -395,7 +395,7 @@ importers:
         version: 1.2.2
       clawdbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
       express:
         specifier: ^5.2.1
         version: 5.2.1
@@ -409,7 +409,7 @@ importers:
     dependencies:
       clawdbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
       nostr-tools:
         specifier: ^2.20.0
         version: 2.20.0(typescript@5.9.3)
@@ -451,7 +451,7 @@ importers:
     devDependencies:
       clawdbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   extensions/voice-call:
     dependencies:
@@ -471,7 +471,7 @@ importers:
     dependencies:
       clawdbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
       undici:
         specifier: 7.19.0
         version: 7.19.0
@@ -482,6 +482,12 @@ importers:
         specifier: 0.34.47
         version: 0.34.47
       clawdbot:
+        specifier: workspace:*
+        version: link:../../packages/clawdbot
+
+  packages/clawdbot:
+    dependencies:
+      moltbot:
         specifier: workspace:*
         version: link:../..
 
