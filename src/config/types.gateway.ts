@@ -205,6 +205,51 @@ export type GatewayNodesConfig = {
   denyCommands?: string[];
 };
 
+/**
+ * Rate limiting configuration for gateway requests.
+ * Defaults are generous for power users while preventing brute-force attacks.
+ */
+export type GatewayRateLimitConfig = {
+  /**
+   * Whether rate limiting is enabled (default: true).
+   * When disabled, all rate limits are bypassed.
+   */
+  enabled?: boolean;
+  /**
+   * Max requests/minute for unauthenticated connections (default: 60).
+   * This primarily prevents brute-force auth attempts.
+   */
+  unauthenticated?: number;
+  /**
+   * Max requests/minute for authenticated connections (default: 0 = unlimited).
+   * Power users typically want no limits after authentication.
+   */
+  authenticated?: number;
+  /**
+   * Max messages/minute per channel (default: 200).
+   * Prevents runaway message loops or abuse.
+   */
+  channelMessages?: number;
+  /**
+   * Burst multiplier for short spikes (default: 2).
+   * Allows up to rate * multiplier requests in short bursts.
+   */
+  burstMultiplier?: number;
+  /**
+   * Max consecutive auth failures before exponential backoff (default: 5).
+   */
+  authFailuresBeforeBackoff?: number;
+  /**
+   * Base backoff delay in ms after auth failures (default: 1000).
+   * Each subsequent failure doubles the delay up to maxBackoffMs.
+   */
+  authBackoffBaseMs?: number;
+  /**
+   * Maximum backoff delay in ms (default: 60000 = 1 minute).
+   */
+  authBackoffMaxMs?: number;
+};
+
 export type GatewayConfig = {
   /** Single multiplexed port for Gateway WS + HTTP (default: 18789). */
   port?: number;
@@ -227,6 +272,8 @@ export type GatewayConfig = {
   customBindHost?: string;
   controlUi?: GatewayControlUiConfig;
   auth?: GatewayAuthConfig;
+  /** Rate limiting configuration for gateway requests. */
+  rateLimit?: GatewayRateLimitConfig;
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;
   reload?: GatewayReloadConfig;

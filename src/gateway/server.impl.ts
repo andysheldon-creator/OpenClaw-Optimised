@@ -65,7 +65,8 @@ import { createGatewayRuntimeState } from "./server-runtime-state.js";
 import { hasConnectedMobileNode } from "./server-mobile-nodes.js";
 import { resolveSessionKeyForRun } from "./server-session-key.js";
 import { startGatewaySidecars } from "./server-startup.js";
-import { logGatewayStartup } from "./server-startup-log.js";
+import { logGatewayStartup, logSecurityWarnings } from "./server-startup-log.js";
+import { createGatewayRateLimiter, resolveRateLimitConfig } from "./rate-limit.js";
 import { startGatewayTailscaleExposure } from "./server-tailscale.js";
 import { loadGatewayTlsRuntime } from "./server/tls.js";
 import { createWizardSessionTracker } from "./server-wizard-sessions.js";
@@ -269,6 +270,11 @@ export async function startGatewayServer(
   if (cfgAtStart.gateway?.tls?.enabled && !gatewayTls.enabled) {
     throw new Error(gatewayTls.error ?? "gateway tls: failed to enable");
   }
+
+  // Create rate limiter for gateway request protection
+  const rateLimitConfig = resolveRateLimitConfig(cfgAtStart.gateway?.rateLimit);
+  const rateLimiter = createGatewayRateLimiter(rateLimitConfig);
+
   const {
     canvasHost,
     httpServer,
@@ -483,6 +489,12 @@ export async function startGatewayServer(
     log,
     isNixMode,
   });
+  logSecurityWarnings({
+    bindHost,
+    resolvedAuth,
+    rateLimitConfig,
+    log,
+  });
   scheduleGatewayUpdateCheck({ cfg: cfgAtStart, log, isNixMode });
   const tailscaleCleanup = await startGatewayTailscaleExposure({
     tailscaleMode,
@@ -579,6 +591,7 @@ export async function startGatewayServer(
         skillsRefreshTimer = null;
       }
       skillsChangeUnsub();
+      rateLimiter.close();
       await close(opts);
     },
   };

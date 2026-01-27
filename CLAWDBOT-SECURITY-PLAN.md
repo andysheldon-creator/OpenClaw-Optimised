@@ -81,37 +81,27 @@ git worktree add ../clawdbot-ux -b phase3-ux
   - Add migration CLI command: `clawdbot secrets migrate`
   - Update `clawdbot doctor` to check for unencrypted credentials
 
+#### 1.4 Gateway Authentication & Rate Limiting
+- **Files Created/Modified:**
+  - `src/gateway/rate-limit.ts` - New rate limiting module (~370 lines)
+  - `src/gateway/rate-limit.test.ts` - 19 tests
+  - `src/gateway/server-startup-log.ts` - Added security warnings
+  - `src/gateway/server-startup-log.test.ts` - 9 tests
+  - `src/gateway/server.impl.ts` - Integrated rate limiter and security warnings
+  - `src/config/types.gateway.ts` - Added GatewayRateLimitConfig type
+- **Features:**
+  - Token bucket algorithm for smooth rate limiting with burst support
+  - Per-client tracking (separate buckets per IP/session)
+  - Configurable limits: unauthenticated (60/min), authenticated (unlimited by default)
+  - Channel message rate limiting (200/min per channel)
+  - Exponential backoff after auth failures (1s base, 60s max)
+  - Security warning at startup if binding to non-loopback without auth
+  - All settings configurable in `gateway.rateLimit` config
+- **Commit:** TBD
+
 ---
 
 ### ⏳ PENDING
-
-#### 1.4 Gateway Authentication & Rate Limiting
-**Objective:** Enforce authentication and add configurable rate limiting.
-
-**Files to Modify:**
-- `src/gateway/auth.ts` - Enforce token+password for non-loopback bindings
-- `src/gateway/server.impl.ts` - Add startup warning for public binding
-- Create `src/gateway/rate-limit.ts` - Configurable rate limiting
-
-**Implementation Spec:**
-```typescript
-// Rate limit defaults (configurable in clawdbot.json)
-{
-  "gateway": {
-    "rateLimits": {
-      "unauthenticated": 60,        // req/min (prevent brute-force)
-      "authenticated": 0,           // 0 = unlimited (power user flexibility)
-      "channelMessages": 200,       // per channel per minute
-      "burstMultiplier": 2          // allow 2x burst for short spikes
-    }
-  }
-}
-```
-
-**Key Behaviors:**
-- Exponential backoff ONLY after failed auth (not normal requests)
-- Log warning at startup if binding to non-loopback without auth
-- Allow authenticated users to remain unlimited by default
 
 #### 1.5 Pairing & Approval Hardening
 **Objective:** Increase entropy and add replay protection.
@@ -222,8 +212,12 @@ pnpm build
 | 1.3 | src/telegram/accounts.ts | ✅ | +5 |
 | 1.3 | src/slack/accounts.ts | ✅ | +40 |
 | 1.3 | src/web/auth-store.ts | ✅ | +120 |
-| 1.4 | src/gateway/auth.ts | ⏳ | TBD |
-| 1.4 | src/gateway/rate-limit.ts | ⏳ | TBD |
+| 1.4 | src/gateway/rate-limit.ts | ✅ | +370 |
+| 1.4 | src/gateway/rate-limit.test.ts | ✅ | +310 |
+| 1.4 | src/gateway/server-startup-log.ts | ✅ | +60 |
+| 1.4 | src/gateway/server-startup-log.test.ts | ✅ | +170 |
+| 1.4 | src/gateway/server.impl.ts | ✅ | +15 |
+| 1.4 | src/config/types.gateway.ts | ✅ | +45 |
 | 1.5 | src/pairing/pairing-store.ts | ⏳ | TBD |
 | 1.6 | docs/security/*.md | ⏳ | TBD |
 
