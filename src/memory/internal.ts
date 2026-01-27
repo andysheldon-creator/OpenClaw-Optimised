@@ -50,7 +50,11 @@ async function walkDir(
   dir: string,
   files: string[],
   workspaceDir: string,
-  logger?: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, err?: unknown) => void },
+  logger?: {
+    info: (msg: string) => void;
+    warn: (msg: string) => void;
+    error: (msg: string, err?: unknown) => void;
+  },
 ) {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -67,7 +71,7 @@ async function walkDir(
     if (isOldMemoryFormat(relPath)) {
       // Auto-migrate to new format
       const result = await migrateMemoryFile(full, workspaceDir, logger);
-      if (result.status !== 'failed') {
+      if (result.status !== "failed") {
         files.push(result.path);
       }
       continue;
@@ -85,7 +89,7 @@ export function isOldMemoryFormat(relPath: string): boolean {
   // Matches: memory/2025-01-27.md or memory/2025-01-27-slug.md
   // But NOT: memory/2025/01/2025-01-27.md (new hierarchical format)
   // But NOT: memory/notes/2025-01-27.md (user subdirectory)
-  const oldFormatRegex = /^memory\/\d{4}-\d{2}-\d{2}(?:-[^.\/]+)?\.md$/;
+  const oldFormatRegex = /^memory\/\d{4}-\d{2}-\d{2}(?:-[^./]+)?\.md$/;
   return oldFormatRegex.test(relPath);
 }
 
@@ -93,9 +97,9 @@ export function isOldMemoryFormat(relPath: string): boolean {
  * Result of migrating a memory file
  */
 export type MigrationResult =
-  | { status: 'migrated'; path: string }
-  | { status: 'skipped'; path: string }
-  | { status: 'failed' };
+  | { status: "migrated"; path: string }
+  | { status: "skipped"; path: string }
+  | { status: "failed" };
 
 /**
  * Migrate an old-format memory file to new hierarchical structure
@@ -107,27 +111,31 @@ export type MigrationResult =
 export async function migrateMemoryFile(
   oldPath: string,
   workspaceDir: string,
-  logger?: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, err?: unknown) => void },
+  logger?: {
+    info: (msg: string) => void;
+    warn: (msg: string) => void;
+    error: (msg: string, err?: unknown) => void;
+  },
 ): Promise<MigrationResult> {
   const log = logger || { info: console.log, warn: console.warn, error: console.error };
-  
+
   try {
     const filename = path.basename(oldPath);
     const match = filename.match(/^(\d{4})-(\d{2})-(\d{2})(?:-.*)?\.md$/);
 
     if (!match) {
       log.error(`[memory] Invalid filename format for migration: ${filename}`);
-      return { status: 'failed' };
+      return { status: "failed" };
     }
 
     const [, year, month, day] = match;
-    
+
     // Validate date (prevent invalid dates like 2025-99-99)
     const dateStr = `${year}-${month}-${day}`;
     const parsedDate = new Date(dateStr);
-    if (isNaN(parsedDate.getTime()) || parsedDate.toISOString().split('T')[0] !== dateStr) {
+    if (isNaN(parsedDate.getTime()) || parsedDate.toISOString().split("T")[0] !== dateStr) {
       log.error(`[memory] Invalid date in filename: ${filename} (parsed: ${dateStr})`);
-      return { status: 'failed' };
+      return { status: "failed" };
     }
 
     const newDir = path.join(workspaceDir, "memory", year, month);
@@ -141,20 +149,20 @@ export async function migrateMemoryFile(
     if (await exists(newPath)) {
       // New file exists, keep it and skip migration
       log.warn(`[memory] New format file exists, skipping migration: ${filename}`);
-      return { status: 'skipped', path: newPath };
+      return { status: "skipped", path: newPath };
     }
 
     // Atomic file creation with exclusive flag to prevent race conditions
     let fileHandle;
     try {
       // Try to open file exclusively (fails if exists)
-      fileHandle = await fs.open(newPath, 'wx');
+      fileHandle = await fs.open(newPath, "wx");
       await fileHandle.close();
     } catch (err: any) {
-      if (err.code === 'EEXIST') {
+      if (err.code === "EEXIST") {
         // Another process created it first
         log.warn(`[memory] File created by another process, skipping: ${filename}`);
-        return { status: 'skipped', path: newPath };
+        return { status: "skipped", path: newPath };
       }
       throw err;
     }
@@ -164,18 +172,24 @@ export async function migrateMemoryFile(
 
     // Optional: Remove old file after successful migration
     // For now, keep both as backup
-    log.info(`[memory] Migrated old-format memory file: ${filename} -> memory/${year}/${month}/${filename}`);
+    log.info(
+      `[memory] Migrated old-format memory file: ${filename} -> memory/${year}/${month}/${filename}`,
+    );
 
-    return { status: 'migrated', path: newPath };
+    return { status: "migrated", path: newPath };
   } catch (err) {
     log.error(`[memory] Failed to migrate memory file: ${path.basename(oldPath)}`, err);
-    return { status: 'failed' };
+    return { status: "failed" };
   }
 }
 
 export async function listMemoryFiles(
   workspaceDir: string,
-  logger?: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, err?: unknown) => void },
+  logger?: {
+    info: (msg: string) => void;
+    warn: (msg: string) => void;
+    error: (msg: string, err?: unknown) => void;
+  },
 ): Promise<string[]> {
   const result: string[] = [];
   const memoryFile = path.join(workspaceDir, "MEMORY.md");
@@ -324,7 +338,11 @@ export type MigrateAllOptions = {
   /** If true, only simulate migration without actual file operations */
   dryRun?: boolean;
   /** Optional logger for migration messages */
-  logger?: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string, err?: unknown) => void };
+  logger?: {
+    info: (msg: string) => void;
+    warn: (msg: string) => void;
+    error: (msg: string, err?: unknown) => void;
+  };
 };
 
 export type MigrateAllResult = {
@@ -352,10 +370,10 @@ async function findOldFormatFiles(
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     const memoryDir = path.join(workspaceDir, "memory");
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      
+
       if (entry.isDirectory()) {
         // Skip year directories (already new format) only in memory/ root
         const isMemoryRoot = path.normalize(dir) === path.normalize(memoryDir);
@@ -374,7 +392,7 @@ async function findOldFormatFiles(
         }
       }
     }
-  } catch (err) {
+  } catch {
     // Ignore permission errors and continue
   }
   return results;
@@ -392,10 +410,10 @@ export async function migrateAllMemoryFiles(
 ): Promise<MigrateAllResult> {
   const { dryRun = false, logger } = options;
   const log = logger || { info: console.log, warn: console.warn, error: console.error };
-  
+
   const startTime = Date.now();
   const memoryDir = path.join(workspaceDir, "memory");
-  
+
   if (!(await exists(memoryDir))) {
     return {
       migrated: 0,
@@ -410,7 +428,7 @@ export async function migrateAllMemoryFiles(
 
   // Find all old-format files recursively
   const oldFiles = await findOldFormatFiles(memoryDir, workspaceDir);
-  
+
   if (oldFiles.length === 0) {
     log.info(`[memory] No old-format files found in ${memoryDir}`);
     return {
@@ -438,7 +456,7 @@ export async function migrateAllMemoryFiles(
 
   for (const fullPath of oldFiles) {
     const relPath = path.relative(workspaceDir, fullPath).replace(/\\/g, "/");
-    
+
     if (dryRun) {
       // In dry-run mode, just check if target exists
       const filename = path.basename(fullPath);
@@ -450,7 +468,9 @@ export async function migrateAllMemoryFiles(
           log.info(`[memory] [DRY RUN] Would skip (exists): ${relPath}`);
           skipped++;
         } else {
-          log.info(`[memory] [DRY RUN] Would migrate: ${relPath} -> memory/${year}/${month}/${filename}`);
+          log.info(
+            `[memory] [DRY RUN] Would migrate: ${relPath} -> memory/${year}/${month}/${filename}`,
+          );
           migrated++;
           try {
             const stat = await fs.stat(fullPath);
@@ -465,16 +485,16 @@ export async function migrateAllMemoryFiles(
     try {
       const stat = await fs.stat(fullPath);
       const result = await migrateMemoryFile(fullPath, workspaceDir, logger);
-      
-      if (result.status === 'skipped') {
+
+      if (result.status === "skipped") {
         skipped++;
-      } else if (result.status === 'migrated') {
+      } else if (result.status === "migrated") {
         migrated++;
         totalBytes += stat.size;
         migratedFiles.push(path.relative(workspaceDir, result.path).replace(/\\/g, "/"));
       } else {
         failed++;
-        failedFiles.push({ path: relPath, error: 'Migration failed' });
+        failedFiles.push({ path: relPath, error: "Migration failed" });
       }
     } catch (err) {
       failed++;
@@ -485,9 +505,11 @@ export async function migrateAllMemoryFiles(
   }
 
   const durationMs = Date.now() - startTime;
-  
-  log.info(`[memory] Migration complete: ${migrated} migrated, ${skipped} skipped, ${failed} failed (${durationMs}ms, ${totalBytes} bytes)`);
-  
+
+  log.info(
+    `[memory] Migration complete: ${migrated} migrated, ${skipped} skipped, ${failed} failed (${durationMs}ms, ${totalBytes} bytes)`,
+  );
+
   return {
     migrated,
     skipped,

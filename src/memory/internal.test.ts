@@ -8,7 +8,6 @@ import {
   isOldMemoryFormat,
   migrateMemoryFile,
   migrateAllMemoryFiles,
-  type MigrationResult,
 } from "./internal.js";
 
 describe("chunkMarkdown", () => {
@@ -93,7 +92,10 @@ describe("migrateMemoryFile", () => {
     expect(newContent).toBe("# Test content\n");
 
     // Verify old file still exists (backup)
-    const oldExists = await fs.access(oldPath).then(() => true).catch(() => false);
+    const oldExists = await fs
+      .access(oldPath)
+      .then(() => true)
+      .catch(() => false);
     expect(oldExists).toBe(true);
   });
 
@@ -104,7 +106,9 @@ describe("migrateMemoryFile", () => {
     const result = await migrateMemoryFile(oldPath, tempDir, logger);
 
     expect(result.status).toBe("migrated");
-    expect(result.path).toBe(path.join(tempDir, "memory", "2025", "01", "2025-01-27-discussion.md"));
+    expect(result.path).toBe(
+      path.join(tempDir, "memory", "2025", "01", "2025-01-27-discussion.md"),
+    );
   });
 
   it("skips migration if new file already exists", async () => {
@@ -185,7 +189,11 @@ describe("migrateAllMemoryFiles", () => {
     // Create old-format files
     await fs.writeFile(path.join(tempDir, "memory", "2025-01-27.md"), "# Day 1\n", "utf-8");
     await fs.writeFile(path.join(tempDir, "memory", "2025-01-28.md"), "# Day 2\n", "utf-8");
-    await fs.writeFile(path.join(tempDir, "memory", "2025-01-29-discussion.md"), "# Discussion\n", "utf-8");
+    await fs.writeFile(
+      path.join(tempDir, "memory", "2025-01-29-discussion.md"),
+      "# Discussion\n",
+      "utf-8",
+    );
 
     const result = await migrateAllMemoryFiles(tempDir, { logger });
 
@@ -197,9 +205,18 @@ describe("migrateAllMemoryFiles", () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
 
     // Verify new files exist
-    const file1Exists = await fs.access(path.join(tempDir, "memory", "2025", "01", "2025-01-27.md")).then(() => true).catch(() => false);
-    const file2Exists = await fs.access(path.join(tempDir, "memory", "2025", "01", "2025-01-28.md")).then(() => true).catch(() => false);
-    const file3Exists = await fs.access(path.join(tempDir, "memory", "2025", "01", "2025-01-29-discussion.md")).then(() => true).catch(() => false);
+    const file1Exists = await fs
+      .access(path.join(tempDir, "memory", "2025", "01", "2025-01-27.md"))
+      .then(() => true)
+      .catch(() => false);
+    const file2Exists = await fs
+      .access(path.join(tempDir, "memory", "2025", "01", "2025-01-28.md"))
+      .then(() => true)
+      .catch(() => false);
+    const file3Exists = await fs
+      .access(path.join(tempDir, "memory", "2025", "01", "2025-01-29-discussion.md"))
+      .then(() => true)
+      .catch(() => false);
     expect(file1Exists).toBe(true);
     expect(file2Exists).toBe(true);
     expect(file3Exists).toBe(true);
@@ -209,7 +226,11 @@ describe("migrateAllMemoryFiles", () => {
     // Create files: one in memory/ root (old format), one in subdirectory (user custom, should not migrate)
     await fs.mkdir(path.join(tempDir, "memory", "archive"), { recursive: true });
     await fs.writeFile(path.join(tempDir, "memory", "2025-01-27.md"), "# Root\n", "utf-8");
-    await fs.writeFile(path.join(tempDir, "memory", "archive", "2024-12-31.md"), "# Archived\n", "utf-8");
+    await fs.writeFile(
+      path.join(tempDir, "memory", "archive", "2024-12-31.md"),
+      "# Archived\n",
+      "utf-8",
+    );
 
     const result = await migrateAllMemoryFiles(tempDir, { logger });
 
@@ -217,16 +238,23 @@ describe("migrateAllMemoryFiles", () => {
     expect(result.migrated).toBe(1);
     expect(result.migratedFiles).toContain("memory/2025/01/2025-01-27.md");
     expect(result.migratedFiles).not.toContain("memory/2024/12/2024-12-31.md");
-    
+
     // Archived file should still exist in original location
-    const archivedExists = await fs.access(path.join(tempDir, "memory", "archive", "2024-12-31.md")).then(() => true).catch(() => false);
+    const archivedExists = await fs
+      .access(path.join(tempDir, "memory", "archive", "2024-12-31.md"))
+      .then(() => true)
+      .catch(() => false);
     expect(archivedExists).toBe(true);
   });
 
   it("skips year directories (new format)", async () => {
     // Create new-format files (should be skipped)
     await fs.mkdir(path.join(tempDir, "memory", "2025", "01"), { recursive: true });
-    await fs.writeFile(path.join(tempDir, "memory", "2025", "01", "2025-01-27.md"), "# New format\n", "utf-8");
+    await fs.writeFile(
+      path.join(tempDir, "memory", "2025", "01", "2025-01-27.md"),
+      "# New format\n",
+      "utf-8",
+    );
 
     // Create old-format file
     await fs.writeFile(path.join(tempDir, "memory", "2025-01-28.md"), "# Old format\n", "utf-8");
@@ -246,13 +274,16 @@ describe("migrateAllMemoryFiles", () => {
     expect(result.skipped).toBe(0);
 
     // Verify file was NOT migrated
-    const newExists = await fs.access(path.join(tempDir, "memory", "2025", "01", "2025-01-27.md")).then(() => true).catch(() => false);
+    const newExists = await fs
+      .access(path.join(tempDir, "memory", "2025", "01", "2025-01-27.md"))
+      .then(() => true)
+      .catch(() => false);
     expect(newExists).toBe(false);
   });
 
   it("returns empty result if no memory directory", async () => {
     const emptyDir = await fs.mkdtemp(path.join(os.tmpdir(), "empty-"));
-    
+
     const result = await migrateAllMemoryFiles(emptyDir, { logger });
 
     expect(result.migrated).toBe(0);
@@ -283,7 +314,8 @@ describe("migrateAllMemoryFiles", () => {
 
     const result = await migrateAllMemoryFiles(tempDir, { logger });
 
-    const expectedBytes = Buffer.byteLength(content1, "utf-8") + Buffer.byteLength(content2, "utf-8");
+    const expectedBytes =
+      Buffer.byteLength(content1, "utf-8") + Buffer.byteLength(content2, "utf-8");
     expect(result.totalBytes).toBe(expectedBytes);
   });
 });
