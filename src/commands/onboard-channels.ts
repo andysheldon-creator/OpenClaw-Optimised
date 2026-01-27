@@ -454,21 +454,28 @@ export async function setupChannels(
       await prompter.note(`${channel} does not support onboarding yet.`, "Channel setup");
       return;
     }
-    const result = await adapter.configure({
-      cfg: next,
-      runtime,
-      prompter,
-      options,
-      accountOverrides,
-      shouldPromptAccountIds,
-      forceAllowFrom: forceAllowFromChannels.has(channel),
-    });
-    next = result.cfg;
-    if (result.accountId) {
-      recordAccount(channel, result.accountId);
+    try {
+      const result = await adapter.configure({
+        cfg: next,
+        runtime,
+        prompter,
+        options,
+        accountOverrides,
+        shouldPromptAccountIds,
+        forceAllowFrom: forceAllowFromChannels.has(channel),
+      });
+      next = result.cfg;
+      if (result.accountId) {
+        recordAccount(channel, result.accountId);
+      }
+      addSelection(channel);
+      await refreshStatus(channel);
+    } catch (err) {
+      await prompter.note(
+        `Failed to configure ${channel}: ${err instanceof Error ? err.message : String(err)}`,
+        "Configuration Error",
+      );
     }
-    addSelection(channel);
-    await refreshStatus(channel);
   };
 
   const handleConfiguredChannel = async (channel: ChannelChoice, label: string) => {

@@ -1,0 +1,45 @@
+{
+  "name": "gmail",
+  "version": "1.0.0",
+  "description": "Gmail channel for Clawdbot",
+  "type": "module",
+  "main": "index.ts",
+  "clawdbot": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "gmail",
+      "label": "Gmail",
+      "selectionLabel": "Gmail (gog)",
+      "detailLabel": "Gmail",
+      "docsPath": "/channels/gmail",
+      "docsLabel": "gmail",
+      "blurb": "Uses gog for secure Gmail access.",
+      "systemImage": "envelope",
+      "order": 100,
+      "showConfigured": true
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "lint": "oxlint",
+    "format": "oxfmt"
+  },
+  "dependencies": {
+    "jsdom": "^25.0.1",
+    "dompurify": "^3.2.3",
+    "zod": "^4.3.5",
+    "marked": "^15.0.6",
+    "sanitize-html": "^2.14.0"
+  },
+  "devDependencies": {
+    "clawdbot": "workspace:*",
+    "@types/jsdom": "^21.1.7",
+    "@types/dompurify": "^3.0.5",
+    "@types/marked": "^6.0.0",
+    "@types/sanitize-html": "^2.13.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  }
+}
