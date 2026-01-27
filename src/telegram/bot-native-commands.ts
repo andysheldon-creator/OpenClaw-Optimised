@@ -484,7 +484,7 @@ export const registerTelegramNativeCommands = ({
             cfg,
             dispatcherOptions: {
               responsePrefix: resolveEffectiveMessagesConfig(cfg, route.agentId).responsePrefix,
-              deliver: async (payload) => {
+              deliver: async (payload, info) => {
                 await deliverReplies({
                   replies: [payload],
                   chatId: String(chatId),
@@ -497,6 +497,7 @@ export const registerTelegramNativeCommands = ({
                   tableMode,
                   chunkMode,
                   linkPreview: telegramCfg.linkPreview,
+                  notifyEmptyResponse: info.kind === "final",
                 });
               },
               onError: (err, info) => {
