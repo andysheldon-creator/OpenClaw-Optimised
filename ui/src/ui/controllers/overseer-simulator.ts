@@ -894,7 +894,8 @@ export async function loadSimulatorState(
       rules?: SimulatorRule[];
       scenarios?: SimulatorScenario[];
     } | null;
-    return result ?? null;
+    if (!result) return null;
+    return { rules: result.rules ?? [], scenarios: result.scenarios ?? [] };
   } catch {
     // Simulator state may not be persisted, that's OK
     return null;

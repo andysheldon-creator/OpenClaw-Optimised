@@ -14,7 +14,7 @@ const noopLogger = {
 };
 
 async function makeStorePath() {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbot-cron-lock-free-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbrain-cron-lock-free-"));
   return {
     storePath: path.join(dir, "cron", "jobs.json"),
     cleanup: async () => {

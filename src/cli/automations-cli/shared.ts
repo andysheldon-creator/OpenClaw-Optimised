@@ -13,7 +13,7 @@ export async function warnIfAutomationsDisabled(opts: Record<string, unknown>): 
       const allDisabled = automations.length > 0 && automations.every((a) => !a.enabled);
       if (allDisabled) {
         defaultRuntime.log(
-          "Note: All automations are disabled. Use 'clawdbot automations enable <id>' to enable.",
+          "Note: All automations are disabled. Use 'clawdbrain automations enable <id>' to enable.",
         );
       }
     }

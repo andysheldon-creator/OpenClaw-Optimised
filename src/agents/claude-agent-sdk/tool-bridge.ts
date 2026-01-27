@@ -1,19 +1,19 @@
 /**
- * Bridge between Clawdbot tools (AnyAgentTool) and the Claude Agent SDK's
+ * Bridge between Clawdbrain tools (AnyAgentTool) and the Claude Agent SDK's
  * MCP-based custom tool system.
  *
  * This module is pure facade/adapter code — no business logic is duplicated.
- * Each Clawdbot tool's `execute()` function is called as-is; the bridge only
+ * Each Clawdbrain tool's `execute()` function is called as-is; the bridge only
  * converts schemas, argument shapes, and result formats.
  *
  * Usage:
  * ```ts
- * const mcpConfig = await bridgeClawdbotToolsToMcpServer({
- *   name: "clawdbot",
- *   tools: myClawdbotTools,
+ * const mcpConfig = await bridgeClawdbrainToolsToMcpServer({
+ *   name: "clawdbrain",
+ *   tools: myClawdbrainTools,
  * });
  * // Pass to SDK query():
- * query({ prompt, options: { mcpServers: { clawdbot: mcpConfig } } })
+ * query({ prompt, options: { mcpServers: { clawdbrain: mcpConfig } } })
  * ```
  */
 
@@ -60,7 +60,7 @@ export function extractJsonSchema(tool: AnyAgentTool): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 /**
- * Convert a Clawdbot `AgentToolResult` to an MCP `CallToolResult`.
+ * Convert a Clawdbrain `AgentToolResult` to an MCP `CallToolResult`.
  *
  * Content block shapes are nearly identical between the two systems.
  * The main differences handled:
@@ -126,10 +126,10 @@ export function convertToolResult(result: AgentToolResult<unknown>): McpCallTool
 // ---------------------------------------------------------------------------
 
 /**
- * Wrap a Clawdbot tool's `execute()` as an MCP tool handler.
+ * Wrap a Clawdbrain tool's `execute()` as an MCP tool handler.
  *
  * Differences bridged:
- * - Clawdbot: `execute(toolCallId, params, signal?, onUpdate?)`
+ * - Clawdbrain: `execute(toolCallId, params, signal?, onUpdate?)`
  * - MCP:      `handler(args) → Promise<CallToolResult>`
  *
  * Notable: MCP handlers have no abort signal or streaming update callback.
@@ -144,7 +144,7 @@ export function wrapToolHandler(
   return async (args: Record<string, unknown>): Promise<McpCallToolResult> => {
     // Generate a synthetic toolCallId. The Claude Agent SDK doesn't expose its
     // internal tool call ID to MCP handlers, so we create a unique one for
-    // internal tracking/logging. This is safe because Clawdbot tools only use
+    // internal tracking/logging. This is safe because Clawdbrain tools only use
     // toolCallId for logging and scoping, not for cross-referencing with the
     // model's response.
     const toolCallId = `mcp-bridge-${normalizedName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -229,13 +229,13 @@ export function buildMcpAllowedTools(serverName: string, tools: AnyAgentTool[]):
 }
 
 // ---------------------------------------------------------------------------
-// Main bridge: Clawdbot tools → MCP server config
+// Main bridge: Clawdbrain tools → MCP server config
 // ---------------------------------------------------------------------------
 
 export type BridgeOptions = {
   /** MCP server name (used in mcp__{name}__{tool} naming). */
   name: string;
-  /** Clawdbot tools to bridge. These should already be policy-filtered. */
+  /** Clawdbrain tools to bridge. These should already be policy-filtered. */
   tools: AnyAgentTool[];
   /** Optional shared abort signal for all tool executions. */
   abortSignal?: AbortSignal;
@@ -255,16 +255,16 @@ export type BridgeResult = {
 };
 
 /**
- * Bridge Clawdbot tools into an in-process MCP server config for the Claude Agent SDK.
+ * Bridge Clawdbrain tools into an in-process MCP server config for the Claude Agent SDK.
  *
  * This is the main entry point. It:
  * 1. Dynamically loads the MCP SDK's McpServer class.
- * 2. For each Clawdbot tool, extracts JSON Schema, wraps the handler, and registers.
+ * 2. For each Clawdbrain tool, extracts JSON Schema, wraps the handler, and registers.
  * 3. Returns a config object ready for `query({ options: { mcpServers } })`.
  *
  * No business logic is duplicated — each tool's `execute()` is called directly.
  */
-export async function bridgeClawdbotToolsToMcpServer(
+export async function bridgeClawdbrainToolsToMcpServer(
   options: BridgeOptions,
 ): Promise<BridgeResult> {
   const McpServer = await loadMcpServerClass();
@@ -288,7 +288,12 @@ export async function bridgeClawdbotToolsToMcpServer(
       const jsonSchema = extractJsonSchema(tool);
       const handler = wrapToolHandler(tool, options.abortSignal);
 
-      server.tool(toolName, tool.description ?? `Clawdbot tool: ${toolName}`, jsonSchema, handler);
+      server.tool(
+        toolName,
+        tool.description ?? `Clawdbrain tool: ${toolName}`,
+        jsonSchema,
+        handler,
+      );
 
       registered.push(toolName);
     } catch (err) {
@@ -321,7 +326,7 @@ export async function bridgeClawdbotToolsToMcpServer(
  * Synchronous variant for when the McpServer class is already available.
  * Useful in tests where you can provide a mock McpServer constructor.
  */
-export function bridgeClawdbotToolsSync(
+export function bridgeClawdbrainToolsSync(
   options: BridgeOptions & { McpServer: McpServerConstructor },
 ): BridgeResult {
   const server: McpServerLike = new options.McpServer({
@@ -342,7 +347,12 @@ export function bridgeClawdbotToolsSync(
     try {
       const jsonSchema = extractJsonSchema(tool);
       const handler = wrapToolHandler(tool, options.abortSignal);
-      server.tool(toolName, tool.description ?? `Clawdbot tool: ${toolName}`, jsonSchema, handler);
+      server.tool(
+        toolName,
+        tool.description ?? `Clawdbrain tool: ${toolName}`,
+        jsonSchema,
+        handler,
+      );
       registered.push(toolName);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

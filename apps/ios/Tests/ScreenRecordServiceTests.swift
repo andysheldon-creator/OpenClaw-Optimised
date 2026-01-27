@@ -1,5 +1,5 @@
 import Testing
-@testable import Moltbot
+@testable import Clawdbrain
 
 @Suite(.serialized) struct ScreenRecordServiceTests {
     @Test func clampDefaultsAndBounds() {

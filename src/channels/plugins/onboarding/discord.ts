@@ -1,4 +1,4 @@
-import type { MoltbotConfig } from "../../../config/config.js";
+import type { ClawdbrainConfig } from "../../../config/config.js";
 import type { DmPolicy } from "../../../config/types.js";
 import type { DiscordGuildEntry } from "../../../config/types.discord.js";
 import {
@@ -21,7 +21,7 @@ import { addWildcardAllowFrom, promptAccountId } from "./helpers.js";
 
 const channel = "discord" as const;
 
-function setDiscordDmPolicy(cfg: MoltbotConfig, dmPolicy: DmPolicy) {
+function setDiscordDmPolicy(cfg: ClawdbrainConfig, dmPolicy: DmPolicy) {
   const allowFrom =
     dmPolicy === "open" ? addWildcardAllowFrom(cfg.channels?.discord?.dm?.allowFrom) : undefined;
   return {
@@ -55,10 +55,10 @@ async function noteDiscordTokenHelp(prompter: WizardPrompter): Promise<void> {
 }
 
 function setDiscordGroupPolicy(
-  cfg: MoltbotConfig,
+  cfg: ClawdbrainConfig,
   accountId: string,
   groupPolicy: "open" | "allowlist" | "disabled",
-): MoltbotConfig {
+): ClawdbrainConfig {
   if (accountId === DEFAULT_ACCOUNT_ID) {
     return {
       ...cfg,
@@ -93,13 +93,13 @@ function setDiscordGroupPolicy(
 }
 
 function setDiscordGuildChannelAllowlist(
-  cfg: MoltbotConfig,
+  cfg: ClawdbrainConfig,
   accountId: string,
   entries: Array<{
     guildKey: string;
     channelKey?: string;
   }>,
-): MoltbotConfig {
+): ClawdbrainConfig {
   const baseGuilds =
     accountId === DEFAULT_ACCOUNT_ID
       ? (cfg.channels?.discord?.guilds ?? {})
@@ -149,7 +149,7 @@ function setDiscordGuildChannelAllowlist(
   };
 }
 
-function setDiscordAllowFrom(cfg: MoltbotConfig, allowFrom: string[]): MoltbotConfig {
+function setDiscordAllowFrom(cfg: ClawdbrainConfig, allowFrom: string[]): ClawdbrainConfig {
   return {
     ...cfg,
     channels: {
@@ -174,10 +174,10 @@ function parseDiscordAllowFromInput(raw: string): string[] {
 }
 
 async function promptDiscordAllowFrom(params: {
-  cfg: MoltbotConfig;
+  cfg: ClawdbrainConfig;
   prompter: WizardPrompter;
   accountId?: string;
-}): Promise<MoltbotConfig> {
+}): Promise<ClawdbrainConfig> {
   const accountId =
     params.accountId && normalizeAccountId(params.accountId)
       ? (normalizeAccountId(params.accountId) ?? DEFAULT_ACCOUNT_ID)

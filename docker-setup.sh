@@ -4,9 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
 EXTRA_COMPOSE_FILE="$ROOT_DIR/docker-compose.extra.yml"
-IMAGE_NAME="${CLAWDBOT_IMAGE:-moltbot:local}"
-EXTRA_MOUNTS="${CLAWDBOT_EXTRA_MOUNTS:-}"
-HOME_VOLUME_NAME="${CLAWDBOT_HOME_VOLUME:-}"
+IMAGE_NAME="${CLAWDBRAIN_IMAGE:-clawdbrain:local}"
+EXTRA_MOUNTS="${CLAWDBRAIN_EXTRA_MOUNTS:-}"
+HOME_VOLUME_NAME="${CLAWDBRAIN_HOME_VOLUME:-}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -21,29 +21,29 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "${CLAWDBOT_CONFIG_DIR:-$HOME/.clawdbot}"
-mkdir -p "${CLAWDBOT_WORKSPACE_DIR:-$HOME/clawd}"
+mkdir -p "${CLAWDBRAIN_CONFIG_DIR:-$HOME/.clawdbrain}"
+mkdir -p "${CLAWDBRAIN_WORKSPACE_DIR:-$HOME/clawd}"
 
-export CLAWDBOT_CONFIG_DIR="${CLAWDBOT_CONFIG_DIR:-$HOME/.clawdbot}"
-export CLAWDBOT_WORKSPACE_DIR="${CLAWDBOT_WORKSPACE_DIR:-$HOME/clawd}"
-export CLAWDBOT_GATEWAY_PORT="${CLAWDBOT_GATEWAY_PORT:-18789}"
-export CLAWDBOT_BRIDGE_PORT="${CLAWDBOT_BRIDGE_PORT:-18790}"
-export CLAWDBOT_GATEWAY_BIND="${CLAWDBOT_GATEWAY_BIND:-lan}"
-export CLAWDBOT_IMAGE="$IMAGE_NAME"
-export CLAWDBOT_DOCKER_APT_PACKAGES="${CLAWDBOT_DOCKER_APT_PACKAGES:-}"
+export CLAWDBRAIN_CONFIG_DIR="${CLAWDBRAIN_CONFIG_DIR:-$HOME/.clawdbrain}"
+export CLAWDBRAIN_WORKSPACE_DIR="${CLAWDBRAIN_WORKSPACE_DIR:-$HOME/clawd}"
+export CLAWDBRAIN_GATEWAY_PORT="${CLAWDBRAIN_GATEWAY_PORT:-18789}"
+export CLAWDBRAIN_BRIDGE_PORT="${CLAWDBRAIN_BRIDGE_PORT:-18790}"
+export CLAWDBRAIN_GATEWAY_BIND="${CLAWDBRAIN_GATEWAY_BIND:-lan}"
+export CLAWDBRAIN_IMAGE="$IMAGE_NAME"
+export CLAWDBRAIN_DOCKER_APT_PACKAGES="${CLAWDBRAIN_DOCKER_APT_PACKAGES:-}"
 
-if [[ -z "${CLAWDBOT_GATEWAY_TOKEN:-}" ]]; then
+if [[ -z "${CLAWDBRAIN_GATEWAY_TOKEN:-}" ]]; then
   if command -v openssl >/dev/null 2>&1; then
-    CLAWDBOT_GATEWAY_TOKEN="$(openssl rand -hex 32)"
+    CLAWDBRAIN_GATEWAY_TOKEN="$(openssl rand -hex 32)"
   else
-    CLAWDBOT_GATEWAY_TOKEN="$(python3 - <<'PY'
+    CLAWDBRAIN_GATEWAY_TOKEN="$(python3 - <<'PY'
 import secrets
 print(secrets.token_hex(32))
 PY
 )"
   fi
 fi
-export CLAWDBOT_GATEWAY_TOKEN
+export CLAWDBRAIN_GATEWAY_TOKEN
 
 COMPOSE_FILES=("$COMPOSE_FILE")
 COMPOSE_ARGS=()
@@ -56,14 +56,14 @@ write_extra_compose() {
 
   cat >"$EXTRA_COMPOSE_FILE" <<'YAML'
 services:
-  moltbot-gateway:
+  clawdbrain-gateway:
     volumes:
 YAML
 
   if [[ -n "$home_volume" ]]; then
     printf '      - %s:/home/node\n' "$home_volume" >>"$EXTRA_COMPOSE_FILE"
-    printf '      - %s:/home/node/.clawdbot\n' "$CLAWDBOT_CONFIG_DIR" >>"$EXTRA_COMPOSE_FILE"
-    printf '      - %s:/home/node/clawd\n' "$CLAWDBOT_WORKSPACE_DIR" >>"$EXTRA_COMPOSE_FILE"
+    printf '      - %s:/home/node/.clawdbrain\n' "$CLAWDBRAIN_CONFIG_DIR" >>"$EXTRA_COMPOSE_FILE"
+    printf '      - %s:/home/node/clawd\n' "$CLAWDBRAIN_WORKSPACE_DIR" >>"$EXTRA_COMPOSE_FILE"
   fi
 
   for mount in "${mounts[@]}"; do
@@ -71,14 +71,14 @@ YAML
   done
 
   cat >>"$EXTRA_COMPOSE_FILE" <<'YAML'
-  moltbot-cli:
+  clawdbrain-cli:
     volumes:
 YAML
 
   if [[ -n "$home_volume" ]]; then
     printf '      - %s:/home/node\n' "$home_volume" >>"$EXTRA_COMPOSE_FILE"
-    printf '      - %s:/home/node/.clawdbot\n' "$CLAWDBOT_CONFIG_DIR" >>"$EXTRA_COMPOSE_FILE"
-    printf '      - %s:/home/node/clawd\n' "$CLAWDBOT_WORKSPACE_DIR" >>"$EXTRA_COMPOSE_FILE"
+    printf '      - %s:/home/node/.clawdbrain\n' "$CLAWDBRAIN_CONFIG_DIR" >>"$EXTRA_COMPOSE_FILE"
+    printf '      - %s:/home/node/clawd\n' "$CLAWDBRAIN_WORKSPACE_DIR" >>"$EXTRA_COMPOSE_FILE"
   fi
 
   for mount in "${mounts[@]}"; do
@@ -154,20 +154,20 @@ upsert_env() {
 }
 
 upsert_env "$ENV_FILE" \
-  CLAWDBOT_CONFIG_DIR \
-  CLAWDBOT_WORKSPACE_DIR \
-  CLAWDBOT_GATEWAY_PORT \
-  CLAWDBOT_BRIDGE_PORT \
-  CLAWDBOT_GATEWAY_BIND \
-  CLAWDBOT_GATEWAY_TOKEN \
-  CLAWDBOT_IMAGE \
-  CLAWDBOT_EXTRA_MOUNTS \
-  CLAWDBOT_HOME_VOLUME \
-  CLAWDBOT_DOCKER_APT_PACKAGES
+  CLAWDBRAIN_CONFIG_DIR \
+  CLAWDBRAIN_WORKSPACE_DIR \
+  CLAWDBRAIN_GATEWAY_PORT \
+  CLAWDBRAIN_BRIDGE_PORT \
+  CLAWDBRAIN_GATEWAY_BIND \
+  CLAWDBRAIN_GATEWAY_TOKEN \
+  CLAWDBRAIN_IMAGE \
+  CLAWDBRAIN_EXTRA_MOUNTS \
+  CLAWDBRAIN_HOME_VOLUME \
+  CLAWDBRAIN_DOCKER_APT_PACKAGES
 
 echo "==> Building Docker image: $IMAGE_NAME"
 docker build \
-  --build-arg "CLAWDBOT_DOCKER_APT_PACKAGES=${CLAWDBOT_DOCKER_APT_PACKAGES}" \
+  --build-arg "CLAWDBRAIN_DOCKER_APT_PACKAGES=${CLAWDBRAIN_DOCKER_APT_PACKAGES}" \
   -t "$IMAGE_NAME" \
   -f "$ROOT_DIR/Dockerfile" \
   "$ROOT_DIR"
@@ -177,33 +177,33 @@ echo "==> Onboarding (interactive)"
 echo "When prompted:"
 echo "  - Gateway bind: lan"
 echo "  - Gateway auth: token"
-echo "  - Gateway token: $CLAWDBOT_GATEWAY_TOKEN"
+echo "  - Gateway token: $CLAWDBRAIN_GATEWAY_TOKEN"
 echo "  - Tailscale exposure: Off"
 echo "  - Install Gateway daemon: No"
 echo ""
-docker compose "${COMPOSE_ARGS[@]}" run --rm moltbot-cli onboard --no-install-daemon
+docker compose "${COMPOSE_ARGS[@]}" run --rm clawdbrain-cli onboard --no-install-daemon
 
 echo ""
 echo "==> Provider setup (optional)"
 echo "WhatsApp (QR):"
-echo "  ${COMPOSE_HINT} run --rm moltbot-cli providers login"
+echo "  ${COMPOSE_HINT} run --rm clawdbrain-cli providers login"
 echo "Telegram (bot token):"
-echo "  ${COMPOSE_HINT} run --rm moltbot-cli providers add --provider telegram --token <token>"
+echo "  ${COMPOSE_HINT} run --rm clawdbrain-cli providers add --provider telegram --token <token>"
 echo "Discord (bot token):"
-echo "  ${COMPOSE_HINT} run --rm moltbot-cli providers add --provider discord --token <token>"
-echo "Docs: https://docs.molt.bot/providers"
+echo "  ${COMPOSE_HINT} run --rm clawdbrain-cli providers add --provider discord --token <token>"
+echo "Docs: https://docs.clawdbrain.bot/providers"
 
 echo ""
 echo "==> Starting gateway"
-docker compose "${COMPOSE_ARGS[@]}" up -d moltbot-gateway
+docker compose "${COMPOSE_ARGS[@]}" up -d clawdbrain-gateway
 
 echo ""
 echo "Gateway running with host port mapping."
 echo "Access from tailnet devices via the host's tailnet IP."
-echo "Config: $CLAWDBOT_CONFIG_DIR"
-echo "Workspace: $CLAWDBOT_WORKSPACE_DIR"
-echo "Token: $CLAWDBOT_GATEWAY_TOKEN"
+echo "Config: $CLAWDBRAIN_CONFIG_DIR"
+echo "Workspace: $CLAWDBRAIN_WORKSPACE_DIR"
+echo "Token: $CLAWDBRAIN_GATEWAY_TOKEN"
 echo ""
 echo "Commands:"
-echo "  ${COMPOSE_HINT} logs -f moltbot-gateway"
-echo "  ${COMPOSE_HINT} exec moltbot-gateway node dist/index.js health --token \"$CLAWDBOT_GATEWAY_TOKEN\""
+echo "  ${COMPOSE_HINT} logs -f clawdbrain-gateway"
+echo "  ${COMPOSE_HINT} exec clawdbrain-gateway node dist/index.js health --token \"$CLAWDBRAIN_GATEWAY_TOKEN\""

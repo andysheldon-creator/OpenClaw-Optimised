@@ -6,7 +6,7 @@ import { getCliSessionId } from "../../agents/cli-session.js";
 import { createSdkAgentRuntime } from "../../agents/claude-agent-sdk/sdk-agent-runtime.js";
 import { isSdkRunnerEnabled } from "../../agents/claude-agent-sdk/sdk-runner.config.js";
 import { loadSessionHistoryForSdk } from "../../agents/claude-agent-sdk/sdk-session-history.js";
-import { createClawdbotCodingTools } from "../../agents/pi-tools.js";
+import { createClawdbrainCodingTools } from "../../agents/pi-tools.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
@@ -246,8 +246,8 @@ export async function runAgentTurnWithFallback(params: {
                 hasRepliedRef: params.opts?.hasRepliedRef,
               });
 
-              // Bridge Clawdbot tools into the SDK via MCP and load conversation history.
-              const sdkTools = createClawdbotCodingTools({
+              // Bridge Clawdbrain tools into the SDK via MCP and load conversation history.
+              const sdkTools = createClawdbrainCodingTools({
                 config: params.followupRun.run.config,
                 sandbox: sandbox ?? undefined,
                 workspaceDir: params.followupRun.run.workspaceDir,
@@ -674,7 +674,7 @@ export async function runAgentTurnWithFallback(params: {
         ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
         : isRoleOrderingError
           ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: moltbot logs --follow`;
+          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: clawdbrain logs --follow`;
 
       return {
         kind: "final",

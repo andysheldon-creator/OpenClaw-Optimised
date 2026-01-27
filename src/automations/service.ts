@@ -41,7 +41,7 @@ export type { AutomationServiceDeps } from "./types.js";
  * ```ts
  * const service = new AutomationService({
  *   log: console,
- *   storePath: "~/.clawdbot/automations/automations.json",
+ *   storePath: "~/.clawdbrain/automations/automations.json",
  *   automationsEnabled: true,
  *   emitAutomationEvent: (event) => gateway.broadcast(event),
  *   runIsolatedAgentJob: async ({ automation, message }) => { ... },

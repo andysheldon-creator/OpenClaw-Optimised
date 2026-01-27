@@ -39,21 +39,21 @@ export function registerStatusHealthSessionsCommands(program: Command) {
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["moltbot status", "Show channel health + session summary."],
-          ["moltbot status --all", "Full diagnosis (read-only)."],
-          ["moltbot status --json", "Machine-readable output."],
-          ["moltbot status --usage", "Show model provider usage/quota snapshots."],
+          ["clawdbrain status", "Show channel health + session summary."],
+          ["clawdbrain status --all", "Full diagnosis (read-only)."],
+          ["clawdbrain status --json", "Machine-readable output."],
+          ["clawdbrain status --usage", "Show model provider usage/quota snapshots."],
           [
-            "moltbot status --deep",
+            "clawdbrain status --deep",
             "Run channel probes (WA + Telegram + Discord + Slack + Signal).",
           ],
-          ["moltbot status --deep --timeout 5000", "Tighten probe timeout."],
+          ["clawdbrain status --deep --timeout 5000", "Tighten probe timeout."],
         ])}`,
     )
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/status", "docs.molt.bot/cli/status")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/status", "docs.clawdbrain.bot/cli/status")}\n`,
     )
     .action(async (opts) => {
       const verbose = resolveVerbose(opts);
@@ -87,7 +87,7 @@ export function registerStatusHealthSessionsCommands(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/health", "docs.molt.bot/cli/health")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/health", "docs.clawdbrain.bot/cli/health")}\n`,
     )
     .action(async (opts) => {
       const verbose = resolveVerbose(opts);
@@ -119,10 +119,10 @@ export function registerStatusHealthSessionsCommands(program: Command) {
       "after",
       () =>
         `\n${theme.heading("Examples:")}\n${formatHelpExamples([
-          ["moltbot sessions", "List all sessions."],
-          ["moltbot sessions --active 120", "Only last 2 hours."],
-          ["moltbot sessions --json", "Machine-readable output."],
-          ["moltbot sessions --store ./tmp/sessions.json", "Use a specific session store."],
+          ["clawdbrain sessions", "List all sessions."],
+          ["clawdbrain sessions --active 120", "Only last 2 hours."],
+          ["clawdbrain sessions --json", "Machine-readable output."],
+          ["clawdbrain sessions --store ./tmp/sessions.json", "Use a specific session store."],
         ])}\n\n${theme.muted(
           "Shows token usage per session when the agent reports it; set agents.defaults.contextTokens to see % of your model window.",
         )}`,
@@ -130,7 +130,7 @@ export function registerStatusHealthSessionsCommands(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/sessions", "docs.molt.bot/cli/sessions")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/sessions", "docs.clawdbrain.bot/cli/sessions")}\n`,
     )
     .action(async (opts) => {
       setVerbose(Boolean(opts.verbose));

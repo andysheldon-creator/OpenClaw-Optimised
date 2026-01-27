@@ -82,21 +82,6 @@ export type OverseerProps = {
   // Simulator state
   simulatorState: SimulatorState;
   simulatorProps: Omit<SimulatorProps, "state" | "overseerStatus" | "connected">;
-  // Goal management state
-  goalActionPending?: boolean;
-  goalActionError?: string | null;
-  createGoalOpen?: boolean;
-  createGoalForm?: {
-    title: string;
-    problemStatement: string;
-    successCriteria: string[];
-    constraints: string[];
-    priority: "low" | "normal" | "high" | "urgent";
-    generatePlan: boolean;
-  };
-  // Activity feed enhancements
-  activityFilterStatus?: string | null;
-  activityLimit?: number;
   // Event handlers
   onRefresh: () => void;
   onTick: () => void;

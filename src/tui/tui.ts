@@ -306,7 +306,7 @@ export async function runTui(opts: TuiOptions) {
     const agentLabel = formatAgentLabel(currentAgentId);
     header.setText(
       theme.header(
-        `moltbot tui - ${client.connection.url} - agent ${agentLabel} - session ${sessionLabel}`,
+        `clawdbrain tui - ${client.connection.url} - agent ${agentLabel} - session ${sessionLabel}`,
       ),
     );
   };

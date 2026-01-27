@@ -21,7 +21,7 @@ vi.mock("../runtime.js", () => ({
 
 describe("browser extension install", () => {
   it("installs into the state dir (never node_modules)", async () => {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-ext-"));
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbrain-ext-"));
     const { installChromeExtension } = await import("./browser-cli-extension.js");
 
     const sourceDir = path.resolve(process.cwd(), "assets/chrome-extension");
@@ -33,9 +33,9 @@ describe("browser extension install", () => {
   });
 
   it("copies extension path to clipboard", async () => {
-    const prev = process.env.CLAWDBOT_STATE_DIR;
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "moltbot-ext-path-"));
-    process.env.CLAWDBOT_STATE_DIR = tmp;
+    const prev = process.env.CLAWDBRAIN_STATE_DIR;
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbrain-ext-path-"));
+    process.env.CLAWDBRAIN_STATE_DIR = tmp;
 
     try {
       copyToClipboard.mockReset();
@@ -63,8 +63,8 @@ describe("browser extension install", () => {
 
       expect(copyToClipboard).toHaveBeenCalledWith(dir);
     } finally {
-      if (prev === undefined) delete process.env.CLAWDBOT_STATE_DIR;
-      else process.env.CLAWDBOT_STATE_DIR = prev;
+      if (prev === undefined) delete process.env.CLAWDBRAIN_STATE_DIR;
+      else process.env.CLAWDBRAIN_STATE_DIR = prev;
     }
   });
 });

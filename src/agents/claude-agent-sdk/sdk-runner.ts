@@ -2,20 +2,20 @@
  * Claude Agent SDK runner — an alternative to the Pi Agent embedded runner
  * that uses the Claude Agent SDK as the main agent runtime.
  *
- * This runner bridges Clawdbot tools into the SDK via MCP, passes the user
+ * This runner bridges Clawdbrain tools into the SDK via MCP, passes the user
  * prompt (with optional system prompt), streams events, and returns results
- * in a format compatible with Clawdbot's reply pipeline.
+ * in a format compatible with Clawdbrain's reply pipeline.
  *
  * Key differences from the Pi Agent embedded runner:
  * - No multi-turn session management (SDK is stateless per query)
  * - No context window compaction (SDK handles its own context)
  * - No model registry (model selection via env vars or SDK defaults)
- * - Clawdbot tools are exposed via in-process MCP server
+ * - Clawdbrain tools are exposed via in-process MCP server
  * - Supports env-based provider switching (Anthropic, z.AI, etc.)
  */
 
 import { logDebug, logError, logInfo, logWarn } from "../../logger.js";
-import { bridgeClawdbotToolsToMcpServer } from "./tool-bridge.js";
+import { bridgeClawdbrainToolsToMcpServer } from "./tool-bridge.js";
 import type { SdkRunnerQueryOptions } from "./tool-bridge.types.js";
 import { extractTextFromClaudeAgentSdkEvent } from "./extract.js";
 import { loadClaudeAgentSdk } from "./sdk.js";
@@ -27,7 +27,7 @@ import type { SdkRunnerParams, SdkRunnerResult } from "./sdk-runner.types.js";
 // ---------------------------------------------------------------------------
 
 const DEFAULT_MAX_EXTRACTED_CHARS = 120_000;
-const DEFAULT_MCP_SERVER_NAME = "clawdbot";
+const DEFAULT_MCP_SERVER_NAME = "clawdbrain";
 const DEFAULT_MAX_TURNS = 50;
 
 // ---------------------------------------------------------------------------
@@ -190,12 +190,12 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   emitEvent("sdk", { type: "sdk_loaded" });
 
   // -------------------------------------------------------------------------
-  // Step 2: Bridge Clawdbot tools to MCP
+  // Step 2: Bridge Clawdbrain tools to MCP
   // -------------------------------------------------------------------------
 
   let bridgeResult;
   try {
-    bridgeResult = await bridgeClawdbotToolsToMcpServer({
+    bridgeResult = await bridgeClawdbrainToolsToMcpServer({
       name: mcpServerName,
       tools: params.tools,
       abortSignal: params.abortSignal,
@@ -207,7 +207,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       payloads: [
         {
           text:
-            "Failed to bridge Clawdbot tools to the Claude Agent SDK.\n\n" + `Error: ${message}`,
+            "Failed to bridge Clawdbrain tools to the Claude Agent SDK.\n\n" + `Error: ${message}`,
           isError: true,
         },
       ],
@@ -242,7 +242,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     maxTurns: params.maxTurns ?? params.provider?.maxTurns ?? DEFAULT_MAX_TURNS,
   };
 
-  // MCP server with bridged Clawdbot tools.
+  // MCP server with bridged Clawdbrain tools.
   if (bridgeResult.toolCount > 0) {
     sdkOptions.mcpServers = {
       [mcpServerName]: bridgeResult.serverConfig,
@@ -250,7 +250,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     sdkOptions.allowedTools = bridgeResult.allowedTools;
   }
 
-  // Built-in Claude Code tools (default: none — Clawdbot tools only via MCP).
+  // Built-in Claude Code tools (default: none — Clawdbrain tools only via MCP).
   if (params.builtInTools && params.builtInTools.length > 0) {
     sdkOptions.tools = params.builtInTools;
     // Merge built-in tool names into allowedTools.

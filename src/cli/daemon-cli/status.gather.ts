@@ -226,11 +226,11 @@ export async function gatherDaemonStatus(
         url: probeUrl,
         token:
           opts.rpc.token ||
-          mergedDaemonEnv.CLAWDBOT_GATEWAY_TOKEN ||
+          mergedDaemonEnv.CLAWDBRAIN_GATEWAY_TOKEN ||
           daemonCfg.gateway?.auth?.token,
         password:
           opts.rpc.password ||
-          mergedDaemonEnv.CLAWDBOT_GATEWAY_PASSWORD ||
+          mergedDaemonEnv.CLAWDBRAIN_GATEWAY_PASSWORD ||
           daemonCfg.gateway?.auth?.password,
         timeoutMs,
         json: opts.rpc.json,

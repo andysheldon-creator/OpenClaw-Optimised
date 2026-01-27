@@ -17,7 +17,7 @@ import type { SdkConversationTurn } from "./sdk-runner.types.js";
 
 /** SDK-specific parameters captured at factory creation time. */
 export type SdkRuntimeContext = {
-  /** Clawdbot tools bridged to the SDK via MCP. */
+  /** Clawdbrain tools bridged to the SDK via MCP. */
   tools: AnyAgentTool[];
   /** Prior conversation history serialized for the SDK. */
   conversationHistory?: SdkConversationTurn[];

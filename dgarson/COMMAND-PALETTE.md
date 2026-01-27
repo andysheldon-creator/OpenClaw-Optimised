@@ -1,6 +1,6 @@
 # Command Palette Enhancement Design
 
-> Comprehensive design document for expanding the Clawdbot Control UI command palette
+> Comprehensive design document for expanding the Clawdbrain Control UI command palette
 
 ---
 
@@ -245,8 +245,8 @@ registerCommand({
 ### History & Favorites Persistence
 
 ```typescript
-const STORAGE_KEY_HISTORY = "clawdbot:command-history";
-const STORAGE_KEY_FAVORITES = "clawdbot:command-favorites";
+const STORAGE_KEY_HISTORY = "clawdbrain:command-history";
+const STORAGE_KEY_FAVORITES = "clawdbrain:command-favorites";
 const MAX_HISTORY_ITEMS = 10;
 
 function recordCommandUsage(commandId: string): void {

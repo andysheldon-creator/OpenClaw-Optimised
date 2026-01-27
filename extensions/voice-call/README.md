@@ -1,6 +1,6 @@
-# @clawdbot/voice-call
+# @clawdbrain/voice-call
 
-Official Voice Call plugin for **Clawdbot**.
+Official Voice Call plugin for **Clawdbrain**.
 
 Providers:
 - **Twilio** (Programmable Voice + Media Streams)
@@ -8,15 +8,15 @@ Providers:
 - **Plivo** (Voice API + XML transfer + GetInput speech)
 - **Mock** (dev/no network)
 
-Docs: `https://docs.molt.bot/plugins/voice-call`
-Plugin system: `https://docs.molt.bot/plugin`
+Docs: `https://docs.clawdbrain.bot/plugins/voice-call`
+Plugin system: `https://docs.clawdbrain.bot/plugin`
 
 ## Install (local dev)
 
-### Option A: install via Clawdbot (recommended)
+### Option A: install via Clawdbrain (recommended)
 
 ```bash
-clawdbot plugins install @clawdbot/voice-call
+clawdbrain plugins install @clawdbrain/voice-call
 ```
 
 Restart the Gateway afterwards.
@@ -24,9 +24,9 @@ Restart the Gateway afterwards.
 ### Option B: copy into your global extensions folder (dev)
 
 ```bash
-mkdir -p ~/.clawdbot/extensions
-cp -R extensions/voice-call ~/.clawdbot/extensions/voice-call
-cd ~/.clawdbot/extensions/voice-call && pnpm install
+mkdir -p ~/.clawdbrain/extensions
+cp -R extensions/voice-call ~/.clawdbrain/extensions/voice-call
+cd ~/.clawdbrain/extensions/voice-call && pnpm install
 ```
 
 ## Config
@@ -100,13 +100,13 @@ Notes:
 ## CLI
 
 ```bash
-clawdbot voicecall call --to "+15555550123" --message "Hello from Clawdbot"
-clawdbot voicecall continue --call-id <id> --message "Any questions?"
-clawdbot voicecall speak --call-id <id> --message "One moment"
-clawdbot voicecall end --call-id <id>
-clawdbot voicecall status --call-id <id>
-clawdbot voicecall tail
-clawdbot voicecall expose --mode funnel
+clawdbrain voicecall call --to "+15555550123" --message "Hello from Clawdbrain"
+clawdbrain voicecall continue --call-id <id> --message "Any questions?"
+clawdbrain voicecall speak --call-id <id> --message "One moment"
+clawdbrain voicecall end --call-id <id>
+clawdbrain voicecall status --call-id <id>
+clawdbrain voicecall tail
+clawdbrain voicecall expose --mode funnel
 ```
 
 ## Tool

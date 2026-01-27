@@ -17,5 +17,5 @@
 ### Improvements
 
 - Added proper configuration schema with Zod validation
-- Added plugin descriptor (moltbot.plugin.json)
+- Added plugin descriptor (clawdbrain.plugin.json)
 - Added comprehensive README and documentation

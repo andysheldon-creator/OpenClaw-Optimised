@@ -1,6 +1,6 @@
-name: Moltbot
+name: Clawdbrain
 options:
-  bundleIdPrefix: com.clawdbot
+  bundleIdPrefix: com.clawdbrain
   deploymentTarget:
     iOS: "18.0"
   xcodeVersion: "16.0"
@@ -10,33 +10,33 @@ settings:
     SWIFT_VERSION: "6.0"
 
 packages:
-  MoltbotKit:
-    path: ../shared/ClawdbotKit
+  ClawdbrainKit:
+    path: ../shared/ClawdbrainKit
   Swabble:
     path: ../../Swabble
 
 schemes:
-  Moltbot:
+  Clawdbrain:
     shared: true
     build:
       targets:
-        Moltbot: all
+        Clawdbrain: all
     test:
       targets:
-        - MoltbotTests
+        - ClawdbrainTests
 
 targets:
-  Moltbot:
+  Clawdbrain:
     type: application
     platform: iOS
     sources:
       - path: Sources
     dependencies:
-      - package: MoltbotKit
-      - package: MoltbotKit
-        product: MoltbotChatUI
-      - package: MoltbotKit
-        product: MoltbotProtocol
+      - package: ClawdbrainKit
+      - package: ClawdbrainKit
+        product: ClawdbrainChatUI
+      - package: ClawdbrainKit
+        product: ClawdbrainProtocol
       - package: Swabble
         product: SwabbleKit
       - sdk: AppIntents.framework
@@ -71,15 +71,15 @@ targets:
         CODE_SIGN_IDENTITY: "Apple Development"
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: Y5PE65HELJ
-        PRODUCT_BUNDLE_IDENTIFIER: com.clawdbot.ios
-        PROVISIONING_PROFILE_SPECIFIER: "com.clawdbot.ios Development"
+        PRODUCT_BUNDLE_IDENTIFIER: com.clawdbrain.ios
+        PROVISIONING_PROFILE_SPECIFIER: "com.clawdbrain.ios Development"
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         ENABLE_APPINTENTS_METADATA: NO
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: Moltbot
+        CFBundleDisplayName: Clawdbrain
         CFBundleIconName: AppIcon
         CFBundleShortVersionString: "2026.1.26"
         CFBundleVersion: "20260126"
@@ -88,16 +88,16 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UIBackgroundModes:
           - audio
-        NSLocalNetworkUsageDescription: Moltbot discovers and connects to your Moltbot gateway on the local network.
+        NSLocalNetworkUsageDescription: Clawdbrain discovers and connects to your Clawdbrain gateway on the local network.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoadsInWebContent: true
         NSBonjourServices:
-          - _moltbot-gw._tcp
-        NSCameraUsageDescription: Moltbot can capture photos or short video clips when requested via the gateway.
-        NSLocationWhenInUseUsageDescription: Moltbot uses your location when you allow location sharing.
-        NSLocationAlwaysAndWhenInUseUsageDescription: Moltbot can share your location in the background when you enable Always.
-        NSMicrophoneUsageDescription: Moltbot needs microphone access for voice wake.
-        NSSpeechRecognitionUsageDescription: Moltbot uses on-device speech recognition for voice wake.
+          - _clawdbrain-gw._tcp
+        NSCameraUsageDescription: Clawdbrain can capture photos or short video clips when requested via the gateway.
+        NSLocationWhenInUseUsageDescription: Clawdbrain uses your location when you allow location sharing.
+        NSLocationAlwaysAndWhenInUseUsageDescription: Clawdbrain can share your location in the background when you enable Always.
+        NSMicrophoneUsageDescription: Clawdbrain needs microphone access for voice wake.
+        NSSpeechRecognitionUsageDescription: Clawdbrain uses on-device speech recognition for voice wake.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
@@ -109,26 +109,26 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
 
-  MoltbotTests:
+  ClawdbrainTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: Tests
     dependencies:
-      - target: Moltbot
+      - target: Clawdbrain
       - package: Swabble
         product: SwabbleKit
       - sdk: AppIntents.framework
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.clawdbot.ios.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.clawdbrain.ios.tests
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Moltbot.app/Moltbot"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Clawdbrain.app/Clawdbrain"
         BUNDLE_LOADER: "$(TEST_HOST)"
     info:
       path: Tests/Info.plist
       properties:
-        CFBundleDisplayName: MoltbotTests
+        CFBundleDisplayName: ClawdbrainTests
         CFBundleShortVersionString: "2026.1.26"
         CFBundleVersion: "20260126"

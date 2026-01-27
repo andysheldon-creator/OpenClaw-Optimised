@@ -96,7 +96,7 @@ describe("sessions view", () => {
     const activeTasks = new Map([
       [
         "session-two",
-        [{ taskId: "run:1", taskName: "Run", status: "in-progress", startedAt: now }],
+        [{ taskId: "run:1", taskName: "Run", status: "in-progress" as const, startedAt: now }],
       ],
     ]);
 

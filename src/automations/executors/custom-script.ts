@@ -32,7 +32,7 @@ export class CustomScriptExecutor {
     this.artifactStorage = new ArtifactStorage({
       artifactsDir: path.join(
         process.env.HOME ?? process.env.USERPROFILE ?? ".",
-        ".clawdbot",
+        ".clawdbrain",
         "automations",
         "artifacts",
       ),

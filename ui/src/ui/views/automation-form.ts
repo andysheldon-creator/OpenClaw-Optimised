@@ -1,9 +1,7 @@
 import { html, nothing } from "lit";
 import { icon } from "../icons";
-import type {
-  AutomationFormState,
-  AUTOMATION_FORM_STEPS,
-} from "../controllers/automations";
+import type { AutomationFormState } from "../controllers/automations";
+import { AUTOMATION_FORM_STEPS } from "../controllers/automations";
 
 export interface AutomationFormProps {
   state: AutomationFormState;

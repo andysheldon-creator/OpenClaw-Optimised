@@ -1,8 +1,8 @@
-# Clawdbot SaaS Transformation Plan
+# Clawdbrain SaaS Transformation Plan
 
 ## Executive Summary
 
-This document outlines a comprehensive plan to transform Clawdbot from a single-user personal AI assistant into a multi-tenant Software-as-a-Service (SaaS) platform. The transformation involves fundamental changes to the data model, execution architecture, security posture, and business model.
+This document outlines a comprehensive plan to transform Clawdbrain from a single-user personal AI assistant into a multi-tenant Software-as-a-Service (SaaS) platform. The transformation involves fundamental changes to the data model, execution architecture, security posture, and business model.
 
 **Key Transformations:**
 - File-based storage → Multi-tenant database architecture
@@ -38,8 +38,8 @@ This document outlines a comprehensive plan to transform Clawdbot from a single-
 │                    CURRENT: Single-User Model                    │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  ~/.clawdbot/                                                    │
-│  ├── clawdbot.json          (Single config file)                │
+│  ~/.clawdbrain/                                                    │
+│  ├── clawdbrain.json          (Single config file)                │
 │  ├── sessions/              (All agent sessions)                 │
 │  ├── agents/<id>/           (Per-agent memory DBs)              │
 │  ├── credentials/           (OAuth tokens)                       │
@@ -246,7 +246,7 @@ This document outlines a comprehensive plan to transform Clawdbot from a single-
 
 ```sql
 -- ============================================================================
--- SCHEMA: Multi-Tenant Clawdbot SaaS
+-- SCHEMA: Multi-Tenant Clawdbrain SaaS
 -- ============================================================================
 
 -- Extension setup
@@ -817,7 +817,7 @@ CREATE INDEX idx_tenant_plugins_tenant ON tenant_plugins(tenant_id);
 │  └── Create indexes and constraints                              │
 │                                                                  │
 │  Phase 2: Self-Hosted Import Tool                                │
-│  ├── Read ~/.clawdbot/clawdbot.json → tenant + agents           │
+│  ├── Read ~/.clawdbrain/clawdbrain.json → tenant + agents           │
 │  ├── Read sessions/*.json → sessions + messages                  │
 │  ├── Read agents/*/memory.db → memory_documents + chunks        │
 │  ├── Read overseer-store.json → goals + work_nodes              │
@@ -974,7 +974,7 @@ CREATE INDEX idx_tenant_plugins_tenant ON tenant_plugins(tenant_id);
 │               Cloud Workspace Architecture                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  S3/R2 Bucket: clawdbot-workspaces-{region}                     │
+│  S3/R2 Bucket: clawdbrain-workspaces-{region}                     │
 │                                                                  │
 │  Structure:                                                      │
 │  └── tenants/                                                    │
@@ -1183,7 +1183,7 @@ spec:
 │                                                                  │
 │  Hierarchy:                                                      │
 │  └── secret/                                                     │
-│      ├── clawdbot/                                               │
+│      ├── clawdbrain/                                               │
 │      │   ├── platform/           (Platform-wide secrets)        │
 │      │   │   ├── stripe_key                                     │
 │      │   │   ├── anthropic_key   (Fallback if tenant none)      │
@@ -1559,7 +1559,7 @@ spec:
 │  │  ├── 1 channel connection                                            │    │
 │  │  ├── No subagents                                                    │    │
 │  │  ├── Community support only                                          │    │
-│  │  └── "Powered by Clawdbot" branding                                 │    │
+│  │  └── "Powered by Clawdbrain" branding                                 │    │
 │  │                                                                       │    │
 │  │  Target: Hobbyists, evaluation                                       │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
@@ -1980,7 +1980,7 @@ spec:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  Option A: CLI Migration Tool                                    │
-│  $ clawdbot cloud migrate                                        │
+│  $ clawdbrain cloud migrate                                        │
 │  ├── Authenticate with cloud account                             │
 │  ├── Create tenant from config                                   │
 │  ├── Upload agents, sessions, memory                             │
@@ -2048,7 +2048,7 @@ spec:
 
 | Term | Definition |
 |------|------------|
-| **Tenant** | An organization or team using Clawdbot (maps to billing account) |
+| **Tenant** | An organization or team using Clawdbrain (maps to billing account) |
 | **Agent** | A configured AI assistant with specific identity, tools, and settings |
 | **Overseer** | Long-running agent that manages complex goals and coordinates subagents |
 | **Subagent** | Short-lived worker agent spawned by Overseer for specific tasks |

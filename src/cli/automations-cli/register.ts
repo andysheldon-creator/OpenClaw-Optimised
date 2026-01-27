@@ -18,7 +18,7 @@ export function registerAutomationsCli(program: Command) {
     .addHelpText(
       "after",
       () =>
-        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/automations", "docs.clawd.bot/cli/automations")}\n`,
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/automations", "docs.clawdbrain.bot/cli/automations")}\n`,
     );
 
   registerAutomationsListCommand(automations);

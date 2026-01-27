@@ -18,7 +18,7 @@ let logPath = "";
 
 beforeEach(() => {
   snapshot = { log: console.log, warn: console.warn, error: console.error };
-  logPath = path.join(os.tmpdir(), `clawdbot-log-${crypto.randomUUID()}.log`);
+  logPath = path.join(os.tmpdir(), `clawdbrain-log-${crypto.randomUUID()}.log`);
   resetLogger();
   setLoggerOverride({
     level: "info",

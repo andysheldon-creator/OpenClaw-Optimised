@@ -27,9 +27,9 @@ const formatLine = (label: string, value: string) => {
 };
 
 function resolveLaunchAgentLabel(args?: { env?: Record<string, string | undefined> }): string {
-  const envLabel = args?.env?.CLAWDBOT_LAUNCHD_LABEL?.trim();
+  const envLabel = args?.env?.CLAWDBRAIN_LAUNCHD_LABEL?.trim();
   if (envLabel) return envLabel;
-  return resolveGatewayLaunchAgentLabel(args?.env?.CLAWDBOT_PROFILE);
+  return resolveGatewayLaunchAgentLabel(args?.env?.CLAWDBRAIN_PROFILE);
 }
 
 function resolveLaunchAgentPlistPathForLabel(
@@ -52,7 +52,7 @@ export function resolveGatewayLogPaths(env: Record<string, string | undefined>):
 } {
   const stateDir = resolveGatewayStateDir(env);
   const logDir = path.join(stateDir, "logs");
-  const prefix = env.CLAWDBOT_LOG_PREFIX?.trim() || "gateway";
+  const prefix = env.CLAWDBRAIN_LOG_PREFIX?.trim() || "gateway";
   return {
     logDir,
     stdoutPath: path.join(logDir, `${prefix}.log`),
@@ -401,8 +401,8 @@ export async function installLaunchAgent({
   const serviceDescription =
     description ??
     formatGatewayServiceDescription({
-      profile: env.CLAWDBOT_PROFILE,
-      version: environment?.CLAWDBOT_SERVICE_VERSION ?? env.CLAWDBOT_SERVICE_VERSION,
+      profile: env.CLAWDBRAIN_PROFILE,
+      version: environment?.CLAWDBRAIN_SERVICE_VERSION ?? env.CLAWDBRAIN_SERVICE_VERSION,
     });
   const plist = buildLaunchAgentPlist({
     label,

@@ -26,9 +26,9 @@ describe("decisions store", () => {
   let uuidSpy: ReturnType<typeof vi.spyOn<typeof crypto, "randomUUID">>;
 
   beforeEach(() => {
-    prevStateDir = process.env.CLAWDBOT_STATE_DIR;
+    prevStateDir = process.env.CLAWDBRAIN_STATE_DIR;
     stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbrain-state-"));
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
+    process.env.CLAWDBRAIN_STATE_DIR = stateDir;
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
@@ -42,9 +42,9 @@ describe("decisions store", () => {
     vi.restoreAllMocks();
 
     if (prevStateDir === undefined) {
-      delete process.env.CLAWDBOT_STATE_DIR;
+      delete process.env.CLAWDBRAIN_STATE_DIR;
     } else {
-      process.env.CLAWDBOT_STATE_DIR = prevStateDir;
+      process.env.CLAWDBRAIN_STATE_DIR = prevStateDir;
     }
 
     fs.rmSync(stateDir, { recursive: true, force: true });

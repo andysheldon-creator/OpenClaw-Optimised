@@ -1,4 +1,4 @@
-app_identifier("com.clawdbot.ios")
+app_identifier("com.clawdbrain.ios")
 
 # Auth is expected via App Store Connect API key.
 # Provide either:

@@ -1,11 +1,11 @@
-# Clawdbot Control UI Makefile
+# Clawdbrain Control UI Makefile
 # ============================
 
 .PHONY: help install build dev preview clean lint format test build-deploy serve open
 
 # Default target
 help:
-	@echo "Clawdbot Control UI - Available Commands"
+	@echo "Clawdbrain Control UI - Available Commands"
 	@echo "========================================="
 	@echo ""
 	@echo "  make install       Install dependencies"
@@ -41,7 +41,7 @@ dev:
 	pnpm dev
 
 # Start dev server and proxy gateway endpoints to an existing gateway instance.
-# Override with: CLAWDBOT_CONTROL_UI_PROXY_TARGET=http://<host>:<port> make dev-gateway
+# Override with: CLAWDBRAIN_CONTROL_UI_PROXY_TARGET=http://<host>:<port> make dev-gateway
 dev-gateway:
 	pnpm dev:gateway
 

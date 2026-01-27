@@ -13,9 +13,9 @@ function normalizeBase(input: string): string {
 }
 
 export default defineConfig(({ command }) => {
-  const envBase = process.env.CLAWDBOT_CONTROL_UI_BASE_PATH?.trim();
+  const envBase = process.env.CLAWDBRAIN_CONTROL_UI_BASE_PATH?.trim();
   const base = envBase ? normalizeBase(envBase) : "./";
-  const proxyTarget = process.env.CLAWDBOT_CONTROL_UI_PROXY_TARGET?.trim();
+  const proxyTarget = process.env.CLAWDBRAIN_CONTROL_UI_PROXY_TARGET?.trim();
   return {
     base,
     publicDir: path.resolve(here, "public"),

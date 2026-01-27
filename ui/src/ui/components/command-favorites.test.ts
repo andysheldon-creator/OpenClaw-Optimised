@@ -140,7 +140,7 @@ describe("command-favorites", () => {
   // ---------------------------------------------------------------------------
   describe("resilience", () => {
     it("recovers from corrupted localStorage data", () => {
-      localStorage.setItem("clawdbot:command-favorites", "{{bad json");
+      localStorage.setItem("clawdbrain:command-favorites", "{{bad json");
       expect(getFavoriteIds()).toEqual([]);
       expect(isFavorite("x")).toBe(false);
       // Should still work after corruption
@@ -149,12 +149,12 @@ describe("command-favorites", () => {
     });
 
     it("recovers from non-array localStorage data", () => {
-      localStorage.setItem("clawdbot:command-favorites", '"hello"');
+      localStorage.setItem("clawdbrain:command-favorites", '"hello"');
       expect(getFavoriteIds()).toEqual([]);
     });
 
     it("filters out non-string entries", () => {
-      localStorage.setItem("clawdbot:command-favorites", JSON.stringify(["a", 42, null, "b"]));
+      localStorage.setItem("clawdbrain:command-favorites", JSON.stringify(["a", 42, null, "b"]));
       expect(getFavoriteIds()).toEqual(["a", "b"]);
     });
   });

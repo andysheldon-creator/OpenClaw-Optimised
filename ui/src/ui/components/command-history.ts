@@ -6,7 +6,7 @@
  * entries and survives page reloads via localStorage.
  */
 
-const STORAGE_KEY = "clawdbot:command-history";
+const STORAGE_KEY = "clawdbrain:command-history";
 
 /** Maximum number of recent command IDs to retain. */
 export const MAX_HISTORY = 10;

@@ -15,7 +15,7 @@ describe("ArtifactStorage", () => {
   let storage: ArtifactStorage;
 
   beforeEach(async () => {
-    tempDir = path.join(os.tmpdir(), `clawdbot-artifacts-test-${crypto.randomUUID()}`);
+    tempDir = path.join(os.tmpdir(), `clawdbrain-artifacts-test-${crypto.randomUUID()}`);
     storage = new ArtifactStorage({
       artifactsDir: tempDir,
       baseUrl: "/test/artifacts",
@@ -146,7 +146,7 @@ describe("resolveArtifactsDir", () => {
 
   it("should use default when no custom dir", () => {
     const result = resolveArtifactsDir();
-    expect(result).toContain(".clawdbot");
+    expect(result).toContain(".clawdbrain");
     expect(result).toContain("automations");
     expect(result).toContain("artifacts");
   });

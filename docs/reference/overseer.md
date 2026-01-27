@@ -26,7 +26,7 @@ planner contracts, delivery strategies, safety/policy, and testing.
 ## Non-goals
 - Perfect semantic "understanding" of progress. Overseer should be robust with simple signals first, and only consult a model when necessary.
 - Replacing existing heartbeat/cron workflows. Overseer complements them (and can use them).
-- Storing full transcripts in the Overseer store. Session transcripts already live in `~/.clawdbot/agents/<id>/sessions/*.jsonl`; Overseer stores references.
+- Storing full transcripts in the Overseer store. Session transcripts already live in `~/.clawdbrain/agents/<id>/sessions/*.jsonl`; Overseer stores references.
 
 ## Terminology
 - **Goal**: a major objective that requires long-horizon planning and multiple tasks.
@@ -73,12 +73,12 @@ Suggested public interfaces:
 ```ts
 export type OverseerRunner = {
   stop: () => void;
-  updateConfig: (cfg: ClawdbotConfig) => void;
+  updateConfig: (cfg: ClawdbrainConfig) => void;
   tickNow: (opts?: { reason?: string }) => Promise<{ ok: boolean; didWork: boolean }>;
 };
 
 export function startOverseerRunner(opts: {
-  cfg?: ClawdbotConfig;
+  cfg?: ClawdbrainConfig;
   abortSignal?: AbortSignal;
 }): OverseerRunner;
 ```
@@ -440,10 +440,10 @@ Notes:
 
 ### Storage location
 Suggested default:
-- Store dir: `~/.clawdbot/overseer/`
-- Store file: `~/.clawdbot/overseer/store.json`
+- Store dir: `~/.clawdbrain/overseer/`
+- Store file: `~/.clawdbrain/overseer/store.json`
 
-If desired, allow overrides via environment variables (e.g., `CLAWDBOT_OVERSEER_DIR`) but keep defaults stable.
+If desired, allow overrides via environment variables (e.g., `CLAWDBRAIN_OVERSEER_DIR`) but keep defaults stable.
 
 ### Versioning + migrations
 The store must include `version: number`.
@@ -730,7 +730,7 @@ Also apply channel/provider routing guardrails when sending to humans:
 
 ## Configuration surface (proposed)
 
-This is a proposed `clawdbot.json` schema; implement as needed.
+This is a proposed `clawdbrain.json` schema; implement as needed.
 
 ```json5
 {
@@ -753,7 +753,7 @@ This is a proposed `clawdbot.json` schema; implement as needed.
       "allowCrossAgent": false
     },
     "storage": {
-      "dir": "~/.clawdbot/overseer"
+      "dir": "~/.clawdbrain/overseer"
     }
   }
 }
@@ -768,13 +768,13 @@ Notes:
 Overseer should be operable without editing JSON by hand.
 
 ### CLI commands (suggested)
-- `clawdbot overseer status` (summary: goals, stalled assignments)
-- `clawdbot overseer goal create --title "..." [--from-session main]`
-- `clawdbot overseer goal pause <goalId>`
-- `clawdbot overseer goal resume <goalId>`
-- `clawdbot overseer work done <workNodeId> --goal <goalId>`
-- `clawdbot overseer work block <workNodeId> --reason "..."`
-- `clawdbot overseer tick --now` (manual run)
+- `clawdbrain overseer status` (summary: goals, stalled assignments)
+- `clawdbrain overseer goal create --title "..." [--from-session main]`
+- `clawdbrain overseer goal pause <goalId>`
+- `clawdbrain overseer goal resume <goalId>`
+- `clawdbrain overseer work done <workNodeId> --goal <goalId>`
+- `clawdbrain overseer work block <workNodeId> --reason "..."`
+- `clawdbrain overseer tick --now` (manual run)
 
 ### Gateway methods (suggested)
 - `overseer.status`

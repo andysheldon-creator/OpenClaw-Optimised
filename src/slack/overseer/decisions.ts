@@ -5,7 +5,7 @@
 
 import type { App, SlackActionMiddlewareArgs, ViewSubmitAction } from "@slack/bolt";
 
-import type { ClawdbotConfig } from "../../config/types.js";
+import type { ClawdbrainConfig } from "../../config/types.js";
 import type { CreateDecisionParams, DecisionRecord } from "../../infra/decisions/store.types.js";
 import {
   createDecision,
@@ -44,7 +44,7 @@ function parseDecisionButtonValue(value: string): {
 export type SlackDecisionManagerParams = {
   app: App;
   botToken: string;
-  cfg: ClawdbotConfig;
+  cfg: ClawdbrainConfig;
   bridge: SlackOverseerBridge;
   accountId?: string;
 };

@@ -91,7 +91,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 │ │ │ To configure webhooks, you need to...   │ │ │
 │ │ │                                         │ │ │
 │ │ │ ```bash                                 │ │ │
-│ │ │ clawdbot config set webhooks.url...     │ │ │
+│ │ │ clawdbrain config set webhooks.url...     │ │ │
 │ │ │ ```                          [Copy]     │ │ │
 │ │ │                                         │ │ │
 │ │ │ ▼ Tool: config.get              [View]  │ │ │

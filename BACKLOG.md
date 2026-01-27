@@ -1,7 +1,7 @@
 # ClawdBrain — Backlog
 
-Clawdbot fork with Second Brain / Autonomous Evolution enhancements.
-Tech stack: TypeScript, Node.js (pnpm), Lit web components (UI), Clawdbot gateway architecture.
+Clawdbrain fork with Second Brain / Autonomous Evolution enhancements.
+Tech stack: TypeScript, Node.js (pnpm), Lit web components (UI), Clawdbrain gateway architecture.
 
 This file tracks work items for autonomous development.
 

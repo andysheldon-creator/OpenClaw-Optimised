@@ -143,7 +143,7 @@ export const DEFAULT_KNOWLEDGE_CONFIG: KnowledgeConfig = {
     maxPagesPerCrawl: 100,
     requestsPerSecond: 2,
     respectRobotsTxt: true,
-    userAgent: "Clawdbot-Crawler/1.0",
+    userAgent: "Clawdbrain-Crawler/1.0",
   },
 };
 ```
@@ -190,7 +190,7 @@ Config resolution follows the existing pattern in `src/agents/memory-search.ts`:
 
 ```typescript
 export function resolveKnowledgeConfig(
-  config: ClawdbotConfig,
+  config: ClawdbrainConfig,
   agentId: string,
 ): KnowledgeConfig | null {
   const agentConfig = config.agents?.[agentId]?.knowledge;
@@ -222,8 +222,8 @@ should log a warning and auto-enable memory search with defaults.
 ## CLI Configuration
 
 ```
-clawdbot config set agents.defaults.knowledge.enabled true
-clawdbot config set agents.defaults.knowledge.entityExtraction.model gpt-4.1-mini
-clawdbot config set agents.my-agent.knowledge.crawl.maxPagesPerCrawl 500
-clawdbot config get agents.defaults.knowledge
+clawdbrain config set agents.defaults.knowledge.enabled true
+clawdbrain config set agents.defaults.knowledge.entityExtraction.model gpt-4.1-mini
+clawdbrain config set agents.my-agent.knowledge.crawl.maxPagesPerCrawl 500
+clawdbrain config get agents.defaults.knowledge
 ```

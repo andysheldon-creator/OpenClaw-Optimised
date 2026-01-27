@@ -9,16 +9,16 @@ read_when:
 
 For a user-facing overview (CLI + Control UI + config), see [/logging](/logging).
 
-Moltbot has two log “surfaces”:
+Clawdbrain has two log “surfaces”:
 
 - **Console output** (what you see in the terminal / Debug UI).
 - **File logs** (JSON lines) written by the gateway logger.
 
 ## File-based logger
 
-- Default rolling log file is under `/tmp/moltbot/` (one file per day): `moltbot-YYYY-MM-DD.log`
+- Default rolling log file is under `/tmp/clawdbrain/` (one file per day): `clawdbrain-YYYY-MM-DD.log`
   - Date uses the gateway host's local timezone.
-- The log file path and level can be configured via `~/.clawdbot/moltbot.json`:
+- The log file path and level can be configured via `~/.clawdbrain/clawdbrain.json`:
   - `logging.file`
   - `logging.level`
 
@@ -28,7 +28,7 @@ The Control UI Logs tab tails this file via the gateway (`logs.tail`).
 CLI can do the same:
 
 ```bash
-moltbot logs --follow
+clawdbrain logs --follow
 ```
 
 **Verbose vs. log levels**
@@ -51,7 +51,7 @@ You can tune console verbosity independently via:
 
 ## Sensitive redaction
 
-Clawdbot can mask sensitive values (passwords, tokens, API keys) before they hit the
+Clawdbrain can mask sensitive values (passwords, tokens, API keys) before they hit the
 console stream or file logs. This applies to structured log objects, console capture,
 and verbose tool summaries (e.g. `🛠️ Exec: ...`).
 
@@ -74,7 +74,7 @@ The gateway prints WebSocket protocol logs in two modes:
 
 ### WS log style
 
-`moltbot gateway` supports a per-gateway style switch:
+`clawdbrain gateway` supports a per-gateway style switch:
 
 - `--ws-log auto` (default): normal mode is optimized; verbose mode uses compact output
 - `--ws-log compact`: compact output (paired request/response) when verbose
@@ -85,13 +85,13 @@ Examples:
 
 ```bash
 # optimized (only errors/slow)
-moltbot gateway
+clawdbrain gateway
 
 # show all WS traffic (paired)
-moltbot gateway --verbose --ws-log compact
+clawdbrain gateway --verbose --ws-log compact
 
 # show all WS traffic (full meta)
-moltbot gateway --verbose --ws-log full
+clawdbrain gateway --verbose --ws-log full
 ```
 
 ## Console formatting (subsystem logging)

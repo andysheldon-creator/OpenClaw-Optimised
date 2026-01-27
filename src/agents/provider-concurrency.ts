@@ -1,6 +1,6 @@
 import type { StreamFn } from "@mariozechner/pi-agent-core";
 
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 import { normalizeProviderId } from "./model-selection.js";
 import { diagnosticLogger as diag } from "../logging/diagnostic.js";
 
@@ -69,7 +69,7 @@ export function setProviderMaxConcurrent(provider: string, maxConcurrent: number
  * Read `models.providers.*.maxConcurrent` from config and initialize
  * semaphores for every provider that defines a concurrency limit.
  */
-export function initProviderConcurrencyFromConfig(cfg: ClawdbotConfig | undefined): void {
+export function initProviderConcurrencyFromConfig(cfg: ClawdbrainConfig | undefined): void {
   const providers = cfg?.models?.providers;
   if (!providers) return;
   for (const [rawId, entry] of Object.entries(providers)) {
@@ -84,7 +84,7 @@ export function initProviderConcurrencyFromConfig(cfg: ClawdbotConfig | undefine
  * Resolve the configured maxConcurrent for a provider (or undefined if unlimited).
  */
 export function resolveProviderMaxConcurrent(
-  cfg: ClawdbotConfig | undefined,
+  cfg: ClawdbrainConfig | undefined,
   provider: string,
 ): number | undefined {
   const providers = cfg?.models?.providers;

@@ -9,7 +9,7 @@ function createSessions(): SessionsListResult {
     ts: 0,
     path: "",
     count: 0,
-    defaults: { modelProvider: null, model: null, contextTokens: null },
+    defaults: { modelProvider: null, model: null, contextTokens: null, thinkingDefault: null, verboseDefault: null, reasoningDefault: null, elevatedDefault: null },
     sessions: [],
   };
 }
@@ -47,7 +47,7 @@ function createProps(overrides: Partial<ChatProps> = {}): ChatProps {
     error: null,
     sessions: createSessions(),
     focusMode: false,
-    assistantName: "Moltbot",
+    assistantName: "Clawdbrain",
     assistantAvatar: null,
     onRefresh: () => undefined,
     onToggleFocusMode: () => undefined,

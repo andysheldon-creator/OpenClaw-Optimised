@@ -48,13 +48,13 @@ export function renderOverview(props: OverviewProps) {
         <div class="muted" style="margin-top: 8px;">
           This gateway requires auth. Add a token or password, then click Connect.
           <div style="margin-top: 6px;">
-            <span class="mono">moltbot dashboard --no-open</span> → tokenized URL<br />
-            <span class="mono">moltbot doctor --generate-gateway-token</span> → set token
+            <span class="mono">clawdbrain dashboard --no-open</span> → tokenized URL<br />
+            <span class="mono">clawdbrain doctor --generate-gateway-token</span> → set token
           </div>
           <div style="margin-top: 6px;">
             <a
               class="session-link"
-              href="https://docs.molt.bot/web/dashboard"
+              href="https://docs.clawdbrain.bot/web/dashboard"
               target="_blank"
               rel="noreferrer"
               title="Control UI auth docs (opens in new tab)"
@@ -67,12 +67,12 @@ export function renderOverview(props: OverviewProps) {
     return html`
       <div class="muted" style="margin-top: 8px;">
         Auth failed. Re-copy a tokenized URL with
-        <span class="mono">moltbot dashboard --no-open</span>, or update the token,
+        <span class="mono">clawdbrain dashboard --no-open</span>, or update the token,
         then click Connect.
         <div style="margin-top: 6px;">
           <a
             class="session-link"
-            href="https://docs.molt.bot/web/dashboard"
+            href="https://docs.clawdbrain.bot/web/dashboard"
             target="_blank"
             rel="noreferrer"
             title="Control UI auth docs (opens in new tab)"
@@ -101,7 +101,7 @@ export function renderOverview(props: OverviewProps) {
         <div style="margin-top: 6px;">
           <a
             class="session-link"
-            href="https://docs.molt.bot/gateway/tailscale"
+            href="https://docs.clawdbrain.bot/gateway/tailscale"
             target="_blank"
             rel="noreferrer"
             title="Tailscale Serve docs (opens in new tab)"
@@ -110,7 +110,7 @@ export function renderOverview(props: OverviewProps) {
           <span class="muted"> · </span>
           <a
             class="session-link"
-            href="https://docs.molt.bot/web/control-ui#insecure-http"
+            href="https://docs.clawdbrain.bot/web/control-ui#insecure-http"
             target="_blank"
             rel="noreferrer"
             title="Insecure HTTP docs (opens in new tab)"
@@ -251,7 +251,7 @@ export function renderOverview(props: OverviewProps) {
                   const v = (e.target as HTMLInputElement).value;
                   props.onSettingsChange({ ...props.settings, token: v });
                 }}
-                placeholder="CLAWDBOT_GATEWAY_TOKEN"
+                placeholder="CLAWDBRAIN_GATEWAY_TOKEN"
               />
             </div>
           </label>

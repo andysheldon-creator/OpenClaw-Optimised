@@ -5,7 +5,7 @@
  * dedicated "Favorites" section at the top of the command palette.
  */
 
-const STORAGE_KEY = "clawdbot:command-favorites";
+const STORAGE_KEY = "clawdbrain:command-favorites";
 
 // ---------------------------------------------------------------------------
 // Storage helpers

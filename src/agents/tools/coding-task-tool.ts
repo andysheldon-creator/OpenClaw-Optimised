@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ClawdbrainConfig } from "../../config/config.js";
 import { buildCodingTaskSdkOptions } from "../claude-agent-sdk/coding-task-options.js";
 import { extractTextFromClaudeAgentSdkEvent } from "../claude-agent-sdk/extract.js";
 import { loadClaudeAgentSdk } from "../claude-agent-sdk/sdk.js";
@@ -29,12 +29,12 @@ async function coerceAsyncIterable(value: unknown): Promise<AsyncIterable<unknow
   throw new Error("Claude Agent SDK query did not return an async iterable");
 }
 
-function resolveCodingTaskEnabled(cfg?: ClawdbotConfig): boolean {
+function resolveCodingTaskEnabled(cfg?: ClawdbrainConfig): boolean {
   return cfg?.tools?.codingTask?.enabled === true;
 }
 
 export function createCodingTaskTool(opts?: {
-  config?: ClawdbotConfig;
+  config?: ClawdbrainConfig;
   workspaceDir?: string;
 }): AnyAgentTool {
   return {

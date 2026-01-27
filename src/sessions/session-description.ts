@@ -5,7 +5,7 @@ import path from "node:path";
 import { loadModelCatalog } from "../agents/model-catalog.js";
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { resolveAgentDir, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import {
   resolveSessionTranscriptPath,
@@ -27,7 +27,7 @@ function isTestEnv(): boolean {
 
 function isSessionDescriptionEnabled(): boolean {
   if (isTestEnv()) return false;
-  const raw = process.env.CLAWDBOT_SESSION_DESCRIPTION?.trim().toLowerCase();
+  const raw = process.env.CLAWDBRAIN_SESSION_DESCRIPTION?.trim().toLowerCase();
   if (!raw) return true;
   return !["0", "false", "off", "no"].includes(raw);
 }
@@ -105,7 +105,7 @@ function resolveTranscriptCandidates(params: {
     candidates.push(resolveSessionTranscriptPath(params.entry.sessionId, params.agentId));
   }
   candidates.push(
-    path.join(os.homedir(), ".clawdbot", "sessions", `${params.entry.sessionId}.jsonl`),
+    path.join(os.homedir(), ".clawdbrain", "sessions", `${params.entry.sessionId}.jsonl`),
   );
   return candidates;
 }
@@ -185,7 +185,7 @@ function scoreMicroModelId(id: string): number {
 }
 
 async function resolveMicroModelRef(
-  cfg: ClawdbotConfig,
+  cfg: ClawdbrainConfig,
 ): Promise<{ provider: string; model: string } | null> {
   try {
     const catalog = await loadModelCatalog({ config: cfg });
@@ -202,14 +202,14 @@ async function resolveMicroModelRef(
 }
 
 async function generateDescriptionViaLLM(params: {
-  cfg: ClawdbotConfig;
+  cfg: ClawdbrainConfig;
   agentId: string;
   conversation: string;
 }): Promise<{ description: string; provider: string; model: string } | null> {
   const modelRef = (await resolveMicroModelRef(params.cfg)) ?? null;
   if (!modelRef) return null;
 
-  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "clawdbot-desc-"));
+  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "clawdbrain-desc-"));
   const tempSessionFile = path.join(tempDir, "session.jsonl");
   try {
     const workspaceDir = resolveAgentWorkspaceDir(params.cfg, params.agentId);

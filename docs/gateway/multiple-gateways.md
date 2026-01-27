@@ -1,5 +1,5 @@
 ---
-summary: "Run multiple Moltbot Gateways on one host (isolation, ports, and profiles)"
+summary: "Run multiple Clawdbrain Gateways on one host (isolation, ports, and profiles)"
 read_when:
   - Running more than one Gateway on the same machine
   - You need isolated config/state/ports per Gateway
@@ -9,8 +9,8 @@ read_when:
 Most setups should use one Gateway because a single Gateway can handle multiple messaging connections and agents. If you need stronger isolation or redundancy (e.g., a rescue bot), run separate Gateways with isolated profiles/ports.
 
 ## Isolation checklist (required)
-- `CLAWDBOT_CONFIG_PATH` — per-instance config file
-- `CLAWDBOT_STATE_DIR` — per-instance sessions, creds, caches
+- `CLAWDBRAIN_CONFIG_PATH` — per-instance config file
+- `CLAWDBRAIN_STATE_DIR` — per-instance sessions, creds, caches
 - `agents.defaults.workspace` — per-instance workspace root
 - `gateway.port` (or `--port`) — unique per instance
 - Derived ports (browser/canvas) must not overlap
@@ -19,22 +19,22 @@ If these are shared, you will hit config races and port conflicts.
 
 ## Recommended: profiles (`--profile`)
 
-Profiles auto-scope `CLAWDBOT_STATE_DIR` + `CLAWDBOT_CONFIG_PATH` and suffix service names.
+Profiles auto-scope `CLAWDBRAIN_STATE_DIR` + `CLAWDBRAIN_CONFIG_PATH` and suffix service names.
 
 ```bash
 # main
-moltbot --profile main setup
-moltbot --profile main gateway --port 18789
+clawdbrain --profile main setup
+clawdbrain --profile main gateway --port 18789
 
 # rescue
-moltbot --profile rescue setup
-moltbot --profile rescue gateway --port 19001
+clawdbrain --profile rescue setup
+clawdbrain --profile rescue gateway --port 19001
 ```
 
 Per-profile services:
 ```bash
-moltbot --profile main gateway install
-moltbot --profile rescue gateway install
+clawdbrain --profile main gateway install
+clawdbrain --profile rescue gateway install
 ```
 
 ## Rescue-bot guide
@@ -54,11 +54,11 @@ Port spacing: leave at least 20 ports between base ports so the derived browser/
 ```bash
 # Main bot (existing or fresh, without --profile param)
 # Runs on port 18789 + Chrome CDC/Canvas/... Ports 
-moltbot onboard
-moltbot gateway install
+clawdbrain onboard
+clawdbrain gateway install
 
 # Rescue bot (isolated profile + ports)
-moltbot --profile rescue onboard
+clawdbrain --profile rescue onboard
 # Notes: 
 # - workspace name will be postfixed with -rescue per default
 # - Port should be at least 18789 + 20 Ports, 
@@ -66,12 +66,12 @@ moltbot --profile rescue onboard
 # - rest of the onboarding is the same as normal
 
 # To install the service (if not happened automatically during onboarding)
-moltbot --profile rescue gateway install
+clawdbrain --profile rescue gateway install
 ```
 
 ## Port mapping (derived)
 
-Base port = `gateway.port` (or `CLAWDBOT_GATEWAY_PORT` / `--port`).
+Base port = `gateway.port` (or `CLAWDBRAIN_GATEWAY_PORT` / `--port`).
 
 - browser control service port = base + 2 (loopback only)
 - `canvasHost.port = base + 4`
@@ -89,19 +89,19 @@ If you override any of these in config or env, you must keep them unique per ins
 ## Manual env example
 
 ```bash
-CLAWDBOT_CONFIG_PATH=~/.clawdbot/main.json \
-CLAWDBOT_STATE_DIR=~/.clawdbot-main \
-moltbot gateway --port 18789
+CLAWDBRAIN_CONFIG_PATH=~/.clawdbrain/main.json \
+CLAWDBRAIN_STATE_DIR=~/.clawdbrain-main \
+clawdbrain gateway --port 18789
 
-CLAWDBOT_CONFIG_PATH=~/.clawdbot/rescue.json \
-CLAWDBOT_STATE_DIR=~/.clawdbot-rescue \
-moltbot gateway --port 19001
+CLAWDBRAIN_CONFIG_PATH=~/.clawdbrain/rescue.json \
+CLAWDBRAIN_STATE_DIR=~/.clawdbrain-rescue \
+clawdbrain gateway --port 19001
 ```
 
 ## Quick checks
 
 ```bash
-moltbot --profile main status
-moltbot --profile rescue status
-moltbot --profile rescue browser status
+clawdbrain --profile main status
+clawdbrain --profile rescue status
+clawdbrain --profile rescue browser status
 ```

@@ -136,10 +136,10 @@ export type IngestResult = {
 ### CLI Surface
 
 ```
-clawdbot knowledge ingest <path-or-url> [--tags tag1,tag2] [--agent <agentId>]
-clawdbot knowledge ingest --text "inline content" [--tags tag1]
-clawdbot knowledge list [--source memory|manual|crawl] [--agent <agentId>]
-clawdbot knowledge remove <sourceId> [--agent <agentId>]
+clawdbrain knowledge ingest <path-or-url> [--tags tag1,tag2] [--agent <agentId>]
+clawdbrain knowledge ingest --text "inline content" [--tags tag1]
+clawdbrain knowledge list [--source memory|manual|crawl] [--agent <agentId>]
+clawdbrain knowledge remove <sourceId> [--agent <agentId>]
 ```
 
 ### Agent Tool Surface
@@ -239,9 +239,9 @@ export type CrawlProgress = {
 ### CLI Surface
 
 ```
-clawdbot knowledge crawl <url> [--mode single|sitemap|recursive] [--max-pages 100]
+clawdbrain knowledge crawl <url> [--mode single|sitemap|recursive] [--max-pages 100]
   [--tags tag1,tag2] [--agent <agentId>]
-clawdbot knowledge crawl-status [crawlId]
+clawdbrain knowledge crawl-status [crawlId]
 ```
 
 ### Agent Tool Surface

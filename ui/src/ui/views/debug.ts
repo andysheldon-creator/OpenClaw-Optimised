@@ -182,7 +182,7 @@ function renderStatusTab(props: DebugProps) {
     ${securitySummary
       ? html`<div class="callout ${securityTone}" style="margin: 12px 0;">
           Security audit: ${securityLabel}${info > 0 ? ` · ${info} info` : ""}. Run
-          <span class="mono">clawdbot security audit --deep</span> for details.
+          <span class="mono">clawdbrain security audit --deep</span> for details.
         </div>`
       : nothing}
 

@@ -5,9 +5,9 @@
 export type AutomationsConfig = {
   /** Enable or disable automations feature (default: true) */
   enabled?: boolean;
-  /** Custom store path for automation data (default: ~/.clawdbot/automations/automations.json) */
+  /** Custom store path for automation data (default: ~/.clawdbrain/automations/automations.json) */
   store?: string;
-  /** Custom directory for artifact storage (default: ~/.clawdbot/automations/artifacts) */
+  /** Custom directory for artifact storage (default: ~/.clawdbrain/automations/artifacts) */
   artifactsDir?: string;
   /** Maximum number of concurrent automation runs (default: 3) */
   maxConcurrentRuns?: number;

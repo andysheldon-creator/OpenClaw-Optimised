@@ -3,7 +3,7 @@ import { loadNodes } from "./controllers/nodes";
 import { loadDebug } from "./controllers/debug";
 import { refreshOverseer } from "./controllers/overseer";
 import { loadAutomations } from "./controllers/automations";
-import type { ClawdbotApp } from "./app";
+import type { ClawdbrainApp } from "./app";
 
 type PollingHost = {
   nodesPollInterval: number | null;
@@ -17,7 +17,7 @@ type PollingHost = {
 export function startNodesPolling(host: PollingHost) {
   if (host.nodesPollInterval != null) return;
   host.nodesPollInterval = window.setInterval(
-    () => void loadNodes(host as unknown as ClawdbotApp, { quiet: true }),
+    () => void loadNodes(host as unknown as ClawdbrainApp, { quiet: true }),
     5000,
   );
 }
@@ -32,7 +32,7 @@ export function startLogsPolling(host: PollingHost) {
   if (host.logsPollInterval != null) return;
   host.logsPollInterval = window.setInterval(() => {
     if (host.tab !== "logs") return;
-    void loadLogs(host as unknown as ClawdbotApp, { quiet: true });
+    void loadLogs(host as unknown as ClawdbrainApp, { quiet: true });
   }, 2000);
 }
 
@@ -46,7 +46,7 @@ export function startDebugPolling(host: PollingHost) {
   if (host.debugPollInterval != null) return;
   host.debugPollInterval = window.setInterval(() => {
     if (host.tab !== "debug") return;
-    void loadDebug(host as unknown as ClawdbotApp);
+    void loadDebug(host as unknown as ClawdbrainApp);
   }, 3000);
 }
 
@@ -60,7 +60,7 @@ export function startOverseerPolling(host: PollingHost) {
   if (host.overseerPollInterval != null) return;
   host.overseerPollInterval = window.setInterval(() => {
     if (host.tab !== "overseer") return;
-    void refreshOverseer(host as unknown as ClawdbotApp, { quiet: true });
+    void refreshOverseer(host as unknown as ClawdbrainApp, { quiet: true });
   }, 5000);
 }
 
@@ -74,7 +74,7 @@ export function startAutomationsPolling(host: PollingHost) {
   if (host.automationsPollInterval != null) return;
   host.automationsPollInterval = window.setInterval(() => {
     if (host.tab !== "automations") return;
-    void loadAutomations(host as unknown as ClawdbotApp);
+    void loadAutomations(host as any);
   }, 5000);
 }
 

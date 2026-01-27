@@ -3,8 +3,9 @@ import { icon } from "../icons";
 import type {
   ProgressModalState,
   AutomationRunMilestone,
-  MilestoneStatus,
 } from "../controllers/automations";
+
+type MilestoneStatus = AutomationRunMilestone["status"];
 
 export interface ProgressModalProps {
   state: ProgressModalState;

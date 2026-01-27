@@ -1,15 +1,15 @@
 ---
 name: boot-md
 description: "Run BOOT.md on gateway startup"
-homepage: https://docs.molt.bot/hooks#boot-md
+homepage: https://docs.clawdbrain.bot/hooks#boot-md
 metadata:
   {
-    "moltbot":
+    "clawdbrain":
       {
         "emoji": "🚀",
         "events": ["gateway:startup"],
         "requires": { "config": ["workspace.dir"] },
-        "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Moltbot" }],
+        "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with Clawdbrain" }],
       },
   }
 ---

@@ -10,7 +10,7 @@ import { getLogger, resetLogger, setLoggerOverride } from "../logging.js";
 let logPath = "";
 
 beforeEach(() => {
-  logPath = path.join(os.tmpdir(), `clawdbot-log-${crypto.randomUUID()}.log`);
+  logPath = path.join(os.tmpdir(), `clawdbrain-log-${crypto.randomUUID()}.log`);
   setLoggerOverride({ level: "info", file: logPath });
 });
 

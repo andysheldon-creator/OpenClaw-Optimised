@@ -1,7 +1,7 @@
 import Foundation
 import SwabbleKit
 import Testing
-@testable import Moltbot
+@testable import Clawdbrain
 
 @Suite(.serialized) struct VoiceWakeManagerStateTests {
     @Test @MainActor func suspendAndResumeCycleUpdatesState() async {

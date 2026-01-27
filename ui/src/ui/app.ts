@@ -116,8 +116,8 @@ import { normalizeMessage, normalizeRoleForGrouping } from "./chat/message-norma
 
 declare global {
   interface Window {
-    __CLAWDBOT_CONTROL_UI_BASE_PATH__?: string;
-    __CLAWDBOT_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD__?: string;
+    __CLAWDBRAIN_CONTROL_UI_BASE_PATH__?: string;
+    __CLAWDBRAIN_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD__?: string;
   }
 }
 
@@ -178,18 +178,18 @@ function resolveOnboardingMode(): boolean {
 function resolveDefaultGatewayPassword(): string {
   const injected =
     typeof window !== "undefined"
-      ? window.__CLAWDBOT_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD__
+      ? window.__CLAWDBRAIN_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD__
       : undefined;
   if (typeof injected === "string" && injected.trim()) return injected.trim();
   const fromEnv =
     typeof import.meta !== "undefined" &&
-    typeof import.meta.env?.VITE_CLAWDBOT_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD === "string"
-      ? import.meta.env.VITE_CLAWDBOT_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD.trim()
+    typeof import.meta.env?.VITE_CLAWDBRAIN_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD === "string"
+      ? import.meta.env.VITE_CLAWDBRAIN_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD.trim()
       : "";
   return fromEnv;
 }
 
-const SESSIONS_VIEW_MODE_STORAGE_KEY = "clawdbot.control.ui.sessions.viewMode.v1";
+const SESSIONS_VIEW_MODE_STORAGE_KEY = "clawdbrain.control.ui.sessions.viewMode.v1";
 
 function readSessionsViewMode(): "list" | "table" {
   if (typeof window === "undefined") return "list";
@@ -201,11 +201,11 @@ function readSessionsViewMode(): "list" | "table" {
   }
 }
 
-const SESSIONS_SHOW_HIDDEN_STORAGE_KEY = "clawdbot.control.ui.sessions.showHidden.v1";
+const SESSIONS_SHOW_HIDDEN_STORAGE_KEY = "clawdbrain.control.ui.sessions.showHidden.v1";
 const SESSIONS_AUTO_HIDE_COMPLETED_MINUTES_KEY =
-  "clawdbot.control.ui.sessions.autoHide.completedMinutes.v1";
+  "clawdbrain.control.ui.sessions.autoHide.completedMinutes.v1";
 const SESSIONS_AUTO_HIDE_ERRORED_MINUTES_KEY =
-  "clawdbot.control.ui.sessions.autoHide.erroredMinutes.v1";
+  "clawdbrain.control.ui.sessions.autoHide.erroredMinutes.v1";
 
 function readBooleanStorage(key: string, fallback = false): boolean {
   if (typeof window === "undefined") return fallback;
@@ -231,8 +231,8 @@ function readNumberStorage(key: string, fallback = 0, min = 0, max = 10_080): nu
   }
 }
 
-@customElement("clawdbot-app")
-export class ClawdbotApp extends LitElement {
+@customElement("clawdbrain-app")
+export class ClawdbrainApp extends LitElement {
   @state() settings: UiSettings = loadSettings();
   @state() password = resolveDefaultGatewayPassword();
   @state() overviewShowSystemMetrics = this.settings.overviewShowSystemMetrics;
@@ -306,6 +306,19 @@ export class ClawdbotApp extends LitElement {
   @state() execApprovalQueue: ExecApprovalRequest[] = [];
   @state() execApprovalBusy = false;
   @state() execApprovalError: string | null = null;
+  @state() execApprovalShowAdvanced = false;
+  @state() execApprovalHistory: import("./views/exec-approval").ExecApprovalHistoryEntry[] = [];
+  @state() execApprovalHistoryOpen = false;
+  toggleExecApprovalHistory: (() => void) | null = () => {
+    this.execApprovalHistoryOpen = !this.execApprovalHistoryOpen;
+  };
+  toggleExecApprovalAdvanced: (() => void) | null = () => {
+    this.execApprovalShowAdvanced = !this.execApprovalShowAdvanced;
+  };
+  extendExecApprovalTimeout: (() => void) | null = null;
+  clearExecApprovalHistory: (() => void) | null = () => {
+    this.execApprovalHistory = [];
+  };
 
   @state() configLoading = false;
   @state() configRaw = "{\n}\n";
@@ -1604,7 +1617,7 @@ export class ClawdbotApp extends LitElement {
     this.overseerActivityLimit = limit;
   }
 
-  async handleExecApprovalDecision(decision: "allow-once" | "allow-always" | "deny") {
+  async handleExecApprovalDecision(decision: "allow-once" | "allow-session" | "allow-always" | "deny" | "deny-always") {
     const active = this.execApprovalQueue[0];
     if (!active || !this.client || this.execApprovalBusy) return;
     this.execApprovalBusy = true;

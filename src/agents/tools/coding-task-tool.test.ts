@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import "../test-helpers/fast-core-tools.js";
-import { createClawdbotTools } from "../clawdbot-tools.js";
-import type { ClawdbotConfig } from "../../config/config.js";
+import { createClawdbrainTools } from "../clawdbrain-tools.js";
+import type { ClawdbrainConfig } from "../../config/config.js";
 
 describe("coding_task tool", () => {
   it("is not registered by default", () => {
-    const tool = createClawdbotTools().find((candidate) => candidate.name === "coding_task");
+    const tool = createClawdbrainTools().find((candidate) => candidate.name === "coding_task");
     expect(tool).toBeUndefined();
   });
 
   it("registers when enabled and fails gracefully when SDK is missing", async () => {
-    const cfg: ClawdbotConfig = {
+    const cfg: ClawdbrainConfig = {
       tools: { codingTask: { enabled: true } },
     };
-    const tool = createClawdbotTools({ config: cfg }).find(
+    const tool = createClawdbrainTools({ config: cfg }).find(
       (candidate) => candidate.name === "coding_task",
     );
     expect(tool).toBeTruthy();

@@ -1,10 +1,10 @@
-import type { MoltbotConfig } from "../config/config.js";
-export function normalizeLegacyConfigValues(cfg: MoltbotConfig): {
-  config: MoltbotConfig;
+import type { ClawdbrainConfig } from "../config/config.js";
+export function normalizeLegacyConfigValues(cfg: ClawdbrainConfig): {
+  config: ClawdbrainConfig;
   changes: string[];
 } {
   const changes: string[] = [];
-  let next: MoltbotConfig = cfg;
+  let next: ClawdbrainConfig = cfg;
 
   const legacyAckReaction = cfg.messages?.ackReaction?.trim();
   const hasWhatsAppConfig = cfg.channels?.whatsapp !== undefined;

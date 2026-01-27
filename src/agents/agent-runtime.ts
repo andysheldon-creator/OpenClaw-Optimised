@@ -6,7 +6,7 @@
  * reply pipeline code.
  */
 
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 import type { EmbeddedPiRunResult } from "./pi-embedded-runner/types.js";
 
 // ---------------------------------------------------------------------------
@@ -40,7 +40,7 @@ export type AgentRuntimeRunParams = {
   sessionFile: string;
   workspaceDir: string;
   agentDir?: string;
-  config?: ClawdbotConfig;
+  config?: ClawdbrainConfig;
   prompt: string;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];

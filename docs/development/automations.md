@@ -337,11 +337,11 @@ class ArtifactStorage {
 
 ### Storage Location
 
-Default: `~/.clawdbot/automations/artifacts/`
+Default: `~/.clawdbrain/automations/artifacts/`
 
 Structure:
 ```
-~/.clawdbot/automations/artifacts/
+~/.clawdbrain/automations/artifacts/
 ├── <run-id-1>/
 │   ├── <artifact-id-1>-<filename>
 │   └── <artifact-id-2>-<filename>
@@ -452,10 +452,10 @@ pnpm test src/automations/artifacts.test.ts
 
 See `src/config/types.automations.ts` for config type definition.
 
-Added to `ClawdbotConfig` via:
+Added to `ClawdbrainConfig` via:
 
 ```typescript
-interface ClawdbotConfig {
+interface ClawdbrainConfig {
   // ... other properties
   automations?: AutomationsConfig;
 }
@@ -513,10 +513,10 @@ for (const run of history.runs) {
 
 ### Debug Issues
 
-1. Check logs: `~/.clawdbot/logs/gateway.log`
+1. Check logs: `~/.clawdbrain/logs/gateway.log`
 2. Enable debug logging in config
-3. Run with `CLAWDBOT_DEBUG=1`
-4. Check store file: `~/.clawdbot/automations/automations.json`
+3. Run with `CLAWDBRAIN_DEBUG=1`
+4. Check store file: `~/.clawdbrain/automations/automations.json`
 
 ### Common Issues
 

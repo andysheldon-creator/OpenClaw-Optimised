@@ -27,7 +27,7 @@ const NodeHostSchema = z
   .strict()
   .optional();
 
-export const MoltbotSchema = z
+export const ClawdbrainSchema = z
   .object({
     meta: z
       .object({

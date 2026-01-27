@@ -33,7 +33,7 @@ function expandUserDir(input: string): string {
 }
 
 export function resolveOverseerDir(cfg = loadConfig()): string {
-  const envOverride = process.env.CLAWDBOT_OVERSEER_DIR?.trim();
+  const envOverride = process.env.CLAWDBRAIN_OVERSEER_DIR?.trim();
   if (envOverride) return expandUserDir(envOverride);
   const cfgOverride = cfg.overseer?.storage?.dir?.trim();
   if (cfgOverride) return expandUserDir(cfgOverride);

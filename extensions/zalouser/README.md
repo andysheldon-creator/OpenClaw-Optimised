@@ -1,6 +1,6 @@
-# @clawdbot/zalouser
+# @clawdbrain/zalouser
 
-Clawdbot extension for Zalo Personal Account messaging via [zca-cli](https://zca-cli.dev).
+Clawdbrain extension for Zalo Personal Account messaging via [zca-cli](https://zca-cli.dev).
 
 > **Warning:** Using Zalo automation may result in account suspension or ban. Use at your own risk. This is an unofficial integration.
 
@@ -73,7 +73,7 @@ See [zca-cli](https://zca-cli.dev) for manual download (binaries for macOS/Linux
 ### Option 1: Onboarding Wizard (Recommended)
 
 ```bash
-clawdbot onboard
+clawdbrain onboard
 # Select "Zalo Personal" from channel list
 # Follow QR code login flow
 ```
@@ -81,14 +81,14 @@ clawdbot onboard
 ### Option 2: Login (QR, on the Gateway machine)
 
 ```bash
-clawdbot channels login --channel zalouser
+clawdbrain channels login --channel zalouser
 # Scan QR code with Zalo app
 ```
 
 ### Send a Message
 
 ```bash
-clawdbot message send --channel zalouser --target <threadId> --message "Hello from Clawdbot!"
+clawdbrain message send --channel zalouser --target <threadId> --message "Hello from Clawdbrain!"
 ```
 
 ## Configuration
@@ -123,19 +123,19 @@ channels:
 ### Authentication
 
 ```bash
-clawdbot channels login --channel zalouser              # Login via QR
-clawdbot channels login --channel zalouser --account work
-clawdbot channels status --probe
-clawdbot channels logout --channel zalouser
+clawdbrain channels login --channel zalouser              # Login via QR
+clawdbrain channels login --channel zalouser --account work
+clawdbrain channels status --probe
+clawdbrain channels logout --channel zalouser
 ```
 
 ### Directory (IDs, contacts, groups)
 
 ```bash
-clawdbot directory self --channel zalouser
-clawdbot directory peers list --channel zalouser --query "name"
-clawdbot directory groups list --channel zalouser --query "work"
-clawdbot directory groups members --channel zalouser --group-id <id>
+clawdbrain directory self --channel zalouser
+clawdbrain directory peers list --channel zalouser --query "name"
+clawdbrain directory groups list --channel zalouser --query "work"
+clawdbrain directory groups members --channel zalouser --group-id <id>
 ```
 
 ### Account Management
@@ -152,16 +152,16 @@ zca account label <profile> "Work Account"
 
 ```bash
 # Text
-clawdbot message send --channel zalouser --target <threadId> --message "message"
+clawdbrain message send --channel zalouser --target <threadId> --message "message"
 
 # Media (URL)
-clawdbot message send --channel zalouser --target <threadId> --message "caption" --media-url "https://example.com/img.jpg"
+clawdbrain message send --channel zalouser --target <threadId> --message "caption" --media-url "https://example.com/img.jpg"
 ```
 
 ### Listener
 
 The listener runs inside the Gateway when the channel is enabled. For debugging,
-use `clawdbot channels logs --channel zalouser` or run `zca listen` directly.
+use `clawdbrain channels logs --channel zalouser` or run `zca listen` directly.
 
 ### Data Access
 
@@ -187,8 +187,8 @@ zca me id
 Use `--profile` or `-p` to work with multiple accounts:
 
 ```bash
-clawdbot channels login --channel zalouser --account work
-clawdbot message send --channel zalouser --account work --target <id> --message "Hello"
+clawdbrain channels login --channel zalouser --account work
+clawdbrain message send --channel zalouser --account work --target <id> --message "Hello"
 ZCA_PROFILE=work zca listen
 ```
 

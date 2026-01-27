@@ -1,5 +1,5 @@
 /**
- * SVG Icon definitions for the Clawdbot UI
+ * SVG Icon definitions for the Clawdbrain UI
  * Based on Lucide icon library patterns
  */
 
@@ -72,7 +72,14 @@ export type IconName =
   | "rotate-ccw"
   | "inbox"
   | "loader"
-  | "circle";
+  | "circle"
+  | "chevron-up"
+  | "x-circle"
+  | "shield"
+  | "shield-off"
+  | "arrow-left"
+  | "keyboard"
+  | "save";
 
 const iconPaths: Record<IconName, string> = {
   "message-square": `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`,
@@ -142,6 +149,13 @@ const iconPaths: Record<IconName, string> = {
   inbox: `<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>`,
   loader: `<path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/>`,
   circle: `<circle cx="12" cy="12" r="10"/>`,
+  "chevron-up": `<path d="m18 15-6-6-6 6"/>`,
+  "x-circle": `<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>`,
+  shield: `<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>`,
+  "shield-off": `<path d="m2 2 20 20"/><path d="M5 5a1 1 0 0 0-1 1v7c0 5 3.5 7.5 7.67 8.94a1 1 0 0 0 .67.01c2.35-.82 4.48-2.15 5.73-4.15"/><path d="M9.3 3.28A1.17 1.17 0 0 1 10.76 2.3C12.51 3.81 15 5 17 5h2a1 1 0 0 1 1 1v7c0 .6-.08 1.2-.2 1.75"/>`,
+  "arrow-left": `<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>`,
+  keyboard: `<rect width="20" height="16" x="2" y="4" rx="2" ry="2"/><path d="M6 8h.001"/><path d="M10 8h.001"/><path d="M14 8h.001"/><path d="M18 8h.001"/><path d="M8 12h.001"/><path d="M12 12h.001"/><path d="M16 12h.001"/><path d="M7 16h10"/>`,
+  save: `<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>`,
 };
 
 /**

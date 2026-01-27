@@ -42,7 +42,7 @@ export function buildGatewayAutomationsService(params: {
     .automations;
   const storePath = resolveAutomationsStorePath(automationsCfg?.store);
   const automationsEnabled =
-    process.env.CLAWDBOT_SKIP_AUTOMATIONS !== "1" && automationsCfg?.enabled !== false;
+    process.env.CLAWDBRAIN_SKIP_AUTOMATIONS !== "1" && automationsCfg?.enabled !== false;
 
   const resolveAutomationAgent = (requested?: string | null) => {
     const runtimeConfig = loadConfig();

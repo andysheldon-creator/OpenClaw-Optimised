@@ -1,11 +1,11 @@
 ---
-summary: "SSH tunnel setup for Moltbot.app connecting to a remote gateway"
+summary: "SSH tunnel setup for Clawdbrain.app connecting to a remote gateway"
 read_when: "Connecting the macOS app to a remote gateway over SSH"
 ---
 
-# Running Moltbot.app with a Remote Gateway
+# Running Clawdbrain.app with a Remote Gateway
 
-Moltbot.app uses SSH tunneling to connect to a remote gateway. This guide shows you how to set it up.
+Clawdbrain.app uses SSH tunneling to connect to a remote gateway. This guide shows you how to set it up.
 
 ## Overview
 
@@ -13,7 +13,7 @@ Moltbot.app uses SSH tunneling to connect to a remote gateway. This guide shows 
 ┌─────────────────────────────────────────────────────────────┐
 │                        Client Machine                          │
 │                                                              │
-│  Moltbot.app ──► ws://127.0.0.1:18789 (local port)           │
+│  Clawdbrain.app ──► ws://127.0.0.1:18789 (local port)           │
 │                     │                                        │
 │                     ▼                                        │
 │  SSH Tunnel ────────────────────────────────────────────────│
@@ -56,7 +56,7 @@ ssh-copy-id -i ~/.ssh/id_rsa <REMOTE_USER>@<REMOTE_IP>
 ### Step 3: Set Gateway Token
 
 ```bash
-launchctl setenv CLAWDBOT_GATEWAY_TOKEN "<your-token>"
+launchctl setenv CLAWDBRAIN_GATEWAY_TOKEN "<your-token>"
 ```
 
 ### Step 4: Start SSH Tunnel
@@ -65,11 +65,11 @@ launchctl setenv CLAWDBOT_GATEWAY_TOKEN "<your-token>"
 ssh -N remote-gateway &
 ```
 
-### Step 5: Restart Moltbot.app
+### Step 5: Restart Clawdbrain.app
 
 ```bash
-# Quit Moltbot.app (⌘Q), then reopen:
-open /path/to/Moltbot.app
+# Quit Clawdbrain.app (⌘Q), then reopen:
+open /path/to/Clawdbrain.app
 ```
 
 The app will now connect to the remote gateway through the SSH tunnel.
@@ -82,7 +82,7 @@ To have the SSH tunnel start automatically when you log in, create a Launch Agen
 
 ### Create the PLIST file
 
-Save this as `~/Library/LaunchAgents/com.clawdbot.ssh-tunnel.plist`:
+Save this as `~/Library/LaunchAgents/com.clawdbrain.ssh-tunnel.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -90,7 +90,7 @@ Save this as `~/Library/LaunchAgents/com.clawdbot.ssh-tunnel.plist`:
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.clawdbot.ssh-tunnel</string>
+    <string>com.clawdbrain.ssh-tunnel</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/ssh</string>
@@ -108,7 +108,7 @@ Save this as `~/Library/LaunchAgents/com.clawdbot.ssh-tunnel.plist`:
 ### Load the Launch Agent
 
 ```bash
-launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.clawdbot.ssh-tunnel.plist
+launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.clawdbrain.ssh-tunnel.plist
 ```
 
 The tunnel will now:
@@ -130,13 +130,13 @@ lsof -i :18789
 **Restart the tunnel:**
 
 ```bash
-launchctl kickstart -k gui/$UID/com.clawdbot.ssh-tunnel
+launchctl kickstart -k gui/$UID/com.clawdbrain.ssh-tunnel
 ```
 
 **Stop the tunnel:**
 
 ```bash
-launchctl bootout gui/$UID/com.clawdbot.ssh-tunnel
+launchctl bootout gui/$UID/com.clawdbrain.ssh-tunnel
 ```
 
 ---
@@ -150,4 +150,4 @@ launchctl bootout gui/$UID/com.clawdbot.ssh-tunnel
 | `KeepAlive` | Automatically restarts tunnel if it crashes |
 | `RunAtLoad` | Starts tunnel when the agent loads |
 
-Moltbot.app connects to `ws://127.0.0.1:18789` on your client machine. The SSH tunnel forwards that connection to port 18789 on the remote machine where the Gateway is running.
+Clawdbrain.app connects to `ws://127.0.0.1:18789` on your client machine. The SSH tunnel forwards that connection to port 18789 on the remote machine where the Gateway is running.

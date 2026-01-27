@@ -97,7 +97,7 @@ describe("command-history", () => {
   // ---------------------------------------------------------------------------
   describe("resilience", () => {
     it("recovers from corrupted localStorage data", () => {
-      localStorage.setItem("clawdbot:command-history", "not-json!!!");
+      localStorage.setItem("clawdbrain:command-history", "not-json!!!");
       expect(getRecentCommandIds()).toEqual([]);
       // Should still work after corruption
       recordCommandUsage("a");
@@ -105,12 +105,12 @@ describe("command-history", () => {
     });
 
     it("recovers from non-array localStorage data", () => {
-      localStorage.setItem("clawdbot:command-history", JSON.stringify({ foo: "bar" }));
+      localStorage.setItem("clawdbrain:command-history", JSON.stringify({ foo: "bar" }));
       expect(getRecentCommandIds()).toEqual([]);
     });
 
     it("filters out non-string entries", () => {
-      localStorage.setItem("clawdbot:command-history", JSON.stringify(["a", 42, null, "b"]));
+      localStorage.setItem("clawdbrain:command-history", JSON.stringify(["a", 42, null, "b"]));
       expect(getRecentCommandIds()).toEqual(["a", "b"]);
     });
   });

@@ -9,17 +9,17 @@
 ## ⚠️ Stack Translation Applied
 
 **Original Magic MCP Output:** React + shadcn/ui + Framer Motion
-**Clawdbot Stack:** Lit Web Components + Tailwind v4 + Custom Design System
+**Clawdbrain Stack:** Lit Web Components + Tailwind v4 + Custom Design System
 
-This document has been translated from React patterns to Lit Web Components following Clawdbot's conventions.
+This document has been translated from React patterns to Lit Web Components following Clawdbrain's conventions.
 
 ### Translation Applied:
 - React `useState` → Controller state objects (e.g., `AutomationsState`)
 - React `useMemo` → Computed functions or memoized controller methods
 - React components → Lit render functions (e.g., `renderAutomationCard(props)`)
 - Framer Motion → CSS `@keyframes` for slide-in animations
-- shadcn/ui components → Tailwind classes and Clawdbot design system
-- lucide-react icons → Clawdbot's `icon()` function from `ui/src/ui/icons.ts`
+- shadcn/ui components → Tailwind classes and Clawdbrain design system
+- lucide-react icons → Clawdbrain's `icon()` function from `ui/src/ui/icons.ts`
 - Event handlers → Lit event listeners (`@click=${handler}`)
 
 ---
@@ -30,7 +30,7 @@ A comprehensive automation list view displaying a grid of automation cards with 
 
 ## Installation
 
-**Note:** The packages below are for the original React prototype. For Clawdbot Lit implementation, no additional installation is needed beyond the existing stack.
+**Note:** The packages below are for the original React prototype. For Clawdbrain Lit implementation, no additional installation is needed beyond the existing stack.
 
 ```bash
 npm install framer-motion lucide-react clsx tailwind-merge @radix-ui/react-slot class-variance-authority @radix-ui/react-dropdown-menu @radix-ui/react-select
@@ -553,7 +553,7 @@ export function renderAutomationsListView(props: AutomationsListViewProps) {
 
 ## API Integration Notes
 
-For production use with the actual Clawdbot backend, the controller integrates directly with the GatewayBrowserClient:
+For production use with the actual Clawdbrain backend, the controller integrates directly with the GatewayBrowserClient:
 
 ```typescript
 // The controller already uses the GatewayBrowserClient
@@ -608,7 +608,7 @@ interface SmartSyncForkAutomationData extends AutomationData {
 
 1. **Grid Layout** - Responsive 3-column grid (desktop) / 2-column (tablet) / 1-column (mobile) using Tailwind classes
 2. **Card Styling** - Tailwind classes for borders, shadows, hover effects
-3. **Status Badges** - Color-coded badges with Clawdbot icons (Active, Suspended, Error, Running)
+3. **Status Badges** - Color-coded badges with Clawdbrain icons (Active, Suspended, Error, Running)
 4. **Filter/Search** - Reactive state in controller with real-time filtering
 5. **Quick Actions** - Run, Suspend/Resume, History, Edit, Delete buttons with Lit event handlers
 6. **Kebab Menu** - CSS-based dropdown with toggle functionality

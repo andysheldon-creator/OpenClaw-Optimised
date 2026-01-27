@@ -1,4 +1,4 @@
-import type { MoltbotConfig } from "../../config/config.js";
+import type { ClawdbrainConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import { sanitizeUserFacingText } from "../pi-embedded-helpers.js";
 import {
@@ -46,7 +46,7 @@ function normalizeKey(value?: string) {
   return trimmed ? trimmed : undefined;
 }
 
-export function resolveMainSessionAlias(cfg: MoltbotConfig) {
+export function resolveMainSessionAlias(cfg: ClawdbrainConfig) {
   const mainKey = normalizeMainKey(cfg.session?.mainKey);
   const scope = cfg.session?.scope ?? "per-sender";
   const alias = scope === "global" ? "global" : mainKey;
@@ -70,7 +70,7 @@ export type AgentToAgentPolicy = {
   isAllowed: (requesterAgentId: string, targetAgentId: string) => boolean;
 };
 
-export function createAgentToAgentPolicy(cfg: MoltbotConfig): AgentToAgentPolicy {
+export function createAgentToAgentPolicy(cfg: ClawdbrainConfig): AgentToAgentPolicy {
   const routingA2A = cfg.tools?.agentToAgent;
   const enabled = routingA2A?.enabled === true;
   const allowPatterns = Array.isArray(routingA2A?.allow) ? routingA2A.allow : [];

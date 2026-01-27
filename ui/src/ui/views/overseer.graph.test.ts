@@ -128,11 +128,16 @@ describe("overseer graph layouts", () => {
       },
       sessions: {
         ts: Date.now(),
-        path: "~/.clawdbot/agents/main/sessions.jsonl",
+        path: "~/.clawdbrain/agents/main/sessions.jsonl",
         count: 1,
         defaults: {
+          modelProvider: null,
           model: null,
           contextTokens: null,
+          thinkingDefault: null,
+          verboseDefault: null,
+          reasoningDefault: null,
+          elevatedDefault: null,
         },
         sessions: [{ key: "main", kind: "direct", updatedAt: Date.now() }],
       },

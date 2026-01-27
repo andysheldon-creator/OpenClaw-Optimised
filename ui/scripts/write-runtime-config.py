@@ -18,11 +18,11 @@ lines = [
 
 if gateway_url:
     lines.append(
-        f"  window.__CLAWDBOT_CONTROL_UI_DEFAULT_GATEWAY_URL__ = {json.dumps(gateway_url)};"
+        f"  window.__CLAWDBRAIN_CONTROL_UI_DEFAULT_GATEWAY_URL__ = {json.dumps(gateway_url)};"
     )
 if password:
     lines.append(
-        f"  window.__CLAWDBOT_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD__ = {json.dumps(password)};"
+        f"  window.__CLAWDBRAIN_CONTROL_UI_DEFAULT_GATEWAY_PASSWORD__ = {json.dumps(password)};"
     )
 
 lines.append("})();")

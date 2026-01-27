@@ -1,10 +1,10 @@
-# Clawdbot Development Makefile
+# Clawdbrain Development Makefile
 # Provides targets for building, deploying, and switching between dev/prod modes
 
 SHELL := /bin/bash
 PROJECT_DIR := $(shell pwd)
-LAUNCHD_LABEL := com.clawdbot.gateway
-LAUNCHD_LABEL_DEV := com.clawdbot.gateway.dev
+LAUNCHD_LABEL := com.clawdbrain.gateway
+LAUNCHD_LABEL_DEV := com.clawdbrain.gateway.dev
 LAUNCHD_PLIST := $(HOME)/Library/LaunchAgents/$(LAUNCHD_LABEL).plist
 LAUNCHD_PLIST_DEV := $(HOME)/Library/LaunchAgents/$(LAUNCHD_LABEL_DEV).plist
 GATEWAY_PORT := 18789
@@ -13,7 +13,7 @@ GATEWAY_PORT := 18789
 
 # Default target
 help:
-	@echo "Clawdbot Development Commands:"
+	@echo "Clawdbrain Development Commands:"
 	@echo ""
 	@echo "  make build      - Build TypeScript to dist/"
 	@echo "  make restart    - Restart the gateway service (launchd)"
@@ -63,7 +63,7 @@ plist-dev:
 	@echo '    <key>Label</key>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <string>$(LAUNCHD_LABEL_DEV)</string>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <key>Comment</key>' >> $(LAUNCHD_PLIST_DEV)
-	@echo '    <string>Clawdbot Gateway (dev mode - tsx)</string>' >> $(LAUNCHD_PLIST_DEV)
+	@echo '    <string>Clawdbrain Gateway (dev mode - tsx)</string>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <key>RunAtLoad</key>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <true/>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <key>KeepAlive</key>' >> $(LAUNCHD_PLIST_DEV)
@@ -81,9 +81,9 @@ plist-dev:
 	@echo '      <string>$(GATEWAY_PORT)</string>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    </array>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <key>StandardOutPath</key>' >> $(LAUNCHD_PLIST_DEV)
-	@echo '    <string>$(HOME)/.clawdbot/logs/gateway.log</string>' >> $(LAUNCHD_PLIST_DEV)
+	@echo '    <string>$(HOME)/.clawdbrain/logs/gateway.log</string>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <key>StandardErrorPath</key>' >> $(LAUNCHD_PLIST_DEV)
-	@echo '    <string>$(HOME)/.clawdbot/logs/gateway.err.log</string>' >> $(LAUNCHD_PLIST_DEV)
+	@echo '    <string>$(HOME)/.clawdbrain/logs/gateway.err.log</string>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <key>EnvironmentVariables</key>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    <dict>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '      <key>HOME</key>' >> $(LAUNCHD_PLIST_DEV)
@@ -92,11 +92,11 @@ plist-dev:
 	@echo '      <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$(HOME)/Library/pnpm</string>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '      <key>NODE_PATH</key>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '      <string>$(PROJECT_DIR)/node_modules</string>' >> $(LAUNCHD_PLIST_DEV)
-	@echo '      <key>CLAWDBOT_GATEWAY_PORT</key>' >> $(LAUNCHD_PLIST_DEV)
+	@echo '      <key>CLAWDBRAIN_GATEWAY_PORT</key>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '      <string>$(GATEWAY_PORT)</string>' >> $(LAUNCHD_PLIST_DEV)
-	@echo '      <key>CLAWDBOT_LAUNCHD_LABEL</key>' >> $(LAUNCHD_PLIST_DEV)
+	@echo '      <key>CLAWDBRAIN_LAUNCHD_LABEL</key>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '      <string>$(LAUNCHD_LABEL_DEV)</string>' >> $(LAUNCHD_PLIST_DEV)
-	@echo '      <key>CLAWDBOT_SERVICE_KIND</key>' >> $(LAUNCHD_PLIST_DEV)
+	@echo '      <key>CLAWDBRAIN_SERVICE_KIND</key>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '      <string>gateway-dev</string>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '    </dict>' >> $(LAUNCHD_PLIST_DEV)
 	@echo '  </dict>' >> $(LAUNCHD_PLIST_DEV)
@@ -176,7 +176,7 @@ status:
 		echo ""; \
 	fi
 	@echo "Process:"
-	@pgrep -fl "gateway" | grep -E "(clawdbot|node.*gateway|tsx.*gateway)" | head -3 || echo "  No gateway process found"
+	@pgrep -fl "gateway" | grep -E "(clawdbrain|node.*gateway|tsx.*gateway)" | head -3 || echo "  No gateway process found"
 	@echo ""
 	@echo "Port $(GATEWAY_PORT):"
 	@lsof -i :$(GATEWAY_PORT) 2>/dev/null | grep LISTEN | head -1 || echo "  Nothing listening"
@@ -189,4 +189,4 @@ status-short:
 
 # Tail gateway logs
 logs:
-	@tail -f $(HOME)/.clawdbot/logs/gateway.log
+	@tail -f $(HOME)/.clawdbrain/logs/gateway.log

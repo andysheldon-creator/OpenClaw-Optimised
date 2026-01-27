@@ -9,9 +9,9 @@
 ## ⚠️ Stack Translation Applied
 
 **Original Magic MCP Output:** React + shadcn/ui Table component
-**Clawdbot Stack:** Lit Web Components + Tailwind v4 + Custom Design System
+**Clawdbrain Stack:** Lit Web Components + Tailwind v4 + Custom Design System
 
-This document has been translated from React patterns to Lit Web Components following Clawdbot's conventions.
+This document has been translated from React patterns to Lit Web Components following Clawdbrain's conventions.
 
 ### Translation Applied:
 - React `useState` → Controller state with reactive properties
@@ -19,7 +19,7 @@ This document has been translated from React patterns to Lit Web Components foll
 - Expandable rows → Lit reactive state with CSS transitions
 - Pagination buttons → Reactive page state in Lit
 - Filters → Event listeners on input changes in Lit (`@input`, `@change`)
-- lucide-react icons → Clawdbot's `icon()` function
+- lucide-react icons → Clawdbrain's `icon()` function
 - shadcn/ui components → Native HTML with Tailwind classes
 - CSS animations for expand/collapse with `@keyframes`
 
@@ -27,7 +27,7 @@ This document has been translated from React patterns to Lit Web Components foll
 
 ## Installation
 
-**Note:** These packages were required for the original React prototype. The Clawdbot Lit implementation uses existing dependencies only.
+**Note:** These packages were required for the original React prototype. The Clawdbrain Lit implementation uses existing dependencies only.
 
 ```bash
 npm install lucide-react @radix-ui/react-slot class-variance-authority @radix-ui/react-select @radix-ui/react-separator clsx tailwind-merge
@@ -710,7 +710,7 @@ interface GitSyncExecutionRecord extends ExecutionRecord {
 ```typescript
 // ui/src/ui/controllers/run-history.ts
 
-// Fetch run history from Clawdbot API
+// Fetch run history from Clawdbrain API
 export async function fetchRunHistory(state: RunHistoryState, automationId: string, limit = 50): Promise<void> {
   if (!state.client || !state.connected) return;
 

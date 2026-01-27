@@ -1,29 +1,29 @@
 ---
-summary: "CLI reference for `moltbot cron` (schedule and run background jobs)"
+summary: "CLI reference for `clawdbrain cron` (schedule and run background jobs)"
 read_when:
   - You want scheduled jobs and wakeups
   - You’re debugging cron execution and logs
 ---
 
-# `moltbot cron`
+# `clawdbrain cron`
 
 Manage cron jobs for the Gateway scheduler.
 
 Related:
 - Cron jobs: [Cron jobs](/automation/cron-jobs)
 
-Tip: run `moltbot cron --help` for the full command surface.
+Tip: run `clawdbrain cron --help` for the full command surface.
 
 ## Common edits
 
 Update delivery settings without changing the message:
 
 ```bash
-moltbot cron edit <job-id> --deliver --channel telegram --to "123456789"
+clawdbrain cron edit <job-id> --deliver --channel telegram --to "123456789"
 ```
 
 Disable delivery for an isolated job:
 
 ```bash
-moltbot cron edit <job-id> --no-deliver
+clawdbrain cron edit <job-id> --no-deliver
 ```

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ClawdbrainConfig } from "../../config/config.js";
 import type { AuthProfileStore } from "../auth-profiles/types.js";
 import {
   buildAnthropicSdkProvider,
@@ -54,21 +54,21 @@ describe("isSdkRunnerEnabled", () => {
   });
 
   it("returns false when agents.defaults.runtime is pi", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       agents: { defaults: { runtime: "pi" } },
     };
     expect(isSdkRunnerEnabled(config)).toBe(false);
   });
 
   it("returns true when agents.defaults.runtime is sdk", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       agents: { defaults: { runtime: "sdk" } },
     };
     expect(isSdkRunnerEnabled(config)).toBe(true);
   });
 
   it("does not enable SDK runtime from tools.codingTask config", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       tools: {
         codingTask: {
           enabled: true,
@@ -92,7 +92,7 @@ describe("resolveSdkProviders", () => {
   });
 
   it("resolves providers with literal env values", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       tools: {
         codingTask: {
           enabled: true,
@@ -116,7 +116,7 @@ describe("resolveSdkProviders", () => {
   });
 
   it("resolves ${VAR} references from process env", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       tools: {
         codingTask: {
           enabled: true,
@@ -138,7 +138,7 @@ describe("resolveSdkProviders", () => {
   });
 
   it("returns empty string for missing ${VAR} references", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       tools: {
         codingTask: {
           enabled: true,
@@ -158,7 +158,7 @@ describe("resolveSdkProviders", () => {
   });
 
   it("resolves multiple providers", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       tools: {
         codingTask: {
           enabled: true,
@@ -193,7 +193,7 @@ describe("resolveDefaultSdkProvider", () => {
   });
 
   it("prefers zai provider", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       tools: {
         codingTask: {
           enabled: true,
@@ -210,7 +210,7 @@ describe("resolveDefaultSdkProvider", () => {
   });
 
   it("falls back to anthropic if no zai", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       tools: {
         codingTask: {
           enabled: true,
@@ -227,7 +227,7 @@ describe("resolveDefaultSdkProvider", () => {
   });
 
   it("falls back to first provider if neither zai nor anthropic", () => {
-    const config: ClawdbotConfig = {
+    const config: ClawdbrainConfig = {
       tools: {
         codingTask: {
           enabled: true,

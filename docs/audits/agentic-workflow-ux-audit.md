@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-This audit identifies the **weakest areas** of Clawdbot's user interface for managing agentic workflows, focusing on how users can monitor, intervene, and guide autonomous agent behavior. The core finding is that while the backend infrastructure (Overseer, execution approvals, agent events) is well-architected, the **user-facing controls are fragmented across CLI and UI**, creating friction for human-in-the-loop supervision.
+This audit identifies the **weakest areas** of Clawdbrain's user interface for managing agentic workflows, focusing on how users can monitor, intervene, and guide autonomous agent behavior. The core finding is that while the backend infrastructure (Overseer, execution approvals, agent events) is well-architected, the **user-facing controls are fragmented across CLI and UI**, creating friction for human-in-the-loop supervision.
 
 ---
 
@@ -19,11 +19,11 @@ This audit identifies the **weakest areas** of Clawdbot's user interface for man
 
 | Operation | CLI | Web UI | macOS | iOS |
 |-----------|-----|--------|-------|-----|
-| Create goal | ✅ `clawdbot overseer goal create` | ❌ | ❌ | ❌ |
-| Pause goal | ✅ `clawdbot overseer goal pause` | ❌ | ❌ | ❌ |
-| Resume goal | ✅ `clawdbot overseer goal resume` | ❌ | ❌ | ❌ |
-| Mark work done | ✅ `clawdbot overseer work done` | ❌ | ❌ | ❌ |
-| Block work node | ✅ `clawdbot overseer work block` | ❌ | ❌ | ❌ |
+| Create goal | ✅ `clawdbrain overseer goal create` | ❌ | ❌ | ❌ |
+| Pause goal | ✅ `clawdbrain overseer goal pause` | ❌ | ❌ | ❌ |
+| Resume goal | ✅ `clawdbrain overseer goal resume` | ❌ | ❌ | ❌ |
+| Mark work done | ✅ `clawdbrain overseer work done` | ❌ | ❌ | ❌ |
+| Block work node | ✅ `clawdbrain overseer work block` | ❌ | ❌ | ❌ |
 
 **Impact:** Users must switch to terminal to intervene in running workflows, breaking flow and increasing latency for urgent corrections.
 
@@ -46,7 +46,7 @@ This audit identifies the **weakest areas** of Clawdbot's user interface for man
 const canAbort = Boolean(props.canAbort && props.onAbort);
 ```
 
-The CLI has `clawdbot agent --abort` but this is not exposed in any UI.
+The CLI has `clawdbrain agent --abort` but this is not exposed in any UI.
 
 **Impact:** Users cannot stop runaway agent operations from the dashboard.
 
@@ -127,7 +127,7 @@ The sidebar is read-only observation, not a control surface.
 
 ### 7. **Agent Events Window (macOS) is Developer-Focused**
 
-**Current State:** `apps/macos/Sources/Clawdbot/AgentEventsWindow.swift` displays:
+**Current State:** `apps/macos/Sources/Clawdbrain/AgentEventsWindow.swift` displays:
 - Raw event stream with JSON pretty-printing
 - Run ID and sequence numbers
 - Timestamp formatting
@@ -267,6 +267,6 @@ The sidebar is read-only observation, not a control surface.
 
 ## Conclusion
 
-The Clawdbot UI excels at **observability** (seeing what's happening) but is weak at **controllability** (intervening in what's happening). The backend supports rich intervention via CLI, but this power isn't surfaced in the graphical interfaces. For agentic workflows where human oversight is critical, this creates a dangerous gap where users can watch problems unfold but struggle to respond quickly.
+The Clawdbrain UI excels at **observability** (seeing what's happening) but is weak at **controllability** (intervening in what's happening). The backend supports rich intervention via CLI, but this power isn't surfaced in the graphical interfaces. For agentic workflows where human oversight is critical, this creates a dangerous gap where users can watch problems unfold but struggle to respond quickly.
 
 The highest-impact improvement would be adding goal management controls directly to the Overseer view, eliminating the need to context-switch to CLI for basic supervision tasks.

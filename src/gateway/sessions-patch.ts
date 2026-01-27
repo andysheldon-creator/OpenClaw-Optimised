@@ -13,7 +13,7 @@ import {
   normalizeUsageDisplay,
   supportsXHighThinking,
 } from "../auto-reply/thinking.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { isSubagentSessionKey } from "../routing/session-key.js";
 import { applyVerboseOverride, parseVerboseOverride } from "../sessions/level-overrides.js";
@@ -76,7 +76,7 @@ function normalizeSessionTags(raw: unknown): string[] | null | undefined {
 }
 
 export async function applySessionsPatchToStore(params: {
-  cfg: MoltbotConfig;
+  cfg: ClawdbrainConfig;
   store: Record<string, SessionEntry>;
   storeKey: string;
   patch: SessionsPatchParams;

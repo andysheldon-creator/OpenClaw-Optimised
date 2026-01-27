@@ -23,7 +23,7 @@ describe("Automations Store", () => {
   let storePath: string;
 
   beforeEach(() => {
-    tempDir = path.join(os.tmpdir(), `clawdbot-automations-test-${crypto.randomUUID()}`);
+    tempDir = path.join(os.tmpdir(), `clawdbrain-automations-test-${crypto.randomUUID()}`);
     storePath = path.join(tempDir, "automations.json");
   });
 
@@ -42,7 +42,7 @@ describe("Automations Store", () => {
 
     it("should use default when no custom path", () => {
       const result = resolveAutomationsStorePath();
-      expect(result).toContain(".clawdbot");
+      expect(result).toContain(".clawdbrain");
       expect(result).toContain("automations");
       expect(result).toContain("automations.json");
     });

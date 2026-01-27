@@ -1,10 +1,10 @@
 ---
 summary: "Proposal: z.AI GLM 4.7 as a Claude Code SDK provider (dual SDK configuration alongside Anthropic)"
 read_when:
-  - You want to use z.AI GLM 4.7 through the Claude Code SDK inside Clawdbot
+  - You want to use z.AI GLM 4.7 through the Claude Code SDK inside Clawdbrain
   - You want to understand the dual Claude Code SDK provider architecture
   - You want to configure a z.AI subscription as a second Claude Code backend
-owner: "clawdbot"
+owner: "clawdbrain"
 status: "draft"
 last_updated: "2026-01-26"
 ---
@@ -15,12 +15,12 @@ last_updated: "2026-01-26"
 
 ### Current Claude Code SDK scaffolding
 
-Clawdbot has three paths for invoking AI models:
+Clawdbrain has three paths for invoking AI models:
 
 1. **Main agentic loop (Pi Agent framework)** - the primary runtime.
    Uses `@mariozechner/pi-agent-core` + `@mariozechner/pi-ai` to call model providers
    directly (Anthropic Messages API, OpenAI-compatible endpoints, Bedrock, etc.).
-   Auth is handled by Clawdbot's own auth profile store.
+   Auth is handled by Clawdbrain's own auth profile store.
 
 2. **`coding_task` tool (Claude Agent SDK)** - an experimental, opt-in tool.
    Uses `@anthropic-ai/claude-agent-sdk` (lazy-loaded) to run Claude Code-style tasks
@@ -65,7 +65,7 @@ agent harness (planning, tool use, etc.) runs GLM 4.7 under the hood.
 
 Operators want:
 
-- A way to use a z.AI GLM 4.7 subscription inside Clawdbot without manually configuring
+- A way to use a z.AI GLM 4.7 subscription inside Clawdbrain without manually configuring
   shell environment variables or running a separate Claude Code instance.
 - A clean onboarding flow: choose "z.AI (Claude Code)" during setup, paste the API key,
   and the gateway handles the rest.
@@ -74,9 +74,9 @@ Operators want:
 
 ## Goals
 
-- Add z.AI as a configurable Claude Code SDK provider in Clawdbot.
-- Support it in onboarding (`clawdbot onboard --auth-choice zai-claude-code`).
-- Store the z.AI API key in Clawdbot's auth profile store (not raw env vars).
+- Add z.AI as a configurable Claude Code SDK provider in Clawdbrain.
+- Support it in onboarding (`clawdbrain onboard --auth-choice zai-claude-code`).
+- Store the z.AI API key in Clawdbrain's auth profile store (not raw env vars).
 - Route z.AI SDK calls through the same `coding_task` tool infrastructure, or as a
   standalone agent runtime option, depending on the use case.
 - Keep the existing Anthropic Claude Code path unchanged.
@@ -159,7 +159,7 @@ Add a new config stanza for z.AI Claude Code SDK provider:
 
 ### Auth profile integration
 
-The z.AI API key should be stored in Clawdbot's auth profile store under a dedicated
+The z.AI API key should be stored in Clawdbrain's auth profile store under a dedicated
 profile type (e.g., `zai-claude-code:default`), separate from the existing `zai:default`
 profile (which is for direct API access). During `coding_task` execution, the key is
 resolved from the store and injected into the SDK `env` option.
@@ -167,7 +167,7 @@ resolved from the store and injected into the SDK `env` option.
 ### Onboarding flow
 
 ```
-clawdbot onboard
+clawdbrain onboard
   > Choose auth method:
     - Anthropic API key
     - Anthropic token (paste setup-token)
@@ -232,7 +232,7 @@ This is deferred because it would be a significant architectural change, but the
 - Config validation: `tools.codingTask.providers.zai` accepted by schema.
 - Env resolution: unit test that `${ZAI_CLAUDE_CODE_API_KEY}` is resolved from auth store.
 - SDK call: mock test that env is passed through to `sdk.query()` options.
-- Live test (opt-in): `CLAWDBOT_LIVE_TEST=1` with real z.AI key verifies end-to-end.
+- Live test (opt-in): `CLAWDBRAIN_LIVE_TEST=1` with real z.AI key verifies end-to-end.
 
 ## Open questions
 

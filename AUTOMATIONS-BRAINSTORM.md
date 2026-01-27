@@ -5,7 +5,7 @@
 
 ## Overview
 
-An automation system for Clawdbot that automatically syncs forked repositories with upstream using AI-powered merge conflict resolution.
+An automation system for Clawdbrain that automatically syncs forked repositories with upstream using AI-powered merge conflict resolution.
 
 ## Requirements Summary
 
@@ -39,7 +39,7 @@ An automation system for Clawdbot that automatically syncs forked repositories w
 
 **Workspace Structure:**
 ```
-~/.clawdbot/automations/
+~/.clawdbrain/automations/
 ├── smart-sync-fork/
 │   ├── <automation-id-1>/
 │   │   ├── fork/          # Cloned fork repo
@@ -78,7 +78,7 @@ An automation system for Clawdbot that automatically syncs forked repositories w
 
 ### Data Persistence
 - **Config:** JSON5-based with Zod validation
-- **Storage:** File-based in `~/.clawdbot/`
+- **Storage:** File-based in `~/.clawdbrain/`
 - **Paths:** `/src/config/config-paths.ts`
 
 ## Key Technical Considerations
@@ -161,7 +161,7 @@ Smart-Sync Fork: [automation-name]
 ## Questions & Answers
 
 ### Q1: Git Isolation Strategy
-**Answer:** Option B - Separate clone per automation in `~/.clawdbot/automations/`
+**Answer:** Option B - Separate clone per automation in `~/.clawdbrain/automations/`
 
 ## Comprehensive Design Documents
 
@@ -178,9 +178,9 @@ Detailed design documents have been created for each architectural layer:
 
 Comprehensive UI prototypes have been generated for all major views, capturing full Magic MCP output including CSS, JavaScript, component code, and design guidance.
 
-⚠️ **Stack Translation Required:** Magic MCP generates React components, but Clawdbot uses **Lit Web Components**.
+⚠️ **Stack Translation Required:** Magic MCP generates React components, but Clawdbrain uses **Lit Web Components**.
 
-**📖 Translation Guide:** See **[React to Lit Translation Guide](docs/designs/ux/00-react-to-lit-translation-guide.md)** for comprehensive, detailed instructions on translating React components to Lit Web Components following Clawdbot patterns. Covers:
+**📖 Translation Guide:** See **[React to Lit Translation Guide](docs/designs/ux/00-react-to-lit-translation-guide.md)** for comprehensive, detailed instructions on translating React components to Lit Web Components following Clawdbrain patterns. Covers:
 - Component structure (render functions vs class-based)
 - State management (controllers vs hooks)
 - Event handling, forms, and lists

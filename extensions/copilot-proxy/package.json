@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/copilot-proxy",
+  "name": "@clawdbrain/copilot-proxy",
   "version": "2026.1.26",
   "type": "module",
-  "description": "Moltbot Copilot Proxy provider plugin",
-  "moltbot": {
+  "description": "Clawdbrain Copilot Proxy provider plugin",
+  "clawdbrain": {
     "extensions": [
       "./index.ts"
     ]

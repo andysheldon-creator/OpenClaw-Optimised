@@ -1,4 +1,4 @@
-import type { RuntimeEnv } from "clawdbot/plugin-sdk";
+import type { RuntimeEnv } from "clawdbrain/plugin-sdk";
 
 import { formatChangesDate } from "./utils.js";
 

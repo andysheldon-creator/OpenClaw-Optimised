@@ -1,9 +1,9 @@
 ---
 summary: "Proposal: Add `coding_task` tool powered by the Claude Agent SDK (Claude Code-style; gated by config)"
 read_when:
-  - You want Claude Code-style planning runs from inside Clawdbot without changing the embedded agent.
+  - You want Claude Code-style planning runs from inside Clawdbrain without changing the embedded agent.
   - You want an opt-in integration path for Claude Agent SDK + MCP with tight tool-policy control.
-owner: "clawdbot"
+owner: "clawdbrain"
 status: "draft"
 last_updated: "2026-01-25"
 ---
@@ -12,24 +12,24 @@ last_updated: "2026-01-25"
 
 ## Context
 
-Clawdbot already has:
+Clawdbrain already has:
 - An **embedded, tool-using agent runtime** (Pi embedded) used for normal runs.
 - A **CLI backend** mode that can call local CLIs like Claude Code CLI / Codex CLI as a
   **text-only fallback** (see [CLI backends](/gateway/cli-backends)).
 
 This proposal adds a third path: a **first-class tool** that can run a Claude Code-style
-coding task on demand, while keeping Clawdbot's existing runtime unchanged.
+coding task on demand, while keeping Clawdbrain's existing runtime unchanged.
 
 ## Motivation
 
 Operators want:
-- A way to use the Claude Code agent harness (planning + repo understanding) inside a Clawdbot
+- A way to use the Claude Code agent harness (planning + repo understanding) inside a Clawdbrain
   session, without switching tools or copying context manually.
 - A safe, opt-in integration that can gradually expand from "readonly" to more capable modes.
 
 ## Goals
 
-- Add a new Clawdbot tool: `coding_task`.
+- Add a new Clawdbrain tool: `coding_task`.
 - Keep the integration **opt-in** (disabled by default).
 - Safe defaults:
   - Default to a **read-only tool preset** (workspace read/search only).
@@ -42,12 +42,12 @@ Operators want:
 
 - Replacing the embedded agent runtime.
 - Running a fully autonomous "edit/exec" coding agent in production.
-- Exposing Clawdbot tools to Claude via MCP.
-- Running the Claude agent inside the Clawdbot Docker sandbox container.
+- Exposing Clawdbrain tools to Claude via MCP.
+- Running the Claude agent inside the Clawdbrain Docker sandbox container.
 
 ## Proposed User Experience
 
-When enabled, a Clawdbot session can call:
+When enabled, a Clawdbrain session can call:
 
 - `coding_task(task="Investigate failing tests in src/foo")`
 
@@ -55,8 +55,8 @@ And receive:
 - A structured plan (steps, hypotheses, file targets, next actions).
 - Optional metadata (elapsed time, tool usage summary, raw event count).
 
-The calling Clawdbot agent can then decide to:
-- Execute the plan itself using existing Clawdbot tools, or
+The calling Clawdbrain agent can then decide to:
+- Execute the plan itself using existing Clawdbrain tools, or
 - Ask the user for approval to proceed, or
 - Spawn subagents to implement parts of the plan.
 
@@ -73,7 +73,7 @@ Minimal schema:
 
 Phase 1 intentionally omits:
 - Per-invocation overrides for permissions/tooling (capabilities are configured via `tools.codingTask.*`).
-- MCP configuration (no Clawdbot tool bridging yet).
+- MCP configuration (no Clawdbrain tool bridging yet).
 
 ### Output
 
@@ -123,17 +123,17 @@ Notes:
 
 ### High-Level Flow
 
-1. Calling Clawdbot agent invokes `coding_task`.
+1. Calling Clawdbrain agent invokes `coding_task`.
 2. Tool implementation lazily imports `@anthropic-ai/claude-agent-sdk`.
 3. Tool runs the SDK `query(...)` against the current session workspace directory.
 4. Tool collects streaming events and extracts a human-readable "plan" text.
-5. Tool returns the plan text back to the calling Clawdbot agent.
+5. Tool returns the plan text back to the calling Clawdbrain agent.
 
 ### Code Boundaries
 
 - New tool implementation file(s) under `src/agents/tools/` (isolated).
 - New SDK wrapper helpers under `src/agents/claude-agent-sdk/` (isolated).
-- A small conditional registration change in `src/agents/clawdbot-tools.ts`.
+- A small conditional registration change in `src/agents/clawdbrain-tools.ts`.
 - Config typing + validation changes in `src/config/` to accept `tools.codingTask`.
 
 ## Security & Policy Model
@@ -151,7 +151,7 @@ Even if called, `coding_task` is intended to be safe-by-default:
 
 ### Tool policy integration
 
-Clawdbot's tool allow/deny policies still apply because this is just another tool:
+Clawdbrain's tool allow/deny policies still apply because this is just another tool:
 - Global (`tools.allow/deny`)
 - Agent-specific (`agents.list[].tools.allow/deny`)
 - Sandbox tool policy (`tools.sandbox.tools`)
@@ -165,7 +165,7 @@ In Phase 1, `coding_task` runs on the host process and targets the session's eff
 workspace directory (which may be a sandbox workspace mirror, depending on sandbox mode).
 
 Future: run the SDK inside the sandbox container or replace its built-in tools with MCP tools
-that forward to Clawdbot's sandbox-aware `exec/read/write/edit`.
+that forward to Clawdbrain's sandbox-aware `exec/read/write/edit`.
 
 ## Failure Modes & Operator Guidance
 
@@ -202,5 +202,5 @@ Future:
 
 - What is the minimal read-only Claude tool allowlist that still yields good plans?
 - Should `coding_task` be denied by default for subagents (like other orchestration tools)?
-- How should the tool behave when Clawdbot sandbox mode is "all" with `workspaceAccess=ro`?
+- How should the tool behave when Clawdbrain sandbox mode is "all" with `workspaceAccess=ro`?
 - Where should raw event artifacts live if we add a debug dump mode?

@@ -2,11 +2,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SMOKE_IMAGE="${CLAWDBOT_INSTALL_SMOKE_IMAGE:-moltbot-install-smoke:local}"
-NONROOT_IMAGE="${CLAWDBOT_INSTALL_NONROOT_IMAGE:-moltbot-install-nonroot:local}"
-INSTALL_URL="${CLAWDBOT_INSTALL_URL:-https://molt.bot/install.sh}"
-CLI_INSTALL_URL="${CLAWDBOT_INSTALL_CLI_URL:-https://molt.bot/install-cli.sh}"
-SKIP_NONROOT="${CLAWDBOT_INSTALL_SMOKE_SKIP_NONROOT:-0}"
+SMOKE_IMAGE="${CLAWDBRAIN_INSTALL_SMOKE_IMAGE:-clawdbrain-install-smoke:local}"
+NONROOT_IMAGE="${CLAWDBRAIN_INSTALL_NONROOT_IMAGE:-clawdbrain-install-nonroot:local}"
+INSTALL_URL="${CLAWDBRAIN_INSTALL_URL:-https://clawdbrain.bot/install.sh}"
+CLI_INSTALL_URL="${CLAWDBRAIN_INSTALL_CLI_URL:-https://clawdbrain.bot/install-cli.sh}"
+SKIP_NONROOT="${CLAWDBRAIN_INSTALL_SMOKE_SKIP_NONROOT:-0}"
 LATEST_DIR="$(mktemp -d)"
 LATEST_FILE="${LATEST_DIR}/latest"
 
@@ -19,11 +19,11 @@ docker build \
 echo "==> Run installer smoke test (root): $INSTALL_URL"
 docker run --rm -t \
   -v "${LATEST_DIR}:/out" \
-  -e CLAWDBOT_INSTALL_URL="$INSTALL_URL" \
-  -e CLAWDBOT_INSTALL_LATEST_OUT="/out/latest" \
-  -e CLAWDBOT_INSTALL_SMOKE_PREVIOUS="${CLAWDBOT_INSTALL_SMOKE_PREVIOUS:-}" \
-  -e CLAWDBOT_INSTALL_SMOKE_SKIP_PREVIOUS="${CLAWDBOT_INSTALL_SMOKE_SKIP_PREVIOUS:-0}" \
-  -e CLAWDBOT_NO_ONBOARD=1 \
+  -e CLAWDBRAIN_INSTALL_URL="$INSTALL_URL" \
+  -e CLAWDBRAIN_INSTALL_LATEST_OUT="/out/latest" \
+  -e CLAWDBRAIN_INSTALL_SMOKE_PREVIOUS="${CLAWDBRAIN_INSTALL_SMOKE_PREVIOUS:-}" \
+  -e CLAWDBRAIN_INSTALL_SMOKE_SKIP_PREVIOUS="${CLAWDBRAIN_INSTALL_SMOKE_SKIP_PREVIOUS:-0}" \
+  -e CLAWDBRAIN_NO_ONBOARD=1 \
   -e DEBIAN_FRONTEND=noninteractive \
   "$SMOKE_IMAGE"
 
@@ -33,7 +33,7 @@ if [[ -f "$LATEST_FILE" ]]; then
 fi
 
 if [[ "$SKIP_NONROOT" == "1" ]]; then
-  echo "==> Skip non-root installer smoke (CLAWDBOT_INSTALL_SMOKE_SKIP_NONROOT=1)"
+  echo "==> Skip non-root installer smoke (CLAWDBRAIN_INSTALL_SMOKE_SKIP_NONROOT=1)"
 else
   echo "==> Build non-root image: $NONROOT_IMAGE"
   docker build \
@@ -43,15 +43,15 @@ else
 
   echo "==> Run installer non-root test: $INSTALL_URL"
   docker run --rm -t \
-    -e CLAWDBOT_INSTALL_URL="$INSTALL_URL" \
-    -e CLAWDBOT_INSTALL_EXPECT_VERSION="$LATEST_VERSION" \
-    -e CLAWDBOT_NO_ONBOARD=1 \
+    -e CLAWDBRAIN_INSTALL_URL="$INSTALL_URL" \
+    -e CLAWDBRAIN_INSTALL_EXPECT_VERSION="$LATEST_VERSION" \
+    -e CLAWDBRAIN_NO_ONBOARD=1 \
     -e DEBIAN_FRONTEND=noninteractive \
     "$NONROOT_IMAGE"
 fi
 
-if [[ "${CLAWDBOT_INSTALL_SMOKE_SKIP_CLI:-0}" == "1" ]]; then
-  echo "==> Skip CLI installer smoke (CLAWDBOT_INSTALL_SMOKE_SKIP_CLI=1)"
+if [[ "${CLAWDBRAIN_INSTALL_SMOKE_SKIP_CLI:-0}" == "1" ]]; then
+  echo "==> Skip CLI installer smoke (CLAWDBRAIN_INSTALL_SMOKE_SKIP_CLI=1)"
   exit 0
 fi
 
@@ -63,8 +63,8 @@ fi
 echo "==> Run CLI installer non-root test (same image)"
 docker run --rm -t \
   --entrypoint /bin/bash \
-  -e CLAWDBOT_INSTALL_URL="$INSTALL_URL" \
-  -e CLAWDBOT_INSTALL_CLI_URL="$CLI_INSTALL_URL" \
-  -e CLAWDBOT_NO_ONBOARD=1 \
+  -e CLAWDBRAIN_INSTALL_URL="$INSTALL_URL" \
+  -e CLAWDBRAIN_INSTALL_CLI_URL="$CLI_INSTALL_URL" \
+  -e CLAWDBRAIN_NO_ONBOARD=1 \
   -e DEBIAN_FRONTEND=noninteractive \
   "$NONROOT_IMAGE" -lc "curl -fsSL \"$CLI_INSTALL_URL\" | bash -s -- --set-npm-prefix --no-onboard"

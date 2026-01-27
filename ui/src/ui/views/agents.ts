@@ -201,8 +201,8 @@ function filterSessionsForAgent(params: {
 function renderAgentsSkeleton() {
   return html`
     <div style="display: grid; gap: 14px; padding: 14px;">
-      ${skeleton({ width: "100%", height: "420px", radius: "16px" })}
-      ${skeleton({ width: "100%", height: "520px", radius: "16px" })}
+      ${skeleton({ width: "100%", height: "420px", rounded: true })}
+      ${skeleton({ width: "100%", height: "520px", rounded: true })}
     </div>
   `;
 }

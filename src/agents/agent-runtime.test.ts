@@ -3,7 +3,7 @@ import type { AgentRuntime, AgentRuntimeRunParams } from "./agent-runtime.js";
 import { createPiAgentRuntime } from "./pi-agent-runtime.js";
 import { createSdkAgentRuntime } from "./claude-agent-sdk/sdk-agent-runtime.js";
 import { isSdkRunnerEnabled } from "./claude-agent-sdk/sdk-runner.config.js";
-import type { ClawdbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 
 // ---------------------------------------------------------------------------
 // Mock the underlying runners so we don't need real infra.
@@ -72,14 +72,14 @@ describe("Runtime selection via isSdkRunnerEnabled", () => {
   it("returns true when agents.defaults.runtime is sdk", () => {
     const config = {
       agents: { defaults: { runtime: "sdk" } },
-    } as ClawdbotConfig;
+    } as ClawdbrainConfig;
     expect(isSdkRunnerEnabled(config)).toBe(true);
   });
 
   it("returns false when agents.defaults.runtime is pi", () => {
     const config = {
       agents: { defaults: { runtime: "pi" } },
-    } as ClawdbotConfig;
+    } as ClawdbrainConfig;
     expect(isSdkRunnerEnabled(config)).toBe(false);
   });
 
@@ -88,7 +88,7 @@ describe("Runtime selection via isSdkRunnerEnabled", () => {
   });
 
   it("returns false when config is empty", () => {
-    expect(isSdkRunnerEnabled({} as ClawdbotConfig)).toBe(false);
+    expect(isSdkRunnerEnabled({} as ClawdbrainConfig)).toBe(false);
   });
 
   it("does not enable SDK runtime from tools.codingTask config", () => {
@@ -101,7 +101,7 @@ describe("Runtime selection via isSdkRunnerEnabled", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as ClawdbrainConfig;
     expect(isSdkRunnerEnabled(config)).toBe(false);
   });
 
@@ -113,7 +113,7 @@ describe("Runtime selection via isSdkRunnerEnabled", () => {
           enabled: false,
         },
       },
-    } as ClawdbotConfig;
+    } as ClawdbrainConfig;
     expect(isSdkRunnerEnabled(config)).toBe(true);
   });
 });

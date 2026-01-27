@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { type MoltbotConfig, loadConfig } from "../config/config.js";
-import { resolveMoltbotAgentDir } from "./agent-paths.js";
+import { type ClawdbrainConfig, loadConfig } from "../config/config.js";
+import { resolveClawdbrainAgentDir } from "./agent-paths.js";
 import {
   normalizeProviders,
   type ProviderConfig,
@@ -11,7 +11,7 @@ import {
   resolveImplicitProviders,
 } from "./models-config.providers.js";
 
-type ModelsConfig = NonNullable<MoltbotConfig["models"]>;
+type ModelsConfig = NonNullable<ClawdbrainConfig["models"]>;
 
 const DEFAULT_MODE: NonNullable<ModelsConfig["mode"]> = "merge";
 
@@ -72,12 +72,12 @@ async function readJson(pathname: string): Promise<unknown> {
   }
 }
 
-export async function ensureMoltbotModelsJson(
-  config?: MoltbotConfig,
+export async function ensureClawdbrainModelsJson(
+  config?: ClawdbrainConfig,
   agentDirOverride?: string,
 ): Promise<{ agentDir: string; wrote: boolean }> {
   const cfg = config ?? loadConfig();
-  const agentDir = agentDirOverride?.trim() ? agentDirOverride.trim() : resolveMoltbotAgentDir();
+  const agentDir = agentDirOverride?.trim() ? agentDirOverride.trim() : resolveClawdbrainAgentDir();
 
   const explicitProviders = (cfg.models?.providers ?? {}) as Record<string, ProviderConfig>;
   const implicitProviders = await resolveImplicitProviders({ agentDir });

@@ -6,7 +6,7 @@ import { inspect } from "node:util";
 import { cancel, isCancel } from "@clack/prompts";
 
 import { DEFAULT_AGENT_WORKSPACE_DIR, ensureAgentWorkspace } from "../agents/workspace.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 import { CONFIG_PATH } from "../config/config.js";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
@@ -36,7 +36,7 @@ export function guardCancel<T>(value: T | symbol, runtime: RuntimeEnv): T {
   return value as T;
 }
 
-export function summarizeExistingConfig(config: MoltbotConfig): string {
+export function summarizeExistingConfig(config: ClawdbrainConfig): string {
   const rows: string[] = [];
   const defaults = config.agents?.defaults;
   if (defaults?.workspace) rows.push(shortenHomeInString(`workspace: ${defaults.workspace}`));
@@ -75,9 +75,9 @@ export function printWizardHeader(runtime: RuntimeEnv) {
 }
 
 export function applyWizardMetadata(
-  cfg: MoltbotConfig,
+  cfg: ClawdbrainConfig,
   params: { command: string; mode: OnboardMode },
-): MoltbotConfig {
+): ClawdbrainConfig {
   const commit = process.env.GIT_COMMIT?.trim() || process.env.GIT_SHA?.trim() || undefined;
   return {
     ...cfg,
@@ -177,8 +177,8 @@ export function formatControlUiSshHint(params: {
     localUrl,
     authedUrl,
     "Docs:",
-    "https://docs.molt.bot/gateway/remote",
-    "https://docs.molt.bot/web/control-ui",
+    "https://docs.clawdbrain.bot/gateway/remote",
+    "https://docs.clawdbrain.bot/web/control-ui",
   ]
     .filter(Boolean)
     .join("\n");

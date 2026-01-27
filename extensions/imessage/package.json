@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/imessage",
+  "name": "@clawdbrain/imessage",
   "version": "2026.1.26",
   "type": "module",
-  "description": "Moltbot iMessage channel plugin",
-  "moltbot": {
+  "description": "Clawdbrain iMessage channel plugin",
+  "clawdbrain": {
     "extensions": [
       "./index.ts"
     ]

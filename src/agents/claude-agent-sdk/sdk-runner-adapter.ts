@@ -6,7 +6,7 @@
  * main agent dispatch path without changing the downstream reply pipeline.
  */
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ClawdbrainConfig } from "../../config/config.js";
 import { logDebug, logInfo, logWarn } from "../../logger.js";
 import { resolveApiKeyForProfile } from "../auth-profiles/oauth.js";
 import { ensureAuthProfileStore } from "../auth-profiles/store.js";
@@ -37,7 +37,7 @@ const PROVIDER_AUTH_PROFILES: Record<string, string> = {
  */
 async function tryAsyncOAuthResolution(
   entry: SdkProviderEntry,
-  params: { config?: ClawdbotConfig; agentDir?: string },
+  params: { config?: ClawdbrainConfig; agentDir?: string },
 ): Promise<SdkProviderEntry> {
   // Only attempt if we still don't have an auth token.
   if (entry.config.env?.ANTHROPIC_AUTH_TOKEN) return entry;
@@ -113,7 +113,7 @@ export type RunSdkAgentAdaptedParams = {
   sessionFile: string;
   workspaceDir: string;
   agentDir?: string;
-  config?: ClawdbotConfig;
+  config?: ClawdbrainConfig;
   prompt: string;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];

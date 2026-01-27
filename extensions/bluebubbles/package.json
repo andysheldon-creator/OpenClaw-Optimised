@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/bluebubbles",
+  "name": "@clawdbrain/bluebubbles",
   "version": "2026.1.26",
   "type": "module",
-  "description": "Moltbot BlueBubbles channel plugin",
-  "moltbot": {
+  "description": "Clawdbrain BlueBubbles channel plugin",
+  "clawdbrain": {
     "extensions": [
       "./index.ts"
     ],
@@ -25,7 +25,7 @@
       "order": 75
     },
     "install": {
-      "npmSpec": "@moltbot/bluebubbles",
+      "npmSpec": "@clawdbrain/bluebubbles",
       "localPath": "extensions/bluebubbles",
       "defaultChoice": "npm"
     }

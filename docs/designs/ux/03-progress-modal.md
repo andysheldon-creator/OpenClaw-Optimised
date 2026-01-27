@@ -9,16 +9,16 @@
 ## ⚠️ Stack Translation Applied
 
 **Original Magic MCP Output:** React + shadcn/ui + Framer Motion
-**Clawdbot Stack:** Lit Web Components + Tailwind v4 + Custom Design System
+**Clawdbrain Stack:** Lit Web Components + Tailwind v4 + Custom Design System
 
-This document has been translated from React patterns to Lit Web Components following Clawdbot's conventions.
+This document has been translated from React patterns to Lit Web Components following Clawdbrain's conventions.
 
 ### Translation Applied:
 - React `useState` → Controller state with reactive properties
 - React Dialog → Custom modal overlay with Lit template
 - Framer Motion animations → CSS `@keyframes` for fade-in/scale-in
 - shadcn/ui Progress → Custom progress bar with Lit template
-- lucide-react icons → Clawdbot's `icon()` function
+- lucide-react icons → Clawdbrain's `icon()` function
 - Real-time updates → SSE (Server-Sent Events) with Lit lifecycle
 - Event handlers → Lit event listeners (`@click=${handler}`)
 
@@ -26,7 +26,7 @@ This document has been translated from React patterns to Lit Web Components foll
 
 ## Installation
 
-**Note:** These packages were required for the original React prototype. The Clawdbot Lit implementation uses existing dependencies only.
+**Note:** These packages were required for the original React prototype. The Clawdbrain Lit implementation uses existing dependencies only.
 
 ```bash
 npm install framer-motion lucide-react clsx tailwind-merge @radix-ui/react-progress @radix-ui/react-dialog
@@ -383,7 +383,7 @@ function getMilestoneStatusColor(status: MilestoneStatus): string {
 
 ### Statistics Section
 - Two-column grid layout
-- Cards with Clawdbot icons + label + value
+- Cards with Clawdbrain icons + label + value
 - Elapsed Time card
 - Conflicts count card
 

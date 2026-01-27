@@ -14,14 +14,14 @@ vi.mock("./sdk.js", () => ({
 
 // Mock the tool bridge (avoid needing a real McpServer).
 vi.mock("./tool-bridge.js", () => ({
-  bridgeClawdbotToolsToMcpServer: vi.fn(),
+  bridgeClawdbrainToolsToMcpServer: vi.fn(),
 }));
 
 import { loadClaudeAgentSdk } from "./sdk.js";
-import { bridgeClawdbotToolsToMcpServer } from "./tool-bridge.js";
+import { bridgeClawdbrainToolsToMcpServer } from "./tool-bridge.js";
 
 const mockLoadSdk = vi.mocked(loadClaudeAgentSdk);
-const mockBridge = vi.mocked(bridgeClawdbotToolsToMcpServer);
+const mockBridge = vi.mocked(bridgeClawdbrainToolsToMcpServer);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -40,8 +40,8 @@ function baseParams(overrides?: Partial<SdkRunnerParams>): SdkRunnerParams {
 
 function mockBridgeResult() {
   return {
-    serverConfig: { type: "sdk" as const, name: "clawdbot", instance: {} },
-    allowedTools: ["mcp__clawdbot__web_fetch"],
+    serverConfig: { type: "sdk" as const, name: "clawdbrain", instance: {} },
+    allowedTools: ["mcp__clawdbrain__web_fetch"],
     toolCount: 1,
     registeredTools: ["web_fetch"],
     skippedTools: [],
@@ -88,7 +88,7 @@ describe("runSdkAgent", () => {
       const result = await runSdkAgent(baseParams());
 
       expect(result.payloads[0].isError).toBe(true);
-      expect(result.payloads[0].text).toContain("Failed to bridge Clawdbot tools");
+      expect(result.payloads[0].text).toContain("Failed to bridge Clawdbrain tools");
       expect(result.meta.error?.kind).toBe("mcp_bridge_failed");
     });
   });

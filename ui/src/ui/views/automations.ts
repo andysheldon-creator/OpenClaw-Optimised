@@ -2,10 +2,11 @@ import { html, nothing } from "lit";
 import { icon } from "../icons";
 import type {
   Automation,
+  AutomationSchedule,
   AutomationStatus,
-  statusConfig,
   AutomationsState,
 } from "../controllers/automations";
+import { statusConfig } from "../controllers/automations";
 
 // Re-export automation-related view components
 export { renderAutomationForm } from "./automation-form";
@@ -87,7 +88,7 @@ export function renderAutomationCard(props: AutomationCardProps) {
           <div class="automation-card__title-row">
             <h3 class="automation-card__name">${automation.name}</h3>
             <span class="status-badge ${getStatusClass(automation.status)}">
-              ${icon(statusInfo.icon, { size: 14 })}
+              ${icon(statusInfo.icon as import("../icons").IconName, { size: 14 })}
               ${statusInfo.label}
             </span>
           </div>

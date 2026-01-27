@@ -1,12 +1,12 @@
 /**
  * Configuration helpers for the Claude Agent SDK runner.
  *
- * Bridges Clawdbot's config system (ClawdbotConfig) to the SDK runner's
+ * Bridges Clawdbrain's config system (ClawdbrainConfig) to the SDK runner's
  * SdkRunnerParams, including provider environment resolution and tool
  * assembly.
  */
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ClawdbrainConfig } from "../../config/config.js";
 import { logDebug } from "../../logger.js";
 import type { AuthProfileStore } from "../auth-profiles/types.js";
 import type { SdkProviderConfig, SdkProviderEnv } from "./sdk-runner.types.js";
@@ -62,14 +62,14 @@ export type SdkProviderEntry = {
 };
 
 /**
- * Resolve SDK provider configurations from Clawdbot config.
+ * Resolve SDK provider configurations from Clawdbrain config.
  *
  * Reads from `tools.codingTask.providers` and builds SdkProviderConfig for
  * each entry. Also resolves API keys from environment variables or auth
  * profile references (${VAR_NAME} syntax).
  */
 export function resolveSdkProviders(params: {
-  config?: ClawdbotConfig;
+  config?: ClawdbrainConfig;
   env?: NodeJS.ProcessEnv;
 }): SdkProviderEntry[] {
   const codingTaskCfg = params.config?.tools?.codingTask;
@@ -139,7 +139,7 @@ function resolveEnvValue(value: string, env: NodeJS.ProcessEnv): string {
  * IMPORTANT: `tools.codingTask.*` is tool-level configuration and must not
  * implicitly change the gateway-wide/main-agent runtime selection.
  */
-export function isSdkRunnerEnabled(config?: ClawdbotConfig): boolean {
+export function isSdkRunnerEnabled(config?: ClawdbrainConfig): boolean {
   return config?.agents?.defaults?.runtime === "sdk";
 }
 
@@ -150,7 +150,7 @@ export function isSdkRunnerEnabled(config?: ClawdbotConfig): boolean {
  * Returns undefined if no providers are configured.
  */
 export function resolveDefaultSdkProvider(params: {
-  config?: ClawdbotConfig;
+  config?: ClawdbrainConfig;
   env?: NodeJS.ProcessEnv;
 }): SdkProviderEntry | undefined {
   const providers = resolveSdkProviders(params);

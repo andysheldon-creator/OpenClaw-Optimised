@@ -1,6 +1,6 @@
 ---
 summary: "Plan: Implement experimental `coding_task` tool powered by Claude Agent SDK (Claude Code-style; tool-gated, readonly default)"
-owner: "clawdbot"
+owner: "clawdbrain"
 status: "draft"
 last_updated: "2026-01-25"
 ---
@@ -38,7 +38,7 @@ The plan is intentionally staged:
 
 - Add a new tool `coding_task` that runs a Claude Agent SDK query against the current workspace.
 - The tool should be safe and deterministic enough to run in normal agent sessions.
-- No MCP bridge (no Clawdbot tool forwarding yet).
+- No MCP bridge (no Clawdbrain tool forwarding yet).
 - Capability expansion is controlled by `tools.codingTask.*` (tool preset + permission rules).
 
 ### Deliverables
@@ -96,7 +96,7 @@ Optional helper:
 
 #### 3) Register tool behind flag
 
-- Update `src/agents/clawdbot-tools.ts`
+- Update `src/agents/clawdbrain-tools.ts`
   - If `config?.tools?.codingTask?.enabled === true`, append `coding_task` tool.
   - Otherwise do nothing.
 
@@ -122,7 +122,7 @@ Acceptance:
 
 Preconditions:
 - Claude Code is installed and authenticated on the machine running the gateway.
-- `@anthropic-ai/claude-agent-sdk` is installed and resolvable by the Clawdbot runtime.
+- `@anthropic-ai/claude-agent-sdk` is installed and resolvable by the Clawdbrain runtime.
 - The agent you're testing has a tool policy that allows calling `coding_task` (for example, `tools.profile="coding"`).
 
 1. Enable in config (readonly preset):
@@ -138,10 +138,10 @@ Preconditions:
      }
    }
    ```
-2. Restart the gateway to pick up config changes (macOS: restart via the Clawdbot mac app).
+2. Restart the gateway to pick up config changes (macOS: restart via the Clawdbrain mac app).
 3. Start a new TUI session and send a smoke-test message:
    ```bash
-   clawdbot tui --new --agent <agentId> --deliver --message 'Use coding_task to: (1) grep for "createClawdbotTools" and summarize what it does, (2) read src/agents/tool-policy.ts and list the tool groups, (3) try to write a file "coding-task-smoke.txt" with text "hi", and (4) try to run `git status` with Bash. If any step is blocked, say which tool was blocked.'
+   clawdbrain tui --new --agent <agentId> --deliver --message 'Use coding_task to: (1) grep for "createClawdbrainTools" and summarize what it does, (2) read src/agents/tool-policy.ts and list the tool groups, (3) try to write a file "coding-task-smoke.txt" with text "hi", and (4) try to run `git status` with Bash. If any step is blocked, say which tool was blocked.'
    ```
 4. Confirm (readonly gating):
    - The `coding_task` run can read/grep successfully.
@@ -166,11 +166,11 @@ Optional: expand capabilities (example: allow write/edit + limited bash)
 - Remove `tools.codingTask.enabled` from config (tool disappears).
 - No other runtime paths should change.
 
-## Phase 2 - MCP Bridge (Expose Subset of Clawdbot Tools)
+## Phase 2 - MCP Bridge (Expose Subset of Clawdbrain Tools)
 
 ### Scope
 
-Expose a small, policy-respecting subset of Clawdbot tools to the Claude agent via MCP:
+Expose a small, policy-respecting subset of Clawdbrain tools to the Claude agent via MCP:
 - Candidate tools:
   - `sessions_send`
   - `sessions_list`
@@ -179,12 +179,12 @@ Expose a small, policy-respecting subset of Clawdbot tools to the Claude agent v
 
 ### Key design constraints
 
-- Enforce Clawdbot tool policy and sandbox rules.
+- Enforce Clawdbrain tool policy and sandbox rules.
 - Avoid exposing raw `exec` or write/edit operations until sandbox alignment is complete.
 - Audit all inputs/outputs to avoid secret leakage via tool logs.
 
 Deliverables:
-- MCP server implementation (in-repo) that forwards calls to existing Clawdbot tool handlers.
+- MCP server implementation (in-repo) that forwards calls to existing Clawdbrain tool handlers.
 - Config gating for MCP enablement.
 - Tests for policy enforcement and tool mapping.
 

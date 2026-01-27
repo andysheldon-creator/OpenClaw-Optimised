@@ -4,7 +4,7 @@ Automations allow you to schedule recurring tasks like syncing forked repositori
 
 ## Configuration
 
-Automations are configured in your `clawdbot.yaml` file under the `automations` section:
+Automations are configured in your `clawdbrain.yaml` file under the `automations` section:
 
 ```yaml
 automations:
@@ -127,15 +127,15 @@ schedule:
 ### List Automations
 
 ```bash
-clawdbot automations list
-clawdbot automations ls
+clawdbrain automations list
+clawdbrain automations ls
 ```
 
 ### View Run History
 
 ```bash
-clawdbot automations history <automation-id>
-clawdbot automations history <automation-id> --limit 100
+clawdbrain automations history <automation-id>
+clawdbrain automations history <automation-id> --limit 100
 ```
 
 ## Web UI
@@ -179,14 +179,14 @@ Automations can generate artifacts (files, reports, logs) during execution. Thes
 
 ### Automation Not Running
 
-1. Check if automation is enabled: `clawdbot automations list`
+1. Check if automation is enabled: `clawdbrain automations list`
 2. Verify the schedule is correct
-3. Check gateway logs for errors: `clawdbot logs tail --gateway`
-4. Ensure the gateway is running: `clawdbot status`
+3. Check gateway logs for errors: `clawdbrain logs tail --gateway`
+4. Ensure the gateway is running: `clawdbrain status`
 
 ### Run Failed
 
-1. View run history: `clawdbot automations history <id>`
+1. View run history: `clawdbrain automations history <id>`
 2. Check error details in the run output
 3. Verify script permissions and paths
 4. Check system resources (disk space, memory)

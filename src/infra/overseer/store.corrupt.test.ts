@@ -8,7 +8,7 @@ import { loadOverseerStoreFromDisk } from "./store.js";
 
 describe("loadOverseerStoreFromDisk", () => {
   it("renames corrupt store and enters safe mode", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbot-overseer-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbrain-overseer-"));
     const storePath = path.join(dir, "store.json");
     fs.writeFileSync(storePath, "{not json", "utf8");
 

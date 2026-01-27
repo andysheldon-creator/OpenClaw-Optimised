@@ -67,15 +67,15 @@ const runtime = {
 describe("onboard (non-interactive): gateway and remote auth", () => {
   const prev = {
     home: process.env.HOME,
-    stateDir: process.env.CLAWDBOT_STATE_DIR,
-    configPath: process.env.CLAWDBOT_CONFIG_PATH,
-    skipChannels: process.env.CLAWDBOT_SKIP_CHANNELS,
-    skipGmail: process.env.CLAWDBOT_SKIP_GMAIL_WATCHER,
-    skipCron: process.env.CLAWDBOT_SKIP_CRON,
-    skipCanvas: process.env.CLAWDBOT_SKIP_CANVAS_HOST,
-    skipBrowser: process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER,
-    token: process.env.CLAWDBOT_GATEWAY_TOKEN,
-    password: process.env.CLAWDBOT_GATEWAY_PASSWORD,
+    stateDir: process.env.CLAWDBRAIN_STATE_DIR,
+    configPath: process.env.CLAWDBRAIN_CONFIG_PATH,
+    skipChannels: process.env.CLAWDBRAIN_SKIP_CHANNELS,
+    skipGmail: process.env.CLAWDBRAIN_SKIP_GMAIL_WATCHER,
+    skipCron: process.env.CLAWDBRAIN_SKIP_CRON,
+    skipCanvas: process.env.CLAWDBRAIN_SKIP_CANVAS_HOST,
+    skipBrowser: process.env.CLAWDBRAIN_SKIP_BROWSER_CONTROL_SERVER,
+    token: process.env.CLAWDBRAIN_GATEWAY_TOKEN,
+    password: process.env.CLAWDBRAIN_GATEWAY_PASSWORD,
   };
   let tempHome: string | undefined;
 
@@ -84,21 +84,21 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       throw new Error("temp home not initialized");
     }
     const stateDir = await fs.mkdtemp(path.join(tempHome, prefix));
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
-    delete process.env.CLAWDBOT_CONFIG_PATH;
+    process.env.CLAWDBRAIN_STATE_DIR = stateDir;
+    delete process.env.CLAWDBRAIN_CONFIG_PATH;
     return stateDir;
   };
 
   beforeAll(async () => {
-    process.env.CLAWDBOT_SKIP_CHANNELS = "1";
-    process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = "1";
-    process.env.CLAWDBOT_SKIP_CRON = "1";
-    process.env.CLAWDBOT_SKIP_CANVAS_HOST = "1";
-    process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER = "1";
-    delete process.env.CLAWDBOT_GATEWAY_TOKEN;
-    delete process.env.CLAWDBOT_GATEWAY_PASSWORD;
+    process.env.CLAWDBRAIN_SKIP_CHANNELS = "1";
+    process.env.CLAWDBRAIN_SKIP_GMAIL_WATCHER = "1";
+    process.env.CLAWDBRAIN_SKIP_CRON = "1";
+    process.env.CLAWDBRAIN_SKIP_CANVAS_HOST = "1";
+    process.env.CLAWDBRAIN_SKIP_BROWSER_CONTROL_SERVER = "1";
+    delete process.env.CLAWDBRAIN_GATEWAY_TOKEN;
+    delete process.env.CLAWDBRAIN_GATEWAY_PASSWORD;
 
-    tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-onboard-"));
+    tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "clawdbrain-onboard-"));
     process.env.HOME = tempHome;
   });
 
@@ -107,15 +107,15 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       await fs.rm(tempHome, { recursive: true, force: true });
     }
     process.env.HOME = prev.home;
-    process.env.CLAWDBOT_STATE_DIR = prev.stateDir;
-    process.env.CLAWDBOT_CONFIG_PATH = prev.configPath;
-    process.env.CLAWDBOT_SKIP_CHANNELS = prev.skipChannels;
-    process.env.CLAWDBOT_SKIP_GMAIL_WATCHER = prev.skipGmail;
-    process.env.CLAWDBOT_SKIP_CRON = prev.skipCron;
-    process.env.CLAWDBOT_SKIP_CANVAS_HOST = prev.skipCanvas;
-    process.env.CLAWDBOT_SKIP_BROWSER_CONTROL_SERVER = prev.skipBrowser;
-    process.env.CLAWDBOT_GATEWAY_TOKEN = prev.token;
-    process.env.CLAWDBOT_GATEWAY_PASSWORD = prev.password;
+    process.env.CLAWDBRAIN_STATE_DIR = prev.stateDir;
+    process.env.CLAWDBRAIN_CONFIG_PATH = prev.configPath;
+    process.env.CLAWDBRAIN_SKIP_CHANNELS = prev.skipChannels;
+    process.env.CLAWDBRAIN_SKIP_GMAIL_WATCHER = prev.skipGmail;
+    process.env.CLAWDBRAIN_SKIP_CRON = prev.skipCron;
+    process.env.CLAWDBRAIN_SKIP_CANVAS_HOST = prev.skipCanvas;
+    process.env.CLAWDBRAIN_SKIP_BROWSER_CONTROL_SERVER = prev.skipBrowser;
+    process.env.CLAWDBRAIN_GATEWAY_TOKEN = prev.token;
+    process.env.CLAWDBRAIN_GATEWAY_PASSWORD = prev.password;
   });
 
   it("writes gateway token auth into config and gateway enforces it", async () => {
@@ -204,8 +204,8 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
       return;
     }
     const stateDir = await initStateDir("state-lan-");
-    process.env.CLAWDBOT_STATE_DIR = stateDir;
-    process.env.CLAWDBOT_CONFIG_PATH = path.join(stateDir, "moltbot.json");
+    process.env.CLAWDBRAIN_STATE_DIR = stateDir;
+    process.env.CLAWDBRAIN_CONFIG_PATH = path.join(stateDir, "clawdbrain.json");
 
     const port = await getFreeGatewayPort();
     const workspace = path.join(stateDir, "clawd");

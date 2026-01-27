@@ -77,7 +77,7 @@ export class SmartSyncForkExecutor {
     this.artifactStorage = new ArtifactStorage({
       artifactsDir: path.join(
         process.env.HOME ?? process.env.USERPROFILE ?? ".",
-        ".clawdbot",
+        ".clawdbrain",
         "automations",
         "artifacts",
       ),
@@ -86,7 +86,7 @@ export class SmartSyncForkExecutor {
 
     this.tempDir = path.join(
       tmpdir(),
-      `clawdbot-automation-${this.runId}-${crypto.randomUUID().slice(0, 8)}`,
+      `clawdbrain-automation-${this.runId}-${crypto.randomUUID().slice(0, 8)}`,
     );
     this.git = simpleGitInstance ? simpleGitInstance.default() : null;
 

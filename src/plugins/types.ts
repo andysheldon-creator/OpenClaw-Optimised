@@ -7,7 +7,7 @@ import type { AuthProfileCredential, OAuthCredential } from "../agents/auth-prof
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { ChannelDock } from "../channels/dock.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
-import type { MoltbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 import type { InternalHookHandler } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { ModelProviderConfig } from "../config/types.js";
@@ -41,7 +41,7 @@ export type PluginConfigValidation =
   | { ok: true; value?: unknown }
   | { ok: false; errors: string[] };
 
-export type MoltbotPluginConfigSchema = {
+export type ClawdbrainPluginConfigSchema = {
   safeParse?: (value: unknown) => {
     success: boolean;
     data?: unknown;
@@ -55,8 +55,8 @@ export type MoltbotPluginConfigSchema = {
   jsonSchema?: Record<string, unknown>;
 };
 
-export type MoltbotPluginToolContext = {
-  config?: MoltbotConfig;
+export type ClawdbrainPluginToolContext = {
+  config?: ClawdbrainConfig;
   workspaceDir?: string;
   agentDir?: string;
   agentId?: string;
@@ -66,17 +66,17 @@ export type MoltbotPluginToolContext = {
   sandboxed?: boolean;
 };
 
-export type MoltbotPluginToolFactory = (
-  ctx: MoltbotPluginToolContext,
+export type ClawdbrainPluginToolFactory = (
+  ctx: ClawdbrainPluginToolContext,
 ) => AnyAgentTool | AnyAgentTool[] | null | undefined;
 
-export type MoltbotPluginToolOptions = {
+export type ClawdbrainPluginToolOptions = {
   name?: string;
   names?: string[];
   optional?: boolean;
 };
 
-export type MoltbotPluginHookOptions = {
+export type ClawdbrainPluginHookOptions = {
   entry?: HookEntry;
   name?: string;
   description?: string;
@@ -87,13 +87,13 @@ export type ProviderAuthKind = "oauth" | "api_key" | "token" | "device_code" | "
 
 export type ProviderAuthResult = {
   profiles: Array<{ profileId: string; credential: AuthProfileCredential }>;
-  configPatch?: Partial<MoltbotConfig>;
+  configPatch?: Partial<ClawdbrainConfig>;
   defaultModel?: string;
   notes?: string[];
 };
 
 export type ProviderAuthContext = {
-  config: MoltbotConfig;
+  config: ClawdbrainConfig;
   agentDir?: string;
   workspaceDir?: string;
   prompter: WizardPrompter;
@@ -125,7 +125,7 @@ export type ProviderPlugin = {
   refreshOAuth?: (cred: OAuthCredential) => Promise<OAuthCredential>;
 };
 
-export type MoltbotPluginGatewayMethod = {
+export type ClawdbrainPluginGatewayMethod = {
   method: string;
   handler: GatewayRequestHandler;
 };
@@ -148,8 +148,8 @@ export type PluginCommandContext = {
   args?: string;
   /** The full normalized command body */
   commandBody: string;
-  /** Current moltbot configuration */
-  config: MoltbotConfig;
+  /** Current clawdbrain configuration */
+  config: ClawdbrainConfig;
 };
 
 /**
@@ -167,7 +167,7 @@ export type PluginCommandHandler = (
 /**
  * Definition for a plugin-registered command.
  */
-export type MoltbotPluginCommandDefinition = {
+export type ClawdbrainPluginCommandDefinition = {
   /** Command name without leading slash (e.g., "tts") */
   name: string;
   /** Description shown in /help and command menus */
@@ -180,90 +180,92 @@ export type MoltbotPluginCommandDefinition = {
   handler: PluginCommandHandler;
 };
 
-export type MoltbotPluginHttpHandler = (
+export type ClawdbrainPluginHttpHandler = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => Promise<boolean> | boolean;
 
-export type MoltbotPluginHttpRouteHandler = (
+export type ClawdbrainPluginHttpRouteHandler = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => Promise<void> | void;
 
-export type MoltbotPluginCliContext = {
+export type ClawdbrainPluginCliContext = {
   program: Command;
-  config: MoltbotConfig;
+  config: ClawdbrainConfig;
   workspaceDir?: string;
   logger: PluginLogger;
 };
 
-export type MoltbotPluginCliRegistrar = (ctx: MoltbotPluginCliContext) => void | Promise<void>;
+export type ClawdbrainPluginCliRegistrar = (
+  ctx: ClawdbrainPluginCliContext,
+) => void | Promise<void>;
 
-export type MoltbotPluginServiceContext = {
-  config: MoltbotConfig;
+export type ClawdbrainPluginServiceContext = {
+  config: ClawdbrainConfig;
   workspaceDir?: string;
   stateDir: string;
   logger: PluginLogger;
 };
 
-export type MoltbotPluginService = {
+export type ClawdbrainPluginService = {
   id: string;
-  start: (ctx: MoltbotPluginServiceContext) => void | Promise<void>;
-  stop?: (ctx: MoltbotPluginServiceContext) => void | Promise<void>;
+  start: (ctx: ClawdbrainPluginServiceContext) => void | Promise<void>;
+  stop?: (ctx: ClawdbrainPluginServiceContext) => void | Promise<void>;
 };
 
-export type MoltbotPluginChannelRegistration = {
+export type ClawdbrainPluginChannelRegistration = {
   plugin: ChannelPlugin;
   dock?: ChannelDock;
 };
 
-export type MoltbotPluginDefinition = {
+export type ClawdbrainPluginDefinition = {
   id?: string;
   name?: string;
   description?: string;
   version?: string;
   kind?: PluginKind;
-  configSchema?: MoltbotPluginConfigSchema;
-  register?: (api: MoltbotPluginApi) => void | Promise<void>;
-  activate?: (api: MoltbotPluginApi) => void | Promise<void>;
+  configSchema?: ClawdbrainPluginConfigSchema;
+  register?: (api: ClawdbrainPluginApi) => void | Promise<void>;
+  activate?: (api: ClawdbrainPluginApi) => void | Promise<void>;
 };
 
-export type MoltbotPluginModule =
-  | MoltbotPluginDefinition
-  | ((api: MoltbotPluginApi) => void | Promise<void>);
+export type ClawdbrainPluginModule =
+  | ClawdbrainPluginDefinition
+  | ((api: ClawdbrainPluginApi) => void | Promise<void>);
 
-export type MoltbotPluginApi = {
+export type ClawdbrainPluginApi = {
   id: string;
   name: string;
   version?: string;
   description?: string;
   source: string;
-  config: MoltbotConfig;
+  config: ClawdbrainConfig;
   pluginConfig?: Record<string, unknown>;
   runtime: PluginRuntime;
   logger: PluginLogger;
   registerTool: (
-    tool: AnyAgentTool | MoltbotPluginToolFactory,
-    opts?: MoltbotPluginToolOptions,
+    tool: AnyAgentTool | ClawdbrainPluginToolFactory,
+    opts?: ClawdbrainPluginToolOptions,
   ) => void;
   registerHook: (
     events: string | string[],
     handler: InternalHookHandler,
-    opts?: MoltbotPluginHookOptions,
+    opts?: ClawdbrainPluginHookOptions,
   ) => void;
-  registerHttpHandler: (handler: MoltbotPluginHttpHandler) => void;
-  registerHttpRoute: (params: { path: string; handler: MoltbotPluginHttpRouteHandler }) => void;
-  registerChannel: (registration: MoltbotPluginChannelRegistration | ChannelPlugin) => void;
+  registerHttpHandler: (handler: ClawdbrainPluginHttpHandler) => void;
+  registerHttpRoute: (params: { path: string; handler: ClawdbrainPluginHttpRouteHandler }) => void;
+  registerChannel: (registration: ClawdbrainPluginChannelRegistration | ChannelPlugin) => void;
   registerGatewayMethod: (method: string, handler: GatewayRequestHandler) => void;
-  registerCli: (registrar: MoltbotPluginCliRegistrar, opts?: { commands?: string[] }) => void;
-  registerService: (service: MoltbotPluginService) => void;
+  registerCli: (registrar: ClawdbrainPluginCliRegistrar, opts?: { commands?: string[] }) => void;
+  registerService: (service: ClawdbrainPluginService) => void;
   registerProvider: (provider: ProviderPlugin) => void;
   /**
    * Register a custom command that bypasses the LLM agent.
    * Plugin commands are processed before built-in commands and before agent invocation.
    * Use this for simple state-toggling or status commands that don't need AI reasoning.
    */
-  registerCommand: (command: MoltbotPluginCommandDefinition) => void;
+  registerCommand: (command: ClawdbrainPluginCommandDefinition) => void;
   resolvePath: (input: string) => string;
   /** Register a lifecycle hook handler */
   on: <K extends PluginHookName>(

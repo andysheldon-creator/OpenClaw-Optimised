@@ -1,12 +1,12 @@
-import type { MoltbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 
 export type PluginEnableResult = {
-  config: MoltbotConfig;
+  config: ClawdbrainConfig;
   enabled: boolean;
   reason?: string;
 };
 
-function ensureAllowlisted(cfg: MoltbotConfig, pluginId: string): MoltbotConfig {
+function ensureAllowlisted(cfg: ClawdbrainConfig, pluginId: string): ClawdbrainConfig {
   const allow = cfg.plugins?.allow;
   if (!Array.isArray(allow) || allow.includes(pluginId)) return cfg;
   return {
@@ -18,7 +18,7 @@ function ensureAllowlisted(cfg: MoltbotConfig, pluginId: string): MoltbotConfig 
   };
 }
 
-export function enablePluginInConfig(cfg: MoltbotConfig, pluginId: string): PluginEnableResult {
+export function enablePluginInConfig(cfg: ClawdbrainConfig, pluginId: string): PluginEnableResult {
   if (cfg.plugins?.enabled === false) {
     return { config: cfg, enabled: false, reason: "plugins disabled" };
   }
@@ -33,7 +33,7 @@ export function enablePluginInConfig(cfg: MoltbotConfig, pluginId: string): Plug
       enabled: true,
     },
   };
-  let next: MoltbotConfig = {
+  let next: ClawdbrainConfig = {
     ...cfg,
     plugins: {
       ...cfg.plugins,

@@ -1,4 +1,4 @@
-import type { MoltbotConfig } from "../config/config.js";
+import type { ClawdbrainConfig } from "../config/config.js";
 import { resolveGatewayPort } from "../config/config.js";
 import { findTailscaleBinary } from "../infra/tailscale.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -10,10 +10,10 @@ import { guardCancel, randomToken } from "./onboard-helpers.js";
 type GatewayAuthChoice = "token" | "password";
 
 export async function promptGatewayConfig(
-  cfg: MoltbotConfig,
+  cfg: ClawdbrainConfig,
   runtime: RuntimeEnv,
 ): Promise<{
-  config: MoltbotConfig;
+  config: ClawdbrainConfig;
   port: number;
   token?: string;
 }> {
@@ -139,7 +139,11 @@ export async function promptGatewayConfig(
   let tailscaleResetOnExit = false;
   if (tailscaleMode !== "off") {
     note(
-      ["Docs:", "https://docs.molt.bot/gateway/tailscale", "https://docs.molt.bot/web"].join("\n"),
+      [
+        "Docs:",
+        "https://docs.clawdbrain.bot/gateway/tailscale",
+        "https://docs.clawdbrain.bot/web",
+      ].join("\n"),
       "Tailscale",
     );
     tailscaleResetOnExit = Boolean(

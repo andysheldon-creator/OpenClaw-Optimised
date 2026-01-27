@@ -25,7 +25,7 @@ export interface RunHistoryProps {
   onClose: () => void;
 }
 
-function getStatusConfig(status: AutomationRunRecord["status"]) {
+function getStatusConfig(status: AutomationRunRecord["status"]): { classes: string; icon: import("../icons").IconName } {
   switch (status) {
     case "success":
       return { classes: "badge badge--ok", icon: "check-circle" };
@@ -58,7 +58,7 @@ function renderStatusBadge(status: AutomationRunRecord["status"]) {
   `;
 }
 
-function renderTimelineItem(event: { timestamp: string; action: string; details: string; status: "success" | "warning" | "error" }, index: number) {
+function renderTimelineItem(event: { timestamp?: string; title?: string; action?: string; details?: string; status: string }, index: number) {
   const colorClass = event.status === "success" ? "bg-ok" : event.status === "warning" ? "bg-warn" : "bg-danger";
 
   return html`
@@ -68,9 +68,9 @@ function renderTimelineItem(event: { timestamp: string; action: string; details:
         ? html`<div class="run-timeline-item__line"></div>`
         : nothing}
       <div class="run-timeline-item__content">
-        <div class="run-timeline-item__timestamp">${event.timestamp}</div>
-        <div class="run-timeline-item__action">${event.action}</div>
-        <div class="run-timeline-item__details">${event.details}</div>
+        ${event.timestamp ? html`<div class="run-timeline-item__timestamp">${event.timestamp}</div>` : nothing}
+        <div class="run-timeline-item__action">${event.title ?? event.action ?? ""}</div>
+        ${event.details ? html`<div class="run-timeline-item__details">${event.details}</div>` : nothing}
       </div>
     </div>
   `;

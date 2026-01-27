@@ -113,11 +113,11 @@ export function buildSandboxCreateArgs(params: {
 }) {
   const createdAtMs = params.createdAtMs ?? Date.now();
   const args = ["create", "--name", params.name];
-  args.push("--label", "moltbot.sandbox=1");
-  args.push("--label", `moltbot.sessionKey=${params.scopeKey}`);
-  args.push("--label", `moltbot.createdAtMs=${createdAtMs}`);
+  args.push("--label", "clawdbrain.sandbox=1");
+  args.push("--label", `clawdbrain.sessionKey=${params.scopeKey}`);
+  args.push("--label", `clawdbrain.createdAtMs=${createdAtMs}`);
   if (params.configHash) {
-    args.push("--label", `moltbot.configHash=${params.configHash}`);
+    args.push("--label", `clawdbrain.configHash=${params.configHash}`);
   }
   for (const [key, value] of Object.entries(params.labels ?? {})) {
     if (key && value) args.push("--label", `${key}=${value}`);
@@ -209,7 +209,7 @@ async function createSandboxContainer(params: {
 
 async function readContainerConfigHash(containerName: string): Promise<string | null> {
   const result = await execDocker(
-    ["inspect", "-f", '{{ index .Config.Labels "moltbot.configHash" }}', containerName],
+    ["inspect", "-f", '{{ index .Config.Labels "clawdbrain.configHash" }}', containerName],
     { allowFailure: true },
   );
   if (result.code !== 0) return null;
@@ -220,13 +220,13 @@ async function readContainerConfigHash(containerName: string): Promise<string | 
 
 function formatSandboxRecreateHint(params: { scope: SandboxConfig["scope"]; sessionKey: string }) {
   if (params.scope === "session") {
-    return formatCliCommand(`moltbot sandbox recreate --session ${params.sessionKey}`);
+    return formatCliCommand(`clawdbrain sandbox recreate --session ${params.sessionKey}`);
   }
   if (params.scope === "agent") {
     const agentId = resolveSandboxAgentId(params.sessionKey) ?? "main";
-    return formatCliCommand(`moltbot sandbox recreate --agent ${agentId}`);
+    return formatCliCommand(`clawdbrain sandbox recreate --agent ${agentId}`);
   }
-  return formatCliCommand("moltbot sandbox recreate --all");
+  return formatCliCommand("clawdbrain sandbox recreate --all");
 }
 
 export async function ensureSandboxContainer(params: {

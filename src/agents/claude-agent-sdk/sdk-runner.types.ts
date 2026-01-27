@@ -3,7 +3,7 @@
  * embedded runner that uses the Claude Agent SDK as the main agent runtime.
  */
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ClawdbrainConfig } from "../../config/config.js";
 import type { AnyAgentTool } from "../tools/common.js";
 
 // ---------------------------------------------------------------------------
@@ -59,12 +59,12 @@ export type SdkRunnerParams = {
   /** Agent directory (for auth profile resolution). */
   agentDir?: string;
 
-  /** Clawdbot configuration (for tool creation, policies, etc.). */
-  config?: ClawdbotConfig;
+  /** Clawdbrain configuration (for tool creation, policies, etc.). */
+  config?: ClawdbrainConfig;
 
   /**
-   * Pre-built Clawdbot tools to expose to the agent.
-   * These should already be policy-filtered (via createClawdbotCodingTools).
+   * Pre-built Clawdbrain tools to expose to the agent.
+   * These should already be policy-filtered (via createClawdbrainCodingTools).
    */
   tools: AnyAgentTool[];
 
@@ -76,10 +76,10 @@ export type SdkRunnerParams = {
   provider?: SdkProviderConfig;
 
   /**
-   * Claude Code built-in tools to enable alongside Clawdbot MCP tools.
-   * Set to `[]` to disable all built-in tools (agent uses only Clawdbot tools).
+   * Claude Code built-in tools to enable alongside Clawdbrain MCP tools.
+   * Set to `[]` to disable all built-in tools (agent uses only Clawdbrain tools).
    * Set to `["Read", "Bash", ...]` for a curated list.
-   * Defaults to `[]` (Clawdbot tools only via MCP).
+   * Defaults to `[]` (Clawdbrain tools only via MCP).
    */
   builtInTools?: string[];
 
@@ -116,8 +116,8 @@ export type SdkRunnerParams = {
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void | Promise<void>;
 
   /**
-   * MCP server name for the bridged Clawdbot tools.
-   * Defaults to "clawdbot".
+   * MCP server name for the bridged Clawdbrain tools.
+   * Defaults to "clawdbrain".
    */
   mcpServerName?: string;
 

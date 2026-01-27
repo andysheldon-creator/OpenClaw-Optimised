@@ -81,36 +81,36 @@ vi.mock("./progress.js", () => ({
 
 describe("daemon-cli coverage", () => {
   const originalEnv = {
-    CLAWDBOT_STATE_DIR: process.env.CLAWDBOT_STATE_DIR,
-    CLAWDBOT_CONFIG_PATH: process.env.CLAWDBOT_CONFIG_PATH,
-    CLAWDBOT_GATEWAY_PORT: process.env.CLAWDBOT_GATEWAY_PORT,
-    CLAWDBOT_PROFILE: process.env.CLAWDBOT_PROFILE,
+    CLAWDBRAIN_STATE_DIR: process.env.CLAWDBRAIN_STATE_DIR,
+    CLAWDBRAIN_CONFIG_PATH: process.env.CLAWDBRAIN_CONFIG_PATH,
+    CLAWDBRAIN_GATEWAY_PORT: process.env.CLAWDBRAIN_GATEWAY_PORT,
+    CLAWDBRAIN_PROFILE: process.env.CLAWDBRAIN_PROFILE,
   };
 
   beforeEach(() => {
-    process.env.CLAWDBOT_STATE_DIR = "/tmp/moltbot-cli-state";
-    process.env.CLAWDBOT_CONFIG_PATH = "/tmp/moltbot-cli-state/moltbot.json";
-    delete process.env.CLAWDBOT_GATEWAY_PORT;
-    delete process.env.CLAWDBOT_PROFILE;
+    process.env.CLAWDBRAIN_STATE_DIR = "/tmp/clawdbrain-cli-state";
+    process.env.CLAWDBRAIN_CONFIG_PATH = "/tmp/clawdbrain-cli-state/clawdbrain.json";
+    delete process.env.CLAWDBRAIN_GATEWAY_PORT;
+    delete process.env.CLAWDBRAIN_PROFILE;
     serviceReadCommand.mockResolvedValue(null);
   });
 
   afterEach(() => {
-    if (originalEnv.CLAWDBOT_STATE_DIR !== undefined)
-      process.env.CLAWDBOT_STATE_DIR = originalEnv.CLAWDBOT_STATE_DIR;
-    else delete process.env.CLAWDBOT_STATE_DIR;
+    if (originalEnv.CLAWDBRAIN_STATE_DIR !== undefined)
+      process.env.CLAWDBRAIN_STATE_DIR = originalEnv.CLAWDBRAIN_STATE_DIR;
+    else delete process.env.CLAWDBRAIN_STATE_DIR;
 
-    if (originalEnv.CLAWDBOT_CONFIG_PATH !== undefined)
-      process.env.CLAWDBOT_CONFIG_PATH = originalEnv.CLAWDBOT_CONFIG_PATH;
-    else delete process.env.CLAWDBOT_CONFIG_PATH;
+    if (originalEnv.CLAWDBRAIN_CONFIG_PATH !== undefined)
+      process.env.CLAWDBRAIN_CONFIG_PATH = originalEnv.CLAWDBRAIN_CONFIG_PATH;
+    else delete process.env.CLAWDBRAIN_CONFIG_PATH;
 
-    if (originalEnv.CLAWDBOT_GATEWAY_PORT !== undefined)
-      process.env.CLAWDBOT_GATEWAY_PORT = originalEnv.CLAWDBOT_GATEWAY_PORT;
-    else delete process.env.CLAWDBOT_GATEWAY_PORT;
+    if (originalEnv.CLAWDBRAIN_GATEWAY_PORT !== undefined)
+      process.env.CLAWDBRAIN_GATEWAY_PORT = originalEnv.CLAWDBRAIN_GATEWAY_PORT;
+    else delete process.env.CLAWDBRAIN_GATEWAY_PORT;
 
-    if (originalEnv.CLAWDBOT_PROFILE !== undefined)
-      process.env.CLAWDBOT_PROFILE = originalEnv.CLAWDBOT_PROFILE;
-    else delete process.env.CLAWDBOT_PROFILE;
+    if (originalEnv.CLAWDBRAIN_PROFILE !== undefined)
+      process.env.CLAWDBRAIN_PROFILE = originalEnv.CLAWDBRAIN_PROFILE;
+    else delete process.env.CLAWDBRAIN_PROFILE;
   });
 
   it("probes gateway status by default", async () => {
@@ -140,12 +140,12 @@ describe("daemon-cli coverage", () => {
     serviceReadCommand.mockResolvedValueOnce({
       programArguments: ["/bin/node", "cli", "gateway", "--port", "19001"],
       environment: {
-        CLAWDBOT_PROFILE: "dev",
-        CLAWDBOT_STATE_DIR: "/tmp/moltbot-daemon-state",
-        CLAWDBOT_CONFIG_PATH: "/tmp/moltbot-daemon-state/moltbot.json",
-        CLAWDBOT_GATEWAY_PORT: "19001",
+        CLAWDBRAIN_PROFILE: "dev",
+        CLAWDBRAIN_STATE_DIR: "/tmp/clawdbrain-daemon-state",
+        CLAWDBRAIN_CONFIG_PATH: "/tmp/clawdbrain-daemon-state/clawdbrain.json",
+        CLAWDBRAIN_GATEWAY_PORT: "19001",
       },
-      sourcePath: "/tmp/com.clawdbot.gateway.plist",
+      sourcePath: "/tmp/com.clawdbrain.gateway.plist",
     });
 
     const { registerDaemonCli } = await import("./daemon-cli.js");

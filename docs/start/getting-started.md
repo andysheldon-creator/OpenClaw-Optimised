@@ -9,11 +9,11 @@ read_when:
 
 Goal: go from **zero** → **first working chat** (with sane defaults) as quickly as possible.
 
-Fastest chat: open the Control UI (no channel setup needed). Run `moltbot dashboard`
+Fastest chat: open the Control UI (no channel setup needed). Run `clawdbrain dashboard`
 and chat in the browser, or open `http://127.0.0.1:18789/` on the gateway host.
 Docs: [Dashboard](/web/dashboard) and [Control UI](/web/control-ui).
 
-Recommended path: use the **CLI onboarding wizard** (`moltbot onboard`). It sets up:
+Recommended path: use the **CLI onboarding wizard** (`clawdbrain onboard`). It sets up:
 - model/auth (OAuth recommended)
 - gateway settings
 - channels (WhatsApp/Telegram/Discord/Mattermost (plugin)/...)
@@ -45,7 +45,7 @@ run on host, set an explicit per-agent override:
 - Node `>=22`
 - `pnpm` (optional; recommended if you build from source)
 - **Recommended:** Brave Search API key for web search. Easiest path:
-  `moltbot configure --section web` (stores `tools.web.search.apiKey`).
+  `clawdbrain configure --section web` (stores `tools.web.search.apiKey`).
   See [Web tools](/tools/web).
 
 macOS: if you plan to build the apps, install Xcode / CLT. For the CLI + gateway only, Node is enough.
@@ -54,7 +54,7 @@ Windows: use **WSL2** (Ubuntu recommended). WSL2 is strongly recommended; native
 ## 1) Install the CLI (recommended)
 
 ```bash
-curl -fsSL https://molt.bot/install.sh | bash
+curl -fsSL https://clawdbrain.bot/install.sh | bash
 ```
 
 Installer options (install method, non-interactive, from GitHub): [Install](/install).
@@ -62,23 +62,23 @@ Installer options (install method, non-interactive, from GitHub): [Install](/ins
 Windows (PowerShell):
 
 ```powershell
-iwr -useb https://molt.bot/install.ps1 | iex
+iwr -useb https://clawdbrain.bot/install.ps1 | iex
 ```
 
 Alternative (global install):
 
 ```bash
-npm install -g moltbot@latest
+npm install -g clawdbrain@latest
 ```
 
 ```bash
-pnpm add -g moltbot@latest
+pnpm add -g clawdbrain@latest
 ```
 
 ## 2) Run the onboarding wizard (and install the service)
 
 ```bash
-moltbot onboard --install-daemon
+clawdbrain onboard --install-daemon
 ```
 
 What you’ll choose:
@@ -95,8 +95,8 @@ Wizard doc: [Wizard](/start/wizard)
 
 - **Recommended Anthropic path:** set an API key (wizard can store it for service use). `claude setup-token` is also supported if you want to reuse Claude Code credentials.
 
-- OAuth credentials (legacy import): `~/.clawdbot/credentials/oauth.json`
-- Auth profiles (OAuth + API keys): `~/.clawdbot/agents/<agentId>/agent/auth-profiles.json`
+- OAuth credentials (legacy import): `~/.clawdbrain/credentials/oauth.json`
+- Auth profiles (OAuth + API keys): `~/.clawdbrain/agents/<agentId>/agent/auth-profiles.json`
 
 Headless/server tip: do OAuth on a normal machine first, then copy `oauth.json` to the gateway host.
 
@@ -105,13 +105,13 @@ Headless/server tip: do OAuth on a normal machine first, then copy `oauth.json` 
 If you installed the service during onboarding, the Gateway should already be running:
 
 ```bash
-moltbot gateway status
+clawdbrain gateway status
 ```
 
 Manual run (foreground):
 
 ```bash
-moltbot gateway --port 18789 --verbose
+clawdbrain gateway --port 18789 --verbose
 ```
 
 Dashboard (local loopback): `http://127.0.0.1:18789/`
@@ -123,9 +123,9 @@ channels. If you use WhatsApp or Telegram, run the Gateway with **Node**.
 ## 3.5) Quick verify (2 min)
 
 ```bash
-moltbot status
-moltbot health
-moltbot security audit --deep
+clawdbrain status
+clawdbrain health
+clawdbrain security audit --deep
 ```
 
 ## 4) Pair + connect your first chat surface
@@ -133,7 +133,7 @@ moltbot security audit --deep
 ### WhatsApp (QR login)
 
 ```bash
-moltbot channels login
+clawdbrain channels login
 ```
 
 Scan via WhatsApp → Settings → Linked Devices.
@@ -155,26 +155,26 @@ Default posture: unknown DMs get a short code and messages are not processed unt
 If your first DM gets no reply, approve the pairing:
 
 ```bash
-moltbot pairing list whatsapp
-moltbot pairing approve whatsapp <code>
+clawdbrain pairing list whatsapp
+clawdbrain pairing approve whatsapp <code>
 ```
 
 Pairing doc: [Pairing](/start/pairing)
 
 ## From source (development)
 
-If you’re hacking on Moltbot itself, run from source:
+If you’re hacking on Clawdbrain itself, run from source:
 
 ```bash
-git clone https://github.com/moltbot/moltbot.git
-cd moltbot
+git clone https://github.com/clawdbrain/clawdbrain.git
+cd clawdbrain
 pnpm install
 pnpm ui:build # auto-installs UI deps on first run
 pnpm build
-moltbot onboard --install-daemon
+clawdbrain onboard --install-daemon
 ```
 
-If you don’t have a global install yet, run the onboarding step via `pnpm moltbot ...` from the repo.
+If you don’t have a global install yet, run the onboarding step via `pnpm clawdbrain ...` from the repo.
 `pnpm build` also bundles A2UI assets; if you need to run just that step, use `pnpm canvas:a2ui:bundle`.
 
 Gateway (from this repo):
@@ -188,13 +188,13 @@ node dist/entry.js gateway --port 18789 --verbose
 In a new terminal, send a test message:
 
 ```bash
-moltbot message send --target +15555550123 --message "Hello from Moltbot"
+clawdbrain message send --target +15555550123 --message "Hello from Clawdbrain"
 ```
 
-If `moltbot health` shows “no auth configured”, go back to the wizard and set OAuth/key auth — the agent won’t be able to respond without it.
+If `clawdbrain health` shows “no auth configured”, go back to the wizard and set OAuth/key auth — the agent won’t be able to respond without it.
 
-Tip: `moltbot status --all` is the best pasteable, read-only debug report.
-Health probes: `moltbot health` (or `moltbot status --deep`) asks the running gateway for a health snapshot.
+Tip: `clawdbrain status --all` is the best pasteable, read-only debug report.
+Health probes: `clawdbrain health` (or `clawdbrain status --deep`) asks the running gateway for a health snapshot.
 
 ## Next steps (optional, but great)
 

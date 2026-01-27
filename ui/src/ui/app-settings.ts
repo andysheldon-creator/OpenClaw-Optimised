@@ -28,7 +28,7 @@ import { startThemeTransition, type ThemeTransitionContext } from "./theme-trans
 import { jumpToLogsBottom, scheduleChatScroll, scheduleLogsScroll } from "./app-scroll";
 import { startLogsPolling, stopLogsPolling, startDebugPolling, stopDebugPolling, startOverseerPolling, stopOverseerPolling } from "./app-polling";
 import { refreshChat } from "./app-chat";
-import type { ClawdbotApp } from "./app";
+import type { ClawdbrainApp } from "./app";
 import { setupLogsKeyboardShortcuts } from "./views/logs";
 import { setupConfigKeyboardShortcuts } from "./views/config";
 import { setupOverseerKeyboardShortcuts } from "./views/overseer";
@@ -37,10 +37,10 @@ import { analyzeConfigSchema } from "./views/config-form";
 /**
  * Internal type for app-settings helper functions.
  * This includes both public properties from AppViewState and internal/private
- * properties from ClawdbotApp that these helpers need to access.
+ * properties from ClawdbrainApp that these helpers need to access.
  *
- * Note: Functions here are called with ClawdbotApp instances and use
- * `as unknown as ClawdbotApp` casts when they need full class access.
+ * Note: Functions here are called with ClawdbrainApp instances and use
+ * `as unknown as ClawdbrainApp` casts when they need full class access.
  */
 type SettingsHost = {
   // Public properties (from AppViewState)
@@ -57,7 +57,7 @@ type SettingsHost = {
   logsShowRelativeTime: boolean;
   eventLog: unknown[];
   basePath: string;
-  // Internal properties (private on ClawdbotApp, needed by these helpers)
+  // Internal properties (private on ClawdbrainApp, needed by these helpers)
   chatHasAutoScrolled: boolean;
   logsKeyboardCleanup: (() => void) | null;
   configKeyboardCleanup: (() => void) | null;
@@ -194,36 +194,36 @@ export function setTheme(
 export async function refreshActiveTab(host: SettingsHost) {
   if (host.tab === "overview") await loadOverview(host);
   if (host.tab === "agents") {
-    await loadSessions(host as unknown as ClawdbotApp);
+    await loadSessions(host as unknown as ClawdbrainApp);
   }
   if (host.tab === "channels") await loadChannelsTab(host);
-  if (host.tab === "instances") await loadPresence(host as unknown as ClawdbotApp);
+  if (host.tab === "instances") await loadPresence(host as unknown as ClawdbrainApp);
   if (host.tab === "sessions") {
     await Promise.all([
-      loadSessions(host as unknown as ClawdbotApp),
-      loadAgents(host as unknown as ClawdbotApp),
+      loadSessions(host as unknown as ClawdbrainApp),
+      loadAgents(host as unknown as ClawdbrainApp),
     ]);
   }
   if (host.tab === "cron") await loadCron(host);
   if (host.tab === "automations") await loadAutomations(host as unknown as Parameters<typeof loadAutomations>[0]);
-  if (host.tab === "skills") await loadSkills(host as unknown as ClawdbotApp);
+  if (host.tab === "skills") await loadSkills(host as unknown as ClawdbrainApp);
   if (host.tab === "overseer") {
-    await refreshOverseer(host as unknown as ClawdbotApp);
+    await refreshOverseer(host as unknown as ClawdbrainApp);
     await Promise.all([
-      loadAgents(host as unknown as ClawdbotApp),
-      loadNodes(host as unknown as ClawdbotApp),
-      loadSessions(host as unknown as ClawdbotApp),
-      loadChannels(host as unknown as ClawdbotApp, false),
-      loadPresence(host as unknown as ClawdbotApp),
+      loadAgents(host as unknown as ClawdbrainApp),
+      loadNodes(host as unknown as ClawdbrainApp),
+      loadSessions(host as unknown as ClawdbrainApp),
+      loadChannels(host as unknown as ClawdbrainApp, false),
+      loadPresence(host as unknown as ClawdbrainApp),
       loadCron(host),
-      loadSkills(host as unknown as ClawdbotApp),
+      loadSkills(host as unknown as ClawdbrainApp),
     ]);
   }
   if (host.tab === "nodes") {
-    await loadNodes(host as unknown as ClawdbotApp);
-    await loadDevices(host as unknown as ClawdbotApp);
-    await loadConfig(host as unknown as ClawdbotApp);
-    await loadExecApprovals(host as unknown as ClawdbotApp);
+    await loadNodes(host as unknown as ClawdbrainApp);
+    await loadDevices(host as unknown as ClawdbrainApp);
+    await loadConfig(host as unknown as ClawdbrainApp);
+    await loadExecApprovals(host as unknown as ClawdbrainApp);
   }
   if (host.tab === "chat") {
     await refreshChat(host as unknown as Parameters<typeof refreshChat>[0]);
@@ -233,16 +233,16 @@ export async function refreshActiveTab(host: SettingsHost) {
     );
   }
   if (host.tab === "config") {
-    await loadConfigSchema(host as unknown as ClawdbotApp);
-    await loadConfig(host as unknown as ClawdbotApp);
+    await loadConfigSchema(host as unknown as ClawdbrainApp);
+    await loadConfig(host as unknown as ClawdbrainApp);
   }
   if (host.tab === "debug") {
-    await loadDebug(host as unknown as ClawdbotApp);
+    await loadDebug(host as unknown as ClawdbrainApp);
     host.eventLog = host.eventLogBuffer;
   }
   if (host.tab === "logs") {
     host.logsAtBottom = true;
-    await loadLogs(host as unknown as ClawdbotApp, { reset: true });
+    await loadLogs(host as unknown as ClawdbrainApp, { reset: true });
     scheduleLogsScroll(
       host as unknown as Parameters<typeof scheduleLogsScroll>[0],
       true,
@@ -252,7 +252,7 @@ export async function refreshActiveTab(host: SettingsHost) {
 
 export function inferBasePath() {
   if (typeof window === "undefined") return "";
-  const configured = window.__CLAWDBOT_CONTROL_UI_BASE_PATH__;
+  const configured = window.__CLAWDBRAIN_CONTROL_UI_BASE_PATH__;
   if (typeof configured === "string" && configured.trim()) {
     return normalizeBasePath(configured);
   }
@@ -392,27 +392,27 @@ export function syncUrlWithSessionKey(
 
 export async function loadOverview(host: SettingsHost) {
   await Promise.all([
-    loadChannels(host as unknown as ClawdbotApp, false),
-    loadPresence(host as unknown as ClawdbotApp),
-    loadSessions(host as unknown as ClawdbotApp),
-    loadCronStatus(host as unknown as ClawdbotApp),
-    loadDebug(host as unknown as ClawdbotApp),
+    loadChannels(host as unknown as ClawdbrainApp, false),
+    loadPresence(host as unknown as ClawdbrainApp),
+    loadSessions(host as unknown as ClawdbrainApp),
+    loadCronStatus(host as unknown as ClawdbrainApp),
+    loadDebug(host as unknown as ClawdbrainApp),
   ]);
 }
 
 export async function loadChannelsTab(host: SettingsHost) {
   await Promise.all([
-    loadChannels(host as unknown as ClawdbotApp, true),
-    loadConfigSchema(host as unknown as ClawdbotApp),
-    loadConfig(host as unknown as ClawdbotApp),
+    loadChannels(host as unknown as ClawdbrainApp, true),
+    loadConfigSchema(host as unknown as ClawdbrainApp),
+    loadConfig(host as unknown as ClawdbrainApp),
   ]);
 }
 
 export async function loadCron(host: SettingsHost) {
   await Promise.all([
-    loadChannels(host as unknown as ClawdbotApp, false),
-    loadCronStatus(host as unknown as ClawdbotApp),
-    loadCronJobs(host as unknown as ClawdbotApp),
+    loadChannels(host as unknown as ClawdbrainApp, false),
+    loadCronStatus(host as unknown as ClawdbrainApp),
+    loadCronJobs(host as unknown as ClawdbrainApp),
   ]);
 }
 
@@ -429,7 +429,7 @@ function setupLogsKeyboardShortcutsForHost(host: SettingsHost) {
       jumpToLogsBottom(host as unknown as Parameters<typeof jumpToLogsBottom>[0]);
     },
     onRefresh: () => {
-      void loadLogs(host as unknown as ClawdbotApp, { reset: true });
+      void loadLogs(host as unknown as ClawdbrainApp, { reset: true });
     },
     onToggleAutoFollow: () => {
       host.logsAutoFollow = !host.logsAutoFollow;
@@ -447,7 +447,7 @@ function cleanupLogsKeyboardShortcuts(host: SettingsHost) {
 function setupConfigKeyboardShortcutsForHost(host: SettingsHost) {
   cleanupConfigKeyboardShortcuts(host);
 
-  const state = host as unknown as ClawdbotApp;
+  const state = host as unknown as ClawdbrainApp;
 
   host.configKeyboardCleanup = setupConfigKeyboardShortcuts({
     getFormMode: () => state.configFormMode,
@@ -501,7 +501,7 @@ function cleanupConfigKeyboardShortcuts(host: SettingsHost) {
 function setupOverseerKeyboardShortcutsForHost(host: SettingsHost) {
   cleanupOverseerKeyboardShortcuts(host);
 
-  const state = host as unknown as ClawdbotApp;
+  const state = host as unknown as ClawdbrainApp;
   host.overseerKeyboardCleanup = setupOverseerKeyboardShortcuts({
     getDrawerOpen: () => state.overseerDrawerOpen,
     onCloseDrawer: () => state.handleOverseerDrawerClose(),

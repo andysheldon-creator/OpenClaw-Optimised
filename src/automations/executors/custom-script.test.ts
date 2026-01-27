@@ -63,7 +63,7 @@ describe("CustomScriptExecutor", () => {
 
   beforeEach(async () => {
     // Create temp directory for test scripts
-    tempDir = path.join(process.env.TMPDIR ?? "/tmp", `clawdbot-test-${crypto.randomUUID()}`);
+    tempDir = path.join(process.env.TMPDIR ?? "/tmp", `clawdbrain-test-${crypto.randomUUID()}`);
     await fs.mkdir(tempDir, { recursive: true });
 
     // Create a test script

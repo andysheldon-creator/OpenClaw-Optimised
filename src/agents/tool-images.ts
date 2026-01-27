@@ -8,7 +8,7 @@ type ToolContentBlock = AgentToolResult<unknown>["content"][number];
 type ImageContentBlock = Extract<ToolContentBlock, { type: "image" }>;
 type TextContentBlock = Extract<ToolContentBlock, { type: "text" }>;
 
-// Anthropic Messages API limitations (observed in Clawdbot sessions):
+// Anthropic Messages API limitations (observed in Clawdbrain sessions):
 // - Images over 10MB are rejected by the API.
 //
 // To keep sessions resilient (and avoid "silent" WhatsApp non-replies), we recompress

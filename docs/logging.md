@@ -8,7 +8,7 @@ read_when:
 
 # Logging
 
-Moltbot logs in two places:
+Clawdbrain logs in two places:
 
 - **File logs** (JSON lines) written by the Gateway.
 - **Console output** shown in terminals and the Control UI.
@@ -20,16 +20,16 @@ levels and formats.
 
 By default, the Gateway writes a rolling log file under:
 
-`/tmp/moltbot/moltbot-YYYY-MM-DD.log`
+`/tmp/clawdbrain/clawdbrain-YYYY-MM-DD.log`
 
 The date uses the gateway host's local timezone.
 
-You can override this in `~/.clawdbot/moltbot.json`:
+You can override this in `~/.clawdbrain/clawdbrain.json`:
 
 ```json
 {
   "logging": {
-    "file": "/path/to/moltbot.log"
+    "file": "/path/to/clawdbrain.log"
   }
 }
 ```
@@ -41,7 +41,7 @@ You can override this in `~/.clawdbot/moltbot.json`:
 Use the CLI to tail the gateway log file via RPC:
 
 ```bash
-moltbot logs --follow
+clawdbrain logs --follow
 ```
 
 Output modes:
@@ -62,7 +62,7 @@ In JSON mode, the CLI emits `type`-tagged objects:
 If the Gateway is unreachable, the CLI prints a short hint to run:
 
 ```bash
-moltbot doctor
+clawdbrain doctor
 ```
 
 ### Control UI (web)
@@ -75,7 +75,7 @@ See [/web/control-ui](/web/control-ui) for how to open it.
 To filter channel activity (WhatsApp/Telegram/etc), use:
 
 ```bash
-moltbot channels logs --channel whatsapp
+clawdbrain channels logs --channel whatsapp
 ```
 
 ## Log formats
@@ -97,13 +97,13 @@ Console formatting is controlled by `logging.consoleStyle`.
 
 ## Configuring logging
 
-All logging configuration lives under `logging` in `~/.clawdbot/moltbot.json`.
+All logging configuration lives under `logging` in `~/.clawdbrain/clawdbrain.json`.
 
 ```json
 {
   "logging": {
     "level": "info",
-    "file": "/tmp/moltbot/moltbot-YYYY-MM-DD.log",
+    "file": "/tmp/clawdbrain/clawdbrain-YYYY-MM-DD.log",
     "consoleLevel": "info",
     "consoleStyle": "pretty",
     "redactSensitive": "tools",
@@ -131,7 +131,7 @@ All logging configuration lives under `logging` in `~/.clawdbot/moltbot.json`.
 
 ### Redaction
 
-Clawdbot can redact common secrets (passwords, tokens, API keys) before they hit logs:
+Clawdbrain can redact common secrets (passwords, tokens, API keys) before they hit logs:
 
 - `logging.redactSensitive`: `off` | `tools` (default: `tools`)
 - `logging.redactPatterns`: list of regex strings to override the default set
@@ -152,7 +152,7 @@ diagnostics + the exporter plugin are enabled.
 
 - **OpenTelemetry (OTel)**: the data model + SDKs for traces, metrics, and logs.
 - **OTLP**: the wire protocol used to export OTel data to a collector/backend.
-- Moltbot exports via **OTLP/HTTP (protobuf)** today.
+- Clawdbrain exports via **OTLP/HTTP (protobuf)** today.
 
 ### Signals exported
 
@@ -209,7 +209,7 @@ Flags are case-insensitive and support wildcards (e.g. `telegram.*` or `*`).
 Env override (one-off):
 
 ```
-CLAWDBOT_DIAGNOSTICS=telegram.http,telegram.payload
+CLAWDBRAIN_DIAGNOSTICS=telegram.http,telegram.payload
 ```
 
 Notes:
@@ -238,7 +238,7 @@ works with any OpenTelemetry collector/backend that accepts OTLP/HTTP.
       "enabled": true,
       "endpoint": "http://otel-collector:4318",
       "protocol": "http/protobuf",
-      "serviceName": "moltbot-gateway",
+      "serviceName": "clawdbrain-gateway",
       "traces": true,
       "metrics": true,
       "logs": true,
@@ -250,7 +250,7 @@ works with any OpenTelemetry collector/backend that accepts OTLP/HTTP.
 ```
 
 Notes:
-- You can also enable the plugin with `moltbot plugins enable diagnostics-otel`.
+- You can also enable the plugin with `clawdbrain plugins enable diagnostics-otel`.
 - `protocol` currently supports `http/protobuf` only. `grpc` is ignored.
 - Metrics include token usage, cost, context size, run duration, and message-flow
   counters/histograms (webhooks, queueing, session state, queue depth/wait).
@@ -263,58 +263,58 @@ Notes:
 ### Exported metrics (names + types)
 
 Model usage:
-- `moltbot.tokens` (counter, attrs: `moltbot.token`, `moltbot.channel`,
-  `moltbot.provider`, `moltbot.model`)
-- `moltbot.cost.usd` (counter, attrs: `moltbot.channel`, `moltbot.provider`,
-  `moltbot.model`)
-- `moltbot.run.duration_ms` (histogram, attrs: `moltbot.channel`,
-  `moltbot.provider`, `moltbot.model`)
-- `moltbot.context.tokens` (histogram, attrs: `moltbot.context`,
-  `moltbot.channel`, `moltbot.provider`, `moltbot.model`)
+- `clawdbrain.tokens` (counter, attrs: `clawdbrain.token`, `clawdbrain.channel`,
+  `clawdbrain.provider`, `clawdbrain.model`)
+- `clawdbrain.cost.usd` (counter, attrs: `clawdbrain.channel`, `clawdbrain.provider`,
+  `clawdbrain.model`)
+- `clawdbrain.run.duration_ms` (histogram, attrs: `clawdbrain.channel`,
+  `clawdbrain.provider`, `clawdbrain.model`)
+- `clawdbrain.context.tokens` (histogram, attrs: `clawdbrain.context`,
+  `clawdbrain.channel`, `clawdbrain.provider`, `clawdbrain.model`)
 
 Message flow:
-- `moltbot.webhook.received` (counter, attrs: `moltbot.channel`,
-  `moltbot.webhook`)
-- `moltbot.webhook.error` (counter, attrs: `moltbot.channel`,
-  `moltbot.webhook`)
-- `moltbot.webhook.duration_ms` (histogram, attrs: `moltbot.channel`,
-  `moltbot.webhook`)
-- `moltbot.message.queued` (counter, attrs: `moltbot.channel`,
-  `moltbot.source`)
-- `moltbot.message.processed` (counter, attrs: `moltbot.channel`,
-  `moltbot.outcome`)
-- `moltbot.message.duration_ms` (histogram, attrs: `moltbot.channel`,
-  `moltbot.outcome`)
+- `clawdbrain.webhook.received` (counter, attrs: `clawdbrain.channel`,
+  `clawdbrain.webhook`)
+- `clawdbrain.webhook.error` (counter, attrs: `clawdbrain.channel`,
+  `clawdbrain.webhook`)
+- `clawdbrain.webhook.duration_ms` (histogram, attrs: `clawdbrain.channel`,
+  `clawdbrain.webhook`)
+- `clawdbrain.message.queued` (counter, attrs: `clawdbrain.channel`,
+  `clawdbrain.source`)
+- `clawdbrain.message.processed` (counter, attrs: `clawdbrain.channel`,
+  `clawdbrain.outcome`)
+- `clawdbrain.message.duration_ms` (histogram, attrs: `clawdbrain.channel`,
+  `clawdbrain.outcome`)
 
 Queues + sessions:
-- `moltbot.queue.lane.enqueue` (counter, attrs: `moltbot.lane`)
-- `moltbot.queue.lane.dequeue` (counter, attrs: `moltbot.lane`)
-- `moltbot.queue.depth` (histogram, attrs: `moltbot.lane` or
-  `moltbot.channel=heartbeat`)
-- `moltbot.queue.wait_ms` (histogram, attrs: `moltbot.lane`)
-- `moltbot.session.state` (counter, attrs: `moltbot.state`, `moltbot.reason`)
-- `moltbot.session.stuck` (counter, attrs: `moltbot.state`)
-- `moltbot.session.stuck_age_ms` (histogram, attrs: `moltbot.state`)
-- `moltbot.run.attempt` (counter, attrs: `moltbot.attempt`)
+- `clawdbrain.queue.lane.enqueue` (counter, attrs: `clawdbrain.lane`)
+- `clawdbrain.queue.lane.dequeue` (counter, attrs: `clawdbrain.lane`)
+- `clawdbrain.queue.depth` (histogram, attrs: `clawdbrain.lane` or
+  `clawdbrain.channel=heartbeat`)
+- `clawdbrain.queue.wait_ms` (histogram, attrs: `clawdbrain.lane`)
+- `clawdbrain.session.state` (counter, attrs: `clawdbrain.state`, `clawdbrain.reason`)
+- `clawdbrain.session.stuck` (counter, attrs: `clawdbrain.state`)
+- `clawdbrain.session.stuck_age_ms` (histogram, attrs: `clawdbrain.state`)
+- `clawdbrain.run.attempt` (counter, attrs: `clawdbrain.attempt`)
 
 ### Exported spans (names + key attributes)
 
-- `moltbot.model.usage`
-  - `moltbot.channel`, `moltbot.provider`, `moltbot.model`
-  - `moltbot.sessionKey`, `moltbot.sessionId`
-  - `moltbot.tokens.*` (input/output/cache_read/cache_write/total)
-- `moltbot.webhook.processed`
-  - `moltbot.channel`, `moltbot.webhook`, `moltbot.chatId`
-- `moltbot.webhook.error`
-  - `moltbot.channel`, `moltbot.webhook`, `moltbot.chatId`,
-    `moltbot.error`
-- `moltbot.message.processed`
-  - `moltbot.channel`, `moltbot.outcome`, `moltbot.chatId`,
-    `moltbot.messageId`, `moltbot.sessionKey`, `moltbot.sessionId`,
-    `moltbot.reason`
-- `moltbot.session.stuck`
-  - `moltbot.state`, `moltbot.ageMs`, `moltbot.queueDepth`,
-    `moltbot.sessionKey`, `moltbot.sessionId`
+- `clawdbrain.model.usage`
+  - `clawdbrain.channel`, `clawdbrain.provider`, `clawdbrain.model`
+  - `clawdbrain.sessionKey`, `clawdbrain.sessionId`
+  - `clawdbrain.tokens.*` (input/output/cache_read/cache_write/total)
+- `clawdbrain.webhook.processed`
+  - `clawdbrain.channel`, `clawdbrain.webhook`, `clawdbrain.chatId`
+- `clawdbrain.webhook.error`
+  - `clawdbrain.channel`, `clawdbrain.webhook`, `clawdbrain.chatId`,
+    `clawdbrain.error`
+- `clawdbrain.message.processed`
+  - `clawdbrain.channel`, `clawdbrain.outcome`, `clawdbrain.chatId`,
+    `clawdbrain.messageId`, `clawdbrain.sessionKey`, `clawdbrain.sessionId`,
+    `clawdbrain.reason`
+- `clawdbrain.session.stuck`
+  - `clawdbrain.state`, `clawdbrain.ageMs`, `clawdbrain.queueDepth`,
+    `clawdbrain.sessionKey`, `clawdbrain.sessionId`
 
 ### Sampling + flushing
 
@@ -338,7 +338,7 @@ Queues + sessions:
 
 ## Troubleshooting tips
 
-- **Gateway not reachable?** Run `moltbot doctor` first.
+- **Gateway not reachable?** Run `clawdbrain doctor` first.
 - **Logs empty?** Check that the Gateway is running and writing to the file path
   in `logging.file`.
 - **Need more detail?** Set `logging.level` to `debug` or `trace` and retry.

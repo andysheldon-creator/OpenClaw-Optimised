@@ -9,16 +9,16 @@
 ## ⚠️ Stack Translation Applied
 
 **Original Magic MCP Output:** React + shadcn/ui + Framer Motion
-**Clawdbot Stack:** Lit Web Components + Tailwind v4 + Custom Design System
+**Clawdbrain Stack:** Lit Web Components + Tailwind v4 + Custom Design System
 
-This document has been translated from React patterns to Lit Web Components following Clawdbot's conventions.
+This document has been translated from React patterns to Lit Web Components following Clawdbrain's conventions.
 
 ### Translation Applied:
 - React `useState` → Controller state objects with reactive properties
 - React multi-step wizard → Lit render function with step state in controller
 - Framer Motion animations → CSS `@keyframes` and transitions
-- shadcn/ui components → Tailwind classes and Clawdbot design system
-- lucide-react icons → Clawdbot's `icon()` function from `ui/src/ui/icons.ts`
+- shadcn/ui components → Tailwind classes and Clawdbrain design system
+- lucide-react icons → Clawdbrain's `icon()` function from `ui/src/ui/icons.ts`
 - Event handlers → Lit event listeners (`@click=${handler}`)
 - Form validation → Controller validation functions
 
@@ -668,10 +668,10 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
 ## Key Features Captured
 
 ### Multi-Step Wizard Pattern
-1. **Progress Indicator** - Visual progress bar with step icons using Clawdbot icon system
+1. **Progress Indicator** - Visual progress bar with step icons using Clawdbrain icon system
 2. **Step Navigation** - Previous/Next buttons with validation in controller
 3. **Animation** - CSS `@keyframes slideIn` for step transitions with 0.4s ease-out
-4. **Step Icons** - Clawdbot icons: git-branch, clock, link, brain, git-merge, bell
+4. **Step Icons** - Clawdbrain icons: git-branch, clock, link, brain, git-merge, bell
 
 ### Form Fields Per Step
 
@@ -721,7 +721,7 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
 
 ## Form Field Types
 
-| Clawdbot Implementation | Pattern |
+| Clawdbrain Implementation | Pattern |
 |------------------------|----------|
 | Input fields | `<input>` with Tailwind classes |
 | Textarea | `<textarea>` with Tailwind classes |

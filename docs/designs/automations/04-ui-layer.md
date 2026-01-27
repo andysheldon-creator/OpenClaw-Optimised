@@ -7,7 +7,7 @@
 
 ## Overview
 
-The UI Layer provides the user interface for creating, managing, and monitoring automations. It introduces a new "Automations" vertical tab in the existing Control group, following the design patterns established by the existing Cron tab. The UI is built with React components and integrates with Clawdbot's existing navigation and controller patterns.
+The UI Layer provides the user interface for creating, managing, and monitoring automations. It introduces a new "Automations" vertical tab in the existing Control group, following the design patterns established by the existing Cron tab. The UI is built with React components and integrates with Clawdbrain's existing navigation and controller patterns.
 
 ## Directory Structure
 
@@ -1246,7 +1246,7 @@ export function AutomationForm({ automation, onClose }: AutomationFormProps) {
                     placeholder="Leave empty to use default"
                   />
                   <span className="help-text">
-                    Leave empty to use the global default model from Clawdbot config
+                    Leave empty to use the global default model from Clawdbrain config
                   </span>
                 </div>
 
@@ -2097,7 +2097,7 @@ fieldset.nested {
 
 ### Common UI Patterns
 
-The Automations UI should follow these Clawdbot UI patterns:
+The Automations UI should follow these Clawdbrain UI patterns:
 
 1. **Modals:** Use existing modal components and overlay styles
 2. **Toasts:** Use existing toast system for notifications

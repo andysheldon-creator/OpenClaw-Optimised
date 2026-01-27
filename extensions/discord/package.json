@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/discord",
+  "name": "@clawdbrain/discord",
   "version": "2026.1.26",
   "type": "module",
-  "description": "Moltbot Discord channel plugin",
-  "moltbot": {
+  "description": "Clawdbrain Discord channel plugin",
+  "clawdbrain": {
     "extensions": [
       "./index.ts"
     ]

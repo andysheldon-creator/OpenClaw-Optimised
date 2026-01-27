@@ -8,21 +8,27 @@ import type { ProgramContext } from "./context.js";
 const CLI_NAME = resolveCliName();
 
 const EXAMPLES = [
-  ["moltbot channels login --verbose", "Link personal WhatsApp Web and show QR + connection logs."],
   [
-    'moltbot message send --target +15555550123 --message "Hi" --json',
+    "clawdbrain channels login --verbose",
+    "Link personal WhatsApp Web and show QR + connection logs.",
+  ],
+  [
+    'clawdbrain message send --target +15555550123 --message "Hi" --json',
     "Send via your web session and print JSON result.",
   ],
-  ["moltbot gateway --port 18789", "Run the WebSocket Gateway locally."],
-  ["moltbot --dev gateway", "Run a dev Gateway (isolated state/config) on ws://127.0.0.1:19001."],
-  ["moltbot gateway --force", "Kill anything bound to the default gateway port, then start it."],
-  ["moltbot gateway ...", "Gateway control via WebSocket."],
+  ["clawdbrain gateway --port 18789", "Run the WebSocket Gateway locally."],
   [
-    'moltbot agent --to +15555550123 --message "Run summary" --deliver',
+    "clawdbrain --dev gateway",
+    "Run a dev Gateway (isolated state/config) on ws://127.0.0.1:19001.",
+  ],
+  ["clawdbrain gateway --force", "Kill anything bound to the default gateway port, then start it."],
+  ["clawdbrain gateway ...", "Gateway control via WebSocket."],
+  [
+    'clawdbrain agent --to +15555550123 --message "Run summary" --deliver',
     "Talk directly to the agent using the Gateway; optionally send the WhatsApp reply.",
   ],
   [
-    'moltbot message send --channel telegram --target @mychat --message "Hi"',
+    'clawdbrain message send --channel telegram --target @mychat --message "Hi"',
     "Send via your Telegram bot.",
   ],
 ] as const;
@@ -34,11 +40,11 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
     .version(ctx.programVersion)
     .option(
       "--dev",
-      "Dev profile: isolate state under ~/.clawdbot-dev, default gateway port 19001, and shift derived ports (browser/canvas)",
+      "Dev profile: isolate state under ~/.clawdbrain-dev, default gateway port 19001, and shift derived ports (browser/canvas)",
     )
     .option(
       "--profile <name>",
-      "Use a named profile (isolates CLAWDBOT_STATE_DIR/CLAWDBOT_CONFIG_PATH under ~/.clawdbot-<name>)",
+      "Use a named profile (isolates CLAWDBRAIN_STATE_DIR/CLAWDBRAIN_CONFIG_PATH under ~/.clawdbrain-<name>)",
     );
 
   program.option("--no-color", "Disable ANSI colors", false);
@@ -82,7 +88,7 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
 
   program.addHelpText("afterAll", ({ command }) => {
     if (command !== program) return "";
-    const docs = formatDocsLink("/cli", "docs.molt.bot/cli");
+    const docs = formatDocsLink("/cli", "docs.clawdbrain.bot/cli");
     return `\n${theme.heading("Examples:")}\n${fmtExamples}\n\n${theme.muted("Docs:")} ${docs}\n`;
   });
 }

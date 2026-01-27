@@ -26,7 +26,7 @@ import {
 } from "../infra/overseer/continuation-bridge.js";
 import { resolveOverseerStorePath } from "../infra/overseer/store.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
-import { ensureMoltbotCliOnPath } from "../infra/path-env.js";
+import { ensureClawdbrainCliOnPath } from "../infra/path-env.js";
 import {
   primeRemoteSkillsCache,
   refreshRemoteBinsForConnectedNodes,
@@ -80,7 +80,7 @@ import { attachGatewayWsHandlers } from "./server-ws-runtime.js";
 
 export { __resetModelCatalogCacheForTest } from "./server-model-catalog.js";
 
-ensureMoltbotCliOnPath();
+ensureClawdbrainCliOnPath();
 
 const log = createSubsystemLogger("gateway");
 const logCanvas = log.child("canvas");
@@ -157,13 +157,13 @@ export async function startGatewayServer(
   opts: GatewayServerOptions = {},
 ): Promise<GatewayServer> {
   // Ensure all default port derivations (browser/canvas) see the actual runtime port.
-  process.env.CLAWDBOT_GATEWAY_PORT = String(port);
+  process.env.CLAWDBRAIN_GATEWAY_PORT = String(port);
   logAcceptedEnvOption({
-    key: "CLAWDBOT_RAW_STREAM",
+    key: "CLAWDBRAIN_RAW_STREAM",
     description: "raw stream logging enabled",
   });
   logAcceptedEnvOption({
-    key: "CLAWDBOT_RAW_STREAM_PATH",
+    key: "CLAWDBRAIN_RAW_STREAM_PATH",
     description: "raw stream log path override",
   });
 
@@ -177,7 +177,7 @@ export async function startGatewayServer(
     const { config: migrated, changes } = migrateLegacyConfig(configSnapshot.parsed);
     if (!migrated) {
       throw new Error(
-        `Legacy config entries detected but auto-migration failed. Run "${formatCliCommand("moltbot doctor")}" to migrate.`,
+        `Legacy config entries detected but auto-migration failed. Run "${formatCliCommand("clawdbrain doctor")}" to migrate.`,
       );
     }
     await writeConfigFile(migrated);
@@ -199,7 +199,7 @@ export async function startGatewayServer(
             .join("\n")
         : "Unknown validation issue.";
     throw new Error(
-      `Invalid config at ${configSnapshot.path}.\n${issues}\nRun "${formatCliCommand("moltbot doctor")}" to repair, then retry.`,
+      `Invalid config at ${configSnapshot.path}.\n${issues}\nRun "${formatCliCommand("clawdbrain doctor")}" to repair, then retry.`,
     );
   }
 

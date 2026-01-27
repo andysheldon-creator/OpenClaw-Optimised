@@ -7,12 +7,12 @@
 
 ## Overview
 
-The Storage Layer handles all persistence needs for the automation system. It manages configuration files, run logs, workspace directories, and state tracking. This layer extends Clawdbot's existing file-based storage patterns (`/src/config/io.ts`) while introducing automation-specific storage locations and formats.
+The Storage Layer handles all persistence needs for the automation system. It manages configuration files, run logs, workspace directories, and state tracking. This layer extends Clawdbrain's existing file-based storage patterns (`/src/config/io.ts`) while introducing automation-specific storage locations and formats.
 
 ## Directory Structure
 
 ```
-~/.clawdbot/
+~/.clawdbrain/
 ├── automations/
 │   ├── config/                    # Automation configuration files
 │   │   ├── dispatcher.json        # Dispatcher configuration
@@ -45,7 +45,7 @@ The Storage Layer handles all persistence needs for the automation system. It ma
 #### File Structure
 
 ```
-~/.clawdbot/automations/config/
+~/.clawdbrain/automations/config/
 ├── dispatcher.json                 # Global dispatcher config
 ├── concurrency-state.json          # Concurrency limiter state
 └── smart-sync-fork/                # Automation-type subdirectory
@@ -57,7 +57,7 @@ The Storage Layer handles all persistence needs for the automation system. It ma
 #### Dispatcher Configuration
 
 ```json
-// ~/.clawdbot/automations/config/dispatcher.json
+// ~/.clawdbrain/automations/config/dispatcher.json
 {
   "version": 1,
   "maxConcurrent": 3,
@@ -104,7 +104,7 @@ export type DispatcherConfig = z.infer<typeof DispatcherConfigSchema>;
 #### Automation Configuration
 
 ```json
-// ~/.clawdbot/automations/config/smart-sync-fork/auto-sync-main-123.json
+// ~/.clawdbrain/automations/config/smart-sync-fork/auto-sync-main-123.json
 {
   "id": "auto-sync-main-123",
   "type": "smart-sync-fork",
@@ -206,7 +206,7 @@ export type AutomationConfig = z.infer<typeof AutomationConfigSchema>;
 #### Concurrency State
 
 ```json
-// ~/.clawdbot/automations/config/concurrency-state.json
+// ~/.clawdbrain/automations/config/concurrency-state.json
 {
   "version": 1,
   "maxSlots": 3,
@@ -245,7 +245,7 @@ export type ConcurrencyState = z.infer<typeof ConcurrencyStateSchema>;
 #### Directory Layout
 
 ```
-~/.clawdbot/automations/workspaces/<automation-id>/
+~/.clawdbrain/automations/workspaces/<automation-id>/
 ├── repo/                          # Git repository clone
 │   ├── .git/
 │   ├── src/
@@ -258,7 +258,7 @@ export type ConcurrencyState = z.infer<typeof ConcurrencyStateSchema>;
 #### Workspace Info
 
 ```json
-// ~/.clawdbot/automations/workspaces/<automation-id>/workspace-info.json
+// ~/.clawdbrain/automations/workspaces/<automation-id>/workspace-info.json
 {
   "automationId": "auto-sync-main-123",
   "automationType": "smart-sync-fork",
@@ -283,7 +283,7 @@ export type ConcurrencyState = z.infer<typeof ConcurrencyStateSchema>;
 #### Runtime State
 
 ```json
-// ~/.clawdbot/automations/workspaces/<automation-id>/state.json
+// ~/.clawdbrain/automations/workspaces/<automation-id>/state.json
 {
   "automationId": "auto-sync-main-123",
   "sessionId": "cron:abc-123-def",
@@ -387,7 +387,7 @@ Logs are stored as **JSONL** (JSON Lines) files - one JSON object per line. This
 #### Dispatcher Log
 
 ```jsonl
-// ~/.clawdbot/automations/logs/dispatcher/2025-01-26.jsonl
+// ~/.clawdbrain/automations/logs/dispatcher/2025-01-26.jsonl
 {"timestamp":"2025-01-26T10:00:00Z","level":"info","event":"dispatch-started","automationsCount":5,"dueCount":2}
 {"timestamp":"2025-01-26T10:00:01Z","level":"info","event":"automation-dispatched","automationId":"auto-sync-main-123","sessionId":"cron:abc-123"}
 {"timestamp":"2025-01-26T10:00:01Z","level":"info","event":"automation-dispatched","automationId":"auto-sync-upstream-456","sessionId":"cron:def-456"}
@@ -423,7 +423,7 @@ export type DispatcherLogEntry = z.infer<typeof DispatcherLogEntrySchema>;
 #### Automation Run Log
 
 ```jsonl
-// ~/.clawdbot/automations/logs/smart-sync-fork/auto-sync-main-123-20250126-100000.jsonl
+// ~/.clawdbrain/automations/logs/smart-sync-fork/auto-sync-main-123-20250126-100000.jsonl
 {"timestamp":"2025-01-26T10:00:00Z","level":"info","phase":"init","message":"Starting Smart-Sync Fork automation","automationId":"auto-sync-main-123","sessionId":"cron:abc-123"}
 {"timestamp":"2025-01-26T10:00:01Z","level":"info","phase":"workspace","message":"Creating workspace directory","workspaceDir":"/path/to/workspace","automationId":"auto-sync-main-123"}
 {"timestamp":"2025-01-26T10:00:05Z","level":"info","phase":"git","message":"Cloning fork repository","repository":"git@github.com:user/main-fork.git","depth":1,"automationId":"auto-sync-main-123"}
@@ -485,8 +485,8 @@ async function cleanupOldLogs(retentionDays: number): Promise<void> {
   cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
   const logDirs = [
-    "~/.clawdbot/automations/logs/dispatcher",
-    "~/.clawdbot/automations/logs/smart-sync-fork",
+    "~/.clawdbrain/automations/logs/dispatcher",
+    "~/.clawdbrain/automations/logs/smart-sync-fork",
   ];
 
   for (const dir of logDirs) {
@@ -513,7 +513,7 @@ async function cleanupOldLogs(retentionDays: number): Promise<void> {
 #### Lock File Format
 
 ```json
-// ~/.clawdbot/automations/locks/github.com-user-repo.lock
+// ~/.clawdbrain/automations/locks/github.com-user-repo.lock
 {
   "repoUrl": "https://github.com/user/repo.git",
   "repoKey": "github.com/user/repo",
@@ -565,7 +565,7 @@ function normalizeRepoKey(repoUrl: string): string {
 For automations that generate artifacts (reports, patches, etc.):
 
 ```
-~/.clawdbot/automations/artifacts/<automation-id>/
+~/.clawdbrain/automations/artifacts/<automation-id>/
 ├── <timestamp>-conflict-report.md
 ├── <timestamp>-resolution-summary.json
 └── <timestamp>-patch.diff
@@ -1212,11 +1212,11 @@ async function getDirectorySize(dirPath: string): Promise<number> {
 }
 
 /**
- * Get the Clawdbot config path.
+ * Get the Clawdbrain config path.
  */
 function getConfigPath(): string {
-  // Use existing config path from Clawdbot
-  return path.join(os.homedir(), ".clawdbot");
+  // Use existing config path from Clawdbrain
+  return path.join(os.homedir(), ".clawdbrain");
 }
 
 /**

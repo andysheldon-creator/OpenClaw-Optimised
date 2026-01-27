@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ClawdbotApp } from "./app";
+import { ClawdbrainApp } from "./app";
 import "../styles.css";
 
-const originalConnect = ClawdbotApp.prototype.connect;
+const originalConnect = ClawdbrainApp.prototype.connect;
 
 function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
-  const app = document.createElement("clawdbot-app") as ClawdbotApp;
+  const app = document.createElement("clawdbrain-app") as ClawdbrainApp;
   document.body.append(app);
   return app;
 }
@@ -19,17 +19,17 @@ function nextFrame() {
 }
 
 beforeEach(() => {
-  ClawdbotApp.prototype.connect = () => {
+  ClawdbrainApp.prototype.connect = () => {
     // no-op: avoid real gateway WS connections in browser tests
   };
-  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
+  window.__CLAWDBRAIN_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
 
 afterEach(() => {
-  ClawdbotApp.prototype.connect = originalConnect;
-  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
+  ClawdbrainApp.prototype.connect = originalConnect;
+  window.__CLAWDBRAIN_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
@@ -55,23 +55,23 @@ describe("control UI routing", () => {
   });
 
   it("infers nested base paths", async () => {
-    const app = mountApp("/apps/clawdbot/#/cron");
+    const app = mountApp("/apps/clawdbrain/#/cron");
     await app.updateComplete;
 
-    expect(app.basePath).toBe("/apps/clawdbot");
+    expect(app.basePath).toBe("/apps/clawdbrain");
     expect(app.tab).toBe("cron");
-    expect(window.location.pathname).toBe("/apps/clawdbot/");
+    expect(window.location.pathname).toBe("/apps/clawdbrain/");
     expect(window.location.hash).toBe("#/cron");
   });
 
   it("honors explicit base path overrides", async () => {
-    window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = "/clawdbot";
-    const app = mountApp("/clawdbot/#/sessions");
+    window.__CLAWDBRAIN_CONTROL_UI_BASE_PATH__ = "/clawdbrain";
+    const app = mountApp("/clawdbrain/#/sessions");
     await app.updateComplete;
 
-    expect(app.basePath).toBe("/clawdbot");
+    expect(app.basePath).toBe("/clawdbrain");
     expect(app.tab).toBe("sessions");
-    expect(window.location.pathname).toBe("/clawdbot/");
+    expect(window.location.pathname).toBe("/clawdbrain/");
     expect(window.location.hash).toBe("#/sessions");
   });
 
@@ -176,7 +176,7 @@ describe("control UI routing", () => {
 
   it("hydrates token from URL params even when settings already set", async () => {
     localStorage.setItem(
-      "clawdbot.control.settings.v1",
+      "clawdbrain.control.settings.v1",
       JSON.stringify({ token: "existing-token" }),
     );
     const app = mountApp("/ui/?token=abc123#/overview");

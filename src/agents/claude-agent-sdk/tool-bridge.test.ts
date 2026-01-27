@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { AnyAgentTool } from "../tools/common.js";
 import {
-  bridgeClawdbotToolsSync,
+  bridgeClawdbrainToolsSync,
   buildMcpAllowedTools,
   convertToolResult,
   extractJsonSchema,
@@ -244,31 +244,31 @@ describe("wrapToolHandler", () => {
 
 describe("mcpToolName", () => {
   it("builds mcp__{server}__{tool} format", () => {
-    expect(mcpToolName("clawdbot", "web_fetch")).toBe("mcp__clawdbot__web_fetch");
+    expect(mcpToolName("clawdbrain", "web_fetch")).toBe("mcp__clawdbrain__web_fetch");
   });
 });
 
 describe("buildMcpAllowedTools", () => {
   it("builds allowed list for all tools", () => {
     const tools = [createStubTool("web_fetch"), createStubTool("exec"), createStubTool("message")];
-    const allowed = buildMcpAllowedTools("clawdbot", tools);
+    const allowed = buildMcpAllowedTools("clawdbrain", tools);
     expect(allowed).toEqual([
-      "mcp__clawdbot__web_fetch",
-      "mcp__clawdbot__exec",
-      "mcp__clawdbot__message",
+      "mcp__clawdbrain__web_fetch",
+      "mcp__clawdbrain__exec",
+      "mcp__clawdbrain__message",
     ]);
   });
 });
 
 // ---------------------------------------------------------------------------
-// bridgeClawdbotToolsSync (full integration with mock McpServer)
+// bridgeClawdbrainToolsSync (full integration with mock McpServer)
 // ---------------------------------------------------------------------------
 
-describe("bridgeClawdbotToolsSync", () => {
+describe("bridgeClawdbrainToolsSync", () => {
   it("registers all tools on the MCP server", () => {
     const tools = [createStubTool("tool_a"), createStubTool("tool_b"), createStubTool("tool_c")];
 
-    const result = bridgeClawdbotToolsSync({
+    const result = bridgeClawdbrainToolsSync({
       name: "test-server",
       tools,
       McpServer: MockMcpServer as never,
@@ -298,7 +298,7 @@ describe("bridgeClawdbotToolsSync", () => {
       createStubTool("another_good"),
     ];
 
-    const result = bridgeClawdbotToolsSync({
+    const result = bridgeClawdbrainToolsSync({
       name: "server",
       tools,
       McpServer: MockMcpServer as never,
@@ -312,7 +312,7 @@ describe("bridgeClawdbotToolsSync", () => {
   it("preserves tool descriptions", () => {
     const tools = [createStubTool("described", { description: "My custom description" })];
 
-    const result = bridgeClawdbotToolsSync({
+    const result = bridgeClawdbrainToolsSync({
       name: "s",
       tools,
       McpServer: MockMcpServer as never,
@@ -328,7 +328,7 @@ describe("bridgeClawdbotToolsSync", () => {
     });
 
     const tools = [createStubTool("fetch", { parameters: schema })];
-    const result = bridgeClawdbotToolsSync({
+    const result = bridgeClawdbrainToolsSync({
       name: "s",
       tools,
       McpServer: MockMcpServer as never,
@@ -349,7 +349,7 @@ describe("bridgeClawdbotToolsSync", () => {
     });
 
     const tools = [createStubTool("runner", { execute: executeFn })];
-    const result = bridgeClawdbotToolsSync({
+    const result = bridgeClawdbrainToolsSync({
       name: "s",
       tools,
       McpServer: MockMcpServer as never,
@@ -368,13 +368,13 @@ describe("bridgeClawdbotToolsSync", () => {
   });
 
   it("sets serverConfig.type to 'sdk'", () => {
-    const result = bridgeClawdbotToolsSync({
-      name: "clawdbot",
+    const result = bridgeClawdbrainToolsSync({
+      name: "clawdbrain",
       tools: [createStubTool("t")],
       McpServer: MockMcpServer as never,
     });
 
     expect(result.serverConfig.type).toBe("sdk");
-    expect(result.serverConfig.name).toBe("clawdbot");
+    expect(result.serverConfig.name).toBe("clawdbrain");
   });
 });

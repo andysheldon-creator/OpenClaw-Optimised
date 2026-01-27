@@ -5,7 +5,7 @@
 
 import type { App, SlackCommandMiddlewareArgs, SlackActionMiddlewareArgs } from "@slack/bolt";
 
-import type { ClawdbotConfig } from "../../config/types.js";
+import type { ClawdbrainConfig } from "../../config/types.js";
 import { listAgentIds } from "../../agents/agent-scope.js";
 import {
   loadSessionEntry,
@@ -47,7 +47,7 @@ type AgentStatusSummary = {
   tokenCount?: number;
 };
 
-function getAgentStatusSummaries(cfg: ClawdbotConfig): AgentStatusSummary[] {
+function getAgentStatusSummaries(cfg: ClawdbrainConfig): AgentStatusSummary[] {
   const agentIds = listAgentIds(cfg);
   const { store } = loadCombinedSessionStoreForGateway(cfg);
   const overseerStore = loadOverseerStoreFromDisk(cfg);
@@ -119,7 +119,7 @@ function capitalizeStatus(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function buildAgentListBlocks(cfg: ClawdbotConfig, _dashboardBaseUrl?: string): SlackBlock[] {
+function buildAgentListBlocks(cfg: ClawdbrainConfig, _dashboardBaseUrl?: string): SlackBlock[] {
   const summaries = getAgentStatusSummaries(cfg);
 
   const activeCnt = summaries.filter((s) => s.status === "active").length;
@@ -176,7 +176,7 @@ function buildAgentListBlocks(cfg: ClawdbotConfig, _dashboardBaseUrl?: string): 
 }
 
 function buildAgentDetailBlocks(
-  cfg: ClawdbotConfig,
+  cfg: ClawdbrainConfig,
   agentId: string,
   dashboardBaseUrl?: string,
 ): SlackBlock[] {
@@ -381,7 +381,7 @@ function buildAgentDetailBlocks(
 
 export type AgentStatusCommandParams = {
   app: App;
-  cfg: ClawdbotConfig;
+  cfg: ClawdbrainConfig;
   dashboardBaseUrl?: string;
 };
 

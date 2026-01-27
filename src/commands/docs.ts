@@ -5,7 +5,7 @@ import { formatDocsLink } from "../terminal/links.js";
 import { isRich, theme } from "../terminal/theme.js";
 import { formatCliCommand } from "../cli/command-format.js";
 
-const SEARCH_TOOL = "https://docs.molt.bot/mcp.SearchMoltbot";
+const SEARCH_TOOL = "https://docs.clawdbrain.bot/mcp.SearchClawdbrain";
 const SEARCH_TIMEOUT_MS = 30_000;
 const DEFAULT_SNIPPET_MAX = 220;
 
@@ -148,13 +148,13 @@ async function renderMarkdown(markdown: string, runtime: RuntimeEnv) {
 export async function docsSearchCommand(queryParts: string[], runtime: RuntimeEnv) {
   const query = queryParts.join(" ").trim();
   if (!query) {
-    const docs = formatDocsLink("/", "docs.molt.bot");
+    const docs = formatDocsLink("/", "docs.clawdbrain.bot");
     if (isRich()) {
       runtime.log(`${theme.muted("Docs:")} ${docs}`);
-      runtime.log(`${theme.muted("Search:")} ${formatCliCommand('moltbot docs "your query"')}`);
+      runtime.log(`${theme.muted("Search:")} ${formatCliCommand('clawdbrain docs "your query"')}`);
     } else {
-      runtime.log("Docs: https://docs.molt.bot/");
-      runtime.log(`Search: ${formatCliCommand('moltbot docs "your query"')}`);
+      runtime.log("Docs: https://docs.clawdbrain.bot/");
+      runtime.log(`Search: ${formatCliCommand('clawdbrain docs "your query"')}`);
     }
     return;
   }

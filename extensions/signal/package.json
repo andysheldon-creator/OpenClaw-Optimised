@@ -1,9 +1,9 @@
 {
-  "name": "@moltbot/signal",
+  "name": "@clawdbrain/signal",
   "version": "2026.1.26",
   "type": "module",
-  "description": "Moltbot Signal channel plugin",
-  "moltbot": {
+  "description": "Clawdbrain Signal channel plugin",
+  "clawdbrain": {
     "extensions": [
       "./index.ts"
     ]

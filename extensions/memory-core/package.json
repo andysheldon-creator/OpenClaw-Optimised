@@ -1,14 +1,14 @@
 {
-  "name": "@moltbot/memory-core",
+  "name": "@clawdbrain/memory-core",
   "version": "2026.1.26",
   "type": "module",
-  "description": "Moltbot core memory search plugin",
-  "moltbot": {
+  "description": "Clawdbrain core memory search plugin",
+  "clawdbrain": {
     "extensions": [
       "./index.ts"
     ]
   },
   "peerDependencies": {
-    "moltbot": ">=2026.1.26"
+    "clawdbrain": "workspace:*"
   }
 }

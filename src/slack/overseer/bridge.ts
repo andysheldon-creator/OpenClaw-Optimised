@@ -5,7 +5,7 @@
 
 import type { App } from "@slack/bolt";
 
-import type { ClawdbotConfig } from "../../config/types.js";
+import type { ClawdbrainConfig } from "../../config/types.js";
 import type { OverseerAssignmentRecord } from "../../infra/overseer/store.types.js";
 import type { OverseerRunnerHooks } from "../../infra/overseer/runner.js";
 import { loadOverseerStoreFromDisk } from "../../infra/overseer/store.js";
@@ -23,7 +23,7 @@ const log = createSubsystemLogger("slack/overseer");
 export type SlackOverseerBridgeParams = {
   app: App;
   botToken: string;
-  cfg: ClawdbotConfig;
+  cfg: ClawdbrainConfig;
   accountId?: string;
 };
 

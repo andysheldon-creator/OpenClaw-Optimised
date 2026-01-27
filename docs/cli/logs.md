@@ -1,11 +1,11 @@
 ---
-summary: "CLI reference for `moltbot logs` (tail gateway logs via RPC)"
+summary: "CLI reference for `clawdbrain logs` (tail gateway logs via RPC)"
 read_when:
   - You need to tail Gateway logs remotely (without SSH)
   - You want JSON log lines for tooling
 ---
 
-# `moltbot logs`
+# `clawdbrain logs`
 
 Tail Gateway file logs over RPC (works in remote mode).
 
@@ -15,9 +15,9 @@ Related:
 ## Examples
 
 ```bash
-moltbot logs
-moltbot logs --follow
-moltbot logs --json
-moltbot logs --limit 500
+clawdbrain logs
+clawdbrain logs --follow
+clawdbrain logs --json
+clawdbrain logs --limit 500
 ```
 

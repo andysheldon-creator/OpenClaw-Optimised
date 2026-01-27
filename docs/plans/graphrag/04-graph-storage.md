@@ -260,7 +260,7 @@ against a Neo4j instance via the `neo4j-driver` package:
 
 ```typescript
 // extensions/knowledge-neo4j/src/index.ts
-import type { GraphQueryEngine } from "clawdbot/knowledge";
+import type { GraphQueryEngine } from "clawdbrain/knowledge";
 
 export function createNeo4jGraphEngine(config: {
   uri: string;

@@ -1,14 +1,14 @@
 import Foundation
 import Testing
-@testable import Moltbot
+@testable import Clawdbrain
 
 private struct KeychainEntry: Hashable {
     let service: String
     let account: String
 }
 
-private let gatewayService = "com.clawdbot.gateway"
-private let nodeService = "com.clawdbot.node"
+private let gatewayService = "com.clawdbrain.gateway"
+private let nodeService = "com.clawdbrain.node"
 private let instanceIdEntry = KeychainEntry(service: nodeService, account: "instanceId")
 private let preferredGatewayEntry = KeychainEntry(service: gatewayService, account: "preferredStableID")
 private let lastGatewayEntry = KeychainEntry(service: gatewayService, account: "lastDiscoveredStableID")

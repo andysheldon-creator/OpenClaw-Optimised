@@ -98,7 +98,7 @@ function resolveStateIcon(state: ChannelCardVisualState): IconName {
 }
 
 function resolveDetailsStorageKey(channelId: string): string {
-  return `clawdbot:channels:detailsOpen:${encodeURIComponent(channelId)}`;
+  return `clawdbrain:channels:detailsOpen:${encodeURIComponent(channelId)}`;
 }
 
 function readStoredDetailsOpen(channelId: string): boolean | null {

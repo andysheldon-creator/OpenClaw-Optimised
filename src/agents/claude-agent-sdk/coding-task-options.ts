@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { ClawdbrainConfig } from "../../config/config.js";
 import type { CodingTaskPermissionMode, CodingTaskToolPreset } from "../../config/types.tools.js";
 
 import {
@@ -38,7 +38,7 @@ export type CodingTaskSdkResolved = {
 };
 
 export function buildCodingTaskSdkOptions(params: {
-  config?: ClawdbotConfig;
+  config?: ClawdbrainConfig;
   cwd: string;
 }): CodingTaskSdkResolved {
   const cfg = params.config;

@@ -120,8 +120,8 @@ A phased rollout with file manifests, demo scenarios, and trade-off analysis.
 
 ### Exit Criteria
 
-- `clawdbot knowledge ingest` works with PDF, DOCX, MD, TXT files
-- `clawdbot knowledge crawl` crawls single pages, sitemaps, and recursive sites
+- `clawdbrain knowledge ingest` works with PDF, DOCX, MD, TXT files
+- `clawdbrain knowledge crawl` crawls single pages, sitemaps, and recursive sites
 - Crawled/ingested content appears in knowledge graph and is searchable
 - CLI shows progress for long-running operations
 
@@ -216,7 +216,7 @@ A phased rollout with file manifests, demo scenarios, and trade-off analysis.
 After enabling knowledge and running a few sessions:
 
 ```
-> clawdbot knowledge stats
+> clawdbrain knowledge stats
 
 Knowledge Graph: my-agent
   Entities:      342 (87 concepts, 63 tools, 52 people, 41 files, 99 other)
@@ -313,7 +313,7 @@ Entities extracted from old chunks may reference outdated information.
 **Mitigations:**
 - `last_seen` timestamps enable recency-weighted retrieval
 - Periodic re-extraction on changed files (piggybacks on existing file watcher)
-- Manual `clawdbot knowledge reindex` command for full re-extraction
+- Manual `clawdbrain knowledge reindex` command for full re-extraction
 - Time-range filtering in both agent tools and web UI
 
 ### Prompt Context Budget

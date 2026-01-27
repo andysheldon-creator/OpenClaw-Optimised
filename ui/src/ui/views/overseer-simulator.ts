@@ -1064,7 +1064,7 @@ function renderActivityEntry(entry: SimulatorActivityEntry): TemplateResult {
 // Rule Editor Modal
 // ============================================================================
 
-function renderRuleEditor(props: SimulatorProps): TemplateResult {
+function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothing {
   const { state } = props;
   const rule = state.draftRule;
   if (!rule) return nothing;
@@ -1308,7 +1308,7 @@ function renderActionParams(action: RuleAction, props: SimulatorProps): Template
 // Scenario Editor Modal
 // ============================================================================
 
-function renderScenarioEditor(props: SimulatorProps): TemplateResult {
+function renderScenarioEditor(props: SimulatorProps): TemplateResult | typeof nothing {
   const { state } = props;
   const scenario = state.draftScenario;
   if (!scenario) return nothing;

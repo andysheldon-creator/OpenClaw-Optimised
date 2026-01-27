@@ -23,7 +23,8 @@ export function registerNodeCli(program: Command) {
     .description("Run a headless node host (system.run/system.which)")
     .addHelpText(
       "after",
-      () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/node", "docs.molt.bot/cli/node")}\n`,
+      () =>
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/node", "docs.clawdbrain.bot/cli/node")}\n`,
     );
 
   node

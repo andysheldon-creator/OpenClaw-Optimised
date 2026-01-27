@@ -1,4 +1,4 @@
-# Clawdbot UI Polish Improvement Ideas
+# Clawdbrain UI Polish Improvement Ideas
 
 > Generated from deep scan of `/ui/src/ui` codebase on 2026-01-25
 

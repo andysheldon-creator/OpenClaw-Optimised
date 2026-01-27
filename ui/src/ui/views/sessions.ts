@@ -172,7 +172,7 @@ const VERBOSE_LEVELS = [
 const REASONING_LEVELS = ["", "off", "on", "stream"] as const;
 
 const SESSIONS_NAME_COLUMN_WIDTH_STORAGE_KEY =
-  "clawdbot.control.ui.sessions.nameColumnWidth.v1";
+  "clawdbrain.control.ui.sessions.nameColumnWidth.v1";
 
 function readSessionsNameColumnWidth(): number | null {
   if (typeof window === "undefined") return null;

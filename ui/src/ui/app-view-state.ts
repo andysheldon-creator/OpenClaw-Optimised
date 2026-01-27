@@ -41,6 +41,14 @@ import type {
   OverseerStatusResult,
 } from "./types/overseer";
 import type { SimulatorState } from "./types/overseer-simulator";
+import type {
+  Automation,
+  AutomationRunMilestone,
+  AutomationRunRecord,
+  AutomationStatus,
+  AutomationType,
+} from "./controllers/automations";
+import type { ExecApprovalHistoryEntry } from "./views/exec-approval";
 
 export type AppViewState = {
   settings: UiSettings;
@@ -253,6 +261,61 @@ export type AppViewState = {
   overseerActivityLimit: number;
   // Simulator state
   simulator: SimulatorState;
+  // Automations state
+  automations: Automation[];
+  automationsSearchQuery: string;
+  automationsStatusFilter: "all" | AutomationStatus;
+  automationsLoading: boolean;
+  automationsError: string | null;
+  automationsSelectedId: string | null;
+  automationsExpandedIds: Set<string>;
+  automationsRunningIds: Set<string>;
+  // Automation form state
+  automationFormOpen: boolean;
+  automationFormCurrentStep: number;
+  automationFormErrors: Partial<Record<string, string>>;
+  automationFormData: {
+    name: string;
+    description: string;
+    scheduleType: "at" | "every" | "cron";
+    scheduleAt: string;
+    scheduleEveryAmount: string;
+    scheduleEveryUnit: "minutes" | "hours" | "days";
+    scheduleCronExpr: string;
+    scheduleCronTz: string;
+    type: AutomationType;
+    config: Record<string, unknown>;
+  };
+  // Automation progress modal state
+  automationProgressModalOpen: boolean;
+  automationProgressModalAutomationId: string;
+  automationProgressModalAutomationName: string;
+  automationProgressModalCurrentMilestone: string;
+  automationProgressModalProgress: number;
+  automationProgressModalMilestones: AutomationRunMilestone[];
+  automationProgressModalElapsedTime: string;
+  automationProgressModalConflicts: number;
+  automationProgressModalStatus: "running" | "complete" | "failed" | "cancelled";
+  automationProgressModalSessionId: string;
+  // Automation run history state
+  automationRunHistoryLoading: boolean;
+  automationRunHistoryRecords: AutomationRunRecord[];
+  automationRunHistoryExpandedRows: Set<string>;
+  automationRunHistoryCurrentPage: number;
+  automationRunHistoryStatusFilter: "all" | "success" | "failed" | "running";
+  automationRunHistoryDateFrom: string;
+  automationRunHistoryDateTo: string;
+  automationRunHistoryItemsPerPage: number;
+  automationRunHistoryError: string | null;
+  automationRunHistoryAutomationId: string | null;
+  // Exec approval extended state
+  execApprovalShowAdvanced: boolean;
+  execApprovalHistory: ExecApprovalHistoryEntry[];
+  execApprovalHistoryOpen: boolean;
+  toggleExecApprovalHistory: (() => void) | null;
+  toggleExecApprovalAdvanced: (() => void) | null;
+  extendExecApprovalTimeout: (() => void) | null;
+  clearExecApprovalHistory: (() => void) | null;
   // Goal management handlers
   handleOverseerPauseGoal: (goalId: string) => void;
   handleOverseerResumeGoal: (goalId: string) => void;
@@ -320,7 +383,7 @@ export type AppViewState = {
   handleChannelWizardSectionChange: (sectionId: string) => void;
   handleChannelWizardConfirmClose: () => void;
   handleChannelWizardCancelClose: () => void;
-  handleExecApprovalDecision: (decision: "allow-once" | "allow-always" | "deny") => Promise<void>;
+  handleExecApprovalDecision: (decision: "allow-once" | "allow-session" | "allow-always" | "deny" | "deny-always") => Promise<void>;
   handleOverseerRefresh: () => Promise<void>;
   handleOverseerTick: () => Promise<void>;
   handleOverseerSelectGoal: (goalId: string | null) => Promise<void>;

@@ -25,7 +25,7 @@ import {
   parseExecApprovalResolved,
   removeExecApproval,
 } from "./controllers/exec-approval";
-import type { ClawdbotApp } from "./app";
+import type { ClawdbrainApp } from "./app";
 import type { ExecApprovalRequest } from "./controllers/exec-approval";
 import { loadAssistantIdentity } from "./controllers/assistant-identity";
 import { formatDurationMs } from "./format";
@@ -136,7 +136,7 @@ export function connectGateway(host: GatewayHost) {
     url: host.settings.gatewayUrl,
     token: host.settings.token.trim() ? host.settings.token : undefined,
     password: host.password.trim() ? host.password : undefined,
-    clientName: "moltbot-control-ui",
+    clientName: "clawdbrain-control-ui",
     mode: "webchat",
     onHello: (hello) => {
       host.connected = true;
@@ -150,10 +150,10 @@ export function connectGateway(host: GatewayHost) {
       (host as unknown as { chatStream: string | null }).chatStream = null;
       (host as unknown as { chatStreamStartedAt: number | null }).chatStreamStartedAt = null;
       resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
-      void loadAssistantIdentity(host as unknown as ClawdbotApp);
-      void loadAgents(host as unknown as ClawdbotApp);
-      void loadNodes(host as unknown as ClawdbotApp, { quiet: true });
-      void loadDevices(host as unknown as ClawdbotApp, { quiet: true });
+      void loadAssistantIdentity(host as unknown as ClawdbrainApp);
+      void loadAgents(host as unknown as ClawdbrainApp);
+      void loadNodes(host as unknown as ClawdbrainApp, { quiet: true });
+      void loadDevices(host as unknown as ClawdbrainApp, { quiet: true });
       void refreshActiveTab(host as unknown as Parameters<typeof refreshActiveTab>[0]);
     },
     onClose: ({ code, reason }) => {
@@ -207,14 +207,14 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
         payload.sessionKey,
       );
     }
-    const state = handleChatEvent(host as unknown as ClawdbotApp, payload);
+    const state = handleChatEvent(host as unknown as ClawdbrainApp, payload);
     if (state === "final" || state === "error" || state === "aborted") {
       resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
       void flushChatQueueForEvent(
         host as unknown as Parameters<typeof flushChatQueueForEvent>[0],
       );
     }
-    if (state === "final") void loadChatHistory(host as unknown as ClawdbotApp);
+    if (state === "final") void loadChatHistory(host as unknown as ClawdbrainApp);
     return;
   }
 
@@ -233,7 +233,7 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
   }
 
   if (evt.event === "device.pair.requested" || evt.event === "device.pair.resolved") {
-    void loadDevices(host as unknown as ClawdbotApp, { quiet: true });
+    void loadDevices(host as unknown as ClawdbrainApp, { quiet: true });
   }
 
   if (evt.event === "exec.approval.requested") {
@@ -367,7 +367,7 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
         : "";
       toast.success(`Completed ${payload.automationName || "automation"}${duration ? ` in ${duration}` : ""}${artifactMsg}`);
       // Refresh automations list
-      void loadAutomations(host as unknown as ClawdbotApp);
+      void loadAutomations(host as any);
     }
     return;
   }
@@ -392,14 +392,12 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
       const errorMsg = payload.error || "Unknown error";
       const hasConflicts = payload.conflicts && payload.conflicts.length > 0;
       if (hasConflicts) {
-        toast.warning(`Failed: ${errorMsg}`, {
-          actions: [{ label: "View Conflicts", onClick: () => { /* TODO: Navigate to conflicts view */ } }],
-        });
+        toast.warning(`Failed: ${errorMsg} (${payload.conflicts!.length} conflict${payload.conflicts!.length > 1 ? "s" : ""})`);
       } else {
         toast.error(`Failed: ${errorMsg}`);
       }
       // Refresh automations list
-      void loadAutomations(host as unknown as ClawdbotApp);
+      void loadAutomations(host as any);
     }
     return;
   }
@@ -421,7 +419,7 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
       // Show info toast
       toast.info(`Cancelled ${payload.automationName || "automation"}`);
       // Refresh automations list
-      void loadAutomations(host as unknown as ClawdbotApp);
+      void loadAutomations(host as any);
     }
     return;
   }
@@ -439,17 +437,7 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
       // Update progress modal status to blocked (keep it open)
       const action = payload.requiredAction || payload.message || "Automation blocked";
       // Show warning toast with action
-      if (payload.sessionId) {
-        toast.warning(action, {
-          actions: [
-            { label: "Resolve in Chat", onClick: () => { /* TODO: Navigate to chat with session */ } },
-          ],
-        });
-      } else {
-        toast.warning(action, {
-          actions: [{ label: "View Details", onClick: () => { /* TODO: Navigate to details */ } }],
-        });
-      }
+      toast.warning(action);
     }
     return;
   }

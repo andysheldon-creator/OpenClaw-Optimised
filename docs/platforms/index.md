@@ -6,7 +6,7 @@ read_when:
 ---
 # Platforms
 
-Moltbot core is written in TypeScript. **Node is the recommended runtime**.
+Clawdbrain core is written in TypeScript. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
 Companion apps exist for macOS (menu bar app) and mobile nodes (iOS/Android). Windows and
@@ -34,17 +34,17 @@ Native companion apps for Windows are also planned; the Gateway is recommended v
 - Install guide: [Getting Started](/start/getting-started)
 - Gateway runbook: [Gateway](/gateway)
 - Gateway configuration: [Configuration](/gateway/configuration)
-- Service status: `moltbot gateway status`
+- Service status: `clawdbrain gateway status`
 
 ## Gateway service install (CLI)
 
 Use one of these (all supported):
 
-- Wizard (recommended): `moltbot onboard --install-daemon`
-- Direct: `moltbot gateway install`
-- Configure flow: `moltbot configure` → select **Gateway service**
-- Repair/migrate: `moltbot doctor` (offers to install or fix the service)
+- Wizard (recommended): `clawdbrain onboard --install-daemon`
+- Direct: `clawdbrain gateway install`
+- Configure flow: `clawdbrain configure` → select **Gateway service**
+- Repair/migrate: `clawdbrain doctor` (offers to install or fix the service)
 
 The service target depends on OS:
-- macOS: LaunchAgent (`com.clawdbot.gateway` or `com.clawdbot.<profile>`)
-- Linux/WSL2: systemd user service (`moltbot-gateway[-<profile>].service`)
+- macOS: LaunchAgent (`com.clawdbrain.gateway` or `com.clawdbrain.<profile>`)
+- Linux/WSL2: systemd user service (`clawdbrain-gateway[-<profile>].service`)

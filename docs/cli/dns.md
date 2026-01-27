@@ -1,11 +1,11 @@
 ---
-summary: "CLI reference for `moltbot dns` (wide-area discovery helpers)"
+summary: "CLI reference for `clawdbrain dns` (wide-area discovery helpers)"
 read_when:
   - You want wide-area discovery (DNS-SD) via Tailscale + CoreDNS
-  - You’re setting up split DNS for moltbot.internal
+  - You’re setting up split DNS for clawdbrain.internal
 ---
 
-# `moltbot dns`
+# `clawdbrain dns`
 
 DNS helpers for wide-area discovery (Tailscale + CoreDNS). Currently focused on macOS + Homebrew CoreDNS.
 
@@ -16,7 +16,7 @@ Related:
 ## Setup
 
 ```bash
-moltbot dns setup
-moltbot dns setup --apply
+clawdbrain dns setup
+clawdbrain dns setup --apply
 ```
 
