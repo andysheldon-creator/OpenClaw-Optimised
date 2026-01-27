@@ -194,10 +194,12 @@ Gateway client with:
 - [x] Notification sounds (Windows system sounds)
 - [x] Settings tests (6 new tests)
 
-**Phase 3: Distribution** 🔲
-- [ ] Installer/packaging (MSIX or MSI)
-- [ ] Auto-update mechanism
+**Phase 3: Distribution** � (In Progress)
+- [x] Build scripts (`scripts/build.ps1`)
+- [x] Inno Setup installer template (`installer/clawdbot.iss`)
+- [x] Community documentation (`docs/platforms/windows-companion-build-guide.md`)
 - [ ] Code signing
+- [ ] Auto-update mechanism
 - [ ] Release automation
 
 See [Windows-Companion-App-Plan.md](../../Windows-Companion-App-Plan.md) for the full roadmap.
