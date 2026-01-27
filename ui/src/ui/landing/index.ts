@@ -6,7 +6,7 @@
  * animations and parallax effects.
  */
 
-import { html, css, LitElement, TemplateResult, nothing } from 'lit';
+import { html, css, LitElement, TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 
 // Import all section components
@@ -499,9 +499,39 @@ export class LandingPage extends LitElement {
     setTimeout(() => this.scrollToSection(section), 100);
   }
 
+  private scrollToSection(sectionId: string): void {
+    const sectionMap: Record<string, string> = {
+      'understanding': 'landing-understanding',
+      'activity': 'landing-activity',
+      'control': 'landing-control',
+      'features': 'landing-features',
+      'social-proof': 'landing-social-proof',
+    };
+    const tagName = sectionMap[sectionId];
+    if (!tagName) return;
+    const el = this.renderRoot.querySelector(tagName);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  private handleGetStarted(): void {
+    this.dispatchEvent(new CustomEvent('get-started', { bubbles: true, composed: true }));
+  }
+
+  private handleBookDemo(): void {
+    this.dispatchEvent(new CustomEvent('book-demo', { bubbles: true, composed: true }));
+  }
+
+  private handleLandingNavigate(event: CustomEvent<{ section: string }>): void {
+    event.stopPropagation();
+    this.scrollToSection(event.detail.section);
+  }
+
   private scrollToTop(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+}
 
 declare global {
   interface HTMLElementTagNameMap {

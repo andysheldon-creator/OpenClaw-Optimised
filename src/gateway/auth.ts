@@ -3,7 +3,7 @@ import type { IncomingMessage } from "node:http";
 import type { GatewayAuthConfig, GatewayTailscaleMode } from "../config/config.js";
 import { readTailscaleWhoisIdentity, type TailscaleWhoisIdentity } from "../infra/tailscale.js";
 import { isTrustedProxyAddress, parseForwardedForClientIp, resolveGatewayClientIp } from "./net.js";
-export type ResolvedGatewayAuthMode = "none" | "token" | "password";
+export type ResolvedGatewayAuthMode = "token" | "password" | "none";
 
 export type ResolvedGatewayAuth = {
   mode: ResolvedGatewayAuthMode;
@@ -14,7 +14,7 @@ export type ResolvedGatewayAuth = {
 
 export type GatewayAuthResult = {
   ok: boolean;
-  method?: "none" | "token" | "password" | "tailscale" | "device-token";
+  method?: "token" | "password" | "tailscale" | "device-token" | "none";
   user?: string;
   reason?: string;
 };
@@ -203,16 +203,8 @@ export async function authorizeGatewayConnect(params: {
   trustedProxies?: string[];
   tailscaleWhois?: TailscaleWhoisLookup;
 }): Promise<GatewayAuthResult> {
-  const { auth, connectAuth, req, trustedProxies } = params;
+  const { auth, connectAuth, req } = params;
   const tailscaleWhois = params.tailscaleWhois ?? readTailscaleWhoisIdentity;
-  const localDirect = isLocalDirectRequest(req, trustedProxies);
-
-  // Local direct requests (localhost without forwarding headers) are treated
-  // as trusted *only* when auth is disabled. When auth is enabled (token or
-  // password), local callers must still present credentials.
-  if (localDirect && auth.mode === "none") {
-    return { ok: true, method: "none" };
-  }
 
   if (auth.allowTailscale) {
     const tailscaleCheck = await resolveVerifiedTailscaleUser({
@@ -226,13 +218,6 @@ export async function authorizeGatewayConnect(params: {
         user: tailscaleCheck.user.login,
       };
     }
-    if (auth.mode === "none") {
-      return { ok: false, reason: tailscaleCheck.reason };
-    }
-  }
-
-  if (auth.mode === "none") {
-    return { ok: true, method: "none" };
   }
 
   if (auth.mode === "token") {

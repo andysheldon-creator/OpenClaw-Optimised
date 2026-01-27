@@ -122,6 +122,8 @@ import {
   type ProgressModalState,
   type AutomationFormState,
 } from "./controllers/automations";
+import { toggleKeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
+import { toast } from "./components/toast";
 
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;
@@ -1450,6 +1452,7 @@ export function renderApp(state: AppViewState) {
             newSession: () => state.handleSendChat("/new", { restoreDraft: true }),
             clearChat: () => state.handleSendChat("/new", { restoreDraft: false }),
             abortChat: state.chatStream ? () => state.handleAbortChat() : undefined,
+            refreshSessions: () => loadSessions(state),
             refreshChannels: () => state.loadOverview(),
             refreshCron: () => state.loadCron(),
             refreshAutomations: () => loadAutomations({
@@ -1484,6 +1487,15 @@ export function renderApp(state: AppViewState) {
             createGoal: () => state.handleOverseerOpenCreateGoal(),
             refreshOverseer: () => state.loadOverview(),
             refreshNodes: () => state.loadOverview(),
+            refreshSkills: () => loadSkills(state, { clearMessages: true }),
+            refreshDebug: () => loadDebug(state),
+            refreshInstances: () => loadPresence(state),
+            refreshOverview: () => state.loadOverview(),
+            refreshLogs: () => loadLogs(state, { reset: true }),
+            clearLogs: () => state.clearLogs(),
+            exportLogs: state.logsEntries.length > 0 ? () => state.exportLogs(state.logsEntries.map((e) => e.raw), "all") : undefined,
+            toggleAutoFollow: () => { state.logsAutoFollow = !state.logsAutoFollow; },
+            jumpToLogsBottom: () => state.jumpToLogsBottom(),
           }),
           ...createDefaultCommands(
             (tab) => state.setTab(tab),
@@ -1492,6 +1504,14 @@ export function renderApp(state: AppViewState) {
             () => {
               const nextTheme = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark";
               state.setTheme(nextTheme);
+            },
+            {
+              openKeyboardShortcuts: () => toggleKeyboardShortcutsModal(),
+              openDocumentation: () => window.open("https://docs.clawd.bot", "_blank"),
+              copyGatewayUrl: () => {
+                const url = state.basePath || window.location.origin;
+                navigator.clipboard.writeText(url).then(() => toast.success("Gateway URL copied"));
+              },
             }
           ),
         ],

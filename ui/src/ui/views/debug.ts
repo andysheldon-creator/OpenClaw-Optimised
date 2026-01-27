@@ -99,6 +99,22 @@ function renderStatusTab(props: DebugProps) {
   const health = props.health ?? {};
   const heartbeat = props.heartbeat as Record<string, unknown> | null;
 
+  const securityAudit =
+    props.status && typeof props.status === "object"
+      ? (props.status as { securityAudit?: { summary?: Record<string, number> } }).securityAudit
+      : null;
+  const securitySummary = securityAudit?.summary ?? null;
+  const critical = securitySummary?.critical ?? 0;
+  const warn = securitySummary?.warn ?? 0;
+  const info = securitySummary?.info ?? 0;
+  const securityTone = critical > 0 ? "danger" : warn > 0 ? "warn" : "success";
+  const securityLabel =
+    critical > 0
+      ? `${critical} critical`
+      : warn > 0
+        ? `${warn} warnings`
+        : "No critical issues";
+
   // Extract key status values
   const connected = status.connected ?? false;
   const uptime = status.uptimeMs ? formatUptime(status.uptimeMs as number) : "Unknown";
@@ -158,10 +174,17 @@ function renderStatusTab(props: DebugProps) {
         <div class="debug-status__icon">
           ${icon("server", { size: 20 })}
         </div>
-        <div class="debug-status__label">Queue</div>
-        <div class="debug-status__value">${queueSize} pending</div>
+      <div class="debug-status__label">Queue</div>
+      <div class="debug-status__value">${queueSize} pending</div>
       </div>
     </div>
+
+    ${securitySummary
+      ? html`<div class="callout ${securityTone}" style="margin: 12px 0;">
+          Security audit: ${securityLabel}${info > 0 ? ` · ${info} info` : ""}. Run
+          <span class="mono">clawdbot security audit --deep</span> for details.
+        </div>`
+      : nothing}
 
     <!-- Raw Data Section -->
     <div class="debug-raw-section">
@@ -211,7 +234,7 @@ function renderModelsTab(props: DebugProps) {
       <div class="models-empty">
         <div class="models-empty__icon">${icon("brain", { size: 32 })}</div>
         <div class="models-empty__text">No models available</div>
-        <div class="models-empty__sub">Run models.list to fetch available models</div>
+        <div class="models-empty__sub">Configure an AI provider in your gateway settings to see available models</div>
       </div>
     `;
   }
