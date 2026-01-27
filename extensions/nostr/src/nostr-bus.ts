@@ -15,7 +15,10 @@ import {
   readNostrProfileState,
   writeNostrProfileState,
 } from "./nostr-state-store.js";
-import { publishProfile as publishProfileFn, type ProfilePublishResult } from "./nostr-profile.js";
+import {
+  publishProfile as publishProfileFn,
+  type ProfilePublishResult,
+} from "./nostr-profile.js";
 import type { NostrProfile } from "./config-schema.js";
 import { createSeenTracker, type SeenTracker } from "./seen-tracker.js";
 import {
@@ -36,12 +39,22 @@ const STARTUP_LOOKBACK_SEC = 120; // tolerate relay lag / clock skew
 const MAX_PERSISTED_EVENT_IDS = 5000;
 const STATE_PERSIST_DEBOUNCE_MS = 5000; // Debounce state writes
 
+// Reconnect configuration (exponential backoff with jitter)
+const RECONNECT_BASE_MS = 1000; // 1 second base
+const RECONNECT_MAX_MS = 60000; // 60 seconds max
+const RECONNECT_JITTER = 0.3; // ±30% jitter
+
 // Circuit breaker configuration
 const CIRCUIT_BREAKER_THRESHOLD = 5; // failures before opening
 const CIRCUIT_BREAKER_RESET_MS = 30000; // 30 seconds before half-open
 
 // Health tracker configuration
 const HEALTH_WINDOW_MS = 60000; // 1 minute window for health stats
+
+// Typing indicator configuration (NIP-01 ephemeral events)
+const TYPING_KIND = 20001; // Community convention for typing indicators
+const TYPING_TTL_SEC = 30; // 30 second expiration
+const TYPING_THROTTLE_MS = 5000; // Max 1 event per 5 seconds per recipient
 
 // ============================================================================
 // Types
@@ -59,6 +72,7 @@ export interface NostrBusOptions {
     pubkey: string,
     text: string,
     reply: (text: string) => Promise<void>,
+    eventId: string
   ) => Promise<void>;
   /** Called on errors (optional) */
   onError?: (error: Error, context: string) => void;
@@ -93,6 +107,10 @@ export interface NostrBusHandle {
     lastPublishedEventId: string | null;
     lastPublishResults: Record<string, "ok" | "failed" | "timeout"> | null;
   }>;
+  /** Send typing indicator start (kind 20001) */
+  sendTypingStart: (toPubkey: string, conversationEventId?: string) => Promise<void>;
+  /** Send typing indicator stop (kind 20001) */
+  sendTypingStop: (toPubkey: string, conversationEventId?: string) => Promise<void>;
 }
 
 // ============================================================================
@@ -121,7 +139,7 @@ function createCircuitBreaker(
   relay: string,
   metrics: NostrMetrics,
   threshold: number = CIRCUIT_BREAKER_THRESHOLD,
-  resetMs: number = CIRCUIT_BREAKER_RESET_MS,
+  resetMs: number = CIRCUIT_BREAKER_RESET_MS
 ): CircuitBreaker {
   const state: CircuitBreakerState = {
     state: "closed",
@@ -132,9 +150,7 @@ function createCircuitBreaker(
 
   return {
     canAttempt(): boolean {
-      if (state.state === "closed") {
-        return true;
-      }
+      if (state.state === "closed") return true;
 
       if (state.state === "open") {
         // Check if enough time has passed to try half-open
@@ -240,14 +256,10 @@ function createRelayHealthTracker(): RelayHealthTracker {
 
     getScore(relay: string): number {
       const s = stats.get(relay);
-      if (!s) {
-        return 0.5;
-      } // Unknown relay gets neutral score
+      if (!s) return 0.5; // Unknown relay gets neutral score
 
       const total = s.successCount + s.failureCount;
-      if (total === 0) {
-        return 0.5;
-      }
+      if (total === 0) return 0.5;
 
       // Success rate (0-1)
       const successRate = s.successCount / total;
@@ -260,16 +272,31 @@ function createRelayHealthTracker(): RelayHealthTracker {
           : 0;
 
       // Latency penalty (lower is better)
-      const avgLatency = s.latencyCount > 0 ? s.latencySum / s.latencyCount : 1000;
+      const avgLatency =
+        s.latencyCount > 0 ? s.latencySum / s.latencyCount : 1000;
       const latencyPenalty = Math.min(0.2, avgLatency / 10000);
 
       return Math.max(0, Math.min(1, successRate + recencyBonus - latencyPenalty));
     },
 
     getSortedRelays(relays: string[]): string[] {
-      return [...relays].toSorted((a, b) => this.getScore(b) - this.getScore(a));
+      return [...relays].sort((a, b) => this.getScore(b) - this.getScore(a));
     },
   };
+}
+
+// ============================================================================
+// Reconnect with Exponential Backoff + Jitter
+// ============================================================================
+
+function computeReconnectDelay(attempt: number): number {
+  // Exponential backoff: base * 2^attempt
+  const exponential = RECONNECT_BASE_MS * Math.pow(2, attempt);
+  const capped = Math.min(exponential, RECONNECT_MAX_MS);
+
+  // Add jitter: ±JITTER%
+  const jitter = capped * RECONNECT_JITTER * (Math.random() * 2 - 1);
+  return Math.max(RECONNECT_BASE_MS, capped + jitter);
 }
 
 // ============================================================================
@@ -293,7 +320,9 @@ export function validatePrivateKey(key: string): Uint8Array {
 
   // Handle hex format
   if (!/^[0-9a-fA-F]{64}$/.test(trimmed)) {
-    throw new Error("Private key must be 64 hex characters or nsec bech32 format");
+    throw new Error(
+      "Private key must be 64 hex characters or nsec bech32 format"
+    );
   }
 
   // Convert hex string to Uint8Array
@@ -319,7 +348,9 @@ export function getPublicKeyFromPrivate(privateKey: string): string {
 /**
  * Start the Nostr DM bus - subscribes to NIP-04 encrypted DMs
  */
-export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusHandle> {
+export async function startNostrBus(
+  options: NostrBusOptions
+): Promise<NostrBusHandle> {
   const {
     privateKey,
     relays = DEFAULT_RELAYS,
@@ -375,7 +406,9 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
   // Debounced state persistence
   let pendingWrite: ReturnType<typeof setTimeout> | undefined;
   let lastProcessedAt = state?.lastProcessedAt ?? gatewayStartedAt;
-  let recentEventIds = (state?.recentEventIds ?? []).slice(-MAX_PERSISTED_EVENT_IDS);
+  let recentEventIds = (state?.recentEventIds ?? []).slice(
+    -MAX_PERSISTED_EVENT_IDS
+  );
 
   function scheduleStatePersist(eventCreatedAt: number, eventId: string): void {
     lastProcessedAt = Math.max(lastProcessedAt, eventCreatedAt);
@@ -384,9 +417,7 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
       recentEventIds = recentEventIds.slice(-MAX_PERSISTED_EVENT_IDS);
     }
 
-    if (pendingWrite) {
-      clearTimeout(pendingWrite);
-    }
+    if (pendingWrite) clearTimeout(pendingWrite);
     pendingWrite = setTimeout(() => {
       writeNostrBusState({
         accountId,
@@ -450,7 +481,7 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
       // Decrypt the message
       let plaintext: string;
       try {
-        plaintext = decrypt(sk, event.pubkey, event.content);
+        plaintext = await decrypt(sk, event.pubkey, event.content);
         metrics.emit("decrypt.success");
       } catch (err) {
         metrics.emit("decrypt.failure");
@@ -470,12 +501,12 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
           metrics,
           circuitBreakers,
           healthTracker,
-          onError,
+          onError
         );
       };
 
       // Call the message handler
-      await onMessage(event.pubkey, plaintext, replyTo);
+      await onMessage(event.pubkey, plaintext, replyTo, event.id);
 
       // Mark as processed
       metrics.emit("event.processed");
@@ -489,24 +520,26 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
     }
   }
 
-  const sub = pool.subscribeMany(relays, [{ kinds: [4], "#p": [pk], since }], {
-    onevent: handleEvent,
-    oneose: () => {
-      // EOSE handler - called when all stored events have been received
-      for (const relay of relays) {
-        metrics.emit("relay.message.eose", 1, { relay });
-      }
-      onEose?.(relays.join(", "));
-    },
-    onclose: (reason) => {
-      // Handle subscription close
-      for (const relay of relays) {
-        metrics.emit("relay.message.closed", 1, { relay });
-        options.onDisconnect?.(relay);
-      }
-      onError?.(new Error(`Subscription closed: ${reason.join(", ")}`), "subscription");
-    },
-  });
+  const sub = pool.subscribeMany(
+    relays,
+    { kinds: [4], "#p": [pk], since },
+    {
+      onevent: handleEvent,
+      oneose: () => {
+        for (const relay of relays) {
+          metrics.emit("relay.message.eose", 1, { relay });
+        }
+        onEose?.(relays.join(", "));
+      },
+      onclose: (reason) => {
+        for (const relay of relays) {
+          metrics.emit("relay.message.closed", 1, { relay });
+          options.onDisconnect?.(relay);
+        }
+        onError?.(new Error(`Subscription closed: ${reason}`), "subscription");
+      },
+    }
+  );
 
   // Public sendDm function
   const sendDm = async (toPubkey: string, text: string): Promise<void> => {
@@ -519,7 +552,7 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
       metrics,
       circuitBreakers,
       healthTracker,
-      onError,
+      onError
     );
   };
 
@@ -562,6 +595,17 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
     };
   };
 
+  // Create typing controller for throttled typing indicators
+  const typingController = createTypingController(
+    pool,
+    sk,
+    relays,
+    metrics,
+    circuitBreakers,
+    healthTracker,
+    onError
+  );
+
   return {
     close: () => {
       sub.close();
@@ -582,6 +626,8 @@ export async function startNostrBus(options: NostrBusOptions): Promise<NostrBusH
     getMetrics: () => metrics.getSnapshot(),
     publishProfile,
     getProfileState,
+    sendTypingStart: typingController.sendTypingStart,
+    sendTypingStop: typingController.sendTypingStop,
   };
 }
 
@@ -601,9 +647,9 @@ async function sendEncryptedDm(
   metrics: NostrMetrics,
   circuitBreakers: Map<string, CircuitBreaker>,
   healthTracker: RelayHealthTracker,
-  onError?: (error: Error, context: string) => void,
+  onError?: (error: Error, context: string) => void
 ): Promise<void> {
-  const ciphertext = encrypt(sk, toPubkey, text);
+  const ciphertext = await encrypt(sk, toPubkey, text);
   const reply = finalizeEvent(
     {
       kind: 4,
@@ -611,13 +657,14 @@ async function sendEncryptedDm(
       tags: [["p", toPubkey]],
       created_at: Math.floor(Date.now() / 1000),
     },
-    sk,
+    sk
   );
 
   // Sort relays by health score (best first)
   const sortedRelays = healthTracker.getSortedRelays(relays);
 
   // Try relays in order of health, respecting circuit breakers
+  let successCount = 0;
   let lastError: Error | undefined;
   for (const relay of sortedRelays) {
     const cb = circuitBreakers.get(relay);
@@ -629,14 +676,13 @@ async function sendEncryptedDm(
 
     const startTime = Date.now();
     try {
-      // oxlint-disable-next-line typescript/await-thenable typesciript/no-floating-promises
       await pool.publish([relay], reply);
       const latency = Date.now() - startTime;
 
       // Record success
       cb?.recordSuccess();
       healthTracker.recordSuccess(relay, latency);
-
+      successCount++;
       return; // Success - exit early
     } catch (err) {
       lastError = err as Error;
@@ -802,9 +848,7 @@ function createTypingController(
  * Check if a string looks like a valid Nostr pubkey (hex or npub)
  */
 export function isValidPubkey(input: string): boolean {
-  if (typeof input !== "string") {
-    return false;
-  }
+  if (typeof input !== "string") return false;
   const trimmed = input.trim();
 
   // npub format
