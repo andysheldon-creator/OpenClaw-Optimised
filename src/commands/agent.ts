@@ -492,7 +492,7 @@ export async function agentCommand(
               content: [{ type: "text", text: result.payloads[0].text }],
               timestamp: Date.now(),
               stopReason: "cli",
-              usage: result.meta?.usage ?? { input: 0, output: 0, totalTokens: 0 },
+              usage: result.meta?.agentMeta?.usage ?? { input: 0, output: 0, totalTokens: 0 },
             },
           };
           fs.appendFileSync(transcriptPath, JSON.stringify(messageEntry) + "\n", "utf-8");
