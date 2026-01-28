@@ -13,7 +13,6 @@ GitHub Copilot CLI (`copilot`) is GitHub's terminal-based AI assistant. Moltbot 
 ## Prerequisites
 
 - **GitHub Copilot subscription** (Individual, Business, or Enterprise)
-- **Node.js 22+**
 - **GitHub CLI** (`gh`) authenticated with your GitHub account
 
 ## Installation
