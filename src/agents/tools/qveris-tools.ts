@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";
 
@@ -18,7 +18,7 @@ const DEFAULT_PRE_SEARCH_BYTE_THRESHOLD = 100;
 // Types
 // ============================================================================
 
-type QverisConfig = NonNullable<ClawdbotConfig["tools"]>["qveris"];
+type QverisConfig = NonNullable<MoltbotConfig["tools"]>["qveris"];
 
 /** Search result parameter from QVeris API */
 interface QverisSearchResultParam {
@@ -83,7 +83,7 @@ interface QverisToolMapping {
 // Config Resolution
 // ============================================================================
 
-function resolveQverisConfig(cfg?: ClawdbotConfig): QverisConfig {
+function resolveQverisConfig(cfg?: MoltbotConfig): QverisConfig {
   return cfg?.tools?.qveris;
 }
 
@@ -386,7 +386,7 @@ function sanitizeToolName(toolId: string): string {
 // ============================================================================
 
 export function createQverisTools(options?: {
-  config?: ClawdbotConfig;
+  config?: MoltbotConfig;
   sandboxed?: boolean;
   agentSessionKey?: string;
 }): AnyAgentTool[] {
@@ -408,7 +408,8 @@ export function createQverisTools(options?: {
   const searchLimit = resolveSearchLimit(config);
 
   // Generate a session ID tied to clawdbot session key
-  const sessionId = options?.agentSessionKey ?? `clawdbot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const sessionId =
+    options?.agentSessionKey ?? `clawdbot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const searchTool: AnyAgentTool = {
     label: "QVeris Search",
@@ -508,9 +509,12 @@ export function createQverisTools(options?: {
  * Check if QVeris tools are enabled/available
  */
 export function isQverisEnabled(options?: {
-  config?: ClawdbotConfig;
+  config?: MoltbotConfig;
   sandboxed?: boolean;
 }): boolean {
   const config = resolveQverisConfig(options?.config);
-  return resolveQverisEnabled({ config, sandboxed: options?.sandboxed }) && Boolean(resolveQverisApiKey(config));
+  return (
+    resolveQverisEnabled({ config, sandboxed: options?.sandboxed }) &&
+    Boolean(resolveQverisApiKey(config))
+  );
 }

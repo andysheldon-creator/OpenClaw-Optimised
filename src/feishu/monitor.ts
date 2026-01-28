@@ -9,7 +9,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import os from "node:os";
 
-import type { ClawdbotConfig } from "../config/config.js";
+import type { MoltbotConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import { computeBackoff, sleepWithAbort } from "../infra/backoff.js";
 import { formatErrorMessage } from "../infra/errors.js";
@@ -31,7 +31,7 @@ import { resolveFeishuEncryptKey, resolveFeishuVerificationToken } from "./token
 
 export type MonitorFeishuOpts = {
   accountId?: string;
-  config?: ClawdbotConfig;
+  config?: MoltbotConfig;
   runtime?: RuntimeEnv;
   abortSignal?: AbortSignal;
   /** Override event mode (webhook or websocket) */
@@ -59,7 +59,7 @@ export type FeishuMessageContext = {
   threadId?: string;
   client: FeishuClient;
   account: ResolvedFeishuAccount;
-  cfg: ClawdbotConfig;
+  cfg: MoltbotConfig;
   runtime?: RuntimeEnv;
   /** Reply to this message */
   reply: (text: string) => Promise<void>;
@@ -97,7 +97,7 @@ function createMessageContext(
   event: FeishuMessageReceiveEvent,
   client: FeishuClient,
   account: ResolvedFeishuAccount,
-  cfg: ClawdbotConfig,
+  cfg: MoltbotConfig,
   runtime?: RuntimeEnv,
 ): FeishuMessageContext {
   const msg = event.event.message;
