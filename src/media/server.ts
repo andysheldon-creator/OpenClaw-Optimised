@@ -86,6 +86,16 @@ export async function startMediaServer(
   runtime: RuntimeEnv = defaultRuntime,
 ): Promise<Server> {
   const app = express();
+
+  // Set standard security headers.
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("X-XSS-Protection", "0");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    next();
+  });
+
   attachMediaRoutes(app, ttlMs, runtime);
   return await new Promise((resolve, reject) => {
     const server = app.listen(port);

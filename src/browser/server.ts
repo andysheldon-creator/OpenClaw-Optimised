@@ -21,6 +21,16 @@ export async function startBrowserControlServerFromConfig(): Promise<BrowserServ
   if (!resolved.enabled) return null;
 
   const app = express();
+
+  // Set standard security headers.
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("X-XSS-Protection", "0");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    next();
+  });
+
   app.use(express.json({ limit: "1mb" }));
 
   const ctx = createBrowserRouteContext({

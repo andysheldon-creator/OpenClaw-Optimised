@@ -174,13 +174,14 @@ interface ControlUiInjectionOpts {
 
 function injectControlUiConfig(html: string, opts: ControlUiInjectionOpts): string {
   const { basePath, assistantName, assistantAvatar } = opts;
+  const safeJson = (val: unknown) => JSON.stringify(val).replace(/</g, "\\u003c");
   const script =
     `<script>` +
-    `window.__CLAWDBOT_CONTROL_UI_BASE_PATH__=${JSON.stringify(basePath)};` +
-    `window.__CLAWDBOT_ASSISTANT_NAME__=${JSON.stringify(
+    `window.__CLAWDBOT_CONTROL_UI_BASE_PATH__=${safeJson(basePath)};` +
+    `window.__CLAWDBOT_ASSISTANT_NAME__=${safeJson(
       assistantName ?? DEFAULT_ASSISTANT_IDENTITY.name,
     )};` +
-    `window.__CLAWDBOT_ASSISTANT_AVATAR__=${JSON.stringify(
+    `window.__CLAWDBOT_ASSISTANT_AVATAR__=${safeJson(
       assistantAvatar ?? DEFAULT_ASSISTANT_IDENTITY.avatar,
     )};` +
     `</script>`;
