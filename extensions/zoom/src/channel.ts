@@ -75,12 +75,12 @@ export const zoomPlugin: ChannelPlugin<ResolvedZoomAccount> = {
       allowFrom: account.config.dm?.allowFrom ?? [],
       allowFromPath: "channels.zoom.dm.",
       approveHint: "Send a message to the bot to get started",
-      normalizeEntry: (raw) => raw.trim(),
+      normalizeEntry: (raw) => String(raw ?? "").trim(),
     }),
     collectWarnings: () => [],
   },
   messaging: {
-    normalizeTarget: (target) => target.trim(),
+    normalizeTarget: (target) => String(target ?? "").trim(),
     targetResolver: {
       looksLikeId: (input) => input.includes("@xmpp") || input.includes("@xmppdev"),
       hint: "<userJid>",

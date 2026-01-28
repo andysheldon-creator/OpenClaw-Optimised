@@ -35,7 +35,7 @@ async function noteZoomHelp(prompter: WizardPrompter): Promise<void> {
       "1) Go to Zoom App Marketplace (marketplace.zoom.us/develop/create)",
       "2) Create a Team Chat App and enable Bot feature",
       "3) Copy Client ID, Client Secret, Bot JID, and Secret Token",
-      "4) Configure webhook URL to point to your gateway",
+      "4) You'll configure webhook and OAuth redirect URLs after setup",
       `Docs: ${formatDocsLink("/channels/zoom")}`,
       "Website: https://molt.bot",
     ].join("\n"),
@@ -149,6 +149,26 @@ export const zoomOnboardingAdapter: ChannelOnboardingAdapter = {
         },
       },
     };
+
+    // Show URL configuration instructions
+    await prompter.note(
+      [
+        "IMPORTANT: Configure these URLs in your Zoom app:",
+        "",
+        "Webhook URL (for receiving messages):",
+        "  https://gateway-host/webhooks/zoom",
+        "",
+        "OAuth Redirect URL (for app installation):",
+        "  https://gateway-host/api/zoomapp/auth",
+        "",
+        "Replace gateway-host with:",
+        "- For local dev: Use ngrok (ngrok http 3001)",
+        "- For production: Your server's public domain",
+        "",
+        "Subscribe to event type: bot_notification",
+      ].join("\n"),
+      "Zoom URL Configuration Required",
+    );
 
     return { cfg: next };
   },

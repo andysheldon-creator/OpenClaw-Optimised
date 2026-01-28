@@ -10,10 +10,12 @@ Status: production-ready plugin for Zoom Team Chat direct messages via Team Chat
 
 ## Quick setup
 
-1) Create a 'General App; in [Zoom App Marketplace](https://marketplace.zoom.us/develop/create)
+1) Create a 'General App' in [Zoom App Marketplace](https://marketplace.zoom.us/develop/create)
 2) Enable the Team Chat surface and note your credentials (Client ID, Client Secret, Bot JID, Webhook Secret Token)
 3) Install the plugin: `pnpm install` (the zoom extension is included in the workspace)
-4) Configure webhook URL pointing to your gateway (see Webhook Setup below)
+4) Configure URLs (see URL Configuration below):
+   - Webhook URL: `https://gateway-host/webhooks/zoom`
+   - OAuth Redirect URL: `https://gateway-host/api/zoomapp/auth`
 5) Set credentials in config:
    ```json5
    {
@@ -52,19 +54,23 @@ Status: production-ready plugin for Zoom Team Chat direct messages via Team Chat
    - **Bot JID** (e.g., `bot@xmppdev.zoom.us`)
    - **Secret Token** (for webhook verification)
 
-### 2. Configure Webhooks
+### 2. Configure URLs
 
-The bot receives messages through webhooks. Configure the webhook URL in your Zoom app settings:
+Configure these URLs in your Zoom app settings:
 
-**Development (using tunnel):**
+**Webhook URL** (for receiving messages):
 ```
-https://YOUR-SUBDOMAIN.frp.zoomappgo.cloud/webhooks/zoom
+https://gateway-host/webhooks/zoom
 ```
 
-**Production:**
+**OAuth Redirect URL** (for app installation):
 ```
-https://your-domain.com/webhooks/zoom
+https://gateway-host/api/zoomapp/auth
 ```
+
+Replace `gateway-host` with:
+- **Local development**: Use ngrok (`ngrok http 3001`) or another tunnel service to expose port 3001
+- **Production**: Your server's public domain (configure reverse proxy to forward to port 3001)
 
 Subscribe to these event types:
 - `bot_notification` - Required for receiving messages
