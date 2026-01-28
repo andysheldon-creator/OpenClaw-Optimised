@@ -6,7 +6,7 @@ read_when:
 ---
 # System Prompt
 
-Moltbot builds a custom system prompt for every agent run. The prompt is **Moltbot-owned** and does not use the p-coding-agent default prompt.
+Moltbot builds a custom system prompt for every agent run. The prompt is **Moltbot-owned** and does not use the pi-coding-agent default prompt.
 
 The prompt is assembled by Moltbot and injected into each agent run.
 
