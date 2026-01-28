@@ -4,7 +4,7 @@ import {
   isEmbeddedPiRunActive,
   waitForEmbeddedPiRunEnd,
 } from "../../agents/pi-embedded.js";
-import type { ClawdbotConfig } from "../../config/config.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { resolveSessionFilePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
@@ -20,7 +20,7 @@ function isHandoffCompactionMode(cfg: ClawdbotConfig): boolean {
 function extractCompactInstructions(params: {
   rawBody?: string;
   ctx: import("../templating.js").MsgContext;
-  cfg: ClawdbotConfig;
+  cfg: MoltbotConfig;
   agentId?: string;
   isGroup: boolean;
 }): string | undefined {

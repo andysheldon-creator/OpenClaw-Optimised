@@ -74,7 +74,7 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
       vi.mocked(compactEmbeddedPiSession).mockClear();
       return await fn(home);
     },
-    { prefix: "clawdbot-triggers-" },
+    { prefix: "moltbot-triggers-" },
   );
 }
 
@@ -102,7 +102,7 @@ afterEach(() => {
 describe("trigger handling", () => {
   it("runs /compact as a gated command", async () => {
     await withTempHome(async (home) => {
-      const storePath = join(tmpdir(), `clawdbot-session-test-${Date.now()}.json`);
+      const storePath = join(tmpdir(), `moltbot-session-test-${Date.now()}.json`);
       vi.mocked(compactEmbeddedPiSession).mockResolvedValue({
         ok: true,
         compacted: true,
