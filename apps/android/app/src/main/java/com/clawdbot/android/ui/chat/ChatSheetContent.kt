@@ -155,6 +155,7 @@ fun ChatSheetContent(viewModel: MainViewModel) {
       onOpenCamera = { openCamera() },
       onPickImages = { pickImages.launch("image/*") },
       onPickFiles = { pickFiles.launch(arrayOf("*/*")) },
+      onShareScreen = { /* TODO: Trigger screen share - sends request to agent */ },
       onRemoveAttachment = { id -> attachments.removeAll { it.id == id } },
       onSetThinkingLevel = { level -> viewModel.setChatThinkingLevel(level) },
       onSelectSession = { key -> viewModel.switchChatSession(key) },

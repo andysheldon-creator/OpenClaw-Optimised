@@ -35,7 +35,9 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.filled.ScreenShare
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
@@ -80,6 +82,7 @@ fun ChatComposer(
   onOpenCamera: () -> Unit = {},
   onPickImages: () -> Unit,
   onPickFiles: () -> Unit = {},
+  onShareScreen: () -> Unit = {},
   onRemoveAttachment: (id: String) -> Unit,
   onSetThinkingLevel: (level: String) -> Unit,
   onSelectSession: (sessionKey: String) -> Unit,
@@ -190,29 +193,54 @@ fun ChatComposer(
               color = Color.White.copy(alpha = 0.15f),
             )
             
-            // Session selector
+            // Share screen
             DropdownMenuItem(
-              text = { Text("Session", color = Color.White) },
+              text = { Text("Share screen", color = Color.White) },
               onClick = { 
                 showMenu = false
-                showSessionMenu = true 
+                onShareScreen()
               },
-              leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
-              trailingIcon = { Text(currentSessionLabel, color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall) },
+              leadingIcon = { Icon(Icons.AutoMirrored.Filled.ScreenShare, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
             )
             
-            // Thinking level
+            // Settings (Session & Thinking)
+            var showSettingsSubmenu by remember { mutableStateOf(false) }
             DropdownMenuItem(
-              text = { Text("Thinking", color = Color.White) },
+              text = { Text("Settings", color = Color.White) },
               onClick = { 
-                showMenu = false
-                showThinkingMenu = true 
+                showSettingsSubmenu = !showSettingsSubmenu
               },
-              leadingIcon = { 
-                Text("🧠", style = MaterialTheme.typography.bodyLarge) 
+              leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
+              trailingIcon = { 
+                Text(
+                  if (showSettingsSubmenu) "▲" else "▼", 
+                  color = Color.White.copy(alpha = 0.5f),
+                  style = MaterialTheme.typography.bodySmall
+                ) 
               },
-              trailingIcon = { Text(thinkingLabel(thinkingLevel), color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall) },
             )
+            
+            if (showSettingsSubmenu) {
+              // Session selector (indented)
+              DropdownMenuItem(
+                text = { Text("  Session", color = Color.White.copy(alpha = 0.9f)) },
+                onClick = { 
+                  showMenu = false
+                  showSessionMenu = true 
+                },
+                trailingIcon = { Text(currentSessionLabel, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall) },
+              )
+              
+              // Thinking level (indented)
+              DropdownMenuItem(
+                text = { Text("  Thinking", color = Color.White.copy(alpha = 0.9f)) },
+                onClick = { 
+                  showMenu = false
+                  showThinkingMenu = true 
+                },
+                trailingIcon = { Text(thinkingLabel(thinkingLevel), color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall) },
+              )
+            }
             
             HorizontalDivider(
               modifier = Modifier.padding(vertical = 8.dp),
