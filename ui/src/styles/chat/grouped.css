@@ -41,17 +41,37 @@
   align-items: flex-end;
 }
 
+.chat-group.user .chat-group-header,
 .chat-group.user .chat-group-footer {
   justify-content: flex-end;
 }
 
-/* Footer at bottom of message group (role + time) */
+/* Header at top of message group (role + time) */
+.chat-group-header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 4px;
+  padding: 0 4px;
+}
+
+/* Legacy footer (kept for backwards compat) */
 .chat-group-footer {
   display: flex;
   gap: 8px;
   align-items: baseline;
   margin-top: 8px;
   padding: 0 4px;
+}
+
+/* Turn separator between consecutive chat groups */
+.chat-group + .chat-group {
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="light"] .chat-group + .chat-group {
+  border-top-color: rgba(0, 0, 0, 0.06);
 }
 
 .chat-sender-name {
@@ -91,8 +111,8 @@
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
-  align-self: flex-end;
-  margin-bottom: 28px;
+  align-self: flex-start;
+  margin-top: 0;
   transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -380,6 +400,20 @@ img.chat-avatar {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* Per-message inline timestamp */
+.chat-bubble-timestamp {
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.5;
+  margin-top: 4px;
+  text-align: right;
+  transition: opacity 150ms ease;
+}
+
+.chat-bubble:hover .chat-bubble-timestamp {
+  opacity: 0.8;
 }
 
 /* System messages */

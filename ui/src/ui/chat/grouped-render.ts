@@ -5,7 +5,7 @@ import type { AssistantIdentity } from "../assistant-identity";
 import { toSanitizedMarkdownHtml } from "../markdown";
 import type { MessageGroup } from "../types/chat-types";
 import { renderCopyAsMarkdownButton } from "./copy-as-markdown";
-import { isToolResultMessage, normalizeRoleForGrouping } from "./message-normalizer";
+import { isToolResultMessage, normalizeMessage, normalizeRoleForGrouping } from "./message-normalizer";
 import {
   extractTextCached,
   extractThinkingCached,
@@ -87,19 +87,19 @@ export function renderStreamingGroup(
     <div class="chat-group assistant">
       ${renderAvatar("assistant", assistant)}
       <div class="chat-group-messages">
+        <div class="chat-group-header">
+          <span class="chat-sender-name">${name}</span>
+          <span class="chat-group-timestamp">${timestamp}</span>
+        </div>
         ${renderGroupedMessage(
           {
             role: "assistant",
             content: [{ type: "text", text }],
             timestamp: startedAt,
           },
-          { isStreaming: true, showReasoning: false },
+          { isStreaming: true, showReasoning: false, timestamp: startedAt },
           onOpenSidebar,
         )}
-        <div class="chat-group-footer">
-          <span class="chat-sender-name">${name}</span>
-          <span class="chat-group-timestamp">${timestamp}</span>
-        </div>
       </div>
     </div>
   `;
@@ -140,21 +140,23 @@ export function renderMessageGroup(
         avatar: opts.assistantAvatar ?? null,
       })}
       <div class="chat-group-messages">
-        ${group.messages.map((item, index) =>
-          renderGroupedMessage(
+        <div class="chat-group-header">
+          <span class="chat-sender-name">${who}</span>
+          <span class="chat-group-timestamp">${timestamp}</span>
+        </div>
+        ${group.messages.map((item, index) => {
+          const normalized = normalizeMessage(item.message);
+          return renderGroupedMessage(
             item.message,
             {
               isStreaming:
                 group.isStreaming && index === group.messages.length - 1,
               showReasoning: opts.showReasoning,
+              timestamp: normalized.timestamp,
             },
             opts.onOpenSidebar,
-          ),
-        )}
-        <div class="chat-group-footer">
-          <span class="chat-sender-name">${who}</span>
-          <span class="chat-group-timestamp">${timestamp}</span>
-        </div>
+          );
+        })}
       </div>
     </div>
   `;
@@ -234,7 +236,7 @@ function renderMessageImages(images: ImageBlock[]) {
 
 function renderGroupedMessage(
   message: unknown,
-  opts: { isStreaming: boolean; showReasoning: boolean },
+  opts: { isStreaming: boolean; showReasoning: boolean; timestamp?: number },
   onOpenSidebar?: (content: string) => void,
 ) {
   const m = message as Record<string, unknown>;
@@ -272,6 +274,9 @@ function renderGroupedMessage(
     .filter(Boolean)
     .join(" ");
 
+  // For tool results with tool cards, suppress redundant inline text
+  const suppressInlineText = isToolResult && hasToolCards;
+
   if (!markdown && hasToolCards && isToolResult) {
     return html`${toolCards.map((card) =>
       renderToolCardSidebar(card, onOpenSidebar),
@@ -279,6 +284,13 @@ function renderGroupedMessage(
   }
 
   if (!markdown && !hasToolCards && !hasImages) return nothing;
+
+  const msgTimestamp = opts.timestamp
+    ? new Date(opts.timestamp).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
 
   return html`
     <div class="${bubbleClasses}">
@@ -289,10 +301,13 @@ function renderGroupedMessage(
             toSanitizedMarkdownHtml(reasoningMarkdown),
           )}</div>`
         : nothing}
-      ${markdown
+      ${markdown && !suppressInlineText
         ? html`<div class="chat-text">${unsafeHTML(toSanitizedMarkdownHtml(markdown))}</div>`
         : nothing}
       ${toolCards.map((card) => renderToolCardSidebar(card, onOpenSidebar))}
+      ${msgTimestamp
+        ? html`<div class="chat-bubble-timestamp">${msgTimestamp}</div>`
+        : nothing}
     </div>
   `;
 }

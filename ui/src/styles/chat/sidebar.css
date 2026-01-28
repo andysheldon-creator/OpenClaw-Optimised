@@ -78,8 +78,9 @@
 }
 
 .sidebar-markdown {
-  font-size: 14px;
-  line-height: 1.5;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .sidebar-markdown pre {

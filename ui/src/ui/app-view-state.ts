@@ -169,7 +169,8 @@ export type AppViewState = {
   sessionsPreset: "all" | "active" | "errored" | "cron" | "custom";
   sessionsShowAdvancedFilters: boolean;
   sessionsTagFilter: string[];
-  sessionsViewMode: "list" | "table";
+  sessionsViewMode: "list" | "table" | "grouped";
+  sessionsGroupedExpandedAgents: Set<string>;
   sessionsShowHidden: boolean;
   sessionsAutoHideCompletedMinutes: number;
   sessionsAutoHideErroredMinutes: number;
@@ -189,6 +190,7 @@ export type AppViewState = {
   cronRunsJobId: string | null;
   cronRuns: CronRunLogEntry[];
   cronBusy: boolean;
+  cronModalOpen: boolean;
   skillsLoading: boolean;
   skillsReport: SkillStatusReport | null;
   skillsError: string | null;
@@ -201,6 +203,7 @@ export type AppViewState = {
   debugHealth: HealthSnapshot | null;
   debugModels: unknown[];
   debugHeartbeat: unknown | null;
+  debugCronJobs: unknown[];
   debugCallMethod: string;
   debugCallParams: string;
   debugCallResult: string | null;

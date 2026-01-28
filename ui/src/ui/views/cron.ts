@@ -24,9 +24,12 @@ export type CronProps = {
   channelMeta?: ChannelUiMetaEntry[];
   runsJobId: string | null;
   runs: CronRunLogEntry[];
+  modalOpen: boolean;
   onFormChange: (patch: Partial<CronFormState>) => void;
   onRefresh: () => void;
   onAdd: () => void;
+  onOpenModal: () => void;
+  onCloseModal: () => void;
   onToggle: (job: CronJob, enabled: boolean) => void;
   onRun: (job: CronJob) => void;
   onRemove: (job: CronJob) => void;
@@ -154,6 +157,10 @@ export function renderCron(props: CronProps) {
             ${icon("refresh-cw", { size: 14 })}
             <span>${props.loading ? "Refreshing..." : "Refresh"}</span>
           </button>
+          <button class="btn btn--primary" ?disabled=${props.busy} @click=${props.onOpenModal}>
+            ${icon("plus", { size: 14 })}
+            <span>Add Job</span>
+          </button>
           ${props.error
             ? html`<span class="badge badge--danger">${icon("alert-circle", { size: 12 })} Error</span>`
             : nothing}
@@ -163,191 +170,41 @@ export function renderCron(props: CronProps) {
       <div class="card">
         <div class="card-header">
           <div class="card-header__icon">
-            ${icon("plus", { size: 20 })}
+            ${icon("zap", { size: 20 })}
           </div>
           <div>
-            <div class="card-title">New Job</div>
-            <div class="card-sub">Create a scheduled wakeup or agent run</div>
+            <div class="card-title">Jobs Overview</div>
+            <div class="card-sub">${props.jobs.length} scheduled job${props.jobs.length !== 1 ? "s" : ""}</div>
           </div>
         </div>
-        <div class="form-grid" style="margin-top: 20px;">
-          <label class="field">
-            <span>Name</span>
-            <input
-              .value=${props.form.name}
-              placeholder="daily-summary"
-              @input=${(e: Event) =>
-                props.onFormChange({ name: (e.target as HTMLInputElement).value })}
-            />
-          </label>
-          <label class="field">
-            <span>Description</span>
-            <input
-              .value=${props.form.description}
-              placeholder="Optional description"
-              @input=${(e: Event) =>
-                props.onFormChange({ description: (e.target as HTMLInputElement).value })}
-            />
-          </label>
-          <label class="field">
-            <span>Agent ID</span>
-            <input
-              .value=${props.form.agentId}
-              @input=${(e: Event) =>
-                props.onFormChange({ agentId: (e.target as HTMLInputElement).value })}
-              placeholder="default"
-            />
-          </label>
-          <label class="field checkbox">
-            <input
-              type="checkbox"
-              .checked=${props.form.enabled}
-              @change=${(e: Event) =>
-                props.onFormChange({ enabled: (e.target as HTMLInputElement).checked })}
-            />
-            <span>Enabled</span>
-          </label>
-          <label class="field">
-            <span>Schedule</span>
-            <select
-              .value=${props.form.scheduleKind}
-              @change=${(e: Event) =>
-                props.onFormChange({
-                  scheduleKind: (e.target as HTMLSelectElement).value as CronFormState["scheduleKind"],
-                })}
-            >
-              <option value="every">Every</option>
-              <option value="at">At</option>
-              <option value="cron">Cron</option>
-            </select>
-          </label>
+        <div class="stat-grid--compact" style="margin-top: 20px;">
+          <div class="stat--modern">
+            <div class="stat__icon">
+              ${icon("zap", { size: 18 })}
+            </div>
+            <div class="stat__content">
+              <div class="stat-label">Total Jobs</div>
+              <div class="stat-value">${props.jobs.length}</div>
+            </div>
+          </div>
+          <div class="stat--modern ${props.jobs.filter((j) => j.enabled).length > 0 ? "stat--ok" : ""}">
+            <div class="stat__icon">
+              ${icon("check", { size: 18 })}
+            </div>
+            <div class="stat__content">
+              <div class="stat-label">Active</div>
+              <div class="stat-value">${props.jobs.filter((j) => j.enabled).length}</div>
+            </div>
+          </div>
         </div>
-        ${renderScheduleFields(props)}
-        <div class="form-grid" style="margin-top: 12px;">
-          <label class="field">
-            <span>Session</span>
-            <select
-              .value=${props.form.sessionTarget}
-              @change=${(e: Event) =>
-                props.onFormChange({
-                  sessionTarget: (e.target as HTMLSelectElement).value as CronFormState["sessionTarget"],
-                })}
-            >
-              <option value="main">Main</option>
-              <option value="isolated">Isolated</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Wake mode</span>
-            <select
-              .value=${props.form.wakeMode}
-              @change=${(e: Event) =>
-                props.onFormChange({
-                  wakeMode: (e.target as HTMLSelectElement).value as CronFormState["wakeMode"],
-                })}
-            >
-              <option value="next-heartbeat">Next heartbeat</option>
-              <option value="now">Now</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Payload</span>
-            <select
-              .value=${props.form.payloadKind}
-              @change=${(e: Event) =>
-                props.onFormChange({
-                  payloadKind: (e.target as HTMLSelectElement).value as CronFormState["payloadKind"],
-                })}
-            >
-              <option value="systemEvent">System event</option>
-              <option value="agentTurn">Agent turn</option>
-            </select>
-          </label>
-        </div>
-        <label class="field" style="margin-top: 12px;">
-          <span>${props.form.payloadKind === "systemEvent" ? "System text" : "Agent message"}</span>
-          <textarea
-            .value=${props.form.payloadText}
-            @input=${(e: Event) =>
-              props.onFormChange({
-                payloadText: (e.target as HTMLTextAreaElement).value,
-              })}
-            rows="4"
-            placeholder="Enter the message or system event text..."
-          ></textarea>
-        </label>
-        ${props.form.payloadKind === "agentTurn"
-          ? html`
-              <div class="form-grid" style="margin-top: 12px;">
-                <label class="field checkbox">
-                  <input
-                    type="checkbox"
-                    .checked=${props.form.deliver}
-                    @change=${(e: Event) =>
-                      props.onFormChange({
-                        deliver: (e.target as HTMLInputElement).checked,
-                      })}
-                  />
-                  <span>Deliver</span>
-                </label>
-                <label class="field">
-                  <span>Channel</span>
-                  <select
-                    .value=${props.form.channel || "last"}
-                    @change=${(e: Event) =>
-                      props.onFormChange({
-                        channel: (e.target as HTMLSelectElement).value as CronFormState["channel"],
-                      })}
-                  >
-                    ${channelOptions.map(
-                      (channel) =>
-                        html`<option value=${channel}>
-                          ${resolveChannelLabel(props, channel)}
-                        </option>`,
-                    )}
-                  </select>
-                </label>
-                <label class="field">
-                  <span>To</span>
-                  <input
-                    .value=${props.form.to}
-                    @input=${(e: Event) =>
-                      props.onFormChange({ to: (e.target as HTMLInputElement).value })}
-                    placeholder="+1555... or chat id"
-                  />
-                </label>
-                <label class="field">
-                  <span>Timeout (seconds)</span>
-                  <input
-                    .value=${props.form.timeoutSeconds}
-                    @input=${(e: Event) =>
-                      props.onFormChange({
-                        timeoutSeconds: (e.target as HTMLInputElement).value,
-                      })}
-                  />
-                </label>
-                ${props.form.sessionTarget === "isolated"
-                  ? html`
-                      <label class="field">
-                        <span>Post to main prefix</span>
-                        <input
-                          .value=${props.form.postToMainPrefix}
-                          @input=${(e: Event) =>
-                            props.onFormChange({
-                              postToMainPrefix: (e.target as HTMLInputElement).value,
-                            })}
-                        />
-                      </label>
-                    `
-                  : nothing}
-              </div>
-            `
-          : nothing}
-        <div class="card-actions">
-          <button class="btn btn--primary" ?disabled=${props.busy} @click=${props.onAdd}>
-            ${icon("plus", { size: 14 })}
-            <span>${props.busy ? "Saving..." : "Add job"}</span>
-          </button>
+        <div class="stat--modern" style="margin-top: 12px;">
+          <div class="stat__icon">
+            ${icon("pause", { size: 18 })}
+          </div>
+          <div class="stat__content">
+            <div class="stat-label">Disabled</div>
+            <div class="stat-value">${props.jobs.filter((j) => !j.enabled).length}</div>
+          </div>
         </div>
       </div>
     </section>
@@ -375,7 +232,7 @@ export function renderCron(props: CronProps) {
           <div class="data-table__empty">
             <div class="data-table__empty-icon">${icon("clock", { size: 32 })}</div>
             <div class="data-table__empty-title">No jobs yet</div>
-            <div class="data-table__empty-desc">Create a new scheduled job using the form above</div>
+            <div class="data-table__empty-desc">Click "Add Job" to create a new scheduled job</div>
           </div>
         `
         : html`
@@ -427,6 +284,8 @@ export function renderCron(props: CronProps) {
               </div>
             `}
     </section>
+
+    ${props.modalOpen ? renderCronModal(props, channelOptions) : ""}
   `;
 }
 
@@ -599,6 +458,208 @@ function renderRun(entry: CronRunLogEntry) {
       <div class="run-history-item__meta">
         <span class="run-history-item__timestamp">${formatMs(entry.ts)}</span>
         <span class="run-history-item__duration badge badge--muted">${entry.durationMs ?? 0}ms</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderCronModal(props: CronProps, channelOptions: string[]) {
+  return html`
+    <div class="modal-overlay" @click=${props.onCloseModal}>
+      <div class="modal-card" @click=${(e: Event) => e.stopPropagation()}>
+        <div class="modal-header">
+          <div class="modal-title">
+            ${icon("plus", { size: 20 })}
+            <span>New Cron Job</span>
+          </div>
+          <button class="modal-close" @click=${props.onCloseModal}>
+            ${icon("x", { size: 20 })}
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <label class="field">
+              <span>Name</span>
+              <input
+                .value=${props.form.name}
+                placeholder="daily-summary"
+                @input=${(e: Event) =>
+                  props.onFormChange({ name: (e.target as HTMLInputElement).value })}
+              />
+            </label>
+            <label class="field">
+              <span>Description</span>
+              <input
+                .value=${props.form.description}
+                placeholder="Optional description"
+                @input=${(e: Event) =>
+                  props.onFormChange({ description: (e.target as HTMLInputElement).value })}
+              />
+            </label>
+            <label class="field">
+              <span>Agent ID</span>
+              <input
+                .value=${props.form.agentId}
+                @input=${(e: Event) =>
+                  props.onFormChange({ agentId: (e.target as HTMLInputElement).value })}
+                placeholder="default"
+              />
+            </label>
+            <label class="field checkbox">
+              <input
+                type="checkbox"
+                .checked=${props.form.enabled}
+                @change=${(e: Event) =>
+                  props.onFormChange({ enabled: (e.target as HTMLInputElement).checked })}
+              />
+              <span>Enabled</span>
+            </label>
+            <label class="field">
+              <span>Schedule</span>
+              <select
+                .value=${props.form.scheduleKind}
+                @change=${(e: Event) =>
+                  props.onFormChange({
+                    scheduleKind: (e.target as HTMLSelectElement).value as CronFormState["scheduleKind"],
+                  })}
+              >
+                <option value="every">Every</option>
+                <option value="at">At</option>
+                <option value="cron">Cron</option>
+              </select>
+            </label>
+          </div>
+          ${renderScheduleFields(props)}
+          <div class="form-grid" style="margin-top: 12px;">
+            <label class="field">
+              <span>Session</span>
+              <select
+                .value=${props.form.sessionTarget}
+                @change=${(e: Event) =>
+                  props.onFormChange({
+                    sessionTarget: (e.target as HTMLSelectElement).value as CronFormState["sessionTarget"],
+                  })}
+              >
+                <option value="main">Main</option>
+                <option value="isolated">Isolated</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Wake mode</span>
+              <select
+                .value=${props.form.wakeMode}
+                @change=${(e: Event) =>
+                  props.onFormChange({
+                    wakeMode: (e.target as HTMLSelectElement).value as CronFormState["wakeMode"],
+                  })}
+              >
+                <option value="next-heartbeat">Next heartbeat</option>
+                <option value="now">Now</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Payload</span>
+              <select
+                .value=${props.form.payloadKind}
+                @change=${(e: Event) =>
+                  props.onFormChange({
+                    payloadKind: (e.target as HTMLSelectElement).value as CronFormState["payloadKind"],
+                  })}
+              >
+                <option value="systemEvent">System event</option>
+                <option value="agentTurn">Agent turn</option>
+              </select>
+            </label>
+          </div>
+          <label class="field" style="margin-top: 12px;">
+            <span>${props.form.payloadKind === "systemEvent" ? "System text" : "Agent message"}</span>
+            <textarea
+              .value=${props.form.payloadText}
+              @input=${(e: Event) =>
+                props.onFormChange({
+                  payloadText: (e.target as HTMLTextAreaElement).value,
+                })}
+              rows="4"
+              placeholder="Enter the message or system event text..."
+            ></textarea>
+          </label>
+          ${props.form.payloadKind === "agentTurn"
+            ? html`
+                <div class="form-grid" style="margin-top: 12px;">
+                  <label class="field checkbox">
+                    <input
+                      type="checkbox"
+                      .checked=${props.form.deliver}
+                      @change=${(e: Event) =>
+                        props.onFormChange({
+                          deliver: (e.target as HTMLInputElement).checked,
+                        })}
+                    />
+                    <span>Deliver</span>
+                  </label>
+                  <label class="field">
+                    <span>Channel</span>
+                    <select
+                      .value=${props.form.channel || "last"}
+                      @change=${(e: Event) =>
+                        props.onFormChange({
+                          channel: (e.target as HTMLSelectElement).value as CronFormState["channel"],
+                        })}
+                    >
+                      ${channelOptions.map(
+                        (channel) =>
+                          html`<option value=${channel}>
+                            ${resolveChannelLabel(props, channel)}
+                          </option>`,
+                      )}
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>To</span>
+                    <input
+                      .value=${props.form.to}
+                      @input=${(e: Event) =>
+                        props.onFormChange({ to: (e.target as HTMLInputElement).value })}
+                      placeholder="+1555... or chat id"
+                    />
+                  </label>
+                  <label class="field">
+                    <span>Timeout (seconds)</span>
+                    <input
+                      .value=${props.form.timeoutSeconds}
+                      @input=${(e: Event) =>
+                        props.onFormChange({
+                          timeoutSeconds: (e.target as HTMLInputElement).value,
+                        })}
+                    />
+                  </label>
+                  ${props.form.sessionTarget === "isolated"
+                    ? html`
+                        <label class="field">
+                          <span>Post to main prefix</span>
+                          <input
+                            .value=${props.form.postToMainPrefix}
+                            @input=${(e: Event) =>
+                              props.onFormChange({
+                                postToMainPrefix: (e.target as HTMLInputElement).value,
+                              })}
+                          />
+                        </label>
+                      `
+                    : nothing}
+                </div>
+              `
+            : nothing}
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn--secondary" @click=${props.onCloseModal}>
+            Cancel
+          </button>
+          <button class="btn btn--primary" ?disabled=${props.busy} @click=${props.onAdd}>
+            ${icon("plus", { size: 14 })}
+            <span>${props.busy ? "Saving..." : "Add job"}</span>
+          </button>
+        </div>
       </div>
     </div>
   `;

@@ -103,7 +103,7 @@ import {
   updateExecApprovalsFormValue,
 } from "./controllers/exec-approvals";
 import { loadCronRuns, toggleCronJob, runCronJob, removeCronJob, addCronJob } from "./controllers/cron";
-import { loadDebug, callDebugMethod } from "./controllers/debug";
+import { loadDebug, loadDebugStatus, loadDebugHeartbeat, callDebugMethod } from "./controllers/debug";
 import { loadLogs } from "./controllers/logs";
 import {
   loadAutomations,
@@ -287,7 +287,7 @@ export function renderApp(state: AppViewState) {
       >
         <section class="content-header">
           <div>
-            <div class="page-title">${titleForTab(state.tab)}</div>
+            <div class="page-title">${titleForTab(state.tab)}${isChat && state.assistantName ? html`<span class="page-title__agent"> — ${state.assistantName}</span>` : nothing}</div>
             <div class="page-sub">${subtitleForTab(state.tab)}</div>
           </div>
           <div class="page-meta">
@@ -594,6 +594,17 @@ export function renderApp(state: AppViewState) {
 		              onRefresh: () => loadSessions(state),
 		              onPatch: (key, patch) => patchSession(state, key, patch),
 		              onDelete: (key) => deleteSession(state, key),
+		              agentsList: state.agentsList,
+		              groupedExpandedAgents: state.sessionsGroupedExpandedAgents,
+		              onToggleGroupedAgent: (agentId) => {
+		                const next = new Set(state.sessionsGroupedExpandedAgents);
+		                if (next.has(agentId)) {
+		                  next.delete(agentId);
+		                } else {
+		                  next.add(agentId);
+		                }
+		                state.sessionsGroupedExpandedAgents = next;
+		              },
 		            })
 		          : nothing}
 
@@ -612,9 +623,12 @@ export function renderApp(state: AppViewState) {
               channelMeta: state.channelsSnapshot?.channelMeta ?? [],
               runsJobId: state.cronRunsJobId,
               runs: state.cronRuns,
+              modalOpen: state.cronModalOpen,
               onFormChange: (patch) => (state.cronForm = { ...state.cronForm, ...patch }),
               onRefresh: () => state.loadCron(),
               onAdd: () => addCronJob(state),
+              onOpenModal: () => { state.cronModalOpen = true; },
+              onCloseModal: () => { state.cronModalOpen = false; },
               onToggle: (job, enabled) => toggleCronJob(state, job, enabled),
               onRun: (job) => runCronJob(state, job),
               onRemove: (job) => removeCronJob(state, job),
@@ -1082,6 +1096,7 @@ export function renderApp(state: AppViewState) {
               _onToggleVoiceDropdown: () => {
                 state.voiceDropdownOpen = !state.voiceDropdownOpen;
               },
+              onNavigateToSettings: () => state.setTab("config"),
             })
           : nothing}
 
@@ -1131,11 +1146,14 @@ export function renderApp(state: AppViewState) {
         ${state.tab === "debug"
           ? renderDebug({
               loading: state.debugLoading,
+              connected: state.connected,
               status: state.debugStatus,
               health: state.debugHealth,
               models: state.debugModels,
               heartbeat: state.debugHeartbeat,
+              cronJobs: state.debugCronJobs,
               eventLog: state.eventLog,
+              hello: state.hello,
               callMethod: state.debugCallMethod,
               callParams: state.debugCallParams,
               callResult: state.debugCallResult,
@@ -1144,6 +1162,9 @@ export function renderApp(state: AppViewState) {
               onCallParamsChange: (next) => (state.debugCallParams = next),
               onRefresh: () => loadDebug(state),
               onCall: () => callDebugMethod(state),
+              onNavigateToLogs: () => state.setTab("logs"),
+              onRefreshRawStatus: () => void loadDebugStatus(state),
+              onRefreshRawHeartbeat: () => void loadDebugHeartbeat(state),
             })
           : nothing}
 

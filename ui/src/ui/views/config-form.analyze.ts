@@ -42,7 +42,9 @@ function normalizeSchemaNode(
   if (schema.anyOf || schema.oneOf || schema.allOf) {
     const union = normalizeUnion(schema, path);
     if (union) return union;
-    return { schema, unsupportedPaths: [pathLabel] };
+    // renderNode handles unresolvable unions via a JSON textarea fallback,
+    // so don't mark them as unsupported — let the form render them.
+    return { schema, unsupportedPaths: [] };
   }
 
   const nullable = Array.isArray(schema.type) && schema.type.includes("null");
@@ -87,7 +89,10 @@ function normalizeSchemaNode(
         );
         normalized.additionalProperties =
           res.schema ?? (schema.additionalProperties as JsonSchema);
-        if (res.unsupportedPaths.length > 0) unsupported.add(pathLabel);
+        // Propagate nested unsupported paths individually rather than
+        // blocking the whole object. Map entry values that are unsupported
+        // will render their own fallback (JSON textarea).
+        for (const p of res.unsupportedPaths) unsupported.add(p);
       }
     }
   } else if (type === "array") {
@@ -99,7 +104,16 @@ function normalizeSchemaNode(
     } else {
       const res = normalizeSchemaNode(itemsSchema, [...path, "*"]);
       normalized.items = res.schema ?? itemsSchema;
-      if (res.unsupportedPaths.length > 0) unsupported.add(pathLabel);
+      const itemPathLabel = pathKey([...path, "*"]);
+      if (res.unsupportedPaths.some((p) => p === itemPathLabel)) {
+        // Items schema itself is entirely unsupported — can't render items
+        unsupported.add(pathLabel);
+      } else {
+        // Only nested fields within items are unsupported — propagate them
+        // individually so the array renders and nested fields show their
+        // own error messages or JSON textarea fallbacks.
+        for (const p of res.unsupportedPaths) unsupported.add(p);
+      }
     }
   } else if (
     type !== "string" &&

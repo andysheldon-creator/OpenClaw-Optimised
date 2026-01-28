@@ -186,8 +186,7 @@ function highlightSearch(text: string, searchTerm: string): ReturnType<typeof ht
  */
 function renderMessage(
   text: string,
-  searchTerm: string,
-  entryId: string
+  searchTerm: string
 ): ReturnType<typeof html> {
   const jsonResult = detectJson(text);
 
@@ -197,8 +196,37 @@ function renderMessage(
 
   const { prefix, data } = jsonResult;
 
+  // Try to extract a concise error summary from the data
+  let summaryText = prefix;
+  if (!summaryText && typeof data === "object" && data !== null) {
+    const obj = data as Record<string, unknown>;
+    // Try various error/message fields
+    const errorFields = [
+      obj.error,
+      obj.message,
+      obj.err,
+      obj.reason,
+      obj.code,
+      obj.status,
+    ];
+    for (const field of errorFields) {
+      if (typeof field === "string" && field.length > 0 && field.length < 200) {
+        summaryText = field;
+        break;
+      }
+    }
+    // If no error field found, try to infer from structure
+    if (!summaryText) {
+      if (obj.error !== undefined) summaryText = `Error: ${String(obj.error)}`;
+      else if (obj.status !== undefined) summaryText = `Status: ${String(obj.status)}`;
+      else if (obj.code !== undefined) summaryText = `Code: ${String(obj.code)}`;
+    }
+  }
+
+  const hasPrefix = Boolean(summaryText);
+
   return html`
-    ${prefix ? html`${highlightSearch(prefix, searchTerm)} ` : nothing}
+    ${hasPrefix ? html`${highlightSearch(summaryText, searchTerm)} ` : nothing}
     <details class="log-json">
       <summary class="log-json__toggle">
         ${icon("chevron-right", { size: 10 })}
@@ -561,23 +589,7 @@ export function renderLogs(props: LogsProps) {
               </button>
             </div>
 
-            <!-- Level filters (shown when in custom mode or always available) -->
-            <div class="logs-levels">
-              ${LEVELS.map(
-                (level) => html`
-                  <button
-                    class="logs-level-chip logs-level-chip--${level} ${props.levelFilters[level] ? "logs-level-chip--active" : ""}"
-                    @click=${() => props.onLevelToggle(level, !props.levelFilters[level])}
-                    title="${props.levelFilters[level] ? "Hide" : "Show"} ${level.toUpperCase()}"
-                  >
-                    <span class="logs-level-chip__dot"></span>
-                    ${level.toUpperCase()}
-                  </button>
-                `
-              )}
-            </div>
-
-            <!-- Subsystem filters (if any) -->
+            <!-- Subsystem filters (Sources) - shown before log levels -->
             ${subsystems.length > 0
               ? html`
                   <div class="logs-subsystems">
@@ -602,6 +614,23 @@ export function renderLogs(props: LogsProps) {
                   </div>
                 `
               : nothing}
+
+            <!-- Level filters with label -->
+            <div class="logs-levels">
+              <span class="logs-subsystems__label">Log levels:</span>
+              ${LEVELS.map(
+                (level) => html`
+                  <button
+                    class="logs-level-chip logs-level-chip--${level} ${props.levelFilters[level] ? "logs-level-chip--active" : ""}"
+                    @click=${() => props.onLevelToggle(level, !props.levelFilters[level])}
+                    title="${props.levelFilters[level] ? "Hide" : "Show"} ${level.toUpperCase()}"
+                  >
+                    <span class="logs-level-chip__dot"></span>
+                    ${level.toUpperCase()}
+                  </button>
+                `
+              )}
+            </div>
           </div>
         </div>
 
@@ -667,7 +696,7 @@ export function renderLogs(props: LogsProps) {
                             ${entry.subsystem
                               ? html`<span class="log-entry__subsystem">${entry.subsystem}</span>`
                               : nothing}
-                            <span class="log-entry__message">${renderMessage(entry.message ?? entry.raw, props.filterText, `log-${index}`)}</span>
+                            <span class="log-entry__message">${renderMessage(entry.message ?? entry.raw, props.filterText)}</span>
                           </div>
                           <button
                             class="log-entry__copy"

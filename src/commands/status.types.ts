@@ -31,6 +31,8 @@ export type HeartbeatStatus = {
 };
 
 export type StatusSummary = {
+  uptimeMs: number;
+  memoryUsage: { heapUsedMB: number; heapTotalMB: number; rssMB: number };
   linkChannel?: {
     id: ChannelId;
     label: string;

@@ -598,7 +598,6 @@
   gap: 12px;
   flex-wrap: wrap;
   padding: 0 6px;
-  overflow: hidden;
   transform-origin: top center;
   transition:
     opacity var(--shell-focus-duration) var(--shell-focus-ease),
@@ -609,6 +608,7 @@
 }
 
 .shell--chat-focus .content-header {
+  overflow: hidden;
   opacity: 0;
   transform: translateY(-8px);
   max-height: 0px;
@@ -622,6 +622,13 @@
   letter-spacing: -0.035em;
   line-height: 1.15;
   color: var(--text-strong);
+}
+
+.page-title__agent {
+  font-weight: 500;
+  font-size: 0.7em;
+  color: var(--muted);
+  opacity: 0.8;
 }
 
 .page-sub {

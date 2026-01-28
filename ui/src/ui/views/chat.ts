@@ -96,6 +96,8 @@ export type ChatProps = {
   // Voice dropdown state
   _voiceDropdownOpen?: boolean;
   _onToggleVoiceDropdown?: () => void;
+  // Navigation
+  onNavigateToSettings?: () => void;
 };
 
 const COMPACTION_TOAST_DURATION_MS = 5000;
@@ -304,6 +306,7 @@ export function renderChat(props: ChatProps) {
   const hasServerTts = configuredTtsProviders.length > 0;
   const ttsSelectValue =
     props.ttsActiveProvider ??
+    ttsProviders.find((p) => p.id === "edge")?.id ??
     configuredTtsProviders[0]?.id ??
     ttsProviders[0]?.id ??
     "";
@@ -517,7 +520,10 @@ export function renderChat(props: ChatProps) {
                           props._onToggleVoiceDropdown?.();
                         }}
                       >
-                        <span>${ttsProviders.find((p) => p.id === ttsSelectValue)?.name ?? "Voice"}</span>
+                        <span>${(() => {
+                          const active = ttsProviders.find((p) => p.id === ttsSelectValue);
+                          return active ? (active.id === "edge" ? "Local (Edge)" : active.name) : "Voice";
+                        })()}</span>
                         ${icon("chevron-down", { size: 12 })}
                       </button>
                       ${props._voiceDropdownOpen
@@ -526,9 +532,19 @@ export function renderChat(props: ChatProps) {
                               ${ttsProviders.map(
                                 (provider) => html`
                                   <button
-                                    class="voice-select__option ${provider.id === ttsSelectValue ? "voice-select__option--active" : ""} ${!provider.configured ? "voice-select__option--disabled" : ""}"
+                                    class="voice-select__option ${provider.id === ttsSelectValue ? "voice-select__option--active" : ""} ${!provider.configured && provider.id !== "edge" ? "voice-select__option--unconfigured" : ""}"
                                     type="button"
                                     @click=${() => {
+                                      if (!provider.configured && provider.id !== "edge") {
+                                        props._onToggleVoiceDropdown?.();
+                                        const goToConfigure = window.confirm(
+                                          `${provider.name} requires an API key to use.\n\nWould you like to go to Settings to configure it?`,
+                                        );
+                                        if (goToConfigure && props.onNavigateToSettings) {
+                                          props.onNavigateToSettings();
+                                        }
+                                        return;
+                                      }
                                       props.onTtsProviderChange(provider.id);
                                       props._onToggleVoiceDropdown?.();
                                     }}

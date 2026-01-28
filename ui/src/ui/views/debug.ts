@@ -4,28 +4,40 @@ import { toast } from "../components/toast";
 import { formatEventPayload } from "../presenter";
 import { icon } from "../icons";
 import type { EventLogEntry } from "../app-events";
+import type { GatewayHelloOk } from "../gateway";
+import type { HealthSnapshot, HealthChannelSummary, StatusSummary } from "../types";
 
 export type DebugProps = {
   loading: boolean;
-  status: Record<string, unknown> | null;
-  health: Record<string, unknown> | null;
+  connected: boolean;
+  status: StatusSummary | null;
+  health: HealthSnapshot | null;
   models: unknown[];
   heartbeat: unknown;
+  cronJobs: unknown[];
   eventLog: EventLogEntry[];
   callMethod: string;
   callParams: string;
   callResult: string | null;
   callError: string | null;
+  hello: GatewayHelloOk | null;
   onCallMethodChange: (next: string) => void;
   onCallParamsChange: (next: string) => void;
   onRefresh: () => void;
   onCall: () => void;
+  onNavigateToLogs: () => void;
+  onRefreshRawStatus: () => void;
+  onRefreshRawHeartbeat: () => void;
 };
 
-type DebugTab = "status" | "health" | "models" | "rpc";
+type DebugTab = "status" | "health" | "models" | "rpc" | "events";
 
 // Track active tab in module scope for simplicity
 let activeTab: DebugTab = "status";
+
+// Track which raw data panels are expanded (lazy rendering)
+let rawStatusExpanded = false;
+let rawHeartbeatExpanded = false;
 
 function setActiveTab(tab: DebugTab) {
   activeTab = tab;
@@ -96,13 +108,9 @@ function highlightJson(value: unknown, indent: number): ReturnType<typeof html>[
 
 function renderStatusTab(props: DebugProps) {
   const status = props.status ?? {};
-  const health = props.health ?? {};
   const heartbeat = props.heartbeat as Record<string, unknown> | null;
 
-  const securityAudit =
-    props.status && typeof props.status === "object"
-      ? (props.status as { securityAudit?: { summary?: Record<string, number> } }).securityAudit
-      : null;
+  const securityAudit = status.securityAudit ?? null;
   const securitySummary = securityAudit?.summary ?? null;
   const critical = securitySummary?.critical ?? 0;
   const warn = securitySummary?.warn ?? 0;
@@ -115,21 +123,46 @@ function renderStatusTab(props: DebugProps) {
         ? `${warn} warnings`
         : "No critical issues";
 
-  // Extract key status values
-  const connected = status.connected ?? false;
-  const uptime = status.uptimeMs ? formatUptime(status.uptimeMs as number) : "Unknown";
-  const heartbeatAge = heartbeat?.ts
-    ? formatHeartbeatAge(heartbeat.ts as number)
-    : "No heartbeat";
-
-  // Extract health metrics
-  const memoryMb = health.memoryMb ?? health.heapUsedMB ?? 0;
-  const connections = health.connections ?? health.activeConnections ?? 0;
-  const queueSize = health.queueSize ?? health.pendingTasks ?? 0;
+  // Gateway connection: use the real WebSocket connected state
+  const connected = props.connected;
+  // Uptime from the new backend field
+  const uptime = typeof status.uptimeMs === "number" ? formatUptime(status.uptimeMs) : "Unknown";
+  // Heartbeat from status.heartbeat (structured) or raw heartbeat prop
+  const heartbeatAgent = status.heartbeat?.agents?.[0];
+  const heartbeatAge = heartbeat && typeof (heartbeat as Record<string, unknown>).ts === "number"
+    ? formatHeartbeatAge((heartbeat as Record<string, unknown>).ts as number)
+    : heartbeatAgent?.enabled
+      ? `Every ${heartbeatAgent.every}`
+      : "No heartbeat";
+  // Memory from the new backend field
+  const memoryMb = status.memoryUsage?.heapUsedMB ?? 0;
+  // Sessions: total, active (updated < 5min), idle
+  const sessionsTotal = status.sessions?.count ?? 0;
+  const recentSessions = (status.sessions?.recent ?? []) as Array<{ age?: number | null }>;
+  const ACTIVE_THRESHOLD_MS = 5 * 60 * 1000;
+  const sessionsActive = recentSessions.filter(
+    (s) => typeof s.age === "number" && s.age < ACTIVE_THRESHOLD_MS,
+  ).length;
+  const sessionsIdle = sessionsTotal - sessionsActive;
+  // Jobs: derive from cron jobs list
+  const cronJobs = props.cronJobs as Array<{
+    enabled?: boolean;
+    state?: { runningAtMs?: number };
+  }>;
+  const jobsRunning = cronJobs.filter((j) => j.state?.runningAtMs != null).length;
+  const jobsQueued = cronJobs.filter(
+    (j) => j.enabled !== false && j.state?.runningAtMs == null,
+  ).length;
+  const jobsDisabled = cronJobs.filter((j) => j.enabled === false).length;
 
   return html`
+    ${!connected && props.status
+      ? html`<div class="callout warn" style="margin-bottom: 12px;">
+          Gateway disconnected — data shown may be stale.
+        </div>`
+      : nothing}
+
     <div class="debug-status-grid">
-      <!-- System Status Cards -->
       <div class="debug-status__card ${connected ? "debug-status__ok" : "debug-status__error"}">
         <div class="debug-status__icon">
           ${connected ? icon("check", { size: 20 }) : icon("alert-circle", { size: 20 })}
@@ -146,7 +179,7 @@ function renderStatusTab(props: DebugProps) {
         <div class="debug-status__value">${uptime}</div>
       </div>
 
-      <div class="debug-status__card ${heartbeat ? "debug-status__ok" : "debug-status__warn"}">
+      <div class="debug-status__card ${heartbeatAgent?.enabled ? "debug-status__ok" : "debug-status__warn"}">
         <div class="debug-status__icon">
           ${icon("zap", { size: 20 })}
         </div>
@@ -159,75 +192,223 @@ function renderStatusTab(props: DebugProps) {
           ${icon("brain", { size: 20 })}
         </div>
         <div class="debug-status__label">Memory</div>
-        <div class="debug-status__value">${Number(memoryMb).toFixed(1)} MB</div>
+        <div class="debug-status__value">${memoryMb > 0 ? `${memoryMb.toFixed(1)} MB` : "N/A"}</div>
       </div>
 
-      <div class="debug-status__card debug-status__neutral">
+      <div class="debug-status__card ${sessionsActive > 0 ? "debug-status__ok" : "debug-status__neutral"}">
         <div class="debug-status__icon">
           ${icon("link", { size: 20 })}
         </div>
-        <div class="debug-status__label">Connections</div>
-        <div class="debug-status__value">${connections} active</div>
+        <div class="debug-status__label">Sessions</div>
+        <div class="debug-status__value debug-status__value--multi">
+          <span>${sessionsTotal} total</span>
+          <span class="debug-status__sub">${sessionsActive} active · ${sessionsIdle} idle</span>
+        </div>
       </div>
 
-      <div class="debug-status__card ${Number(queueSize) > 0 ? "debug-status__warn" : "debug-status__neutral"}">
+      <div class="debug-status__card ${jobsRunning > 0 ? "debug-status__ok" : "debug-status__neutral"}">
         <div class="debug-status__icon">
           ${icon("server", { size: 20 })}
         </div>
-      <div class="debug-status__label">Queue</div>
-      <div class="debug-status__value">${queueSize} pending</div>
+        <div class="debug-status__label">Jobs</div>
+        <div class="debug-status__value debug-status__value--multi">
+          <span>${jobsRunning} running · ${jobsQueued} queued</span>
+          <span class="debug-status__sub">${jobsDisabled} disabled</span>
+        </div>
       </div>
     </div>
 
     ${securitySummary
       ? html`<div class="callout ${securityTone}" style="margin: 12px 0;">
-          Security audit: ${securityLabel}${info > 0 ? ` · ${info} info` : ""}. Run
+          Security audit: ${securityLabel}${info > 0 ? ` \u00b7 ${info} info` : ""}. Run
           <span class="mono">clawdbrain security audit --deep</span> for details.
         </div>`
       : nothing}
 
-    <!-- Raw Data Section -->
+    <!-- Raw Data Section (lazy-rendered) -->
     <div class="debug-raw-section">
-      <details class="debug-raw-details">
+      <details
+        class="debug-raw-details"
+        ?open=${rawStatusExpanded}
+        @toggle=${(e: Event) => {
+          const details = e.target as HTMLDetailsElement;
+          rawStatusExpanded = details.open;
+          if (details.open && !props.status) props.onRefreshRawStatus();
+        }}
+      >
         <summary class="debug-raw-summary">
           ${icon("chevron-right", { size: 14 })}
           <span>Raw Status Data</span>
+          ${rawStatusExpanded
+            ? html`<button
+                class="debug-raw-refresh btn btn--sm btn--icon"
+                title="Refresh status data"
+                @click=${(e: Event) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  props.onRefreshRawStatus();
+                }}
+              >${icon("refresh-cw", { size: 13 })}</button>`
+            : nothing}
         </summary>
         <div class="debug-raw-content">
-          ${formatJsonHighlighted(props.status)}
+          ${rawStatusExpanded ? formatJsonHighlighted(props.status) : nothing}
         </div>
       </details>
 
-      <details class="debug-raw-details">
+      <details
+        class="debug-raw-details"
+        ?open=${rawHeartbeatExpanded}
+        @toggle=${(e: Event) => {
+          const details = e.target as HTMLDetailsElement;
+          rawHeartbeatExpanded = details.open;
+          if (details.open && !props.heartbeat) props.onRefreshRawHeartbeat();
+        }}
+      >
         <summary class="debug-raw-summary">
           ${icon("chevron-right", { size: 14 })}
           <span>Raw Heartbeat Data</span>
+          ${rawHeartbeatExpanded
+            ? html`<button
+                class="debug-raw-refresh btn btn--sm btn--icon"
+                title="Refresh heartbeat data"
+                @click=${(e: Event) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  props.onRefreshRawHeartbeat();
+                }}
+              >${icon("refresh-cw", { size: 13 })}</button>`
+            : nothing}
         </summary>
         <div class="debug-raw-content">
-          ${formatJsonHighlighted(props.heartbeat)}
+          ${rawHeartbeatExpanded ? formatJsonHighlighted(props.heartbeat) : nothing}
         </div>
       </details>
     </div>
   `;
 }
 
+function resolveChannelStatus(ch: HealthChannelSummary): { label: string; cssClass: string } {
+  if (ch.linked) return { label: "Linked", cssClass: "health-channel--linked" };
+  if (ch.probe && typeof ch.probe === "object" && (ch.probe as Record<string, unknown>).ok)
+    return { label: "OK", cssClass: "health-channel--ok" };
+  if (ch.configured) return { label: "Configured", cssClass: "health-channel--configured" };
+  return { label: "Inactive", cssClass: "" };
+}
+
 function renderHealthTab(props: DebugProps) {
-  const health = props.health ?? {};
+  const health = (props.health ?? {}) as HealthSnapshot;
+  const isOk = health.ok === true;
+  const duration = health.durationMs != null ? `${health.durationMs}ms` : "";
+
+  // Filter channels to configured or linked only
+  const channelOrder = health.channelOrder ?? [];
+  const channelLabels = health.channelLabels ?? {};
+  const channels = health.channels ?? {};
+  const configuredChannels = channelOrder.filter((id) => {
+    const ch = channels[id] as HealthChannelSummary | undefined;
+    return ch && (ch.configured || ch.linked);
+  });
+
+  const agents = health.agents ?? [];
 
   return html`
     <div class="health-overview">
-      <div class="health-header">
-        <div class="health-header__title">System Health Metrics</div>
-        <div class="health-header__sub">Real-time gateway health information</div>
+      <!-- Health banner -->
+      <div class="health-banner ${isOk ? "health-banner--ok" : "health-banner--error"}">
+        <div class="health-banner__icon">
+          ${isOk ? icon("check", { size: 20 }) : icon("alert-circle", { size: 20 })}
+        </div>
+        <div class="health-banner__text">
+          Gateway ${isOk ? "healthy" : "unhealthy"}${duration ? ` (${duration})` : ""}
+        </div>
       </div>
 
-      ${formatJsonHighlighted(health)}
+      <!-- Channel cards grid -->
+      ${configuredChannels.length > 0
+        ? html`
+          <div class="health-section-title">Channels</div>
+          <div class="health-channels-grid">
+            ${configuredChannels.map((id) => {
+              const ch = channels[id] as HealthChannelSummary;
+              const label = channelLabels[id] ?? id;
+              const { label: statusLabel, cssClass } = resolveChannelStatus(ch);
+              const probe = ch.probe as Record<string, unknown> | null | undefined;
+              const botUsername = probe?.bot
+                ? ((probe.bot as Record<string, unknown>).username as string | null)
+                : null;
+              const probeMs = probe?.elapsedMs != null ? `${probe.elapsedMs}ms` : null;
+              const probeError = probe?.error as string | null | undefined;
+              return html`
+                <div class="health-channel ${cssClass}">
+                  <div class="health-channel__header">
+                    <div class="health-channel__name">${label}</div>
+                    <div class="health-channel__badge">${statusLabel}</div>
+                  </div>
+                  ${botUsername
+                    ? html`<div class="health-channel__bot">@${botUsername}</div>`
+                    : nothing}
+                  ${probeMs
+                    ? html`<div class="health-channel__timing">${probeMs}</div>`
+                    : nothing}
+                  ${probeError
+                    ? html`<div class="health-channel__error">${probeError}</div>`
+                    : nothing}
+                </div>
+              `;
+            })}
+          </div>
+        `
+        : nothing}
+
+      <!-- Agents section -->
+      ${agents.length > 0
+        ? html`
+          <div class="health-section-title">Agents</div>
+          ${agents.map(
+            (agent) => html`
+              <div class="health-agent">
+                <div class="health-agent__name">
+                  ${agent.agentId}${agent.isDefault ? " (default)" : ""}
+                </div>
+                <div class="health-agent__heartbeat">
+                  Heartbeat: ${agent.heartbeat.enabled ? agent.heartbeat.every : "disabled"}
+                </div>
+                <div class="health-agent__sessions">
+                  Sessions: ${agent.sessions.count}
+                </div>
+              </div>
+            `,
+          )}
+        `
+        : nothing}
+
+      <!-- Collapsible raw JSON -->
+      <details class="debug-raw-details" style="margin-top: 16px;">
+        <summary class="debug-raw-summary">
+          ${icon("chevron-right", { size: 14 })}
+          <span>Raw Health Data</span>
+        </summary>
+        <div class="debug-raw-content">
+          ${formatJsonHighlighted(health)}
+        </div>
+      </details>
     </div>
   `;
 }
 
+type ModelEntry = {
+  id: string;
+  name: string;
+  provider: string;
+  providerAvailable?: boolean;
+  contextWindow?: number;
+  reasoning?: boolean;
+  input?: string[];
+};
+
 function renderModelsTab(props: DebugProps) {
-  const models = props.models ?? [];
+  const models = (props.models ?? []) as ModelEntry[];
 
   if (!Array.isArray(models) || models.length === 0) {
     return html`
@@ -239,28 +420,62 @@ function renderModelsTab(props: DebugProps) {
     `;
   }
 
+  // Group models by provider
+  const byProvider = new Map<string, ModelEntry[]>();
+  for (const m of models) {
+    const provider = m.provider ?? "Unknown";
+    const list = byProvider.get(provider);
+    if (list) {
+      list.push(m);
+    } else {
+      byProvider.set(provider, [m]);
+    }
+  }
+
   return html`
-    <div class="models-list">
-      ${models.map((model: unknown) => {
-        const m = model as Record<string, unknown>;
-        const name = m.name ?? m.id ?? "Unknown";
-        const provider = m.provider ?? m.source ?? "Unknown";
-        const available = m.available !== false;
+    <div class="models-grouped">
+      ${[...byProvider.entries()].map(([provider, providerModels]) => {
+        const firstModel = providerModels[0];
+        const providerAvailable = firstModel?.providerAvailable !== false;
+        const count = providerModels.length;
 
         return html`
-          <div class="model-card ${available ? "model-card--available" : "model-card--unavailable"}">
-            <div class="model-card__header">
-              <div class="model-card__icon">
-                ${icon("sparkles", { size: 18 })}
+          <div class="models-provider">
+            <div class="models-provider__header">
+              <div class="models-provider__name">${provider}</div>
+              <div class="models-provider__badge ${providerAvailable ? "models-provider__badge--ok" : "models-provider__badge--unavailable"}">
+                ${providerAvailable ? "Authenticated" : "No Auth"}
               </div>
-              <div class="model-card__info">
-                <div class="model-card__name">${name}</div>
-                <div class="model-card__provider">${provider}</div>
-              </div>
+              <div class="models-provider__count">${count} model${count !== 1 ? "s" : ""}</div>
             </div>
-            <div class="model-card__status">
-              <span class="model-card__dot ${available ? "model-card__dot--ok" : "model-card__dot--error"}"></span>
-              <span>${available ? "Available" : "Unavailable"}</span>
+            <div class="models-provider__list">
+              ${providerModels.map((m) => {
+                const ctxK = m.contextWindow
+                  ? `${Math.round(m.contextWindow / 1000)}k ctx`
+                  : null;
+                const hasVision = m.input?.includes("image");
+                return html`
+                  <div class="model-card ${providerAvailable ? "model-card--available" : "model-card--unavailable"}">
+                    <div class="model-card__header">
+                      <div class="model-card__icon">
+                        ${icon("sparkles", { size: 18 })}
+                      </div>
+                      <div class="model-card__info">
+                        <div class="model-card__name">${m.name ?? m.id}</div>
+                        <div class="model-card__meta">
+                          ${ctxK ? html`<span class="model-card__ctx">${ctxK}</span>` : nothing}
+                          ${m.reasoning ? html`<span class="model-card__tag">reasoning</span>` : nothing}
+                          ${hasVision ? html`<span class="model-card__tag">vision</span>` : nothing}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="model-card__status">
+                      <span class="model-card__dot ${providerAvailable ? "model-card__dot--ok" : "model-card__dot--error"}"></span>
+                      <span>${providerAvailable ? "Available" : "No Auth"}</span>
+                    </div>
+                  </div>
+                `;
+              })}
             </div>
           </div>
         `;
@@ -362,6 +577,31 @@ function renderRpcTab(props: DebugProps) {
         </div>
       </div>
     </div>
+
+    <!-- Event log below RPC form -->
+    <div class="debug-event-section debug-event-section--modern" style="margin-top: 16px;">
+      <div class="debug-section-header">
+        <div class="debug-section-icon">${icon("scroll-text", { size: 18 })}</div>
+        <div class="debug-section-title">Event Log</div>
+        <div class="debug-section-sub">Recent gateway events</div>
+      </div>
+      ${renderEventLog(props)}
+    </div>
+  `;
+}
+
+function renderEventsTab(props: DebugProps) {
+  return html`
+    <div class="events-tab">
+      <div class="events-tab__header">
+        <div class="events-tab__title">Gateway Events</div>
+        <button class="events-tab__logs-link btn btn--sm btn--secondary" @click=${props.onNavigateToLogs}>
+          ${icon("file-text", { size: 14 })}
+          <span>View Gateway Logs</span>
+        </button>
+      </div>
+      ${renderEventLog(props)}
+    </div>
   `;
 }
 
@@ -462,6 +702,13 @@ export function renderDebug(props: DebugProps) {
           <span>Models</span>
         </button>
         <button
+          class="debug-tab ${activeTab === "events" ? "debug-tab--active" : ""}"
+          @click=${handleTabClick("events")}
+        >
+          ${icon("scroll-text", { size: 16 })}
+          <span>Events</span>
+        </button>
+        <button
           class="debug-tab ${activeTab === "rpc" ? "debug-tab--active" : ""}"
           @click=${handleTabClick("rpc")}
         >
@@ -475,17 +722,8 @@ export function renderDebug(props: DebugProps) {
         ${activeTab === "status" ? renderStatusTab(props) : nothing}
         ${activeTab === "health" ? renderHealthTab(props) : nothing}
         ${activeTab === "models" ? renderModelsTab(props) : nothing}
+        ${activeTab === "events" ? renderEventsTab(props) : nothing}
         ${activeTab === "rpc" ? renderRpcTab(props) : nothing}
-      </div>
-
-      <!-- Event Log Section -->
-      <div class="debug-event-section debug-event-section--modern">
-        <div class="debug-section-header">
-          <div class="debug-section-icon">${icon("scroll-text", { size: 18 })}</div>
-          <div class="debug-section-title">Event Log</div>
-          <div class="debug-section-sub">Recent gateway events</div>
-        </div>
-        ${renderEventLog(props)}
       </div>
     </div>
   `;

@@ -257,11 +257,13 @@ function resolveDefaultGatewayPassword(): string {
 
 const SESSIONS_VIEW_MODE_STORAGE_KEY = "clawdbrain.control.ui.sessions.viewMode.v1";
 
-function readSessionsViewMode(): "list" | "table" {
+function readSessionsViewMode(): "list" | "table" | "grouped" {
   if (typeof window === "undefined") return "list";
   try {
     const raw = window.localStorage.getItem(SESSIONS_VIEW_MODE_STORAGE_KEY);
-    return raw === "table" ? "table" : "list";
+    if (raw === "table") return "table";
+    if (raw === "grouped") return "grouped";
+    return "list";
   } catch {
     return "list";
   }
@@ -493,7 +495,8 @@ export class ClawdbrainApp extends LitElement {
   @state() sessionsPreset: "all" | "active" | "errored" | "cron" | "custom" = this.settings.sessionsPreset;
   @state() sessionsShowAdvancedFilters = this.settings.sessionsShowAdvancedFilters;
   @state() sessionsTagFilter: string[] = [];
-  @state() sessionsViewMode: "list" | "table" = readSessionsViewMode();
+  @state() sessionsViewMode: "list" | "table" | "grouped" = readSessionsViewMode();
+  @state() sessionsGroupedExpandedAgents: Set<string> = new Set();
   @state() sessionsShowHidden: boolean = readBooleanStorage(SESSIONS_SHOW_HIDDEN_STORAGE_KEY, false);
   @state() sessionsAutoHideCompletedMinutes: number = readNumberStorage(
     SESSIONS_AUTO_HIDE_COMPLETED_MINUTES_KEY,
@@ -533,6 +536,7 @@ export class ClawdbrainApp extends LitElement {
   @state() cronRunsJobId: string | null = null;
   @state() cronRuns: CronRunLogEntry[] = [];
   @state() cronBusy = false;
+  @state() cronModalOpen = false;
 
   // Automations state
   @state() automationsLoading = false;
@@ -598,6 +602,7 @@ export class ClawdbrainApp extends LitElement {
   @state() debugHealth: HealthSnapshot | null = null;
   @state() debugModels: unknown[] = [];
   @state() debugHeartbeat: unknown | null = null;
+  @state() debugCronJobs: unknown[] = [];
   @state() debugCallMethod = "";
   @state() debugCallParams = "{}";
   @state() debugCallResult: string | null = null;

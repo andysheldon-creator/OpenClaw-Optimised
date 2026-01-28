@@ -11,6 +11,10 @@ export type ConfigUiHint = {
   sensitive?: boolean;
   placeholder?: string;
   itemTemplate?: unknown;
+  /** Override widget type: "slider" | "stepper" | "text" */
+  widget?: string;
+  /** Force compact/non-compact layout */
+  compact?: boolean;
 };
 
 export type ConfigUiHints = Record<string, ConfigUiHint>;

@@ -11,6 +11,11 @@ export type ModelCatalogEntry = {
   input?: Array<"text" | "image">;
 };
 
+/** Extended entry with provider-level auth availability (used by gateway UI). */
+export type GatewayModelEntry = ModelCatalogEntry & {
+  providerAvailable: boolean;
+};
+
 type DiscoveredModel = {
   id: string;
   name?: string;

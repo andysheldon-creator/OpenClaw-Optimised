@@ -448,6 +448,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: center;
 }
 
 .logs-level-chip {
@@ -785,8 +786,8 @@
   grid-template-columns: 48px 72px 52px auto 32px;
   gap: 8px;
   align-items: start;
-  padding: 4px 16px;
-  min-height: 28px;
+  padding: 2px 16px;
+  min-height: 20px;
   transition: background var(--duration-fast) var(--ease-out);
 }
 
@@ -937,14 +938,14 @@
    ============================================================================= */
 
 .log-json {
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .log-json__toggle {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: 2px 6px;
   font-family: var(--font-mono);
   font-size: 10px;
   background: var(--surface-2);
@@ -974,13 +975,13 @@
 }
 
 .log-json__content {
-  margin-top: 8px;
-  padding: 12px;
+  margin-top: 4px;
+  padding: 8px;
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.4;
   overflow-x: auto;
   white-space: pre;
 }

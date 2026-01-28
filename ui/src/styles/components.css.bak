@@ -12534,17 +12534,6 @@ mark.search-highlight {
   }
 }
 
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
 /* Modal styles */
 .modal-overlay {
   position: fixed;
@@ -12572,8 +12561,8 @@ mark.search-highlight {
 }
 
 .modal-card {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 12px;
   width: 100%;
   max-width: 600px;
@@ -12601,7 +12590,7 @@ mark.search-highlight {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--card-border);
 }
 
 .modal-title {
@@ -12627,7 +12616,7 @@ mark.search-highlight {
 }
 
 .modal-close:hover {
-  background: var(--surface-2);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
 }
 
@@ -12643,7 +12632,7 @@ mark.search-highlight {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--card-border);
 }
 
 /* Light theme modal overrides */
@@ -12657,8 +12646,11 @@ mark.search-highlight {
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .modal-overlay,
-  .modal-card {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

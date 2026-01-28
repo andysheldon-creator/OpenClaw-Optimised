@@ -16,6 +16,7 @@ export type CronState = {
   cronRunsJobId: string | null;
   cronRuns: CronRunLogEntry[];
   cronBusy: boolean;
+  cronModalOpen: boolean;
 };
 
 export async function loadCronStatus(state: CronState) {
@@ -112,16 +113,19 @@ export async function addCronJob(state: CronState) {
     };
     if (!job.name) throw new Error("Name required.");
     await state.client.request("cron.add", job);
+    await loadCronJobs(state);
+    await loadCronStatus(state);
     state.cronForm = {
       ...state.cronForm,
       name: "",
       description: "",
       payloadText: "",
     };
-    await loadCronJobs(state);
-    await loadCronStatus(state);
+    state.cronModalOpen = false;
+    toast.success("Cron job created");
   } catch (err) {
     state.cronError = String(err);
+    toast.error(`Failed to create cron job: ${err}`);
   } finally {
     state.cronBusy = false;
   }
@@ -139,8 +143,11 @@ export async function toggleCronJob(
     await state.client.request("cron.update", { id: job.id, patch: { enabled } });
     await loadCronJobs(state);
     await loadCronStatus(state);
+    const label = job.name?.trim() || job.id;
+    toast.success(`Cron job "${label}" ${enabled ? "enabled" : "disabled"}`);
   } catch (err) {
     state.cronError = String(err);
+    toast.error(`Failed to update cron job: ${err}`);
   } finally {
     state.cronBusy = false;
   }
@@ -153,8 +160,11 @@ export async function runCronJob(state: CronState, job: CronJob) {
   try {
     await state.client.request("cron.run", { id: job.id, mode: "force" });
     await loadCronRuns(state, job.id);
+    const label = job.name?.trim() || job.id;
+    toast.success(`Cron job "${label}" triggered`);
   } catch (err) {
     state.cronError = String(err);
+    toast.error(`Failed to run cron job: ${err}`);
   } finally {
     state.cronBusy = false;
   }
@@ -200,4 +210,12 @@ export async function loadCronRuns(state: CronState, jobId: string) {
   } catch (err) {
     state.cronError = String(err);
   }
+}
+
+export function openCronModal(state: CronState) {
+  state.cronModalOpen = true;
+}
+
+export function closeCronModal(state: CronState) {
+  state.cronModalOpen = false;
 }

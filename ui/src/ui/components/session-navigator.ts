@@ -11,6 +11,7 @@
  */
 
 import { html, nothing, type TemplateResult } from "lit";
+import { ref } from "lit/directives/ref.js";
 import { repeat } from "lit/directives/repeat.js";
 
 import { formatAgo, clampText } from "../format";
@@ -157,6 +158,41 @@ export function renderSessionNavigatorTrigger(props: SessionNavigatorProps): Tem
 }
 
 // ---------------------------------------------------------------------------
+// Panel positioning (fixed to viewport, constrained to available space)
+// ---------------------------------------------------------------------------
+
+/** Align the fixed-position panel below the trigger and cap its height. */
+function positionPanel(el: Element | undefined): void {
+  if (!el || !(el instanceof HTMLElement)) return;
+  requestAnimationFrame(() => {
+    const wrapper = el.closest(".sn-wrapper");
+    if (!wrapper) return;
+    const trigger = wrapper.querySelector(".sn-trigger");
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const gap = 6; // px between trigger and panel
+    const margin = 16; // px viewport edge padding
+
+    // Vertical: place below trigger, cap to available space
+    const panelTop = rect.bottom + gap;
+    const availableHeight = vh - panelTop - margin;
+    el.style.top = `${panelTop}px`;
+    el.style.maxHeight = `${Math.max(200, availableHeight)}px`;
+
+    // Horizontal: align to trigger left, shift if overflowing right
+    const panelWidth = el.offsetWidth;
+    let panelLeft = rect.left;
+    if (panelLeft + panelWidth > vw - margin) {
+      panelLeft = Math.max(margin, vw - panelWidth - margin);
+    }
+    el.style.left = `${panelLeft}px`;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Dropdown panel
 // ---------------------------------------------------------------------------
 
@@ -167,15 +203,18 @@ export function renderSessionNavigatorPanel(props: SessionNavigatorProps): Templ
   const agentNodes = groupSessionsByAgent(sessions, props.agentsList);
   const filtered = filterAgentNodes(agentNodes, props.navigatorState.search);
 
+  // Filter out agents with zero sessions
+  const agentsWithSessions = filtered.filter((node) => node.totalSessions > 0);
+
   // Resolve which agent is selected
   const info = resolveCurrentSessionInfo(props.sessionKey, sessions);
   const activeAgentId =
-    props.navigatorState.selectedAgentId ?? info.agentId ?? filtered[0]?.agentId ?? null;
-  const activeAgent = filtered.find((n) => n.agentId === activeAgentId) ?? filtered[0] ?? null;
+    props.navigatorState.selectedAgentId ?? info.agentId ?? agentsWithSessions[0]?.agentId ?? null;
+  const activeAgent = agentsWithSessions.find((n) => n.agentId === activeAgentId) ?? agentsWithSessions[0] ?? null;
 
   return html`
     <div class="sn-backdrop" @click=${() => props.onClose()}></div>
-    <div class="sn-panel" @click=${(e: Event) => e.stopPropagation()}>
+    <div class="sn-panel" ${ref(positionPanel)} @click=${(e: Event) => e.stopPropagation()}>
       <!-- Search bar -->
       <div class="sn-panel__search">
         <span class="sn-panel__search-icon">${icon("search", { size: 14 })}</span>
@@ -202,10 +241,10 @@ export function renderSessionNavigatorPanel(props: SessionNavigatorProps): Templ
       <div class="sn-panel__body">
         <!-- Agent sidebar -->
         <div class="sn-agents">
-          ${filtered.length === 0
+          ${agentsWithSessions.length === 0
             ? html`<div class="sn-empty">No agents match.</div>`
             : repeat(
-                filtered,
+                agentsWithSessions,
                 (n) => n.agentId,
                 (node) => renderAgentPill(node, activeAgentId, props),
               )}
@@ -248,11 +287,11 @@ function renderAgentPill(
       </span>
       <span class="sn-agent__meta">
         <span class="sn-agent__name">${node.displayName}</span>
+        ${node.isDefault ? html`<span class="sn-badge sn-badge--default">Default</span>` : nothing}
         <span class="sn-agent__stats">
           ${node.totalSessions} session${node.totalSessions !== 1 ? "s" : ""}${when ? ` · ${when}` : ""}
         </span>
       </span>
-      ${node.isDefault ? html`<span class="sn-badge sn-badge--default">Default</span>` : nothing}
     </button>
   `;
 }
@@ -267,8 +306,19 @@ function renderAgentSessions(node: AgentNode, props: SessionNavigatorProps): Tem
   }
 
   return html`
-    <div class="sn-channel-list">
-      ${node.channels.map((ch) => renderChannelSection(ch, props))}
+    <div class="sn-sessions-wrapper">
+      <div class="sn-sessions__header">
+        <div class="sn-sessions__agent-info">
+          ${node.emoji
+            ? html`<span class="sn-sessions__agent-icon">${node.emoji}</span>`
+            : html`<span class="sn-sessions__agent-icon">${icon("user", { size: 16 })}</span>`}
+          <span class="sn-sessions__agent-name">${node.displayName}</span>
+          ${node.isDefault ? html`<span class="sn-badge sn-badge--default sn-badge--small">Default</span>` : nothing}
+        </div>
+      </div>
+      <div class="sn-channel-list">
+        ${node.channels.map((ch) => renderChannelSection(ch, props))}
+      </div>
     </div>
   `;
 }

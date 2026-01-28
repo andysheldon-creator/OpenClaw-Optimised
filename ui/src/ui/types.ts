@@ -290,6 +290,10 @@ export type ConfigUiHint = {
   sensitive?: boolean;
   placeholder?: string;
   itemTemplate?: unknown;
+  /** Override widget type: "slider" | "stepper" | "text" */
+  widget?: string;
+  /** Force compact/non-compact layout */
+  compact?: boolean;
 };
 
 export type ConfigUiHints = Record<string, ConfigUiHint>;
@@ -539,9 +543,74 @@ export type SkillStatusReport = {
   skills: SkillStatusEntry[];
 };
 
-export type StatusSummary = Record<string, unknown>;
+export type StatusSummary = {
+  uptimeMs?: number;
+  memoryUsage?: { heapUsedMB: number; heapTotalMB: number; rssMB: number };
+  heartbeat?: {
+    defaultAgentId: string;
+    agents: Array<{
+      agentId: string;
+      enabled: boolean;
+      every: string;
+      everyMs: number | null;
+    }>;
+  };
+  channelSummary?: string[];
+  queuedSystemEvents?: string[];
+  sessions?: {
+    paths: string[];
+    count: number;
+    defaults: { model: string | null; contextTokens: number | null };
+    recent: unknown[];
+    byAgent: Array<{
+      agentId: string;
+      path: string;
+      count: number;
+      recent: unknown[];
+    }>;
+  };
+  securityAudit?: { summary?: Record<string, number> };
+  [key: string]: unknown;
+};
 
-export type HealthSnapshot = Record<string, unknown>;
+export type HealthChannelSummary = {
+  accountId: string;
+  configured?: boolean;
+  linked?: boolean;
+  authAgeMs?: number | null;
+  probe?: { ok?: boolean; elapsedMs?: number; bot?: { username?: string | null } | null; error?: string | null } | null;
+  lastProbeAt?: number | null;
+  accounts?: Record<string, HealthChannelSummary>;
+  [key: string]: unknown;
+};
+
+export type HealthSnapshot = {
+  ok?: boolean;
+  ts?: number;
+  durationMs?: number;
+  channels?: Record<string, HealthChannelSummary>;
+  channelOrder?: string[];
+  channelLabels?: Record<string, string>;
+  heartbeatSeconds?: number;
+  defaultAgentId?: string;
+  agents?: Array<{
+    agentId: string;
+    name?: string;
+    isDefault: boolean;
+    heartbeat: { enabled: boolean; every: string; everyMs: number | null };
+    sessions: {
+      path: string;
+      count: number;
+      recent: Array<{ key: string; updatedAt: number | null; age: number | null }>;
+    };
+  }>;
+  sessions?: {
+    path: string;
+    count: number;
+    recent: Array<{ key: string; updatedAt: number | null; age: number | null }>;
+  };
+  [key: string]: unknown;
+};
 
 export type LogLevel =
   | "trace"

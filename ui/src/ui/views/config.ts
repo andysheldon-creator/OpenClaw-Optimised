@@ -753,7 +753,12 @@ export function renderConfig(props: ConfigProps) {
         <div class="config-actions">
           <div class="config-actions__left">
             ${hasChanges ? html`
-              <span class="config-changes-badge">${props.formMode === "raw" ? "Unsaved changes" : `${diff.length} unsaved change${diff.length !== 1 ? "s" : ""}`}</span>
+              <button
+                class="config-changes-badge"
+                type="button"
+                @click=${() => openDialog(pendingDialogId)}
+                title="View pending changes"
+              >Unsaved Changes (${props.formMode === "raw" ? "raw" : diff.length})</button>
             ` : html`
               <span class="config-status muted">No changes</span>
             `}
@@ -771,35 +776,6 @@ export function renderConfig(props: ConfigProps) {
                   </button>
                 `
               : nothing}
-            ${hasChanges ? html`
-              <button
-                class="btn btn--sm"
-                type="button"
-                @click=${() => {
-                  const payload =
-                    props.formMode === "form"
-                      ? JSON.stringify({ mode: "form", changes: diff }, null, 2)
-                      : JSON.stringify({ mode: "raw", diff: unifiedDiff || "(no diff)" }, null, 2);
-                  copyText(payload);
-                }}
-                title="Copy a JSON summary of pending changes"
-              >
-                Copy pending changes
-              </button>
-              <button
-                class="btn btn--sm"
-                type="button"
-                @click=${() => {
-                  const dialog = document.getElementById(
-                    pendingDialogId,
-                  ) as HTMLDialogElement | null;
-                  dialog?.showModal?.();
-                }}
-                title="Open a full review panel with summary + unified diff"
-              >
-                View pending changes
-              </button>
-            ` : nothing}
             <button class="btn btn--sm" ?disabled=${props.loading} @click=${props.onReload} title="Reload config from the gateway">
               ${props.loading ? "Loading…" : "Reload"}
             </button>
@@ -881,60 +857,7 @@ export function renderConfig(props: ConfigProps) {
           </div>
         ` : nothing}
 
-        <!-- Diff panel (form mode only - raw mode doesn't have granular diff) -->
-        ${hasChanges && props.formMode === "form" ? html`
-          <details class="config-diff">
-            <summary class="config-diff__summary">
-              <span>Quick preview: ${diff.length} change${diff.length !== 1 ? "s" : ""}</span>
-              <svg class="config-diff__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </summary>
-            <div class="config-diff__content">
-              <div class="config-diff__actions">
-                <button
-                  class="btn btn--sm"
-                  type="button"
-                  @click=${() =>
-                    copyText(
-                      JSON.stringify(
-                        {
-                          mode: "form",
-                          changes: diff,
-                        },
-                        null,
-                        2,
-                      ),
-                    )}
-                >
-                  Copy pending changes
-                </button>
-                <button
-                  class="btn btn--sm"
-                  type="button"
-                  @click=${() => {
-                    const dialog = document.getElementById(
-                      pendingDialogId,
-                    ) as HTMLDialogElement | null;
-                    dialog?.showModal?.();
-                  }}
-                >
-                  View pending changes
-                </button>
-              </div>
-              ${diff.map(change => html`
-                <div class="config-diff__item">
-                  <div class="config-diff__path">${change.path}</div>
-                  <div class="config-diff__values">
-                    <span class="config-diff__from">${truncateValue(change.from)}</span>
-                    <span class="config-diff__arrow">→</span>
-                    <span class="config-diff__to">${truncateValue(change.to)}</span>
-                  </div>
-                </div>
-              `)}
-            </div>
-          </details>
-        ` : nothing}
+        <!-- Diff panel removed: "Unsaved Changes (N)" badge in the action bar opens the pending changes dialog -->
 
         ${activeSectionMeta && props.formMode === "form"
           ? html`

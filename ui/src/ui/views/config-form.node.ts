@@ -4,9 +4,13 @@ import {
   defaultValue,
   hintForPath,
   humanize,
+  isCompactField,
   isSensitivePath,
   pathKey,
+  schemaMax,
+  schemaMin,
   schemaType,
+  shouldUseSlider,
   type ConfigValidationMap,
   type JsonSchema,
 } from "./config-form.shared";
@@ -299,6 +303,9 @@ export function renderNode(params: {
 
   // Number/Integer
   if (type === "number" || type === "integer") {
+    if (shouldUseSlider(schema, hint)) {
+      return renderSliderInput(params);
+    }
     return renderNumberInput(params);
   }
 
@@ -389,6 +396,75 @@ function renderTextInput(params: {
   `;
 }
 
+function renderSliderInput(params: {
+  schema: JsonSchema;
+  value: unknown;
+  path: Array<string | number>;
+  hints: ConfigUiHints;
+  disabled: boolean;
+  showLabel?: boolean;
+  validation?: ConfigValidationMap;
+  onPatch: (path: Array<string | number>, value: unknown) => void;
+}): TemplateResult {
+  const { schema, value, path, hints, disabled, onPatch } = params;
+  const showLabel = params.showLabel ?? true;
+  const hint = hintForPath(path, hints);
+  const label = hint?.label ?? schema.title ?? humanize(String(path.at(-1)));
+  const help = hint?.help ?? schema.description;
+  const type = schemaType(schema);
+  const key = pathKey(path);
+  const validationIssues = params.validation?.[key] ?? [];
+  const severity =
+    validationIssues.find((issue) => issue.severity === "error")?.severity ??
+    validationIssues.find((issue) => issue.severity === "warn")?.severity ??
+    validationIssues[0]?.severity ??
+    null;
+  const validationMessage = validationIssues[0]?.message ?? "";
+
+  const min = schemaMin(schema) ?? 0;
+  const max = schemaMax(schema) ?? 100;
+  const range = max - min;
+  const isInt = type === "integer";
+  const step = isInt ? 1 : range <= 1 ? 0.01 : range <= 10 ? 0.1 : 1;
+  const numValue = typeof value === "number" ? value : typeof schema.default === "number" ? schema.default : min;
+  const pct = range > 0 ? ((numValue - min) / range) * 100 : 0;
+  // Format display: integers show whole, floats show appropriate precision
+  const displayStr = isInt ? String(numValue) : Number(numValue.toFixed(step < 1 ? 2 : 1)).toString();
+
+  return html`
+    <div
+      class="cfg-field cfg-field--compact ${severity ? `cfg-field--invalid cfg-field--${severity}` : ""}"
+      data-config-path=${key}
+    >
+      <div class="cfg-slider-header">
+        ${showLabel ? html`<label class="cfg-field__label">${label}</label>` : nothing}
+        <span class="cfg-slider-value">${displayStr}</span>
+      </div>
+      ${help ? html`<div class="cfg-field__help">${help}</div>` : nothing}
+      ${severity ? html`<div class="cfg-field__validation">${validationMessage}</div>` : nothing}
+      <input
+        type="range"
+        class="cfg-slider"
+        min=${min}
+        max=${max}
+        step=${step}
+        .value=${String(numValue)}
+        ?disabled=${disabled}
+        style="background: linear-gradient(to right, var(--accent) ${pct}%, var(--border-strong) ${pct}%)"
+        @input=${(e: Event) => {
+          const raw = (e.target as HTMLInputElement).value;
+          const parsed = Number(raw);
+          // Update the track fill on input
+          const el = e.target as HTMLInputElement;
+          const newPct = range > 0 ? ((parsed - min) / range) * 100 : 0;
+          el.style.background = `linear-gradient(to right, var(--accent) ${newPct}%, var(--border-strong) ${newPct}%)`;
+          onPatch(path, isInt ? Math.round(parsed) : parsed);
+        }}
+      />
+    </div>
+  `;
+}
+
 function renderNumberInput(params: {
   schema: JsonSchema;
   value: unknown;
@@ -415,9 +491,14 @@ function renderNumberInput(params: {
     null;
   const validationMessage = validationIssues[0]?.message ?? "";
 
+  const min = schemaMin(schema);
+  const max = schemaMax(schema);
+  const atMin = min != null && numValue <= min;
+  const atMax = max != null && numValue >= max;
+
   return html`
     <div
-      class="cfg-field ${severity ? `cfg-field--invalid cfg-field--${severity}` : ""}"
+      class="cfg-field cfg-field--compact ${severity ? `cfg-field--invalid cfg-field--${severity}` : ""}"
       data-config-path=${key}
     >
       ${showLabel ? html`<label class="cfg-field__label">${label}</label>` : nothing}
@@ -427,14 +508,19 @@ function renderNumberInput(params: {
         <button
           type="button"
           class="cfg-number__btn"
-          ?disabled=${disabled}
-          @click=${() => onPatch(path, numValue - 1)}
+          ?disabled=${disabled || atMin}
+          @click=${() => {
+            const next = numValue - 1;
+            onPatch(path, min != null ? Math.max(min, next) : next);
+          }}
         >−</button>
         <input
           type="number"
           class="cfg-number__input"
           .value=${displayValue == null ? "" : String(displayValue)}
           ?disabled=${disabled}
+          min=${min != null ? min : nothing}
+          max=${max != null ? max : nothing}
           @input=${(e: Event) => {
             const raw = (e.target as HTMLInputElement).value;
             const parsed = raw === "" ? undefined : Number(raw);
@@ -444,8 +530,11 @@ function renderNumberInput(params: {
         <button
           type="button"
           class="cfg-number__btn"
-          ?disabled=${disabled}
-          @click=${() => onPatch(path, numValue + 1)}
+          ?disabled=${disabled || atMax}
+          @click=${() => {
+            const next = numValue + 1;
+            onPatch(path, max != null ? Math.min(max, next) : next);
+          }}
         >+</button>
       </div>
     </div>
@@ -508,6 +597,69 @@ function renderSelect(params: {
   `;
 }
 
+/**
+ * Partition sorted entries into runs of compact and wide fields.
+ * Consecutive compact fields get wrapped in a multi-column grid.
+ */
+type FieldRun = { compact: boolean; entries: [string, JsonSchema][] };
+
+function partitionFieldRuns(
+  sorted: [string, JsonSchema][],
+  path: Array<string | number>,
+  hints: ConfigUiHints,
+): FieldRun[] {
+  const runs: FieldRun[] = [];
+  for (const entry of sorted) {
+    const [propKey, node] = entry;
+    const fieldHint = hintForPath([...path, propKey], hints);
+    const compact = isCompactField(node, fieldHint);
+    const last = runs.at(-1);
+    if (last && last.compact === compact) {
+      last.entries.push(entry);
+    } else {
+      runs.push({ compact, entries: [entry] });
+    }
+  }
+  return runs;
+}
+
+function renderFieldRuns(
+  runs: FieldRun[],
+  obj: Record<string, unknown>,
+  baseParams: {
+    path: Array<string | number>;
+    hints: ConfigUiHints;
+    unsupported: Set<string>;
+    disabled: boolean;
+    validation?: ConfigValidationMap;
+    compactToggles: boolean;
+    flattenObjects: boolean;
+    onPatch: (path: Array<string | number>, value: unknown) => void;
+  },
+): TemplateResult[] {
+  const { path, hints, unsupported, disabled, onPatch } = baseParams;
+  return runs.map((run) => {
+    const nodes = run.entries.map(([propKey, node]) =>
+      renderNode({
+        schema: node,
+        value: obj[propKey],
+        path: [...path, propKey],
+        hints,
+        unsupported,
+        disabled,
+        validation: baseParams.validation,
+        compactToggles: baseParams.compactToggles,
+        flattenObjects: baseParams.flattenObjects,
+        onPatch,
+      })
+    );
+    if (run.compact && run.entries.length >= 1) {
+      return html`<div class="cfg-fields-compact">${nodes}</div>`;
+    }
+    return html`${nodes}`;
+  });
+}
+
 function renderObject(params: {
   schema: JsonSchema;
   value: unknown;
@@ -548,36 +700,38 @@ function renderObject(params: {
   const additional = schema.additionalProperties;
   const allowExtra = Boolean(additional) && typeof additional === "object";
 
+  // Partition fields into compact/wide runs for multi-column layout
+  const runs = partitionFieldRuns(sorted, path, hints);
+  const baseRunParams = {
+    path,
+    hints,
+    unsupported,
+    disabled,
+    validation: params.validation,
+    compactToggles,
+    flattenObjects,
+    onPatch,
+  };
+
+  const extraMap = allowExtra ? renderMapField({
+    schema: additional as JsonSchema,
+    value: obj,
+    path,
+    hints,
+    unsupported,
+    disabled,
+    reservedKeys: reserved,
+    validation: params.validation,
+    onPatch,
+  }) : nothing;
+
   // Render flat (no collapsible wrapper) for top-level objects or when
   // showLabel is false (parent already provides the section title)
   if (path.length === 1 || !showLabel) {
     return html`
       <div class="cfg-fields">
-        ${sorted.map(([propKey, node]) =>
-          renderNode({
-            schema: node,
-            value: obj[propKey],
-            path: [...path, propKey],
-            hints,
-            unsupported,
-            disabled,
-            validation: params.validation,
-            compactToggles,
-            flattenObjects,
-            onPatch,
-          })
-        )}
-        ${allowExtra ? renderMapField({
-          schema: additional as JsonSchema,
-          value: obj,
-          path,
-          hints,
-          unsupported,
-          disabled,
-          reservedKeys: reserved,
-          validation: params.validation,
-          onPatch,
-        }) : nothing}
+        ${renderFieldRuns(runs, obj, baseRunParams)}
+        ${extraMap}
       </div>
     `;
   }
@@ -594,31 +748,8 @@ function renderObject(params: {
         </summary>
         ${help ? html`<div class="cfg-object-flat__help">${help}</div>` : nothing}
         <div class="cfg-object-flat__content">
-          ${sorted.map(([propKey, node]) =>
-            renderNode({
-              schema: node,
-              value: obj[propKey],
-              path: [...path, propKey],
-              hints,
-              unsupported,
-              disabled,
-              validation: params.validation,
-              compactToggles,
-              flattenObjects,
-              onPatch,
-            })
-          )}
-          ${allowExtra ? renderMapField({
-            schema: additional as JsonSchema,
-            value: obj,
-            path,
-            hints,
-            unsupported,
-            disabled,
-            reservedKeys: reserved,
-            validation: params.validation,
-            onPatch,
-          }) : nothing}
+          ${renderFieldRuns(runs, obj, baseRunParams)}
+          ${extraMap}
         </div>
       </details>
     `;
@@ -634,31 +765,8 @@ function renderObject(params: {
       </summary>
       ${help ? html`<div class="cfg-object__help">${help}</div>` : nothing}
       <div class="cfg-object__content">
-        ${sorted.map(([propKey, node]) =>
-          renderNode({
-            schema: node,
-            value: obj[propKey],
-            path: [...path, propKey],
-            hints,
-            unsupported,
-            disabled,
-            validation: params.validation,
-            compactToggles,
-            flattenObjects,
-            onPatch,
-          })
-        )}
-        ${allowExtra ? renderMapField({
-          schema: additional as JsonSchema,
-          value: obj,
-          path,
-          hints,
-          unsupported,
-          disabled,
-          reservedKeys: reserved,
-          validation: params.validation,
-          onPatch,
-        }) : nothing}
+        ${renderFieldRuns(runs, obj, baseRunParams)}
+        ${extraMap}
       </div>
     </details>
   `;

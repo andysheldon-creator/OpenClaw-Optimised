@@ -4,6 +4,7 @@ import type { ConfigUiHints } from "../types";
 import { icons } from "../icons";
 import {
   hintForPath,
+  humanize,
   schemaType,
   type ConfigValidationMap,
   type JsonSchema,
@@ -207,10 +208,18 @@ export function renderConfigForm(props: ConfigFormProps) {
                 ? (sectionValue as Record<string, unknown>)[subsectionKey]
                 : undefined;
             const id = `config-section-${sectionKey}-${subsectionKey}`;
-            // No card header — the hero + subnav tab already identify the subsection
+            const subHint = hintForPath([sectionKey, subsectionKey], props.uiHints);
+            const subLabel = subHint?.label ?? node.title ?? humanize(subsectionKey);
+            const subHelp = subHint?.help ?? node.description ?? "";
             return html`
               <section class="config-section-card config-section-card--headerless" id=${id}>
                 <div class="config-section-card__content">
+                  ${subHelp ? html`
+                    <div class="config-subsection-intro">
+                      <div class="config-subsection-intro__label">${subLabel}</div>
+                      <div class="config-subsection-intro__help">${subHelp}</div>
+                    </div>
+                  ` : nothing}
                   ${renderNode({
                     schema: node,
                     value: scopedValue,

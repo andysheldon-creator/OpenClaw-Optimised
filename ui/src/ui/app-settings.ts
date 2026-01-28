@@ -226,7 +226,10 @@ export async function refreshActiveTab(host: SettingsHost) {
     await loadExecApprovals(host as unknown as ClawdbrainApp);
   }
   if (host.tab === "chat") {
-    await refreshChat(host as unknown as Parameters<typeof refreshChat>[0]);
+    await Promise.all([
+      refreshChat(host as unknown as Parameters<typeof refreshChat>[0]),
+      loadAgents(host as unknown as ClawdbrainApp),
+    ]);
     scheduleChatScroll(
       host as unknown as Parameters<typeof scheduleChatScroll>[0],
       !host.chatHasAutoScrolled,

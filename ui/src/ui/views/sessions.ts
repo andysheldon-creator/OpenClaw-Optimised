@@ -7,7 +7,8 @@ import { formatSessionTokens } from "../presenter";
 import { hrefForTab } from "../navigation";
 import { icon } from "../icons";
 import { inferSessionType } from "../session-meta";
-import type { GatewaySessionRow, SessionsListResult, SessionsPreviewEntry } from "../types";
+import type { AgentsListResult, GatewaySessionRow, SessionsListResult, SessionsPreviewEntry } from "../types";
+import { renderGroupedSessions } from "./sessions-grouped";
 
 export type SessionActiveTask = {
   taskId: string;
@@ -22,7 +23,7 @@ export type SessionSortDir = "asc" | "desc";
 export type SessionKindFilter = "all" | "direct" | "group" | "global" | "unknown";
 export type SessionStatusFilter = "all" | "active" | "idle" | "completed";
 export type SessionLaneFilter = "all" | "cron" | "regular";
-export type SessionViewMode = "list" | "table";
+export type SessionViewMode = "list" | "table" | "grouped";
 
 // Session filter presets for quick access
 export type SessionPreset = "all" | "active" | "errored" | "cron" | "custom";
@@ -62,7 +63,7 @@ function parseAgentIdFromSessionKey(key: string): string | null {
   return agentId || null;
 }
 
-function resolveAgentDisplayName(row: GatewaySessionRow): string {
+export function resolveAgentDisplayName(row: GatewaySessionRow): string {
   const label = row.label?.trim();
   if (label) return label;
   const agentId = parseAgentIdFromSessionKey(row.key);
@@ -159,6 +160,10 @@ export type SessionsProps = {
   ) => void;
   onDelete: (key: string) => void;
   onViewSessionLogs?: (key: string) => void;
+  // Grouped ("By Agent") view props
+  agentsList?: AgentsListResult | null;
+  groupedExpandedAgents?: Set<string>;
+  onToggleGroupedAgent?: (agentId: string) => void;
 };
 
 const THINK_LEVELS = ["", "off", "minimal", "low", "medium", "high", "xhigh"] as const;
@@ -312,7 +317,7 @@ function truncateKey(key: string, maxLen = 28): string {
 const ACTIVE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 const IDLE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
 
-function deriveSessionStatus(row: GatewaySessionRow, activeTasks?: SessionActiveTask[]): SessionStatus {
+export function deriveSessionStatus(row: GatewaySessionRow, activeTasks?: SessionActiveTask[]): SessionStatus {
   if (activeTasks && activeTasks.length > 0) return "active";
   if (!row.updatedAt) return "completed";
   const age = Date.now() - row.updatedAt;
@@ -321,7 +326,7 @@ function deriveSessionStatus(row: GatewaySessionRow, activeTasks?: SessionActive
   return "completed";
 }
 
-function getStatusBadgeClass(status: SessionStatus): string {
+export function getStatusBadgeClass(status: SessionStatus): string {
   switch (status) {
     case "active":
       return "badge--success badge--animated";
@@ -1248,6 +1253,15 @@ export function renderSessions(props: SessionsProps) {
                     >
                       ${icon("box", { size: 14 })}<span>Table</span>
                     </button>
+                    <button
+                      class="sessions-view-toggle__btn ${props.viewMode === "grouped" ? "sessions-view-toggle__btn--active" : ""}"
+                      type="button"
+                      title="Group by agent"
+                      aria-pressed=${props.viewMode === "grouped"}
+                      @click=${() => props.onViewModeChange("grouped")}
+                    >
+                      ${icon("users", { size: 14 })}<span>By Agent</span>
+                    </button>
                   </div>
 
                   <div class="sessions-toolbar__group sessions-sort">
@@ -1371,7 +1385,9 @@ export function renderSessions(props: SessionsProps) {
                 `
                 : nothing}
 
-              ${props.viewMode === "list"
+              ${props.viewMode === "grouped"
+                ? renderGroupedSessions(rows, props)
+                : props.viewMode === "list"
                 ? html`
                   <div class="sessions-list" role="list" aria-busy=${props.loading && !props.result}>
                     ${props.loading && !props.result

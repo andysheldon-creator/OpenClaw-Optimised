@@ -24,6 +24,10 @@ export type JsonSchema = {
   oneOf?: JsonSchema[];
   allOf?: JsonSchema[];
   nullable?: boolean;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
 };
 
 export function schemaType(schema: JsonSchema): string | undefined {
@@ -87,6 +91,65 @@ export function humanize(raw: string) {
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/\s+/g, " ")
     .replace(/^./, (m) => m.toUpperCase());
+}
+
+/**
+ * Returns the effective minimum from a schema, considering both
+ * `minimum` and `exclusiveMinimum`.
+ */
+export function schemaMin(schema: JsonSchema): number | undefined {
+  const min = schema.minimum;
+  const exMin = schema.exclusiveMinimum;
+  if (min != null && exMin != null) return Math.max(min, exMin);
+  return min ?? exMin;
+}
+
+/**
+ * Returns the effective maximum from a schema, considering both
+ * `maximum` and `exclusiveMaximum`.
+ */
+export function schemaMax(schema: JsonSchema): number | undefined {
+  const max = schema.maximum;
+  const exMax = schema.exclusiveMaximum;
+  if (max != null && exMax != null) return Math.min(max, exMax);
+  return max ?? exMax;
+}
+
+/**
+ * Returns true if the field should render in compact (multi-column) layout.
+ * Compact fields: numbers, integers, booleans, small enums (<=5), or explicit hint.
+ */
+export function isCompactField(schema: JsonSchema, hint?: { compact?: boolean }): boolean {
+  if (hint?.compact === true) return true;
+  if (hint?.compact === false) return false;
+  const type = schemaType(schema);
+  if (type === "number" || type === "integer" || type === "boolean") return true;
+  // Small enums rendered as segmented control
+  if (schema.enum && schema.enum.length <= 5) return true;
+  // anyOf/oneOf literal unions (segmented)
+  const variants = schema.anyOf ?? schema.oneOf;
+  if (variants) {
+    const nonNull = variants.filter(
+      (v) => !(v.type === "null" || (Array.isArray(v.type) && v.type.includes("null")))
+    );
+    const allLiterals = nonNull.every((v) => v.const !== undefined || (v.enum && v.enum.length === 1));
+    if (allLiterals && nonNull.length > 0 && nonNull.length <= 5) return true;
+  }
+  return false;
+}
+
+/**
+ * Returns true if a numeric field should render as a slider.
+ * Requires both min and max bounds with range <= 10000.
+ */
+export function shouldUseSlider(schema: JsonSchema, hint?: { widget?: string }): boolean {
+  if (hint?.widget === "slider") return true;
+  if (hint?.widget && hint.widget !== "slider") return false;
+  const min = schemaMin(schema);
+  const max = schemaMax(schema);
+  if (min == null || max == null) return false;
+  const range = max - min;
+  return range > 0 && range <= 10000;
 }
 
 export function isSensitivePath(path: Array<string | number>): boolean {

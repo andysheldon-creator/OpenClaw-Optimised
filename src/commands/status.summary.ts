@@ -154,7 +154,16 @@ export async function getStatusSummary(): Promise<StatusSummary> {
   const recent = allSessions.slice(0, 10);
   const totalSessions = allSessions.length;
 
+  const mem = process.memoryUsage();
+  const round1 = (n: number) => Math.round((n / 1048576) * 10) / 10;
+
   return {
+    uptimeMs: Math.round(process.uptime() * 1000),
+    memoryUsage: {
+      heapUsedMB: round1(mem.heapUsed),
+      heapTotalMB: round1(mem.heapTotal),
+      rssMB: round1(mem.rss),
+    },
     linkChannel: linkContext
       ? {
           id: linkContext.plugin.id,

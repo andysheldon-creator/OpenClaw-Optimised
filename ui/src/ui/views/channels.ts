@@ -388,6 +388,11 @@ function buildChannelFrame(
     return null;
   })();
 
+  // Determine which statuses are relevant per channel type
+  const showRunning = key === "signal" || key === "imessage";
+  const showConnected = key === "whatsapp" || key === "slack" || key === "discord" || key === "nostr";
+  const showAnyStatus = showRunning || showConnected;
+
   const facts = html`
     <div class="channel-fact ${configured ? "channel-fact--ok" : ""}">
       <span class="channel-fact__icon" aria-hidden="true"
@@ -396,20 +401,33 @@ function buildChannelFrame(
       <span class="channel-fact__label">Configured</span>
       <span class="channel-fact__value">${configured ? "Yes" : "No"}</span>
     </div>
-    <div class="channel-fact ${running || accountActive ? "channel-fact--ok" : ""}">
-      <span class="channel-fact__icon" aria-hidden="true"
-        >${icon(running || accountActive ? "check" : "alert-circle", { size: 14 })}</span
-      >
-      <span class="channel-fact__label">Running</span>
-      <span class="channel-fact__value">${running || accountActive ? "Yes" : "No"}</span>
-    </div>
-    <div class="channel-fact ${connected || accountActive ? "channel-fact--ok" : ""}">
-      <span class="channel-fact__icon" aria-hidden="true"
-        >${icon(connected || accountActive ? "check" : "alert-circle", { size: 14 })}</span
-      >
-      <span class="channel-fact__label">Connected</span>
-      <span class="channel-fact__value">${connected || accountActive ? "Yes" : "No"}</span>
-    </div>
+    ${showRunning ? html`
+      <div class="channel-fact ${running ? "channel-fact--ok" : ""}">
+        <span class="channel-fact__icon" aria-hidden="true"
+          >${icon(running ? "check" : "minus", { size: 14 })}</span
+        >
+        <span class="channel-fact__label">Running</span>
+        <span class="channel-fact__value">${running ? "Yes" : "No"}</span>
+      </div>
+    ` : nothing}
+    ${showConnected ? html`
+      <div class="channel-fact ${connected ? "channel-fact--ok" : ""}">
+        <span class="channel-fact__icon" aria-hidden="true"
+          >${icon(connected ? "check" : "minus", { size: 14 })}</span
+        >
+        <span class="channel-fact__label">Connected</span>
+        <span class="channel-fact__value">${connected ? "Yes" : "No"}</span>
+      </div>
+    ` : nothing}
+    ${!showAnyStatus ? html`
+      <div class="channel-fact ${configured || accountActive ? "channel-fact--ok" : ""}">
+        <span class="channel-fact__icon" aria-hidden="true"
+          >${icon(configured || accountActive ? "check" : "minus", { size: 14 })}</span
+        >
+        <span class="channel-fact__label">Status</span>
+        <span class="channel-fact__value">${configured || accountActive ? "Active" : "Idle"}</span>
+      </div>
+    ` : nothing}
   `;
 
   return {
