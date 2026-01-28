@@ -1,6 +1,7 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
 import { registerSkillsChangeListener } from "../agents/skills/refresh.js";
+import { initHardening, teardownHardening } from "../security/hardening.js";
 import type { CanvasHostServer } from "../canvas-host/server.js";
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
 import { createDefaultDeps } from "../cli/deps.js";
@@ -210,6 +211,18 @@ export async function startGatewayServer(
   }
 
   const cfgAtStart = loadConfig();
+
+  // Initialize security hardening (single-user auth, network whitelist, fs monitoring)
+  // early, before any I/O. Controlled by config or MOLTBOT_HARDENING_ENABLED=1 env var.
+  const hardeningState = initHardening(cfgAtStart);
+  if (hardeningState.active) {
+    log.info(
+      `security hardening active: singleUser=${hardeningState.singleUser}, ` +
+        `network=${hardeningState.networkMonitor}, fs=${hardeningState.fsMonitor}` +
+        (hardeningState.logPath ? `, log=${hardeningState.logPath}` : ""),
+    );
+  }
+
   const diagnosticsEnabled = isDiagnosticsEnabled(cfgAtStart);
   if (diagnosticsEnabled) {
     startDiagnosticHeartbeat();
@@ -580,6 +593,7 @@ export async function startGatewayServer(
       }
       skillsChangeUnsub();
       await close(opts);
+      teardownHardening();
     },
   };
 }

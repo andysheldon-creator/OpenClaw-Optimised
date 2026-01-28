@@ -9,6 +9,10 @@ import { saveMediaBuffer } from "../../media/store.js";
 import { createInboundDebouncer } from "../../auto-reply/inbound-debounce.js";
 import { jidToE164, resolveJidToE164 } from "../../utils.js";
 import { createWaSocket, getStatusCode, waitForWaConnection } from "../session.js";
+import {
+  isAuthorizedSender,
+  isSingleUserEnforcerActive,
+} from "../../security/single-user-enforcer.js";
 import { checkInboundAccessControl } from "./access-control.js";
 import { isRecentInboundMessage } from "./dedupe.js";
 import {
@@ -165,6 +169,13 @@ export async function monitorWebInbox(options: {
           ? await resolveInboundJid(participantJid)
           : null
         : from;
+
+      // Single-user enforcer: silently drop messages from non-authorized senders.
+      // This runs before access-control to avoid any response/pairing leakage.
+      if (isSingleUserEnforcerActive()) {
+        const senderToCheck = senderE164 ?? from;
+        if (!isAuthorizedSender(senderToCheck)) continue;
+      }
 
       let groupSubject: string | undefined;
       let groupParticipants: string[] | undefined;
