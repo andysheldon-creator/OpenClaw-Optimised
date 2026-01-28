@@ -234,13 +234,27 @@ export async function startGatewayServer(
     // Announce gateway startup
     postStatus(`🟢 **Gateway started** at ${new Date().toISOString()}. Sessions resuming.`);
 
-    // Alert on stuck sessions
+    // Alert on stuck sessions and session errors
     onDiagnosticEvent((evt) => {
       if (evt.type === "session.stuck") {
         const ageMin = Math.round(evt.ageMs / 60_000);
         const key = evt.sessionKey ?? evt.sessionId ?? "unknown";
         postStatus(
           `⚠️ **Stuck session detected:** \`${key}\` has been in \`${evt.state}\` state for ${ageMin}+ minutes.`,
+        );
+      }
+      if (evt.type === "message.processed" && evt.outcome === "error") {
+        const key = evt.sessionKey ?? evt.sessionId ?? "unknown";
+        const err = evt.error ?? evt.reason ?? "unknown error";
+        postStatus(`🔴 **Session error:** \`${key}\` — ${err}`);
+      }
+      if (evt.type === "session.compacted") {
+        const e = evt;
+        const key = e.sessionKey ?? e.sessionId ?? "unknown";
+        const before = e.tokensBefore ? `${Math.round(e.tokensBefore / 1000)}k` : "?";
+        const after = e.tokensAfter ? `${Math.round(e.tokensAfter / 1000)}k` : "?";
+        postStatus(
+          `🔄 **Session compacted:** \`${key}\` — ${before} → ${after} tokens. Agent may have lost conversational context.`,
         );
       }
     });

@@ -115,6 +115,14 @@ export type DiagnosticRunAttemptEvent = DiagnosticBaseEvent & {
   attempt: number;
 };
 
+export type DiagnosticSessionCompactedEvent = DiagnosticBaseEvent & {
+  type: "session.compacted";
+  sessionKey?: string;
+  sessionId?: string;
+  tokensBefore?: number;
+  tokensAfter?: number;
+};
+
 export type DiagnosticHeartbeatEvent = DiagnosticBaseEvent & {
   type: "diagnostic.heartbeat";
   webhooks: {
@@ -136,6 +144,7 @@ export type DiagnosticEventPayload =
   | DiagnosticMessageProcessedEvent
   | DiagnosticSessionStateEvent
   | DiagnosticSessionStuckEvent
+  | DiagnosticSessionCompactedEvent
   | DiagnosticLaneEnqueueEvent
   | DiagnosticLaneDequeueEvent
   | DiagnosticRunAttemptEvent

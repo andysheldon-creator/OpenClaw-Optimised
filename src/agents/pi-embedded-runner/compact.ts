@@ -8,6 +8,8 @@ import {
   SettingsManager,
 } from "@mariozechner/pi-coding-agent";
 
+import { emitDiagnosticEvent } from "../../infra/diagnostic-events.js";
+
 import { resolveHeartbeatPrompt } from "../../auto-reply/heartbeat.js";
 import type { ReasoningLevel, ThinkLevel } from "../../auto-reply/thinking.js";
 import { listChannelSupportedActions, resolveChannelMessageToolHints } from "../channel-tools.js";
@@ -440,6 +442,14 @@ export async function compactEmbeddedPiSessionDirect(
           // If estimation fails, leave tokensAfter undefined
           tokensAfter = undefined;
         }
+        emitDiagnosticEvent({
+          type: "session.compacted",
+          sessionKey: params.sessionKey,
+          sessionId: params.sessionId,
+          tokensBefore: result.tokensBefore,
+          tokensAfter,
+        });
+
         return {
           ok: true,
           compacted: true,
