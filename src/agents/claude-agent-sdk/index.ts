@@ -18,6 +18,21 @@ export {
 } from "./provider-config.js";
 export { runSdkAgent } from "./sdk-runner.js";
 export { createCcSdkAgentRuntime, type CcSdkAgentRuntimeContext } from "./sdk-agent-runtime.js";
+
+// History and session management
+export { serializeConversationHistory, buildHistorySystemPromptSuffix } from "./sdk-history.js";
+export { readSessionHistory, loadSessionHistoryForSdk } from "./sdk-session-history.js";
+export {
+  appendSdkTextTurnToSessionTranscript,
+  appendSdkTurnPairToSessionTranscript,
+} from "./sdk-session-transcript.js";
+
+// Hooks
+export { buildMoltbotSdkHooks, type SdkHooksConfig, type SdkHookEventName } from "./sdk-hooks.js";
+
+// Event utilities
+export { isSdkTerminalToolEventType } from "./sdk-event-checks.js";
+export { extractTextFromClaudeAgentSdkEvent } from "./extract.js";
 export {
   bridgeMoltbotToolsToMcpServer,
   bridgeMoltbotToolsSync,
@@ -41,13 +56,17 @@ export type {
   SdkRunnerQueryOptions,
 } from "./tool-bridge.types.js";
 export type {
+  SdkConversationTurn,
   SdkDoneEvent,
   SdkErrorEvent,
   SdkEvent,
   SdkEventType,
   SdkProviderConfig,
   SdkProviderEnv,
+  SdkRunnerErrorKind,
+  SdkRunnerMeta,
   SdkRunnerParams,
+  SdkRunnerResult,
   SdkTextEvent,
   SdkToolResultEvent,
   SdkToolUseEvent,

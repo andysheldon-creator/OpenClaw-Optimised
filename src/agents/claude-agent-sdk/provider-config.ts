@@ -156,7 +156,7 @@ export function resolveProviderConfig(options?: {
   // 1. Explicit API key takes precedence
   if (options?.apiKey) {
     const config = buildAnthropicSdkProvider(options.apiKey);
-    if (options.baseUrl) {
+    if (options.baseUrl && config.env) {
       config.env.ANTHROPIC_BASE_URL = options.baseUrl;
     }
     return config;
@@ -180,7 +180,7 @@ export function resolveProviderConfig(options?: {
   if (options?.useCliCredentials !== false) {
     const cliConfig = buildClaudeCliSdkProvider();
     if (cliConfig) {
-      if (options?.baseUrl) {
+      if (options?.baseUrl && cliConfig.env) {
         cliConfig.env.ANTHROPIC_BASE_URL = options.baseUrl;
       }
       return cliConfig;
