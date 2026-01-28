@@ -14,6 +14,21 @@ import { enableConsoleCapture } from "../logging.js";
 import { getPrimaryCommand, hasHelpOrVersion } from "./argv.js";
 import { tryRouteCli } from "./route.js";
 
+/**
+ * Detects the @buape/carbon "zombie connection" error that occurs when the Discord
+ * WebSocket connection dies during network loss (e.g., laptop sleep) and carbon
+ * attempts to reconnect a connection that was already disconnected.
+ *
+ * This error is non-fatal — suppressing it allows carbon's reconnect logic to recover
+ * or lets launchd restart the gateway if the connection remains broken.
+ */
+function isCarbonZombieConnectionError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const message = "message" in err && typeof err.message === "string" ? err.message : "";
+  // Match the specific carbon error message pattern
+  return message.includes("zombie connection") || message.includes("this shouldn't be possible");
+}
+
 export function rewriteUpdateFlagArgv(argv: string[]): string[] {
   const index = argv.indexOf("--update");
   if (index === -1) return argv;
@@ -45,6 +60,15 @@ export async function runCli(argv: string[] = process.argv) {
   installUnhandledRejectionHandler();
 
   process.on("uncaughtException", (error) => {
+    // Carbon (@buape/carbon) throws this error when trying to reconnect a WebSocket
+    // that was disconnected during network loss (e.g., laptop sleep). The error is
+    // non-fatal — carbon's reconnect logic should recover, or the gateway will be
+    // restarted by launchd if the connection remains broken.
+    if (isCarbonZombieConnectionError(error)) {
+      console.warn("[moltbot] Carbon connection error (non-fatal):", formatUncaughtError(error));
+      return;
+    }
+
     console.error("[moltbot] Uncaught exception:", formatUncaughtError(error));
     process.exit(1);
   });
