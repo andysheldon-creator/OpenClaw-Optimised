@@ -20,6 +20,11 @@
       - any-glob-to-any-file:
           - "extensions/googlechat/**"
           - "docs/channels/googlechat.md"
+"channel: gossip":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/gossip/**"
+          - "docs/channels/gossip.md"
 "channel: imessage":
   - changed-files:
       - any-glob-to-any-file:
