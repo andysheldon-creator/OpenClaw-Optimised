@@ -14,7 +14,9 @@ function unwrapMessage(message: proto.IMessage | undefined): proto.IMessage | un
   return normalized as proto.IMessage | undefined;
 }
 
-export function extractContextInfo(message: proto.IMessage | undefined): proto.IContextInfo | undefined {
+export function extractContextInfo(
+  message: proto.IMessage | undefined,
+): proto.IContextInfo | undefined {
   if (!message) return undefined;
   const contentType = getContentType(message);
   const candidate = contentType ? (message as Record<string, unknown>)[contentType] : undefined;
