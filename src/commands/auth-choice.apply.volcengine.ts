@@ -15,10 +15,6 @@ type ArkModel = {
   owned_by: string;
 };
 
-type ArkModelsResponse = {
-  data: ArkModel[];
-};
-
 export async function applyAuthChoiceVolcengine(
   params: ApplyAuthChoiceParams,
 ): Promise<ApplyAuthChoiceResult | null> {
@@ -213,7 +209,7 @@ export async function applyAuthChoiceVolcengine(
   // Configure Provider
   const existingProviderOrder = nextConfig.models?.providers;
   // We need to cast this because TypeScript might complain if we add new keys to providers if it's strictly typed
-  const providers = { ...(existingProviderOrder || {}) } as any;
+  const providers = { ...existingProviderOrder } as any;
 
   providers.volcengine = {
     baseUrl: ARK_BASE_URL,
