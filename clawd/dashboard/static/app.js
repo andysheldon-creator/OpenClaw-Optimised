@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchChartData();
     setupFilterButtons();
     setupKeyboardShortcuts();
+    setupChatKeyboard();
 
     // Auto-refresh
     setInterval(fetchData, REFRESH_INTERVAL);
@@ -229,8 +230,23 @@ function updateCharts(data) {
 // === CHAT TOGGLE ===
 function toggleChat() {
     chatVisible = !chatVisible;
-    document.getElementById('chat-frame').style.display = chatVisible ? 'block' : 'none';
-    document.getElementById('chat-toggle').textContent = chatVisible ? 'CLOSE' : 'CHAT';
+    const chatFrame = document.getElementById('chat-frame');
+    const chatToggle = document.getElementById('chat-toggle');
+    chatFrame.style.display = chatVisible ? 'block' : 'none';
+    chatToggle.textContent = chatVisible ? 'CLOSE' : 'CHAT';
+    chatToggle.setAttribute('aria-pressed', chatVisible.toString());
+}
+
+function setupChatKeyboard() {
+    const chatToggle = document.getElementById('chat-toggle');
+    if (!chatToggle) return;
+
+    chatToggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleChat();
+        }
+    });
 }
 
 // === KEYBOARD SHORTCUTS ===

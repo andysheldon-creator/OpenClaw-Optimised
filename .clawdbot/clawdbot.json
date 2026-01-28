@@ -181,7 +181,10 @@
         "breakPreference": "paragraph"
       },
       "typingMode": "instant",
-      "thinkingDefault": "high",
+      "humanDelay": {
+        "mode": "off"
+      },
+      "thinkingDefault": "medium",
       "maxConcurrent": 4,
       "subagents": {
         "maxConcurrent": 4,
@@ -331,7 +334,11 @@
       "dmPolicy": "pairing",
       "botToken": "8221260658:AAGx0J3hGeELbqdqrpUwM-u8T-sSzM2oi9E",
       "groupPolicy": "allowlist",
-      "streamMode": "off"
+      "streamMode": "off",
+      "webhookUrl": "https://toshiko-unbated-uncontinuously.ngrok-free.dev/telegram-webhook",
+      "webhookPath": "/telegram-webhook",
+      "webhookSecret": "41040b4411c73378e8c23e65a27d6502e9ea997ab0893242ad0493c57bb1455c",
+      "timeoutSeconds": 60
     },
     "discord": {
       "enabled": true,

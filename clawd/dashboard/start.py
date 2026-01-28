@@ -5,7 +5,6 @@ Data analytics platform with Technical Brutalism design.
 """
 
 import json
-import os
 import re
 import sqlite3
 import subprocess
@@ -140,7 +139,7 @@ def get_sessions():
                                 relative = f"{int(delta/60)}m ago"
                             else:
                                 relative = f"{int(delta/3600)}h ago"
-                        except:
+                        except (ValueError, TypeError):
                             relative = "unknown"
                     else:
                         relative = "unknown"
@@ -397,7 +396,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 def main():
     """Start the dashboard server."""
     print(f"\n{'='*60}")
-    print(f"Liam's Dashboard")
+    print("Liam's Dashboard")
     print(f"{'='*60}")
 
     # Initialize database

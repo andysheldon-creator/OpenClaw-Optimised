@@ -1,0 +1,15 @@
+[Unit]
+Description=Ngrok Tunnel for Telegram Webhook (port 8787)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/liam/.local/bin/ngrok http 8787 --log=stdout
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/tmp/ngrok-telegram.log
+StandardError=append:/tmp/ngrok-telegram.log
+
+[Install]
+WantedBy=default.target

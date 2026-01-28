@@ -66,6 +66,18 @@ function scrubAnthropicRefusalMagic(prompt: string): string {
   );
 }
 
+// Strip internal [message_id: ...] hints from prompts before they reach the model.
+// These hints are added for internal tracking (e.g., reactions) but should not be
+// visible to the AI. See Evolution Queue #44 - metadata isolation.
+const MESSAGE_ID_LINE_RE = /^\s*\[message_id:\s*[^\]]+\]\s*$/im;
+
+function stripMessageIdHints(prompt: string): string {
+  if (!prompt.includes("[message_id:")) return prompt;
+  const lines = prompt.split(/\r?\n/);
+  const filtered = lines.filter((line) => !MESSAGE_ID_LINE_RE.test(line));
+  return filtered.length === lines.length ? prompt : filtered.join("\n").trim();
+}
+
 export async function runEmbeddedPiAgent(
   params: RunEmbeddedPiAgentParams,
 ): Promise<EmbeddedPiRunResult> {
@@ -297,8 +309,12 @@ export async function runEmbeddedPiAgent(
           attemptedThinking.add(thinkLevel);
           await fs.mkdir(resolvedWorkspace, { recursive: true });
 
+          // Strip internal metadata hints before model sees the prompt
+          const promptSanitized = stripMessageIdHints(params.prompt);
           const prompt =
-            provider === "anthropic" ? scrubAnthropicRefusalMagic(params.prompt) : params.prompt;
+            provider === "anthropic"
+              ? scrubAnthropicRefusalMagic(promptSanitized)
+              : promptSanitized;
 
           const attempt = await runEmbeddedAttempt({
             sessionId: params.sessionId,

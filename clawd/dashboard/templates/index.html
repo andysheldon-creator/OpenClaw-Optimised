@@ -10,8 +10,8 @@
 <body>
     <header>
         <h1>SYSTEM MONITOR</h1>
-        <div class="status" id="gateway-status">
-            <span class="status-dot"></span>
+        <div class="status" id="gateway-status" aria-live="polite" aria-atomic="true">
+            <span class="status-dot" aria-hidden="true"></span>
             <span class="status-text">Loading...</span>
         </div>
         <div class="timestamp" id="timestamp">--</div>
@@ -76,10 +76,10 @@
                 <h2>
                     EVOLUTION QUEUE
                     <span class="filter-group">
-                        <button class="filter-btn active" data-filter="all">ALL</button>
-                        <button class="filter-btn" data-filter="pending">PEND</button>
-                        <button class="filter-btn" data-filter="paused">PAUSE</button>
-                        <button class="filter-btn" data-filter="resolved">DONE</button>
+                        <button class="filter-btn active" data-filter="all" aria-label="Show all queue items">ALL</button>
+                        <button class="filter-btn" data-filter="pending" aria-label="Show pending queue items">PEND</button>
+                        <button class="filter-btn" data-filter="paused" aria-label="Show paused queue items">PAUSE</button>
+                        <button class="filter-btn" data-filter="resolved" aria-label="Show completed queue items">DONE</button>
                     </span>
                 </h2>
                 <table id="queue-table">
@@ -97,14 +97,14 @@
     </main>
 
     <!-- CHAT IFRAME (bottom-right) -->
-    <div id="chat-toggle" onclick="toggleChat()">CHAT</div>
-    <iframe id="chat-frame" src="http://localhost:18789/chat" style="display:none;"></iframe>
+    <div id="chat-toggle" onclick="toggleChat()" role="button" tabindex="0" aria-label="Toggle chat panel" aria-pressed="false">CHAT</div>
+    <iframe id="chat-frame" src="http://localhost:18789/chat" style="display:none;" title="Chat Interface"></iframe>
 
     <!-- KEYBOARD SHORTCUTS HELP -->
-    <div id="shortcuts-modal" class="modal" style="display:none;">
+    <div id="shortcuts-modal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
         <div class="modal-content">
-            <h3>KEYBOARD SHORTCUTS</h3>
-            <table>
+            <h3 id="shortcuts-title">KEYBOARD SHORTCUTS</h3>
+            <table role="presentation">
                 <tr><td><kbd>R</kbd></td><td>Refresh data</td></tr>
                 <tr><td><kbd>S</kbd></td><td>Toggle sessions</td></tr>
                 <tr><td><kbd>Q</kbd></td><td>Toggle queue</td></tr>
@@ -112,7 +112,7 @@
                 <tr><td><kbd>?</kbd></td><td>Show shortcuts</td></tr>
                 <tr><td><kbd>ESC</kbd></td><td>Close modal</td></tr>
             </table>
-            <button onclick="closeShortcuts()">CLOSE</button>
+            <button onclick="closeShortcuts()" aria-label="Close keyboard shortcuts help">CLOSE</button>
         </div>
     </div>
 

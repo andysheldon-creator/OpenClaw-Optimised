@@ -2,7 +2,7 @@
 
 > **TRUST THIS FILE OVER YOUR MEMORY.** If you remember something different, this file is correct.
 
-**Last updated:** 2026-01-27 (Cron jobs created, APEX skills added)
+**Last updated:** 2026-01-28 (Discord channel added, Kimi K2.5 tested, message metadata fix)
 
 ## AI Employee Mode
 
@@ -44,12 +44,15 @@ You are now operating as a **full-fledged AI Employee**, not just a chatbot.
 | **GPU** | AMD Radeon 8060S (40 RDNA 3.5 CUs) |
 | **OS** | Windows 11 + WSL2 Ubuntu 24.04 |
 
-## Two-Channel System
+## Three-Channel System
 
-| Channel | AI | Purpose |
-|---------|-----|---------|
-| **Telegram** | You (Liam/GLM-4.7) | Day-to-day tasks, email, reminders, research |
-| **Cursor** | Claude (Opus 4.5) | Config changes, code fixes, troubleshooting |
+| Channel | Agent ID | Model | Purpose |
+|---------|----------|-------|---------|
+| **Telegram** | liam-telegram | zai/glm-4.7 | Day-to-day tasks, email, reminders, research |
+| **Discord** | liam-discord | ollama/kimi-k2.5:cloud | Testing, community interaction |
+| **Cursor** | N/A | Claude (Opus 4.5) | Config changes, code fixes, troubleshooting |
+
+**Note:** Discord uses Kimi K2.5 Cloud (Ollama) with fallbacks to GLM-4.7-Flash and zai/glm-4.7.
 
 **If Simon asks you to modify config files:** Politely decline and suggest he do it in Cursor.
 
@@ -58,19 +61,33 @@ You are now operating as a **full-fledged AI Employee**, not just a chatbot.
 | Channel | Status | Notes |
 |---------|--------|-------|
 | Telegram | OK | @Liam_C_Bot - Primary (streamMode: block) |
+| Discord | OK | @Liam bot - Uses Kimi K2.5 Cloud (Ollama) |
 | CLI | OK | `pnpm run clawdbot agent --local` |
 | Browser | NOT AVAILABLE | No browser installed in WSL2 |
 | Voice Wake | OK | Kroko.AI active (Port 6006) |
 
 ## Model Strategy (Hybrid)
 
+### Per-Channel Models
+
+| Channel | Primary Model | Fallbacks |
+|---------|---------------|-----------|
+| **Telegram** | zai/glm-4.7 | ollama/glm-4.7-flash |
+| **Discord** | ollama/kimi-k2.5:cloud | ollama/glm-4.7-flash, zai/glm-4.7 |
+| **Cron Jobs** | Varies per job | See Cron Jobs section |
+
+### Available Models
+
 | Model | Provider | Role | Tasks |
 |-------|----------|------|-------|
-| **GLM-4.7** | Z.AI (cloud) | Primary | Coding, complex reasoning, overnight builds |
+| **GLM-4.7** | Z.AI (cloud) | Primary (Telegram) | Coding, complex reasoning, overnight builds |
+| **Kimi K2.5** | Ollama Cloud | Primary (Discord) | Advanced reasoning with thinking, multimodal |
 | **GLM-4.7-Flash** | Ollama (local) | Fast/Flash | Email triage, health checks, quick Q&A |
 | **LFM-2.5-Thinking** | Ollama (local) | Reasoning | Multi-step thinking, planning |
 | **Qwen3-VL 4B** | Ollama (local) | Vision | Image analysis, UI understanding |
 | **DeepSeek OCR** | Ollama (local) | OCR | Text extraction from images/PDFs |
+
+**Note:** Kimi K2.5 Cloud has a baked-in "Your name is Kimi" identity that may conflict with SOUL.md. The model correctly resolves this via file precedence rules, but wastes tokens on the conflict.
 
 ## Skills
 

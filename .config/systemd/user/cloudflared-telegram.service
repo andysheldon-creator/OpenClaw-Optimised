@@ -1,0 +1,15 @@
+[Unit]
+Description=Cloudflared Tunnel for Telegram Webhook
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/liam/.local/bin/cloudflared tunnel --url http://localhost:8787
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/tmp/cloudflared-telegram.log
+StandardError=append:/tmp/cloudflared-telegram.log
+
+[Install]
+WantedBy=default.target
