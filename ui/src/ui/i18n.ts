@@ -1,14 +1,16 @@
-export type Locale = "en" | "zh-CN";
+export type Locale = "en" | "zh-CN" | "pt-BR";
 
 export type MessageParams = Record<string, string | number | boolean | null | undefined>;
 export type Messages = Record<string, string>;
 
 import { en } from "./locales/en";
 import { zhCN } from "./locales/zh-CN";
+import { ptBR } from "./locales/pt-BR";
 
 const BUNDLES: Record<Locale, Messages> = {
   en,
   "zh-CN": zhCN,
+  "pt-BR": ptBR,
 };
 
 let currentLocale: Locale = "en";
@@ -20,6 +22,7 @@ export function normalizeLocale(input: string | null | undefined): Locale | null
   if (!raw) return null;
   const lower = raw.toLowerCase();
   if (lower === "zh" || lower === "zh-cn" || lower.startsWith("zh-")) return "zh-CN";
+  if (lower === "pt" || lower === "pt-br" || lower.startsWith("pt-")) return "pt-BR";
   if (lower === "en" || lower === "en-us" || lower.startsWith("en-")) return "en";
   return null;
 }

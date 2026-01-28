@@ -155,6 +155,8 @@ export const en: Messages = {
   "settings.lang.en": "English",
   "settings.lang.zhShort": "中",
   "settings.lang.enShort": "EN",
+  "settings.lang.ptBR": "Português (Brasil)",
+  "settings.lang.ptShort": "PT",
 
   "overview.gatewayAccess.title": "Gateway Access",
   "overview.gatewayAccess.subtitle": "Where the dashboard connects and how it authenticates.",
