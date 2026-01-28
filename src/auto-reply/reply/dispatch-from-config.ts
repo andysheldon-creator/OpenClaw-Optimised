@@ -3,10 +3,12 @@ import { createDefaultDeps } from "../../cli/deps.js";
 import type { MoltbotConfig } from "../../config/config.js";
 import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import { logWarn } from "../../logger.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/hooks.js";
-import { matchMessageHandler } from "../../hooks/message-handler-match.js";
-import { runMessageHandler } from "../../hooks/message-handler-run.js";
 import type { MessageReceivedHookContext } from "../../hooks/internal-hooks.js";
+import { matchMessageHandler } from "../../hooks/message-handler-match.js";
+import { isHandlerRateLimited } from "../../hooks/message-handler-rate-limit.js";
+import { runMessageHandler } from "../../hooks/message-handler-run.js";
 import { isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import {
   logMessageProcessed,
@@ -263,33 +265,41 @@ export async function dispatchReplyFromConfig(params: {
 
       const matchedHandler = matchMessageHandler(messageHandlers, handlerContext);
       if (matchedHandler) {
-        const priority = matchedHandler.priority ?? "immediate";
-        const mode = matchedHandler.mode ?? "exclusive";
+        // Check rate limit before executing
+        if (isHandlerRateLimited(matchedHandler.id)) {
+          logWarn(
+            `dispatch-from-config: message handler "${matchedHandler.id}" rate limited, skipping`,
+          );
+          // Don't return early for rate-limited handlers - fall through to normal queue flow
+        } else {
+          const priority = matchedHandler.priority ?? "immediate";
+          const mode = matchedHandler.mode ?? "exclusive";
 
-        if (priority === "immediate") {
-          // Fire-and-forget for immediate handlers
-          const deps = createDefaultDeps();
-          void runMessageHandler({
-            cfg,
-            deps,
-            handler: matchedHandler,
-            context: handlerContext,
-          }).catch((err) => {
-            logVerbose(
-              `dispatch-from-config: message handler "${matchedHandler.id}" failed: ${String(err)}`,
-            );
-          });
+          if (priority === "immediate") {
+            // Fire-and-forget for immediate handlers
+            const deps = createDefaultDeps();
+            void runMessageHandler({
+              cfg,
+              deps,
+              handler: matchedHandler,
+              context: handlerContext,
+            }).catch((err) => {
+              logWarn(
+                `dispatch-from-config: message handler "${matchedHandler.id}" failed: ${String(err)}`,
+              );
+            });
 
-          // Check mode: exclusive (default) vs parallel
-          if (mode === "exclusive") {
-            // Return early - handler takes over completely
-            return {
-              queuedFinal: false,
-              counts: dispatcher.getQueuedCounts(),
-              handledByMessageHandler: { handlerId: matchedHandler.id },
-            };
+            // Check mode: exclusive (default) vs parallel
+            if (mode === "exclusive") {
+              // Return early - handler takes over completely
+              return {
+                queuedFinal: false,
+                counts: dispatcher.getQueuedCounts(),
+                handledByMessageHandler: { handlerId: matchedHandler.id },
+              };
+            }
+            // parallel mode: continue with normal flow
           }
-          // parallel mode: continue with normal flow
         }
       }
     }

@@ -60,7 +60,23 @@ const MessageHandlerMatchSchema = z
     contentPattern: z.string().optional(),
     contentContains: z.union([z.string(), z.array(z.string())]).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (match) => {
+      // Require at least one match condition to prevent accidental catch-all handlers
+      return (
+        match.channelId !== undefined ||
+        match.conversationId !== undefined ||
+        match.from !== undefined ||
+        match.contentPattern !== undefined ||
+        match.contentContains !== undefined
+      );
+    },
+    {
+      message:
+        "At least one match condition is required (channelId, conversationId, from, contentPattern, or contentContains)",
+    },
+  );
 
 const MessageHandlerConfigSchema = z
   .object({

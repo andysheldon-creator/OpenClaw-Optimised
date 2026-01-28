@@ -3,7 +3,9 @@
  * Matches inbound messages against configured handlers based on channel, sender, content, etc.
  */
 
+import safeRegex from "safe-regex";
 import type { MessageHandlerConfig, MessageHandlerMatch } from "../config/types.hooks.js";
+import { logWarn } from "../logger.js";
 import type { MessageReceivedHookContext } from "./internal-hooks.js";
 
 /**
@@ -53,8 +55,13 @@ function matchesConditions(match: MessageHandlerMatch, ctx: MessageReceivedHookC
     return false;
   }
 
-  // contentPattern (regex)
+  // contentPattern (regex) - with ReDoS protection
   if (match.contentPattern !== undefined) {
+    // Validate regex safety before compilation to prevent catastrophic backtracking
+    if (!safeRegex(match.contentPattern)) {
+      logWarn(`message-handler-match: unsafe regex pattern rejected: ${match.contentPattern}`);
+      return false;
+    }
     try {
       const regex = new RegExp(match.contentPattern, "i");
       if (!regex.test(ctx.content)) {

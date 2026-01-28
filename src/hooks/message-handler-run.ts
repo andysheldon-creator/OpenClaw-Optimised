@@ -8,7 +8,7 @@ import type { MoltbotConfig } from "../config/config.js";
 import type { MessageHandlerConfig } from "../config/types.hooks.js";
 import { runCronIsolatedAgentTurn } from "../cron/isolated-agent/run.js";
 import type { CronJob, CronMessageChannel } from "../cron/types.js";
-import { logVerbose } from "../globals.js";
+import { logWarn } from "../logger.js";
 import type { MessageReceivedHookContext } from "./internal-hooks.js";
 
 export type RunMessageHandlerParams = {
@@ -81,14 +81,14 @@ export async function runMessageHandler(
     });
 
     if (result.status === "error") {
-      logVerbose(`message-handler-run: handler "${handler.id}" failed: ${result.error}`);
+      logWarn(`message-handler-run: handler "${handler.id}" failed: ${result.error}`);
       return { status: "error", error: result.error };
     }
 
     return { status: result.status };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    logVerbose(`message-handler-run: handler "${handler.id}" threw: ${errorMsg}`);
+    logWarn(`message-handler-run: handler "${handler.id}" threw: ${errorMsg}`);
     return { status: "error", error: errorMsg };
   }
 }

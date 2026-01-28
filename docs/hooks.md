@@ -366,15 +366,17 @@ Message handlers fix this by immediately processing important messages as they a
 
 ### Match Conditions
 
-All specified conditions must match (AND logic):
+All specified conditions must match (AND logic). **At least one condition is required** - empty match objects are rejected to prevent accidental catch-all handlers.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `channelId` | `string \| string[]` | Channel to match: `"whatsapp"`, `"telegram"`, `["discord", "slack"]`, or `"*"` for all |
 | `conversationId` | `string \| string[]` | Chat/group ID to match |
 | `from` | `string \| string[]` | Sender identifier (phone number, user ID) |
-| `contentPattern` | `string` | Regex pattern (case-insensitive) |
+| `contentPattern` | `string` | Regex pattern (case-insensitive). Unsafe patterns (ReDoS vulnerable) are rejected. |
 | `contentContains` | `string \| string[]` | Keywords to find in message (case-insensitive, any match) |
+
+**Security Note**: The `contentPattern` field is validated for ReDoS (Regular Expression Denial of Service) safety before use. Patterns that could cause catastrophic backtracking (e.g., `(a+)+`) are rejected and logged as warnings.
 
 ### Handler Options
 
@@ -491,12 +493,23 @@ All specified conditions must match (AND logic):
 
 This triggers `analytics-bot` AND lets the normal message flow continue (so the user's main agent also processes it).
 
+### Rate Limiting
+
+Message handlers are rate limited to prevent cost explosions from unbounded agent execution:
+
+- **Default limit**: 10 executions per minute per handler
+- Rate-limited messages fall through to normal queue processing
+- A warning is logged when rate limiting kicks in
+
+This protects against scenarios like a busy group chat triggering dozens of agent executions per minute.
+
 ### Order of Evaluation
 
 1. Handlers are evaluated in order (first match wins)
 2. Disabled handlers (`enabled: false`) are skipped
-3. If a handler matches with `mode: "exclusive"` (default), normal processing stops
-4. If a handler matches with `mode: "parallel"`, normal processing continues after the handler fires
+3. Rate limiting is checked before execution
+4. If a handler matches with `mode: "exclusive"` (default), normal processing stops
+5. If a handler matches with `mode: "parallel"`, normal processing continues after the handler fires
 
 ## Creating Custom Hooks
 

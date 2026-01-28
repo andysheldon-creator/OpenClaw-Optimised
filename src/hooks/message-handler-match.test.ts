@@ -162,6 +162,23 @@ describe("matchMessageHandler", () => {
       const result = matchMessageHandler(handlers, ctx);
       expect(result).toBeNull();
     });
+
+    it("rejects unsafe regex patterns (ReDoS protection)", () => {
+      // This pattern causes catastrophic backtracking: (a+)+ on "aaaaaaaaaaaaaaaaaaaaaaaa!"
+      const handlers = [createHandler({ match: { contentPattern: "(a+)+" } })];
+      const ctx = createContext({ content: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!" });
+
+      const result = matchMessageHandler(handlers, ctx);
+      expect(result).toBeNull(); // Unsafe pattern should be rejected
+    });
+
+    it("allows safe regex patterns", () => {
+      const handlers = [createHandler({ match: { contentPattern: "bug|error|broken" } })];
+      const ctx = createContext({ content: "Found a bug" });
+
+      const result = matchMessageHandler(handlers, ctx);
+      expect(result).toBe(handlers[0]);
+    });
   });
 
   describe("contentContains matching", () => {
@@ -304,7 +321,11 @@ describe("matchMessageHandler", () => {
   });
 
   describe("empty match conditions", () => {
-    it("matches any message when match is empty", () => {
+    // NOTE: At the matching logic level, empty match still matches everything.
+    // However, Zod config validation now requires at least one condition,
+    // so this scenario won't occur in practice with config-driven handlers.
+    // This test verifies the matching logic behavior for completeness.
+    it("matches any message when match is empty (prevented by config validation)", () => {
       const handlers = [createHandler({ match: {} })];
       const ctx = createContext();
 
