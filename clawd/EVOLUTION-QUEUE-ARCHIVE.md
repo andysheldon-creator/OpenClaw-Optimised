@@ -169,4 +169,58 @@
 
 ---
 
+## Implemented (Jan 25, 2026)
+
+*Moved from main queue during cleanup on 2026-01-28.*
+
+### [2026-01-25-001] Enable Memory Search for Semantic Recall
+- **Implemented:** 2026-01-25
+- **Solution:** Configured local Ollama embeddings using `nomic-embed-text` via OpenAI-compatible API.
+
+### [2026-01-25-005] Enhanced Calendar with Preparation Reminders
+- **Implemented:** 2026-01-25
+- **Solution:** Updated HEARTBEAT.md with 24h alerts, 2h reminders, post-meeting summaries.
+
+### [2026-01-25-006] PARA Task Management Integration
+- **Implemented:** 2026-01-25
+- **Solution:** Created `para-tasks` skill with SQLite backend and Python CRUD scripts.
+
+### [2026-01-25-008] Context Cue System for ADHD Support
+- **Implemented:** 2026-01-25
+- **Solution:** Created `liam-cue` command and updated HEARTBEAT.md.
+
+### [2026-01-25-009] Visual Timer Integration for Time Blindness
+- **Implemented:** 2026-01-25
+- **Solution:** Created `visual-timer` skill wrapping cron system for Slack-based timers.
+
+### [2026-01-25-013-015] System Health & Self-Diagnostics Suite
+- **Implemented:** 2026-01-25
+- **Solution:** Enhanced `health-check.sh` with auto-fix flag, added daily cron job.
+
+### [2026-01-25-004] GitHub PR/Issue Monitoring Integration
+- **Implemented:** 2026-01-25
+- **Solution:** GitHub CLI authenticated as Pastorsimon1798 with full scopes.
+
+### [2026-01-26-023] Network Fallback Logic for Fetch Errors
+- **Status:** CLOSED (2026-01-28) - Already implemented in codebase
+- **Resolution:** Investigation found `failover-error.ts` already handles `fetch failed`, `ECONNREFUSED`, `ENOTFOUND`. No changes needed.
+
+### [2026-01-25-010] Automated Summarization for NeuroSecond "Distill"
+- **Implemented:** 2026-01-27
+- **Solution:** Created `~/skills/distill/` with summarize.sh, extract-actions.sh, weekly-review.sh.
+
+### [2026-01-25-012] + [2026-01-27-035] Automated Testing for Overnight Builds
+- **Implemented:** 2026-01-27
+- **Solution:** Added "Mandatory Testing (REQUIRED)" section to OVERNIGHT-BUILDS.md.
+
+### [2026-01-28-040] File Verification Protocol for Status Requests
+- **Implemented:** 2026-01-27
+- **Solution:** Added protocol to SOUL.md requiring agents to read files before status reports.
+
+### [2026-01-28-041] Cursor-Liam Bidirectional Communication Protocol
+- **Implemented:** 2026-01-27
+- **Solution:** Created CURSOR-RESOLUTIONS.md, added protocol to SOUL.md.
+
+---
+
 *Archive updated: 2026-01-28*

@@ -45,7 +45,7 @@
         "models": [
           {
             "id": "glm-4.7-flash",
-            "name": "GLM-4.7-Flash Local",
+            "name": "GLM-4.7-Flash Local (Maxed)",
             "reasoning": true,
             "input": [
               "text"
@@ -56,8 +56,8 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 198000,
-            "maxTokens": 8192
+            "contextWindow": 256000,
+            "maxTokens": 16384
           },
           {
             "id": "qwen3-vl:4b",
@@ -164,6 +164,7 @@
         "breakPreference": "paragraph"
       },
       "typingMode": "instant",
+      "thinkingDefault": "high",
       "maxConcurrent": 4,
       "subagents": {
         "maxConcurrent": 4,
@@ -296,7 +297,7 @@
   },
   "commands": {
     "native": "auto",
-    "nativeSkills": "auto",
+    "nativeSkills": false,
     "restart": true
   },
   "session": {

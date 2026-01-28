@@ -68,6 +68,25 @@
 
 ---
 
+### Session: Research and Features Plan
+**Date:** 2026-01-27 20:10 PST
+**Cursor Session:** research_and_features_plan_d36aec53
+
+| Entry ID | Title | Resolution |
+|----------|-------|------------|
+| - | GLM-4.7-Flash Maxed Out | contextWindow: 256000, maxTokens: 16384 |
+| #012 | Automated Testing for Overnight | Added "Mandatory Testing (REQUIRED)" section to OVERNIGHT-BUILDS.md |
+| #035 | test.sh Template | Template exists at overnight-testing skill; referenced in OVERNIGHT-BUILDS.md |
+| #010 | NeuroSecond Distill | Created ~/skills/distill/ with summarize.sh, extract-actions.sh, weekly-review.sh |
+| #038 | Telegram Spacing | Investigated; needs reproduction steps from Simon |
+
+**Additional Changes:**
+- Gateway restarted with new GLM-4.7-Flash settings
+- First weekly distill review generated: ~/clawd/distill/2026-01-27-weekly.md
+- Model comparison research [#043] POSTPONED until after GLM-4.7-Flash optimization tested
+
+---
+
 ## Acknowledgment Log
 
 *Liam adds timestamps here when he reads and acknowledges resolutions:*

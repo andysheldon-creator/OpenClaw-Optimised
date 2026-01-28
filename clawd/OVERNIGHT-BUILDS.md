@@ -186,6 +186,58 @@ Every task must pass before marking complete:
 
 ---
 
+## Mandatory Testing (REQUIRED)
+
+**Every overnight build MUST include a `test.sh` script.**
+
+### test.sh Requirements
+
+1. **Copy the template** from `~/clawdbot/skills/overnight-testing/templates/test.sh.template`
+2. **Customize for your project** (add syntax checks, unit tests, integration tests)
+3. **Make executable**: `chmod +x test.sh`
+4. **Exit codes**: 0 = success, non-zero = failure
+
+### Pre-Delivery Gate
+
+Before announcing "complete", you MUST:
+
+1. Run `./test.sh` in the project directory
+2. **All automated tests must pass** (exit code 0)
+3. Include test results in morning delivery report
+
+```bash
+# Pre-delivery check
+cd ~/clawd/progress/[project]
+./test.sh
+# Only deliver if exit code is 0
+```
+
+### Failure Protocol
+
+If tests fail:
+1. **STOP** - do not deliver broken code
+2. Fix the failing tests
+3. Re-run `./test.sh` until all pass
+4. Then deliver with test results
+
+### Test Script Structure
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 1. Syntax checks (shell, python, etc.)
+# 2. Unit tests (pytest, jest, etc.)
+# 3. Integration tests (API calls, etc.)
+# 4. Manual checklist (printed for Simon)
+
+# Exit 0 if all pass, non-zero if any fail
+```
+
+See `~/clawdbot/skills/overnight-testing/SKILL.md` for full template and examples.
+
+---
+
 ## Progress Tracking
 
 ### progress.txt Format
