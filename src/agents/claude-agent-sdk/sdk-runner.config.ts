@@ -11,6 +11,7 @@ import { logDebug } from "../../logger.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../../routing/session-key.js";
 import type { AuthProfileStore } from "../auth-profiles/types.js";
 import type { SdkProviderConfig, SdkProviderEnv } from "./sdk-runner.types.js";
+import { resolveMainAgentRuntimeKind } from "../main-agent-runtime-factory.js";
 
 // ---------------------------------------------------------------------------
 // Well-known providers
@@ -148,10 +149,10 @@ function resolveEnvValue(value: string, env: NodeJS.ProcessEnv): string {
 export function isSdkRunnerEnabled(config?: ClawdbrainConfig, agentId?: string): boolean {
   const defaults = config?.agents?.defaults;
   // For the main agent, prefer mainRuntime when explicitly set.
-  if (agentId && normalizeAgentId(agentId) === DEFAULT_AGENT_ID && defaults?.mainRuntime != null) {
-    return defaults.mainRuntime === "sdk";
+  if (agentId && normalizeAgentId(agentId) === DEFAULT_AGENT_ID) {
+    return resolveMainAgentRuntimeKind(config) == "sdk";
   }
-  return defaults?.runtime === "sdk";
+  return defaults?.runtime === "sdk"; 
 }
 
 /**
