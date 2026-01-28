@@ -322,6 +322,182 @@ Planned event types:
 - **`agent:error`**: When an agent encounters an error
 - **`message:sent`**: When an outbound message is sent
 
+## Message Handlers
+
+Message handlers provide config-driven routing that triggers immediate agent execution when messages match specified conditions. Unlike regular hooks (which are fire-and-forget observers), message handlers can take over message processing entirely.
+
+### Problem Solved
+
+When cron jobs wake an agent, they inject their own prompt. Messages that arrived earlier (bug reports, user questions) sit in a queue and are never processed:
+
+```
+Bug report arrives (10:03) → queued
+Cron fires (10:10) → agent wakes with cron prompt only
+Bug report → never processed
+```
+
+Message handlers fix this by immediately processing important messages as they arrive.
+
+### Configuration
+
+```json
+{
+  "hooks": {
+    "internal": {
+      "messageHandlers": [
+        {
+          "id": "bug-reports",
+          "match": {
+            "channelId": "whatsapp",
+            "conversationId": "+447563241014",
+            "contentContains": ["bug", "error", "broken"]
+          },
+          "action": "agent",
+          "agentId": "support-bot",
+          "priority": "immediate",
+          "messagePrefix": "[BUG REPORT] ",
+          "thinking": "medium"
+        }
+      ]
+    }
+  }
+}
+```
+
+### Match Conditions
+
+All specified conditions must match (AND logic):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `channelId` | `string \| string[]` | Channel to match: `"whatsapp"`, `"telegram"`, `["discord", "slack"]`, or `"*"` for all |
+| `conversationId` | `string \| string[]` | Chat/group ID to match |
+| `from` | `string \| string[]` | Sender identifier (phone number, user ID) |
+| `contentPattern` | `string` | Regex pattern (case-insensitive) |
+| `contentContains` | `string \| string[]` | Keywords to find in message (case-insensitive, any match) |
+
+### Handler Options
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `id` | `string` | required | Unique identifier for this handler |
+| `enabled` | `boolean` | `true` | Enable/disable the handler |
+| `match` | `object` | required | Match conditions (see above) |
+| `action` | `"agent"` | required | Action type (currently only "agent") |
+| `agentId` | `string` | route default | Which agent processes the message |
+| `sessionKey` | `string` | auto-derived | Custom session key |
+| `priority` | `"immediate" \| "queue"` | `"immediate"` | Immediate bypasses queue |
+| `mode` | `"exclusive" \| "parallel"` | `"exclusive"` | Exclusive: handler only; Parallel: both handler AND normal flow |
+| `messagePrefix` | `string` | `""` | Text prepended to message |
+| `messageSuffix` | `string` | `""` | Text appended to message |
+| `messageTemplate` | `string` | - | Full template with `{{content}}`, `{{from}}`, `{{channelId}}`, `{{conversationId}}` |
+| `model` | `string` | - | Override model (provider/model or alias) |
+| `thinking` | `"off" \| "low" \| "medium" \| "high"` | - | Thinking level |
+| `timeoutSeconds` | `number` | - | Agent timeout |
+
+### Example Configurations
+
+#### Bug Reports from WhatsApp Group
+
+```json
+{
+  "hooks": {
+    "internal": {
+      "messageHandlers": [
+        {
+          "id": "bug-reports",
+          "match": {
+            "channelId": "whatsapp",
+            "conversationId": "+447563241014",
+            "contentContains": ["bug", "error", "broken", "fix"]
+          },
+          "action": "agent",
+          "agentId": "support-bot",
+          "priority": "immediate",
+          "messagePrefix": "[BUG REPORT] ",
+          "thinking": "medium"
+        }
+      ]
+    }
+  }
+}
+```
+
+#### All WhatsApp Messages to Specific Agent
+
+```json
+{
+  "hooks": {
+    "internal": {
+      "messageHandlers": [
+        {
+          "id": "whatsapp-handler",
+          "match": { "channelId": "whatsapp" },
+          "action": "agent",
+          "agentId": "personal-assistant",
+          "priority": "immediate"
+        }
+      ]
+    }
+  }
+}
+```
+
+#### Urgent Keywords Across All Channels
+
+```json
+{
+  "hooks": {
+    "internal": {
+      "messageHandlers": [
+        {
+          "id": "urgent-handler",
+          "match": {
+            "contentPattern": "urgent|asap|emergency|critical"
+          },
+          "action": "agent",
+          "priority": "immediate",
+          "messagePrefix": "[URGENT] ",
+          "model": "anthropic/claude-sonnet-4-20250514",
+          "thinking": "high"
+        }
+      ]
+    }
+  }
+}
+```
+
+#### Parallel Mode: Log AND Process Normally
+
+```json
+{
+  "hooks": {
+    "internal": {
+      "messageHandlers": [
+        {
+          "id": "analytics-logger",
+          "match": { "channelId": "whatsapp" },
+          "action": "agent",
+          "agentId": "analytics-bot",
+          "priority": "immediate",
+          "mode": "parallel",
+          "messageTemplate": "[LOG] From: {{from}}, Content: {{content}}"
+        }
+      ]
+    }
+  }
+}
+```
+
+This triggers `analytics-bot` AND lets the normal message flow continue (so the user's main agent also processes it).
+
+### Order of Evaluation
+
+1. Handlers are evaluated in order (first match wins)
+2. Disabled handlers (`enabled: false`) are skipped
+3. If a handler matches with `mode: "exclusive"` (default), normal processing stops
+4. If a handler matches with `mode: "parallel"`, normal processing continues after the handler fires
+
 ## Creating Custom Hooks
 
 ### 1. Choose Location

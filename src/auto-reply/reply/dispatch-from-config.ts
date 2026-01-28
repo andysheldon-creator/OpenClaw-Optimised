@@ -1,8 +1,12 @@
-import type { MoltbotConfig } from "../../config/config.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
+import { createDefaultDeps } from "../../cli/deps.js";
+import type { MoltbotConfig } from "../../config/config.js";
 import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/hooks.js";
+import { matchMessageHandler } from "../../hooks/message-handler-match.js";
+import { runMessageHandler } from "../../hooks/message-handler-run.js";
+import type { MessageReceivedHookContext } from "../../hooks/internal-hooks.js";
 import { isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import {
   logMessageProcessed,
@@ -70,6 +74,10 @@ const resolveSessionTtsAuto = (
 export type DispatchFromConfigResult = {
   queuedFinal: boolean;
   counts: Record<ReplyDispatchKind, number>;
+  /** Set when a message handler took over processing */
+  handledByMessageHandler?: {
+    handlerId: string;
+  };
 };
 
 export async function dispatchReplyFromConfig(params: {
@@ -227,6 +235,64 @@ export async function dispatchReplyFromConfig(params: {
         },
       }),
     );
+
+    // Check for config-driven message handlers
+    const messageHandlers = cfg.hooks?.internal?.messageHandlers ?? [];
+    if (messageHandlers.length > 0) {
+      const handlerContext: MessageReceivedHookContext = {
+        from: ctx.From ?? "",
+        content,
+        timestamp,
+        channelId,
+        accountId: ctx.AccountId,
+        conversationId,
+        metadata: {
+          to: ctx.To,
+          provider: ctx.Provider,
+          surface: ctx.Surface,
+          threadId: ctx.MessageThreadId != null ? String(ctx.MessageThreadId) : undefined,
+          originatingChannel: ctx.OriginatingChannel,
+          originatingTo: ctx.OriginatingTo,
+          messageId: messageIdForHook,
+          senderId: ctx.SenderId,
+          senderName: ctx.SenderName,
+          senderUsername: ctx.SenderUsername,
+          senderE164: ctx.SenderE164,
+        },
+      };
+
+      const matchedHandler = matchMessageHandler(messageHandlers, handlerContext);
+      if (matchedHandler) {
+        const priority = matchedHandler.priority ?? "immediate";
+        const mode = matchedHandler.mode ?? "exclusive";
+
+        if (priority === "immediate") {
+          // Fire-and-forget for immediate handlers
+          const deps = createDefaultDeps();
+          void runMessageHandler({
+            cfg,
+            deps,
+            handler: matchedHandler,
+            context: handlerContext,
+          }).catch((err) => {
+            logVerbose(
+              `dispatch-from-config: message handler "${matchedHandler.id}" failed: ${String(err)}`,
+            );
+          });
+
+          // Check mode: exclusive (default) vs parallel
+          if (mode === "exclusive") {
+            // Return early - handler takes over completely
+            return {
+              queuedFinal: false,
+              counts: dispatcher.getQueuedCounts(),
+              handledByMessageHandler: { handlerId: matchedHandler.id },
+            };
+          }
+          // parallel mode: continue with normal flow
+        }
+      }
+    }
   }
 
   // Check if we should route replies to originating channel instead of dispatcher.
