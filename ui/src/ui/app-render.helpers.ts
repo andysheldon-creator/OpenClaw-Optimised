@@ -6,6 +6,7 @@ import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation";
 import { icons } from "./icons";
 import { loadChatHistory } from "./controllers/chat";
 import { refreshChat } from "./app-chat";
+import { patchSession } from "./controllers/sessions";
 import { syncUrlWithSessionKey } from "./app-settings";
 import type { SessionsListResult } from "./types";
 import type { ThemeMode } from "./theme";
@@ -46,6 +47,10 @@ export function renderChatControls(state: AppViewState) {
     state.sessionsResult,
     mainSessionKey,
   );
+  const activeSession = state.sessionsResult?.sessions?.find(
+    (row) => row.key === state.sessionKey,
+  );
+  const sessionLabel = activeSession?.label ?? "";
   const disableThinkingToggle = state.onboarding;
   const disableFocusToggle = state.onboarding;
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
@@ -88,6 +93,22 @@ export function renderChatControls(state: AppViewState) {
           )}
         </select>
       </label>
+      <input
+        type="text"
+        class="chat-controls__label"
+        .value=${sessionLabel}
+        ?disabled=${!state.connected}
+        placeholder="Label"
+        title="Session label"
+        @change=${(e: Event) => {
+          const value = (e.target as HTMLInputElement).value.trim();
+          void patchSession(
+            state as Parameters<typeof patchSession>[0],
+            state.sessionKey,
+            { label: value || null },
+          );
+        }}
+      />
       <button
         class="btn btn--sm btn--icon"
         ?disabled=${state.chatLoading || !state.connected}
