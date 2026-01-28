@@ -70,3 +70,23 @@ sudo systemctl status liam-dashboard
 - Python 3 (built-in http.server)
 - HTML5 + CSS3 + JavaScript
 - No external dependencies required
+
+## File Structure
+
+```
+dashboard/
+├── start.py              # HTTP server (canonical implementation)
+├── schema.sql            # SQLite database schema
+├── dashboard.db          # Runtime metrics database
+├── liam-dashboard.service # Systemd unit file
+├── analytics.py          # Future: STUMPY anomaly detection
+├── requirements.txt      # Dependencies for analytics.py
+├── templates/
+│   └── index.html        # Main dashboard UI
+├── static/
+│   ├── app.js            # Client-side JavaScript
+│   └── style.css         # Technical Brutalism styling
+└── archive/              # Archived old implementations
+```
+
+**Note:** Only `start.py` is the active server. The `analytics.py` module is for future STUMPY integration and is not currently used. Do NOT create Flask/Node.js alternatives.

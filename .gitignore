@@ -73,7 +73,13 @@ USER.md
 # Clawdbot Secrets
 clawdbot.json
 .clawdbot/
+
+# Backup files
 *.backup.*
+*.backup-*
+*~
+*.old
+*.bak
 
 # Credentials and sensitive directories (NEVER commit)
 .aws
@@ -89,6 +95,25 @@ clawdbot.json
 .cursor/projects/*/terminals/
 .cursor/projects/*/agent-tools/
 .cursor/plans/
+.cursor/worktrees/
+
+# Python cache and virtual environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# SQLite WAL files (runtime)
+*.db-shm
+*.db-wal
+*.sqlite-shm
+*.sqlite-wal
 
 # Build tools and caches
 go/
@@ -131,3 +156,16 @@ clawd/projects/
 clawd/ROLES-ANALYSIS.md
 progress/
 clawd/apex-vault-*-backup/
+
+# Dashboard runtime and archives
+clawd/dashboard/archive/
+clawd/dashboard/.venv/
+clawd/dashboard/venv/
+clawd/dashboard/__pycache__/
+clawd/dashboard/dashboard.db
+clawd/dashboard/dashboard.db-shm
+clawd/dashboard/dashboard.db-wal
+
+# Skill caches
+clawd/skills/*/__pycache__/
+clawd/skills/*/.venv/

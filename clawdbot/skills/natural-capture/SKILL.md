@@ -90,10 +90,57 @@ Pick one to start with?"
 
 ## Technical Implementation
 
-1. Parse incoming message for capture intent patterns
-2. Extract the content to capture
-3. Determine destination based on content type
-4. Write to appropriate location
-5. Acknowledge briefly
+### Components
+
+1. **parser.py** - Pattern matching for capture types
+   - Recognizes prefix patterns (idea:, todo:, etc.)
+   - Recognizes phrase patterns (i need to, remind me to, etc.)
+   - Extracts metadata (project tags, due dates)
+   - Handles case-insensitive variations
+
+2. **router.py** - Route captures to appropriate storage
+   - Ideas → `~/clawd/memory/ideas.md`
+   - Todos/Tasks → PARA sqlite (tasks table)
+   - Notes → Daily memory files (`~/clawd/memory/YYYY-MM-DD.md`)
+   - Reminders → PARA tasks (category: reminder)
+   - Bookmarks → `~/clawd/memory/ideas.md` (with special formatting)
+   - Quotes → `~/clawd/memory/ideas.md` (with special formatting)
+   - Brain dumps → Daily memory files (with special formatting)
+
+3. **main.py** - Main entry point
+   - `capture_message()` - Parse and route a message
+   - `process_and_respond()` - Return response for user
+   - CLI interface for testing
+
+### Usage
+
+**From Python:**
+```python
+from main import process_and_respond
+
+response = process_and_respond(
+    "idea: what if we added dark mode to the app",
+    source="telegram"
+)
+print(response)  # "Got it. Added to ideas."
+```
+
+**From CLI:**
+```bash
+cd ~/clawdbot/skills/natural-capture
+python3 main.py "todo: prepare quarterly report"
+python3 main.py "note: remember this thing" --source email
+python3 main.py "idea: cool feature" --verbose
+```
+
+**Integration with Clawdbot:**
+When a Telegram message is received, call:
+```python
+from main import process_and_respond
+
+# In your message handler
+response = process_and_respond(message_text, source="telegram")
+await message.reply(response)
+```
 
 No special syntax parsing needed - just natural language understanding.

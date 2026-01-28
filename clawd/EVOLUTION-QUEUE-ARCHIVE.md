@@ -223,4 +223,45 @@
 
 ---
 
+## Archived Entries (Jan 28, 2026 - Cleanup Batch)
+
+*Moved during repository cleanup on 2026-01-28.*
+
+---
+
+### [2026-01-27-045] Install ngrok for Phone Dashboard Access [RESOLVED]
+- **Proposed by:** Simon
+- **Date:** 2026-01-27
+- **Category:** tools
+- **Resolved:** 2026-01-28
+- **Resolution:** Installed ngrok v3.35.0 to ~/.local/bin/ngrok
+
+### [2026-01-27-044] Message Metadata Mashed Into User Text - CORE Issue [RESOLVED]
+- **Proposed by:** Simon
+- **Date:** 2026-01-27
+- **Category:** tools
+- **Resolved:** 2026-01-28
+- **Resolution:** Removed metadata from body in 6 files (Discord, Telegram, Signal, Slack, iMessage). Added stripMessageIdHints() function and regression tests.
+
+### [2026-01-27-049] Dashboard Systemd Service Installation [RESOLVED]
+- **Proposed by:** Cursor
+- **Date:** 2026-01-28
+- **Category:** tools
+- **Resolved:** 2026-01-28
+- **Resolution:** Service installed at /etc/systemd/system/liam-dashboard.service
+
+### [2026-01-27-038] Telegram Multi-Message Split Formatting [CANNOT REPRODUCE]
+- **Date:** 2026-01-27
+- **Resolved:** 2026-01-28
+- **Resolution:** Investigated chunking code - whitespace trimming is intentional. Test showed perfect formatting. Marked CANNOT REPRODUCE.
+
+### [2026-01-27-050] WhatsApp Response Loop - 55 Notifications from Simple Message [RESOLVED]
+- **Proposed by:** Simon (via screenshot)
+- **Date:** 2026-01-27
+- **Category:** tools
+- **Resolved:** 2026-01-28
+- **Resolution:** Confirmed resolved per user.
+
+---
+
 *Archive updated: 2026-01-28*

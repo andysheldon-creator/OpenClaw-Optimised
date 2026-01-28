@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Evolution Queue Cleanup Script v1.0
+# Evolution Queue Cleanup Script v1.1
 # Run: weekly (Sunday 8 PM), or manually after Cursor sessions
 # Usage: ./queue-cleanup.sh [--dry-run|--auto-archive|--report]
 #
 # This script detects resolved/cancelled items and optionally archives them.
 # It also reports on stale entries and potential ghost bugs.
+#
+# Workspace cleanup (run separately):
+#   find ~/clawd -name "__pycache__" -type d -mtime +7 -exec rm -rf {} + 2>/dev/null
+#   find ~/clawd -name "*.backup-*" -mtime +30 -delete 2>/dev/null
 
 set -euo pipefail
 CLAWD_DIR="/home/liam/clawd"

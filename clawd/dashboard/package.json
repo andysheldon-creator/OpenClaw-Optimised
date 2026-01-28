@@ -1,9 +1,0 @@
-{
-  "name": "liam-dashboard",
-  "version": "1.0.0",
-  "description": "Liam's Project Dashboard",
-  "type": "module",
-  "scripts": {
-    "start": "node server.js"
-  }
-}

@@ -24,12 +24,12 @@ class CapturePredictor:
 
         Args:
             db_path: Path to patterns.db. Defaults to skill directory.
-            para_db_path: Path to PARA database. Defaults to ~/clawd/para.sqlite.
+            para_db_path: Path to PARA database. Defaults to ~/clawd/memory/para.sqlite.
         """
         if db_path is None:
             db_path = str(Path(__file__).parent / "patterns.db")
         if para_db_path is None:
-            para_db_path = str(Path.home() / "clawd" / "para.sqlite")
+            para_db_path = str(Path.home() / "clawd" / "memory" / "para.sqlite")
 
         self.db_path = db_path
         self.para_db_path = para_db_path
@@ -451,57 +451,77 @@ if __name__ == "__main__":
         command = sys.argv[1]
 
         if command == "analyze":
-            if len(sys.argv) > 2:
-                capture_text = " ".join(sys.argv[2:])
-                para_type, category, confidence = predictor.analyze_capture(capture_text)
-                analysis_id = predictor.log_capture_analysis(capture_text, para_type, category, confidence)
+            predictor.connect()
+            try:
+                if len(sys.argv) > 2:
+                    capture_text = " ".join(sys.argv[2:])
+                    para_type, category, confidence = predictor.analyze_capture(capture_text)
+                    analysis_id = predictor.log_capture_analysis(capture_text, para_type, category, confidence)
 
-                print(f"\n=== Capture Analysis ===")
-                print(f"Text: {capture_text}")
-                print(f"Type: {para_type}")
-                print(f"Category: {category}")
-                print(f"Confidence: {confidence:.2f}")
-                print(f"Analysis ID: {analysis_id}")
+                    print(f"\n=== Capture Analysis ===")
+                    print(f"Text: {capture_text}")
+                    print(f"Type: {para_type}")
+                    print(f"Category: {category}")
+                    print(f"Confidence: {confidence:.2f}")
+                    print(f"Analysis ID: {analysis_id}")
+            finally:
+                predictor.close()
 
         elif command == "feedback":
-            if len(sys.argv) > 2:
-                analysis_id = int(sys.argv[2])
-                accepted = sys.argv[3].lower() in ["true", "yes", "1"]
+            predictor.connect()
+            try:
+                if len(sys.argv) > 2:
+                    analysis_id = int(sys.argv[2])
+                    accepted = sys.argv[3].lower() in ["true", "yes", "1"]
 
-                success = predictor.record_feedback(analysis_id, accepted)
-                print(f"\n{'✓' if success else '✗'} Feedback recorded")
+                    success = predictor.record_feedback(analysis_id, accepted)
+                    print(f"\n{'✓' if success else '✗'} Feedback recorded")
+            finally:
+                predictor.close()
 
         elif command == "themes":
-            print("\n=== Recurring Capture Themes ===")
-            themes = predictor.find_recurring_themes(min_occurrences=3)
+            predictor.connect()
+            try:
+                print("\n=== Recurring Capture Themes ===")
+                themes = predictor.find_recurring_themes(min_occurrences=3)
 
-            for theme in themes:
-                print(f"\n• '{theme['keyword']}' ({theme['occurrences']}x)")
-                print(f"  Type: {theme['dominant_type']}")
-                print(f"  Distribution: {theme['distribution']}")
+                for theme in themes:
+                    print(f"\n• '{theme['keyword']}' ({theme['occurrences']}x)")
+                    print(f"  Type: {theme['dominant_type']}")
+                    print(f"  Distribution: {theme['distribution']}")
+            finally:
+                predictor.close()
 
         elif command == "suggestions":
-            print("\n=== System Improvement Suggestions ===")
-            suggestions = predictor.suggest_system_improvements()
+            predictor.connect()
+            try:
+                print("\n=== System Improvement Suggestions ===")
+                suggestions = predictor.suggest_system_improvements()
 
-            for s in suggestions:
-                print(f"\n• {s['suggestion']}")
+                for s in suggestions:
+                    print(f"\n• {s['suggestion']}")
+            finally:
+                predictor.close()
 
         elif command == "stats":
-            days = int(sys.argv[2]) if len(sys.argv) > 2 else 30
-            stats = predictor.get_classification_stats(days_back=days)
+            predictor.connect()
+            try:
+                days = int(sys.argv[2]) if len(sys.argv) > 2 else 30
+                stats = predictor.get_classification_stats(days_back=days)
 
-            print(f"\n=== Classification Stats ({days} days) ===")
-            print(f"\nTotal classifications: {stats['total_classifications']}")
-            print(f"Total accepted: {stats['total_accepted']}")
-            print(f"Overall accuracy: {stats['overall_accuracy']}%\n")
+                print(f"\n=== Classification Stats ({days} days) ===")
+                print(f"\nTotal classifications: {stats['total_classifications']}")
+                print(f"Total accepted: {stats['total_accepted']}")
+                print(f"Overall accuracy: {stats['overall_accuracy']}%\n")
 
-            print("By type:")
-            for type_stat in stats["by_type"]:
-                print(f"  {type_stat['type']}:")
-                print(f"    Total: {type_stat['total']}")
-                print(f"    Accepted: {type_stat['accepted']} ({type_stat['accuracy']}%)")
-                print(f"    Avg confidence: {type_stat['avg_confidence']}")
+                print("By type:")
+                for type_stat in stats["by_type"]:
+                    print(f"  {type_stat['type']}:")
+                    print(f"    Total: {type_stat['total']}")
+                    print(f"    Accepted: {type_stat['accepted']} ({type_stat['accuracy']}%)")
+                    print(f"    Avg confidence: {type_stat['avg_confidence']}")
+            finally:
+                predictor.close()
 
         else:
             print("Unknown command")

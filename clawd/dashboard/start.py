@@ -233,6 +233,85 @@ def parse_evolution_queue():
 
     return projects
 
+def get_queue_health():
+    """Get queue health status with staleness indicators."""
+    queue_path = BASE_DIR / 'EVOLUTION-QUEUE.md'
+    archive_path = BASE_DIR / 'EVOLUTION-QUEUE-ARCHIVE.md'
+    
+    health = {
+        'queue_exists': queue_path.exists(),
+        'archive_exists': archive_path.exists(),
+        'queue_entries': 0,
+        'archive_entries': 0,
+        'stale_entries': [],
+        'resolved_in_queue': [],
+        'status': 'healthy',
+        'last_modified': None
+    }
+    
+    if not queue_path.exists():
+        health['status'] = 'missing'
+        return health
+    
+    # Get file modification time
+    mtime = queue_path.stat().st_mtime
+    health['last_modified'] = datetime.fromtimestamp(mtime).isoformat()
+    
+    # Parse queue entries with age calculation
+    content = queue_path.read_text()
+    now = datetime.now()
+    entries = []
+    
+    for line in content.split('\n'):
+        line_stripped = line.strip()
+        if line_stripped.startswith('### ['):
+            # Extract date from ID like [2026-01-27-046]
+            match = re.match(r'### \[(\d{4}-\d{2}-\d{2})-\d+\]\s*(.+)', line_stripped)
+            if match:
+                date_str = match.group(1)
+                title = match.group(2).strip()
+                try:
+                    entry_date = datetime.strptime(date_str, '%Y-%m-%d')
+                    age_hours = (now - entry_date).total_seconds() / 3600
+                    is_stale = age_hours > 6  # 6-hour staleness threshold
+                    is_resolved = '[RESOLVED]' in title.upper()
+                    
+                    entry = {
+                        'id': f"{date_str}-{match.group(0).split(']')[0].split('-')[-1]}",
+                        'title': title[:60],
+                        'date': date_str,
+                        'age_hours': round(age_hours, 1),
+                        'is_stale': is_stale,
+                        'is_resolved': is_resolved
+                    }
+                    entries.append(entry)
+                    
+                    if is_stale and not is_resolved:
+                        health['stale_entries'].append(entry)
+                    if is_resolved:
+                        health['resolved_in_queue'].append(entry)
+                except ValueError:
+                    pass
+    
+    health['queue_entries'] = len(entries)
+    
+    # Count archive entries
+    if archive_path.exists():
+        archive_content = archive_path.read_text()
+        health['archive_entries'] = archive_content.count('### [')
+    
+    # Determine overall status
+    if health['resolved_in_queue']:
+        health['status'] = 'needs_cleanup'
+    elif len(health['stale_entries']) > 3:
+        health['status'] = 'stale'
+    elif health['stale_entries']:
+        health['status'] = 'warning'
+    else:
+        health['status'] = 'healthy'
+    
+    return health
+
 # === METRIC RECORDING ===
 def record_metrics():
     """Record current metrics to database."""
@@ -384,6 +463,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_header('Content-Length', len(body))
             self.end_headers()
             self.wfile.write(body)
+
+        elif path == '/api/queue-health':
+            # Queue health status with staleness indicators
+            health = get_queue_health()
+            self.send_json(health)
 
         else:
             self.send_error(404, 'Not found')

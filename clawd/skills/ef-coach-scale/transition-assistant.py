@@ -24,12 +24,12 @@ class TransitionAssistant:
 
         Args:
             db_path: Path to patterns.db. Defaults to skill directory.
-            para_db_path: Path to PARA database. Defaults to ~/clawd/para.sqlite.
+            para_db_path: Path to PARA database. Defaults to ~/clawd/memory/para.sqlite.
         """
         if db_path is None:
             db_path = str(Path(__file__).parent / "patterns.db")
         if para_db_path is None:
-            para_db_path = str(Path.home() / "clawd" / "para.sqlite")
+            para_db_path = str(Path.home() / "clawd" / "memory" / "para.sqlite")
 
         self.db_path = db_path
         self.para_db_path = para_db_path

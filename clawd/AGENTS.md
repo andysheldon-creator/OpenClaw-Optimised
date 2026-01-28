@@ -75,18 +75,20 @@ Before giving ANY status report, sitrep, or system state:
 **NEVER cite EVOLUTION-QUEUE.md entries as "Known Blockers" without verification.**
 
 Before reporting any evolution queue item as a blocker:
-1. **Check the status field** - if it says [RESOLVED], don't report it as pending
-2. **Verify the actual state** - run the command or check the file to confirm it's still broken
-3. **Check modification time** - the queue may have been updated since you last read it
-4. **Check entry age** - entries >6 hours old MUST be re-verified before citing (early dev period; relax to 24h once stable)
+1. **Check the ARCHIVE first** - run `grep -n "ENTRY-ID" ~/clawd/EVOLUTION-QUEUE-ARCHIVE.md` to see if it's already resolved
+2. **Check the status field** - if it says [RESOLVED], don't report it as pending
+3. **Verify the actual state** - run the command or check the file to confirm it's still broken
+4. **Check modification time** - the queue may have been updated since you last read it
+5. **Check entry age** - entries >6 hours old MUST be re-verified before citing (early dev period; relax to 24h once stable)
 
 **Bad:** "Known Blockers: GOG authentication (see EVOLUTION-QUEUE [2026-01-26-024])"
-**Good:** "Let me verify GOG status... [runs gog auth list]... GOG is working, that queue entry is stale."
+**Good:** "Let me verify GOG status... [checks archive first, then runs gog auth list]... GOG is working, that queue entry was already resolved."
 
 **Staleness Rule (Early Development Period):**
 - Entries created/updated >6 hours ago: MUST verify before citing
 - Entries with dates from previous days: ALWAYS verify
 - When in doubt: verify anyway - it takes 5 seconds
+- **Archive check is MANDATORY** - resolved items may still be in your session memory
 
 NEVER say "gog is broken" or "X is blocked" without running the actual check FIRST.
 This applies even if you just read the file earlier in this conversation.
@@ -294,6 +296,31 @@ Periodically (every few days), use a heartbeat to:
 Think of it like a human reviewing their journal and updating their mental model. Daily files are raw notes; MEMORY.md is curated wisdom.
 
 The goal: Be helpful without being annoying. Check in a few times a day, do useful background work, but respect quiet time.
+
+## File Minimalism (Dashboard)
+
+- Active implementation: `dashboard/start.py` (stdlib HTTP server)
+- Templates: `dashboard/templates/` (served files)
+- Static assets: `dashboard/static/` (CSS, JS)
+- Do NOT create: Flask/Node.js alternatives, root HTML files
+- Virtual envs: requirements.txt only, .venv directories are bloat
+
+## Evolution Queue Hygiene
+
+- RESOLVED items: Move to EVOLUTION-QUEUE-ARCHIVE.md immediately
+- No [RESOLVED] tags left in main queue
+- Valid statuses in queue: NEW, IN PROGRESS, PENDING, SCHEDULED, PAUSED
+- Archive statuses: RESOLVED, CANNOT REPRODUCE, REJECTED, DUPLICATE, GHOST BUG
+
+## Workspace Cleanliness
+
+When you notice bloat, flag or fix it:
+- Multiple implementations of the same thing
+- [RESOLVED] items still in EVOLUTION-QUEUE.md
+- Old .backup/.old/.bak files (>7 days)
+- `__pycache__` directories in source folders
+
+For minor cleanup, do it yourself. For major restructuring, ask first.
 
 ## Scope
 
