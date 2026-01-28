@@ -255,17 +255,28 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
       const messageId = readStringParam(params, "messageId", {
         required: true,
       });
+      const chatJid =
+        readStringParam(params, "chatJid") ?? readStringParam(params, "to", { required: true });
+      const participant = readStringParam(params, "participant");
+      
+      // Validate participant for group reactions
+      if (!participant && chatJid.endsWith("@g.us")) {
+        throw new Error(
+          "WhatsApp group reactions require the 'participant' field (sender JID). " +
+          "Example: participant: '1234567890@s.whatsapp.net'"
+        );
+      }
+      
       const emoji = readStringParam(params, "emoji", { allowEmpty: true });
       const remove = typeof params.remove === "boolean" ? params.remove : undefined;
       return await getWhatsAppRuntime().channel.whatsapp.handleWhatsAppAction(
         {
           action: "react",
-          chatJid:
-            readStringParam(params, "chatJid") ?? readStringParam(params, "to", { required: true }),
+          chatJid,
           messageId,
           emoji,
           remove,
-          participant: readStringParam(params, "participant"),
+          participant: participant ?? undefined,
           accountId: accountId ?? undefined,
           fromMe: typeof params.fromMe === "boolean" ? params.fromMe : undefined,
         },
