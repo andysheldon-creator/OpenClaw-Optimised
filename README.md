@@ -249,7 +249,7 @@ Details: [Session tools](https://docs.molt.bot/concepts/session-tool)
 
 MoltHub is a minimal skill registry. With MoltHub enabled, the agent can search for skills automatically and pull in new ones as needed.
 
-[MoltHub](https://MoltHub.com)
+[MoltHub](https://clawdhub.com/)
 
 ## Chat commands
 
