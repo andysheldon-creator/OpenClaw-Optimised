@@ -30,6 +30,10 @@ Cost note: each sub-agent has its **own** context and token usage. For heavy or 
 tasks, set a cheaper model for sub-agents and keep your main agent on a higher-quality model.
 You can configure this via `agents.defaults.subagents.model` or per-agent overrides.
 
+Timeout: set `agents.defaults.subagents.runTimeoutSeconds` to apply a default timeout
+to all sub-agent runs (e.g., `300` for 5 minutes). Individual spawns can override via
+the `runTimeoutSeconds` param.
+
 ## Tool
 
 Use `sessions_spawn`:
@@ -43,7 +47,7 @@ Tool params:
 - `agentId?` (optional; spawn under another agent id if allowed)
 - `model?` (optional; overrides the sub-agent model; invalid values are skipped and the sub-agent runs on the default model with a warning in the tool result)
 - `thinking?` (optional; overrides thinking level for the sub-agent run)
-- `runTimeoutSeconds?` (default `0`; when set, the sub-agent run is aborted after N seconds)
+- `runTimeoutSeconds?` (optional; when set, the sub-agent run is aborted after N seconds; falls back to `agents.defaults.subagents.runTimeoutSeconds` if configured, otherwise the general agent timeout)
 - `cleanup?` (`delete|keep`, default `keep`)
 
 Allowlist:
@@ -134,4 +138,4 @@ Sub-agents use a dedicated in-process queue lane:
 - Sub-agent announce is **best-effort**. If the gateway restarts, pending “announce back” work is lost.
 - Sub-agents still share the same gateway process resources; treat `maxConcurrent` as a safety valve.
 - `sessions_spawn` is always non-blocking: it returns `{ status: "accepted", runId, childSessionKey }` immediately.
-- Sub-agent context only injects `AGENTS.md` + `TOOLS.md` (no `SOUL.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, or `BOOTSTRAP.md`).
+- Sub-agent context injects `AGENTS.md`, `TOOLS.md`, `SOUL.md`, `IDENTITY.md`, and `USER.md` (no `HEARTBEAT.md`, `BOOTSTRAP.md`, or `MEMORY.md`).

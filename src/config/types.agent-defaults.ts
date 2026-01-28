@@ -202,6 +202,8 @@ export type AgentDefaultsConfig = {
     maxConcurrent?: number;
     /** Auto-archive sub-agent sessions after N minutes (default: 60). */
     archiveAfterMinutes?: number;
+    /** Default run timeout in seconds for spawned sub-agents (applied when runTimeoutSeconds not passed to sessions_spawn). */
+    runTimeoutSeconds?: number;
     /** Default model selection for spawned sub-agents (string or {primary,fallbacks}). */
     model?: string | { primary?: string; fallbacks?: string[] };
   };

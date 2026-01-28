@@ -119,7 +119,17 @@ function resolveSubagentWaitTimeoutMs(
   cfg: ReturnType<typeof loadConfig>,
   runTimeoutSeconds?: number,
 ) {
-  return resolveAgentTimeoutMs({ cfg, overrideSeconds: runTimeoutSeconds });
+  // Use explicit param if provided and positive
+  if (typeof runTimeoutSeconds === "number" && runTimeoutSeconds > 0) {
+    return resolveAgentTimeoutMs({ cfg, overrideSeconds: runTimeoutSeconds });
+  }
+  // Fall back to subagent-specific default if configured
+  const subagentDefault = cfg?.agents?.defaults?.subagents?.runTimeoutSeconds;
+  if (typeof subagentDefault === "number" && subagentDefault > 0) {
+    return resolveAgentTimeoutMs({ cfg, overrideSeconds: subagentDefault });
+  }
+  // Otherwise use general agent timeout
+  return resolveAgentTimeoutMs({ cfg });
 }
 
 function startSweeper() {
