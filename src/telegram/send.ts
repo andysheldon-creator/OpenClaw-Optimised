@@ -630,6 +630,176 @@ function inferFilename(kind: ReturnType<typeof mediaKindFromMime>) {
   }
 }
 
+type TelegramMediaGroupOpts = {
+  token?: string;
+  accountId?: string;
+  verbose?: boolean;
+  api?: Bot["api"];
+  retry?: RetryConfig;
+  maxBytes?: number;
+  /** Send message silently (no notification). Defaults to false. */
+  silent?: boolean;
+  /** Message ID to reply to (for threading) */
+  replyToMessageId?: number;
+  /** Forum topic thread ID (for forum supergroups) */
+  messageThreadId?: number;
+};
+
+type TelegramMediaGroupResult = {
+  messageIds: string[];
+  chatId: string;
+};
+
+/**
+ * Send multiple photos/videos as a media group (album) to a Telegram chat.
+ * Supports 2-10 media items. Only the first item's caption is displayed.
+ *
+ * @param to - Chat ID or username (e.g., "123456789" or "@username")
+ * @param mediaUrls - Array of media URLs (2-10 items)
+ * @param caption - Optional caption (displayed under first media item)
+ * @param opts - Optional configuration
+ */
+export async function sendMediaGroupTelegram(
+  to: string,
+  mediaUrls: string[],
+  caption?: string,
+  opts: TelegramMediaGroupOpts = {},
+): Promise<TelegramMediaGroupResult> {
+  if (!mediaUrls?.length || mediaUrls.length < 2) {
+    throw new Error("Media group requires at least 2 media items");
+  }
+  if (mediaUrls.length > 10) {
+    throw new Error("Media group supports at most 10 media items");
+  }
+
+  const cfg = loadConfig();
+  const account = resolveTelegramAccount({
+    cfg,
+    accountId: opts.accountId,
+  });
+  const token = resolveToken(opts.token, account);
+  const target = parseTelegramTarget(to);
+  const chatId = normalizeChatId(target.chatId);
+  const client = resolveTelegramClientOptions(account);
+  const api = opts.api ?? new Bot(token, client ? { client } : undefined).api;
+
+  const messageThreadId =
+    opts.messageThreadId != null ? opts.messageThreadId : target.messageThreadId;
+  const threadIdParams = buildTelegramThreadParams(messageThreadId);
+  const threadParams: Record<string, unknown> = threadIdParams ? { ...threadIdParams } : {};
+  if (opts.replyToMessageId != null) {
+    threadParams.reply_to_message_id = Math.trunc(opts.replyToMessageId);
+  }
+
+  const request = createTelegramRetryRunner({
+    retry: opts.retry,
+    configRetry: account.config.retry,
+    verbose: opts.verbose,
+    shouldRetry: (err) => isRecoverableTelegramNetworkError(err, { context: "send" }),
+  });
+  const logHttpError = createTelegramHttpLogger(cfg);
+  const requestWithDiag = <T>(fn: () => Promise<T>, label?: string) =>
+    withTelegramApiErrorLogging({
+      operation: label ?? "request",
+      fn: () => request(fn, label),
+    }).catch((err) => {
+      logHttpError(label ?? "request", err);
+      throw err;
+    });
+
+  const wrapChatNotFound = (err: unknown) => {
+    if (!/400: Bad Request: chat not found/i.test(formatErrorMessage(err))) return err;
+    return new Error(
+      [
+        `Telegram send failed: chat not found (chat_id=${chatId}).`,
+        "Likely: bot not started in DM, bot removed from group/channel, group migrated (new -100… id), or wrong bot token.",
+        `Input was: ${JSON.stringify(to)}.`,
+      ].join(" "),
+    );
+  };
+
+  const textMode = "markdown";
+  const tableMode = resolveMarkdownTableMode({
+    cfg,
+    channel: "telegram",
+    accountId: account.accountId,
+  });
+  const renderHtmlText = (value: string) => renderTelegramHtmlText(value, { textMode, tableMode });
+
+  // Load all media files
+  const mediaItems: Array<{
+    type: "photo" | "video";
+    media: InputFile;
+  }> = [];
+
+  for (const url of mediaUrls) {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) continue;
+
+    const media = await loadWebMedia(trimmedUrl, opts.maxBytes);
+    const kind = mediaKindFromMime(media.contentType ?? undefined);
+    const isGif = isGifMedia({
+      contentType: media.contentType,
+      fileName: media.fileName,
+    });
+
+    // Media groups only support photos and videos
+    if (kind !== "image" && kind !== "video" && !isGif) {
+      throw new Error(`Media group only supports photos and videos. Got: ${kind} for ${trimmedUrl}`);
+    }
+
+    const fileName = media.fileName ?? inferFilename(kind) ?? "file";
+    const file = new InputFile(media.buffer, fileName);
+
+    // GIFs are sent as videos in media groups
+    const mediaType = kind === "video" || isGif ? "video" : "photo";
+    mediaItems.push({ type: mediaType, media: file });
+  }
+
+  if (mediaItems.length < 2) {
+    throw new Error("Media group requires at least 2 valid media items");
+  }
+
+  // Build media group array - only first item gets caption
+  const htmlCaption = caption?.trim() ? renderHtmlText(caption.trim()) : undefined;
+  const mediaGroup = mediaItems.map((item, index) => ({
+    type: item.type,
+    media: item.media,
+    ...(index === 0 && htmlCaption
+      ? { caption: htmlCaption, parse_mode: "HTML" as const }
+      : {}),
+  }));
+
+  const groupParams = {
+    ...threadParams,
+    ...(opts.silent === true ? { disable_notification: true } : {}),
+  };
+
+  const results = await requestWithDiag(
+    () => api.sendMediaGroup(chatId, mediaGroup, groupParams),
+    "mediaGroup",
+  ).catch((err) => {
+    throw wrapChatNotFound(err);
+  });
+
+  const messageIds = results.map((r) => String(r.message_id));
+  const resolvedChatId = String(results[0]?.chat?.id ?? chatId);
+
+  for (const result of results) {
+    if (result?.message_id) {
+      recordSentMessage(chatId, result.message_id);
+    }
+  }
+
+  recordChannelActivity({
+    channel: "telegram",
+    accountId: account.accountId,
+    direction: "outbound",
+  });
+
+  return { messageIds, chatId: resolvedChatId };
+}
+
 type TelegramStickerOpts = {
   token?: string;
   accountId?: string;

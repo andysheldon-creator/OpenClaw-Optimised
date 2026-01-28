@@ -646,6 +646,9 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
     mergedMediaUrls.push(trimmed);
   };
   pushMedia(mediaHint);
+  // Read mediaUrls array from tool params (for album/media group support)
+  const paramMediaUrls = readStringArrayParam(params, "mediaUrls");
+  for (const url of paramMediaUrls ?? []) pushMedia(url);
   for (const url of parsed.mediaUrls ?? []) pushMedia(url);
   pushMedia(parsed.mediaUrl);
   message = parsed.text;

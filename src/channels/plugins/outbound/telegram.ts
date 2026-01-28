@@ -1,5 +1,5 @@
 import { markdownToTelegramHtmlChunks } from "../../../telegram/format.js";
-import { sendMessageTelegram } from "../../../telegram/send.js";
+import { sendMediaGroupTelegram, sendMessageTelegram } from "../../../telegram/send.js";
 import type { ChannelOutboundAdapter } from "../types.js";
 
 function parseReplyToMessageId(replyToId?: string | null) {
@@ -53,6 +53,7 @@ export const telegramOutbound: ChannelOutboundAdapter = {
   },
   sendPayload: async ({ to, payload, accountId, deps, replyToId, threadId }) => {
     const send = deps?.sendTelegram ?? sendMessageTelegram;
+    const sendGroup = deps?.sendMediaGroupTelegram ?? sendMediaGroupTelegram;
     const replyToMessageId = parseReplyToMessageId(replyToId);
     const messageThreadId = parseThreadId(threadId);
     const telegramData = payload.channelData?.telegram as
@@ -83,7 +84,29 @@ export const telegramOutbound: ChannelOutboundAdapter = {
       return { channel: "telegram", ...result };
     }
 
-    // Telegram allows reply_markup on media; attach buttons only to first send.
+    // Use media group (album) for 2-10 images - sends as a single album
+    if (mediaUrls.length >= 2 && mediaUrls.length <= 10) {
+      const groupResult = await sendGroup(to, mediaUrls, text, {
+        messageThreadId,
+        replyToMessageId,
+        accountId: accountId ?? undefined,
+      });
+      // If there are buttons, send them in a follow-up message (media groups don't support buttons)
+      if (telegramData?.buttons?.length) {
+        await send(to, "", {
+          ...baseOpts,
+          buttons: telegramData.buttons,
+        });
+      }
+      return {
+        channel: "telegram",
+        messageId: groupResult.messageIds[0] ?? "unknown",
+        messageIds: groupResult.messageIds,
+        chatId: groupResult.chatId,
+      };
+    }
+
+    // Single media or fallback for >10 items: send one at a time
     let finalResult: Awaited<ReturnType<typeof send>> | undefined;
     for (let i = 0; i < mediaUrls.length; i += 1) {
       const mediaUrl = mediaUrls[i];
@@ -95,5 +118,22 @@ export const telegramOutbound: ChannelOutboundAdapter = {
       });
     }
     return { channel: "telegram", ...(finalResult ?? { messageId: "unknown", chatId: to }) };
+  },
+  sendMediaGroup: async ({ to, mediaUrls, caption, accountId, deps, replyToId, threadId }) => {
+    const sendGroup = deps?.sendMediaGroupTelegram ?? sendMediaGroupTelegram;
+    const replyToMessageId = parseReplyToMessageId(replyToId);
+    const messageThreadId = parseThreadId(threadId);
+    const result = await sendGroup(to, mediaUrls, caption, {
+      messageThreadId,
+      replyToMessageId,
+      accountId: accountId ?? undefined,
+    });
+    // Return first message ID as the main one
+    return {
+      channel: "telegram",
+      messageId: result.messageIds[0] ?? "unknown",
+      messageIds: result.messageIds,
+      chatId: result.chatId,
+    };
   },
 };

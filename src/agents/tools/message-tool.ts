@@ -45,6 +45,11 @@ function buildSendSchema(options: { includeButtons: boolean; includeCards: boole
       Type.String({ description: "Alias for effectId (e.g., invisible-ink, balloons)." }),
     ),
     media: Type.Optional(Type.String()),
+    mediaUrls: Type.Optional(
+      Type.Array(Type.String(), {
+        description: "Array of media URLs to send as album/group (2-10 items, Telegram only).",
+      }),
+    ),
     filename: Type.Optional(Type.String()),
     buffer: Type.Optional(
       Type.String({
