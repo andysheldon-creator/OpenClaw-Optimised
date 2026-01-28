@@ -27,10 +27,43 @@ function isToolResultMessage(msg: AgentMessage): boolean {
   );
 }
 
+function extractToolUseIdsFromAssistant(msg: AgentMessage): string[] {
+  if (msg.role !== "assistant") return [];
+  const content = msg.content;
+  if (!Array.isArray(content)) return [];
+
+  const ids: string[] = [];
+  for (const block of content) {
+    if (!block || typeof block !== "object") continue;
+    const rec = block as { type?: unknown; id?: unknown };
+    if (
+      (rec.type === "toolCall" || rec.type === "toolUse" || rec.type === "functionCall") &&
+      typeof rec.id === "string"
+    ) {
+      ids.push(rec.id);
+    }
+  }
+  return ids;
+}
+
+function extractToolUseIdFromResult(msg: AgentMessage): string | null {
+  if (msg.role !== "user") return null;
+  const content = msg.content;
+  if (!Array.isArray(content) || content.length === 0) return null;
+
+  const block = content[0] as { tool_use_id?: unknown; toolCallId?: unknown };
+  const id = block.tool_use_id ?? block.toolCallId;
+  return typeof id === "string" ? id : null;
+}
+
 /**
  * Limits conversation history to the last N user turns (and their associated
  * assistant responses). This reduces token usage for long-running DM sessions.
  * Tool result messages are not counted as new user turns.
+ *
+ * CRITICAL: When truncating, we must preserve tool_use + tool_result pairs.
+ * A tool_result that follows its tool_use belongs to the same logical turn,
+ * even if they're separated by assistant responses.
  */
 export function limitHistoryTurns(
   messages: AgentMessage[],
@@ -43,16 +76,54 @@ export function limitHistoryTurns(
 
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
-    // Only count genuine user messages, not tool results
     if (msg.role === "user" && !isToolResultMessage(msg)) {
       userCount++;
       if (userCount > limit) {
-        return messages.slice(lastUserIndex);
+        break;
       }
       lastUserIndex = i;
     }
   }
-  return messages;
+
+  if (lastUserIndex === 0 || lastUserIndex === messages.length) {
+    return messages;
+  }
+
+  const slice = messages.slice(lastUserIndex);
+
+  const positionsToAdd = new Set<number>();
+  for (let i = 0; i < slice.length; i++) {
+    const msg = slice[i];
+    if (isToolResultMessage(msg)) {
+      const toolId = extractToolUseIdFromResult(msg);
+      if (toolId) {
+        let j = lastUserIndex + i - 1;
+        for (; j >= 0; j--) {
+          const prev = messages[j];
+          const toolIds = extractToolUseIdsFromAssistant(prev);
+          if (toolIds.includes(toolId)) {
+            positionsToAdd.add(j);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (positionsToAdd.size === 0) {
+    return slice;
+  }
+
+  const minPositionToAdd = Math.min(...positionsToAdd);
+  const result: AgentMessage[] = [];
+  for (let i = minPositionToAdd; i < messages.length; i++) {
+    const inSlice = i >= lastUserIndex;
+    const inPositionsToAdd = positionsToAdd.has(i);
+    if (inSlice || inPositionsToAdd) {
+      result.push(messages[i]);
+    }
+  }
+  return result;
 }
 
 /**
