@@ -2,6 +2,7 @@ import type { MoltbotConfig } from "../../config/config.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/hooks.js";
 import { isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import {
   logMessageProcessed,
@@ -181,6 +182,51 @@ export async function dispatchReplyFromConfig(params: {
       .catch((err) => {
         logVerbose(`dispatch-from-config: message_received hook failed: ${String(err)}`);
       });
+  }
+
+  // Trigger internal message:received hook (for user hooks in ~/.clawdbot/hooks/)
+  // Fire-and-forget: don't await, errors logged internally by triggerInternalHook
+  {
+    const timestamp =
+      typeof ctx.Timestamp === "number" && Number.isFinite(ctx.Timestamp)
+        ? ctx.Timestamp
+        : undefined;
+    const messageIdForHook =
+      ctx.MessageSidFull ?? ctx.MessageSid ?? ctx.MessageSidFirst ?? ctx.MessageSidLast;
+    const content =
+      typeof ctx.BodyForCommands === "string"
+        ? ctx.BodyForCommands
+        : typeof ctx.RawBody === "string"
+          ? ctx.RawBody
+          : typeof ctx.Body === "string"
+            ? ctx.Body
+            : "";
+    const channelId = (ctx.OriginatingChannel ?? ctx.Surface ?? ctx.Provider ?? "").toLowerCase();
+    const conversationId = ctx.OriginatingTo ?? ctx.To ?? ctx.From ?? undefined;
+
+    void triggerInternalHook(
+      createInternalHookEvent("message", "received", sessionKey ?? "", {
+        from: ctx.From ?? "",
+        content,
+        timestamp,
+        channelId,
+        accountId: ctx.AccountId,
+        conversationId,
+        metadata: {
+          to: ctx.To,
+          provider: ctx.Provider,
+          surface: ctx.Surface,
+          threadId: ctx.MessageThreadId,
+          originatingChannel: ctx.OriginatingChannel,
+          originatingTo: ctx.OriginatingTo,
+          messageId: messageIdForHook,
+          senderId: ctx.SenderId,
+          senderName: ctx.SenderName,
+          senderUsername: ctx.SenderUsername,
+          senderE164: ctx.SenderE164,
+        },
+      }),
+    );
   }
 
   // Check if we should route replies to originating channel instead of dispatcher.

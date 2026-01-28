@@ -196,12 +196,13 @@ Each event includes:
 
 ```typescript
 {
-  type: 'command' | 'session' | 'agent' | 'gateway',
-  action: string,              // e.g., 'new', 'reset', 'stop'
+  type: 'command' | 'session' | 'agent' | 'gateway' | 'message',
+  action: string,              // e.g., 'new', 'reset', 'stop', 'received'
   sessionKey: string,          // Session identifier
   timestamp: Date,             // When the event occurred
   messages: string[],          // Push messages here to send to user
   context: {
+    // For command events:
     sessionEntry?: SessionEntry,
     sessionId?: string,
     sessionFile?: string,
@@ -209,9 +210,47 @@ Each event includes:
     senderId?: string,
     workspaceDir?: string,
     bootstrapFiles?: WorkspaceBootstrapFile[],
-    cfg?: MoltbotConfig
+    cfg?: ClawdbotConfig,
+    // For message:received events:
+    from?: string,
+    content?: string,
+    channelId?: string,
+    metadata?: Record<string, unknown>
   }
 }
+```
+
+#### Message Received Handler Example
+
+```typescript
+import type { HookHandler } from '../../src/hooks/hooks.js';
+import { isMessageReceivedEvent } from '../../src/hooks/hooks.js';
+
+const handler: HookHandler = async (event) => {
+  if (!isMessageReceivedEvent(event)) return;
+
+  const { from, content, channelId, metadata } = event.context;
+
+  console.log(`[message-hook] ${channelId}: ${from} said "${content.slice(0, 50)}..."`);
+
+  // Example: Log to external service, analytics, audit trail, etc.
+  // await logToExternalService({ from, content, channel: channelId });
+};
+
+export default handler;
+```
+
+**HOOK.md** for message watcher:
+```markdown
+---
+name: message-watcher
+description: "Watch all inbound messages"
+metadata: {"clawdbot":{"emoji":"👀","events":["message:received"]}}
+---
+
+# Message Watcher
+
+Logs all inbound messages for debugging or auditing.
 ```
 
 ## Event Types
@@ -235,6 +274,39 @@ Triggered when the gateway starts:
 
 - **`gateway:startup`**: After channels start and hooks are loaded
 
+### Message Events
+
+Triggered when messages are received:
+
+- **`message`**: All message events (general listener)
+- **`message:received`**: When an inbound message is received from any channel (WhatsApp, Telegram, Discord, Slack, Signal, iMessage, Gateway/WebUI, MS Teams, Matrix, etc.). Fire-and-forget; cannot modify the message.
+
+#### Message Received Context
+
+For `message:received` events, the context includes:
+
+```typescript
+{
+  from: string;           // Sender identifier (phone, user ID, etc.)
+  content: string;        // Message text body
+  timestamp?: number;     // Unix ms timestamp (if available)
+  channelId: string;      // "whatsapp", "telegram", "discord", etc.
+  accountId?: string;     // Multi-account bot ID
+  conversationId?: string;// Chat/conversation ID
+  metadata: {
+    to?: string;
+    provider?: string;
+    surface?: string;
+    threadId?: string;
+    messageId?: string;
+    senderId?: string;
+    senderName?: string;
+    senderUsername?: string;
+    senderE164?: string;  // E.164 phone number
+  }
+}
+```
+
 ### Tool Result Hooks (Plugin API)
 
 These hooks are not event-stream listeners; they let plugins synchronously adjust tool results before Moltbot persists them.
@@ -248,8 +320,7 @@ Planned event types:
 - **`session:start`**: When a new session begins
 - **`session:end`**: When a session ends
 - **`agent:error`**: When an agent encounters an error
-- **`message:sent`**: When a message is sent
-- **`message:received`**: When a message is received
+- **`message:sent`**: When an outbound message is sent
 
 ## Creating Custom Hooks
 
