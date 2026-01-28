@@ -27,7 +27,6 @@ const RingCentralAccountSchemaBase = z
     clientSecret: z.string().optional(),
     jwt: z.string().optional(),
     server: z.string().optional(),
-    credentialsFile: z.string().optional(),
     webhookPath: z.string().optional(),
     webhookVerificationToken: z.string().optional(),
     markdown: MarkdownConfigSchema,
@@ -44,6 +43,8 @@ const RingCentralAccountSchemaBase = z
     blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
     allowBots: z.boolean().optional(),
     botExtensionId: z.string().optional(),
+    selfOnly: z.boolean().optional(),
+    allowOtherChats: z.boolean().optional(),
   })
   .strict();
 

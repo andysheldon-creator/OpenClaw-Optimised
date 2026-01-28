@@ -199,7 +199,7 @@ async function processMessageWithPipeline(params: {
   // This is because the bot uses the JWT user's identity, so we're essentially
   // having a conversation with ourselves (the AI assistant)
   const selfOnly = account.config.selfOnly !== false; // default true
-  runtime.log?.(`[${account.accountId}] Processing message: senderId=${senderId}, ownerId=${ownerId}, selfOnly=${selfOnly}, chatId=${chatId}, text=${rawBody.slice(0, 50)}`);
+  runtime.log?.(`[${account.accountId}] Processing message: senderId=${senderId}, ownerId=${ownerId}, selfOnly=${selfOnly}, chatId=${chatId}`);
   
   if (selfOnly && ownerId) {
     if (senderId !== ownerId) {
