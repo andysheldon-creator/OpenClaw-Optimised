@@ -47,8 +47,36 @@ export type {
   SdkEventType,
   SdkProviderConfig,
   SdkProviderEnv,
+  SdkReasoningLevel,
+  SdkRunnerCallbacks,
   SdkRunnerParams,
   SdkTextEvent,
   SdkToolResultEvent,
   SdkToolUseEvent,
+  SdkVerboseLevel,
 } from "./types.js";
+
+// Error handling
+export {
+  classifyError,
+  CcsdkError,
+  describeErrorKind,
+  isCcsdkError,
+  isRetryableError,
+  toCcsdkError,
+  withRetry,
+  DEFAULT_RETRY_OPTIONS,
+  type CcsdkErrorKind,
+  type RetryOptions,
+} from "./error-handling.js";
+
+// System prompt
+export {
+  buildSystemPromptAdditions,
+  buildSystemPromptAdditionsFromParams,
+  clearPromptEnrichers,
+  getEnricherCount,
+  registerPromptEnricher,
+  type PromptEnricher,
+  type PromptEnricherContext,
+} from "./system-prompt.js";

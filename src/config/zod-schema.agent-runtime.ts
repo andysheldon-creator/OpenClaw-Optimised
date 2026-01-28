@@ -416,6 +416,58 @@ export const AgentModelSchema = z.union([
 /** Agent runtime backend discriminant. */
 export const AgentRuntimeKindSchema = z.union([z.literal("pi"), z.literal("ccsdk")]);
 
+/**
+ * Providers compatible with the Claude Code SDK (ccsdk) runtime.
+ *
+ * These providers expose Anthropic-compatible API endpoints:
+ * - anthropic: Direct Anthropic API
+ * - zai: z.AI subscription (Anthropic-compatible, supports non-Claude models like GLM-4.7)
+ * - openrouter: OpenRouter (Anthropic-compatible proxy, supports many models)
+ *
+ * Note: Bedrock and Vertex AI are supported by CCSDK but via environment variables
+ * (CLAUDE_CODE_USE_BEDROCK=1, CLAUDE_CODE_USE_VERTEX=1), not as provider prefixes.
+ */
+export const CCSDK_COMPATIBLE_PROVIDERS = new Set(["anthropic", "zai", "openrouter"]);
+
+/**
+ * Extract provider from a model string (e.g., "anthropic/claude-sonnet-4" -> "anthropic").
+ * Returns null if no provider prefix is found.
+ */
+function extractProviderFromModelString(model: string): string | null {
+  const trimmed = model.trim();
+  if (!trimmed) return null;
+  const slash = trimmed.indexOf("/");
+  if (slash === -1) return null;
+  return trimmed.slice(0, slash).trim().toLowerCase() || null;
+}
+
+/**
+ * Validate that a model is compatible with the CCSDK runtime.
+ * Returns an error message if invalid, or null if valid.
+ */
+export function validateCcsdkModelProvider(
+  model: string | { primary?: string; fallbacks?: string[] } | undefined,
+): string | null {
+  if (!model) return null; // No model specified, will use defaults
+
+  const modelsToCheck: string[] = [];
+  if (typeof model === "string") {
+    modelsToCheck.push(model);
+  } else {
+    if (model.primary) modelsToCheck.push(model.primary);
+    if (model.fallbacks) modelsToCheck.push(...model.fallbacks);
+  }
+
+  for (const m of modelsToCheck) {
+    const provider = extractProviderFromModelString(m);
+    if (provider && !CCSDK_COMPATIBLE_PROVIDERS.has(provider)) {
+      return `runtime "ccsdk" requires an Anthropic-compatible provider (anthropic, zai, or openrouter), but model "${m}" uses provider "${provider}"`;
+    }
+  }
+
+  return null;
+}
+
 /** Model tier configuration for Claude Code SDK. */
 export const CcSdkModelTiersSchema = z
   .object({
@@ -471,7 +523,20 @@ export const AgentEntrySchema = z
     sandbox: AgentSandboxSchema,
     tools: AgentToolsSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    // Validate CCSDK runtime requires compatible model provider
+    if (value.runtime === "ccsdk") {
+      const error = validateCcsdkModelProvider(value.model);
+      if (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["model"],
+          message: error,
+        });
+      }
+    }
+  });
 
 export const ToolsSchema = z
   .object({

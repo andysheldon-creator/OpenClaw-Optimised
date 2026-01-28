@@ -35,8 +35,38 @@ export type SdkProviderConfig = {
   model?: string;
 };
 
+/** Reasoning/thinking level for the agent. */
+export type SdkReasoningLevel = "off" | "minimal" | "low" | "medium" | "high";
+
+/** Verbose output level for tool results. */
+export type SdkVerboseLevel = "off" | "on" | "full";
+
+/** Streaming callbacks for SDK runner. */
+export type SdkRunnerCallbacks = {
+  /** Called when the assistant message starts. */
+  onAssistantMessageStart?: () => void | Promise<void>;
+  /** Called when a partial reply chunk is available. */
+  onPartialReply?: (payload: { text?: string; mediaUrls?: string[] }) => void | Promise<void>;
+  /** Called for reasoning/thinking stream events. */
+  onReasoningStream?: (payload: { text?: string }) => void | Promise<void>;
+  /** Called for block-level reply delivery. */
+  onBlockReply?: (payload: {
+    text?: string;
+    mediaUrls?: string[];
+    audioAsVoice?: boolean;
+    replyToId?: string;
+  }) => void | Promise<void>;
+  /** Called when block replies should be flushed. */
+  onBlockReplyFlush?: () => void | Promise<void>;
+  /** Called when a tool result is available. */
+  onToolResult?: (payload: { text?: string; mediaUrls?: string[] }) => void | Promise<void>;
+  /** Called for agent lifecycle events. */
+  onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void;
+};
+
 /** Parameters for SDK runner execution. */
 export type SdkRunnerParams = {
+  // ─── Session & Identity ────────────────────────────────────────────────────
   /** Session identifier. */
   sessionId: string;
   /** Session key for routing. */
@@ -47,6 +77,10 @@ export type SdkRunnerParams = {
   workspaceDir: string;
   /** Agent data directory. */
   agentDir?: string;
+  /** Moltbot agent ID (e.g., "main", "work"). */
+  agentId?: string;
+
+  // ─── Configuration ─────────────────────────────────────────────────────────
   /** Moltbot configuration. */
   config?: MoltbotConfig;
   /** User prompt/message. */
@@ -61,17 +95,47 @@ export type SdkRunnerParams = {
   runId: string;
   /** Abort signal for cancellation. */
   abortSignal?: AbortSignal;
-  /** Extra system prompt to append. */
+
+  // ─── Model Behavior ────────────────────────────────────────────────────────
+  /** Reasoning/thinking level. */
+  reasoningLevel?: SdkReasoningLevel;
+  /** Verbose level for tool output. */
+  verboseLevel?: SdkVerboseLevel;
+  /** Maximum output tokens. */
+  maxOutputTokens?: number;
+  /** Maximum thinking tokens (when reasoning is enabled). */
+  maxThinkingTokens?: number;
+
+  // ─── Tools ─────────────────────────────────────────────────────────────────
+  /** Allow elevated bash commands. */
+  bashElevated?: boolean;
+  /** Tools to disable. */
+  disableTools?: string[];
+  /** Filter for emitting tool results. */
+  shouldEmitToolResult?: (toolName: string) => boolean;
+  /** Filter for emitting tool output. */
+  shouldEmitToolOutput?: (toolName: string) => boolean;
+
+  // ─── System Prompt Context ─────────────────────────────────────────────────
+  /** Extra system prompt to append (legacy). */
   extraSystemPrompt?: string;
+  /** User's timezone (e.g., "America/New_York"). */
+  timezone?: string;
+  /** Messaging channel (e.g., "telegram", "slack"). */
+  messageChannel?: string;
+  /** Channel-specific hints. */
+  channelHints?: string;
+  /** Available Moltbot skills. */
+  skills?: string[];
+
+  // ─── SDK Options ───────────────────────────────────────────────────────────
   /** Enable Claude Code hooks. */
   hooksEnabled?: boolean;
   /** Additional SDK options. */
   sdkOptions?: Record<string, unknown>;
   /** 3-tier model configuration (haiku/sonnet/opus). */
   modelTiers?: CcSdkModelTiers;
-  /** Called for agent lifecycle events. */
-  onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void;
-};
+} & SdkRunnerCallbacks;
 
 /** SDK event types from the Claude Agent SDK. */
 export type SdkEventType =

@@ -6,6 +6,7 @@ import {
   SandboxBrowserSchema,
   SandboxDockerSchema,
   SandboxPruneSchema,
+  validateCcsdkModelProvider,
 } from "./zod-schema.agent-runtime.js";
 import {
   BlockStreamingChunkSchema,
@@ -174,4 +175,17 @@ export const AgentDefaultsSchema = z
       .optional(),
   })
   .strict()
+  .superRefine((value, ctx) => {
+    // Validate CCSDK runtime requires compatible model provider
+    if (value.runtime === "ccsdk") {
+      const error = validateCcsdkModelProvider(value.model);
+      if (error) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["model"],
+          message: error,
+        });
+      }
+    }
+  })
   .optional();
