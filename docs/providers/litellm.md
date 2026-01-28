@@ -91,9 +91,41 @@ Then switch models using:
 clawdbot config set agents.defaults.model.primary litellm/claude-3-opus
 ```
 
+## Prompt caching
+
+When using Anthropic models through LiteLLM (e.g., `claude-opus-4-5`, `claude-sonnet-4-5`), Moltbot automatically enables **prompt caching** to reduce costs:
+
+```json5
+{
+  agents: {
+    defaults: {
+      models: {
+        "litellm/claude-opus-4-5": {
+          params: {
+            cacheControlTtl: "1h"  // Auto-configured for Claude models
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Cost savings with caching
+
+- **Without caching**: Every message pays full price for the entire conversation history
+- **With caching** (enabled by default): Repeated context costs 10x less
+
+Example from actual usage:
+- Without caching: 93k tokens × $0.000005 = **$0.47** per message
+- With caching: 123k tokens (mostly cached) = **$0.05** per message (90% savings!)
+
+Caching is **automatically enabled** for all `claude-*` models through LiteLLM.
+
 ## Notes
 
 - Model refs use `litellm/<modelId>` where `modelId` matches your LiteLLM config.
-- The base URL should not include `/v1` - Clawdbot's OpenAI client appends it.
+- The base URL should not include `/v1` - Moltbot's OpenAI client appends it.
 - Supported LiteLLM models depend on your proxy configuration.
+- **Prompt caching works automatically** when using Claude models through LiteLLM.
 - See [Model providers](/concepts/model-providers) for provider rules.
