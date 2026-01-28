@@ -58,8 +58,8 @@ export function applyZaiConfig(cfg: ClawdbrainConfig): ClawdbrainConfig {
 /**
  * Apply z.AI configuration for Claude Code SDK mode.
  *
- * Configures z.AI as a Claude Agent SDK provider under
- * `tools.codingTask.providers`, sets the agent runtime to "sdk",
+ * Configures z.AI as a Claude Code SDK provider under
+ * `tools.codingTask.providers`, sets the agent runtime to "ccsdk",
  * and enables the codingTask tool. The API key is resolved from
  * the auth profile store at runtime via the ${PROFILE} reference.
  */
@@ -79,7 +79,7 @@ export function applyZaiSdkConfig(cfg: ClawdbrainConfig): ClawdbrainConfig {
       ...cfg.agents,
       defaults: {
         ...cfg.agents?.defaults,
-        runtime: "sdk",
+        runtime: "ccsdk",
         models,
       },
     },

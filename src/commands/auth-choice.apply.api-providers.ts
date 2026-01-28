@@ -434,7 +434,7 @@ export async function applyAuthChoiceApiProviders(
 
   if (authChoice === "zai-sdk") {
     // z.AI via Claude Code SDK runtime: reuse the z.AI API key flow,
-    // then apply SDK-specific config (runtime: "sdk", codingTask providers).
+    // then apply SDK-specific config (runtime: "ccsdk", codingTask providers).
     let hasCredential = false;
 
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "zai") {
@@ -468,7 +468,7 @@ export async function applyAuthChoiceApiProviders(
       mode: "api_key",
     });
 
-    // Apply SDK runtime config (sets runtime: "sdk", enables codingTask, configures z.AI provider).
+    // Apply CCSDK runtime config (sets runtime: "ccsdk", enables codingTask, configures z.AI provider).
     nextConfig = applyZaiSdkConfig(nextConfig);
 
     await params.prompter.note(

@@ -45,7 +45,7 @@ export async function runMemoryFlushIfNeeded(params: {
 }): Promise<SessionEntry | undefined> {
   // Memory flush is a Pi-agent/session-context optimization; SDK main agent mode is an alternate
   // operating mode and does not participate in the same compaction/memory-flush loop.
-  if (resolveMainAgentRuntimeKind(params.cfg) === "sdk") return params.sessionEntry;
+  if (resolveMainAgentRuntimeKind(params.cfg) === "ccsdk") return params.sessionEntry;
 
   const memoryFlushSettings = resolveMemoryFlushSettings(params.cfg);
   if (!memoryFlushSettings) return params.sessionEntry;

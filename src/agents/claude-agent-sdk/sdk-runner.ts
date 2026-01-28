@@ -203,7 +203,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     }
   };
 
-  emitEvent("lifecycle", { phase: "start", startedAt, runtime: "sdk" });
+  emitEvent("lifecycle", { phase: "start", startedAt, runtime: "ccsdk" });
   emitEvent("sdk", { type: "sdk_runner_start", runId: params.runId });
 
   // -------------------------------------------------------------------------
@@ -220,7 +220,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       phase: "error",
       startedAt,
       endedAt: Date.now(),
-      runtime: "sdk",
+      runtime: "ccsdk",
       error: message,
     });
     return {
@@ -263,7 +263,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       phase: "error",
       startedAt,
       endedAt: Date.now(),
-      runtime: "sdk",
+      runtime: "ccsdk",
       error: message,
     });
     return {
@@ -572,7 +572,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         phase: "error",
         startedAt,
         endedAt: Date.now(),
-        runtime: "sdk",
+        runtime: "ccsdk",
         aborted: true,
         error: message,
       });
@@ -609,7 +609,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         phase: "error",
         startedAt,
         endedAt: Date.now(),
-        runtime: "sdk",
+        runtime: "ccsdk",
         error: message,
       });
       return {
@@ -649,7 +649,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       phase: "error",
       startedAt,
       endedAt: Date.now(),
-      runtime: "sdk",
+      runtime: "ccsdk",
       aborted,
       error: "No text output",
     });
@@ -701,7 +701,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     phase: "end",
     startedAt,
     endedAt: Date.now(),
-    runtime: "sdk",
+    runtime: "ccsdk",
     aborted,
     truncated,
   });

@@ -149,11 +149,11 @@ export async function runAgentTurnWithFallback(params: {
       const onToolResult = params.opts?.onToolResult;
 
       const runtimeKind = resolveMainAgentRuntimeKind(params.followupRun.run.config);
-      if (runtimeKind === "sdk") {
+      if (runtimeKind === "ccsdk") {
         // SDK main agent is an alternate operating mode; it doesn't follow the normal
         // provider/model selection + fallback semantics.
         params.opts?.onModelSelected?.({
-          provider: "sdk",
+          provider: "ccsdk",
           model: "default",
           thinkLevel: params.followupRun.run.thinkLevel,
         });
@@ -329,139 +329,6 @@ export async function runAgentTurnWithFallback(params: {
                 });
                 throw err;
               });
-          }
-
-          // SDK runner: use Claude Agent SDK as the main agent runtime.
-          if (isSdkRunnerEnabled(params.followupRun.run.config, params.followupRun.run.agentId)) {
-            return (async () => {
-              const startedAt = Date.now();
-              emitAgentEvent({
-                runId,
-                stream: "lifecycle",
-                data: { phase: "start", startedAt, runtime: "sdk" },
-              });
-
-              const sandbox = await resolveSandboxContext({
-                config: params.followupRun.run.config,
-                sessionKey: params.sessionKey,
-                workspaceDir: params.followupRun.run.workspaceDir,
-              });
-
-              const groupSession = resolveGroupSessionKey(params.sessionCtx);
-              const threadingContext = buildThreadingToolContext({
-                sessionCtx: params.sessionCtx,
-                config: params.followupRun.run.config,
-                hasRepliedRef: params.opts?.hasRepliedRef,
-              });
-
-              // Bridge Clawdbrain tools into the SDK via MCP and load conversation history.
-              const sdkTools = createClawdbrainCodingTools({
-                config: params.followupRun.run.config,
-                sandbox: sandbox ?? undefined,
-                workspaceDir: params.followupRun.run.workspaceDir,
-                sessionKey: params.sessionKey,
-                agentDir: params.followupRun.run.agentDir,
-                abortSignal: params.opts?.abortSignal,
-                messageProvider: params.sessionCtx.Provider?.trim().toLowerCase() || undefined,
-                agentAccountId: params.sessionCtx.AccountId,
-                messageTo: params.sessionCtx.OriginatingTo ?? params.sessionCtx.To,
-                messageThreadId: params.sessionCtx.MessageThreadId ?? undefined,
-                groupId: groupSession?.id,
-                groupChannel:
-                  params.sessionCtx.GroupChannel?.trim() ?? params.sessionCtx.GroupSubject?.trim(),
-                groupSpace: params.sessionCtx.GroupSpace?.trim() ?? undefined,
-                currentChannelId: threadingContext.currentChannelId,
-                currentThreadTs: threadingContext.currentThreadTs,
-                replyToMode: threadingContext.replyToMode,
-                hasRepliedRef: params.opts?.hasRepliedRef,
-              });
-              const conversationHistory = loadSessionHistoryForSdk({
-                sessionFile: params.followupRun.run.sessionFile,
-              });
-              const sdkRuntime = createSdkAgentRuntime({
-                tools: sdkTools,
-                conversationHistory,
-              });
-
-              return sdkRuntime
-                .run({
-                  sessionId: params.followupRun.run.sessionId,
-                  sessionKey: params.sessionKey,
-                  sessionFile: params.followupRun.run.sessionFile,
-                  workspaceDir: params.followupRun.run.workspaceDir,
-                  agentDir: params.followupRun.run.agentDir,
-                  config: params.followupRun.run.config,
-                  prompt: params.commandBody,
-                  extraSystemPrompt: params.followupRun.run.extraSystemPrompt,
-                  ownerNumbers: params.followupRun.run.ownerNumbers,
-                  timeoutMs: params.followupRun.run.timeoutMs,
-                  runId,
-                  abortSignal: params.opts?.abortSignal,
-                  onPartialReply: allowPartialStream
-                    ? async (payload) => {
-                        const textForTyping = await handlePartialForTyping(payload as ReplyPayload);
-                        if (!params.opts?.onPartialReply || textForTyping === undefined) return;
-                        await params.opts.onPartialReply({ text: textForTyping });
-                      }
-                    : undefined,
-                  onAssistantMessageStart: async () => {
-                    await params.typingSignals.signalMessageStart();
-                  },
-                  onToolResult: onToolResult
-                    ? (payload) => {
-                        void (async () => {
-                          const { text, skip } = normalizeStreamingText(payload as ReplyPayload);
-                          if (skip) return;
-                          await params.typingSignals.signalTextDelta(text);
-                          await onToolResult({ text });
-                        })().catch((err) => {
-                          logVerbose(`tool result delivery failed: ${String(err)}`);
-                        });
-                      }
-                    : undefined,
-                  onAgentEvent: (evt) => {
-                    // Forward SDK events into the shared agent event bus.
-                    // This keeps server-chat / UIs consistent across runtimes.
-                    emitAgentEvent({
-                      runId,
-                      stream: evt.stream,
-                      data: evt.data,
-                      sessionKey: params.sessionKey,
-                    });
-
-                    if (evt.stream === "tool") {
-                      const phase = typeof evt.data.phase === "string" ? evt.data.phase : "";
-                      if (phase === "start" || phase === "update") {
-                        void params.typingSignals.signalToolStart().catch((err) => {
-                          logVerbose(`tool typing signal failed: ${String(err)}`);
-                        });
-                      }
-                    }
-                  },
-                })
-                .then((result) => {
-                  emitAgentEvent({
-                    runId,
-                    stream: "lifecycle",
-                    data: { phase: "end", startedAt, endedAt: Date.now(), runtime: "sdk" },
-                  });
-                  return result;
-                })
-                .catch((err) => {
-                  emitAgentEvent({
-                    runId,
-                    stream: "lifecycle",
-                    data: {
-                      phase: "error",
-                      startedAt,
-                      endedAt: Date.now(),
-                      runtime: "sdk",
-                      error: err instanceof Error ? err.message : String(err),
-                    },
-                  });
-                  throw err;
-                });
-            })();
           }
 
           const authProfileId =

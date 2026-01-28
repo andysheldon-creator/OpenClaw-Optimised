@@ -91,17 +91,20 @@ export type CliBackendConfig = {
   serialize?: boolean;
 };
 
-export type AgentRuntime = "pi" | "sdk";
+export type AgentRuntime = "pi" | "ccsdk";
+export type ClaudeCodeSDKProviderKey = "anthropic" | "zai" | "openrouter";
 
 export type AgentDefaultsConfig = {
   /**
    * Agent runtime engine selection.
    * - "pi" (default): Pi Agent embedded runner (multi-turn, session history)
-   * - "sdk": Claude Agent SDK runner (stateless per query; multi-turn continuity via transcript injection)
+   * - "ccsdk": Claude Code SDK runner (stateless per query; multi-turn continuity via transcript injection)
    */
   runtime?: AgentRuntime;
   /** Runtime override exclusively for the main agent loop. Falls back to `runtime` when unset. */
   mainRuntime?: AgentRuntime;
+  /** Which well-known CCSDK provider backend to use for the main agent (when mainRuntime is "ccsdk"). */
+  mainCcsdkProvider?: ClaudeCodeSDKProviderKey;
   /** Primary model and fallbacks (provider/model). */
   model?: AgentModelListConfig;
   /** Optional image-capable model and fallbacks (provider/model). */

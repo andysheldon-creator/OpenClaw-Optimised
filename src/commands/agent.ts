@@ -236,7 +236,7 @@ export async function agentCommand(
       });
     }
 
-    const isMainSdk = mainRuntimeKind === "sdk";
+    const isMainSdk = mainRuntimeKind === "ccsdk";
     const agentModelPrimary = isMainSdk ? undefined : resolveAgentModelPrimary(cfg, sessionAgentId);
     const cfgForModelSelection =
       !isMainSdk && agentModelPrimary
@@ -396,7 +396,7 @@ export async function agentCommand(
         opts.replyChannel ?? opts.channel,
       );
       const spawnedBy = opts.spawnedBy ?? sessionEntry?.spawnedBy;
-      if (mainRuntimeKind === "sdk") {
+      if (mainRuntimeKind === "ccsdk") {
         const sdkRuntime = await createSdkMainAgentRuntime({
           config: cfg,
           sessionKey,

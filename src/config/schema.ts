@@ -289,6 +289,9 @@ const FIELD_LABELS: Record<string, string> = {
   "auth.cooldowns.billingBackoffHoursByProvider": "Billing Backoff Overrides",
   "auth.cooldowns.billingMaxHours": "Billing Backoff Cap (hours)",
   "auth.cooldowns.failureWindowHours": "Failover Window (hours)",
+  "agents.defaults.runtime": "Default Runtime",
+  "agents.defaults.mainRuntime": "Main Agent Runtime",
+  "agents.defaults.mainCcsdkProvider": "Main Agent CCSDK Provider",
   "agents.defaults.models": "Models",
   "agents.defaults.model.primary": "Primary Model",
   "agents.defaults.model.fallbacks": "Model Fallbacks",
@@ -537,6 +540,12 @@ const FIELD_HELP: Record<string, string> = {
   "agents.defaults.envelopeTimestamp":
     'Include absolute timestamps in message envelopes ("on" or "off").',
   "agents.defaults.envelopeElapsed": 'Include elapsed time in message envelopes ("on" or "off").',
+  "agents.defaults.runtime":
+    'Global agent runtime engine ("pi" = embedded Pi Agent, "ccsdk" = Claude Code SDK).',
+  "agents.defaults.mainRuntime":
+    'Runtime override for the main agent loop only. Falls back to "Default Runtime" when unset.',
+  "agents.defaults.mainCcsdkProvider":
+    'Which provider backend to use for the main agent when running in CCSDK mode ("anthropic", "zai", or "openrouter").',
   "agents.defaults.models": "Configured model catalog (keys are full provider/model IDs).",
   "agents.defaults.memorySearch":
     "Vector search over MEMORY.md and memory/*.md (per-agent overrides supported).",

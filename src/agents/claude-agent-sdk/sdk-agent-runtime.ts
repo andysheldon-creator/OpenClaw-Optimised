@@ -39,7 +39,7 @@ export type SdkRuntimeContext = {
  */
 export function createSdkAgentRuntime(context: SdkRuntimeContext): AgentRuntime {
   return {
-    kind: "sdk",
+    kind: "ccsdk",
     displayName: "Claude Agent SDK",
     async run(params: AgentRuntimeRunParams): Promise<AgentRuntimeResult> {
       return runSdkAgentAdapted({

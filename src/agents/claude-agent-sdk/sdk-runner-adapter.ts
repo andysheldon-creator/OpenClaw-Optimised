@@ -29,6 +29,7 @@ import type { SdkConversationTurn, SdkRunnerResult } from "./sdk-runner.types.js
 const PROVIDER_AUTH_PROFILES: Record<string, string> = {
   zai: "zai:default",
   anthropic: "anthropic:default",
+  openrouter: "openrouter:default",
 };
 
 /**

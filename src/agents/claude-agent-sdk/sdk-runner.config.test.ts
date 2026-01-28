@@ -4,11 +4,13 @@ import type { ClawdbrainConfig } from "../../config/config.js";
 import type { AuthProfileStore } from "../auth-profiles/types.js";
 import {
   buildAnthropicSdkProvider,
+  buildOpenRouterSdkProvider,
   buildZaiSdkProvider,
   enrichProvidersWithAuthProfiles,
   resolveApiKeyFromAuthProfile,
   resolveDefaultSdkProvider,
   resolveSdkProviders,
+  resolveWellKnownProvider,
   isSdkRunnerEnabled,
 } from "./sdk-runner.config.js";
 
@@ -60,38 +62,38 @@ describe("isSdkRunnerEnabled", () => {
     expect(isSdkRunnerEnabled(config)).toBe(false);
   });
 
-  it("returns true when agents.main.runtime is sdk", () => {
+  it("returns true when agents.main.runtime is ccsdk", () => {
     const config: ClawdbrainConfig = {
-      agents: { main: { runtime: "sdk" } },
+      agents: { main: { runtime: "ccsdk" } },
     };
     expect(isSdkRunnerEnabled(config)).toBe(true);
   });
 
   it("falls back to agents.defaults.runtime when agents.main.runtime is unset", () => {
     const config: ClawdbrainConfig = {
-      agents: { defaults: { runtime: "sdk" } },
+      agents: { defaults: { runtime: "ccsdk" } },
     };
     expect(isSdkRunnerEnabled(config)).toBe(true);
   });
 
   describe("mainRuntime override", () => {
-    it("mainRuntime=sdk enables SDK for main agent", () => {
+    it("mainRuntime=ccsdk enables SDK for main agent", () => {
       const config: ClawdbrainConfig = {
-        agents: { defaults: { mainRuntime: "sdk" } },
+        agents: { defaults: { mainRuntime: "ccsdk" } },
       };
       expect(isSdkRunnerEnabled(config, "main")).toBe(true);
     });
 
-    it("mainRuntime=sdk does not affect non-main agents", () => {
+    it("mainRuntime=ccsdk does not affect non-main agents", () => {
       const config: ClawdbrainConfig = {
-        agents: { defaults: { mainRuntime: "sdk" } },
+        agents: { defaults: { mainRuntime: "ccsdk" } },
       };
       expect(isSdkRunnerEnabled(config, "assistant2")).toBe(false);
     });
 
-    it("mainRuntime=pi overrides global runtime=sdk for main agent", () => {
+    it("mainRuntime=pi overrides global runtime=ccsdk for main agent", () => {
       const config: ClawdbrainConfig = {
-        agents: { defaults: { mainRuntime: "pi", runtime: "sdk" } },
+        agents: { defaults: { mainRuntime: "pi", runtime: "ccsdk" } },
       };
       expect(isSdkRunnerEnabled(config, "main")).toBe(false);
       expect(isSdkRunnerEnabled(config, "assistant2")).toBe(true);
@@ -99,14 +101,14 @@ describe("isSdkRunnerEnabled", () => {
 
     it("falls back to runtime when mainRuntime is not set", () => {
       const config: ClawdbrainConfig = {
-        agents: { defaults: { runtime: "sdk" } },
+        agents: { defaults: { runtime: "ccsdk" } },
       };
       expect(isSdkRunnerEnabled(config, "main")).toBe(true);
     });
 
     it("no agentId falls back to runtime (backward compat)", () => {
       const config: ClawdbrainConfig = {
-        agents: { defaults: { mainRuntime: "sdk" } },
+        agents: { defaults: { mainRuntime: "ccsdk" } },
       };
       expect(isSdkRunnerEnabled(config)).toBe(false);
     });
@@ -396,5 +398,121 @@ describe("enrichProvidersWithAuthProfiles", () => {
     ];
     const enriched = enrichProvidersWithAuthProfiles({ providers, store });
     expect(enriched[0].config.env).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildOpenRouterSdkProvider
+// ---------------------------------------------------------------------------
+
+describe("buildOpenRouterSdkProvider", () => {
+  it("returns provider with OpenRouter base URL", () => {
+    const provider = buildOpenRouterSdkProvider();
+    expect(provider.name).toBe("OpenRouter");
+    expect(provider.env?.ANTHROPIC_BASE_URL).toBe("https://openrouter.ai/api");
+  });
+
+  it("does not pre-fill ANTHROPIC_AUTH_TOKEN", () => {
+    const provider = buildOpenRouterSdkProvider();
+    expect(provider.env?.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveWellKnownProvider
+// ---------------------------------------------------------------------------
+
+describe("resolveWellKnownProvider", () => {
+  it("returns Anthropic provider for 'anthropic'", () => {
+    const entry = resolveWellKnownProvider("anthropic");
+    expect(entry).toBeDefined();
+    expect(entry!.key).toBe("anthropic");
+    expect(entry!.config.name).toBe("Anthropic (Claude Code)");
+  });
+
+  it("returns z.AI provider (without API key) for 'zai'", () => {
+    const entry = resolveWellKnownProvider("zai");
+    expect(entry).toBeDefined();
+    expect(entry!.key).toBe("zai");
+    expect(entry!.config.name).toBe("z.AI (GLM 4.7)");
+    expect(entry!.config.env?.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+    expect(entry!.config.env?.ANTHROPIC_BASE_URL).toBe("https://api.z.ai/api/anthropic");
+  });
+
+  it("returns OpenRouter provider for 'openrouter'", () => {
+    const entry = resolveWellKnownProvider("openrouter");
+    expect(entry).toBeDefined();
+    expect(entry!.key).toBe("openrouter");
+    expect(entry!.config.name).toBe("OpenRouter");
+    expect(entry!.config.env?.ANTHROPIC_BASE_URL).toBe("https://openrouter.ai/api");
+  });
+
+  it("returns undefined for unknown keys", () => {
+    expect(resolveWellKnownProvider("unknown")).toBeUndefined();
+    expect(resolveWellKnownProvider("")).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mainCcsdkProvider resolution
+// ---------------------------------------------------------------------------
+
+describe("mainCcsdkProvider resolution", () => {
+  it("mainCcsdkProvider: 'openrouter' returns OpenRouter entry", () => {
+    const config: ClawdbrainConfig = {
+      agents: { defaults: { mainCcsdkProvider: "openrouter" } },
+    };
+    const provider = resolveDefaultSdkProvider({ config });
+    expect(provider?.key).toBe("openrouter");
+    expect(provider?.config.name).toBe("OpenRouter");
+  });
+
+  it("mainCcsdkProvider: 'zai' returns z.AI entry (no API key)", () => {
+    const config: ClawdbrainConfig = {
+      agents: { defaults: { mainCcsdkProvider: "zai" } },
+    };
+    const provider = resolveDefaultSdkProvider({ config });
+    expect(provider?.key).toBe("zai");
+    expect(provider?.config.env?.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+  });
+
+  it("mainCcsdkProvider: 'anthropic' returns Anthropic entry", () => {
+    const config: ClawdbrainConfig = {
+      agents: { defaults: { mainCcsdkProvider: "anthropic" } },
+    };
+    const provider = resolveDefaultSdkProvider({ config });
+    expect(provider?.key).toBe("anthropic");
+    expect(provider?.config.name).toBe("Anthropic (Claude Code)");
+  });
+
+  it("mainCcsdkProvider takes precedence over tools.codingTask.providers", () => {
+    const config: ClawdbrainConfig = {
+      agents: { defaults: { mainCcsdkProvider: "openrouter" } },
+      tools: {
+        codingTask: {
+          enabled: true,
+          providers: {
+            zai: { env: { ANTHROPIC_BASE_URL: "https://api.z.ai/api/anthropic" } },
+          },
+        },
+      },
+    };
+    const provider = resolveDefaultSdkProvider({ config });
+    expect(provider?.key).toBe("openrouter");
+  });
+
+  it("falls back to tools.codingTask.providers when mainCcsdkProvider is unset", () => {
+    const config: ClawdbrainConfig = {
+      tools: {
+        codingTask: {
+          enabled: true,
+          providers: {
+            anthropic: {},
+          },
+        },
+      },
+    };
+    const provider = resolveDefaultSdkProvider({ config });
+    expect(provider?.key).toBe("anthropic");
   });
 });

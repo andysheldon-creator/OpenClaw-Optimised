@@ -76,7 +76,7 @@ export type AgentsConfig = {
      * Claude Agent SDK (TypeScript) runtime tuning for the main agent loop.
      *
      * This is intentionally runtime-specific and only applies when the main
-     * runtime is "sdk".
+     * runtime is "ccsdk".
      */
     sdk?: {
       /** Enable Claude Code hook wiring for richer lifecycle/tool parity. */

@@ -45,7 +45,7 @@ describe("AgentRuntime interface conformance", () => {
 
   it("createSdkAgentRuntime produces correct kind and displayName", () => {
     const runtime: AgentRuntime = createSdkAgentRuntime({ tools: [] });
-    expect(runtime.kind).toBe("sdk");
+    expect(runtime.kind).toBe("ccsdk");
     expect(runtime.displayName).toBe("Claude Agent SDK");
   });
 
@@ -69,9 +69,9 @@ describe("AgentRuntime interface conformance", () => {
 // ---------------------------------------------------------------------------
 
 describe("Runtime selection via isSdkRunnerEnabled", () => {
-  it("returns true when agents.main.runtime is sdk", () => {
+  it("returns true when agents.main.runtime is ccsdk", () => {
     const config = {
-      agents: { main: { runtime: "sdk" } },
+      agents: { main: { runtime: "ccsdk" } },
     } as ClawdbrainConfig;
     expect(isSdkRunnerEnabled(config)).toBe(true);
   });
@@ -93,14 +93,14 @@ describe("Runtime selection via isSdkRunnerEnabled", () => {
 
   it("falls back to agents.defaults.runtime when agents.main.runtime is unset", () => {
     const config = {
-      agents: { defaults: { runtime: "sdk" } },
+      agents: { defaults: { runtime: "ccsdk" } },
     } as ClawdbrainConfig;
     expect(isSdkRunnerEnabled(config)).toBe(true);
   });
 
   it("agents.main.runtime takes precedence over agents.defaults.runtime", () => {
     const config = {
-      agents: { main: { runtime: "pi" }, defaults: { runtime: "sdk" } },
+      agents: { main: { runtime: "pi" }, defaults: { runtime: "ccsdk" } },
     } as ClawdbrainConfig;
     expect(isSdkRunnerEnabled(config)).toBe(false);
   });
@@ -120,23 +120,23 @@ describe("Runtime selection via isSdkRunnerEnabled", () => {
   });
 
   describe("mainRuntime override", () => {
-    it("mainRuntime=sdk enables SDK for main agent", () => {
+    it("mainRuntime=ccsdk enables SDK for main agent", () => {
       const config = {
-        agents: { defaults: { mainRuntime: "sdk" } },
+        agents: { defaults: { mainRuntime: "ccsdk" } },
       } as ClawdbrainConfig;
       expect(isSdkRunnerEnabled(config, "main")).toBe(true);
     });
 
-    it("mainRuntime=sdk does not affect non-main agents", () => {
+    it("mainRuntime=ccsdk does not affect non-main agents", () => {
       const config = {
-        agents: { defaults: { mainRuntime: "sdk" } },
+        agents: { defaults: { mainRuntime: "ccsdk" } },
       } as ClawdbrainConfig;
       expect(isSdkRunnerEnabled(config, "assistant2")).toBe(false);
     });
 
-    it("mainRuntime=pi overrides runtime=sdk for main agent", () => {
+    it("mainRuntime=pi overrides runtime=ccsdk for main agent", () => {
       const config = {
-        agents: { defaults: { mainRuntime: "pi", runtime: "sdk" } },
+        agents: { defaults: { mainRuntime: "pi", runtime: "ccsdk" } },
       } as ClawdbrainConfig;
       expect(isSdkRunnerEnabled(config, "main")).toBe(false);
       expect(isSdkRunnerEnabled(config, "assistant2")).toBe(true);
@@ -144,14 +144,14 @@ describe("Runtime selection via isSdkRunnerEnabled", () => {
 
     it("falls back to runtime when mainRuntime is unset", () => {
       const config = {
-        agents: { defaults: { runtime: "sdk" } },
+        agents: { defaults: { runtime: "ccsdk" } },
       } as ClawdbrainConfig;
       expect(isSdkRunnerEnabled(config, "main")).toBe(true);
     });
 
     it("no agentId falls back to runtime (backward compat)", () => {
       const config = {
-        agents: { defaults: { mainRuntime: "sdk" } },
+        agents: { defaults: { mainRuntime: "ccsdk" } },
       } as ClawdbrainConfig;
       expect(isSdkRunnerEnabled(config)).toBe(false);
     });
@@ -159,7 +159,7 @@ describe("Runtime selection via isSdkRunnerEnabled", () => {
 
   it("runtime sdk takes precedence over codingTask disabled", () => {
     const config = {
-      agents: { main: { runtime: "sdk" } },
+      agents: { main: { runtime: "ccsdk" } },
       tools: {
         codingTask: {
           enabled: false,

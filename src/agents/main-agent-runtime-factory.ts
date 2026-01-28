@@ -8,11 +8,15 @@ import type { AnyAgentTool } from "./tools/common.js";
 import { resolveSandboxContext } from "./sandbox.js";
 import type { SandboxContext } from "./sandbox.js";
 
-export type MainAgentRuntimeKind = "pi" | "sdk";
+export type MainAgentRuntimeKind = "pi" | "ccsdk";
 
 export function resolveMainAgentRuntimeKind(config?: ClawdbrainConfig): MainAgentRuntimeKind {
-  const configured = config?.agents?.main?.runtime ?? config?.agents?.defaults?.runtime;
-  return configured === "sdk" ? "sdk" : "pi";
+  // mainRuntime overrides the global runtime for the main agent only.
+  const configured =
+    config?.agents?.defaults?.mainRuntime ??
+    config?.agents?.main?.runtime ??
+    config?.agents?.defaults?.runtime;
+  return configured === "ccsdk" ? "ccsdk" : "pi";
 }
 
 export type CreateSdkMainAgentRuntimeParams = {

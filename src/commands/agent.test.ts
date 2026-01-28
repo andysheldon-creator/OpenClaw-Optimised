@@ -24,11 +24,11 @@ vi.mock("../agents/claude-agent-sdk/sdk-session-history.js", () => ({
 }));
 vi.mock("../agents/claude-agent-sdk/sdk-agent-runtime.js", () => ({
   createSdkAgentRuntime: vi.fn(() => ({
-    kind: "sdk",
+    kind: "ccsdk",
     displayName: "Claude Agent SDK",
     run: vi.fn(async () => ({
       payloads: [{ text: "sdk-ok" }],
-      meta: { durationMs: 5, agentMeta: { sessionId: "s", provider: "sdk", model: "default" } },
+      meta: { durationMs: 5, agentMeta: { sessionId: "s", provider: "ccsdk", model: "default" } },
     })),
   })),
 }));
@@ -67,7 +67,7 @@ function mockConfig(
   agentOverrides?: Partial<NonNullable<NonNullable<ClawdbrainConfig["agents"]>["defaults"]>>,
   telegramOverrides?: Partial<NonNullable<ClawdbrainConfig["telegram"]>>,
   agentsList?: Array<{ id: string; default?: boolean }>,
-  agentsMainRuntime?: "pi" | "sdk",
+  agentsMainRuntime?: "pi" | "ccsdk",
 ) {
   configSpy.mockReturnValue({
     agents: {
@@ -138,7 +138,7 @@ describe("agentCommand", () => {
   it("runs SDK main agent when agents.main.runtime is sdk", async () => {
     await withTempHome(async (home) => {
       const store = path.join(home, "sessions.json");
-      mockConfig(home, store, undefined, undefined, undefined, "sdk");
+      mockConfig(home, store, undefined, undefined, undefined, "ccsdk");
 
       await agentCommand({ message: "hi", to: "+1555" }, runtime);
 

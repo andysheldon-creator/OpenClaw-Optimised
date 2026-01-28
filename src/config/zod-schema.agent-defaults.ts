@@ -153,9 +153,11 @@ export const AgentDefaultsSchema = z
       })
       .strict()
       .optional(),
-    runtime: z.enum(["pi", "sdk"]).optional(),
+    runtime: z.enum(["pi", "ccsdk"]).optional(),
     /** Runtime override exclusively for the main agent loop. Falls back to `runtime` when unset. */
-    mainRuntime: z.enum(["pi", "sdk"]).optional(),
+    mainRuntime: z.enum(["pi", "ccsdk"]).optional(),
+    /** Which well-known CCSDK provider backend to use for the main agent (when mainRuntime is "ccsdk"). */
+    mainCcsdkProvider: z.enum(["anthropic", "zai", "openrouter"]).optional(),
     sandbox: z
       .object({
         mode: z.union([z.literal("off"), z.literal("non-main"), z.literal("all")]).optional(),

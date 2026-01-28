@@ -328,7 +328,15 @@ export function filterAgentNodes(nodes: AgentNode[], search: string): AgentNode[
         .filter(Boolean) as ChannelSection[];
 
       if (filteredChannels.length === 0) return null;
-      return { ...node, channels: filteredChannels };
+
+      // Recalculate totalSessions from filtered channels
+      let filteredTotalSessions = 0;
+      for (const ch of filteredChannels) {
+        filteredTotalSessions += ch.groups.length + ch.threads.length;
+      }
+      if (filteredTotalSessions === 0) return null;
+
+      return { ...node, channels: filteredChannels, totalSessions: filteredTotalSessions };
     })
     .filter(Boolean) as AgentNode[];
 }

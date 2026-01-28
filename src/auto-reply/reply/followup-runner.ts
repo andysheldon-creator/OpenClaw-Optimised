@@ -135,7 +135,7 @@ export function createFollowupRunner(params: {
       let fallbackModel = queued.run.model;
       try {
         const runtimeKind = resolveMainAgentRuntimeKind(queued.run.config);
-        if (runtimeKind === "sdk") {
+        if (runtimeKind === "ccsdk") {
           const sdkRuntime = await createSdkMainAgentRuntime({
             config: queued.run.config,
             sessionKey: queued.run.sessionKey,

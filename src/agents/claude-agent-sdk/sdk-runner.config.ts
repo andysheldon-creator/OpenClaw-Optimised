@@ -52,6 +52,61 @@ export function buildAnthropicSdkProvider(): SdkProviderConfig {
   };
 }
 
+/** OpenRouter Anthropic-compatible endpoint. */
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api";
+
+/**
+ * Build the SDK provider config for OpenRouter.
+ * API key is expected to be resolved from the auth profile store at runtime.
+ */
+export function buildOpenRouterSdkProvider(): SdkProviderConfig {
+  return {
+    name: "OpenRouter",
+    env: {
+      ANTHROPIC_BASE_URL: OPENROUTER_BASE_URL,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Well-known provider resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a well-known provider by key.
+ *
+ * Returns a SdkProviderEntry for the given key ("anthropic", "zai",
+ * "openrouter") or undefined if the key is not recognized.
+ *
+ * NOTE: For providers that require an API key (z.AI, OpenRouter), the key is
+ * NOT pre-filled — it must be resolved separately from the auth profile store
+ * or environment at runtime.
+ */
+export function resolveWellKnownProvider(key: string): SdkProviderEntry | undefined {
+  switch (key) {
+    case "anthropic":
+      return { key: "anthropic", config: buildAnthropicSdkProvider() };
+    case "zai":
+      return {
+        key: "zai",
+        config: {
+          name: "z.AI (GLM 4.7)",
+          env: {
+            ANTHROPIC_BASE_URL: ZAI_BASE_URL,
+            API_TIMEOUT_MS: ZAI_DEFAULT_TIMEOUT_MS,
+            ANTHROPIC_DEFAULT_SONNET_MODEL: "glm-4.7",
+            ANTHROPIC_DEFAULT_OPUS_MODEL: "glm-4.7",
+            ANTHROPIC_DEFAULT_HAIKU_MODEL: "glm-4.5-air",
+          },
+        },
+      };
+    case "openrouter":
+      return { key: "openrouter", config: buildOpenRouterSdkProvider() };
+    default:
+      return undefined;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Config → SdkProviderConfig resolution
 // ---------------------------------------------------------------------------
@@ -148,23 +203,42 @@ function resolveEnvValue(value: string, env: NodeJS.ProcessEnv): string {
  */
 export function isSdkRunnerEnabled(config?: ClawdbrainConfig, agentId?: string): boolean {
   const defaults = config?.agents?.defaults;
-  // For the main agent, prefer mainRuntime when explicitly set.
+  // For the main agent (or when agentId is not provided but agents.main.runtime is set),
+  // prefer mainRuntime when explicitly set.
   if (agentId && normalizeAgentId(agentId) === DEFAULT_AGENT_ID) {
-    return resolveMainAgentRuntimeKind(config) == "sdk";
+    return resolveMainAgentRuntimeKind(config) === "ccsdk";
   }
-  return defaults?.runtime === "sdk"; 
+  // When no agentId: check agents.main.runtime first, then fall back to agents.defaults.runtime.
+  const mainRuntime = config?.agents?.main?.runtime;
+  if (!agentId && mainRuntime) {
+    return mainRuntime === "ccsdk";
+  }
+  return defaults?.runtime === "ccsdk";
 }
 
 /**
  * Resolve the default SDK provider from config.
  *
- * Prefers "zai" if configured, otherwise the first available provider.
+ * Resolution order:
+ * 1. `agents.defaults.mainCcsdkProvider` — explicit well-known provider selection.
+ * 2. `tools.codingTask.providers` — legacy provider configuration fallback.
+ *
+ * Within the legacy fallback, prefers "zai" if configured, then "anthropic",
+ * then the first available provider.
  * Returns undefined if no providers are configured.
  */
 export function resolveDefaultSdkProvider(params: {
   config?: ClawdbrainConfig;
   env?: NodeJS.ProcessEnv;
 }): SdkProviderEntry | undefined {
+  // 1. Explicit main CCSDK provider selection takes priority.
+  const mainCcsdkProvider = params.config?.agents?.defaults?.mainCcsdkProvider;
+  if (mainCcsdkProvider) {
+    const wellKnown = resolveWellKnownProvider(mainCcsdkProvider);
+    if (wellKnown) return wellKnown;
+  }
+
+  // 2. Fall back to tools.codingTask.providers (existing logic).
   const providers = resolveSdkProviders(params);
   if (providers.length === 0) return undefined;
 
@@ -192,6 +266,7 @@ export function resolveDefaultSdkProvider(params: {
 const PROVIDER_TO_AUTH_PROFILE: Record<string, string> = {
   zai: "zai:default",
   anthropic: "anthropic:default",
+  openrouter: "openrouter:default",
 };
 
 /**

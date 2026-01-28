@@ -130,7 +130,7 @@ export async function runCronIsolatedAgentTurn(params: {
     agents: Object.assign({}, params.cfg.agents, { defaults: agentCfg }),
   };
   const mainRuntimeKind = resolveMainAgentRuntimeKind(cfgWithAgentDefaults);
-  const isMainSdk = mainRuntimeKind === "sdk";
+  const isMainSdk = mainRuntimeKind === "ccsdk";
 
   const baseSessionKey = (params.sessionKey?.trim() || `cron:${params.job.id}`).trim();
   const agentSessionKey = buildAgentMainSessionKey({
