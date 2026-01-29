@@ -359,6 +359,38 @@ killall -9 moltbot && pm2 restart moltbot-gateway
 
 ---
 
+## Telegram Plugin Commands Overflow (Jan 29, 2026)
+
+**Problem:** Bot crashed during Telegram initialization with `BOT_COMMANDS_TOO_MUCH` error.
+
+**Symptoms:**
+- Gateway failed at startup: `setMyCommands failed: Call to 'setMyCommands' failed! (400: Bad Request: BOT_COMMANDS_TOO_MUCH)`
+- Telegram provider initialization failed
+- Bot unresponsive to messages
+
+**Root Cause:**
+Many extensions are installed (Discord, Matrix, Mattermost, Teams, etc.). These extensions were registering their plugin commands for Telegram. Telegram's API has a hard limit of 100 commands per bot. With all extensions registering commands, the limit was exceeded.
+
+**Solution:** Disabled plugin command registration for Telegram.
+
+**Config Change:**
+```json
+"plugins": {
+  "entries": {
+    "telegram": {
+      "enabled": false
+    }
+  }
+}
+```
+Location: `/root/.clawdbot/moltbot.json`
+
+**Effect:** Extensions can still be used on other channels (Discord, Slack, etc.) but won't try to register commands on Telegram. This is correct because most extension commands aren't applicable to Telegram anyway.
+
+**Status:** ✅ Fixed. Bot now initializes cleanly, processes Telegram messages without crashing.
+
+---
+
 ## Configuration Summary
 
 ### Model Fallback Chain
