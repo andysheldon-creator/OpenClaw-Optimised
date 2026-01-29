@@ -30,6 +30,9 @@ Cost note: each sub-agent has its **own** context and token usage. For heavy or 
 tasks, set a cheaper model for sub-agents and keep your main agent on a higher-quality model.
 You can configure this via `agents.defaults.subagents.model` or per-agent overrides.
 
+Thinking level: sub-agents inherit the caller's thinking level by default. Override globally
+via `agents.defaults.subagents.thinking` or per-spawn via the `thinking` tool param.
+
 ## Tool
 
 Use `sessions_spawn`:
@@ -102,7 +105,9 @@ Override via config:
   agents: {
     defaults: {
       subagents: {
-        maxConcurrent: 1
+        maxConcurrent: 1,
+        model: "anthropic/claude-haiku-4",
+        thinking: "low"
       }
     }
   },

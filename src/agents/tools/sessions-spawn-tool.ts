@@ -176,6 +176,10 @@ export function createSessionsSpawnTool(opts?: {
           });
         }
         thinkingOverride = normalized;
+      } else {
+        // Fall back to config defaults if no explicit override
+        thinkingOverride =
+          targetAgentConfig?.subagents?.thinking ?? cfg.agents?.defaults?.subagents?.thinking;
       }
       if (resolvedModel) {
         try {
