@@ -4,12 +4,13 @@ services:
     environment:
       HOME: /home/node
       TERM: xterm-256color
+      MOLTBOT_STATE_DIR: /home/node/.moltbot
       CLAWDBOT_GATEWAY_TOKEN: ${CLAWDBOT_GATEWAY_TOKEN}
       CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
       CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
       CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
     volumes:
-      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.clawdbot
+      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.moltbot
       - ${CLAWDBOT_WORKSPACE_DIR}:/home/node/clawd
     ports:
       - "${CLAWDBOT_GATEWAY_PORT:-18789}:18789"
@@ -33,11 +34,12 @@ services:
       HOME: /home/node
       TERM: xterm-256color
       BROWSER: echo
+      MOLTBOT_STATE_DIR: /home/node/.moltbot
       CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
       CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
       CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
     volumes:
-      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.clawdbot
+      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.moltbot
       - ${CLAWDBOT_WORKSPACE_DIR}:/home/node/clawd
     stdin_open: true
     tty: true
