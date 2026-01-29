@@ -8,10 +8,10 @@ RUN corepack enable
 
 WORKDIR /app
 
-ARG CLAWDBOT_DOCKER_APT_PACKAGES=""
-RUN if [ -n "$CLAWDBOT_DOCKER_APT_PACKAGES" ]; then \
+ARG MOLTBOT_DOCKER_APT_PACKAGES=""
+RUN if [ -n "$MOLTBOT_DOCKER_APT_PACKAGES" ]; then \
       apt-get update && \
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $CLAWDBOT_DOCKER_APT_PACKAGES && \
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $MOLTBOT_DOCKER_APT_PACKAGES && \
       apt-get clean && \
       rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*; \
     fi
@@ -55,9 +55,9 @@ COPY extensions/zalouser/package.json ./extensions/zalouser/package.json
 RUN pnpm install --no-frozen-lockfile
 
 COPY . .
-RUN CLAWDBOT_A2UI_SKIP_MISSING=1 pnpm build
+RUN MOLTBOT_A2UI_SKIP_MISSING=1 pnpm build
 # Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
-ENV CLAWDBOT_PREFER_PNPM=1
+ENV MOLTBOT_PREFER_PNPM=1
 RUN pnpm ui:install
 RUN pnpm ui:build
 
