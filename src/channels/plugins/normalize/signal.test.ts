@@ -3,6 +3,28 @@ import { describe, expect, it } from "vitest";
 import { looksLikeSignalTargetId, normalizeSignalMessagingTarget } from "./signal.js";
 
 describe("signal target normalization", () => {
+  describe("group targets", () => {
+    it("preserves case for base64-encoded group IDs", () => {
+      // Signal group IDs are base64-encoded and case-sensitive
+      expect(
+        normalizeSignalMessagingTarget("group:igVOP2EJR1sBXYYwsLhif/AEMTJWtiDiTyu88GWP5ZQ="),
+      ).toBe("group:igVOP2EJR1sBXYYwsLhif/AEMTJWtiDiTyu88GWP5ZQ=");
+    });
+
+    it("handles signal: prefix with group targets", () => {
+      expect(
+        normalizeSignalMessagingTarget("signal:group:igVOP2EJR1sBXYYwsLhif/AEMTJWtiDiTyu88GWP5ZQ="),
+      ).toBe("group:igVOP2EJR1sBXYYwsLhif/AEMTJWtiDiTyu88GWP5ZQ=");
+    });
+
+    it("accepts group: prefix for target detection", () => {
+      expect(looksLikeSignalTargetId("group:igVOP2EJR1sBXYYwsLhif/AEMTJWtiDiTyu88GWP5ZQ=")).toBe(
+        true,
+      );
+      expect(looksLikeSignalTargetId("signal:group:someGroupId")).toBe(true);
+    });
+  });
+
   it("normalizes uuid targets by stripping uuid:", () => {
     expect(normalizeSignalMessagingTarget("uuid:123E4567-E89B-12D3-A456-426614174000")).toBe(
       "123e4567-e89b-12d3-a456-426614174000",
