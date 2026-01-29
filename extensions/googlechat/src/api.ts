@@ -153,7 +153,7 @@ export async function uploadGoogleChatAttachment(params: {
   contentType?: string;
 }): Promise<{ attachmentUploadToken?: string }> {
   const { account, space, filename, buffer, contentType } = params;
-  const boundary = `moltbot-${crypto.randomUUID()}`;
+  const boundary = `clawdbot-${crypto.randomUUID()}`;
   const metadata = JSON.stringify({ filename });
   const header = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`;
   const mediaHeader = `--${boundary}\r\nContent-Type: ${contentType ?? "application/octet-stream"}\r\n\r\n`;
@@ -255,5 +255,22 @@ export async function probeGoogleChat(account: ResolvedGoogleChatAccount): Promi
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function getGoogleChatMessage(params: {
+  account: ResolvedGoogleChatAccount;
+  messageName: string;
+}): Promise<{ text?: string; name?: string; thread?: { name?: string } } | null> {
+  const { account, messageName } = params;
+  const url = `${CHAT_API_BASE}/${messageName}`;
+  try {
+    return await fetchJson<{ text?: string; name?: string; thread?: { name?: string } }>(
+      account,
+      url,
+      { method: "GET" }
+    );
+  } catch (err) {
+    return null;
   }
 }
