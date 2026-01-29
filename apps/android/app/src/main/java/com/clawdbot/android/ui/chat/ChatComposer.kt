@@ -26,17 +26,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.ModelTraining
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.automirrored.filled.ScreenShare
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -74,9 +74,13 @@ fun ChatComposer(
   mainSessionKey: String,
   healthOk: Boolean,
   thinkingLevel: String,
+  currentModel: String = "",
+  availableModels: List<String> = emptyList(),
+  slashCommands: List<SlashCommand> = defaultSlashCommands,
   pendingRunCount: Int,
   errorText: String?,
   attachments: List<PendingImageAttachment>,
+  contextUsagePercent: Int? = null,
   seamColor: Color = Color(0xFF3B82F6),
   talkEnabled: Boolean = false,
   onOpenCamera: () -> Unit = {},
@@ -85,6 +89,7 @@ fun ChatComposer(
   onShareScreen: () -> Unit = {},
   onRemoveAttachment: (id: String) -> Unit,
   onSetThinkingLevel: (level: String) -> Unit,
+  onSetModel: (model: String) -> Unit = {},
   onSelectSession: (sessionKey: String) -> Unit,
   onRefresh: () -> Unit,
   onAbort: () -> Unit,
@@ -94,12 +99,9 @@ fun ChatComposer(
   var input by rememberSaveable { mutableStateOf("") }
   var showMenu by remember { mutableStateOf(false) }
   var showThinkingMenu by remember { mutableStateOf(false) }
-  var showSessionMenu by remember { mutableStateOf(false) }
+  var showModelMenu by remember { mutableStateOf(false) }
+  var showCommandsMenu by remember { mutableStateOf(false) }
   val haptic = LocalHapticFeedback.current
-
-  val sessionOptions = resolveSessionChoices(sessionKey, sessions, mainSessionKey = mainSessionKey)
-  val currentSessionLabel =
-    sessionOptions.firstOrNull { it.key == sessionKey }?.displayName ?: sessionKey
 
   val hasText = input.trim().isNotEmpty()
   val canSend = pendingRunCount == 0 && (hasText || attachments.isNotEmpty()) && healthOk
@@ -134,14 +136,14 @@ fun ChatComposer(
         modifier = Modifier.fillMaxWidth().padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        // Menu button
+        // Menu button (+)
         Box {
           IconButton(
             onClick = { showMenu = true },
             modifier = Modifier.size(44.dp),
           ) {
             Icon(
-              Icons.Default.Menu,
+              Icons.Default.Add,
               contentDescription = "Menu",
               tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -150,7 +152,7 @@ fun ChatComposer(
           DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
-            modifier = Modifier.background(Color(0xFF3A3A4A)), // Brighter shade for contrast
+            modifier = Modifier.background(Color(0xFF3A3A4A)),
           ) {
             // Attachment buttons row: Camera | Photos | Files
             Row(
@@ -203,44 +205,50 @@ fun ChatComposer(
               leadingIcon = { Icon(Icons.AutoMirrored.Filled.ScreenShare, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
             )
             
-            // Settings (Session & Thinking)
-            var showSettingsSubmenu by remember { mutableStateOf(false) }
+            HorizontalDivider(
+              modifier = Modifier.padding(vertical = 8.dp),
+              color = Color.White.copy(alpha = 0.15f),
+            )
+            
+            // Model selection
             DropdownMenuItem(
-              text = { Text("Settings", color = Color.White) },
+              text = { Text("Model", color = Color.White) },
               onClick = { 
-                showSettingsSubmenu = !showSettingsSubmenu
+                showMenu = false
+                showModelMenu = true 
               },
-              leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
+              leadingIcon = { Icon(Icons.Default.ModelTraining, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
               trailingIcon = { 
                 Text(
-                  if (showSettingsSubmenu) "▲" else "▼", 
-                  color = Color.White.copy(alpha = 0.5f),
-                  style = MaterialTheme.typography.bodySmall
+                  modelDisplayName(currentModel), 
+                  color = Color.White.copy(alpha = 0.5f), 
+                  style = MaterialTheme.typography.labelSmall,
+                  maxLines = 1,
                 ) 
               },
             )
             
-            if (showSettingsSubmenu) {
-              // Session selector (indented)
-              DropdownMenuItem(
-                text = { Text("  Session", color = Color.White.copy(alpha = 0.9f)) },
-                onClick = { 
-                  showMenu = false
-                  showSessionMenu = true 
-                },
-                trailingIcon = { Text(currentSessionLabel, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall) },
-              )
-              
-              // Thinking level (indented)
-              DropdownMenuItem(
-                text = { Text("  Thinking", color = Color.White.copy(alpha = 0.9f)) },
-                onClick = { 
-                  showMenu = false
-                  showThinkingMenu = true 
-                },
-                trailingIcon = { Text(thinkingLabel(thinkingLevel), color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall) },
-              )
-            }
+            // Thinking level
+            DropdownMenuItem(
+              text = { Text("Thinking", color = Color.White) },
+              onClick = { 
+                showMenu = false
+                showThinkingMenu = true 
+              },
+              leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
+              trailingIcon = { Text(thinkingLabel(thinkingLevel), color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall) },
+            )
+            
+            // Slash commands
+            DropdownMenuItem(
+              text = { Text("Commands", color = Color.White) },
+              onClick = { 
+                showMenu = false
+                showCommandsMenu = true 
+              },
+              leadingIcon = { Icon(Icons.Default.Terminal, contentDescription = null, tint = Color.White.copy(alpha = 0.8f)) },
+              trailingIcon = { Text("/", color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall) },
+            )
             
             HorizontalDivider(
               modifier = Modifier.padding(vertical = 8.dp),
@@ -259,28 +267,68 @@ fun ChatComposer(
           }
         }
 
-        // Session menu (separate dropdown)
-        DropdownMenu(expanded = showSessionMenu, onDismissRequest = { showSessionMenu = false }) {
-          for (entry in sessionOptions) {
+        // Model menu (separate dropdown)
+        DropdownMenu(
+          expanded = showModelMenu, 
+          onDismissRequest = { showModelMenu = false },
+          modifier = Modifier.background(Color(0xFF3A3A4A)),
+        ) {
+          if (availableModels.isEmpty()) {
             DropdownMenuItem(
-              text = { Text(entry.displayName ?: entry.key) },
-              onClick = {
-                onSelectSession(entry.key)
-                showSessionMenu = false
-              },
-              trailingIcon = {
-                if (entry.key == sessionKey) Text("✓") else Spacer(Modifier.width(10.dp))
-              },
+              text = { Text("No models available", color = Color.White.copy(alpha = 0.5f)) },
+              onClick = { showModelMenu = false },
             )
+          } else {
+            for (model in availableModels) {
+              val isSelected = model == currentModel
+              DropdownMenuItem(
+                text = { Text(modelDisplayName(model), color = Color.White) },
+                onClick = {
+                  onSetModel(model)
+                  showModelMenu = false
+                },
+                trailingIcon = {
+                  if (isSelected) Text("✓", color = Color.White) else Spacer(Modifier.width(10.dp))
+                },
+              )
+            }
           }
         }
 
         // Thinking menu (separate dropdown)
-        DropdownMenu(expanded = showThinkingMenu, onDismissRequest = { showThinkingMenu = false }) {
+        DropdownMenu(
+          expanded = showThinkingMenu, 
+          onDismissRequest = { showThinkingMenu = false },
+          modifier = Modifier.background(Color(0xFF3A3A4A)),
+        ) {
           ThinkingMenuItem("off", thinkingLevel, onSetThinkingLevel) { showThinkingMenu = false }
           ThinkingMenuItem("low", thinkingLevel, onSetThinkingLevel) { showThinkingMenu = false }
           ThinkingMenuItem("medium", thinkingLevel, onSetThinkingLevel) { showThinkingMenu = false }
           ThinkingMenuItem("high", thinkingLevel, onSetThinkingLevel) { showThinkingMenu = false }
+        }
+        
+        // Commands menu (separate dropdown)
+        DropdownMenu(
+          expanded = showCommandsMenu, 
+          onDismissRequest = { showCommandsMenu = false },
+          modifier = Modifier.background(Color(0xFF3A3A4A)),
+        ) {
+          for (cmd in slashCommands) {
+            DropdownMenuItem(
+              text = { 
+                Column {
+                  Text("/${cmd.name}", color = Color.White)
+                  if (cmd.description.isNotEmpty()) {
+                    Text(cmd.description, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
+                  }
+                }
+              },
+              onClick = {
+                onSend("/${cmd.name}")
+                showCommandsMenu = false
+              },
+            )
+          }
         }
 
         // Text field
@@ -359,7 +407,7 @@ fun ChatComposer(
     }
 
     // Connection status pill (compact)
-    ConnectionPill(sessionLabel = currentSessionLabel, healthOk = healthOk)
+    ConnectionPill(healthOk = healthOk, contextUsagePercent = contextUsagePercent)
   }
 }
 
@@ -447,7 +495,7 @@ private fun MiniOrb(
 }
 
 @Composable
-private fun ConnectionPill(sessionLabel: String, healthOk: Boolean) {
+private fun ConnectionPill(healthOk: Boolean, contextUsagePercent: Int? = null) {
   Surface(
     shape = RoundedCornerShape(999.dp),
     color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f),
@@ -467,6 +515,22 @@ private fun ConnectionPill(sessionLabel: String, healthOk: Boolean) {
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
+      if (contextUsagePercent != null) {
+        Text(
+          "·",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+        )
+        Text(
+          "${contextUsagePercent}%",
+          style = MaterialTheme.typography.labelSmall,
+          color = when {
+            contextUsagePercent >= 90 -> Color(0xFFE74C3C)
+            contextUsagePercent >= 70 -> Color(0xFFF39C12)
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+          },
+        )
+      }
     }
   }
 }
@@ -542,3 +606,38 @@ private fun AttachmentChip(fileName: String, onRemove: () -> Unit) {
     }
   }
 }
+
+// Model display name helper
+private fun modelDisplayName(model: String): String {
+  if (model.isEmpty()) return "Default"
+  // Extract short name from provider/model format
+  val parts = model.split("/")
+  val name = parts.lastOrNull() ?: model
+  return when {
+    name.contains("opus", ignoreCase = true) -> "Opus"
+    name.contains("sonnet", ignoreCase = true) -> "Sonnet"
+    name.contains("haiku", ignoreCase = true) -> "Haiku"
+    name.contains("gpt-4o", ignoreCase = true) -> "GPT-4o"
+    name.contains("gpt-4", ignoreCase = true) -> "GPT-4"
+    name.contains("o1", ignoreCase = true) -> "o1"
+    name.contains("o3", ignoreCase = true) -> "o3"
+    name.contains("gemini", ignoreCase = true) -> "Gemini"
+    name.length > 15 -> name.take(12) + "…"
+    else -> name
+  }
+}
+
+// Slash command data class
+data class SlashCommand(
+  val name: String,
+  val description: String = "",
+)
+
+// Default slash commands
+val defaultSlashCommands = listOf(
+  SlashCommand("status", "Show session status"),
+  SlashCommand("clear", "Clear conversation"),
+  SlashCommand("reasoning", "Toggle extended thinking"),
+  SlashCommand("model", "Show or change model"),
+  SlashCommand("help", "Show available commands"),
+)
