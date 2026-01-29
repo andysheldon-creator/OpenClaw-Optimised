@@ -31,6 +31,45 @@ import {
 } from "../protocol/index.js";
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
+/**
+ * Count all fields recursively in an object.
+ * Nested objects contribute their child fields to the count.
+ */
+function countFieldsRecursive(obj: unknown): number {
+  if (typeof obj !== "object" || obj === null) {
+    return 0;
+  }
+  if (Array.isArray(obj)) {
+    return obj.reduce((sum, item) => sum + countFieldsRecursive(item), 0);
+  }
+  let count = 0;
+  for (const value of Object.values(obj)) {
+    count += 1; // Count the field itself
+    if (typeof value === "object" && value !== null) {
+      count += countFieldsRecursive(value); // Count nested fields
+    }
+  }
+  return count;
+}
+
+/**
+ * Check if a patch would cause destructive field loss.
+ * Returns a warning message if loss exceeds thresholds, null otherwise.
+ */
+function checkDestructiveChange(beforeCount: number, afterCount: number): string | null {
+  if (afterCount >= beforeCount) {
+    return null; // No loss
+  }
+  const fieldsLost = beforeCount - afterCount;
+  const percentLost = beforeCount > 0 ? (fieldsLost / beforeCount) * 100 : 0;
+
+  // Threshold: more than 10% loss OR more than 5 fields lost
+  if (percentLost > 10 || fieldsLost > 5) {
+    return `Patch would remove ${fieldsLost} field${fieldsLost !== 1 ? "s" : ""} (${percentLost.toFixed(1)}% reduction). Review carefully.`;
+  }
+  return null;
+}
+
 function resolveBaseHash(params: unknown): string | null {
   const raw = (params as { baseHash?: unknown })?.baseHash;
   if (typeof raw !== "string") return null;
@@ -245,9 +284,13 @@ export const configHandlers: GatewayRequestHandlers = {
       );
       return;
     }
+    const beforeCount = countFieldsRecursive(snapshot.config);
     const merged = applyMergePatch(snapshot.config, parsedRes.parsed);
     const migrated = applyLegacyMigrations(merged);
     const resolved = migrated.next ?? merged;
+    const afterCount = countFieldsRecursive(resolved);
+    const warning = checkDestructiveChange(beforeCount, afterCount);
+
     const validated = validateConfigObjectWithPlugins(resolved);
     if (!validated.ok) {
       respond(
@@ -297,20 +340,23 @@ export const configHandlers: GatewayRequestHandlers = {
       delayMs: restartDelayMs,
       reason: "config.patch",
     });
-    respond(
-      true,
-      {
-        ok: true,
-        path: CONFIG_PATH,
-        config: validated.config,
-        restart,
-        sentinel: {
-          path: sentinelPath,
-          payload,
-        },
+
+    const response: Record<string, unknown> = {
+      ok: true,
+      path: CONFIG_PATH,
+      config: validated.config,
+      restart,
+      sentinel: {
+        path: sentinelPath,
+        payload,
       },
-      undefined,
-    );
+    };
+
+    if (warning) {
+      response.warning = warning;
+    }
+
+    respond(true, response, undefined);
   },
   "config.apply": async ({ params, respond }) => {
     if (!validateConfigApplyParams(params)) {
