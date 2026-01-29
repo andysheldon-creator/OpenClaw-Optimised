@@ -215,14 +215,16 @@ export async function monitorWebChannel(
           },
         });
         const senderLabel = reaction.senderE164 ?? reaction.senderJid ?? "someone";
-        const text = `WhatsApp reaction added: ${reaction.emoji} by ${senderLabel} msg ${reaction.messageId}`;
+        const action = reaction.isRemoval ? "removed" : "added";
+        const emojiPart = reaction.isRemoval ? "" : `: ${reaction.emoji}`;
+        const text = `WhatsApp reaction ${action}${emojiPart} by ${senderLabel} msg ${reaction.messageId}`;
         const contextKey = [
           "whatsapp",
           "reaction",
-          "added",
+          action,
           reaction.messageId,
           reaction.senderJid ?? "unknown",
-          reaction.emoji,
+          reaction.emoji || "removed",
           reaction.chatJid,
         ].join(":");
         enqueueSystemEvent(text, { sessionKey: route.sessionKey, contextKey });

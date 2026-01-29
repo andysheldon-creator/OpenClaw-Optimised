@@ -142,7 +142,7 @@ describe("web monitor inbox – inbound reactions", () => {
     await listener.close();
   });
 
-  it("skips reaction removals (empty emoji)", async () => {
+  it("handles reaction removals (empty emoji)", async () => {
     const onReaction = vi.fn();
 
     const listener = await monitorWebInbox({
@@ -169,7 +169,14 @@ describe("web monitor inbox – inbound reactions", () => {
     ]);
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(onReaction).not.toHaveBeenCalled();
+    expect(onReaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageId: "msg-123",
+        emoji: "",
+        isRemoval: true,
+        chatJid: "999@s.whatsapp.net",
+      }),
+    );
 
     await listener.close();
   });
@@ -416,12 +423,13 @@ describe("web monitor inbox – inbound reactions", () => {
     ]);
     await new Promise((resolve) => setImmediate(resolve));
 
+    // In DMs without reaction.key, we use chatJid as the sender
     expect(onReaction).toHaveBeenCalledWith(
       expect.objectContaining({
         messageId: "msg-123",
         emoji: "🔥",
-        senderJid: undefined,
-        senderE164: undefined,
+        senderJid: "999@s.whatsapp.net",
+        chatType: "direct",
       }),
     );
 

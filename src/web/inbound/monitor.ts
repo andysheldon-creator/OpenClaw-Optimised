@@ -336,23 +336,42 @@ export async function monitorWebInbox(options: {
           if (chatJid.endsWith("@status") || chatJid.endsWith("@broadcast")) continue;
 
           const emoji = entry.reaction?.text ?? "";
-          // Empty emoji = reaction removed; skip removals (matches Signal behavior)
-          if (!emoji) continue;
+          const isRemoval = !emoji;
 
           const group = isJidGroup(chatJid) === true;
-          // In DMs, reactionKey.fromMe means we reacted (remoteJid is the partner, not us)
-          const senderJid = reactionKey?.fromMe
-            ? (selfJid ?? undefined)
-            : (reactionKey?.participant ?? reactionKey?.remoteJid ?? undefined);
+          // Determine who sent the reaction:
+          // - fromMe=true → we reacted (use selfJid)
+          // - Otherwise: use reaction.key metadata, fallback to chatJid for DMs
+          let senderJid: string | undefined;
+          if (reactionKey?.fromMe) {
+            senderJid = selfJid ?? undefined;
+          } else {
+            // Prefer explicit sender info from reaction.key, fall back to chatJid for DMs
+            senderJid =
+              reactionKey?.participant ?? reactionKey?.remoteJid ?? (group ? undefined : chatJid);
+          }
           const senderE164 = senderJid ? await resolveInboundJid(senderJid) : null;
 
-          inboundLogger.info({ emoji, messageId, chatJid, senderJid }, "inbound reaction");
+          const chatType = group ? "group" : "direct";
+          inboundLogger.info(
+            {
+              emoji: emoji || "(removed)",
+              messageId,
+              chatJid,
+              chatType,
+              senderJid,
+              isRemoval,
+              accountId: options.accountId,
+            },
+            isRemoval ? "inbound reaction removed" : "inbound reaction added",
+          );
 
           options.onReaction({
             messageId,
             emoji,
+            isRemoval,
             chatJid,
-            chatType: group ? "group" : "direct",
+            chatType,
             accountId: options.accountId,
             senderJid: senderJid ?? undefined,
             senderE164: senderE164 ?? undefined,

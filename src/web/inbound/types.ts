@@ -44,8 +44,10 @@ export type WebInboundMessage = {
 export type WebInboundReaction = {
   /** Message ID being reacted to. */
   messageId: string;
-  /** Emoji text (empty string = reaction removed). */
+  /** Emoji text (empty string when isRemoval=true). */
   emoji: string;
+  /** True if this is a reaction removal (emoji will be empty). */
+  isRemoval?: boolean;
   /** JID of the chat where the reaction occurred. */
   chatJid: string;
   chatType: "direct" | "group";
