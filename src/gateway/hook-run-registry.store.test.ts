@@ -100,7 +100,8 @@ describe("hook-run-registry.store", () => {
       const { resolveHookRunRegistryPath } = await import("./hook-run-registry.store.js");
       const result = resolveHookRunRegistryPath();
 
-      expect(result).toContain("/mock/state");
+      // Use path.sep-agnostic check for cross-platform compatibility
+      expect(result).toMatch(/mock[\\/]state/);
       expect(result).toContain("hook-runs.json");
     });
   });
