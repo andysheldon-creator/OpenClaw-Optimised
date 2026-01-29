@@ -9,7 +9,8 @@ export const CLARIFAI_BASE_URL = "https://api.clarifai.com/v2/ext/openai/v1";
 
 // Default model - the FULL URL is required as the model name
 // Example: https://clarifai.com/openai/chat-completion/models/gpt-oss-120b
-export const CLARIFAI_DEFAULT_MODEL_ID = "https://clarifai.com/openai/chat-completion/models/gpt-oss-120b";
+export const CLARIFAI_DEFAULT_MODEL_ID =
+  "https://clarifai.com/openai/chat-completion/models/gpt-oss-120b";
 export const CLARIFAI_DEFAULT_MODEL_REF = "clarifai/gpt-oss-120b";
 
 // Clarifai uses PAT (Personal Access Token) for authentication
@@ -27,13 +28,13 @@ export const CLARIFAI_DEFAULT_COST = {
  * IMPORTANT: Clarifai requires the FULL model URL as the model ID.
  * Format: https://clarifai.com/{user_id}/{app_id}/models/{model_id}
  * Or with version: https://clarifai.com/{user_id}/{app_id}/models/{model_id}/versions/{version_id}
- * 
+ *
  * Examples:
  * - https://clarifai.com/openai/chat-completion/models/gpt-oss-120b/versions/f1d2a....
  *
  * Authentication: Uses PAT (Personal Access Token), also called API key.
  * Set via CLARIFAI_API_KEY or CLARIFAI_PAT environment variable.
- * 
+ *
  * Browse available models at: https://clarifai.com/explore/models
  */
 export const CLARIFAI_MODEL_CATALOG = [
@@ -44,7 +45,7 @@ export const CLARIFAI_MODEL_CATALOG = [
     input: ["text"] as Array<"text" | "image">,
     contextWindow: 128000,
     maxTokens: 4096,
-  }
+  },
 ];
 
 export function buildClarifaiModelDefinition(

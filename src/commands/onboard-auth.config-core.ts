@@ -18,7 +18,6 @@ import {
 } from "../agents/venice-models.js";
 import type { MoltbotConfig } from "../config/config.js";
 import {
-  CLARIFAI_DEFAULT_MODEL_REF as CLARIFAI_DEFAULT_MODEL_REF_CRED,
   OPENROUTER_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   ZAI_DEFAULT_MODEL_REF,
@@ -435,7 +434,9 @@ export function applyClarifaiProviderConfig(cfg: MoltbotConfig): MoltbotConfig {
   const clarifaiModels = CLARIFAI_MODEL_CATALOG.map(buildClarifaiModelDefinition);
   const mergedModels = [
     ...existingModels,
-    ...clarifaiModels.filter((model) => !existingModels.some((existing) => existing.id === model.id)),
+    ...clarifaiModels.filter(
+      (model) => !existingModels.some((existing) => existing.id === model.id),
+    ),
   ];
   const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
     string,
