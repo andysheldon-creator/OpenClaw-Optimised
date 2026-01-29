@@ -7,7 +7,6 @@
  */
 
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import * as lancedb from "@lancedb/lancedb";
 import { Type } from "@sinclair/typebox";
 import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
@@ -22,6 +21,10 @@ import {
 // ============================================================================
 // Types
 // ============================================================================
+
+type LanceDbModule = typeof import("@lancedb/lancedb");
+type LanceDbConnection = LanceDbModule["Connection"];
+type LanceDbTable = LanceDbModule["Table"];
 
 type MemoryEntry = {
   id: string;
@@ -43,9 +46,28 @@ type MemorySearchResult = {
 
 const TABLE_NAME = "memories";
 
+let lancedbModule: LanceDbModule | null = null;
+
+async function loadLanceDb(): Promise<LanceDbModule> {
+  if (lancedbModule) {
+    return lancedbModule;
+  }
+
+  try {
+    lancedbModule = await import("@lancedb/lancedb");
+    return lancedbModule;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `memory-lancedb: failed to load LanceDB native bindings (${process.platform}/${process.arch}). ${errorMessage}`,
+      { cause: error },
+    );
+  }
+}
+
 class MemoryDB {
-  private db: lancedb.Connection | null = null;
-  private table: lancedb.Table | null = null;
+  private db: LanceDbConnection | null = null;
+  private table: LanceDbTable | null = null;
   private initPromise: Promise<void> | null = null;
 
   constructor(
@@ -66,6 +88,7 @@ class MemoryDB {
   }
 
   private async doInitialize(): Promise<void> {
+    const lancedb = await loadLanceDb();
     this.db = await lancedb.connect(this.dbPath);
     const tables = await this.db.tableNames();
 
