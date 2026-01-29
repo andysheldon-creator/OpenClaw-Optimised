@@ -352,6 +352,31 @@ export async function monitorWebInbox(options: {
           }
           const senderE164 = senderJid ? await resolveInboundJid(senderJid) : null;
 
+          // Gate reactions by the same access controls as messages (skip for our own reactions)
+          const isOwnReaction = Boolean(reactionKey?.fromMe);
+          if (!isOwnReaction) {
+            const from = group ? chatJid : await resolveInboundJid(chatJid);
+            if (!from) continue;
+            const access = await checkInboundAccessControl({
+              accountId: options.accountId,
+              from,
+              selfE164,
+              senderE164,
+              group,
+              isFromMe: false,
+              connectedAtMs,
+              sock: { sendMessage: (jid, content) => sock.sendMessage(jid, content) },
+              remoteJid: chatJid,
+            });
+            if (!access.allowed) {
+              inboundLogger.debug(
+                { chatJid, senderJid, group },
+                "reaction blocked by access control",
+              );
+              continue;
+            }
+          }
+
           const chatType = group ? "group" : "direct";
           inboundLogger.info(
             {
