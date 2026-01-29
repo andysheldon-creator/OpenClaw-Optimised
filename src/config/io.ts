@@ -33,6 +33,12 @@ import { applyConfigOverrides } from "./runtime-overrides.js";
 import type { MoltbotConfig, ConfigFileSnapshot, LegacyConfigIssue } from "./types.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
 import { compareMoltbotVersions } from "./version.js";
+import { resolveAuthStorePath } from "../agents/auth-profiles/paths.js";
+import { resolveOAuthPath } from "./paths.js";
+import {
+  assertNoSecretsInConfig,
+  assertNoSecretsInFile,
+} from "../security/secret-guard.js";
 
 // Re-export for backwards compatibility
 export { CircularIncludeError, ConfigIncludeError } from "./includes.js";
@@ -254,6 +260,15 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
           .join("\n");
         deps.logger.warn(`Config warnings:\\n${details}`);
       }
+
+      // SECURITY: enforce env-only secrets and fail if plaintext secrets are detected.
+      assertNoSecretsInConfig(resolvedConfig);
+      assertNoSecretsInFile(
+        resolveOAuthPath(deps.env, resolveStateDir(deps.env, deps.homedir)),
+        "oauth.json"
+      );
+      assertNoSecretsInFile(resolveAuthStorePath(), "auth-profiles.json");
+
       warnIfConfigFromFuture(validated.config, deps.logger);
       const cfg = applyModelDefaults(
         applyCompactionDefaults(
