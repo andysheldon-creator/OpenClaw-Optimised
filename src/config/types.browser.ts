@@ -14,7 +14,7 @@ export type BrowserSnapshotDefaults = {
 };
 export type BrowserConfig = {
   enabled?: boolean;
-  /** If false, disable browser act:evaluate (arbitrary JS). Default: true */
+  /** If true, enable browser act:evaluate (arbitrary JS). Default: false (disabled for security) */
   evaluateEnabled?: boolean;
   /** Base URL of the CDP endpoint (for remote browsers). Default: loopback CDP on the derived port. */
   cdpUrl?: string;
