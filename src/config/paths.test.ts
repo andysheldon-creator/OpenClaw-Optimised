@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   resolveDefaultConfigCandidates,
+  resolveConfigPath,
   resolveOAuthDir,
   resolveOAuthPath,
   resolveStateDir,
@@ -69,6 +70,9 @@ describe("state + config path candidates", () => {
   it("CONFIG_PATH prefers existing legacy filename when present", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-config-"));
     const previousHome = process.env.HOME;
+    const previousUserProfile = process.env.USERPROFILE;
+    const previousHomeDrive = process.env.HOMEDRIVE;
+    const previousHomePath = process.env.HOMEPATH;
     const previousMoltbotConfig = process.env.MOLTBOT_CONFIG_PATH;
     const previousClawdbotConfig = process.env.CLAWDBOT_CONFIG_PATH;
     const previousMoltbotState = process.env.MOLTBOT_STATE_DIR;
@@ -80,6 +84,12 @@ describe("state + config path candidates", () => {
       await fs.writeFile(legacyPath, "{}", "utf-8");
 
       process.env.HOME = root;
+      if (process.platform === "win32") {
+        process.env.USERPROFILE = root;
+        const parsed = path.win32.parse(root);
+        process.env.HOMEDRIVE = parsed.root.replace(/\\$/, "");
+        process.env.HOMEPATH = root.slice(parsed.root.length - 1);
+      }
       delete process.env.MOLTBOT_CONFIG_PATH;
       delete process.env.CLAWDBOT_CONFIG_PATH;
       delete process.env.MOLTBOT_STATE_DIR;
@@ -94,6 +104,12 @@ describe("state + config path candidates", () => {
       } else {
         process.env.HOME = previousHome;
       }
+      if (previousUserProfile === undefined) delete process.env.USERPROFILE;
+      else process.env.USERPROFILE = previousUserProfile;
+      if (previousHomeDrive === undefined) delete process.env.HOMEDRIVE;
+      else process.env.HOMEDRIVE = previousHomeDrive;
+      if (previousHomePath === undefined) delete process.env.HOMEPATH;
+      else process.env.HOMEPATH = previousHomePath;
       if (previousMoltbotConfig === undefined) delete process.env.MOLTBOT_CONFIG_PATH;
       else process.env.MOLTBOT_CONFIG_PATH = previousMoltbotConfig;
       if (previousClawdbotConfig === undefined) delete process.env.CLAWDBOT_CONFIG_PATH;
@@ -104,6 +120,23 @@ describe("state + config path candidates", () => {
       else process.env.CLAWDBOT_STATE_DIR = previousClawdbotState;
       await fs.rm(root, { recursive: true, force: true });
       vi.resetModules();
+    }
+  });
+
+  it("respects state dir overrides when config is missing", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-config-override-"));
+    try {
+      const legacyDir = path.join(root, ".clawdbot");
+      await fs.mkdir(legacyDir, { recursive: true });
+      const legacyConfig = path.join(legacyDir, "moltbot.json");
+      await fs.writeFile(legacyConfig, "{}", "utf-8");
+
+      const overrideDir = path.join(root, "override");
+      const env = { MOLTBOT_STATE_DIR: overrideDir } as NodeJS.ProcessEnv;
+      const resolved = resolveConfigPath(env, overrideDir, () => root);
+      expect(resolved).toBe(path.join(overrideDir, "moltbot.json"));
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
     }
   });
 });
