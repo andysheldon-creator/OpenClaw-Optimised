@@ -35,7 +35,7 @@ agents:
         cognifyBatchSize: 100
 
         # Request timeout in seconds
-        timeoutSeconds: 30
+        timeoutSeconds: 180
 
       # Enable experimental session memory indexing
       experimental:
