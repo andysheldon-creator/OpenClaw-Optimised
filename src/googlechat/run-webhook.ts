@@ -11,6 +11,8 @@ const AGENT_TIMEOUT_MS = 600000;
 // Retry configuration for transient failures
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 3000;
+// eslint-disable-next-line no-control-regex -- ANSI escape detection requires control character
+const ANSI_LOG_LINE_REGEX = /^\u001b\[\d+m\[/;
 
 const app = express();
 app.use(express.json());
@@ -126,11 +128,6 @@ function sendChatMessage(spaceId: string, text: string): void {
   }
 }
 
-// Helper to delay execution
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 // Run clawdbot agent with retry logic for transient failures
 function runAgent(
   message: string,
@@ -166,7 +163,7 @@ function runAgent(
     // Filter out ANSI-coded log lines that leak from the agent
     const filtered = stdout
       .split("\n")
-      .filter((line) => !line.match(/^\x1b\[\d+m\[/))
+      .filter((line) => !ANSI_LOG_LINE_REGEX.test(line))
       .join("\n")
       .trim();
 
