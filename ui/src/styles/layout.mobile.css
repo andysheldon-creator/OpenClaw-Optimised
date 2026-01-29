@@ -4,6 +4,17 @@
 
 /* Tablet: Horizontal nav - sticky header */
 @media (max-width: 1100px) {
+  /* iOS safe area support - apply to shell container */
+  @supports (padding: env(safe-area-inset-top)) {
+    .shell {
+      padding-top: env(safe-area-inset-top);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-bottom: env(safe-area-inset-bottom);
+      height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+  }
+
   /* Keep topbar sticky on mobile */
   .topbar {
     position: sticky;
