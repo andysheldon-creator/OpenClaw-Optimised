@@ -31,6 +31,20 @@ export type AgentConfig = {
   heartbeat?: AgentDefaultsConfig["heartbeat"];
   identity?: IdentityConfig;
   groupChat?: GroupChatConfig;
+  /**
+   * Governance: restrict which config paths this agent can modify via config.patch.
+   *
+   * Supports glob-like patterns:
+   * - "agents.*.*.model" - allow modifying any agent's model
+   * - "agents.**" - allow modifying anything under agents
+   * - "tools.exec.host" - allow modifying specific path
+   *
+   * If undefined or empty: allow all paths (backward compatible, unrestricted).
+   * If specified: only listed patterns are allowed (governance mode).
+   *
+   * This is governance, not security — prevents accidents, not adversaries.
+   */
+  allowedConfigPaths?: string[];
   subagents?: {
     /** Allow spawning sub-agents under other agent ids. Use "*" to allow any. */
     allowAgents?: string[];
