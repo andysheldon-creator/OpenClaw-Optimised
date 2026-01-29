@@ -44,7 +44,7 @@ const plugin = {
 
   register(api: MoltbotPluginApi) {
     const config = (api.pluginConfig ?? {}) as PluginConfig;
-    const storagePath = config.storagePath ?? join(homedir(), ".web4");
+    const storagePath = config.storagePath ?? join(homedir(), ".moltbot", "extensions", "web4-governance");
     const auditLevel = config.auditLevel ?? "standard";
     const logger = api.logger;
 
@@ -295,24 +295,24 @@ const plugin = {
     // --- CLI Commands ---
 
     api.registerCli(
-      ({ program }) => {
+      ({ program, logger }) => {
         const audit = program.command("audit").description("Web4 governance audit trail");
 
         audit
           .command("summary")
           .description("Show session audit summary")
           .action(() => {
-            for (const [sid, entry] of sessions) {
+            for (const [, entry] of sessions) {
               const v = entry.audit.verify();
-              console.log(`Session: ${entry.state.lct.tokenId}`);
-              console.log(`  Actions: ${entry.state.actionIndex}`);
-              console.log(`  Audit records: ${v.recordCount}`);
-              console.log(`  Chain valid: ${v.valid}`);
-              console.log(`  Tools: ${JSON.stringify(entry.state.toolCounts)}`);
-              console.log(`  Categories: ${JSON.stringify(entry.state.categoryCounts)}`);
+              logger.info(`Session: ${entry.state.lct.tokenId}`);
+              logger.info(`  Actions: ${entry.state.actionIndex}`);
+              logger.info(`  Audit records: ${v.recordCount}`);
+              logger.info(`  Chain valid: ${v.valid}`);
+              logger.info(`  Tools: ${JSON.stringify(entry.state.toolCounts)}`);
+              logger.info(`  Categories: ${JSON.stringify(entry.state.categoryCounts)}`);
             }
             if (sessions.size === 0) {
-              console.log("No active governance sessions.");
+              logger.info("No active governance sessions.");
             }
           });
 
@@ -324,16 +324,16 @@ const plugin = {
             if (sessionId) {
               const chain = new AuditChain(storagePath, sessionId);
               const result = chain.verify();
-              console.log(`Chain valid: ${result.valid}`);
-              console.log(`Records: ${result.recordCount}`);
+              logger.info(`Chain valid: ${result.valid}`);
+              logger.info(`Records: ${result.recordCount}`);
               if (result.errors.length > 0) {
-                console.log("Errors:");
-                for (const e of result.errors) console.log(`  - ${e}`);
+                logger.info("Errors:");
+                for (const e of result.errors) logger.info(`  - ${e}`);
               }
             } else {
               for (const [, entry] of sessions) {
                 const result = entry.audit.verify();
-                console.log(`${entry.state.sessionId}: ${result.valid ? "VALID" : "INVALID"} (${result.recordCount} records)`);
+                logger.info(`${entry.state.sessionId}: ${result.valid ? "VALID" : "INVALID"} (${result.recordCount} records)`);
               }
             }
           });
@@ -347,7 +347,7 @@ const plugin = {
             for (const [, entry] of sessions) {
               const records = entry.audit.getLast(count);
               for (const r of records) {
-                console.log(`${r.timestamp} ${r.tool} → ${r.target ?? "?"} [${r.result.status}]`);
+                logger.info(`${r.timestamp} ${r.tool} → ${r.target ?? "?"} [${r.result.status}]`);
               }
             }
           });
@@ -376,16 +376,16 @@ const plugin = {
 
               if (results.length > 0) {
                 hasResults = true;
-                console.log(`Session: ${entry.state.sessionId} (${results.length} results)`);
+                logger.info(`Session: ${entry.state.sessionId} (${results.length} results)`);
                 for (const r of results) {
                   const dur = r.result.durationMs !== undefined ? ` ${r.result.durationMs}ms` : "";
                   const err = r.result.errorMessage ? ` — ${r.result.errorMessage}` : "";
-                  console.log(`  ${r.timestamp} ${r.tool} [${r.category}] → ${r.target ?? "?"} [${r.result.status}]${dur}${err}`);
+                  logger.info(`  ${r.timestamp} ${r.tool} [${r.category}] → ${r.target ?? "?"} [${r.result.status}]${dur}${err}`);
                 }
               }
             }
             if (!hasResults) {
-              console.log("No matching audit records found.");
+              logger.info("No matching audit records found.");
             }
           });
 
@@ -401,15 +401,15 @@ const plugin = {
             }
 
             if (allRecords.length === 0) {
-              console.log("No audit records to report on.");
+              logger.info("No audit records to report on.");
               return;
             }
 
             const reporter = new AuditReporter(allRecords);
             if (opts.json) {
-              console.log(JSON.stringify(reporter.generate(), null, 2));
+              logger.info(JSON.stringify(reporter.generate(), null, 2));
             } else {
-              console.log(reporter.formatText());
+              logger.info(reporter.formatText());
             }
           });
       },
@@ -419,19 +419,19 @@ const plugin = {
     // --- Policy Admin CLI ---
 
     api.registerCli(
-      ({ program }) => {
+      ({ program, logger }) => {
         const policy = program.command("policy").description("Web4 policy engine administration");
 
         policy
           .command("status")
           .description("Show policy engine status")
           .action(() => {
-            console.log(`Policy engine:`);
-            console.log(`  Rules:    ${policyEngine.ruleCount}`);
-            console.log(`  Default:  ${policyEngine.defaultDecision}`);
-            console.log(`  Enforce:  ${policyEngine.isEnforcing}`);
+            logger.info(`Policy engine:`);
+            logger.info(`  Rules:    ${policyEngine.ruleCount}`);
+            logger.info(`  Default:  ${policyEngine.defaultDecision}`);
+            logger.info(`  Enforce:  ${policyEngine.isEnforcing}`);
             if (config.policy?.preset) {
-              console.log(`  Preset:   ${config.policy.preset}`);
+              logger.info(`  Preset:   ${config.policy.preset}`);
             }
           });
 
@@ -441,10 +441,10 @@ const plugin = {
           .action(() => {
             const rules = policyEngine.sortedRules;
             if (rules.length === 0) {
-              console.log("No policy rules configured.");
+              logger.info("No policy rules configured.");
               return;
             }
-            console.log(`${rules.length} rules (priority order):\n`);
+            logger.info(`${rules.length} rules (priority order):\n`);
             for (const rule of rules) {
               const match = rule.match;
               const criteria: string[] = [];
@@ -457,13 +457,13 @@ const plugin = {
               if (match.rateLimit) {
                 criteria.push(`rateLimit(max=${match.rateLimit.maxCount}, window=${match.rateLimit.windowMs}ms)`);
               }
-              console.log(`  [${rule.priority}] ${rule.id} → ${rule.decision}`);
-              console.log(`       ${rule.name}`);
-              if (criteria.length > 0) console.log(`       match: ${criteria.join(" AND ")}`);
-              if (rule.reason) console.log(`       reason: ${rule.reason}`);
-              console.log();
+              logger.info(`  [${rule.priority}] ${rule.id} → ${rule.decision}`);
+              logger.info(`       ${rule.name}`);
+              if (criteria.length > 0) logger.info(`       match: ${criteria.join(" AND ")}`);
+              if (rule.reason) logger.info(`       reason: ${rule.reason}`);
+              logger.info();
             }
-            console.log(`Default: ${policyEngine.defaultDecision} | Enforce: ${policyEngine.isEnforcing}`);
+            logger.info(`Default: ${policyEngine.defaultDecision} | Enforce: ${policyEngine.isEnforcing}`);
           });
 
         policy
@@ -474,16 +474,16 @@ const plugin = {
           .action((toolName: string, target?: string) => {
             const category = classifyTool(toolName);
             const evaluation = policyEngine.evaluate(toolName, category, target);
-            console.log(`Tool:       ${toolName}`);
-            console.log(`Category:   ${category}`);
-            console.log(`Target:     ${target ?? "(none)"}`);
-            console.log(`Decision:   ${evaluation.decision}`);
-            console.log(`Enforced:   ${evaluation.enforced}`);
-            console.log(`Reason:     ${evaluation.reason}`);
+            logger.info(`Tool:       ${toolName}`);
+            logger.info(`Category:   ${category}`);
+            logger.info(`Target:     ${target ?? "(none)"}`);
+            logger.info(`Decision:   ${evaluation.decision}`);
+            logger.info(`Enforced:   ${evaluation.enforced}`);
+            logger.info(`Reason:     ${evaluation.reason}`);
             if (evaluation.matchedRule) {
-              console.log(`Rule:       ${evaluation.matchedRule.id} (priority ${evaluation.matchedRule.priority})`);
+              logger.info(`Rule:       ${evaluation.matchedRule.id} (priority ${evaluation.matchedRule.priority})`);
             }
-            console.log(`Constraints: ${evaluation.constraints.join(", ")}`);
+            logger.info(`Constraints: ${evaluation.constraints.join(", ")}`);
           });
 
         // --- Policy Presets CLI ---
@@ -492,15 +492,15 @@ const plugin = {
           .description("List available policy presets")
           .action(() => {
             const presets = listPresets();
-            console.log(`${presets.length} available presets:\n`);
+            logger.info(`${presets.length} available presets:\n`);
             for (const p of presets) {
               const ruleCount = p.config.rules.length;
-              console.log(`  ${p.name}`);
-              console.log(`    ${p.description}`);
-              console.log(`    default: ${p.config.defaultPolicy} | enforce: ${p.config.enforce} | rules: ${ruleCount}`);
-              console.log();
+              logger.info(`  ${p.name}`);
+              logger.info(`    ${p.description}`);
+              logger.info(`    default: ${p.config.defaultPolicy} | enforce: ${p.config.enforce} | rules: ${ruleCount}`);
+              logger.info();
             }
-            console.log(`Usage: { "policy": { "preset": "<name>" } }`);
+            logger.info(`Usage: { "policy": { "preset": "<name>" } }`);
           });
 
         // --- Policy Entity CLI ---
@@ -510,19 +510,19 @@ const plugin = {
           .action(() => {
             const entities = policyRegistry.listPolicies();
             if (entities.length === 0) {
-              console.log("No policy entities registered.");
+              logger.info("No policy entities registered.");
               return;
             }
-            console.log(`${entities.length} policy entities:\n`);
+            logger.info(`${entities.length} policy entities:\n`);
             for (const e of entities) {
-              console.log(`  ${e.entityId}`);
-              console.log(`    name: ${e.name} | source: ${e.source}`);
-              console.log(`    hash: ${e.contentHash}`);
-              console.log(`    created: ${e.createdAt}`);
+              logger.info(`  ${e.entityId}`);
+              logger.info(`    name: ${e.name} | source: ${e.source}`);
+              logger.info(`    hash: ${e.contentHash}`);
+              logger.info(`    created: ${e.createdAt}`);
               const witnessedBy = policyRegistry.getWitnessedBy(e.entityId);
               const hasWitnessed = policyRegistry.getHasWitnessed(e.entityId);
-              console.log(`    witnessed by: ${witnessedBy.length} | has witnessed: ${hasWitnessed.length}`);
-              console.log();
+              logger.info(`    witnessed by: ${witnessedBy.length} | has witnessed: ${hasWitnessed.length}`);
+              logger.info();
             }
           });
       },

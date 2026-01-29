@@ -19,6 +19,7 @@ import type {
   PolicyDecision,
   PolicyEvaluation,
 } from "./policy-types.js";
+import type { ToolCategory } from "./r6.js";
 import { resolvePreset } from "./presets.js";
 import type { RateLimiter } from "./rate-limiter.js";
 
@@ -134,7 +135,7 @@ export class PolicyEntity {
     }
 
     // Category match
-    if (match.categories && !match.categories.includes(category as any)) {
+    if (match.categories && !match.categories.includes(category as ToolCategory)) {
       return false;
     }
 

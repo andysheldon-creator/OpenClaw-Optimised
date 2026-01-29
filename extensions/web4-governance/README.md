@@ -33,7 +33,7 @@ All fields are optional. Defaults shown below.
     "web4-governance": {
       "auditLevel": "standard",
       "showR6Status": true,
-      "storagePath": "~/.web4/",
+      "storagePath": "~/.moltbot/extensions/web4-governance/",
       "policy": {
         "defaultPolicy": "allow",
         "enforce": true,
@@ -48,7 +48,7 @@ All fields are optional. Defaults shown below.
 |-------|------|---------|-------------|
 | `auditLevel` | `"minimal" \| "standard" \| "verbose"` | `"standard"` | Controls audit detail level. `verbose` logs every R6 to the console. |
 | `showR6Status` | `boolean` | `true` | Show R6 chain status in session output. |
-| `storagePath` | `string` | `~/.web4/` | Directory for audit logs and session state. |
+| `storagePath` | `string` | `~/.moltbot/extensions/web4-governance/` | Directory for audit logs and session state. |
 | `policy` | `object` | see below | Policy engine configuration. |
 
 ## Policy Engine
@@ -286,7 +286,7 @@ Constraints: policy:allow, rule:default
 ## Storage Layout
 
 ```
-~/.web4/
+~/.moltbot/extensions/web4-governance/
   audit/
     <sessionId>.jsonl     # Hash-linked audit records (append-only)
   sessions/

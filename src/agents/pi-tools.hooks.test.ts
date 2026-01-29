@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { wrapToolWithHooks, type ToolHookContext } from "./pi-tools.hooks.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 
@@ -22,7 +22,7 @@ function createMockTool(name: string, executeFn?: AnyAgentTool["execute"]): AnyA
     schema: {} as AnyAgentTool["schema"],
     execute:
       executeFn ??
-      (async (_id: string, params: unknown) => {
+      (async (_id: string, _params: unknown) => {
         return `result from ${name}`;
       }),
   };

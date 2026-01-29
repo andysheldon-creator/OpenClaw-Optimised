@@ -112,7 +112,7 @@ The plugin interface stays the same — just the policy evaluation gets richer.
 ## Storage Layout
 
 ```
-~/.web4/
+~/.moltbot/extensions/web4-governance/
 ├── audit/
 │   └── <sessionId>.jsonl     # Hash-linked audit records (append-only)
 └── sessions/
