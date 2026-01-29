@@ -7,20 +7,36 @@ import {
 
 describe("matchesConfigPath", () => {
   it("matches exact paths", () => {
-    expect(matchesConfigPath("agents.list.0.model", "agents.list.0.model")).toBe(true);
-    expect(matchesConfigPath("agents.list.0.model", "agents.list.0.identity")).toBe(false);
+    expect(matchesConfigPath("agents.list.model", "agents.list.model")).toBe(true);
+    expect(matchesConfigPath("agents.list.model", "agents.list.identity")).toBe(false);
     expect(matchesConfigPath("foo.bar.baz", "foo.bar.baz")).toBe(true);
   });
 
   it("matches single-segment wildcards (*)", () => {
-    expect(matchesConfigPath("agents.list.0.model", "agents.*.*.model")).toBe(true);
-    expect(matchesConfigPath("agents.list.0.model", "agents.*.0.model")).toBe(true);
+    // * matches one named segment (numeric array indices are transparent)
+    expect(matchesConfigPath("agents.list.0.model", "agents.*.model")).toBe(true);
     expect(matchesConfigPath("agents.list.0.model", "*.list.*.model")).toBe(true);
-    expect(matchesConfigPath("agents.list.0.model", "*.*.*.model")).toBe(true);
+    expect(matchesConfigPath("agents.list.0.model", "*.*.model")).toBe(true);
 
-    // Should not match different number of segments
-    expect(matchesConfigPath("agents.list.0.model", "agents.*.model")).toBe(false);
+    // Should not match different structure
     expect(matchesConfigPath("agents.list.model", "agents.*.*.model")).toBe(false);
+  });
+
+  it("numeric array indices are transparent", () => {
+    // Array index segments (0, 1, 2...) are skipped during matching
+    expect(matchesConfigPath("agents.list.0.model", "agents.list.model")).toBe(true);
+    expect(matchesConfigPath("agents.list.5.identity.name", "agents.list.identity.name")).toBe(
+      true,
+    );
+    expect(matchesConfigPath("agents.list.0.model.primary", "agents.*.model")).toBe(true);
+    expect(matchesConfigPath("agents.list.0.model.primary", "agents.*.model.primary")).toBe(true);
+  });
+
+  it("prefix matching grants subtree access", () => {
+    // If pattern is fully consumed, remaining path segments are allowed
+    expect(matchesConfigPath("agents.list.0.model.primary", "agents.*.model")).toBe(true);
+    expect(matchesConfigPath("agents.list.0.model.primary.nested", "agents.*.model")).toBe(true);
+    expect(matchesConfigPath("agents.list.0.identity.name", "agents.*.identity")).toBe(true);
   });
 
   it("matches deep wildcards (**)", () => {
@@ -32,7 +48,6 @@ describe("matchesConfigPath", () => {
     expect(matchesConfigPath("a.b.c.d.model", "**.model")).toBe(true);
 
     expect(matchesConfigPath("agents.list.0.model", "agents.**.model")).toBe(true);
-    expect(matchesConfigPath("agents.x.y.z.model", "agents.**.model")).toBe(true);
 
     // Should not match if other parts don't match
     expect(matchesConfigPath("agents.list.0.model", "tools.**")).toBe(false);
@@ -40,15 +55,14 @@ describe("matchesConfigPath", () => {
   });
 
   it("handles combined wildcards", () => {
-    expect(matchesConfigPath("agents.list.0.model", "agents.*.*.model")).toBe(true);
     expect(matchesConfigPath("agents.list.0.tools.exec.host", "agents.**.exec.host")).toBe(true);
     expect(matchesConfigPath("agents.list.5.tools.allow.0", "agents.**.allow.*")).toBe(true);
   });
 
   it("rejects non-matching paths", () => {
-    expect(matchesConfigPath("agents.list.0.identity", "agents.*.*.model")).toBe(false);
+    expect(matchesConfigPath("agents.list.0.identity", "agents.*.model")).toBe(false);
     expect(matchesConfigPath("tools.allow", "agents.**")).toBe(false);
-    expect(matchesConfigPath("agents.list.0.workspace", "agents.*.*.model")).toBe(false);
+    expect(matchesConfigPath("agents.list.0.workspace", "agents.*.model")).toBe(false);
   });
 });
 
@@ -124,13 +138,13 @@ describe("validateConfigPaths", () => {
 
   it("allows paths matching the allowlist", () => {
     const paths = ["agents.list.0.model", "agents.list.1.model"];
-    const allowed = ["agents.*.*.model"];
+    const allowed = ["agents.*.model"];
     expect(validateConfigPaths(paths, allowed)).toEqual({ allowed: true });
   });
 
   it("blocks paths not matching the allowlist", () => {
     const paths = ["agents.list.0.model", "agents.list.0.identity"];
-    const allowed = ["agents.*.*.model"];
+    const allowed = ["agents.*.model"];
     const result = validateConfigPaths(paths, allowed);
     expect(result.allowed).toBe(false);
     if (!result.allowed) {
@@ -140,13 +154,13 @@ describe("validateConfigPaths", () => {
 
   it("works with multiple allowed patterns", () => {
     const paths = ["agents.list.0.model", "agents.list.0.tools.allow.0", "agents.defaults.model"];
-    const allowed = ["agents.*.*.model", "agents.**.allow.*", "agents.defaults.model"];
+    const allowed = ["agents.*.model", "agents.**.allow.*", "agents.defaults.model"];
     expect(validateConfigPaths(paths, allowed)).toEqual({ allowed: true });
   });
 
   it("blocks multiple paths", () => {
     const paths = ["agents.list.0.model", "agents.list.0.identity", "agents.list.0.workspace"];
-    const allowed = ["agents.*.*.model"];
+    const allowed = ["agents.*.model"];
     const result = validateConfigPaths(paths, allowed);
     expect(result.allowed).toBe(false);
     if (!result.allowed) {
@@ -164,5 +178,29 @@ describe("validateConfigPaths", () => {
     ];
     const allowed = ["agents.**.tools.**"];
     expect(validateConfigPaths(paths, allowed)).toEqual({ allowed: true });
+  });
+
+  it("auto-allows id fields in arrays for merge-by-key", () => {
+    const paths = ["agents.list.0.id", "agents.list.0.model.primary"];
+    const allowed = ["agents.*.model"];
+    expect(validateConfigPaths(paths, allowed)).toEqual({ allowed: true });
+  });
+
+  it("real-world scenario: agent model tiering with path restrictions", () => {
+    // Parker has allowedConfigPaths: ["agents.*.model"]
+    const allowed = ["agents.*.model"];
+
+    // Allowed: changing model
+    const modelPatch = extractConfigPaths({
+      agents: { list: [{ id: "parker", model: { primary: "claude-sonnet-4-5" } }] },
+    });
+    expect(validateConfigPaths(modelPatch, allowed)).toEqual({ allowed: true });
+
+    // Blocked: changing identity
+    const identityPatch = extractConfigPaths({
+      agents: { list: [{ id: "parker", identity: { emoji: "🧪" } }] },
+    });
+    const result = validateConfigPaths(identityPatch, allowed);
+    expect(result.allowed).toBe(false);
   });
 });

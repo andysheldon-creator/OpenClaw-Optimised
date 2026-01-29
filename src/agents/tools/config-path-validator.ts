@@ -49,10 +49,21 @@ export function matchesConfigPath(path: string, pattern: string): boolean {
       return false;
     }
 
-    // Handle single-segment wildcard: "*" matches exactly one segment
+    // Handle single-segment wildcard: "*" matches one named segment
+    // (also skips numeric array-index segments transparently)
     if (patternPart === "*") {
       pathIndex++;
+      // Skip any array index segments that follow
+      while (pathIndex < pathParts.length && /^\d+$/.test(pathParts[pathIndex])) {
+        pathIndex++;
+      }
       patternIndex++;
+      continue;
+    }
+
+    // Skip numeric array-index segments transparently in the path
+    if (/^\d+$/.test(pathParts[pathIndex])) {
+      pathIndex++;
       continue;
     }
 
@@ -65,8 +76,13 @@ export function matchesConfigPath(path: string, pattern: string): boolean {
     patternIndex++;
   }
 
-  // Both must be fully consumed for a match
-  return pathIndex === pathParts.length && patternIndex === patternParts.length;
+  // Pattern fully consumed — allow subtree (prefix match grants access to children)
+  if (patternIndex === patternParts.length) {
+    return true; // e.g. pattern "agents.*.model" allows "agents.list.0.model.primary"
+  }
+
+  // Path fully consumed but pattern has more parts — no match
+  return false;
 }
 
 /**
@@ -88,6 +104,10 @@ export function validateConfigPaths(
   const blockedPaths: string[] = [];
 
   for (const path of patchPaths) {
+    // Auto-allow "id" fields in arrays — needed for merge-by-key identification
+    if (/\.\d+\.id$/.test(path)) {
+      continue;
+    }
     const isAllowed = allowedPatterns.some((pattern) => matchesConfigPath(path, pattern));
     if (!isAllowed) {
       blockedPaths.push(path);
