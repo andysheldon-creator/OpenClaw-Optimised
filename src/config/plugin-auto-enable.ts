@@ -3,6 +3,7 @@ import {
   getChatChannelMeta,
   listChatChannels,
   normalizeChatChannelId,
+  CHAT_CHANNEL_ORDER,
 } from "../channels/registry.js";
 import {
   getChannelPluginCatalogEntry,
@@ -318,6 +319,23 @@ function ensureAllowlisted(cfg: MoltbotConfig, pluginId: string): MoltbotConfig 
 }
 
 function enablePluginEntry(cfg: MoltbotConfig, pluginId: string): MoltbotConfig {
+  // If this is a built-in channel, enable it in config.channels instead of config.plugins
+  if (CHAT_CHANNEL_ORDER.includes(pluginId as any)) {
+    const channels = cfg.channels as Record<string, Record<string, unknown>> | undefined;
+    const channelConfig = channels?.[pluginId] || {};
+    
+    return {
+      ...cfg,
+      channels: {
+        ...channels,
+        [pluginId]: {
+          ...channelConfig,
+          enabled: true,
+        },
+      },
+    };
+  }
+
   const entries = {
     ...cfg.plugins?.entries,
     [pluginId]: {
