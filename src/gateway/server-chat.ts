@@ -1,9 +1,17 @@
 import { normalizeVerboseLevel } from "../auto-reply/thinking.js";
 import { loadConfig } from "../config/config.js";
 import { type AgentEventPayload, getAgentRunContext } from "../infra/agent-events.js";
+import { isTruthyEnvValue } from "../infra/env.js";
 import { resolveHeartbeatVisibility } from "../infra/heartbeat-visibility.js";
 import { loadSessionEntry } from "./session-utils.js";
 import { formatForLog } from "./ws-log.js";
+
+const debugChatEnabled = isTruthyEnvValue(process.env.CLAWDBOT_DEBUG_CHAT);
+const debugChat = (message: string) => {
+  if (debugChatEnabled) {
+    console.log(`[DEBUG] ${message}`);
+  }
+};
 
 /**
  * Check if webchat broadcasts should be suppressed for heartbeat runs.
@@ -134,14 +142,14 @@ export function createAgentEventHandler({
   clearAgentRunContext,
 }: AgentEventHandlerOptions) {
   const emitChatDelta = (sessionKey: string, clientRunId: string, seq: number, text: string) => {
-    console.log(
-      `[DEBUG] emitChatDelta: sessionKey=${sessionKey} runId=${clientRunId} textLen=${text.length}`,
+    debugChat(
+      `emitChatDelta: sessionKey=${sessionKey} runId=${clientRunId} textLen=${text.length}`,
     );
     chatRunState.buffers.set(clientRunId, text);
     const now = Date.now();
     const last = chatRunState.deltaSentAt.get(clientRunId) ?? 0;
     if (now - last < 150) {
-      console.log(`[DEBUG] emitChatDelta: throttled (${now - last}ms < 150ms)`);
+      debugChat(`emitChatDelta: throttled (${now - last}ms < 150ms)`);
       return;
     }
     chatRunState.deltaSentAt.set(clientRunId, now);
@@ -158,12 +166,12 @@ export function createAgentEventHandler({
     };
     // Suppress webchat broadcast for heartbeat runs when showOk is false
     const suppressed = shouldSuppressHeartbeatBroadcast(clientRunId);
-    console.log(`[DEBUG] emitChatDelta: heartbeatSuppressed=${suppressed}`);
+    debugChat(`emitChatDelta: heartbeatSuppressed=${suppressed}`);
     if (!suppressed) {
-      console.log(`[DEBUG] emitChatDelta: calling broadcast("chat")`);
+      debugChat(`emitChatDelta: calling broadcast("chat")`);
       broadcast("chat", payload, { dropIfSlow: true });
     }
-    console.log(`[DEBUG] emitChatDelta: calling nodeSendToSession`);
+    debugChat(`emitChatDelta: calling nodeSendToSession`);
     nodeSendToSession(sessionKey, "chat", payload);
   };
 
@@ -226,11 +234,11 @@ export function createAgentEventHandler({
   };
 
   return (evt: AgentEventPayload) => {
-    console.log(`[DEBUG] agent event: runId=${evt.runId} stream=${evt.stream} seq=${evt.seq}`);
+    debugChat(`agent event: runId=${evt.runId} stream=${evt.stream} seq=${evt.seq}`);
     const chatLink = chatRunState.registry.peek(evt.runId);
-    console.log(`[DEBUG] chatLink: ${chatLink ? JSON.stringify(chatLink) : "null"}`);
+    debugChat(`chatLink: ${chatLink ? JSON.stringify(chatLink) : "null"}`);
     const sessionKey = chatLink?.sessionKey ?? resolveSessionKeyForRun(evt.runId);
-    console.log(`[DEBUG] sessionKey: ${sessionKey}`);
+    debugChat(`sessionKey: ${sessionKey}`);
     const clientRunId = chatLink?.clientRunId ?? evt.runId;
     const isAborted =
       chatRunState.abortedRuns.has(clientRunId) || chatRunState.abortedRuns.has(evt.runId);
@@ -262,11 +270,11 @@ export function createAgentEventHandler({
 
     if (sessionKey) {
       nodeSendToSession(sessionKey, "agent", agentPayload);
-      console.log(
-        `[DEBUG] checking emitChatDelta: isAborted=${isAborted} stream=${evt.stream} hasText=${typeof evt.data?.text === "string"} text="${String(evt.data?.text ?? "").slice(0, 50)}..."`,
+      debugChat(
+        `checking emitChatDelta: isAborted=${isAborted} stream=${evt.stream} hasText=${typeof evt.data?.text === "string"} text="${String(evt.data?.text ?? "").slice(0, 50)}..."`,
       );
       if (!isAborted && evt.stream === "assistant" && typeof evt.data?.text === "string") {
-        console.log(`[DEBUG] calling emitChatDelta`);
+        debugChat(`calling emitChatDelta`);
         emitChatDelta(sessionKey, clientRunId, evt.seq, evt.data.text);
       } else if (!isAborted && (lifecyclePhase === "end" || lifecyclePhase === "error")) {
         if (chatLink) {

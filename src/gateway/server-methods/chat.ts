@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { isTruthyEnvValue } from "../../infra/env.js";
+
+const debugChatEnabled = isTruthyEnvValue(process.env.CLAWDBOT_DEBUG_CHAT);
+const debugChat = (message: string) => {
+  if (debugChatEnabled) {
+    console.log(`[DEBUG] ${message}`);
+  }
+};
 
 import { CURRENT_SESSION_VERSION } from "@mariozechner/pi-coding-agent";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
@@ -200,8 +208,12 @@ export const chatHandlers: GatewayRequestHandlers = {
     };
     const { cfg, storePath, entry } = loadSessionEntry(sessionKey);
     const sessionId = entry?.sessionId;
+    debugChat(
+      `chat.history: sessionKey="${sessionKey}" sessionId="${sessionId}" storePath="${storePath}" hasEntry=${!!entry}`,
+    );
     const rawMessages =
       sessionId && storePath ? readSessionMessages(sessionId, storePath, entry?.sessionFile) : [];
+    debugChat(`chat.history: rawMessages.length=${rawMessages.length}`);
     const hardMax = 1000;
     const defaultLimit = 200;
     const requested = typeof limit === "number" ? limit : defaultLimit;
