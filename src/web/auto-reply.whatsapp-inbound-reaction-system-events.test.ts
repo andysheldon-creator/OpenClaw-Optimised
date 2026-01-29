@@ -184,4 +184,63 @@ describe("web auto-reply – inbound reaction system events", () => {
     expect(events).toHaveLength(1);
     expect(events[0]).toBe("WhatsApp reaction added: 🔥 by someone msg msg-noid");
   });
+
+  it("normalizes DM reaction peer ID to E.164 matching message routing", async () => {
+    setLoadConfigMock(() => ({
+      channels: { whatsapp: { allowFrom: ["*"] } },
+      messages: {},
+    }));
+
+    let capturedOnReaction: ((reaction: WebInboundReaction) => void) | undefined;
+    const listenerFactory = async (opts: {
+      onMessage: (...args: unknown[]) => Promise<void>;
+      onReaction?: (reaction: WebInboundReaction) => void;
+    }) => {
+      capturedOnReaction = opts.onReaction;
+      return { close: vi.fn() };
+    };
+
+    await monitorWebChannel(false, listenerFactory, false);
+
+    const cfg = { channels: { whatsapp: { allowFrom: ["*"] } }, messages: {} };
+
+    // For DM reactions with senderE164, the peer ID should be normalized to E.164
+    // to match how messages are routed (via resolvePeerId).
+    const normalizedRoute = resolveAgentRoute({
+      cfg: cfg as Parameters<typeof resolveAgentRoute>[0]["cfg"],
+      channel: "whatsapp",
+      accountId: "default",
+      peer: { kind: "dm", id: "+19995551234" },
+    });
+
+    // Drain both potential session keys to clear "gateway connected" events
+    drainSystemEvents(normalizedRoute.sessionKey);
+    const jidRoute = resolveAgentRoute({
+      cfg: cfg as Parameters<typeof resolveAgentRoute>[0]["cfg"],
+      channel: "whatsapp",
+      accountId: "default",
+      peer: { kind: "dm", id: "19995551234@s.whatsapp.net" },
+    });
+    drainSystemEvents(jidRoute.sessionKey);
+
+    capturedOnReaction!({
+      messageId: "msg-normalized",
+      emoji: "✅",
+      chatJid: "19995551234@s.whatsapp.net",
+      chatType: "direct",
+      accountId: "default",
+      senderJid: "19995551234@s.whatsapp.net",
+      senderE164: "+19995551234",
+      timestamp: Date.now(),
+    });
+
+    // The reaction should land in the E.164-normalized session, not the JID-based one.
+    const events = peekSystemEvents(normalizedRoute.sessionKey);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toBe("WhatsApp reaction added: ✅ by +19995551234 msg msg-normalized");
+
+    // Verify it did NOT land in a JID-based session key.
+    const jidEvents = peekSystemEvents(jidRoute.sessionKey);
+    expect(jidEvents).toHaveLength(0);
+  });
 });

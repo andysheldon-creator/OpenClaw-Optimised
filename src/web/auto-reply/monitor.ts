@@ -28,6 +28,7 @@ import { whatsappHeartbeatLog, whatsappLog } from "./loggers.js";
 import { buildMentionConfig } from "./mentions.js";
 import { createEchoTracker } from "./monitor/echo.js";
 import { createWebOnMessageHandler } from "./monitor/on-message.js";
+import { resolveReactionPeerId } from "./monitor/peer.js";
 import type { WebInboundReaction } from "../inbound.js";
 import type { WebChannelStatus, WebInboundMsg, WebMonitorTuning } from "./types.js";
 import { isLikelyWhatsAppCryptoError } from "./util.js";
@@ -205,13 +206,14 @@ export async function monitorWebChannel(
       onReaction: (reaction: WebInboundReaction) => {
         status.lastEventAt = Date.now();
         emitStatus();
+        const peerId = resolveReactionPeerId(reaction);
         const route = resolveAgentRoute({
           cfg,
           channel: "whatsapp",
           accountId: reaction.accountId,
           peer: {
             kind: reaction.chatType === "group" ? "group" : "dm",
-            id: reaction.chatJid,
+            id: peerId,
           },
         });
         const senderLabel = reaction.senderE164 ?? reaction.senderJid ?? "someone";
