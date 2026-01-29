@@ -11,8 +11,10 @@ import {
   type RestartSentinelPayload,
   writeRestartSentinel,
 } from "../../infra/restart-sentinel.js";
+import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { stringEnum } from "../schema/typebox.js";
 import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
+import { extractConfigPaths, validateConfigPaths } from "./config-path-validator.js";
 import { callGatewayTool } from "./gateway.js";
 
 function resolveBaseHashFromSnapshot(snapshot: unknown): string | undefined {
@@ -240,15 +242,63 @@ export function createGatewayTool(opts?: {
       }
       if (action === "config.patch") {
         const raw = readStringParam(params, "raw", { required: true });
+
+        // Validate config paths against agent's allowed paths (governance)
+        const sessionKey =
+          typeof params.sessionKey === "string" && params.sessionKey.trim()
+            ? params.sessionKey.trim()
+            : opts?.agentSessionKey?.trim() || undefined;
+
+        // Extract agent ID from session key to look up their restrictions
+        const agentId = sessionKey ? resolveAgentIdFromSessionKey(sessionKey) : undefined;
+        const agentConfig = agentId
+          ? opts?.config?.agents?.list?.find((a) => a.id === agentId)
+          : undefined;
+        const allowedPaths = agentConfig?.allowedConfigPaths;
+
+        // Parse the patch to extract paths being modified
+        let patchObj: unknown;
+        try {
+          patchObj = JSON.parse(raw);
+        } catch (err) {
+          throw new Error(
+            `Invalid JSON in config patch: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+
+        const patchPaths = extractConfigPaths(patchObj);
+
+        // Validate paths against agent's restrictions
+        const validation = validateConfigPaths(patchPaths, allowedPaths);
+        if (!validation.allowed) {
+          const blockedList = validation.blockedPaths
+            .slice(0, 10)
+            .map((p) => `  - ${p}`)
+            .join("\n");
+          const moreCount =
+            validation.blockedPaths.length > 10 ? validation.blockedPaths.length - 10 : 0;
+          const moreNote = moreCount > 0 ? `\n  ... and ${moreCount} more` : "";
+
+          const allowedNote =
+            allowedPaths && allowedPaths.length > 0
+              ? `\n\nAllowed patterns for agent "${agentId}":\n${allowedPaths.map((p) => `  - ${p}`).join("\n")}`
+              : "";
+
+          return jsonResult({
+            ok: false,
+            error: "config_path_restricted",
+            message: `Agent "${agentId}" is not authorized to modify the following config paths:\n${blockedList}${moreNote}${allowedNote}`,
+            blockedPaths: validation.blockedPaths,
+            allowedPatterns: allowedPaths,
+            hint: "This agent's config includes allowedConfigPaths restrictions. Contact your administrator to adjust the governance policy.",
+          });
+        }
+
         let baseHash = readStringParam(params, "baseHash");
         if (!baseHash) {
           const snapshot = await callGatewayTool("config.get", gatewayOpts, {});
           baseHash = resolveBaseHashFromSnapshot(snapshot);
         }
-        const sessionKey =
-          typeof params.sessionKey === "string" && params.sessionKey.trim()
-            ? params.sessionKey.trim()
-            : opts?.agentSessionKey?.trim() || undefined;
         const note =
           typeof params.note === "string" && params.note.trim() ? params.note.trim() : undefined;
         const restartDelayMs =
