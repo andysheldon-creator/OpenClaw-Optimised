@@ -184,6 +184,8 @@ export function createHooksRequestHandler(
             thinking: mapped.action.thinking,
             timeoutSeconds: mapped.action.timeoutSeconds,
             allowUnsafeExternalContent: mapped.action.allowUnsafeExternalContent,
+            cleanup: mapped.action.cleanup,
+            cleanupDelayMinutes: mapped.action.cleanupDelayMinutes,
           });
           sendJson(res, 202, { ok: true, runId });
           return true;
