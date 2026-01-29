@@ -5,7 +5,7 @@ export type CronSchedule =
   | { kind: "every"; everyMs: number; anchorMs?: number }
   | { kind: "cron"; expr: string; tz?: string };
 
-export type CronSessionTarget = "main" | "isolated";
+export type CronSessionTarget = "main" | "isolated" | "none";
 export type CronWakeMode = "next-heartbeat" | "now";
 
 export type CronMessageChannel = ChannelId | "last";
@@ -24,7 +24,8 @@ export type CronPayload =
       channel?: CronMessageChannel;
       to?: string;
       bestEffortDeliver?: boolean;
-    };
+    }
+  | { kind: "directMessage"; text: string; channel?: CronMessageChannel; to?: string };
 
 export type CronPayloadPatch =
   | { kind: "systemEvent"; text?: string }
@@ -39,7 +40,8 @@ export type CronPayloadPatch =
       channel?: CronMessageChannel;
       to?: string;
       bestEffortDeliver?: boolean;
-    };
+    }
+  | { kind: "directMessage"; text?: string; channel?: CronMessageChannel; to?: string };
 
 export type CronIsolation = {
   postToMainPrefix?: string;

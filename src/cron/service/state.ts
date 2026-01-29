@@ -34,6 +34,7 @@ export type CronServiceDeps = {
     outputText?: string;
     error?: string;
   }>;
+  sendDirectMessage?: (params: { text: string; channel?: string; to?: string }) => Promise<{ ok: boolean; error?: string }>;
   onEvent?: (evt: CronEvent) => void;
 };
 

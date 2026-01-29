@@ -8,6 +8,7 @@ import { CronService } from "../cron/service.js";
 import { resolveCronStorePath } from "../cron/store.js";
 import { runHeartbeatOnce } from "../infra/heartbeat-runner.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
+import { runMessageAction } from "../infra/outbound/message-action-runner.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { getChildLogger } from "../logging.js";
 import { normalizeAgentId } from "../routing/session-key.js";
@@ -74,6 +75,27 @@ export function buildGatewayCronService(params: {
         sessionKey: `cron:${job.id}`,
         lane: "cron",
       });
+    },
+    sendDirectMessage: async ({ text, channel, to }) => {
+      const runtimeConfig = loadConfig();
+      try {
+        await runMessageAction({
+          cfg: runtimeConfig,
+          action: "send",
+          params: {
+            message: text,
+            ...(channel ? { channel } : {}),
+            ...(to ? { target: to } : {}),
+          },
+          gateway: {
+            clientName: "gateway-client",
+            mode: "backend",
+          },
+        });
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: String(err) };
+      }
     },
     log: getChildLogger({ module: "cron", storePath }),
     onEvent: (evt) => {

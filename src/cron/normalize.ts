@@ -106,6 +106,7 @@ export function normalizeCronJobInput(
       const kind = typeof next.payload.kind === "string" ? next.payload.kind : "";
       if (kind === "systemEvent") next.sessionTarget = "main";
       if (kind === "agentTurn") next.sessionTarget = "isolated";
+      if (kind === "directMessage") next.sessionTarget = "none";
     }
   }
 

@@ -131,6 +131,16 @@ function mergeCronPayload(existing: CronPayload, patch: CronPayloadPatch): CronP
     return { kind: "systemEvent", text };
   }
 
+  if (patch.kind === "directMessage") {
+    if (existing.kind !== "directMessage") {
+      return buildPayloadFromPatch(patch);
+    }
+    const text = typeof patch.text === "string" ? patch.text : existing.text;
+    const channel = typeof patch.channel === "string" ? patch.channel : existing.channel;
+    const to = typeof patch.to === "string" ? patch.to : existing.to;
+    return { kind: "directMessage", text, channel, to };
+  }
+
   if (existing.kind !== "agentTurn") {
     return buildPayloadFromPatch(patch);
   }
@@ -155,6 +165,13 @@ function buildPayloadFromPatch(patch: CronPayloadPatch): CronPayload {
       throw new Error('cron.update payload.kind="systemEvent" requires text');
     }
     return { kind: "systemEvent", text: patch.text };
+  }
+
+  if (patch.kind === "directMessage") {
+    if (typeof patch.text !== "string" || patch.text.length === 0) {
+      throw new Error('cron.update payload.kind="directMessage" requires text');
+    }
+    return { kind: "directMessage", text: patch.text, channel: patch.channel, to: patch.to };
   }
 
   if (typeof patch.message !== "string" || patch.message.length === 0) {

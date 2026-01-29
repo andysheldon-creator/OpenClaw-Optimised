@@ -137,6 +137,37 @@ export async function executeJob(
   };
 
   try {
+    if (job.sessionTarget === "none") {
+      if (job.payload.kind !== "directMessage") {
+        await finish("skipped", 'sessionTarget "none" requires payload.kind="directMessage"');
+        return;
+      }
+      const text = job.payload.text?.trim();
+      if (!text) {
+        await finish("skipped", "directMessage requires non-empty text");
+        return;
+      }
+      if (!state.deps.sendDirectMessage) {
+        await finish("error", "directMessage not supported (sendDirectMessage not wired)");
+        return;
+      }
+      try {
+        const res = await state.deps.sendDirectMessage({
+          text,
+          channel: job.payload.channel ?? undefined,
+          to: job.payload.to ?? undefined,
+        });
+        if (res.ok) {
+          await finish("ok", undefined, text);
+        } else {
+          await finish("error", res.error ?? "directMessage send failed");
+        }
+      } catch (sendErr) {
+        await finish("error", String(sendErr));
+      }
+      return;
+    }
+
     if (job.sessionTarget === "main") {
       const text = resolveJobPayloadTextForMain(job);
       if (!text) {

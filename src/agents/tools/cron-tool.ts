@@ -150,7 +150,7 @@ JOB SCHEMA (for add action):
   "name": "string (optional)",
   "schedule": { ... },      // Required: when to run
   "payload": { ... },       // Required: what to execute
-  "sessionTarget": "main" | "isolated",  // Required
+  "sessionTarget": "main" | "isolated" | "none",  // Required
   "enabled": true | false   // Optional, default true
 }
 
@@ -167,10 +167,13 @@ PAYLOAD TYPES (payload.kind):
   { "kind": "systemEvent", "text": "<message>" }
 - "agentTurn": Runs agent with message (isolated sessions only)
   { "kind": "agentTurn", "message": "<prompt>", "model": "<optional>", "thinking": "<optional>", "timeoutSeconds": <optional>, "deliver": <optional-bool>, "channel": "<optional>", "to": "<optional>", "bestEffortDeliver": <optional-bool> }
+- "directMessage": Sends text directly to a channel WITHOUT AI — zero token cost. Best for simple text reminders.
+  { "kind": "directMessage", "text": "<message>", "channel": "<optional-channel-id>", "to": "<optional-target>" }
 
 CRITICAL CONSTRAINTS:
 - sessionTarget="main" REQUIRES payload.kind="systemEvent"
 - sessionTarget="isolated" REQUIRES payload.kind="agentTurn"
+- sessionTarget="none" REQUIRES payload.kind="directMessage"
 
 WAKE MODES (for wake action):
 - "next-heartbeat" (default): Wake on next heartbeat
