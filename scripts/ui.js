@@ -102,7 +102,7 @@ if (!runner) {
   process.exit(1);
 }
 
-const script = null
+let script = null
 
 switch(action) {
   case "install":
