@@ -19,19 +19,37 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
@@ -40,6 +58,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ScreenShare
@@ -47,6 +67,8 @@ import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Refresh
@@ -75,6 +97,8 @@ import com.clawdbot.android.MainViewModel
 @Composable
 fun RootScreen(viewModel: MainViewModel) {
   var sheet by remember { mutableStateOf<Sheet?>(null) }
+  var canvasFullscreen by remember { mutableStateOf(false) }
+  var chatInput by remember { mutableStateOf("") }
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   val safeOverlayInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
   val context = LocalContext.current
@@ -89,6 +113,7 @@ fun RootScreen(viewModel: MainViewModel) {
   val talkStatusText by viewModel.talkStatusText.collectAsState()
   val talkIsListening by viewModel.talkIsListening.collectAsState()
   val talkIsSpeaking by viewModel.talkIsSpeaking.collectAsState()
+  val canvasHasContent by viewModel.canvasHasContent.collectAsState()
   val seamColorArgb by viewModel.seamColorArgb.collectAsState()
   val seamColor = remember(seamColorArgb) { ComposeColor(seamColorArgb) }
   val audioPermissionLauncher =
@@ -202,11 +227,16 @@ fun RootScreen(viewModel: MainViewModel) {
   }
 
   // Camera flash must be in a Popup to render above the WebView.
-  Popup(alignment = Alignment.Center, properties = PopupProperties(focusable = false)) {
-    CameraFlashOverlay(token = cameraFlashToken, modifier = Modifier.fillMaxSize())
+  // Only show when flash is active to avoid blocking touches.
+  if (cameraFlashToken != 0L) {
+    Popup(alignment = Alignment.Center, properties = PopupProperties(focusable = false)) {
+      CameraFlashOverlay(token = cameraFlashToken, modifier = Modifier.fillMaxSize())
+    }
   }
 
   // Keep the overlay buttons above the WebView canvas (AndroidView), otherwise they may not receive touches.
+  // Hide when canvas is in fullscreen mode (except the toggle button)
+  if (!canvasFullscreen) {
   Popup(alignment = Alignment.TopStart, properties = PopupProperties(focusable = false)) {
     StatusPill(
       gateway = gatewayState,
@@ -267,16 +297,122 @@ fun RootScreen(viewModel: MainViewModel) {
     }
   }
 
-  // PTT orb overlay - always visible, static when off, pulsing when active
+  // Status text above orb
+  Popup(alignment = Alignment.Center, properties = PopupProperties(focusable = false)) {
+    Column(
+      horizontalAlignment = Alignment.CenterHorizontally,
+      modifier = Modifier.offset(y = (-140).dp),
+    ) {
+      val statusPhrase = when {
+        !talkEnabled -> "Tap to talk"
+        talkIsSpeaking -> "Speaking..."
+        talkIsListening -> "Listening..."
+        else -> "Thinking..."
+      }
+      Text(
+        text = statusPhrase,
+        color = ComposeColor.White.copy(alpha = 0.8f),
+        fontSize = 14.sp,
+      )
+    }
+  }
+
+  // Orb in center
   Popup(alignment = Alignment.Center, properties = PopupProperties(focusable = false)) {
     TalkOrbOverlay(
       seamColor = seamColor,
-      statusText = talkStatusText,
+      statusText = "",
       isListening = talkIsListening,
       isSpeaking = talkIsSpeaking,
       isActive = talkEnabled,
       onTap = { viewModel.setTalkEnabled(!talkEnabled) },
     )
+  }
+
+  } // end if (!canvasFullscreen)
+
+  // Chat input at bottom - ALWAYS visible (even in fullscreen)
+  // Fullscreen button on RIGHT side (above text field), send button at far right
+  Popup(alignment = Alignment.BottomCenter, properties = PopupProperties(focusable = true, dismissOnClickOutside = false)) {
+    Row(
+      modifier = Modifier
+        .imePadding()
+        .windowInsetsPadding(WindowInsets.navigationBars)
+        .padding(horizontal = 12.dp, vertical = 16.dp)
+        .fillMaxWidth(0.92f)
+        .background(
+          color = ComposeColor(0xFF1E1E1E),
+          shape = RoundedCornerShape(28.dp),
+        )
+        .padding(horizontal = 8.dp, vertical = 6.dp),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      // Text field - takes most of the space
+      BasicTextField(
+        value = chatInput,
+        onValueChange = { chatInput = it },
+        modifier = Modifier
+          .weight(1f)
+          .padding(horizontal = 12.dp),
+        textStyle = TextStyle(color = ComposeColor.White, fontSize = 16.sp),
+        cursorBrush = SolidColor(seamColor),
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+        keyboardActions = KeyboardActions(
+          onSend = {
+            if (chatInput.isNotBlank()) {
+              viewModel.sendChat(message = chatInput.trim(), thinking = "low", attachments = emptyList())
+              chatInput = ""
+            }
+          }
+        ),
+        decorationBox = { innerTextField ->
+          Box(modifier = Modifier.fillMaxWidth()) {
+            if (chatInput.isEmpty()) {
+              Text(
+                "Message Clawd...",
+                color = ComposeColor.White.copy(alpha = 0.4f),
+                fontSize = 16.sp,
+              )
+            }
+            innerTextField()
+          }
+        },
+      )
+
+      // Fullscreen button - RIGHT side (before send)
+      FilledTonalIconButton(
+        onClick = { canvasFullscreen = !canvasFullscreen },
+        modifier = Modifier.size(40.dp),
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+          containerColor = if (canvasFullscreen) ComposeColor(0xFFFF5722) else ComposeColor.White.copy(alpha = 0.1f),
+          contentColor = ComposeColor.White,
+        ),
+      ) {
+        Icon(
+          if (canvasFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+          contentDescription = "Fullscreen",
+          modifier = Modifier.size(20.dp),
+        )
+      }
+
+      // Send button - far right
+      FilledTonalIconButton(
+        onClick = {
+          if (chatInput.isNotBlank()) {
+            viewModel.sendChat(message = chatInput.trim(), thinking = "low", attachments = emptyList())
+            chatInput = ""
+          }
+        },
+        modifier = Modifier.size(40.dp),
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+          containerColor = if (chatInput.isNotBlank()) seamColor else ComposeColor.White.copy(alpha = 0.1f),
+          contentColor = ComposeColor.White,
+        ),
+      ) {
+        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", modifier = Modifier.size(20.dp))
+      }
+    }
   }
 
   val currentSheet = sheet
@@ -345,6 +481,40 @@ private fun CanvasView(viewModel: MainViewModel, modifier: Modifier = Modifier) 
         isHorizontalScrollBarEnabled = true
         webViewClient =
           object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+              view: WebView,
+              request: WebResourceRequest,
+            ): Boolean {
+              val url = request.url
+              val scheme = url.scheme ?: return false
+              // Allow data: and file: URLs to load in WebView
+              if (scheme == "data" || scheme == "file" || scheme == "http" || scheme == "https") {
+                // For http/https, check if it's an external app link (like waze.com)
+                if (scheme == "https" || scheme == "http") {
+                  val host = url.host ?: return false
+                  if (host.contains("waze.com") || host.contains("maps.google") || host.contains("goo.gl")) {
+                    try {
+                      val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, url)
+                      context.startActivity(intent)
+                      return true
+                    } catch (e: Exception) {
+                      Log.e("ClawdbotWebView", "Failed to open external URL: $url", e)
+                    }
+                  }
+                }
+                return false
+              }
+              // External URL scheme (waze://, tel://, mailto://, etc.) - open externally
+              try {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, url)
+                context.startActivity(intent)
+                return true
+              } catch (e: Exception) {
+                Log.e("ClawdbotWebView", "Failed to open external URL: $url", e)
+                return false
+              }
+            }
+
             override fun onReceivedError(
               view: WebView,
               request: WebResourceRequest,
