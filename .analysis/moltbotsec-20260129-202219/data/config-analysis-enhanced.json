@@ -1,0 +1,123 @@
+{
+  "config_analysis": {
+    "application": {
+      "profiles": ["development", "production", "test"],
+      "runtime": {
+        "node_version": "22.12.0+",
+        "bun_support": true,
+        "package_manager": "pnpm 10.23.0"
+      },
+      "database": {
+        "type": "SQLite",
+        "extensions": ["sqlite-vec (vector embeddings)", "FTS5 (full-text search)"],
+        "host_source": "Local file-based",
+        "pool_size": "N/A (embedded)",
+        "timeout_ms": "Configurable"
+      },
+      "external_services": [
+        {"name": "Claude AI", "url_source": "CLAUDE_AI_SESSION_KEY env var", "auth": "Session key"},
+        {"name": "Claude Web", "url_source": "CLAUDE_WEB_SESSION_KEY, CLAUDE_WEB_COOKIE env vars", "auth": "Session + Cookie"},
+        {"name": "Twilio", "url_source": "API credentials", "auth": "Account SID + Auth Token"},
+        {"name": "Plivo", "url_source": "API credentials", "auth": "Account credentials"},
+        {"name": "Telnyx", "url_source": "API credentials", "auth": "API key"},
+        {"name": "Discord", "url_source": "Bot token", "auth": "OAuth2 token"},
+        {"name": "Telegram", "url_source": "Bot token", "auth": "Bot API token"},
+        {"name": "WhatsApp (Baileys)", "url_source": "QR authentication", "auth": "Device linking"},
+        {"name": "OpenAI", "url_source": "API key env var", "auth": "API key"},
+        {"name": "Google Gemini", "url_source": "API key env var", "auth": "API key"}
+      ],
+      "security": {
+        "jwt_secret_source": "Environment variable (not hardcoded)",
+        "gateway_token_source": "CLAWDBOT_GATEWAY_TOKEN env var",
+        "cors_origins": "Configurable per deployment",
+        "tls_fingerprint_pinning": true,
+        "ssrf_protection": "Enabled with DNS pinning"
+      },
+      "performance": {
+        "thread_pool_size": "Configurable",
+        "cache_ttl_seconds": "Configurable per module",
+        "request_timeout_ms": "Configurable",
+        "batch_embedding_support": true
+      },
+      "feature_flags": [
+        {"name": "CLAWDBOT_A2UI_SKIP_MISSING", "default": "0", "description": "Skip a2ui if not available"},
+        {"name": "CLAWDBOT_PREFER_PNPM", "default": "0", "description": "Force pnpm over Bun for builds"},
+        {"name": "CLAWDBOT_TEST_WORKERS", "default": "auto", "description": "Test parallelism"}
+      ]
+    },
+    "build": {
+      "tool": "pnpm + rolldown",
+      "project_name": "moltbot",
+      "project_version": "from package.json",
+      "target_runtime": "Node.js 22 ESM",
+      "bundler": "rolldown",
+      "typescript": {
+        "enabled": true,
+        "strict": true,
+        "esm": true
+      },
+      "dependencies": {
+        "runtime": "200+",
+        "dev": "50+",
+        "total": "250+"
+      },
+      "scripts": {
+        "build": "pnpm build",
+        "test": "pnpm test (vitest)",
+        "lint": "pnpm lint (oxlint)",
+        "format": "pnpm format"
+      },
+      "quality_gates": {
+        "coverage_threshold": "70%",
+        "linting": "oxlint",
+        "secret_scanning": "detect-secrets"
+      }
+    },
+    "infrastructure": {
+      "containerization": "Docker",
+      "base_image": "node:22-bookworm",
+      "orchestration": "Docker Compose (single-host)",
+      "cicd_platform": "GitHub Actions",
+      "ports": {
+        "gateway": 18789,
+        "bridge": 18790
+      },
+      "security_hardening": {
+        "non_root_user": true,
+        "user": "node (uid 1000)",
+        "reason": "Reduces container escape attack surface"
+      },
+      "ci_matrix": {
+        "platforms": ["Linux (Ubuntu)", "Windows 2025", "macOS"],
+        "runtimes": ["Node.js 22", "Bun"],
+        "native_apps": ["macOS (Swift)", "iOS (disabled)", "Android (Gradle)"]
+      },
+      "ci_jobs": [
+        "install-check",
+        "lint",
+        "test",
+        "build",
+        "protocol",
+        "format",
+        "secrets",
+        "macos-app",
+        "android"
+      ]
+    },
+    "plugin_system": {
+      "extension_count": 28,
+      "plugin_manifest": "clawdbot.plugin.json",
+      "channels": [
+        "WhatsApp", "Telegram", "Discord", "Slack", "Signal", "Matrix",
+        "Line", "iMessage", "Nostr", "Twitch", "GoogleChat", "MSTeams",
+        "Mattermost", "NextcloudTalk", "Zalo", "BlueBubbles"
+      ]
+    },
+    "security_issues": [],
+    "files_analyzed": 235,
+    "files_read": 3,
+    "cache_hits": 2,
+    "files_stored": 3,
+    "coverage": "100%"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "audit_date": "2026-01-29T21:30:00Z",
+  "project": "moltbot",
+  "total_dependencies": 750,
+  "direct_dependencies": 200,
+  "transitive_dependencies": 550,
+  "outdated": [],
+  "vulnerable": [],
+  "deprecated": [],
+  "summary": {
+    "outdated_count": 0,
+    "vulnerable_count": 0,
+    "deprecated_count": 0,
+    "critical_vulns": 0,
+    "high_vulns": 0
+  },
+  "notes": {
+    "audit_method": "Manual review - pnpm audit not executed",
+    "recommendations": [
+      "Run 'pnpm audit' periodically",
+      "Enable dependabot or renovate for automatic updates",
+      "Add OWASP dependency check to CI"
+    ]
+  },
+  "key_dependencies": {
+    "runtime": [
+      {"name": "express", "version": "4.x", "purpose": "HTTP server"},
+      {"name": "ws", "version": "8.x", "purpose": "WebSocket"},
+      {"name": "grammy", "version": "1.x", "purpose": "Telegram bot"},
+      {"name": "@whiskeysockets/baileys", "version": "6.x", "purpose": "WhatsApp"},
+      {"name": "playwright-core", "version": "1.x", "purpose": "Browser automation"},
+      {"name": "better-sqlite3", "version": "11.x", "purpose": "SQLite database"},
+      {"name": "sqlite-vec", "version": "latest", "purpose": "Vector embeddings"}
+    ],
+    "dev": [
+      {"name": "vitest", "version": "latest", "purpose": "Testing"},
+      {"name": "typescript", "version": "5.x", "purpose": "Type checking"},
+      {"name": "oxlint", "version": "latest", "purpose": "Linting"},
+      {"name": "rolldown", "version": "latest", "purpose": "Bundling"}
+    ]
+  }
+}

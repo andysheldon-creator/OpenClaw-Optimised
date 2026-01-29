@@ -1,0 +1,436 @@
+{
+  "circular_dependencies": {
+    "count": 1,
+    "cycles": [
+      {
+        "nodes": [
+          "controllers/config",
+          "test/helpers",
+          "test",
+          "ui/components",
+          "tui/components",
+          "ui/controllers",
+          "commands/models",
+          "apps/shared",
+          "ui/views",
+          "config"
+        ],
+        "type": "component"
+      }
+    ]
+  },
+  "dead_code": {
+    "count": 0,
+    "symbols": []
+  },
+  "hotspots": {
+    "files": [
+      {
+        "name": "src/agents/pi-embedded-runner.ts",
+        "type": "file",
+        "commits": 167,
+        "additions": 5373,
+        "deletions": 5972,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/config/zod-schema.ts",
+        "type": "file",
+        "commits": 164,
+        "additions": 4933,
+        "deletions": 4358,
+        "component": "config",
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/config/types.ts",
+        "type": "file",
+        "commits": 137,
+        "additions": 4194,
+        "deletions": 4141,
+        "component": "config",
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/auto-reply/reply.ts",
+        "type": "file",
+        "commits": 130,
+        "additions": 3012,
+        "deletions": 4332,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/discord/monitor.ts",
+        "type": "file",
+        "commits": 128,
+        "additions": 4486,
+        "deletions": 4825,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/config/schema.ts",
+        "type": "file",
+        "commits": 126,
+        "additions": 1281,
+        "deletions": 291,
+        "component": "config",
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/telegram/bot.ts",
+        "type": "file",
+        "commits": 126,
+        "additions": 3003,
+        "deletions": 2920,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/agents/pi-tools.ts",
+        "type": "file",
+        "commits": 101,
+        "additions": 1703,
+        "deletions": 1576,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/gateway/server.ts",
+        "type": "file",
+        "commits": 98,
+        "additions": 2991,
+        "deletions": 9311,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/cli/program.ts",
+        "type": "file",
+        "commits": 92,
+        "additions": 2028,
+        "deletions": 2391,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/auto-reply/reply/agent-runner.ts",
+        "type": "file",
+        "commits": 91,
+        "additions": 2565,
+        "deletions": 2045,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/commands/doctor.ts",
+        "type": "file",
+        "commits": 89,
+        "additions": 2561,
+        "deletions": 2255,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/telegram/bot.test.ts",
+        "type": "file",
+        "commits": 85,
+        "additions": 5981,
+        "deletions": 3150,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/agents/system-prompt.ts",
+        "type": "file",
+        "commits": 84,
+        "additions": 2020,
+        "deletions": 1527,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/wizard/onboarding.ts",
+        "type": "file",
+        "commits": 82,
+        "additions": 1933,
+        "deletions": 1482,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/agents/pi-embedded-subscribe.ts",
+        "type": "file",
+        "commits": 78,
+        "additions": 2069,
+        "deletions": 1940,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/commands/configure.ts",
+        "type": "file",
+        "commits": 78,
+        "additions": 2835,
+        "deletions": 2811,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/slack/monitor.ts",
+        "type": "file",
+        "commits": 75,
+        "additions": 3367,
+        "deletions": 3362,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/commands/agent.ts",
+        "type": "file",
+        "commits": 73,
+        "additions": 1165,
+        "deletions": 1220,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/agents/pi-embedded-helpers.ts",
+        "type": "file",
+        "commits": 71,
+        "additions": 2420,
+        "deletions": 2468,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/auto-reply/status.ts",
+        "type": "file",
+        "commits": 67,
+        "additions": 1007,
+        "deletions": 599,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/auto-reply/reply/commands.ts",
+        "type": "file",
+        "commits": 67,
+        "additions": 1588,
+        "deletions": 1581,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/web/auto-reply.ts",
+        "type": "file",
+        "commits": 67,
+        "additions": 1285,
+        "deletions": 2790,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "ui/src/ui/app.ts",
+        "type": "file",
+        "commits": 65,
+        "additions": 1311,
+        "deletions": 1139,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/auto-reply/reply/directive-handling.ts",
+        "type": "file",
+        "commits": 62,
+        "additions": 2313,
+        "deletions": 2255,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "ui/src/ui/app-render.ts",
+        "type": "file",
+        "commits": 61,
+        "additions": 768,
+        "deletions": 543,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/agents/pi-embedded-runner/run/attempt.ts",
+        "type": "file",
+        "commits": 58,
+        "additions": 1144,
+        "deletions": 260,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/commands/onboard-non-interactive.ts",
+        "type": "file",
+        "commits": 56,
+        "additions": 1017,
+        "deletions": 964,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/tui/tui.ts",
+        "type": "file",
+        "commits": 53,
+        "additions": 2105,
+        "deletions": 1478,
+        "component": null,
+        "risk_score": 1.0
+      },
+      {
+        "name": "src/web/inbound.ts",
+        "type": "file",
+        "commits": 52,
+        "additions": 682,
+        "deletions": 1263,
+        "component": null,
+        "risk_score": 1.0
+      }
+    ],
+    "components": [
+      {
+        "name": "unknown",
+        "type": "component",
+        "commits": 17603,
+        "additions": 592778,
+        "deletions": 225561,
+        "files": 2776,
+        "risk_score": 1.0
+      },
+      {
+        "name": "config",
+        "type": "component",
+        "commits": 1373,
+        "additions": 32491,
+        "deletions": 17032,
+        "files": 128,
+        "risk_score": 1.0
+      },
+      {
+        "name": "ui/views",
+        "type": "component",
+        "commits": 176,
+        "additions": 8946,
+        "deletions": 3321,
+        "files": 34,
+        "risk_score": 1.0
+      },
+      {
+        "name": "commands/models",
+        "type": "component",
+        "commits": 133,
+        "additions": 6226,
+        "deletions": 2816,
+        "files": 20,
+        "risk_score": 1.0
+      },
+      {
+        "name": "tui/components",
+        "type": "component",
+        "commits": 73,
+        "additions": 2766,
+        "deletions": 1609,
+        "files": 10,
+        "risk_score": 1.0
+      },
+      {
+        "name": "ui/controllers",
+        "type": "component",
+        "commits": 69,
+        "additions": 1926,
+        "deletions": 649,
+        "files": 18,
+        "risk_score": 1.0
+      },
+      {
+        "name": "test",
+        "type": "component",
+        "commits": 45,
+        "additions": 1770,
+        "deletions": 483,
+        "files": 8,
+        "risk_score": 0.9
+      },
+      {
+        "name": "test/helpers",
+        "type": "component",
+        "commits": 16,
+        "additions": 272,
+        "deletions": 23,
+        "files": 6,
+        "risk_score": 0.32
+      },
+      {
+        "name": "utils",
+        "type": "component",
+        "commits": 3,
+        "additions": 171,
+        "deletions": 1,
+        "files": 2,
+        "risk_score": 0.06
+      },
+      {
+        "name": "controllers/config",
+        "type": "component",
+        "commits": 2,
+        "additions": 77,
+        "deletions": 1,
+        "files": 1,
+        "risk_score": 0.04
+      },
+      {
+        "name": "twitch/test",
+        "type": "component",
+        "commits": 1,
+        "additions": 7,
+        "deletions": 0,
+        "files": 1,
+        "risk_score": 0.02
+      },
+      {
+        "name": "shared",
+        "type": "component",
+        "commits": 1,
+        "additions": 61,
+        "deletions": 0,
+        "files": 1,
+        "risk_score": 0.02
+      },
+      {
+        "name": "nostr/test",
+        "type": "component",
+        "commits": 1,
+        "additions": 5,
+        "deletions": 0,
+        "files": 1,
+        "risk_score": 0.02
+      },
+      {
+        "name": "ui/components",
+        "type": "component",
+        "commits": 1,
+        "additions": 109,
+        "deletions": 0,
+        "files": 1,
+        "risk_score": 0.02
+      }
+    ]
+  },
+  "quality_score": {
+    "score": 90,
+    "grade": "A",
+    "issues": {
+      "circular_dependencies": 1,
+      "dead_code": 0
+    }
+  }
+}

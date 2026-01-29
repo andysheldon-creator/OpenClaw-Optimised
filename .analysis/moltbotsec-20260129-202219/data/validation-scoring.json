@@ -1,0 +1,60 @@
+{
+  "schema_version": "3.1.0",
+  "stage": "validation_scoring",
+  "timestamp": "2026-01-29T20:55:00Z",
+  "scope_validated": true,
+  "complexity": {
+    "codebase_size": {
+      "score": 8,
+      "details": "200k+ LOC estimated from 74286 symbols"
+    },
+    "tech_stack_change": {
+      "score": 8,
+      "details": "TypeScript -> Python"
+    },
+    "database_migration": {
+      "score": 1,
+      "details": "SQLite -> SQLite (keep current)"
+    },
+    "integration_count": {
+      "score": 10,
+      "details": "28 channel integrations"
+    },
+    "test_coverage_gap": {
+      "score": 3,
+      "details": "70% current coverage"
+    },
+    "security_changes": {
+      "score": 1,
+      "details": "Keeping current auth approach"
+    },
+    "overall_score": 5.35,
+    "rating": "HIGH"
+  },
+  "feasibility": {
+    "inline_upgrade": 56,
+    "greenfield_rewrite": 60,
+    "hybrid_approach": 68,
+    "recommended_approach": "Hybrid/Strangler Fig",
+    "confidence_percentage": 68
+  },
+  "modernization_preferences": {
+    "q1_language": "Python 3.12+",
+    "q2_database": "SQLite with sqlite-vec",
+    "q3_message_bus": "WebSocket + in-memory",
+    "q4_package_manager": "uv",
+    "q5_deployment": "Docker Compose",
+    "q6_iac": "Docker Compose",
+    "q7_containerization": "Docker",
+    "q8_observability": {
+      "metrics": "Prometheus",
+      "logging": "Structured JSON",
+      "tracing": "OpenTelemetry"
+    },
+    "q9_security": "Keep current (Token/Password/Tailscale)",
+    "q10_testing": {
+      "strategy": "pytest",
+      "coverage_target": "80%"
+    }
+  }
+}

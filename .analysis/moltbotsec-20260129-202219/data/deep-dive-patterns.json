@@ -1,0 +1,195 @@
+{
+  "deep_dive": {
+    "authentication": {
+      "type": "Multi-mode: Token, Password, Tailscale identity",
+      "user_storage": "Device-based with public/private key pair",
+      "password_hashing": "Timing-safe comparison (crypto.timingSafeEqual)",
+      "token": {
+        "type": "Device token + session token",
+        "algorithm": "Device signature with nonce challenge",
+        "expiration": "Session-based with TLS fingerprint validation"
+      },
+      "authorization": "Device-based auth with exec approval workflow",
+      "roles": [
+        "Device identity",
+        "Tailscale user identity"
+      ],
+      "security_features": [
+        "Timing-safe string comparison prevents timing attacks",
+        "TLS fingerprint pinning for MITM prevention",
+        "Nonce challenge prevents replay attacks",
+        "Local loopback detection for trusted connections",
+        "Tailscale whois verification for user identity"
+      ],
+      "issues": [],
+      "files_analyzed": [
+        "src/gateway/auth.ts",
+        "src/gateway/client.ts",
+        "src/gateway/exec-approval-manager.ts"
+      ],
+      "coverage": "80%"
+    },
+    "security": {
+      "ssrf_protection": {
+        "mechanism": "DNS pinning with IP validation",
+        "blocked_ranges": [
+          "10.x.x.x (private)",
+          "127.x.x.x (loopback)",
+          "169.254.x.x (link-local)",
+          "172.16-31.x.x (private)",
+          "192.168.x.x (private)",
+          "100.64-127.x.x (CGN)",
+          "fe80/fec0/fc/fd IPv6 prefixes",
+          "metadata.google.internal (cloud SSRF)"
+        ],
+        "dns_rebinding_prevention": "Custom undici Agent with pinned DNS lookup"
+      },
+      "audit_system": {
+        "severity_levels": [
+          "info",
+          "warn",
+          "critical"
+        ],
+        "checks": [
+          "Gateway binding and auth configuration",
+          "Filesystem permissions (state dir, config file)",
+          "Channel-specific security (Discord, Slack, Telegram)",
+          "Tailscale funnel/serve exposure",
+          "Elevated exec allowlist validation",
+          "Browser remote CDP security"
+        ]
+      },
+      "exec_approval": {
+        "mechanism": "Promise-based approval wait with timeout",
+        "storage": "In-memory (lost on restart)",
+        "tracking": [
+          "sessionKey",
+          "agentId",
+          "resolvedPath"
+        ],
+        "integrations": [
+          "Discord button interactions",
+          "Gateway events"
+        ]
+      },
+      "files_analyzed": [
+        "src/infra/net/ssrf.ts",
+        "src/security/audit.ts",
+        "src/gateway/exec-approval-manager.ts",
+        "src/discord/monitor/exec-approvals.ts"
+      ],
+      "coverage": "85%"
+    },
+    "database": {
+      "orm": "Raw SQLite with sqlite-vec extension",
+      "engine": "SQLite with WAL mode",
+      "features": {
+        "vector_storage": "sqlite-vec for embeddings",
+        "full_text_search": "FTS5 for keyword search",
+        "hybrid_search": "Vector similarity + BM25 keyword ranking"
+      },
+      "embedding_providers": [
+        "OpenAI",
+        "Gemini",
+        "local (node-llama-cpp)"
+      ],
+      "indexing": {
+        "files": "Markdown chunking with change detection",
+        "sessions": "JSONL transcripts with delta detection",
+        "debounce": "5s for sessions, configurable for memory files"
+      },
+      "reliability": {
+        "batch_fallback": "Fallback to non-batch after 2 failures",
+        "rate_limiting": "Exponential backoff",
+        "safe_reindex": "Temp DB swap"
+      },
+      "issues": [],
+      "files_analyzed": [
+        "src/memory/manager.ts"
+      ],
+      "coverage": "80%"
+    },
+    "api": {
+      "style": "WebSocket + REST hybrid",
+      "communication": {
+        "primary": "WebSocket with auto-reconnect and exponential backoff",
+        "protocol": "Custom gateway protocol with tick-based keepalive",
+        "auth": "Device signature + token exchange"
+      },
+      "endpoints": {
+        "gateway": "WebSocket-based event system",
+        "webhooks": "Platform-specific (Twilio, Discord, etc.)",
+        "voice": "Media Streams for bidirectional audio"
+      },
+      "auth_required": "100% (all gateway connections require auth)",
+      "issues": [],
+      "files_analyzed": [
+        "src/gateway/client.ts",
+        "src/discord/monitor/exec-approvals.ts",
+        "extensions/voice-call/src/media-stream.ts"
+      ],
+      "coverage": "70%"
+    },
+    "business_logic": {
+      "services": {
+        "CronService": {
+          "purpose": "Scheduled job management",
+          "pattern": "Service facade wrapping ops module",
+          "operations": [
+            "start/stop lifecycle",
+            "CRUD operations",
+            "wake/run"
+          ]
+        },
+        "CallManager": {
+          "purpose": "Voice call state machine and lifecycle",
+          "pattern": "State machine with provider abstraction",
+          "providers": [
+            "Twilio",
+            "Plivo",
+            "Telnyx"
+          ],
+          "features": [
+            "Call persistence",
+            "Transcript waiters",
+            "Max duration timers"
+          ]
+        },
+        "ExecApprovalManager": {
+          "purpose": "Command execution gating",
+          "pattern": "Promise-based approval workflow",
+          "features": [
+            "Timeout handling",
+            "Multi-resolver support"
+          ]
+        },
+        "MemoryIndexManager": {
+          "purpose": "AI context retrieval",
+          "pattern": "Singleton with hybrid search",
+          "features": [
+            "Vector embeddings",
+            "Keyword search",
+            "Session indexing"
+          ]
+        }
+      },
+      "workflows": 4,
+      "rules": 12,
+      "integrations": 28,
+      "files_analyzed": [
+        "src/cron/service.ts",
+        "extensions/voice-call/src/manager.ts",
+        "src/gateway/exec-approval-manager.ts",
+        "src/memory/manager.ts"
+      ],
+      "coverage": "65%"
+    },
+    "cache_efficiency": {
+      "files_read": 0,
+      "cache_hits": 11,
+      "files_stored": 0,
+      "efficiency_percent": 100,
+      "note": "All files previously cached - no new reads required"
+    }
+  }
+}

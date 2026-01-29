@@ -1,0 +1,176 @@
+{
+  "schema_version": "3.1.0",
+  "chain_id": "20260129-202219",
+  "stage": "full_app_analysis",
+  "timestamp": "2026-01-29T21:00:00Z",
+  "stages_complete": [
+    "setup_and_scope",
+    "file_analysis",
+    "full_app_analysis"
+  ],
+  "modernization_preferences": {
+    "q1_language": "Python 3.12+",
+    "q2_database": "SQLite with sqlite-vec",
+    "q3_message_bus": "WebSocket + in-memory",
+    "q4_package_manager": "uv",
+    "q5_deployment": "Docker Compose",
+    "q6_iac": "Docker Compose",
+    "q7_containerization": "Docker",
+    "q8_observability": {
+      "metrics": "Prometheus",
+      "logging": "Structured JSON",
+      "tracing": "OpenTelemetry"
+    },
+    "q9_security": "Keep current (Token/Password/Tailscale)",
+    "q10_testing": {
+      "strategy": "pytest",
+      "coverage_target": "80%"
+    }
+  },
+  "scope": {
+    "validated": true,
+    "in_scope": [
+      "Gateway server and protocol",
+      "Security layer (auth, SSRF protection, audit)",
+      "Channel integrations (28 channels)",
+      "Memory/vector search",
+      "Cron service",
+      "Voice call extension",
+      "CLI and TUI"
+    ],
+    "out_of_scope": [
+      "Mobile apps (iOS, Android, macOS - keep Swift/Kotlin)",
+      "UI components (keep TypeScript/React for now)"
+    ]
+  },
+  "scoring": {
+    "complexity": {
+      "codebase_size": 8,
+      "tech_stack_change": 8,
+      "database_migration": 1,
+      "integration_count": 10,
+      "test_coverage_gap": 3,
+      "security_changes": 1,
+      "overall": 5.35,
+      "rating": "HIGH"
+    },
+    "feasibility": {
+      "inline_upgrade": 56,
+      "greenfield_rewrite": 60,
+      "hybrid_approach": 68
+    }
+  },
+  "recommendations": {
+    "primary": {
+      "approach": "Hybrid/Strangler Fig Pattern",
+      "confidence": 68,
+      "rationale": "Given HIGH complexity and 28 integrations, hybrid approach allows incremental migration with reduced risk. Preserve security layer while migrating business logic to Python/FastAPI.",
+      "estimated_duration": "6-9 months",
+      "estimated_effort": "3-4 FTE"
+    },
+    "alternative": {
+      "approach": "Greenfield Rewrite",
+      "confidence": 60,
+      "trade_offs": "Higher initial effort but cleaner architecture. Risk of feature loss without comprehensive spec."
+    },
+    "quick_wins": [
+      {
+        "action": "Add OpenTelemetry observability to current codebase",
+        "effort": "MEDIUM",
+        "impact": "HIGH"
+      },
+      {
+        "action": "Extract security module as standalone service",
+        "effort": "MEDIUM",
+        "impact": "HIGH"
+      },
+      {
+        "action": "Create Python/FastAPI skeleton with uv",
+        "effort": "LOW",
+        "impact": "MEDIUM"
+      }
+    ],
+    "phased_plan": {
+      "phase_1": {
+        "name": "Foundation (50% value)",
+        "focus": [
+          "Security layer",
+          "Gateway protocol",
+          "Core config"
+        ],
+        "deliverables": [
+          "Python gateway skeleton",
+          "Auth module port",
+          "Config schema"
+        ],
+        "risk": "LOW"
+      },
+      "phase_2": {
+        "name": "Core Migration (30% value)",
+        "focus": [
+          "High-value channels (Discord, Telegram, WhatsApp)",
+          "Memory/vector search"
+        ],
+        "deliverables": [
+          "3 channel adapters",
+          "Vector DB integration"
+        ],
+        "risk": "MEDIUM"
+      },
+      "phase_3": {
+        "name": "Complete Migration (15% value)",
+        "focus": [
+          "Remaining channels",
+          "Extensions",
+          "Voice call"
+        ],
+        "deliverables": [
+          "All channel adapters",
+          "Extension framework"
+        ],
+        "risk": "MEDIUM"
+      },
+      "phase_4": {
+        "name": "Optimization (5% value)",
+        "focus": [
+          "Performance tuning",
+          "UI/UX improvements",
+          "Documentation"
+        ],
+        "deliverables": [
+          "Performance benchmarks",
+          "Updated docs"
+        ],
+        "risk": "LOW"
+      }
+    },
+    "risks": [
+      {
+        "risk": "Integration Compatibility",
+        "probability": "MEDIUM",
+        "impact": "HIGH",
+        "mitigation": "Test each channel adapter thoroughly with integration tests"
+      },
+      {
+        "risk": "Data Migration",
+        "probability": "LOW",
+        "impact": "HIGH",
+        "mitigation": "Ensure SQLite schema compatibility, use same sqlite-vec"
+      },
+      {
+        "risk": "Feature Parity",
+        "probability": "MEDIUM",
+        "impact": "MEDIUM",
+        "mitigation": "Document all features before migration, use feature flags"
+      }
+    ],
+    "success_criteria": [
+      "All 28 channel integrations migrated and functional",
+      "Test coverage >= 80%",
+      "Performance meets or exceeds current",
+      "Security vulnerabilities addressed",
+      "Zero data loss during migration",
+      "OpenTelemetry observability fully integrated"
+    ]
+  }
+}

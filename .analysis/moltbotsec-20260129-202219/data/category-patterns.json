@@ -1,0 +1,151 @@
+{
+  "category_scan": {
+    "discovery_mode": "cli",
+    "components_discovered": 15,
+    "symbols_analyzed": 3399,
+    "controllers": {
+      "count": 2,
+      "patterns": {
+        "api_style": "Event-driven WebSocket handlers",
+        "auth_types": [
+          "Token",
+          "Password",
+          "Tailscale",
+          "Device signature"
+        ],
+        "validation": "Schema-based with zod"
+      },
+      "key_files": [
+        "src/discord/monitor/exec-approvals.ts",
+        "extensions/voice-call/src/media-stream.ts"
+      ]
+    },
+    "services": {
+      "count": 5,
+      "patterns": {
+        "di_style": "Constructor dependency injection via Deps interface",
+        "transaction_style": "Promise-based async operations",
+        "integrations": [
+          "SQLite",
+          "WebSocket",
+          "Twilio/Plivo/Telnyx",
+          "Discord API"
+        ]
+      },
+      "key_classes": [
+        "CronService",
+        "CallManager",
+        "ExecApprovalManager",
+        "MemoryIndexManager",
+        "TwitchClientManager"
+      ]
+    },
+    "models": {
+      "entities_count": 243,
+      "dtos_count": 201,
+      "patterns": {
+        "orm_type": "SQLite with sqlite-vec for vectors",
+        "relationship_styles": [
+          "Type composition",
+          "Interface contracts"
+        ],
+        "inheritance_depth": "Shallow - mostly interfaces"
+      },
+      "common_suffixes": [
+        "Config",
+        "Result",
+        "Options",
+        "Params",
+        "Entry",
+        "Context",
+        "Event"
+      ]
+    },
+    "providers": {
+      "count": 7,
+      "patterns": {
+        "provider_interface": "VoiceCallProvider abstraction",
+        "implementations": [
+          "TwilioProvider",
+          "PlivoProvider",
+          "TelnyxProvider",
+          "MockProvider"
+        ],
+        "plugin_model": "Extensions in extensions/ directory"
+      }
+    },
+    "security": {
+      "auth_mechanism": "Token/Password/Tailscale identity with timing-safe comparison",
+      "authorization": "Device-based auth with signed payloads, exec approval workflow",
+      "middleware_count": 16,
+      "security_features": [
+        "SSRF protection with DNS pinning",
+        "TLS fingerprint validation",
+        "Exec approval manager for command gating",
+        "Security audit system with severity levels",
+        "Webhook signature verification"
+      ]
+    },
+    "exceptions": {
+      "count": 16,
+      "custom_errors": [
+        "CircularIncludeError",
+        "ConfigIncludeError",
+        "DiscordApiError",
+        "FailoverError",
+        "GatewayLockError",
+        "MediaFetchError",
+        "SsrFBlockedError"
+      ]
+    },
+    "architecture": {
+      "primary_language": "TypeScript",
+      "runtime": "Node.js 22.12+ with Bun support",
+      "package_manager": "pnpm 10.23.0",
+      "build_tool": "rolldown",
+      "test_framework": "vitest with 70% coverage threshold",
+      "linting": "oxlint",
+      "communication": "WebSocket-based gateway with auto-reconnect"
+    },
+    "channel_integrations": {
+      "count": 28,
+      "channels": [
+        "WhatsApp",
+        "Telegram",
+        "Discord",
+        "Slack",
+        "Signal",
+        "Matrix",
+        "Line",
+        "iMessage",
+        "Nostr",
+        "Twitch",
+        "GoogleChat",
+        "MSTeams",
+        "Mattermost",
+        "NextcloudTalk",
+        "Zalo",
+        "BlueBubbles"
+      ]
+    },
+    "key_files_analyzed": [
+      "src/cron/service.ts",
+      "src/gateway/exec-approval-manager.ts",
+      "src/memory/manager.ts",
+      "extensions/voice-call/src/manager.ts",
+      "src/gateway/auth.ts",
+      "src/infra/net/ssrf.ts",
+      "src/security/audit.ts",
+      "src/discord/monitor/exec-approvals.ts",
+      "extensions/voice-call/src/providers/twilio.ts",
+      "src/gateway/client.ts",
+      "package.json"
+    ],
+    "cache_efficiency": {
+      "files_read": 0,
+      "cache_hits": 11,
+      "files_stored": 0,
+      "efficiency_percent": 100
+    }
+  }
+}

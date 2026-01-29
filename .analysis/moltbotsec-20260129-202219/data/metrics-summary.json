@@ -1,0 +1,60 @@
+{
+  "project": "moltbot",
+  "analysis_date": "2026-01-29T21:30:00Z",
+  "chain_id": "20260129-202219",
+  "metrics": {
+    "code": {
+      "total_lines": 200000,
+      "total_files": 3630,
+      "total_symbols": 74286,
+      "languages": {
+        "typescript": 3028,
+        "markdown": 446,
+        "json": 78,
+        "yaml": 22,
+        "javascript": 17,
+        "python": 10,
+        "swift": 28
+      }
+    },
+    "quality": {
+      "test_coverage_percent": 70,
+      "tech_debt_score": 8,
+      "security_score": 95,
+      "maintainability_score": 90,
+      "quality_grade": "A"
+    },
+    "dependencies": {
+      "total": 750,
+      "direct": 200,
+      "transitive": 550,
+      "outdated": 0,
+      "vulnerable": 0,
+      "critical_vulns": 0
+    },
+    "complexity": {
+      "score": 53.5,
+      "rating": "HIGH",
+      "factors": {
+        "codebase_size": 8,
+        "tech_stack_change": 8,
+        "database_migration": 1,
+        "integration_count": 10,
+        "test_coverage_gap": 3,
+        "security_changes": 1
+      }
+    },
+    "feasibility": {
+      "inline_upgrade": 56,
+      "greenfield_rewrite": 60,
+      "hybrid_approach": 68,
+      "recommended": "hybrid_approach"
+    },
+    "architecture": {
+      "components": 15,
+      "channel_integrations": 28,
+      "circular_dependencies": 1,
+      "dead_code_symbols": 0
+    }
+  }
+}

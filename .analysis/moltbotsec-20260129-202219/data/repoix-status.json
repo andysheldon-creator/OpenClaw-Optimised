@@ -1,0 +1,133 @@
+{
+  "mode": "cli",
+  "indexed_files": 3630,
+  "indexed_symbols": 74286,
+  "components": [
+    "apps/shared",
+    "commands/models",
+    "config",
+    "controllers/config",
+    "nostr/test",
+    "prose/lib",
+    "shared",
+    "test",
+    "test/helpers",
+    "tui/components",
+    "twitch/test",
+    "ui/components",
+    "ui/controllers",
+    "ui/views",
+    "utils"
+  ],
+  "discovery_cache": {
+    "components": [
+      {
+        "name": "apps/shared",
+        "layer": "shared",
+        "path_pattern": "apps/shared/**",
+        "file_count": 3,
+        "symbol_count": 447
+      },
+      {
+        "name": "commands/models",
+        "layer": "domain",
+        "path_pattern": "src/commands/models/**",
+        "file_count": 20,
+        "symbol_count": 372
+      },
+      {
+        "name": "config",
+        "layer": "infrastructure",
+        "path_pattern": "src/config/**",
+        "file_count": 129,
+        "symbol_count": 2300
+      },
+      {
+        "name": "controllers/config",
+        "layer": "infrastructure",
+        "path_pattern": "ui/src/ui/controllers/config/**",
+        "file_count": 1,
+        "symbol_count": 4
+      },
+      {
+        "name": "nostr/test",
+        "layer": "test",
+        "path_pattern": "extensions/nostr/test/**",
+        "file_count": 1,
+        "symbol_count": 1
+      },
+      {
+        "name": "prose/lib",
+        "layer": "shared",
+        "path_pattern": "extensions/open-prose/skills/prose/lib/**",
+        "file_count": 1,
+        "symbol_count": 8
+      },
+      {
+        "name": "shared",
+        "layer": "shared",
+        "path_pattern": "src/shared/**",
+        "file_count": 1,
+        "symbol_count": 4
+      },
+      {
+        "name": "test",
+        "layer": "test",
+        "path_pattern": "test/**",
+        "file_count": 10,
+        "symbol_count": 261
+      },
+      {
+        "name": "test/helpers",
+        "layer": "shared",
+        "path_pattern": "test/helpers/**",
+        "file_count": 6,
+        "symbol_count": 37
+      },
+      {
+        "name": "tui/components",
+        "layer": "presentation",
+        "path_pattern": "src/tui/components/**",
+        "file_count": 10,
+        "symbol_count": 90
+      },
+      {
+        "name": "twitch/test",
+        "layer": "test",
+        "path_pattern": "extensions/twitch/test/**",
+        "file_count": 1,
+        "symbol_count": 1
+      },
+      {
+        "name": "ui/components",
+        "layer": "presentation",
+        "path_pattern": "ui/src/ui/components/**",
+        "file_count": 1,
+        "symbol_count": 10
+      },
+      {
+        "name": "ui/controllers",
+        "layer": "presentation",
+        "path_pattern": "ui/src/ui/controllers/**",
+        "file_count": 18,
+        "symbol_count": 246
+      },
+      {
+        "name": "ui/views",
+        "layer": "presentation",
+        "path_pattern": "ui/src/ui/views/**",
+        "file_count": 34,
+        "symbol_count": 537
+      },
+      {
+        "name": "utils",
+        "layer": "shared",
+        "path_pattern": "extensions/twitch/src/utils/**",
+        "file_count": 2,
+        "symbol_count": 7
+      }
+    ],
+    "file_count": 3630,
+    "api_endpoints_count": 2000
+  }
+}
