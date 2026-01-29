@@ -336,7 +336,7 @@ export async function runAgentWithUnifiedFailover(
             : { enforceFinalTag: effectiveEnforceFinalTag },
         });
 
-        log.debug("Agent run completed", {
+        log.info("Agent run completed", {
           sessionId: params.sessionId,
           runId: params.runId,
           runtime: runtimeKind,

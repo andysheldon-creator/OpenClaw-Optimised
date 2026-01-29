@@ -18,6 +18,7 @@ import {
   resolveThinkingDefault,
 } from "../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
+import { logToolEvent } from "../agents/tool-event-logger.js";
 import {
   runAgentWithUnifiedFailover,
   type UnifiedAgentRunResult,
@@ -456,6 +457,8 @@ export async function agentCommand(
 
           // Callbacks
           onAgentEvent: (evt) => {
+            // Log tool events centrally.
+            logToolEvent(evt, runId);
             // Track lifecycle end for fallback emission below.
             if (
               evt.stream === "lifecycle" &&

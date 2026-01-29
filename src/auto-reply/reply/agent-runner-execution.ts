@@ -5,6 +5,7 @@ import { runCliAgent } from "../../agents/cli-runner.js";
 import { getCliSessionId } from "../../agents/cli-session.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
+import { logToolEvent } from "../../agents/tool-event-logger.js";
 import { runAgentWithUnifiedFailover } from "../../agents/unified-agent-runner.js";
 import {
   isCompactionFailureError,
@@ -362,6 +363,8 @@ export async function runAgentTurnWithFallback(params: {
                 }
               : undefined,
           onAgentEvent: async (evt) => {
+            // Log tool events centrally.
+            logToolEvent(evt, runId);
             // Trigger typing when tools start executing.
             if (evt.stream === "tool") {
               const phase = typeof evt.data.phase === "string" ? evt.data.phase : "";

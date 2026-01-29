@@ -930,15 +930,6 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
               undefined)
             : undefined;
 
-        // Log tool errors at warn level so they appear in logs
-        if (isError && phase === "result") {
-          log.warn("Tool execution failed", {
-            tool: normalizedName.name,
-            toolCallId,
-            error: toolText?.slice(0, 500) ?? "Unknown error",
-          });
-        }
-
         emitEvent("tool", {
           phase,
           name: normalizedName.name,
