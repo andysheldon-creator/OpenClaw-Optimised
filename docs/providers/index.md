@@ -41,8 +41,8 @@ See [Venice AI](/providers/venice).
 - [Moonshot AI (Kimi + Kimi Code)](/providers/moonshot)
 - [OpenCode Zen](/providers/opencode)
 - [Amazon Bedrock](/bedrock)
-- [Z.AI](/providers/zai)
-- [GLM models](/providers/glm)
+- [Z.AI / Zhipu AI (GLM models)](/providers/zai) - International + China, pay-as-you-go + Coding Plan
+- [GLM models](/providers/glm) - Model family overview
 - [MiniMax](/providers/minimax)
 - [Venius (Venice AI, privacy-focused)](/providers/venice)
 - [Ollama (local models)](/providers/ollama)
