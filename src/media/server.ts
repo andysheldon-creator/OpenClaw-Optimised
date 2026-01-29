@@ -83,12 +83,13 @@ export function attachMediaRoutes(
 export async function startMediaServer(
   port: number,
   ttlMs = DEFAULT_TTL_MS,
+  host = "127.0.0.1",
   runtime: RuntimeEnv = defaultRuntime,
 ): Promise<Server> {
   const app = express();
   attachMediaRoutes(app, ttlMs, runtime);
   return await new Promise((resolve, reject) => {
-    const server = app.listen(port);
+    const server = app.listen(port, host);
     server.once("listening", () => resolve(server));
     server.once("error", (err) => {
       runtime.error(danger(`Media server failed: ${String(err)}`));
