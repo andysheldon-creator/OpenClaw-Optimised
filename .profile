@@ -37,3 +37,4 @@ fi
 
 . "$HOME/.cargo/env"
 export GOG_KEYRING_PASSWORD="clawdbot"
+export OLLAMA_CLOUD_API_KEY="f7218487112f403a82a833b5e49235fc.rotbppQ1nj6gynsJKfrbMLPF"
