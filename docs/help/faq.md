@@ -813,7 +813,7 @@ openclaw gateway restart
 From git → npm:
 
 ```bash
-npm install -g openclaw@latest
+npm install -g openclaw@beta  # Use @beta until npm @latest is updated
 openclaw doctor
 openclaw gateway restart
 ```
