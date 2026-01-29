@@ -69,7 +69,6 @@ const TELEGRAM_OUTPUT = {
   // ElevenLabs output formats use codec_sample_rate_bitrate naming.
   // Opus @ 48kHz/64kbps is a good voice-note tradeoff for Telegram.
   elevenlabs: "opus_48000_64",
-  // Telnyx outputs MP3 only (16kHz); not ideal for Telegram voice bubbles but works.
   telnyx: "mp3_16000" as const,
   extension: ".opus",
   voiceCompatible: true,
@@ -1380,7 +1379,7 @@ export async function textToSpeechTelephony(params: {
         continue;
       }
       if (provider === "telnyx") {
-        lastError = "telnyx: unsupported for telephony (MP3 output only)";
+        lastError = "telnyx: WebSocket API outputs MP3, telephony requires PCM";
         continue;
       }
 
