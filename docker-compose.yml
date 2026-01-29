@@ -1,5 +1,6 @@
 services:
   moltbot-gateway:
+    build: .
     image: ${CLAWDBOT_IMAGE:-moltbot:local}
     environment:
       HOME: /home/node
@@ -28,6 +29,7 @@ services:
       ]
 
   moltbot-cli:
+    build: .
     image: ${CLAWDBOT_IMAGE:-moltbot:local}
     environment:
       HOME: /home/node
