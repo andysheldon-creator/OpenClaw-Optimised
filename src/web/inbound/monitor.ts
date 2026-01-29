@@ -357,6 +357,7 @@ export async function monitorWebInbox(options: {
           if (!isOwnReaction) {
             const from = group ? chatJid : await resolveInboundJid(chatJid);
             if (!from) continue;
+            // No-op sendMessage: reactions shouldn't trigger pairing replies
             const access = await checkInboundAccessControl({
               accountId: options.accountId,
               from,
@@ -365,7 +366,7 @@ export async function monitorWebInbox(options: {
               group,
               isFromMe: false,
               connectedAtMs,
-              sock: { sendMessage: (jid, content) => sock.sendMessage(jid, content) },
+              sock: { sendMessage: async () => ({}) },
               remoteJid: chatJid,
             });
             if (!access.allowed) {

@@ -304,9 +304,10 @@ When someone reacts to a message in a WhatsApp chat, the gateway emits a system 
 
 ```
 WhatsApp reaction added: 👍 by +1234567890 msg BAE5ABC123
+WhatsApp reaction removed by +1234567890 msg BAE5ABC123
 ```
 
-- Reaction removals (empty emoji) are silently skipped.
+- Reaction removals emit events with `isRemoval: true` and no emoji in the message.
 - Self-reactions in DMs are correctly attributed to the bot's own JID.
 - Group reactions include the participant who reacted.
 - Events are deduplicated by message ID, sender, and emoji to avoid repeat notifications.
