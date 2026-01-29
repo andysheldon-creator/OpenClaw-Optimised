@@ -1,5 +1,4 @@
 import type { MistralEmbeddingClient } from "./embeddings-mistral.js";
-import { hashText } from "./internal.js";
 
 export type MistralBatchRequest = {
   custom_id: string;

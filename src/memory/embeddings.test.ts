@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_MISTRAL_EMBEDDING_MODEL } from "./embeddings-mistral.js";
 import { DEFAULT_GEMINI_EMBEDDING_MODEL } from "./embeddings-gemini.js";
 
 vi.mock("../agents/model-auth.js", () => ({
