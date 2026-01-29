@@ -73,6 +73,41 @@ npm install -g <package>  # ❌ goes to wrong location
 
 Global bins: `/Users/steve/Library/pnpm/`
 
+## 1Password CLI
+
+**DO NOT use desktop app UI.** Use the `op` CLI via the `op-safe` tmux session.
+
+- **Account**: steve@withagency.ai at my.1password.com
+- **Password**: `OP_PASSWORD` in `~/.clawdbot/.env`
+- **Tmux session**: `op-safe` (persistent)
+
+### Re-authenticate when session expires
+
+```bash
+# Send signin command
+tmux send-keys -t op-safe 'eval $(op signin --account my.1password.com)' Enter
+sleep 1
+# Send password from env
+tmux send-keys -t op-safe "$OP_PASSWORD" Enter
+sleep 2
+# Verify
+tmux send-keys -t op-safe 'op whoami' Enter
+```
+
+### Read secrets via tmux
+
+```bash
+# List items
+tmux send-keys -t op-safe 'op item list' Enter && sleep 1 && tmux capture-pane -t op-safe -p -S -30
+
+# Get specific item
+tmux send-keys -t op-safe 'op item get "item name" --format json' Enter && sleep 1 && tmux capture-pane -t op-safe -p -S -50
+```
+
+### Vaults available
+- **Steve** — personal secrets, skill configs
+- **MeshGuard** — MeshGuard-specific secrets
+
 ---
 
 Add whatever helps you do your job. This is your cheat sheet.
