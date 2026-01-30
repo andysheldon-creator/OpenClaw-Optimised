@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 const loadConfig = vi.fn();
-const ensureOpenClawModelsJson = vi.fn().mockResolvedValue(undefined);
-const resolveOpenClawAgentDir = vi.fn().mockReturnValue("/tmp/openclaw-agent");
 const ensureAuthProfileStore = vi.fn().mockReturnValue({ version: 1, profiles: {} });
 const listProfilesForProvider = vi.fn().mockReturnValue([]);
 const resolveAuthProfileDisplayLabel = vi.fn(({ profileId }: { profileId: string }) => profileId);
@@ -13,21 +11,12 @@ const resolveProfileUnusableUntilForDisplay = vi.fn().mockReturnValue(null);
 const resolveEnvApiKey = vi.fn().mockReturnValue(undefined);
 const resolveAwsSdkEnvVarName = vi.fn().mockReturnValue(undefined);
 const getCustomProviderApiKey = vi.fn().mockReturnValue(undefined);
-const MockAuthStorage = vi.fn().mockImplementation(() => ({}));
-const MockModelRegistry = vi.fn();
+const loadModelRegistry = vi.fn();
 
 vi.mock("../config/config.js", () => ({
   CONFIG_PATH: "/tmp/openclaw.json",
   STATE_DIR: "/tmp/openclaw-state",
   loadConfig,
-}));
-
-vi.mock("../agents/models-config.js", () => ({
-  ensureOpenClawModelsJson,
-}));
-
-vi.mock("../agents/agent-paths.js", () => ({
-  resolveOpenClawAgentDir,
 }));
 
 vi.mock("../agents/auth-profiles.js", () => ({
@@ -44,9 +33,19 @@ vi.mock("../agents/model-auth.js", () => ({
   getCustomProviderApiKey,
 }));
 
-vi.mock("@mariozechner/pi-coding-agent", () => ({
-  AuthStorage: MockAuthStorage,
-  ModelRegistry: MockModelRegistry,
+vi.mock("./models/list.registry.js", () => ({
+  loadModelRegistry,
+  toModelRow: vi.fn(({ model, key, tags, aliases, availableKeys }) => ({
+    key,
+    provider: model?.provider ?? key.split("/")[0],
+    name: model?.name ?? key,
+    aliases: aliases ?? [],
+    tags,
+    available: availableKeys ? availableKeys.has(key) : false,
+    contextWindow: model?.contextWindow ?? null,
+    thinking: null,
+    extended: null,
+  })),
 }));
 
 function makeRuntime() {
@@ -99,9 +98,9 @@ describe("models list/status", () => {
       contextWindow: 128000,
     };
 
-    discoverModels.mockReturnValue({
-      getAll: () => [model],
-      getAvailable: () => [model],
+    loadModelRegistry.mockResolvedValue({
+      models: [model],
+      availableKeys: new Set(["zai/glm-4.7"]),
     });
 
     const { modelsListCommand } = await import("./models/list.js");
@@ -127,9 +126,9 @@ describe("models list/status", () => {
       contextWindow: 128000,
     };
 
-    discoverModels.mockReturnValue({
-      getAll: () => [model],
-      getAvailable: () => [model],
+    loadModelRegistry.mockResolvedValue({
+      models: [model],
+      availableKeys: new Set(["zai/glm-4.7"]),
     });
 
     const { modelsListCommand } = await import("./models/list.js");
@@ -164,9 +163,9 @@ describe("models list/status", () => {
       },
     ];
 
-    discoverModels.mockReturnValue({
-      getAll: () => models,
-      getAvailable: () => models,
+    loadModelRegistry.mockResolvedValue({
+      models,
+      availableKeys: new Set(["zai/glm-4.7", "openai/gpt-4.1-mini"]),
     });
 
     const { modelsListCommand } = await import("./models/list.js");
@@ -203,9 +202,9 @@ describe("models list/status", () => {
       },
     ];
 
-    discoverModels.mockReturnValue({
-      getAll: () => models,
-      getAvailable: () => models,
+    loadModelRegistry.mockResolvedValue({
+      models,
+      availableKeys: new Set(["zai/glm-4.7", "openai/gpt-4.1-mini"]),
     });
 
     const { modelsListCommand } = await import("./models/list.js");
@@ -242,9 +241,9 @@ describe("models list/status", () => {
       },
     ];
 
-    discoverModels.mockReturnValue({
-      getAll: () => models,
-      getAvailable: () => models,
+    loadModelRegistry.mockResolvedValue({
+      models,
+      availableKeys: new Set(["zai/glm-4.7", "openai/gpt-4.1-mini"]),
     });
 
     const { modelsListCommand } = await import("./models/list.js");
@@ -271,9 +270,9 @@ describe("models list/status", () => {
       contextWindow: 128000,
     };
 
-    discoverModels.mockReturnValue({
-      getAll: () => [model],
-      getAvailable: () => [],
+    loadModelRegistry.mockResolvedValue({
+      models: [model],
+      availableKeys: new Set(), // empty = not available
     });
 
     const { modelsListCommand } = await import("./models/list.js");
