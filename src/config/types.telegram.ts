@@ -130,6 +130,13 @@ export type TelegramAccountConfig = {
   heartbeat?: ChannelHeartbeatVisibilityConfig;
   /** Controls whether link previews are shown in outbound messages. Default: true. */
   linkPreview?: boolean;
+  /**
+   * Controls notifications when bot is added to / removed from groups:
+   * - "owner" (default): notify allowFrom users via Telegram DM
+   * - "log": log only, no notification
+   * - "off": ignore the event
+   */
+  groupMembershipNotifications?: "owner" | "log" | "off";
 };
 
 export type TelegramTopicConfig = {

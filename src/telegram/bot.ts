@@ -451,6 +451,66 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     }
   });
 
+  // Handle bot membership changes (added to / removed from groups)
+  bot.on("my_chat_member", async (ctx) => {
+    try {
+      const update = ctx.myChatMember;
+      if (!update) return;
+
+      const notificationMode = telegramCfg.groupMembershipNotifications ?? "owner";
+      if (notificationMode === "off") return;
+
+      const { from, chat, old_chat_member, new_chat_member } = update;
+      const oldStatus = old_chat_member.status;
+      const newStatus = new_chat_member.status;
+
+      // Skip if status didn't actually change
+      if (oldStatus === newStatus) return;
+
+      // Detect meaningful membership transitions
+      const isAdded =
+        (newStatus === "member" || newStatus === "administrator") &&
+        (oldStatus === "left" || oldStatus === "kicked");
+      const isRemoved =
+        (newStatus === "left" || newStatus === "kicked") &&
+        (oldStatus === "member" || oldStatus === "administrator");
+
+      if (!isAdded && !isRemoved) return;
+
+      // Build sender information
+      const senderName = [from.first_name, from.last_name].filter(Boolean).join(" ");
+      const senderRef = from.username ? `@${from.username}` : `id:${from.id}`;
+
+      const emoji = isAdded ? "\u26a0\ufe0f" : "\u2139\ufe0f";
+      const action = isAdded ? "added to" : "removed from";
+      const chatTitle = "title" in chat ? chat.title : `Chat ${chat.id}`;
+      const msg = [
+        `${emoji} Bot ${action} group`,
+        `Group: "${chatTitle}" (${chat.id})`,
+        `By: ${senderName} (${senderRef})`,
+        `Status: ${oldStatus} \u2192 ${newStatus}`,
+      ].join("\n");
+
+      logVerbose(`telegram: my_chat_member: ${action} "${chatTitle}" by ${senderRef}`);
+
+      // Notify owner(s) via DM if mode is "owner"
+      if (notificationMode === "owner") {
+        const ownerIds: Array<string | number> = allowFrom ?? [];
+        for (const ownerId of ownerIds) {
+          // Skip wildcard entries
+          if (ownerId === "*") continue;
+          try {
+            await bot.api.sendMessage(Number(ownerId), msg);
+          } catch (sendErr) {
+            logVerbose(`telegram: failed to notify owner ${ownerId}: ${String(sendErr)}`);
+          }
+        }
+      }
+    } catch (err) {
+      runtime.error?.(danger(`telegram my_chat_member handler failed: ${String(err)}`));
+    }
+  });
+
   registerTelegramHandlers({
     cfg,
     accountId: account.accountId,
