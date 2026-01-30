@@ -1,5 +1,5 @@
 /**
- * AssureBot - Task Scheduler
+ * Moltbot Secure - Task Scheduler
  *
  * Simple cron-like scheduler for recurring tasks.
  * Stores jobs in memory or optionally persists to file.
@@ -10,8 +10,8 @@ import type { SecureConfig } from "./config.js";
 import type { AuditLogger } from "./audit.js";
 import type { AgentCore } from "./agent.js";
 import type { Bot } from "grammy";
-import { sendToUser } from "./telegram.js";
 import type { Storage } from "./storage.js";
+import { sendToUser } from "./telegram.js";
 
 export type ScheduledTask = {
   id: string;
@@ -50,41 +50,6 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
   const { config, audit, agent, telegramBot, storage } = deps;
   const tasks = new Map<string, ScheduledTask>();
   const cronJobs = new Map<string, CronJob<null, unknown>>();
-  let initialized = false;
-
-  // Save task to storage (if available)
-  async function persistTask(task: ScheduledTask): Promise<void> {
-    if (storage) {
-      await storage.saveTask(task).catch((err) => {
-        console.error("[scheduler] Failed to persist task:", err);
-      });
-    }
-  }
-
-  // Delete task from storage (if available)
-  async function unpersistTask(id: string): Promise<void> {
-    if (storage) {
-      await storage.deleteTask(id).catch((err) => {
-        console.error("[scheduler] Failed to delete persisted task:", err);
-      });
-    }
-  }
-
-  // Load tasks from storage
-  async function loadFromStorage(): Promise<void> {
-    if (!storage || initialized) return;
-    initialized = true;
-
-    try {
-      const storedTasks = await storage.getAllTasks();
-      for (const task of storedTasks) {
-        tasks.set(task.id, task);
-      }
-      console.log(`[scheduler] Loaded ${storedTasks.length} tasks from storage`);
-    } catch (err) {
-      console.error("[scheduler] Failed to load tasks from storage:", err);
-    }
-  }
 
   async function executeTask(task: ScheduledTask): Promise<void> {
     const startTime = Date.now();
@@ -104,7 +69,11 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       task.lastRun = new Date();
       task.lastStatus = "ok";
       task.lastError = undefined;
-      await persistTask(task);
+
+      // Save updated task status
+      if (storage) {
+        void storage.saveTask(task);
+      }
 
       audit.cron({
         jobId: task.id,
@@ -118,7 +87,11 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       task.lastRun = new Date();
       task.lastStatus = "error";
       task.lastError = errorMsg;
-      await persistTask(task);
+
+      // Save updated task status
+      if (storage) {
+        void storage.saveTask(task);
+      }
 
       audit.cron({
         jobId: task.id,
@@ -172,7 +145,10 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       const task: ScheduledTask = { ...taskInput, id };
       tasks.set(id, task);
       scheduleTask(task);
-      void persistTask(task);
+      // Persist to storage
+      if (storage) {
+        void storage.saveTask(task);
+      }
       return id;
     },
 
@@ -187,7 +163,10 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       }
 
       tasks.delete(id);
-      void unpersistTask(id);
+      // Remove from storage
+      if (storage) {
+        void storage.deleteTask(id);
+      }
       return true;
     },
 
@@ -197,7 +176,6 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
 
       task.enabled = enabled;
       scheduleTask(task);
-      void persistTask(task);
       return true;
     },
 
@@ -221,13 +199,18 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
 
       console.log("[scheduler] Starting scheduler...");
 
-      // Load tasks from persistent storage
-      await loadFromStorage();
+      // Load tasks from storage
+      if (storage) {
+        const storedTasks = await storage.getAllTasks();
+        for (const task of storedTasks) {
+          tasks.set(task.id, task);
+        }
+        console.log(`[scheduler] Loaded ${storedTasks.length} tasks from storage`);
+      }
 
       for (const task of tasks.values()) {
         scheduleTask(task);
       }
-      console.log(`[scheduler] ${tasks.size} tasks scheduled`);
     },
 
     stop(): void {

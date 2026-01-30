@@ -11,6 +11,7 @@ import type { AuditLogger } from "./audit.js";
 import type { AgentCore, ConversationStore, ImageContent } from "./agent.js";
 import type { SandboxRunner } from "./sandbox.js";
 import type { Scheduler } from "./scheduler.js";
+import type { Personality } from "./personality.js";
 import { extractText, summarizeDocument } from "./documents.js";
 
 export type TelegramBot = {
@@ -26,6 +27,7 @@ export type TelegramDeps = {
   conversations: ConversationStore;
   sandbox?: SandboxRunner;
   scheduler?: Scheduler;
+  personality?: Personality;
   onWebhookMessage?: (userId: number, text: string) => void;
 };
 
@@ -42,7 +44,7 @@ function formatUsername(ctx: Context): string {
 }
 
 export function createTelegramBot(deps: TelegramDeps): TelegramBot {
-  const { config, audit, agent, conversations, sandbox, scheduler } = deps;
+  const { config, audit, agent, conversations, sandbox, scheduler, personality } = deps;
   const bot = new Bot(config.telegram.botToken);
 
   // Error handler
@@ -71,19 +73,25 @@ export function createTelegramBot(deps: TelegramDeps): TelegramBot {
 
 You are authorized to use this bot.
 
-Commands:
-/start - Show this message
-/clear - Clear conversation history
+Code Execution:
+/js <code> - Run JavaScript
+/python <code> - Run Python
+/ts <code> - Run TypeScript
+/bash <code> - Run shell commands
+/run <lang> <code> - Run any language
+
+Other Commands:
 /status - Check bot status
-/sandbox <code> - Run code in sandbox
-/schedule <cron> <task> - Schedule a task
+/clear - Clear conversation history
+/schedule - Schedule AI tasks
 /tasks - List scheduled tasks
-/help - Show help
+/help - Show full help
 
 Features:
-- Send text messages to chat
-- Send images for analysis
-- Forward content for analysis`
+- Chat with AI
+- Image analysis (send photos)
+- Document analysis (send PDFs)
+- Code execution (15+ languages)`
     );
   });
 
@@ -106,11 +114,15 @@ Features:
     }
 
     const history = conversations.get(userId);
+    const sandboxStatus = sandbox
+      ? `${sandbox.backend} (${await sandbox.isAvailable() ? "ready" : "unavailable"})`
+      : "not configured";
+
     await ctx.reply(
       `Status:
 - AI Provider: ${agent.provider}
 - Conversation: ${history.length} messages
-- Sandbox: ${config.sandbox.enabled ? "enabled" : "disabled"}
+- Sandbox: ${sandboxStatus}
 - Webhooks: ${config.webhooks.enabled ? "enabled" : "disabled"}
 - Scheduler: ${config.scheduler.enabled ? "enabled" : "disabled"}`
     );
@@ -128,27 +140,32 @@ Features:
 
 A secure, self-hosted AI assistant.
 
-Features:
-- Chat with AI (text messages)
-- Image analysis (send photos)
-- Forward content for analysis
-- Run code in isolated sandbox
-- Schedule recurring AI tasks
+CODE EXECUTION:
+/js <code> - Run JavaScript
+/python <code> or /py <code> - Run Python
+/ts <code> - Run TypeScript
+/bash <code> or /sh <code> - Run shell
+/run <lang> <code> - Run any language
 
-Commands:
-/start - Welcome message
-/clear - Clear conversation history
-/status - Bot status
-/sandbox <code> - Run code in sandbox
-/schedule "<cron>" "<name>" <prompt> - Schedule task
-/tasks - List scheduled tasks
-/deltask <id> - Delete a task
+Supported: python, javascript, typescript, bash, rust, go, c, cpp, java, ruby, php
+
+SCHEDULING:
+/schedule "<cron>" "<name>" <prompt>
+/tasks - List tasks
+/deltask <id> - Delete task
+
+Example: /schedule "0 9 * * *" "Morning" Good morning!
+
+OTHER:
+/status - Bot & sandbox status
+/clear - Clear conversation
 /help - This message
 
-Security:
-- Only authorized users can interact
-- All interactions are logged
-- Sandbox runs in isolated Docker (no network)`
+FEATURES:
+- Chat naturally with AI
+- Send images for analysis
+- Send PDFs/docs for analysis
+- Code runs in isolated sandbox`
     );
   });
 
@@ -201,6 +218,141 @@ Security:
       const errorMsg = err instanceof Error ? err.message : String(err);
       audit.error({ error: `Sandbox error: ${errorMsg}`, metadata: { userId, code } });
       await ctx.reply(`Sandbox error: ${errorMsg}`);
+    }
+  });
+
+  // Helper for language-specific code execution
+  async function runCodeCommand(
+    ctx: Context,
+    language: string,
+    commandName: string
+  ): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId || !isUserAllowed(userId, config.telegram.allowedUsers)) {
+      return;
+    }
+
+    if (!sandbox) {
+      await ctx.reply("Sandbox is not configured.");
+      return;
+    }
+
+    const isAvailable = await sandbox.isAvailable();
+    if (!isAvailable) {
+      await ctx.reply(`Sandbox unavailable. Backend: ${sandbox.backend}`);
+      return;
+    }
+
+    const code = ctx.message?.text?.replace(new RegExp(`^/${commandName}\\s*`), "").trim() ?? "";
+    if (!code) {
+      await ctx.reply(`Usage: /${commandName} <code>\n\nExample: /${commandName} console.log("Hello!")`);
+      return;
+    }
+
+    await ctx.replyWithChatAction("typing");
+
+    try {
+      const result = await sandbox.runCode(language, code);
+      const output = result.stdout || result.stderr || "(no output)";
+      const status = result.exitCode === 0 ? "✓" : `✗ (exit ${result.exitCode})`;
+      const timeout = result.timedOut ? " [TIMED OUT]" : "";
+      const backend = sandbox.backend === "piston" ? " [Piston]" : "";
+
+      await ctx.reply(
+        `**${language}** ${status}${timeout}${backend}\n\`\`\`\n${output.slice(0, 3000)}\n\`\`\`\nDuration: ${result.durationMs}ms`,
+        { parse_mode: "Markdown" }
+      ).catch(async () => {
+        await ctx.reply(`${language} ${status}${timeout}${backend}\n\n${output.slice(0, 3500)}\n\nDuration: ${result.durationMs}ms`);
+      });
+
+      audit.sandbox({
+        command: `[${language}] ${code.slice(0, 100)}`,
+        exitCode: result.exitCode,
+        durationMs: result.durationMs,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      audit.error({ error: `Code execution error: ${errorMsg}`, metadata: { userId, language, code } });
+      await ctx.reply(`Error: ${errorMsg}`);
+    }
+  }
+
+  // Command: /js <code> - Run JavaScript
+  bot.command("js", (ctx) => runCodeCommand(ctx, "javascript", "js"));
+
+  // Command: /python <code> - Run Python
+  bot.command("python", (ctx) => runCodeCommand(ctx, "python", "python"));
+  bot.command("py", (ctx) => runCodeCommand(ctx, "python", "py"));
+
+  // Command: /ts <code> - Run TypeScript
+  bot.command("ts", (ctx) => runCodeCommand(ctx, "typescript", "ts"));
+
+  // Command: /bash <code> - Run Bash
+  bot.command("bash", (ctx) => runCodeCommand(ctx, "bash", "bash"));
+  bot.command("sh", (ctx) => runCodeCommand(ctx, "bash", "sh"));
+
+  // Command: /run <language> <code> - Run code in any supported language
+  bot.command("run", async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId || !isUserAllowed(userId, config.telegram.allowedUsers)) {
+      return;
+    }
+
+    if (!sandbox) {
+      await ctx.reply("Sandbox is not configured.");
+      return;
+    }
+
+    const isAvailable = await sandbox.isAvailable();
+    if (!isAvailable) {
+      await ctx.reply(`Sandbox unavailable. Backend: ${sandbox.backend}`);
+      return;
+    }
+
+    const text = ctx.message?.text?.replace(/^\/run\s*/, "").trim() ?? "";
+    const match = text.match(/^(\w+)\s+([\s\S]+)$/);
+    if (!match) {
+      await ctx.reply(
+        `Usage: /run <language> <code>
+
+Supported languages:
+- javascript, js
+- typescript, ts
+- python, py
+- bash, sh
+- rust, go, c, cpp, java, ruby, php
+
+Example: /run python print("Hello!")`
+      );
+      return;
+    }
+
+    const [, language, code] = match;
+    await ctx.replyWithChatAction("typing");
+
+    try {
+      const result = await sandbox.runCode(language, code);
+      const output = result.stdout || result.stderr || "(no output)";
+      const status = result.exitCode === 0 ? "✓" : `✗ (exit ${result.exitCode})`;
+      const timeout = result.timedOut ? " [TIMED OUT]" : "";
+      const backend = sandbox.backend === "piston" ? " [Piston]" : "";
+
+      await ctx.reply(
+        `**${language}** ${status}${timeout}${backend}\n\`\`\`\n${output.slice(0, 3000)}\n\`\`\`\nDuration: ${result.durationMs}ms`,
+        { parse_mode: "Markdown" }
+      ).catch(async () => {
+        await ctx.reply(`${language} ${status}${timeout}${backend}\n\n${output.slice(0, 3500)}\n\nDuration: ${result.durationMs}ms`);
+      });
+
+      audit.sandbox({
+        command: `[${language}] ${code.slice(0, 100)}`,
+        exitCode: result.exitCode,
+        durationMs: result.durationMs,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      audit.error({ error: `Code execution error: ${errorMsg}`, metadata: { userId, language, code } });
+      await ctx.reply(`Error: ${errorMsg}`);
     }
   });
 
@@ -343,11 +495,21 @@ Cron format: minute hour day month weekday
       // Get conversation history
       const history = conversations.get(userId);
 
-      // Call AI
-      const response = await agent.chat(history);
+      // Get personalized system prompt if personality is configured
+      const systemPrompt = personality
+        ? await personality.getSystemPrompt(userId)
+        : undefined;
+
+      // Call AI with optional personalized system prompt
+      const response = await agent.chat(history, systemPrompt);
 
       // Add assistant response to history
       conversations.add(userId, { role: "assistant", content: response.text });
+
+      // Learn from this conversation
+      if (personality) {
+        await personality.learnFromConversation(userId, text, response.text);
+      }
 
       // Send response
       await ctx.reply(response.text, { parse_mode: "Markdown" }).catch(async () => {

@@ -16,6 +16,7 @@ import { createWebhookHandler } from "./webhooks.js";
 import { createSandboxRunner } from "./sandbox.js";
 import { createScheduler } from "./scheduler.js";
 import { createStorage, type Storage } from "./storage.js";
+import { createPersonality } from "./personality.js";
 
 async function main() {
   console.log("=".repeat(50));
@@ -87,7 +88,11 @@ async function main() {
     storage,
   });
 
-  // Create Telegram bot handler (with sandbox and scheduler)
+  // Create personality engine (learning + personalization)
+  console.log("[init] Creating personality engine...");
+  const personality = await createPersonality(storage);
+
+  // Create Telegram bot handler (with sandbox, scheduler, personality)
   console.log("[init] Creating Telegram bot...");
   const telegram = createTelegramBot({
     config,
@@ -96,6 +101,7 @@ async function main() {
     conversations,
     sandbox,
     scheduler,
+    personality,
   });
 
   // Create webhook handler

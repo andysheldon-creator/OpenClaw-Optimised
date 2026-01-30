@@ -142,9 +142,8 @@ export function loadSecureConfig(): SecureConfig {
   const webhooksEnabled = optionalBool("WEBHOOKS_ENABLED", true);
   const webhookSecret = optional("WEBHOOK_SECRET", generateSecureToken());
 
-  // Optional: Sandbox (disabled by default - requires Docker socket access)
-  // Won't work on Railway, Render, Fly.io etc. - only on VPS with Docker
-  const sandboxEnabled = optionalBool("SANDBOX_ENABLED", false);
+  // Optional: Sandbox (enabled by default - auto-detects Docker or Piston API fallback)
+  const sandboxEnabled = optionalBool("SANDBOX_ENABLED", true);
 
   // Optional: Scheduler
   const schedulerEnabled = optionalBool("SCHEDULER_ENABLED", true);
