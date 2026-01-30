@@ -7,6 +7,7 @@ import lockfile from "proper-lockfile";
 import { getPairingAdapter } from "../channels/plugins/pairing.js";
 import type { ChannelId, ChannelPairingAdapter } from "../channels/plugins/types.js";
 import { resolveOAuthDir, resolveStateDir } from "../config/paths.js";
+import { checkPairingRateLimit } from "../security/middleware.js";
 
 const PAIRING_CODE_LENGTH = 8;
 const PAIRING_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -328,6 +329,19 @@ export async function upsertChannelPairingRequest(params: {
   pairingAdapter?: ChannelPairingAdapter;
 }): Promise<{ code: string; created: boolean }> {
   const env = params.env ?? process.env;
+
+  // Security: Check pairing rate limit
+  const sender = normalizeId(params.id);
+  const rateCheck = checkPairingRateLimit({
+    channel: String(params.channel),
+    sender,
+    ip: "unknown", // Pairing happens at channel level, not HTTP
+  });
+  if (!rateCheck.allowed) {
+    // Rate limited - return empty code without creating request
+    return { code: "", created: false };
+  }
+
   const filePath = resolvePairingPath(params.channel, env);
   return await withFileLock(
     filePath,

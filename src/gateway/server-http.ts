@@ -28,6 +28,8 @@ import {
 } from "./hooks.js";
 import { applyHookMappings } from "./hooks-mapping.js";
 import { handleOpenAiHttpRequest } from "./openai-http.js";
+import { checkWebhookRateLimit } from "../security/middleware.js";
+import { SecurityShield } from "../security/shield.js";
 import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
 import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
 
@@ -91,6 +93,21 @@ export function createHooksRequestHandler(
       );
     }
 
+    // Security: Check webhook rate limit
+    const subPath = url.pathname.slice(basePath.length).replace(/^\/+/, "");
+    const rateCheck = checkWebhookRateLimit({
+      token: token,
+      path: subPath,
+      ip: SecurityShield.extractIp(req),
+    });
+    if (!rateCheck.allowed) {
+      res.statusCode = 429;
+      res.setHeader("Retry-After", String(Math.ceil((rateCheck.retryAfterMs ?? 60000) / 1000)));
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.end("Too Many Requests");
+      return true;
+    }
+
     if (req.method !== "POST") {
       res.statusCode = 405;
       res.setHeader("Allow", "POST");
@@ -99,7 +116,6 @@ export function createHooksRequestHandler(
       return true;
     }
 
-    const subPath = url.pathname.slice(basePath.length).replace(/^\/+/, "");
     if (!subPath) {
       res.statusCode = 404;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");

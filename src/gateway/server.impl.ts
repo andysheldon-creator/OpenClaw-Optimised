@@ -58,6 +58,7 @@ import { loadGatewayModelCatalog } from "./server-model-catalog.js";
 import { NodeRegistry } from "./node-registry.js";
 import { createNodeSubscriptionManager } from "./server-node-subscriptions.js";
 import { safeParseJson } from "./server-methods/nodes.helpers.js";
+import { initSecurityShield } from "../security/shield.js";
 import { loadGatewayPlugins } from "./server-plugins.js";
 import { createGatewayReloadHandlers } from "./server-reload-handlers.js";
 import { resolveGatewayRuntimeConfig } from "./server-runtime-config.js";
@@ -215,6 +216,10 @@ export async function startGatewayServer(
     startDiagnosticHeartbeat();
   }
   setGatewaySigusr1RestartPolicy({ allowExternal: cfgAtStart.commands?.restart === true });
+
+  // Initialize security shield with configuration
+  initSecurityShield(cfgAtStart.security?.shield);
+
   initSubagentRegistry();
   const defaultAgentId = resolveDefaultAgentId(cfgAtStart);
   const defaultWorkspaceDir = resolveAgentWorkspaceDir(cfgAtStart, defaultAgentId);
