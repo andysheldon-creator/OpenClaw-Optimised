@@ -118,17 +118,6 @@ export function applyGroupGating(params: {
   const safeShouldBypassMention =
     typeof shouldBypassMention !== "undefined" ? shouldBypassMention : false;
 
-  // Determine if we should process based on activation mode
-  const shouldProcess = (() => {
-    if (activation === "always") return true;
-    if (activation === "never") return safeShouldBypassMention;
-    if (activation === "replies") return isReplyToBot || safeShouldBypassMention;
-    if (activation === "mention+replies")
-      return wasMentioned || isReplyToBot || safeShouldBypassMention;
-    // Default to "mention" mode
-    return wasMentioned || safeShouldBypassMention;
-  })();
-
   // require mention only in strict 'mention' mode
   const requireMention = activation === "mention";
   const mentionGate = resolveMentionGating({
@@ -138,6 +127,16 @@ export function applyGroupGating(params: {
     implicitMention: isReplyToBot, // treat reply-to-bot as an implicit mention
     shouldBypassMention: safeShouldBypassMention,
   });
+
+  // Determine if we should process based on activation mode
+  const shouldProcess = (() => {
+    if (activation === "always") return true;
+    if (activation === "never") return safeShouldBypassMention;
+    if (activation === "replies") return isReplyToBot || safeShouldBypassMention;
+    if (activation === "mention+replies") return mentionGate.effectiveWasMentioned;
+    // Default to "mention" mode
+    return !mentionGate.shouldSkip;
+  })();
   params.msg.wasMentioned = mentionGate.effectiveWasMentioned;
 
   if (!shouldProcess) {
