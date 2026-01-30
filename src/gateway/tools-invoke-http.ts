@@ -17,6 +17,7 @@ import {
 } from "../agents/tool-policy.js";
 import { loadConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
+import { loadSessionEntry } from "./session-utils.js";
 import { logWarn } from "../logger.js";
 import { isTestDefaultMemorySlotDisabled } from "../plugins/config-state.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
@@ -189,9 +190,28 @@ export async function handleToolsInvokeHttpRequest(
     messageProvider: messageChannel ?? undefined,
     accountId: accountId ?? null,
   });
-  const subagentPolicy = isSubagentSessionKey(sessionKey)
+  const baseSubagentPolicy = isSubagentSessionKey(sessionKey)
     ? resolveSubagentToolPolicy(cfg)
     : undefined;
+  const subagentPolicy = (() => {
+    if (!baseSubagentPolicy) return undefined;
+    let spawnPolicy: { allow?: string[]; deny?: string[] } | undefined;
+    try {
+      spawnPolicy = loadSessionEntry(sessionKey)?.entry?.spawnToolPolicy;
+    } catch {
+      spawnPolicy = undefined;
+    }
+    if (!spawnPolicy) return baseSubagentPolicy;
+    const mergedDeny = [
+      ...(baseSubagentPolicy.deny ?? []),
+      ...(spawnPolicy.deny ?? []),
+    ];
+    const mergedAllow = spawnPolicy.allow ? spawnPolicy.allow : baseSubagentPolicy.allow;
+    return {
+      allow: mergedAllow,
+      deny: mergedDeny.length > 0 ? mergedDeny : undefined,
+    };
+  })();
 
   // Build tool list (core + plugin tools).
   const allTools = createMoltbotTools({

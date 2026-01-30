@@ -35,6 +35,8 @@ export type RunEmbeddedPiAgentParams = {
   groupSpace?: string | null;
   /** Parent session key for subagent policy inheritance. */
   spawnedBy?: string | null;
+  /** Per-spawn tool policy override from sessions_spawn toolPolicy param. */
+  spawnToolPolicy?: { allow?: string[]; deny?: string[] };
   senderId?: string | null;
   senderName?: string | null;
   senderUsername?: string | null;

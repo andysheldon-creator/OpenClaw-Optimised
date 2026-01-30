@@ -418,6 +418,7 @@ export async function agentCommand(
             groupChannel: runContext.groupChannel,
             groupSpace: runContext.groupSpace,
             spawnedBy,
+            spawnToolPolicy: sessionEntry?.spawnToolPolicy,
             currentChannelId: runContext.currentChannelId,
             currentThreadTs: runContext.currentThreadTs,
             replyToMode: runContext.replyToMode,

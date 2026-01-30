@@ -150,6 +150,8 @@ export function createMoltbotCodingTools(options?: {
   hasRepliedRef?: { value: boolean };
   /** If true, the model has native vision capability */
   modelHasVision?: boolean;
+  /** Per-spawn tool policy override from sessions_spawn toolPolicy param. */
+  spawnToolPolicy?: { allow?: string[]; deny?: string[] };
 }): AnyAgentTool[] {
   const execToolName = "exec";
   const sandbox = options?.sandbox?.enabled ? options.sandbox : undefined;
@@ -197,10 +199,27 @@ export function createMoltbotCodingTools(options?: {
     providerProfileAlsoAllow,
   );
   const scopeKey = options?.exec?.scopeKey ?? (agentId ? `agent:${agentId}` : undefined);
-  const subagentPolicy =
+  const baseSubagentPolicy =
     isSubagentSessionKey(options?.sessionKey) && options?.sessionKey
       ? resolveSubagentToolPolicy(options.config)
       : undefined;
+  const subagentPolicy = (() => {
+    if (!baseSubagentPolicy) return undefined;
+    const spawnPolicy = options?.spawnToolPolicy;
+    if (!spawnPolicy) return baseSubagentPolicy;
+    // Merge spawn-time policy: spawn allow narrows default, spawn deny appends to default.
+    const mergedDeny = [
+      ...(baseSubagentPolicy.deny ?? []),
+      ...(spawnPolicy.deny ?? []),
+    ];
+    const mergedAllow = spawnPolicy.allow
+      ? spawnPolicy.allow
+      : baseSubagentPolicy.allow;
+    return {
+      allow: mergedAllow,
+      deny: mergedDeny.length > 0 ? mergedDeny : undefined,
+    };
+  })();
   const allowBackground = isToolAllowedByPolicies("process", [
     profilePolicyWithAlsoAllow,
     providerProfilePolicyWithAlsoAllow,

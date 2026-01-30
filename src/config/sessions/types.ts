@@ -36,6 +36,8 @@ export type SessionEntry = {
   sessionFile?: string;
   /** Parent session key that spawned this session (used for sandbox session-tool scoping). */
   spawnedBy?: string;
+  /** Per-spawn tool policy override. Set by sessions_spawn to restrict child session tools. */
+  spawnToolPolicy?: { allow?: string[]; deny?: string[] };
   systemSent?: boolean;
   abortedLastRun?: boolean;
   chatType?: SessionChatType;

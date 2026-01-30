@@ -90,6 +90,30 @@ export async function applySessionsPatchToStore(params: {
     }
   }
 
+  if ("spawnToolPolicy" in patch) {
+    const raw = patch.spawnToolPolicy;
+    if (raw === null) {
+      delete next.spawnToolPolicy;
+    } else if (raw !== undefined) {
+      if (!isSubagentSessionKey(storeKey)) {
+        return invalid("spawnToolPolicy is only supported for subagent:* sessions");
+      }
+      if (existing?.spawnToolPolicy) {
+        return invalid("spawnToolPolicy cannot be changed once set");
+      }
+      const policy: { allow?: string[]; deny?: string[] } = {};
+      if (Array.isArray(raw.allow) && raw.allow.length > 0) {
+        policy.allow = raw.allow.filter((v: unknown) => typeof v === "string" && v.trim()).map((v: string) => v.trim());
+      }
+      if (Array.isArray(raw.deny) && raw.deny.length > 0) {
+        policy.deny = raw.deny.filter((v: unknown) => typeof v === "string" && v.trim()).map((v: string) => v.trim());
+      }
+      if (policy.allow || policy.deny) {
+        next.spawnToolPolicy = policy;
+      }
+    }
+  }
+
   if ("label" in patch) {
     const raw = patch.label;
     if (raw === null) {

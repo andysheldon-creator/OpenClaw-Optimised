@@ -31,6 +31,28 @@ const SessionsSpawnToolSchema = Type.Object({
   agentId: Type.Optional(Type.String()),
   model: Type.Optional(Type.String()),
   thinking: Type.Optional(Type.String()),
+  toolPolicy: Type.Optional(
+    Type.Object(
+      {
+        allow: Type.Optional(
+          Type.Array(Type.String(), {
+            description:
+              'Tool names or groups to allow (e.g. "web_fetch", "read", "group:web"). When set, only these tools are available.',
+          }),
+        ),
+        deny: Type.Optional(
+          Type.Array(Type.String(), {
+            description:
+              'Tool names or groups to deny (e.g. "exec", "group:runtime"). Appended to default subagent deny list.',
+          }),
+        ),
+      },
+      {
+        description:
+          "Restrict available tools for the sub-agent. allow narrows to listed tools; deny blocks listed tools (additive with defaults).",
+      },
+    ),
+  ),
   runTimeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   // Back-compat alias. Prefer runTimeoutSeconds.
   timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
@@ -83,6 +105,10 @@ export function createSessionsSpawnTool(opts?: {
       const requestedAgentId = readStringParam(params, "agentId");
       const modelOverride = readStringParam(params, "model");
       const thinkingOverrideRaw = readStringParam(params, "thinking");
+      const toolPolicy =
+        params.toolPolicy && typeof params.toolPolicy === "object"
+          ? (params.toolPolicy as { allow?: string[]; deny?: string[] })
+          : undefined;
       const cleanup =
         params.cleanup === "keep" || params.cleanup === "delete"
           ? (params.cleanup as "keep" | "delete")
@@ -198,6 +224,23 @@ export function createSessionsSpawnTool(opts?: {
             });
           }
           modelWarning = messageText;
+        }
+      }
+      if (toolPolicy && (toolPolicy.allow || toolPolicy.deny)) {
+        try {
+          await callGateway({
+            method: "sessions.patch",
+            params: { key: childSessionKey, spawnToolPolicy: toolPolicy },
+            timeoutMs: 10_000,
+          });
+        } catch (err) {
+          const messageText =
+            err instanceof Error ? err.message : typeof err === "string" ? err : "error";
+          return jsonResult({
+            status: "error",
+            error: `Failed to apply toolPolicy: ${messageText}`,
+            childSessionKey,
+          });
         }
       }
       const childSystemPrompt = buildSubagentSystemPrompt({
