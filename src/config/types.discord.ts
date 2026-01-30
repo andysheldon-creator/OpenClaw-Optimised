@@ -79,6 +79,28 @@ export type DiscordIntentsConfig = {
   presence?: boolean;
   /** Enable Guild Members privileged intent (requires Portal opt-in). Default: false. */
   guildMembers?: boolean;
+  /** Enable Guild Voice States intent (required for voice channel features). Default: false. */
+  voice?: boolean;
+};
+
+export type DiscordVoiceConfig = {
+  /** Enable voice channel support. Default: false. */
+  enabled?: boolean;
+  /** Auto-join voice channel when user requests. Default: false. */
+  autoJoin?: boolean;
+  /** Wake word to activate voice (e.g., "Hey Liam"). */
+  wakeWord?: string;
+  /** Enable interrupt detection (talk over bot). Default: true. */
+  interruptEnabled?: boolean;
+  /** Idle timeout in milliseconds before leaving channel. Default: 60000 (1 minute). */
+  idleTimeoutMs?: number;
+  /** Voice providers configuration. */
+  providers?: {
+    /** Speech-to-text provider ("groq" or "openai"). */
+    stt?: "groq" | "openai";
+    /** Text-to-speech provider ("elevenlabs" or "openai"). */
+    tts?: "elevenlabs" | "openai";
+  };
 };
 
 export type DiscordExecApprovalConfig = {
@@ -150,6 +172,8 @@ export type DiscordAccountConfig = {
   execApprovals?: DiscordExecApprovalConfig;
   /** Privileged Gateway Intents (must also be enabled in Discord Developer Portal). */
   intents?: DiscordIntentsConfig;
+  /** Voice channel configuration. */
+  voice?: DiscordVoiceConfig;
 };
 
 export type DiscordConfig = {

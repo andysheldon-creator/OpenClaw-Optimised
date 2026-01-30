@@ -126,6 +126,9 @@ function resolveDiscordGatewayIntents(
   if (intentsConfig?.guildMembers) {
     intents |= GatewayIntents.GuildMembers;
   }
+  if (intentsConfig?.voice) {
+    intents |= GatewayIntents.GuildVoiceStates;
+  }
   return intents;
 }
 

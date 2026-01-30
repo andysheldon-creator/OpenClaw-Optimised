@@ -18,6 +18,7 @@ import { handleApproveCommand } from "./commands-approve.js";
 import { handleSubagentsCommand } from "./commands-subagents.js";
 import { handleModelsCommand } from "./commands-models.js";
 import { handleTtsCommands } from "./commands-tts.js";
+import { handleVoiceCommands } from "./commands-voice.js";
 import {
   handleAbortTrigger,
   handleActivationCommand,
@@ -42,6 +43,7 @@ const HANDLERS: CommandHandler[] = [
   handleUsageCommand,
   handleRestartCommand,
   handleTtsCommands,
+  handleVoiceCommands,
   handleHelpCommand,
   handleCommandsListCommand,
   handleStatusCommand,

@@ -236,6 +236,33 @@ function buildChatCommands(): ChatCommandDefinition[] {
       },
     }),
     defineChatCommand({
+      key: "voice",
+      nativeName: "voice",
+      description: "Control voice channel (join, leave, status).",
+      textAlias: "/voice",
+      category: "media",
+      args: [
+        {
+          name: "action",
+          description: "Voice action",
+          type: "string",
+          choices: [
+            { value: "join", label: "Join" },
+            { value: "leave", label: "Leave" },
+            { value: "status", label: "Status" },
+          ],
+        },
+      ],
+      argsMenu: {
+        arg: "action",
+        title:
+          "Voice Actions:\n" +
+          "• Join – Join your current voice channel\n" +
+          "• Leave – Leave the voice channel\n" +
+          "• Status – Show voice connection status",
+      },
+    }),
+    defineChatCommand({
       key: "whoami",
       nativeName: "whoami",
       description: "Show your sender id.",
