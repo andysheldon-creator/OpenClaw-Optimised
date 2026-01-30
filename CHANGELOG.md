@@ -6,6 +6,7 @@ Docs: https://docs.openclaw.ai
 Status: beta.
 
 ### Changes
+- Plugins: add Arcade.dev plugin (`@openclaw/arcade`) for 100+ authorized tools (Gmail, Slack, GitHub, Calendar, Drive, Notion, Linear, Stripe, etc.) with automatic OAuth handling.
 - Rebrand: rename the npm package/CLI to `openclaw`, add a `openclaw` compatibility shim, and move extensions to the `@openclaw/*` scope.
 - Commands: group /help and /commands output with Telegram paging. (#2504) Thanks @hougangdev.
 - macOS: limit project-local `node_modules/.bin` PATH preference to debug builds (reduce PATH hijacking risk).

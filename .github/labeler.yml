@@ -216,6 +216,11 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/open-prose/**"
+"extensions: arcade":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/arcade/**"
+          - "skills/arcade*/**"
 "extensions: qwen-portal-auth":
   - changed-files:
       - any-glob-to-any-file:
