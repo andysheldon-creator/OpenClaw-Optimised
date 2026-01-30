@@ -17,6 +17,35 @@ import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
 import { extractConfigPaths, validateConfigPaths } from "./config-path-validator.js";
 import { callGatewayTool } from "./gateway.js";
 
+/**
+ * Send a proactive notification to Discord before a restart.
+ * Uses the session's delivery context to post directly to the channel,
+ * bypassing the agent session (which will die during restart).
+ * Falls back to the status webhook if direct channel posting isn't possible.
+ */
+async function notifyDiscordBeforeRestart(
+  notice: string,
+  deliveryContext?: { channel?: string; to?: string; accountId?: string },
+): Promise<void> {
+  // Try the status webhook first (most reliable — doesn't need the gateway running)
+  const webhookUrl = process.env.MOLTBOT_STATUS_WEBHOOK;
+  if (webhookUrl) {
+    try {
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: notice }),
+      });
+      return;
+    } catch {
+      // Fall through — best effort
+    }
+  }
+
+  // If no webhook, log to console (gateway log captures it)
+  console.info(`[restart-notice] ${notice}`);
+}
+
 function resolveBaseHashFromSnapshot(snapshot: unknown): string | undefined {
   if (!snapshot || typeof snapshot !== "object") return undefined;
   const hashValue = (snapshot as { hash?: unknown }).hash;
@@ -220,6 +249,9 @@ export function createGatewayTool(opts?: {
         const notice = buildRestartNotice("restart", reason ?? note);
         console.info(`gateway tool: ${notice.restartWarning}`);
 
+        // Proactive Discord notification — fires before the process dies
+        await notifyDiscordBeforeRestart(notice.restartWarning, deliveryContext);
+
         const scheduled = scheduleGatewaySigusr1Restart({
           delayMs,
           reason,
@@ -279,6 +311,7 @@ export function createGatewayTool(opts?: {
         // Restart notice — mandatory notification before going dark
         const notice = buildRestartNotice("config.apply", reason ?? note);
         console.info(`gateway tool: ${notice.restartWarning}`);
+        await notifyDiscordBeforeRestart(notice.restartWarning);
 
         const result = await callGatewayTool("config.apply", gatewayOpts, {
           raw,
@@ -367,6 +400,7 @@ export function createGatewayTool(opts?: {
         // Restart notice — mandatory notification before going dark
         const notice = buildRestartNotice("config.patch", reason ?? note);
         console.info(`gateway tool: ${notice.restartWarning}`);
+        await notifyDiscordBeforeRestart(notice.restartWarning);
 
         const result = await callGatewayTool("config.patch", gatewayOpts, {
           raw,
@@ -401,6 +435,7 @@ export function createGatewayTool(opts?: {
         // Restart notice — mandatory notification before going dark
         const notice = buildRestartNotice("update.run", reason ?? note);
         console.info(`gateway tool: ${notice.restartWarning}`);
+        await notifyDiscordBeforeRestart(notice.restartWarning);
 
         const result = await callGatewayTool("update.run", gatewayOpts, {
           sessionKey,

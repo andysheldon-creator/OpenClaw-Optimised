@@ -14,12 +14,37 @@ import { defaultRuntime } from "../runtime.js";
 import { deliveryContextFromSession, mergeDeliveryContext } from "../utils/delivery-context.js";
 import { loadSessionEntry } from "./session-utils.js";
 
+function formatResumeMessage(payload: {
+  kind: string;
+  status: string;
+  message?: string | null;
+  stats?: { reason?: string | null; mode?: string } | null;
+}): string {
+  const kind = payload.kind;
+  const status = payload.status;
+  const reason = payload.message ?? payload.stats?.reason ?? "unknown";
+  const mode = payload.stats?.mode ?? kind;
+
+  // Build a message the agent can act on, not just a JSON dump
+  const lines: string[] = [];
+  lines.push(`Gateway restarted successfully (${mode}: ${reason}).`);
+  lines.push("");
+  lines.push(
+    "You were interrupted by this restart. Check your recent conversation context and resume where you left off.",
+  );
+  lines.push(
+    "If you were mid-task, pick up from where you stopped. If you had just finished, let the user know you're back.",
+  );
+
+  return lines.join("\n");
+}
+
 export async function scheduleRestartSentinelWake(params: { deps: CliDeps }) {
   const sentinel = await consumeRestartSentinel();
   if (!sentinel) return;
   const payload = sentinel.payload;
   const sessionKey = payload.sessionKey?.trim();
-  const message = formatRestartSentinelMessage(payload);
+  const message = formatResumeMessage(payload);
   const summary = summarizeRestartSentinel(payload);
 
   if (!sessionKey) {
