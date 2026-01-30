@@ -8,16 +8,136 @@
  * Auth URL: https://opencode.ai/auth
  */
 
+import crypto from "node:crypto";
+
 import type { ModelApi, ModelDefinitionConfig } from "../config/types.js";
 
 export const OPENCODE_ZEN_API_BASE_URL = "https://opencode.ai/zen/v1";
 export const OPENCODE_ZEN_DEFAULT_MODEL = "claude-opus-4-5";
 export const OPENCODE_ZEN_DEFAULT_MODEL_REF = `opencode/${OPENCODE_ZEN_DEFAULT_MODEL}`;
 
-// Cache for fetched models (1 hour TTL)
-let cachedModels: ModelDefinitionConfig[] | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+export const OPENCODE_ZEN_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+/**
+ * Static catalog of known OpenCode Zen models with metadata.
+ * Serves as fallback when API is unreachable and for enriching
+ * API-discovered models with known metadata.
+ */
+export const OPENCODE_ZEN_STATIC_CATALOG = [
+  {
+    id: "gpt-5.1-codex",
+    name: "GPT-5.1 Codex",
+    reasoning: true,
+    input: ["text"] as Array<"text" | "image">,
+    cost: { input: 1.07, output: 8.5, cacheRead: 0.107, cacheWrite: 0 },
+    contextWindow: 400000,
+    maxTokens: 128000,
+  },
+  {
+    id: "claude-opus-4-5",
+    name: "Claude Opus 4.5",
+    reasoning: true,
+    input: ["text", "image"] as Array<"text" | "image">,
+    cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+    contextWindow: 200000,
+    maxTokens: 64000,
+  },
+  {
+    id: "gemini-3-pro",
+    name: "Gemini 3 Pro",
+    reasoning: true,
+    input: ["text", "image"] as Array<"text" | "image">,
+    cost: { input: 2, output: 12, cacheRead: 0.2, cacheWrite: 0 },
+    contextWindow: 1048576,
+    maxTokens: 65536,
+  },
+  {
+    id: "gpt-5.1-codex-mini",
+    name: "GPT-5.1 Codex Mini",
+    reasoning: true,
+    input: ["text"] as Array<"text" | "image">,
+    cost: { input: 0.25, output: 2, cacheRead: 0.025, cacheWrite: 0 },
+    contextWindow: 400000,
+    maxTokens: 128000,
+  },
+  {
+    id: "gpt-5.1",
+    name: "GPT-5.1",
+    reasoning: true,
+    input: ["text", "image"] as Array<"text" | "image">,
+    cost: { input: 1.07, output: 8.5, cacheRead: 0.107, cacheWrite: 0 },
+    contextWindow: 400000,
+    maxTokens: 128000,
+  },
+  {
+    id: "glm-4.7",
+    name: "GLM-4.7",
+    reasoning: true,
+    input: ["text"] as Array<"text" | "image">,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 204800,
+    maxTokens: 131072,
+  },
+  {
+    id: "gemini-3-flash",
+    name: "Gemini 3 Flash",
+    reasoning: true,
+    input: ["text", "image"] as Array<"text" | "image">,
+    cost: { input: 0.5, output: 3, cacheRead: 0.05, cacheWrite: 0 },
+    contextWindow: 1048576,
+    maxTokens: 65536,
+  },
+  {
+    id: "gpt-5.1-codex-max",
+    name: "GPT-5.1 Codex Max",
+    reasoning: true,
+    input: ["text"] as Array<"text" | "image">,
+    cost: { input: 1.25, output: 10, cacheRead: 0.125, cacheWrite: 0 },
+    contextWindow: 400000,
+    maxTokens: 128000,
+  },
+  {
+    id: "gpt-5.2",
+    name: "GPT-5.2",
+    reasoning: true,
+    input: ["text", "image"] as Array<"text" | "image">,
+    cost: { input: 1.75, output: 14, cacheRead: 0.175, cacheWrite: 0 },
+    contextWindow: 400000,
+    maxTokens: 128000,
+  },
+] as const;
+
+export const OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS: ModelDefinitionConfig[] =
+  OPENCODE_ZEN_STATIC_CATALOG.map(buildOpencodeZenModelDefinition);
+
+const OPENCODE_ZEN_CATALOG_BY_ID = new Map<string, OpencodeZenCatalogEntry>(
+  OPENCODE_ZEN_STATIC_CATALOG.map((entry) => [entry.id, entry]),
+);
+
+export type OpencodeZenCatalogEntry = (typeof OPENCODE_ZEN_STATIC_CATALOG)[number];
+
+/**
+ * Build a ModelDefinitionConfig from a catalog entry.
+ */
+export function buildOpencodeZenModelDefinition(
+  entry: OpencodeZenCatalogEntry,
+): ModelDefinitionConfig {
+  return {
+    id: entry.id,
+    name: entry.name,
+    api: resolveOpencodeZenModelApi(entry.id),
+    reasoning: entry.reasoning,
+    input: [...entry.input],
+    cost: entry.cost,
+    contextWindow: entry.contextWindow,
+    maxTokens: entry.maxTokens,
+  };
+}
 
 /**
  * Model aliases for convenient shortcuts.
@@ -100,6 +220,7 @@ export function resolveOpencodeZenModelApi(modelId: string): ModelApi {
 
 /**
  * Check if a model supports image input.
+ * Used as fallback for unknown models from the API.
  */
 function supportsImageInput(modelId: string): boolean {
   const lower = modelId.toLowerCase();
@@ -109,130 +230,20 @@ function supportsImageInput(modelId: string): boolean {
   return true;
 }
 
-const MODEL_COSTS: Record<
-  string,
-  { input: number; output: number; cacheRead: number; cacheWrite: number }
-> = {
-  "gpt-5.1-codex": {
-    input: 1.07,
-    output: 8.5,
-    cacheRead: 0.107,
-    cacheWrite: 0,
-  },
-  "claude-opus-4-5": { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
-  "gemini-3-pro": { input: 2, output: 12, cacheRead: 0.2, cacheWrite: 0 },
-  "gpt-5.1-codex-mini": {
-    input: 0.25,
-    output: 2,
-    cacheRead: 0.025,
-    cacheWrite: 0,
-  },
-  "gpt-5.1": { input: 1.07, output: 8.5, cacheRead: 0.107, cacheWrite: 0 },
-  "glm-4.7": { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-  "gemini-3-flash": { input: 0.5, output: 3, cacheRead: 0.05, cacheWrite: 0 },
-  "gpt-5.1-codex-max": {
-    input: 1.25,
-    output: 10,
-    cacheRead: 0.125,
-    cacheWrite: 0,
-  },
-  "gpt-5.2": { input: 1.75, output: 14, cacheRead: 0.175, cacheWrite: 0 },
-};
-
-const DEFAULT_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
-
-const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
-  "gpt-5.1-codex": 400000,
-  "claude-opus-4-5": 200000,
-  "gemini-3-pro": 1048576,
-  "gpt-5.1-codex-mini": 400000,
-  "gpt-5.1": 400000,
-  "glm-4.7": 204800,
-  "gemini-3-flash": 1048576,
-  "gpt-5.1-codex-max": 400000,
-  "gpt-5.2": 400000,
-};
-
-function getDefaultContextWindow(modelId: string): number {
-  return MODEL_CONTEXT_WINDOWS[modelId] ?? 128000;
-}
-
-const MODEL_MAX_TOKENS: Record<string, number> = {
-  "gpt-5.1-codex": 128000,
-  "claude-opus-4-5": 64000,
-  "gemini-3-pro": 65536,
-  "gpt-5.1-codex-mini": 128000,
-  "gpt-5.1": 128000,
-  "glm-4.7": 131072,
-  "gemini-3-flash": 65536,
-  "gpt-5.1-codex-max": 128000,
-  "gpt-5.2": 128000,
-};
-
-function getDefaultMaxTokens(modelId: string): number {
-  return MODEL_MAX_TOKENS[modelId] ?? 8192;
-}
-
-/**
- * Build a ModelDefinitionConfig from a model ID.
- */
-function buildModelDefinition(modelId: string): ModelDefinitionConfig {
-  return {
-    id: modelId,
-    name: formatModelName(modelId),
-    api: resolveOpencodeZenModelApi(modelId),
-    // Treat Zen models as reasoning-capable so defaults pick thinkLevel="low" unless users opt out.
-    reasoning: true,
-    input: supportsImageInput(modelId) ? ["text", "image"] : ["text"],
-    cost: MODEL_COSTS[modelId] ?? DEFAULT_COST,
-    contextWindow: getDefaultContextWindow(modelId),
-    maxTokens: getDefaultMaxTokens(modelId),
-  };
-}
-
 /**
  * Format a model ID into a human-readable name.
+ * Used as fallback for unknown models from the API.
  */
-const MODEL_NAMES: Record<string, string> = {
-  "gpt-5.1-codex": "GPT-5.1 Codex",
-  "claude-opus-4-5": "Claude Opus 4.5",
-  "gemini-3-pro": "Gemini 3 Pro",
-  "gpt-5.1-codex-mini": "GPT-5.1 Codex Mini",
-  "gpt-5.1": "GPT-5.1",
-  "glm-4.7": "GLM-4.7",
-  "gemini-3-flash": "Gemini 3 Flash",
-  "gpt-5.1-codex-max": "GPT-5.1 Codex Max",
-  "gpt-5.2": "GPT-5.2",
-};
-
 function formatModelName(modelId: string): string {
-  if (MODEL_NAMES[modelId]) {
-    return MODEL_NAMES[modelId];
+  const catalogEntry = OPENCODE_ZEN_CATALOG_BY_ID.get(modelId);
+  if (catalogEntry) {
+    return catalogEntry.name;
   }
 
   return modelId
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-/**
- * Static fallback models when API is unreachable.
- */
-export function getOpencodeZenStaticFallbackModels(): ModelDefinitionConfig[] {
-  const modelIds = [
-    "gpt-5.1-codex",
-    "claude-opus-4-5",
-    "gemini-3-pro",
-    "gpt-5.1-codex-mini",
-    "gpt-5.1",
-    "glm-4.7",
-    "gemini-3-flash",
-    "gpt-5.1-codex-max",
-    "gpt-5.2",
-  ];
-
-  return modelIds.map(buildModelDefinition);
 }
 
 /**
@@ -248,18 +259,46 @@ interface ZenModelsResponse {
   }>;
 }
 
+type OpencodeZenCacheEntry = {
+  models: ModelDefinitionConfig[];
+  timestamp: number;
+};
+
 /**
- * Fetch models from the OpenCode Zen API.
- * Uses caching with 1-hour TTL.
+ * Cache for fetched models (1 hour TTL).
+ * Scoped by a hashed API key to avoid cross-key leakage.
+ */
+const cachedModelsByKey = new Map<string, OpencodeZenCacheEntry>();
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function hashApiKey(apiKey: string): string {
+  return crypto.createHash("sha256").update(apiKey).digest("hex");
+}
+
+function resolveCacheKey(apiKey?: string): string {
+  if (!apiKey) return "public";
+  return `key:${hashApiKey(apiKey)}`;
+}
+
+/**
+ * Discover models from the OpenCode Zen API.
+ * Fetches dynamically and merges with static catalog metadata.
  *
- * @param apiKey - OpenCode Zen API key for authentication
+ * @param apiKey - OpenCode Zen API key for authentication (optional for discovery)
  * @returns Array of model definitions, or static fallback on failure
  */
-export async function fetchOpencodeZenModels(apiKey?: string): Promise<ModelDefinitionConfig[]> {
+export async function discoverOpencodeZenModels(apiKey?: string): Promise<ModelDefinitionConfig[]> {
+  // Skip API discovery in test environment
+  if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+    return OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS;
+  }
+
   // Return cached models if still valid
   const now = Date.now();
-  if (cachedModels && now - cacheTimestamp < CACHE_TTL_MS) {
-    return cachedModels;
+  const cacheKey = resolveCacheKey(apiKey);
+  const cachedEntry = cachedModelsByKey.get(cacheKey);
+  if (cachedEntry && now - cachedEntry.timestamp < CACHE_TTL_MS) {
+    return cachedEntry.models;
   }
 
   try {
@@ -273,35 +312,71 @@ export async function fetchOpencodeZenModels(apiKey?: string): Promise<ModelDefi
     const response = await fetch(`${OPENCODE_ZEN_API_BASE_URL}/models`, {
       method: "GET",
       headers,
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {
-      throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      console.warn(
+        `[opencode-zen] Failed to discover models: HTTP ${response.status}, using static catalog`,
+      );
+      return OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS;
     }
 
     const data = (await response.json()) as ZenModelsResponse;
 
     if (!data.data || !Array.isArray(data.data)) {
-      throw new Error("Invalid response format from /models endpoint");
+      console.warn(
+        "[opencode-zen] Invalid response format from /models endpoint, using static catalog",
+      );
+      return OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS;
     }
 
-    const models = data.data.map((model) => buildModelDefinition(model.id));
+    const models: ModelDefinitionConfig[] = [];
 
-    cachedModels = models;
-    cacheTimestamp = now;
+    for (const apiModel of data.data) {
+      const catalogEntry = OPENCODE_ZEN_CATALOG_BY_ID.get(apiModel.id);
+
+      if (catalogEntry) {
+        // Use rich catalog metadata for known models
+        models.push(buildOpencodeZenModelDefinition(catalogEntry));
+      } else {
+        // Create definition for newly discovered models not in catalog
+        // This allows new models (like kimi-k2.5-free) to appear automatically
+        const hasVision = supportsImageInput(apiModel.id);
+        models.push({
+          id: apiModel.id,
+          name: formatModelName(apiModel.id),
+          api: resolveOpencodeZenModelApi(apiModel.id),
+          // Treat Zen models as reasoning-capable by default
+          reasoning: true,
+          input: hasVision ? ["text", "image"] : ["text"],
+          cost: OPENCODE_ZEN_DEFAULT_COST,
+          contextWindow: 128000,
+          maxTokens: 8192,
+        });
+      }
+    }
+
+    // Cache the results
+    cachedModelsByKey.set(cacheKey, { models, timestamp: now });
 
     return models;
   } catch (error) {
-    console.warn(`[opencode-zen] Failed to fetch models, using static fallback: ${String(error)}`);
-    return getOpencodeZenStaticFallbackModels();
+    console.warn(`[opencode-zen] Discovery failed: ${String(error)}, using static catalog`);
+    return OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS;
   }
 }
 
 /**
  * Clear the model cache (useful for testing or forcing refresh).
  */
+export async function fetchOpencodeZenModels(apiKey?: string): Promise<ModelDefinitionConfig[]> {
+  return discoverOpencodeZenModels(apiKey);
+}
+
+/**
+ * Clear the model cache (useful for testing or forcing refresh).
+ */
 export function clearOpencodeZenModelCache(): void {
-  cachedModels = null;
-  cacheTimestamp = 0;
+  cachedModelsByKey.clear();
 }

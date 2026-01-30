@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  getOpencodeZenStaticFallbackModels,
   OPENCODE_ZEN_MODEL_ALIASES,
+  OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS,
   resolveOpencodeZenAlias,
   resolveOpencodeZenModelApi,
 } from "./opencode-zen-models.js";
@@ -50,16 +50,14 @@ describe("resolveOpencodeZenModelApi", () => {
   });
 });
 
-describe("getOpencodeZenStaticFallbackModels", () => {
-  it("returns an array of models", () => {
-    const models = getOpencodeZenStaticFallbackModels();
-    expect(Array.isArray(models)).toBe(true);
-    expect(models.length).toBe(9);
+describe("OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS", () => {
+  it("is an array of model definitions", () => {
+    expect(Array.isArray(OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS)).toBe(true);
+    expect(OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS.length).toBe(9);
   });
 
   it("includes Claude, GPT, Gemini, and GLM models", () => {
-    const models = getOpencodeZenStaticFallbackModels();
-    const ids = models.map((m) => m.id);
+    const ids = OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS.map((m) => m.id);
 
     expect(ids).toContain("claude-opus-4-5");
     expect(ids).toContain("gpt-5.2");
@@ -68,9 +66,8 @@ describe("getOpencodeZenStaticFallbackModels", () => {
     expect(ids).toContain("glm-4.7");
   });
 
-  it("returns valid ModelDefinitionConfig objects", () => {
-    const models = getOpencodeZenStaticFallbackModels();
-    for (const model of models) {
+  it("contains valid ModelDefinitionConfig objects", () => {
+    for (const model of OPENCODE_ZEN_STATIC_MODEL_DEFINITIONS) {
       expect(model.id).toBeDefined();
       expect(model.name).toBeDefined();
       expect(typeof model.reasoning).toBe("boolean");
