@@ -2,6 +2,12 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { KakaoIncomingMessage, KakaoSkillResponse, ResolvedKakaoAccount } from "./types.js";
 import { createKakaoApiClient } from "./api-client.js";
 import { getConsultationButton, isLegalQuestion } from "./lawcall-router.js";
+import {
+  handleBillingCommand,
+  preBillingCheck,
+  postBillingDeduct,
+  getCreditStatusMessage,
+} from "./billing-handler.js";
 
 export interface KakaoWebhookOptions {
   account: ResolvedKakaoAccount;
@@ -112,7 +118,45 @@ export async function startKakaoWebhook(opts: KakaoWebhookOptions): Promise<{
     }
 
     try {
-      // Call the message handler (this will route to Moltbot agent)
+      // Step 1: Check for billing commands (잔액, 충전, API키 등록 등)
+      const billingCmd = handleBillingCommand(userId, utterance);
+      if (billingCmd.handled) {
+        let response: KakaoSkillResponse;
+        if (billingCmd.paymentUrl) {
+          // Build response with payment link button
+          response = apiClient.buildTextWithButtonResponse(
+            billingCmd.response ?? "",
+            "결제하기",
+            billingCmd.paymentUrl,
+            billingCmd.quickReplies,
+          );
+        } else {
+          response = apiClient.buildSkillResponse(
+            billingCmd.response ?? "",
+            billingCmd.quickReplies,
+          );
+        }
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(response));
+        logger.info(`[kakao] Handled billing command for ${userId.slice(0, 8)}...`);
+        return;
+      }
+
+      // Step 2: Pre-billing check (verify credits or custom API key)
+      const billingCheck = preBillingCheck(userId);
+      if (billingCheck.handled) {
+        const response = apiClient.buildSkillResponse(
+          billingCheck.response ?? "",
+          billingCheck.quickReplies,
+        );
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(response));
+        logger.info(`[kakao] Billing check failed for ${userId.slice(0, 8)}...: insufficient credits`);
+        return;
+      }
+
+      // Step 3: Call the message handler (this will route to Moltbot agent)
+      const usedPlatformKey = !billingCheck.billingCheck?.useCustomKey;
       const result = await onMessage({
         userId,
         userType,
@@ -122,27 +166,45 @@ export async function startKakaoWebhook(opts: KakaoWebhookOptions): Promise<{
         timestamp: Date.now(),
       });
 
+      // Step 4: Post-billing deduct (if using platform API key)
+      // Estimate tokens: ~4 chars per token for Korean
+      const estimatedInputTokens = Math.ceil(utterance.length / 4);
+      const estimatedOutputTokens = Math.ceil(result.text.length / 4);
+      const model = process.env.MOLTBOT_MODEL ?? "claude-3-haiku-20240307";
+
+      const billingResult = postBillingDeduct(
+        userId,
+        model,
+        estimatedInputTokens,
+        estimatedOutputTokens,
+        usedPlatformKey,
+      );
+
+      // Step 5: Append credit status to response (if charged)
+      const creditMessage = getCreditStatusMessage(userId, billingResult.creditsUsed, usedPlatformKey);
+      const finalText = result.text + creditMessage;
+
       // Check if this is a legal question and add consultation button
       let response: KakaoSkillResponse;
 
       if (isLegalQuestion(utterance) || isLegalQuestion(result.text)) {
         const consultButton = getConsultationButton(utterance);
         response = apiClient.buildTextWithButtonResponse(
-          result.text,
+          finalText,
           consultButton.label,
           consultButton.url,
           result.quickReplies,
         );
         logger.info(`[kakao] Detected legal question, added ${consultButton.category} link`);
       } else {
-        response = apiClient.buildSkillResponse(result.text, result.quickReplies);
+        response = apiClient.buildSkillResponse(finalText, result.quickReplies);
       }
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(response));
 
       logger.info(
-        `[kakao] Sent response to ${userId.slice(0, 8)}...: "${result.text.slice(0, 50)}${result.text.length > 50 ? "..." : ""}"`,
+        `[kakao] Sent response to ${userId.slice(0, 8)}...: "${result.text.slice(0, 50)}${result.text.length > 50 ? "..." : ""}" (credits: -${billingResult.creditsUsed})`,
       );
     } catch (err) {
       logger.error(`[kakao] Error processing message: ${err}`);
