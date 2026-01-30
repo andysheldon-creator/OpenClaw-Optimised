@@ -18,6 +18,7 @@ import {
   VENICE_MODEL_CATALOG,
 } from "../agents/venice-models.js";
 import type { OpenClawConfig } from "../config/config.js";
+import type { ModelDefinitionConfig } from "../config/types.models.js";
 import {
   OPENROUTER_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
@@ -494,7 +495,7 @@ export function applyVeniceConfig(cfg: OpenClawConfig): OpenClawConfig {
  * Apply Fireworks provider configuration without changing the default model.
  * Registers Fireworks models and sets up the provider, but preserves existing model selection.
  */
-export function applyFireworksProviderConfig(cfg: MoltbotConfig): MoltbotConfig {
+export function applyFireworksProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[FIREWORKS_DEFAULT_MODEL_REF] = {
     ...models[FIREWORKS_DEFAULT_MODEL_REF],
@@ -508,7 +509,8 @@ export function applyFireworksProviderConfig(cfg: MoltbotConfig): MoltbotConfig 
   const mergedModels = [
     ...existingModels,
     ...fireworksModels.filter(
-      (model) => !existingModels.some((existing) => existing.id === model.id),
+      (model) =>
+        !existingModels.some((existing: ModelDefinitionConfig) => existing.id === model.id),
     ),
   ];
   const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
@@ -545,7 +547,7 @@ export function applyFireworksProviderConfig(cfg: MoltbotConfig): MoltbotConfig 
  * Apply Fireworks provider configuration AND set Fireworks as the default model.
  * Use this when Fireworks is the primary provider choice during onboarding.
  */
-export function applyFireworksConfig(cfg: MoltbotConfig): MoltbotConfig {
+export function applyFireworksConfig(cfg: OpenClawConfig): OpenClawConfig {
   const next = applyFireworksProviderConfig(cfg);
   const existingModel = next.agents?.defaults?.model;
   return {
