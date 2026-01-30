@@ -1,7 +1,7 @@
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
-import type { ResolvedTimeFormat } from "./date-time.js";
+import { getTimezoneAbbreviation, type ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 
 /**
@@ -51,7 +51,11 @@ function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: bool
 
 function buildTimeSection(params: { userTimezone?: string }) {
   if (!params.userTimezone) return [];
-  return ["## Current Date & Time", `Time zone: ${params.userTimezone}`, ""];
+  const abbrev = getTimezoneAbbreviation(params.userTimezone);
+  // Show both IANA name and abbreviation if they differ
+  const tzDisplay =
+    abbrev !== params.userTimezone ? `${params.userTimezone} (${abbrev})` : params.userTimezone;
+  return ["## Current Date & Time", `Time zone: ${tzDisplay}`, ""];
 }
 
 function buildReplyTagsSection(isMinimal: boolean) {

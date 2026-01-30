@@ -19,6 +19,24 @@ export function resolveUserTimezone(configured?: string): string {
   return host?.trim() || "UTC";
 }
 
+/**
+ * Get the timezone abbreviation (e.g., "EST", "PST", "UTC") for a given IANA timezone.
+ * Falls back to the IANA name if abbreviation cannot be determined.
+ */
+export function getTimezoneAbbreviation(timezone: string): string {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      timeZoneName: "short",
+    });
+    const parts = formatter.formatToParts(new Date());
+    const tzPart = parts.find((p) => p.type === "timeZoneName");
+    return tzPart?.value ?? timezone;
+  } catch {
+    return timezone;
+  }
+}
+
 export function resolveUserTimeFormat(preference?: TimeFormatPreference): ResolvedTimeFormat {
   if (preference === "12" || preference === "24") return preference;
   if (cachedTimeFormat) return cachedTimeFormat;
