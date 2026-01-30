@@ -1,36 +1,38 @@
 import { describe, expect, it, vi } from "vitest";
 
-const loadConfig = vi.fn();
-const ensureOpenClawModelsJson = vi.fn().mockResolvedValue(undefined);
-const resolveOpenClawAgentDir = vi.fn().mockReturnValue("/tmp/openclaw-agent");
-const ensureAuthProfileStore = vi.fn().mockReturnValue({ version: 1, profiles: {} });
-const listProfilesForProvider = vi.fn().mockReturnValue([]);
-const resolveAuthProfileDisplayLabel = vi.fn(({ profileId }: { profileId: string }) => profileId);
-const resolveAuthStorePathForDisplay = vi
-  .fn()
-  .mockReturnValue("/tmp/openclaw-agent/auth-profiles.json");
-const resolveProfileUnusableUntilForDisplay = vi.fn().mockReturnValue(null);
-const resolveEnvApiKey = vi.fn().mockReturnValue(undefined);
-const resolveAwsSdkEnvVarName = vi.fn().mockReturnValue(undefined);
-const getCustomProviderApiKey = vi.fn().mockReturnValue(undefined);
-const AuthStorage = vi.fn().mockImplementation(() => ({}));
-const ModelRegistry = vi.fn().mockImplementation(() => ({
-  getAll: vi.fn().mockReturnValue([]),
-  getAvailable: vi.fn().mockReturnValue([]),
+// Hoist mock implementations so they're available when vi.mock() runs (mocks are hoisted)
+const {
+  loadConfig,
+  ensureAuthProfileStore,
+  listProfilesForProvider,
+  resolveAuthProfileDisplayLabel,
+  resolveAuthStorePathForDisplay,
+  resolveProfileUnusableUntilForDisplay,
+  resolveEnvApiKey,
+  resolveAwsSdkEnvVarName,
+  getCustomProviderApiKey,
+  loadModelRegistry,
+} = vi.hoisted(() => ({
+  loadConfig: vi.fn(),
+  ensureAuthProfileStore: vi.fn().mockReturnValue({ version: 1, profiles: {} }),
+  listProfilesForProvider: vi.fn().mockReturnValue([]),
+  resolveAuthProfileDisplayLabel: vi.fn(({ profileId }: { profileId: string }) => profileId),
+  resolveAuthStorePathForDisplay: vi.fn().mockReturnValue("/tmp/openclaw-agent/auth-profiles.json"),
+  resolveProfileUnusableUntilForDisplay: vi.fn().mockReturnValue(null),
+  resolveEnvApiKey: vi.fn().mockReturnValue(undefined),
+  resolveAwsSdkEnvVarName: vi.fn().mockReturnValue(undefined),
+  getCustomProviderApiKey: vi.fn().mockReturnValue(undefined),
+  loadModelRegistry: vi.fn().mockResolvedValue({
+    registry: {},
+    models: [],
+    availableKeys: new Set<string>(),
+  }),
 }));
 
 vi.mock("../config/config.js", () => ({
   CONFIG_PATH: "/tmp/openclaw.json",
   STATE_DIR: "/tmp/openclaw-state",
   loadConfig,
-}));
-
-vi.mock("../agents/models-config.js", () => ({
-  ensureOpenClawModelsJson,
-}));
-
-vi.mock("../agents/agent-paths.js", () => ({
-  resolveOpenClawAgentDir,
 }));
 
 vi.mock("../agents/auth-profiles.js", () => ({
@@ -47,16 +49,60 @@ vi.mock("../agents/model-auth.js", () => ({
   getCustomProviderApiKey,
 }));
 
-vi.mock("@mariozechner/pi-coding-agent", () => ({
-  AuthStorage,
-  ModelRegistry,
+vi.mock("./models/list.registry.js", () => ({
+  loadModelRegistry,
+  toModelRow: vi.fn(
+    (params: { model?: unknown; key: string; tags: string[]; availableKeys?: Set<string> }) => {
+      const { model, key, tags, availableKeys } = params;
+      if (!model) {
+        return {
+          key,
+          name: key,
+          input: "-",
+          contextWindow: null,
+          local: null,
+          available: null,
+          tags: [...tags, "missing"],
+          missing: true,
+        };
+      }
+      const m = model as {
+        provider: string;
+        id: string;
+        name?: string;
+        input?: string[];
+        contextWindow?: number;
+        baseUrl?: string;
+      };
+      return {
+        key,
+        name: m.name || m.id,
+        input: m.input?.join("+") || "text",
+        contextWindow: m.contextWindow ?? null,
+        local: false,
+        available: availableKeys?.has(key) ?? false,
+        tags,
+        missing: false,
+      };
+    },
+  ),
 }));
+
+// With mocks properly hoisted and loadModelRegistry mocked, we can import statically
+import { modelsListCommand, modelsStatusCommand } from "./models/list.js";
 
 function makeRuntime() {
   return {
     log: vi.fn(),
     error: vi.fn(),
+    exit: vi.fn(() => {
+      throw new Error("exit called");
+    }),
   };
+}
+
+function modelKey(provider: string, id: string) {
+  return `${provider}/${id}`;
 }
 
 describe("models list/status", () => {
@@ -66,7 +112,6 @@ describe("models list/status", () => {
     });
     const runtime = makeRuntime();
 
-    const { modelsStatusCommand } = await import("./models/list.js");
     await modelsStatusCommand({ json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
@@ -80,7 +125,6 @@ describe("models list/status", () => {
     });
     const runtime = makeRuntime();
 
-    const { modelsStatusCommand } = await import("./models/list.js");
     await modelsStatusCommand({ plain: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
@@ -102,12 +146,12 @@ describe("models list/status", () => {
       contextWindow: 128000,
     };
 
-    ModelRegistry.mockImplementation(() => ({
-      getAll: () => [model],
-      getAvailable: () => [model],
-    }));
+    loadModelRegistry.mockResolvedValue({
+      registry: {},
+      models: [model],
+      availableKeys: new Set([modelKey(model.provider, model.id)]),
+    });
 
-    const { modelsListCommand } = await import("./models/list.js");
     await modelsListCommand({ json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
@@ -130,12 +174,12 @@ describe("models list/status", () => {
       contextWindow: 128000,
     };
 
-    ModelRegistry.mockImplementation(() => ({
-      getAll: () => [model],
-      getAvailable: () => [model],
-    }));
+    loadModelRegistry.mockResolvedValue({
+      registry: {},
+      models: [model],
+      availableKeys: new Set([modelKey(model.provider, model.id)]),
+    });
 
-    const { modelsListCommand } = await import("./models/list.js");
     await modelsListCommand({ plain: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
@@ -167,12 +211,12 @@ describe("models list/status", () => {
       },
     ];
 
-    ModelRegistry.mockImplementation(() => ({
-      getAll: () => models,
-      getAvailable: () => models,
-    }));
+    loadModelRegistry.mockResolvedValue({
+      registry: {},
+      models,
+      availableKeys: new Set(models.map((m) => modelKey(m.provider, m.id))),
+    });
 
-    const { modelsListCommand } = await import("./models/list.js");
     await modelsListCommand({ all: true, provider: "z.ai", json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
@@ -206,12 +250,12 @@ describe("models list/status", () => {
       },
     ];
 
-    ModelRegistry.mockImplementation(() => ({
-      getAll: () => models,
-      getAvailable: () => models,
-    }));
+    loadModelRegistry.mockResolvedValue({
+      registry: {},
+      models,
+      availableKeys: new Set(models.map((m) => modelKey(m.provider, m.id))),
+    });
 
-    const { modelsListCommand } = await import("./models/list.js");
     await modelsListCommand({ all: true, provider: "Z.AI", json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
@@ -245,12 +289,12 @@ describe("models list/status", () => {
       },
     ];
 
-    ModelRegistry.mockImplementation(() => ({
-      getAll: () => models,
-      getAvailable: () => models,
-    }));
+    loadModelRegistry.mockResolvedValue({
+      registry: {},
+      models,
+      availableKeys: new Set(models.map((m) => modelKey(m.provider, m.id))),
+    });
 
-    const { modelsListCommand } = await import("./models/list.js");
     await modelsListCommand({ all: true, provider: "z-ai", json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);
@@ -274,12 +318,13 @@ describe("models list/status", () => {
       contextWindow: 128000,
     };
 
-    ModelRegistry.mockImplementation(() => ({
-      getAll: () => [model],
-      getAvailable: () => [],
-    }));
+    // Model is in registry but NOT in availableKeys (no auth)
+    loadModelRegistry.mockResolvedValue({
+      registry: {},
+      models: [model],
+      availableKeys: new Set<string>(), // Empty = no auth
+    });
 
-    const { modelsListCommand } = await import("./models/list.js");
     await modelsListCommand({ all: true, json: true }, runtime);
 
     expect(runtime.log).toHaveBeenCalledTimes(1);

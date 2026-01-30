@@ -1,7 +1,7 @@
 import type { Api, Model } from "@mariozechner/pi-ai";
 
 import { ensureAuthProfileStore } from "../../agents/auth-profiles.js";
-import { parseModelRef } from "../../agents/model-selection.js";
+import { normalizeProviderId, parseModelRef } from "../../agents/model-selection.js";
 import { loadConfig } from "../../config/config.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import { resolveConfiguredEntries } from "./list.configured.js";
@@ -27,7 +27,7 @@ export async function modelsListCommand(
     const raw = opts.provider?.trim();
     if (!raw) return undefined;
     const parsed = parseModelRef(`${raw}/_`, DEFAULT_PROVIDER);
-    return parsed?.provider ?? raw.toLowerCase();
+    return parsed?.provider ?? normalizeProviderId(raw);
   })();
 
   let models: Model<Api>[] = [];
@@ -71,7 +71,7 @@ export async function modelsListCommand(
     });
 
     for (const model of sorted) {
-      if (providerFilter && model.provider.toLowerCase() !== providerFilter) {
+      if (providerFilter && normalizeProviderId(model.provider) !== providerFilter) {
         continue;
       }
       if (opts.local && !isLocalBaseUrl(model.baseUrl)) continue;
@@ -91,7 +91,7 @@ export async function modelsListCommand(
     }
   } else {
     for (const entry of entries) {
-      if (providerFilter && entry.ref.provider.toLowerCase() !== providerFilter) {
+      if (providerFilter && normalizeProviderId(entry.ref.provider) !== providerFilter) {
         continue;
       }
       const model = modelByKey.get(entry.key);
@@ -112,6 +112,10 @@ export async function modelsListCommand(
   }
 
   if (rows.length === 0) {
+    if (opts.json) {
+      runtime.log(JSON.stringify({ count: 0, models: [] }, null, 2));
+      return;
+    }
     runtime.log("No models found.");
     return;
   }
