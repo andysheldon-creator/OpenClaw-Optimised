@@ -1,7 +1,7 @@
 # 🦞 Moltbot — 个人 AI 助手
 
 <p align="center">
-<img src="[https://raw.githubusercontent.com/moltbot/moltbot/main/docs/whatsapp-clawd.jpg](https://raw.githubusercontent.com/moltbot/moltbot/main/docs/whatsapp-clawd.jpg)" alt="Clawdbot" width="400">
+  <img src="https://raw.githubusercontent.com/moltbot/moltbot/main/docs/whatsapp-clawd.jpg" alt="Clawdbot" width="400">
 </p>
 
 <p align="center">
@@ -9,12 +9,13 @@
 </p>
 
 <p align="center">
-<a href="[https://github.com/moltbot/moltbot/actions/workflows/ci.yml?branch=main](https://github.com/moltbot/moltbot/actions/workflows/ci.yml?branch=main)"><img src="[https://img.shields.io/github/actions/workflow/status/moltbot/moltbot/ci.yml?branch=main&style=for-the-badge](https://img.shields.io/github/actions/workflow/status/moltbot/moltbot/ci.yml?branch=main&style=for-the-badge)" alt="CI status"></a>
-<a href="[https://github.com/moltbot/moltbot/releases](https://github.com/moltbot/moltbot/releases)"><img src="[https://img.shields.io/github/v/release/moltbot/moltbot?include_prereleases&style=for-the-badge](https://img.shields.io/github/v/release/moltbot/moltbot?include_prereleases&style=for-the-badge)" alt="GitHub release"></a>
-<a href="[https://deepwiki.com/moltbot/moltbot](https://deepwiki.com/moltbot/moltbot)"><img src="[https://img.shields.io/badge/DeepWiki-moltbot-111111?style=for-the-badge](https://img.shields.io/badge/DeepWiki-moltbot-111111?style=for-the-badge)" alt="DeepWiki"></a>
-<a href="[https://discord.gg/clawd](https://discord.gg/clawd)"><img src="[https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge](https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge)" alt="Discord"></a>
-<a href="LICENSE"><img src="[https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)" alt="MIT License"></a>
+  <a href="https://github.com/moltbot/moltbot/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/moltbot/moltbot/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
+  <a href="https://github.com/moltbot/moltbot/releases"><img src="https://img.shields.io/github/v/release/moltbot/moltbot?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
+  <a href="https://deepwiki.com/moltbot/moltbot"><img src="https://img.shields.io/badge/DeepWiki-moltbot-111111?style=for-the-badge" alt="DeepWiki"></a>
+  <a href="https://discord.gg/clawd"><img src="https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge" alt="Discord"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
+
 
 **Moltbot** 是一款运行在你自有设备上的 *个人 AI 助手*。
 它可以在你已有的社交频道中回复你（WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat），并支持通过 BlueBubbles, Matrix, Zalo, 和 Zalo Personal 等扩展渠道。它可以在 macOS/iOS/Android 上进行语音对话，并能渲染一个由你控制的实时画布（Canvas）。网关（Gateway）仅仅是控制平面 —— 助手本身才是核心产品。
