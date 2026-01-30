@@ -407,7 +407,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         break;
       case "name":
         if (!args) {
-          chatLog.addSystem('usage: /name <text> (or /name clear)');
+          chatLog.addSystem("usage: /name <text> (or /name clear)");
           break;
         }
         try {
