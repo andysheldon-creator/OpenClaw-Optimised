@@ -39,11 +39,12 @@ export type AgentResponse = {
 export type AgentCore = {
   chat: (messages: Message[], systemPrompt?: string) => Promise<AgentResponse>;
   analyzeImage: (imageData: string, mediaType: ImageContent["mediaType"], prompt?: string) => Promise<AgentResponse>;
-  provider: "anthropic" | "openai";
+  provider: "anthropic" | "openai" | "openrouter";
 };
 
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 const DEFAULT_OPENAI_MODEL = "gpt-4o";
+const DEFAULT_OPENROUTER_MODEL = "anthropic/claude-3.5-sonnet";
 
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant running as a secure, self-hosted bot.
 
@@ -234,9 +235,111 @@ function createOpenAIAgent(config: SecureConfig, audit: AuditLogger): AgentCore 
   };
 }
 
+function createOpenRouterAgent(config: SecureConfig, audit: AuditLogger): AgentCore {
+  // OpenRouter uses OpenAI-compatible API
+  const client = new OpenAI({
+    apiKey: config.ai.apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+    defaultHeaders: {
+      "HTTP-Referer": "https://github.com/TNovs1/moltbot",
+      "X-Title": "AssureBot",
+    },
+  });
+
+  const model = config.ai.model || DEFAULT_OPENROUTER_MODEL;
+
+  type OpenAIContent = OpenAI.ChatCompletionContentPart[];
+
+  function convertContent(content: MessageContent): string | OpenAIContent {
+    if (typeof content === "string") {
+      return content;
+    }
+    return content.map((part) => {
+      if (part.type === "text") {
+        return { type: "text" as const, text: part.text };
+      }
+      return {
+        type: "image_url" as const,
+        image_url: {
+          url: `data:${part.mediaType};base64,${part.data}`,
+        },
+      };
+    });
+  }
+
+  return {
+    provider: "openrouter",
+
+    async chat(messages: Message[], systemPrompt?: string): Promise<AgentResponse> {
+      try {
+        const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
+          { role: "system", content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
+        ];
+
+        for (const m of messages) {
+          if (m.role === "user") {
+            openaiMessages.push({
+              role: "user",
+              content: convertContent(m.content),
+            });
+          } else {
+            openaiMessages.push({
+              role: "assistant",
+              content: typeof m.content === "string" ? m.content : "",
+            });
+          }
+        }
+
+        const response = await client.chat.completions.create({
+          model,
+          max_tokens: 4096,
+          messages: openaiMessages,
+        });
+
+        const text = response.choices[0]?.message?.content || "";
+
+        return {
+          text,
+          usage: response.usage
+            ? {
+                inputTokens: response.usage.prompt_tokens,
+                outputTokens: response.usage.completion_tokens,
+              }
+            : undefined,
+        };
+      } catch (err) {
+        audit.error({
+          error: `OpenRouter API error: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        throw err;
+      }
+    },
+
+    async analyzeImage(
+      imageData: string,
+      mediaType: ImageContent["mediaType"],
+      prompt = "What's in this image? Describe it in detail."
+    ): Promise<AgentResponse> {
+      const messages: Message[] = [
+        {
+          role: "user",
+          content: [
+            { type: "image", data: imageData, mediaType },
+            { type: "text", text: prompt },
+          ],
+        },
+      ];
+      return this.chat(messages);
+    },
+  };
+}
+
 export function createAgent(config: SecureConfig, audit: AuditLogger): AgentCore {
   if (config.ai.provider === "anthropic") {
     return createAnthropicAgent(config, audit);
+  }
+  if (config.ai.provider === "openrouter") {
+    return createOpenRouterAgent(config, audit);
   }
   return createOpenAIAgent(config, audit);
 }

@@ -70,7 +70,14 @@ Your AI agent that runs on your infrastructure, answers only to you, and you can
 ```bash
 TELEGRAM_BOT_TOKEN=123456:ABC-DEF...    # From @BotFather
 ALLOWED_USERS=123456789,987654321       # Telegram user IDs
-ANTHROPIC_API_KEY=sk-ant-...            # Or OPENAI_API_KEY
+
+# AI Provider (one required)
+ANTHROPIC_API_KEY=sk-ant-...            # Claude direct
+# or
+OPENAI_API_KEY=sk-...                   # OpenAI direct
+# or
+OPENROUTER_API_KEY=sk-or-...            # OpenRouter (100+ models)
+AI_MODEL=anthropic/claude-3.5-sonnet    # Optional: override default model
 ```
 
 ### Optional

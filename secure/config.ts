@@ -14,7 +14,7 @@ export type SecureConfig = {
 
   // AI Provider
   ai: {
-    provider: "anthropic" | "openai";
+    provider: "anthropic" | "openai" | "openrouter";
     apiKey: string;
     model?: string;
   };
@@ -95,9 +95,10 @@ function parseAllowedUsers(value: string): number[] {
     .filter((n) => Number.isFinite(n) && n > 0);
 }
 
-function detectAiProvider(): { provider: "anthropic" | "openai"; apiKey: string } {
+function detectAiProvider(): { provider: "anthropic" | "openai" | "openrouter"; apiKey: string } {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
 
   if (anthropicKey) {
     return { provider: "anthropic", apiKey: anthropicKey };
@@ -105,8 +106,11 @@ function detectAiProvider(): { provider: "anthropic" | "openai"; apiKey: string 
   if (openaiKey) {
     return { provider: "openai", apiKey: openaiKey };
   }
+  if (openrouterKey) {
+    return { provider: "openrouter", apiKey: openrouterKey };
+  }
 
-  throw new Error("Missing AI provider key. Set ANTHROPIC_API_KEY or OPENAI_API_KEY");
+  throw new Error("Missing AI provider key. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY");
 }
 
 function generateSecureToken(): string {
