@@ -36,13 +36,13 @@ Use this file to discover all available pages before exploring further.
 
 ### 2. Configure OpenClaw
 
-Add Portkey as a custom provider in your config:
+Add Portkey as a custom provider in your config. Portkey provides a unified OpenAI-compatible API, so use `api: "openai-completions"` for all providers (including Anthropic):
 
 ```json5
 {
   agents: {
     defaults: {
-      model: { primary: "portkey/claude-opus-4-5" }
+      model: { primary: "portkey/@anthropic/claude-sonnet-4-5" }
     }
   },
   models: {
@@ -51,16 +51,19 @@ Add Portkey as a custom provider in your config:
       portkey: {
         baseUrl: "https://api.portkey.ai/v1",
         apiKey: "${PORTKEY_API_KEY}",
-        api: "anthropic-messages",
+        api: "openai-completions",
         models: [
           { id: "@anthropic/claude-opus-4-5", name: "Claude Opus 4.5" },
-          { id: "@anthropic/claude-sonnet-4-5", name: "Claude Sonnet 4.5" }
+          { id: "@anthropic/claude-sonnet-4-5", name: "Claude Sonnet 4.5" },
+          { id: "@openai/gpt-5.2", name: "GPT-5.2" }
         ]
       }
     }
   }
 }
 ```
+
+Note: Model IDs use Portkey's `@provider/model` format (e.g., `@anthropic/claude-sonnet-4-5`, `@openai/gpt-5.2`).
 
 ### 3. Set the API key
 
@@ -87,25 +90,6 @@ Create this config in Portkey to automatically failover between providers:
   ]
 }
 ```
-
-```json5
-{
-  models: {
-    mode: "merge",
-    providers: {
-      portkey: {
-        baseUrl: "https://api.portkey.ai/v1",
-        apiKey: "${PORTKEY_API_KEY}",
-        api: "anthropic-messages",
-        models: [
-          { id: "@anthropic/claude-opus-4-5", name: "Claude Opus 4.5" }
-        ]
-      }
-    }
-  }
-}
-```
-
 
 ### Example Portkey Config: Load Balancing
 
@@ -145,12 +129,12 @@ Add trace IDs to group requests in the Portkey dashboard:
       portkey: {
         baseUrl: "https://api.portkey.ai/v1",
         apiKey: "${PORTKEY_API_KEY}",
-        api: "anthropic-messages",
+        api: "openai-completions",
         headers: {
           "x-portkey-trace-id": "openclaw-main-agent"
         },
         models: [
-          { id: "@anthropic/claude-opus-4-5", name: "Claude Opus 4.5" }
+          { id: "@anthropic/claude-sonnet-4-5", name: "Claude Sonnet 4.5" }
         ]
       }
     }
@@ -176,33 +160,37 @@ Set spending controls at the provider level in Portkey:
 
 Budget limits prevent runaway costs from long agent sessions.
 
-## OpenAI via Portkey
+## Multiple Providers via Single Config
 
-Route OpenAI models through Portkey:
+Since Portkey provides a unified API, you can access multiple providers (OpenAI, Anthropic, etc.) through a single OpenClaw provider config:
 
 ```json5
 {
   agents: {
     defaults: {
-      model: { primary: "portkey-openai/gpt-5.2" }
+      model: { primary: "portkey/@openai/gpt-5.2" }
     }
   },
   models: {
     mode: "merge",
     providers: {
-      "portkey-openai": {
+      portkey: {
         baseUrl: "https://api.portkey.ai/v1",
         apiKey: "${PORTKEY_API_KEY}",
         api: "openai-completions",
         models: [
           { id: "@openai/gpt-5.2", name: "GPT-5.2" },
-          { id: "@openai/gpt-5", name: "GPT-5" }
+          { id: "@openai/gpt-5", name: "GPT-5" },
+          { id: "@anthropic/claude-sonnet-4-5", name: "Claude Sonnet 4.5" },
+          { id: "@anthropic/claude-opus-4-5", name: "Claude Opus 4.5" }
         ]
       }
     }
   }
 }
 ```
+
+Switch models by changing the `primary` model ref (e.g., `portkey/@anthropic/claude-sonnet-4-5`).
 
 ## Advanced: Per-Agent Metadata
 
@@ -212,7 +200,7 @@ Track usage by agent with custom metadata headers:
 {
   agents: {
     main: {
-      model: { primary: "portkey/claude-opus-4-5" }
+      model: { primary: "portkey/@anthropic/claude-opus-4-5" }
     }
   },
   models: {
@@ -221,7 +209,7 @@ Track usage by agent with custom metadata headers:
       portkey: {
         baseUrl: "https://api.portkey.ai/v1",
         apiKey: "${PORTKEY_API_KEY}",
-        api: "anthropic-messages",
+        api: "openai-completions",
         headers: {
           "x-portkey-metadata": "{\"agent\":\"main\",\"environment\":\"production\"}"
         },
@@ -254,16 +242,21 @@ Filter logs and analytics by these metadata fields in the Portkey dashboard.
 
 **Requests not appearing in Portkey dashboard**
 - Verify `PORTKEY_API_KEY` is set correctly
-- Check that `x-portkey-provider` or `x-portkey-config` is in headers
 - Confirm the base URL is `https://api.portkey.ai/v1`
+- Check that the model ID uses the correct `@provider/model` format
 
 **401 errors**
 - Regenerate your Portkey API key
 - Verify your provider credentials are configured in Portkey
+- Check that the provider slug in the model ID (e.g., `@anthropic`, `@openai`) matches your Portkey configuration
 
 **Provider errors**
 - Check that your underlying provider (Anthropic, OpenAI, etc.) is configured in Portkey
-- Verify the provider slug matches (e.g., `@anthropic-prod`)
+- Verify the model ID format matches your Portkey setup (e.g., `@anthropic/claude-sonnet-4-5`)
+
+**Rate limit errors (HTTP 429)**
+- Check your Portkey virtual key's rate limits in the dashboard
+- Consider upgrading your Portkey plan or adjusting rate limits
 
 ## Next Steps
 
