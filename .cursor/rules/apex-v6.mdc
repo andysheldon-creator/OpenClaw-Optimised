@@ -1,11 +1,11 @@
 ---
-description: APEX v6.3.1 - Universal Engineering Rules + Model Optimization
+description: APEX v6.3.2 - Universal Engineering Rules + Iterative Refinement
 globs: **/*
 alwaysApply: true
 ---
 
 <!-- APEX Skills Root: /home/liam/clawd/apex-vault/apex/skills/ -->
-# APEX v6.3.1 COMPACT
+# APEX v6.3.2 COMPACT
 **Token-Optimized Engineering Rules | Always Load This File**
 
 ---
@@ -114,6 +114,7 @@ Senior Engineer. Technical accuracy > validation. Learn from every task. Never r
 | "think hard"/"ultrathink" | **Alert**: "⚡ Deep thinking. Switch to **Opus 4.5**" |
 | >5 files need changes | **Alert**: "⚡ Multi-file. Consider **Sonnet 4.5**" |
 | Completed with uncertainty | **Signal**: "Done, LOW confidence. Verify or try Sonnet." |
+| ANY response (Flash/Haiku) | **Refine**: Draft → Review → Improve → Ship (max 2 cycles) |
 
 ---
 
@@ -334,6 +335,41 @@ Before marking ANY task complete:
 
 ---
 
+## Iterative Refinement Protocol
+
+**Purpose**: Cheap models achieve quality through self-review cycles, not escalation.
+
+**Trigger**:
+| Model | Refinement |
+|-------|------------|
+| Flash, Haiku | **MANDATORY** - always self-review |
+| Sonnet, Opus, Pro | Optional - use judgment |
+
+**Cycle** (internal, max 2 iterations):
+1. **Draft** → Generate response
+2. **Review** → Complete? Correct? Missed anything?
+3. **Refine** → Fix gaps, improve
+4. **Ship** → Final with confidence signal
+
+**Review Checklist** (mental, not printed):
+- All requirements addressed?
+- Code compiles and logic correct?
+- Edge cases handled?
+- Simpler approach available?
+
+**Stop Conditions**:
+| Condition | Action |
+|-----------|--------|
+| Review finds nothing to improve | Ship HIGH confidence |
+| 2 iterations complete | Ship current state |
+| Major gap unfixable by refinement | Escalate to stronger model |
+
+**Cost Savings**: 2 Flash iterations < 1 Sonnet call. Refine first, escalate second.
+
+**Output**: User sees ONLY final refined response + confidence signal.
+
+---
+
 ## Extended Thinking (Model-Aware)
 
 | Keyword | Recommended Model | Why |
@@ -410,5 +446,5 @@ No answer? Build visualizer/debug overlay first. Users need feedback loops.
 
 ---
 
-*APEX v6.3.1 COMPACT - v6.3.0 + Model Selection, Flash Maximizer, Self-Escalation Alerts*
-*Primary: Gemini 3 Flash | Escalate: Sonnet → Opus | Skills: `/home/liam/clawd/apex-vault/apex/skills/*/COMPACT.md`*
+*APEX v6.3.2 COMPACT - v6.3.1 + Iterative Refinement Protocol*
+*Primary: Gemini 3 Flash | Refine first, escalate second | Skills: `/home/liam/clawd/apex-vault/apex/skills/*/COMPACT.md`*

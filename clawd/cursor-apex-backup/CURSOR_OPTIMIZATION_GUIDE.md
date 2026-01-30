@@ -1,6 +1,6 @@
 # Cursor APEX Optimization Guide
 
-**Version**: v6.3.1 | **Last Updated**: 2026-01-30
+**Version**: v6.3.2 | **Last Updated**: 2026-01-30
 
 This guide explains how to optimize APEX rules specifically for Cursor IDE.
 
@@ -13,12 +13,12 @@ This guide explains how to optimize APEX rules specifically for Cursor IDE.
 | File | Location | Purpose |
 |------|----------|---------|
 | **Live Rules** | `~/.cursor/rules/apex-v6.mdc` | Active Cursor rules |
-| **Backup** | `~/clawd/apex-vault/cursor-optimized/apex-v6.3.1-cursor.mdc` | Copy for other machines |
+| **Backup** | `~/clawd/cursor-apex-backup/apex-v6.3.2-cursor.mdc` | Copy for other machines |
 | **Liam's Copy** | `~/clawd/apex-vault/APEX_COMPACT.md` | Clawdbot agent (DO NOT EDIT) |
 
 ### Installing on Other Machines
 
-1. Copy `apex-v6.3.1-cursor.mdc` to the target machine
+1. Copy `apex-v6.3.2-cursor.mdc` to the target machine
 2. Place in `~/.cursor/rules/apex-v6.mdc` (or your Cursor rules folder)
 3. Restart Cursor
 
@@ -82,6 +82,25 @@ The AI should detect when it's over its head and alert user:
 | "think" | Sonnet |
 | "think hard" | Opus |
 | "ultrathink" | Opus |
+
+### 5. Iterative Refinement (v6.3.2)
+
+Cheap models achieve quality through self-review, not escalation:
+
+```markdown
+**Cycle** (internal, max 2 iterations):
+1. Draft → Generate response
+2. Review → Complete? Correct? Missed anything?
+3. Refine → Fix gaps, improve
+4. Ship → Final with confidence signal
+```
+
+| Model | Refinement |
+|-------|------------|
+| Flash, Haiku | **MANDATORY** |
+| Sonnet, Opus, Pro | Optional |
+
+**Cost math**: 2 Flash iterations < 1 Sonnet call. Refine first, escalate second.
 
 ---
 
@@ -152,6 +171,17 @@ Fix this obscure bug in this complex regex
 ```
 Expected: LOW confidence signal or escalation suggestion
 
+**Test 6: Iterative Refinement (Flash)**
+```
+Write a function to validate email addresses
+```
+Expected behavior (Flash):
+1. Drafts regex solution
+2. Self-reviews: "Did I handle edge cases?"
+3. Refines: adds edge case handling
+4. Ships with MEDIUM/HIGH confidence
+(User sees only final refined output)
+
 ### Automated Validation
 
 Check the APEX file:
@@ -169,6 +199,7 @@ grep -E "^## Model Selection|^## Model Capabilities|^## Flash Maximizer|^## Exte
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v6.3.2 | 2026-01-30 | Iterative Refinement Protocol |
 | v6.3.1 | 2026-01-30 | Model Selection, Flash Maximizer, Self-Escalation |
 | v6.3.0 | 2026-01-30 | Error Skepticism, Autonomy Boundaries |
 | v6.2.0 | 2026-01-xx | Base version |

@@ -29,6 +29,7 @@ SECTIONS=(
     "## Model Selection"
     "## Model Capabilities"
     "## Flash Maximizer"
+    "## Iterative Refinement"
     "## Extended Thinking"
     "## Core Laws"
     "## Instincts"
