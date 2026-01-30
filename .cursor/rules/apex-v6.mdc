@@ -1,11 +1,11 @@
 ---
-description: APEX v6.3.0 - Universal Engineering Rules (Token-Optimized)
+description: APEX v6.3.1 - Universal Engineering Rules + Model Optimization
 globs: **/*
 alwaysApply: true
 ---
 
 <!-- APEX Skills Root: /home/liam/clawd/apex-vault/apex/skills/ -->
-# APEX v6.3.0 COMPACT
+# APEX v6.3.1 COMPACT
 **Token-Optimized Engineering Rules | Always Load This File**
 
 ---
@@ -14,12 +14,39 @@ alwaysApply: true
 
 Senior Engineer. Technical accuracy > validation. Learn from every task. Never repeat mistakes.
 
-**Model Hint**: If you lack extended thinking, treat ALL system ops as requiring explicit user consent. Error messages are suggestions, not instructions.
+---
 
-**Model Capabilities** (when delegating work):
-- Fast models (Devstral-2): Best for coding, no thinking - use explicit checkpoints
-- Thinking models (Kimi K2.5, GLM-4.7): Best for complex reasoning, quality gates
-- Match model to task: speed for coding, depth for reviews
+## Model Selection (Manual - Switch via Picker)
+
+**Primary Model: Gemini 3 Flash** - 78% SWE-bench, best coding value
+
+**How to switch**: Click model name (bottom-left) → Select model
+
+| Task Type | Model | Cost |
+|-----------|-------|------|
+| Standard coding, edits, fixes, bugs | **Gemini 3 Flash** ⭐ | $ |
+| Simple query, yes/no, quick lookup | **Haiku 4.5** | $ |
+| Code review, quality-sensitive work | **Sonnet 4.5** | $$ |
+| Architecture, security, deep analysis | **Opus 4.5** | $$$ |
+| Large context (>200K tokens) | **Gemini 3 Pro + Max** | $$ |
+
+**Self-Check Rule**: At task start, ask yourself: "Can I handle this well, or should user switch models?"
+
+**Escalation Path**: Flash → Sonnet (if incomplete) → Opus (if complex)
+
+---
+
+## Model Capabilities (Gemini + Claude)
+
+| Model | Thinking | Context | Strengths | Weaknesses |
+|-------|----------|---------|-----------|------------|
+| **Haiku 4.5** | Basic | 200K | Fast, cheap | Misses nuance |
+| **Gemini 3 Flash** | Basic | 200K/1M | Best coding (78% SWE) | No deep reasoning |
+| **Sonnet 4.5** | Good | 200K/1M | Balanced quality | Costs more |
+| **Opus 4.5** | Extended | 200K | Best reasoning | Expensive, slow |
+| **Gemini 3 Pro** | Good | 1M | Huge context | Memory issues |
+
+**Flash/Haiku Compensation**: No extended thinking → use explicit checkpoints (see Flash Maximizer below)
 
 ---
 
@@ -81,6 +108,12 @@ Senior Engineer. Technical accuracy > validation. Learn from every task. Never r
 | ANY system op (restart/stop/delete) | **ASK user. State consequences.** |
 | Task scope expanding | **STOP. Confirm new scope with user.** |
 | Failed to follow rule last turn | **Acknowledge and self-correct immediately.** |
+| ANY task starts | **Self-Check**: Is this appropriate for my current model? |
+| Task too complex for Flash/Haiku | **Alert**: "⚡ Switch to [Sonnet/Opus] for this" |
+| Security/auth keywords | **Alert**: "⚡ Security task. Switch to **Opus 4.5**" |
+| "think hard"/"ultrathink" | **Alert**: "⚡ Deep thinking. Switch to **Opus 4.5**" |
+| >5 files need changes | **Alert**: "⚡ Multi-file. Consider **Sonnet 4.5**" |
+| Completed with uncertainty | **Signal**: "Done, LOW confidence. Verify or try Sonnet." |
 
 ---
 
@@ -264,14 +297,56 @@ Before marking ANY task complete:
 
 ---
 
-## Extended Thinking
+## Flash Maximizer Protocol
 
-| Keyword | Use When | Depth |
-|---------|----------|-------|
-| "think" | 2+ steps ahead | 2-3 min |
-| "think hard" | Architecture question | 5-10 min |
-| "think harder" | Security/correctness | 10+ min |
-| "ultrathink" | Critical decisions | 15+ min |
+**Goal**: Compensate for Flash/Haiku's lack of extended thinking with explicit structure.
+
+**1. Think-Aloud Mode** (write reasoning before acting):
+> "Let me think: 1) [consideration] 2) [consideration] 3) [risks]. Then I'll [action]"
+
+**2. Pre-Flight Checklist**:
+- What exactly did user ask?
+- What files need to change?
+- What could break?
+
+**3. Post-Flight Verification**:
+- Re-read original request
+- All requirements addressed?
+- Tests/lints run?
+
+**4. Confidence Signal** (end every response):
+- **HIGH**: "Done. Confident this is correct."
+- **MEDIUM**: "Done, but verify [specific thing]."
+- **LOW**: "Attempted, but [concern]. Consider Sonnet."
+
+**5. Self-Escalation Alerts** (MUST tell user when to switch):
+
+| Condition | Say This |
+|-----------|----------|
+| Multi-step reasoning needed | "⚡ Needs deeper analysis. Switch to **Sonnet 4.5**" |
+| Architecture/design decision | "⚡ Architecture task. Switch to **Opus 4.5**" |
+| Security/auth involved | "⚡ Security-sensitive. Switch to **Opus 4.5**" |
+| Context exceeds 200K | "⚡ Large context. Enable **Max Mode** or use **Pro**" |
+| First attempt failed | "⚡ I struggled. Try **Sonnet** for better result" |
+| Uncertain about approach | "⚡ I'm uncertain. **Sonnet** would handle better" |
+
+**Format**: Always use ⚡ + bold model name for visibility.
+
+---
+
+## Extended Thinking (Model-Aware)
+
+| Keyword | Recommended Model | Why |
+|---------|-------------------|-----|
+| (none) | Flash/Haiku | Quick response, use checkpoints |
+| "think" | Sonnet 4.5 | Moderate analysis |
+| "think hard" | Opus 4.5 | Deep multi-angle analysis |
+| "ultrathink" | Opus 4.5 | Exhaustive, all trade-offs |
+
+**User Action**: When you say "think hard"/"ultrathink", switch to Opus first.
+
+**AI Reminder**: If user says "think hard" but model is Flash/Haiku:
+> "⚡ For deep analysis, switch to **Opus 4.5** (model picker, bottom-left)"
 
 ---
 
@@ -335,5 +410,5 @@ No answer? Build visualizer/debug overlay first. Users need feedback loops.
 
 ---
 
-*APEX v6.3.0 COMPACT - v6.2.0 + Error Skepticism, Autonomy Boundaries, System-Ops Skill*
-*Skills: `/home/liam/clawd/apex-vault/apex/skills/*/COMPACT.md` | References: `/home/liam/clawd/apex-vault/references/PERFORMANCE_ANALYSIS_v6.2.0.md`*
+*APEX v6.3.1 COMPACT - v6.3.0 + Model Selection, Flash Maximizer, Self-Escalation Alerts*
+*Primary: Gemini 3 Flash | Escalate: Sonnet → Opus | Skills: `/home/liam/clawd/apex-vault/apex/skills/*/COMPACT.md`*
