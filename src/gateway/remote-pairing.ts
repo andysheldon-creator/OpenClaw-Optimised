@@ -218,18 +218,6 @@ export async function handleRemotePairingRequest(
     return true;
   }
   
-  // Extract auth
-  const auth = parseAuthHeader(req.headers.authorization);
-  if (!auth) {
-    sendError(res, 401, "missing authorization header");
-    return true;
-  }
-  
-  if (auth !== config.adminSecret) {
-    sendError(res, 401, "invalid authorization");
-    return true;
-  }
-  
   // Extract signature headers
   const timestamp = req.headers["x-moltbot-timestamp"];
   const nonce = req.headers["x-moltbot-nonce"];
