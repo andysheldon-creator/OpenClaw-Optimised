@@ -95,6 +95,7 @@ export type ResolvedTtsConfig = {
     baseUrl: string;
     voiceId: string;
     modelId: string;
+    outputFormat?: string;
     seed?: number;
     applyTextNormalization?: "auto" | "on" | "off";
     languageCode?: string;
@@ -262,6 +263,7 @@ export function resolveTtsConfig(cfg: OpenClawConfig): ResolvedTtsConfig {
       baseUrl: raw.elevenlabs?.baseUrl?.trim() || DEFAULT_ELEVENLABS_BASE_URL,
       voiceId: raw.elevenlabs?.voiceId ?? DEFAULT_ELEVENLABS_VOICE_ID,
       modelId: raw.elevenlabs?.modelId ?? DEFAULT_ELEVENLABS_MODEL_ID,
+      outputFormat: raw.elevenlabs?.outputFormat?.trim() || undefined,
       seed: raw.elevenlabs?.seed,
       applyTextNormalization: raw.elevenlabs?.applyTextNormalization,
       languageCode: raw.elevenlabs?.languageCode,
@@ -1180,6 +1182,9 @@ export async function textToSpeech(params: {
       }
 
       let audioBuffer: Buffer;
+      let effectiveOutputFormat: string;
+      let effectiveExtension: string;
+
       if (provider === "elevenlabs") {
         const voiceIdOverride = params.overrides?.elevenlabs?.voiceId;
         const modelIdOverride = params.overrides?.elevenlabs?.modelId;
@@ -1190,13 +1195,17 @@ export async function textToSpeech(params: {
         const seedOverride = params.overrides?.elevenlabs?.seed;
         const normalizationOverride = params.overrides?.elevenlabs?.applyTextNormalization;
         const languageOverride = params.overrides?.elevenlabs?.languageCode;
+        effectiveOutputFormat = config.elevenlabs.outputFormat ?? output.elevenlabs;
+        effectiveExtension = config.elevenlabs.outputFormat
+          ? inferEdgeExtension(config.elevenlabs.outputFormat)
+          : output.extension;
         audioBuffer = await elevenLabsTTS({
           text: params.text,
           apiKey,
           baseUrl: config.elevenlabs.baseUrl,
           voiceId: voiceIdOverride ?? config.elevenlabs.voiceId,
           modelId: modelIdOverride ?? config.elevenlabs.modelId,
-          outputFormat: output.elevenlabs,
+          outputFormat: effectiveOutputFormat,
           seed: seedOverride ?? config.elevenlabs.seed,
           applyTextNormalization: normalizationOverride ?? config.elevenlabs.applyTextNormalization,
           languageCode: languageOverride ?? config.elevenlabs.languageCode,
@@ -1206,6 +1215,8 @@ export async function textToSpeech(params: {
       } else {
         const openaiModelOverride = params.overrides?.openai?.model;
         const openaiVoiceOverride = params.overrides?.openai?.voice;
+        effectiveOutputFormat = output.openai;
+        effectiveExtension = output.extension;
         audioBuffer = await openaiTTS({
           text: params.text,
           apiKey,
@@ -1219,7 +1230,7 @@ export async function textToSpeech(params: {
       const latencyMs = Date.now() - providerStart;
 
       const tempDir = mkdtempSync(path.join(tmpdir(), "tts-"));
-      const audioPath = path.join(tempDir, `voice-${Date.now()}${output.extension}`);
+      const audioPath = path.join(tempDir, `voice-${Date.now()}${effectiveExtension}`);
       writeFileSync(audioPath, audioBuffer);
       scheduleCleanup(tempDir);
 
@@ -1228,7 +1239,7 @@ export async function textToSpeech(params: {
         audioPath,
         latencyMs,
         provider,
-        outputFormat: provider === "openai" ? output.openai : output.elevenlabs,
+        outputFormat: effectiveOutputFormat,
         voiceCompatible: output.voiceCompatible,
       };
     } catch (err) {
