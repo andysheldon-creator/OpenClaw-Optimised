@@ -245,13 +245,13 @@ Nebius provides OpenAI-compatible inference for frontier and open models:
 
 - Provider: `nebius`
 - Auth: `NEBIUS_API_KEY`
-- Example model: `nebius/Qwen/Qwen3-32B-fast`
+- Example model: `nebius/zai-org/GLM-4.7-FP8` (default)
 - CLI: `moltbot onboard --auth-choice nebius-api-key`
 
 ```json5
 {
   agents: {
-    defaults: { model: { primary: "nebius/Qwen/Qwen3-32B-fast" } }
+    defaults: { model: { primary: "nebius/zai-org/GLM-4.7-FP8" } }
   },
   models: {
     mode: "merge",
@@ -262,8 +262,8 @@ Nebius provides OpenAI-compatible inference for frontier and open models:
         api: "openai-completions",
         models: [
           {
-            id: "Qwen/Qwen3-32B-fast",
-            name: "Qwen3 32B Fast",
+            id: "zai-org/GLM-4.7-FP8",
+            name: "GLM 4.7 FP8",
             reasoning: false,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },

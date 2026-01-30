@@ -2481,8 +2481,8 @@ Use Nebius's OpenAI-compatible endpoint:
   env: { NEBIUS_API_KEY: "sk-..." },
   agents: {
     defaults: {
-      model: { primary: "nebius/Qwen/Qwen3-32B-fast" },
-      models: { "nebius/Qwen/Qwen3-32B-fast": { alias: "Qwen3 32B" } }
+      model: { primary: "nebius/zai-org/GLM-4.7-FP8" },
+      models: { "nebius/zai-org/GLM-4.7-FP8": { alias: "GLM 4.7" } }
     }
   },
   models: {
@@ -2494,8 +2494,8 @@ Use Nebius's OpenAI-compatible endpoint:
         api: "openai-completions",
         models: [
           {
-            id: "Qwen/Qwen3-32B-fast",
-            name: "Qwen3 32B Fast",
+            id: "zai-org/GLM-4.7-FP8",
+            name: "GLM 4.7 FP8",
             reasoning: false,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -2511,7 +2511,7 @@ Use Nebius's OpenAI-compatible endpoint:
 
 Notes:
 - Set `NEBIUS_API_KEY` in the environment or use `moltbot onboard --auth-choice nebius-api-key`.
-- Model ref: `nebius/Qwen/Qwen3-32B-fast`.
+- Model ref: `nebius/zai-org/GLM-4.7-FP8` (default).
 - Available models include Qwen, DeepSeek, Llama, and GLM families.
 
 ### Synthetic (Anthropic-compatible)

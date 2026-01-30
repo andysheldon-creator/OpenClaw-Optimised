@@ -10,13 +10,14 @@ Nebius Token Factory provides OpenAI-compatible inference for frontier and open 
 
 ## Model overview
 
+- **GLM 4.7 FP8** (default): GLM model from Z.AI, 128000-token context window.
 - **Qwen3 32B Fast**: 128000-token context window, fast inference.
 - **DeepSeek V3 Fast**: Latest DeepSeek model with fast inference.
 - **DeepSeek R1 Fast**: Reasoning model with chain-of-thought.
 - **Llama 3.3 70B**: Strong general-purpose model with fast variant.
 - **Qwen2.5 VL 72B**: Vision-language model.
 - **Qwen2.5 Coder 7B Fast**: Code-specialized model.
-- **GLM models**: GLM 4.7 and GLM 4.5 from Z.AI.
+- **GLM 4.5**: Additional GLM model from Z.AI.
 - Base URL: `https://api.tokenfactory.nebius.com/v1`
 - Authorization: `Bearer $NEBIUS_API_KEY`
 
@@ -33,7 +34,7 @@ moltbot onboard --auth-choice nebius-api-key --nebius-api-key "$NEBIUS_API_KEY"
 ```json5
 {
   env: { NEBIUS_API_KEY: "your-key" },
-  agents: { defaults: { model: { primary: "nebius/Qwen/Qwen3-32B-fast" } } },
+  agents: { defaults: { model: { primary: "nebius/zai-org/GLM-4.7-FP8" } } },
   models: {
     mode: "merge",
     providers: {
@@ -43,8 +44,8 @@ moltbot onboard --auth-choice nebius-api-key --nebius-api-key "$NEBIUS_API_KEY"
         apiKey: "NEBIUS_API_KEY",
         models: [
           {
-            id: "Qwen/Qwen3-32B-fast",
-            name: "Qwen3 32B Fast",
+            id: "zai-org/GLM-4.7-FP8",
+            name: "GLM 4.7 FP8",
             reasoning: false,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -60,6 +61,6 @@ moltbot onboard --auth-choice nebius-api-key --nebius-api-key "$NEBIUS_API_KEY"
 
 ## Notes
 
-- Default model ref: `nebius/Qwen/Qwen3-32B-fast`.
+- Default model ref: `nebius/zai-org/GLM-4.7-FP8`.
 - The provider is injected automatically when `NEBIUS_API_KEY` is set (or an auth profile exists).
 - See [/concepts/model-providers](/concepts/model-providers) for provider rules.

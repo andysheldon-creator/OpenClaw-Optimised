@@ -42,8 +42,8 @@ const XIAOMI_DEFAULT_COST = {
 };
 
 const NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1";
-export const NEBIUS_DEFAULT_MODEL_ID = "Qwen/Qwen3-32B-fast";
-const NEBIUS_DEFAULT_CONTEXT_WINDOW = 128000;
+export const NEBIUS_DEFAULT_MODEL_ID = "zai-org/GLM-4.7-FP8";
+const NEBIUS_DEFAULT_CONTEXT_WINDOW = 202752;
 const NEBIUS_DEFAULT_MAX_TOKENS = 8192;
 const NEBIUS_DEFAULT_COST = {
   input: 0,
@@ -389,10 +389,10 @@ export function buildNebiusProvider(): ProviderConfig {
       {
         id: "Qwen/Qwen3-32B-fast",
         name: "Qwen3 32B Fast",
-        reasoning: false,
+        reasoning: true,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 40960,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
@@ -401,7 +401,7 @@ export function buildNebiusProvider(): ProviderConfig {
         reasoning: false,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 131072,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
@@ -410,7 +410,7 @@ export function buildNebiusProvider(): ProviderConfig {
         reasoning: false,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 131072,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
@@ -419,7 +419,7 @@ export function buildNebiusProvider(): ProviderConfig {
         reasoning: false,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 131072,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
@@ -428,7 +428,7 @@ export function buildNebiusProvider(): ProviderConfig {
         reasoning: false,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 32768,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
@@ -437,7 +437,7 @@ export function buildNebiusProvider(): ProviderConfig {
         reasoning: true,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 32768,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
@@ -446,7 +446,7 @@ export function buildNebiusProvider(): ProviderConfig {
         reasoning: false,
         input: ["text", "image"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 32000,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
@@ -455,25 +455,43 @@ export function buildNebiusProvider(): ProviderConfig {
         reasoning: false,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 32768,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
         id: "zai-org/GLM-4.7-FP8",
         name: "GLM 4.7 FP8",
-        reasoning: false,
+        reasoning: true,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 202752,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
       {
         id: "zai-org/GLM-4.5",
         name: "GLM 4.5",
-        reasoning: false,
+        reasoning: true,
         input: ["text"],
         cost: NEBIUS_DEFAULT_COST,
-        contextWindow: NEBIUS_DEFAULT_CONTEXT_WINDOW,
+        contextWindow: 131072,
+        maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "deepseek-ai/DeepSeek-V3.2",
+        name: "DeepSeek V3.2",
+        reasoning: true,
+        input: ["text"],
+        cost: NEBIUS_DEFAULT_COST,
+        contextWindow: 163000,
+        maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "moonshotai/Kimi-K2-Thinking",
+        name: "Kimi K2 Thinking",
+        reasoning: true,
+        input: ["text"],
+        cost: NEBIUS_DEFAULT_COST,
+        contextWindow: 262144,
         maxTokens: NEBIUS_DEFAULT_MAX_TOKENS,
       },
     ],
