@@ -221,6 +221,16 @@ export const HumanDelaySchema = z
   })
   .strict();
 
+export const ChunkDelaySchema = z
+  .object({
+    mode: z.union([z.literal("off"), z.literal("natural"), z.literal("custom")]).optional(),
+    perCharMs: z.number().int().nonnegative().optional(),
+    baseMs: z.number().int().nonnegative().optional(),
+    maxMs: z.number().int().nonnegative().optional(),
+    jitter: z.number().min(0).max(1).optional(),
+  })
+  .strict();
+
 export const CliBackendSchema = z
   .object({
     command: z.string(),

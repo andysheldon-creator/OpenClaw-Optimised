@@ -1,5 +1,6 @@
 import type {
   BlockStreamingCoalesceConfig,
+  ChunkDelayConfig,
   DmPolicy,
   GroupPolicy,
   MarkdownConfig,
@@ -66,6 +67,8 @@ export type SignalAccountConfig = {
   reactionAllowlist?: Array<string | number>;
   /** Heartbeat visibility settings for this channel. */
   heartbeat?: ChannelHeartbeatVisibilityConfig;
+  /** Chunk delay config for realistic typing delays between message chunks. */
+  chunkDelay?: ChunkDelayConfig;
 };
 
 export type SignalConfig = {
