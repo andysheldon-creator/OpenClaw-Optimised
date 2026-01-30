@@ -13,6 +13,9 @@ OpenClaw now has a **cursor-cli** backend: the Cursor Agent CLI is used like `cl
 - **Gateway schema**: Already had `model` field — just needed gateway restart with new build
 - **Plugin manifest created**: `extensions/cursor-agent/openclaw.plugin.json` (was missing, caused config validation errors)
 - **Global install**: After building, run `npm install -g .` to install dev version globally
+- **Onboarding**: Added cursor-cli to auth choice options (`src/commands/auth-choice.apply.cursor-cli.ts`)
+- **TUI JSONL parsing**: Fixed to handle cursor-cli format (`src/agents/cli-runner/helpers.ts`)
+- **Provider-specific loggers**: `agent/cursor-cli`, `agent/codex-cli`, `agent/claude-cli` subsystems (`src/agents/cli-runner.ts`)
 
 ## Two Cursor integrations
 
@@ -26,7 +29,9 @@ OpenClaw now has a **cursor-cli** backend: the Cursor Agent CLI is used like `cl
 | CLI backend config | `src/agents/cli-backends.ts` — `DEFAULT_CURSOR_BACKEND`, `cursor-cli` in `resolveCliBackendIds` / `resolveCliBackendConfig` |
 | Credentials (keychain) | `src/agents/cli-credentials.ts` — `readCursorCliCredentials()`, `readCursorCliCredentialsCached()`, `CursorCliCredential`; reads macOS Keychain `cursor-access-token` / `cursor-refresh-token` |
 | Model selection | `src/agents/model-selection.ts` — `cursor-cli` in `isCliProvider()` |
-| Runner | `src/agents/cli-runner.ts` — generic; cursor-cli uses same path. `src/agents/cursor-cli-runner.ts` — `runCursorCliAgent()` wrapper |
+| Runner | `src/agents/cli-runner.ts` — generic runner with provider-specific loggers (`agent/cursor-cli`, `agent/codex-cli`, `agent/claude-cli`). `src/agents/cursor-cli-runner.ts` — `runCursorCliAgent()` wrapper |
+| Onboarding | `src/commands/auth-choice.apply.cursor-cli.ts` — cursor-cli auth choice handler for onboarding wizard |
+| JSONL parsing | `src/agents/cli-runner/helpers.ts` — `parseCliJsonl()` handles cursor-cli format |
 | Auth profile ID | `src/agents/auth-profiles/constants.ts` — `CURSOR_CLI_PROFILE_ID = "cursor:cursor-cli"` |
 | Version with commit | `src/cli/program/help.ts` — imports `resolveCommitHash()`, shows `version (commit)` |
 | Default agent | `src/cli/program/register.agent.ts` — `--agent <id>` defaults to `"main"` |
