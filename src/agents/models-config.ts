@@ -45,8 +45,14 @@ function mergeProviderModels(implicit: ProviderConfig, explicit: ProviderConfig)
     const implicitModel = id ? implicitById.get(id) : undefined;
     if (!implicitModel) return explicitModel;
     // Merge: code-defined capability fields override stale config values,
-    // while config-only fields (cost, headers, compat) are preserved.
-    return { ...explicitModel, ...implicitModel };
+    // while user-specific fields (cost, headers, compat) are preserved.
+    return {
+      ...explicitModel,
+      input: implicitModel.input,
+      reasoning: implicitModel.reasoning,
+      contextWindow: implicitModel.contextWindow,
+      maxTokens: implicitModel.maxTokens,
+    };
   });
 
   // Append implicit models whose IDs are not present in the explicit list.
