@@ -12,7 +12,7 @@ const log = createSubsystemLogger("telegram-gramjs:handlers");
  * Convert GramJS message context to openclaw MsgContext.
  */
 export async function convertToMsgContext(
-  gramjsContext: GramJSMessageContext,
+  _gramjsContext: GramJSMessageContext,
   account: ResolvedGramJSAccount,
   accountId: string,
 ): Promise<MsgContext | null> {
@@ -169,8 +169,8 @@ export function buildSessionKey(gramjsContext: GramJSMessageContext, accountId: 
  * - Checking message.entities for mentions
  */
 export function wasMessageMentioned(
-  gramjsContext: GramJSMessageContext,
-  botUsername?: string,
+  _gramjsContext: GramJSMessageContext,
+  _botUsername?: string,
 ): boolean {
   // TODO: Implement mention detection
   // For now, return false (rely on requireMention config)
