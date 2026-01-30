@@ -233,6 +233,7 @@ export class CogneeMemoryProvider {
     model: string;
     requestedProvider: string;
     sources: Array<CogneeMemorySource>;
+    extraPaths: string[];
     sourceCounts: Array<{ source: CogneeMemorySource; files: number; chunks: number }>;
     cache?: { enabled: boolean; entries?: number; maxEntries?: number };
     fts?: { enabled: boolean; available: boolean; error?: string };
@@ -268,6 +269,7 @@ export class CogneeMemoryProvider {
       model: this.searchType,
       requestedProvider: "cognee",
       sources,
+      extraPaths: [],
       sourceCounts: sources.map((source) => ({ source, files, chunks: 0 })),
       vector: {
         enabled: false,
