@@ -1,0 +1,29 @@
+{
+  "name": "@openclaw/cursor-mcp",
+  "version": "2026.1.29",
+  "type": "module",
+  "description": "OpenClaw MCP server for Cursor IDE integration",
+  "main": "index.ts",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "ws": "^8.19.0",
+    "zod": "^3.25.0"
+  },
+  "peerDependencies": {
+    "openclaw": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node --import tsx src/server.ts"
+  }
+}
