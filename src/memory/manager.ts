@@ -65,6 +65,7 @@ type MemoryIndexMeta = {
   chunkTokens: number;
   chunkOverlap: number;
   vectorDims?: number;
+  dirty?: boolean;
 };
 
 type SessionFileEntry = {
@@ -245,7 +246,7 @@ export class MemoryIndexManager {
     this.ensureWatcher();
     this.ensureSessionListener();
     this.ensureIntervalSync();
-    this.dirty = this.sources.has("memory");
+    this.dirty = meta?.dirty ?? this.sources.has("memory");
     this.batch = this.resolveBatchConfig();
   }
 
@@ -836,6 +837,7 @@ export class MemoryIndexManager {
     });
     const markDirty = () => {
       this.dirty = true;
+      this.persistDirtyState();
       this.scheduleWatchSync();
     };
     this.watcher.on("add", markDirty);
@@ -1261,6 +1263,7 @@ export class MemoryIndexManager {
       if (shouldSyncMemory) {
         await this.syncMemoryFiles({ needsFullReindex, progress: progress ?? undefined });
         this.dirty = false;
+        this.persistDirtyState();
       }
 
       if (shouldSyncSessions) {
@@ -1484,6 +1487,14 @@ export class MemoryIndexManager {
         `INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
       )
       .run(META_KEY, value);
+  }
+
+  private persistDirtyState() {
+    const meta = this.readMeta();
+    if (meta) {
+      meta.dirty = this.dirty;
+      this.writeMeta(meta);
+    }
   }
 
   private async listSessionFiles(): Promise<string[]> {
