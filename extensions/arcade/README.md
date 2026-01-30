@@ -1,34 +1,31 @@
 # OpenClaw Arcade.dev Plugin
 
-Connect OpenClaw to [Arcade.dev](https://arcade.dev) for access to 100+ authorized tools across productivity, communication, development, and business services.
+Connect OpenClaw to [Arcade.dev](https://arcade.dev) for access to **10,000+ authorized tools** across hundreds of services including Gmail, Slack, GitHub, Google Calendar, Notion, Linear, Jira, Stripe, HubSpot, and more.
 
 ## Features
 
-- **100+ Tools**: Gmail, Google Calendar, Slack, Discord, GitHub, Notion, Linear, Jira, Stripe, HubSpot, and more
+- **10,000+ Tools**: Productivity, communication, development, and business services
 - **Automatic OAuth**: Arcade handles all authorization flows securely
 - **Dynamic Registration**: Tools are automatically discovered and registered
 - **JIT Authorization**: Prompts users to authorize when needed
 - **Tool Filtering**: Control which tools are available via allowlists/denylists
 - **CLI Commands**: Manage tools and authorization from the command line
-- **Gateway RPC**: Direct tool invocation via Gateway methods
 
 ## Installation
 
-### Via npm
-
 ```bash
-openclaw plugins install @openclaw/arcade
-```
-
-### Via local development
-
-```bash
-# Clone the repo
-git clone https://github.com/openclaw/openclaw.git
-cd openclaw
-
 # Enable the plugin
 openclaw plugins enable arcade
+
+# Configure
+openclaw config set plugins.entries.arcade.config.apiKey "arc_..."
+openclaw config set plugins.entries.arcade.config.userId "user@example.com"
+
+# Initialize the tools cache
+openclaw arcade init
+
+# Restart gateway
+openclaw gateway restart
 ```
 
 ## Configuration
@@ -40,29 +37,27 @@ export ARCADE_API_KEY="arc_..."          # Required: Arcade API key
 export ARCADE_USER_ID="user@example.com" # Optional: Default user ID
 ```
 
+Alternative names: `ARCADE_KEY`, `ARCADE_USER`
+
 ### Config File
 
-```json5
-// ~/.clawdbot/openclaw.json
+```json
+// ~/.openclaw/openclaw.json
 {
-  plugins: {
-    entries: {
-      arcade: {
-        enabled: true,
-        config: {
-          apiKey: "${ARCADE_API_KEY}",
-          userId: "user@example.com",
-
-          // Filter available tools
-          tools: {
-            allow: ["Gmail.*", "Slack.*", "GitHub.*"],
-            deny: ["*.Delete*"]
+  "plugins": {
+    "entries": {
+      "arcade": {
+        "enabled": true,
+        "config": {
+          "apiKey": "arc_...",
+          "userId": "user@example.com",
+          "tools": {
+            "allow": ["Gmail.*", "Slack.*", "Github.*"],
+            "deny": ["*.Delete*"]
           },
-
-          // Per-toolkit configuration
-          toolkits: {
-            gmail: { enabled: true },
-            slack: { enabled: true, tools: ["Slack.PostMessage"] }
+          "toolkits": {
+            "Gmail": { "enabled": true },
+            "Slack": { "enabled": true }
           }
         }
       }
@@ -75,25 +70,25 @@ export ARCADE_USER_ID="user@example.com" # Optional: Default user ID
 
 ### Agent Tools
 
-When the plugin loads, it registers tools like:
+The plugin registers three static utility tools:
 
-- `arcade_gmail_send_email`
-- `arcade_gmail_search_messages`
-- `arcade_slack_post_message`
-- `arcade_github_create_issue`
-
-Plus utility tools:
-
-- `arcade_list_tools` - List available tools
+- `arcade_list_tools` - List available tools (filter by toolkit)
 - `arcade_authorize` - Pre-authorize a tool
 - `arcade_execute` - Execute any tool by name
+
+Plus auto-registered tools using the naming convention `arcade_<toolkit>_<tool_name>`:
+
+- `Gmail.SendEmail` → `arcade_gmail_send_email`
+- `Slack.SendMessage` → `arcade_slack_send_message`
+- `Github.CreateIssue` → `arcade_github_create_issue`
+- `GoogleCalendar.CreateEvent` → `arcade_google_calendar_create_event`
 
 ### CLI Commands
 
 ```bash
 # List available tools
 openclaw arcade tools list
-openclaw arcade tools list --toolkit gmail
+openclaw arcade tools list --toolkit Gmail
 
 # Search for tools
 openclaw arcade tools search email
@@ -102,7 +97,7 @@ openclaw arcade tools search email
 openclaw arcade tools info Gmail.SendEmail
 
 # Execute a tool
-openclaw arcade tools execute Gmail.SendEmail --input '{"to":"test@example.com","subject":"Hello","body":"Test"}'
+openclaw arcade tools execute Gmail.SendEmail -i '{"recipient":"test@example.com","subject":"Hello","body":"Test"}'
 
 # Check authorization status
 openclaw arcade auth status
@@ -116,78 +111,88 @@ openclaw arcade config
 
 # Health check
 openclaw arcade health
-```
 
-### Gateway RPC
-
-```javascript
-// List tools
-await gateway.call("arcade.tools.list", { toolkit: "gmail" });
-
-// Execute tool
-await gateway.call("arcade.tools.execute", {
-  tool: "Gmail.SendEmail",
-  input: { to: "test@example.com", subject: "Hello", body: "Test" }
-});
-
-// Check auth status
-await gateway.call("arcade.auth.status", { tool: "Gmail.SendEmail" });
-
-// Authorize
-await gateway.call("arcade.auth.authorize", { tool: "Gmail.SendEmail" });
-
-// Plugin status
-await gateway.call("arcade.status", {});
-```
-
-### Chat Commands
-
-```
-/arcade           # Show status
-/arcade status    # Show status
-/arcade tools     # List tools
-/arcade tools gmail  # List Gmail tools
+# Manage cache
+openclaw arcade init          # Initialize/refresh cache
+openclaw arcade cache         # Show cache status
+openclaw arcade cache --clear # Clear cache
 ```
 
 ## Available Toolkits
 
 ### Productivity
-- Gmail
-- Google Calendar
-- Google Drive
-- Google Docs
-- Google Sheets
-- Notion
-- Asana
-- Linear
-- Jira
+- **Gmail** (18 tools) - ListEmails, SendEmail, ReplyToEmail, SearchThreads
+- **GoogleCalendar** (7 tools) - ListEvents, CreateEvent, UpdateEvent, DeleteEvent
+- **GoogleDrive** (11 tools) - SearchFiles, UploadFile, ShareFile, DownloadFile
+- **GoogleDocs** (13 tools) - CreateBlankDocument, EditDocument, SearchDocuments
+- **GoogleSheets** (9 tools) - GetSpreadsheet, WriteToCell, CreateSpreadsheet
+- **NotionToolkit** (8 tools) - CreatePage, SearchByTitle, GetPageContentById
+- **Asana** + **AsanaApi** (218 tools)
+- **Linear** (39 tools) - CreateIssue, UpdateIssue, ArchiveIssue
+- **Jira** (43 tools) - CreateIssue, UpdateIssue, AddCommentToIssue
+- **Clickup** + **ClickupApi**
+- **Confluence**
+- **Trello** (TrelloApi)
 
 ### Communication
-- Slack
-- Discord
-- Microsoft Teams
-- Outlook
-- Zoom
+- **Slack** + **SlackApi** (81 tools) - SendMessage, GetMessages, ListChannels
+- **Microsoft** (11 tools) - CreateAndSendEmail, CreateEvent, ListEmails
+- **MicrosoftTeams**
+- **OutlookMail** (9 tools) - ListEmails, SendEmail, CreateDraftEmail
+- **OutlookCalendar**
+- **Zoom** (2 tools) - GetMeetingInvitation, ListUpcomingMeetings
+- **Intercom** (IntercomApi - 107 tools)
 
 ### Development
-- GitHub
-- Figma
+- **Github** + **GithubApi** (862 tools)
+- **Figma** + **FigmaApi** (58 tools)
+- **E2b**
+- **Vercel** (VercelApi)
+- **Datadog** (DatadogApi)
+- **Posthog** (PosthogApi)
 
-### Business
-- Stripe
-- HubSpot
-- Salesforce
-- Zendesk
-- Intercom
+### Business & CRM
+- **Stripe** + **StripeApi** (235 tools)
+- **Hubspot** (809 tools across 9 toolkits)
+- **Salesforce** (3 tools)
+- **Zendesk** (6 tools)
+- **Pylon** + **PylonApi**
+- **Freshservice** (FreshserviceApi)
+- **Calendly** (CalendlyApi)
 
-### Search & Data
-- Google Search
-- Google News
-- Firecrawl
+### Data & Search
+- **GoogleSearch** (1 tool)
+- **GoogleNews** (1 tool)
+- **Firecrawl** (6 tools)
+- **Exa** (ExaApi)
+- **Brightdata**
+- **Weaviate** (WeaviateApi)
 
-### Databases
-- PostgreSQL
-- MongoDB
+### Storage & Files
+- **Airtable** (AirtableApi - 96 tools)
+- **Dropbox**
+- **Box** (BoxApi)
+- **Sharepoint**
+
+### Social
+- **X** (Twitter)
+- **Linkedin**
+- **Reddit**
+- **Youtube**
+- **Spotify**
+
+### Other
+- **Xero** (XeroApi) - Accounting
+- **ZohoBooks** (ZohoBooksApi)
+- **Mailchimp** (MailchimpMarketingApi)
+- **Customer.io** (CustomerioApi + tracks/pipelines)
+- **Pagerduty** + **PagerdutyApi**
+- **Miro** (MiroApi)
+- **Luma** (LumaApi)
+- **Imgflip**
+- **Math**
+- **Walmart**
+- **GoogleMaps**, **GoogleFlights**, **GoogleHotels**, **GoogleJobs**, **GoogleShopping**, **GoogleFinance**, **GoogleContacts**, **GoogleSlides**
 
 ## Authorization Flow
 
@@ -196,15 +201,6 @@ await gateway.call("arcade.status", {});
 3. OpenClaw prompts the user with the URL
 4. User visits URL and grants access
 5. Tool execution proceeds automatically
-
-## Skills
-
-The plugin includes several skills to help the agent use Arcade tools effectively:
-
-- `arcade` - General Arcade usage
-- `arcade-gmail` - Gmail-specific workflows
-- `arcade-slack` - Slack messaging patterns
-- `arcade-github` - GitHub repository management
 
 ## Development
 
@@ -220,14 +216,11 @@ pnpm build
 pnpm lint
 ```
 
-## API Reference
-
-### Config Options
+## Config Reference
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable the plugin |
-| `apiKey` | string | - | Arcade API key |
+| `apiKey` | string | - | Arcade API key (required) |
 | `userId` | string | - | Default user ID for authorization |
 | `baseUrl` | string | `https://api.arcade.dev` | API base URL |
 | `toolPrefix` | string | `arcade` | Prefix for tool names |
@@ -236,16 +229,6 @@ pnpm lint
 | `tools.allow` | string[] | - | Allowlist patterns |
 | `tools.deny` | string[] | - | Denylist patterns |
 | `toolkits.<id>.enabled` | boolean | `true` | Enable/disable toolkit |
-| `toolkits.<id>.tools` | string[] | - | Specific tools to enable |
-
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `ARCADE_API_KEY` | Arcade API key |
-| `ARCADE_KEY` | Alternative API key variable |
-| `ARCADE_USER_ID` | Default user ID |
-| `ARCADE_USER` | Alternative user ID variable |
 
 ## License
 
