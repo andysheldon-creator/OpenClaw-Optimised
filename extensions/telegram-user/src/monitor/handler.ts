@@ -361,8 +361,9 @@ export function createTelegramUserMessageHandler(params: TelegramUserHandlerPara
       const combinedAllowFrom = [...allowFrom, ...storeAllowFrom];
       const chatId = msg.chat.type === "chat" ? msg.chat.id : undefined;
       const isForum = msg.chat.type === "chat" && msg.chat.isForum === true;
+      const isTopicMessage = msg.isTopicMessage === true;
       const threadId =
-        isGroup && isForum ? msg.replyToMessage?.threadId ?? undefined : undefined;
+        isGroup && isForum && isTopicMessage ? msg.replyToMessage?.threadId ?? undefined : undefined;
       const { groupConfig, topicConfig } =
         isGroup && chatId != null
           ? resolveTelegramUserGroupConfig(accountConfig, chatId, threadId)
@@ -499,7 +500,8 @@ export function createTelegramUserMessageHandler(params: TelegramUserHandlerPara
         ...core.channel.mentions.buildMentionRegexes(cfg, route.agentId),
         ...buildTelegramUserSelfMentionRegexes({ username: self?.username, name: self?.name }),
       ];
-      const hasAnyMention = msg.entities.some(
+      const entities = msg.entities ?? [];
+      const hasAnyMention = entities.some(
         (ent) => ent.kind === "mention" || ent.kind === "text_mention",
       );
       const hasControlCommandInMessage = core.channel.text.hasControlCommand(text, cfg, {

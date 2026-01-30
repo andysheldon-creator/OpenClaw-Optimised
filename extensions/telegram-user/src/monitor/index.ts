@@ -64,9 +64,11 @@ export async function monitorTelegramUserProvider(opts: MonitorTelegramUserOpts 
     );
   }
   const client = await createTelegramUserClient({ apiId, apiHash, storagePath });
-  setActiveTelegramUserClient(account.accountId, client);
+  let stopped = false;
 
   const stop = async () => {
+    if (stopped) return;
+    stopped = true;
     shuttingDown = true;
     setActiveTelegramUserClient(account.accountId, null);
     await client.destroy().catch(() => undefined);
@@ -81,77 +83,80 @@ export async function monitorTelegramUserProvider(opts: MonitorTelegramUserOpts 
     { once: true },
   );
 
-  await client.start();
+  try {
+    await client.start();
+    setActiveTelegramUserClient(account.accountId, client);
 
-  const { Dispatcher, filters } = await loadMtcuteDispatcher();
-  const dispatcher = Dispatcher.for(client);
-  const self = await client.getMe().catch(() => undefined);
-  const selfName =
-    self && typeof (self as unknown as { displayName?: unknown }).displayName === "string"
-      ? (self as unknown as { displayName: string }).displayName
-      : self && typeof (self as unknown as { firstName?: unknown }).firstName === "string"
-        ? [
-            (self as unknown as { firstName?: string }).firstName,
-            typeof (self as unknown as { lastName?: unknown }).lastName === "string"
-              ? (self as unknown as { lastName: string }).lastName
-              : undefined,
-          ]
-            .filter((entry): entry is string => Boolean(entry && entry.trim()))
-            .join(" ")
-        : undefined;
-  const handleMessage = createTelegramUserMessageHandler({
-    client,
-    cfg,
-    runtime,
-    accountId: account.accountId,
-    accountConfig: account.config,
-    abortSignal: opts.abortSignal,
-    self: self
-      ? {
-          id: self.id,
-          username: "username" in self ? self.username : undefined,
-          name: selfName,
+    const { Dispatcher, filters } = await loadMtcuteDispatcher();
+    const dispatcher = Dispatcher.for(client);
+    const self = await client.getMe().catch(() => undefined);
+    const selfName =
+      self && typeof (self as unknown as { displayName?: unknown }).displayName === "string"
+        ? (self as unknown as { displayName: string }).displayName
+        : self && typeof (self as unknown as { firstName?: unknown }).firstName === "string"
+          ? [
+              (self as unknown as { firstName?: string }).firstName,
+              typeof (self as unknown as { lastName?: unknown }).lastName === "string"
+                ? (self as unknown as { lastName: string }).lastName
+                : undefined,
+            ]
+              .filter((entry): entry is string => Boolean(entry && entry.trim()))
+              .join(" ")
+          : undefined;
+    const handleMessage = createTelegramUserMessageHandler({
+      client,
+      cfg,
+      runtime,
+      accountId: account.accountId,
+      accountConfig: account.config,
+      abortSignal: opts.abortSignal,
+      self: self
+        ? {
+            id: self.id,
+            username: "username" in self ? self.username : undefined,
+            name: selfName,
+          }
+        : undefined,
+    });
+
+    dispatcher.onNewMessage(
+      filters.or(
+        filters.chat("user"),
+        filters.chat("group"),
+        filters.chat("supergroup"),
+        filters.chat("gigagroup"),
+      ),
+      handleMessage,
+    );
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const settleResolve = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      const settleReject = (err: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(err);
+      };
+
+      client.onError.add((err) => {
+        if (shuttingDown || opts.abortSignal?.aborted || isDestroyedClientError(err)) {
+          settleResolve();
+          return;
         }
-      : undefined,
-  });
-
-  dispatcher.onNewMessage(
-    filters.or(
-      filters.chat("user"),
-      filters.chat("group"),
-      filters.chat("supergroup"),
-      filters.chat("gigagroup"),
-    ),
-    handleMessage,
-  );
-
-  await new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const settleResolve = () => {
-      if (settled) return;
-      settled = true;
-      resolve();
-    };
-    const settleReject = (err: unknown) => {
-      if (settled) return;
-      settled = true;
-      reject(err);
-    };
-
-    client.onError.add((err) => {
-      if (shuttingDown || opts.abortSignal?.aborted || isDestroyedClientError(err)) {
+        runtime.error?.(`telegram-user client error: ${String(err)}`);
+        settleReject(err);
+      });
+      if (opts.abortSignal?.aborted) {
         settleResolve();
         return;
       }
-      runtime.error?.(`telegram-user client error: ${String(err)}`);
-      settleReject(err);
+      opts.abortSignal?.addEventListener("abort", () => settleResolve(), { once: true });
     });
-    if (opts.abortSignal?.aborted) {
-      settleResolve();
-      return;
-    }
-    opts.abortSignal?.addEventListener("abort", () => settleResolve(), { once: true });
-  });
-
-  await stop();
+  } finally {
+    await stop();
+  }
 }

@@ -46,6 +46,10 @@ export async function loginTelegramUser(params: {
   let phoneEnv = process.env.TELEGRAM_USER_PHONE?.trim() || undefined;
   const codeEnv = process.env.TELEGRAM_USER_CODE?.trim() || undefined;
 
+  const passwordPrompt = passwordEnv
+    ? passwordEnv
+    : async () => await promptText("2FA password: ");
+
   try {
     if (!phoneEnv) {
       const mode = await promptLoginMode();
@@ -53,12 +57,12 @@ export async function loginTelegramUser(params: {
         phoneEnv = await promptText("Telegram phone number (E.164): ");
       }
     }
-    const user = await client.start(
+      const user = await client.start(
       phoneEnv
         ? {
             phone: phoneEnv,
             code: codeEnv ? codeEnv : async () => await promptText("Telegram code: "),
-            password: passwordEnv ? passwordEnv : async () => await promptText("2FA password: "),
+            password: passwordPrompt,
             codeSentCallback: (code) => {
               runtime.log(
                 `Telegram code sent via ${code.type}. Check your device and enter it here.`,
@@ -84,11 +88,13 @@ export async function loginTelegramUser(params: {
               runtime.log(`Scan this QR in Telegram (expires ${expires.toLocaleTimeString()}):`);
               qrcode.generate(url, { small: true });
             },
-            ...(passwordEnv ? { password: passwordEnv } : {}),
+            password: passwordPrompt,
             invalidCodeCallback: async (type) => {
               if (type === "password") {
                 runtime.error?.(
-                  "Telegram 2FA password rejected. Set TELEGRAM_USER_PASSWORD and rerun.",
+                  passwordEnv
+                    ? "Telegram 2FA password rejected. Update TELEGRAM_USER_PASSWORD and rerun."
+                    : "Telegram 2FA password rejected. Try again.",
                 );
               }
             },
