@@ -15,17 +15,15 @@ import { resolveGroupActivationFor } from "./group-activation.js";
 
 type Config = ReturnType<typeof import("../../../config/config.js").loadConfig>;
 
-const createConfig = (overrides: Record<string, unknown> = {}): Config =>
+const createConfig = (): Config =>
   ({
     channels: {
       whatsapp: {
         groupPolicy: "open",
         groups: { "*": { requireMention: true } },
-        ...((overrides.whatsapp as Record<string, unknown>) ?? {}),
       },
     },
     session: { store: "/tmp/openclaw-sessions.json" },
-    ...overrides,
   }) as unknown as Config;
 
 const createMsg = (overrides: Record<string, unknown> = {}) => ({

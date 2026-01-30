@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  normalizeGroupActivation,
-  parseActivationCommand,
-  type GroupActivationMode,
-} from "./group-activation.js";
+import { normalizeGroupActivation, parseActivationCommand } from "./group-activation.js";
 
 describe("normalizeGroupActivation", () => {
   it("returns 'mention' for 'mention'", () => {
