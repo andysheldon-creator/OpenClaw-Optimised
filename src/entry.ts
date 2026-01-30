@@ -7,9 +7,11 @@ import { applyCliProfileEnv, parseCliProfileArgs } from "./cli/profile.js";
 import { isTruthyEnvValue } from "./infra/env.js";
 import { installProcessWarningFilter } from "./infra/warnings.js";
 import { attachChildProcessBridge } from "./process/child-process-bridge.js";
+import { initGlobalProxy } from "./infra/global-proxy.js";
 
 process.title = "moltbot";
 installProcessWarningFilter();
+initGlobalProxy();
 
 if (process.argv.includes("--no-color")) {
   process.env.NO_COLOR = "1";
