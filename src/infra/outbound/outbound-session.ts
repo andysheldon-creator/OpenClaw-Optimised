@@ -2,7 +2,11 @@ import type { MsgContext } from "../../auto-reply/templating.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type { ChannelId } from "../../channels/plugins/types.js";
 import type { OpenClawConfig } from "../../config/config.js";
-import { recordSessionMetaFromInbound, resolveStorePath } from "../../config/sessions.js";
+import {
+  recordSessionMetaFromInbound,
+  resolveStorePath,
+  updateLastRoute,
+} from "../../config/sessions.js";
 import { parseDiscordTarget } from "../../discord/targets.js";
 import { parseIMessageTarget, normalizeIMessageHandle } from "../../imessage/targets.js";
 import {
@@ -10,7 +14,7 @@ import {
   type RoutePeer,
   type RoutePeerKind,
 } from "../../routing/resolve-route.js";
-import { resolveThreadSessionKeys } from "../../routing/session-key.js";
+import { buildAgentMainSessionKey, resolveThreadSessionKeys } from "../../routing/session-key.js";
 import { resolveSlackAccount } from "../../slack/accounts.js";
 import { createSlackWebClient } from "../../slack/client.js";
 import { normalizeAllowListLower } from "../../slack/monitor/allow-list.js";
@@ -905,6 +909,24 @@ export async function ensureOutboundSessionEntry(params: {
   const storePath = resolveStorePath(params.cfg.session?.store, {
     agentId: params.agentId,
   });
+  const mainSessionKey = buildAgentMainSessionKey({ agentId: params.agentId });
+  if (params.route.baseSessionKey === mainSessionKey) {
+    try {
+      await updateLastRoute({
+        storePath,
+        sessionKey: params.route.sessionKey,
+        deliveryContext: {
+          channel: params.channel,
+          to: params.route.to,
+          accountId: params.accountId ?? undefined,
+          threadId: params.route.threadId,
+        },
+      });
+    } catch {
+      // Do not block outbound sends on session store writes.
+    }
+    return;
+  }
   const ctx: MsgContext = {
     From: params.route.from,
     To: params.route.to,
