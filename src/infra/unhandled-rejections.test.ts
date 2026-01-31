@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { isAbortError, isTransientNetworkError } from "./unhandled-rejections.js";
+import {
+  isAbortError,
+  isTransientNetworkError,
+  installUnhandledRejectionHandler,
+} from "./unhandled-rejections.js";
 
 describe("isAbortError", () => {
   it("returns true for error with name AbortError", () => {
@@ -152,7 +156,9 @@ describe("isTransientNetworkError", () => {
       exitSpy.mockRestore();
       warnSpy.mockRestore();
       const listeners = process.listeners("unhandledRejection");
-      for (const fn of listeners) process.off("unhandledRejection", fn);
+      for (const fn of listeners) {
+        process.off("unhandledRejection", fn);
+      }
     }
   });
 
@@ -167,14 +173,16 @@ describe("isTransientNetworkError", () => {
       try {
         process.emit("unhandledRejection", new Error("boom"), Promise.resolve());
         await Promise.resolve();
-      } catch (err) {
+      } catch (_err) {
         thrown = true;
       }
       expect(thrown).toBe(true);
     } finally {
       exitSpy.mockRestore();
       const listeners = process.listeners("unhandledRejection");
-      for (const fn of listeners) process.off("unhandledRejection", fn);
+      for (const fn of listeners) {
+        process.off("unhandledRejection", fn);
+      }
     }
   });
 });
