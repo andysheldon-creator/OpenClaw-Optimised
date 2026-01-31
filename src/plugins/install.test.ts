@@ -28,7 +28,9 @@ function resolveNpmCliJs() {
     "bin",
     "npm-cli.js",
   );
-  if (fs.existsSync(fromNodeDir)) return fromNodeDir;
+  if (fs.existsSync(fromNodeDir)) {
+    return fromNodeDir;
+  }
 
   const fromLibNodeModules = path.resolve(
     path.dirname(process.execPath),
@@ -39,7 +41,9 @@ function resolveNpmCliJs() {
     "bin",
     "npm-cli.js",
   );
-  if (fs.existsSync(fromLibNodeModules)) return fromLibNodeModules;
+  if (fs.existsSync(fromLibNodeModules)) {
+    return fromLibNodeModules;
+  }
 
   return null;
 }
@@ -102,7 +106,7 @@ describe("installPluginFromArchive", () => {
       }),
       "utf-8",
     );
-    fs.writeFileSync(path.join(pkgDir, "dist", "index.js"), "export {};", "utf-8");
+    fs.writeFileSync(path.join(pkgDir, "dist", "index.mjs"), "export {};", "utf-8");
 
     const archivePath = packToArchive({
       pkgDir,
@@ -117,11 +121,13 @@ describe("installPluginFromArchive", () => {
       extensionsDir,
     });
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) {
+      return;
+    }
     expect(result.pluginId).toBe("voice-call");
     expect(result.targetDir).toBe(path.join(stateDir, "extensions", "voice-call"));
     expect(fs.existsSync(path.join(result.targetDir, "package.json"))).toBe(true);
-    expect(fs.existsSync(path.join(result.targetDir, "dist", "index.js"))).toBe(true);
+    expect(fs.existsSync(path.join(result.targetDir, "dist", "index.mjs"))).toBe(true);
   });
 
   it("rejects installing when plugin already exists", async () => {
@@ -159,7 +165,9 @@ describe("installPluginFromArchive", () => {
 
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(false);
-    if (second.ok) return;
+    if (second.ok) {
+      return;
+    }
     expect(second.error).toContain("already exists");
   });
 
@@ -189,7 +197,9 @@ describe("installPluginFromArchive", () => {
     });
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) {
+      return;
+    }
     expect(result.pluginId).toBe("zipper");
     expect(result.targetDir).toBe(path.join(stateDir, "extensions", "zipper"));
     expect(fs.existsSync(path.join(result.targetDir, "package.json"))).toBe(true);
@@ -249,7 +259,9 @@ describe("installPluginFromArchive", () => {
 
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
-    if (!second.ok) return;
+    if (!second.ok) {
+      return;
+    }
     const manifest = JSON.parse(
       fs.readFileSync(path.join(second.targetDir, "package.json"), "utf-8"),
     ) as { version?: string };
@@ -280,7 +292,9 @@ describe("installPluginFromArchive", () => {
       extensionsDir,
     });
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok) {
+      return;
+    }
     expect(result.error).toContain("openclaw.extensions");
   });
 });
