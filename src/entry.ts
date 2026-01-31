@@ -5,12 +5,14 @@ import process from "node:process";
 
 import { applyCliProfileEnv, parseCliProfileArgs } from "./cli/profile.js";
 import { isTruthyEnvValue, normalizeEnv } from "./infra/env.js";
+import { installSocksGlobalDispatcher } from "./infra/net/socks-dispatcher.js";
 import { installProcessWarningFilter } from "./infra/warnings.js";
 import { attachChildProcessBridge } from "./process/child-process-bridge.js";
 
 process.title = "openclaw";
 installProcessWarningFilter();
 normalizeEnv();
+installSocksGlobalDispatcher();
 
 if (process.argv.includes("--no-color")) {
   process.env.NO_COLOR = "1";
