@@ -8,17 +8,22 @@ import path from "node:path";
 import type { OpenClawConfig } from "../../config/config.js";
 import type {
   ParsedSkillFrontmatter,
+  PermissionRiskLevel,
   SkillEligibilityContext,
   SkillCommandSpec,
   SkillEntry,
+  SkillEntryWithPermissions,
   SkillSnapshot,
 } from "./types.js";
+import { validatePermissionManifest } from "./permissions.js";
+import type { SkillsSecurityConfig } from "../../config/types.skills.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { CONFIG_DIR, resolveUserPath } from "../../utils.js";
 import { resolveBundledSkillsDir } from "./bundled-dir.js";
 import { shouldIncludeSkill } from "./config.js";
 import {
   parseFrontmatter,
+  parsePermissionManifest,
   resolveOpenClawMetadata,
   resolveSkillInvocationPolicy,
 } from "./frontmatter.js";
@@ -59,6 +64,116 @@ function filterSkillEntries(
         : [];
     console.log(`[skills] After filter: ${filtered.map((entry) => entry.skill.name).join(", ")}`);
   }
+  return filtered;
+}
+
+// Track whether we've shown the deprecation notice this session
+let shownDeprecationNotice = false;
+
+/**
+ * Risk level ordering for comparison.
+ */
+const RISK_LEVEL_ORDER: PermissionRiskLevel[] = ["minimal", "low", "moderate", "high", "critical"];
+
+/**
+ * Parse permissions and validate for a skill entry.
+ * Returns an extended entry with permission information.
+ */
+function enrichWithPermissions(entry: SkillEntry): SkillEntryWithPermissions {
+  const permissions = parsePermissionManifest(entry.frontmatter);
+  const permissionValidation = validatePermissionManifest(permissions, entry.skill.name);
+
+  return {
+    ...entry,
+    permissions,
+    permissionValidation,
+  };
+}
+
+/**
+ * Apply security policy filtering to skill entries.
+ * This filters out skills that don't meet the security requirements.
+ *
+ * IMPORTANT: This is an advisory system. Skills declare their intended permissions,
+ * but this cannot enforce actual runtime behavior. The goal is transparency and
+ * informed consent, not mechanical sandboxing.
+ */
+function filterBySecurityPolicy(
+  entries: SkillEntryWithPermissions[],
+  securityConfig?: SkillsSecurityConfig,
+): SkillEntryWithPermissions[] {
+  const requireManifest = securityConfig?.requireManifest ?? "warn";
+  const maxAutoLoadRisk = securityConfig?.maxAutoLoadRisk ?? "moderate";
+  const maxRiskIndex = RISK_LEVEL_ORDER.indexOf(maxAutoLoadRisk);
+
+  // Track skills that need attention for logging
+  const noManifestSkills: string[] = [];
+  const highRiskSkills: Array<{ name: string; level: PermissionRiskLevel }> = [];
+  const deniedSkills: Array<{ name: string; reason: string }> = [];
+
+  const filtered = entries.filter((entry) => {
+    const skillName = entry.skill.name;
+    const validation = entry.permissionValidation;
+
+    // Handle skills without manifests
+    if (!entry.permissions) {
+      noManifestSkills.push(skillName);
+
+      if (requireManifest === "deny") {
+        deniedSkills.push({ name: skillName, reason: "no permission manifest (policy: deny)" });
+        return false;
+      }
+      // "allow", "warn", "prompt" all allow loading (prompt handling is CLI-specific)
+      // The warning is logged below
+    }
+
+    // Check risk level against max auto-load threshold
+    if (validation) {
+      const skillRiskIndex = RISK_LEVEL_ORDER.indexOf(validation.risk_level);
+
+      if (skillRiskIndex > maxRiskIndex) {
+        // Log high-risk skills but only deny if explicitly configured
+        highRiskSkills.push({ name: skillName, level: validation.risk_level });
+
+        // For now, we warn but don't block based on risk level alone
+        // Future: "prompt" mode could require approval for high-risk skills
+        skillsLogger.warn(`Skill "${skillName}" has ${validation.risk_level} risk level`, {
+          skillName,
+          riskLevel: validation.risk_level,
+          maxAutoLoad: maxAutoLoadRisk,
+          // Don't log detailed risk factors - they may contain sensitive pattern info
+          riskFactorCount: validation.risk_factors.length,
+        });
+      }
+    }
+
+    return true;
+  });
+
+  // Log summary for skills without manifests
+  if (noManifestSkills.length > 0) {
+    if (requireManifest === "warn") {
+      skillsLogger.warn(
+        `${noManifestSkills.length} skill(s) have no permission manifest: ${noManifestSkills.join(", ")}`,
+        { skills: noManifestSkills },
+      );
+
+      // Show deprecation notice once per session
+      if (!shownDeprecationNotice) {
+        shownDeprecationNotice = true;
+        skillsLogger.info(
+          "Note: A future version of OpenClaw will require explicit approval for skills without " +
+            "permission manifests. Run `openclaw skill audit` to review your skills.",
+        );
+      }
+    }
+  }
+
+  // Log denied skills
+  for (const denied of deniedSkills) {
+    skillsLogger.info(`Skipped skill "${denied.name}": ${denied.reason}`);
+  }
+
   return filtered;
 }
 
@@ -188,6 +303,38 @@ function loadSkillEntries(
   return skillEntries;
 }
 
+/**
+ * Load skill entries with permission validation and security policy filtering.
+ *
+ * This is the preferred entry point for loading skills as it:
+ * 1. Loads all skill entries from configured directories
+ * 2. Parses and validates permission manifests
+ * 3. Applies security policy filtering based on config
+ *
+ * Note: Permission manifests are advisory declarations. This system provides
+ * transparency about what skills claim to need, but cannot enforce runtime behavior.
+ */
+function loadSkillEntriesWithSecurity(
+  workspaceDir: string,
+  opts?: {
+    config?: OpenClawConfig;
+    managedSkillsDir?: string;
+    bundledSkillsDir?: string;
+  },
+): SkillEntryWithPermissions[] {
+  // Load base entries
+  const baseEntries = loadSkillEntries(workspaceDir, opts);
+
+  // Enrich with permission information
+  const enrichedEntries = baseEntries.map(enrichWithPermissions);
+
+  // Apply security policy filtering
+  const securityConfig = opts?.config?.skills?.security;
+  const filtered = filterBySecurityPolicy(enrichedEntries, securityConfig);
+
+  return filtered;
+}
+
 export function buildWorkspaceSkillSnapshot(
   workspaceDir: string,
   opts?: {
@@ -279,9 +426,16 @@ export function loadWorkspaceSkillEntries(
     config?: OpenClawConfig;
     managedSkillsDir?: string;
     bundledSkillsDir?: string;
+    /** Skip security policy filtering (returns raw entries). Default: false */
+    skipSecurityFilter?: boolean;
   },
-): SkillEntry[] {
-  return loadSkillEntries(workspaceDir, opts);
+): SkillEntryWithPermissions[] {
+  if (opts?.skipSecurityFilter) {
+    // Return entries with permissions but without security filtering
+    const baseEntries = loadSkillEntries(workspaceDir, opts);
+    return baseEntries.map(enrichWithPermissions);
+  }
+  return loadSkillEntriesWithSecurity(workspaceDir, opts);
 }
 
 export async function syncSkillsToWorkspace(params: {
@@ -325,10 +479,28 @@ export async function syncSkillsToWorkspace(params: {
 }
 
 export function filterWorkspaceSkillEntries(
-  entries: SkillEntry[],
+  entries: SkillEntry[] | SkillEntryWithPermissions[],
   config?: OpenClawConfig,
-): SkillEntry[] {
-  return filterSkillEntries(entries, config);
+): SkillEntryWithPermissions[] {
+  // Ensure entries have permission info
+  const enriched = entries.map((entry) => {
+    if ("permissionValidation" in entry) {
+      return entry as SkillEntryWithPermissions;
+    }
+    return enrichWithPermissions(entry);
+  });
+
+  // Apply existing filters
+  const filtered = filterSkillEntries(enriched, config);
+
+  // Apply security policy filtering
+  const securityConfig = config?.skills?.security;
+  return filterBySecurityPolicy(
+    filtered.map((e) =>
+      "permissionValidation" in e ? (e as SkillEntryWithPermissions) : enrichWithPermissions(e),
+    ),
+    securityConfig,
+  );
 }
 
 export function buildWorkspaceSkillCommandSpecs(
