@@ -38,7 +38,7 @@ async function initConnection() {
     console.log("\n   完成后按 Ctrl+C 退出此脚本\n");
 
     // 保持连接
-    await new Promise(() => {});
+    await new Promise(() => { });
   } catch (error: unknown) {
     const err = error as Error & { code?: number; msg?: string };
     console.error("\n❌ 连接失败:", err.message || err);
@@ -50,4 +50,4 @@ async function initConnection() {
   }
 }
 
-initConnection();
+void initConnection();

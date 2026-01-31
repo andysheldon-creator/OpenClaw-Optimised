@@ -79,7 +79,7 @@ function parseMessageContent(
         return { content, text: undefined };
     }
   } catch (error) {
-    console.warn(`feishu: failed to parse message content: ${error}`);
+    console.warn(`feishu: failed to parse message content: ${String(error)}`);
     return { content: contentStr, text: undefined };
   }
 }
@@ -247,7 +247,7 @@ export async function buildFeishuMessageContext(
 
     return messageContext;
   } catch (error) {
-    console.warn(`feishu: failed to build message context: ${error}`);
+    console.warn(`feishu: failed to build message context: ${String(error)}`);
     return null;
   }
 }

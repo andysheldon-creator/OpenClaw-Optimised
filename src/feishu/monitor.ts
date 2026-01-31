@@ -161,7 +161,7 @@ export async function monitorFeishuProvider(
           runtimeState.accounts.get(accountId)!.connected = true;
           logVerbose(`feishu: long connection established for "${accountId}"`);
         } catch (error) {
-          console.error(`feishu: failed to start long connection for "${accountId}": ${error}`);
+          console.error(`feishu: failed to start long connection for "${accountId}": ${String(error)}`);
         }
       }
 
@@ -183,7 +183,7 @@ export async function monitorFeishuProvider(
 
       logVerbose(`feishu: account "${accountId}" initialized (connected: ${probeResult.ok})`);
     } catch (error) {
-      console.error(`feishu: failed to initialize account "${accountId}": ${error}`);
+      console.error(`feishu: failed to initialize account "${accountId}": ${String(error)}`);
       runtimeState.accounts.set(accountId, {
         accountId,
         enabled: true,
@@ -216,13 +216,15 @@ export async function monitorFeishuProvider(
           state.connected = result.ok;
         }
       } catch (error) {
-        console.warn(`feishu: probe failed for "${accountId}": ${error}`);
+        console.warn(`feishu: probe failed for "${accountId}": ${String(error)}`);
       }
     }
   };
 
   if (probeIntervalMs > 0) {
-    probeInterval = setInterval(probeAll, probeIntervalMs);
+    probeInterval = setInterval(() => {
+      void probeAll();
+    }, probeIntervalMs);
   }
 
   return {

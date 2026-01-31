@@ -32,7 +32,7 @@ export interface FeishuWebhookHandler {
  * Create webhook handler for Feishu events
  */
 export function createFeishuWebhookHandler(
-  eventDispatcher: lark.EventDispatcher,
+  _eventDispatcher: lark.EventDispatcher,
 ): FeishuWebhookHandler {
   return async (req: IncomingMessage, res: ServerResponse) => {
     if (req.method !== "POST") {

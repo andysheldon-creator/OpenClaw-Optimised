@@ -125,7 +125,7 @@ async function handleMessageEvent(
   event: FeishuMessageReceiveEvent,
   context: FeishuHandlerContext,
 ): Promise<void> {
-  const { account, processMessage } = context;
+  const { processMessage } = context;
 
   // Check if we should process this event
   const { allowed, reason } = shouldProcessFeishuEvent(event, context);
@@ -146,7 +146,7 @@ async function handleMessageEvent(
   try {
     await processMessage(messageContext);
   } catch (error) {
-    console.warn(`feishu: error processing message: ${error}`);
+    console.warn(`feishu: error processing message: ${String(error)}`);
   }
 }
 

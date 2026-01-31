@@ -11,7 +11,7 @@ import {
     readStringParam,
 } from "../../../agents/tools/common.js";
 import { listEnabledFeishuAccounts, resolveFeishuAccount } from "../../../feishu/accounts.js";
-import { sendTextMessage, sendCardMessage, replyMessage } from "../../../feishu/send.js";
+import { sendTextMessage, replyMessage } from "../../../feishu/send.js";
 import type { ChannelMessageActionAdapter, ChannelMessageActionName } from "../types.js";
 
 const providerId = "feishu";

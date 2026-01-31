@@ -26,7 +26,7 @@ function readFileContent(filePath: string): string | undefined {
       return readFileSync(filePath, "utf-8").trim();
     }
   } catch (err) {
-    console.warn(`feishu: failed to read file ${filePath}: ${err}`);
+    console.warn(`feishu: failed to read file ${filePath}: ${String(err)}`);
   }
   return undefined;
 }
