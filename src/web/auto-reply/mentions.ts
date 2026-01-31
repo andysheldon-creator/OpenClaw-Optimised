@@ -39,7 +39,9 @@ export function resolveMentionTargets(msg: WebInboundMsg, authDir?: string): Men
  * Example: `98157853687950:5@lid` -> `98157853687950@lid`
  */
 function normalizeBareId(jid: string | null | undefined): string | null {
-  if (!jid) return null;
+  if (!jid) {
+    return null;
+  }
   return jid.replace(/:\d+(@)/, "$1");
 }
 
@@ -49,7 +51,9 @@ function normalizeBareId(jid: string | null | undefined): string | null {
  */
 function isReplyToBot(msg: WebInboundMsg, targets: MentionTargets): boolean {
   const replyToJid = msg.replyToSenderJid;
-  if (!replyToJid) return false;
+  if (!replyToJid) {
+    return false;
+  }
 
   const replyToJidBare = normalizeBareId(replyToJid);
 
