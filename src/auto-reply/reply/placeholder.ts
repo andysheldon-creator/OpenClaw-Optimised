@@ -35,53 +35,53 @@ export type PlaceholderController = {
   isActive: () => boolean;
 };
 
-const DEFAULT_MESSAGES = ["🤔 让我想想...", "💭 思考中...", "🧠 处理中..."];
+const DEFAULT_MESSAGES = ["🤔 Thinking...", "💭 Processing...", "🧠 Working on it..."];
 
 const DEFAULT_TOOL_FORMAT = "{emoji} {label}...";
 
 /** Map tool names to friendly labels and emojis */
 const TOOL_DISPLAY: Record<string, { emoji: string; label: string }> = {
   // Search & Web
-  web_search: { emoji: "🔍", label: "搜索中" },
-  web_fetch: { emoji: "🌐", label: "获取网页" },
-  browser: { emoji: "🖥️", label: "浏览网页" },
+  web_search: { emoji: "🔍", label: "Searching" },
+  web_fetch: { emoji: "🌐", label: "Fetching" },
+  browser: { emoji: "🖥️", label: "Browsing" },
 
   // File operations
-  Read: { emoji: "📖", label: "读取文件" },
-  Write: { emoji: "✍️", label: "写入文件" },
-  Edit: { emoji: "📝", label: "编辑文件" },
+  Read: { emoji: "📖", label: "Reading" },
+  Write: { emoji: "✍️", label: "Writing" },
+  Edit: { emoji: "📝", label: "Editing" },
 
   // Execution
-  exec: { emoji: "⚡", label: "执行命令" },
-  process: { emoji: "🔄", label: "处理中" },
+  exec: { emoji: "⚡", label: "Running" },
+  process: { emoji: "🔄", label: "Processing" },
 
   // Memory
-  memory_search: { emoji: "🧠", label: "搜索记忆" },
-  memory_get: { emoji: "💭", label: "回忆中" },
+  memory_search: { emoji: "🧠", label: "Searching memory" },
+  memory_get: { emoji: "💭", label: "Recalling" },
 
   // Messaging
-  message: { emoji: "💬", label: "发送消息" },
-  tts: { emoji: "🔊", label: "生成语音" },
+  message: { emoji: "💬", label: "Sending message" },
+  tts: { emoji: "🔊", label: "Generating audio" },
 
   // Sessions
-  sessions_spawn: { emoji: "🚀", label: "启动子任务" },
-  sessions_send: { emoji: "📤", label: "发送消息" },
-  sessions_list: { emoji: "📋", label: "查看会话" },
+  sessions_spawn: { emoji: "🚀", label: "Spawning task" },
+  sessions_send: { emoji: "📤", label: "Sending" },
+  sessions_list: { emoji: "📋", label: "Listing sessions" },
 
   // Image
-  image: { emoji: "🖼️", label: "分析图片" },
+  image: { emoji: "🖼️", label: "Analyzing image" },
 
   // Cron
-  cron: { emoji: "⏰", label: "设置定时" },
+  cron: { emoji: "⏰", label: "Scheduling" },
 
   // Gateway
-  gateway: { emoji: "🔧", label: "配置网关" },
+  gateway: { emoji: "🔧", label: "Configuring" },
 
   // Nodes
-  nodes: { emoji: "📱", label: "控制设备" },
+  nodes: { emoji: "📱", label: "Controlling device" },
 
   // Canvas
-  canvas: { emoji: "🎨", label: "渲染画布" },
+  canvas: { emoji: "🎨", label: "Rendering" },
 };
 
 function getToolDisplay(toolName: string): { emoji: string; label: string } {
