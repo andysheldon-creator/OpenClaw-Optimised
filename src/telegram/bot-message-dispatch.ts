@@ -251,6 +251,17 @@ export const dispatchTelegramMessage = async ({
         });
         if (result.delivered) {
           deliveryState.delivered = true;
+          // Trigger message:sent hook (Luna's patch)
+          if (info.kind === "final" && payload.text) {
+            const sentHookEvent = createInternalHookEvent("message", "sent", route.sessionKey ?? "", {
+              channel: "telegram",
+              chatId,
+              text: payload.text,
+              isGroup,
+              timestamp: new Date(),
+            });
+            await triggerInternalHook(sentHookEvent);
+          }
         }
       },
       onSkip: (_payload, info) => {
