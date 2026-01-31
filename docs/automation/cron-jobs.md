@@ -253,7 +253,7 @@ openclaw cron add \
 
 Isolated job with model and thinking override:
 
-````bash
+```bash
 openclaw cron add \
   --name "Deep analysis" \
   --cron "0 6 * * 1" \
@@ -265,8 +265,10 @@ openclaw cron add \
   --deliver \
   --channel whatsapp \
   --to "+15551234567"
+```
 
 Agent selection (multi-agent setups):
+
 ```bash
 # Pin a job to agent "ops" (falls back to default if that agent is missing)
 openclaw cron add --name "Ops sweep" --cron "0 6 * * *" --session isolated --message "Check ops queue" --agent ops
@@ -274,14 +276,13 @@ openclaw cron add --name "Ops sweep" --cron "0 6 * * *" --session isolated --mes
 # Switch or clear the agent on an existing job
 openclaw cron edit <jobId> --agent ops
 openclaw cron edit <jobId> --clear-agent
-````
-
-````
+```
 
 Manual run (debug):
+
 ```bash
 openclaw cron run <jobId> --force
-````
+```
 
 Edit an existing job (patch fields):
 
