@@ -1,6 +1,7 @@
 import { html, nothing } from "lit";
 
 import type { LogEntry, LogLevel } from "../types";
+import { renderErrorCallout } from "./error-callout";
 
 const LEVELS: LogLevel[] = ["trace", "debug", "info", "warn", "error", "fatal"];
 
@@ -112,9 +113,7 @@ export function renderLogs(props: LogsProps) {
             Log output truncated; showing latest chunk.
           </div>`
         : nothing}
-      ${props.error
-        ? html`<div class="callout danger" style="margin-top: 10px;">${props.error}</div>`
-        : nothing}
+      ${renderErrorCallout(props.error, { style: "margin-top: 10px;" })}
 
       <div class="log-stream" style="margin-top: 12px;" @scroll=${props.onScroll}>
         ${filtered.length === 0

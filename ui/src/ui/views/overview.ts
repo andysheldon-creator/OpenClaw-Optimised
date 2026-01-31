@@ -4,6 +4,7 @@ import type { GatewayHelloOk } from "../gateway";
 import { formatAgo, formatDurationMs } from "../format";
 import { formatNextRun } from "../presenter";
 import type { UiSettings } from "../storage";
+import { renderErrorBody } from "./error-callout";
 
 export type OverviewProps = {
   connected: boolean;
@@ -203,7 +204,7 @@ export function renderOverview(props: OverviewProps) {
         </div>
         ${props.lastError
           ? html`<div class="callout danger" style="margin-top: 14px;">
-              <div>${props.lastError}</div>
+              ${renderErrorBody(props.lastError)}
               ${authHint ?? ""}
               ${insecureContextHint ?? ""}
             </div>`
