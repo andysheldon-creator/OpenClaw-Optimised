@@ -384,12 +384,19 @@ describe("handleTelegramAction", () => {
       "New Topic",
       expect.objectContaining({ token: "tok", iconColor: 0x6fb9f0 }),
     );
+    const payload = {
+      ok: true,
+      threadId: 123,
+      name: "New Topic",
+    };
     expect(result).toEqual({
-      json: {
-        ok: true,
-        threadId: 123,
-        name: "New Topic",
-      },
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(payload, null, 2),
+        },
+      ],
+      details: payload,
     });
   });
 

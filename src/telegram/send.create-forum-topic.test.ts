@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createForumTopicTelegram } from "./send.js";
-import { Bot, HttpError } from "grammy";
+import { Bot } from "grammy";
 import { type ForumTopic } from "@grammyjs/types";
 
 vi.mock("../config/config.js", () => ({
@@ -26,8 +26,9 @@ vi.mock("./api-logging.js", () => ({
 }));
 
 describe("createForumTopicTelegram", () => {
+  const createForumTopicMock = vi.fn();
   const mockApi = {
-    createForumTopic: vi.fn(),
+    createForumTopic: createForumTopicMock,
   } as unknown as Bot["api"];
 
   beforeEach(() => {
@@ -40,14 +41,14 @@ describe("createForumTopicTelegram", () => {
       name: "Test Topic",
       icon_color: 0x6fb9f0,
     };
-    (mockApi.createForumTopic as any).mockResolvedValue(mockResult);
+    createForumTopicMock.mockResolvedValue(mockResult);
 
     const result = await createForumTopicTelegram("123", "Test Topic", {
       api: mockApi,
       token: "tok",
     });
 
-    expect(mockApi.createForumTopic).toHaveBeenCalledWith("123", "Test Topic", undefined);
+    expect(createForumTopicMock).toHaveBeenCalledWith("123", "Test Topic", undefined);
     expect(result).toEqual({
       threadId: 123,
       name: "Test Topic",
@@ -61,7 +62,7 @@ describe("createForumTopicTelegram", () => {
       name: "Emoji Topic",
       icon_custom_emoji_id: "emoji123",
     };
-    (mockApi.createForumTopic as any).mockResolvedValue(mockResult);
+    createForumTopicMock.mockResolvedValue(mockResult);
 
     await createForumTopicTelegram("123", "Emoji Topic", {
       api: mockApi,
@@ -70,14 +71,14 @@ describe("createForumTopicTelegram", () => {
       iconCustomEmojiId: "emoji123",
     });
 
-    expect(mockApi.createForumTopic).toHaveBeenCalledWith("123", "Emoji Topic", {
+    expect(createForumTopicMock).toHaveBeenCalledWith("123", "Emoji Topic", {
       icon_custom_emoji_id: "emoji123",
     });
   });
 
   it("wraps chat not found error", async () => {
     const error = new Error("400: Bad Request: chat not found");
-    (mockApi.createForumTopic as any).mockRejectedValue(error);
+    createForumTopicMock.mockRejectedValue(error);
 
     await expect(
       createForumTopicTelegram("123", "Error Topic", {
@@ -89,7 +90,7 @@ describe("createForumTopicTelegram", () => {
 
   it("wraps missing rights error", async () => {
     const error = new Error("400: Bad Request: not enough rights");
-    (mockApi.createForumTopic as any).mockRejectedValue(error);
+    createForumTopicMock.mockRejectedValue(error);
 
     await expect(
       createForumTopicTelegram("123", "Error Topic", {
