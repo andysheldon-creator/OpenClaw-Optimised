@@ -34,7 +34,7 @@ function estimatePromptTokens(prompt?: string): number | undefined {
   if (!trimmed) {
     return undefined;
   }
-  const message: AgentMessage = { role: "user", content: trimmed };
+  const message: AgentMessage = { role: "user", content: trimmed, timestamp: Date.now() };
   const tokens = estimateMessagesTokens([message]);
   if (!Number.isFinite(tokens) || tokens <= 0) {
     return undefined;
