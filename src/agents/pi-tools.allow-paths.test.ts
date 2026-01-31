@@ -477,6 +477,44 @@ describe("tool allowPaths", () => {
     });
   });
 
+  it("allows agent allowPaths when global security is full", async () => {
+    await withTempDir("openclaw-allowpaths-global-full-", async (workspaceDir) => {
+      const globalDir = path.join(workspaceDir, "global");
+      const otherDir = path.join(workspaceDir, "other");
+      await fs.mkdir(globalDir);
+      await fs.mkdir(otherDir);
+
+      await fs.writeFile(path.join(otherDir, "read.txt"), "other read", "utf8");
+
+      const cfg: OpenClawConfig = {
+        tools: {
+          read: { security: "full", allowPaths: [globalDir] },
+        },
+        agents: {
+          list: [
+            {
+              id: "restricted",
+              tools: {
+                read: { security: "allowlist", allowPaths: [otherDir] },
+              },
+            },
+          ],
+        },
+      };
+
+      const tools = createOpenClawCodingTools({
+        config: cfg,
+        sessionKey: "agent:restricted:main",
+        workspaceDir,
+      });
+      const readTool = tools.find((tool) => tool.name === "read");
+      expect(readTool).toBeDefined();
+
+      const readResult = await readTool?.execute("allow-read", { path: "other/read.txt" });
+      expect(getTextContent(readResult)).toContain("other read");
+    });
+  });
+
   it("rejects allowlist security without allowPaths", () => {
     const toolsResult = ToolsSchema.safeParse({
       read: { security: "allowlist", allowPaths: [] },

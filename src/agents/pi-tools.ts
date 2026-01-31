@@ -108,9 +108,18 @@ function resolveExecConfig(cfg: OpenClawConfig | undefined) {
   };
 }
 
-function pickAllowPaths(agentPaths?: string[], globalPaths?: string[], cwd?: string) {
+function pickAllowPaths(
+  agentPaths?: string[],
+  globalPaths?: string[],
+  cwd?: string,
+  agentSecurity?: FileToolSecurity,
+  globalSecurity?: FileToolSecurity,
+) {
   if (!Array.isArray(agentPaths)) {
     return Array.isArray(globalPaths) ? globalPaths : undefined;
+  }
+  if (globalSecurity !== "allowlist" || agentSecurity !== "allowlist") {
+    return agentPaths;
   }
   if (!Array.isArray(globalPaths)) {
     return agentPaths;
@@ -249,6 +258,8 @@ export function createOpenClawCodingTools(options?: {
     agentToolsConfig?.read?.allowPaths,
     globalToolsConfig?.read?.allowPaths,
     workspaceRoot,
+    agentToolsConfig?.read?.security,
+    globalToolsConfig?.read?.security,
   );
   const readDenyPaths = pickDenyPaths(
     agentToolsConfig?.read?.denyPaths,
@@ -260,6 +271,8 @@ export function createOpenClawCodingTools(options?: {
     agentToolsConfig?.write?.allowPaths,
     globalToolsConfig?.write?.allowPaths,
     workspaceRoot,
+    agentToolsConfig?.write?.security,
+    globalToolsConfig?.write?.security,
   );
   const writeDenyPaths = pickDenyPaths(
     agentToolsConfig?.write?.denyPaths,
@@ -271,6 +284,8 @@ export function createOpenClawCodingTools(options?: {
     agentToolsConfig?.edit?.allowPaths,
     globalToolsConfig?.edit?.allowPaths,
     workspaceRoot,
+    agentToolsConfig?.edit?.security,
+    globalToolsConfig?.edit?.security,
   );
   const editDenyPaths = pickDenyPaths(
     agentToolsConfig?.edit?.denyPaths,
