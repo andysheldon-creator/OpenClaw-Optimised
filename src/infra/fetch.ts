@@ -13,7 +13,9 @@ function sanitizeHeaderValue(value: string): string {
       break;
     }
   }
-  if (isClean) return value; // eslint-disable-line no-control-regex
+  if (isClean) {
+    return value;
+  } // eslint-disable-line no-control-regex
 
   // Node's undici fetch crashes on header values > 255 (ByteString).
   // We sanitize them by replacing non-latin1 chars with '?'.
@@ -21,7 +23,9 @@ function sanitizeHeaderValue(value: string): string {
 }
 
 function sanitizeHeaders(init?: RequestInit): RequestInit | undefined {
-  if (!init || !init.headers) return init;
+  if (!init || !init.headers) {
+    return init;
+  }
 
   if (typeof Headers !== "undefined" && init.headers instanceof Headers) {
     // Headers object: iterate
@@ -75,7 +79,9 @@ function sanitizeHeaders(init?: RequestInit): RequestInit | undefined {
     if (typeof v === "string") {
       const s = sanitizeHeaderValue(v);
       if (s !== v) {
-        if (!nextRec) nextRec = { ...rec };
+        if (!nextRec) {
+          nextRec = { ...rec };
+        }
         nextRec[k] = s;
       }
     }
