@@ -47,4 +47,4 @@ fi
 mkdir -p "${OPENCLAW_WORKSPACE_DIR:-/data/workspace}"
 
 # Start the gateway
-exec node --max-old-space-size=768 dist/index.js gateway --port "${PORT:-8080}" --bind lan
+exec node --max-old-space-size=768 dist/index.js gateway --port "${PORT:-8080}" --bind lan --allow-unconfigured
