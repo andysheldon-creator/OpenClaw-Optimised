@@ -43,8 +43,8 @@ services:
         value: /data/.openclaw
       - key: OPENCLAW_WORKSPACE_DIR
         value: /data/workspace
-      - key: OPENCLAW_GATEWAY_TOKEN
-        generateValue: true  # auto-generates a secure token
+      - key: OPENCLAW_GATEWAY_PASSWORD
+        sync: false          # prompts during deploy
     disk:
       name: openclaw-data
       mountPath: /data
@@ -58,8 +58,7 @@ Key Blueprint features used:
 | `runtime: docker` | Builds from the repo's Dockerfile |
 | `dockerCommand` | Starts the gateway with cloud-friendly defaults |
 | `healthCheckPath` | Render monitors `/health` and restarts unhealthy instances |
-| `sync: false` | Prompts for value during deploy (secrets) |
-| `generateValue: true` | Auto-generates a cryptographically secure value |
+| `sync: false` | Prompts for secrets during deploy (SETUP_PASSWORD, OPENCLAW_GATEWAY_PASSWORD) |
 | `disk` | Persistent storage that survives redeploys |
 
 ## Choosing a plan
@@ -85,7 +84,7 @@ The Blueprint defaults to `standard`. Starter plan (512MB RAM) does not have eno
 
 ### Access the Control UI
 
-The web dashboard is available at `https://<your-service>.onrender.com/openclaw`.
+The web dashboard is available at `https://<your-service>.onrender.com/openclaw`. When prompted, enter the `OPENCLAW_GATEWAY_PASSWORD` you set during deploy.
 
 ## Render Dashboard features
 
