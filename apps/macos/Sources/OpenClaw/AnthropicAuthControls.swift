@@ -108,9 +108,10 @@ struct AnthropicAuthControls: View {
                         Task { await self.finishOAuth() }
                     }
                     .buttonStyle(.bordered)
-                    .disabled(self.busy || self.connectionMode != .local || self.code
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                        .isEmpty)
+                    .disabled(
+                        self.busy || self.connectionMode != .local || self.code
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                            .isEmpty)
                 }
             }
 

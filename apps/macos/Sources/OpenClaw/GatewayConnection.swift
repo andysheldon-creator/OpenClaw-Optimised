@@ -1,7 +1,7 @@
+import Foundation
 import OpenClawChatUI
 import OpenClawKit
 import OpenClawProtocol
-import Foundation
 import OSLog
 
 private let gatewayConnectionLogger = Logger(subsystem: "ai.openclaw", category: "gateway.connection")
@@ -344,9 +344,11 @@ actor GatewayConnection {
             trimmed == "main" ||
             (!mainKey.isEmpty && trimmed == mainKey) ||
             trimmed == mainSessionKey ||
-            (!defaultAgentId.isEmpty &&
-                (trimmed == "agent:\(defaultAgentId):main" ||
-                    (mainKey.isEmpty == false && trimmed == "agent:\(defaultAgentId):\(mainKey)")))
+            (
+                !defaultAgentId.isEmpty &&
+                    (
+                        trimmed == "agent:\(defaultAgentId):main" ||
+                            (mainKey.isEmpty == false && trimmed == "agent:\(defaultAgentId):\(mainKey)")))
         return isMainAlias ? mainSessionKey : trimmed
     }
 

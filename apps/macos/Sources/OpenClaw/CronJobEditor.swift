@@ -1,5 +1,5 @@
-import OpenClawProtocol
 import Observation
+import OpenClawProtocol
 import SwiftUI
 
 struct CronJobEditor: View {
@@ -16,7 +16,8 @@ struct CronJobEditor: View {
             + "Use an isolated session for agent turns so your main chat stays clean."
     static let sessionTargetNote =
         "Main jobs post a system event into the current main session. "
-            + "Isolated jobs run OpenClaw in a dedicated session and can deliver results (WhatsApp/Telegram/Discord/etc)."
+            +
+            "Isolated jobs run OpenClaw in a dedicated session and can deliver results (WhatsApp/Telegram/Discord/etc)."
     static let scheduleKindNote =
         "“At” runs once, “Every” repeats with a duration, “Cron” uses a 5-field Unix expression."
     static let isolatedPayloadNote =
