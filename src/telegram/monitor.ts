@@ -28,7 +28,10 @@ export type MonitorTelegramOpts = {
   webhookUrl?: string;
 };
 
-export function createTelegramRunnerOptions(cfg: OpenClawConfig): RunOptions<unknown> {
+export function createTelegramRunnerOptions(
+  cfg: OpenClawConfig,
+  proxyFetch?: typeof fetch,
+): RunOptions<unknown> {
   return {
     sink: {
       concurrency: resolveAgentMaxConcurrent(cfg),
@@ -39,6 +42,8 @@ export function createTelegramRunnerOptions(cfg: OpenClawConfig): RunOptions<unk
         timeout: 30,
         // Request reactions without dropping default update types.
         allowed_updates: resolveTelegramAllowedUpdates(),
+        // Use proxy fetch if configured
+        ...(proxyFetch ? { fetcher: proxyFetch } : {}),
       },
       // Suppress grammY getUpdates stack traces; we log concise errors ourselves.
       silent: true,
@@ -167,7 +172,7 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
   let restartAttempts = 0;
 
   while (!opts.abortSignal?.aborted) {
-    const runner = run(bot, createTelegramRunnerOptions(cfg));
+    const runner = run(bot, createTelegramRunnerOptions(cfg, proxyFetch));
     const stopOnAbort = () => {
       if (opts.abortSignal?.aborted) {
         void runner.stop();
