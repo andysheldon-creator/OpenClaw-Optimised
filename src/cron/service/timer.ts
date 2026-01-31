@@ -378,6 +378,31 @@ export async function executeJob(
       deleted = true;
       emit(state, { jobId: job.id, action: "removed" });
     }
+
+    if (job.sessionTarget === "isolated") {
+      // Use job name as prefix if available, otherwise fall back to configured prefix or "Cron"
+      const prefix = job.isolation?.postToMainPrefix?.trim() || job.name?.trim() || "Cron";
+      const mode = job.isolation?.postToMainMode ?? "summary";
+
+      let body = (summary ?? err ?? status).trim();
+      if (mode === "full") {
+        // Prefer full agent output if available; fall back to summary.
+        const maxCharsRaw = job.isolation?.postToMainMaxChars;
+        const maxChars = Number.isFinite(maxCharsRaw) ? Math.max(0, maxCharsRaw as number) : 8000;
+        const fullText = (outputText ?? "").trim();
+        if (fullText) {
+          body = fullText.length > maxChars ? `${fullText.slice(0, maxChars)}…` : fullText;
+        }
+      }
+
+      const statusPrefix = status === "ok" ? prefix : `${prefix} (${status})`;
+      state.deps.enqueueSystemEvent(`${statusPrefix}: ${body}`, {
+        agentId: job.agentId,
+      });
+      if (job.wakeMode === "now") {
+        state.deps.requestHeartbeatNow({ reason: `cron:${job.id}:post` });
+      }
+    }
   };
 
   try {
