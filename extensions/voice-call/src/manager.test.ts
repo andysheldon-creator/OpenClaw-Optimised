@@ -3,6 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VoiceCallProvider } from "./providers/base.js";
 import type {
+  GetCallStatusInput,
+  GetCallStatusResult,
   HangupCallInput,
   InitiateCallInput,
   InitiateCallResult,
@@ -38,6 +40,9 @@ class FakeProvider implements VoiceCallProvider {
   }
   async startListening(_input: StartListeningInput): Promise<void> {}
   async stopListening(_input: StopListeningInput): Promise<void> {}
+  async getCallStatus(_input: GetCallStatusInput): Promise<GetCallStatusResult> {
+    return { status: "in-progress", isTerminal: false };
+  }
 }
 
 describe("CallManager", () => {
@@ -50,7 +55,7 @@ describe("CallManager", () => {
 
     const storePath = path.join(os.tmpdir(), `openclaw-voice-call-test-${Date.now()}`);
     const manager = new CallManager(config, storePath);
-    manager.initialize(new FakeProvider(), "https://example.com/voice/webhook");
+    await manager.initialize(new FakeProvider(), "https://example.com/voice/webhook");
 
     const { callId, success, error } = await manager.initiateCall("+15550000001");
     expect(success).toBe(true);
@@ -84,7 +89,7 @@ describe("CallManager", () => {
     const storePath = path.join(os.tmpdir(), `openclaw-voice-call-test-${Date.now()}`);
     const provider = new FakeProvider();
     const manager = new CallManager(config, storePath);
-    manager.initialize(provider, "https://example.com/voice/webhook");
+    await manager.initialize(provider, "https://example.com/voice/webhook");
 
     const { callId, success } = await manager.initiateCall("+15550000002", undefined, {
       message: "Hello there",
