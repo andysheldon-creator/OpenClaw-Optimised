@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import type { OpenClawConfig } from "../config/config.js";
+import type { ObaBlock, ObaVerificationResult } from "../security/oba/types.js";
 import { CONFIG_DIR } from "../utils.js";
 import {
   hasBinary,
@@ -60,6 +61,8 @@ export type SkillStatusEntry = {
   };
   configChecks: SkillStatusConfigCheck[];
   install: SkillInstallOption[];
+  oba?: ObaBlock;
+  obaVerification?: ObaVerificationResult;
 };
 
 export type SkillStatusReport = {
@@ -277,6 +280,8 @@ function buildSkillStatus(
     missing,
     configChecks,
     install: normalizeInstallOptions(entry, prefs ?? resolveSkillsInstallPreferences(config)),
+    oba: entry.oba,
+    obaVerification: entry.obaVerification,
   };
 }
 

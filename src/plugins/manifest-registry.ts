@@ -5,6 +5,7 @@ import { resolveUserPath } from "../utils.js";
 import { normalizePluginsConfig, type NormalizedPluginsConfig } from "./config-state.js";
 import { discoverOpenClawPlugins, type PluginCandidate } from "./discovery.js";
 import { loadPluginManifest, type PluginManifest } from "./manifest.js";
+import type { ObaBlock, ObaVerificationResult } from "../security/oba/types.js";
 import type { PluginConfigUiHint, PluginDiagnostic, PluginKind, PluginOrigin } from "./types.js";
 
 export type PluginManifestRecord = {
@@ -24,6 +25,8 @@ export type PluginManifestRecord = {
   schemaCacheKey?: string;
   configSchema?: Record<string, unknown>;
   configUiHints?: Record<string, PluginConfigUiHint>;
+  oba?: ObaBlock;
+  obaVerification?: ObaVerificationResult;
 };
 
 export type PluginManifestRegistry = {
@@ -104,6 +107,8 @@ function buildRecord(params: {
     schemaCacheKey: params.schemaCacheKey,
     configSchema: params.configSchema,
     configUiHints: params.manifest.uiHints,
+    oba: params.manifest.oba,
+    obaVerification: params.manifest.obaVerification,
   };
 }
 

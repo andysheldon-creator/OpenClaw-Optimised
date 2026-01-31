@@ -1,12 +1,17 @@
+import fs from "node:fs";
 import type { Command } from "commander";
+import JSON5 from "json5";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import {
   buildWorkspaceSkillStatus,
   type SkillStatusEntry,
   type SkillStatusReport,
 } from "../agents/skills-status.js";
+import { parseFrontmatter } from "../agents/skills/frontmatter.js";
 import { loadConfig } from "../config/config.js";
 import { defaultRuntime } from "../runtime.js";
+import type { ObaVerificationResult } from "../security/oba/types.js";
+import { verifyObaContainer, mapLimit } from "../security/oba/verify.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
@@ -17,15 +22,54 @@ export type SkillsListOptions = {
   json?: boolean;
   eligible?: boolean;
   verbose?: boolean;
+  verify?: boolean;
 };
 
 export type SkillInfoOptions = {
   json?: boolean;
+  verify?: boolean;
 };
 
 export type SkillsCheckOptions = {
   json?: boolean;
 };
+
+function formatObaBadge(verification?: ObaVerificationResult): string {
+  if (!verification || verification.status === "unsigned") {
+    return "";
+  }
+  switch (verification.status) {
+    case "signed":
+      return theme.muted("signed");
+    case "verified":
+      return theme.success("verified");
+    case "invalid":
+      return theme.error("invalid");
+    default:
+      return "";
+  }
+}
+
+async function runSkillVerification(skills: SkillStatusEntry[]): Promise<void> {
+  const verifiable = skills.filter((s) => s.oba);
+  await mapLimit(verifiable, 4, async (skill) => {
+    try {
+      const raw = fs.readFileSync(skill.filePath, "utf-8");
+      const frontmatter = parseFrontmatter(raw);
+      const metadataRaw = frontmatter.metadata;
+      if (!metadataRaw) {
+        return;
+      }
+      const parsed = JSON5.parse(metadataRaw);
+      if (!parsed || typeof parsed !== "object") {
+        return;
+      }
+      skill.obaVerification = await verifyObaContainer(parsed as Record<string, unknown>);
+    } catch {
+      skill.obaVerification = { status: "invalid", reason: "failed to read skill metadata" };
+    }
+  });
+}
 
 function appendClawHubHint(output: string, json?: boolean): string {
   if (json) {
@@ -35,16 +79,18 @@ function appendClawHubHint(output: string, json?: boolean): string {
 }
 
 function formatSkillStatus(skill: SkillStatusEntry): string {
+  let base: string;
   if (skill.eligible) {
-    return theme.success("✓ ready");
+    base = theme.success("✓ ready");
+  } else if (skill.disabled) {
+    base = theme.warn("⏸ disabled");
+  } else if (skill.blockedByAllowlist) {
+    base = theme.warn("🚫 blocked");
+  } else {
+    base = theme.error("✗ missing");
   }
-  if (skill.disabled) {
-    return theme.warn("⏸ disabled");
-  }
-  if (skill.blockedByAllowlist) {
-    return theme.warn("🚫 blocked");
-  }
-  return theme.error("✗ missing");
+  const badge = formatObaBadge(skill.obaVerification);
+  return badge ? `${base} ${badge}` : base;
 }
 
 function formatSkillName(skill: SkillStatusEntry): string {
@@ -93,6 +139,8 @@ export function formatSkillsList(report: SkillStatusReport, opts: SkillsListOpti
         primaryEnv: s.primaryEnv,
         homepage: s.homepage,
         missing: s.missing,
+        oba: s.oba,
+        obaVerification: s.obaVerification,
       })),
     };
     return JSON.stringify(jsonReport, null, 2);
@@ -191,6 +239,19 @@ export function formatSkillInfo(
   }
   if (skill.primaryEnv) {
     lines.push(`${theme.muted("  Primary env:")} ${skill.primaryEnv}`);
+  }
+
+  // Verification
+  if (skill.obaVerification && skill.obaVerification.status !== "unsigned") {
+    lines.push("");
+    lines.push(theme.heading("Verification:"));
+    lines.push(`${theme.muted("  OBA:")} ${formatObaBadge(skill.obaVerification)}`);
+    if (skill.obaVerification.ownerUrl) {
+      lines.push(`${theme.muted("  Owner:")} ${skill.obaVerification.ownerUrl}`);
+    }
+    if (skill.obaVerification.reason) {
+      lines.push(`${theme.muted("  Reason:")} ${skill.obaVerification.reason}`);
+    }
   }
 
   // Requirements
@@ -354,11 +415,15 @@ export function registerSkillsCli(program: Command) {
     .option("--json", "Output as JSON", false)
     .option("--eligible", "Show only eligible (ready to use) skills", false)
     .option("-v, --verbose", "Show more details including missing requirements", false)
+    .option("--verify", "Verify OBA signatures (requires network)", false)
     .action(async (opts) => {
       try {
         const config = loadConfig();
         const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
         const report = buildWorkspaceSkillStatus(workspaceDir, { config });
+        if (opts.verify) {
+          await runSkillVerification(report.skills);
+        }
         defaultRuntime.log(formatSkillsList(report, opts));
       } catch (err) {
         defaultRuntime.error(String(err));
@@ -371,11 +436,18 @@ export function registerSkillsCli(program: Command) {
     .description("Show detailed information about a skill")
     .argument("<name>", "Skill name")
     .option("--json", "Output as JSON", false)
+    .option("--verify", "Verify OBA signature (requires network)", false)
     .action(async (name, opts) => {
       try {
         const config = loadConfig();
         const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
         const report = buildWorkspaceSkillStatus(workspaceDir, { config });
+        if (opts.verify) {
+          const target = report.skills.filter((s) => s.name === name || s.skillKey === name);
+          if (target.length > 0) {
+            await runSkillVerification(target);
+          }
+        }
         defaultRuntime.log(formatSkillInfo(report, name, opts));
       } catch (err) {
         defaultRuntime.error(String(err));

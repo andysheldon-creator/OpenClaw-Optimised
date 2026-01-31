@@ -7,6 +7,7 @@ import type {
 } from "../gateway/server-methods/types.js";
 import { registerInternalHook } from "../hooks/internal-hooks.js";
 import { resolveUserPath } from "../utils.js";
+import type { ObaBlock, ObaVerificationResult } from "../security/oba/types.js";
 import type {
   OpenClawPluginApi,
   OpenClawPluginChannelRegistration,
@@ -119,6 +120,9 @@ export type PluginRecord = {
   configSchema: boolean;
   configUiHints?: Record<string, PluginConfigUiHint>;
   configJsonSchema?: Record<string, unknown>;
+  manifestPath?: string;
+  oba?: ObaBlock;
+  obaVerification?: ObaVerificationResult;
 };
 
 export type PluginRegistry = {

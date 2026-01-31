@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { MANIFEST_KEY } from "../compat/legacy-names.js";
+import { classifyObaOffline } from "../security/oba/extract.js";
+import type { ObaBlock, ObaVerificationResult } from "../security/oba/types.js";
 import type { PluginConfigUiHint, PluginKind } from "./types.js";
 
 export const PLUGIN_MANIFEST_FILENAME = "openclaw.plugin.json";
@@ -18,6 +20,8 @@ export type PluginManifest = {
   description?: string;
   version?: string;
   uiHints?: Record<string, PluginConfigUiHint>;
+  oba?: ObaBlock;
+  obaVerification?: ObaVerificationResult;
 };
 
 export type PluginManifestLoadResult =
@@ -85,6 +89,8 @@ export function loadPluginManifest(rootDir: string): PluginManifestLoadResult {
     uiHints = raw.uiHints as Record<string, PluginConfigUiHint>;
   }
 
+  const { oba, verification: obaVerification } = classifyObaOffline(raw.oba);
+
   return {
     ok: true,
     manifest: {
@@ -98,6 +104,8 @@ export function loadPluginManifest(rootDir: string): PluginManifestLoadResult {
       description,
       version,
       uiHints,
+      oba,
+      obaVerification,
     },
     manifestPath,
   };
