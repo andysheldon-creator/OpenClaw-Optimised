@@ -65,6 +65,8 @@ export type MoltbotConfig = {
   };
   browser?: BrowserConfig;
   ui?: {
+    /** UI language locale ("en" or "zh-CN"). */
+    locale?: "en" | "zh-CN";
     /** Accent color for Moltbot UI chrome (hex). */
     seamColor?: string;
     assistant?: {

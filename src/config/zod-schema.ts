@@ -168,6 +168,7 @@ export const MoltbotSchema = z
       .optional(),
     ui: z
       .object({
+        locale: z.enum(["en", "zh-CN"]).optional(),
         seamColor: HexColorSchema.optional(),
         assistant: z
           .object({
