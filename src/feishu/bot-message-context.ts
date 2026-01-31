@@ -196,10 +196,7 @@ export async function buildFeishuMessageContext(
 
     // Get sender ID
     const senderId =
-      sender.sender_id?.open_id ??
-      sender.sender_id?.user_id ??
-      sender.sender_id?.union_id ??
-      "";
+      sender.sender_id?.open_id ?? sender.sender_id?.user_id ?? sender.sender_id?.union_id ?? "";
 
     // Build mentions array
     const mentions = (message.mentions ?? []).map((m) => ({
@@ -242,7 +239,7 @@ export async function buildFeishuMessageContext(
 
     logVerbose(
       `feishu: built context for message ${message.message_id} ` +
-      `(type: ${message.message_type}, chat: ${message.chat_type})`,
+        `(type: ${message.message_type}, chat: ${message.chat_type})`,
     );
 
     return messageContext;

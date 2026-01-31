@@ -7,11 +7,7 @@ import type * as lark from "@larksuiteoapi/node-sdk";
 
 import { logVerbose } from "../globals.js";
 
-import type {
-  FeishuCardContent,
-  FeishuPostContent,
-  FeishuSendResult,
-} from "./types.js";
+import type { FeishuCardContent, FeishuPostContent, FeishuSendResult } from "./types.js";
 
 export type ReceiveIdType = "open_id" | "user_id" | "union_id" | "email" | "chat_id";
 

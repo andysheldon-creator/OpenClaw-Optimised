@@ -172,8 +172,8 @@ export function resolveFeishuAccount(params: ResolveFeishuAccountParams): Resolv
   if (!appId || !appSecret) {
     throw new Error(
       `feishu: no credentials found for account "${accountId}". ` +
-      `Please set appId/appSecret in config, FEISHU_APP_ID/FEISHU_APP_SECRET env vars, ` +
-      `or appIdFile/appSecretFile in config.`,
+        `Please set appId/appSecret in config, FEISHU_APP_ID/FEISHU_APP_SECRET env vars, ` +
+        `or appIdFile/appSecretFile in config.`,
     );
   }
 

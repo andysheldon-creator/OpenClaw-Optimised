@@ -59,10 +59,7 @@ export function shouldProcessFeishuEvent(
   const config = account.config;
 
   const chatType = event.message.chat_type;
-  const senderId =
-    event.sender.sender_id?.open_id ??
-    event.sender.sender_id?.user_id ??
-    "";
+  const senderId = event.sender.sender_id?.open_id ?? event.sender.sender_id?.user_id ?? "";
   const chatId = event.message.chat_id;
 
   // Skip messages from apps (bots)

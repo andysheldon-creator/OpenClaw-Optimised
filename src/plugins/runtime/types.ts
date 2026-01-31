@@ -173,7 +173,8 @@ type ListFeishuAccountIds = typeof import("../../feishu/accounts.js").listFeishu
 type ResolveDefaultFeishuAccountId =
   typeof import("../../feishu/accounts.js").resolveDefaultFeishuAccountId;
 type ResolveFeishuAccount = typeof import("../../feishu/accounts.js").resolveFeishuAccount;
-type ListEnabledFeishuAccounts = typeof import("../../feishu/accounts.js").listEnabledFeishuAccounts;
+type ListEnabledFeishuAccounts =
+  typeof import("../../feishu/accounts.js").listEnabledFeishuAccounts;
 type NormalizeFeishuAccountId = typeof import("../../feishu/accounts.js").normalizeAccountId;
 type ProbeFeishuBot = typeof import("../../feishu/probe.js").probeFeishuBot;
 type SendMessageFeishu = typeof import("../../feishu/send.js").sendTextMessage;

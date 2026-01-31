@@ -152,7 +152,10 @@ import {
   listEnabledFeishuAccounts,
 } from "../../feishu/accounts.js";
 import { probeFeishuBot } from "../../feishu/probe.js";
-import { sendTextMessage as sendMessageFeishu, replyMessage as replyMessageFeishu } from "../../feishu/send.js";
+import {
+  sendTextMessage as sendMessageFeishu,
+  replyMessage as replyMessageFeishu,
+} from "../../feishu/send.js";
 import { monitorFeishuProvider } from "../../feishu/monitor.js";
 import { feishuMessageActions } from "../../channels/plugins/actions/feishu.js";
 

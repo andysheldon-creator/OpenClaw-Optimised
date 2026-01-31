@@ -112,10 +112,10 @@ export async function monitorFeishuProvider(
   if (accountIds.length === 0) {
     logVerbose("feishu: no accounts configured");
     return {
-      stop: () => { },
+      stop: () => {},
       getState: () => runtimeState!,
       getAccount: () => undefined,
-      probeAll: async () => { },
+      probeAll: async () => {},
     };
   }
 
@@ -161,7 +161,9 @@ export async function monitorFeishuProvider(
           runtimeState.accounts.get(accountId)!.connected = true;
           logVerbose(`feishu: long connection established for "${accountId}"`);
         } catch (error) {
-          console.error(`feishu: failed to start long connection for "${accountId}": ${String(error)}`);
+          console.error(
+            `feishu: failed to start long connection for "${accountId}": ${String(error)}`,
+          );
         }
       }
 
@@ -202,7 +204,7 @@ export async function monitorFeishuProvider(
 
   const probeAll = async () => {
     for (const [accountId, account] of resolvedAccounts) {
-      if (!account.enabled) continue;
+      if (!account.enabled) {continue;}
 
       try {
         const result = await probeFeishuBot(account);
