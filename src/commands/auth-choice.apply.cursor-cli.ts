@@ -58,7 +58,7 @@ export async function applyAuthChoiceCursorCli(
   }
 
   // Check if already authenticated
-  const creds = await readCursorCliCredentials();
+  const creds = readCursorCliCredentials();
   if (!creds) {
     // Prompt user to run cursor agent login
     const completed = await runCursorAgentLogin(params);
@@ -71,7 +71,7 @@ export async function applyAuthChoiceCursorCli(
     }
 
     // Verify credentials after login
-    const credsAfterLogin = await readCursorCliCredentials();
+    const credsAfterLogin = readCursorCliCredentials();
     if (!credsAfterLogin) {
       await params.prompter.note(
         [
