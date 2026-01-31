@@ -51,6 +51,11 @@ const optionNamesAdd = [
   "groupChannels",
   "dmAllowlist",
   "autoDiscoverChannels",
+  // Universal IM specific
+  "outboundUrl",
+  "provider",
+  "transport",
+  "dmPolicy",
 ] as const;
 
 const optionNamesRemove = ["channel", "account", "delete"] as const;
@@ -189,6 +194,11 @@ export function registerChannelsCli(program: Command) {
     .option("--auto-discover-channels", "Tlon auto-discover group channels")
     .option("--no-auto-discover-channels", "Disable Tlon auto-discovery")
     .option("--use-env", "Use env token (default account only)", false)
+    // Universal IM specific options
+    .option("--outbound-url <url>", "Outbound URL for sending AI responses (Universal IM)")
+    .option("--provider <provider>", "Provider type (Universal IM: custom)")
+    .option("--transport <transport>", "Transport type (Universal IM: webhook/websocket/polling)")
+    .option("--dm-policy <policy>", "DM policy (pairing/allowlist/open/disabled)")
     .action(async (opts, command) => {
       await runChannelsCommand(async () => {
         const hasFlags = hasExplicitOptions(command, optionNamesAdd);

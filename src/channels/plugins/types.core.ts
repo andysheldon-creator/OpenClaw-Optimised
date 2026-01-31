@@ -48,6 +48,11 @@ export type ChannelSetupInput = {
   groupChannels?: string[];
   dmAllowlist?: string[];
   autoDiscoverChannels?: boolean;
+  // Universal IM specific options
+  outboundUrl?: string;
+  provider?: string;
+  transport?: string;
+  dmPolicy?: string;
 };
 
 export type ChannelStatusIssue = {

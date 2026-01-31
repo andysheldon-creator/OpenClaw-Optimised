@@ -52,6 +52,11 @@ export function applyChannelAccountConfig(params: {
   groupChannels?: string[];
   dmAllowlist?: string[];
   autoDiscoverChannels?: boolean;
+  // Universal IM specific
+  outboundUrl?: string;
+  provider?: string;
+  transport?: string;
+  dmPolicy?: string;
 }): OpenClawConfig {
   const accountId = normalizeAccountId(params.accountId);
   const plugin = getChannelPlugin(params.channel);
@@ -89,6 +94,11 @@ export function applyChannelAccountConfig(params: {
     groupChannels: params.groupChannels,
     dmAllowlist: params.dmAllowlist,
     autoDiscoverChannels: params.autoDiscoverChannels,
+    // Universal IM specific
+    outboundUrl: params.outboundUrl,
+    provider: params.provider,
+    transport: params.transport,
+    dmPolicy: params.dmPolicy,
   };
   return apply({ cfg: params.cfg, accountId, input });
 }

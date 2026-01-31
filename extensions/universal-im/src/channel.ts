@@ -222,7 +222,16 @@ export const universalImPlugin: ChannelPlugin<ResolvedUniversalImAccount> = {
         name,
       }),
     validateInput: ({ accountId, input }) => {
-      // Minimal validation - most config is optional
+      // Validate transport type if provided
+      const transport = input.transport;
+      if (transport && !["webhook", "websocket", "polling"].includes(transport)) {
+        return `Invalid transport "${transport}". Must be one of: webhook, websocket, polling.`;
+      }
+      // Validate dmPolicy if provided
+      const dmPolicy = input.dmPolicy;
+      if (dmPolicy && !["pairing", "allowlist", "open", "disabled"].includes(dmPolicy)) {
+        return `Invalid dmPolicy "${dmPolicy}". Must be one of: pairing, allowlist, open, disabled.`;
+      }
       return null;
     },
     applyAccountConfig: ({ cfg, accountId, input }) => {
@@ -240,8 +249,12 @@ export const universalImPlugin: ChannelPlugin<ResolvedUniversalImAccount> = {
             })
           : namedConfig;
 
-      const webhookUrl = input.webhookUrl?.trim();
+      // Support both --webhook-url and --outbound-url for outbound URL
+      const outboundUrl = (input.outboundUrl ?? input.webhookUrl)?.trim();
       const webhookPath = input.webhookPath?.trim();
+      const provider = input.provider?.trim();
+      const transport = input.transport?.trim() as "webhook" | "websocket" | "polling" | undefined;
+      const dmPolicy = input.dmPolicy?.trim() as "pairing" | "allowlist" | "open" | "disabled" | undefined;
 
       if (accountId === DEFAULT_ACCOUNT_ID) {
         return {
@@ -251,11 +264,15 @@ export const universalImPlugin: ChannelPlugin<ResolvedUniversalImAccount> = {
             "universal-im": {
               ...next.channels?.["universal-im"],
               enabled: true,
+              ...(provider ? { provider } : {}),
+              ...(transport ? { transport } : {}),
+              ...(dmPolicy ? { dmPolicy } : {}),
+              ...(dmPolicy === "open" ? { allowFrom: ["*"] } : {}),
               ...(webhookPath
                 ? { webhook: { ...next.channels?.["universal-im"]?.webhook, path: webhookPath } }
                 : {}),
-              ...(webhookUrl
-                ? { outbound: { ...next.channels?.["universal-im"]?.outbound, url: webhookUrl } }
+              ...(outboundUrl
+                ? { outbound: { ...next.channels?.["universal-im"]?.outbound, url: outboundUrl } }
                 : {}),
             },
           },
@@ -273,6 +290,10 @@ export const universalImPlugin: ChannelPlugin<ResolvedUniversalImAccount> = {
               [accountId]: {
                 ...next.channels?.["universal-im"]?.accounts?.[accountId],
                 enabled: true,
+                ...(provider ? { provider } : {}),
+                ...(transport ? { transport } : {}),
+                ...(dmPolicy ? { dmPolicy } : {}),
+                ...(dmPolicy === "open" ? { allowFrom: ["*"] } : {}),
                 ...(webhookPath
                   ? {
                       webhook: {
@@ -281,11 +302,11 @@ export const universalImPlugin: ChannelPlugin<ResolvedUniversalImAccount> = {
                       },
                     }
                   : {}),
-                ...(webhookUrl
+                ...(outboundUrl
                   ? {
                       outbound: {
                         ...next.channels?.["universal-im"]?.accounts?.[accountId]?.outbound,
-                        url: webhookUrl,
+                        url: outboundUrl,
                       },
                     }
                   : {}),
