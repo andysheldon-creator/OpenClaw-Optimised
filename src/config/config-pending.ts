@@ -42,8 +42,8 @@ export interface PendingMarkerOptions {
   timeoutMs?: number;
   reason?: string;
   sessionKey?: string;
-  /** Also backup dist/ for code rollback */
-  backupDist?: boolean;
+  /** Include dist in rollback (uses last-known-good backup) */
+  includeDistRollback?: boolean;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -113,12 +113,17 @@ export async function writePendingMarker(opts: PendingMarkerOptions = {}): Promi
     // Continue anyway - we'll still write the marker
   }
 
-  // Optionally backup dist for code rollback
+  // Check if we should include dist in rollback (uses existing last-known-good backup)
   let distBackupPath: string | undefined;
-  if (opts.backupDist) {
-    const backed = await backupDist();
-    if (backed) {
-      distBackupPath = backed;
+  if (opts.includeDistRollback) {
+    try {
+      await fs.access(DIST_BACKUP_DIR);
+      distBackupPath = DIST_BACKUP_DIR;
+      log.debug(`config-pending: will use existing dist backup at ${DIST_BACKUP_DIR}`);
+    } catch {
+      log.warn(
+        `config-pending: dist rollback requested but no backup exists at ${DIST_BACKUP_DIR}`,
+      );
     }
   }
 
@@ -323,6 +328,7 @@ export async function checkPendingOnStartup(): Promise<RollbackResult> {
 
 /**
  * Schedule clearing the pending marker after successful startup.
+ * Also backs up dist/ as "last known good" for future rollbacks.
  * Call this once the gateway is confirmed running.
  */
 export function schedulePendingMarkerClear(delayMs: number = 5000): void {
@@ -336,8 +342,12 @@ export function schedulePendingMarkerClear(delayMs: number = 5000): void {
         await clearPendingMarker();
         log.info("config-pending: startup confirmed successful, marker cleared");
       }
+
+      // Backup current dist as "last known good" for future rollbacks
+      await backupDist();
+      log.info("config-pending: dist backed up as last-known-good");
     } catch (err) {
-      log.warn(`config-pending: failed to clear marker after startup: ${err}`);
+      log.warn(`config-pending: failed to clear marker or backup dist: ${err}`);
     }
   }, delayMs);
 }
