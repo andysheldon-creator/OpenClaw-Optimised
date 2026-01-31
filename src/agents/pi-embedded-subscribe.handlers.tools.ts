@@ -14,6 +14,9 @@ import {
 import { inferToolMetaFromArgs } from "./pi-embedded-utils.js";
 import { normalizeToolName } from "./tool-policy.js";
 
+/** Maximum consecutive identical tool errors before circuit breaker triggers. */
+const MAX_CONSECUTIVE_SAME_ERROR = 3;
+
 function extendExecMeta(toolName: string, args: unknown, meta?: string): string | undefined {
   const normalized = toolName.trim().toLowerCase();
   if (normalized !== "exec" && normalized !== "bash") return meta;
@@ -155,6 +158,8 @@ export function handleToolExecutionEnd(
   ctx.state.toolMetas.push({ toolName, meta });
   ctx.state.toolMetaById.delete(toolCallId);
   ctx.state.toolSummaryById.delete(toolCallId);
+  // Circuit breaker: track consecutive identical tool errors
+  let circuitBreakerTriggered = false;
   if (isToolError) {
     const errorMessage = extractToolErrorMessage(sanitizedResult);
     ctx.state.lastToolError = {
@@ -162,7 +167,39 @@ export function handleToolExecutionEnd(
       meta,
       error: errorMessage,
     };
+
+    // Track consecutive same-error pattern (tool + first 100 chars of error)
+    const errorSignature = `${toolName}:${(errorMessage ?? "").slice(0, 100)}`;
+    if (ctx.state.lastToolErrorSignature === errorSignature) {
+      ctx.state.consecutiveToolErrorCount += 1;
+    } else {
+      ctx.state.consecutiveToolErrorCount = 1;
+      ctx.state.lastToolErrorSignature = errorSignature;
+    }
+
+    // Circuit breaker: stop infinite retry loops
+    if (ctx.state.consecutiveToolErrorCount >= MAX_CONSECUTIVE_SAME_ERROR) {
+      circuitBreakerTriggered = true;
+      ctx.log.warn(
+        `Circuit breaker triggered: ${toolName} failed ${MAX_CONSECUTIVE_SAME_ERROR}x with same error`,
+      );
+      // Reset counter to allow future attempts after model sees the breaker message
+      ctx.state.consecutiveToolErrorCount = 0;
+    }
+  } else {
+    // Reset circuit breaker state on success
+    ctx.state.consecutiveToolErrorCount = 0;
+    ctx.state.lastToolErrorSignature = undefined;
   }
+
+  // Build final result, potentially with circuit breaker message
+  const finalResult = circuitBreakerTriggered
+    ? {
+        error: `CIRCUIT BREAKER: Tool "${toolName}" failed ${MAX_CONSECUTIVE_SAME_ERROR} times with the same error. STOP retrying with the same parameters. Either: (1) Ask the user for help, (2) Try a completely different approach, or (3) Check TOOL_SCHEMAS.md for correct syntax. Last error: ${ctx.state.lastToolError?.error ?? "unknown"}`,
+        _circuitBreaker: true,
+        originalResult: sanitizedResult,
+      }
+    : sanitizedResult;
 
   // Commit messaging tool text on success, discard on error.
   const pendingText = ctx.state.pendingMessagingTexts.get(toolCallId);
@@ -192,8 +229,8 @@ export function handleToolExecutionEnd(
       name: toolName,
       toolCallId,
       meta,
-      isError: isToolError,
-      result: sanitizedResult,
+      isError: isToolError || circuitBreakerTriggered,
+      result: finalResult,
     },
   });
   void ctx.params.onAgentEvent?.({
@@ -203,16 +240,16 @@ export function handleToolExecutionEnd(
       name: toolName,
       toolCallId,
       meta,
-      isError: isToolError,
+      isError: isToolError || circuitBreakerTriggered,
     },
   });
 
   ctx.log.debug(
-    `embedded run tool end: runId=${ctx.params.runId} tool=${toolName} toolCallId=${toolCallId}`,
+    `embedded run tool end: runId=${ctx.params.runId} tool=${toolName} toolCallId=${toolCallId}${circuitBreakerTriggered ? " (circuit breaker)" : ""}`,
   );
 
   if (ctx.params.onToolResult && ctx.shouldEmitToolOutput()) {
-    const outputText = extractToolResultText(sanitizedResult);
+    const outputText = extractToolResultText(finalResult);
     if (outputText) {
       ctx.emitToolOutput(toolName, meta, outputText);
     }

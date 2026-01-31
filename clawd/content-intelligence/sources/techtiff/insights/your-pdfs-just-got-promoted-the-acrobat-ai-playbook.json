@@ -1,0 +1,64 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Your PDFs Just Got Promoted: The Acrobat AI Playbook",
+  "source_url": "https://techtiff.substack.com/p/pdfs-to-podcasts-presentations",
+  "slug": "your-pdfs-just-got-promoted-the-acrobat-ai-playbook",
+  "insights": [
+    {
+      "insight": "you aren’t just getting PDF tools",
+      "action": "Use this approach in your work",
+      "framework": "just about following rule",
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your PDFs Just Got Promoted: The Acrobat AI Playbo",
+      "confidence": "medium"
+    },
+    {
+      "insight": "custom personas and switch between them while working with the same documents",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your PDFs Just Got Promoted: The Acrobat AI Playbo",
+      "confidence": "medium"
+    },
+    {
+      "insight": "your own AI Assistant with customized instructions to work in your docs",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your PDFs Just Got Promoted: The Acrobat AI Playbo",
+      "confidence": "medium"
+    },
+    {
+      "insight": "case: Upload procedure documents",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your PDFs Just Got Promoted: The Acrobat AI Playbo",
+      "confidence": "medium"
+    },
+    {
+      "insight": "reading isn’t the right interface for absorbing it",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your PDFs Just Got Promoted: The Acrobat AI Playbo",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "just about following rule"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 5
+  },
+  "extracted_at": "2026-01-30T22:02:52.103478",
+  "extraction_method": "pattern_based"
+}

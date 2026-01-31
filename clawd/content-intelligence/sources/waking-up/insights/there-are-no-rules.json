@@ -1,0 +1,66 @@
+{
+  "source_name": "waking-up",
+  "source_title": "There are no rules.",
+  "source_url": "https://wakingup.substack.com/p/there-are-no-rules",
+  "slug": "there-are-no-rules",
+  "insights": [
+    {
+      "insight": "I think knowing this could help save others precious time and prevent unnecessary suffering",
+      "action": "Use this approach in your work",
+      "framework": "that there are no rule",
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from waking-up article on There are no rules.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "a proper referral wasn’t made",
+      "action": "Apply this approach in your work",
+      "framework": "There are no rule",
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from waking-up article on There are no rules.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "the one nurse I asked wouldn’t budge on scheduling her any earlier",
+      "action": "Implement this approach in your work",
+      "framework": "remember there are no rule",
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from waking-up article on There are no rules.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "on rotation for the next two weeks",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from waking-up article on There are no rules.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "I knew how to stay persistent to get records",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from waking-up article on There are no rules.",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "There are no rule",
+    "that there are no rule",
+    "remember there are no rule"
+  ],
+  "para_distribution": {
+    "projects": 5,
+    "areas": 0,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.073625",
+  "extraction_method": "pattern_based"
+}

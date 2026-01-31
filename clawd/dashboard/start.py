@@ -424,6 +424,27 @@ def harvest_cis_feeds():
         return {'success': False, 'error': str(e)}
 
 
+def extract_cis_insights():
+    """Trigger CIS insight extraction."""
+    cis_dir = BASE_DIR / 'content-intelligence'
+    extractor = cis_dir / 'extract_insights.sh'
+    
+    if not extractor.exists():
+        return {'success': False, 'error': 'Extractor not found'}
+    
+    try:
+        # Run extractor in background (process all pending articles)
+        subprocess.Popen(
+            ['bash', str(extractor), 'process'],
+            cwd=str(cis_dir),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        return {'success': True, 'message': 'Insight extraction started'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+
 def process_natural_capture(text, source='dashboard'):
     """Process a new capture through Natural Capture."""
     try:
@@ -865,6 +886,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         elif path == '/api/cis/harvest':
             try:
                 result = harvest_cis_feeds()
+                self.send_json(result)
+            except Exception as e:
+                self.send_json({'success': False, 'error': str(e)}, status=500)
+        
+        elif path == '/api/cis/extract':
+            try:
+                result = extract_cis_insights()
                 self.send_json(result)
             except Exception as e:
                 self.send_json({'success': False, 'error': str(e)}, status=500)

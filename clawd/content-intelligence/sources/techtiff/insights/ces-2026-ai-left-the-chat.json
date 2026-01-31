@@ -1,0 +1,65 @@
+{
+  "source_name": "techtiff",
+  "source_title": "CES 2026: AI Left the Chat",
+  "source_url": "https://techtiff.substack.com/p/ces-2026-local-ai",
+  "slug": "ces-2026-ai-left-the-chat",
+  "insights": [
+    {
+      "insight": "(Image generated with Gemini).Stop renting intelligence. Start owning it. How the shift to local AI cuts your cloud costs and secures your data.This year at CES, AI got physical.Robots folded laundry",
+      "action": "Use this approach in your work",
+      "framework": "Smarter law",
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on CES 2026: AI Left the Chat",
+      "confidence": "medium"
+    },
+    {
+      "insight": "make agentic, on-device AI the default, cutting costs and keeping your data local.Robots and appliances now perceive, reason, and act: from CLOiD folding laundry to TVs answering questions without int",
+      "action": "Apply this approach in your work",
+      "framework": "Even the robot law",
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on CES 2026: AI Left the Chat",
+      "confidence": "medium"
+    },
+    {
+      "insight": "cloud services when they make sense",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on CES 2026: AI Left the Chat",
+      "confidence": "medium"
+    },
+    {
+      "insight": "it for queries unrelated to what you’re watching",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on CES 2026: AI Left the Chat",
+      "confidence": "medium"
+    },
+    {
+      "insight": "it doesn’t interrupt what you’re doing",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on CES 2026: AI Left the Chat",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "Even the robot law",
+    "Smarter law"
+  ],
+  "para_distribution": {
+    "projects": 5,
+    "areas": 0,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.194213",
+  "extraction_method": "pattern_based"
+}

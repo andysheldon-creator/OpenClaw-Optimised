@@ -70,6 +70,51 @@ RSS_FEEDS = {
         "topic": "AI Tools, Productivity",
         "priority": "high",
         "frequency": "weekly"
+    },
+    "lennys-newsletter": {
+        "name": "Lenny's Newsletter",
+        "url": "https://lennyrachitsky.substack.com",
+        "rss_url": "https://lennyrachitsky.substack.com/feed",
+        "platform": "substack",
+        "topic": "Product, AI, Growth",
+        "priority": "high",
+        "frequency": "weekly"
+    },
+    "ai-corner": {
+        "name": "The AI Corner",
+        "url": "https://theaicorner.substack.com",
+        "rss_url": "https://theaicorner.substack.com/feed",
+        "platform": "substack",
+        "topic": "AI Tools, Angels, Funding",
+        "priority": "high",
+        "frequency": "weekly"
+    },
+    "waking-up": {
+        "name": "Waking Up",
+        "url": "https://wakingup.substack.com",
+        "rss_url": "https://wakingup.substack.com/feed",
+        "platform": "substack",
+        "topic": "Meditation, Mindfulness",
+        "priority": "medium",
+        "frequency": "weekly"
+    },
+    "ground-news": {
+        "name": "Ground News",
+        "url": "https://ground.news",
+        "rss_url": "https://openrss.org/ground.news",
+        "platform": "openrss",
+        "topic": "News, Media Bias",
+        "priority": "low",
+        "frequency": "daily"
+    },
+    "techtiff": {
+        "name": "TechTiff",
+        "url": "https://techtiff.substack.com",
+        "rss_url": "https://techtiff.substack.com/feed",
+        "platform": "substack",
+        "topic": "iPhone Tips, Tech",
+        "priority": "low",
+        "frequency": "weekly"
     }
 }
 

@@ -51,6 +51,8 @@ const DEFAULT_OPENAI_VOICE = "alloy";
 const DEFAULT_EDGE_VOICE = "en-US-MichelleNeural";
 const DEFAULT_EDGE_LANG = "en-US";
 const DEFAULT_EDGE_OUTPUT_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
+const DEFAULT_GROQ_VOICE = "tara";
+const DEFAULT_GROQ_SPEED = 1.0;
 
 const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
   stability: 0.5,
@@ -65,6 +67,7 @@ const TELEGRAM_OUTPUT = {
   // ElevenLabs output formats use codec_sample_rate_bitrate naming.
   // Opus @ 48kHz/64kbps is a good voice-note tradeoff for Telegram.
   elevenlabs: "opus_48000_64",
+  groq: "opus" as const,
   extension: ".opus",
   voiceCompatible: true,
 };
@@ -72,6 +75,7 @@ const TELEGRAM_OUTPUT = {
 const DEFAULT_OUTPUT = {
   openai: "mp3" as const,
   elevenlabs: "mp3_44100_128",
+  groq: "mp3" as const,
   extension: ".mp3",
   voiceCompatible: false,
 };
@@ -123,6 +127,11 @@ export type ResolvedTtsConfig = {
     saveSubtitles: boolean;
     proxy?: string;
     timeoutMs?: number;
+  };
+  groq: {
+    apiKey?: string;
+    voice: string;
+    speed: number;
   };
   prefsPath?: string;
   maxTextLength: number;
@@ -295,6 +304,11 @@ export function resolveTtsConfig(cfg: MoltbotConfig): ResolvedTtsConfig {
       saveSubtitles: raw.edge?.saveSubtitles ?? false,
       proxy: raw.edge?.proxy?.trim() || undefined,
       timeoutMs: raw.edge?.timeoutMs,
+    },
+    groq: {
+      apiKey: raw.groq?.apiKey,
+      voice: raw.groq?.voice?.trim() || DEFAULT_GROQ_VOICE,
+      speed: raw.groq?.speed ?? DEFAULT_GROQ_SPEED,
     },
     prefsPath: raw.prefsPath,
     maxTextLength: raw.maxTextLength ?? DEFAULT_MAX_TEXT_LENGTH,
@@ -474,10 +488,13 @@ export function resolveTtsApiKey(
   if (provider === "openai") {
     return config.openai.apiKey || process.env.OPENAI_API_KEY;
   }
+  if (provider === "groq") {
+    return config.groq.apiKey || process.env.GROQ_API_KEY;
+  }
   return undefined;
 }
 
-export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge"] as const;
+export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge", "groq"] as const;
 
 export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
   return [primary, ...TTS_PROVIDERS.filter((provider) => provider !== primary)];
@@ -1036,6 +1053,51 @@ async function openaiTTS(params: {
   }
 }
 
+/**
+ * Groq Orpheus TTS - uses Canopy Labs Orpheus model for expressive speech.
+ * Supports voices: tara, leah, jess, leo, dan, mia, zac, zoe
+ */
+async function groqTTS(params: {
+  text: string;
+  apiKey: string;
+  voice: string;
+  speed: number;
+  responseFormat: "mp3" | "opus";
+  timeoutMs: number;
+}): Promise<Buffer> {
+  const { text, apiKey, voice, speed, responseFormat, timeoutMs } = params;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "playai-tts",
+        input: text,
+        voice: voice,
+        response_format: responseFormat,
+        speed: speed,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Groq TTS API error (${response.status}): ${errorText}`);
+    }
+
+    return Buffer.from(await response.arrayBuffer());
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function inferEdgeExtension(outputFormat: string): string {
   const normalized = outputFormat.toLowerCase();
   if (normalized.includes("webm")) return ".webm";
@@ -1172,6 +1234,7 @@ export async function textToSpeech(params: {
       }
 
       let audioBuffer: Buffer;
+      let outputFormat: string;
       if (provider === "elevenlabs") {
         const voiceIdOverride = params.overrides?.elevenlabs?.voiceId;
         const modelIdOverride = params.overrides?.elevenlabs?.modelId;
@@ -1195,6 +1258,17 @@ export async function textToSpeech(params: {
           voiceSettings,
           timeoutMs: config.timeoutMs,
         });
+        outputFormat = output.elevenlabs;
+      } else if (provider === "groq") {
+        audioBuffer = await groqTTS({
+          text: params.text,
+          apiKey,
+          voice: config.groq.voice,
+          speed: config.groq.speed,
+          responseFormat: output.groq,
+          timeoutMs: config.timeoutMs,
+        });
+        outputFormat = output.groq;
       } else {
         const openaiModelOverride = params.overrides?.openai?.model;
         const openaiVoiceOverride = params.overrides?.openai?.voice;
@@ -1206,6 +1280,7 @@ export async function textToSpeech(params: {
           responseFormat: output.openai,
           timeoutMs: config.timeoutMs,
         });
+        outputFormat = output.openai;
       }
 
       const latencyMs = Date.now() - providerStart;
@@ -1220,7 +1295,7 @@ export async function textToSpeech(params: {
         audioPath,
         latencyMs,
         provider,
-        outputFormat: provider === "openai" ? output.openai : output.elevenlabs,
+        outputFormat,
         voiceCompatible: output.voiceCompatible,
       };
     } catch (err) {
@@ -1264,6 +1339,11 @@ export async function textToSpeechTelephony(params: {
     try {
       if (provider === "edge") {
         lastError = "edge: unsupported for telephony";
+        continue;
+      }
+      if (provider === "groq") {
+        // Groq telephony TTS is handled by voice-call extension
+        lastError = "groq: use voice-call extension for telephony";
         continue;
       }
 

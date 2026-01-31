@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Audio Takeaway: Your Screenshots Are a Graveyard. Here's the Fix.",
+  "source_url": "https://techtiff.substack.com/p/audio-takeaway-your-screenshots-are",
+  "slug": "audio-takeaway-your-screenshots-are-a-graveyard-heres-the-fix",
+  "insights": [
+    {
+      "insight": "you have no idea that’s what it’s called",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your Screenshots Are a Graveyard. ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "you get descriptive names that are useful six months later",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your Screenshots Are a Graveyard. ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "becomes a memory system",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your Screenshots Are a Graveyard. ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "png because you have no idea that’s what it’s called",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your Screenshots Are a Graveyard. ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Screenshot to System with ShortcutsI built a shortcut system that uses AI to look at my screenshots and name them based on what’s actually in the image",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your Screenshots Are a Graveyard. ",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 5,
+    "areas": 0,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.167723",
+  "extraction_method": "pattern_based"
+}

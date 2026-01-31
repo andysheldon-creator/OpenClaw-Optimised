@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Your iPhone Needs a Job",
+  "source_url": "https://techtiff.substack.com/p/your-iphone-needs-a-job",
+  "slug": "your-iphone-needs-a-job",
+  "insights": [
+    {
+      "insight": "this?” So I made you a video and walk through the step-by-step setup",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Your iPhone Needs a Job",
+      "confidence": "medium"
+    },
+    {
+      "insight": "next!Input: Your email",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Your iPhone Needs a Job",
+      "confidence": "medium"
+    },
+    {
+      "insight": "ChatGPT builds me a clean summary text",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Your iPhone Needs a Job",
+      "confidence": "medium"
+    },
+    {
+      "insight": "20 minutes of the day in a reactive scrolling",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Your iPhone Needs a Job",
+      "confidence": "medium"
+    },
+    {
+      "insight": "sends everything to ChatGPT",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Your iPhone Needs a Job",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.118425",
+  "extraction_method": "pattern_based"
+}

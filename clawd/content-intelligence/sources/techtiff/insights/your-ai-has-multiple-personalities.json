@@ -1,0 +1,65 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Your AI Has Multiple Personalities",
+  "source_url": "https://techtiff.substack.com/p/your-ai-has-multiple-personalities",
+  "slug": "your-ai-has-multiple-personalities",
+  "insights": [
+    {
+      "insight": "they’re forcing one model to do every job",
+      "action": "Use this approach in your work",
+      "framework": "skill is",
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    },
+    {
+      "insight": "asking Midjourney for photorealistic product shots",
+      "action": "Apply this approach in your work",
+      "framework": "but the framework",
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    },
+    {
+      "insight": "they’re actually building relationships with their AI",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    },
+    {
+      "insight": "it for product images or when you need the same character showing up consistently across multiple sh",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    },
+    {
+      "insight": "it when you want something stylized",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "but the framework",
+    "skill is"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 5
+  },
+  "extracted_at": "2026-01-30T22:02:52.157703",
+  "extraction_method": "pattern_based"
+}

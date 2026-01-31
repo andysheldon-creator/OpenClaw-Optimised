@@ -1,0 +1,66 @@
+{
+  "source_name": "techtiff",
+  "source_title": "ChatGPT Finally Stopped Gaslighting You",
+  "source_url": "https://techtiff.substack.com/p/chatgpt-5-2-update-guide",
+  "slug": "chatgpt-finally-stopped-gaslighting-you",
+  "insights": [
+    {
+      "insight": "You point this out. It apologizes so sincerely. Then gives you 340. You remind it again. It says “You’re absolutely right, I’ll fix that!” and gives you 320 with a few bonus suggestions you didn’t ask",
+      "action": "Use this approach in your work",
+      "framework": "Your formatting and tone rule",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on ChatGPT Finally Stopped Gaslighting You",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Big jump from 5.1’s September 2024. Use web search still for anything recent.This is where the practical updates live.The Problem This SolvesLet’s be honest about what’s been broken.You ask for three",
+      "action": "Apply this approach in your work",
+      "framework": "You set formatting rule",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on ChatGPT Finally Stopped Gaslighting You",
+      "confidence": "medium"
+    },
+    {
+      "insight": "half the time it didn’t actually do that",
+      "action": "Implement this approach in your work",
+      "framework": "The ones with seventeen rule",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on ChatGPT Finally Stopped Gaslighting You",
+      "confidence": "medium"
+    },
+    {
+      "insight": "of the inconsistency: this is the update worth paying attention to",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on ChatGPT Finally Stopped Gaslighting You",
+      "confidence": "medium"
+    },
+    {
+      "insight": "web search still for anything recent",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on ChatGPT Finally Stopped Gaslighting You",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "You set formatting rule",
+    "The ones with seventeen rule",
+    "Your formatting and tone rule"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.132003",
+  "extraction_method": "pattern_based"
+}

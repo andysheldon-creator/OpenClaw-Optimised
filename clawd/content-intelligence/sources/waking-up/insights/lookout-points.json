@@ -1,0 +1,53 @@
+{
+  "source_name": "waking-up",
+  "source_title": "Lookout Points",
+  "source_url": "https://wakingup.substack.com/p/lookout-points",
+  "slug": "lookout-points",
+  "insights": [
+    {
+      "insight": "is hidden another several miles and several dozen swerves and ear pops ahead",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on Lookout Points",
+      "confidence": "medium"
+    },
+    {
+      "insight": "we turn left from the sunset and know our house is hidden another several miles and several dozen sw",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on Lookout Points",
+      "confidence": "medium"
+    },
+    {
+      "insight": "you can take the next step",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on Lookout Points",
+      "confidence": "medium"
+    },
+    {
+      "insight": "And, then we turn left from the sunset and know our house is hidden another several miles and several dozen swerves and ear pops ahead",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on Lookout Points",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 4,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 4,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.068031",
+  "extraction_method": "pattern_based"
+}

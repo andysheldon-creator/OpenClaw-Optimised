@@ -198,8 +198,30 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
           );
         case "add": {
           if (!params.job || typeof params.job !== "object") {
-            throw new Error("job required");
+            throw new Error(
+              'job required. Example: { "name": "My Job", "schedule": { "kind": "cron", "expr": "0 9 * * *" }, "sessionTarget": "telegram:123", "wakeMode": "now", "payload": { "kind": "agentTurn", "message": "Do something" } }',
+            );
           }
+          const rawJob = params.job as Record<string, unknown>;
+          // Pre-validate common mistakes with helpful error messages BEFORE normalization
+          // These are syntax errors that normalization can't fix
+          const schedule = rawJob.schedule as Record<string, unknown> | undefined;
+          if (schedule && typeof schedule === "object") {
+            // Catch wrong field name: "cron" instead of "expr"
+            if ("cron" in schedule && !("expr" in schedule)) {
+              throw new Error(
+                'Invalid schedule: Use "expr" not "cron" for cron expressions. Correct: { "kind": "cron", "expr": "0 9 * * *", "tz": "America/Los_Angeles" }',
+              );
+            }
+            // Missing expr for cron kind
+            if (schedule.kind === "cron" && !schedule.expr) {
+              throw new Error(
+                'Invalid schedule: schedule.expr is required for kind="cron". Example: { "kind": "cron", "expr": "0 9 * * *" }',
+              );
+            }
+          }
+          // Note: sessionTarget and wakeMode are auto-inferred by normalizeCronJobCreate
+          // based on payload.kind, so we don't validate them before normalization
           const job = normalizeCronJobCreate(params.job) ?? params.job;
           if (job && typeof job === "object" && !("agentId" in job)) {
             const cfg = loadConfig();

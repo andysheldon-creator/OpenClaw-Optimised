@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Stop Chatting. Start Building.",
+  "source_url": "https://techtiff.substack.com/p/stop-chatting-start-building",
+  "slug": "stop-chatting-start-building",
+  "insights": [
+    {
+      "insight": "AI to write to-do…You’ve got notes in one app",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Stop Chatting. Start Building.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "one that actually works the way I think",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Stop Chatting. Start Building.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "AI features that are explainable and grant the user full control over the AI’s level of intervention",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Stop Chatting. Start Building.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "the todo list for tracking progress",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Stop Chatting. Start Building.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "the CRUD procedures — create",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Stop Chatting. Start Building.",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.127099",
+  "extraction_method": "pattern_based"
+}

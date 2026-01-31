@@ -1,0 +1,44 @@
+{
+  "source_name": "waking-up",
+  "source_title": "Overcoming chronic disease, navigating healthcare, and life in the body",
+  "source_url": "https://wakingup.substack.com/p/coming-soon",
+  "slug": "overcoming-chronic-disease-navigating-healthcare-and-life-in-the-body",
+  "insights": [
+    {
+      "insight": "Key concept from 'Overcoming chronic disease, navigating healthcare, and life ...'",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "best-practices",
+      "rationale": "Extracted from waking-up article on Overcoming chronic disease, navigating healthcare,",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Review strategies discussed in this waking-up article",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "best-practices",
+      "rationale": "Extracted from waking-up article on Overcoming chronic disease, navigating healthcare,",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Consider implications for your workflow",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "best-practices",
+      "rationale": "Extracted from waking-up article on Overcoming chronic disease, navigating healthcare,",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 3,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 3
+  },
+  "extracted_at": "2026-01-30T22:02:52.068730",
+  "extraction_method": "pattern_based"
+}

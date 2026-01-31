@@ -1,0 +1,66 @@
+{
+  "source_name": "new-economies",
+  "source_title": "Weekly Digest: Software Invades Sports, AI Rounds Explode, and Fresh VC Capital Floods In",
+  "source_url": "https://www.neweconomies.co/p/weekly-digest-jan",
+  "slug": "weekly-digest-software-invades-sports-ai-rounds-explode-and-fresh-vc-capital-flo",
+  "insights": [
+    {
+      "insight": "Instant global brand recognition.2) Borrowed trust from the world’s biggest teams.3) A very public signal to competitors.4) This is a land grab — once these partnerships are taken, latecomers are lock",
+      "action": "Use this approach in your work",
+      "framework": "AI Design Playbook for StartupsFour",
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from new-economies article on Weekly Digest: Software Invades Sports, AI Rounds ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "your startup on Framer — free for your first year",
+      "action": "Apply this approach in your work",
+      "framework": "Design Playbook for StartupsFour framework",
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from new-economies article on Weekly Digest: Software Invades Sports, AI Rounds ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "to claim your free year -->🔔 The latest trendI posted a few months ago about a mega interesting tren",
+      "action": "Implement this approach in your work",
+      "framework": "AI is rewriting the rule",
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from new-economies article on Weekly Digest: Software Invades Sports, AI Rounds ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "AI is rewriting the rules of product strategy",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from new-economies article on Weekly Digest: Software Invades Sports, AI Rounds ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "generation of fully autonomous",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from new-economies article on Weekly Digest: Software Invades Sports, AI Rounds ",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "Design Playbook for StartupsFour framework",
+    "AI is rewriting the rule",
+    "AI Design Playbook for StartupsFour"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.089404",
+  "extraction_method": "pattern_based"
+}

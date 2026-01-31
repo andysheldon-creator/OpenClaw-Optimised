@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Your Camera Roll is a To-Do List With No Tasks",
+  "source_url": "https://techtiff.substack.com/p/your-camera-roll-is-a-to-do-list",
+  "slug": "your-camera-roll-is-a-to-do-list-with-no-tasks",
+  "insights": [
+    {
+      "insight": "future-you needs to do something",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Camera Roll is a To-Do List With No Tasks",
+      "confidence": "medium"
+    },
+    {
+      "insight": "something matters right now",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Camera Roll is a To-Do List With No Tasks",
+      "confidence": "medium"
+    },
+    {
+      "insight": "working instead of collecting dust",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Camera Roll is a To-Do List With No Tasks",
+      "confidence": "medium"
+    },
+    {
+      "insight": "this color scheme for rebrand” plus ChatGPT’s description of what’s in the image",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Camera Roll is a To-Do List With No Tasks",
+      "confidence": "medium"
+    },
+    {
+      "insight": "forgetting why you even took them",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Camera Roll is a To-Do List With No Tasks",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 5,
+    "areas": 0,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.151113",
+  "extraction_method": "pattern_based"
+}

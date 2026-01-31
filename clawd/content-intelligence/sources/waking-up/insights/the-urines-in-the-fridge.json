@@ -1,0 +1,64 @@
+{
+  "source_name": "waking-up",
+  "source_title": "The Urine's In The Fridge",
+  "source_url": "https://wakingup.substack.com/p/urine-in-the-fridge",
+  "slug": "the-urines-in-the-fridge",
+  "insights": [
+    {
+      "insight": "she has suffered recurring urinary tract infections for more than a decade",
+      "action": "Use this approach in your work",
+      "framework": "same cultures and the same",
+      "para_category": "projects",
+      "para_target": "stickers",
+      "rationale": "Extracted from waking-up article on The Urine's In The Fridge",
+      "confidence": "medium"
+    },
+    {
+      "insight": "her urology specialists are out of the loop",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "stickers",
+      "rationale": "Extracted from waking-up article on The Urine's In The Fridge",
+      "confidence": "medium"
+    },
+    {
+      "insight": "of your own motivation to solve the problem?",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "stickers",
+      "rationale": "Extracted from waking-up article on The Urine's In The Fridge",
+      "confidence": "medium"
+    },
+    {
+      "insight": "again Monday morning and every day after that",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "stickers",
+      "rationale": "Extracted from waking-up article on The Urine's In The Fridge",
+      "confidence": "medium"
+    },
+    {
+      "insight": "I believe that you are the primary care provider of your own self",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "stickers",
+      "rationale": "Extracted from waking-up article on The Urine's In The Fridge",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "same cultures and the same"
+  ],
+  "para_distribution": {
+    "projects": 5,
+    "areas": 0,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.077347",
+  "extraction_method": "pattern_based"
+}

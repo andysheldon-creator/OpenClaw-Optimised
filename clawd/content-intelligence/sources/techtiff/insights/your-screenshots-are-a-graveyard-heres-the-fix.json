@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Your Screenshots Are a Graveyard. Here's the Fix.",
+  "source_url": "https://techtiff.substack.com/p/your-screenshots-are-a-graveyard",
+  "slug": "your-screenshots-are-a-graveyard-heres-the-fix",
+  "insights": [
+    {
+      "insight": "”slack_thread_Q4_budget",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Screenshots Are a Graveyard. Here's the Fix.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "every file names itself instantly",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Screenshots Are a Graveyard. Here's the Fix.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "there’s no way to search what you actually said in them",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Screenshots Are a Graveyard. Here's the Fix.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "this for every TikTok and Reel I make",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Screenshots Are a Graveyard. Here's the Fix.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "here if you want to see how it works: iPhone Manual",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Your Screenshots Are a Graveyard. Here's the Fix.",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 5,
+    "areas": 0,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.180307",
+  "extraction_method": "pattern_based"
+}

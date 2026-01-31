@@ -1,0 +1,64 @@
+{
+  "source_name": "waking-up",
+  "source_title": "What's The Why?",
+  "source_url": "https://wakingup.substack.com/p/thewhy",
+  "slug": "whats-the-why",
+  "insights": [
+    {
+      "insight": "after a year of regular writing",
+      "action": "Use this approach in your work",
+      "framework": "body and the",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on What's The Why?",
+      "confidence": "medium"
+    },
+    {
+      "insight": "for nearly twenty years",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on What's The Why?",
+      "confidence": "medium"
+    },
+    {
+      "insight": "relationships or be reliable",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on What's The Why?",
+      "confidence": "medium"
+    },
+    {
+      "insight": "I have overcome being a victim of the healthcare system and my own body",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on What's The Why?",
+      "confidence": "medium"
+    },
+    {
+      "insight": "I had a backstage pass due to my own consulting work for healthcare providers",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from waking-up article on What's The Why?",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "body and the"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.065187",
+  "extraction_method": "pattern_based"
+}

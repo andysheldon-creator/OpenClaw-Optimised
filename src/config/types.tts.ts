@@ -1,4 +1,4 @@
-export type TtsProvider = "elevenlabs" | "openai" | "edge";
+export type TtsProvider = "elevenlabs" | "openai" | "edge" | "groq";
 
 export type TtsMode = "final" | "all";
 
@@ -72,6 +72,14 @@ export type TtsConfig = {
     saveSubtitles?: boolean;
     proxy?: string;
     timeoutMs?: number;
+  };
+  /** Groq Orpheus TTS configuration. */
+  groq?: {
+    apiKey?: string;
+    /** Voice: tara, leah, jess, leo, dan, mia, zac, zoe */
+    voice?: string;
+    /** Speed multiplier (0.25-4.0, default 1.0) */
+    speed?: number;
   };
   /** Optional path for local TTS user preferences JSON. */
   prefsPath?: string;

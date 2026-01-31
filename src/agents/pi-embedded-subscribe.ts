@@ -37,6 +37,9 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     toolMetaById: new Map(),
     toolSummaryById: new Set(),
     lastToolError: undefined,
+    // Circuit breaker: prevent infinite retry loops on repeated identical tool errors
+    consecutiveToolErrorCount: 0,
+    lastToolErrorSignature: undefined,
     blockReplyBreak: params.blockReplyBreak ?? "text_end",
     reasoningMode,
     includeReasoning: reasoningMode === "on",

@@ -1,0 +1,13 @@
+{
+  "name": "Lenny's Newsletter",
+  "safe_name": "lennys-newsletter",
+  "url": "https://lennyrachitsky.substack.com",
+  "platform": "substack",
+  "created_at": "2026-01-30T22:02:45.463847",
+  "status": "active",
+  "last_harvest": "2026-01-30T22:02:45.463862",
+  "archive_count": 0,
+  "topic": "Product, AI, Growth",
+  "priority": "high",
+  "frequency": "weekly"
+}

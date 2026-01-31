@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "The 2026 AI Operating System",
+  "source_url": "https://techtiff.substack.com/p/the-2026-ai-operating-system",
+  "slug": "the-2026-ai-operating-system",
+  "insights": [
+    {
+      "insight": "For each month, include:",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on The 2026 AI Operating System",
+      "confidence": "medium"
+    },
+    {
+      "insight": "they treat the tools like software instead of collaborators",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on The 2026 AI Operating System",
+      "confidence": "medium"
+    },
+    {
+      "insight": "a 12-month milestone tracker for 2026",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on The 2026 AI Operating System",
+      "confidence": "medium"
+    },
+    {
+      "insight": "of each monthThis sets your monthly target",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on The 2026 AI Operating System",
+      "confidence": "medium"
+    },
+    {
+      "insight": "you need to know which tasks actually matter most right now",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on The 2026 AI Operating System",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.185371",
+  "extraction_method": "pattern_based"
+}

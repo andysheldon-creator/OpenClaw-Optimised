@@ -1,0 +1,65 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Your AI Creative Team is Live",
+  "source_url": "https://techtiff.substack.com/p/your-ai-creative-team-is-live",
+  "slug": "your-ai-creative-team-is-live",
+  "insights": [
+    {
+      "insight": "into Firefly and Photoshop. Think of it as hiring a specialist who handles what other models mess up: clean text, sharp details, consistent faces.I tested it by turning a dog photo into a complete Ins",
+      "action": "Use this approach in your work",
+      "framework": "needed to understand lighting principle",
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from techtiff article on Your AI Creative Team is Live",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Here’s what I wrote then:“This is what Adobe means when they talk about AI as infrastructure. It’s not one feature. It’s the layer that connects multiple AI capabilities into workflows that adapt to w",
+      "action": "Apply this approach in your work",
+      "framework": "typography rule",
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from techtiff article on Your AI Creative Team is Live",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Available to Creative Cloud Pro subscribers and Firefly plan subscribers.Try Nano Banana Pro in Adobe Firefly5 Prompts to Get StartedThese prompts demonstrate workflows where Nano Banana Pro’s strengt",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from techtiff article on Your AI Creative Team is Live",
+      "confidence": "medium"
+    },
+    {
+      "insight": "For data visualization: Create a business report infographic showing Q4 sales performance across 5 product categories. Include a bar chart comparing revenue by category, a pie chart showing market sha",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from techtiff article on Your AI Creative Team is Live",
+      "confidence": "medium"
+    },
+    {
+      "insight": "For 4K hero images: Generate a 4K product hero image of a stainless steel water bottle on a marble countertop with natural window lighting from the left. Background: soft-focus kitchen scene. Focus sh",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from techtiff article on Your AI Creative Team is Live",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "needed to understand lighting principle",
+    "typography rule"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.111077",
+  "extraction_method": "pattern_based"
+}

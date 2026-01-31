@@ -1,0 +1,64 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Stop Asking Claude What to Do. Start Assigning Projects.",
+  "source_url": "https://techtiff.substack.com/p/claude-cowork-explained",
+  "slug": "stop-asking-claude-what-to-do-start-assigning-projects",
+  "insights": [
+    {
+      "insight": "Cowork brings developer-grade coordination to the Desktop app for everyone, not just developers comfortable in the command line.You’re not just getting Claude anymore - now he’s got a team of speciali",
+      "action": "Use this approach in your work",
+      "framework": "weekly review",
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Stop Asking Claude What to Do. Start Assigning Pro",
+      "confidence": "medium"
+    },
+    {
+      "insight": "you said the next thing correctly",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Stop Asking Claude What to Do. Start Assigning Pro",
+      "confidence": "medium"
+    },
+    {
+      "insight": "the system is designed to plan",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Stop Asking Claude What to Do. Start Assigning Pro",
+      "confidence": "medium"
+    },
+    {
+      "insight": "subagents in the Desktop app too",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Stop Asking Claude What to Do. Start Assigning Pro",
+      "confidence": "medium"
+    },
+    {
+      "insight": "assigning work: Every week",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Stop Asking Claude What to Do. Start Assigning Pro",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "weekly review"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 5
+  },
+  "extracted_at": "2026-01-30T22:02:52.140465",
+  "extraction_method": "pattern_based"
+}

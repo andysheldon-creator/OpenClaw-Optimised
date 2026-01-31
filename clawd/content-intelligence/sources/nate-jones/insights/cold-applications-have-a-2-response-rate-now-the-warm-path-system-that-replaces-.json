@@ -1,0 +1,64 @@
+{
+  "source_name": "nate-jones",
+  "source_title": "Cold applications have a <2% response rate now + the warm path system that replaces them (includes a guide and prompts!)",
+  "source_url": "https://natesnewsletter.substack.com/p/cold-applications-have-a-2-response",
+  "slug": "cold-applications-have-a-2-response-rate-now-the-warm-path-system-that-replaces-",
+  "insights": [
+    {
+      "insight": "Relationship half-life, the reciprocity ledger, vouch scores, resurrection opportunities, network archetypes, and dynamic warm path discovery—each mapped to a concrete job-search action.Cowork vs. Cha",
+      "action": "Use this approach in your work",
+      "framework": "but the principle",
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from nate-jones article on Cold applications have a <2% response rate now + t",
+      "confidence": "medium"
+    },
+    {
+      "insight": "professional networks are where the stakes are highest right now",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from nate-jones article on Cold applications have a <2% response rate now + t",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Not the questions the platform wants you to ask, not the questions that optimize for their engagement metrics or premium tier conversions, but your questions—the ones they’d never build a button for",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from nate-jones article on Cold applications have a <2% response rate now + t",
+      "confidence": "medium"
+    },
+    {
+      "insight": "The example is LinkedIn, because professional networks are where the stakes are highest right now, but the principle extends everywhere",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from nate-jones article on Cold applications have a <2% response rate now + t",
+      "confidence": "medium"
+    },
+    {
+      "insight": "How I used my own LinkedIn data to surface a second-degree connection to a company where I had zero obvious ins—and why LinkedIn will never build this feature",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from nate-jones article on Cold applications have a <2% response rate now + t",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "but the principle"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 5
+  },
+  "extracted_at": "2026-01-30T22:02:52.085129",
+  "extraction_method": "pattern_based"
+}

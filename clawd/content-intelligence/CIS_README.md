@@ -1,10 +1,10 @@
 # Content Intelligence System (CIS) v2.0
 
 **Status:** Operational  
-**Last Updated:** 2026-01-28  
-**Total Articles:** 130  
-**Total Insights:** 544  
-**Sources:** 6 active RSS feeds
+**Last Updated:** 2026-01-30  
+**Total Articles:** 156  
+**Total Insights:** 630  
+**Sources:** 11 active RSS feeds
 
 ---
 
@@ -20,16 +20,28 @@ CIS v2.0 is an RSS-based content harvesting and insight extraction system that:
 
 ## Source Registry
 
+### Original Sources (6)
+
 | Source | RSS Feed | Articles | Insights | Priority |
 |--------|----------|----------|----------|----------|
-| Nate Jones | https://natesnewsletter.substack.com/feed | 21 | 91 | High |
+| Nate Jones | https://natesnewsletter.substack.com/feed | 21 | 94 | High |
 | Slow AI | https://theslowai.substack.com/feed | 20 | 97 | High |
 | Aakash Gupta | https://www.news.aakashg.com/feed | 20 | 90 | Medium |
 | NEW ECONOMIES | https://www.neweconomies.co/feed | 19 | 95 | Medium |
-| Rhys Morgan | https://rhysmorgan.substack.com/feed | 30 | 78 | High |
+| Rhys Morgan | https://rhysmorgan.substack.com/feed | 30 | 163 | High |
 | Sabrina Ramonov | https://www.sabrina.dev/feed | 20 | 91 | High |
 
-**Total:** 130 articles, 544 insights
+### New Sources (5)
+
+| Source | RSS Feed | Articles | Insights | Priority |
+|--------|----------|----------|----------|----------|
+| Lenny's Newsletter | https://lennyrachitsky.substack.com/feed | 0 | - | High |
+| The AI Corner | https://theaicorner.substack.com/feed | 1 | - | High |
+| Waking Up | https://wakingup.substack.com/feed | 5 | - | Medium |
+| Ground News | https://groundnews.substack.com/feed | 0 | - | Low |
+| TechTiff | https://techtiff.substack.com/feed | 20 | - | Low |
+
+**Total:** 156 articles, 630 insights (from original 6 sources)
 
 ---
 
@@ -49,7 +61,12 @@ content-intelligence/
 │   ├── aakash-gupta/
 │   ├── new-economies/
 │   ├── rhys-morgan/
-│   └── sabrina-ramonov/
+│   ├── sabrina-ramonov/
+│   ├── lennys-newsletter/
+│   ├── ai-corner/
+│   ├── waking-up/
+│   ├── ground-news/
+│   └── techtiff/
 ├── cis_harvester.py          # RSS harvester
 ├── extract_pattern.py        # Pattern-based insight extraction
 ├── extract_direct.py         # LLM-based insight extraction (requires API)
@@ -183,6 +200,8 @@ Current extraction quality:
 3. **Quality scoring:** Rate insight quality and filter low-confidence
 4. **LLM batch processing:** Queue for overnight processing
 5. **Search indexing:** Add full-text search across archives
+6. **Fix Ground News feed:** Currently 404 error
+7. **Check Lenny's Newsletter:** Verify if paywalled or needs different URL
 
 ---
 
@@ -206,4 +225,4 @@ CREATE TABLE cis_routing (
 
 ---
 
-*CIS v2.0 - Built 2026-01-28*
+*CIS v2.0 - Built 2026-01-28, Updated 2026-01-30*

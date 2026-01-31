@@ -1,0 +1,44 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Audio Takeaway: Your AI Creative Team is Live",
+  "source_url": "https://techtiff.substack.com/p/audio-takeaway-your-ai-creative-team",
+  "slug": "audio-takeaway-your-ai-creative-team-is-live",
+  "insights": [
+    {
+      "insight": "Nano Banana Pro in FireflyThis moves you from executor to creative director",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your AI Creative Team is Live",
+      "confidence": "medium"
+    },
+    {
+      "insight": "They’re building infrastructure that connects specialist models (OpenAI, Runway, Luma AI, ElevenLabs) so you pick the right tool for each task instead of forcing one model to do everything poorly",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your AI Creative Team is Live",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Try Nano Banana Pro in FireflyThis moves you from executor to creative director",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your AI Creative Team is Live",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 3,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 3,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.143931",
+  "extraction_method": "pattern_based"
+}

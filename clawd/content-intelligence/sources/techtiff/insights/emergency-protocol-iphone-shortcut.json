@@ -1,0 +1,66 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Emergency Protocol iPhone Shortcut",
+  "source_url": "https://techtiff.substack.com/p/emergency-protocol-iphone-shortcut",
+  "slug": "emergency-protocol-iphone-shortcut",
+  "insights": [
+    {
+      "insight": "depending on your iOS version",
+      "action": "Use this approach in your work",
+      "framework": "kind of",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Emergency Protocol iPhone Shortcut",
+      "confidence": "medium"
+    },
+    {
+      "insight": "permission errors during an actual emergency mean total failure",
+      "action": "Apply this approach in your work",
+      "framework": "Recording Law",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Emergency Protocol iPhone Shortcut",
+      "confidence": "medium"
+    },
+    {
+      "insight": "this if:You want higher reliability than audio aloneYou need visual documentation",
+      "action": "Implement this approach in your work",
+      "framework": "In TroubleKnow your local law",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Emergency Protocol iPhone Shortcut",
+      "confidence": "medium"
+    },
+    {
+      "insight": "or failThis does not replace the audio shortcut",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Emergency Protocol iPhone Shortcut",
+      "confidence": "medium"
+    },
+    {
+      "insight": "inside AI Flow Club - iPhone shortcuts",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on Emergency Protocol iPhone Shortcut",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "In TroubleKnow your local law",
+    "Recording Law",
+    "kind of"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.147214",
+  "extraction_method": "pattern_based"
+}

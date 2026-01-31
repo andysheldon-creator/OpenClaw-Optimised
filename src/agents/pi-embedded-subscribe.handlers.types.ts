@@ -28,6 +28,10 @@ export type EmbeddedPiSubscribeState = {
   toolSummaryById: Set<string>;
   lastToolError?: ToolErrorSummary;
 
+  // Circuit breaker: tracks consecutive identical tool errors to prevent infinite retry loops
+  consecutiveToolErrorCount: number;
+  lastToolErrorSignature: string | undefined;
+
   blockReplyBreak: "text_end" | "message_end";
   reasoningMode: ReasoningLevel;
   includeReasoning: boolean;

@@ -1,0 +1,65 @@
+{
+  "source_name": "techtiff",
+  "source_title": "I Taught My iPhone to Stalk My Profiles and Take Notes",
+  "source_url": "https://techtiff.substack.com/p/iphone-social-media-tracking-shortcuts",
+  "slug": "i-taught-my-iphone-to-stalk-my-profiles-and-take-notes",
+  "insights": [
+    {
+      "insight": "maybe something changed in four hours",
+      "action": "Use this approach in your work",
+      "framework": "core of this",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on I Taught My iPhone to Stalk My Profiles and Take N",
+      "confidence": "medium"
+    },
+    {
+      "insight": "understanding the end state makes the technical stuff make sense",
+      "action": "Apply this approach in your work",
+      "framework": "Obsession becomes the access method",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on I Taught My iPhone to Stalk My Profiles and Take N",
+      "confidence": "medium"
+    },
+    {
+      "insight": "a Numbers Form to view and log each day’s metrics vertically",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on I Taught My iPhone to Stalk My Profiles and Take N",
+      "confidence": "medium"
+    },
+    {
+      "insight": "you’re not asking your brain to hold five numbers while you navigate to a spreadsheet",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on I Taught My iPhone to Stalk My Profiles and Take N",
+      "confidence": "medium"
+    },
+    {
+      "insight": "“Ask ChatGPT” for extraction if you want more flexible parsing or already rely on cloud models",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from techtiff article on I Taught My iPhone to Stalk My Profiles and Take N",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "core of this",
+    "Obsession becomes the access method"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.094786",
+  "extraction_method": "pattern_based"
+}

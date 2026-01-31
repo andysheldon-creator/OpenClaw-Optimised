@@ -1,0 +1,35 @@
+{
+  "source_name": "slow-ai",
+  "source_title": "The Myth of Neutrality",
+  "source_url": "https://theslowai.substack.com/p/myth-of-ai-neutrality",
+  "slug": "the-myth-of-neutrality",
+  "insights": [
+    {
+      "insight": "class of the 2026 Slow AI Curriculum for Critical Literacy",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from slow-ai article on The Myth of Neutrality",
+      "confidence": "medium"
+    },
+    {
+      "insight": "step toward using them critically rather than passively",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from slow-ai article on The Myth of Neutrality",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 2,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 2
+  },
+  "extracted_at": "2026-01-30T22:02:52.083279",
+  "extraction_method": "pattern_based"
+}

@@ -1,0 +1,62 @@
+{
+  "source_name": "nate-jones",
+  "source_title": "The real reason Amazon cut 30,000 people + what the balance sheet actually shows",
+  "source_url": "https://natesnewsletter.substack.com/p/amazon-isnt-replacing-workers-with",
+  "slug": "the-real-reason-amazon-cut-30000-people-what-the-balance-sheet-actually-shows",
+  "insights": [
+    {
+      "insight": "they have too many managers",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from nate-jones article on The real reason Amazon cut 30,000 people + what th",
+      "confidence": "medium"
+    },
+    {
+      "insight": "they need the money to buy GPUs",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from nate-jones article on The real reason Amazon cut 30,000 people + what th",
+      "confidence": "medium"
+    },
+    {
+      "insight": "they eliminated 10% of their white-collar workforce",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from nate-jones article on The real reason Amazon cut 30,000 people + what th",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Amazon isn’t cutting 30,000 jobs because they have too many managers",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from nate-jones article on The real reason Amazon cut 30,000 people + what th",
+      "confidence": "medium"
+    },
+    {
+      "insight": "They’re cutting 30,000 jobs because they need the money to buy GPUs",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "business-strategy",
+      "rationale": "Extracted from nate-jones article on The real reason Amazon cut 30,000 people + what th",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.086300",
+  "extraction_method": "pattern_based"
+}

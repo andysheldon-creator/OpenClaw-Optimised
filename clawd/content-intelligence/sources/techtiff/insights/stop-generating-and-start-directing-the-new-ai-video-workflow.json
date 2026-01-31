@@ -1,0 +1,64 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Stop \"Generating\" and Start Directing: The New AI Video Workflow",
+  "source_url": "https://techtiff.substack.com/p/edit-ai-video-without-regenerating",
+  "slug": "stop-generating-and-start-directing-the-new-ai-video-workflow",
+  "insights": [
+    {
+      "insight": "frame image along with a reference video showing the camera movement you want",
+      "action": "Use this approach in your work",
+      "framework": "camera reference",
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Stop \"Generating\" and Start Directing: The New AI ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "the quality doesn’t hold up anymore",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Stop \"Generating\" and Start Directing: The New AI ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "complete videos by combining clips",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Stop \"Generating\" and Start Directing: The New AI ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "muscle memory before you’re paying per generation again",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Stop \"Generating\" and Start Directing: The New AI ",
+      "confidence": "medium"
+    },
+    {
+      "insight": "your options were “accept it” or “start over",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on Stop \"Generating\" and Start Directing: The New AI ",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "camera reference"
+  ],
+  "para_distribution": {
+    "projects": 5,
+    "areas": 0,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.164454",
+  "extraction_method": "pattern_based"
+}

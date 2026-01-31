@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Audio Takeaway: Your AI Has Multiple Personalities",
+  "source_url": "https://techtiff.substack.com/p/audio-takeaway-ai-personalities",
+  "slug": "audio-takeaway-your-ai-has-multiple-personalities",
+  "insights": [
+    {
+      "insight": "asking Midjourney for photorealistic product shots and you’re basically fighting against its persona",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    },
+    {
+      "insight": "each model was trained differently",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Flux when they need human faces that actually look human",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    },
+    {
+      "insight": "asking “Which tool fits this specific job?”When you build a system where you know exactly which mode",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    },
+    {
+      "insight": "It’s about knowing which tool does what you’re actually trying to create",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Your AI Has Multiple Personalities",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 5
+  },
+  "extracted_at": "2026-01-30T22:02:52.142485",
+  "extraction_method": "pattern_based"
+}

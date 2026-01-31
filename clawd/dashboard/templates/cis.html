@@ -230,8 +230,25 @@
             btn.textContent = 'Harvest All Feeds';
         }
 
-        function extractInsights() {
-            alert('LLM-based extraction requires ZAI API access');
+        async function extractInsights() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Extracting...';
+            
+            try {
+                const res = await fetch('/api/cis/extract', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Insight extraction started. Check back in a few minutes.');
+                } else {
+                    alert('Extraction failed: ' + data.error);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Extract Insights';
         }
 
         function viewRawData() {

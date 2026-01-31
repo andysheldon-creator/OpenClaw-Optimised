@@ -1,0 +1,65 @@
+{
+  "source_name": "techtiff",
+  "source_title": "The Vibe Coder's Shortcut to the App Store",
+  "source_url": "https://techtiff.substack.com/p/manus-1-6-ai-mobile-app-builder",
+  "slug": "the-vibe-coders-shortcut-to-the-app-store",
+  "insights": [
+    {
+      "insight": "building apps todayIf you can explain it",
+      "action": "Use this approach in your work",
+      "framework": "the new rule",
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on The Vibe Coder's Shortcut to the App Store",
+      "confidence": "medium"
+    },
+    {
+      "insight": "it: that’s the new rule",
+      "action": "Apply this approach in your work",
+      "framework": "with three capture method",
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on The Vibe Coder's Shortcut to the App Store",
+      "confidence": "medium"
+    },
+    {
+      "insight": "ManusWhen to Use What: 1",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on The Vibe Coder's Shortcut to the App Store",
+      "confidence": "medium"
+    },
+    {
+      "insight": "it for complex builds",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on The Vibe Coder's Shortcut to the App Store",
+      "confidence": "medium"
+    },
+    {
+      "insight": "and the OpenAI Whisper integration without breaking a sweat",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "projects",
+      "para_target": "natural-capture",
+      "rationale": "Extracted from techtiff article on The Vibe Coder's Shortcut to the App Store",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "with three capture method",
+    "the new rule"
+  ],
+  "para_distribution": {
+    "projects": 5,
+    "areas": 0,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.116996",
+  "extraction_method": "pattern_based"
+}

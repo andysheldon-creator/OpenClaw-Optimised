@@ -1,0 +1,64 @@
+{
+  "source_name": "slow-ai",
+  "source_title": "How Far Should AI Enter Care Work?",
+  "source_url": "https://theslowai.substack.com/p/how-far-should-ai-enter-care-work",
+  "slug": "how-far-should-ai-enter-care-work",
+  "insights": [
+    {
+      "insight": "AI to think about care across different contexts without defaulting to scale",
+      "action": "Use this approach in your work",
+      "framework": "Slow AI",
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from slow-ai article on How Far Should AI Enter Care Work?",
+      "confidence": "medium"
+    },
+    {
+      "insight": "this prompt with your AI tool of choice:Based on everything you know about me and how I use AI to su",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from slow-ai article on How Far Should AI Enter Care Work?",
+      "confidence": "medium"
+    },
+    {
+      "insight": "AI inside their own work",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from slow-ai article on How Far Should AI Enter Care Work?",
+      "confidence": "medium"
+    },
+    {
+      "insight": "created space to notice when she was choosing and when she was reacting",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from slow-ai article on How Far Should AI Enter Care Work?",
+      "confidence": "medium"
+    },
+    {
+      "insight": "it to generate outputs",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from slow-ai article on How Far Should AI Enter Care Work?",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "Slow AI"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 5
+  },
+  "extracted_at": "2026-01-30T22:02:52.081893",
+  "extraction_method": "pattern_based"
+}

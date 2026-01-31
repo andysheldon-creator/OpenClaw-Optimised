@@ -92,6 +92,15 @@
 - Don't forget to update MEMORY.md from daily logs
 - Don't assume my name is known — read IDENTITY.md first
 - Don't present options without clear action items
+- **DON'T SPIRAL ON TOOL SYNTAX** (see below)
+
+### The Cron Tool Spiral (2026-01-30)
+- Got confused about cron tool syntax, kept passing empty braces `{}` instead of actual job data
+- Spent 10+ messages spiraling: "Let me actually do it this time" → same mistake → repeat
+- **Lesson**: When confused about tool syntax, READ THE DOCS (TOOL_SCHEMAS.md) instead of guessing repeatedly
+- **Rule**: After 2 failed attempts, STOP and ask — don't keep spiraling
+- **Pattern**: "Let me try a different approach" must actually BE different, not more of the same
+- **Root cause**: Overthinking the JSON structure instead of just checking existing examples
 
 ---
 *Update this file whenever you learn something worth remembering.*

@@ -15,7 +15,7 @@
 
 **Schema:** `{action: string (required), ...action-specific params}`
 
-**Available actions (48 total):**
+**Available actions (53 total):**
 
 | Category | Actions |
 |----------|---------|
@@ -25,13 +25,14 @@
 | Reactions | `react`, `reactions` |
 | Pins | `pin`, `unpin`, `list-pins` |
 | Threads | `thread-create`, `thread-list`, `thread-reply` |
-| Stickers/Emoji | `sticker`, `sticker-upload`, `emoji-list`, `emoji-upload` |
+| Stickers/Emoji | `sticker`, `sticker-search`, `sticker-upload`, `emoji-list`, `emoji-upload` |
 | Group Management | `renameGroup`, `setGroupIcon`, `addParticipant`, `removeParticipant`, `leaveGroup` |
 | Channels | `channel-info`, `channel-list`, `channel-create`, `channel-edit`, `channel-delete`, `channel-move` |
 | Categories | `category-create`, `category-edit`, `category-delete` |
 | Members | `member-info`, `permissions`, `role-info`, `role-add`, `role-remove` |
 | Moderation | `timeout`, `kick`, `ban` |
 | Events | `event-list`, `event-create`, `voice-status` |
+| Voice | `voice-join`, `voice-leave` |
 
 ### Examples
 
@@ -101,8 +102,9 @@
   "action": "add",
   "job": {
     "name": "Morning Gmail Check",
-    "schedule": { "kind": "cron", "cron": "0 9 * * *" },
-    "agentId": "liam-telegram",
+    "schedule": { "kind": "cron", "expr": "0 9 * * *", "tz": "America/Los_Angeles" },
+    "sessionTarget": "telegram:123456789",
+    "wakeMode": "now",
     "payload": {
       "kind": "agentTurn",
       "message": "Check Gmail for urgent messages"
@@ -110,6 +112,8 @@
   }
 }
 ```
+
+> **CRITICAL**: Use `schedule.expr` NOT `schedule.cron`. Required fields: `sessionTarget`, `wakeMode`.
 
 **Run a cron job manually:**
 ```json
@@ -393,5 +397,5 @@ If you see errors like:
 
 ---
 
-*Last updated: 2026-01-27*
+*Last updated: 2026-01-31*
 *Source: /home/liam/src/agents/tools/*.ts*

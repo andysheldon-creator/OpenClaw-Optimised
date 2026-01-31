@@ -1,0 +1,65 @@
+{
+  "source_name": "aakash-gupta",
+  "source_title": "AI Agent Browsers: Should you use one? | ChatGPT Atlas vs Perplexity Comet vs Arc Dia",
+  "source_url": "https://www.news.aakashg.com/p/naman-pandey-podcast",
+  "slug": "ai-agent-browsers-should-you-use-one-chatgpt-atlas-vs-perplexity-comet-vs-arc-di",
+  "insights": [
+    {
+      "insight": "What AI Agent Browsers Actually AreTraditional browsers like Chrome or Safari require you to do everything manually. Click here, type there, navigate somewhere else.AI agent browsers can do all that f",
+      "action": "Use this approach in your work",
+      "framework": "differences between these three",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from aakash-gupta article on AI Agent Browsers: Should you use one? | ChatGPT A",
+      "confidence": "medium"
+    },
+    {
+      "insight": "ChatGPT Atlas - The Research PowerhouseChatGPT Atlas is the newest entry. It launched in October 2025.When to Use ChatGPT AtlasUse ChatGPT Atlas when you need to:Extract structured data from multiple",
+      "action": "Apply this approach in your work",
+      "framework": "contentAnalyze publicly available dataThe rule",
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from aakash-gupta article on AI Agent Browsers: Should you use one? | ChatGPT A",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Perplexity Comet - The Real-Time Speed DemonPerplexity Comet takes a completely different approach.It’s a standalone browser built from the ground up as an AI-native experience.When to Use Perplexity",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from aakash-gupta article on AI Agent Browsers: Should you use one? | ChatGPT A",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Arc Dia - The Workflow Automation BeastArc Dia is different from both Atlas and Comet.It’s designed specifically for workflow automation - repeating the same tasks over and over.Atlassian bought Dia f",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from aakash-gupta article on AI Agent Browsers: Should you use one? | ChatGPT A",
+      "confidence": "medium"
+    },
+    {
+      "insight": "The 8 Best PM Use CasesHere are the most valuable use cases for PMs, with exact prompts you can use.Use Case 1 - Competitive ResearchBest Tool: ChatGPT AtlasPrompt: “Visit the websites of [competitor",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "areas",
+      "para_target": "ai-tools",
+      "rationale": "Extracted from aakash-gupta article on AI Agent Browsers: Should you use one? | ChatGPT A",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [
+    "contentAnalyze publicly available dataThe rule",
+    "differences between these three"
+  ],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 5,
+    "resources": 0
+  },
+  "extracted_at": "2026-01-30T22:02:52.209634",
+  "extraction_method": "pattern_based"
+}

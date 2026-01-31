@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Audio Takeaway: Stop Chatting. Start Building.",
+  "source_url": "https://techtiff.substack.com/p/audio-takeaway-stop-chatting-start",
+  "slug": "audio-takeaway-stop-chatting-start-building",
+  "insights": [
+    {
+      "insight": "isn’t even the story: The real shift is how it works",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Stop Chatting. Start Building.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "decide when to email a task versus iterate in real-time",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Stop Chatting. Start Building.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Backend, database, user authentication, Stripe integration",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Stop Chatting. Start Building.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "(The kind of thing a dev team builds over months)",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Stop Chatting. Start Building.",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Here’s what Manus created from a single prompt",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "frameworks",
+      "rationale": "Extracted from techtiff article on Audio Takeaway: Stop Chatting. Start Building.",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 5
+  },
+  "extracted_at": "2026-01-30T22:02:52.165935",
+  "extraction_method": "pattern_based"
+}

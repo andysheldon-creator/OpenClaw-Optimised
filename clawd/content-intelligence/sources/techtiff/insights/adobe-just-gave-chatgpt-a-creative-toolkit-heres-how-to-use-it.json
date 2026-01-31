@@ -1,0 +1,62 @@
+{
+  "source_name": "techtiff",
+  "source_title": "Adobe Just Gave ChatGPT a Creative Toolkit: Here's How to Use It",
+  "source_url": "https://techtiff.substack.com/p/adobe-chatgpt-creative-toolkit-guide",
+  "slug": "adobe-just-gave-chatgpt-a-creative-toolkit-heres-how-to-use-it",
+  "insights": [
+    {
+      "insight": "creative tools should work wherever you do",
+      "action": "Use this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from techtiff article on Adobe Just Gave ChatGPT a Creative Toolkit: Here's",
+      "confidence": "medium"
+    },
+    {
+      "insight": "effects to specific areas",
+      "action": "Apply this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from techtiff article on Adobe Just Gave ChatGPT a Creative Toolkit: Here's",
+      "confidence": "medium"
+    },
+    {
+      "insight": "an invitation for my holiday party on December 20th",
+      "action": "Implement this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from techtiff article on Adobe Just Gave ChatGPT a Creative Toolkit: Here's",
+      "confidence": "medium"
+    },
+    {
+      "insight": "Adobe to merge some pdfs and then update them",
+      "action": "Try this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from techtiff article on Adobe Just Gave ChatGPT a Creative Toolkit: Here's",
+      "confidence": "medium"
+    },
+    {
+      "insight": "WithPhotoshop for ChatGPT“Clean up the background of this product photo and make it look consistent",
+      "action": "Explore this approach in your work",
+      "framework": null,
+      "para_category": "resources",
+      "para_target": "templates",
+      "rationale": "Extracted from techtiff article on Adobe Just Gave ChatGPT a Creative Toolkit: Here's",
+      "confidence": "medium"
+    }
+  ],
+  "insight_count": 5,
+  "frameworks_detected": [],
+  "para_distribution": {
+    "projects": 0,
+    "areas": 0,
+    "resources": 5
+  },
+  "extracted_at": "2026-01-30T22:02:52.175376",
+  "extraction_method": "pattern_based"
+}
