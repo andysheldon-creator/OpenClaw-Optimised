@@ -31,10 +31,14 @@ import { incrementCompactionCount } from "./session-updates.js";
 
 function estimatePromptTokens(prompt?: string): number | undefined {
   const trimmed = prompt?.trim();
-  if (!trimmed) return undefined;
+  if (!trimmed) {
+    return undefined;
+  }
   const message: AgentMessage = { role: "user", content: trimmed };
   const tokens = estimateMessagesTokens([message]);
-  if (!Number.isFinite(tokens) || tokens <= 0) return undefined;
+  if (!Number.isFinite(tokens) || tokens <= 0) {
+    return undefined;
+  }
   return Math.ceil(tokens);
 }
 
@@ -43,7 +47,9 @@ async function readPromptTokensFromSessionLog(
   sessionEntry?: SessionEntry,
   sessionKey?: string,
 ): Promise<number | undefined> {
-  if (!sessionId) return undefined;
+  if (!sessionId) {
+    return undefined;
+  }
   const agentId = sessionEntry ? undefined : resolveAgentIdFromSessionKey(sessionKey);
   const logPath = resolveSessionFilePath(
     sessionId,
@@ -55,7 +61,9 @@ async function readPromptTokensFromSessionLog(
     const lines = (await fs.promises.readFile(logPath, "utf-8")).split(/\n+/);
     let lastUsage: ReturnType<typeof normalizeUsage> | undefined;
     for (const line of lines) {
-      if (!line.trim()) continue;
+      if (!line.trim()) {
+        continue;
+      }
       try {
         const parsed = JSON.parse(line) as {
           message?: { usage?: UsageLike };
@@ -63,12 +71,16 @@ async function readPromptTokensFromSessionLog(
         };
         const usageRaw = parsed.message?.usage ?? parsed.usage;
         const usage = normalizeUsage(usageRaw);
-        if (usage) lastUsage = usage;
+        if (usage) {
+          lastUsage = usage;
+        }
       } catch {
         // ignore bad lines
       }
     }
-    if (!lastUsage) return undefined;
+    if (!lastUsage) {
+      return undefined;
+    }
     const inputTokens = lastUsage.input ?? derivePromptTokens(lastUsage) ?? 0;
     const outputTokens = lastUsage.output ?? 0;
     const totalTokens = lastUsage.total ?? inputTokens + outputTokens;
