@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MEMORY_FLUSH_SOFT_TOKENS,
@@ -5,6 +8,11 @@ import {
   resolveMemoryFlushSettings,
   shouldRunMemoryFlush,
 } from "./memory-flush.js";
+import {
+  estimatePromptTokensForMemoryFlush,
+  readPromptTokensFromSessionLog,
+  resolveEffectivePromptTokens,
+} from "./agent-runner-memory.js";
 
 describe("memory flush settings", () => {
   it("defaults to enabled with fallback prompt and system prompt", () => {
@@ -146,6 +154,51 @@ describe("shouldRunMemoryFlush", () => {
         softThresholdTokens: 2_000,
       }),
     ).toBe(true);
+  });
+});
+
+describe("memory flush prompt estimates", () => {
+  it("returns undefined for blank prompt text", () => {
+    expect(estimatePromptTokensForMemoryFlush("   ")).toBeUndefined();
+  });
+
+  it("returns a positive integer estimate for prompt text", () => {
+    const estimate = estimatePromptTokensForMemoryFlush("Hello memory flush.");
+    expect(estimate).toBeTypeOf("number");
+    expect(estimate).toBeGreaterThan(0);
+    expect(Number.isInteger(estimate)).toBe(true);
+  });
+
+  it("adds the estimate to the larger of stored and transcript totals", () => {
+    expect(
+      resolveEffectivePromptTokens({
+        baseTotalTokens: 120,
+        transcriptTotalTokens: 200,
+        promptTokenEstimate: 30,
+      }),
+    ).toBe(230);
+  });
+});
+
+describe("memory flush transcript fallback", () => {
+  it("sums usage entries from the session transcript", async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-flush-"));
+    const logPath = path.join(tmp, "session.jsonl");
+    const lines = [
+      JSON.stringify({ message: { usage: { input: 10, output: 5 } } }),
+      JSON.stringify({ usage: { total: 25 } }),
+      JSON.stringify({ usage: { input: 3, cacheRead: 2, cacheWrite: 1, output: 4 } }),
+    ];
+    await fs.writeFile(logPath, lines.join("\n"), "utf-8");
+
+    const sessionEntry = {
+      sessionId: "session",
+      updatedAt: Date.now(),
+      sessionFile: logPath,
+    };
+    const total = await readPromptTokensFromSessionLog("session", sessionEntry);
+
+    expect(total).toBe(50);
   });
 });
 

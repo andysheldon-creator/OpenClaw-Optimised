@@ -29,7 +29,7 @@ import {
 } from "./memory-flush.js";
 import { incrementCompactionCount } from "./session-updates.js";
 
-function estimatePromptTokens(prompt?: string): number | undefined {
+export function estimatePromptTokensForMemoryFlush(prompt?: string): number | undefined {
   const trimmed = prompt?.trim();
   if (!trimmed) {
     return undefined;
@@ -42,7 +42,22 @@ function estimatePromptTokens(prompt?: string): number | undefined {
   return Math.ceil(tokens);
 }
 
-async function readPromptTokensFromSessionLog(
+const isPositiveNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
+export function resolveEffectivePromptTokens(params: {
+  baseTotalTokens?: number;
+  transcriptTotalTokens?: number;
+  promptTokenEstimate?: number;
+}): number {
+  const lastPromptTokens = Math.max(params.baseTotalTokens ?? 0, params.transcriptTotalTokens ?? 0);
+  if (params.promptTokenEstimate) {
+    return lastPromptTokens + params.promptTokenEstimate;
+  }
+  return lastPromptTokens;
+}
+
+export async function readPromptTokensFromSessionLog(
   sessionId?: string,
   sessionEntry?: SessionEntry,
   sessionKey?: string,
@@ -59,7 +74,8 @@ async function readPromptTokensFromSessionLog(
 
   try {
     const lines = (await fs.promises.readFile(logPath, "utf-8")).split(/\n+/);
-    let lastUsage: ReturnType<typeof normalizeUsage> | undefined;
+    let totalTokens = 0;
+    let sawUsage = false;
     for (const line of lines) {
       if (!line.trim()) {
         continue;
@@ -72,18 +88,21 @@ async function readPromptTokensFromSessionLog(
         const usageRaw = parsed.message?.usage ?? parsed.usage;
         const usage = normalizeUsage(usageRaw);
         if (usage) {
-          lastUsage = usage;
+          sawUsage = true;
+          const promptTokens = derivePromptTokens(usage) ?? usage.input ?? 0;
+          const outputTokens = usage.output ?? 0;
+          const entryTotal = usage.total ?? promptTokens + outputTokens;
+          if (Number.isFinite(entryTotal) && entryTotal > 0) {
+            totalTokens += entryTotal;
+          }
         }
       } catch {
         // ignore bad lines
       }
     }
-    if (!lastUsage) {
+    if (!sawUsage) {
       return undefined;
     }
-    const inputTokens = lastUsage.input ?? derivePromptTokens(lastUsage) ?? 0;
-    const outputTokens = lastUsage.output ?? 0;
-    const totalTokens = lastUsage.total ?? inputTokens + outputTokens;
     return totalTokens > 0 ? totalTokens : undefined;
   } catch {
     return undefined;
@@ -134,19 +153,23 @@ export async function runMemoryFlushIfNeeded(params: {
     agentCfgContextTokens: params.agentCfgContextTokens,
   });
 
-  const promptTokenEstimate = estimatePromptTokens(
+  const promptTokenEstimate = estimatePromptTokensForMemoryFlush(
     params.promptForEstimate ?? params.followupRun.prompt,
   );
-  const transcriptTotalTokens = await readPromptTokensFromSessionLog(
-    params.followupRun.run.sessionId,
-    entry,
-    params.sessionKey ?? params.followupRun.run.sessionKey,
-  );
   const baseTotalTokens = entry?.totalTokens;
-  const lastPromptTokens = Math.max(baseTotalTokens ?? 0, transcriptTotalTokens ?? 0);
-  const effectivePromptTokens = promptTokenEstimate
-    ? lastPromptTokens + promptTokenEstimate
-    : lastPromptTokens;
+  const shouldReadTranscript = !isPositiveNumber(baseTotalTokens);
+  const transcriptTotalTokens = shouldReadTranscript
+    ? await readPromptTokensFromSessionLog(
+        params.followupRun.run.sessionId,
+        entry,
+        params.sessionKey ?? params.followupRun.run.sessionKey,
+      )
+    : undefined;
+  const effectivePromptTokens = resolveEffectivePromptTokens({
+    baseTotalTokens,
+    transcriptTotalTokens,
+    promptTokenEstimate,
+  });
   const effectiveEntry =
     entry && typeof effectivePromptTokens === "number" && effectivePromptTokens > 0
       ? { ...entry, totalTokens: effectivePromptTokens }

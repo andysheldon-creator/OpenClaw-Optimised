@@ -52,7 +52,7 @@ export async function persistSessionUsageUpdate(params: {
               deriveSessionTotalTokens({
                 usage: params.usage,
                 contextTokens: resolvedContextTokens,
-              }) ?? input,
+              }) ?? input + output,
             modelProvider: params.providerUsed ?? entry.modelProvider,
             model: params.modelUsed ?? entry.model,
             contextTokens: resolvedContextTokens,
