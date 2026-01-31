@@ -13,15 +13,21 @@ import {
 } from "./context-pruning.js";
 
 function toolText(msg: AgentMessage): string {
-  if (msg.role !== "toolResult") throw new Error("expected toolResult");
+  if (msg.role !== "toolResult") {
+    throw new Error("expected toolResult");
+  }
   const first = msg.content.find((b) => b.type === "text");
-  if (!first || first.type !== "text") return "";
+  if (!first || first.type !== "text") {
+    return "";
+  }
   return first.text;
 }
 
 function findToolResult(messages: AgentMessage[], toolCallId: string): AgentMessage {
   const msg = messages.find((m) => m.role === "toolResult" && m.toolCallId === toolCallId);
-  if (!msg) throw new Error(`missing toolResult: ${toolCallId}`);
+  if (!msg) {
+    throw new Error(`missing toolResult: ${toolCallId}`);
+  }
   return msg;
 }
 
@@ -296,14 +302,18 @@ describe("context-pruning", () => {
 
     contextPruningExtension(api);
 
-    if (!handler) throw new Error("missing context handler");
+    if (!handler) {
+      throw new Error("missing context handler");
+    }
 
     const result = handler({ messages }, {
       model: undefined,
       sessionManager,
     } as unknown as ExtensionContext);
 
-    if (!result) throw new Error("expected handler to return messages");
+    if (!result) {
+      throw new Error("expected handler to return messages");
+    }
     expect(toolText(findToolResult(result.messages, "t1"))).toBe("[cleared]");
   });
 
@@ -353,17 +363,23 @@ describe("context-pruning", () => {
     } as unknown as ExtensionAPI;
 
     contextPruningExtension(api);
-    if (!handler) throw new Error("missing context handler");
+    if (!handler) {
+      throw new Error("missing context handler");
+    }
 
     const first = handler({ messages }, {
       model: undefined,
       sessionManager,
     } as unknown as ExtensionContext);
-    if (!first) throw new Error("expected first prune");
+    if (!first) {
+      throw new Error("expected first prune");
+    }
     expect(toolText(findToolResult(first.messages, "t1"))).toBe("[cleared]");
 
     const runtime = getContextPruningRuntime(sessionManager);
-    if (!runtime?.lastCacheTouchAt) throw new Error("expected lastCacheTouchAt");
+    if (!runtime?.lastCacheTouchAt) {
+      throw new Error("expected lastCacheTouchAt");
+    }
     expect(runtime.lastCacheTouchAt).toBeGreaterThan(lastTouch);
 
     const second = handler({ messages }, {

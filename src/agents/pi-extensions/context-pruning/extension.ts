@@ -1,4 +1,3 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ContextEvent, ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import { capToolResultMessages, pruneContextMessages } from "./pruner.js";
@@ -7,7 +6,9 @@ import { getContextPruningRuntime } from "./runtime.js";
 export default function contextPruningExtension(api: ExtensionAPI): void {
   api.on("context", (event: ContextEvent, ctx: ExtensionContext) => {
     const runtime = getContextPruningRuntime(ctx.sessionManager);
-    if (!runtime) return undefined;
+    if (!runtime) {
+      return undefined;
+    }
 
     // ── Per-result hard cap (always, not TTL-gated) ─────────────────────
     // Prevents a single oversized tool result from blowing out the context
@@ -44,6 +45,21 @@ export default function contextPruningExtension(api: ExtensionAPI): void {
           return { messages };
         }
       }
+    }
+
+    const next = pruneContextMessages({
+      messages,
+      settings: runtime.settings,
+      ctx,
+      isToolPrunable: runtime.isToolPrunable,
+      contextWindowTokensOverride: runtime.contextWindowTokens ?? undefined,
+    });
+
+    if (next !== messages) {
+      if (runtime.settings.mode === "cache-ttl") {
+        runtime.lastCacheTouchAt = Date.now();
+      }
+      return { messages: next };
     }
 
     // Return capped messages if per-result cap changed anything.
