@@ -7,10 +7,10 @@
  */
 
 import { Type } from "@sinclair/typebox";
-import * as lancedb from "@lancedb/lancedb";
 import { randomUUID } from "node:crypto";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { stringEnum } from "openclaw/plugin-sdk";
+import type * as lancedb from "@lancedb/lancedb";
 
 import {
   MEMORY_CATEGORIES,
