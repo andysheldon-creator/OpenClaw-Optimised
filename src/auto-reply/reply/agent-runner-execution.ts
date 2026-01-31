@@ -103,7 +103,9 @@ export async function runAgentTurnWithFallback(params: {
         params.followupRun.run.reasoningLevel === "stream" && params.opts?.onReasoningStream
       );
       const normalizeStreamingText = (payload: ReplyPayload): { text?: string; skip: boolean } => {
-        if (!allowPartialStream) return { skip: true };
+        if (!allowPartialStream) {
+          return { skip: true };
+        }
         let text = payload.text;
         if (!params.isHeartbeat && text?.includes("HEARTBEAT_OK")) {
           const stripped = stripHeartbeatToken(text, {
@@ -121,14 +123,20 @@ export async function runAgentTurnWithFallback(params: {
         if (isSilentReplyText(text, SILENT_REPLY_TOKEN)) {
           return { skip: true };
         }
-        if (!text) return { skip: true };
+        if (!text) {
+          return { skip: true };
+        }
         const sanitized = sanitizeUserFacingText(text);
-        if (!sanitized.trim()) return { skip: true };
+        if (!sanitized.trim()) {
+          return { skip: true };
+        }
         return { text: sanitized, skip: false };
       };
       const handlePartialForTyping = async (payload: ReplyPayload): Promise<string | undefined> => {
         const { text, skip } = normalizeStreamingText(payload);
-        if (skip || !text) return undefined;
+        if (skip || !text) {
+          return undefined;
+        }
         await params.typingSignals.signalTextDelta(text);
         return text;
       };
@@ -266,7 +274,9 @@ export async function runAgentTurnWithFallback(params: {
                 params.sessionCtx.Surface,
                 params.sessionCtx.Provider,
               );
-              if (!channel) return "markdown";
+              if (!channel) {
+                return "markdown";
+              }
               return isMarkdownCapableMessageChannel(channel) ? "markdown" : "plain";
             })(),
             bashElevated: params.followupRun.run.bashElevated,
@@ -286,7 +296,9 @@ export async function runAgentTurnWithFallback(params: {
             onPartialReply: allowPartialStream
               ? async (payload) => {
                   const textForTyping = await handlePartialForTyping(payload);
-                  if (!params.opts?.onPartialReply || textForTyping === undefined) return;
+                  if (!params.opts?.onPartialReply || textForTyping === undefined) {
+                    return;
+                  }
                   await params.opts.onPartialReply({
                     text: textForTyping,
                     mediaUrls: payload.mediaUrls,
@@ -331,7 +343,9 @@ export async function runAgentTurnWithFallback(params: {
               ? async (payload) => {
                   const { text, skip } = normalizeStreamingText(payload);
                   const hasPayloadMedia = (payload.mediaUrls?.length ?? 0) > 0;
-                  if (skip && !hasPayloadMedia) return;
+                  if (skip && !hasPayloadMedia) {
+                    return;
+                  }
                   const currentMessageId =
                     params.sessionCtx.MessageSidFull ?? params.sessionCtx.MessageSid;
                   const taggedPayload = applyReplyTagsToPayload(
@@ -346,7 +360,9 @@ export async function runAgentTurnWithFallback(params: {
                     currentMessageId,
                   );
                   // Let through payloads with audioAsVoice flag even if empty (need to track it)
-                  if (!isRenderablePayload(taggedPayload) && !payload.audioAsVoice) return;
+                  if (!isRenderablePayload(taggedPayload) && !payload.audioAsVoice) {
+                    return;
+                  }
                   const parsed = parseReplyDirectives(taggedPayload.text ?? "", {
                     currentMessageId,
                     silentToken: SILENT_REPLY_TOKEN,
@@ -360,9 +376,12 @@ export async function runAgentTurnWithFallback(params: {
                     !hasRenderableMedia &&
                     !payload.audioAsVoice &&
                     !parsed.audioAsVoice
-                  )
+                  ) {
                     return;
-                  if (parsed.isSilent && !hasRenderableMedia) return;
+                  }
+                  if (parsed.isSilent && !hasRenderableMedia) {
+                    return;
+                  }
 
                   const blockPayload: ReplyPayload = params.applyReplyToMode({
                     ...taggedPayload,
@@ -406,7 +425,9 @@ export async function runAgentTurnWithFallback(params: {
                   // a typing loop that never sees a matching markRunComplete(). Track and drain.
                   const task = (async () => {
                     const { text, skip } = normalizeStreamingText(payload);
-                    if (skip) return;
+                    if (skip) {
+                      return;
+                    }
                     await params.typingSignals.signalTextDelta(text);
                     await onToolResult({
                       text,
@@ -542,7 +563,7 @@ export async function runAgentTurnWithFallback(params: {
         ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
         : isRoleOrderingError
           ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
-          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: moltbot logs --follow`;
+          : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: openclaw logs --follow`;
 
       return {
         kind: "final",

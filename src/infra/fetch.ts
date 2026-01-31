@@ -98,8 +98,12 @@ function withDuplex(
     typeof Request !== "undefined" &&
     input instanceof Request &&
     input.body != null;
-  if (!hasInitBody && !hasRequestBody) return init;
-  if (init && "duplex" in (init as Record<string, unknown>)) return init;
+  if (!hasInitBody && !hasRequestBody) {
+    return init;
+  }
+  if (init && "duplex" in (init as Record<string, unknown>)) {
+    return init;
+  }
   return init
     ? ({ ...init, duplex: "half" as const } as RequestInitWithDuplex)
     : ({ duplex: "half" as const } as RequestInitWithDuplex);
@@ -110,7 +114,9 @@ export function wrapFetchWithAbortSignal(fetchImpl: typeof fetch): typeof fetch 
     const sanitizedInit = sanitizeHeaders(init);
     const patchedInit = withDuplex(sanitizedInit, input);
     const signal = patchedInit?.signal;
-    if (!signal) return fetchImpl(input, patchedInit);
+    if (!signal) {
+      return fetchImpl(input, patchedInit);
+    }
     if (typeof AbortSignal !== "undefined" && signal instanceof AbortSignal) {
       return fetchImpl(input, patchedInit);
     }
@@ -147,7 +153,9 @@ export function wrapFetchWithAbortSignal(fetchImpl: typeof fetch): typeof fetch 
 
 export function resolveFetch(fetchImpl?: typeof fetch): typeof fetch | undefined {
   const resolved = fetchImpl ?? globalThis.fetch;
-  if (!resolved) return undefined;
+  if (!resolved) {
+    return undefined;
+  }
   return wrapFetchWithAbortSignal(resolved);
 }
 
