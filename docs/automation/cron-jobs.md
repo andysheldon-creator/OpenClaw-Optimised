@@ -30,13 +30,11 @@ cron is the mechanism.
 Think of a cron job as: **when** to run + **what** to do.
 
 1. **Choose a schedule**
-
    - One-shot reminder → `schedule.kind = "at"` (CLI: `--at`)
    - Repeating job → `schedule.kind = "every"` or `schedule.kind = "cron"`
    - If your ISO timestamp omits a timezone, it is treated as **UTC**.
 
 2. **Choose where it runs**
-
    - `sessionTarget: "main"` → run during the next heartbeat with main context.
    - `sessionTarget: "isolated"` → run a dedicated agent turn in `cron:<jobId>`.
 
