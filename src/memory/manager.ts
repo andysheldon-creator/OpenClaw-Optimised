@@ -620,6 +620,14 @@ export class MemoryIndexManager {
     }
   }
 
+  /**
+   * Returns the underlying database connection.
+   * Used by trust/provenance tools to verify chunks.
+   */
+  getDatabase(): DatabaseSync {
+    return this.db;
+  }
+
   async close(): Promise<void> {
     if (this.closed) {
       return;
