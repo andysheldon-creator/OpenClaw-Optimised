@@ -19,12 +19,12 @@ Azure OpenAI exposes OpenAI models deployed in your Azure subscription (for exam
 
 Set the following environment variables to configure Azure OpenAI:
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `AZURE_OPENAI_API_KEY` | Yes | Your Azure OpenAI API key |
-| `AZURE_OPENAI_ENDPOINT` | Yes | Azure OpenAI resource root endpoint (e.g., `https://my-openai-resource.openai.azure.com`) |
-| `AZURE_OPENAI_DEPLOYMENT_NAME` | Yes | Model deployment name (e.g., `gpt-5`) |
-| `AZURE_OPENAI_API_VERSION` | No | API version (defaults to `2024-08-01-preview`) |
+| Variable                       | Required | Description                                                                               |
+| ------------------------------ | -------- | ----------------------------------------------------------------------------------------- |
+| `AZURE_OPENAI_API_KEY`         | Yes      | Your Azure OpenAI API key                                                                 |
+| `AZURE_OPENAI_ENDPOINT`        | Yes      | Azure OpenAI resource root endpoint (e.g., `https://my-openai-resource.openai.azure.com`) |
+| `AZURE_OPENAI_DEPLOYMENT_NAME` | Yes      | Model deployment name (e.g., `gpt-5`)                                                     |
+| `AZURE_OPENAI_API_VERSION`     | No       | API version (defaults to `2024-08-01-preview`)                                            |
 
 ### Example .env Configuration
 
@@ -88,6 +88,7 @@ https://{resourceName}.openai.azure.com/openai/deployments/{deploymentName}/chat
 ```
 
 The provider automatically handles:
+
 - Building the correct endpoint URL from resource and deployment names
 - Adding the `api-version` query parameter via a global fetch wrapper
 - Using the `api-key` header instead of Bearer token authentication
@@ -108,15 +109,18 @@ Recommended (newer) deployment names to use in docs/examples:
 ### Common Issues
 
 **401 Unauthorized**
+
 - Verify your `AZURE_OPENAI_API_KEY` is correct
 - Check that the API key has access to the specified deployment
 
 **404 Not Found**
+
 - Verify `AZURE_OPENAI_ENDPOINT` points at your Azure OpenAI resource (resource root URL)
 - Verify `AZURE_OPENAI_DEPLOYMENT_NAME` matches an existing deployment
 - Check that the deployment is in a "Succeeded" state in Azure Portal
 
 **API Version Errors**
+
 - Try updating `AZURE_OPENAI_API_VERSION` to a supported version
 - Check [Azure OpenAI API versions](https://learn.microsoft.com/en-us/azure/ai-services/openai/reference) for the latest
 

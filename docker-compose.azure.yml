@@ -44,7 +44,7 @@ services:
         "${CLAWDBOT_GATEWAY_BIND:-lan}",
         "--port",
         "${CLAWDBOT_GATEWAY_PORT:-18789}",
-        "--allow-unconfigured"
+        "--allow-unconfigured",
       ]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
