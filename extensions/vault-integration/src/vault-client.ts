@@ -49,10 +49,10 @@ export class VaultClient {
 
   /**
    * Read secret from KV v2 engine
-   * 
+   *
    * @param path - Secret path (e.g., "openclaw/data/credentials/anthropic")
    * @returns Secret data or null if not found
-   * 
+   *
    * @example
    * ```ts
    * const secret = await vault.read<{ access_token: string }>(
@@ -76,22 +76,20 @@ export class VaultClient {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new VaultError(
-          `Failed to read secret: ${path}`,
-          response.status,
-          text,
-        );
+        throw new VaultError(`Failed to read secret: ${path}`, response.status, text);
       }
 
       const json = await response.json();
-      
+
       // KV v2 format: { data: { data: {...}, metadata: {...} } }
       return {
         data: json.data?.data as T,
         metadata: json.data?.metadata,
       };
     } catch (error) {
-      if (error instanceof VaultError) throw error;
+      if (error instanceof VaultError) {
+        throw error;
+      }
       throw new VaultError(
         `Network error reading secret: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -100,10 +98,10 @@ export class VaultClient {
 
   /**
    * Write secret to KV v2 engine
-   * 
+   *
    * @param path - Secret path (e.g., "openclaw/data/credentials/telegram")
    * @param data - Secret data to store
-   * 
+   *
    * @example
    * ```ts
    * await vault.write("openclaw/data/credentials/telegram", {
@@ -127,14 +125,12 @@ export class VaultClient {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new VaultError(
-          `Failed to write secret: ${path}`,
-          response.status,
-          text,
-        );
+        throw new VaultError(`Failed to write secret: ${path}`, response.status, text);
       }
     } catch (error) {
-      if (error instanceof VaultError) throw error;
+      if (error instanceof VaultError) {
+        throw error;
+      }
       throw new VaultError(
         `Network error writing secret: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -143,10 +139,10 @@ export class VaultClient {
 
   /**
    * List secrets at path
-   * 
+   *
    * @param path - Metadata path (e.g., "openclaw/metadata/credentials")
    * @returns Array of secret names
-   * 
+   *
    * @example
    * ```ts
    * const secrets = await vault.list("openclaw/metadata/credentials");
@@ -168,17 +164,15 @@ export class VaultClient {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new VaultError(
-          `Failed to list secrets: ${path}`,
-          response.status,
-          text,
-        );
+        throw new VaultError(`Failed to list secrets: ${path}`, response.status, text);
       }
 
       const json = await response.json();
       return json.data?.keys || [];
     } catch (error) {
-      if (error instanceof VaultError) throw error;
+      if (error instanceof VaultError) {
+        throw error;
+      }
       throw new VaultError(
         `Network error listing secrets: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -187,9 +181,9 @@ export class VaultClient {
 
   /**
    * Delete secret (soft delete - can be recovered)
-   * 
+   *
    * @param path - Secret path
-   * 
+   *
    * @example
    * ```ts
    * await vault.delete("openclaw/data/credentials/old-bot");
@@ -206,14 +200,12 @@ export class VaultClient {
 
       if (!response.ok && response.status !== 404) {
         const text = await response.text();
-        throw new VaultError(
-          `Failed to delete secret: ${path}`,
-          response.status,
-          text,
-        );
+        throw new VaultError(`Failed to delete secret: ${path}`, response.status, text);
       }
     } catch (error) {
-      if (error instanceof VaultError) throw error;
+      if (error instanceof VaultError) {
+        throw error;
+      }
       throw new VaultError(
         `Network error deleting secret: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -253,7 +245,9 @@ export class VaultClient {
         initialized: json.initialized === true,
       };
     } catch (error) {
-      if (error instanceof VaultError) throw error;
+      if (error instanceof VaultError) {
+        throw error;
+      }
       throw new VaultError(
         `Network error checking seal status: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -263,11 +257,11 @@ export class VaultClient {
 
 /**
  * Create VaultClient from environment variables
- * 
+ *
  * Required env vars:
  * - VAULT_ADDR (or defaults to http://localhost:8200)
  * - VAULT_TOKEN
- * 
+ *
  * Optional:
  * - VAULT_NAMESPACE
  */

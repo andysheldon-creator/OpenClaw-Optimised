@@ -65,9 +65,6 @@ vi.mock("@opentelemetry/exporter-logs-otlp-http", () => ({
 vi.mock("@opentelemetry/sdk-logs", () => ({
   BatchLogRecordProcessor: class {},
   LoggerProvider: class {
-    constructor(_options?: unknown) {
-      // v2.x: processors are passed in constructor
-    }
     getLogger = vi.fn(() => ({
       emit: logEmit,
     }));

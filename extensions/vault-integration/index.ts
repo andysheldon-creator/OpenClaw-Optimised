@@ -1,5 +1,4 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import type { z } from "zod";
 
 import { createVaultIntegrationService } from "./src/service.js";
 
@@ -31,8 +30,6 @@ const configSchema = {
     },
   },
 } as const;
-
-type VaultPluginConfig = z.infer<typeof configSchema>;
 
 const plugin = {
   id: "vault-integration",
