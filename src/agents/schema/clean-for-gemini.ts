@@ -199,11 +199,11 @@ function cleanSchemaForGeminiWithDefs(
         ...(cleaned as Record<string, unknown>),
       };
       // Preserve all sibling properties except "$ref"
-for (const [key, value] of Object.entries(obj)) {
-  if (key !== "$ref" && value !== undefined) {
-    result[key] = value;
-  }
-}
+      for (const [key, value] of Object.entries(obj)) {
+        if (key !== "$ref" && value !== undefined) {
+          result[key] = value;
+        }
+      }
 
       return result;
     }
