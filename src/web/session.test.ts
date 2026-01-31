@@ -90,7 +90,9 @@ describe("web session", () => {
 
   it("logWebSelfId prints cached E.164 when creds exist", () => {
     const existsSpy = vi.spyOn(fsSync, "existsSync").mockImplementation((p) => {
-      if (typeof p !== "string") return false;
+      if (typeof p !== "string") {
+        return false;
+      }
       return p.endsWith("creds.json");
     });
     const readSpy = vi.spyOn(fsSync, "readFileSync").mockImplementation((p) => {
@@ -138,7 +140,9 @@ describe("web session", () => {
 
     const copySpy = vi.spyOn(fsSync, "copyFileSync").mockImplementation(() => {});
     const existsSpy = vi.spyOn(fsSync, "existsSync").mockImplementation((p) => {
-      if (typeof p !== "string") return false;
+      if (typeof p !== "string") {
+        return false;
+      }
       return p.endsWith(credsSuffix);
     });
     const statSpy = vi.spyOn(fsSync, "statSync").mockImplementation((p) => {
@@ -221,7 +225,9 @@ describe("web session", () => {
 
     const copySpy = vi.spyOn(fsSync, "copyFileSync").mockImplementation(() => {});
     const existsSpy = vi.spyOn(fsSync, "existsSync").mockImplementation((p) => {
-      if (typeof p !== "string") return false;
+      if (typeof p !== "string") {
+        return false;
+      }
       return p.endsWith(credsSuffix);
     });
     const statSpy = vi.spyOn(fsSync, "statSync").mockImplementation((p) => {

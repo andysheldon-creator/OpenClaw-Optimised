@@ -24,6 +24,8 @@ type ChatHost = {
   refreshSessionsAfterChat: Set<string>;
 };
 
+export const CHAT_SESSIONS_ACTIVE_MINUTES = 10;
+
 export function isChatBusy(host: ChatHost) {
   return host.chatSending || Boolean(host.chatRunId);
 }
@@ -99,7 +101,10 @@ async function sendChatMessageNow(
     host.chatAttachments = opts.previousAttachments;
   }
   if (ok) {
-    setLastActiveSessionKey(host as unknown as Parameters<typeof setLastActiveSessionKey>[0], host.sessionKey);
+    setLastActiveSessionKey(
+      host as unknown as Parameters<typeof setLastActiveSessionKey>[0],
+      host.sessionKey,
+    );
   }
   if (ok && opts?.restoreDraft && opts.previousDraft?.trim()) {
     host.chatMessage = opts.previousDraft;
@@ -180,7 +185,9 @@ export async function handleSendChat(
 export async function refreshChat(host: ChatHost) {
   await Promise.all([
     loadChatHistory(host as unknown as OpenClawApp),
-    loadSessions(host as unknown as OpenClawApp, { activeMinutes: 0 }),
+    loadSessions(host as unknown as OpenClawApp, {
+      activeMinutes: CHAT_SESSIONS_ACTIVE_MINUTES,
+    }),
     refreshChatAvatar(host),
   ]);
   scheduleChatScroll(host as unknown as Parameters<typeof scheduleChatScroll>[0], true);
@@ -195,7 +202,9 @@ type SessionDefaultsSnapshot = {
 function resolveAgentIdForSession(host: ChatHost): string | null {
   const parsed = parseAgentSessionKey(host.sessionKey);
   if (parsed?.agentId) return parsed.agentId;
-  const snapshot = host.hello?.snapshot as { sessionDefaults?: SessionDefaultsSnapshot } | undefined;
+  const snapshot = host.hello?.snapshot as
+    | { sessionDefaults?: SessionDefaultsSnapshot }
+    | undefined;
   const fallback = snapshot?.sessionDefaults?.defaultAgentId?.trim();
   return fallback || "main";
 }
