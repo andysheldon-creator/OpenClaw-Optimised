@@ -16,8 +16,6 @@ import {
   type GroupToolPolicyConfig,
   type ChannelMeta,
   type ReplyPayload,
-  type ChannelOnboardingAdapter,
-  type ChannelOnboardingDmPolicy,
   type DmPolicy,
   addWildcardAllowFrom,
   promptAccountId,
@@ -45,8 +43,8 @@ let feishuMonitorPromise: Promise<{ stop: () => void }> | null = null;
 async function loadFeishuModule(): Promise<FeishuModule> {
   if (!feishuModulePromise) {
     // @ts-expect-error - resolved in packaged builds via openclaw exports
-    feishuModulePromise = import("openclaw/feishu").catch(async () =>
-      import("../../../src/feishu/index.js"),
+    feishuModulePromise = import("openclaw/feishu").catch(
+      async () => import("../../../src/feishu/index.js"),
     );
   }
   return feishuModulePromise;
@@ -65,14 +63,9 @@ async function resolveFeishuClient(cfg: OpenClawConfig, accountId?: string | nul
   return { account, client, feishu };
 }
 
-function resolveFileType(contentType?: string):
-  | "opus"
-  | "mp4"
-  | "pdf"
-  | "doc"
-  | "xls"
-  | "ppt"
-  | "stream" {
+function resolveFileType(
+  contentType?: string,
+): "opus" | "mp4" | "pdf" | "doc" | "xls" | "ppt" | "stream" {
   if (!contentType) return "stream";
   const lower = contentType.toLowerCase();
   if (lower.includes("pdf")) return "pdf";
@@ -228,7 +221,9 @@ async function processFeishuInboundMessage(params: {
         statusSink?.({ lastOutboundAt: Date.now() });
       },
       onError: (err: unknown, info: { kind: string }) => {
-        runtime.error?.(`[${ctx.account.accountId}] feishu ${info.kind} reply failed: ${String(err)}`);
+        runtime.error?.(
+          `[${ctx.account.accountId}] feishu ${info.kind} reply failed: ${String(err)}`,
+        );
       },
     },
   });
@@ -320,13 +315,7 @@ export const feishuPlugin: ChannelPlugin = {
       configured: Boolean(account.appId?.trim() && account.appSecret?.trim()),
       tokenSource: account.tokenSource,
     }),
-    resolveAllowFrom: ({
-      cfg,
-      accountId,
-    }: {
-      cfg: OpenClawConfig;
-      accountId?: string | null;
-    }) =>
+    resolveAllowFrom: ({ cfg, accountId }: { cfg: OpenClawConfig; accountId?: string | null }) =>
       (resolveFeishuAccount(cfg, accountId).config.allowFrom ?? []).map((entry: string | number) =>
         String(entry),
       ),
@@ -464,7 +453,7 @@ export const feishuPlugin: ChannelPlugin = {
     channel: "feishu",
     getStatus: async ({ cfg }) => {
       const ids = getFeishuRuntime().channel.feishu.listFeishuAccountIds(cfg);
-      const configured = ids.some((id) => {
+      const configured = ids.some((id: string) => {
         const acc = getFeishuRuntime().channel.feishu.resolveFeishuAccount({ cfg, accountId: id });
         return Boolean(acc.appId && acc.appSecret);
       });
@@ -518,7 +507,7 @@ export const feishuPlugin: ChannelPlugin = {
             cfg: feishuPlugin.setup!.applyAccountConfig!({
               cfg,
               accountId,
-              input: { appId: existingAppId, appSecret: existingAppSecret },
+              input: { appId: existingAppId, appSecret: existingAppSecret } as any,
             }),
             accountId,
           };
@@ -596,11 +585,11 @@ export const feishuPlugin: ChannelPlugin = {
                 [accountId]: {
                   ...namedConfig.channels?.feishu?.accounts?.[accountId],
                   ...accountPatch,
-                }
-              }
-            }
-          }
-        }
+                },
+              },
+            },
+          },
+        };
       }
 
       return { cfg: next, accountId };
@@ -619,7 +608,8 @@ export const feishuPlugin: ChannelPlugin = {
       allowFromKey: "channels.feishu.allowFrom",
       getCurrent: (cfg) => cfg.channels?.feishu?.dmPolicy ?? "pairing",
       setPolicy: (cfg, policy: DmPolicy) => {
-        const allowFrom = policy === "open" ? addWildcardAllowFrom(cfg.channels?.feishu?.allowFrom) : undefined;
+        const allowFrom =
+          policy === "open" ? addWildcardAllowFrom(cfg.channels?.feishu?.allowFrom) : undefined;
         return {
           ...cfg,
           channels: {
@@ -627,10 +617,10 @@ export const feishuPlugin: ChannelPlugin = {
             feishu: {
               ...cfg.channels?.feishu,
               dmPolicy: policy,
-              ...(allowFrom ? { allowFrom } : {}),
-            }
-          }
-        }
+              ...(allowFrom ? { allowFrom: allowFrom.map(String) } : {}),
+            },
+          },
+        };
       },
     },
   },
@@ -695,7 +685,12 @@ export const feishuPlugin: ChannelPlugin = {
       probe,
     }: {
       account: ReturnType<typeof resolveFeishuAccount>;
-      runtime?: { running?: boolean; lastStartAt?: number | null; lastStopAt?: number | null; lastError?: string | null };
+      runtime?: {
+        running?: boolean;
+        lastStartAt?: number | null;
+        lastStopAt?: number | null;
+        lastError?: string | null;
+      };
       probe?: unknown;
     }) => ({
       accountId: account.accountId,
@@ -752,16 +747,20 @@ export const feishuPlugin: ChannelPlugin = {
       let changed = false;
 
       if (nextFeishu) {
-        if (accountId === DEFAULT_ACCOUNT_ID && ((nextFeishu as any).appId || (nextFeishu as any).appSecret)) {
+        if (
+          accountId === DEFAULT_ACCOUNT_ID &&
+          ((nextFeishu as any).appId || (nextFeishu as any).appSecret)
+        ) {
           delete (nextFeishu as any).appId;
           delete (nextFeishu as any).appSecret;
           cleared = true;
           changed = true;
         }
 
-        const accounts = (nextFeishu as any).accounts && typeof (nextFeishu as any).accounts === "object"
-          ? { ...(nextFeishu as any).accounts }
-          : undefined;
+        const accounts =
+          (nextFeishu as any).accounts && typeof (nextFeishu as any).accounts === "object"
+            ? { ...(nextFeishu as any).accounts }
+            : undefined;
 
         if (accounts && accountId in accounts) {
           const entry = accounts[accountId];
