@@ -12,6 +12,8 @@ export interface MonitorConfig {
   stateFile: string;
   reportsDir: string;
   skillsDir: string;
+  historyFile: string;
+  dashboardFile: string;
 }
 
 // ============================================================================

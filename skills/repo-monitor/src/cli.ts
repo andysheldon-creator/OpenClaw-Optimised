@@ -30,6 +30,10 @@ import { getHighlights } from "./modules/highlights.js";
 // Formatter
 import { formatTelegram, formatMarkdown } from "./formatter.js";
 
+// History & Dashboard
+import { addDataPoint } from "./history.js";
+import { generateDashboard } from "./dashboard.js";
+
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -167,6 +171,14 @@ async function runMonitor(repo: string, options: { json?: boolean; hours?: numbe
     lastHighlights: highlights.map(h => h.message),
   };
   saveState(config.stateFile, newState);
+  
+  // Save to historical data for dashboard
+  const history = addDataPoint(config.historyFile, repo, report);
+  console.error(`📊 Historical data: ${history.dataPoints.length} data points saved`);
+  
+  // Generate dashboard HTML
+  generateDashboard(config.dashboardFile, history);
+  console.error(`📈 Dashboard updated: ${config.dashboardFile}`);
   
   // Output
   if (options.json) {

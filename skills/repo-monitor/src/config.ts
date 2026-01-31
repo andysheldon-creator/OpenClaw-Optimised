@@ -16,6 +16,8 @@ export function getConfig(overrides: Partial<MonitorConfig> = {}): MonitorConfig
     stateFile: overrides.stateFile ?? process.env.STATE_FILE ?? resolve(SKILL_ROOT, "state.json"),
     reportsDir: overrides.reportsDir ?? process.env.REPORTS_DIR ?? resolve(SKILL_ROOT, "reports"),
     skillsDir: overrides.skillsDir ?? resolve(SKILL_ROOT, ".."),
+    historyFile: overrides.historyFile ?? process.env.HISTORY_FILE ?? resolve(SKILL_ROOT, "history.json"),
+    dashboardFile: overrides.dashboardFile ?? process.env.DASHBOARD_FILE ?? resolve(SKILL_ROOT, "dashboard.html"),
   };
 }
 
