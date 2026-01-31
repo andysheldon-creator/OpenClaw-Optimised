@@ -81,6 +81,51 @@ describe("CronService", () => {
     await store.cleanup();
   });
 
+  it("does not loop a past one-shot job when skipped", async () => {
+    const store = await makeStorePath();
+    const enqueueSystemEvent = vi.fn();
+    const requestHeartbeatNow = vi.fn();
+
+    const cron = new CronService({
+      storePath: store.storePath,
+      cronEnabled: true,
+      log: noopLogger,
+      enqueueSystemEvent,
+      requestHeartbeatNow,
+      runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" })),
+    });
+
+    await cron.start();
+    vi.setSystemTime(new Date("2025-12-13T00:00:10.000Z"));
+    const atMs = Date.parse("2025-12-13T00:00:00.000Z");
+    const job = await cron.add({
+      name: "past one-shot skipped",
+      enabled: true,
+      schedule: { kind: "at", atMs },
+      sessionTarget: "main",
+      wakeMode: "now",
+      payload: { kind: "systemEvent", text: "   " },
+    });
+
+    expect(job.state.nextRunAtMs).toBe(Date.parse("2025-12-13T00:00:10.000Z"));
+
+    await vi.runOnlyPendingTimersAsync();
+
+    const jobs = await cron.list({ includeDisabled: true });
+    const updated = jobs.find((j) => j.id === job.id);
+    expect(updated?.state.lastStatus).toBe("skipped");
+    expect(updated?.state.nextRunAtMs).toBeUndefined();
+    expect(enqueueSystemEvent).not.toHaveBeenCalled();
+
+    await vi.runOnlyPendingTimersAsync();
+    const jobsAgain = await cron.list({ includeDisabled: true });
+    const updatedAgain = jobsAgain.find((j) => j.id === job.id);
+    expect(updatedAgain?.state.lastRunAtMs).toBe(updated?.state.lastRunAtMs);
+
+    cron.stop();
+    await store.cleanup();
+  });
+
   it("runs a one-shot job and deletes it after success when requested", async () => {
     const store = await makeStorePath();
     const enqueueSystemEvent = vi.fn();
