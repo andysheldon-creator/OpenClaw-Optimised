@@ -100,7 +100,7 @@ interface OllamaTagsResponse {
 
 import { fetchWithRetry } from "../utils/fetch-retry.js";
 
-async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
+export async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
   // Skip Ollama discovery in test environments
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     return [];

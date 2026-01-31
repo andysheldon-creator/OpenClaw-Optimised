@@ -53,6 +53,9 @@ describe("Ollama discovery and probe", () => {
       }),
     );
 
+    // discovery skips when VITEST is set; clear it for this test so the retry path runs
+    vi.stubEnv("VITEST", "");
+    vi.stubEnv("NODE_ENV", "development");
     const models = await discoverOllamaModels();
     expect(models.length).toBeGreaterThan(0);
     expect(isProviderHealthy("ollama")).toBe(true);
