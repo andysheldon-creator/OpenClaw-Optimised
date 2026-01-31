@@ -2030,6 +2030,7 @@ of `every`, keep `HEARTBEAT.md` tiny, and/or choose a cheaper `model`.
   Note: `applyPatch` is only under `tools.exec`.
 
 `tools.web` configures web search + fetch tools:
+
 - `tools.web.search.enabled` (default: true when key is present)
 - `tools.web.search.provider` (`brave` | `perplexity` | `searxng`)
 - `tools.web.search.apiKey` (Brave; recommended: set via `openclaw configure --section web`, or use `BRAVE_API_KEY` env var)

@@ -92,10 +92,10 @@ Example config:
           // params: { categories: "general", safesearch: 1 }
           // Optional auth via headers (for reverse-proxy auth):
           // headers: { "X-Api-Key": "..." }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 }
 ```
 

@@ -72,6 +72,7 @@ You can keep it local with `memorySearch.provider = "local"` (no API usage).
 See [Memory](/concepts/memory).
 
 ### 4) Web search tool (Brave / Perplexity via OpenRouter / SearXNG)
+
 `web_search` uses API keys and may incur usage charges:
 
 - **Brave Search API**: `BRAVE_API_KEY` or `tools.web.search.apiKey`

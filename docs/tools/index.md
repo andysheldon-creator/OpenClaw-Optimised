@@ -223,6 +223,7 @@ Notes:
 - `process` is scoped per agent; sessions from other agents are not visible.
 
 ### `web_search`
+
 Search the web using your configured provider (Brave, Perplexity, or SearXNG).
 
 Core parameters:
@@ -231,6 +232,7 @@ Core parameters:
 - `count` (1–10; default from `tools.web.search.maxResults`)
 
 Notes:
+
 - Requires provider setup (recommended: `openclaw configure --section web`).
 - Enable via `tools.web.search.enabled`.
 - Responses are cached (default 15 min).
