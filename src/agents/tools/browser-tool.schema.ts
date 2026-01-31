@@ -25,6 +25,7 @@ const BROWSER_TOOL_ACTIONS = [
   "profiles",
   "tabs",
   "open",
+  "scrape",
   "focus",
   "close",
   "snapshot",

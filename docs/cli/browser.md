@@ -56,6 +56,8 @@ openclaw browser --browser-profile work tabs
 ```bash
 openclaw browser tabs
 openclaw browser open https://docs.openclaw.ai
+openclaw browser open https://docs.openclaw.ai --snapshot
+openclaw browser scrape https://docs.openclaw.ai
 openclaw browser focus <targetId>
 openclaw browser close <targetId>
 ```
@@ -66,6 +68,18 @@ Snapshot:
 
 ```bash
 openclaw browser snapshot
+```
+
+Open + snapshot in one step:
+
+```bash
+openclaw browser open https://example.com --snapshot
+```
+
+Scrape a URL (open + snapshot):
+
+```bash
+openclaw browser scrape https://example.com
 ```
 
 Screenshot:

@@ -14,8 +14,8 @@
 const RTRVR_MCP_API_URL = "https://mcp.rtrvr.ai";
 /** Cloud API endpoint for rtrvr.ai agent and scrape operations */
 const RTRVR_CLOUD_API_URL = "https://api.rtrvr.ai";
-/** Default timeout for API requests (5 minutes) */
-const DEFAULT_TIMEOUT_MS = 300_000;
+/** Default timeout for API requests (12 minutes) */
+const DEFAULT_TIMEOUT_MS = 720_000;
 
 function normalizeBaseUrl(raw: string | undefined, fallback: string): string {
   const trimmed = (raw ?? "").trim();

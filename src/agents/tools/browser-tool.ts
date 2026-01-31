@@ -3,11 +3,13 @@ import {
   browserFocusTab,
   browserOpenTab,
   browserProfiles,
+  browserScrape,
   browserSnapshot,
   browserStart,
   browserStatus,
   browserStop,
   browserTabs,
+  type BrowserScrapeResult,
 } from "../../browser/client.js";
 import {
   browserAct,
@@ -229,7 +231,7 @@ export function createBrowserTool(opts?: {
     label: "Browser",
     name: "browser",
     description: [
-      "Control the browser via OpenClaw's browser control server (status/start/stop/profiles/tabs/open/snapshot/screenshot/actions).",
+      "Control the browser via OpenClaw's browser control server (status/start/stop/profiles/tabs/open/scrape/snapshot/screenshot/actions).",
       'Profiles: use profile="chrome" for Chrome extension relay takeover (your existing Chrome tabs). Use profile="openclaw" for the isolated openclaw-managed browser.',
       'rtrvr profiles (driver="rtrvr" or "rtrvr-cloud") use action="act" with request.kind="ai" + userInput (optionally urls/tool) to run planner/act/extract/crawl. rtrvr snapshots return accessibility trees (no screenshots).',
       'If the user mentions the Chrome extension / Browser Relay / toolbar button / “attach tab”, ALWAYS use profile="chrome" (do not ask which profile).',
@@ -377,6 +379,103 @@ export function createBrowserTool(opts?: {
             return jsonResult(result);
           }
           return jsonResult(await browserOpenTab(baseUrl, targetUrl, { profile }));
+        }
+        case "scrape": {
+          const targetUrl = readStringParam(params, "targetUrl", {
+            required: true,
+          });
+          const snapshotDefaults = loadConfig().browser?.snapshotDefaults;
+          const format =
+            params.snapshotFormat === "ai" || params.snapshotFormat === "aria"
+              ? (params.snapshotFormat as "ai" | "aria")
+              : "ai";
+          const mode =
+            params.mode === "efficient"
+              ? "efficient"
+              : format === "ai" && snapshotDefaults?.mode === "efficient"
+                ? "efficient"
+                : undefined;
+          const labels = typeof params.labels === "boolean" ? params.labels : undefined;
+          const refs = params.refs === "aria" || params.refs === "role" ? params.refs : undefined;
+          const hasMaxChars = Object.hasOwn(params, "maxChars");
+          const limit =
+            typeof params.limit === "number" && Number.isFinite(params.limit)
+              ? params.limit
+              : undefined;
+          const maxChars =
+            typeof params.maxChars === "number" &&
+            Number.isFinite(params.maxChars) &&
+            params.maxChars > 0
+              ? Math.floor(params.maxChars)
+              : undefined;
+          const resolvedMaxChars =
+            format === "ai"
+              ? hasMaxChars
+                ? maxChars
+                : mode === "efficient"
+                  ? undefined
+                  : DEFAULT_AI_SNAPSHOT_MAX_CHARS
+              : undefined;
+          const interactive =
+            typeof params.interactive === "boolean" ? params.interactive : undefined;
+          const compact = typeof params.compact === "boolean" ? params.compact : undefined;
+          const depth =
+            typeof params.depth === "number" && Number.isFinite(params.depth)
+              ? params.depth
+              : undefined;
+          const selector = typeof params.selector === "string" ? params.selector.trim() : undefined;
+          const frame = typeof params.frame === "string" ? params.frame.trim() : undefined;
+          const result = proxyRequest
+            ? ((await proxyRequest({
+                method: "POST",
+                path: "/scrape",
+                profile,
+                body: {
+                  url: targetUrl,
+                  format,
+                  limit,
+                  ...(typeof resolvedMaxChars === "number" ? { maxChars: resolvedMaxChars } : {}),
+                  refs,
+                  interactive,
+                  compact,
+                  depth,
+                  selector,
+                  frame,
+                  labels,
+                  mode,
+                },
+              })) as BrowserScrapeResult)
+            : await browserScrape(baseUrl, {
+                url: targetUrl,
+                format,
+                limit,
+                ...(typeof resolvedMaxChars === "number" ? { maxChars: resolvedMaxChars } : {}),
+                refs,
+                interactive,
+                compact,
+                depth,
+                selector,
+                frame,
+                labels,
+                mode,
+                profile,
+              });
+          const snapshot = result.snapshot;
+          if (snapshot.format === "ai") {
+            if (labels && snapshot.imagePath) {
+              return await imageResultFromFile({
+                label: "browser:scrape",
+                path: snapshot.imagePath,
+                extraText: snapshot.snapshot,
+                details: result,
+              });
+            }
+            return {
+              content: [{ type: "text", text: snapshot.snapshot }],
+              details: result,
+            };
+          }
+          return jsonResult(result);
         }
         case "focus": {
           const targetId = readStringParam(params, "targetId", {
@@ -680,6 +779,12 @@ export function createBrowserTool(opts?: {
           if (!request || typeof request !== "object") {
             throw new Error("request required");
           }
+          const inferredTimeoutMs =
+            typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs)
+              ? Math.floor(params.timeoutMs)
+              : request.kind === "ai"
+                ? 720_000
+                : undefined;
           try {
             const result = proxyRequest
               ? await proxyRequest({
@@ -687,9 +792,11 @@ export function createBrowserTool(opts?: {
                   path: "/act",
                   profile,
                   body: request,
+                  timeoutMs: inferredTimeoutMs,
                 })
               : await browserAct(baseUrl, request as Parameters<typeof browserAct>[1], {
                   profile,
+                  timeoutMs: inferredTimeoutMs,
                 });
             return jsonResult(result);
           } catch (err) {

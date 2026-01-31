@@ -295,6 +295,7 @@ For local integrations only, the Gateway exposes a small loopback HTTP API:
 - Status/start/stop: `GET /`, `POST /start`, `POST /stop`
 - Tabs: `GET /tabs`, `POST /tabs/open`, `POST /tabs/focus`, `DELETE /tabs/:targetId`
 - Snapshot/screenshot: `GET /snapshot`, `POST /screenshot`
+- Scrape: `POST /scrape` (open + snapshot, returns tab + snapshot)
 - Actions: `POST /navigate`, `POST /act`
 - Hooks: `POST /hooks/file-chooser`, `POST /hooks/dialog`
 - Downloads: `POST /download`, `POST /wait/download`
@@ -345,6 +346,8 @@ Basics:
 - `openclaw browser tab select 2`
 - `openclaw browser tab close 2`
 - `openclaw browser open https://example.com`
+- `openclaw browser open https://example.com --snapshot`
+- `openclaw browser scrape https://example.com`
 - `openclaw browser focus abcd1234`
 - `openclaw browser close abcd1234`
 
@@ -422,6 +425,30 @@ Notes:
   - `--labels` adds a viewport-only screenshot with overlayed ref labels (prints `MEDIA:<path>`).
 - `click`/`type`/etc require a `ref` from `snapshot` (either numeric `12` or role ref `e12`).
   CSS selectors are intentionally not supported for actions.
+
+## Browser tool: scrape action
+
+The browser tool supports `action: "scrape"` which opens a URL and immediately returns a snapshot (accessibility tree). This is useful for rtrvr-cloud and quick page inspection without a separate `open` + `snapshot`.
+
+Example tool call:
+
+```json
+{
+  "action": "scrape",
+  "profile": "rtrvr-cloud",
+  "targetUrl": "https://example.com",
+  "snapshotFormat": "ai"
+}
+```
+
+Notes:
+- `snapshotFormat` can be `ai` or `aria`.
+- `mode: "efficient"` and `maxChars` apply to `ai` snapshots.
+- For rtrvr profiles, snapshots return accessibility trees (no screenshots).
+
+Timeouts:
+- The browser tool accepts `timeoutMs` for long-running actions.
+- rtrvr AI tasks default to ~12 minutes unless you override `timeoutMs` or the Gateway `--timeout`.
 
 ## Snapshots and refs
 

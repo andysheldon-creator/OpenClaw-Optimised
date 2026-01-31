@@ -4,6 +4,8 @@ export const browserCoreExamples = [
   "openclaw browser stop",
   "openclaw browser tabs",
   "openclaw browser open https://example.com",
+  "openclaw browser open https://example.com --snapshot",
+  "openclaw browser scrape https://example.com",
   "openclaw browser focus abcd1234",
   "openclaw browser close abcd1234",
   "openclaw browser screenshot",

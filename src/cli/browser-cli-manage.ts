@@ -6,6 +6,7 @@ import type {
   BrowserStatus,
   BrowserTab,
   ProfileStatus,
+  SnapshotResult,
 } from "../browser/client.js";
 import { danger, info } from "../globals.js";
 import { defaultRuntime } from "../runtime.js";
@@ -18,6 +19,27 @@ function runBrowserCommand(action: () => Promise<void>) {
     defaultRuntime.error(danger(String(err)));
     defaultRuntime.exit(1);
   });
+}
+
+function logSnapshotResult(result: SnapshotResult) {
+  if (result.format === "ai") {
+    defaultRuntime.log(result.snapshot);
+    if (result.imagePath) {
+      defaultRuntime.log(`MEDIA:${shortenHomePath(result.imagePath)}`);
+    }
+    return;
+  }
+  const nodes = "nodes" in result ? result.nodes : [];
+  defaultRuntime.log(
+    nodes
+      .map((node) => {
+        const indent = "  ".repeat(Math.min(20, node.depth));
+        const name = node.name ? ` "${node.name}"` : "";
+        const value = node.value ? ` = "${node.value}"` : "";
+        return `${indent}- ${node.role}${name}${value}`;
+      })
+      .join("\n"),
+  );
 }
 
 export function registerBrowserManageCommands(
@@ -327,7 +349,12 @@ export function registerBrowserManageCommands(
     .command("open")
     .description("Open a URL in a new tab")
     .argument("<url>", "URL to open")
-    .action(async (url: string, _opts, cmd) => {
+    .option("--snapshot", "Capture a snapshot after opening", false)
+    .option("--with-tree", "Alias for --snapshot", false)
+    .option("--format <ai|aria>", "Snapshot format (ai|aria)")
+    .option("--limit <n>", "Snapshot node limit (aria only)", (v: string) => Number(v))
+    .option("--max-chars <n>", "Max chars for ai snapshot", (v: string) => Number(v))
+    .action(async (url: string, opts, cmd) => {
       const parent = parentOpts(cmd);
       const profile = parent?.browserProfile;
       await runBrowserCommand(async () => {
@@ -341,11 +368,92 @@ export function registerBrowserManageCommands(
           },
           { timeoutMs: 15000 },
         );
-        if (parent?.json) {
-          defaultRuntime.log(JSON.stringify(tab, null, 2));
+        const wantsSnapshot = Boolean(opts.snapshot || opts.withTree);
+        if (!wantsSnapshot) {
+          if (parent?.json) {
+            defaultRuntime.log(JSON.stringify(tab, null, 2));
+            return;
+          }
+          defaultRuntime.log(`opened: ${tab.url}\nid: ${tab.targetId}`);
           return;
         }
+
+        const format = opts.format === "aria" ? "aria" : opts.format === "ai" ? "ai" : undefined;
+        const limit = Number.isFinite(opts.limit) ? Math.floor(opts.limit) : undefined;
+        const maxChars = Number.isFinite(opts.maxChars) ? Math.floor(opts.maxChars) : undefined;
+        const snapshot = await callBrowserRequest<SnapshotResult>(
+          parent,
+          {
+            method: "GET",
+            path: "/snapshot",
+            query: {
+              profile,
+              targetId: tab.targetId,
+              format,
+              limit,
+              maxChars,
+            },
+          },
+          { timeoutMs: 20000 },
+        );
+
+        if (parent?.json) {
+          defaultRuntime.log(JSON.stringify({ tab, snapshot }, null, 2));
+          return;
+        }
+
         defaultRuntime.log(`opened: ${tab.url}\nid: ${tab.targetId}`);
+        logSnapshotResult(snapshot);
+      });
+    });
+
+  browser
+    .command("scrape")
+    .description("Open a URL and return an accessibility snapshot")
+    .argument("<url>", "URL to scrape")
+    .option("--format <ai|aria>", "Snapshot format (ai|aria)")
+    .option("--limit <n>", "Snapshot node limit (aria only)", (v: string) => Number(v))
+    .option("--max-chars <n>", "Max chars for ai snapshot", (v: string) => Number(v))
+    .action(async (url: string, opts, cmd) => {
+      const parent = parentOpts(cmd);
+      const profile = parent?.browserProfile;
+      await runBrowserCommand(async () => {
+        const tab = await callBrowserRequest<BrowserTab>(
+          parent,
+          {
+            method: "POST",
+            path: "/tabs/open",
+            query: profile ? { profile } : undefined,
+            body: { url },
+          },
+          { timeoutMs: 15000 },
+        );
+
+        const format = opts.format === "aria" ? "aria" : opts.format === "ai" ? "ai" : undefined;
+        const limit = Number.isFinite(opts.limit) ? Math.floor(opts.limit) : undefined;
+        const maxChars = Number.isFinite(opts.maxChars) ? Math.floor(opts.maxChars) : undefined;
+        const snapshot = await callBrowserRequest<SnapshotResult>(
+          parent,
+          {
+            method: "GET",
+            path: "/snapshot",
+            query: {
+              profile,
+              targetId: tab.targetId,
+              format,
+              limit,
+              maxChars,
+            },
+          },
+          { timeoutMs: 20000 },
+        );
+
+        if (parent?.json) {
+          defaultRuntime.log(JSON.stringify({ tab, snapshot }, null, 2));
+          return;
+        }
+
+        logSnapshotResult(snapshot);
       });
     });
 

@@ -41,6 +41,13 @@ rtrvr.ai provides two modes of operation:
 3. Create a new API key
 4. Copy the key (format: `rtrvr_xxx...`)
 
+> Tip (extension users): after signing in to the rtrvr.ai Chrome extension, the **MCP URL** appears in the extension UI (bottom-left). It looks like:
+>
+> `https://mcp.rtrvr.ai?apiKey=rtrvr_example_key&deviceId=exampleDeviceId`
+>
+> Copy the API key and deviceId from that URL and set them in OpenClaw (`rtrvrApiKey`, `rtrvrDeviceId`).
+> Do **not** paste the full MCP URL into `rtrvrApiUrl`—that field is only for base URL overrides.
+
 ### 2. Configure OpenClaw
 
 Add rtrvr.ai profiles to your OpenClaw configuration:
@@ -52,6 +59,7 @@ Add rtrvr.ai profiles to your OpenClaw configuration:
       "rtrvr": {
         "driver": "rtrvr",
         "rtrvrApiKey": "rtrvr_your_api_key_here",
+        "rtrvrDeviceId": "optional_device_id",
         "color": "#6366F1"
       },
       "rtrvr-cloud": {
@@ -98,6 +106,12 @@ openclaw browser tabs --browser-profile rtrvr
 # Open a URL
 openclaw browser open https://example.com --browser-profile rtrvr
 
+# Open + snapshot in one step (tree output)
+openclaw browser open https://example.com --browser-profile rtrvr --snapshot
+
+# Scrape a URL (open + snapshot)
+openclaw browser scrape https://example.com --browser-profile rtrvr-cloud
+
 # Take a snapshot (accessibility tree)
 openclaw browser snapshot --browser-profile rtrvr
 ```
@@ -118,6 +132,19 @@ In agent mode, specify the profile parameter:
 }
 ```
 
+### Via Gateway (direct control API)
+
+Use the Gateway `browser.request` method to call the control server routes directly. Example: open + snapshot in one call using `/scrape`:
+
+```bash
+openclaw gateway call browser.request --timeout 300000 --params '{
+  "method":"POST",
+  "path":"/scrape",
+  "query":{"profile":"rtrvr-cloud"},
+  "body":{"url":"https://example.com","format":"ai"}
+}' --json
+```
+
 ## Available Actions
 
 ### Extension Mode (`rtrvr`)
@@ -127,6 +154,7 @@ All actions are routed through the rtrvr.ai Chrome extension on your local machi
 **OpenClaw mapping:**
 - `open` / `navigate` → `open_new_tab` / `goto_url`
 - `snapshot` → `get_page_data` (accessibility tree)
+- `scrape` → open + `snapshot` (convenience wrapper)
 - `act` with `kind: "ai"` → `planner` by default (override with `tool`)
 - `act` with granular kinds (`click`, `type`, `hover`, `scrollIntoView`, `press`, `drag`, `select`, `fill`, `wait`, `close`) → `take_page_action`
 - `act` with `evaluate` → `execute_javascript`
@@ -149,14 +177,69 @@ All actions are routed through the rtrvr.ai Chrome extension on your local machi
 | `extract` | Structured data extraction with schema |
 | `crawl` | Multi-page crawl with extraction |
 
+> Timeout note: OpenClaw defaults rtrvr AI tasks (`planner`/`act`/`extract`/`crawl`) to **12 minutes**. You can override by passing `timeoutMs` in the browser tool call or by setting a higher `--timeout` when calling `browser.request` via the Gateway.
+
 ### Cloud Mode (`rtrvr-cloud`)
 
 All actions are executed on rtrvr.ai's cloud browser infrastructure via the Agent API.
 
 **OpenClaw mapping:**
 - `open` / `snapshot` → `/scrape` (accessibility tree)
+- `scrape` → `/scrape` (open + snapshot, returns tab + snapshot)
 - `act` with `kind: "ai"` → `/agent` (planner/act/extract/crawl)
 - Granular `act` kinds (`click`, `type`, etc.) are not supported in cloud mode
+
+## Quick capability reference
+
+| Capability | `rtrvr` (Extension) | `rtrvr-cloud` (Cloud) | How to invoke |
+|---|---|---|---|
+| Open tab | ✅ | ✅ | `openclaw browser open <url>` |
+| Snapshot (tree) | ✅ (`get_page_data`) | ✅ (`/scrape`) | `openclaw browser snapshot` |
+| Scrape (open + snapshot) | ✅ (wrapper) | ✅ (`/scrape`) | `openclaw browser scrape <url>` |
+| AI planner/act | ✅ | ✅ | `openclaw browser act` (`kind:"ai"`) |
+| Extract / crawl | ✅ | ✅ | `tool:"extract"` / `tool:"crawl"` |
+| Granular actions | ✅ | ❌ | `click/type/press/drag/select/...` |
+| Screenshots | ❌ | ❌ | Use snapshot |
+
+## End-to-end examples
+
+### Extension mode (planner default when URLs provided)
+
+```bash
+openclaw gateway call browser.request --timeout 300000 --params '{
+  "method":"POST",
+  "path":"/act",
+  "query":{"profile":"rtrvr"},
+  "body":{
+    "kind":"ai",
+    "userInput":"Open the URL and summarize the heading.",
+    "urls":["https://example.com"]
+  }
+}' --json
+```
+
+### Extension mode (granular action)
+
+```bash
+openclaw browser snapshot --browser-profile rtrvr --format ai
+# use a ref from the snapshot:
+openclaw browser click 12 --browser-profile rtrvr
+```
+
+### Cloud mode (agent)
+
+```bash
+openclaw gateway call browser.request --timeout 300000 --params '{
+  "method":"POST",
+  "path":"/act",
+  "query":{"profile":"rtrvr-cloud"},
+  "body":{
+    "kind":"ai",
+    "userInput":"Extract the page title.",
+    "urls":["https://example.com"]
+  }
+}' --json
+```
 
 ## System Tools
 

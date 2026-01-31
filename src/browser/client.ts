@@ -86,6 +86,12 @@ export type SnapshotResult =
       imageType?: "png" | "jpeg";
     };
 
+export type BrowserScrapeResult = {
+  ok: true;
+  tab: BrowserTab;
+  snapshot: SnapshotResult;
+};
+
 function buildProfileQuery(profile?: string): string {
   return profile ? `?profile=${encodeURIComponent(profile)}` : "";
 }
@@ -330,6 +336,48 @@ export async function browserSnapshot(
     q.set("profile", opts.profile);
   }
   return await fetchBrowserJson<SnapshotResult>(withBaseUrl(baseUrl, `/snapshot?${q.toString()}`), {
+    timeoutMs: 20000,
+  });
+}
+
+export async function browserScrape(
+  baseUrl: string | undefined,
+  opts: {
+    url: string;
+    format: "aria" | "ai";
+    limit?: number;
+    maxChars?: number;
+    refs?: "role" | "aria";
+    interactive?: boolean;
+    compact?: boolean;
+    depth?: number;
+    selector?: string;
+    frame?: string;
+    labels?: boolean;
+    mode?: "efficient";
+    profile?: string;
+  },
+): Promise<BrowserScrapeResult> {
+  const q = buildProfileQuery(opts.profile);
+  return await fetchBrowserJson<BrowserScrapeResult>(withBaseUrl(baseUrl, `/scrape${q}`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: opts.url,
+      format: opts.format,
+      limit: opts.limit,
+      ...(typeof opts.maxChars === "number" && Number.isFinite(opts.maxChars)
+        ? { maxChars: opts.maxChars }
+        : {}),
+      refs: opts.refs,
+      interactive: opts.interactive,
+      compact: opts.compact,
+      depth: opts.depth,
+      selector: opts.selector,
+      frame: opts.frame,
+      labels: opts.labels,
+      mode: opts.mode,
+    }),
     timeoutMs: 20000,
   });
 }
