@@ -27,6 +27,7 @@ import {
   KIMI_CODE_BASE_URL,
   KIMI_CODE_MODEL_ID,
   KIMI_CODE_MODEL_REF,
+  KIMI_CODING_MODEL_REF,
   MOONSHOT_BASE_URL,
   MOONSHOT_DEFAULT_MODEL_ID,
   MOONSHOT_DEFAULT_MODEL_REF,
@@ -327,6 +328,47 @@ export function applyKimiCodeConfig(cfg: OpenClawConfig): OpenClawConfig {
               }
             : undefined),
           primary: KIMI_CODE_MODEL_REF,
+        },
+      },
+    },
+  };
+}
+
+export function applyKimiCodingProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[KIMI_CODING_MODEL_REF] = {
+    ...models[KIMI_CODING_MODEL_REF],
+    alias: models[KIMI_CODING_MODEL_REF]?.alias ?? "Kimi K2.5",
+  };
+
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+  };
+}
+
+export function applyKimiCodingConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const next = applyKimiCodingProviderConfig(cfg);
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: KIMI_CODING_MODEL_REF,
         },
       },
     },
