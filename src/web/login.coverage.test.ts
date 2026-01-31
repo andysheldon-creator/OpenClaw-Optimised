@@ -29,10 +29,29 @@ vi.mock("./session.js", () => {
   const createWaSocket = vi.fn(async () => (call++ === 0 ? sockA : sockB));
   const waitForWaConnection = vi.fn();
   const formatError = vi.fn((err: unknown) => `formatted:${String(err)}`);
+  const getStatusCode = vi.fn((err: unknown) => {
+    const o = err as {
+      output?: { statusCode?: number };
+      error?: { output?: { statusCode?: number } };
+    };
+    return o?.output?.statusCode ?? o?.error?.output?.statusCode;
+  });
+  const getDisconnectStatus = vi.fn((err: unknown) => {
+    const code = getStatusCode(err);
+    if (code != null) return code;
+    if (/515|restart\s*required|stream\s*errored/i.test(formatError(err))) return 515;
+    return undefined;
+  });
+  const waitForCredsSaveQueue = vi.fn(() => Promise.resolve());
+  const closeWaSocket = vi.fn();
   return {
     createWaSocket,
     waitForWaConnection,
+    waitForCredsSaveQueue,
     formatError,
+    getStatusCode,
+    getDisconnectStatus,
+    closeWaSocket,
     WA_WEB_AUTH_DIR: authDir,
     logoutWeb: vi.fn(async (params: { authDir?: string }) => {
       await fs.rm(params.authDir ?? authDir, {
@@ -44,7 +63,8 @@ vi.mock("./session.js", () => {
   };
 });
 
-const { createWaSocket, waitForWaConnection, formatError } = await import("./session.js");
+const { createWaSocket, waitForWaConnection, formatError, closeWaSocket } =
+  await import("./session.js");
 const { loginWeb } = await import("./login.js");
 
 describe("loginWeb coverage", () => {
@@ -67,10 +87,10 @@ describe("loginWeb coverage", () => {
 
     expect(createWaSocket).toHaveBeenCalledTimes(2);
     const firstSock = await createWaSocket.mock.results[0].value;
-    expect(firstSock.ws.close).toHaveBeenCalled();
+    expect(closeWaSocket).toHaveBeenCalledWith(firstSock);
     vi.runAllTimers();
     const secondSock = await createWaSocket.mock.results[1].value;
-    expect(secondSock.ws.close).toHaveBeenCalled();
+    expect(closeWaSocket).toHaveBeenCalledWith(secondSock);
   });
 
   it("clears creds and throws when logged out", async () => {

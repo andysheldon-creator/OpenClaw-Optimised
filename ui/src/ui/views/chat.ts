@@ -246,7 +246,28 @@ export function renderChat(props: ChatProps) {
         : nothing}
 
       ${props.error
-        ? html`<div class="callout danger">${props.error}</div>`
+        ? html`
+            <div class="callout danger">
+              ${props.error}
+              ${props.error.toLowerCase().includes("unauthorized") ||
+              props.error.includes("1008") ||
+              props.error.toLowerCase().includes("connect failed")
+                ? html`
+                    <div class="muted" style="margin-top: 8px;">
+                      To connect: set the gateway token in <strong>Overview</strong> (or use a tokenized dashboard URL) and click <strong>Connect</strong>.
+                    </div>
+                  `
+                : nothing}
+              ${props.error.toLowerCase().includes("whatsapp") ||
+              props.error.toLowerCase().includes("session logged out")
+                ? html`
+                    <div class="muted" style="margin-top: 8px;">
+                      Link WhatsApp in <strong>Channels → WhatsApp</strong> (Show QR or Relink).
+                    </div>
+                  `
+                : nothing}
+            </div>
+          `
         : nothing}
 
       ${renderCompactionIndicator(props.compactionStatus)}

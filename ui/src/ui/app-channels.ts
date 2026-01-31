@@ -11,6 +11,10 @@ import { createNostrProfileFormState } from "./views/channels.nostr-profile-form
 
 export async function handleWhatsAppStart(host: MoltbotApp, force: boolean) {
   await startWhatsAppLogin(host, force);
+  // Once we have a QR, wait for the user to scan (no second button)
+  if (host.whatsappLoginQrDataUrl) {
+    await waitWhatsAppLogin(host);
+  }
   await loadChannels(host, true);
 }
 

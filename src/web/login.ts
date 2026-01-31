@@ -5,7 +5,15 @@ import { logInfo } from "../logger.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveWhatsAppAccount } from "./accounts.js";
-import { createWaSocket, formatError, logoutWeb, waitForWaConnection } from "./session.js";
+import {
+  closeWaSocket,
+  createWaSocket,
+  formatError,
+  getDisconnectStatus,
+  logoutWeb,
+  waitForCredsSaveQueue,
+  waitForWaConnection,
+} from "./session.js";
 
 export async function loginWeb(
   verbose: boolean,
@@ -24,20 +32,16 @@ export async function loginWeb(
     await wait(sock);
     console.log(success("✅ Linked! Credentials saved for future sends."));
   } catch (err) {
-    const code =
-      (err as { error?: { output?: { statusCode?: number } } })?.error?.output?.statusCode ??
-      (err as { output?: { statusCode?: number } })?.output?.statusCode;
+    const code = getDisconnectStatus(err);
+    const formattedErr = formatError(err);
     if (code === 515) {
       console.log(
         info(
           "WhatsApp asked for a restart after pairing (code 515); creds are saved. Restarting connection once…",
         ),
       );
-      try {
-        sock.ws?.close();
-      } catch {
-        // ignore
-      }
+      closeWaSocket(sock);
+      await waitForCredsSaveQueue();
       const retry = await createWaSocket(false, verbose, {
         authDir: account.authDir,
       });
@@ -46,7 +50,7 @@ export async function loginWeb(
         console.log(success("✅ Linked after restart; web session ready."));
         return;
       } finally {
-        setTimeout(() => retry.ws?.close(), 500);
+        setTimeout(() => closeWaSocket(retry), 500);
       }
     }
     if (code === DisconnectReason.loggedOut) {
@@ -62,17 +66,10 @@ export async function loginWeb(
       );
       throw new Error("Session logged out; cache cleared. Re-run login.");
     }
-    const formatted = formatError(err);
-    console.error(danger(`WhatsApp Web connection ended before fully opening. ${formatted}`));
-    throw new Error(formatted);
+    console.error(danger(`WhatsApp Web connection ended before fully opening. ${formattedErr}`));
+    throw new Error(formattedErr);
   } finally {
     // Let Baileys flush any final events before closing the socket.
-    setTimeout(() => {
-      try {
-        sock.ws?.close();
-      } catch {
-        // ignore
-      }
-    }, 500);
+    setTimeout(() => closeWaSocket(sock), 500);
   }
 }

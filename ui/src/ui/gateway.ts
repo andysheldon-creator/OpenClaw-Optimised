@@ -134,18 +134,13 @@ export class GatewayBrowserClient {
 
     const scopes = ["operator.admin", "operator.approvals", "operator.pairing"];
     const role = "operator";
+    // Use only the shared (settings) token for connect so SCRAM always matches the gateway secret.
+    // Stored device tokens are not used for connect; avoids 401 after gateway restart.
+    const authToken = this.opts.token;
+    const canFallbackToShared = false;
     let deviceIdentity: Awaited<ReturnType<typeof loadOrCreateDeviceIdentity>> | null = null;
-    let canFallbackToShared = false;
-    let authToken = this.opts.token;
-
     if (isSecureContext) {
       deviceIdentity = await loadOrCreateDeviceIdentity();
-      const storedToken = loadDeviceAuthToken({
-        deviceId: deviceIdentity.deviceId,
-        role,
-      })?.token;
-      authToken = storedToken ?? this.opts.token;
-      canFallbackToShared = Boolean(storedToken && this.opts.token);
     }
     const auth =
       authToken || this.opts.password

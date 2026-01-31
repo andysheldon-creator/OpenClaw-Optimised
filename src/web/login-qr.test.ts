@@ -1,6 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./session.js", () => {
+  const formatError = vi.fn((err: unknown) => `formatted:${String(err)}`);
+  const getStatusCode = vi.fn(
+    (err: unknown) =>
+      (err as { output?: { statusCode?: number } })?.output?.statusCode ??
+      (err as { status?: number })?.status,
+  );
+  const getDisconnectStatus = vi.fn((err: unknown) => {
+    const code = getStatusCode(err);
+    if (code != null) return code;
+    if (/515|restart\s*required|stream\s*errored/i.test(formatError(err))) return 515;
+    return undefined;
+  });
   const createWaSocket = vi.fn(
     async (_printQr: boolean, _verbose: boolean, opts?: { onQr?: (qr: string) => void }) => {
       const sock = { ws: { close: vi.fn() } };
@@ -11,20 +23,19 @@ vi.mock("./session.js", () => {
     },
   );
   const waitForWaConnection = vi.fn();
-  const formatError = vi.fn((err: unknown) => `formatted:${String(err)}`);
-  const getStatusCode = vi.fn(
-    (err: unknown) =>
-      (err as { output?: { statusCode?: number } })?.output?.statusCode ??
-      (err as { status?: number })?.status,
-  );
+  const waitForCredsSaveQueue = vi.fn(() => Promise.resolve());
+  const closeWaSocket = vi.fn();
   const webAuthExists = vi.fn(async () => false);
   const readWebSelfId = vi.fn(() => ({ e164: null, jid: null }));
   const logoutWeb = vi.fn(async () => true);
   return {
     createWaSocket,
     waitForWaConnection,
+    waitForCredsSaveQueue,
     formatError,
     getStatusCode,
+    getDisconnectStatus,
+    closeWaSocket,
     webAuthExists,
     readWebSelfId,
     logoutWeb,

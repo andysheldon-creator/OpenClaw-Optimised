@@ -63,6 +63,14 @@ export function renderWhatsAppCard(params: {
       ${whatsapp?.lastError
         ? html`<div class="callout danger" style="margin-top: 12px;">
             ${whatsapp.lastError}
+            <div class="muted" style="margin-top: 8px;">
+              Link WhatsApp with <strong>Show QR</strong> or <strong>Relink</strong> so messaging works.
+            </div>
+          </div>`
+        : nothing}
+      ${!whatsapp?.connected && !whatsapp?.lastError && whatsapp?.running
+        ? html`<div class="callout" style="margin-top: 12px;">
+            Not connected. Use <strong>Show QR</strong> or <strong>Relink</strong> to link WhatsApp so you can send and receive messages.
           </div>`
         : nothing}
 
@@ -92,13 +100,6 @@ export function renderWhatsAppCard(params: {
           @click=${() => props.onWhatsAppStart(true)}
         >
           Relink
-        </button>
-        <button
-          class="btn"
-          ?disabled=${props.whatsappBusy}
-          @click=${() => props.onWhatsAppWait()}
-        >
-          Wait for scan
         </button>
         <button
           class="btn danger"

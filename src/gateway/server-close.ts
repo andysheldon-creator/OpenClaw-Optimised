@@ -5,6 +5,7 @@ import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js
 import { stopGmailWatcher } from "../hooks/gmail-watcher.js";
 import type { HeartbeatRunner } from "../infra/heartbeat-runner.js";
 import type { PluginServicesHandle } from "../plugins/services.js";
+import { waitForCredsSaveQueue } from "../web/session.js";
 
 export function createGatewayCloseHandler(params: {
   bonjourStop: (() => Promise<void>) | null;
@@ -37,6 +38,13 @@ export function createGatewayCloseHandler(params: {
       typeof opts?.restartExpectedMs === "number" && Number.isFinite(opts.restartExpectedMs)
         ? Math.max(0, Math.floor(opts.restartExpectedMs))
         : null;
+    // Flush WhatsApp creds to disk before stopping channels so the next process (e.g. after hot reload) reads up-to-date auth and may avoid 401.
+    await Promise.race([
+      waitForCredsSaveQueue(),
+      new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error("creds flush timeout")), 5000),
+      ),
+    ]).catch(() => {});
     if (params.bonjourStop) {
       try {
         await params.bonjourStop();

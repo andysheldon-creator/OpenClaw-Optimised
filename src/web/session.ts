@@ -44,6 +44,11 @@ function enqueueSaveCreds(
     });
 }
 
+/** Wait for any pending WhatsApp creds writes so a new socket loads fresh creds (e.g. after 515 restart). */
+export function waitForCredsSaveQueue(): Promise<void> {
+  return credsSaveQueue;
+}
+
 function readCredsJsonRaw(filePath: string): string | null {
   try {
     if (!fsSync.existsSync(filePath)) return null;
@@ -184,11 +189,56 @@ export async function waitForWaConnection(sock: ReturnType<typeof makeWASocket>)
   });
 }
 
-export function getStatusCode(err: unknown) {
-  return (
-    (err as { output?: { statusCode?: number } })?.output?.statusCode ??
-    (err as { status?: number })?.status
+function toStatusNumber(v: unknown): number | undefined {
+  if (typeof v === "number" && !Number.isNaN(v)) return v;
+  if (typeof v === "string") {
+    const n = Number(v);
+    return !Number.isNaN(n) ? n : undefined;
+  }
+  return undefined;
+}
+
+export function getStatusCode(err: unknown): number | undefined {
+  if (!err || typeof err !== "object") return undefined;
+  const o = err as Record<string, unknown>;
+  // Direct Boom: err.output.statusCode
+  const out = toStatusNumber((o.output as { statusCode?: unknown } | undefined)?.statusCode);
+  if (out != null) return out;
+  // Boom payload: err.output.payload.statusCode
+  const payloadCode = toStatusNumber(
+    (o.output as { payload?: { statusCode?: unknown } } | undefined)?.payload?.statusCode,
   );
+  if (payloadCode != null) return payloadCode;
+  // Baileys: waitForWaConnection rejects with lastDisconnect = { error: Boom }
+  const nested = toStatusNumber(
+    (o.error as { output?: { statusCode?: unknown } } | undefined)?.output?.statusCode,
+  );
+  if (nested != null) return nested;
+  const nestedPayload = toStatusNumber(
+    (o.error as { output?: { payload?: { statusCode?: unknown } } } | undefined)?.output?.payload
+      ?.statusCode,
+  );
+  if (nestedPayload != null) return nestedPayload;
+  const topStatus = toStatusNumber(o.status ?? o.statusCode);
+  return topStatus;
+}
+
+/** Status code for disconnect errors, inferring 515 from message when Baileys doesn't set status. */
+export function getDisconnectStatus(err: unknown): number | undefined {
+  const code = getStatusCode(err);
+  if (code != null) return code;
+  const text = formatError(err);
+  if (/515|restart\s*required|stream\s*errored/i.test(text)) return 515;
+  return undefined;
+}
+
+/** Close a WhatsApp socket's underlying WebSocket (no-op if already closed). */
+export function closeWaSocket(sock: { ws?: { close: () => void } | null }): void {
+  try {
+    sock.ws?.close();
+  } catch {
+    // ignore
+  }
 }
 
 function safeStringify(value: unknown, limit = 800): string {

@@ -35,11 +35,12 @@ export async function runGatewayLoop(params: {
     const isRestart = action === "restart";
     gatewayLog.info(`received ${signal}; ${isRestart ? "restarting" : "shutting down"}`);
 
+    // Allow time for creds flush (5s) + stopChannel (WhatsApp socket close) so we exit gracefully and avoid 401 on next start.
     const forceExitTimer = setTimeout(() => {
       gatewayLog.error("shutdown timed out; exiting without full cleanup");
       cleanupSignals();
       params.runtime.exit(0);
-    }, 5000);
+    }, 12000);
 
     void (async () => {
       try {

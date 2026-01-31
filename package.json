@@ -95,6 +95,7 @@
     "start": "node scripts/run-node.mjs",
     "moltbot": "node scripts/run-node.mjs",
     "gateway:watch": "node scripts/watch-node.mjs gateway --force",
+    "hot": "node scripts/watch-all.mjs gateway --force",
     "gateway:dev": "CLAWDBOT_SKIP_CHANNELS=1 node scripts/run-node.mjs --dev gateway --force",
     "gateway:dev:reset": "CLAWDBOT_SKIP_CHANNELS=1 node scripts/run-node.mjs --dev gateway --reset",
     "tui": "node scripts/run-node.mjs tui",

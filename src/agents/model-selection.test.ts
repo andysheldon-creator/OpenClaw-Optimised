@@ -127,13 +127,36 @@ describe("model-selection", () => {
     });
 
     it("should use default provider/model if config is empty", () => {
-      const cfg: Partial<MoltbotConfig> = {};
-      const result = resolveConfiguredModelRef({
-        cfg: cfg as MoltbotConfig,
-        defaultProvider: "openai",
-        defaultModel: "gpt-4",
-      });
-      expect(result).toEqual({ provider: "openai", model: "gpt-4" });
+      const prev = process.env.OPENROUTER_API_KEY;
+      delete process.env.OPENROUTER_API_KEY;
+      try {
+        const cfg: Partial<MoltbotConfig> = {};
+        const result = resolveConfiguredModelRef({
+          cfg: cfg as MoltbotConfig,
+          defaultProvider: "openai",
+          defaultModel: "gpt-4",
+        });
+        expect(result).toEqual({ provider: "openai", model: "gpt-4" });
+      } finally {
+        if (prev !== undefined) process.env.OPENROUTER_API_KEY = prev;
+      }
+    });
+
+    it("should use OpenRouter Grok 4.1 Fast when OPENROUTER_API_KEY is set and config is empty", () => {
+      const prev = process.env.OPENROUTER_API_KEY;
+      process.env.OPENROUTER_API_KEY = "sk-or-test";
+      try {
+        const cfg: Partial<MoltbotConfig> = {};
+        const result = resolveConfiguredModelRef({
+          cfg: cfg as MoltbotConfig,
+          defaultProvider: "openai",
+          defaultModel: "gpt-4",
+        });
+        expect(result).toEqual({ provider: "openrouter", model: "x-ai/grok-4.1-fast" });
+      } finally {
+        if (prev !== undefined) process.env.OPENROUTER_API_KEY = prev;
+        else delete process.env.OPENROUTER_API_KEY;
+      }
     });
   });
 });

@@ -150,6 +150,10 @@ export function resolveConfiguredModelRef(params: {
     });
     if (resolved) return resolved.ref;
   }
+  // When no model is configured, use OpenRouter Grok 4.1 Fast if OPENROUTER_API_KEY is set.
+  if (typeof process !== "undefined" && process.env?.OPENROUTER_API_KEY?.trim()) {
+    return { provider: "openrouter", model: "x-ai/grok-4.1-fast" };
+  }
   return { provider: params.defaultProvider, model: params.defaultModel };
 }
 
