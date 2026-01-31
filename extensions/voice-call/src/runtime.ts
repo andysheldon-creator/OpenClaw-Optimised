@@ -49,6 +49,12 @@ function resolveProvider(config: VoiceCallConfig): VoiceCallProvider {
     isLoopbackBind(config.serve?.bind) &&
     (config.tunnel?.allowNgrokFreeTierLoopbackBypass || config.tunnel?.allowNgrokFreeTier || false);
 
+  // Enable streaming if realtime mode is configured (realtime requires media streams)
+  const needsStreaming =
+    config.streaming?.enabled ||
+    config.outbound?.defaultMode === "realtime" ||
+    config.realtime?.openaiApiKey;
+
   switch (config.provider) {
     case "telnyx":
       return new TelnyxProvider({
@@ -66,7 +72,7 @@ function resolveProvider(config: VoiceCallConfig): VoiceCallProvider {
           allowNgrokFreeTierLoopbackBypass,
           publicUrl: config.publicUrl,
           skipVerification: config.skipSignatureVerification,
-          streamPath: config.streaming?.enabled ? config.streaming.streamPath : undefined,
+          streamPath: needsStreaming ? config.streaming?.streamPath || "/voice/stream" : undefined,
         },
       );
     case "plivo":

@@ -48,8 +48,12 @@ export class VoiceCallWebhookServer {
     this.provider = provider;
     this.coreConfig = coreConfig ?? null;
 
-    // Initialize media stream handler if streaming is enabled
-    if (config.streaming?.enabled) {
+    // Initialize media stream handler if streaming or realtime mode is enabled
+    const needsStreaming =
+      config.streaming?.enabled ||
+      config.outbound?.defaultMode === "realtime" ||
+      config.realtime?.openaiApiKey;
+    if (needsStreaming) {
       this.initializeMediaStreaming();
     }
   }

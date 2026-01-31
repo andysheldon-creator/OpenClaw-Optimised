@@ -96,6 +96,16 @@ export class TwilioProvider implements VoiceCallProvider {
   }
 
   /**
+   * Clean up all state for a call when it ends.
+   * Call this to prevent memory leaks in long-running processes.
+   */
+  cleanupCall(callId: string): void {
+    this.realtimeCalls.delete(callId);
+    this.notifyCalls.delete(callId);
+    this.twimlStorage.delete(callId);
+  }
+
+  /**
    * Delete stored TwiML for a call, addressed by Twilio's provider call SID.
    *
    * This is used when we only have `providerCallId` (e.g. hangup).

@@ -138,8 +138,18 @@ export class OpenAIRealtimeVoiceSession {
 
       this.ws.on("close", (code, reason) => {
         console.log(`[RealtimeVoice] WebSocket closed: ${code} - ${reason?.toString() || "none"}`);
+        clearTimeout(timeout);
+        const wasConnected = this.connected;
         this.connected = false;
         this.sessionId = null;
+        // Reject if we never completed connection
+        if (!wasConnected) {
+          reject(
+            new Error(
+              `WebSocket closed before session ready: ${code} - ${reason?.toString() || "none"}`,
+            ),
+          );
+        }
       });
     });
   }
