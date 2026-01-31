@@ -1,10 +1,10 @@
 # OpenBotAuth (OBA) Publisher Verification
 
-OpenClaw supports optional publisher identity verification for plugins and skills using the [OpenBotAuth](https://github.com/anthropics/openbotauth) specification. Publishers can cryptographically sign their plugin manifests and skill metadata, allowing users to verify authenticity.
+OpenClaw supports optional publisher identity verification for plugins and skills using the [OpenBotAuth](https://github.com/openbotauth/openbotauth) specification. Publishers can cryptographically sign their plugin manifests and skill metadata, allowing users to verify authenticity.
 
 ## How It Works
 
-Publishers register Ed25519 key pairs with the OpenBotAuth registry. The registry hosts JWKS (JSON Web Key Set) endpoints for each publisher. When a plugin or skill includes an `oba` block, OpenClaw can fetch the publisher's public key from the registry and verify the signature locally.
+Publishers register Ed25519 key pairs and host JWKS (JSON Web Key Set) endpoints (e.g. on the OpenBotAuth registry or any HTTPS endpoint). When a plugin or skill includes an `oba` block, OpenClaw can fetch the publisher's public key from the JWKS URL and verify the signature locally.
 
 ### Verification Flow
 
@@ -28,14 +28,14 @@ The `oba` block is a JSON object with the following fields:
 
 ```json
 {
-  "owner": "https://registry.openbotauth.com/.well-known/jwks.json",
+  "owner": "https://api.openbotauth.org/jwks/hammadtq.json",
   "kid": "key-id-from-registry",
   "alg": "EdDSA",
   "sig": "base64url-encoded-ed25519-signature"
 }
 ```
 
-- **owner**: URL of the publisher's JWKS endpoint (hosted on the OpenBotAuth registry)
+- **owner**: JWKS URL for the publisher (may be hosted on the OpenBotAuth registry or any HTTPS JWKS endpoint)
 - **kid**: Key ID matching a key in the JWKS
 - **alg**: Algorithm, must be `EdDSA` (Ed25519)
 - **sig**: Base64url-encoded Ed25519 signature over the canonicalized container
@@ -49,7 +49,7 @@ For plugins, the `oba` block is placed at the root of `openclaw.plugin.json`, as
   "id": "my-plugin",
   "configSchema": { ... },
   "oba": {
-    "owner": "https://registry.openbotauth.com/publishers/example/.well-known/jwks.json",
+    "owner": "https://api.openbotauth.org/jwks/example-publisher.json",
     "kid": "my-key-id",
     "alg": "EdDSA",
     "sig": "..."
@@ -84,7 +84,7 @@ metadata:
     openclaw: { emoji: "...", requires: { ... } },
     oba:
       {
-        owner: "https://registry.openbotauth.com/publishers/example/.well-known/jwks.json",
+        owner: "https://api.openbotauth.org/jwks/example-publisher.json",
         kid: "my-key-id",
         alg: "EdDSA",
         sig: "...",

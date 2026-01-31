@@ -65,7 +65,7 @@ export function findKeyByKid(keys: JwkEntry[], kid: string): JwkEntry | null {
 export function verifyObaSignature(payload: Buffer, sigB64Url: string, jwk: JwkEntry): boolean {
   const sigBytes = base64UrlDecode(sigB64Url);
   const publicKey = crypto.createPublicKey({
-    key: { kty: jwk.kty, crv: jwk.crv, x: jwk.x } as JsonWebKey,
+    key: jwk as unknown as JsonWebKey,
     format: "jwk",
   });
   return crypto.verify(null, payload, publicKey, sigBytes);
