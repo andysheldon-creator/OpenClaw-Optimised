@@ -141,7 +141,7 @@ export function createBlockReplyPipeline(params: {
         shouldAbort: () => aborted,
         onFlush: (payload) => {
           bufferedKeys.clear();
-          sendPayload(payload);
+          sendPayload(payload, true);
         },
       })
     : null;
@@ -188,6 +188,7 @@ export function createBlockReplyPipeline(params: {
       if (seenKeys.has(payloadKey) || pendingKeys.has(payloadKey) || bufferedKeys.has(payloadKey)) {
         return;
       }
+      seenKeys.add(payloadKey);
       bufferedKeys.add(payloadKey);
       coalescer.enqueue(payload);
       return;
