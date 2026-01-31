@@ -24,8 +24,6 @@ COPY scripts ./scripts
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-# Make entrypoint executable before switching to non-root user
-RUN chmod +x docker-entrypoint.sh
 RUN OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build
 # Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
 ENV OPENCLAW_PREFER_PNPM=1
@@ -38,6 +36,4 @@ ENV NODE_ENV=production
 # This reduces the attack surface by preventing container escape via root privileges
 USER node
 
-# Default: start gateway with --allow-unconfigured for cloud deployments (Render, etc.)
-# docker-compose overrides this with its own command section
-CMD ["./docker-entrypoint.sh"]
+CMD ["node", "dist/index.js"]
