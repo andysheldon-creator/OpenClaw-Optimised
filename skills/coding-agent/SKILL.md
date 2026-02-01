@@ -7,21 +7,49 @@ metadata:
   }
 ---
 
-# Coding Agent (bash-first)
+# Coding Agent
 
-Use **bash** (with optional background mode) for all coding agent work. Simple and effective.
+This skill manages interactive coding agents (Claude Code, Codex, Pi).
+**Core Rule:** Main Agent orchestrates via **Sub-Agents** (`sessions_spawn`); Sub-Agents execute via **Bash** (`pty:true`).
 
-## ⚠️ PTY Mode Required!
+## Execution Strategy: Sub-Agents (Non-Blocking)
 
-Coding agents (Codex, Claude Code, Pi) are **interactive terminal applications** that need a pseudo-terminal (PTY) to work correctly. Without PTY, you'll get broken output, missing colors, or the agent may hang.
+**CRITICAL:** Coding agents are slow and interactive.
+**NEVER** run them directly in the main session.
+**ALWAYS** use `sessions_spawn` to delegate the work to a background sub-agent.
 
-**Always use `pty:true`** when running coding agents:
+**Main Agent's Job:**
+1.  Define the task clearly.
+2.  Spawn a sub-agent.
+3.  Instruct the sub-agent to use `bash` with `pty:true`.
+
+**Example:**
+```javascript
+sessions_spawn({
+  task: "Navigate to ~/project. Use bash with pty:true to run: claude -p 'Build a landing page...'",
+  label: "coding-task"
+})
+```
+
+---
+
+## Implementation: Bash-First (PTY Required)
+
+**This section applies to the Sub-Agent (or manual one-shot tasks).**
+
+Use **bash** (with optional background mode) for all coding agent work.
+
+### PTY Is Mandatory!
+
+Coding agents are **interactive terminal applications**. They need a pseudo-terminal (PTY) to render progress bars, colors, and handle input correctly.
+
+**Always use `pty:true`**:
 
 ```bash
-# ✅ Correct - with PTY
+# ✅ Correct
 bash pty:true command:"codex exec 'Your prompt'"
 
-# ❌ Wrong - no PTY, agent may break
+# ❌ Wrong (agent will hang or break)
 bash command:"codex exec 'Your prompt'"
 ```
 
@@ -220,7 +248,7 @@ git worktree remove /tmp/issue-99
 
 ---
 
-## ⚠️ Rules
+## Rules
 
 1. **Always use pty:true** - coding agents need a terminal!
 2. **Respect tool choice** - if user asks for Codex, use Codex.
