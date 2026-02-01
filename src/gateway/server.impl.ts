@@ -584,7 +584,14 @@ export async function startGatewayServer(
   });
 
   // Schedule pending marker cleanup after successful startup
-  schedulePendingMarkerClear(5000);
+  // Skip if rollback just occurred - we need another successful startup before marking verified
+  if (!rollbackResult.rolledBack) {
+    schedulePendingMarkerClear(5000);
+  } else {
+    // After rollback, just clear the marker (already done by checkPendingOnStartup)
+    // Don't mark as verified until next clean startup
+    log.info("config-pending: skipping verification after rollback (need clean startup first)");
+  }
 
   // Notify session if config was rolled back
   if (rollbackResult.rolledBack && rollbackResult.error) {
@@ -595,8 +602,10 @@ export async function startGatewayServer(
         `Error: ${rollbackResult.error}`,
     );
 
-    // Inject wake event to notify the session
-    // TODO: Support session-targeted notifications when sessionKey is available
+    // Inject wake event to notify the main session
+    // Note: cron.wake broadcasts to main session, not the specific triggering session.
+    // This is acceptable since config changes are typically made from the main session.
+    // The sessionKey is included in the message for debugging purposes.
     const sessionNote = rollbackResult.sessionKey
       ? `**Triggered by session:** ${rollbackResult.sessionKey}\n`
       : "";
