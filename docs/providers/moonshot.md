@@ -44,13 +44,13 @@ Note: Moonshot and Kimi Coding are separate providers. Keys are not interchangea
     defaults: {
       model: { primary: "moonshot/kimi-k2.5" },
       models: {
-        /* moonshot-kimi-k2-aliases:start */
+        // moonshot-kimi-k2-aliases:start
         "moonshot/kimi-k2.5": { alias: "Kimi K2.5" },
         "moonshot/kimi-k2-0905-preview": { alias: "Kimi K2" },
         "moonshot/kimi-k2-turbo-preview": { alias: "Kimi K2 Turbo" },
         "moonshot/kimi-k2-thinking": { alias: "Kimi K2 Thinking" },
         "moonshot/kimi-k2-thinking-turbo": { alias: "Kimi K2 Thinking Turbo" },
-        /* moonshot-kimi-k2-aliases:end */
+        // moonshot-kimi-k2-aliases:end
       },
     },
   },
@@ -62,7 +62,7 @@ Note: Moonshot and Kimi Coding are separate providers. Keys are not interchangea
         apiKey: "${MOONSHOT_API_KEY}",
         api: "openai-completions",
         models: [
-          /* moonshot-kimi-k2-models:start */
+          // moonshot-kimi-k2-models:start
           {
             id: "kimi-k2.5",
             name: "Kimi K2.5",
@@ -108,7 +108,7 @@ Note: Moonshot and Kimi Coding are separate providers. Keys are not interchangea
             contextWindow: 256000,
             maxTokens: 8192,
           },
-          /* moonshot-kimi-k2-models:end */
+          // moonshot-kimi-k2-models:end
         ],
       },
     },
