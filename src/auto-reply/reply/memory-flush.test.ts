@@ -3,16 +3,16 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  estimatePromptTokensForMemoryFlush,
+  readPromptTokensFromSessionLog,
+  resolveEffectivePromptTokens,
+} from "./agent-runner-memory.js";
+import {
   DEFAULT_MEMORY_FLUSH_SOFT_TOKENS,
   resolveMemoryFlushContextWindowTokens,
   resolveMemoryFlushSettings,
   shouldRunMemoryFlush,
 } from "./memory-flush.js";
-import {
-  estimatePromptTokensForMemoryFlush,
-  readPromptTokensFromSessionLog,
-  resolveEffectivePromptTokens,
-} from "./agent-runner-memory.js";
 
 describe("memory flush settings", () => {
   it("defaults to enabled with fallback prompt and system prompt", () => {

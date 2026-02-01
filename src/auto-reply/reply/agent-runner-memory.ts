@@ -1,18 +1,18 @@
+import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { TemplateContext } from "../templating.js";
 import type { VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions } from "../types.js";
 import type { FollowupRun } from "./queue.js";
-import { estimateMessagesTokens } from "../../agents/compaction.js";
 import { resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
+import { estimateMessagesTokens } from "../../agents/compaction.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
-import { derivePromptTokens, normalizeUsage, type UsageLike } from "../../agents/usage.js";
 import { resolveSandboxConfigForAgent, resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
+import { derivePromptTokens, normalizeUsage, type UsageLike } from "../../agents/usage.js";
 import {
   resolveAgentIdFromSessionKey,
   resolveSessionFilePath,
