@@ -134,6 +134,8 @@ export type ExecToolDefaults = {
   messageProvider?: string;
   notifyOnExit?: boolean;
   cwd?: string;
+  /** Git commit author injected as GIT_AUTHOR_NAME/GIT_AUTHOR_EMAIL in exec env (from agents.defaults.commitAuthor). */
+  gitAuthor?: { name: string; email: string };
 };
 
 export type { BashSandboxConfig } from "./bash-tools.shared.js";
@@ -917,11 +919,18 @@ export function createExecTool(
       }
 
       const baseEnv = coerceEnv(process.env);
-      const mergedEnv = params.env ? { ...baseEnv, ...params.env } : baseEnv;
+      let mergedEnv = params.env ? { ...baseEnv, ...params.env } : baseEnv;
+      if (defaults?.gitAuthor?.name && defaults?.gitAuthor?.email) {
+        mergedEnv = {
+          ...mergedEnv,
+          GIT_AUTHOR_NAME: defaults.gitAuthor.name,
+          GIT_AUTHOR_EMAIL: defaults.gitAuthor.email,
+        };
+      }
       const env = sandbox
         ? buildSandboxEnv({
             defaultPath: DEFAULT_PATH,
-            paramsEnv: params.env,
+            paramsEnv: mergedEnv,
             sandboxEnv: sandbox.env,
             containerWorkdir: containerWorkdir ?? sandbox.containerWorkdir,
           })

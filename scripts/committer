@@ -61,6 +61,28 @@ done
 
 last_commit_error=''
 
+# Ensure a commit author is set (required by GitHub and most remotes).
+# Git uses GIT_AUTHOR_NAME/GIT_AUTHOR_EMAIL from env, else user.name/user.email from config.
+check_author() {
+  if [ -n "${GIT_AUTHOR_NAME:-}" ] && [ -n "${GIT_AUTHOR_EMAIL:-}" ]; then
+    return 0
+  fi
+  local name email
+  name=$(git config --get user.name 2>/dev/null || true)
+  email=$(git config --get user.email 2>/dev/null || true)
+  if [ -n "$name" ] && [ -n "$email" ]; then
+    return 0
+  fi
+  printf 'Error: no commit author configured. Set git user.name and user.email, or set GIT_AUTHOR_NAME and GIT_AUTHOR_EMAIL.\n' >&2
+  printf '  Example: git config user.name "Your Name" && git config user.email "you@example.com"\n' >&2
+  printf '  Or in CI/headless: export GIT_AUTHOR_NAME="Bot" GIT_AUTHOR_EMAIL="bot@example.com"\n' >&2
+  return 1
+}
+
+if ! check_author; then
+  exit 1
+fi
+
 run_git_commit() {
   local stderr_log
   stderr_log=$(mktemp)

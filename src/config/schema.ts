@@ -215,6 +215,9 @@ const FIELD_LABELS: Record<string, string> = {
   "skills.load.watchDebounceMs": "Skills Watch Debounce (ms)",
   "agents.defaults.workspace": "Workspace",
   "agents.defaults.repoRoot": "Repo Root",
+  "agents.defaults.commitAuthor": "Commit Author",
+  "agents.defaults.commitAuthor.name": "Commit Author Name",
+  "agents.defaults.commitAuthor.email": "Commit Author Email",
   "agents.defaults.bootstrapMaxChars": "Bootstrap Max Chars",
   "agents.defaults.envelopeTimezone": "Envelope Timezone",
   "agents.defaults.envelopeTimestamp": "Envelope Timestamp",
@@ -490,6 +493,11 @@ const FIELD_HELP: Record<string, string> = {
     "Max characters of each workspace bootstrap file injected into the system prompt before truncation (default: 20000).",
   "agents.defaults.repoRoot":
     "Optional repository root shown in the system prompt runtime line (overrides auto-detect).",
+  "agents.defaults.commitAuthor":
+    "Git commit author (name and email) used when the agent runs git commit; set so pushes to GitHub succeed in headless/CI environments.",
+  "agents.defaults.commitAuthor.name": 'Name used as git commit author (e.g. "OpenClaw Agent").',
+  "agents.defaults.commitAuthor.email":
+    'Email used as git commit author (e.g. "agent@example.com").',
   "agents.defaults.envelopeTimezone":
     'Timezone for message envelopes ("utc", "local", "user", or an IANA timezone string).',
   "agents.defaults.envelopeTimestamp":

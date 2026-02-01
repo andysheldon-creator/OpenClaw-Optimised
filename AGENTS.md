@@ -82,6 +82,7 @@
 ## Commit & Pull Request Guidelines
 
 - Create commits with `scripts/committer "<msg>" <file...>`; avoid manual `git add`/`git commit` so staging stays scoped.
+- **Commit author required:** GitHub rejects pushes when the commit has no author. In headless/CI environments (e.g. Render, exe.dev, GitHub Actions), set `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL` (e.g. `export GIT_AUTHOR_NAME="Bot" GIT_AUTHOR_EMAIL="bot@example.com"`) or run `git config user.name` and `git config user.email` in the repo before committing. The committer script fails with a clear message if author is missing.
 - Follow concise, action-oriented commit messages (e.g., `CLI: add verbose flag to send`).
 - Group related changes; avoid bundling unrelated refactors.
 - Changelog workflow: keep latest released version at top (no `Unreleased`); after publishing, bump version and start a new top section.

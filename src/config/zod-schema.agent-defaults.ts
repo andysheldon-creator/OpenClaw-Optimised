@@ -43,6 +43,13 @@ export const AgentDefaultsSchema = z
       .optional(),
     workspace: z.string().optional(),
     repoRoot: z.string().optional(),
+    commitAuthor: z
+      .object({
+        name: z.string().min(1),
+        email: z.string().min(1),
+      })
+      .strict()
+      .optional(),
     skipBootstrap: z.boolean().optional(),
     bootstrapMaxChars: z.number().int().positive().optional(),
     userTimezone: z.string().optional(),

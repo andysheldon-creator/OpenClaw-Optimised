@@ -1,6 +1,7 @@
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
 import type { ReasoningLevel, ThinkLevel } from "../../auto-reply/thinking.js";
 import type { OpenClawConfig } from "../../config/config.js";
+import { resolveCommitAuthorFromConfig } from "../../config/defaults.js";
 import type { ExecToolDefaults } from "../bash-tools.js";
 
 export function mapThinkingLevel(level?: ThinkLevel): ThinkingLevel {
@@ -16,8 +17,15 @@ export function resolveExecToolDefaults(config?: OpenClawConfig): ExecToolDefaul
   if (!tools?.exec) {
     return undefined;
   }
-  return tools.exec;
+  const exec = tools.exec;
+  const gitAuthor = resolveCommitAuthorFromConfig(config);
+  if (gitAuthor) {
+    return { ...exec, gitAuthor };
+  }
+  return exec;
 }
+
+export { resolveCommitAuthorFromConfig } from "../../config/defaults.js";
 
 export function describeUnknownError(error: unknown): string {
   if (error instanceof Error) {

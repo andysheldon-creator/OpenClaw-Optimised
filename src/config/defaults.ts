@@ -467,3 +467,14 @@ export function applyCompactionDefaults(cfg: OpenClawConfig): OpenClawConfig {
 export function resetSessionDefaultsWarningForTests() {
   defaultWarnState = { warned: false };
 }
+
+/** Returns commit author from agents.defaults.commitAuthor when both name and email are set. */
+export function resolveCommitAuthorFromConfig(
+  config?: OpenClawConfig,
+): { name: string; email: string } | undefined {
+  const ca = config?.agents?.defaults?.commitAuthor;
+  if (!ca?.name?.trim() || !ca?.email?.trim()) {
+    return undefined;
+  }
+  return { name: ca.name.trim(), email: ca.email.trim() };
+}

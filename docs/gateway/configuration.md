@@ -1449,6 +1449,28 @@ working directory). The path must exist to be used.
 }
 ```
 
+### `agents.defaults.commitAuthor`
+
+Git commit author (name and email) used when the agent runs git commit (e.g. via
+`scripts/committer`). OpenClaw injects these as `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL`
+in the exec environment so commits have an author and pushes to GitHub succeed in
+headless/CI environments (e.g. Render, exe.dev).
+
+Set both `name` and `email`; if either is missing, no author env is set.
+
+```json5
+{
+  agents: {
+    defaults: {
+      commitAuthor: {
+        name: "OpenClaw Agent",
+        email: "agent@example.com",
+      },
+    },
+  },
+}
+```
+
 ### `agents.defaults.skipBootstrap`
 
 Disables automatic creation of the workspace bootstrap files (`AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, and `BOOTSTRAP.md`).

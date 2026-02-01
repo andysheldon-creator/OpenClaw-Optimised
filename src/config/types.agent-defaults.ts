@@ -102,6 +102,11 @@ export type AgentDefaultsConfig = {
   workspace?: string;
   /** Optional repository root for system prompt runtime line (overrides auto-detect). */
   repoRoot?: string;
+  /**
+   * Git commit author used when the agent runs git commit (e.g. scripts/committer).
+   * Injected as GIT_AUTHOR_NAME and GIT_AUTHOR_EMAIL in exec env so pushes to GitHub succeed.
+   */
+  commitAuthor?: { name: string; email: string };
   /** Skip bootstrap (BOOTSTRAP.md creation, etc.) for pre-configured deployments. */
   skipBootstrap?: boolean;
   /** Max chars for injected bootstrap files before truncation (default: 20000). */
