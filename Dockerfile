@@ -57,7 +57,7 @@ fi
 
 # Bootstrap minimal config if missing
 if [ ! -f "$STATE_DIR/openclaw.json" ]; then
-  echo '{"gateway":{"mode":"local"}}' > "$STATE_DIR/openclaw.json"
+  echo '{"gateway":{"mode":"local","bind":"lan"}}' > "$STATE_DIR/openclaw.json"
   chown node:node "$STATE_DIR/openclaw.json"
 fi
 
