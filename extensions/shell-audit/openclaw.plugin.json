@@ -4,6 +4,7 @@
   "description": "Logs every shell command executed via the exec tool.",
   "configSchema": {
     "type": "object",
+    "additionalProperties": false,
     "properties": {
       "enabled": { "type": "boolean" }
     }

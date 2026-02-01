@@ -1,7 +1,14 @@
 {
-  "name": "shell-audit",
-  "version": "1.0.0",
+  "name": "@openclaw/shell-audit",
+  "version": "2026.1.30",
   "description": "Logs every shell command executed via the exec tool.",
   "type": "module",
-  "main": "index.js"
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
 }
