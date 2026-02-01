@@ -347,13 +347,13 @@ ack reaction after the bot replies.
 - `retry`: retry policy for outbound Discord API calls (attempts, minDelayMs, maxDelayMs, jitter).
 - `pluralkit`: resolve PluralKit proxied messages so system members appear as distinct senders.
 - `actions`: per-action tool gates; omit to allow all (set `false` to disable).
-- `execApprovals`: Discord-only exec approval DMs (button UI). Supports `enabled`, `approvers`, `agentFilter`, `sessionFilter`.
   - `reactions` (covers react + read reactions)
   - `stickers`, `emojiUploads`, `stickerUploads`, `polls`, `permissions`, `messages`, `threads`, `pins`, `search`
   - `memberInfo`, `roleInfo`, `channelInfo`, `voiceStatus`, `events`
   - `channels` (create/edit/delete channels + categories + permissions)
   - `roles` (role add/remove, default `false`)
   - `moderation` (timeout/kick/ban, default `false`)
+- `execApprovals`: Discord-only exec approval DMs (button UI). Supports `enabled`, `approvers`, `agentFilter`, `sessionFilter`.
 
 Reaction notifications use `guilds.<id>.reactionNotifications`:
 
