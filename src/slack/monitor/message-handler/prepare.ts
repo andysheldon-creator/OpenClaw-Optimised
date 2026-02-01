@@ -467,8 +467,8 @@ export async function prepareSlackMessage(params: {
     if (starter?.text) {
       const starterUser = starter.userId ? await ctx.resolveUserName(starter.userId) : null;
       const starterName = starterUser?.name ?? starter.userId ?? "Unknown";
-      // For thread starters, include thread_ts but not parent_user (the starter IS the parent)
-      const starterThreadInfo = starter.ts ? ` thread_ts: ${starter.ts}` : "";
+      // For thread starters, include thread_ts (using threadTs, the thread root timestamp)
+      const starterThreadInfo = threadTs ? ` thread_ts: ${threadTs}` : "";
       const starterWithId = `${starter.text}\n[slack message id: ${starter.ts ?? threadTs} channel: ${message.channel}${starterThreadInfo}]`;
       threadStarterBody = formatThreadStarterEnvelope({
         channel: "Slack",
