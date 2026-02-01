@@ -1,8 +1,7 @@
 import type { Command } from "commander";
-
+import type { ProgramContext } from "./context.js";
 import { defaultRuntime } from "../../runtime.js";
 import { getFlagValue, getPositiveIntFlagValue, getVerboseFlag, hasFlag } from "../argv.js";
-import type { ProgramContext } from "./context.js";
 
 type CommandRegisterParams = {
   program: Command;
