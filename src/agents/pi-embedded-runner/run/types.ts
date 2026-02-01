@@ -83,6 +83,8 @@ export type EmbeddedRunAttemptParams = {
   onToolResult?: (payload: { text?: string; mediaUrls?: string[] }) => void | Promise<void>;
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void;
   extraSystemPrompt?: string;
+  narrativeStory?: string;
+  onHistoryTruncated?: (dropped: AgentMessage[]) => Promise<void>;
   streamParams?: AgentStreamParams;
   ownerNumbers?: string[];
   enforceFinalTag?: boolean;

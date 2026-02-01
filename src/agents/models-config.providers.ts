@@ -229,7 +229,7 @@ export function normalizeProviders(params: {
       }
     }
 
-    if (normalizedKey === "google") {
+    if (normalizedKey === "google" || normalizedKey === "github-copilot") {
       const googleNormalized = normalizeGoogleProvider(normalizedProvider);
       if (googleNormalized !== normalizedProvider) mutated = true;
       normalizedProvider = googleNormalized;
@@ -474,6 +474,7 @@ export async function resolveImplicitCopilotProvider(params: {
   // We only override baseUrl; the model list comes from pi-ai built-ins.
   return {
     baseUrl,
+    api: "openai-completions",
     models: [],
   } satisfies ProviderConfig;
 }

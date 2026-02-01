@@ -51,7 +51,9 @@ function normalizeAnthropicModelId(model: string): string {
 
 function normalizeProviderModelId(provider: string, model: string): string {
   if (provider === "anthropic") return normalizeAnthropicModelId(model);
-  if (provider === "google") return normalizeGoogleModelId(model);
+  if (provider === "google" || provider === "github-copilot") {
+    return normalizeGoogleModelId(model);
+  }
   return model;
 }
 

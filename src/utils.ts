@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { resolveOAuthDir } from "./config/paths.js";
+import { resolveOAuthDir, resolveStateDir } from "./config/paths.js";
 import { logVerbose, shouldLogVerbose } from "./globals.js";
 
 export async function ensureDir(dir: string) {
@@ -215,9 +215,7 @@ export function resolveConfigDir(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = os.homedir,
 ): string {
-  const override = env.CLAWDBOT_STATE_DIR?.trim();
-  if (override) return resolveUserPath(override);
-  return path.join(homedir(), ".clawdbot");
+  return resolveStateDir(env, homedir);
 }
 
 export function resolveHomeDir(): string | undefined {

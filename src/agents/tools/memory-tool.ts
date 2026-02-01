@@ -31,8 +31,8 @@ export function createMemorySearchTool(options: {
   });
   if (!resolveMemorySearchConfig(cfg, agentId)) return null;
   return {
-    label: "Memory Search",
-    name: "memory_search",
+    label: "Journal Memory Search",
+    name: "journal_memory_search",
     description:
       "Mandatory recall step: semantically search MEMORY.md + memory/*.md (and optional session transcripts) before answering questions about prior work, decisions, dates, people, preferences, or todos; returns top snippets with path + lines.",
     parameters: MemorySearchSchema,
@@ -80,10 +80,10 @@ export function createMemoryGetTool(options: {
   });
   if (!resolveMemorySearchConfig(cfg, agentId)) return null;
   return {
-    label: "Memory Get",
-    name: "memory_get",
+    label: "Journal Memory Get",
+    name: "journal_memory_get",
     description:
-      "Safe snippet read from MEMORY.md or memory/*.md with optional from/lines; use after memory_search to pull only the needed lines and keep context small.",
+      "Safe snippet read from MEMORY.md or memory/*.md with optional from/lines; use after journal_memory_search to pull only the needed lines and keep context small.",
     parameters: MemoryGetSchema,
     execute: async (_toolCallId, params) => {
       const relPath = readStringParam(params, "path", { required: true });

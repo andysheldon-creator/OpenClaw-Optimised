@@ -1,45 +1,26 @@
 services:
-  moltbot-gateway:
-    image: ${CLAWDBOT_IMAGE:-moltbot:local}
-    environment:
-      HOME: /home/node
-      TERM: xterm-256color
-      CLAWDBOT_GATEWAY_TOKEN: ${CLAWDBOT_GATEWAY_TOKEN}
-      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
-      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
-      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
-    volumes:
-      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.clawdbot
-      - ${CLAWDBOT_WORKSPACE_DIR}:/home/node/clawd
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: falkordb
     ports:
-      - "${CLAWDBOT_GATEWAY_PORT:-18789}:18789"
-      - "${CLAWDBOT_BRIDGE_PORT:-18790}:18790"
-    init: true
-    restart: unless-stopped
-    command:
-      [
-        "node",
-        "dist/index.js",
-        "gateway",
-        "--bind",
-        "${CLAWDBOT_GATEWAY_BIND:-lan}",
-        "--port",
-        "${CLAWDBOT_GATEWAY_PORT:-18789}"
-      ]
+      - "6379:6379"
+    restart: always
 
-  moltbot-cli:
-    image: ${CLAWDBOT_IMAGE:-moltbot:local}
+  graphiti-mcp:
+    image: zepai/knowledge-graph-mcp:latest
+    container_name: graphiti-mcp
+    depends_on:
+      - falkordb
+    ports:
+      - "8001:8000"
     environment:
-      HOME: /home/node
-      TERM: xterm-256color
-      BROWSER: echo
-      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
-      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
-      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GRAPHITI_DB_URL=falkordb://falkordb:6379
     volumes:
-      - ${CLAWDBOT_CONFIG_DIR}:/home/node/.clawdbot
-      - ${CLAWDBOT_WORKSPACE_DIR}:/home/node/clawd
-    stdin_open: true
-    tty: true
-    init: true
-    entrypoint: ["node", "dist/index.js"]
+      - ./graphiti-config.yaml:/app/config.yaml
+    # The official image usually handles the entrypoint, but we'll specify config
+    command: [ "--config", "/app/config.yaml" ]
+    restart: always
+
+volumes:
+  zep-db-data:

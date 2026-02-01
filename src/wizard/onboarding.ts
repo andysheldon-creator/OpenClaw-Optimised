@@ -19,6 +19,7 @@ import {
 } from "../commands/onboard-helpers.js";
 import { promptRemoteGatewayConfig } from "../commands/onboard-remote.js";
 import { setupSkills } from "../commands/onboard-skills.js";
+import { setupMindMemory } from "../commands/onboard-mind-memory.js";
 import { setupInternalHooks } from "../commands/onboard-hooks.js";
 import type {
   GatewayAuthChoice,
@@ -430,6 +431,12 @@ export async function runOnboardingWizard(
     await prompter.note("Skipping skills setup.", "Skills");
   } else {
     nextConfig = await setupSkills(nextConfig, workspaceDir, runtime, prompter);
+  }
+
+  // Setup Mind Memory (Long-term autobiography)
+  if (!opts.skipSkills) {
+    nextConfig = await setupMindMemory(nextConfig, runtime, prompter);
+    await writeConfigFile(nextConfig);
   }
 
   // Setup hooks (session memory on /new)

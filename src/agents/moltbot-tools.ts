@@ -18,6 +18,7 @@ import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 import { createTtsTool } from "./tools/tts-tool.js";
+import { createMemoryGetTool, createMemorySearchTool } from "./tools/memory-tool.js";
 
 export function createMoltbotTools(options?: {
   sandboxBrowserBridgeUrl?: string;
@@ -138,6 +139,22 @@ export function createMoltbotTools(options?: {
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
   ];
+
+  /*
+   * Journal Tools (File-based Memory)
+   * These provide access to MEMORY.md and memory/*.md
+   */
+  const memorySearchTool = createMemorySearchTool({
+    config: options?.config,
+    agentSessionKey: options?.agentSessionKey,
+  });
+  const memoryGetTool = createMemoryGetTool({
+    config: options?.config,
+    agentSessionKey: options?.agentSessionKey,
+  });
+
+  if (memorySearchTool) tools.push(memorySearchTool);
+  if (memoryGetTool) tools.push(memoryGetTool);
 
   const pluginTools = resolvePluginTools({
     context: {

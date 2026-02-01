@@ -12,6 +12,20 @@ source of truth; the model only "remembers" what gets written to disk.
 Memory search tools are provided by the active memory plugin (default:
 `memory-core`). Disable memory plugins with `plugins.slots.memory = "none"`.
 
+---
+
+## Narrative & Subconscious Memory (The "Mind" Layer)
+
+Beyond static workspace files, Moltbot features a higher-order memory system for continuity and identity. This is implemented via the **[Mind Memory Plugin](/plugins/mind-memory)**.
+
+Key components of the Mind Layer:
+*   **Subconscious Resonance**: Uses **Graphiti** to find "Flashbacks" from the entire episodic history before every turn.
+*   **Mind Memory (`STORY.md`)**: A consolidated first-person autobiography that defines the agent's soul and relationship arc.
+
+For technical details on these systems, see the **[Memory Architecture](/mind/memory-architecture)** deep dive.
+
+---
+
 ## Memory files (Markdown)
 
 The default workspace layout uses two memory layers:
@@ -178,8 +192,9 @@ agents: {
 ```
 
 Tools:
-- `memory_search` — returns snippets with file + line ranges.
-- `memory_get` — read memory file content by path.
+- `remember` — search the long-term knowledge graph.
+- `journal_memory_search` — returns snippets from the local diary.
+- `journal_memory_get` — read memory file content by path.
 
 Local mode:
 - Set `agents.defaults.memorySearch.provider = "local"`.
@@ -188,8 +203,8 @@ Local mode:
 
 ### How the memory tools work
 
-- `memory_search` semantically searches Markdown chunks (~400 token target, 80-token overlap) from `MEMORY.md` + `memory/**/*.md`. It returns snippet text (capped ~700 chars), file path, line range, score, provider/model, and whether we fell back from local → remote embeddings. No full file payload is returned.
-- `memory_get` reads a specific memory Markdown file (workspace-relative), optionally from a starting line and for N lines. Paths outside `MEMORY.md` / `memory/` are rejected.
+- `journal_memory_search` semantically searches Markdown chunks (~400 token target, 80-token overlap) from `MEMORY.md` + `memory/**/*.md`. It returns snippet text (capped ~700 chars), file path, line range, score, provider/model, and whether we fell back from local → remote embeddings. No full file payload is returned.
+- `journal_memory_get` reads a specific memory Markdown file (workspace-relative), optionally from a starting line and for N lines. Paths outside `MEMORY.md` / `memory/` are rejected.
 - Both tools are enabled only when `memorySearch.enabled` resolves true for the agent.
 
 ### What gets indexed (and when)
@@ -285,7 +300,7 @@ agents: {
 
 ### Session memory search (experimental)
 
-You can optionally index **session transcripts** and surface them via `memory_search`.
+You can optionally index **session transcripts** and surface them via `journal_memory_search`.
 This is gated behind an experimental flag.
 
 ```json5

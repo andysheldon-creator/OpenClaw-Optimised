@@ -7,6 +7,7 @@ import { readRegistry, updateRegistry } from "./registry.js";
 import { computeSandboxConfigHash } from "./config-hash.js";
 import { resolveSandboxAgentId, resolveSandboxScopeKey, slugifySessionKey } from "./shared.js";
 import type { SandboxConfig, SandboxDockerConfig, SandboxWorkspaceAccess } from "./types.js";
+import { ensureDockerDaemon } from "../../infra/docker.js";
 
 const HOT_CONTAINER_WINDOW_MS = 5 * 60 * 1000;
 
@@ -235,6 +236,15 @@ export async function ensureSandboxContainer(params: {
   agentWorkspaceDir: string;
   cfg: SandboxConfig;
 }) {
+  // 0. Ensure Docker daemon is running
+  const daemonOk = await ensureDockerDaemon({
+    retries: 15,
+    onLog: (msg) => defaultRuntime.log(msg),
+  });
+  if (!daemonOk) {
+    throw new Error("Docker daemon not reachable. Sandbox cannot be created.");
+  }
+
   const scopeKey = resolveSandboxScopeKey(params.cfg.scope, params.sessionKey);
   const slug = params.cfg.scope === "shared" ? "shared" : slugifySessionKey(scopeKey);
   const name = `${params.cfg.docker.containerPrefix}${slug}`;

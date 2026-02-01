@@ -85,6 +85,7 @@ Most operations flow through the **Gateway** (`moltbot gateway`), a single long-
 - 🤖 **Agent bridge** — Pi (RPC mode) with tool streaming
 - ⏱️ **Streaming + chunking** — Block streaming + Telegram draft streaming details ([/concepts/streaming](/concepts/streaming))
 - 🧠 **Multi-agent routing** — Route provider accounts/peers to isolated agents (workspace + per-agent sessions)
+- 📖 **Mind Memory** — Local first-person autobiography (`STORY.md`) with subconscious resonance via Graphiti
 - 🔐 **Subscription auth** — Anthropic (Claude Pro/Max) + OpenAI (ChatGPT/Codex) via OAuth
 - 💬 **Sessions** — Direct chats collapse into shared `main` (default); groups are isolated
 - 👥 **Group Chat Support** — Mention-based by default; owner can toggle `/activation always|mention`
@@ -180,6 +181,7 @@ Example:
   - [Moltbot assistant setup (Clawd)](/start/clawd)
   - [Skills](/tools/skills)
   - [Skills config](/tools/skills-config)
+  - [Memory Architecture](/mind/memory-architecture)
   - [Workspace templates](/reference/templates/AGENTS)
   - [RPC adapters](/reference/rpc)
   - [Gateway runbook](/gateway)
@@ -193,6 +195,7 @@ Example:
   - [Telegram](/channels/telegram)
   - [Discord](/channels/discord)
   - [Mattermost (plugin)](/channels/mattermost)
+  - [Memory](/concepts/memory)
   - [iMessage](/channels/imessage)
   - [Groups](/concepts/groups)
   - [WhatsApp group messages](/concepts/group-messages)
@@ -211,6 +214,18 @@ Example:
   - [Gmail hooks (Pub/Sub)](/automation/gmail-pubsub)
   - [Security](/gateway/security)
   - [Troubleshooting](/gateway/troubleshooting)
+---
+
+## Narrative & Subconscious Memory (The "Mind" Layer)
+
+Beyond static workspace files, Moltbot features a higher-order memory system for continuity and identity:
+
+*   **Subconscious Resonance**: Uses **Graphiti** to find "Flashbacks" from the entire episodic history before every turn.
+*   **Mind Memory (`STORY.md`)**: A consolidated first-person autobiography that defines the agent's soul and relationship arc.
+
+For technical details on these systems, see the **[Memory Architecture](/mind/memory-architecture)** deep dive.
+
+---
 
 ## The name
 

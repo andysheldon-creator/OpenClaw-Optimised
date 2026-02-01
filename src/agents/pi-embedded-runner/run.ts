@@ -4,6 +4,7 @@ import { enqueueCommandInLane } from "../../process/command-queue.js";
 import { resolveUserPath } from "../../utils.js";
 import { isMarkdownCapableMessageChannel } from "../../utils/message-channel.js";
 import { resolveMoltbotAgentDir } from "../agent-paths.js";
+import path from "node:path";
 import {
   isProfileInCooldown,
   markAuthProfileFailure,
@@ -41,12 +42,24 @@ import {
   type FailoverReason,
 } from "../pi-embedded-helpers.js";
 import { normalizeUsage, type UsageLike } from "../usage.js";
+import { resolveSessionAgentId, resolveAgentConfig } from "../agent-scope.js";
+import {
+  loadWorkspaceBootstrapFiles,
+  DEFAULT_IDENTITY_FILENAME,
+  DEFAULT_SOUL_FILENAME,
+} from "../workspace.js";
+
+import { streamSimple } from "@mariozechner/pi-ai";
+import { estimateTokens } from "@mariozechner/pi-coding-agent";
+import { resolveCompactionReserveTokensFloor } from "../pi-settings.js";
 
 import { compactEmbeddedPiSessionDirect } from "./compact.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
 import { resolveModel } from "./model.js";
 import { runEmbeddedAttempt } from "./run/attempt.js";
+import { SessionManager } from "@mariozechner/pi-coding-agent";
+import { limitHistoryTurns, getDmHistoryLimitFromSessionKey } from "./history.js";
 import type { RunEmbeddedPiAgentParams } from "./run/params.js";
 import { buildEmbeddedRunPayloads } from "./run/payloads.js";
 import type { EmbeddedPiAgentMeta, EmbeddedPiRunResult } from "./types.js";
@@ -87,15 +100,12 @@ export async function runEmbeddedPiAgent(
 
   return enqueueSession(() =>
     enqueueGlobal(async () => {
-      const started = Date.now();
       const resolvedWorkspace = resolveUserPath(params.workspaceDir);
       const prevCwd = process.cwd();
 
       const provider = (params.provider ?? DEFAULT_PROVIDER).trim() || DEFAULT_PROVIDER;
       const modelId = (params.model ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
       const agentDir = params.agentDir ?? resolveMoltbotAgentDir();
-      const fallbackConfigured =
-        (params.config?.agents?.defaults?.model?.fallbacks?.length ?? 0) > 0;
       await ensureMoltbotModelsJson(params.config, agentDir);
 
       const { model, error, authStorage, modelRegistry } = resolveModel(
@@ -105,543 +115,449 @@ export async function runEmbeddedPiAgent(
         params.config,
       );
       if (!model) {
-        throw new Error(error ?? `Unknown model: ${provider}/${modelId}`);
+        return {
+          ok: false,
+          error: error ?? `Unknown model: ${provider}/${modelId}`,
+          meta: {} as any,
+        };
       }
 
-      const ctxInfo = resolveContextWindowInfo({
-        cfg: params.config,
-        provider,
-        modelId,
-        modelContextWindow: model.contextWindow,
-        defaultTokens: DEFAULT_CONTEXT_TOKENS,
-      });
-      const ctxGuard = evaluateContextWindowGuard({
-        info: ctxInfo,
-        warnBelowTokens: CONTEXT_WINDOW_WARN_BELOW_TOKENS,
-        hardMinTokens: CONTEXT_WINDOW_HARD_MIN_TOKENS,
-      });
-      if (ctxGuard.shouldWarn) {
-        log.warn(
-          `low context window: ${provider}/${modelId} ctx=${ctxGuard.tokens} (warn<${CONTEXT_WINDOW_WARN_BELOW_TOKENS}) source=${ctxGuard.source}`,
-        );
-      }
-      if (ctxGuard.shouldBlock) {
-        log.error(
-          `blocked model (context window too small): ${provider}/${modelId} ctx=${ctxGuard.tokens} (min=${CONTEXT_WINDOW_HARD_MIN_TOKENS}) source=${ctxGuard.source}`,
-        );
-        throw new FailoverError(
-          `Model context window too small (${ctxGuard.tokens} tokens). Minimum is ${CONTEXT_WINDOW_HARD_MIN_TOKENS}.`,
-          { reason: "unknown", provider, model: modelId },
-        );
-      }
-
-      const authStore = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
-      const preferredProfileId = params.authProfileId?.trim();
-      let lockedProfileId = params.authProfileIdSource === "user" ? preferredProfileId : undefined;
-      if (lockedProfileId) {
-        const lockedProfile = authStore.profiles[lockedProfileId];
-        if (
-          !lockedProfile ||
-          normalizeProviderId(lockedProfile.provider) !== normalizeProviderId(provider)
-        ) {
-          lockedProfileId = undefined;
-        }
-      }
-      const profileOrder = resolveAuthProfileOrder({
-        cfg: params.config,
-        store: authStore,
-        provider,
-        preferredProfile: preferredProfileId,
-      });
-      if (lockedProfileId && !profileOrder.includes(lockedProfileId)) {
-        throw new Error(`Auth profile "${lockedProfileId}" is not configured for ${provider}.`);
-      }
-      const profileCandidates = lockedProfileId
-        ? [lockedProfileId]
-        : profileOrder.length > 0
-          ? profileOrder
-          : [undefined];
-      let profileIndex = 0;
-
-      const initialThinkLevel = params.thinkLevel ?? "off";
-      let thinkLevel = initialThinkLevel;
-      const attemptedThinking = new Set<ThinkLevel>();
-      let apiKeyInfo: ApiKeyInfo | null = null;
-      let lastProfileId: string | undefined;
-
-      const resolveAuthProfileFailoverReason = (params: {
-        allInCooldown: boolean;
-        message: string;
-      }): FailoverReason => {
-        if (params.allInCooldown) return "rate_limit";
-        const classified = classifyFailoverReason(params.message);
-        return classified ?? "auth";
-      };
-
-      const throwAuthProfileFailover = (params: {
-        allInCooldown: boolean;
-        message?: string;
-        error?: unknown;
-      }): never => {
-        const fallbackMessage = `No available auth profile for ${provider} (all in cooldown or unavailable).`;
-        const message =
-          params.message?.trim() ||
-          (params.error ? describeUnknownError(params.error).trim() : "") ||
-          fallbackMessage;
-        const reason = resolveAuthProfileFailoverReason({
-          allInCooldown: params.allInCooldown,
-          message,
-        });
-        if (fallbackConfigured) {
-          throw new FailoverError(message, {
-            reason,
-            provider,
-            model: modelId,
-            status: resolveFailoverStatus(reason),
-            cause: params.error,
-          });
-        }
-        if (params.error instanceof Error) throw params.error;
-        throw new Error(message);
-      };
-
-      const resolveApiKeyForCandidate = async (candidate?: string) => {
-        return getApiKeyForModel({
+      try {
+        const apiKeyInfo = await getApiKeyForModel({
           model,
           cfg: params.config,
-          profileId: candidate,
-          store: authStore,
+          profileId: params.authProfileId,
           agentDir,
         });
-      };
 
-      const applyApiKeyInfo = async (candidate?: string): Promise<void> => {
-        apiKeyInfo = await resolveApiKeyForCandidate(candidate);
-        const resolvedProfileId = apiKeyInfo.profileId ?? candidate;
-        if (!apiKeyInfo.apiKey) {
-          if (apiKeyInfo.mode !== "aws-sdk") {
-            throw new Error(
-              `No API key resolved for provider "${model.provider}" (auth mode: ${apiKeyInfo.mode}).`,
-            );
-          }
-          lastProfileId = resolvedProfileId;
-          return;
+        if (!apiKeyInfo.apiKey && apiKeyInfo.mode !== "aws-sdk") {
+          throw new Error(
+            `No API key resolved for provider "${model.provider}" (auth mode: ${apiKeyInfo.mode}).`,
+          );
         }
-        if (model.provider === "github-copilot") {
+
+        let runtimeApiKey = apiKeyInfo.apiKey;
+        if (model.provider === "github-copilot" && apiKeyInfo.apiKey) {
           const { resolveCopilotApiToken } =
             await import("../../providers/github-copilot-token.js");
           const copilotToken = await resolveCopilotApiToken({
             githubToken: apiKeyInfo.apiKey,
           });
-          authStorage.setRuntimeApiKey(model.provider, copilotToken.token);
-        } else {
+          runtimeApiKey = copilotToken.token;
+          authStorage.setRuntimeApiKey(model.provider, runtimeApiKey);
+        } else if (apiKeyInfo.apiKey) {
           authStorage.setRuntimeApiKey(model.provider, apiKeyInfo.apiKey);
         }
-        lastProfileId = apiKeyInfo.profileId;
-      };
 
-      const advanceAuthProfile = async (): Promise<boolean> => {
-        if (lockedProfileId) return false;
-        let nextIndex = profileIndex + 1;
-        while (nextIndex < profileCandidates.length) {
-          const candidate = profileCandidates[nextIndex];
-          if (candidate && isProfileInCooldown(authStore, candidate)) {
-            nextIndex += 1;
-            continue;
+        const mindConfig = params.config?.plugins?.entries?.["mind-memory"] as any;
+        const debug = !!mindConfig?.config?.debug;
+
+        // Create a lightweight LLM client for the subconscious (reusable for consolidation)
+        const subconsciousAgent: {
+          complete: (prompt: string) => Promise<{ text: string | null }>;
+          autoBootstrapHistory?: boolean;
+        } = {
+          complete: async (prompt: string) => {
+            let fullText = "";
+            try {
+              const key = (runtimeApiKey || apiKeyInfo.apiKey) as string;
+              if (!key) return { text: "" };
+              const stream = streamSimple(
+                model,
+                {
+                  messages: [{ role: "user", content: prompt, timestamp: Date.now() } as any],
+                  temperature: 0, // Force deterministic output to avoid loops
+                } as any,
+                {
+                  apiKey: key,
+                },
+              );
+              if (debug)
+                process.stderr.write(`  🧩 [DEBUG] Subconscious stream open (${modelId})... `);
+              for await (const chunk of stream) {
+                const ch = chunk as any;
+                let text = "";
+
+                // SIMPLIFIED LOGIC (User Request): Trust provider 'content' or 'text' fully if present.
+                // No complex deduplication or startWith checks.
+                if (ch.content) {
+                  fullText = ch.content;
+                } else if (ch.text) {
+                  fullText = ch.text;
+                } else if (ch.delta?.text) {
+                  text = ch.delta.text;
+                } else if (typeof ch.delta === "string") {
+                  text = ch.delta;
+                } else if (ch.delta?.content?.[0]?.text) {
+                  text = ch.delta.content[0].text;
+                } else if (ch.partial?.content?.[0]?.text) {
+                  text = ch.partial.content[0].text;
+                }
+
+                if (text) {
+                  fullText += text;
+                }
+              }
+              if (debug && fullText.length > 0) process.stderr.write("\n");
+            } catch (e: any) {
+              if (debug)
+                process.stderr.write(`  ❌ [DEBUG] Subconscious LLM error: ${e.message}\n`);
+            }
+            return { text: fullText };
+          },
+          autoBootstrapHistory: mindConfig?.config?.narrative?.autoBootstrapHistory ?? false,
+        };
+
+        const agentId = resolveSessionAgentId({
+          sessionKey: params.sessionKey,
+          config: params.config,
+        });
+        const agentConfig = resolveAgentConfig(params.config ?? {}, agentId);
+
+        // Resolve identity context for narrative updates
+        let identityContext = "";
+        try {
+          const bootstrapFiles = await loadWorkspaceBootstrapFiles(resolvedWorkspace);
+          const identityFile = bootstrapFiles.find((f) => f.name === DEFAULT_IDENTITY_FILENAME);
+          const soulFile = bootstrapFiles.find((f) => f.name === DEFAULT_SOUL_FILENAME);
+
+          const identityParts: string[] = [];
+          if (identityFile && !identityFile.missing && identityFile.content) {
+            identityParts.push(`IDENTITY:\n${identityFile.content}`);
           }
-          try {
-            await applyApiKeyInfo(candidate);
-            profileIndex = nextIndex;
-            thinkLevel = initialThinkLevel;
-            attemptedThinking.clear();
-            return true;
-          } catch (err) {
-            if (candidate && candidate === lockedProfileId) throw err;
-            nextIndex += 1;
+          if (soulFile && !soulFile.missing && soulFile.content) {
+            identityParts.push(`SOUL:\n${soulFile.content}`);
           }
-        }
-        return false;
-      };
-
-      try {
-        while (profileIndex < profileCandidates.length) {
-          const candidate = profileCandidates[profileIndex];
-          if (
-            candidate &&
-            candidate !== lockedProfileId &&
-            isProfileInCooldown(authStore, candidate)
-          ) {
-            profileIndex += 1;
-            continue;
+          if (agentConfig?.identity) {
+            identityParts.push(`CONFIG IDENTITY: ${agentConfig.identity}`);
           }
-          await applyApiKeyInfo(profileCandidates[profileIndex]);
-          break;
+
+          identityContext = identityParts.join("\n\n").trim();
+        } catch (e: any) {
+          if (debug)
+            process.stderr.write(`  ⚠️ [DEBUG] Failed to load identity context: ${e.message}\n`);
         }
-        if (profileIndex >= profileCandidates.length) {
-          throwAuthProfileFailover({ allInCooldown: true });
-        }
-      } catch (err) {
-        if (err instanceof FailoverError) throw err;
-        if (profileCandidates[profileIndex] === lockedProfileId) {
-          throwAuthProfileFailover({ allInCooldown: false, error: err });
-        }
-        const advanced = await advanceAuthProfile();
-        if (!advanced) {
-          throwAuthProfileFailover({ allInCooldown: false, error: err });
-        }
-      }
 
-      let overflowCompactionAttempted = false;
-      try {
-        while (true) {
-          attemptedThinking.add(thinkLevel);
-          await fs.mkdir(resolvedWorkspace, { recursive: true });
+        let finalExtraSystemPrompt = params.extraSystemPrompt ?? "";
+        let narrativeStory: { content: string; updatedAt: Date } | null = null;
+        const storyPath = path.join(resolvedWorkspace, "STORY.md");
+        const isMindEnabled =
+          mindConfig?.enabled && (mindConfig?.config?.narrative?.enabled ?? true);
+        const tokenThreshold = mindConfig?.config?.narrative?.tokenThreshold ?? 5000;
 
-          const prompt =
-            provider === "anthropic" ? scrubAnthropicRefusalMagic(params.prompt) : params.prompt;
+        // HEARTBEAT DETECTION (Incoming)
+        const isHeartbeatPrompt =
+          params.prompt.includes("Read HEARTBEAT.md") &&
+          params.prompt.includes("reply HEARTBEAT_OK");
 
-          const attempt = await runEmbeddedAttempt({
-            sessionId: params.sessionId,
-            sessionKey: params.sessionKey,
-            messageChannel: params.messageChannel,
-            messageProvider: params.messageProvider,
-            agentAccountId: params.agentAccountId,
-            messageTo: params.messageTo,
-            messageThreadId: params.messageThreadId,
-            groupId: params.groupId,
-            groupChannel: params.groupChannel,
-            groupSpace: params.groupSpace,
-            spawnedBy: params.spawnedBy,
-            currentChannelId: params.currentChannelId,
-            currentThreadTs: params.currentThreadTs,
-            replyToMode: params.replyToMode,
-            hasRepliedRef: params.hasRepliedRef,
-            sessionFile: params.sessionFile,
-            workspaceDir: params.workspaceDir,
-            agentDir,
-            config: params.config,
-            skillsSnapshot: params.skillsSnapshot,
-            prompt,
-            images: params.images,
-            disableTools: params.disableTools,
-            provider,
-            modelId,
-            model,
-            authStorage,
-            modelRegistry,
-            thinkLevel,
-            verboseLevel: params.verboseLevel,
-            reasoningLevel: params.reasoningLevel,
-            toolResultFormat: resolvedToolResultFormat,
-            execOverrides: params.execOverrides,
-            bashElevated: params.bashElevated,
-            timeoutMs: params.timeoutMs,
-            runId: params.runId,
-            abortSignal: params.abortSignal,
-            shouldEmitToolResult: params.shouldEmitToolResult,
-            shouldEmitToolOutput: params.shouldEmitToolOutput,
-            onPartialReply: params.onPartialReply,
-            onAssistantMessageStart: params.onAssistantMessageStart,
-            onBlockReply: params.onBlockReply,
-            onBlockReplyFlush: params.onBlockReplyFlush,
-            blockReplyBreak: params.blockReplyBreak,
-            blockReplyChunking: params.blockReplyChunking,
-            onReasoningStream: params.onReasoningStream,
-            onToolResult: params.onToolResult,
-            onAgentEvent: params.onAgentEvent,
-            extraSystemPrompt: params.extraSystemPrompt,
-            streamParams: params.streamParams,
-            ownerNumbers: params.ownerNumbers,
-            enforceFinalTag: params.enforceFinalTag,
-          });
+        try {
+          if (isMindEnabled) {
+            if (debug)
+              process.stderr.write(
+                `🧠 [MIND] Starting modular subconscious pipeline (Model: ${modelId})...\n`,
+              );
 
-          const { aborted, promptError, timedOut, sessionIdUsed, lastAssistant } = attempt;
+            const { GraphService } = await import("../../services/memory/GraphService.js");
+            const { SubconsciousService } =
+              await import("../../services/memory/SubconsciousService.js");
+            const { ConsolidationService } =
+              await import("../../services/memory/ConsolidationService.js");
 
-          if (promptError && !aborted) {
-            const errorText = describeUnknownError(promptError);
-            if (isContextOverflowError(errorText)) {
-              const isCompactionFailure = isCompactionFailureError(errorText);
-              // Attempt auto-compaction on context overflow (not compaction_failure)
-              if (!isCompactionFailure && !overflowCompactionAttempted) {
-                log.warn(
-                  `context overflow detected; attempting auto-compaction for ${provider}/${modelId}`,
+            const gUrl = (mindConfig?.config as any)?.graphiti?.baseUrl || "http://localhost:8001";
+            const gs = new GraphService(gUrl, debug);
+            const sub = new SubconsciousService(gs, debug);
+            const cons = new ConsolidationService(gs, debug);
+            const globalSessionId = "global-user-memory";
+
+            if (!isHeartbeatPrompt) {
+              // 1. Storage & Consolidation (Only for real messages)
+              const memoryDir = path.join(path.dirname(storyPath), "memory");
+              const sessionMgr = SessionManager.open(params.sessionFile);
+              const sessionMessages = sessionMgr.buildSessionContext().messages || [];
+
+              // Bootstrap historical episodes
+              await cons.bootstrapHistoricalEpisodes(params.sessionId, memoryDir, sessionMessages);
+
+              // Consolidation Check
+              const contextInfo = resolveContextWindowInfo({
+                cfg: params.config,
+                provider,
+                modelId,
+                defaultTokens: DEFAULT_CONTEXT_TOKENS,
+              });
+              const safeTokenLimit = Math.floor(contextInfo.tokens * 0.5);
+              await cons.checkAndConsolidate(
+                params.sessionId,
+                subconsciousAgent,
+                storyPath,
+                sessionMessages,
+                identityContext,
+                safeTokenLimit,
+                tokenThreshold,
+              );
+
+              // Persist User Message
+              if (debug)
+                process.stderr.write(
+                  `Tape [GRAPH] Storing episode for Global ID: ${globalSessionId} (Trace: ${params.sessionId})\n`,
                 );
-                overflowCompactionAttempted = true;
-                const compactResult = await compactEmbeddedPiSessionDirect({
+              await gs.addEpisode(globalSessionId, `human: ${params.prompt}`);
+              await cons.trackPendingEpisode(path.dirname(storyPath), `human: ${params.prompt}`);
+            } else {
+              if (debug)
+                process.stderr.write(
+                  `💓 [MIND] Heartbeat detected - skipping memory storage & consolidation.\n`,
+                );
+            }
+
+            // 2. Fetch Narrative Story (ALWAYS, even for heartbeats)
+            try {
+              const storyContent = await fs.readFile(storyPath, "utf-8").catch(() => null);
+              if (storyContent) {
+                narrativeStory = { content: storyContent, updatedAt: new Date() };
+                if (debug)
+                  process.stderr.write(
+                    `📖 [MIND] Local Story retrieved (${storyContent.length} chars)\n`,
+                  );
+              }
+            } catch (e: any) {
+              if (debug)
+                process.stderr.write(`⚠️ [MIND] Failed to read local story: ${e.message}\n`);
+            }
+
+            // 3. Get Flashbacks (Only for real messages)
+            if (!isHeartbeatPrompt) {
+              let oldestContextTimestamp: Date | undefined;
+              let rawHistory: any[] = [];
+              try {
+                const tempSessionManager = SessionManager.open(params.sessionFile);
+                const branch = tempSessionManager.getBranch();
+
+                rawHistory = branch
+                  .filter((e) => e.type === "message")
+                  .map((e: any) => ({
+                    role: e.message?.role,
+                    text: e.message?.text || e.message?.content,
+                    timestamp: e.timestamp,
+                  }));
+
+                const contextMessages = tempSessionManager.buildSessionContext().messages || [];
+                if (contextMessages.length > 0) {
+                  const limit = getDmHistoryLimitFromSessionKey(params.sessionKey, params.config);
+                  const limited = limitHistoryTurns(contextMessages, limit);
+                  if (limited.length > 0 && (limited[0] as any).timestamp) {
+                    oldestContextTimestamp = new Date((limited[0] as any).timestamp);
+                  }
+                }
+              } catch (e) {}
+
+              const flashbacks = await sub.getFlashback(
+                globalSessionId, // STRICTLY use global-user-memory
+                params.prompt,
+                subconsciousAgent,
+                oldestContextTimestamp,
+                rawHistory,
+              );
+
+              if (flashbacks) {
+                if (debug)
+                  process.stderr.write("✨ [MIND] Memories injected into system prompt.\n");
+                finalExtraSystemPrompt += flashbacks;
+              }
+            } else {
+              if (debug)
+                process.stderr.write(
+                  `💓 [MIND] Heartbeat detected - skipping resonance retrieval.\n`,
+                );
+            }
+          }
+        } catch (e: any) {
+          process.stderr.write(`❌ [MIND] Subconscious error: ${e.message}\n`);
+        }
+
+        const startTime = Date.now();
+        let attemptResult: any;
+        let retryCount = 0;
+        const maxRetries = 1;
+
+        while (retryCount <= maxRetries) {
+          try {
+            process.stderr.write(
+              retryCount > 0
+                ? "🔄 [MIND] Retrying after compaction...\n"
+                : "🤖 [MIND] Calling LLM...\n",
+            );
+            attemptResult = await runEmbeddedAttempt({
+              runId: params.runId,
+              sessionId: params.sessionId,
+              sessionKey: params.sessionKey,
+              provider,
+              modelId,
+              model,
+              authStorage,
+              modelRegistry,
+              sessionFile: params.sessionFile,
+              workspaceDir: resolvedWorkspace,
+              agentDir,
+              config: params.config,
+              prompt: params.prompt,
+              images: params.images,
+              extraSystemPrompt: finalExtraSystemPrompt,
+              narrativeStory: narrativeStory?.content || "",
+              thinkLevel: params.thinkLevel ?? "low",
+              verboseLevel: params.verboseLevel,
+              reasoningLevel: params.reasoningLevel,
+              toolResultFormat: resolvedToolResultFormat,
+              timeoutMs: params.timeoutMs,
+              abortSignal: params.abortSignal,
+              onPartialReply: (payload) => {
+                if (payload.text) process.stderr.write("✍️");
+                params.onPartialReply?.(payload);
+              },
+              onAssistantMessageStart: params.onAssistantMessageStart,
+              onBlockReply: params.onBlockReply,
+              onBlockReplyFlush: params.onBlockReplyFlush,
+              blockReplyBreak: params.blockReplyBreak,
+              blockReplyChunking: params.blockReplyChunking,
+              onReasoningStream: params.onReasoningStream,
+              onToolResult: params.onToolResult,
+              onAgentEvent: params.onAgentEvent,
+              streamParams: params.streamParams,
+              ownerNumbers: params.ownerNumbers,
+              enforceFinalTag: params.enforceFinalTag,
+            });
+
+            // Check for context overflow in promptError (returned by attempt)
+            if (attemptResult.promptError && isContextOverflowError(attemptResult.promptError)) {
+              if (retryCount < maxRetries) {
+                if (debug)
+                  process.stderr.write(
+                    `⚠️ [MIND] Context overflow detected! Triggering compaction...\n`,
+                  );
+                await compactEmbeddedPiSessionDirect({
+                  sessionFile: params.sessionFile,
                   sessionId: params.sessionId,
                   sessionKey: params.sessionKey,
-                  messageChannel: params.messageChannel,
-                  messageProvider: params.messageProvider,
-                  agentAccountId: params.agentAccountId,
-                  authProfileId: lastProfileId,
-                  sessionFile: params.sessionFile,
-                  workspaceDir: params.workspaceDir,
-                  agentDir,
                   config: params.config,
-                  skillsSnapshot: params.skillsSnapshot,
-                  provider,
+                  agentDir,
+                  authProfileId: params.authProfileId,
                   model: modelId,
-                  thinkLevel,
-                  reasoningLevel: params.reasoningLevel,
-                  bashElevated: params.bashElevated,
-                  extraSystemPrompt: params.extraSystemPrompt,
-                  ownerNumbers: params.ownerNumbers,
+                  provider,
+                  workspaceDir: resolvedWorkspace,
                 });
-                if (compactResult.compacted) {
-                  log.info(`auto-compaction succeeded for ${provider}/${modelId}; retrying prompt`);
-                  continue;
-                }
-                log.warn(
-                  `auto-compaction failed for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
-                );
+                retryCount++;
+                continue;
               }
-              const kind = isCompactionFailure ? "compaction_failure" : "context_overflow";
-              return {
-                payloads: [
-                  {
-                    text:
-                      "Context overflow: prompt too large for the model. " +
-                      "Try again with less input or a larger-context model.",
-                    isError: true,
-                  },
-                ],
-                meta: {
-                  durationMs: Date.now() - started,
-                  agentMeta: {
-                    sessionId: sessionIdUsed,
-                    provider,
-                    model: model.id,
-                  },
-                  systemPromptReport: attempt.systemPromptReport,
-                  error: { kind, message: errorText },
-                },
-              };
             }
-            // Handle role ordering errors with a user-friendly message
-            if (/incorrect role information|roles must alternate/i.test(errorText)) {
-              return {
-                payloads: [
-                  {
-                    text:
-                      "Message ordering conflict - please try again. " +
-                      "If this persists, use /new to start a fresh session.",
-                    isError: true,
-                  },
-                ],
-                meta: {
-                  durationMs: Date.now() - started,
-                  agentMeta: {
-                    sessionId: sessionIdUsed,
-                    provider,
-                    model: model.id,
-                  },
-                  systemPromptReport: attempt.systemPromptReport,
-                  error: { kind: "role_ordering", message: errorText },
-                },
-              };
-            }
-            const promptFailoverReason = classifyFailoverReason(errorText);
-            if (promptFailoverReason && promptFailoverReason !== "timeout" && lastProfileId) {
-              await markAuthProfileFailure({
-                store: authStore,
-                profileId: lastProfileId,
-                reason: promptFailoverReason,
-                cfg: params.config,
-                agentDir: params.agentDir,
+
+            break;
+          } catch (err: any) {
+            if (isContextOverflowError(err) && retryCount < maxRetries) {
+              if (debug)
+                process.stderr.write(
+                  `⚠️ [MIND] Context overflow caught! Triggering compaction...\n`,
+                );
+              await compactEmbeddedPiSessionDirect({
+                sessionFile: params.sessionFile,
+                sessionId: params.sessionId,
+                sessionKey: params.sessionKey,
+                config: params.config,
+                agentDir,
+                authProfileId: params.authProfileId,
+                model: modelId,
+                provider,
+                workspaceDir: resolvedWorkspace,
               });
-            }
-            if (
-              isFailoverErrorMessage(errorText) &&
-              promptFailoverReason !== "timeout" &&
-              (await advanceAuthProfile())
-            ) {
+              retryCount++;
               continue;
             }
-            const fallbackThinking = pickFallbackThinkingLevel({
-              message: errorText,
-              attempted: attemptedThinking,
-            });
-            if (fallbackThinking) {
-              log.warn(
-                `unsupported thinking level for ${provider}/${modelId}; retrying with ${fallbackThinking}`,
-              );
-              thinkLevel = fallbackThinking;
-              continue;
-            }
-            // FIX: Throw FailoverError for prompt errors when fallbacks configured
-            // This enables model fallback for quota/rate limit errors during prompt submission
-            if (fallbackConfigured && isFailoverErrorMessage(errorText)) {
-              throw new FailoverError(errorText, {
-                reason: promptFailoverReason ?? "unknown",
-                provider,
-                model: modelId,
-                profileId: lastProfileId,
-                status: resolveFailoverStatus(promptFailoverReason ?? "unknown"),
-              });
-            }
-            throw promptError;
+            throw err;
           }
-
-          const fallbackThinking = pickFallbackThinkingLevel({
-            message: lastAssistant?.errorMessage,
-            attempted: attemptedThinking,
-          });
-          if (fallbackThinking && !aborted) {
-            log.warn(
-              `unsupported thinking level for ${provider}/${modelId}; retrying with ${fallbackThinking}`,
-            );
-            thinkLevel = fallbackThinking;
-            continue;
-          }
-
-          const authFailure = isAuthAssistantError(lastAssistant);
-          const rateLimitFailure = isRateLimitAssistantError(lastAssistant);
-          const failoverFailure = isFailoverAssistantError(lastAssistant);
-          const assistantFailoverReason = classifyFailoverReason(lastAssistant?.errorMessage ?? "");
-          const cloudCodeAssistFormatError = attempt.cloudCodeAssistFormatError;
-          const imageDimensionError = parseImageDimensionError(lastAssistant?.errorMessage ?? "");
-
-          if (imageDimensionError && lastProfileId) {
-            const details = [
-              imageDimensionError.messageIndex !== undefined
-                ? `message=${imageDimensionError.messageIndex}`
-                : null,
-              imageDimensionError.contentIndex !== undefined
-                ? `content=${imageDimensionError.contentIndex}`
-                : null,
-              imageDimensionError.maxDimensionPx !== undefined
-                ? `limit=${imageDimensionError.maxDimensionPx}px`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" ");
-            log.warn(
-              `Profile ${lastProfileId} rejected image payload${details ? ` (${details})` : ""}.`,
-            );
-          }
-
-          // Treat timeout as potential rate limit (Antigravity hangs on rate limit)
-          const shouldRotate = (!aborted && failoverFailure) || timedOut;
-
-          if (shouldRotate) {
-            if (lastProfileId) {
-              const reason =
-                timedOut || assistantFailoverReason === "timeout"
-                  ? "timeout"
-                  : (assistantFailoverReason ?? "unknown");
-              await markAuthProfileFailure({
-                store: authStore,
-                profileId: lastProfileId,
-                reason,
-                cfg: params.config,
-                agentDir: params.agentDir,
-              });
-              if (timedOut && !isProbeSession) {
-                log.warn(
-                  `Profile ${lastProfileId} timed out (possible rate limit). Trying next account...`,
-                );
-              }
-              if (cloudCodeAssistFormatError) {
-                log.warn(
-                  `Profile ${lastProfileId} hit Cloud Code Assist format error. Tool calls will be sanitized on retry.`,
-                );
-              }
-            }
-
-            const rotated = await advanceAuthProfile();
-            if (rotated) continue;
-
-            if (fallbackConfigured) {
-              // Prefer formatted error message (user-friendly) over raw errorMessage
-              const message =
-                (lastAssistant
-                  ? formatAssistantErrorText(lastAssistant, {
-                      cfg: params.config,
-                      sessionKey: params.sessionKey ?? params.sessionId,
-                    })
-                  : undefined) ||
-                lastAssistant?.errorMessage?.trim() ||
-                (timedOut
-                  ? "LLM request timed out."
-                  : rateLimitFailure
-                    ? "LLM request rate limited."
-                    : authFailure
-                      ? "LLM request unauthorized."
-                      : "LLM request failed.");
-              const status =
-                resolveFailoverStatus(assistantFailoverReason ?? "unknown") ??
-                (isTimeoutErrorMessage(message) ? 408 : undefined);
-              throw new FailoverError(message, {
-                reason: assistantFailoverReason ?? "unknown",
-                provider,
-                model: modelId,
-                profileId: lastProfileId,
-                status,
-              });
-            }
-          }
-
-          const usage = normalizeUsage(lastAssistant?.usage as UsageLike);
-          const agentMeta: EmbeddedPiAgentMeta = {
-            sessionId: sessionIdUsed,
-            provider: lastAssistant?.provider ?? provider,
-            model: lastAssistant?.model ?? model.id,
-            usage,
-          };
-
-          const payloads = buildEmbeddedRunPayloads({
-            assistantTexts: attempt.assistantTexts,
-            toolMetas: attempt.toolMetas,
-            lastAssistant: attempt.lastAssistant,
-            lastToolError: attempt.lastToolError,
-            config: params.config,
-            sessionKey: params.sessionKey ?? params.sessionId,
-            verboseLevel: params.verboseLevel,
-            reasoningLevel: params.reasoningLevel,
-            toolResultFormat: resolvedToolResultFormat,
-            inlineToolResultsAllowed: false,
-          });
-
-          log.debug(
-            `embedded run done: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - started} aborted=${aborted}`,
-          );
-          if (lastProfileId) {
-            await markAuthProfileGood({
-              store: authStore,
-              provider,
-              profileId: lastProfileId,
-              agentDir: params.agentDir,
-            });
-            await markAuthProfileUsed({
-              store: authStore,
-              profileId: lastProfileId,
-              agentDir: params.agentDir,
-            });
-          }
-          return {
-            payloads: payloads.length ? payloads : undefined,
-            meta: {
-              durationMs: Date.now() - started,
-              agentMeta,
-              aborted,
-              systemPromptReport: attempt.systemPromptReport,
-              // Handle client tool calls (OpenResponses hosted tools)
-              stopReason: attempt.clientToolCall ? "tool_calls" : undefined,
-              pendingToolCalls: attempt.clientToolCall
-                ? [
-                    {
-                      id: `call_${Date.now()}`,
-                      name: attempt.clientToolCall.name,
-                      arguments: JSON.stringify(attempt.clientToolCall.params),
-                    },
-                  ]
-                : undefined,
-            },
-            didSendViaMessagingTool: attempt.didSendViaMessagingTool,
-            messagingToolSentTexts: attempt.messagingToolSentTexts,
-            messagingToolSentTargets: attempt.messagingToolSentTargets,
-          };
         }
+
+        process.stderr.write("\n✅ [MIND] Response finished.\n");
+
+        // Token & History Analysis
+        try {
+          const messageCount = (attemptResult.messagesSnapshot || []).length;
+          const totalTokens = (attemptResult.messagesSnapshot || []).reduce(
+            (acc: number, msg: any) => acc + estimateTokens(msg),
+            0,
+          );
+          const floor = resolveCompactionReserveTokensFloor(params.config);
+          if (debug)
+            process.stderr.write(
+              `📊 [DEBUG] History: ${messageCount} messages, ~${totalTokens.toLocaleString()} tokens (Floor: ${floor.toLocaleString()})\n`,
+            );
+        } catch (e) {
+          if (debug) process.stderr.write(`📊 [DEBUG] Stats analysis failed\n`);
+        }
+
+        // MIND INTEGRATION v1.0: Persist Assistant Message & Consolidate
+        try {
+          if (isMindEnabled) {
+            const assistantText = attemptResult.assistantTexts.join("\n").trim();
+            const isHeartbeatResponse = assistantText === "HEARTBEAT_OK";
+
+            if (!isHeartbeatPrompt && !isHeartbeatResponse) {
+              if (assistantText) {
+                const { GraphService } = await import("../../services/memory/GraphService.js");
+                const { ConsolidationService } =
+                  await import("../../services/memory/ConsolidationService.js");
+
+                const gUrl =
+                  (mindConfig?.config as any)?.graphiti?.baseUrl || "http://localhost:8001";
+                const gs = new GraphService(gUrl, debug);
+                const cons = new ConsolidationService(gs, debug);
+
+                await gs.addEpisode("global-user-memory", `assistant: ${assistantText}`);
+                await cons.trackPendingEpisode(
+                  path.dirname(storyPath),
+                  `assistant: ${assistantText}`,
+                );
+              }
+            } else if (isHeartbeatResponse) {
+              if (debug)
+                process.stderr.write(
+                  `💓 [MIND] Heartbeat response detected - skipping memory storage.\n`,
+                );
+            }
+          }
+        } catch (e: any) {
+          process.stderr.write(`❌ [MIND] Consolidation / Persistence error: ${e.message}\n`);
+        }
+
+        return {
+          payloads: buildEmbeddedRunPayloads(attemptResult),
+          meta: {
+            durationMs: Date.now() - startTime,
+            agentMeta: {
+              sessionId: params.sessionId,
+              provider,
+              model: modelId,
+            },
+            systemPromptReport: attemptResult.systemPromptReport,
+            stopReason: attemptResult.lastAssistant?.stopReason,
+          },
+          didSendViaMessagingTool: attemptResult.didSendViaMessagingTool,
+          messagingToolSentTexts: attemptResult.messagingToolSentTexts,
+          messagingToolSentTargets: attemptResult.messagingToolSentTargets,
+        };
+      } catch (err: any) {
+        return {
+          meta: {
+            durationMs: 0,
+            agentMeta: {
+              sessionId: params.sessionId,
+              provider,
+              model: modelId,
+            },
+            error: {
+              kind: isContextOverflowError(err) ? "context_overflow" : "compaction_failure",
+              message: describeUnknownError(err),
+            },
+          },
+        } as any;
       } finally {
         process.chdir(prevCwd);
       }

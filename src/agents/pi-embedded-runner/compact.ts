@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import path from "node:path";
 import os from "node:os";
 
 import {
@@ -69,6 +70,9 @@ import type { EmbeddedPiCompactResult } from "./types.js";
 import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
 import { describeUnknownError, mapThinkingLevel, resolveExecToolDefaults } from "./utils.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
+
+import { ConsolidationService } from "../../services/memory/ConsolidationService.js";
+import { GraphService } from "../../services/memory/GraphService.js";
 
 export type CompactEmbeddedPiSessionParams = {
   sessionId: string;
@@ -424,6 +428,46 @@ export async function compactEmbeddedPiSessionDirect(
         if (limited.length > 0) {
           session.agent.replaceMessages(limited);
         }
+
+        // MIND INTEGRATION: Narrativize older messages before pruning
+        try {
+          const graph = new GraphService(process.env.GRAPHITI_MCP_URL || "http://localhost:8001");
+          const consolidator = new ConsolidationService(graph);
+
+          // We narrativize messages that are about to be pruned.
+          // Moltbot's session.compact() will typically remove the first half of messages.
+          const midPoint = Math.floor(session.messages.length / 2);
+          const oldMessages = session.messages.slice(0, midPoint);
+
+          if (oldMessages.length > 0) {
+            process.stderr.write(
+              `📖 [MIND] Processing ${oldMessages.length} messages into Narrative Story...\n`,
+            );
+
+            // 1. Fetch current story
+            const currentStory = await graph.getStory(params.sessionId);
+
+            // 2. Update Narrative Story (recursive summarization)
+            const storyPath = path.join(params.workspaceDir, "STORY.md");
+            await consolidator.updateNarrativeStory(
+              params.sessionId,
+              oldMessages,
+              currentStory?.content || "",
+              storyPath,
+              session.agent,
+            );
+
+            // Reset pending status since we've integrated history into the story
+            const memoryDir = path.join(params.workspaceDir, "memory");
+            await consolidator.resetPendingStatus(memoryDir);
+
+            // REMOVED: consolidateMessages() - Graphiti extracts entities automatically from episodes
+          }
+        } catch (e) {
+          process.stderr.write(`⚠️ [MIND] Narrative integration failed: ${e}\n`);
+          // Fail silently to not block the core compaction
+        }
+
         const result = await session.compact(params.customInstructions);
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;

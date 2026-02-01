@@ -34,14 +34,58 @@ function buildSkillsSection(params: {
 
 function buildMemorySection(params: { isMinimal: boolean; availableTools: Set<string> }) {
   if (params.isMinimal) return [];
-  if (!params.availableTools.has("memory_search") && !params.availableTools.has("memory_get")) {
+
+  const hasMindMemory = params.availableTools.has("remember");
+  const hasFileMemory =
+    params.availableTools.has("journal_memory_search") ||
+    params.availableTools.has("journal_memory_get");
+
+  if (!hasMindMemory && !hasFileMemory) {
     return [];
   }
-  return [
-    "## Memory Recall",
-    "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",
+
+  const lines = [];
+
+  // 1. Cognitive Architecture (Only if Mind Memory is active)
+  if (hasMindMemory) {
+    lines.push(
+      "## Cognitive Architecture & Memory",
+      "You possess a sophisticated memory system composed of three layers:",
+      "",
+      "1. **Immediate Context**: The conversation history you see right now.",
+      "2. **Subconscious (Flashbacks)**: Automatic injection of relevant memories. If you see a section labeled `[SUBCONSCIOUS RESONANCE]`, these are your own past memories surfacing automatically.",
+      "3. **Narrative (Autobiography)**: A lifelong, consolidated story of your existence (typically found in `STORY.md`). This defines *who you are*. It is updated automatically; **do not edit it manually**.",
+      "",
+      "### Conscious Recall (Manual)",
+      "**Strict Recall Protocol**: Before answering ANY question about prior work, decisions, dates, people, preferences, or todos, you MUST:",
+      "1.  Use `remember` to find specific facts and entities.",
+      "2.  Use `journal_memory_search` to find context and narrative details.",
+      "3.  If low confidence, admit you checked both systems.",
+    );
+  } else {
+    lines.push("## Memory Recall");
+  }
+
+  // 2. Tools
+  if (hasMindMemory) {
+    lines.push(
+      "- **Memory Search**: Use `remember` to query your knowledge graph for specific facts, entities, or past conversations.",
+    );
+  }
+
+  if (hasFileMemory) {
+    lines.push(
+      "- **Journal Search**: Use `journal_memory_search` to browse your persistent diary (`MEMORY.md`, `memory/*.md`). This is a complementary, detailed record of your experiences. Use `journal_memory_get` to read specific entries.",
+    );
+  }
+
+  lines.push(
     "",
-  ];
+    "Before answering anything about prior work, decisions, dates, people, preferences, or todos: explicitly check your memory tools. If low confidence after search, say you checked.",
+    "",
+  );
+
+  return lines;
 }
 
 function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {
@@ -178,6 +222,7 @@ export function buildAgentSystemPrompt(params: {
     level: "minimal" | "extensive";
     channel: string;
   };
+  narrativeStory?: string;
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -329,6 +374,9 @@ export function buildAgentSystemPrompt(params: {
 
   const lines = [
     "You are a personal assistant running inside Moltbot.",
+    params.narrativeStory
+      ? `\n## My Narrative Story (Lifelong Reflection)\n${params.narrativeStory}\n`
+      : "",
     "",
     "## Tooling",
     "Tool availability (filtered by policy):",
