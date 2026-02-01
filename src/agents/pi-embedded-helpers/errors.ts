@@ -498,7 +498,9 @@ export function isAuthAssistantError(msg: AssistantMessage | undefined): boolean
 
 /** Detect JSON parse errors from malformed model tool-call arguments. */
 function isJsonParseError(raw: string): boolean {
-  return /\bis not valid JSON\b|SyntaxError:.*Unexpected token/i.test(raw);
+  return /\bis not valid JSON\b|Unexpected token .* in JSON|Unexpected end of JSON input/i.test(
+    raw,
+  );
 }
 
 export function classifyFailoverReason(raw: string): FailoverReason | null {
