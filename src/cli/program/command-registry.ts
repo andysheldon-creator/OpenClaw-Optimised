@@ -2,7 +2,6 @@ import type { Command } from "commander";
 
 import { defaultRuntime } from "../../runtime.js";
 import { getFlagValue, getPositiveIntFlagValue, getVerboseFlag, hasFlag } from "../argv.js";
-import { runMemoryStatus } from "../memory-cli.js";
 import type { ProgramContext } from "./context.js";
 
 type CommandRegisterParams = {
@@ -98,6 +97,7 @@ const routeMemoryStatus: RouteSpec = {
     const deep = hasFlag(argv, "--deep");
     const index = hasFlag(argv, "--index");
     const verbose = hasFlag(argv, "--verbose");
+    const { runMemoryStatus } = await import("../memory-cli.js");
     await runMemoryStatus({ agent, json, deep, index, verbose });
     return true;
   },

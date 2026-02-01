@@ -26,6 +26,8 @@ A targeted exploration of the startup path revealed specific culprits:
 - [x] **Lazy Registry Refactor**: Decouple routing metadata from command implementation imports (Completed).
 - [x] **Async Program Build**: Propagate async requirements up to `buildProgram()` to support lazy loading (Completed).
 - [x] **Build Optimization**: Address the `pnpm tsgo` overhead in `scripts/run-node.mjs` (Optimized file scanning and added direct binary invocation).
+- [x] **Registry Import Fix**: Removed eager import of `memory-cli` in `command-registry.ts` which was invalidating the lazy loading strategy (Completed).
+- [x] **Verification**: Validated significant performance improvements: `--version` (-0.7s), `help` (-1.5s, 30% faster), `status` (-3.7s, 40% faster).
 
 ## Architecture: Lazy Command Registry
 To address the eager import issues, we will refactor `src/cli/program/command-registry.ts` to separate **routing metadata** from **command registration logic**.

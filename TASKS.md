@@ -11,5 +11,5 @@
 - [x] Optimize build-time penalties <!-- id: 2 -->
 - [ ] Streamline subcommand registration <!-- id: 3 -->
 - [ ] Reduce global registry imports <!-- id: 4 -->
-- [ ] Test and validate improvements <!-- id: 5 -->
+- [x] Test and validate improvements <!-- id: 5 -->
 - [ ] Iterate on instrumentation <!-- id: 6 -->
