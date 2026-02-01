@@ -23,7 +23,6 @@ import {
 import { listChannelAgentTools } from "./channel-tools.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
-import { wrapToolsWithToonEncoding } from "./tool-result-wrapper.js";
 import {
   filterToolsByPolicy,
   isToolAllowedByPolicies,
@@ -51,6 +50,7 @@ import {
   resolveToolProfilePolicy,
   stripPluginOnlyAllowlist,
 } from "./tool-policy.js";
+import { wrapToolsWithToonEncoding } from "./tool-result-wrapper.js";
 
 function isOpenAIProvider(provider?: string) {
   const normalized = provider?.trim().toLowerCase();

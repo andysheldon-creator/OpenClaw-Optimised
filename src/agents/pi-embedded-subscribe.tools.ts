@@ -1,8 +1,8 @@
 import { getChannelPlugin, normalizeChannelId } from "../channels/plugins/index.js";
 import { normalizeTargetForProvider } from "../infra/outbound/target-normalization.js";
 import { truncateUtf16Safe } from "../utils.js";
-import { type MessagingToolSend } from "./pi-embedded-messaging.js";
 import { decodeToon } from "../utils/toon.js";
+import { type MessagingToolSend } from "./pi-embedded-messaging.js";
 
 const TOOL_RESULT_MAX_CHARS = 8000;
 const TOOL_ERROR_MAX_CHARS = 400;
@@ -209,10 +209,10 @@ export function extractMessagingToolSend(
   const to = normalizeTargetForProvider(providerId, extracted.to);
   return to
     ? {
-      tool: toolName,
-      provider: providerId,
-      accountId: extracted.accountId ?? accountId,
-      to,
-    }
+        tool: toolName,
+        provider: providerId,
+        accountId: extracted.accountId ?? accountId,
+        to,
+      }
     : undefined;
 }

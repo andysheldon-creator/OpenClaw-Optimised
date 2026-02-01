@@ -1,6 +1,6 @@
+import { TextContent } from "@mariozechner/pi-ai";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import { encodeToon } from "../utils/toon.js";
-import { TextContent } from "@mariozechner/pi-ai";
 
 const TOON_SENTINEL = "# toon\n";
 const MAX_TOON_CHARS = 8_000;
@@ -21,7 +21,9 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  */
 export function wrapToolWithToonEncoding(tool: AnyAgentTool): AnyAgentTool {
   const execute = tool.execute;
-  if (!execute) return tool;
+  if (!execute) {
+    return tool;
+  }
 
   const wrappedExecute = async (
     toolCallId: string,

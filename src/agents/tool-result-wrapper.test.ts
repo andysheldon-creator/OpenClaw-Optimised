@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { wrapToolWithToonEncoding } from "./tool-result-wrapper.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
+import { wrapToolWithToonEncoding } from "./tool-result-wrapper.js";
 
 describe("wrapToolWithToonEncoding", () => {
   it("should encode details object as TOON in content", async () => {
@@ -19,7 +19,7 @@ describe("wrapToolWithToonEncoding", () => {
     };
 
     const wrapped = wrapToolWithToonEncoding(mockTool);
-    const result = await wrapped.execute!("test-id", {});
+    const result = await wrapped.execute("test-id", {});
 
     expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe("text");
@@ -57,7 +57,7 @@ describe("wrapToolWithToonEncoding", () => {
     };
 
     const wrapped = wrapToolWithToonEncoding(mockTool);
-    const result = await wrapped.execute!("test-id", {});
+    const result = await wrapped.execute("test-id", {});
 
     expect(result.content[0].text).toBe("# toon\nstatus: ok\ncount: 5");
   });
@@ -73,7 +73,7 @@ describe("wrapToolWithToonEncoding", () => {
     };
 
     const wrapped = wrapToolWithToonEncoding(mockTool);
-    const result = await wrapped.execute!("test-id", {});
+    const result = await wrapped.execute("test-id", {});
 
     expect(result.content[0].text).toBe("Simple text result");
   });
@@ -107,7 +107,7 @@ describe("wrapToolWithToonEncoding", () => {
     };
 
     const wrapped = wrapToolWithToonEncoding(mockTool);
-    const result = await wrapped.execute!("test-id", {});
+    const result = await wrapped.execute("test-id", {});
 
     const toonText = result.content[0].text;
 
