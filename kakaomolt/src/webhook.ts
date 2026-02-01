@@ -11,6 +11,12 @@ import {
 } from "./billing-handler.js";
 import { handleSyncCommand, isSyncCommand, type SyncCommandContext } from "./sync/index.js";
 import { getSupabase } from "./supabase.js";
+import {
+  formatChannelList,
+  formatToolList,
+  parseBridgeCommand,
+  type MoltbotAgentIntegration,
+} from "./moltbot/index.js";
 
 export interface KakaoWebhookOptions {
   account: ResolvedKakaoAccount;
@@ -18,6 +24,7 @@ export interface KakaoWebhookOptions {
   host?: string;
   path?: string;
   abortSignal?: AbortSignal;
+  /** Message handler (called when no special commands match) */
   onMessage: (params: {
     userId: string;
     userType: string;
@@ -32,6 +39,8 @@ export interface KakaoWebhookOptions {
     warn: (msg: string) => void;
     error: (msg: string) => void;
   };
+  /** Optional Moltbot agent integration for tools, channels, and memory */
+  moltbotAgent?: MoltbotAgentIntegration;
 }
 
 /**
@@ -52,6 +61,7 @@ export async function startKakaoWebhook(opts: KakaoWebhookOptions): Promise<{
     onMessage,
     onError,
     logger = console,
+    moltbotAgent,
   } = opts;
 
   const apiClient = createKakaoApiClient(account);
@@ -168,6 +178,25 @@ export async function startKakaoWebhook(opts: KakaoWebhookOptions): Promise<{
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(response));
         logger.info(`[kakao] Handled sync command for ${userId.slice(0, 8)}...`);
+        return;
+      }
+
+      // Step 0.5: Check for Moltbot-specific commands
+      const moltbotCmd = parseMoltbotCommand(utterance);
+      if (moltbotCmd.isCommand) {
+        const moltbotResult = await handleMoltbotCommand(
+          moltbotCmd,
+          userId,
+          moltbotAgent,
+          logger,
+        );
+        const response = apiClient.buildSkillResponse(
+          moltbotResult.text,
+          moltbotResult.quickReplies,
+        );
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(response));
+        logger.info(`[kakao] Handled Moltbot command for ${userId.slice(0, 8)}...`);
         return;
       }
 
@@ -372,4 +401,244 @@ export function extractKakaoUserInfo(request: KakaoIncomingMessage): {
     lang: request.userRequest?.lang ?? null,
     properties: request.userRequest?.user?.properties ?? {},
   };
+}
+
+// ============================================
+// Moltbot Command Handling
+// ============================================
+
+interface MoltbotCommand {
+  isCommand: boolean;
+  type?: "tools" | "channels" | "bridge" | "status" | "memory" | "help";
+  args?: string[];
+  bridgeCmd?: ReturnType<typeof parseBridgeCommand>;
+}
+
+/**
+ * Parse Moltbot-specific commands
+ */
+function parseMoltbotCommand(message: string): MoltbotCommand {
+  const trimmed = message.trim();
+
+  // Check for bridge command first
+  const bridgeCmd = parseBridgeCommand(trimmed);
+  if (bridgeCmd.isCommand) {
+    return { isCommand: true, type: "bridge", bridgeCmd };
+  }
+
+  // Tool list command: /도구, /도구목록, /tools
+  if (/^[/\/](도구|도구목록|tools?)(\s|$)/i.test(trimmed)) {
+    const args = trimmed.split(/\s+/).slice(1);
+    return { isCommand: true, type: "tools", args };
+  }
+
+  // Channel list command: /채널, /채널목록, /channels
+  if (/^[/\/](채널|채널목록|channels?)(\s|$)/i.test(trimmed)) {
+    return { isCommand: true, type: "channels" };
+  }
+
+  // Status command: /상태, /status
+  if (/^[/\/](상태|status)$/i.test(trimmed)) {
+    return { isCommand: true, type: "status" };
+  }
+
+  // Memory search command: /기억, /memory
+  if (/^[/\/](기억|memory)\s+(.+)$/i.test(trimmed)) {
+    const match = trimmed.match(/^[/\/](기억|memory)\s+(.+)$/i);
+    return { isCommand: true, type: "memory", args: match ? [match[2]] : [] };
+  }
+
+  // Help command: /도움말, /help
+  if (/^[/\/](도움말|help)$/i.test(trimmed)) {
+    return { isCommand: true, type: "help" };
+  }
+
+  return { isCommand: false };
+}
+
+/**
+ * Handle Moltbot-specific commands
+ */
+async function handleMoltbotCommand(
+  cmd: MoltbotCommand,
+  userId: string,
+  agent: MoltbotAgentIntegration | undefined,
+  logger: { info: (msg: string) => void },
+): Promise<{ text: string; quickReplies?: string[] }> {
+  switch (cmd.type) {
+    case "tools": {
+      const category = cmd.args?.[0];
+      const validCategories = ["communication", "information", "execution", "session", "memory", "media", "channel"];
+      const categoryMap: Record<string, string> = {
+        통신: "communication",
+        정보: "information",
+        실행: "execution",
+        세션: "session",
+        메모리: "memory",
+        미디어: "media",
+        채널: "channel",
+      };
+
+      const normalizedCategory = category
+        ? categoryMap[category] ?? category
+        : undefined;
+
+      if (normalizedCategory && !validCategories.includes(normalizedCategory)) {
+        return {
+          text: `알 수 없는 카테고리: ${category}\n\n사용 가능한 카테고리: ${validCategories.join(", ")}`,
+        };
+      }
+
+      return {
+        text: formatToolList(normalizedCategory as Parameters<typeof formatToolList>[0]),
+        quickReplies: ["도구 통신", "도구 정보", "도구 실행"],
+      };
+    }
+
+    case "channels": {
+      return {
+        text: formatChannelList(),
+        quickReplies: ["전송 telegram", "전송 discord", "전송 slack"],
+      };
+    }
+
+    case "bridge": {
+      if (!agent) {
+        return {
+          text: "Moltbot 에이전트가 연결되지 않았습니다.\nGateway가 실행 중인지 확인해주세요.",
+        };
+      }
+
+      const bridgeCmd = cmd.bridgeCmd;
+      if (!bridgeCmd || bridgeCmd.error) {
+        return {
+          text: bridgeCmd?.error ?? "브리지 명령 파싱 실패",
+        };
+      }
+
+      if (!bridgeCmd.channel || !bridgeCmd.recipient || !bridgeCmd.text) {
+        return {
+          text: "사용법: /전송 <채널> <받는사람> <메시지>\n\n예시:\n/전송 telegram @username 안녕하세요\n/전송 discord #channel Hello",
+        };
+      }
+
+      const result = await agent.sendToChannel(
+        bridgeCmd.channel,
+        bridgeCmd.recipient,
+        bridgeCmd.text,
+        { userId, channel: "kakao" },
+      );
+
+      if (!result.success) {
+        return {
+          text: `메시지 전송 실패: ${result.error}`,
+        };
+      }
+
+      logger.info(`[kakao] Bridge message sent to ${bridgeCmd.channel}:${bridgeCmd.recipient}`);
+      return {
+        text: `✅ ${bridgeCmd.channel} 채널의 ${bridgeCmd.recipient}에게 메시지를 전송했습니다.`,
+      };
+    }
+
+    case "status": {
+      if (!agent) {
+        return {
+          text: "📊 **Moltbot 상태**\n\n❌ 에이전트 미연결\n\nGateway가 실행 중인지 확인해주세요.",
+        };
+      }
+
+      const status = await agent.getStatus();
+      let text = "📊 **Moltbot 상태**\n\n";
+
+      if (status.online) {
+        text += `✅ Gateway: 온라인\n`;
+        text += `📦 버전: ${status.version ?? "알 수 없음"}\n`;
+        text += `🤖 Agent: ${status.agentId ?? "알 수 없음"}\n`;
+        if (status.memoryStats) {
+          text += `\n📚 메모리 상태:\n`;
+          text += `• 파일: ${status.memoryStats.files}개\n`;
+          text += `• 청크: ${status.memoryStats.chunks}개\n`;
+        }
+      } else {
+        text += `❌ Gateway: 오프라인\n`;
+        text += `오류: ${status.error ?? "연결 실패"}`;
+      }
+
+      return { text };
+    }
+
+    case "memory": {
+      const query = cmd.args?.[0];
+      if (!query) {
+        return {
+          text: "사용법: /기억 <검색어>\n\n예시: /기억 지난주 회의 내용",
+        };
+      }
+
+      if (!agent) {
+        return {
+          text: "Moltbot 에이전트가 연결되지 않았습니다.",
+        };
+      }
+
+      const result = await agent.searchMemory(query, { maxResults: 5 });
+
+      if (!result.success) {
+        return {
+          text: `메모리 검색 실패: ${result.error}`,
+        };
+      }
+
+      if (!result.results?.length) {
+        return {
+          text: `"${query}"에 대한 검색 결과가 없습니다.`,
+        };
+      }
+
+      let text = `🔍 **"${query}" 검색 결과**\n\n`;
+      for (const r of result.results) {
+        text += `📄 ${r.path} (점수: ${(r.score * 100).toFixed(0)}%)\n`;
+        text += `${r.snippet.slice(0, 200)}${r.snippet.length > 200 ? "..." : ""}\n\n`;
+      }
+
+      return { text };
+    }
+
+    case "help": {
+      return {
+        text: `📖 **KakaoMolt 명령어 도움말**
+
+**메모리 동기화**
+• \`/동기화 설정 <암호>\` - 동기화 시작
+• \`/동기화 업로드\` - 메모리 업로드
+• \`/동기화 다운로드\` - 메모리 다운로드
+• \`/동기화 상태\` - 상태 확인
+
+**Moltbot 도구**
+• \`/도구\` - 도구 목록 보기
+• \`/도구 <카테고리>\` - 카테고리별 도구
+
+**채널 연동**
+• \`/채널\` - 연결 가능한 채널 목록
+• \`/전송 <채널> <받는사람> <메시지>\` - 메시지 전송
+
+**메모리 검색**
+• \`/기억 <검색어>\` - AI 메모리 검색
+
+**상태 확인**
+• \`/상태\` - Moltbot 상태 확인
+
+**결제**
+• \`잔액\` - 크레딧 확인
+• \`충전\` - 크레딧 충전`,
+        quickReplies: ["도구", "채널", "상태", "동기화"],
+      };
+    }
+
+    default:
+      return {
+        text: "알 수 없는 명령입니다. /도움말을 입력해주세요.",
+      };
+  }
 }

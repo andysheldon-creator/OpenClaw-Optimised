@@ -35,3 +35,42 @@ export {
   type MemorySearchResult,
   type SendMessageOptions,
 } from "./gateway-client.js";
+
+// Tool bridge (execute Moltbot tools)
+export {
+  createToolBridge,
+  formatToolList,
+  MoltbotToolBridge,
+  MOLTBOT_TOOLS,
+  type ParameterDef,
+  type ToolCategory,
+  type ToolDefinition,
+  type ToolExecutionResult,
+} from "./tool-bridge.js";
+
+// Channel bridge (cross-platform messaging)
+export {
+  CHANNELS,
+  createChannelBridge,
+  formatBridgeStatus,
+  formatChannelList,
+  MoltbotChannelBridge,
+  parseBridgeCommand,
+  type BridgeMessage,
+  type BridgeResult,
+  type ChannelInfo,
+  type ChannelStatus,
+  type ChannelType,
+} from "./channel-bridge.js";
+
+// Agent integration (high-level API)
+export {
+  createAgentIntegration,
+  getSharedIntegration,
+  initializeAgentIntegration,
+  MoltbotAgentIntegration,
+  resetSharedIntegration,
+  type AgentConfig,
+  type AgentResponse,
+  type ConversationContext,
+} from "./agent-integration.js";
