@@ -188,7 +188,20 @@ export function verifyTwilioWebhook(
   const params = new URLSearchParams(ctx.rawBody);
 
   // Validate signature
-  const isValid = validateTwilioSignature(authToken, signature, verificationUrl, params);
+  let isValid = validateTwilioSignature(authToken, signature, verificationUrl, params);
+
+  if (!isValid) {
+    // Really, we should just use the Twilio SDK to verify the signature.
+    // @see https://www.twilio.com/docs/usage/webhooks/webhooks-security#validating-requests
+    // But we're not going to do that because the initial implementation chose to avoid using the library
+    // and I want to respect that.
+    // One reason we should use the Twilio SDK is that they have legacy code in their
+    // backend that is not compatible with the new signature algorithm.  One of the things their library
+    // checks for is whether the signature matches when omitting the port from the URL.  We'll do the same
+    // hack here.
+    // Try again with the URL without the port
+    isValid = validateTwilioSignature(authToken, signature, verificationUrl.replace(/:\d+$/, ""), params);
+  }
 
   if (isValid) {
     return { ok: true, verificationUrl };
