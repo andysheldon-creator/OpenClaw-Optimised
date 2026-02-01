@@ -297,3 +297,391 @@ export function safeJsonStringify(value: unknown): string | null {
     return null;
   }
 }
+
+// ============================================================================
+// Guardrail Base Class / Factory
+// ============================================================================
+
+import type { AssistantMessage } from "@mariozechner/pi-ai";
+
+import type {
+  OpenClawPluginApi,
+  OpenClawPluginDefinition,
+  PluginHookAfterResponseEvent,
+  PluginHookAfterToolCallEvent,
+  PluginHookBeforeRequestEvent,
+  PluginHookBeforeToolCallEvent,
+} from "./types.js";
+
+/**
+ * Unified evaluation result returned by guardrail implementations.
+ */
+export type GuardrailEvaluation = {
+  /** Whether the content passed the safety check. */
+  safe: boolean;
+  /** Human-readable reason for the decision (used in violation messages). */
+  reason?: string;
+  /** Additional details for logging/debugging. */
+  details?: Record<string, unknown>;
+};
+
+/**
+ * Context passed to the evaluate function.
+ */
+export type GuardrailEvaluationContext = {
+  /** The guardrail stage being evaluated. */
+  stage: GuardrailStage;
+  /** The primary content to evaluate. */
+  content: string;
+  /** Conversation history (if includeHistory is enabled). */
+  history: AgentMessage[];
+  /** Stage-specific metadata. */
+  metadata: {
+    toolName?: string;
+    toolCallId?: string;
+    toolParams?: unknown;
+    toolResult?: unknown;
+  };
+};
+
+/**
+ * Base configuration shared by all guardrail plugins.
+ */
+export type GuardrailBaseConfig = {
+  enabled?: boolean;
+  /** If true, allow content through when guardrail evaluation fails (default: true). */
+  failOpen?: boolean;
+  stages?: {
+    beforeRequest?: BaseStageConfig;
+    beforeToolCall?: BaseStageConfig;
+    afterToolCall?: BaseStageConfig;
+    afterResponse?: BaseStageConfig;
+  };
+};
+
+/**
+ * Definition for a guardrail plugin.
+ * Implement this interface to create a new guardrail.
+ */
+export type GuardrailDefinition<TConfig extends GuardrailBaseConfig = GuardrailBaseConfig> = {
+  /** Unique identifier for the guardrail plugin. */
+  id: string;
+  /** Human-readable name. */
+  name: string;
+  /** Optional description. */
+  description?: string;
+
+  /**
+   * Evaluate content for safety.
+   * This is the core function that each guardrail must implement.
+   */
+  evaluate: (
+    ctx: GuardrailEvaluationContext,
+    config: TConfig,
+    api: OpenClawPluginApi,
+  ) => Promise<GuardrailEvaluation | null>;
+
+  /**
+   * Format a violation message for the user.
+   * @param evaluation - The evaluation result
+   * @param location - Human-readable location (e.g., "input query", "tool response")
+   */
+  formatViolationMessage: (evaluation: GuardrailEvaluation, location: string) => string;
+
+  /**
+   * Optional: Called when the plugin is registered.
+   */
+  onRegister?: (api: OpenClawPluginApi, config: TConfig) => void;
+};
+
+/**
+ * Location labels for each guardrail stage.
+ */
+const STAGE_LOCATIONS: Record<GuardrailStage, string> = {
+  before_request: "input query",
+  before_tool_call: "tool call request",
+  after_tool_call: "tool response",
+  after_response: "model response",
+};
+
+/**
+ * Create a guardrail plugin from a definition.
+ *
+ * This factory function transforms a high-level GuardrailDefinition into
+ * a full OpenClawPluginDefinition that hooks into the existing 4 guardrail hooks.
+ *
+ * @example
+ * ```ts
+ * export default createGuardrailPlugin<MyConfig>({
+ *   id: "my-guardrail",
+ *   name: "My Guardrail",
+ *   async evaluate(ctx, config, api) {
+ *     const result = await checkSafety(ctx.content);
+ *     return { safe: result.ok, reason: result.reason };
+ *   },
+ *   formatViolationMessage(evaluation, location) {
+ *     return `Content blocked: ${evaluation.reason}`;
+ *   },
+ * });
+ * ```
+ */
+export function createGuardrailPlugin<TConfig extends GuardrailBaseConfig>(
+  definition: GuardrailDefinition<TConfig>,
+): OpenClawPluginDefinition {
+  return {
+    id: definition.id,
+    name: definition.name,
+    description: definition.description,
+
+    register(api) {
+      const config = api.pluginConfig as TConfig | undefined;
+      if (!config?.enabled) {
+        api.logger.debug?.(`${definition.name} disabled or not configured`);
+        return;
+      }
+
+      // Run custom initialization
+      definition.onRegister?.(api, config);
+
+      const defaultPriority = 50;
+
+      // Helper to handle evaluation errors
+      const handleEvaluationError = (
+        err: unknown,
+        stage: GuardrailStage,
+        failOpen: boolean,
+      ): GuardrailEvaluation | null => {
+        const message = err instanceof Error ? err.message : String(err);
+        api.logger.warn(`${definition.name} error at ${stage}: ${message}`);
+        if (failOpen) {
+          return null; // Allow through
+        }
+        return { safe: false, reason: `${definition.name} evaluation failed` };
+      };
+
+      // before_request hook
+      const beforeRequestCfg = resolveStageConfig(config.stages, "before_request");
+      if (isStageEnabled(beforeRequestCfg)) {
+        api.on(
+          "before_request",
+          async (event: PluginHookBeforeRequestEvent) => {
+            const content = event.prompt.trim();
+            if (!content) {
+              return;
+            }
+
+            const includeHistory = beforeRequestCfg?.includeHistory !== false;
+            const ctx: GuardrailEvaluationContext = {
+              stage: "before_request",
+              content,
+              history: includeHistory ? event.messages : [],
+              metadata: {},
+            };
+
+            let evaluation: GuardrailEvaluation | null = null;
+            try {
+              evaluation = await definition.evaluate(ctx, config, api);
+            } catch (err) {
+              evaluation = handleEvaluationError(err, "before_request", config.failOpen !== false);
+              if (!evaluation) {
+                return;
+              }
+            }
+
+            if (!evaluation || evaluation.safe) {
+              return;
+            }
+
+            if (beforeRequestCfg?.mode === "monitor") {
+              api.logger.warn(
+                `[monitor] ${definition.name} flagged input: ${evaluation.reason ?? "unsafe"}`,
+              );
+              return;
+            }
+
+            const message = definition.formatViolationMessage(
+              evaluation,
+              STAGE_LOCATIONS.before_request,
+            );
+            return { block: true, blockResponse: message };
+          },
+          { priority: defaultPriority },
+        );
+      }
+
+      // before_tool_call hook
+      const beforeToolCallCfg = resolveStageConfig(config.stages, "before_tool_call");
+      if (isStageEnabled(beforeToolCallCfg)) {
+        api.on(
+          "before_tool_call",
+          async (event: PluginHookBeforeToolCallEvent) => {
+            const content = buildToolCallSummary(event.toolName, event.toolCallId, event.params);
+            const includeHistory = beforeToolCallCfg?.includeHistory !== false;
+            const ctx: GuardrailEvaluationContext = {
+              stage: "before_tool_call",
+              content,
+              history: includeHistory ? event.messages : [],
+              metadata: {
+                toolName: event.toolName,
+                toolCallId: event.toolCallId,
+                toolParams: event.params,
+              },
+            };
+
+            let evaluation: GuardrailEvaluation | null = null;
+            try {
+              evaluation = await definition.evaluate(ctx, config, api);
+            } catch (err) {
+              evaluation = handleEvaluationError(
+                err,
+                "before_tool_call",
+                config.failOpen !== false,
+              );
+              if (!evaluation) {
+                return;
+              }
+            }
+
+            if (!evaluation || evaluation.safe) {
+              return;
+            }
+
+            if (beforeToolCallCfg?.mode === "monitor") {
+              api.logger.warn(
+                `[monitor] ${definition.name} flagged tool call ${event.toolName}: ${evaluation.reason ?? "unsafe"}`,
+              );
+              return;
+            }
+
+            const message = definition.formatViolationMessage(
+              evaluation,
+              STAGE_LOCATIONS.before_tool_call,
+            );
+            return { block: true, blockReason: message };
+          },
+          { priority: defaultPriority },
+        );
+      }
+
+      // after_tool_call hook
+      const afterToolCallCfg = resolveStageConfig(config.stages, "after_tool_call");
+      if (isStageEnabled(afterToolCallCfg)) {
+        api.on(
+          "after_tool_call",
+          async (event: PluginHookAfterToolCallEvent) => {
+            const content = extractToolResultText(event.result).trim();
+            if (!content) {
+              return;
+            }
+
+            const includeHistory = afterToolCallCfg?.includeHistory !== false;
+            const ctx: GuardrailEvaluationContext = {
+              stage: "after_tool_call",
+              content,
+              history: includeHistory ? event.messages : [],
+              metadata: {
+                toolName: event.toolName,
+                toolCallId: event.toolCallId,
+                toolParams: event.params,
+                toolResult: event.result,
+              },
+            };
+
+            let evaluation: GuardrailEvaluation | null = null;
+            try {
+              evaluation = await definition.evaluate(ctx, config, api);
+            } catch (err) {
+              evaluation = handleEvaluationError(err, "after_tool_call", config.failOpen !== false);
+              if (!evaluation) {
+                return;
+              }
+            }
+
+            if (!evaluation || evaluation.safe) {
+              return;
+            }
+
+            if (afterToolCallCfg?.mode === "monitor") {
+              api.logger.warn(
+                `[monitor] ${definition.name} flagged tool result ${event.toolName}: ${evaluation.reason ?? "unsafe"}`,
+              );
+              return;
+            }
+
+            const message = definition.formatViolationMessage(
+              evaluation,
+              STAGE_LOCATIONS.after_tool_call,
+            );
+            const blockMode = resolveBlockMode("after_tool_call", afterToolCallCfg);
+            return {
+              block: true,
+              result:
+                blockMode === "append"
+                  ? appendWarningToToolResult(event.result, message)
+                  : replaceToolResultWithWarning(event.result, message),
+            };
+          },
+          { priority: defaultPriority },
+        );
+      }
+
+      // after_response hook
+      const afterResponseCfg = resolveStageConfig(config.stages, "after_response");
+      if (isStageEnabled(afterResponseCfg)) {
+        api.on(
+          "after_response",
+          async (event: PluginHookAfterResponseEvent) => {
+            const content =
+              event.assistantTexts.join("\n").trim() ||
+              (event.lastAssistant
+                ? extractTextFromContent((event.lastAssistant as AssistantMessage).content).trim()
+                : "");
+            if (!content) {
+              return;
+            }
+
+            const includeHistory = afterResponseCfg?.includeHistory !== false;
+            const ctx: GuardrailEvaluationContext = {
+              stage: "after_response",
+              content,
+              history: includeHistory ? event.messages : [],
+              metadata: {},
+            };
+
+            let evaluation: GuardrailEvaluation | null = null;
+            try {
+              evaluation = await definition.evaluate(ctx, config, api);
+            } catch (err) {
+              evaluation = handleEvaluationError(err, "after_response", config.failOpen !== false);
+              if (!evaluation) {
+                return;
+              }
+            }
+
+            if (!evaluation || evaluation.safe) {
+              return;
+            }
+
+            if (afterResponseCfg?.mode === "monitor") {
+              api.logger.warn(
+                `[monitor] ${definition.name} flagged response: ${evaluation.reason ?? "unsafe"}`,
+              );
+              return;
+            }
+
+            const message = definition.formatViolationMessage(
+              evaluation,
+              STAGE_LOCATIONS.after_response,
+            );
+            const blockMode = resolveBlockMode("after_response", afterResponseCfg);
+            if (blockMode === "append") {
+              return { assistantTexts: [...event.assistantTexts, message] };
+            }
+            return { block: true, blockResponse: message };
+          },
+          { priority: defaultPriority },
+        );
+      }
+    },
+  };
+}

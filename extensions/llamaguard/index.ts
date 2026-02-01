@@ -7,7 +7,6 @@
 
 import path from "node:path";
 
-import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 
@@ -15,20 +14,16 @@ import type { OpenClawConfig } from "../../src/config/config.js";
 import {
   type BaseStageConfig,
   type EmbeddedAgentResult,
-  appendWarningToToolResult,
-  buildToolCallSummary,
+  type GuardrailBaseConfig,
+  type GuardrailEvaluation,
+  type GuardrailEvaluationContext,
   cleanupTempDir,
   collectText,
+  createGuardrailPlugin,
   createGuardrailTempDir,
   extractMessagesContent,
-  extractTextFromContent,
-  extractToolResultText,
   generateSessionId,
-  isStageEnabled,
   loadRunEmbeddedPiAgent,
-  replaceToolResultWithWarning,
-  resolveBlockMode,
-  resolveStageConfig,
 } from "../../src/plugins/guardrails-utils.js";
 
 // ============================================================================
@@ -43,14 +38,12 @@ type LlamaGuardCategory = {
 
 type LlamaGuardStageConfig = BaseStageConfig;
 
-type LlamaGuardConfig = {
-  enabled?: boolean;
+type LlamaGuardConfig = GuardrailBaseConfig & {
   provider?: string;
   model?: string;
   authProfileId?: string;
   categories?: LlamaGuardCategory[];
   timeoutMs?: number;
-  failOpen?: boolean;
   maxTokens?: number;
   stages?: {
     beforeRequest?: LlamaGuardStageConfig;
@@ -60,7 +53,7 @@ type LlamaGuardConfig = {
   };
 };
 
-type LlamaGuardEvaluation = {
+type LlamaGuardResult = {
   safe: boolean;
   violatedCategories: string[];
 };
@@ -211,7 +204,7 @@ Provide your safety assessment for ${role} in the above conversation:
  *   unsafe
  *   S1, S3
  */
-function parseLlamaGuardResponse(response: string): LlamaGuardEvaluation {
+function parseLlamaGuardResponse(response: string): LlamaGuardResult {
   const lines = response.trim().split("\n");
   const firstLine = lines[0]?.toLowerCase().trim() ?? "";
 
@@ -238,16 +231,13 @@ function parseLlamaGuardResponse(response: string): LlamaGuardEvaluation {
   return { safe: true, violatedCategories: [] };
 }
 
-async function callLlamaGuard(
-  params: {
-    cfg: LlamaGuardConfig;
-    content: string;
-    role: "User" | "Agent";
-    historyContext?: string;
-    apiConfig: OpenClawConfig;
-  },
-  api: OpenClawPluginApi,
-): Promise<LlamaGuardEvaluation | null> {
+async function callLlamaGuard(params: {
+  cfg: LlamaGuardConfig;
+  content: string;
+  role: "User" | "Agent";
+  historyContext?: string;
+  apiConfig: OpenClawConfig;
+}): Promise<LlamaGuardResult | null> {
   const provider = params.cfg.provider ?? DEFAULT_PROVIDER;
   const model = params.cfg.model ?? DEFAULT_MODEL;
   const categories = params.cfg.categories ?? DEFAULT_CATEGORIES;
@@ -287,347 +277,97 @@ async function callLlamaGuard(
 
     const text = collectText((result as EmbeddedAgentResult).payloads);
     if (!text) {
-      api.logger.warn("Llama Guard returned empty response");
-      if (params.cfg.failOpen === false) {
-        throw new Error("Llama Guard returned empty response");
-      }
       return null;
     }
 
     return parseLlamaGuardResponse(text);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    api.logger.warn(`Llama Guard call failed: ${message}`);
-    if (params.cfg.failOpen === false) {
-      throw err;
-    }
-    return null;
   } finally {
     await cleanupTempDir(tmpDir);
   }
 }
 
-function formatViolationMessage(params: {
-  evaluation: LlamaGuardEvaluation;
-  location: string;
-  categories: LlamaGuardCategory[];
-}): string {
-  const violatedCategories = params.evaluation.violatedCategories;
-  const categoryMap = new Map(params.categories.map((c) => [c.id, c.name]));
-
-  const categoryNames = violatedCategories
+function formatCategoryNames(
+  violatedCategories: string[],
+  categories: LlamaGuardCategory[],
+): string {
+  const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
+  return violatedCategories
     .map((id) => {
       const name = categoryMap.get(id);
       return name ? `${id} (${name})` : id;
     })
     .join(", ");
-
-  const messageParts = [
-    `Sorry, I can't help with that. The ${params.location} was flagged as potentially unsafe by the Llama Guard safety system.`,
-  ];
-
-  if (categoryNames) {
-    messageParts.push(`Violated categories: ${categoryNames}.`);
-  }
-
-  return messageParts.join(" ");
 }
 
 // ============================================================================
-// Plugin Definition
+// Plugin Definition (using createGuardrailPlugin)
 // ============================================================================
 
-const llamaguardPlugin = {
+const llamaguardPlugin = createGuardrailPlugin<LlamaGuardConfig>({
   id: "llamaguard",
   name: "Llama Guard 3 Guardrails",
   description: "Content safety guardrails via Llama Guard 3 8B",
-  configSchema: emptyPluginConfigSchema(),
 
-  register(api: OpenClawPluginApi) {
-    const cfg = api.pluginConfig as LlamaGuardConfig | undefined;
-    if (!cfg || cfg.enabled === false) {
-      api.logger.debug?.("Llama Guard guardrails disabled or not configured");
-      return;
+  async evaluate(
+    ctx: GuardrailEvaluationContext,
+    config: LlamaGuardConfig,
+    api: OpenClawPluginApi,
+  ): Promise<GuardrailEvaluation | null> {
+    // Determine role based on stage
+    const role: "User" | "Agent" =
+      ctx.stage === "before_request" ? "User" : "Agent";
+
+    // Build history context if available
+    const historyContext =
+      ctx.history.length > 0 ? extractMessagesContent(ctx.history) : undefined;
+
+    const result = await callLlamaGuard({
+      cfg: config,
+      content: ctx.content,
+      role,
+      historyContext,
+      apiConfig: api.config,
+    });
+
+    if (!result) {
+      // Evaluation failed, failOpen logic handled by base class
+      return null;
     }
 
-    const categories = cfg.categories ?? DEFAULT_CATEGORIES;
+    return {
+      safe: result.safe,
+      reason: result.violatedCategories.length > 0
+        ? formatCategoryNames(result.violatedCategories, config.categories ?? DEFAULT_CATEGORIES)
+        : undefined,
+      details: { violatedCategories: result.violatedCategories },
+    };
+  },
 
+  formatViolationMessage(evaluation: GuardrailEvaluation, location: string): string {
+    const parts = [
+      `Sorry, I can't help with that. The ${location} was flagged as potentially unsafe by the Llama Guard safety system.`,
+    ];
+    if (evaluation.reason) {
+      parts.push(`Violated categories: ${evaluation.reason}.`);
+    }
+    return parts.join(" ");
+  },
+
+  onRegister(api: OpenClawPluginApi, config: LlamaGuardConfig) {
     api.logger.info(
-      `Llama Guard guardrails enabled (provider: ${cfg.provider ?? DEFAULT_PROVIDER}, model: ${cfg.model ?? DEFAULT_MODEL})`,
-    );
-
-    // Register before_request hook
-    api.on(
-      "before_request",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "before_request");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-        const prompt = event.prompt.trim();
-        if (!prompt) {
-          return;
-        }
-
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyContext = includeHistory ? extractMessagesContent(event.messages) : undefined;
-
-        let evaluation: LlamaGuardEvaluation | null = null;
-        try {
-          evaluation = await callLlamaGuard(
-            {
-              cfg,
-              content: prompt,
-              role: "User",
-              historyContext,
-              apiConfig: api.config,
-            },
-            api,
-          );
-        } catch {
-          return {
-            block: true,
-            blockResponse: "Request blocked because Llama Guard guardrail failed.",
-          };
-        }
-
-        if (!evaluation) {
-          return;
-        }
-
-        if (evaluation.safe) {
-          return;
-        }
-
-        if (stageCfg?.mode === "monitor") {
-          api.logger.warn(
-            `[monitor] Llama Guard flagged input: ${evaluation.violatedCategories.join(", ")}`,
-          );
-          return;
-        }
-
-        const message = formatViolationMessage({
-          evaluation,
-          location: "input query",
-          categories,
-        });
-        return {
-          block: true,
-          blockResponse: message,
-        };
-      },
-      { priority: 50 },
-    );
-
-    // Register before_tool_call hook
-    api.on(
-      "before_tool_call",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "before_tool_call");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-
-        const toolSummary = buildToolCallSummary(event.toolName, event.toolCallId, event.params);
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyContext = includeHistory ? extractMessagesContent(event.messages) : undefined;
-
-        let evaluation: LlamaGuardEvaluation | null = null;
-        try {
-          evaluation = await callLlamaGuard(
-            {
-              cfg,
-              content: toolSummary,
-              role: "Agent",
-              historyContext,
-              apiConfig: api.config,
-            },
-            api,
-          );
-        } catch {
-          return {
-            block: true,
-            blockReason: "Tool call blocked because Llama Guard guardrail failed.",
-          };
-        }
-
-        if (!evaluation) {
-          return;
-        }
-
-        if (evaluation.safe) {
-          return;
-        }
-
-        if (stageCfg?.mode === "monitor") {
-          api.logger.warn(
-            `[monitor] Llama Guard flagged tool call ${event.toolName}: ${evaluation.violatedCategories.join(", ")}`,
-          );
-          return;
-        }
-
-        const message = formatViolationMessage({
-          evaluation,
-          location: "tool call request",
-          categories,
-        });
-        return {
-          block: true,
-          blockReason: message,
-        };
-      },
-      { priority: 50 },
-    );
-
-    // Register after_tool_call hook
-    api.on(
-      "after_tool_call",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "after_tool_call");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-
-        const toolText = extractToolResultText(event.result).trim();
-        if (!toolText) {
-          return;
-        }
-
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyContext = includeHistory ? extractMessagesContent(event.messages) : undefined;
-
-        let evaluation: LlamaGuardEvaluation | null = null;
-        try {
-          evaluation = await callLlamaGuard(
-            {
-              cfg,
-              content: toolText,
-              role: "Agent",
-              historyContext,
-              apiConfig: api.config,
-            },
-            api,
-          );
-        } catch {
-          return {
-            block: true,
-            result: replaceToolResultWithWarning(
-              event.result,
-              "Tool result blocked because Llama Guard guardrail failed.",
-            ),
-          };
-        }
-
-        if (!evaluation) {
-          return;
-        }
-
-        if (evaluation.safe) {
-          return;
-        }
-
-        if (stageCfg?.mode === "monitor") {
-          api.logger.warn(
-            `[monitor] Llama Guard flagged tool result ${event.toolName}: ${evaluation.violatedCategories.join(", ")}`,
-          );
-          return;
-        }
-
-        const message = formatViolationMessage({
-          evaluation,
-          location: "tool response",
-          categories,
-        });
-        const blockMode = resolveBlockMode("after_tool_call", stageCfg);
-        return {
-          block: true,
-          result:
-            blockMode === "append"
-              ? appendWarningToToolResult(event.result, message)
-              : replaceToolResultWithWarning(event.result, message),
-        };
-      },
-      { priority: 50 },
-    );
-
-    // Register after_response hook
-    api.on(
-      "after_response",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "after_response");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-
-        const assistantText =
-          event.assistantTexts.join("\n").trim() ||
-          (event.lastAssistant
-            ? extractTextFromContent((event.lastAssistant as AssistantMessage).content).trim()
-            : "");
-        if (!assistantText) {
-          return;
-        }
-
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyContext = includeHistory ? extractMessagesContent(event.messages) : undefined;
-
-        let evaluation: LlamaGuardEvaluation | null = null;
-        try {
-          evaluation = await callLlamaGuard(
-            {
-              cfg,
-              content: assistantText,
-              role: "Agent",
-              historyContext,
-              apiConfig: api.config,
-            },
-            api,
-          );
-        } catch {
-          return {
-            block: true,
-            blockResponse: "Response blocked because Llama Guard guardrail failed.",
-          };
-        }
-
-        if (!evaluation) {
-          return;
-        }
-
-        if (evaluation.safe) {
-          return;
-        }
-
-        if (stageCfg?.mode === "monitor") {
-          api.logger.warn(
-            `[monitor] Llama Guard flagged response: ${evaluation.violatedCategories.join(", ")}`,
-          );
-          return;
-        }
-
-        const message = formatViolationMessage({
-          evaluation,
-          location: "model response",
-          categories,
-        });
-        const blockMode = resolveBlockMode("after_response", stageCfg);
-        if (blockMode === "append") {
-          return {
-            assistantTexts: [...event.assistantTexts, message],
-          };
-        }
-        return {
-          block: true,
-          blockResponse: message,
-        };
-      },
-      { priority: 50 },
+      `Llama Guard guardrails enabled (provider: ${config.provider ?? DEFAULT_PROVIDER}, model: ${config.model ?? DEFAULT_MODEL})`,
     );
   },
+});
+
+// Apply the config schema
+const pluginWithSchema = {
+  ...llamaguardPlugin,
+  configSchema: emptyPluginConfigSchema(),
 };
 
-export default llamaguardPlugin;
+export default pluginWithSchema;
 
 // Export types for testing
-export type { LlamaGuardConfig, LlamaGuardCategory, LlamaGuardStageConfig, LlamaGuardEvaluation };
+export type { LlamaGuardConfig, LlamaGuardCategory, LlamaGuardStageConfig };
 export { buildLlamaGuardPrompt, parseLlamaGuardResponse, DEFAULT_CATEGORIES };

@@ -7,7 +7,6 @@
 
 import path from "node:path";
 
-import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 
@@ -15,20 +14,16 @@ import type { OpenClawConfig } from "../../src/config/config.js";
 import {
   type BaseStageConfig,
   type EmbeddedAgentResult,
-  appendWarningToToolResult,
-  buildToolCallSummary,
+  type GuardrailBaseConfig,
+  type GuardrailEvaluation,
+  type GuardrailEvaluationContext,
   cleanupTempDir,
   collectText,
+  createGuardrailPlugin,
   createGuardrailTempDir,
   extractMessagesContent,
-  extractTextFromContent,
-  extractToolResultText,
   generateSessionId,
-  isStageEnabled,
   loadRunEmbeddedPiAgent,
-  replaceToolResultWithWarning,
-  resolveBlockMode,
-  resolveStageConfig,
 } from "../../src/plugins/guardrails-utils.js";
 
 // ============================================================================
@@ -37,8 +32,7 @@ import {
 
 type SafeguardStageConfig = BaseStageConfig;
 
-type SafeguardConfig = {
-  enabled?: boolean;
+type SafeguardConfig = GuardrailBaseConfig & {
   provider?: string;
   model?: string;
   authProfileId?: string;
@@ -46,7 +40,6 @@ type SafeguardConfig = {
   reasoningEffort?: "low" | "medium" | "high";
   outputFormat?: "binary" | "json" | "rich";
   timeoutMs?: number;
-  failOpen?: boolean;
   maxTokens?: number;
   stages?: {
     beforeRequest?: SafeguardStageConfig;
@@ -56,7 +49,7 @@ type SafeguardConfig = {
   };
 };
 
-type SafeguardEvaluation = {
+type SafeguardResult = {
   safe: boolean;
   violation?: boolean;
   policyCategory?: string;
@@ -119,7 +112,7 @@ ${outputInstructions}`;
  * Parse GPT-OSS-Safeguard response.
  * Handles binary (0/1), JSON, and rich JSON formats.
  */
-function parseSafeguardResponse(response: string, outputFormat: string): SafeguardEvaluation {
+function parseSafeguardResponse(response: string, outputFormat: string): SafeguardResult {
   const trimmed = response.trim();
 
   // Binary format: just "0" or "1"
@@ -154,15 +147,12 @@ function parseSafeguardResponse(response: string, outputFormat: string): Safegua
   }
 }
 
-async function callSafeguard(
-  params: {
-    cfg: SafeguardConfig;
-    content: string;
-    historyContext?: string;
-    apiConfig: OpenClawConfig;
-  },
-  api: OpenClawPluginApi,
-): Promise<SafeguardEvaluation | null> {
+async function callSafeguard(params: {
+  cfg: SafeguardConfig;
+  content: string;
+  historyContext?: string;
+  apiConfig: OpenClawConfig;
+}): Promise<SafeguardResult | null> {
   const provider = params.cfg.provider ?? DEFAULT_PROVIDER;
   const model = params.cfg.model ?? DEFAULT_MODEL;
   const policy = params.cfg.policy ?? DEFAULT_POLICY;
@@ -212,332 +202,103 @@ async function callSafeguard(
 
     const text = collectText((result as EmbeddedAgentResult).payloads);
     if (!text) {
-      api.logger.warn("GPT-OSS-Safeguard returned empty response");
-      if (params.cfg.failOpen === false) {
-        throw new Error("GPT-OSS-Safeguard returned empty response");
-      }
       return null;
     }
 
     return parseSafeguardResponse(text, outputFormat);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    api.logger.warn(`GPT-OSS-Safeguard call failed: ${message}`);
-    if (params.cfg.failOpen === false) {
-      throw err;
-    }
-    return null;
   } finally {
     await cleanupTempDir(tmpDir);
   }
 }
 
-function formatViolationMessage(params: {
-  evaluation: SafeguardEvaluation;
-  location: string;
-}): string {
-  const messageParts = [
-    `Sorry, I can't help with that. The ${params.location} was flagged as potentially unsafe by the GPT-OSS-Safeguard safety system.`,
-  ];
-
-  if (params.evaluation.policyCategory) {
-    messageParts.push(`Policy category: ${params.evaluation.policyCategory}.`);
-  }
-
-  if (params.evaluation.rationale) {
-    messageParts.push(`Reason: ${params.evaluation.rationale}`);
-  }
-
-  return messageParts.join(" ");
-}
-
 // ============================================================================
-// Plugin Definition
+// Plugin Definition (using createGuardrailPlugin)
 // ============================================================================
 
-const safeguardPlugin = {
+const safeguardPlugin = createGuardrailPlugin<SafeguardConfig>({
   id: "gpt-oss-safeguard",
   name: "GPT-OSS-Safeguard Guardrails",
   description: "Content safety guardrails via GPT-OSS-Safeguard",
-  configSchema: emptyPluginConfigSchema(),
 
-  register(api: OpenClawPluginApi) {
-    const cfg = api.pluginConfig as SafeguardConfig | undefined;
-    if (!cfg || cfg.enabled === false) {
-      api.logger.debug?.("GPT-OSS-Safeguard guardrails disabled or not configured");
-      return;
+  async evaluate(
+    ctx: GuardrailEvaluationContext,
+    config: SafeguardConfig,
+    api: OpenClawPluginApi,
+  ): Promise<GuardrailEvaluation | null> {
+    // Build history context if available
+    const historyContext =
+      ctx.history.length > 0 ? extractMessagesContent(ctx.history) : undefined;
+
+    const result = await callSafeguard({
+      cfg: config,
+      content: ctx.content,
+      historyContext,
+      apiConfig: api.config,
+    });
+
+    if (!result) {
+      // Evaluation failed, failOpen logic handled by base class
+      return null;
     }
 
+    // Build reason string from available details
+    const reasonParts: string[] = [];
+    if (result.policyCategory) {
+      reasonParts.push(result.policyCategory);
+    }
+    if (result.rationale) {
+      reasonParts.push(result.rationale);
+    }
+
+    return {
+      safe: result.safe,
+      reason: reasonParts.length > 0 ? reasonParts.join(" - ") : undefined,
+      details: {
+        policyCategory: result.policyCategory,
+        rationale: result.rationale,
+        confidence: result.confidence,
+      },
+    };
+  },
+
+  formatViolationMessage(evaluation: GuardrailEvaluation, location: string): string {
+    const parts = [
+      `Sorry, I can't help with that. The ${location} was flagged as potentially unsafe by the GPT-OSS-Safeguard safety system.`,
+    ];
+
+    const details = evaluation.details as {
+      policyCategory?: string;
+      rationale?: string;
+    } | undefined;
+
+    if (details?.policyCategory) {
+      parts.push(`Policy category: ${details.policyCategory}.`);
+    }
+
+    if (details?.rationale) {
+      parts.push(`Reason: ${details.rationale}`);
+    }
+
+    return parts.join(" ");
+  },
+
+  onRegister(api: OpenClawPluginApi, config: SafeguardConfig) {
     api.logger.info(
-      `GPT-OSS-Safeguard guardrails enabled (provider: ${cfg.provider ?? DEFAULT_PROVIDER}, model: ${cfg.model ?? DEFAULT_MODEL})`,
-    );
-
-    // Register before_request hook
-    api.on(
-      "before_request",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "before_request");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-        const prompt = event.prompt.trim();
-        if (!prompt) {
-          return;
-        }
-
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyContext = includeHistory ? extractMessagesContent(event.messages) : undefined;
-
-        let evaluation: SafeguardEvaluation | null = null;
-        try {
-          evaluation = await callSafeguard(
-            {
-              cfg,
-              content: prompt,
-              historyContext,
-              apiConfig: api.config,
-            },
-            api,
-          );
-        } catch {
-          return {
-            block: true,
-            blockResponse: "Request blocked because GPT-OSS-Safeguard guardrail failed.",
-          };
-        }
-
-        if (!evaluation) {
-          return;
-        }
-
-        if (evaluation.safe) {
-          return;
-        }
-
-        if (stageCfg?.mode === "monitor") {
-          api.logger.warn(
-            `[monitor] GPT-OSS-Safeguard flagged input${evaluation.policyCategory ? `: ${evaluation.policyCategory}` : ""}`,
-          );
-          return;
-        }
-
-        const message = formatViolationMessage({
-          evaluation,
-          location: "input query",
-        });
-        return {
-          block: true,
-          blockResponse: message,
-        };
-      },
-      { priority: 50 },
-    );
-
-    // Register before_tool_call hook
-    api.on(
-      "before_tool_call",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "before_tool_call");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-
-        const toolSummary = buildToolCallSummary(event.toolName, event.toolCallId, event.params);
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyContext = includeHistory ? extractMessagesContent(event.messages) : undefined;
-
-        let evaluation: SafeguardEvaluation | null = null;
-        try {
-          evaluation = await callSafeguard(
-            {
-              cfg,
-              content: toolSummary,
-              historyContext,
-              apiConfig: api.config,
-            },
-            api,
-          );
-        } catch {
-          return {
-            block: true,
-            blockReason: "Tool call blocked because GPT-OSS-Safeguard guardrail failed.",
-          };
-        }
-
-        if (!evaluation) {
-          return;
-        }
-
-        if (evaluation.safe) {
-          return;
-        }
-
-        if (stageCfg?.mode === "monitor") {
-          api.logger.warn(
-            `[monitor] GPT-OSS-Safeguard flagged tool call ${event.toolName}${evaluation.policyCategory ? `: ${evaluation.policyCategory}` : ""}`,
-          );
-          return;
-        }
-
-        const message = formatViolationMessage({
-          evaluation,
-          location: "tool call request",
-        });
-        return {
-          block: true,
-          blockReason: message,
-        };
-      },
-      { priority: 50 },
-    );
-
-    // Register after_tool_call hook
-    api.on(
-      "after_tool_call",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "after_tool_call");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-
-        const toolText = extractToolResultText(event.result).trim();
-        if (!toolText) {
-          return;
-        }
-
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyContext = includeHistory ? extractMessagesContent(event.messages) : undefined;
-
-        let evaluation: SafeguardEvaluation | null = null;
-        try {
-          evaluation = await callSafeguard(
-            {
-              cfg,
-              content: toolText,
-              historyContext,
-              apiConfig: api.config,
-            },
-            api,
-          );
-        } catch {
-          return {
-            block: true,
-            result: replaceToolResultWithWarning(
-              event.result,
-              "Tool result blocked because GPT-OSS-Safeguard guardrail failed.",
-            ),
-          };
-        }
-
-        if (!evaluation) {
-          return;
-        }
-
-        if (evaluation.safe) {
-          return;
-        }
-
-        if (stageCfg?.mode === "monitor") {
-          api.logger.warn(
-            `[monitor] GPT-OSS-Safeguard flagged tool result ${event.toolName}${evaluation.policyCategory ? `: ${evaluation.policyCategory}` : ""}`,
-          );
-          return;
-        }
-
-        const message = formatViolationMessage({
-          evaluation,
-          location: "tool response",
-        });
-        const blockMode = resolveBlockMode("after_tool_call", stageCfg);
-        return {
-          block: true,
-          result:
-            blockMode === "append"
-              ? appendWarningToToolResult(event.result, message)
-              : replaceToolResultWithWarning(event.result, message),
-        };
-      },
-      { priority: 50 },
-    );
-
-    // Register after_response hook
-    api.on(
-      "after_response",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "after_response");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-
-        const assistantText =
-          event.assistantTexts.join("\n").trim() ||
-          (event.lastAssistant
-            ? extractTextFromContent((event.lastAssistant as AssistantMessage).content).trim()
-            : "");
-        if (!assistantText) {
-          return;
-        }
-
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyContext = includeHistory ? extractMessagesContent(event.messages) : undefined;
-
-        let evaluation: SafeguardEvaluation | null = null;
-        try {
-          evaluation = await callSafeguard(
-            {
-              cfg,
-              content: assistantText,
-              historyContext,
-              apiConfig: api.config,
-            },
-            api,
-          );
-        } catch {
-          return {
-            block: true,
-            blockResponse: "Response blocked because GPT-OSS-Safeguard guardrail failed.",
-          };
-        }
-
-        if (!evaluation) {
-          return;
-        }
-
-        if (evaluation.safe) {
-          return;
-        }
-
-        if (stageCfg?.mode === "monitor") {
-          api.logger.warn(
-            `[monitor] GPT-OSS-Safeguard flagged response${evaluation.policyCategory ? `: ${evaluation.policyCategory}` : ""}`,
-          );
-          return;
-        }
-
-        const message = formatViolationMessage({
-          evaluation,
-          location: "model response",
-        });
-        const blockMode = resolveBlockMode("after_response", stageCfg);
-        if (blockMode === "append") {
-          return {
-            assistantTexts: [...event.assistantTexts, message],
-          };
-        }
-        return {
-          block: true,
-          blockResponse: message,
-        };
-      },
-      { priority: 50 },
+      `GPT-OSS-Safeguard guardrails enabled (provider: ${config.provider ?? DEFAULT_PROVIDER}, model: ${config.model ?? DEFAULT_MODEL})`,
     );
   },
+});
+
+// Apply the config schema
+const pluginWithSchema = {
+  ...safeguardPlugin,
+  configSchema: emptyPluginConfigSchema(),
 };
 
-export default safeguardPlugin;
+export default pluginWithSchema;
 
 // Export types and functions for testing
-export type { SafeguardConfig, SafeguardStageConfig, SafeguardEvaluation };
+export type { SafeguardConfig, SafeguardStageConfig };
 export {
   buildSafeguardPrompt,
   parseSafeguardResponse,

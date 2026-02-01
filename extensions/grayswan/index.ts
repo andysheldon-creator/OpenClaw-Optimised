@@ -6,25 +6,22 @@
  */
 
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 
 import {
   type BaseStageConfig,
+  type GuardrailBaseConfig,
+  type GuardrailEvaluation,
+  type GuardrailEvaluationContext,
   type GuardrailStage,
-  appendWarningToToolResult,
-  buildToolCallSummary,
+  createGuardrailPlugin,
   extractTextFromContent,
-  extractToolResultText,
-  isStageEnabled,
-  replaceToolResultWithWarning,
-  resolveBlockMode,
   resolveStageConfig,
 } from "../../src/plugins/guardrails-utils.js";
 
 // ============================================================================
-// Types (self-contained, no core imports)
+// Types
 // ============================================================================
 
 type GrayswanStageConfig = BaseStageConfig & {
@@ -36,8 +33,7 @@ type GrayswanStageConfig = BaseStageConfig & {
   blockOnIpi?: boolean;
 };
 
-type GrayswanGuardrailConfig = {
-  enabled?: boolean;
+type GrayswanGuardrailConfig = GuardrailBaseConfig & {
   /** Gray Swan Cygnal API key. */
   apiKey?: string;
   /** Override for Gray Swan API base URL. */
@@ -52,8 +48,6 @@ type GrayswanGuardrailConfig = {
   violationThreshold?: number;
   /** Timeout for Gray Swan requests (ms). */
   timeoutMs?: number;
-  /** Allow requests to proceed when Gray Swan errors. */
-  failOpen?: boolean;
   stages?: {
     beforeRequest?: GrayswanStageConfig;
     beforeToolCall?: GrayswanStageConfig;
@@ -75,7 +69,7 @@ type GrayswanMonitorResponse = {
   ipi?: boolean;
 };
 
-type GrayswanEvaluation = {
+type GrayswanEvaluationDetails = {
   violationScore: number;
   violatedRules: unknown[];
   mutation: boolean;
@@ -95,13 +89,6 @@ const GRAYSWAN_DEFAULT_TIMEOUT_MS = 30_000;
 // Helper Functions
 // ============================================================================
 
-function makeGrayswanMessage(
-  role: GrayswanMonitorMessage["role"],
-  content: string,
-): GrayswanMonitorMessage {
-  return { role, content };
-}
-
 function resolveGrayswanThreshold(
   cfg: GrayswanGuardrailConfig,
   stage: GrayswanStageConfig | undefined,
@@ -113,18 +100,26 @@ function resolveGrayswanThreshold(
   return GRAYSWAN_DEFAULT_THRESHOLD;
 }
 
-function resolveBlockOnMutation(stage: GuardrailStage, stageCfg: GrayswanStageConfig | undefined) {
+function resolveBlockOnMutation(
+  guardrailStage: GuardrailStage,
+  stageCfg: GrayswanStageConfig | undefined,
+): boolean {
   if (typeof stageCfg?.blockOnMutation === "boolean") {
     return stageCfg.blockOnMutation;
   }
-  return stage === "after_tool_call";
+  // Default: block on mutation for after_tool_call (detecting prompt injection)
+  return guardrailStage === "after_tool_call";
 }
 
-function resolveBlockOnIpi(stage: GuardrailStage, stageCfg: GrayswanStageConfig | undefined) {
+function resolveBlockOnIpi(
+  guardrailStage: GuardrailStage,
+  stageCfg: GrayswanStageConfig | undefined,
+): boolean {
   if (typeof stageCfg?.blockOnIpi === "boolean") {
     return stageCfg.blockOnIpi;
   }
-  return stage === "after_tool_call";
+  // Default: block on IPI for after_tool_call (detecting indirect prompt injection)
+  return guardrailStage === "after_tool_call";
 }
 
 function resolveGrayswanApiKey(cfg: GrayswanGuardrailConfig): string | undefined {
@@ -168,61 +163,6 @@ function toGrayswanMessages(messages: AgentMessage[]): GrayswanMonitorMessage[] 
   return converted;
 }
 
-function formatViolatedRules(violatedRules: unknown[]): string {
-  const formatted: string[] = [];
-  for (const rule of violatedRules) {
-    if (rule && typeof rule === "object") {
-      const record = rule as Record<string, unknown>;
-      const ruleNum = record.rule ?? record.index ?? record.id;
-      const ruleName = typeof record.name === "string" ? record.name : "";
-      const ruleDesc = typeof record.description === "string" ? record.description : "";
-      if (ruleNum && ruleName) {
-        if (ruleDesc) {
-          formatted.push(`#${ruleNum} ${ruleName}: ${ruleDesc}`);
-        } else {
-          formatted.push(`#${ruleNum} ${ruleName}`);
-        }
-      } else if (ruleName) {
-        formatted.push(ruleName);
-      } else {
-        formatted.push(String(rule));
-      }
-      continue;
-    }
-    formatted.push(String(rule));
-  }
-  return formatted.join(", ");
-}
-
-function formatGrayswanViolationMessage(params: {
-  evaluation: GrayswanEvaluation;
-  location: string;
-}): string {
-  const violationScore = params.evaluation.violationScore;
-  const violatedRules = params.evaluation.violatedRules;
-  const messageParts = [
-    `Sorry I can't help with that. According to the Gray Swan Cygnal Guardrail, ` +
-      `the ${params.location} has a violation score of ${violationScore.toFixed(2)}.`,
-  ];
-
-  if (violatedRules.length > 0) {
-    const formattedRules = formatViolatedRules(violatedRules);
-    if (formattedRules) {
-      messageParts.push(`It was violating the rule(s): ${formattedRules}.`);
-    }
-  }
-
-  if (params.evaluation.mutation) {
-    messageParts.push("Mutation effort to make the harmful intention disguised was DETECTED.");
-  }
-
-  if (params.evaluation.ipi) {
-    messageParts.push("Indirect Prompt Injection was DETECTED.");
-  }
-
-  return messageParts.join("\n");
-}
-
 function buildMonitorPayload(
   messages: GrayswanMonitorMessage[],
   cfg: GrayswanGuardrailConfig,
@@ -240,16 +180,14 @@ function buildMonitorPayload(
   return payload;
 }
 
-async function callGrayswanMonitor(
-  params: {
-    cfg: GrayswanGuardrailConfig;
-    messages: GrayswanMonitorMessage[];
-  },
-  logger: OpenClawPluginApi["logger"],
-): Promise<GrayswanMonitorResponse | null> {
+async function callGrayswanMonitor(params: {
+  cfg: GrayswanGuardrailConfig;
+  messages: GrayswanMonitorMessage[];
+  logger: OpenClawPluginApi["logger"];
+}): Promise<GrayswanMonitorResponse | null> {
   const apiKey = resolveGrayswanApiKey(params.cfg);
   if (!apiKey) {
-    logger.warn("Gray Swan guardrail enabled but no API key configured.");
+    params.logger.warn("Gray Swan guardrail enabled but no API key configured.");
     return null;
   }
   const apiBase = resolveGrayswanApiBase(params.cfg);
@@ -275,21 +213,13 @@ async function callGrayswanMonitor(
     if (!response.ok) {
       throw new Error(`Gray Swan monitor returned ${response.status}`);
     }
-    const result = (await response.json()) as GrayswanMonitorResponse;
-    return result;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.warn(`Gray Swan monitor failed: ${message}`);
-    if (params.cfg.failOpen === false) {
-      throw err;
-    }
-    return null;
+    return (await response.json()) as GrayswanMonitorResponse;
   } finally {
     clearTimeout(timer);
   }
 }
 
-function evaluateGrayswanResponse(response: GrayswanMonitorResponse): GrayswanEvaluation {
+function evaluateGrayswanResponse(response: GrayswanMonitorResponse): GrayswanEvaluationDetails {
   const violationScore = Number(response.violation ?? 0);
   const violatedRules = Array.isArray(response.violated_rule_descriptions)
     ? response.violated_rule_descriptions
@@ -304,286 +234,160 @@ function evaluateGrayswanResponse(response: GrayswanMonitorResponse): GrayswanEv
   };
 }
 
-function shouldBlockByEvaluation(params: {
-  evaluation: GrayswanEvaluation;
-  threshold: number;
-  blockOnMutation: boolean;
-  blockOnIpi: boolean;
-}): boolean {
-  const scoreFlag = params.evaluation.violationScore >= params.threshold;
-  const mutationFlag = params.blockOnMutation && params.evaluation.mutation;
-  const ipiFlag = params.blockOnIpi && params.evaluation.ipi;
-  return scoreFlag || mutationFlag || ipiFlag;
+function formatViolatedRules(violatedRules: unknown[]): string {
+  const formatted: string[] = [];
+  for (const rule of violatedRules) {
+    if (rule && typeof rule === "object") {
+      const record = rule as Record<string, unknown>;
+      const ruleNum = record.rule ?? record.index ?? record.id;
+      const ruleName = typeof record.name === "string" ? record.name : "";
+      const ruleDesc = typeof record.description === "string" ? record.description : "";
+      if (ruleNum && ruleName) {
+        formatted.push(ruleDesc ? `#${ruleNum} ${ruleName}: ${ruleDesc}` : `#${ruleNum} ${ruleName}`);
+      } else if (ruleName) {
+        formatted.push(ruleName);
+      } else {
+        formatted.push(String(rule));
+      }
+      continue;
+    }
+    formatted.push(String(rule));
+  }
+  return formatted.join(", ");
+}
+
+function getGrayswanRole(stage: GuardrailStage): GrayswanMonitorMessage["role"] {
+  switch (stage) {
+    case "before_request":
+      return "user";
+    case "before_tool_call":
+    case "after_response":
+      return "assistant";
+    case "after_tool_call":
+      return "tool";
+  }
 }
 
 // ============================================================================
-// Plugin Definition
+// Plugin Definition (using createGuardrailPlugin)
 // ============================================================================
 
-const grayswanPlugin = {
+const grayswanPlugin = createGuardrailPlugin<GrayswanGuardrailConfig>({
   id: "grayswan",
   name: "Gray Swan Guardrails",
   description: "Guardrail functionality via the Gray Swan Cygnal API",
-  configSchema: emptyPluginConfigSchema(),
 
-  register(api: OpenClawPluginApi) {
-    const cfg = api.pluginConfig as GrayswanGuardrailConfig | undefined;
-    if (!cfg || cfg.enabled === false) {
-      api.logger.debug?.("Gray Swan guardrails disabled or not configured");
-      return;
+  async evaluate(
+    ctx: GuardrailEvaluationContext,
+    config: GrayswanGuardrailConfig,
+    api: OpenClawPluginApi,
+  ): Promise<GuardrailEvaluation | null> {
+    // Build messages for Gray Swan API
+    const historyMessages = toGrayswanMessages(ctx.history);
+    const role = getGrayswanRole(ctx.stage);
+    const messages: GrayswanMonitorMessage[] = [
+      ...historyMessages,
+      { role, content: ctx.content },
+    ];
+
+    if (messages.length === 0) {
+      return null;
     }
 
-    api.logger.info("Gray Swan guardrails enabled");
+    const response = await callGrayswanMonitor({
+      cfg: config,
+      messages,
+      logger: api.logger,
+    });
 
-    // Register before_request hook
-    api.on(
-      "before_request",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "before_request");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-        const prompt = event.prompt.trim();
-        if (!prompt) {
-          return;
-        }
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const messages: GrayswanMonitorMessage[] = includeHistory
-          ? [...toGrayswanMessages(event.messages), makeGrayswanMessage("user", prompt)]
-          : [makeGrayswanMessage("user", prompt)];
-        if (messages.length === 0) {
-          return;
-        }
+    if (!response) {
+      // No API key or call failed, failOpen logic handled by base class
+      return null;
+    }
 
-        let response: GrayswanMonitorResponse | null = null;
-        try {
-          response = await callGrayswanMonitor({ cfg, messages }, api.logger);
-        } catch {
-          return {
-            block: true,
-            blockResponse: "Request blocked because Gray Swan guardrail failed.",
-          };
-        }
-        if (!response) {
-          return;
-        }
+    const details = evaluateGrayswanResponse(response);
 
-        const evaluation = evaluateGrayswanResponse(response);
-        const threshold = resolveGrayswanThreshold(cfg, stageCfg);
-        const flagged = shouldBlockByEvaluation({
-          evaluation,
-          threshold,
-          blockOnMutation: resolveBlockOnMutation("before_request", stageCfg),
-          blockOnIpi: resolveBlockOnIpi("before_request", stageCfg),
-        });
-        if (!flagged) {
-          return;
-        }
-        if (stageCfg?.mode === "monitor") {
-          return;
-        }
-        const message = formatGrayswanViolationMessage({
-          evaluation,
-          location: "input query",
-        });
-        return {
-          block: true,
-          blockResponse: message,
-        };
-      },
-      { priority: 50 },
-    );
+    // Get stage-specific config for threshold and mutation/IPI settings
+    const stageCfg = resolveStageConfig(config.stages, ctx.stage) as
+      | GrayswanStageConfig
+      | undefined;
+    const threshold = resolveGrayswanThreshold(config, stageCfg);
+    const blockOnMutation = resolveBlockOnMutation(ctx.stage, stageCfg);
+    const blockOnIpi = resolveBlockOnIpi(ctx.stage, stageCfg);
 
-    // Register before_tool_call hook
-    api.on(
-      "before_tool_call",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "before_tool_call");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-        const toolSummary = buildToolCallSummary(event.toolName, event.toolCallId, event.params);
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const messages: GrayswanMonitorMessage[] = includeHistory
-          ? [...toGrayswanMessages(event.messages), makeGrayswanMessage("assistant", toolSummary)]
-          : [makeGrayswanMessage("assistant", toolSummary)];
-        if (messages.length === 0) {
-          return;
-        }
+    // Determine if content should be blocked
+    const scoreFlag = details.violationScore >= threshold;
+    const mutationFlag = blockOnMutation && details.mutation;
+    const ipiFlag = blockOnIpi && details.ipi;
+    const shouldBlock = scoreFlag || mutationFlag || ipiFlag;
 
-        let response: GrayswanMonitorResponse | null = null;
-        try {
-          response = await callGrayswanMonitor({ cfg, messages }, api.logger);
-        } catch {
-          return {
-            block: true,
-            blockReason: "Tool call blocked because Gray Swan guardrail failed.",
-          };
-        }
-        if (!response) {
-          return;
-        }
+    // Build reason string
+    const reasonParts: string[] = [];
+    if (scoreFlag) {
+      reasonParts.push(`violation score ${details.violationScore.toFixed(2)}`);
+    }
+    if (mutationFlag) {
+      reasonParts.push("mutation detected");
+    }
+    if (ipiFlag) {
+      reasonParts.push("indirect prompt injection detected");
+    }
 
-        const evaluation = evaluateGrayswanResponse(response);
-        const threshold = resolveGrayswanThreshold(cfg, stageCfg);
-        const flagged = shouldBlockByEvaluation({
-          evaluation,
-          threshold,
-          blockOnMutation: resolveBlockOnMutation("before_tool_call", stageCfg),
-          blockOnIpi: resolveBlockOnIpi("before_tool_call", stageCfg),
-        });
-        if (!flagged) {
-          return;
-        }
-        if (stageCfg?.mode === "monitor") {
-          return;
-        }
-        const message = formatGrayswanViolationMessage({
-          evaluation,
-          location: "tool call request",
-        });
-        return {
-          block: true,
-          blockReason: message,
-        };
-      },
-      { priority: 50 },
-    );
-
-    // Register after_tool_call hook
-    api.on(
-      "after_tool_call",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "after_tool_call");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-        const toolText = extractToolResultText(event.result).trim();
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const messages: GrayswanMonitorMessage[] = includeHistory
-          ? [...toGrayswanMessages(event.messages), makeGrayswanMessage("tool", toolText)]
-          : [makeGrayswanMessage("tool", toolText)];
-        if (!toolText || messages.length === 0) {
-          return;
-        }
-
-        let response: GrayswanMonitorResponse | null = null;
-        try {
-          response = await callGrayswanMonitor({ cfg, messages }, api.logger);
-        } catch {
-          return {
-            block: true,
-            result: replaceToolResultWithWarning(
-              event.result,
-              "Tool result blocked because Gray Swan guardrail failed.",
-            ),
-          };
-        }
-        if (!response) {
-          return;
-        }
-
-        const evaluation = evaluateGrayswanResponse(response);
-        const threshold = resolveGrayswanThreshold(cfg, stageCfg);
-        const flagged = shouldBlockByEvaluation({
-          evaluation,
-          threshold,
-          blockOnMutation: resolveBlockOnMutation("after_tool_call", stageCfg),
-          blockOnIpi: resolveBlockOnIpi("after_tool_call", stageCfg),
-        });
-        if (!flagged) {
-          return;
-        }
-        if (stageCfg?.mode === "monitor") {
-          return;
-        }
-        const message = formatGrayswanViolationMessage({
-          evaluation,
-          location: "tool response",
-        });
-        const blockMode = resolveBlockMode("after_tool_call", stageCfg);
-        return {
-          block: true,
-          result:
-            blockMode === "append"
-              ? appendWarningToToolResult(event.result, message)
-              : replaceToolResultWithWarning(event.result, message),
-        };
-      },
-      { priority: 50 },
-    );
-
-    // Register after_response hook
-    api.on(
-      "after_response",
-      async (event) => {
-        const stageCfg = resolveStageConfig(cfg.stages, "after_response");
-        if (!isStageEnabled(stageCfg)) {
-          return;
-        }
-        const assistantText =
-          event.assistantTexts.join("\n").trim() ||
-          (event.lastAssistant
-            ? extractTextFromContent((event.lastAssistant as AssistantMessage).content).trim()
-            : "");
-        if (!assistantText) {
-          return;
-        }
-        const includeHistory = stageCfg?.includeHistory !== false;
-        const historyMessages = includeHistory ? toGrayswanMessages(event.messages) : [];
-        const messages: GrayswanMonitorMessage[] = [
-          ...historyMessages,
-          makeGrayswanMessage("assistant", assistantText),
-        ];
-
-        let response: GrayswanMonitorResponse | null = null;
-        try {
-          response = await callGrayswanMonitor({ cfg, messages }, api.logger);
-        } catch {
-          return {
-            block: true,
-            blockResponse: "Response blocked because Gray Swan guardrail failed.",
-          };
-        }
-        if (!response) {
-          return;
-        }
-
-        const evaluation = evaluateGrayswanResponse(response);
-        const threshold = resolveGrayswanThreshold(cfg, stageCfg);
-        const flagged = shouldBlockByEvaluation({
-          evaluation,
-          threshold,
-          blockOnMutation: resolveBlockOnMutation("after_response", stageCfg),
-          blockOnIpi: resolveBlockOnIpi("after_response", stageCfg),
-        });
-        if (!flagged) {
-          return;
-        }
-        if (stageCfg?.mode === "monitor") {
-          return;
-        }
-        const message = formatGrayswanViolationMessage({
-          evaluation,
-          location: "model response",
-        });
-        const blockMode = resolveBlockMode("after_response", stageCfg);
-        if (blockMode === "append") {
-          return {
-            assistantTexts: [...event.assistantTexts, message],
-          };
-        }
-        return {
-          block: true,
-          blockResponse: message,
-        };
-      },
-      { priority: 50 },
-    );
+    return {
+      safe: !shouldBlock,
+      reason: reasonParts.length > 0 ? reasonParts.join(", ") : undefined,
+      details: details as unknown as Record<string, unknown>,
+    };
   },
+
+  formatViolationMessage(evaluation: GuardrailEvaluation, location: string): string {
+    const details = evaluation.details as GrayswanEvaluationDetails | undefined;
+    const messageParts: string[] = [];
+
+    if (details) {
+      messageParts.push(
+        `Sorry I can't help with that. According to the Gray Swan Cygnal Guardrail, ` +
+          `the ${location} has a violation score of ${details.violationScore.toFixed(2)}.`,
+      );
+
+      if (details.violatedRules.length > 0) {
+        const formattedRules = formatViolatedRules(details.violatedRules);
+        if (formattedRules) {
+          messageParts.push(`It was violating the rule(s): ${formattedRules}.`);
+        }
+      }
+
+      if (details.mutation) {
+        messageParts.push("Mutation effort to make the harmful intention disguised was DETECTED.");
+      }
+
+      if (details.ipi) {
+        messageParts.push("Indirect Prompt Injection was DETECTED.");
+      }
+    } else {
+      messageParts.push(
+        `Sorry I can't help with that. The ${location} was flagged by the Gray Swan Cygnal Guardrail.`,
+      );
+      if (evaluation.reason) {
+        messageParts.push(`Reason: ${evaluation.reason}.`);
+      }
+    }
+
+    return messageParts.join("\n");
+  },
+
+  onRegister(api: OpenClawPluginApi) {
+    api.logger.info("Gray Swan guardrails enabled");
+  },
+});
+
+// Apply the config schema
+const pluginWithSchema = {
+  ...grayswanPlugin,
+  configSchema: emptyPluginConfigSchema(),
 };
 
-export default grayswanPlugin;
+export default pluginWithSchema;
 
 // Export types for external use
 export type { GrayswanGuardrailConfig, GrayswanStageConfig };
