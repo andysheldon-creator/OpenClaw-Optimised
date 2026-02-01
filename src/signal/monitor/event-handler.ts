@@ -289,6 +289,10 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
       if (entry.mediaPath || entry.mediaType) {
         return false;
       }
+      // Don't debounce messages with quote context - they need their context preserved
+      if (entry.quoteContext) {
+        return false;
+      }
       return !hasControlCommand(entry.bodyText, deps.cfg);
     },
     onFlush: async (entries) => {
