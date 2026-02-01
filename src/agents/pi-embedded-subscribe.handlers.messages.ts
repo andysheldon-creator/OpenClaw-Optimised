@@ -250,7 +250,7 @@ export function handleMessageEnd(
     if (ctx.blockChunker?.hasBuffered()) {
       ctx.blockChunker.drain({ force: true, emit: ctx.emitBlockChunk });
       ctx.blockChunker.reset();
-    } else if (text !== ctx.state.lastBlockReplyText) {
+    } else if (text.trimEnd() !== (ctx.state.lastBlockReplyText ?? "").trimEnd()) {
       // Check for duplicates before emitting (same logic as emitBlockChunk).
       const normalizedText = normalizeTextForComparison(text);
       if (
@@ -263,10 +263,25 @@ export function handleMessageEnd(
           `Skipping message_end block reply - already sent via messaging tool: ${text.slice(0, 50)}...`,
         );
       } else {
+<<<<<<< HEAD
         ctx.state.lastBlockReplyText = text;
         const splitResult = ctx.consumeReplyDirectives(text, { final: true });
         if (splitResult) {
           const {
+=======
+        ctx.state.lastBlockReplyText = text.trimEnd();
+        const {
+          text: cleanedText,
+          mediaUrls,
+          audioAsVoice,
+          replyToId,
+          replyToTag,
+          replyToCurrent,
+        } = parseReplyDirectives(text);
+        // Emit if there's content OR audioAsVoice flag (to propagate the flag).
+        if (cleanedText || (mediaUrls && mediaUrls.length > 0) || audioAsVoice) {
+          void onBlockReply({
+>>>>>>> fix/duplicate-assistant-texts
             text: cleanedText,
             mediaUrls,
             audioAsVoice,
