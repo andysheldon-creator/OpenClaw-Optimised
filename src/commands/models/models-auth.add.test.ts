@@ -8,7 +8,7 @@ vi.mock("@clack/prompts", () => ({
 }));
 
 describe("models auth add - cancellation", () => {
-  let clack: any;
+  let clack: typeof import("@clack/prompts");
 
   beforeEach(async () => {
     vi.resetAllMocks();
@@ -16,8 +16,8 @@ describe("models auth add - cancellation", () => {
   });
 
   it("does not throw when provider select is cancelled", async () => {
-    // @ts-ignore - typing mocks is tedious here
-    clack.select.mockResolvedValueOnce(undefined);
+    const mockedClack = vi.mocked(clack, true);
+    mockedClack.select.mockResolvedValueOnce(undefined);
 
     const runtime = { log: vi.fn(), error: vi.fn(), exit: vi.fn() } as any;
 
@@ -25,15 +25,16 @@ describe("models auth add - cancellation", () => {
 
     await expect(modelsAuthAddCommand({}, runtime)).resolves.toBeUndefined();
     expect(runtime.log).toHaveBeenCalledWith("Cancelled.");
+    expect(mockedClack.text).not.toHaveBeenCalled();
+    expect(mockedClack.confirm).not.toHaveBeenCalled();
   });
 
   it("does not throw when method select is cancelled", async () => {
     // First select for provider returns 'anthropic'
     // Second select (method) returns undefined to simulate cancel
-    // @ts-ignore
-    clack.select.mockResolvedValueOnce("anthropic");
-    // @ts-ignore
-    clack.select.mockResolvedValueOnce(undefined);
+    const mockedClack = vi.mocked(clack, true);
+    mockedClack.select.mockResolvedValueOnce("anthropic");
+    mockedClack.select.mockResolvedValueOnce(undefined);
 
     const runtime = { log: vi.fn(), error: vi.fn(), exit: vi.fn() } as any;
 
@@ -41,5 +42,7 @@ describe("models auth add - cancellation", () => {
 
     await expect(modelsAuthAddCommand({}, runtime)).resolves.toBeUndefined();
     expect(runtime.log).toHaveBeenCalledWith("Cancelled.");
+    expect(mockedClack.text).not.toHaveBeenCalled();
+    expect(mockedClack.confirm).not.toHaveBeenCalled();
   });
 });
