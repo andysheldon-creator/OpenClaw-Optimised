@@ -57,6 +57,13 @@ function timingSafeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
+/** Returns the URL as a string with the authority port removed (for Twilio legacy signature check). */
+function removePort(url: URL): string {
+  const u = new URL(url.href);
+  u.port = "";
+  return u.toString();
+}
+
 /**
  * Reconstruct the public webhook URL from request headers.
  *
@@ -181,31 +188,29 @@ export function verifyTwilioWebhook(
     return { ok: false, reason: "Missing X-Twilio-Signature header" };
   }
 
-  // Reconstruct the URL Twilio used
+  // Reconstruct the URL Twilio used and parse body params once
   const verificationUrl = buildTwilioVerificationUrl(ctx, options?.publicUrl);
-
-  // Parse the body as URL-encoded params
   const params = new URLSearchParams(ctx.rawBody);
 
-  // Validate signature
-  let isValid = validateTwilioSignature(authToken, signature, verificationUrl, params);
+  const urlObject = new URL(verificationUrl);
 
-  if (!isValid) {
-    // Really, we should just use the Twilio SDK to verify the signature.
-    // @see https://www.twilio.com/docs/usage/webhooks/webhooks-security#validating-requests
-    // But we're not going to do that because the initial implementation chose to avoid using the library
-    // and I want to respect that.
-    // One reason we should use the Twilio SDK is that they have legacy code in their
-    // backend that is not compatible with the new signature algorithm.  One of the things their library
-    // checks for is whether the signature matches when omitting the port from the URL.  We'll do the same
-    // hack here.
-    // Try again with the URL without the authority port (path/query preserved)
-    const urlWithoutPort = new URL(verificationUrl);
-    urlWithoutPort.port = "";
-    isValid = validateTwilioSignature(authToken, signature, urlWithoutPort.toString(), params);
+  const isValidSignatureWithoutPort = validateTwilioSignature(
+    authToken,
+    signature,
+    removePort(urlObject),
+    params,
+  );
+  if (isValidSignatureWithoutPort) {
+    return { ok: true, verificationUrl };
   }
 
-  if (isValid) {
+  const isValidSignatureWithPort = validateTwilioSignature(
+    authToken,
+    signature,
+    verificationUrl,
+    params,
+  );
+  if (isValidSignatureWithPort) {
     return { ok: true, verificationUrl };
   }
 
