@@ -22,8 +22,8 @@ export function getShellConfig(): { shell: string; args: string[] } {
     // Use PowerShell on Windows for better tool compatibility (ls, cat, grep aliases)
     // and richer scripting capabilities requested by user.
     return {
-      shell: "powershell.exe",
-      args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"],
+      shell: resolvePowerShellPath(),
+      args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command"],
     };
   }
 
