@@ -45,6 +45,7 @@ import { resolveSlackEffectiveAllowFrom } from "../auth.js";
 import { resolveSlackChannelConfig } from "../channel-config.js";
 import { normalizeSlackChannelType, type SlackMonitorContext } from "../context.js";
 import { resolveSlackMedia, resolveSlackThreadStarter } from "../media.js";
+import { checkMessageRelevance, resolveRelevanceModel } from "../relevance-check.js";
 
 import type { PreparedSlackMessage } from "./types.js";
 
@@ -290,8 +291,16 @@ export async function prepareSlackMessage(params: {
     return null;
   }
 
+  // Resolve response mode for this channel
+  const channelResponseMode =
+    (channelConfig as { responseMode?: string } | null)?.responseMode ?? ctx.defaultResponseMode;
+
+  // For "mention" mode, use existing requireMention logic
+  // For "auto" or "all" modes, skip mention requirement (relevance check or respond to all)
   const shouldRequireMention = isRoom
-    ? (channelConfig?.requireMention ?? ctx.defaultRequireMention)
+    ? channelResponseMode === "mention"
+      ? (channelConfig?.requireMention ?? ctx.defaultRequireMention)
+      : false
     : false;
 
   // Allow "control commands" to bypass mention gating if sender is authorized.
@@ -339,6 +348,52 @@ export async function prepareSlackMessage(params: {
     maxBytes: ctx.mediaMaxBytes,
   });
   const rawBody = (message.text ?? "").trim() || media?.placeholder || "";
+
+  // Auto-response mode: check relevance with fast model before proceeding
+  if (isRoom && channelResponseMode === "auto" && !effectiveWasMentioned) {
+    const channelDescription =
+      [channelInfo?.topic, channelInfo?.purpose].filter(Boolean).join(" - ") ||
+      channelName ||
+      "team channel";
+
+    // Get agent persona from system prompt or use generic
+    const agentPersona = "helpful AI assistant";
+
+    const relevanceResult = await checkMessageRelevance({
+      message: rawBody,
+      channelContext: channelDescription,
+      agentPersona,
+      runner: async (_prompt) => {
+        // Placeholder for actual model call - will be wired up in Task 7
+        // For now, default to responding so the feature can be tested
+        return { text: "RESPOND: Message requires attention" };
+      },
+    });
+
+    if (!relevanceResult.shouldRespond) {
+      ctx.logger.info(
+        { channel: message.channel, reason: relevanceResult.reason },
+        "skipping message (auto-response: not relevant)",
+      );
+      // Record to history for deferred awareness
+      recordPendingHistoryEntryIfEnabled({
+        historyMap: ctx.channelHistories,
+        historyKey,
+        limit: ctx.historyLimit,
+        entry: rawBody
+          ? {
+              sender: senderName,
+              body: rawBody,
+              timestamp: message.ts ? Math.round(Number(message.ts) * 1000) : undefined,
+              messageId: message.ts,
+            }
+          : null,
+      });
+      return null;
+    }
+
+    logVerbose(`slack auto-response: responding (${relevanceResult.reason})`);
+  }
   if (!rawBody) {
     return null;
   }
