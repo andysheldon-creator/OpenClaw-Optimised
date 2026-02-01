@@ -108,6 +108,7 @@ export function syncExternalCliCredentials(store: AuthProfileStore): boolean {
   const shouldSyncClaude =
     !existingClaude ||
     existingClaude.provider !== "anthropic" ||
+    existingClaude.type === "token" || // Always re-check: CLI may have upgraded to OAuth
     !isExternalProfileFresh(existingClaude, now, "anthropic");
   const claudeCreds = shouldSyncClaude
     ? readClaudeCliCredentialsCached({ ttlMs: EXTERNAL_CLI_SYNC_TTL_MS })

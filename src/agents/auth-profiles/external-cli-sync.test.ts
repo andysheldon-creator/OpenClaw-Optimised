@@ -25,8 +25,10 @@ describe("syncExternalCliCredentials — Claude CLI", () => {
 
   afterEach(() => {
     process.env.HOME = originalHome;
-    if (originalHome) {
+    if (originalHome !== undefined) {
       process.env.USERPROFILE = originalHome;
+    } else {
+      delete process.env.USERPROFILE;
     }
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
@@ -135,6 +137,38 @@ describe("syncExternalCliCredentials — Claude CLI", () => {
     // Profile should be unchanged
     if (store.profiles["anthropic:claude-cli"]?.type === "oauth") {
       expect(store.profiles["anthropic:claude-cli"].access).toBe("sk-ant-oat01-existing");
+    }
+  });
+
+  it("upgrades existing token profile to OAuth when CLI has OAuth credentials", () => {
+    const freshExpiry = Date.now() + 8 * 60 * 60 * 1000;
+    writeClaudeCredentials({
+      claudeAiOauth: {
+        accessToken: "sk-ant-oat01-oauth-access",
+        refreshToken: "sk-ant-ort01-oauth-refresh",
+        expiresAt: freshExpiry,
+        scopes: ["user:inference", "user:profile"],
+      },
+    });
+
+    // Existing token profile that is still fresh (not near expiry)
+    const store = makeStore({
+      "anthropic:claude-cli": {
+        type: "token",
+        provider: "anthropic",
+        token: "sk-ant-oat01-setup-token",
+        expires: Date.now() + 4 * 60 * 60 * 1000,
+      },
+    });
+
+    const mutated = syncExternalCliCredentials(store);
+
+    expect(mutated).toBe(true);
+    const profile = store.profiles["anthropic:claude-cli"];
+    expect(profile?.type).toBe("oauth");
+    if (profile?.type === "oauth") {
+      expect(profile.access).toBe("sk-ant-oat01-oauth-access");
+      expect(profile.refresh).toBe("sk-ant-ort01-oauth-refresh");
     }
   });
 
