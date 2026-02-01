@@ -76,6 +76,15 @@ export type SessionResetByTypeConfig = {
   thread?: SessionResetConfig;
 };
 
+export type ShortTermMemoryConfig = {
+  /** Enable short-term memory injection. Default: false. */
+  enabled?: boolean;
+  /** Number of recent messages to include (user + assistant). Default: 30. */
+  messageCount?: number;
+  /** Custom path for short-term memory file. If set, reads from this instead of session. */
+  path?: string;
+};
+
 export type SessionConfig = {
   scope?: SessionScope;
   /** DM session scoping (default: "main"). */
@@ -97,6 +106,8 @@ export type SessionConfig = {
     /** Max ping-pong turns between requester/target (0–5). Default: 5. */
     maxPingPongTurns?: number;
   };
+  /** Short-term memory: inject recent messages into context to survive compaction. */
+  shortTermMemory?: ShortTermMemoryConfig;
 };
 
 export type LoggingConfig = {

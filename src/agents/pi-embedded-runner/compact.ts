@@ -26,6 +26,7 @@ import { resolveUserPath } from "../../utils.js";
 import { resolveOpenClawAgentDir } from "../agent-paths.js";
 import { resolveSessionAgentIds } from "../agent-scope.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../bootstrap-files.js";
+import { buildShortTermMemoryContextFile } from "../short-term-memory.js";
 import { resolveOpenClawDocsPath } from "../docs-path.js";
 import type { ExecElevatedDefaults } from "../bash-tools.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
@@ -204,13 +205,24 @@ export async function compactEmbeddedPiSessionDirect(
     });
 
     const sessionLabel = params.sessionKey ?? params.sessionId;
-    const { contextFiles } = await resolveBootstrapContextForRun({
+    const { contextFiles: bootstrapContextFiles } = await resolveBootstrapContextForRun({
       workspaceDir: effectiveWorkspace,
       config: params.config,
       sessionKey: params.sessionKey,
       sessionId: params.sessionId,
       warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
     });
+
+    // Add short-term memory if enabled
+    const shortTermMemoryFile = await buildShortTermMemoryContextFile({
+      config: params.config,
+      sessionFile: params.sessionFile,
+      workspaceDir: effectiveWorkspace,
+    });
+    const contextFiles = shortTermMemoryFile
+      ? [...bootstrapContextFiles, shortTermMemoryFile]
+      : bootstrapContextFiles;
+
     const runAbortController = new AbortController();
     const toolsRaw = createOpenClawCodingTools({
       exec: {

@@ -30,6 +30,7 @@ import { createAnthropicPayloadLogger } from "../../anthropic-payload-log.js";
 import { resolveOpenClawAgentDir } from "../../agent-paths.js";
 import { resolveSessionAgentIds } from "../../agent-scope.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../../bootstrap-files.js";
+import { buildShortTermMemoryContextFile } from "../../short-term-memory.js";
 import { resolveOpenClawDocsPath } from "../../docs-path.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import {
@@ -190,7 +191,7 @@ export async function runEmbeddedAttempt(
     });
 
     const sessionLabel = params.sessionKey ?? params.sessionId;
-    const { bootstrapFiles: hookAdjustedBootstrapFiles, contextFiles } =
+    const { bootstrapFiles: hookAdjustedBootstrapFiles, contextFiles: bootstrapContextFiles } =
       await resolveBootstrapContextForRun({
         workspaceDir: effectiveWorkspace,
         config: params.config,
@@ -198,6 +199,17 @@ export async function runEmbeddedAttempt(
         sessionId: params.sessionId,
         warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
       });
+
+    // Add short-term memory if enabled
+    const shortTermMemoryFile = await buildShortTermMemoryContextFile({
+      config: params.config,
+      sessionFile: params.sessionFile,
+      workspaceDir: effectiveWorkspace,
+    });
+    const contextFiles = shortTermMemoryFile
+      ? [...bootstrapContextFiles, shortTermMemoryFile]
+      : bootstrapContextFiles;
+
     const workspaceNotes = hookAdjustedBootstrapFiles.some(
       (file) => file.name === DEFAULT_BOOTSTRAP_FILENAME && !file.missing,
     )
