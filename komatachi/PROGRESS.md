@@ -1,14 +1,33 @@
 # Komatachi Distillation Progress
 
-This file tracks our progress distilling OpenClaw into Komatachi. Maintaining this file is essential—it provides continuity across sessions, documents what we've learned, and prevents re-discovering the same insights.
+> **START HERE** — This file is the source of truth for project state.
 
-**Update this file as work progresses.** Future sessions should read this first.
+## Quick Status
+
+| Aspect | State |
+|--------|-------|
+| **Phase** | Trial distillation complete; ready for next component |
+| **Last completed** | Compaction module distilled (666 → 275 LOC) |
+| **Next action** | Choose next component to distill (see "Next Steps" below) |
+| **Blockers** | None |
+
+### What Exists Now
+- ✅ Scouting reports for 4 core areas (~20k LOC analyzed)
+- ✅ Distillation principles documented (8 principles)
+- ✅ Trial distillation: `src/compaction/` working
+
+### Open Decision Needed
+**Which component to distill next?** Candidates ranked by isolation:
+1. Long-term Memory & Search (most isolated)
+2. Context Management (builds on compaction)
+3. Agent Alignment (defines behavior)
+4. Session Management (largest, most interconnected)
 
 ---
 
-## Current Status
+This file tracks our progress distilling OpenClaw into Komatachi. Maintaining this file is essential—it provides continuity across sessions, documents what we've learned, and prevents re-discovering the same insights.
 
-**Phase**: Establishing principles + first trial distillation complete
+**Update this file as work progresses.**
 
 ---
 

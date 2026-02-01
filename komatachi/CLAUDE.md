@@ -1,5 +1,7 @@
 # Komatachi
 
+> **First action**: Read [PROGRESS.md](./PROGRESS.md) for current state, completed work, and next steps.
+
 Komatachi is a distillation of OpenClaw—a new codebase built from the ground up that captures OpenClaw's essential functionality while shedding its accumulated complexity, bloat, and historical baggage.
 
 ## What This Is
@@ -63,9 +65,12 @@ komatachi/
         └── DECISIONS.md
 ```
 
-## Current Status
+## Session Continuity
 
-See [PROGRESS.md](./PROGRESS.md) for detailed status. **Read PROGRESS.md first** when starting a new session—it contains context that prevents re-discovering what we already know.
+[PROGRESS.md](./PROGRESS.md) is the single source of truth for:
+- Current state and phase
+- Completed work and decisions made
+- Next actions and open questions
 
 **Update PROGRESS.md before each commit.** This is essential infrastructure for maintaining continuity across sessions.
 
