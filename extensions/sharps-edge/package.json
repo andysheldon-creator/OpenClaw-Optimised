@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/sharps-edge",
+  "version": "2026.2.1",
+  "description": "SHARPS EDGE Builder Edition - Project-scoped builder with conflict detection and cost tracking",
+  "type": "module",
+  "dependencies": {},
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

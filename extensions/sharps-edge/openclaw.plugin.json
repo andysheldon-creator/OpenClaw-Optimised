@@ -1,0 +1,48 @@
+{
+  "id": "sharps-edge",
+  "name": "SHARPS EDGE Builder Edition",
+  "description": "Project-scoped builder agent with conflict detection, cost tracking, and audit logging.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "projectDir": {
+        "type": "string",
+        "default": "projects/SHARPS-EDGE"
+      },
+      "budgetMonthlyUsd": {
+        "type": "number",
+        "default": 200
+      },
+      "budgetAlertThreshold": {
+        "type": "number",
+        "default": 0.8
+      },
+      "conflictDetection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "strictMode": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "severityRouting": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "INFO": { "type": "string", "default": "log" },
+          "WARN": { "type": "string", "default": "log" },
+          "BLOCK": { "type": "string", "default": "log" },
+          "REJECT": { "type": "string", "default": "log" },
+          "CRITICAL": { "type": "string", "default": "log" }
+        }
+      }
+    }
+  }
+}
