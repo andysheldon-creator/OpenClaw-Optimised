@@ -2,6 +2,7 @@ import { Command, Option } from "commander";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { routeLogsToStderr } from "../logging/console.js";
 import { getSubCliEntries, registerSubCliByName } from "./program/register.subclis.js";
 
 export function registerCompletionCli(program: Command) {
@@ -16,6 +17,10 @@ export function registerCompletionCli(program: Command) {
     .option("-i, --install", "Install completion script to shell profile")
     .option("-y, --yes", "Skip confirmation (non-interactive)", false)
     .action(async (options) => {
+      // Route all logs to stderr so stdout contains only the completion script.
+      // This prevents plugin loading messages from breaking `source <(openclaw completion ...)`.
+      routeLogsToStderr();
+
       const shell = options.shell;
       // Eagerly register all subcommands to build the full tree
       const entries = getSubCliEntries();
