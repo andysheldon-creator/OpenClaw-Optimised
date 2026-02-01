@@ -195,7 +195,7 @@ export async function runCronIsolatedAgentTurn(params: {
     model = resolvedOverride.ref.model;
   }
   const now = Date.now();
-  const cronSession = resolveCronSession({
+  const cronSession = await resolveCronSession({
     cfg: params.cfg,
     sessionKey: agentSessionKey,
     agentId,

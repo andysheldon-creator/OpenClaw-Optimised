@@ -1,8 +1,13 @@
 import crypto from "node:crypto";
 import type { OpenClawConfig } from "../../config/config.js";
-import { loadSessionStore, resolveStorePath, type SessionEntry } from "../../config/sessions.js";
+import {
+  loadSessionStore,
+  resolveStorePath,
+  type SessionEntry,
+  updateSessionStore,
+} from "../../config/sessions.js";
 
-export function resolveCronSession(params: {
+export async function resolveCronSession(params: {
   cfg: OpenClawConfig;
   sessionKey: string;
   nowMs: number;
@@ -30,5 +35,11 @@ export function resolveCronSession(params: {
     lastAccountId: entry?.lastAccountId,
     skillsSnapshot: entry?.skillsSnapshot,
   };
+
+  store[params.sessionKey] = sessionEntry;
+  await updateSessionStore(storePath, (currentStore) => {
+    currentStore[params.sessionKey] = sessionEntry;
+  });
+
   return { storePath, store, sessionEntry, systemSent, isNewSession: true };
 }
