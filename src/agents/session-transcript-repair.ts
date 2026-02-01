@@ -39,9 +39,12 @@ function isValidToolUseBlock(block: unknown): boolean {
     return false;
   }
   // Malformed: has streaming/partial indicators (tool call was interrupted mid-stream)
-  if (rec.partialJson !== undefined) {
+  // Use property presence check ("in") to catch partialJson regardless of its value
+  if ("partialJson" in rec) {
     return false;
   }
+  // Use strict boolean checks for partial/incomplete to avoid false positives from
+  // falsy values like 0 or "" which don't indicate a partial tool call
   if (rec.partial === true) {
     return false;
   }

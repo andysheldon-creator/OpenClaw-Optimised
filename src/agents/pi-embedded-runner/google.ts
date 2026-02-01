@@ -350,10 +350,22 @@ export async function sanitizeSessionHistory(params: {
   if (policy.repairToolUseResultPairing) {
     const report = repairToolUseResultPairing(sanitizedThinking);
     repairedTools = report.messages;
+    // Log all non-zero repair counters for easier debugging of transcript issues
+    const parts: string[] = [];
     if (report.droppedMalformedToolUseCount > 0) {
-      log.warn(
-        `session repair: stripped ${report.droppedMalformedToolUseCount} malformed tool_use block(s)`,
-      );
+      parts.push(`${report.droppedMalformedToolUseCount} malformed tool_use block(s) stripped`);
+    }
+    if (report.droppedOrphanCount > 0) {
+      parts.push(`${report.droppedOrphanCount} orphan result(s) dropped`);
+    }
+    if (report.droppedDuplicateCount > 0) {
+      parts.push(`${report.droppedDuplicateCount} duplicate result(s) dropped`);
+    }
+    if (report.added.length > 0) {
+      parts.push(`${report.added.length} synthetic result(s) added`);
+    }
+    if (parts.length > 0) {
+      log.warn(`session repair: ${parts.join(", ")}`);
     }
   }
 
