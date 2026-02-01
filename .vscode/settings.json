@@ -1,0 +1,248 @@
+{
+  // —— Workbench (aligned with project) ——
+  "workbench.list.smoothScrolling": true,
+  "workbench.startupEditor": "newUntitledFile",
+  "workbench.tree.indent": 10,
+  "workbench.editor.highlightModifiedTabs": true,
+  "workbench.editor.closeOnFileDelete": true,
+  "workbench.editor.limit.enabled": true,
+  "workbench.editor.limit.perEditorGroup": true,
+  "workbench.editor.limit.value": 5,
+
+  // —— Editor: TS/JS use oxfmt (2 spaces); Swift uses SwiftFormat (4) ——
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
+  "editor.cursorBlinking": "expand",
+  "editor.largeFileOptimizations": true,
+  "editor.accessibilitySupport": "off",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.guides.bracketPairs": "active",
+  "editor.inlineSuggest.enabled": true,
+  "editor.suggestSelection": "recentlyUsedByPrefix",
+  "editor.acceptSuggestionOnEnter": "smart",
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  "editor.stickyScroll.enabled": true,
+  "editor.hover.sticky": true,
+  "editor.suggest.insertMode": "replace",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.autoClosingBrackets": "beforeWhitespace",
+  "editor.autoClosingDelete": "always",
+  "editor.autoClosingOvertype": "always",
+  "editor.autoClosingQuotes": "beforeWhitespace",
+  "editor.wordSeparators": "`~!@#%^&*()=+[{]}\\|;:'\",.<>/?",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "never"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[swift]": {
+    "editor.defaultFormatter": null,
+    "editor.tabSize": 4
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Oxc: enables oxlint (lint). CI/pre-commit use pnpm format (oxfmt) and pnpm lint (oxlint).
+  "oxc.enable": true,
+
+  // —— Extensions ——
+  "extensions.ignoreRecommendations": true,
+
+  // —— Terminal ——
+  "terminal.integrated.cursorBlinking": true,
+  "terminal.integrated.persistentSessionReviveProcess": "never",
+  "terminal.integrated.tabs.enabled": true,
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.stickyScroll.enabled": true,
+
+  // —— Files: EOL and exclusions aligned with .dockerignore / pre-commit ——
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.simpleDialog.enable": true,
+  "files.associations": {
+    "*.ejs": "html",
+    "*.art": "html",
+    "**/tsconfig.json": "jsonc",
+    "**/.oxlintrc.json": "jsonc",
+    "**/.oxfmtrc.jsonc": "jsonc",
+    "*.json": "jsonc",
+    "package.json": "json"
+  },
+  "files.exclude": {
+    "**/.eslintcache": true,
+    "**/bower_components": true,
+    "**/.turbo": true,
+    "**/.idea": true,
+    "**/.vitepress": true,
+    "**/tmp": true,
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.stylelintcache": true,
+    "**/.DS_Store": true,
+    "**/vite.config.mts.*": true,
+    "**/tea.yaml": true,
+    "**/.worktrees": true,
+    "**/.bun-cache": true,
+    "**/.bun": true,
+    "**/coverage": true,
+    "**/dist": true,
+    "**/node_modules": true
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/.vscode/**": true,
+    "**/node_modules/**": true,
+    "**/tmp/**": true,
+    "**/bower_components/**": true,
+    "**/dist/**": true,
+    "**/yarn.lock": true,
+    "**/.worktrees/**": true,
+    "**/.bun-cache/**": true,
+    "**/.pnpm-store/**": true,
+    "**/.next/**": true,
+    "**/.cache/**": true
+  },
+
+  // —— TypeScript: use workspace TS (tsconfig.json) ——
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.tsserver.exclude": ["**/node_modules", "**/dist", "**/.turbo"],
+  "typescript.inlayHints.enumMemberValues.enabled": true,
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+
+  // —— Search: exclude build/cache/lockfiles (align with .dockerignore) ——
+  "search.searchEditor.singleClickBehaviour": "peekDefinition",
+  "search.followSymlinks": false,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/*.log": true,
+    "**/*.log*": true,
+    "**/bower_components": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.DS_Store": true,
+    "**/.vitepress/cache": true,
+    "**/.idea": true,
+    "**/.vscode": false,
+    "**/.yarn": true,
+    "**/tmp": true,
+    "**/out": true,
+    "**/coverage": true,
+    "**/.turbo": true,
+    "**/pnpm-lock.yaml": true,
+    "**/yarn.lock": true,
+    "*.xml": true
+  },
+
+  // —— Explorer: file nesting (colocated tests, configs, tooling) ——
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "$(capture).test.ts, $(capture).test.tsx, $(capture).spec.ts, $(capture).spec.tsx, $(capture).e2e.test.ts, $(capture).browser.test.ts, $(capture).integration.test.ts, $(capture).fuzz.test.ts, $(capture).d.ts",
+    "*.tsx": "$(capture).test.ts, $(capture).test.tsx, $(capture).spec.ts, $(capture).spec.tsx, $(capture).e2e.test.ts, $(capture).browser.test.ts, $(capture).d.ts",
+    "*.js": "$(capture).test.js, $(capture).spec.js",
+    "*.mjs": "$(capture).test.mjs",
+    "*.env": "$(capture).env.*",
+    "*.env.example": ".env.*",
+    "README.md": "README*, CHANGELOG*, LICENSE, CNAME, CONTRIBUTING*, SECURITY*, AGENTS*, CLAUDE*",
+    "package.json": "pnpm-lock.yaml, pnpm-workspace.yaml, .gitattributes, .gitignore, .npmrc, .node-version, .nvmrc, openclaw.plugin.json",
+    "tsconfig.json": "tsconfig.*.json",
+    "vitest.config.ts": "vitest.*.config.ts",
+    "vite.config.ts": "vite.config.*.ts",
+    ".oxlintrc.json": ".oxfmtrc.jsonc",
+    ".swiftformat": ".swiftlint.yml",
+    ".swiftlint.yml": ".swiftformat",
+    ".gitignore": ".gitattributes, .editorconfig",
+    "Dockerfile": "Dockerfile.*, .dockerignore",
+    "docker-compose.yml": "Dockerfile, Dockerfile.*, .dockerignore, docker-compose.*",
+    "fly.toml": "fly.private.toml",
+    ".detect-secrets.cfg": ".secrets.baseline",
+    ".pre-commit-config.yaml": ".pre-commit-hooks.yaml",
+    "index.html": "vite.config.ts, vite.config.*.ts, vitest.config.ts"
+  },
+
+  // —— Linting: project uses oxlint (not ESLint in pre-commit); Swift: SwiftLint ——
+  "eslint.validate": ["javascript", "typescript", "javascriptreact", "typescriptreact", "vue", "html", "markdown", "json", "jsonc"],
+  "stylelint.enable": false,
+
+  // —— Error Lens: avoid duplicating oxlint ——
+  "errorLens.enabledDiagnosticLevels": ["warning", "error"],
+  "errorLens.excludeBySource": ["cSpell", "Grammarly", "eslint", "oxlint"],
+
+  // —— Project / package manager ——
+  "npm.packageManager": "pnpm",
+  "debug.onTaskErrors": "debugAnyway",
+  "diffEditor.ignoreTrimWhitespace": false,
+
+  // —— CSS / UI (optional): validate off; cssVariables for ui/ if needed ——
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false,
+  "cssVariables.lookupFiles": ["ui/src/**/*.css"],
+
+  // —— Emmet ——
+  "emmet.showSuggestionsAsSnippets": true,
+  "emmet.triggerExpansionOnTab": false,
+
+  // —— Tailwind (if used in ui/) ——
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+
+  // —— Copilot ——
+  "github.copilot.enable": {
+    "*": true,
+    "markdown": true,
+    "plaintext": false,
+    "yaml": false
+  },
+
+  // —— i18n-ally: disable or point to ui if used ——
+  "i18n-ally.localesPaths": [],
+  "i18n-ally.enabledFrameworks": ["vue", "react"],
+  "i18n-ally.sourceLanguage": "en",
+
+  // —— Vue (ui may use) ——
+  "vue.server.hybridMode": true
+}

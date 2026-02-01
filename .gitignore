@@ -65,6 +65,7 @@ apps/ios/*.mobileprovision
 # Local untracked files
 .local/
 .vscode/
+!.vscode/settings.json
 IDENTITY.md
 USER.md
 .tgz
