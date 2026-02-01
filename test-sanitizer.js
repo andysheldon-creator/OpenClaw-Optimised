@@ -4,7 +4,9 @@
  */
 
 function sanitizeModelOutput(text) {
-  if (!text) {return "";}
+  if (!text) {
+    return "";
+  }
 
   let out = text;
 
