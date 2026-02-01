@@ -65,16 +65,22 @@ export async function readPromptTokensFromSessionLog(
   if (!sessionId) {
     return undefined;
   }
-  const agentId = sessionEntry ? undefined : resolveAgentIdFromSessionKey(sessionKey);
+  const transcriptPath =
+    sessionEntry &&
+    typeof (sessionEntry as { transcriptPath?: unknown }).transcriptPath === "string"
+      ? (sessionEntry as { transcriptPath?: string }).transcriptPath?.trim()
+      : undefined;
+  const sessionFile = sessionEntry?.sessionFile?.trim() || transcriptPath;
+  const agentId = sessionFile ? undefined : resolveAgentIdFromSessionKey(sessionKey);
   const logPath = resolveSessionFilePath(
     sessionId,
-    sessionEntry,
+    sessionFile && sessionEntry ? { ...sessionEntry, sessionFile } : sessionEntry,
     agentId ? { agentId } : undefined,
   );
 
   try {
     const lines = (await fs.promises.readFile(logPath, "utf-8")).split(/\n+/);
-    let totalTokens = 0;
+    let lastTotalTokens: number | undefined;
     let sawUsage = false;
     for (const line of lines) {
       if (!line.trim()) {
@@ -93,7 +99,9 @@ export async function readPromptTokensFromSessionLog(
           const outputTokens = usage.output ?? 0;
           const entryTotal = usage.total ?? promptTokens + outputTokens;
           if (Number.isFinite(entryTotal) && entryTotal > 0) {
-            totalTokens += entryTotal;
+            lastTotalTokens = entryTotal;
+          } else {
+            lastTotalTokens = undefined;
           }
         }
       } catch {
@@ -103,7 +111,7 @@ export async function readPromptTokensFromSessionLog(
     if (!sawUsage) {
       return undefined;
     }
-    return totalTokens > 0 ? totalTokens : undefined;
+    return lastTotalTokens && lastTotalTokens > 0 ? lastTotalTokens : undefined;
   } catch {
     return undefined;
   }
