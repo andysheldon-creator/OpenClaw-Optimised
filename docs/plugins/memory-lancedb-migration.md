@@ -89,18 +89,38 @@ For clarity or edge cases, explicitly specify the provider:
    - Create a new API key
    - Set `GOOGLE_API_KEY` environment variable
 
-2. **DELETE Your Existing Database** ⚠️ **REQUIRED**
+2. **BACKUP and DELETE Your Existing Database** ⚠️ **REQUIRED**
+
+   **Step 2a: Backup (Optional but Recommended)**
+   
+   Before deleting, consider backing up your memories in case you need them later:
+   
+   ```bash
+   # Backup the entire database directory
+   cp -r ~/.openclaw/memory/lancedb ~/.openclaw/memory/lancedb.backup.openai
+   
+   # Or if using custom dbPath:
+   cp -r <your-custom-db-path> <your-custom-db-path>.backup.openai
+   ```
+   
+   This backup will remain compatible with your OpenAI configuration if you need to restore it.
+
+   **Step 2b: Delete the Database**
+   
+   After backing up, delete the database to allow the plugin to create a new one with correct dimensions:
 
    ```bash
-   rm ~/.openclaw/memory/lancedb/*
+   rm -rf ~/.openclaw/memory/lancedb/*
    ```
 
    This removes all OpenAI-based memories. They cannot be migrated to Google Gemini due to incompatible vector dimensions.
 
    **Alternative locations (if using custom `dbPath`):**
    ```bash
-   rm <your-custom-db-path>/*
+   rm -rf <your-custom-db-path>/*
    ```
+
+   ⚠️ **After deletion, your memories are gone permanently** (unless you have a backup). The plugin will create a new empty database on next startup.
 
 3. **Update Your Configuration**
 
@@ -251,11 +271,23 @@ This prevents silent failures where invalid responses would store zero-vectors.
 
 **This is expected.** Vectors are model-specific and incompatible across dimensions.
 
-**Solution:** Delete old memories before switching:
+**If you regret switching providers:**
+
+If you created a backup before deleting (see migration steps), you can restore it:
 
 ```bash
-rm ~/.openclaw/memory/lancedb/*
+# Restore from your backup (requires you to switch back to OpenAI)
+rm -rf ~/.openclaw/memory/lancedb/*
+cp -r ~/.openclaw/memory/lancedb.backup.openai ~/.openclaw/memory/lancedb
+
+# Or if using custom dbPath:
+rm -rf <your-custom-db-path>/*
+cp -r <your-custom-db-path>.backup.openai/* <your-custom-db-path>/
 ```
+
+Then update your configuration back to the original OpenAI provider and restart.
+
+**⚠️ Without a backup, deleted memories cannot be recovered.** This is why we recommend backing up before making provider changes.
 
 ## Configuration Priority
 
