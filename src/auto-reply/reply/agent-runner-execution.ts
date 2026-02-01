@@ -16,7 +16,6 @@ import {
   isLikelyContextOverflowError,
   sanitizeUserFacingText,
 } from "../../agents/pi-embedded-helpers.js";
-import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import {
   resolveAgentIdFromSessionKey,
@@ -26,6 +25,7 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { emitAgentEvent, registerAgentRunContext } from "../../infra/agent-events.js";
 import { defaultRuntime } from "../../runtime.js";
 import {
@@ -562,7 +562,7 @@ export async function runAgentTurnWithFallback(params: {
           params.sessionKey ?? params.followupRun.run.sessionId,
           {
             sessionId: params.getActiveSessionEntry()?.sessionId,
-            sessionFile: params.sessionFile,
+            sessionFile: params.followupRun.run.sessionFile,
             provider: fallbackProvider,
             model: fallbackModel,
             errorMessage: message,

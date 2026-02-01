@@ -27,13 +27,13 @@ export type AgentBootstrapHookEvent = InternalHookEvent & {
 
 export type AgentContextOverflowHookContext = {
   /** The session ID that hit context overflow */
-  sessionId?: string;
+  sessionId: string;
   /** Path to the session transcript file */
-  sessionFile?: string;
+  sessionFile: string;
   /** Model provider (e.g., "anthropic", "openai") */
-  provider?: string;
+  provider: string;
   /** Model ID (e.g., "claude-sonnet-4-20250514") */
-  model?: string;
+  model: string;
   /** Raw error message from the provider */
   errorMessage?: string;
   /** True if overflow occurred during compaction attempt */
@@ -215,6 +215,11 @@ export function isAgentContextOverflowEvent(
   if (!context || typeof context !== "object") {
     return false;
   }
-  // At minimum, we expect sessionFile or errorMessage to be present
-  return typeof context.sessionFile === "string" || typeof context.errorMessage === "string";
+  // Validate all required fields are present
+  return (
+    typeof context.sessionId === "string" &&
+    typeof context.sessionFile === "string" &&
+    typeof context.provider === "string" &&
+    typeof context.model === "string"
+  );
 }
