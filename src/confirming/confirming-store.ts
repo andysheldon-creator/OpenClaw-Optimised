@@ -200,7 +200,7 @@ function pruneExcessResponses(responses: PendingResponse[], maxPending: number) 
   }
 
   // Sort by createdAt and keep only the most recent
-  const sorted = pending.slice().sort((a, b) => {
+  const sorted = pending.toSorted((a, b) => {
     const aTime = parseTimestamp(a.createdAt) ?? 0;
     const bTime = parseTimestamp(b.createdAt) ?? 0;
     return aTime - bTime;
@@ -262,8 +262,7 @@ export async function listPendingResponses(
       }
       return pruned
         .filter((r) => r && typeof r.code === "string" && typeof r.senderId === "string")
-        .slice()
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
     },
   );
 }
