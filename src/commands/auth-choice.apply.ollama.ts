@@ -64,7 +64,7 @@ export async function applyAuthChoiceOllama(
     [
       "Ollama configured successfully.",
       "Models will be discovered automatically from your Ollama server.",
-      "Use `ollama pull <model>` to download models, then `moltbot models list` to see them.",
+      "Use `ollama pull <model>` to download models, then `openclaw models list` to see them.",
     ].join("\n"),
     "Setup complete",
   );
