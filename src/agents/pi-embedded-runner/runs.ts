@@ -12,6 +12,8 @@ type EmbeddedPiQueueHandle = {
 };
 
 const ACTIVE_EMBEDDED_RUNS = new Map<string, EmbeddedPiQueueHandle>();
+/** Thread context for active runs - used to prevent cross-thread steering. */
+const ACTIVE_RUN_THREAD_CONTEXT = new Map<string, string | number | undefined>();
 type EmbeddedRunWaiter = {
   resolve: (ended: boolean) => void;
   timer: NodeJS.Timeout;
@@ -64,6 +66,23 @@ export function isEmbeddedPiRunStreaming(sessionId: string): boolean {
   return handle.isStreaming();
 }
 
+/**
+ * Check if thread context is registered for a session.
+ * Returns true if the session has been registered (even if thread is undefined).
+ */
+export function hasActiveRunThreadContext(sessionId: string): boolean {
+  return ACTIVE_RUN_THREAD_CONTEXT.has(sessionId);
+}
+
+/**
+ * Get the thread context for an active run.
+ * Used to prevent cross-thread steering - only steer if thread IDs match.
+ * Returns undefined both for "no thread" and "not registered" - use hasActiveRunThreadContext() to distinguish.
+ */
+export function getActiveRunThreadContext(sessionId: string): string | number | undefined {
+  return ACTIVE_RUN_THREAD_CONTEXT.get(sessionId);
+}
+
 export function waitForEmbeddedPiRunEnd(sessionId: string, timeoutMs = 15_000): Promise<boolean> {
   if (!sessionId || !ACTIVE_EMBEDDED_RUNS.has(sessionId)) {
     return Promise.resolve(true);
@@ -111,9 +130,15 @@ function notifyEmbeddedRunEnded(sessionId: string) {
   }
 }
 
-export function setActiveEmbeddedRun(sessionId: string, handle: EmbeddedPiQueueHandle) {
+export function setActiveEmbeddedRun(
+  sessionId: string,
+  handle: EmbeddedPiQueueHandle,
+  threadContext?: string | number,
+) {
   const wasActive = ACTIVE_EMBEDDED_RUNS.has(sessionId);
   ACTIVE_EMBEDDED_RUNS.set(sessionId, handle);
+  // Always store thread context (even undefined) to distinguish "no thread" from "not registered"
+  ACTIVE_RUN_THREAD_CONTEXT.set(sessionId, threadContext);
   logSessionStateChange({
     sessionId,
     state: "processing",
@@ -127,13 +152,18 @@ export function setActiveEmbeddedRun(sessionId: string, handle: EmbeddedPiQueueH
 export function clearActiveEmbeddedRun(sessionId: string, handle: EmbeddedPiQueueHandle) {
   if (ACTIVE_EMBEDDED_RUNS.get(sessionId) === handle) {
     ACTIVE_EMBEDDED_RUNS.delete(sessionId);
+    ACTIVE_RUN_THREAD_CONTEXT.delete(sessionId);
     logSessionStateChange({ sessionId, state: "idle", reason: "run_completed" });
     if (!sessionId.startsWith("probe-")) {
       diag.debug(`run cleared: sessionId=${sessionId} totalActive=${ACTIVE_EMBEDDED_RUNS.size}`);
     }
     notifyEmbeddedRunEnded(sessionId);
   } else {
-    diag.debug(`run clear skipped: sessionId=${sessionId} reason=handle_mismatch`);
+    // Handle mismatch is expected when a run was replaced (see "run_replaced" in setActiveEmbeddedRun).
+    // Thread context is keyed by sessionId, not handle, so it persists with the replacement run.
+    diag.debug(
+      `run clear skipped: sessionId=${sessionId} reason=handle_mismatch (run was likely replaced)`,
+    );
   }
 }
 
