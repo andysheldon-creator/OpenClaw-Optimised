@@ -6,7 +6,7 @@ import { readConfigFileSnapshot, writeConfigFile, resolveGatewayPort } from "../
 import { logConfigUpdated } from "../config/logging.js";
 import { defaultRuntime } from "../runtime.js";
 
-type WebConfigureSection = "gateway" | "web-tools";
+type WebConfigureSection = "gateway" | "web-tools" | "model-keys";
 
 type WizardRunOpts = OnboardOptions & { wizard?: "onboarding" | "configure" };
 
@@ -46,8 +46,13 @@ export async function runConfigureWizardWeb(
     options: [
       { value: "gateway", label: "Gateway", hint: "Port, bind, auth" },
       { value: "web-tools", label: "Web tools", hint: "web_fetch + web_search" },
+      {
+        value: "model-keys",
+        label: "Model API keys",
+        hint: "OpenAI, Anthropic, Gemini, OpenRouter",
+      },
     ],
-    initialValues: ["gateway", "web-tools"],
+    initialValues: ["gateway", "web-tools", "model-keys"],
   });
 
   let next = structuredClone(baseConfig);
@@ -162,6 +167,55 @@ export async function runConfigureWizardWeb(
         "Web search",
       );
     }
+  }
+
+  if (sections.includes("model-keys")) {
+    await prompter.note(
+      [
+        "This stores API keys in openclaw.json under env.vars.",
+        "That is convenient, but it is plaintext on disk.",
+        "If you prefer, set these as real environment variables instead.",
+      ].join("\n"),
+      "Model API keys",
+    );
+
+    type KeyChoice = "openai" | "anthropic" | "gemini" | "openrouter";
+    const picks = await prompter.multiselect<KeyChoice>({
+      message: "Which keys do you want to set?",
+      options: [
+        { value: "openai", label: "OpenAI", hint: "OPENAI_API_KEY" },
+        { value: "anthropic", label: "Anthropic", hint: "ANTHROPIC_API_KEY" },
+        { value: "gemini", label: "Google Gemini", hint: "GEMINI_API_KEY" },
+        { value: "openrouter", label: "OpenRouter", hint: "OPENROUTER_API_KEY" },
+      ],
+      initialValues: ["openai", "anthropic", "gemini"],
+    });
+
+    const envVars = { ...(next.env?.vars ?? {}) };
+
+    async function promptKey(label: string, keyName: string) {
+      const value = await prompter.text({
+        message: `${label} API key`,
+        initialValue: "",
+        placeholder: envVars[keyName] ? "Leave blank to keep current" : "Paste key",
+        validate: (v) => (v.trim() || envVars[keyName] ? undefined : "Required"),
+      });
+      const trimmed = value.trim();
+      if (trimmed) envVars[keyName] = trimmed;
+    }
+
+    if (picks.includes("openai")) await promptKey("OpenAI", "OPENAI_API_KEY");
+    if (picks.includes("anthropic")) await promptKey("Anthropic", "ANTHROPIC_API_KEY");
+    if (picks.includes("gemini")) await promptKey("Gemini", "GEMINI_API_KEY");
+    if (picks.includes("openrouter")) await promptKey("OpenRouter", "OPENROUTER_API_KEY");
+
+    next = {
+      ...next,
+      env: {
+        ...next.env,
+        vars: envVars,
+      },
+    };
   }
 
   await writeConfigFile(next);
