@@ -150,9 +150,9 @@ async function handleSetup(context: SyncCommandContext, passphrase: string): Pro
 
 /**
  * Handle upload command
- * /동기화 업로드
+ * /동기화 업로드 [agentId]
  */
-async function handleUpload(context: SyncCommandContext, memoryData?: MemoryData): Promise<SyncCommandResult> {
+async function handleUpload(context: SyncCommandContext, agentId?: string): Promise<SyncCommandResult> {
   const manager = getSyncManager(context);
 
   if (!manager) {
@@ -162,31 +162,37 @@ async function handleUpload(context: SyncCommandContext, memoryData?: MemoryData
     };
   }
 
-  // If no memory data provided, this is a placeholder
-  // In real implementation, this would get data from local Moltbot
-  if (!memoryData) {
+  // Check if Moltbot is installed
+  if (!manager.checkMoltbotInstalled()) {
     return {
       success: false,
       message:
-        "⚠️ 업로드할 메모리 데이터가 없습니다.\n\n" +
-        "이 기능은 로컬 Moltbot과 연동되어야 합니다.\n" +
-        "Moltbot Gateway가 실행 중인지 확인하세요.",
+        "⚠️ Moltbot이 설치되어 있지 않습니다.\n\n" +
+        "이 기기에 Moltbot을 먼저 설치해주세요.\n" +
+        "설치: npm install -g moltbot",
     };
   }
 
+  // Use default agent ID if not provided
+  const targetAgentId = agentId || "main";
+
   try {
-    const result = await manager.uploadMemory(memoryData);
+    const result = await manager.uploadMoltbotData(targetAgentId);
 
     if (result.success) {
+      const stats = result.stats;
       return {
         success: true,
         message:
-          `✅ 메모리 업로드 완료!\n\n` +
+          `✅ Moltbot 메모리 업로드 완료!\n\n` +
           `📊 버전: ${result.version}\n` +
+          `📁 파일: ${stats?.files ?? 0}개\n` +
+          `📝 청크: ${stats?.chunks ?? 0}개\n` +
+          `💬 세션: ${stats?.sessions ?? 0}개\n` +
           `🔐 복구 코드: ${result.recoveryCode}\n\n` +
           `다른 기기에서 "/동기화 다운로드"로\n` +
           `메모리를 가져올 수 있습니다.`,
-        data: { version: result.version },
+        data: { version: result.version, stats: result.stats },
       };
     } else {
       return {
@@ -217,6 +223,53 @@ async function handleDownload(context: SyncCommandContext): Promise<SyncCommandR
   }
 
   try {
+    // First try to download Moltbot full backup
+    const moltbotResult = await manager.downloadMoltbotData();
+
+    if (moltbotResult.success && moltbotResult.data) {
+      // Check if Moltbot is installed for import
+      if (manager.checkMoltbotInstalled()) {
+        // Import to local Moltbot
+        const syncResult = await manager.syncMoltbotFromCloud();
+
+        if (syncResult.success) {
+          const stats = syncResult.stats;
+          return {
+            success: true,
+            message:
+              `✅ Moltbot 메모리 다운로드 및 복원 완료!\n\n` +
+              `📊 버전: ${moltbotResult.version}\n` +
+              `📁 파일: ${stats?.files ?? 0}개\n` +
+              `📝 청크: ${stats?.chunks ?? 0}개\n` +
+              `💬 세션: ${stats?.sessions ?? 0}개\n\n` +
+              `로컬 Moltbot에 메모리가 복원되었습니다.`,
+            data: { version: moltbotResult.version, stats },
+          };
+        } else {
+          return {
+            success: false,
+            message: `❌ 복원 실패: ${syncResult.error}\n\n데이터는 다운로드되었으나 로컬에 복원하지 못했습니다.`,
+          };
+        }
+      } else {
+        // Just return the data info (can't import without Moltbot)
+        const data = moltbotResult.data;
+        return {
+          success: true,
+          message:
+            `✅ 메모리 다운로드 완료!\n\n` +
+            `📊 버전: ${moltbotResult.version}\n` +
+            `📁 파일: ${data.memory.files.length}개\n` +
+            `📝 청크: ${data.memory.chunks.length}개\n` +
+            `💬 세션: ${data.sessions.length}개\n\n` +
+            `⚠️ Moltbot이 설치되지 않아 로컬에 복원하지 못했습니다.\n` +
+            `Moltbot 설치 후 다시 다운로드하세요.`,
+          data: moltbotResult.data,
+        };
+      }
+    }
+
+    // Fallback to simple memory download
     const result = await manager.downloadMemory();
 
     if (result.success) {

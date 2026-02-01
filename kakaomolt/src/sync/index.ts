@@ -47,3 +47,30 @@ export {
   type SyncCommandContext,
   type SyncCommandResult,
 } from "./sync-commands.js";
+
+// Re-export Moltbot adapters for convenience
+export {
+  createGatewayClient,
+  discoverLocalGateway,
+  exportMoltbotData,
+  getMoltbotMemoryStats,
+  getMemoryDbPath,
+  getSessionsDir,
+  hasMemoryDb,
+  importMoltbotData,
+  isMoltbotInstalled,
+  listAgentIds,
+  MoltbotGatewayClient,
+  readMoltbotMemory,
+  readMoltbotSessions,
+  type GatewayConfig,
+  type GatewayResponse,
+  type GatewayStatus,
+  type MemorySearchResult,
+  type MoltbotConversationMessage,
+  type MoltbotFile,
+  type MoltbotMemoryChunk,
+  type MoltbotMemoryExport,
+  type MoltbotSession,
+  type SendMessageOptions,
+} from "../moltbot/index.js";

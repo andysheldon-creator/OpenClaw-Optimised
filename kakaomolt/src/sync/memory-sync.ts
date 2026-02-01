@@ -25,6 +25,13 @@ import {
   type E2EEncryptedData,
   type E2EEncryptionKey,
 } from "./encryption.js";
+import {
+  exportMoltbotData,
+  importMoltbotData,
+  isMoltbotInstalled,
+  getMoltbotMemoryStats,
+  type MoltbotMemoryExport,
+} from "../moltbot/index.js";
 
 // Max chunk size for large data (4MB base64 ≈ 3MB binary)
 const MAX_CHUNK_SIZE = 4 * 1024 * 1024;
@@ -481,9 +488,250 @@ export class MemorySyncManager {
     }
     return chunks;
   }
+
+  // ============================================
+  // Moltbot Integration Methods
+  // ============================================
+
+  /**
+   * Check if local Moltbot is installed
+   */
+  checkMoltbotInstalled(): boolean {
+    return isMoltbotInstalled();
+  }
+
+  /**
+   * Get local Moltbot memory statistics
+   */
+  async getMoltbotStats(agentId: string): Promise<{
+    exists: boolean;
+    files?: number;
+    chunks?: number;
+    sessions?: number;
+    totalMessages?: number;
+  } | null> {
+    return getMoltbotMemoryStats(agentId);
+  }
+
+  /**
+   * Upload local Moltbot data to cloud (E2E encrypted)
+   *
+   * This exports the local Moltbot memory and sessions, encrypts them,
+   * and uploads to Supabase for cross-device sync.
+   */
+  async uploadMoltbotData(agentId: string): Promise<SyncResult & { stats?: { files: number; chunks: number; sessions: number } }> {
+    if (!this.encryptionKey) {
+      return { success: false, error: "Encryption not initialized. Call initWithPassphrase first." };
+    }
+
+    if (!isMoltbotInstalled()) {
+      return { success: false, error: "Moltbot is not installed on this device." };
+    }
+
+    const { supabase, userId, deviceId } = this.config;
+
+    try {
+      // Export local Moltbot data
+      const moltbotData = await exportMoltbotData(agentId);
+
+      if (!moltbotData) {
+        return { success: false, error: "Failed to export Moltbot data. No data found." };
+      }
+
+      // Serialize and compress
+      const jsonData = JSON.stringify(moltbotData);
+      const encrypted = await compressAndEncrypt(jsonData, this.encryptionKey);
+
+      // Check if data needs chunking
+      const dataSize = encrypted.ciphertext.length;
+
+      if (dataSize <= MAX_CHUNK_SIZE) {
+        // Single chunk upload
+        const { data, error } = await supabase.rpc("upload_sync_data", {
+          p_user_id: userId,
+          p_encrypted_data: encrypted.ciphertext,
+          p_iv: encrypted.iv,
+          p_auth_tag: encrypted.authTag,
+          p_data_type: "full_backup",
+          p_checksum: encrypted.checksum,
+          p_source_device_id: deviceId,
+          p_chunk_index: 0,
+          p_total_chunks: 1,
+        });
+
+        if (error) {
+          return { success: false, error: error.message };
+        }
+
+        const result = data?.[0];
+        if (!result?.success) {
+          return { success: false, error: result?.error_message ?? "Upload failed" };
+        }
+
+        return {
+          success: true,
+          version: result.new_version,
+          recoveryCode: keyToRecoveryCode(this.encryptionKey),
+          stats: {
+            files: moltbotData.memory.files.length,
+            chunks: moltbotData.memory.chunks.length,
+            sessions: moltbotData.sessions.length,
+          },
+        };
+      } else {
+        // Multi-chunk upload
+        const chunks = this.splitIntoChunks(encrypted.ciphertext, MAX_CHUNK_SIZE);
+        const totalChunks = chunks.length;
+        let finalVersion = 0;
+
+        for (let i = 0; i < chunks.length; i++) {
+          const { data, error } = await supabase.rpc("upload_sync_data", {
+            p_user_id: userId,
+            p_encrypted_data: chunks[i],
+            p_iv: encrypted.iv,
+            p_auth_tag: encrypted.authTag,
+            p_data_type: "full_backup",
+            p_checksum: encrypted.checksum,
+            p_source_device_id: deviceId,
+            p_chunk_index: i,
+            p_total_chunks: totalChunks,
+          });
+
+          if (error) {
+            return { success: false, error: `Chunk ${i} failed: ${error.message}` };
+          }
+
+          const result = data?.[0];
+          if (result?.success) {
+            finalVersion = result.new_version;
+          }
+        }
+
+        return {
+          success: true,
+          version: finalVersion,
+          recoveryCode: keyToRecoveryCode(this.encryptionKey),
+          stats: {
+            files: moltbotData.memory.files.length,
+            chunks: moltbotData.memory.chunks.length,
+            sessions: moltbotData.sessions.length,
+          },
+        };
+      }
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    }
+  }
+
+  /**
+   * Download and restore Moltbot data from cloud
+   *
+   * Downloads the encrypted Moltbot backup from Supabase, decrypts it,
+   * and imports it to the local Moltbot installation.
+   */
+  async downloadMoltbotData(minVersion: number = 0): Promise<{
+    success: boolean;
+    data?: MoltbotMemoryExport;
+    version?: number;
+    error?: string;
+  }> {
+    if (!this.encryptionKey) {
+      return { success: false, error: "Encryption not initialized. Call initWithPassphrase first." };
+    }
+
+    const { supabase, userId } = this.config;
+
+    try {
+      const { data, error } = await supabase.rpc("download_sync_data", {
+        p_user_id: userId,
+        p_data_type: "full_backup",
+        p_min_version: minVersion,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (!data || data.length === 0) {
+        return { success: true, data: undefined, version: minVersion };
+      }
+
+      // Group chunks by version
+      const latestVersion = data[0].version;
+      const chunks = data.filter((d) => d.version === latestVersion).sort((a, b) => a.chunk_index - b.chunk_index);
+
+      // Reassemble ciphertext
+      const ciphertext = chunks.map((c) => c.encrypted_data).join("");
+
+      const encrypted: E2EEncryptedData = {
+        ciphertext,
+        iv: chunks[0].iv,
+        authTag: chunks[0].auth_tag,
+        checksum: chunks[0].checksum,
+      };
+
+      // Decrypt and decompress
+      const decrypted = await decryptAndDecompress(encrypted, this.encryptionKey);
+      const moltbotData = JSON.parse(decrypted.toString("utf-8")) as MoltbotMemoryExport;
+
+      return {
+        success: true,
+        data: moltbotData,
+        version: latestVersion,
+      };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    }
+  }
+
+  /**
+   * Full sync: Download from cloud and import to local Moltbot
+   */
+  async syncMoltbotFromCloud(): Promise<{
+    success: boolean;
+    stats?: { files: number; chunks: number; sessions: number };
+    error?: string;
+  }> {
+    const downloadResult = await this.downloadMoltbotData();
+
+    if (!downloadResult.success) {
+      return { success: false, error: downloadResult.error };
+    }
+
+    if (!downloadResult.data) {
+      return { success: true, stats: { files: 0, chunks: 0, sessions: 0 } };
+    }
+
+    // Import to local Moltbot
+    const importResult = await importMoltbotData(downloadResult.data);
+
+    if (!importResult.success) {
+      return { success: false, error: importResult.error };
+    }
+
+    return {
+      success: true,
+      stats: importResult.stats,
+    };
+  }
+
+  /**
+   * Full sync: Export local Moltbot and upload to cloud
+   */
+  async syncMoltbotToCloud(agentId: string): Promise<{
+    success: boolean;
+    version?: number;
+    stats?: { files: number; chunks: number; sessions: number };
+    error?: string;
+  }> {
+    return this.uploadMoltbotData(agentId);
+  }
 }
 
 // Factory function
 export function createMemorySyncManager(config: SyncConfig): MemorySyncManager {
   return new MemorySyncManager(config);
 }
+
+// Re-export Moltbot types
+export type { MoltbotMemoryExport };
