@@ -43,14 +43,16 @@ function pickAsset(assets: ReleaseAsset[], platform: NodeJS.Platform) {
 
   if (platform === "linux") {
     const arch = os.arch();
-    const isArm = arch === "arm64" || arch === "arm" || arch.startsWith("arm");
+    const isArm =
+      arch === "arm64" || arch === "aarch64" || arch === "arm" || arch.startsWith("arm");
 
     // On ARM architectures, prefer the JAR version (no native binaries available)
     if (isArm) {
       return (
-        withName.find((asset) =>
-          !asset.name.toLowerCase().includes("native") &&
-          looksLikeArchive(asset.name.toLowerCase())
+        withName.find(
+          (asset) =>
+            !asset.name.toLowerCase().includes("native") &&
+            looksLikeArchive(asset.name.toLowerCase()),
         ) ||
         byName(/linux/) ||
         withName.find((asset) => looksLikeArchive(asset.name.toLowerCase()))
