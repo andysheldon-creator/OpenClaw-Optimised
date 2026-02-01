@@ -269,13 +269,18 @@ export async function runConfigureWizardWeb(
     const picks = await prompter.multiselect<ChannelChoice>({
       message: "Which channels do you want to configure?",
       options: [
-        { value: "discord", label: "Discord", hint: "Bot token + DM allowlist" },
-        { value: "telegram", label: "Telegram", hint: "Bot token + allowlist" },
+        { value: "discord", label: "Discord", hint: "Bot token + allowlists" },
+        { value: "telegram", label: "Telegram", hint: "Bot token + allowlists" },
       ],
-      initialValues: ["discord"],
+      initialValues: ["discord", "telegram"],
     });
 
     let nextChannels: any = { ...(next.channels ?? {}) };
+
+    const advanced = await prompter.confirm({
+      message: "Configure advanced channel routing now?",
+      initialValue: true,
+    });
 
     if (picks.includes("discord")) {
       const enabled = await prompter.confirm({
@@ -312,16 +317,94 @@ export async function runConfigureWizardWeb(
         if (raw.trim()) dmAllowFrom = parseAllowFrom(raw);
       }
 
+      let groupPolicy = nextChannels.discord?.groupPolicy;
+      let requireMentionGuildDefault = nextChannels.discord?.requireMention;
+
+      if (advanced) {
+        groupPolicy = await prompter.select({
+          message: "Discord group policy",
+          options: [
+            { value: "allowlist", label: "allowlist (recommended)" },
+            { value: "open", label: "open" },
+            { value: "disabled", label: "disabled" },
+          ],
+          initialValue: (groupPolicy ?? "allowlist") as any,
+        });
+
+        const req = await prompter.confirm({
+          message: "Require @mention in Discord guild channels by default?",
+          initialValue:
+            typeof requireMentionGuildDefault === "boolean" ? requireMentionGuildDefault : true,
+        });
+        requireMentionGuildDefault = req;
+      }
+
       nextChannels.discord = {
         ...(nextChannels.discord ?? {}),
         enabled,
         ...(token.trim() ? { token: token.trim() } : {}),
+        ...(groupPolicy ? { groupPolicy } : {}),
+        ...(typeof requireMentionGuildDefault === "boolean"
+          ? { requireMention: requireMentionGuildDefault }
+          : {}),
         dm: {
           ...(nextChannels.discord?.dm ?? {}),
           policy: dmPolicy,
           ...(dmAllowFrom ? { allowFrom: dmAllowFrom } : {}),
         },
       };
+
+      if (advanced) {
+        // Guild/channel allowlisting
+        const guildsRaw = await prompter.text({
+          message: "Discord guild IDs to configure (comma separated, optional)",
+          initialValue: "",
+          placeholder: "123456789012345678, 234567890123456789",
+        });
+        const guildIds = (guildsRaw || "")
+          .split(/[,\n]/g)
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        if (guildIds.length) {
+          const guilds: any = { ...(nextChannels.discord?.guilds ?? {}) };
+
+          for (const gid of guildIds) {
+            const gRequireMention = await prompter.confirm({
+              message: `Discord guild ${gid}: require mention?`,
+              initialValue:
+                typeof requireMentionGuildDefault === "boolean" ? requireMentionGuildDefault : true,
+            });
+
+            const channelIdsRaw = await prompter.text({
+              message: `Discord guild ${gid}: allowed channel IDs (comma separated)`,
+              initialValue: "",
+              placeholder: "345678901234567890",
+              validate: (v) => (v.trim() ? undefined : "Required"),
+            });
+            const channelIds = (channelIdsRaw || "")
+              .split(/[,\n]/g)
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+            const channels: any = {};
+            for (const cid of channelIds) {
+              channels[cid] = {
+                allow: true,
+                requireMention: gRequireMention,
+              };
+            }
+
+            guilds[gid] = {
+              ...(guilds[gid] ?? {}),
+              requireMention: gRequireMention,
+              channels: { ...(guilds[gid]?.channels ?? {}), ...channels },
+            };
+          }
+
+          nextChannels.discord.guilds = guilds;
+        }
+      }
     }
 
     if (picks.includes("telegram")) {
@@ -361,13 +444,73 @@ export async function runConfigureWizardWeb(
         if (raw.trim()) allowFrom = parseAllowFrom(raw);
       }
 
+      let groupPolicy = nextChannels.telegram?.groupPolicy;
+      let groupAllowFrom = nextChannels.telegram?.groupAllowFrom;
+
+      if (advanced) {
+        groupPolicy = await prompter.select({
+          message: "Telegram group policy",
+          options: [
+            { value: "allowlist", label: "allowlist (recommended)" },
+            { value: "open", label: "open" },
+            { value: "disabled", label: "disabled" },
+          ],
+          initialValue: (groupPolicy ?? "allowlist") as any,
+        });
+
+        const raw = await prompter.text({
+          message: "Telegram groupAllowFrom (comma separated user ids, optional)",
+          initialValue: "",
+          placeholder: groupAllowFrom?.length ? "Leave blank to keep current" : "123, 456",
+        });
+        if (raw.trim()) groupAllowFrom = parseAllowFrom(raw);
+      }
+
       nextChannels.telegram = {
         ...(nextChannels.telegram ?? {}),
         enabled,
         dmPolicy,
         ...(botToken.trim() ? { botToken: botToken.trim() } : {}),
         ...(allowFrom ? { allowFrom } : {}),
+        ...(groupPolicy ? { groupPolicy } : {}),
+        ...(groupAllowFrom ? { groupAllowFrom } : {}),
       };
+
+      if (advanced) {
+        const groupsRaw = await prompter.text({
+          message: "Telegram group chat IDs to configure (comma separated, optional)",
+          initialValue: "",
+          placeholder: "-1001234567890",
+        });
+        const groupIds = (groupsRaw || "")
+          .split(/[,\n]/g)
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        if (groupIds.length) {
+          const groups: any = { ...(nextChannels.telegram?.groups ?? {}) };
+
+          for (const gid of groupIds) {
+            const enabledGroup = await prompter.confirm({
+              message: `Telegram group ${gid}: enable?`,
+              initialValue: true,
+            });
+
+            const reqMention = await prompter.confirm({
+              message: `Telegram group ${gid}: require mention?`,
+              initialValue: true,
+            });
+
+            groups[gid] = {
+              ...(groups[gid] ?? {}),
+              enabled: enabledGroup,
+              requireMention: reqMention,
+            };
+          }
+
+          nextChannels.telegram.groups = groups;
+        }
+      }
     }
 
     next = {
