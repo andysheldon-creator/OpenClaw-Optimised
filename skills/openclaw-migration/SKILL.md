@@ -1,4 +1,9 @@
-# SKILL.md - OpenClaw Migration
+---
+name: OpenClaw Migration
+description: Migration playbook and validation steps for renaming Clawd to OpenClaw across code, docs, and tooling.
+homepage: https://www.clawhub.ai/chenyuan99/openclaw-migration
+---
+# SKILL.md OpenClaw Migration
 
 ## Purpose
 When the workspace is in the middle of renaming the Clawd project to OpenClaw, this skill lives in the repo so everyone—human or helper—can follow the same migration playbook. It outlines what gets moved, renamed, and tested as we align the codebase, docs, and tooling with the new brand.
