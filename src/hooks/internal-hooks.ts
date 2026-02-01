@@ -25,6 +25,29 @@ export type AgentBootstrapHookEvent = InternalHookEvent & {
   context: AgentBootstrapHookContext;
 };
 
+export type AgentResponseHookContext = {
+  /** The agent's response text (may be undefined if only tool calls) */
+  responseText?: string;
+  /** All response payloads */
+  payloads: Array<{ text?: string; [key: string]: unknown }>;
+  /** Model used for this response */
+  model?: string;
+  /** Provider used for this response */
+  provider?: string;
+  /** Session configuration */
+  cfg?: OpenClawConfig;
+  sessionKey?: string;
+  sessionId?: string;
+  agentId?: string;
+  workspaceDir?: string;
+};
+
+export type AgentResponseHookEvent = InternalHookEvent & {
+  type: "agent";
+  action: "response";
+  context: AgentResponseHookContext;
+};
+
 export interface InternalHookEvent {
   /** The type of event (command, session, agent, gateway, etc.) */
   type: InternalHookEventType;
@@ -178,4 +201,15 @@ export function isAgentBootstrapEvent(event: InternalHookEvent): event is AgentB
     return false;
   }
   return Array.isArray(context.bootstrapFiles);
+}
+
+export function isAgentResponseEvent(event: InternalHookEvent): event is AgentResponseHookEvent {
+  if (event.type !== "agent" || event.action !== "response") {
+    return false;
+  }
+  const context = event.context as Partial<AgentResponseHookContext> | null;
+  if (!context || typeof context !== "object") {
+    return false;
+  }
+  return Array.isArray(context.payloads);
 }
