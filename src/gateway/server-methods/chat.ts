@@ -68,17 +68,44 @@ function resolveTranscriptPath(params: {
 /**
  * Get the id of the last entry in the transcript file.
  * Used to set parentId for injected messages to maintain tree structure.
+ * 
+ * Optimized to read only the tail of the file instead of loading the entire
+ * transcript into memory. Falls back to session id if no valid entry found.
  */
 function getLastEntryId(transcriptPath: string): string | null {
+  const CHUNK_SIZE = 4096; // should be enough for a single JSONL entry
+  let fd: number | undefined;
   try {
-    const content = fs.readFileSync(transcriptPath, "utf-8").trim();
-    const lines = content.split("\n").filter((l) => l.trim());
-    if (lines.length > 0) {
-      const lastEntry = JSON.parse(lines[lines.length - 1]);
-      return lastEntry.id ?? null;
+    const stat = fs.statSync(transcriptPath);
+    if (stat.size === 0) return null;
+
+    fd = fs.openSync(transcriptPath, "r");
+    const readSize = Math.min(CHUNK_SIZE, stat.size);
+    const buffer = Buffer.alloc(readSize);
+    fs.readSync(fd, buffer, 0, readSize, stat.size - readSize);
+
+    const chunk = buffer.toString("utf-8");
+    const lines = chunk.split("\n").filter((l) => l.trim());
+
+    // Walk backwards to find the last valid JSON entry with an id
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const entry = JSON.parse(lines[i]);
+        if (entry.id) return entry.id;
+      } catch {
+        // partial line at chunk boundary, try previous
+      }
     }
   } catch {
-    // ignore read errors
+    // ignore read/stat errors
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // ignore close errors
+      }
+    }
   }
   return null;
 }
@@ -138,7 +165,8 @@ function appendAssistantTranscriptMessage(params: {
 
   const now = Date.now();
   const messageId = randomUUID().slice(0, 8);
-  const parentId = getLastEntryId(transcriptPath);
+  // Fall back to sessionId if no valid parent found (e.g., only session header exists)
+  const parentId = getLastEntryId(transcriptPath) ?? params.sessionId;
   const labelPrefix = params.label ? `[${params.label}]\n\n` : "";
   const messageBody: Record<string, unknown> = {
     role: "assistant",
@@ -672,7 +700,8 @@ export const chatHandlers: GatewayRequestHandlers = {
     // Build transcript entry
     const now = Date.now();
     const messageId = randomUUID().slice(0, 8);
-    const parentId = getLastEntryId(transcriptPath);
+    // Fall back to sessionId if no valid parent found (e.g., only session header exists)
+    const parentId = getLastEntryId(transcriptPath) ?? sessionId;
     const labelPrefix = p.label ? `[${p.label}]\n\n` : "";
     const messageBody: Record<string, unknown> = {
       role: "assistant",
