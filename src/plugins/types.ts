@@ -496,8 +496,8 @@ export type PluginHookHttpRequestReceivedEvent = {
   /** Full request body (parsed JSON) */
   requestBody: {
     model?: string;
-    messages?: Array<{ role: string; content: string | unknown }>;
-    input?: string | unknown;
+    messages?: Array<{ role: string; content: unknown }>;
+    input?: unknown;
     tools?: unknown[];
     [key: string]: unknown;
   };
@@ -530,7 +530,7 @@ export type PluginHookHttpResponseSendingEvent = {
   /** Full response body */
   responseBody: {
     choices?: Array<{ message?: { content?: string }; delta?: { content?: string } }>;
-    output?: Array<{ content?: string | unknown }>;
+    output?: Array<{ content?: unknown }>;
     [key: string]: unknown;
   };
   /** Original request body for context */
@@ -658,24 +658,30 @@ export type PluginHookHandlerMap = {
     event: PluginHookHttpRequestReceivedEvent,
     ctx: PluginHookHttpContext,
   ) =>
-    | Promise<PluginHookHttpRequestReceivedResult | void>
+    | Promise<PluginHookHttpRequestReceivedResult | undefined>
     | PluginHookHttpRequestReceivedResult
-    | void;
+    | undefined;
   http_response_sending: (
     event: PluginHookHttpResponseSendingEvent,
     ctx: PluginHookHttpContext,
   ) =>
-    | Promise<PluginHookHttpResponseSendingResult | void>
+    | Promise<PluginHookHttpResponseSendingResult | undefined>
     | PluginHookHttpResponseSendingResult
-    | void;
+    | undefined;
   http_tool_invoke: (
     event: PluginHookHttpToolInvokeEvent,
     ctx: PluginHookHttpContext,
-  ) => Promise<PluginHookHttpToolInvokeResult | void> | PluginHookHttpToolInvokeResult | void;
+  ) =>
+    | Promise<PluginHookHttpToolInvokeResult | undefined>
+    | PluginHookHttpToolInvokeResult
+    | undefined;
   http_tool_result: (
     event: PluginHookHttpToolResultEvent,
     ctx: PluginHookHttpContext,
-  ) => Promise<PluginHookHttpToolResultResult | void> | PluginHookHttpToolResultResult | void;
+  ) =>
+    | Promise<PluginHookHttpToolResultResult | undefined>
+    | PluginHookHttpToolResultResult
+    | undefined;
 };
 
 export type PluginHookRegistration<K extends PluginHookName = PluginHookName> = {

@@ -5,7 +5,7 @@
  * and block direct API requests that bypass messaging platform hooks.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { PluginRegistry } from "./registry.js";
 import type {
   PluginHookHttpContext,
@@ -15,7 +15,7 @@ import type {
   PluginHookHttpToolResultEvent,
   PluginHookRegistration,
 } from "./types.js";
-import { createHookRunner, type HookRunner } from "./hooks.js";
+import { createHookRunner } from "./hooks.js";
 
 function createMockRegistry(hooks: PluginHookRegistration[] = []): PluginRegistry {
   return {
