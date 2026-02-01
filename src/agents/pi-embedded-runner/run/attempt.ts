@@ -25,6 +25,7 @@ import { normalizeMessageChannel } from "../../../utils/message-channel.js";
 import { isReasoningTagProvider } from "../../../utils/provider-utils.js";
 import { isSubagentSessionKey } from "../../../routing/session-key.js";
 import { resolveUserPath } from "../../../utils.js";
+import { logDebug } from "../../../logger.js";
 import { createCacheTrace } from "../../cache-trace.js";
 import { createAnthropicPayloadLogger } from "../../anthropic-payload-log.js";
 import { resolveOpenClawAgentDir } from "../../agent-paths.js";
@@ -455,6 +456,12 @@ export async function runEmbeddedAttempt(
             clientToolCallDetected = { name: toolName, params: toolParams };
           })
         : [];
+      logDebug(
+        `[openresponses] clientToolDefs=${clientToolDefs.length} names=${clientToolDefs
+          .map((tool) => tool?.name)
+          .filter(Boolean)
+          .join(",")}`,
+      );
 
       const allCustomTools = [...customTools, ...clientToolDefs];
 

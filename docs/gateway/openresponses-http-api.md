@@ -250,6 +250,12 @@ Defaults when omitted:
 - `images.timeoutMs`: 10s
 - `toolResultMaxDataBytes`: unset (tool result data stripped)
 
+Notes:
+- `toolResultMaxDataBytes` applies to any `content[].data` field returned by tools
+  (images or other binary payloads like PDFs/docx).
+- When unset, OpenClaw strips base64 data for `type: "image"` tool results and returns
+  `{ bytes, omitted: true }`. When set, base64 is included up to the byte cap.
+
 ## Streaming (SSE)
 
 Set `stream: true` to receive Server-Sent Events (SSE):

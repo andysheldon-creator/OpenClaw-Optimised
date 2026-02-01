@@ -13,6 +13,7 @@ import { buildHistoryContextFromEntries, type HistoryEntry } from "../auto-reply
 import { createDefaultDeps } from "../cli/deps.js";
 import { agentCommand } from "../commands/agent.js";
 import { emitAgentEvent, onAgentEvent } from "../infra/agent-events.js";
+import { logDebug } from "../logger.js";
 import { defaultRuntime } from "../runtime.js";
 import { authorizeGatewayConnect, type ResolvedGatewayAuth } from "./auth.js";
 import { getBearerToken, resolveAgentIdForRequest, resolveSessionKey } from "./http-utils.js";
@@ -477,6 +478,12 @@ export async function handleOpenResponsesHttpRequest(
   }
 
   const clientTools = extractClientTools(payload);
+  logDebug(
+    `[openresponses] clientTools=${clientTools.length} names=${clientTools
+      .map((tool) => tool?.function?.name)
+      .filter(Boolean)
+      .join(",")}`,
+  );
   let toolChoicePrompt: string | undefined;
   let resolvedClientTools = clientTools;
   try {
@@ -486,6 +493,12 @@ export async function handleOpenResponsesHttpRequest(
     });
     resolvedClientTools = toolChoiceResult.tools;
     toolChoicePrompt = toolChoiceResult.extraSystemPrompt;
+    logDebug(
+      `[openresponses] resolvedClientTools=${resolvedClientTools.length} names=${resolvedClientTools
+        .map((tool) => tool?.function?.name)
+        .filter(Boolean)
+        .join(",")}`,
+    );
   } catch (err) {
     sendJson(res, 400, {
       error: { message: String(err), type: "invalid_request_error" },
