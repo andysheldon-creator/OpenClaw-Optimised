@@ -59,6 +59,16 @@ export const ModelProviderSchema = z
   })
   .strict();
 
+export const AzureOpenAIDeploymentSchema = z
+  .object({
+    endpoint: z.string().min(1),
+    apiKey: z.string().optional(),
+    apiVersion: z.string().optional(),
+    deployments: z.record(z.string(), z.string()).optional(),
+  })
+  .strict()
+  .optional();
+
 export const BedrockDiscoverySchema = z
   .object({
     enabled: z.boolean().optional(),

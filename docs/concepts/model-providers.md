@@ -256,6 +256,19 @@ ollama pull llama3.3
 
 Ollama is automatically detected when running locally at `http://127.0.0.1:11434/v1`. See [/providers/ollama](/providers/ollama) for model recommendations and custom configuration.
 
+### Azure OpenAI
+
+Azure OpenAI provides enterprise-grade access to GPT models with Azure security and compliance.
+
+- Provider: `azure-openai` (via LiteLLM proxy)
+- Auth: Azure API key + LiteLLM proxy
+- Example model: `azure-openai/gpt-5.2-codex`
+
+Azure OpenAI requires a LiteLLM proxy because its API differs from standard OpenAI
+(different auth header, URL format, and unsupported params).
+
+See [/providers/azure-openai](/providers/azure-openai) for complete setup guide.
+
 ### Local proxies (LM Studio, vLLM, LiteLLM, etc.)
 
 Example (OpenAI‑compatible):

@@ -43,6 +43,17 @@ export type ModelProviderConfig = {
   models: ModelDefinitionConfig[];
 };
 
+export type AzureOpenAIDeploymentConfig = {
+  /** Azure OpenAI resource endpoint (e.g., https://my-resource.openai.azure.com) */
+  endpoint: string;
+  /** Azure OpenAI API key */
+  apiKey?: string;
+  /** API version (e.g., 2024-10-21) */
+  apiVersion?: string;
+  /** Map model IDs to Azure deployment names */
+  deployments?: Record<string, string>;
+};
+
 export type BedrockDiscoveryConfig = {
   enabled?: boolean;
   region?: string;
