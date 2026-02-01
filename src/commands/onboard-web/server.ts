@@ -52,7 +52,10 @@ export async function startOnboardWebServer(options: ServerOptions): Promise<voi
   // Track active connections
   const connections = new Set<WebSocket>();
 
-  // Shutdown function to close the server
+  // Resolve function that will be set when the Promise is created
+  let resolveServer: (() => void) | null = null;
+
+  // Shutdown function to close the server gracefully
   let shutdownRequested = false;
   const requestShutdown = () => {
     if (shutdownRequested) {
@@ -65,7 +68,9 @@ export async function startOnboardWebServer(options: ServerOptions): Promise<voi
     }
     server.close(() => {
       runtime.log("[onboard-web] Server stopped");
-      process.exit(0);
+      if (resolveServer) {
+        resolveServer();
+      }
     });
   };
 
@@ -135,6 +140,9 @@ export async function startOnboardWebServer(options: ServerOptions): Promise<voi
   });
 
   return new Promise((resolve, reject) => {
+    // Store resolve function for use by requestShutdown
+    resolveServer = resolve;
+
     server.on("error", (error) => {
       runtime.error(`[onboard-web] Server error: ${error.message}`);
       reject(error);
@@ -152,20 +160,9 @@ export async function startOnboardWebServer(options: ServerOptions): Promise<voi
       runtime.log("[onboard-web] Press Ctrl+C to stop the server");
     });
 
-    // Handle graceful shutdown
-    const shutdown = () => {
-      runtime.log("\n[onboard-web] Shutting down...");
-      for (const ws of connections) {
-        ws.close();
-      }
-      server.close(() => {
-        runtime.log("[onboard-web] Server stopped");
-        resolve();
-      });
-    };
-
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
+    // Handle graceful shutdown via SIGINT/SIGTERM
+    process.on("SIGINT", requestShutdown);
+    process.on("SIGTERM", requestShutdown);
   });
 }
 
@@ -174,7 +171,8 @@ async function handleHttpRequest(
   res: ServerResponse,
   _runtime: RuntimeEnv,
 ): Promise<void> {
-  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  // Use a fixed origin since we always bind to 127.0.0.1
+  const url = new URL(req.url ?? "/", "http://127.0.0.1");
   let pathname = url.pathname;
 
   // Default to index.html
@@ -232,7 +230,8 @@ function openBrowser(url: string, runtime: RuntimeEnv): void {
       let command: string;
       if (platform === "win32") {
         // On Windows, use rundll32 which is the most reliable way to open URLs
-        command = `rundll32 url.dll,FileProtocolHandler ${url}`;
+        // Quote the URL to prevent command injection with special characters
+        command = `rundll32 url.dll,FileProtocolHandler "${url}"`;
       } else if (platform === "darwin") {
         command = `open "${url}"`;
       } else {
