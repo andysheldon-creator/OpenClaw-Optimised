@@ -21,6 +21,7 @@ Azure OpenAI Service provides enterprise-grade access to OpenAI models (GPT-4o, 
 ## Setup with LiteLLM Proxy
 
 Azure OpenAI requires a LiteLLM proxy because its API differs from standard OpenAI:
+
 - Uses `api-key` header instead of `Authorization: Bearer`
 - Different URL format with deployment names in the path
 - Doesn't support some OpenAI params (like `store`)
@@ -52,10 +53,11 @@ model_list:
       api_version: "2024-10-21"
 
 litellm_settings:
-  drop_params: true  # Required: OpenClaw sends params Azure doesn't support
+  drop_params: true # Required: OpenClaw sends params Azure doesn't support
 ```
 
 Replace:
+
 - `your-resource` with your Azure OpenAI resource name
 - `your-gpt4o-mini-deployment` and `your-gpt5-codex-deployment` with your deployment names
 - Set `AZURE_OPENAI_API_KEY` environment variable with your Azure API key
@@ -121,6 +123,7 @@ Add to `~/.openclaw/openclaw.json`:
 ### LiteLLM `drop_params: true`
 
 This setting is critical. Without it, you'll get errors like:
+
 ```
 azure does not support parameters: ['store']
 ```
@@ -150,6 +153,7 @@ Ensure your provider config includes `"api": "openai-completions"`.
 ### Rate limiting
 
 Azure OpenAI has per-deployment rate limits. Consider:
+
 - Increasing TPM (tokens per minute) quota in Azure Portal
 - Using multiple deployments with model failover
 
