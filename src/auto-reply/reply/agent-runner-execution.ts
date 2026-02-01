@@ -16,6 +16,7 @@ import {
   isLikelyContextOverflowError,
   sanitizeUserFacingText,
 } from "../../agents/pi-embedded-helpers.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import {
   resolveAgentIdFromSessionKey,
@@ -552,6 +553,24 @@ export async function runAgentTurnWithFallback(params: {
 
       defaultRuntime.error(`Embedded agent failed before reply: ${message}`);
       const trimmedMessage = message.replace(/\.\s*$/, "");
+
+      // Emit agent:context_overflow hook event for external handlers (e.g. ClawVault)
+      if (isContextOverflow) {
+        const hookEvent = createInternalHookEvent(
+          "agent",
+          "context_overflow",
+          params.sessionKey ?? "",
+          {
+            sessionId: params.getActiveSessionEntry()?.sessionId,
+            sessionFile: params.sessionFile,
+            errorMessage: message,
+            isCompactionFailure: isCompactionFailure,
+            thrownAsException: true,
+          },
+        );
+        void triggerInternalHook(hookEvent);
+      }
+
       const fallbackText = isContextOverflow
         ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model."
         : isRoleOrderingError
