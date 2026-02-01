@@ -179,13 +179,7 @@ export class SearchableSelectList implements Component {
       lines.push(
         visibleWidth(noMatchLine) > width ? truncateToWidth(noMatchLine, width, "") : noMatchLine,
       );
-      // Truncate before returning to prevent width overflow crash
-      for (let i = 0; i < lines.length; i++) {
-        if (visibleWidth(lines[i]) > width) {
-          lines[i] = truncateToWidth(lines[i], width, "");
-        }
-      }
-      return lines;
+      return this.truncateLines(lines, width);
     }
 
     // Calculate visible range with scrolling
@@ -214,13 +208,19 @@ export class SearchableSelectList implements Component {
       lines.push(this.theme.scrollInfo(`  ${scrollInfo}`));
     }
 
-    // Ensure all lines are truncated to width to prevent TUI crashes
+    return this.truncateLines(lines, width);
+  }
+
+  /**
+   * Truncate all lines to the specified width to prevent TUI crashes.
+   * This must be called before every return in render().
+   */
+  private truncateLines(lines: string[], width: number): string[] {
     for (let i = 0; i < lines.length; i++) {
       if (visibleWidth(lines[i]) > width) {
         lines[i] = truncateToWidth(lines[i], width, "");
       }
     }
-
     return lines;
   }
 
