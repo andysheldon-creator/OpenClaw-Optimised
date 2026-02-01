@@ -10,7 +10,7 @@
 
 | PRD | Title | Priority | Status | Depends On |
 |---|---|---|---|---|
-| [PRD-01](PRD-01-core-rate-limiter.md) | Core Rate Limiter Middleware | P0 | ⬜ Not Started | — |
+| [PRD-01](PRD-01-core-rate-limiter.md) | Core Rate Limiter Middleware | P0 | ✅ Done | — |
 | [PRD-02](PRD-02-http-rate-limiting.md) | HTTP Endpoint Rate Limiting | P0 | ⬜ Not Started | PRD-01 |
 | [PRD-03](PRD-03-websocket-rate-limiting.md) | WebSocket Rate Limiting & Auth Brute-Force | P1 | ⬜ Not Started | PRD-01 |
 | [PRD-04](PRD-04-external-api-throttling-monitoring.md) | External API Throttling & Monitoring | P2 | ⬜ Not Started | PRD-01 |
