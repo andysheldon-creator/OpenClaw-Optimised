@@ -43,7 +43,7 @@ export async function loadAvailableModels(state: ModelsState) {
         reasoning: m.reasoning,
       };
     });
-  } catch {
-    // ignore
+  } catch (err) {
+    console.warn("[models] Failed to load model catalog:", err);
   }
 }
