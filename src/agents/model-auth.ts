@@ -173,7 +173,7 @@ export async function resolveApiKeyForProvider(params: {
   // Providers with auth: "none" don't require an API key (e.g., local Ollama).
   // Return a placeholder key so the OpenAI client doesn't reject the request.
   if (authOverride === "none") {
-    return { apiKey: "ollama", source: "auth:none", mode: "api-key" };
+    return { apiKey: "no-key", source: "auth:none", mode: "api-key" };
   }
 
   const order = resolveAuthProfileOrder({

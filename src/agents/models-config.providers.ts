@@ -7,6 +7,7 @@ import {
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
 import { discoverBedrockModels } from "./bedrock-discovery.js";
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
+import { normalizeProviderId } from "./model-selection.js";
 import {
   buildSyntheticModelDefinition,
   SYNTHETIC_BASE_URL,
@@ -461,8 +462,11 @@ export async function resolveImplicitProviders(params: {
     resolveEnvApiKeyVarName("ollama") ??
     resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
   if (ollamaKey) {
-    // Use the explicit config's base URL for discovery if available
-    const explicitOllama = params.explicitProviders?.ollama;
+    // Use the explicit config's base URL for discovery if available.
+    // Resolve by normalized provider id so keys like "ollama-local" are matched too.
+    const explicitOllama = Object.entries(params.explicitProviders ?? {}).find(
+      ([key]) => normalizeProviderId(key) === "ollama",
+    )?.[1];
     const ollamaApiBaseUrl = explicitOllama?.baseUrl
       ? explicitOllama.baseUrl.replace(/\/v1\/?$/, "")
       : undefined;
