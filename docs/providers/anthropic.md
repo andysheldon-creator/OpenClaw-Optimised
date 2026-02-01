@@ -43,11 +43,11 @@ OpenClaw supports Anthropic's prompt caching feature. This is **API-only**; subs
 
 Use the `cacheRetention` parameter in your model config:
 
-| Value | Cache Duration | Description |
-|-------|----------------|-------------|
-| `none` | No caching | Disable prompt caching |
-| `short` | 5 minutes | Default for API Key auth |
-| `long` | 1 hour | Extended cache (requires beta flag) |
+| Value   | Cache Duration | Description                         |
+| ------- | -------------- | ----------------------------------- |
+| `none`  | No caching     | Disable prompt caching              |
+| `short` | 5 minutes      | Default for API Key auth            |
+| `long`  | 1 hour         | Extended cache (requires beta flag) |
 
 ```json5
 {
@@ -70,6 +70,7 @@ When using Anthropic API Key authentication, OpenClaw automatically applies `cac
 ### Legacy parameter
 
 The older `cacheControlTtl` parameter is still supported for backwards compatibility:
+
 - `"5m"` maps to `short`
 - `"1h"` maps to `long`
 
