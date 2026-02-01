@@ -319,7 +319,7 @@ export function registerPluginsCli(program: Command) {
     .command("uninstall")
     .description("Uninstall a plugin")
     .argument("<id>", "Plugin id")
-    .option("--keep-config", "Keep plugin config entries, only remove files", false)
+    .option("--keep-config", "Keep installed files, only remove config entries", false)
     .option("--force", "Skip confirmation prompt", false)
     .option("--dry-run", "Show what would be removed without making changes", false)
     .action(async (id: string, opts: PluginUninstallOptions) => {
