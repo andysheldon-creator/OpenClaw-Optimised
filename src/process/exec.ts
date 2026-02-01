@@ -89,11 +89,15 @@ export async function runCommandWithTimeout(
   }
 
   const stdio = resolveCommandStdio({ hasInput, preferInherit: true });
+  const cmdTool = path.parse(argv[0] ?? "").name;
+  const needsShell =
+    process.platform === "win32" && ["npm", "pnpm", "yarn", "npx"].includes(cmdTool);
   const child = spawn(argv[0], argv.slice(1), {
     stdio,
     cwd,
     env: resolvedEnv,
     windowsVerbatimArguments,
+    shell: needsShell,
   });
   // Spawn with inherited stdin (TTY) so tools like `pi` stay interactive when needed.
   return await new Promise((resolve, reject) => {
