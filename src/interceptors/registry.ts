@@ -13,7 +13,10 @@ type AnyInterceptorRegistration = InterceptorRegistration;
  * Throws if the regex cannot match any known tool, preventing silent misconfigurations.
  */
 function validateToolMatcher(id: string, matcher: RegExp): void {
-  const matchesAny = [...KNOWN_TOOL_NAMES].some((name) => matcher.test(name));
+  const matchesAny = [...KNOWN_TOOL_NAMES].some((name) => {
+    matcher.lastIndex = 0;
+    return matcher.test(name);
+  });
   if (!matchesAny) {
     throw new Error(
       `Interceptor "${id}": toolMatcher ${matcher} does not match any known tool name. ` +

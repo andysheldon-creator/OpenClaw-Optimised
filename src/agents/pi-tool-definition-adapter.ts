@@ -85,11 +85,21 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
             logDebug(`tools: ${normalizedName} failed stack:\n${described.stack}`);
           }
           logError(`[tools] ${normalizedName} failed: ${described.message}`);
-          return jsonResult({
+          let errorResult: AgentToolResult<unknown> = jsonResult({
             status: "error",
             tool: normalizedName,
             error: described.message,
           });
+          if (registry) {
+            const afterOutput = await trigger(
+              registry,
+              "tool.after",
+              { toolName: normalizedName, toolCallId, isError: true },
+              { result: errorResult },
+            );
+            errorResult = afterOutput.result;
+          }
+          return errorResult;
         }
 
         // --- tool.after ---
