@@ -51,6 +51,17 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - When you make a mistake → document it so future-you doesn't repeat it
 - **Text > Brain** 📝
 
+### 📅 Use Absolute Dates!
+
+Relative dates ("tomorrow", "next week", "yesterday") rot the moment a day passes. Always anchor to absolute dates:
+
+- ❌ "Demo is tomorrow"
+- ✅ "Demo is tomorrow — Sunday, February 1st"
+- ❌ "Meeting next Tuesday"
+- ✅ "Meeting next Tuesday, February 4th"
+
+This applies to memory files, reminders, and anywhere you're recording future events. Future-you will thank present-you.
+
 ## Safety
 
 - Don't exfiltrate private data. Ever.
