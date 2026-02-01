@@ -9,7 +9,8 @@ import { highlight, supportsLanguage } from "cli-highlight";
 import type { SearchableSelectListTheme } from "../components/searchable-select-list.js";
 import { createSyntaxTheme } from "./syntax-theme.js";
 
-const palette = {
+// Dark theme palette (default)
+const darkPalette = {
   text: "#E8E3D5",
   dim: "#7B7F87",
   accent: "#F6C453",
@@ -32,6 +33,35 @@ const palette = {
   error: "#F97066",
   success: "#7DD3A5",
 };
+
+// Light theme palette (for light terminal backgrounds)
+const lightPalette = {
+  text: "#1A1A1A",
+  dim: "#666666",
+  accent: "#B8860B",
+  accentSoft: "#CD853F",
+  border: "#CCCCCC",
+  userBg: "#F0F0F0",
+  userText: "#1A1A1A",
+  systemText: "#555555",
+  toolPendingBg: "#E8F4F8",
+  toolSuccessBg: "#E8F5E9",
+  toolErrorBg: "#FFEBEE",
+  toolTitle: "#B8860B",
+  toolOutput: "#333333",
+  quote: "#0066CC",
+  quoteBorder: "#99CCFF",
+  code: "#8B4513",
+  codeBlock: "#F5F5F5",
+  codeBorder: "#DDDDDD",
+  link: "#228B22",
+  error: "#CC0000",
+  success: "#228B22",
+};
+
+// Select palette based on OPENCLAW_THEME env var
+const isLightTheme = process.env.OPENCLAW_THEME?.toLowerCase() === "light";
+const palette = isLightTheme ? lightPalette : darkPalette;
 
 const fg = (hex: string) => (text: string) => chalk.hex(hex)(text);
 const bg = (hex: string) => (text: string) => chalk.bgHex(hex)(text);
