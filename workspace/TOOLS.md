@@ -1,5 +1,53 @@
 # TOOLS.md - Builder Edition
 
+## Claude Code CLI (Primary Build Tool)
+
+You have access to `claude` (Claude Code CLI) for all coding tasks. Use it the same
+way a human developer would - give it clear instructions and let it write, edit,
+test, and debug code autonomously.
+
+### Usage Patterns
+
+```bash
+# Start a coding session with a task
+claude "Create a Hono endpoint at /health that returns JSON with status and timestamp"
+
+# Continue an existing session
+claude --continue "Now add error handling and a version field"
+
+# Run with specific instructions
+claude "Read the CHARTER.md, then scaffold the Cloudflare Workers project with Hono"
+
+# Let it fix issues
+claude "Run the tests, fix any failures, then run them again to confirm"
+```
+
+### Best Practices
+
+- Give Claude Code the full context: reference CHARTER.md, existing code, requirements
+- Let it handle the details - you orchestrate WHAT gets built, Claude Code decides HOW
+- Use `--continue` to maintain context within a build session
+- Review output before marking tasks complete in BUILD_STATUS.md
+- Claude Code has its own $200/mo budget (flat rate, unlimited usage)
+
+### What Claude Code Handles
+
+- Writing and editing source code (TypeScript, Hono routes, Workers config)
+- Running tests and fixing failures
+- Git operations (commits, branches)
+- File creation and project scaffolding
+- Debugging and error resolution
+- Deployment commands (`wrangler deploy`)
+
+### What You (Danno) Handle
+
+- Reading workspace files and following the Nine Laws
+- Conflict detection and pre-action checks
+- Cost tracking and budget management
+- Task orchestration and progress updates
+- Decision logging and audit trail
+- Communicating with Michael via messaging channels
+
 ## Project Management
 
 - Read `MASTER_PROJECT.md` for active projects and their status

@@ -1,0 +1,50 @@
+{
+  // SHARPS EDGE Builder Edition - Mac Mini Configuration
+  // Uses OpenRouter free models for thinking, Claude Code CLI for building
+
+  "env": {
+    "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
+  },
+
+  "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace",
+
+      // Primary: free DeepSeek R1 for reasoning tasks
+      "model": {
+        "primary": "openrouter/deepseek/deepseek-r1-0528",
+        "fallbacks": [
+          "openrouter/meta-llama/llama-3.3-70b-instruct"
+        ]
+      },
+
+      "models": {
+        "openrouter/deepseek/deepseek-r1-0528": { "alias": "reason" },
+        "openrouter/meta-llama/llama-3.3-70b-instruct": { "alias": "general" }
+      },
+
+      "thinkingDefault": "low",
+      "timeoutSeconds": 600
+    }
+  },
+
+  // SHARPS EDGE extension config
+  "extensions": {
+    "sharps-edge": {
+      "projectDir": "projects/SHARPS-EDGE",
+      "budgetMonthlyUsd": 200,
+      "budgetAlertThreshold": 0.8,
+      "conflictDetection": {
+        "enabled": true,
+        "strictMode": false
+      },
+      "severityRouting": {
+        "INFO": "log",
+        "WARN": "log",
+        "BLOCK": "log",
+        "REJECT": "log",
+        "CRITICAL": "log"
+      }
+    }
+  }
+}
