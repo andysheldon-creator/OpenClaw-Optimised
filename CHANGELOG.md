@@ -8,6 +8,7 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- Agents: bind ExtensionRunner in embedded mode so compaction hooks produce real summaries instead of "Summary unavailable...". (#2027) Thanks @ArtemHorik.
 - Telegram: restore draft streaming partials. (#5543) Thanks @obviyus.
 - fix(lobster): block arbitrary exec via lobsterPath/cwd injection (GHSA-4mhr-g7xj-cg8j). (#5335) Thanks @vignesh07.
 

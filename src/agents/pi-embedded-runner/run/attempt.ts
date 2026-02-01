@@ -1,14 +1,15 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { ImageContent } from "@mariozechner/pi-ai";
+import type { AgentMessage, ThinkingLevel } from "@mariozechner/pi-agent-core";
+import type { Api, ImageContent, Model } from "@mariozechner/pi-ai";
 import { streamSimple } from "@mariozechner/pi-ai";
 import {
   createAgentSession,
   DefaultResourceLoader,
   SessionManager,
   SettingsManager,
+  type CompactOptions,
 } from "@mariozechner/pi-coding-agent";
 
 import { resolveHeartbeatPrompt } from "../../../auto-reply/heartbeat.js";
@@ -510,6 +511,81 @@ export async function runEmbeddedAttempt(
 
       // Force a stable streamFn reference so vitest can reliably mock @mariozechner/pi-ai.
       activeSession.agent.streamFn = streamSimple;
+
+      // IMPORTANT (embedded mode): bind the pi extension runner.
+      //
+      // In pi-coding-agent, ExtensionRunner defaults `ctx.model` to `undefined` until
+      // `extensionRunner.bindCore(...)` is called. Moltbot uses the SDK in embedded
+      // mode (no interactive UI), so without this binding compaction hooks that
+      // rely on `ctx.model` (e.g. `compaction-safeguard`) will always fall back to
+      // "Summary unavailable..." and history will be truncated without a summary.
+      const extensionRunner = activeSession.extensionRunner;
+      if (extensionRunner) {
+        extensionRunner.bindCore(
+          {
+            // Embedded runs don't have a UI; keep UI-dependent actions as safe no-ops.
+            sendMessage: async () => {},
+            sendUserMessage: async () => {},
+            appendEntry: () => {},
+            setSessionName: () => {},
+            getSessionName: () => undefined,
+            setLabel: () => {},
+            getActiveTools: () =>
+              (activeSession.agent.state.tools ?? [])
+                .map((tool) => {
+                  if (!tool) {
+                    return undefined;
+                  }
+                  if (typeof tool === "string") {
+                    return tool;
+                  }
+                  if (typeof tool === "object" && "name" in tool) {
+                    const name = (tool as { name?: unknown }).name;
+                    return typeof name === "string" ? name : undefined;
+                  }
+                  return undefined;
+                })
+                .filter((name): name is string => typeof name === "string"),
+            getAllTools: () => [],
+            setActiveTools: () => {},
+            setModel: async (model: Model<Api>) => {
+              const key = await activeSession.modelRegistry.getApiKey(model);
+              if (!key) {
+                return false;
+              }
+              await activeSession.setModel(model);
+              return true;
+            },
+            getThinkingLevel: () => activeSession.thinkingLevel,
+            setThinkingLevel: (level: ThinkingLevel) => {
+              activeSession.setThinkingLevel(level);
+            },
+          },
+          {
+            // Provide live model + context access for extensions.
+            getModel: () => activeSession.agent.state.model,
+            isIdle: () => true,
+            abort: () => {
+              void activeSession.abort();
+            },
+            hasPendingMessages: () => false,
+            shutdown: () => {},
+            getContextUsage: () => activeSession.getContextUsage(),
+            compact: (options?: CompactOptions) => {
+              void (async () => {
+                try {
+                  const result = await activeSession.compact(options?.customInstructions);
+                  options?.onComplete?.(result);
+                } catch (error) {
+                  const err = error instanceof Error ? error : new Error(String(error));
+                  options?.onError?.(err);
+                }
+              })();
+            },
+            getSystemPrompt: () => appendPrompt,
+          },
+        );
+      }
 
       applyExtraParamsToAgent(
         activeSession.agent,
