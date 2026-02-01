@@ -18,18 +18,6 @@ const modelRegistryState = {
   available: [] as Array<Record<string, unknown>>,
 };
 
-class AuthStorage {}
-
-class ModelRegistry {
-  getAll() {
-    return modelRegistryState.models;
-  }
-
-  getAvailable() {
-    return modelRegistryState.available;
-  }
-}
-
 vi.mock("../config/config.js", () => ({
   CONFIG_PATH: "/tmp/openclaw.json",
   STATE_DIR: "/tmp/openclaw-state",
@@ -58,9 +46,16 @@ vi.mock("../agents/model-auth.js", () => ({
   getCustomProviderApiKey,
 }));
 
-vi.mock("../agents/pi-model-discovery.js", () => ({
-  discoverAuthStorage,
-  discoverModels,
+vi.mock("@mariozechner/pi-coding-agent", () => ({
+  AuthStorage: class {},
+  ModelRegistry: class {
+    getAll() {
+      return modelRegistryState.models;
+    }
+    getAvailable() {
+      return modelRegistryState.available;
+    }
+  },
 }));
 
 function makeRuntime() {
