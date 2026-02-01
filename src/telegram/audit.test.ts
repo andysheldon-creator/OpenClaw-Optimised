@@ -62,4 +62,64 @@ describe("telegram audit", () => {
     expect(res.groups[0]?.ok).toBe(false);
     expect(res.groups[0]?.status).toBe("left");
   });
+
+  it("uses default API base when apiBase not provided", async () => {
+    const { auditTelegramGroupMembership } = await import("./audit.js");
+    const mockFetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, result: { status: "member" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+    await auditTelegramGroupMembership({
+      token: "test_token",
+      botId: 123,
+      groupIds: ["-1001"],
+      timeoutMs: 5000,
+    });
+    const callUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(callUrl).toContain("https://api.telegram.org/bot");
+  });
+
+  it("uses custom API base when apiBase is provided", async () => {
+    const { auditTelegramGroupMembership } = await import("./audit.js");
+    const mockFetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, result: { status: "member" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+    await auditTelegramGroupMembership({
+      token: "test_token",
+      botId: 123,
+      groupIds: ["-1001"],
+      timeoutMs: 5000,
+      apiBase: "https://custom.api.com",
+    });
+    const callUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(callUrl).toContain("https://custom.api.com/bot");
+  });
+
+  it("normalizes API base by stripping trailing slashes", async () => {
+    const { auditTelegramGroupMembership } = await import("./audit.js");
+    const mockFetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, result: { status: "member" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+    await auditTelegramGroupMembership({
+      token: "test_token",
+      botId: 123,
+      groupIds: ["-1001"],
+      timeoutMs: 5000,
+      apiBase: "https://custom.api.com///",
+    });
+    const callUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(callUrl).toContain("https://custom.api.com/bot");
+    expect(callUrl).not.toContain("///bot");
+  });
 });
