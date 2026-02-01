@@ -169,6 +169,53 @@ async function promptWebToolsConfig(
   };
 }
 
+async function promptEngineConfig(
+  nextConfig: OpenClawConfig,
+  runtime: RuntimeEnv,
+): Promise<OpenClawConfig> {
+  const currentEngine = nextConfig.agents?.engine ?? "aisdk";
+
+  note(
+    [
+      "OpenClaw supports two LLM engines for agent orchestration:",
+      "",
+      "• AI SDK (default): Vercel's AI SDK v6 - modern, flexible, supports AI Gateway",
+      "• pi-agent: Original implementation - battle-tested, full feature set",
+      "",
+      "Both engines emit compatible events, so UI and channels work with either.",
+    ].join("\n"),
+    "LLM Engine",
+  );
+
+  const engineChoice = guardCancel(
+    await select<"aisdk" | "pi-agent">({
+      message: "Which LLM engine should OpenClaw use?",
+      options: [
+        {
+          value: "aisdk",
+          label: "AI SDK (recommended)",
+          hint: "Vercel AI SDK v6 - supports AI Gateway, multiple providers",
+        },
+        {
+          value: "pi-agent",
+          label: "pi-agent (legacy)",
+          hint: "Original implementation - stable, proven",
+        },
+      ],
+      initialValue: currentEngine,
+    }),
+    runtime,
+  );
+
+  return {
+    ...nextConfig,
+    agents: {
+      ...nextConfig.agents,
+      engine: engineChoice,
+    },
+  };
+}
+
 export async function runConfigureWizard(
   opts: ConfigureWizardParams,
   runtime: RuntimeEnv = defaultRuntime,
@@ -316,6 +363,10 @@ export async function runConfigureWizard(
 
       if (selected.includes("model")) {
         nextConfig = await promptAuthConfig(nextConfig, runtime, prompter);
+      }
+
+      if (selected.includes("engine")) {
+        nextConfig = await promptEngineConfig(nextConfig, runtime);
       }
 
       if (selected.includes("web")) {
