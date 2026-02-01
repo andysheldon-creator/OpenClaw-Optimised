@@ -110,6 +110,7 @@ cat ~/.openclaw/openclaw.json | jq '.gateway.bind'
 ```
 
 Then construct the URL:
+
 - **loopback**: `http://127.0.0.1:18793/__openclaw__/canvas/<file>.html`
 - **lan/tailnet/auto**: `http://<hostname>:18793/__openclaw__/canvas/<file>.html`
 
@@ -195,4 +196,3 @@ The `/__openclaw__/canvas/` prefix is defined by `CANVAS_HOST_PATH` constant.
 - The canvas persists until you `hide` it or navigate away
 - Live reload makes development fast - just save and it updates!
 - A2UI JSON push is WIP - use HTML files for now
-

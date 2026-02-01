@@ -15,14 +15,14 @@ Kimi Coding with `kimi-coding/k2p5`.
 
 Current Kimi K2 model IDs:
 
-{/* moonshot-kimi-k2-ids:start */}
+{/_ moonshot-kimi-k2-ids:start _/}
 
 - `kimi-k2.5`
 - `kimi-k2-0905-preview`
 - `kimi-k2-turbo-preview`
 - `kimi-k2-thinking`
 - `kimi-k2-thinking-turbo`
-{/* moonshot-kimi-k2-ids:end */}
+  {/_ moonshot-kimi-k2-ids:end _/}
 
 ```bash
 openclaw onboard --auth-choice moonshot-api-key
@@ -140,4 +140,3 @@ Note: Moonshot and Kimi Coding are separate providers. Keys are not interchangea
 - If Moonshot publishes different context limits for a model, adjust
   `contextWindow` accordingly.
 - Use `https://api.moonshot.cn/v1` if you need the China endpoint.
-

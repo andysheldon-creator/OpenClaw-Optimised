@@ -108,4 +108,3 @@ When the Gateway runs on another machine, credentials and workspace files live
 - `~/.openclaw/agents/<agentId>/agent/auth-profiles.json`
 
 on the gateway host.
-
