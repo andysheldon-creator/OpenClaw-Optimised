@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-
 import type { TemplateContext } from "../templating.js";
 import type { FollowupRun, QueueSettings } from "./queue.js";
 import { createMockTypingController } from "./test-helpers.js";
@@ -278,6 +277,54 @@ describe("runReplyAgent steer mode thread routing", () => {
     expect(queueEmbeddedPiMessageMock).toHaveBeenCalledWith("session", "hello");
 
     // Should NOT fall through to enqueue
+    expect(enqueueFollowupRunMock).not.toHaveBeenCalled();
+  });
+
+  it("normalizes thread IDs when comparing (string vs number)", async () => {
+    queueEmbeddedPiMessageMock.mockClear();
+    enqueueFollowupRunMock.mockClear();
+    getActiveRunThreadContextMock.mockClear();
+
+    // Active run has numeric thread ID
+    getActiveRunThreadContextMock.mockReturnValue(12345);
+    queueEmbeddedPiMessageMock.mockReturnValue(true);
+
+    const typing = createMockTypingController();
+    const sessionCtx = {
+      Provider: "telegram",
+      OriginatingTo: "chat:123",
+      AccountId: "primary",
+      MessageSid: "msg",
+    } as unknown as TemplateContext;
+
+    // Incoming message has same thread ID but as string
+    const followupRun = createFollowupRun({
+      originatingThreadId: "12345",
+    });
+
+    await runReplyAgent({
+      commandBody: "hello",
+      followupRun,
+      queueKey: "main",
+      resolvedQueue: { mode: "steer" } as QueueSettings,
+      shouldSteer: true,
+      shouldFollowup: false,
+      isActive: true,
+      isStreaming: true,
+      typing,
+      sessionCtx,
+      sessionKey: "main",
+      defaultModel: "anthropic/claude-opus-4-5",
+      resolvedVerboseLevel: "off",
+      isNewSession: false,
+      blockStreamingEnabled: false,
+      resolvedBlockStreamingBreak: "message_end",
+      shouldInjectGroupIntro: false,
+      typingMode: "none",
+    });
+
+    // Fast steer SHOULD be attempted because normalized threads match
+    expect(queueEmbeddedPiMessageMock).toHaveBeenCalledWith("session", "hello");
     expect(enqueueFollowupRunMock).not.toHaveBeenCalled();
   });
 });

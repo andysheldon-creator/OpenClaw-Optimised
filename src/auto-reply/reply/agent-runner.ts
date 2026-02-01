@@ -164,7 +164,13 @@ export async function runReplyAgent(params: {
   // preserves per-message routing.
   const activeRunThread = getActiveRunThreadContext(followupRun.run.sessionId);
   const incomingThread = followupRun.originatingThreadId;
-  const isSameThread = activeRunThread === incomingThread;
+  // Normalize to strings for comparison since providers may use string or number IDs
+  const isSameThread =
+    activeRunThread === undefined && incomingThread === undefined
+      ? true
+      : activeRunThread !== undefined &&
+        incomingThread !== undefined &&
+        String(activeRunThread) === String(incomingThread);
   if (shouldSteer && isStreaming && isSameThread) {
     const steered = queueEmbeddedPiMessage(followupRun.run.sessionId, followupRun.prompt);
     if (steered && !shouldFollowup) {

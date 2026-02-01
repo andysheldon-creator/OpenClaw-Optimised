@@ -128,11 +128,8 @@ export function setActiveEmbeddedRun(
 ) {
   const wasActive = ACTIVE_EMBEDDED_RUNS.has(sessionId);
   ACTIVE_EMBEDDED_RUNS.set(sessionId, handle);
-  if (threadContext !== undefined) {
-    ACTIVE_RUN_THREAD_CONTEXT.set(sessionId, threadContext);
-  } else {
-    ACTIVE_RUN_THREAD_CONTEXT.delete(sessionId);
-  }
+  // Always store thread context (even undefined) to distinguish "no thread" from "not registered"
+  ACTIVE_RUN_THREAD_CONTEXT.set(sessionId, threadContext);
   logSessionStateChange({
     sessionId,
     state: "processing",
