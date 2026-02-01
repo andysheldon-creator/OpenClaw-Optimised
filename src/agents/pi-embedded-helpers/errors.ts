@@ -50,7 +50,7 @@ export function isCompactionFailureError(errorMessage?: string): boolean {
 
 const ERROR_PAYLOAD_PREFIX_RE =
   /^(?:error|api\s*error|apierror|openai\s*error|anthropic\s*error|gateway\s*error)[:\s-]+/i;
-const FINAL_TAG_RE = /<\s*\/?\s*final\s*>/gi;
+const FINAL_TAG_RE = /<\s*\/?\s*(?:final|instructions?|system|prompt)\s*>/gi;
 const ERROR_PREFIX_RE =
   /^(?:error|api\s*error|openai\s*error|anthropic\s*error|gateway\s*error|request failed|failed|exception)[:\s-]+/i;
 const HTTP_STATUS_PREFIX_RE = /^(?:http\s*)?(\d{3})\s+(.+)$/i;

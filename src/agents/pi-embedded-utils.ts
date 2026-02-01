@@ -230,12 +230,14 @@ export function splitThinkingTaggedText(text: string): ThinkTaggedSplitBlock[] |
   // with a think tag (common for local/OpenAI-compat providers that emulate
   // reasoning blocks via tags).
   if (!trimmedStart.startsWith("<")) return null;
-  const openRe = /<\s*(?:think(?:ing)?|thought|antthinking)\s*>/i;
-  const closeRe = /<\s*\/\s*(?:think(?:ing)?|thought|antthinking)\s*>/i;
+  const openRe = /<\s*(?:think(?:ing)?|thought|antthinking|reflection|inner[_-]?monologue)\s*>/i;
+  const closeRe =
+    /<\s*\/\s*(?:think(?:ing)?|thought|antthinking|reflection|inner[_-]?monologue)\s*>/i;
   if (!openRe.test(trimmedStart)) return null;
   if (!closeRe.test(text)) return null;
 
-  const scanRe = /<\s*(\/?)\s*(?:think(?:ing)?|thought|antthinking)\s*>/gi;
+  const scanRe =
+    /<\s*(\/?)\s*(?:think(?:ing)?|thought|antthinking|reflection|inner[_-]?monologue)\s*>/gi;
   let inThinking = false;
   let cursor = 0;
   let thinkingStart = 0;
@@ -312,7 +314,8 @@ export function promoteThinkingTagsToBlocks(message: AssistantMessage): void {
 
 export function extractThinkingFromTaggedText(text: string): string {
   if (!text) return "";
-  const scanRe = /<\s*(\/?)\s*(?:think(?:ing)?|thought|antthinking)\s*>/gi;
+  const scanRe =
+    /<\s*(\/?)\s*(?:think(?:ing)?|thought|antthinking|reflection|inner[_-]?monologue)\s*>/gi;
   let result = "";
   let lastIndex = 0;
   let inThinking = false;

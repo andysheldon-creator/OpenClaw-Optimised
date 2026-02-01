@@ -87,6 +87,23 @@ export function stripEnvelopeFromMessage(message: unknown): unknown {
   return changed ? next : message;
 }
 
+const INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?previous\s+instructions/i,
+  /you\s+are\s+now\s+(?:DAN|evil|jailbreak)/i,
+  /\bsystem\s*:\s*you\s+are\b/i,
+  /\[SYSTEM\]\s*override/i,
+  /###\s*(?:SYSTEM|INSTRUCTION)\s*(?:OVERRIDE|INJECTION)/i,
+];
+
+/**
+ * Detect likely prompt injection attempts in user text.
+ * Returns true if the text contains a known injection pattern.
+ */
+export function containsInjectionPattern(text: string): boolean {
+  if (!text) return false;
+  return INJECTION_PATTERNS.some((re) => re.test(text));
+}
+
 export function stripEnvelopeFromMessages(messages: unknown[]): unknown[] {
   if (messages.length === 0) return messages;
   let changed = false;

@@ -1,9 +1,11 @@
 export type ReasoningTagMode = "strict" | "preserve";
 export type ReasoningTagTrim = "none" | "start" | "both";
 
-const QUICK_TAG_RE = /<\s*\/?\s*(?:think(?:ing)?|thought|antthinking|final)\b/i;
+const QUICK_TAG_RE =
+  /<\s*\/?\s*(?:think(?:ing)?|thought|antthinking|reflection|inner[_-]?monologue|final)\b/i;
 const FINAL_TAG_RE = /<\s*\/?\s*final\b[^<>]*>/gi;
-const THINKING_TAG_RE = /<\s*(\/?)\s*(?:think(?:ing)?|thought|antthinking)\b[^<>]*>/gi;
+const THINKING_TAG_RE =
+  /<\s*(\/?)\s*(?:think(?:ing)?|thought|antthinking|reflection|inner[_-]?monologue)\b[^<>]*>/gi;
 
 interface CodeRegion {
   start: number;

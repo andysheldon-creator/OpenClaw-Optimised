@@ -947,6 +947,45 @@ export function collectExposureMatrixFindings(cfg: OpenClawConfig): SecurityAudi
   return findings;
 }
 
+const SENSITIVE_ENV_PATTERNS = [
+  /^OPENCLAW_GATEWAY_TOKEN$/,
+  /^OPENCLAW_GATEWAY_PASSWORD$/,
+  /^CLAWDBOT_GATEWAY_TOKEN$/,
+  /^CLAWDBOT_GATEWAY_PASSWORD$/,
+  /^DISCORD_BOT_TOKEN$/,
+  /^TELEGRAM_BOT_TOKEN$/,
+  /^SLACK_BOT_TOKEN$/,
+  /^SLACK_APP_TOKEN$/,
+  /^OPENAI_API_KEY$/,
+  /^ANTHROPIC_API_KEY$/,
+  /^BRAVE_API_KEY$/,
+  /^PERPLEXITY_API_KEY$/,
+  /^OPENROUTER_API_KEY$/,
+];
+
+export function collectEnvTokenExposureFindings(env: NodeJS.ProcessEnv): SecurityAuditFinding[] {
+  const findings: SecurityAuditFinding[] = [];
+  const exposed: string[] = [];
+  for (const pattern of SENSITIVE_ENV_PATTERNS) {
+    for (const key of Object.keys(env)) {
+      if (pattern.test(key) && env[key]?.trim()) {
+        exposed.push(key);
+      }
+    }
+  }
+  if (exposed.length > 0) {
+    findings.push({
+      checkId: "env.sensitive_tokens",
+      severity: "info",
+      title: "Sensitive tokens found in environment",
+      detail: `Found ${exposed.length} sensitive env var(s): ${exposed.join(", ")}. Ensure these are not logged or leaked via child processes.`,
+      remediation:
+        "Prefer config file secrets (with tight file permissions) over environment variables when possible.",
+    });
+  }
+  return findings;
+}
+
 export async function readConfigSnapshotForAudit(params: {
   env: NodeJS.ProcessEnv;
   configPath: string;

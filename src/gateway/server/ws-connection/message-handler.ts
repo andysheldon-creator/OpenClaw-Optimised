@@ -58,7 +58,7 @@ import type { GatewayWsClient } from "../ws-types.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
-const DEVICE_SIGNATURE_SKEW_MS = 10 * 60 * 1000;
+const DEVICE_SIGNATURE_SKEW_MS = 5 * 60 * 1000;
 
 function resolveHostName(hostHeader?: string): string {
   const host = (hostHeader ?? "").trim().toLowerCase();
@@ -512,7 +512,9 @@ export function attachGatewayWsMessageHandler(params: {
               version: "v1",
             });
             if (verifyDeviceSignature(device.publicKey, legacyPayload, device.signature)) {
-              // accepted legacy loopback signature
+              logWsControl.warn(
+                `legacy v1 device signature accepted conn=${connId} device=${device.id} client=${connectParams.client.id}; upgrade client to use v2 nonce-based signatures`,
+              );
             } else {
               setHandshakeState("failed");
               setCloseCause("device-auth-invalid", {
