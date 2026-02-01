@@ -55,8 +55,8 @@ import { resolveDiscordThreadChannel, resolveDiscordThreadParentInfo } from "./t
 export type {
   DiscordMessagePreflightContext,
   DiscordMessagePreflightParams,
-  DiscordSenderIdentity,
 } from "./message-handler.preflight.types.js";
+export type { DiscordSenderIdentity } from "./sender-identity.js";
 
 export async function preflightDiscordMessage(
   params: DiscordMessagePreflightParams,
