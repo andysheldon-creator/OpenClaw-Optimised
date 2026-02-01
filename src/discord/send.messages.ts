@@ -105,6 +105,10 @@ export async function createThreadDiscord(
   if (payload.autoArchiveMinutes) {
     body.auto_archive_duration = payload.autoArchiveMinutes;
   }
+  // Support for forum channels (type 15): requires message.content to create a post
+  if (payload.content) {
+    body.message = { content: payload.content };
+  }
   const route = Routes.threads(channelId, payload.messageId);
   return await rest.post(route, { body });
 }
