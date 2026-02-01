@@ -364,7 +364,7 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
         required: true,
       }) as ChannelMessageActionName;
 
-      // Walidacja sciezek plikow wzgledem sandbox root (zapobiega odczytowi plikow hosta).
+      // Validate file paths against sandbox root to prevent host file access.
       const sandboxRoot = options?.sandboxRoot;
       if (sandboxRoot) {
         for (const key of ["filePath", "path"] as const) {

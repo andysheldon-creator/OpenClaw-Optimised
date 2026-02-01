@@ -263,7 +263,7 @@ describe("message tool sandbox path validation", () => {
       message: "",
     });
 
-    // Bez sandboxRoot walidacja nie blokuje - niesandboxowane sesje dzialaja normalnie.
+    // Without sandboxRoot the validation is skipped — unsandboxed sessions work normally.
     expect(mocks.runMessageAction).toHaveBeenCalledTimes(1);
   });
 });
