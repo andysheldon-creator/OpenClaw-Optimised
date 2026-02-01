@@ -1,8 +1,9 @@
 const ANSI_SGR_PATTERN = "\\x1b\\[[0-9;]*m";
 // OSC-8 hyperlinks: ESC ] 8 ; ; url ST ... ESC ] 8 ; ; ST
+// Format: \x1b]8;;<params>\x1b\ ... \x1b]8;;\x1b\
 // ST can be either: ESC \ (0x1B 0x5C) or BEL (0x07)
 // Non-greedy match to handle nested sequences properly
-const OSC8_PATTERN = "\\x1b\\]8;.*?(?:\\x1b\\x5c|\\x07)";
+const OSC8_PATTERN = "\\x1b\\]8;;.*?(?:\\x1b\\x5c|\\x07)";
 
 const ANSI_REGEX = new RegExp(ANSI_SGR_PATTERN, "g");
 const OSC8_REGEX = new RegExp(OSC8_PATTERN, "g");
