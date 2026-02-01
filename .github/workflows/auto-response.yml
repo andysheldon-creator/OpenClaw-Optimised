@@ -37,13 +37,13 @@ jobs:
                 label: "r: support",
                 close: true,
                 message:
-                  "Please join our Discord support server at https://discord.gg/openclaw for help from our community team and other users. You can also check our troubleshooting guide at https://docs.openclaw.ai/help/faq.",
+                  "Please join our Discord support server at https://discord.gg/openclaw for help from our community team and other users. You can also check our troubleshooting guide at https://docs.openclaw.ai/help/faq#im-stuck-whats-the-fastest-way-to-get-unstuck.",
               },
               {
                 label: "r: third-party-extension",
                 close: true,
                 message:
-                  "This would be better made as a third-party extension with our SDK that you maintain yourself. Docs: https://docs.molt.bot/plugin.",
+                  "This would be better made as a third-party extension with our SDK that you maintain yourself. Docs: https://docs.openclaw.ai/plugin.",
               },
             ];
 
