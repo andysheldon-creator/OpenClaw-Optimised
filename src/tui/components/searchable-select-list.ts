@@ -205,6 +205,13 @@ export class SearchableSelectList implements Component {
       lines.push(this.theme.scrollInfo(`  ${scrollInfo}`));
     }
 
+    // Ensure all lines are truncated to width to prevent TUI crashes
+    for (let i = 0; i < lines.length; i++) {
+      if (visibleWidth(lines[i]) > width) {
+        lines[i] = truncateToWidth(lines[i], width, "");
+      }
+    }
+
     return lines;
   }
 
