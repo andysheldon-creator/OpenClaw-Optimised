@@ -1,6 +1,7 @@
 const KEY = "openclaw.control.settings.v1";
 
 import type { ThemeMode } from "./theme";
+import { inferBasePathFromPathname } from "./navigation";
 
 export type UiSettings = {
   gatewayUrl: string;
@@ -16,9 +17,12 @@ export type UiSettings = {
 };
 
 export function loadSettings(): UiSettings {
+  // Include inferred base path in WebSocket URL to support reverse proxies
+  // that serve the Control UI under a subpath (e.g., /app/control-ui/)
   const defaultUrl = (() => {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    return `${proto}://${location.host}`;
+    const basePath = inferBasePathFromPathname(location.pathname);
+    return `${proto}://${location.host}${basePath}`;
   })();
 
   const defaults: UiSettings = {
