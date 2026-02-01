@@ -274,6 +274,8 @@ export async function handleDiscordMessagingAction(
       }
       return jsonResult({ ok: true });
     }
+    // NOTE: Thread creation also handled in src/channels/plugins/actions/discord/handle-action.ts
+    // Keep message transformation logic in sync between both entry points.
     case "threadCreate": {
       if (!isActionEnabled("threads")) {
         throw new Error("Discord threads are disabled.");
@@ -286,13 +288,26 @@ export async function handleDiscordMessagingAction(
         typeof autoArchiveMinutesRaw === "number" && Number.isFinite(autoArchiveMinutesRaw)
           ? autoArchiveMinutesRaw
           : undefined;
+      // Forum channel support: initial message content
+      const messageContent = readStringParam(params, "message");
+      const message = messageContent ? { content: messageContent } : undefined;
+      // Forum channel support: applied tags
+      const appliedTags = readStringArrayParam(params, "appliedTags", {
+        required: false,
+      });
       const thread = accountId
         ? await createThreadDiscord(
             channelId,
-            { name, messageId, autoArchiveMinutes },
+            { name, messageId, autoArchiveMinutes, message, appliedTags },
             { accountId },
           )
-        : await createThreadDiscord(channelId, { name, messageId, autoArchiveMinutes });
+        : await createThreadDiscord(channelId, {
+            name,
+            messageId,
+            autoArchiveMinutes,
+            message,
+            appliedTags,
+          });
       return jsonResult({ ok: true, thread });
     }
     case "threadList": {

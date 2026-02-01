@@ -181,11 +181,18 @@ export async function handleDiscordMessageAction(
     );
   }
 
+  // NOTE: Thread creation also handled in src/agents/tools/discord-actions-messaging.ts
+  // Keep message transformation logic in sync between both entry points.
   if (action === "thread-create") {
     const name = readStringParam(params, "threadName", { required: true });
     const messageId = readStringParam(params, "messageId");
     const autoArchiveMinutes = readNumberParam(params, "autoArchiveMin", {
       integer: true,
+    });
+    // Forum channel support: initial message content and tags
+    const message = readStringParam(params, "message");
+    const appliedTags = readStringArrayParam(params, "appliedTags", {
+      required: false,
     });
     return await handleDiscordAction(
       {
@@ -195,6 +202,9 @@ export async function handleDiscordMessageAction(
         name,
         messageId,
         autoArchiveMinutes,
+        // Transform string to object format for forum channels
+        message: message ? { content: message } : undefined,
+        appliedTags,
       },
       cfg,
     );
