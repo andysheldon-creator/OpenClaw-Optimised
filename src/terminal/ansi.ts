@@ -3,13 +3,13 @@ const ANSI_SGR_PATTERN = "\\x1b\\[[0-9;]*m";
 // Format: \x1b]8;;<params><ST>text\x1b]8;;<ST>
 // where params is typically "id=<id>;url=<url>" and ST is either ESC \ (0x1B 0x5C) or BEL (0x07)
 //
-// Match both opening and closing sequences:
-// - Opening: \x1b]8;; followed by any chars up to ST (the params)
-// - Closing: \x1b]8;; immediately followed by ST (no params)
+// Match both opening (with params) and closing (without params) sequences:
+// - Opening: \x1b]8;;<params><ST>
+// - Closing: \x1b]8;;<ST>
 //
-// The pattern matches either form, preserving the text between them.
-// Multiple passes handle both the opening and closing sequences.
-const OSC8_PATTERN = "\\x1b\\]8;;(?:[^\\x1b\\x07]|\\x1b(?!\\x5c))*(?:\\x1b\\x5c|\\x07)";
+// Multiple passes handle both sequences and strip them properly.
+const OSC8_PATTERN =
+  "\\x1b\\]8;;(?:[^\\x1b\\x07]|\\x1b(?!\\x5c))*(?:\\x1b\\x5c|\\x07)|\\x1b\\]8;;(?:\\x1b\\x5c|\\x07)";
 
 const ANSI_REGEX = new RegExp(ANSI_SGR_PATTERN, "g");
 const OSC8_REGEX = new RegExp(OSC8_PATTERN, "g");
