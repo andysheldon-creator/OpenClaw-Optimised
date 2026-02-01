@@ -1,5 +1,6 @@
 services:
   openclaw-gateway:
+    container_name: openclaw-gateway
     image: ${OPENCLAW_IMAGE:-openclaw:local}
     environment:
       HOME: /data
@@ -29,6 +30,7 @@ services:
       ]
 
   openclaw-cli:
+    container_name: openclaw-cli
     image: ${OPENCLAW_IMAGE:-openclaw:local}
     environment:
       HOME: /data
