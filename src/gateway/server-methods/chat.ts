@@ -77,7 +77,9 @@ function getLastEntryId(transcriptPath: string): string | null {
   let fd: number | undefined;
   try {
     const stat = fs.statSync(transcriptPath);
-    if (stat.size === 0) return null;
+    if (stat.size === 0) {
+      return null;
+    }
     fd = fs.openSync(transcriptPath, "r");
     const readSize = Math.min(CHUNK_SIZE, stat.size);
     const buffer = Buffer.alloc(readSize);
@@ -87,7 +89,9 @@ function getLastEntryId(transcriptPath: string): string | null {
     for (let i = lines.length - 1; i >= 0; i--) {
       try {
         const entry = JSON.parse(lines[i]);
-        if (entry.id) return entry.id;
+        if (entry.id) {
+          return entry.id;
+        }
       } catch {
         // partial line at chunk boundary, try previous
       }
