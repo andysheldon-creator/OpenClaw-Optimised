@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { __testing } from "./web-search.js";
 
-const { inferPerplexityBaseUrlFromApiKey, resolvePerplexityBaseUrl, normalizeFreshness } =
-  __testing;
+const {
+  inferPerplexityBaseUrlFromApiKey,
+  resolvePerplexityBaseUrl,
+  resolveBraveBaseUrl,
+  normalizeFreshness,
+} = __testing;
 
 describe("web_search perplexity baseUrl defaults", () => {
   it("detects a Perplexity key prefix", () => {
@@ -48,6 +52,49 @@ describe("web_search perplexity baseUrl defaults", () => {
   it("defaults to OpenRouter for unknown config key formats", () => {
     expect(resolvePerplexityBaseUrl(undefined, "config", "weird-key")).toBe(
       "https://openrouter.ai/api/v1",
+    );
+  });
+});
+
+describe("web_search brave baseUrl resolution", () => {
+  const originalEnv = process.env.BRAVE_API_URL;
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.BRAVE_API_URL;
+    } else {
+      process.env.BRAVE_API_URL = originalEnv;
+    }
+  });
+
+  it("returns undefined when no config or env var", () => {
+    delete process.env.BRAVE_API_URL;
+    expect(resolveBraveBaseUrl(undefined)).toBeUndefined();
+    expect(resolveBraveBaseUrl({})).toBeUndefined();
+  });
+
+  it("uses config baseUrl when set", () => {
+    delete process.env.BRAVE_API_URL;
+    expect(resolveBraveBaseUrl({ baseUrl: "http://localhost:3015" })).toBe(
+      "http://localhost:3015",
+    );
+  });
+
+  it("strips trailing slashes from config baseUrl", () => {
+    expect(resolveBraveBaseUrl({ baseUrl: "http://localhost:3015/" })).toBe(
+      "http://localhost:3015",
+    );
+  });
+
+  it("falls back to BRAVE_API_URL env var", () => {
+    process.env.BRAVE_API_URL = "http://my-proxy:8080";
+    expect(resolveBraveBaseUrl(undefined)).toBe("http://my-proxy:8080");
+  });
+
+  it("config takes precedence over env var", () => {
+    process.env.BRAVE_API_URL = "http://env-proxy:8080";
+    expect(resolveBraveBaseUrl({ baseUrl: "http://config-proxy:3015" })).toBe(
+      "http://config-proxy:3015",
     );
   });
 });
