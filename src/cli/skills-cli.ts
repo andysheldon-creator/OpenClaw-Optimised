@@ -403,6 +403,10 @@ export function formatSkillsAudit(
 
   if (opts.json) {
     const jsonReport = {
+      total: skills.length,
+      filtered: sorted.length,
+      skills: sorted.map((s) => ({
+        name: s.skill.name,
         riskLevel: s.permissionValidation?.risk_level ?? "high",
         permissions: s.permissions,
       })),
