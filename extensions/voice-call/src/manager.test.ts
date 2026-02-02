@@ -19,6 +19,7 @@ import { CallManager } from "./manager.js";
 class FakeProvider implements VoiceCallProvider {
   readonly name = "plivo" as const;
   readonly playTtsCalls: PlayTtsInput[] = [];
+  readonly hangupCalls: HangupCallInput[] = [];
 
   verifyWebhook(_ctx: WebhookContext): WebhookVerificationResult {
     return { ok: true };
@@ -29,7 +30,9 @@ class FakeProvider implements VoiceCallProvider {
   async initiateCall(_input: InitiateCallInput): Promise<InitiateCallResult> {
     return { providerCallId: "request-uuid", status: "initiated" };
   }
-  async hangupCall(_input: HangupCallInput): Promise<void> {}
+  async hangupCall(input: HangupCallInput): Promise<void> {
+    this.hangupCalls.push(input);
+  }
   async playTts(input: PlayTtsInput): Promise<void> {
     this.playTtsCalls.push(input);
   }
@@ -101,5 +104,41 @@ describe("CallManager", () => {
 
     expect(provider.playTtsCalls).toHaveLength(1);
     expect(provider.playTtsCalls[0]?.text).toBe("Hello there");
+  });
+
+  it("hangs up rejected inbound calls when policy disallows inbound", async () => {
+    const config = VoiceCallConfigSchema.parse({
+      enabled: true,
+      provider: "plivo",
+      fromNumber: "+15550000000",
+      inboundPolicy: "disabled",
+    });
+
+    const storePath = path.join(os.tmpdir(), `openclaw-voice-call-test-${Date.now()}`);
+    const provider = new FakeProvider();
+    const manager = new CallManager(config, storePath);
+    manager.initialize(provider, "https://example.com/voice/webhook");
+
+    // Simulate an inbound ringing event from an external provider
+    manager.processEvent({
+      id: "evt-reject-1",
+      type: "call.ringing",
+      callId: "",
+      providerCallId: "incoming-uuid",
+      direction: "inbound",
+      from: "+15550000003",
+      to: "+15550000000",
+      timestamp: Date.now(),
+    });
+
+    // Give async hangup a tick
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Provider should have been asked to hang up the incoming providerCallId
+    expect(provider.hangupCalls).toHaveLength(1);
+    expect(provider.hangupCalls[0]?.providerCallId).toBe("incoming-uuid");
+
+    // The call should not remain in active calls
+    expect(manager.getCallByProviderCallId("incoming-uuid")).toBeUndefined();
   });
 });
