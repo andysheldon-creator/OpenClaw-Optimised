@@ -1,0 +1,6 @@
+# Build artifacts
+target/
+*.node
+
+# Lock files (regenerated on build)
+Cargo.lock
