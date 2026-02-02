@@ -189,3 +189,97 @@ export function syncExternalCliCredentials(store: AuthProfileStore): boolean {
 
   return mutated;
 }
+
+/**
+ * Force re-sync credentials for an external CLI profile after an auth error (e.g. 403 revoked).
+ * Bypasses the TTL cache to get the latest credentials from the CLI tool.
+ * Returns true if different, still-valid credentials were applied to the in-memory store.
+ * Caller is responsible for persisting the store to disk.
+ */
+export function resyncExternalCliOnAuthError(store: AuthProfileStore, profileId: string): boolean {
+  const now = Date.now();
+
+  if (profileId === CLAUDE_CLI_PROFILE_ID) {
+    const creds = readClaudeCliCredentialsCached({ ttlMs: 0 });
+    if (!creds) {
+      return false;
+    }
+    const existing = store.profiles[profileId];
+
+    if (creds.type === "oauth") {
+      const existingOAuth = existing?.type === "oauth" ? existing : undefined;
+      if (existingOAuth && shallowEqualOAuthCredentials(existingOAuth, creds)) {
+        return false;
+      }
+      if (creds.expires <= now) {
+        return false;
+      }
+      store.profiles[profileId] = creds;
+      log.info("re-synced anthropic credentials from claude cli after auth error", {
+        profileId,
+        expires: new Date(creds.expires).toISOString(),
+      });
+      return true;
+    }
+
+    if (creds.type === "token") {
+      const existingToken = existing?.type === "token" ? existing : undefined;
+      if (existingToken?.token === creds.token) {
+        return false;
+      }
+      if (typeof creds.expires === "number" && creds.expires <= now) {
+        return false;
+      }
+      store.profiles[profileId] = creds;
+      log.info("re-synced anthropic token from claude cli after auth error", {
+        profileId,
+      });
+      return true;
+    }
+    return false;
+  }
+
+  if (profileId === QWEN_CLI_PROFILE_ID) {
+    const creds = readQwenCliCredentialsCached({ ttlMs: 0 });
+    if (!creds) {
+      return false;
+    }
+    const existing = store.profiles[profileId];
+    const existingOAuth = existing?.type === "oauth" ? existing : undefined;
+    if (existingOAuth && shallowEqualOAuthCredentials(existingOAuth, creds)) {
+      return false;
+    }
+    if (creds.expires <= now) {
+      return false;
+    }
+    store.profiles[profileId] = creds;
+    log.info("re-synced qwen credentials from qwen cli after auth error", {
+      profileId,
+      expires: new Date(creds.expires).toISOString(),
+    });
+    return true;
+  }
+
+  if (profileId === MINIMAX_CLI_PROFILE_ID) {
+    const creds = readMiniMaxCliCredentialsCached({ ttlMs: 0 });
+    if (!creds) {
+      return false;
+    }
+    const existing = store.profiles[profileId];
+    const existingOAuth = existing?.type === "oauth" ? existing : undefined;
+    if (existingOAuth && shallowEqualOAuthCredentials(existingOAuth, creds)) {
+      return false;
+    }
+    if (creds.expires <= now) {
+      return false;
+    }
+    store.profiles[profileId] = creds;
+    log.info("re-synced minimax credentials from minimax cli after auth error", {
+      profileId,
+      expires: new Date(creds.expires).toISOString(),
+    });
+    return true;
+  }
+
+  return false;
+}

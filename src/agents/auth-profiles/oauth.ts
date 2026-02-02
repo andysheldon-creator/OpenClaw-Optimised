@@ -99,7 +99,10 @@ async function refreshOAuthTokenWithLock(params: {
     const refreshedCred = store.profiles[params.profileId];
     if (params.profileId === CLAUDE_CLI_PROFILE_ID && refreshedCred?.provider === "anthropic") {
       try {
-        writeClaudeCliCredentials(result.newCredentials);
+        const written = writeClaudeCliCredentials(result.newCredentials);
+        if (!written) {
+          log.warn("write-back to claude cli returned false (file missing or structure invalid)");
+        }
       } catch (error) {
         log.warn("failed to write back refreshed credentials to claude cli", {
           error: error instanceof Error ? error.message : String(error),
