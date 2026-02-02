@@ -343,11 +343,11 @@ export function buildAmazonNovaProvider(): ProviderConfig {
       {
         id: "nova-2-lite-v1",
         name: "Amazon Nova 2 Lite",
-        reasoning: true,
+        reasoning: false,
         input: ["text", "image"],
         cost: AMAZON_NOVA_DEFAULT_COST,
         contextWindow: 1000000,
-        maxTokens: 65536,
+        maxTokens: 65535,
       },
       {
         id: "nova-2-pro-v1",
@@ -356,7 +356,7 @@ export function buildAmazonNovaProvider(): ProviderConfig {
         input: ["text", "image"],
         cost: AMAZON_NOVA_DEFAULT_COST,
         contextWindow: 1000000,
-        maxTokens: 65536,
+        maxTokens: 65535,
       },
     ],
   };
