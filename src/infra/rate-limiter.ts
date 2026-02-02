@@ -77,6 +77,34 @@ export class RateLimiter {
     return { allowed: false, retryAfterMs, remaining: 0 };
   }
 
+  /**
+   * Read-only check: returns whether a request *would* be allowed and
+   * the current remaining tokens, without consuming a token.
+   */
+  peek(key: string, now: number = Date.now()): RateLimitResult {
+    const bucket = this.buckets.get(key);
+
+    if (!bucket) {
+      // No bucket yet → full capacity, don't create one.
+      return { allowed: true, remaining: this.config.maxTokens };
+    }
+
+    // Refill tokens based on elapsed time.
+    this.refill(bucket, now);
+    bucket.lastAccess = now;
+
+    if (bucket.tokens >= 1) {
+      return { allowed: true, remaining: bucket.tokens };
+    }
+
+    const deficit = 1 - bucket.tokens;
+    const intervalsNeeded = Math.ceil(deficit / this.config.refillRate);
+    const elapsedInCurrentInterval = now - bucket.lastRefill;
+    const retryAfterMs = intervalsNeeded * this.config.refillIntervalMs - elapsedInCurrentInterval;
+
+    return { allowed: false, retryAfterMs, remaining: 0 };
+  }
+
   /** Clear the bucket for a specific key (e.g. on successful auth). */
   reset(key: string): void {
     this.buckets.delete(key);

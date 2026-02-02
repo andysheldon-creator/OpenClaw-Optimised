@@ -1,10 +1,9 @@
 /**
  * Auth brute-force protection.
  *
- * Tracks authentication attempts per IP using a token-bucket. Each auth
- * attempt (success or failure) consumes a token. When tokens are exhausted
- * the IP is locked out until refill. Successful auth resets the bucket,
- * giving the IP a fresh set of tokens.
+ * Tracks failed authentication attempts per IP using a token-bucket. Only
+ * failed attempts consume tokens. When tokens are exhausted the IP is
+ * locked out until refill. Successful auth resets the bucket.
  *
  * Shared between HTTP and WebSocket auth paths.
  */
@@ -23,8 +22,8 @@ export type AuthRateLimitResult = {
  * Auth brute-force rate limiter.
  *
  * Uses a token-bucket where `maxFailures` is the burst capacity and the
- * bucket refills every `windowMinutes`. Each call to `checkAuthAllowed`
- * consumes a token; `recordSuccess` resets the bucket for that IP.
+ * bucket refills every `windowMinutes`. Only failed auth attempts consume
+ * tokens; `recordSuccess` resets the bucket for that IP.
  */
 export class AuthRateLimiter {
   private readonly limiter: RateLimiter;
@@ -41,13 +40,13 @@ export class AuthRateLimiter {
 
   /**
    * Check whether an auth attempt from `ip` is allowed.
-   * Consumes one token from the bucket.
+   * Read-only: does NOT consume a token.
    */
   checkAuthAllowed(ip: string): AuthRateLimitResult {
     if (!this.enabled) {
       return { allowed: true };
     }
-    const result = this.limiter.check(ip);
+    const result = this.limiter.peek(ip);
     if (result.allowed) {
       return { allowed: true };
     }
@@ -56,11 +55,13 @@ export class AuthRateLimiter {
 
   /**
    * Record a failed auth attempt for `ip`.
-   * Token was already consumed in `checkAuthAllowed`, so this is a no-op.
-   * Provided for semantic clarity and future extensibility.
+   * Consumes one token from the bucket.
    */
-  recordFailure(_ip: string): void {
-    // Token already consumed in checkAuthAllowed.
+  recordFailure(ip: string): void {
+    if (!this.enabled) {
+      return;
+    }
+    this.limiter.check(ip);
   }
 
   /** Record a successful auth for `ip` — resets the failure count. */

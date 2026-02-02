@@ -155,6 +155,30 @@ describe("RateLimiter", () => {
     expect(limiter.check("burst", 0).allowed).toBe(false);
   });
 
+  it("peek returns remaining tokens without consuming", () => {
+    limiter = makeLimiter({ maxTokens: 3, refillRate: 3, refillIntervalMs: 60_000 });
+
+    // peek should report 3 remaining and not consume
+    const first = limiter.peek("key1", 0);
+    expect(first.allowed).toBe(true);
+    expect(first.remaining).toBe(3);
+
+    // peek again — still 3 (nothing consumed)
+    const second = limiter.peek("key1", 0);
+    expect(second.remaining).toBe(3);
+
+    // now consume 3 via check()
+    limiter.check("key1", 0);
+    limiter.check("key1", 0);
+    limiter.check("key1", 0);
+
+    // peek should show 0 remaining, denied
+    const blocked = limiter.peek("key1", 0);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.remaining).toBe(0);
+    expect(blocked.retryAfterMs).toBeGreaterThan(0);
+  });
+
   it("retryAfterMs accounts for partial interval progress", () => {
     limiter = makeLimiter({ maxTokens: 1, refillRate: 1, refillIntervalMs: 1000 });
     limiter.check("ip1", 0); // consume the only token at t=0
