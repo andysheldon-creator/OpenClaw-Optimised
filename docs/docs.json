@@ -106,6 +106,14 @@
       "destination": "/providers/moonshot"
     },
     {
+      "source": "/siliconflow",
+      "destination": "/providers/siliconflow"
+    },
+    {
+      "source": "/siliconflow/",
+      "destination": "/providers/siliconflow"
+    },
+    {
       "source": "/openrouter",
       "destination": "/providers/openrouter"
     },
@@ -1042,6 +1050,7 @@
               "providers/anthropic",
               "bedrock",
               "providers/moonshot",
+              "providers/siliconflow",
               "providers/minimax",
               "providers/vercel-ai-gateway",
               "providers/openrouter",

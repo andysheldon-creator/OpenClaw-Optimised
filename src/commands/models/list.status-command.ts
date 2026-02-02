@@ -158,6 +158,7 @@ export async function modelsStatusCommand(
     "cerebras",
     "xai",
     "openrouter",
+    "siliconflow",
     "zai",
     "mistral",
     "synthetic",

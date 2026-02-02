@@ -104,6 +104,8 @@ openclaw agents add <name>
    - **Moonshot (Kimi K2)**：配置会自动写入。
    - **Kimi Coding**：配置会自动写入。
    - 更多详情： [Moonshot AI (Kimi + Kimi Coding)](/providers/moonshot)
+   - **SiliconFlow（OpenAI 兼容）**：提示输入 `SILICONFLOW_API_KEY`，并选择中文站 / 国际站（账号体系独立）。
+   - 更多详情： [SiliconFlow](/providers/siliconflow)
    - **跳过**：暂不配置认证。
    - 从检测到的选项中选择默认模型（或手动输入提供商/模型）。
    - 向导会运行模型检查，如果配置的模型未知或缺少认证则发出警告。

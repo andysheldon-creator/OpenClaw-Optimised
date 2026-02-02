@@ -15,6 +15,7 @@ export type AuthChoice =
   | "ai-gateway-api-key"
   | "moonshot-api-key"
   | "kimi-code-api-key"
+  | "siliconflow-api-key"
   | "synthetic-api-key"
   | "venice-api-key"
   | "codex-cli"
@@ -70,6 +71,9 @@ export type OnboardOptions = {
   geminiApiKey?: string;
   zaiApiKey?: string;
   xiaomiApiKey?: string;
+  siliconflowApiKey?: string;
+  /** SiliconFlow site selector (CN vs Global). Account systems are independent. */
+  siliconflowSite?: "cn" | "global";
   minimaxApiKey?: string;
   syntheticApiKey?: string;
   veniceApiKey?: string;

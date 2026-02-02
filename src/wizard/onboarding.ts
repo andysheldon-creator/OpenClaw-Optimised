@@ -388,6 +388,7 @@ export async function runOnboardingWizard(
     opts: {
       tokenProvider: opts.tokenProvider,
       token: opts.authChoice === "apiKey" && opts.token ? opts.token : undefined,
+      siliconflowSite: opts.siliconflowSite,
     },
   });
   nextConfig = authResult.config;

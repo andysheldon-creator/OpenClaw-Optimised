@@ -17,6 +17,7 @@ export type AuthChoiceGroupId =
   | "moonshot"
   | "zai"
   | "xiaomi"
+  | "siliconflow"
   | "opencode-zen"
   | "minimax"
   | "synthetic"
@@ -59,6 +60,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "Moonshot AI",
     hint: "Kimi K2 + Kimi Coding",
     choices: ["moonshot-api-key", "kimi-code-api-key"],
+  },
+  {
+    value: "siliconflow",
+    label: "SiliconFlow",
+    hint: "OpenAI-compatible (CN/Global accounts are independent)",
+    choices: ["siliconflow-api-key"],
   },
   {
     value: "google",
@@ -148,6 +155,11 @@ export function buildAuthChoiceOptions(params: {
   });
   options.push({ value: "moonshot-api-key", label: "Moonshot AI API key" });
   options.push({ value: "kimi-code-api-key", label: "Kimi Coding API key" });
+  options.push({
+    value: "siliconflow-api-key",
+    label: "SiliconFlow API key",
+    hint: "OpenAI-compatible (separate CN/Global accounts)",
+  });
   options.push({ value: "synthetic-api-key", label: "Synthetic API key" });
   options.push({
     value: "venice-api-key",

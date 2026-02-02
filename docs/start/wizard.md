@@ -102,6 +102,8 @@ Tip: `--json` does **not** imply non-interactive mode. Use `--non-interactive` (
    - **Moonshot (Kimi K2)**: config is auto-written.
    - **Kimi Coding**: config is auto-written.
    - More detail: [Moonshot AI (Kimi + Kimi Coding)](/providers/moonshot)
+   - **SiliconFlow (OpenAI-compatible)**: prompts for `SILICONFLOW_API_KEY` and lets you choose CN vs Global.
+   - More detail: [SiliconFlow](/providers/siliconflow)
    - **Skip**: no auth configured yet.
    - Pick a default model from detected options (or enter provider/model manually).
    - Wizard runs a model check and warns if the configured model is unknown or missing auth.

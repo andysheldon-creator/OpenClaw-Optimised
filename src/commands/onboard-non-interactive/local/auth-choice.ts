@@ -16,6 +16,7 @@ import {
   applyMoonshotConfig,
   applyOpencodeZenConfig,
   applyOpenrouterConfig,
+  applySiliconflowConfig,
   applySyntheticConfig,
   applyVeniceConfig,
   applyVercelAiGatewayConfig,
@@ -28,6 +29,7 @@ import {
   setMoonshotApiKey,
   setOpencodeZenApiKey,
   setOpenrouterApiKey,
+  setSiliconflowApiKey,
   setSyntheticApiKey,
   setVeniceApiKey,
   setVercelAiGatewayApiKey,
@@ -212,6 +214,38 @@ export async function applyNonInteractiveAuthChoice(params: {
       mode: "api_key",
     });
     return applyXiaomiConfig(nextConfig);
+  }
+
+  if (authChoice === "siliconflow-api-key") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "siliconflow",
+      cfg: baseConfig,
+      flagValue: opts.siliconflowApiKey,
+      flagName: "--siliconflow-api-key",
+      envVar: "SILICONFLOW_API_KEY",
+      runtime,
+    });
+    if (!resolved) {
+      return null;
+    }
+    if (resolved.source !== "profile") {
+      await setSiliconflowApiKey(resolved.key);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "siliconflow:default",
+      provider: "siliconflow",
+      mode: "api_key",
+    });
+
+    const site = opts.siliconflowSite;
+    if (site !== undefined && site !== "cn" && site !== "global") {
+      runtime.error(`Invalid --siliconflow-site "${String(site)}" (use cn|global).`);
+      runtime.exit(1);
+      return null;
+    }
+    const baseUrl =
+      site === "cn" ? "https://api.siliconflow.cn/v1" : "https://api.siliconflow.com/v1";
+    return applySiliconflowConfig(nextConfig, { baseUrl });
   }
 
   if (authChoice === "openai-api-key") {

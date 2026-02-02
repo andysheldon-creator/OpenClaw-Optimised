@@ -257,6 +257,30 @@ describe("getApiKeyForModel", () => {
     }
   });
 
+  it("resolves SiliconFlow API key from env", async () => {
+    const previousKey = process.env.SILICONFLOW_API_KEY;
+
+    try {
+      process.env.SILICONFLOW_API_KEY = "siliconflow-test-key";
+
+      vi.resetModules();
+      const { resolveApiKeyForProvider } = await import("./model-auth.js");
+
+      const resolved = await resolveApiKeyForProvider({
+        provider: "siliconflow",
+        store: { version: 1, profiles: {} },
+      });
+      expect(resolved.apiKey).toBe("siliconflow-test-key");
+      expect(resolved.source).toContain("SILICONFLOW_API_KEY");
+    } finally {
+      if (previousKey === undefined) {
+        delete process.env.SILICONFLOW_API_KEY;
+      } else {
+        process.env.SILICONFLOW_API_KEY = previousKey;
+      }
+    }
+  });
+
   it("resolves Vercel AI Gateway API key from env", async () => {
     const previousGatewayKey = process.env.AI_GATEWAY_API_KEY;
 

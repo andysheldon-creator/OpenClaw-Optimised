@@ -1,5 +1,9 @@
 import type { OpenClawConfig } from "../config/config.js";
-import { buildXiaomiProvider, XIAOMI_DEFAULT_MODEL_ID } from "../agents/models-config.providers.js";
+import {
+  buildSiliconflowProvider,
+  buildXiaomiProvider,
+  XIAOMI_DEFAULT_MODEL_ID,
+} from "../agents/models-config.providers.js";
 import {
   buildSyntheticModelDefinition,
   SYNTHETIC_BASE_URL,
@@ -14,6 +18,8 @@ import {
 } from "../agents/venice-models.js";
 import {
   OPENROUTER_DEFAULT_MODEL_REF,
+  SILICONFLOW_DEFAULT_MODEL_REF,
+  SILICONFLOW_DEFAULT_VISION_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   XIAOMI_DEFAULT_MODEL_REF,
   ZAI_DEFAULT_MODEL_REF,
@@ -376,6 +382,94 @@ export function applyXiaomiConfig(cfg: OpenClawConfig): OpenClawConfig {
               }
             : undefined),
           primary: XIAOMI_DEFAULT_MODEL_REF,
+        },
+      },
+    },
+  };
+}
+
+export function applySiliconflowProviderConfig(
+  cfg: OpenClawConfig,
+  params?: { baseUrl?: string },
+): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[SILICONFLOW_DEFAULT_MODEL_REF] = {
+    ...models[SILICONFLOW_DEFAULT_MODEL_REF],
+    alias: models[SILICONFLOW_DEFAULT_MODEL_REF]?.alias ?? "DeepSeek V3.2",
+  };
+  models[SILICONFLOW_DEFAULT_VISION_MODEL_REF] = {
+    ...models[SILICONFLOW_DEFAULT_VISION_MODEL_REF],
+    alias: models[SILICONFLOW_DEFAULT_VISION_MODEL_REF]?.alias ?? "GLM-4.6V",
+  };
+
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.siliconflow;
+  const defaultProvider = buildSiliconflowProvider({
+    baseUrl: params?.baseUrl,
+  });
+
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  const defaultModels = defaultProvider.models ?? [];
+  const mergedModels =
+    existingModels.length > 0
+      ? [
+          ...existingModels,
+          ...defaultModels.filter(
+            (model) => !existingModels.some((existing) => existing.id === model.id),
+          ),
+        ]
+      : defaultModels;
+
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim();
+
+  providers.siliconflow = {
+    ...existingProviderRest,
+    baseUrl: defaultProvider.baseUrl,
+    api: defaultProvider.api,
+    ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+    models: mergedModels.length > 0 ? mergedModels : defaultModels,
+  };
+
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
+    },
+  };
+}
+
+export function applySiliconflowConfig(
+  cfg: OpenClawConfig,
+  params?: { baseUrl?: string },
+): OpenClawConfig {
+  const next = applySiliconflowProviderConfig(cfg, params);
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: SILICONFLOW_DEFAULT_MODEL_REF,
         },
       },
     },

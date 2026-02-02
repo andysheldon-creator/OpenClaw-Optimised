@@ -21,6 +21,8 @@ import {
   applyOpencodeZenProviderConfig,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
+  applySiliconflowConfig,
+  applySiliconflowProviderConfig,
   applySyntheticConfig,
   applySyntheticProviderConfig,
   applyVeniceConfig,
@@ -33,6 +35,7 @@ import {
   KIMI_CODING_MODEL_REF,
   MOONSHOT_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
+  SILICONFLOW_DEFAULT_MODEL_REF,
   SYNTHETIC_DEFAULT_MODEL_REF,
   VENICE_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
@@ -42,6 +45,7 @@ import {
   setMoonshotApiKey,
   setOpencodeZenApiKey,
   setOpenrouterApiKey,
+  setSiliconflowApiKey,
   setSyntheticApiKey,
   setVeniceApiKey,
   setVercelAiGatewayApiKey,
@@ -90,6 +94,8 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "zai-api-key";
     } else if (params.opts.tokenProvider === "xiaomi") {
       authChoice = "xiaomi-api-key";
+    } else if (params.opts.tokenProvider === "siliconflow") {
+      authChoice = "siliconflow-api-key";
     } else if (params.opts.tokenProvider === "synthetic") {
       authChoice = "synthetic-api-key";
     } else if (params.opts.tokenProvider === "venice") {
@@ -486,6 +492,105 @@ export async function applyAuthChoiceApiProviders(
         applyDefaultConfig: applyXiaomiConfig,
         applyProviderConfig: applyXiaomiProviderConfig,
         noteDefault: XIAOMI_DEFAULT_MODEL_REF,
+        noteAgentModel,
+        prompter: params.prompter,
+      });
+      nextConfig = applied.config;
+      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
+    }
+    return { config: nextConfig, agentModelOverride };
+  }
+
+  if (authChoice === "siliconflow-api-key") {
+    const configuredBaseUrl =
+      (nextConfig.models?.providers as Record<string, { baseUrl?: string }> | undefined)
+        ?.siliconflow?.baseUrl ?? "";
+    const initialSite = (() => {
+      const fromOpts = params.opts?.siliconflowSite;
+      if (fromOpts === "cn" || fromOpts === "global") {
+        return fromOpts;
+      }
+      const baseUrl = String(configuredBaseUrl ?? "");
+      if (baseUrl.includes("siliconflow.cn")) {
+        return "cn";
+      }
+      if (baseUrl.includes("siliconflow.com")) {
+        return "global";
+      }
+      return "global";
+    })();
+
+    const site = await params.prompter.select<"cn" | "global">({
+      message: "SiliconFlow site",
+      options: [
+        {
+          value: "cn",
+          label: "Chinese site (siliconflow.cn)",
+          hint: "baseUrl: https://api.siliconflow.cn/v1",
+        },
+        {
+          value: "global",
+          label: "Global site (siliconflow.com)",
+          hint: "baseUrl: https://api.siliconflow.com/v1",
+        },
+      ],
+      initialValue: initialSite,
+    });
+    const baseUrl =
+      site === "cn" ? "https://api.siliconflow.cn/v1" : "https://api.siliconflow.com/v1";
+
+    let hasCredential = false;
+
+    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "siliconflow") {
+      await setSiliconflowApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      hasCredential = true;
+    }
+
+    const envKey = resolveEnvApiKey("siliconflow");
+    if (envKey) {
+      const useExisting = await params.prompter.confirm({
+        message: `Use existing SILICONFLOW_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
+        initialValue: true,
+      });
+      if (useExisting) {
+        await setSiliconflowApiKey(envKey.apiKey, params.agentDir);
+        hasCredential = true;
+      }
+    }
+
+    if (!hasCredential) {
+      await params.prompter.note(
+        [
+          "SiliconFlow provides OpenAI-compatible endpoints.",
+          "CN/Global accounts are independent; choose the correct site + API key.",
+          "",
+          "Get your API key at:",
+          "- CN: https://cloud.siliconflow.cn/account/ak",
+          "- Global: https://cloud.siliconflow.com/account/ak",
+        ].join("\n"),
+        "SiliconFlow",
+      );
+
+      const key = await params.prompter.text({
+        message: "Enter SiliconFlow API key",
+        validate: validateApiKeyInput,
+      });
+      await setSiliconflowApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+    }
+
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "siliconflow:default",
+      provider: "siliconflow",
+      mode: "api_key",
+    });
+    {
+      const applied = await applyDefaultModelChoice({
+        config: nextConfig,
+        setDefaultModel: params.setDefaultModel,
+        defaultModel: SILICONFLOW_DEFAULT_MODEL_REF,
+        applyDefaultConfig: (config) => applySiliconflowConfig(config, { baseUrl }),
+        applyProviderConfig: (config) => applySiliconflowProviderConfig(config, { baseUrl }),
+        noteDefault: SILICONFLOW_DEFAULT_MODEL_REF,
         noteAgentModel,
         prompter: params.prompter,
       });

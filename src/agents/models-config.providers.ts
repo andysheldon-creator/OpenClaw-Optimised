@@ -54,6 +54,18 @@ const MOONSHOT_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
+const SILICONFLOW_BASE_URL = "https://api.siliconflow.com/v1";
+const SILICONFLOW_DEFAULT_MODEL_ID = "deepseek-ai/DeepSeek-V3.2";
+const SILICONFLOW_DEFAULT_VISION_MODEL_ID = "zai-org/GLM-4.6V";
+const SILICONFLOW_DEFAULT_CONTEXT_WINDOW = 128000;
+const SILICONFLOW_DEFAULT_MAX_TOKENS = 8192;
+const SILICONFLOW_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
 const QWEN_PORTAL_BASE_URL = "https://portal.qwen.ai/v1";
 const QWEN_PORTAL_OAUTH_PLACEHOLDER = "qwen-oauth";
 const QWEN_PORTAL_DEFAULT_CONTEXT_WINDOW = 128000;
@@ -323,6 +335,34 @@ function buildMoonshotProvider(): ProviderConfig {
   };
 }
 
+export function buildSiliconflowProvider(params?: { baseUrl?: string }): ProviderConfig {
+  const baseUrl = params?.baseUrl?.trim() || SILICONFLOW_BASE_URL;
+  return {
+    baseUrl,
+    api: "openai-completions",
+    models: [
+      {
+        id: SILICONFLOW_DEFAULT_MODEL_ID,
+        name: "DeepSeek V3.2",
+        reasoning: true,
+        input: ["text"],
+        cost: SILICONFLOW_DEFAULT_COST,
+        contextWindow: SILICONFLOW_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: SILICONFLOW_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: SILICONFLOW_DEFAULT_VISION_MODEL_ID,
+        name: "GLM-4.6V",
+        reasoning: false,
+        input: ["text", "image"],
+        cost: SILICONFLOW_DEFAULT_COST,
+        contextWindow: SILICONFLOW_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: SILICONFLOW_DEFAULT_MAX_TOKENS,
+      },
+    ],
+  };
+}
+
 function buildQwenPortalProvider(): ProviderConfig {
   return {
     baseUrl: QWEN_PORTAL_BASE_URL,
@@ -422,6 +462,13 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "moonshot", store: authStore });
   if (moonshotKey) {
     providers.moonshot = { ...buildMoonshotProvider(), apiKey: moonshotKey };
+  }
+
+  const siliconflowKey =
+    resolveEnvApiKeyVarName("siliconflow") ??
+    resolveApiKeyFromProfiles({ provider: "siliconflow", store: authStore });
+  if (siliconflowKey) {
+    providers.siliconflow = { ...buildSiliconflowProvider(), apiKey: siliconflowKey };
   }
 
   const syntheticKey =

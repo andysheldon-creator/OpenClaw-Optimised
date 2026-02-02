@@ -164,6 +164,45 @@ Kimi K2 model IDs:
 }
 ```
 
+### SiliconFlow
+
+SiliconFlow provides OpenAI-compatible endpoints. CN and Global accounts are independent (keys and
+base URLs differ).
+
+- Provider: `siliconflow`
+- Auth: `SILICONFLOW_API_KEY`
+- Example model: `siliconflow/deepseek-ai/DeepSeek-V3.2`
+- CLI: `openclaw onboard --auth-choice siliconflow-api-key`
+
+Base URLs:
+
+- CN: `https://api.siliconflow.cn/v1`
+- Global: `https://api.siliconflow.com/v1`
+
+See [/providers/siliconflow](/providers/siliconflow) for details.
+
+```json5
+{
+  agents: {
+    defaults: { model: { primary: "siliconflow/deepseek-ai/DeepSeek-V3.2" } },
+  },
+  models: {
+    mode: "merge",
+    providers: {
+      siliconflow: {
+        baseUrl: "https://api.siliconflow.com/v1",
+        apiKey: "${SILICONFLOW_API_KEY}",
+        api: "openai-completions",
+        models: [
+          { id: "deepseek-ai/DeepSeek-V3.2", name: "DeepSeek V3.2" },
+          { id: "zai-org/GLM-4.6V", name: "GLM-4.6V" },
+        ],
+      },
+    },
+  },
+}
+```
+
 ### Kimi Coding
 
 Kimi Coding uses Moonshot AI's Anthropic-compatible endpoint:

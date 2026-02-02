@@ -24,6 +24,7 @@ export type ApplyAuthChoiceParams = {
   opts?: {
     tokenProvider?: string;
     token?: string;
+    siliconflowSite?: "cn" | "global";
   };
 };
 
