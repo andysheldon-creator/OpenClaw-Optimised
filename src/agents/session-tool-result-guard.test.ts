@@ -141,4 +141,30 @@ describe("installSessionToolResultGuard", () => {
       .map((e) => (e as { message: AgentMessage }).message);
     expect(messages.map((m) => m.role)).toEqual(["assistant", "toolResult"]);
   });
+
+  it("strips tool calls from aborted assistant messages to avoid orphaned results", () => {
+    const sm = SessionManager.inMemory();
+    const guard = installSessionToolResultGuard(sm);
+
+    sm.appendMessage({
+      role: "assistant",
+      stopReason: "aborted",
+      content: [
+        { type: "toolCall", id: "call_abort", name: "read", arguments: {} },
+        { type: "text", text: "partial" },
+      ],
+    } as AgentMessage);
+    guard.flushPendingToolResults();
+
+    const messages = sm
+      .getEntries()
+      .filter((e) => e.type === "message")
+      .map((e) => (e as { message: AgentMessage }).message);
+
+    expect(messages.map((m) => m.role)).toEqual(["assistant"]);
+    const assistant = messages[0] as { content?: Array<{ type?: string }> };
+    const types = (assistant.content ?? []).map((block) => block?.type);
+    expect(types).toEqual(["text"]);
+    expect(guard.getPendingIds()).toEqual([]);
+  });
 });

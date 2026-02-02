@@ -5,6 +5,14 @@ import { makeMissingToolResult } from "./session-transcript-repair.js";
 
 type ToolCall = { id: string; name?: string };
 
+function isToolCallBlock(block: unknown): boolean {
+  if (!block || typeof block !== "object") {
+    return false;
+  }
+  const rec = block as { type?: unknown };
+  return rec.type === "toolCall" || rec.type === "toolUse" || rec.type === "functionCall";
+}
+
 function extractAssistantToolCalls(msg: Extract<AgentMessage, { role: "assistant" }>): ToolCall[] {
   const content = msg.content;
   if (!Array.isArray(content)) {
@@ -113,10 +121,22 @@ export function installSessionToolResultGuard(
       );
     }
 
-    const toolCalls =
-      role === "assistant"
-        ? extractAssistantToolCalls(message as Extract<AgentMessage, { role: "assistant" }>)
-        : [];
+    let nextMessage = message;
+    let toolCalls: ToolCall[] = [];
+    if (role === "assistant") {
+      const assistant = message as Extract<AgentMessage, { role: "assistant" }>;
+      toolCalls = extractAssistantToolCalls(assistant);
+      if (assistant.stopReason === "aborted" && Array.isArray(assistant.content)) {
+        const filtered = assistant.content.filter((block) => !isToolCallBlock(block));
+        if (filtered.length !== assistant.content.length) {
+          nextMessage = {
+            ...assistant,
+            content: filtered,
+          };
+          toolCalls = [];
+        }
+      }
+    }
 
     if (allowSyntheticToolResults) {
       // If previous tool calls are still pending, flush before non-tool results.
@@ -129,7 +149,7 @@ export function installSessionToolResultGuard(
       }
     }
 
-    const result = originalAppend(message as never);
+    const result = originalAppend(nextMessage as never);
 
     const sessionFile = (
       sessionManager as { getSessionFile?: () => string | null }
