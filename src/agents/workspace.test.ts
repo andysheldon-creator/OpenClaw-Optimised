@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { makeTempWorkspace, writeWorkspaceFile } from "../test-helpers/workspace.js";
+
 import {
   DEFAULT_MEMORY_ALT_FILENAME,
   DEFAULT_MEMORY_FILENAME,
   loadWorkspaceBootstrapFiles,
+  resolveTemplateDir,
+  ensureAgentWorkspace,
+  DEFAULT_AGENTS_FILENAME,
 } from "./workspace.js";
+import { makeTempWorkspace, writeWorkspaceFile } from "../test-helpers/workspace.js";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 describe("loadWorkspaceBootstrapFiles", () => {
   it("includes MEMORY.md when present", async () => {
@@ -44,5 +50,16 @@ describe("loadWorkspaceBootstrapFiles", () => {
     );
 
     expect(memoryEntries).toHaveLength(0);
+  });
+
+  it("resolves templates and writes AGENTS.md when ensuring bootstrap files", async () => {
+    const templateDir = await resolveTemplateDir();
+    await fs.access(path.join(templateDir, DEFAULT_AGENTS_FILENAME));
+
+    const tempDir = await makeTempWorkspace("openclaw-workspace-");
+    const res = await ensureAgentWorkspace({ dir: tempDir, ensureBootstrapFiles: true });
+    const agentsPath = res.agentsPath!;
+    const content = await fs.readFile(agentsPath, "utf-8");
+    expect(content.length).toBeGreaterThan(10);
   });
 });
