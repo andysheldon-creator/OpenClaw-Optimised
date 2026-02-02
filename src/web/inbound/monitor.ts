@@ -1,4 +1,4 @@
-import type { AnyMessageContent, proto, WAMessage } from "@whiskeysockets/baileys";
+import type { AnyMessageContent, proto, WAMessage, ParticipantAction, GroupSettingUpdate } from "@whiskeysockets/baileys";
 import { DisconnectReason, isJidGroup } from "@whiskeysockets/baileys";
 import type { WebInboundMessage, WebListenerCloseReason } from "./types.js";
 import { createInboundDebouncer } from "../../auto-reply/inbound-debounce.js";
@@ -372,9 +372,9 @@ export async function monitorWebInbox(options: {
       groupUpdateSubject: (jid: string, subject: string) => sock.groupUpdateSubject(jid, subject),
       groupUpdateDescription: (jid: string, description?: string) => sock.groupUpdateDescription(jid, description),
       updateProfilePicture: (jid: string, content: Buffer) => sock.updateProfilePicture(jid, content),
-      groupParticipantsUpdate: (jid: string, participants: string[], action) =>
+      groupParticipantsUpdate: (jid: string, participants: string[], action: ParticipantAction) =>
         sock.groupParticipantsUpdate(jid, participants, action),
-      groupSettingUpdate: (jid: string, setting) => sock.groupSettingUpdate(jid, setting),
+      groupSettingUpdate: (jid: string, setting: GroupSettingUpdate) => sock.groupSettingUpdate(jid, setting),
     },
     defaultAccountId: options.accountId,
   });

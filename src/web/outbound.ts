@@ -226,8 +226,10 @@ export async function updateGroupParticipantsWhatsApp(
 ): Promise<{ status: string; jid: string }[]> {
   const { listener: active } = requireActiveWebListener(options.accountId);
   const jid = toWhatsappJid(groupJid);
-  outboundLog.info(`Updating group participants -> ${jid}: ${action} ${participants.length} participants`);
-  const result = await active.updateGroupParticipants(jid, participants, action);
+  // Normalize participants to JIDs here (single normalization layer)
+  const participantJids = participants.map((p) => toWhatsappJid(p));
+  outboundLog.info(`Updating group participants -> ${jid}: ${action} ${participantJids.length} participants`);
+  const result = await active.updateGroupParticipants(jid, participantJids, action);
   outboundLog.info(`Updated group participants -> ${jid}`);
   return result;
 }
