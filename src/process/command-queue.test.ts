@@ -16,7 +16,12 @@ vi.mock("../logging/diagnostic.js", () => ({
   diagnosticLogger: diagnosticMocks.diag,
 }));
 
-import { enqueueCommand, getQueueSize } from "./command-queue.js";
+import {
+  enqueueCommand,
+  enqueueCommandInLane,
+  getLaneCount,
+  getQueueSize,
+} from "./command-queue.js";
 
 describe("command queue", () => {
   beforeEach(() => {
@@ -84,5 +89,22 @@ describe("command queue", () => {
     expect(waited).not.toBeNull();
     expect(waited as number).toBeGreaterThanOrEqual(5);
     expect(queuedAhead).toBe(0);
+  });
+
+  it("removes idle session lanes after completion to avoid unbounded growth", async () => {
+    vi.useFakeTimers();
+    const before = getLaneCount();
+
+    const lane = "session:test-1";
+    const promise = enqueueCommandInLane(lane, async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+    await vi.advanceTimersByTimeAsync(10);
+    await promise;
+
+    // session lane should be removed once it becomes idle
+    expect(getQueueSize(lane)).toBe(0);
+    expect(getLaneCount()).toBe(before);
+    vi.useRealTimers();
   });
 });

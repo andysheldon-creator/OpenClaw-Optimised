@@ -23,6 +23,26 @@ type LaneState = {
   draining: boolean;
 };
 
+function shouldAutoRemoveLane(lane: string) {
+  // Dynamic lanes derived from session keys should not live forever.
+  // Main lane is process-wide and intentionally persistent.
+  // Lint: avoid enum/string comparison issues by comparing to the literal main lane name.
+  return lane.trim() !== "main" && lane.startsWith("session:");
+}
+
+function maybeRemoveIdleLane(state: LaneState) {
+  if (!shouldAutoRemoveLane(state.lane)) {
+    return;
+  }
+  if (state.active !== 0) {
+    return;
+  }
+  if (state.queue.length !== 0) {
+    return;
+  }
+  lanes.delete(state.lane);
+}
+
 const lanes = new Map<string, LaneState>();
 
 function getLaneState(lane: string): LaneState {
@@ -62,28 +82,33 @@ function drainLane(lane: string) {
       state.active += 1;
       void (async () => {
         const startTime = Date.now();
+        let result: unknown;
         try {
-          const result = await entry.task();
-          state.active -= 1;
-          diag.debug(
-            `lane task done: lane=${lane} durationMs=${Date.now() - startTime} active=${state.active} queued=${state.queue.length}`,
-          );
-          pump();
-          entry.resolve(result);
+          result = await entry.task();
         } catch (err) {
-          state.active -= 1;
           const isProbeLane = lane.startsWith("auth-probe:") || lane.startsWith("session:probe-");
           if (!isProbeLane) {
             diag.error(
               `lane task error: lane=${lane} durationMs=${Date.now() - startTime} error="${String(err)}"`,
             );
           }
-          pump();
           entry.reject(err);
+          maybeRemoveIdleLane(state);
+          return;
+        } finally {
+          state.active -= 1;
         }
+
+        diag.debug(
+          `lane task done: lane=${lane} durationMs=${Date.now() - startTime} active=${state.active} queued=${state.queue.length}`,
+        );
+        pump();
+        entry.resolve(result);
+        maybeRemoveIdleLane(state);
       })();
     }
     state.draining = false;
+    maybeRemoveIdleLane(state);
   };
 
   pump();
@@ -156,5 +181,10 @@ export function clearCommandLane(lane: string = CommandLane.Main) {
   }
   const removed = state.queue.length;
   state.queue.length = 0;
+  maybeRemoveIdleLane(state);
   return removed;
+}
+
+export function getLaneCount() {
+  return lanes.size;
 }
