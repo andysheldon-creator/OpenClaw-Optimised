@@ -9,6 +9,7 @@ import {
   schemaType,
   type JsonSchema,
 } from "./config-form.shared";
+import { icons } from "../icons";
 
 const META_KEYS = new Set(["title", "description", "default", "nullable"]);
 
@@ -29,7 +30,7 @@ function jsonValue(value: unknown): string {
 }
 
 // SVG Icons as template literals
-const icons = {
+const localIcons = {
   chevronDown: html`
     <svg
       viewBox="0 0 24 24"
@@ -91,19 +92,6 @@ const icons = {
     >
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-    </svg>
-  `,
-  eye: html`
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-      <circle cx="12" cy="12" r="3"></circle>
     </svg>
   `,
 };
@@ -575,7 +563,7 @@ function renderObject(params: {
     <details class="cfg-object" open>
       <summary class="cfg-object__header">
         <span class="cfg-object__title">${label}</span>
-        <span class="cfg-object__chevron">${icons.chevronDown}</span>
+        <span class="cfg-object__chevron">${localIcons.chevronDown}</span>
       </summary>
       ${help ? html`<div class="cfg-object__help">${help}</div>` : nothing}
       <div class="cfg-object__content">
@@ -651,7 +639,7 @@ function renderArray(params: {
             onPatch(path, next);
           }}
         >
-          <span class="cfg-array__add-icon">${icons.plus}</span>
+          <span class="cfg-array__add-icon">${localIcons.plus}</span>
           Add
         </button>
       </div>
@@ -680,7 +668,7 @@ function renderArray(params: {
                     onPatch(path, next);
                   }}
                 >
-                  ${icons.trash}
+                  ${localIcons.trash}
                 </button>
               </div>
               <div class="cfg-array__item-content">
@@ -739,7 +727,7 @@ function renderMapField(params: {
             onPatch(path, next);
           }}
         >
-          <span class="cfg-map__add-icon">${icons.plus}</span>
+          <span class="cfg-map__add-icon">${localIcons.plus}</span>
           Add Entry
         </button>
       </div>
@@ -826,7 +814,7 @@ function renderMapField(params: {
                     onPatch(path, next);
                   }}
                 >
-                  ${icons.trash}
+                  ${localIcons.trash}
                 </button>
               </div>
             `;
