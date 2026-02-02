@@ -1,4 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import type { Api, Model } from "@mariozechner/pi-ai";
+import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
 import type { Command } from "commander";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AuthProfileCredential, OAuthCredential } from "../agents/auth-profiles/types.js";
@@ -306,12 +308,26 @@ export type PluginHookAgentContext = {
   sessionKey?: string;
   workspaceDir?: string;
   messageProvider?: string;
+  messageChannel?: string;
+  accountId?: string;
+  senderId?: string;
+  senderName?: string;
+  senderUsername?: string;
+  senderE164?: string;
+  runId?: string;
+  model?: Model<Api>;
+  modelRegistry?: ModelRegistry;
 };
 
 // before_agent_start hook
 export type PluginHookBeforeAgentStartEvent = {
   prompt: string;
   messages?: unknown[];
+  tools?: Array<{
+    name: string;
+    description?: string;
+    parameters?: Record<string, unknown>;
+  }>;
 };
 
 export type PluginHookBeforeAgentStartResult = {
@@ -379,6 +395,14 @@ export type PluginHookToolContext = {
   agentId?: string;
   sessionKey?: string;
   toolName: string;
+  messageChannel?: string;
+  accountId?: string;
+  senderId?: string;
+  senderName?: string;
+  senderUsername?: string;
+  senderE164?: string;
+  runId?: string;
+  intentTokenRaw?: string;
 };
 
 // before_tool_call hook

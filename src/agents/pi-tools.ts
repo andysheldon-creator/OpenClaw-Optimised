@@ -117,6 +117,7 @@ export function createOpenClawCodingTools(options?: {
   agentAccountId?: string;
   messageTo?: string;
   messageThreadId?: string | number;
+  runId?: string;
   sandbox?: SandboxContext | null;
   sessionKey?: string;
   agentDir?: string;
@@ -361,6 +362,7 @@ export function createOpenClawCodingTools(options?: {
     tools,
     toolMeta: (tool) => getPluginToolMeta(tool),
   });
+  const messageChannel = resolveGatewayMessageChannel(options?.messageProvider);
   const resolvePolicy = (policy: typeof profilePolicy, label: string) => {
     const resolved = stripPluginOnlyAllowlist(policy, pluginGroups, coreToolNames);
     if (resolved.unknownAllowlist.length > 0) {
@@ -428,6 +430,13 @@ export function createOpenClawCodingTools(options?: {
     wrapToolWithBeforeToolCallHook(tool, {
       agentId,
       sessionKey: options?.sessionKey,
+      messageChannel,
+      accountId: options?.agentAccountId,
+      senderId: options?.senderId ?? undefined,
+      senderName: options?.senderName ?? undefined,
+      senderUsername: options?.senderUsername ?? undefined,
+      senderE164: options?.senderE164 ?? undefined,
+      runId: options?.runId,
     }),
   );
   const withAbort = options?.abortSignal

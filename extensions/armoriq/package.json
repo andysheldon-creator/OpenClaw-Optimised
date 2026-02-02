@@ -1,0 +1,17 @@
+{
+  "name": "@openclaw/armoriq",
+  "version": "2026.2.2",
+  "description": "OpenClaw ArmorIQ intent enforcement plugin",
+  "type": "module",
+  "dependencies": {
+    "@armoriq/sdk": "file:../../../armoriq-sdk-customer-ts"
+  },
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

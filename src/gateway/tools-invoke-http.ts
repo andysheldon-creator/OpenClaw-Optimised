@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createOpenClawTools } from "../agents/openclaw-tools.js";
+import { runBeforeToolCallHook } from "../agents/pi-tools.before-tool-call.js";
 import {
   filterToolsByPolicy,
   resolveEffectiveToolPolicy,
@@ -173,6 +174,12 @@ export async function handleToolsInvokeHttpRequest(
     getHeader(req, "x-openclaw-message-channel") ?? "",
   );
   const accountId = getHeader(req, "x-openclaw-account-id")?.trim() || undefined;
+  const runId = getHeader(req, "x-openclaw-run-id")?.trim() || `http-${Date.now()}`;
+  const senderId = getHeader(req, "x-openclaw-sender-id")?.trim() || undefined;
+  const senderName = getHeader(req, "x-openclaw-sender-name")?.trim() || undefined;
+  const senderUsername = getHeader(req, "x-openclaw-sender-username")?.trim() || undefined;
+  const senderE164 = getHeader(req, "x-openclaw-sender-e164")?.trim() || undefined;
+  const intentTokenRaw = getHeader(req, "x-armoriq-intent-token")?.trim() || undefined;
 
   const {
     agentId,
@@ -305,10 +312,33 @@ export async function handleToolsInvokeHttpRequest(
   }
 
   try {
+    const hookOutcome = await runBeforeToolCallHook({
+      toolName,
+      params: args,
+      ctx: {
+        agentId,
+        sessionKey,
+        messageChannel: messageChannel ?? undefined,
+        accountId,
+        senderId,
+        senderName,
+        senderUsername,
+        senderE164,
+        runId,
+        intentTokenRaw,
+      },
+    });
+    if (hookOutcome.blocked) {
+      sendJson(res, 403, {
+        ok: false,
+        error: { type: "forbidden", message: hookOutcome.reason },
+      });
+      return true;
+    }
     const toolArgs = mergeActionIntoArgsIfSupported({
       toolSchema: (tool as any).parameters,
       action,
-      args,
+      args: hookOutcome.params as Record<string, unknown>,
     });
     const result = await (tool as any).execute?.(`http-${Date.now()}`, toolArgs);
     sendJson(res, 200, { ok: true, result });

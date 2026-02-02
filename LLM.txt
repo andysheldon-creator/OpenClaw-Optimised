@@ -1,0 +1,45 @@
+Context snapshot for next session
+
+Goal
+- Add ArmorIQ intent enforcement to OpenClaw as a clean, drop-in plugin.
+
+Decisions
+- Planning pass per run (Option A).
+- Fail-closed tool enforcement.
+- Enforce all tools (full intent firewall).
+- /tools/invoke accepts x-armoriq-intent-token header.
+- SDK style (ArmorIQClient) for token issuance; local enforcement after issuance.
+
+Plan schema (from armoriq-sdk-doc)
+- Plan shape:
+  {
+    steps: [
+      { action: string, mcp: "openclaw", description?: string, metadata?: object }
+    ],
+    metadata?: { goal?: string }
+  }
+- Each step must include action + mcp.
+- Parameter-level intent enforcement is TODO; placeholder stored in step.metadata.inputs.
+
+Where it lives
+- Plugin: extensions/armoriq/index.ts
+- Plugin config: extensions/armoriq/openclaw.plugin.json
+- Hook context additions: src/plugins/types.ts
+- Hook wiring: src/agents/pi-embedded-runner/run/attempt.ts,
+  src/agents/pi-tool-definition-adapter.ts,
+  src/agents/pi-tools.before-tool-call.ts,
+  src/agents/pi-tools.ts
+- /tools/invoke enforcement: src/gateway/tools-invoke-http.ts
+
+Behavior
+- before_agent_start: build plan via LLM (completeSimple) + capturePlan + getIntentToken.
+- before_tool_call: block if missing/invalid token or tool not in plan.
+- /tools/invoke: if header present, parse plan from token; if missing and http-* run id, mint a one-step plan.
+- agent_end: clears per-run cache.
+
+TODO
+- Implement parameter-level intent enforcement.
+- Include tool parameter schemas in planner prompt when size allows.
+- Add structured audit logs.
+- Confirm SDK endpoint usage with IAP backend expectations.
+

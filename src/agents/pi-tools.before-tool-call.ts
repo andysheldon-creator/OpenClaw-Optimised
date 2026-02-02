@@ -6,6 +6,14 @@ import { normalizeToolName } from "./tool-policy.js";
 type HookContext = {
   agentId?: string;
   sessionKey?: string;
+  messageChannel?: string;
+  accountId?: string;
+  senderId?: string;
+  senderName?: string;
+  senderUsername?: string;
+  senderE164?: string;
+  runId?: string;
+  intentTokenRaw?: string;
 };
 
 type HookOutcome = { blocked: true; reason: string } | { blocked: false; params: unknown };
@@ -40,6 +48,14 @@ export async function runBeforeToolCallHook(args: {
         toolName,
         agentId: args.ctx?.agentId,
         sessionKey: args.ctx?.sessionKey,
+        messageChannel: args.ctx?.messageChannel,
+        accountId: args.ctx?.accountId,
+        senderId: args.ctx?.senderId,
+        senderName: args.ctx?.senderName,
+        senderUsername: args.ctx?.senderUsername,
+        senderE164: args.ctx?.senderE164,
+        runId: args.ctx?.runId,
+        intentTokenRaw: args.ctx?.intentTokenRaw,
       },
     );
 

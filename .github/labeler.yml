@@ -220,3 +220,7 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/qwen-portal-auth/**"
+"extensions: armoriq":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/armoriq/**"
