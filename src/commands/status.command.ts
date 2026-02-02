@@ -291,8 +291,13 @@ export async function statusCommand(
       return muted(`enabled (${slot}) · unavailable`);
     }
     const parts: string[] = [];
-    const dirtySuffix = memory.dirty ? ` · ${warn("dirty")}` : "";
-    parts.push(`${memory.files} files · ${memory.chunks} chunks${dirtySuffix}`);
+    const isPluginMemory = memoryPlugin.slot !== "memory-core" && memory.files === 0;
+    if (isPluginMemory) {
+      parts.push(`${memory.chunks} entries`);
+    } else {
+      const dirtySuffix = memory.dirty ? ` · ${warn("dirty")}` : "";
+      parts.push(`${memory.files} files · ${memory.chunks} chunks${dirtySuffix}`);
+    }
     if (memory.sources?.length) {
       parts.push(`sources ${memory.sources.join(", ")}`);
     }

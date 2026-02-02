@@ -484,6 +484,31 @@ const memoryPlugin = {
     );
 
     // ========================================================================
+    // Gateway Methods
+    // ========================================================================
+
+    api.registerGatewayMethod("memory.status", async ({ respond }) => {
+      try {
+        const count = await db.count();
+        respond(true, {
+          plugin: "memory-lancedb",
+          entries: count,
+          dbPath: resolvedDbPath,
+          model: cfg.embedding.model,
+          provider: "openai",
+          autoRecall: cfg.autoRecall ?? false,
+          autoCapture: cfg.autoCapture ?? false,
+          coreMemory: cfg.coreMemory?.enabled ?? false,
+        }, undefined);
+      } catch (err) {
+        respond(false, undefined, {
+          code: -1,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    });
+
+    // ========================================================================
     // CLI Commands
     // ========================================================================
 

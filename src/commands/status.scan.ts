@@ -154,6 +154,37 @@ export async function scanStatus(
           return null;
         }
         if (memoryPlugin.slot !== "memory-core") {
+          // For non-core memory plugins, query the running gateway via RPC
+          if (!gatewayReachable) {
+            return null;
+          }
+          try {
+            const result = await callGateway({
+              method: "memory.status",
+              params: {},
+              timeoutMs: 3000,
+            });
+            if (result && typeof result === "object") {
+              const r = result as Record<string, unknown>;
+              // Map plugin response to MemoryStatusSnapshot shape
+              return {
+                agentId: agentStatus.defaultId ?? "main",
+                files: 0,
+                chunks: typeof r.entries === "number" ? r.entries : 0,
+                dirty: false,
+                workspaceDir: "",
+                dbPath: typeof r.dbPath === "string" ? r.dbPath : "",
+                provider: typeof r.provider === "string" ? r.provider : "unknown",
+                model: typeof r.model === "string" ? r.model : "unknown",
+                requestedProvider: typeof r.provider === "string" ? r.provider : "unknown",
+                sources: [],
+                extraPaths: [],
+                sourceCounts: [],
+              };
+            }
+          } catch {
+            // Gateway method not available or errored — fall through to null
+          }
           return null;
         }
         const agentId = agentStatus.defaultId ?? "main";
