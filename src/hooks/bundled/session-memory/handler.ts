@@ -2,7 +2,7 @@
  * Session memory hook handler
  *
  * Saves session context to memory when /new command is triggered
- * Creates a new dated memory file with LLM-generated slug
+ * Creates a new dated memory file with LLM-generated slug and summary
  */
 
 import fs from "node:fs/promises";
@@ -11,23 +11,45 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { OpenClawConfig } from "../../../config/config.js";
 import type { HookHandler } from "../../hooks.js";
-import { resolveAgentWorkspaceDir } from "../../../agents/agent-scope.js";
+import { resolveAgentWorkspaceDir, resolveAgentDir } from "../../../agents/agent-scope.js";
 import { resolveAgentIdFromSessionKey } from "../../../routing/session-key.js";
 import { resolveHookConfig } from "../../config.js";
 
+/** Patterns to filter out noise from session content */
+const NOISE_PATTERNS = [
+  /^Read HEARTBEAT\.md/i,
+  /^HEARTBEAT_OK$/i,
+  /^NO_REPLY$/i,
+  /^\s*$/,
+  /^System:/,
+];
+
+/** Maximum characters to send to LLM for summarization */
+const MAX_CONTENT_CHARS = 50000;
+
+/** Maximum characters for slug generation (smaller context) */
+const MAX_SLUG_CHARS = 2000;
+
 /**
- * Read recent messages from session file for slug generation
+ * Check if a message should be filtered out as noise
  */
-async function getRecentSessionContent(
-  sessionFilePath: string,
-  messageCount: number = 15,
-): Promise<string | null> {
+function isNoise(text: string): boolean {
+  return NOISE_PATTERNS.some((pattern) => pattern.test(text.trim()));
+}
+
+/**
+ * Extract all meaningful messages from session file
+ * Filters out heartbeats, NO_REPLY, tool blocks, and other noise
+ */
+async function getFullSessionContent(sessionFilePath: string): Promise<{
+  messages: string[];
+} | null> {
   try {
     const content = await fs.readFile(sessionFilePath, "utf-8");
     const lines = content.trim().split("\n");
 
-    // Parse JSONL and extract user/assistant messages first
-    const allMessages: string[] = [];
+    const messages: string[] = [];
+
     for (const line of lines) {
       try {
         const entry = JSON.parse(line);
@@ -37,12 +59,33 @@ async function getRecentSessionContent(
           const role = msg.role;
           if ((role === "user" || role === "assistant") && msg.content) {
             // Extract text content
-            const text = Array.isArray(msg.content)
-              ? msg.content.find((c: any) => c.type === "text")?.text
-              : msg.content;
-            if (text && !text.startsWith("/")) {
-              allMessages.push(`${role}: ${text}`);
+            let text: string | undefined;
+            if (Array.isArray(msg.content)) {
+              // Collect ALL text content blocks, skip tool_use/tool_result
+              const textBlocks = msg.content
+                .filter(
+                  (c: unknown) =>
+                    typeof c === "object" &&
+                    c !== null &&
+                    (c as Record<string, unknown>).type === "text" &&
+                    typeof (c as Record<string, unknown>).text === "string",
+                )
+                .map((c: unknown) => (c as Record<string, unknown>).text as string);
+              text = textBlocks.length > 0 ? textBlocks.join("\n") : undefined;
+            } else if (typeof msg.content === "string") {
+              text = msg.content;
             }
+
+            // Skip if no text, starts with slash command, or is noise
+            if (!text || text.startsWith("/") || isNoise(text)) {
+              continue;
+            }
+
+            // Truncate very long messages to avoid blowing up context
+            const truncated = text.length > 2000 ? text.slice(0, 2000) + "..." : text;
+
+            const formatted = `${role}: ${truncated}`;
+            messages.push(formatted);
           }
         }
       } catch {
@@ -50,11 +93,99 @@ async function getRecentSessionContent(
       }
     }
 
-    // Then slice to get exactly messageCount messages
-    const recentMessages = allMessages.slice(-messageCount);
-    return recentMessages.join("\n");
+    return { messages };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Generate LLM summary of session content
+ */
+async function generateSummaryViaLLM(params: {
+  sessionContent: string;
+  cfg: OpenClawConfig;
+  agentId: string;
+  workspaceDir: string;
+}): Promise<string | null> {
+  let tempSessionFile: string | null = null;
+
+  try {
+    const { runEmbeddedPiAgent } = await import("../../../agents/pi-embedded.js");
+    const agentDir = resolveAgentDir(params.cfg, params.agentId);
+
+    // Create a temporary session file for this one-off LLM call
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-summary-"));
+    tempSessionFile = path.join(tempDir, "session.jsonl");
+
+    // Initialize session file with required session header
+    const sessionHeader = JSON.stringify({
+      type: "session",
+      sessionId: `summary-generator-${Date.now()}`,
+      sessionKey: "temp:summary-generator",
+      createdAt: new Date().toISOString(),
+    });
+    await fs.writeFile(tempSessionFile, sessionHeader + "\n", "utf-8");
+
+    const prompt = `Summarize this session for future memory recall. Be concise but complete.
+
+Include:
+- **Topics**: Main subjects discussed
+- **Decisions**: Key decisions or conclusions reached
+- **Outcomes**: What was accomplished or resolved
+- **Open Items**: Any unfinished tasks or questions (if applicable)
+
+Skip routine/administrative messages. Focus on substance.
+
+Session transcript:
+${params.sessionContent}
+
+Write the summary in Markdown format, suitable for a memory file.`;
+
+    const result = await runEmbeddedPiAgent({
+      sessionId: `summary-generator-${Date.now()}`,
+      sessionKey: "temp:summary-generator",
+      sessionFile: tempSessionFile,
+      workspaceDir: params.workspaceDir,
+      agentDir,
+      config: params.cfg,
+      prompt,
+      timeoutMs: 30_000, // 30 second timeout for summary
+      runId: `summary-gen-${Date.now()}`,
+    });
+
+    // Clean up temp files
+    try {
+      await fs.rm(path.dirname(tempSessionFile), { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    // Extract text from payloads
+    if (result.payloads && result.payloads.length > 0) {
+      const text = result.payloads[0]?.text;
+      if (text) {
+        return text.trim();
+      }
+    }
+
+    console.error("[session-memory] LLM summary returned no content");
+    return null;
+  } catch (err) {
+    console.error(
+      "[session-memory] Summary generation error:",
+      err instanceof Error ? err.message : String(err),
+    );
+    return null;
+  } finally {
+    // Ensure cleanup
+    if (tempSessionFile) {
+      try {
+        await fs.rm(path.dirname(tempSessionFile), { recursive: true, force: true });
+      } catch {
+        // Ignore
+      }
+    }
   }
 }
 
@@ -83,7 +214,7 @@ const saveSessionToMemory: HookHandler = async (event) => {
     const now = new Date(event.timestamp);
     const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
 
-    // Generate descriptive slug from session using LLM
+    // Get session entry info
     const sessionEntry = (context.previousSessionEntry || context.sessionEntry || {}) as Record<
       string,
       unknown
@@ -97,33 +228,57 @@ const saveSessionToMemory: HookHandler = async (event) => {
 
     const sessionFile = currentSessionFile || undefined;
 
-    // Read message count from hook config (default: 15)
+    // Read hook config for message limiting and future options
     const hookConfig = resolveHookConfig(cfg, "session-memory");
-    const messageCount =
-      typeof hookConfig?.messages === "number" && hookConfig.messages > 0
-        ? hookConfig.messages
-        : 15;
+    const messageLimit =
+      typeof hookConfig?.messages === "number" && hookConfig.messages > 0 ? hookConfig.messages : 0; // 0 = no limit (include all)
 
     let slug: string | null = null;
-    let sessionContent: string | null = null;
+    let summary: string | null = null;
+    let rawContent: string | null = null;
 
     if (sessionFile) {
-      // Get recent conversation content
-      sessionContent = await getRecentSessionContent(sessionFile, messageCount);
-      console.log("[session-memory] sessionContent length:", sessionContent?.length || 0);
+      // Get full conversation content (filtered)
+      const parsed = await getFullSessionContent(sessionFile);
+      console.log("[session-memory] Parsed messages:", parsed?.messages.length || 0);
 
-      if (sessionContent && cfg) {
-        console.log("[session-memory] Calling generateSlugViaLLM...");
-        // Dynamically import the LLM slug generator (avoids module caching issues)
-        // When compiled, handler is at dist/hooks/bundled/session-memory/handler.js
-        // Going up ../.. puts us at dist/hooks/, so just add llm-slug-generator.js
-        const openclawRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-        const slugGenPath = path.join(openclawRoot, "llm-slug-generator.js");
-        const { generateSlugViaLLM } = await import(slugGenPath);
+      if (parsed && parsed.messages.length > 0) {
+        // Apply message limit if configured (take the most recent N messages)
+        const messagesToUse =
+          messageLimit > 0 ? parsed.messages.slice(-messageLimit) : parsed.messages;
 
-        // Use LLM to generate a descriptive slug
-        slug = await generateSlugViaLLM({ sessionContent, cfg });
-        console.log("[session-memory] Generated slug:", slug);
+        // Prepare content for LLM (cap at max chars)
+        const fullContent = messagesToUse.join("\n\n");
+        rawContent = fullContent.slice(0, MAX_CONTENT_CHARS);
+
+        if (cfg) {
+          // Generate slug from recent content (smaller context)
+          const slugContent = messagesToUse.slice(-10).join("\n").slice(0, MAX_SLUG_CHARS);
+
+          console.log("[session-memory] Generating slug...");
+          try {
+            const openclawRoot = path.resolve(
+              path.dirname(fileURLToPath(import.meta.url)),
+              "../..",
+            );
+            const slugGenPath = path.join(openclawRoot, "llm-slug-generator.js");
+            const { generateSlugViaLLM } = await import(slugGenPath);
+            slug = await generateSlugViaLLM({ sessionContent: slugContent, cfg });
+            console.log("[session-memory] Generated slug:", slug);
+          } catch (err) {
+            console.error("[session-memory] Slug generation failed:", err);
+          }
+
+          // Generate full summary via LLM
+          console.log("[session-memory] Generating summary...");
+          summary = await generateSummaryViaLLM({
+            sessionContent: rawContent,
+            cfg,
+            agentId,
+            workspaceDir,
+          });
+          console.log("[session-memory] Summary generated:", summary ? "yes" : "no");
+        }
       }
     }
 
@@ -157,9 +312,19 @@ const saveSessionToMemory: HookHandler = async (event) => {
       "",
     ];
 
-    // Include conversation content if available
-    if (sessionContent) {
-      entryParts.push("## Conversation Summary", "", sessionContent, "");
+    // Include LLM-generated summary if available
+    if (summary) {
+      entryParts.push("## Summary", "", summary, "");
+    } else if (rawContent) {
+      // Fallback to raw content if summary generation failed
+      entryParts.push(
+        "## Conversation Excerpt",
+        "",
+        "_Note: LLM summary unavailable, showing raw content_",
+        "",
+        rawContent.slice(0, 5000),
+        "",
+      );
     }
 
     const entry = entryParts.join("\n");
