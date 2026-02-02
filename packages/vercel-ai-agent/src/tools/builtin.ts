@@ -201,7 +201,7 @@ export const stringTool = tool({
 			case "length":
 				return { length: input.length };
 			case "reverse":
-				return { result: input.split("").reverse().join("") };
+				return { result: input.split("").toReversed().join("") };
 		}
 	},
 });

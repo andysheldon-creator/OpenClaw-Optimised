@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-
-import { runSdkAgent } from "./sdk-runner.js";
 import type { SdkRunnerParams } from "./sdk-runner.types.js";
+import { runSdkAgent } from "./sdk-runner.js";
 
 // ---------------------------------------------------------------------------
 // Mock the SDK and MCP bridge
@@ -285,7 +284,7 @@ describe("runSdkAgent", () => {
   describe("Claude Code hooks", () => {
     it("passes hook callbacks to the SDK when hooksEnabled is true and emits tool events from hooks", async () => {
       const queryFn = vi.fn().mockImplementation(async (args: any) => {
-        const hooks = args?.options?.hooks as any;
+        const hooks = args?.options?.hooks;
         const pre = hooks?.PreToolUse?.[0]?.hooks?.[0];
         const post = hooks?.PostToolUse?.[0]?.hooks?.[0];
 

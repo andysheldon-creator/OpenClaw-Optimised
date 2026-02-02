@@ -1,5 +1,5 @@
-import { onCompletion } from "./registry.js";
 import type { CompletionEvent, CompletionLevel, ContinuationDecision, GoalState } from "./types.js";
+import { onCompletion } from "./registry.js";
 
 // ─── Signal Detection ───────────────────────────────────────────────────────
 
@@ -31,8 +31,12 @@ const signalDetectors: SignalDetector[] = [];
  * Detects when a tool error occurred that might need recovery.
  */
 const toolErrorDetector: SignalDetector = (event) => {
-  if (event.level !== "turn") return null;
-  if (!event.lastToolError) return null;
+  if (event.level !== "turn") {
+    return null;
+  }
+  if (!event.lastToolError) {
+    return null;
+  }
 
   return {
     level: "turn",
@@ -46,9 +50,15 @@ const toolErrorDetector: SignalDetector = (event) => {
  * Detects when the agent completed without sending any messages.
  */
 const silentCompletionDetector: SignalDetector = (event) => {
-  if (event.level !== "turn") return null;
-  if (event.assistantTexts.length > 0) return null;
-  if (event.didSendViaMessagingTool) return null;
+  if (event.level !== "turn") {
+    return null;
+  }
+  if (event.assistantTexts.length > 0) {
+    return null;
+  }
+  if (event.didSendViaMessagingTool) {
+    return null;
+  }
 
   return {
     level: "turn",
@@ -62,8 +72,12 @@ const silentCompletionDetector: SignalDetector = (event) => {
  * Detects when a queue has been fully processed.
  */
 const queueDrainedDetector: SignalDetector = (event) => {
-  if (event.level !== "queue") return null;
-  if (!event.queueEmpty) return null;
+  if (event.level !== "queue") {
+    return null;
+  }
+  if (!event.queueEmpty) {
+    return null;
+  }
 
   // Only signal if there's an active goal (to be implemented via session state)
   return null;
@@ -81,7 +95,9 @@ export function registerSignalDetector(detector: SignalDetector): () => void {
   signalDetectors.push(detector);
   return () => {
     const idx = signalDetectors.indexOf(detector);
-    if (idx >= 0) signalDetectors.splice(idx, 1);
+    if (idx >= 0) {
+      signalDetectors.splice(idx, 1);
+    }
   };
 }
 
@@ -149,7 +165,9 @@ export function resetSignalDetectors(): void {
  */
 function handleCompletion(event: CompletionEvent): ContinuationDecision | void {
   const sessionKey = resolveSessionKey(event);
-  if (!sessionKey) return;
+  if (!sessionKey) {
+    return;
+  }
 
   // Update session state
   const session = managedSessions.get(sessionKey) ?? {
@@ -193,7 +211,9 @@ function handleCompletion(event: CompletionEvent): ContinuationDecision | void {
   }
 
   // Determine if we should continue based on signals
-  if (signals.length === 0) return;
+  if (signals.length === 0) {
+    return;
+  }
 
   // Find highest confidence signal that suggests continuation
   const bestSignal = signals.reduce((best, s) => (s.confidence > best.confidence ? s : best));

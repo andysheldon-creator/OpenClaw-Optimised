@@ -46,10 +46,14 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
 }
 
 async function coerceAsyncIterable(value: unknown): Promise<AsyncIterable<unknown>> {
-  if (isAsyncIterable(value)) return value;
+  if (isAsyncIterable(value)) {
+    return value;
+  }
   if (value instanceof Promise) {
     const awaited = await value;
-    if (isAsyncIterable(awaited)) return awaited;
+    if (isAsyncIterable(awaited)) {
+      return awaited;
+    }
   }
   throw new Error("Claude Agent SDK query() did not return an async iterable.");
 }
@@ -68,12 +72,16 @@ async function coerceAsyncIterable(value: unknown): Promise<AsyncIterable<unknow
 type EventKind = "result" | "assistant" | "tool" | "system" | "unknown";
 
 function classifyEvent(event: unknown): { kind: EventKind; event: unknown } {
-  if (!isRecord(event)) return { kind: "unknown", event };
+  if (!isRecord(event)) {
+    return { kind: "unknown", event };
+  }
 
   const type = event.type as string | undefined;
 
   // Terminal result event.
-  if (type === "result") return { kind: "result", event };
+  if (type === "result") {
+    return { kind: "result", event };
+  }
 
   // Tool-related events.
   if (
@@ -103,7 +111,9 @@ function normalizeSdkToolName(
   mcpServerName: string,
 ): { name: string; rawName: string } {
   const trimmed = raw.trim();
-  if (!trimmed) return { name: "tool", rawName: "" };
+  if (!trimmed) {
+    return { name: "tool", rawName: "" };
+  }
   const parts = trimmed.split("__");
   const withoutMcpPrefix =
     parts.length >= 3 && parts[0] === "mcp" && parts[1] === mcpServerName
@@ -118,7 +128,9 @@ function applySdkOptionsOverrides(
   options: SdkRunnerQueryOptions,
   overrides: unknown,
 ): SdkRunnerQueryOptions {
-  if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) return options;
+  if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) {
+    return options;
+  }
 
   // Clawdbrain must keep these consistent with its own tool plumbing + prompt building.
   // Also protect session-related keys to ensure auto-compaction works correctly.
@@ -139,7 +151,9 @@ function applySdkOptionsOverrides(
   const record = overrides as Record<string, unknown>;
   const target = options as unknown as Record<string, unknown>;
   for (const [key, value] of Object.entries(record)) {
-    if (protectedKeys.has(key)) continue;
+    if (protectedKeys.has(key)) {
+      continue;
+    }
     target[key] = value;
   }
   return options;
@@ -388,7 +402,9 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     if (providerEntries.length > 0) {
       const env: Record<string, string> = {};
       for (const [key, value] of Object.entries(process.env)) {
-        if (value !== undefined) env[key] = value;
+        if (value !== undefined) {
+          env[key] = value;
+        }
       }
       for (const [key, value] of providerEntries) {
         env[key] = value;
@@ -486,9 +502,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       eventCount += 1;
 
       // Diagnostic: log raw event types for debugging stream issues.
-      const eventType = isRecord(event)
-        ? String((event as Record<string, unknown>).type)
-        : "non-object";
+      const eventType = isRecord(event) ? String(event.type) : "non-object";
       logDebug(`[sdk-runner] Event #${eventCount}: type=${eventType}`);
 
       // Best-effort assistant message boundary detection.
@@ -559,11 +573,15 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
 
       // Emit tool results via callback.
       if (!hooksEnabled && kind === "tool") {
-        const record = isRecord(event) ? (event as Record<string, unknown>) : undefined;
+        const record = isRecord(event) ? event : undefined;
         const type = record && typeof record.type === "string" ? record.type : undefined;
         const phase = (() => {
-          if (type === "tool_execution_start" || type === "tool_use") return "start";
-          if (isSdkTerminalToolEventType(type)) return "result";
+          if (type === "tool_execution_start" || type === "tool_use") {
+            return "start";
+          }
+          if (isSdkTerminalToolEventType(type)) {
+            return "result";
+          }
           return "update";
         })();
         const name =
@@ -606,9 +624,11 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         if (toolText) {
           try {
             // Only emit tool results for terminal tool events to match Pi semantics more closely.
-            const record = isRecord(event) ? (event as Record<string, unknown>) : undefined;
+            const record = isRecord(event) ? event : undefined;
             const type = record && typeof record.type === "string" ? record.type : "";
-            if (isSdkTerminalToolEventType(type)) await params.onToolResult({ text: toolText });
+            if (isSdkTerminalToolEventType(type)) {
+              await params.onToolResult({ text: toolText });
+            }
           } catch {
             // Don't break the stream on callback errors.
           }
@@ -617,7 +637,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
 
       // Emit system/lifecycle events.
       if (kind === "system" && isRecord(event)) {
-        emitEvent("sdk", event as Record<string, unknown>);
+        emitEvent("sdk", event);
       }
 
       // Handle terminal result event.
@@ -652,10 +672,14 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       // Extract text from assistant messages.
       if (kind === "assistant" || kind === "unknown") {
         const text = extractTextFromClaudeAgentSdkEvent(event);
-        if (!text) continue;
+        if (!text) {
+          continue;
+        }
 
         const trimmed = text.trimEnd();
-        if (!trimmed) continue;
+        if (!trimmed) {
+          continue;
+        }
 
         if (!didAssistantMessageStart) {
           didAssistantMessageStart = true;
@@ -670,7 +694,9 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
 
         // Dedup: skip if this chunk is identical to or a suffix of the last.
         const last = chunks.at(-1);
-        if (last && (last === trimmed || last.endsWith(trimmed))) continue;
+        if (last && (last === trimmed || last.endsWith(trimmed))) {
+          continue;
+        }
 
         chunks.push(trimmed);
         extractedChars += trimmed.length;
@@ -703,7 +729,9 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       `[sdk-runner] Event stream completed: events=${eventCount} extractedChars=${extractedChars} truncated=${truncated} aborted=${aborted}`,
     );
   } catch (err) {
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
 
     const message = err instanceof Error ? err.message : String(err);
     logWarn(`[sdk-runner] Event stream threw: ${message}`);
@@ -782,7 +810,9 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       };
     }
   } finally {
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 
   // -------------------------------------------------------------------------

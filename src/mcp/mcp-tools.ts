@@ -36,16 +36,27 @@ function stableStringify(value: unknown): string {
     return String(value);
   }
   const t = typeof value;
-  if (t === "string") return JSON.stringify(value);
-  if (t === "number" || t === "boolean") return JSON.stringify(value);
-  if (t !== "object") return JSON.stringify(String(value));
+  if (t === "string") {
+    return JSON.stringify(value);
+  }
+  if (t === "number" || t === "boolean") {
+    return JSON.stringify(value);
+  }
+  if (t !== "object") {
+    // Handles bigint, symbol, function
+    return JSON.stringify(
+      typeof value === "bigint"
+        ? value.toString()
+        : String(value as string | symbol | ((...args: unknown[]) => unknown)),
+    );
+  }
 
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(",")}]`;
   }
 
   const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
+  const keys = Object.keys(obj).toSorted();
   return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(",")}}`;
 }
 
@@ -68,11 +79,15 @@ function mcpPiToolName(serverId: string, toolName: string): string {
 }
 
 function coerceHeaders(headers: Record<string, string> | undefined): HeadersInit | undefined {
-  if (!headers) return undefined;
+  if (!headers) {
+    return undefined;
+  }
   const entries = Object.entries(headers).filter(
     (e): e is [string, string] => typeof e[0] === "string" && typeof e[1] === "string",
   );
-  if (entries.length === 0) return undefined;
+  if (entries.length === 0) {
+    return undefined;
+  }
   return Object.fromEntries(entries);
 }
 
@@ -97,7 +112,7 @@ function stringifyToolResultContent(
     const mimeType = typeof block.mimeType === "string" ? block.mimeType : "audio/mpeg";
     return {
       type: "text",
-      text: `[MCP audio content: ${mimeType} (${String(block.data ?? "").length} base64 chars)]`,
+      text: `[MCP audio content: ${mimeType} (${typeof block.data === "string" ? block.data.length : 0} base64 chars)]`,
     };
   }
 
@@ -134,7 +149,9 @@ class McpConnection {
   }
 
   async connect(): Promise<void> {
-    if (this.connectPromise) return this.connectPromise;
+    if (this.connectPromise) {
+      return this.connectPromise;
+    }
 
     this.connectPromise = (async () => {
       const transportType = (this.server as any).transport ?? "stdio";
@@ -181,7 +198,9 @@ class McpConnection {
 
   async listTools(signal?: AbortSignal): Promise<McpRemoteToolDef[]> {
     await this.connect();
-    if (!this.client) throw new Error("MCP client missing");
+    if (!this.client) {
+      throw new Error("MCP client missing");
+    }
     const res = await this.client.listTools(undefined, { signal });
     return (res.tools ?? []) as unknown as McpRemoteToolDef[];
   }
@@ -192,7 +211,9 @@ class McpConnection {
     signal?: AbortSignal;
   }): Promise<McpCallResult> {
     await this.connect();
-    if (!this.client) throw new Error("MCP client missing");
+    if (!this.client) {
+      throw new Error("MCP client missing");
+    }
     const res = await this.client.callTool(
       {
         name: params.toolName,
@@ -254,7 +275,9 @@ function ensureAgentState(agentId: string, servers: McpServersConfig): AgentMcpS
 
 function getOrCreateConnection(state: AgentMcpState, serverId: string): McpConnection {
   const existing = state.connections.get(serverId);
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
   const server = state.servers[serverId];
   if (!server) {
     throw new Error(`Unknown MCP server: ${serverId}`);
@@ -346,7 +369,9 @@ export async function resolveMcpToolsForAgent(params: {
 
     for (const serverId of enabledServerIds) {
       const server = servers[serverId];
-      if (!server || !isMcpServerEnabled(server)) continue;
+      if (!server || !isMcpServerEnabled(server)) {
+        continue;
+      }
 
       try {
         const conn = getOrCreateConnection(state, serverId);
@@ -357,7 +382,9 @@ export async function resolveMcpToolsForAgent(params: {
         );
 
         for (const tool of remoteTools) {
-          if (!tool?.name?.trim()) continue;
+          if (!tool?.name?.trim()) {
+            continue;
+          }
           tools.push(
             buildMcpPiTool({
               agentId: params.agentId,

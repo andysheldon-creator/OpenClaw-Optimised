@@ -27,25 +27,39 @@ function isTestEnv(): boolean {
 }
 
 function isSessionDescriptionEnabled(): boolean {
-  if (isTestEnv()) return false;
+  if (isTestEnv()) {
+    return false;
+  }
   const raw = process.env.CLAWDBRAIN_SESSION_DESCRIPTION?.trim().toLowerCase();
-  if (!raw) return true;
+  if (!raw) {
+    return true;
+  }
   return !["0", "false", "off", "no"].includes(raw);
 }
 
 export function shouldRefreshSessionDescription(entry: SessionEntry, now: number): boolean {
   const turns = typeof entry.turnCount === "number" ? entry.turnCount : 0;
-  if (turns < DESCRIPTION_MIN_TURN_COUNT) return false;
-  if (!entry.sessionId) return false;
+  if (turns < DESCRIPTION_MIN_TURN_COUNT) {
+    return false;
+  }
+  if (!entry.sessionId) {
+    return false;
+  }
 
   const hasDescription =
     typeof entry.description === "string" && entry.description.trim().length > 0;
-  if (!hasDescription) return true;
+  if (!hasDescription) {
+    return true;
+  }
 
   const lastTurn = typeof entry.descriptionTurnCount === "number" ? entry.descriptionTurnCount : 0;
   const lastAt = typeof entry.descriptionUpdatedAt === "number" ? entry.descriptionUpdatedAt : 0;
-  if (turns - lastTurn < DESCRIPTION_REFRESH_TURN_DELTA) return false;
-  if (now - lastAt < DESCRIPTION_REFRESH_MIN_AGE_MS) return false;
+  if (turns - lastTurn < DESCRIPTION_REFRESH_TURN_DELTA) {
+    return false;
+  }
+  if (now - lastAt < DESCRIPTION_REFRESH_MIN_AGE_MS) {
+    return false;
+  }
   return true;
 }
 
@@ -57,8 +71,12 @@ function sanitizeDescriptionText(text: string): string | null {
     .replace(/^["'“”]+/, "")
     .replace(/["'“”]+$/, "")
     .trim();
-  if (!normalized) return null;
-  if (normalized.length <= DESCRIPTION_MAX_CHARS) return normalized;
+  if (!normalized) {
+    return null;
+  }
+  if (normalized.length <= DESCRIPTION_MAX_CHARS) {
+    return normalized;
+  }
   const cut = normalized.slice(0, DESCRIPTION_MAX_CHARS - 1);
   const lastSpace = cut.lastIndexOf(" ");
   return (lastSpace > DESCRIPTION_MAX_CHARS * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd() + "…";
@@ -71,7 +89,9 @@ type TranscriptMessage = {
 };
 
 function extractMessageText(msg: TranscriptMessage | undefined): string | null {
-  if (!msg || typeof msg !== "object") return null;
+  if (!msg || typeof msg !== "object") {
+    return null;
+  }
   if (typeof msg.content === "string") {
     const trimmed = msg.content.trim();
     return trimmed ? trimmed : null;
@@ -97,7 +117,9 @@ function resolveTranscriptCandidates(params: {
 }): string[] {
   const candidates: string[] = [];
   const sessionFile = params.entry.sessionFile?.trim();
-  if (sessionFile) candidates.push(sessionFile);
+  if (sessionFile) {
+    candidates.push(sessionFile);
+  }
   if (params.storePath) {
     const dir = path.dirname(params.storePath);
     candidates.push(path.join(dir, `${params.entry.sessionId}.jsonl`));
@@ -126,14 +148,18 @@ function readConversationExcerptFromTranscript(params: {
     storePath: params.storePath,
     agentId: params.agentId,
   }).find((candidate) => fs.existsSync(candidate));
-  if (!filePath) return null;
+  if (!filePath) {
+    return null;
+  }
 
   let fd: number | null = null;
   try {
     fd = fs.openSync(filePath, "r");
     const stat = fs.fstatSync(fd);
     const size = stat.size;
-    if (size === 0) return null;
+    if (size === 0) {
+      return null;
+    }
     const readStart = Math.max(0, size - maxBytes);
     const readLen = Math.min(size, maxBytes);
     const buf = Buffer.alloc(readLen);
@@ -143,45 +169,75 @@ function readConversationExcerptFromTranscript(params: {
 
     const collected: string[] = [];
     for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i]!;
+      const line = lines[i];
       try {
         const parsed = JSON.parse(line) as { message?: TranscriptMessage; type?: string } | null;
         const msg = parsed?.message;
         const role = typeof msg?.role === "string" ? msg.role.toLowerCase() : "";
-        if (role !== "user" && role !== "assistant") continue;
+        if (role !== "user" && role !== "assistant") {
+          continue;
+        }
         const text = extractMessageText(msg);
-        if (!text) continue;
-        if (role === "user" && text.trim().startsWith("/")) continue;
+        if (!text) {
+          continue;
+        }
+        if (role === "user" && text.trim().startsWith("/")) {
+          continue;
+        }
         const compact = text.replace(/\s+/g, " ").trim();
-        if (!compact) continue;
+        if (!compact) {
+          continue;
+        }
         const truncated = compact.length > 320 ? `${compact.slice(0, 317)}...` : compact;
         collected.push(`${role}: ${truncated}`);
-        if (collected.length >= maxMessages) break;
+        if (collected.length >= maxMessages) {
+          break;
+        }
       } catch {
         // ignore malformed lines
       }
     }
 
-    if (collected.length === 0) return null;
-    return collected.reverse().join("\n");
+    if (collected.length === 0) {
+      return null;
+    }
+    return collected.toReversed().join("\n");
   } catch {
     return null;
   } finally {
-    if (fd !== null) fs.closeSync(fd);
+    if (fd !== null) {
+      fs.closeSync(fd);
+    }
   }
 }
 
 function scoreMicroModelId(id: string): number {
   const lower = id.toLowerCase();
   let score = 0;
-  if (lower.includes("gpt-4.1-nano")) score += 250;
-  if (lower.includes("nano")) score += 180;
-  if (lower.includes("mini")) score += 120;
-  if (lower.includes("haiku")) score += 110;
-  if (lower.includes("small")) score += 70;
-  if (lower.includes("fast") || lower.includes("lite") || lower.includes("turbo")) score += 40;
-  if (lower.includes("o1") || lower.includes("opus") || lower.includes("sonnet")) score -= 80;
-  if (lower.includes("pro")) score -= 20;
+  if (lower.includes("gpt-4.1-nano")) {
+    score += 250;
+  }
+  if (lower.includes("nano")) {
+    score += 180;
+  }
+  if (lower.includes("mini")) {
+    score += 120;
+  }
+  if (lower.includes("haiku")) {
+    score += 110;
+  }
+  if (lower.includes("small")) {
+    score += 70;
+  }
+  if (lower.includes("fast") || lower.includes("lite") || lower.includes("turbo")) {
+    score += 40;
+  }
+  if (lower.includes("o1") || lower.includes("opus") || lower.includes("sonnet")) {
+    score -= 80;
+  }
+  if (lower.includes("pro")) {
+    score -= 20;
+  }
   return score;
 }
 
@@ -191,7 +247,9 @@ async function resolveMicroModelRef(
 ): Promise<{ provider: string; model: string } | null> {
   try {
     const catalog = await loadModelCatalog({ config: cfg });
-    if (catalog.length === 0) return null;
+    if (catalog.length === 0) {
+      return null;
+    }
 
     // Filter to only providers with available auth
     const agentDir = resolveAgentDir(cfg, agentId);
@@ -200,13 +258,17 @@ async function resolveMicroModelRef(
       isProviderConfigured({ provider: m.provider, cfg, store, agentDir }),
     );
 
-    if (availableModels.length === 0) return null;
+    if (availableModels.length === 0) {
+      return null;
+    }
 
     const best = availableModels
       .map((m) => ({ m, score: scoreMicroModelId(m.id) }))
       .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)[0]?.m;
-    if (!best) return null;
+      .toSorted((a, b) => b.score - a.score)[0]?.m;
+    if (!best) {
+      return null;
+    }
     return { provider: best.provider, model: best.id };
   } catch {
     return null;
@@ -219,7 +281,9 @@ async function generateDescriptionViaLLM(params: {
   conversation: string;
 }): Promise<{ description: string; provider: string; model: string } | null> {
   const modelRef = (await resolveMicroModelRef(params.cfg, params.agentId)) ?? null;
-  if (!modelRef) return null;
+  if (!modelRef) {
+    return null;
+  }
 
   const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "clawdbrain-desc-"));
   const tempSessionFile = path.join(tempDir, "session.jsonl");
@@ -256,9 +320,13 @@ async function generateDescriptionViaLLM(params: {
     });
 
     const text = res.payloads?.find((p) => typeof p?.text === "string" && p.text.trim())?.text;
-    if (!text) return null;
+    if (!text) {
+      return null;
+    }
     const sanitized = sanitizeDescriptionText(text);
-    if (!sanitized) return null;
+    if (!sanitized) {
+      return null;
+    }
     return { description: sanitized, provider: modelRef.provider, model: modelRef.model };
   } catch {
     return null;
@@ -272,16 +340,24 @@ export function queueSessionDescriptionRefresh(params: {
   sessionKey: string;
   entry: SessionEntry;
 }): void {
-  if (!isSessionDescriptionEnabled()) return;
+  if (!isSessionDescriptionEnabled()) {
+    return;
+  }
   const storePath = params.storePath.trim();
   const sessionKey = params.sessionKey.trim();
-  if (!storePath || !sessionKey) return;
+  if (!storePath || !sessionKey) {
+    return;
+  }
 
   const inflightKey = `${storePath}::${sessionKey}`;
-  if (SESSION_DESCRIPTION_INFLIGHT.has(inflightKey)) return;
+  if (SESSION_DESCRIPTION_INFLIGHT.has(inflightKey)) {
+    return;
+  }
 
   const now = Date.now();
-  if (!shouldRefreshSessionDescription(params.entry, now)) return;
+  if (!shouldRefreshSessionDescription(params.entry, now)) {
+    return;
+  }
 
   SESSION_DESCRIPTION_INFLIGHT.add(inflightKey);
   void (async () => {
@@ -293,10 +369,14 @@ export function queueSessionDescriptionRefresh(params: {
         storePath,
         agentId,
       });
-      if (!conversation) return;
+      if (!conversation) {
+        return;
+      }
 
       const generated = await generateDescriptionViaLLM({ cfg, agentId, conversation });
-      if (!generated?.description) return;
+      if (!generated?.description) {
+        return;
+      }
 
       const targetSessionId = params.entry.sessionId;
       const targetTurnCount =
@@ -307,15 +387,23 @@ export function queueSessionDescriptionRefresh(params: {
         storePath,
         sessionKey,
         update: async (current) => {
-          if (current.sessionId !== targetSessionId) return null;
+          if (current.sessionId !== targetSessionId) {
+            return null;
+          }
           const currentTurn = typeof current.turnCount === "number" ? current.turnCount : 0;
           const currentDescTurn =
             typeof current.descriptionTurnCount === "number" ? current.descriptionTurnCount : 0;
           const currentDescAt =
             typeof current.descriptionUpdatedAt === "number" ? current.descriptionUpdatedAt : 0;
-          if (currentDescAt > startedAt) return null;
-          if (currentDescTurn > targetTurnCount) return null;
-          if (!shouldRefreshSessionDescription(current, Date.now())) return null;
+          if (currentDescAt > startedAt) {
+            return null;
+          }
+          if (currentDescTurn > targetTurnCount) {
+            return null;
+          }
+          if (!shouldRefreshSessionDescription(current, Date.now())) {
+            return null;
+          }
           return {
             description: generated.description,
             descriptionUpdatedAt: Date.now(),

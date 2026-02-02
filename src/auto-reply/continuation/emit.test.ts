@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
-
+import type { CompletionEvent } from "./types.js";
 import { emitQueueCompletion, emitRunCompletion, emitTurnCompletion } from "./emit.js";
 import { clearCompletionHandlers, onCompletion } from "./registry.js";
-import type { CompletionEvent } from "./types.js";
 
 describe("continuation/emit", () => {
   afterEach(() => {
@@ -33,7 +32,9 @@ describe("continuation/emit", () => {
       expect(receivedEvents[0].level).toBe("turn");
 
       const event = receivedEvents[0];
-      if (event.level !== "turn") throw new Error("Expected turn event");
+      if (event.level !== "turn") {
+        throw new Error("Expected turn event");
+      }
 
       expect(event.runId).toBe("run-123");
       expect(event.sessionId).toBe("sess-456");
@@ -141,7 +142,9 @@ describe("continuation/emit", () => {
       expect(receivedEvents.length).toBe(1);
 
       const event = receivedEvents[0];
-      if (event.level !== "queue") throw new Error("Expected queue event");
+      if (event.level !== "queue") {
+        throw new Error("Expected queue event");
+      }
 
       expect(event.queueKey).toBe("queue-xyz");
       expect(event.sessionKey).toBe("agent-3:sender");

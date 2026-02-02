@@ -6,10 +6,9 @@
  */
 
 import crypto from "node:crypto";
-
 import type { Automation, AutomationCreate, AutomationPatch } from "../types.js";
-import { computeNextRunAtMs } from "../schedule.js";
 import type { AutomationServiceState } from "./state.js";
+import { computeNextRunAtMs } from "../schedule.js";
 
 const STUCK_RUN_MS = 2 * 60 * 60 * 1000; // 2 hours
 
@@ -23,7 +22,9 @@ const STUCK_RUN_MS = 2 * 60 * 60 * 1000; // 2 hours
  */
 export function findAutomationOrThrow(state: AutomationServiceState, id: string): Automation {
   const automation = state.store?.automations.find((a) => a.id === id);
-  if (!automation) throw new Error(`unknown automation id: ${id}`);
+  if (!automation) {
+    throw new Error(`unknown automation id: ${id}`);
+  }
   return automation;
 }
 
@@ -38,7 +39,9 @@ export function computeAutomationNextRunAtMs(
   automation: Automation,
   nowMs: number,
 ): number | undefined {
-  if (!automation.enabled) return undefined;
+  if (!automation.enabled) {
+    return undefined;
+  }
 
   // For one-shot "at" schedules, only run once
   if (automation.schedule.kind === "at") {
@@ -58,7 +61,9 @@ export function computeAutomationNextRunAtMs(
  * @param state - Service state
  */
 export function recomputeNextRuns(state: AutomationServiceState): void {
-  if (!state.store) return;
+  if (!state.store) {
+    return;
+  }
 
   const now = state.deps.nowMs();
 
@@ -102,7 +107,7 @@ export function createAutomation(
     agentId: input.agentId,
     name: normalizeRequiredName(input.name),
     description: normalizeOptionalText(input.description),
-    enabled: input.enabled !== false,
+    enabled: input.enabled,
     status: input.status ?? "active",
     createdAtMs: now,
     updatedAtMs: now,
@@ -175,7 +180,9 @@ export function isAutomationDue(
   nowMs: number,
   opts: { forced: boolean },
 ): boolean {
-  if (opts.forced) return true;
+  if (opts.forced) {
+    return true;
+  }
   return (
     automation.enabled &&
     typeof automation.state.nextRunAtMs === "number" &&
@@ -197,7 +204,7 @@ function assertValidAutomation(automation: Automation): void {
     if (config.type !== "smart-sync-fork") {
       throw new Error(`automation type "${type}" requires config.type "smart-sync-fork"`);
     }
-    const c = config as import("../types.js").SmartSyncForkConfig;
+    const c = config;
     if (!c.forkRepoUrl || !c.upstreamRepoUrl || !c.forkBranch || !c.upstreamBranch) {
       throw new Error(
         "smart-sync-fork automation requires forkRepoUrl, upstreamRepoUrl, forkBranch, and upstreamBranch",
@@ -207,7 +214,7 @@ function assertValidAutomation(automation: Automation): void {
     if (config.type !== "custom-script") {
       throw new Error(`automation type "${type}" requires config.type "custom-script"`);
     }
-    const c = config as import("../types.js").CustomScriptConfig;
+    const c = config;
     if (!c.script) {
       throw new Error("custom-script automation requires script (file path)");
     }
@@ -215,7 +222,7 @@ function assertValidAutomation(automation: Automation): void {
     if (config.type !== "webhook") {
       throw new Error(`automation type "${type}" requires config.type "webhook"`);
     }
-    const c = config as import("../types.js").WebhookConfig;
+    const c = config;
     if (!c.url) {
       throw new Error("webhook automation requires url");
     }

@@ -7,8 +7,8 @@
  * Follows the same pattern as CronService's store operations.
  */
 
-import { cleanOldHistory, loadAutomationsStore, saveAutomationsStore } from "../store.js";
 import type { AutomationServiceState } from "./state.js";
+import { cleanOldHistory, loadAutomationsStore, saveAutomationsStore } from "../store.js";
 
 /** In-memory cache of loaded stores by path */
 const storeCache = new Map<string, import("../types.js").AutomationStoreFile>();
@@ -20,7 +20,9 @@ const storeCache = new Map<string, import("../types.js").AutomationStoreFile>();
  * @param state - Service state to load the store into
  */
 export async function ensureLoaded(state: AutomationServiceState): Promise<void> {
-  if (state.store) return;
+  if (state.store) {
+    return;
+  }
 
   const cached = storeCache.get(state.deps.storePath);
   if (cached) {
@@ -45,8 +47,12 @@ export async function ensureLoaded(state: AutomationServiceState): Promise<void>
  * @param action - The action being attempted
  */
 export function warnIfDisabled(state: AutomationServiceState, action: string): void {
-  if (state.deps.automationsEnabled) return;
-  if (state.warnedDisabled) return;
+  if (state.deps.automationsEnabled) {
+    return;
+  }
+  if (state.warnedDisabled) {
+    return;
+  }
 
   state.warnedDisabled = true;
   state.deps.log.warn(
@@ -65,6 +71,8 @@ export function warnIfDisabled(state: AutomationServiceState, action: string): v
  * @param state - Service state containing the store to persist
  */
 export async function persist(state: AutomationServiceState): Promise<void> {
-  if (!state.store) return;
+  if (!state.store) {
+    return;
+  }
   await saveAutomationsStore(state.deps.storePath, state.store);
 }

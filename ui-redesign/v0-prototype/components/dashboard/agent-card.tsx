@@ -37,7 +37,7 @@ export function AgentCard({ agent, isCreateNew, className }: AgentCardProps) {
     )
   }
 
-  if (!agent) return null
+  if (!agent) {return null}
 
   const statusLabel = {
     active: "Active",

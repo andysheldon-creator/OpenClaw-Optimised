@@ -5,17 +5,10 @@
  */
 
 import crypto from "node:crypto";
-import { mkdir, readFile, writeFile, appendFile, readdir, stat, unlink } from "node:fs/promises";
-import { dirname, join, basename } from "node:path";
-import { emitAuditEvent, onAuditEvent } from "./audit-events.js";
-import type {
-  AuditEvent,
-  AuditCategory,
-  AuditSeverity,
-  AuditAction,
-  AuditQueryParams,
-  AuditQueryResult,
-} from "./types.js";
+import { mkdir, readFile, appendFile, readdir, unlink } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import type { AuditEvent, AuditSeverity, AuditQueryParams, AuditQueryResult } from "./types.js";
+import { emitAuditEvent } from "./audit-events.js";
 import { AUDIT_LOG_RETENTION_DAYS, MAX_AUDIT_EVENTS_PER_QUERY } from "./types.js";
 
 /** Directory for audit data */
@@ -91,7 +84,7 @@ export async function queryAuditEvents(
     const logFiles = files.filter((f) => f.startsWith("events-") && f.endsWith(".jsonl"));
 
     // Sort by date descending (newest first)
-    logFiles.sort().reverse();
+    logFiles.toSorted().reverse();
 
     for (const file of logFiles) {
       const filePath = join(auditDir, file);
@@ -165,7 +158,9 @@ export async function cleanupOldAuditLogs(homeDir: string): Promise<number> {
     for (const file of logFiles) {
       // Extract date from filename (events-YYYY-MM.jsonl)
       const match = file.match(/events-(\d{4})-(\d{2})\.jsonl/);
-      if (!match) continue;
+      if (!match) {
+        continue;
+      }
 
       const year = parseInt(match[1], 10);
       const month = parseInt(match[2], 10);

@@ -38,7 +38,9 @@ export function updateLastRouteInBackground(params: {
     },
     ctx: params.ctx,
   }).catch((err) => {
-    if (isErrno(err, "ENOENT")) return;
+    if (isErrno(err, "ENOENT")) {
+      return;
+    }
     params.warn(
       {
         error: formatError(err),

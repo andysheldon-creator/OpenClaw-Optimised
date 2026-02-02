@@ -16,9 +16,11 @@ function mergeServers(globalCfg: McpServersConfig, agentCfg: McpServersConfig): 
 
   // Allow per-agent overrides to disable globally defined servers via enabled:false.
   for (const [rawId, cfg] of Object.entries(merged)) {
-    if (!cfg || typeof cfg !== "object") continue;
+    if (!cfg || typeof cfg !== "object") {
+      continue;
+    }
 
-    const enabled = (cfg as McpServerConfig).enabled;
+    const enabled = cfg.enabled;
     if (enabled === false) {
       // Keep the entry but mark as disabled (callers can filter).
       merged[rawId] = { ...cfg, enabled: false } as McpServerConfig;
@@ -33,15 +35,15 @@ export function resolveEffectiveMcpServers(params: {
 }): McpServersConfig {
   const cfg = params.config;
   const globalRaw = cfg?.mcpServers;
-  const globalServers: McpServersConfig = isRecord(globalRaw)
-    ? (globalRaw as McpServersConfig)
-    : {};
+  const globalServers: McpServersConfig = isRecord(globalRaw) ? globalRaw : {};
 
   const agentServers: McpServersConfig = (() => {
-    if (!cfg || !params.agentId) return {};
+    if (!cfg || !params.agentId) {
+      return {};
+    }
     const agentCfg = resolveAgentConfig(cfg, params.agentId);
     const raw = agentCfg?.mcpServers;
-    return isRecord(raw) ? (raw as McpServersConfig) : {};
+    return isRecord(raw) ? raw : {};
   })();
 
   const merged = mergeServers(globalServers, agentServers);
@@ -50,13 +52,17 @@ export function resolveEffectiveMcpServers(params: {
   const normalized: McpServersConfig = {};
   for (const [rawId, server] of Object.entries(merged)) {
     const id = normalizeServerId(rawId);
-    if (!id) continue;
+    if (!id) {
+      continue;
+    }
     normalized[id] = server;
   }
   return normalized;
 }
 
 export function isMcpServerEnabled(server: McpServerConfig | undefined): boolean {
-  if (!server) return false;
+  if (!server) {
+    return false;
+  }
   return server.enabled !== false;
 }

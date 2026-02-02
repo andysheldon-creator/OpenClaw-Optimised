@@ -150,7 +150,7 @@ export class StreamProcessor {
 							clearTimeout(this.textBufferTimeout);
 						}
 						this.textBufferTimeout = setTimeout(() => {
-							this.flushTextBuffer();
+							void this.flushTextBuffer();
 						}, this.options.textDebounceMs);
 					}
 				}
@@ -433,7 +433,7 @@ export function toReadableStream(
 			}
 		},
 		cancel() {
-			iterator.return?.();
+			void iterator.return?.();
 		},
 	});
 }

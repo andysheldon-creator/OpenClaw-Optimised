@@ -6,17 +6,16 @@
  */
 
 import crypto from "node:crypto";
-
 import type { Automation, AutomationEvent, AutomationRun } from "../types.js";
-import { computeNextRunAtMs } from "../schedule.js";
+import type { AutomationServiceState } from "./state.js";
 import {
   emitAutomationCancelled,
   emitAutomationCompleted,
   emitAutomationFailed,
   emitAutomationStarted,
 } from "../events.js";
+import { computeNextRunAtMs } from "../schedule.js";
 import { locked } from "./locked.js";
-import type { AutomationServiceState } from "./state.js";
 import { ensureLoaded, persist } from "./store.js";
 
 /** Maximum timeout value in JavaScript (2^31 - 1 ms) */
@@ -27,13 +26,19 @@ const MAX_TIMEOUT_MS = 2 ** 31 - 1;
  * Clears any existing timer and schedules a new one.
  */
 export function armTimer(state: AutomationServiceState): void {
-  if (state.timer) clearTimeout(state.timer);
+  if (state.timer) {
+    clearTimeout(state.timer);
+  }
   state.timer = null;
 
-  if (!state.deps.automationsEnabled) return;
+  if (!state.deps.automationsEnabled) {
+    return;
+  }
 
   const nextAt = nextWakeAtMs(state);
-  if (!nextAt) return;
+  if (!nextAt) {
+    return;
+  }
 
   const delay = Math.max(nextAt - state.deps.nowMs(), 0);
   // Avoid TimeoutOverflowWarning when a job is far in the future
@@ -56,19 +61,27 @@ export function armTimer(state: AutomationServiceState): void {
  * 3. (locked) Persist final state, re-arm timer
  */
 export async function onTimer(state: AutomationServiceState): Promise<void> {
-  if (state.running) return;
+  if (state.running) {
+    return;
+  }
   state.running = true;
 
   try {
     // Phase 1 (locked): find due automations, mark running, persist
     const dueAutomations = await locked(state, async () => {
       await ensureLoaded(state);
-      if (!state.store) return [];
+      if (!state.store) {
+        return [];
+      }
 
       const now = state.deps.nowMs();
       const due = state.store.automations.filter((a) => {
-        if (!a.enabled) return false;
-        if (typeof a.state.runningAtMs === "number") return false;
+        if (!a.enabled) {
+          return false;
+        }
+        if (typeof a.state.runningAtMs === "number") {
+          return false;
+        }
         const next = a.state.nextRunAtMs;
         return typeof next === "number" && now >= next;
       });
@@ -79,7 +92,9 @@ export async function onTimer(state: AutomationServiceState): Promise<void> {
         automation.state.runningAtMs = startedAt;
       }
 
-      if (due.length > 0) await persist(state);
+      if (due.length > 0) {
+        await persist(state);
+      }
       return due;
     });
 
@@ -164,8 +179,12 @@ export async function executeAutomation(
     run.completedAt = new Date(endedAt);
     run.status = status;
     run.error = err;
-    if (artifacts) run.artifacts = artifacts;
-    if (conflicts) run.conflicts = conflicts;
+    if (artifacts) {
+      run.artifacts = artifacts;
+    }
+    if (conflicts) {
+      run.conflicts = conflicts;
+    }
 
     // Save run to history
     if (state.store) {
@@ -232,7 +251,9 @@ export async function executeAutomation(
  * Stop the timer without triggering any more scheduled runs.
  */
 export function stopTimer(state: AutomationServiceState): void {
-  if (state.timer) clearTimeout(state.timer);
+  if (state.timer) {
+    clearTimeout(state.timer);
+  }
   state.timer = null;
 }
 
@@ -243,7 +264,9 @@ export function nextWakeAtMs(state: AutomationServiceState): number | undefined 
   const automations = state.store?.automations ?? [];
   const enabled = automations.filter((a) => a.enabled && typeof a.state.nextRunAtMs === "number");
 
-  if (enabled.length === 0) return undefined;
+  if (enabled.length === 0) {
+    return undefined;
+  }
 
   return enabled.reduce(
     (min, a) => Math.min(min, a.state.nextRunAtMs as number),

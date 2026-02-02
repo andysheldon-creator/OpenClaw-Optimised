@@ -1,10 +1,9 @@
 import crypto from "node:crypto";
-
-import { loadSessionEntry } from "../../gateway/session-utils.js";
-import { readSessionMessages } from "../../gateway/session-utils.fs.js";
-import { onAgentEvent } from "../agent-events.js";
-import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 import type { OverseerAssignmentRecord, OverseerStructuredUpdate } from "./store.types.js";
+import { readSessionMessages } from "../../gateway/session-utils.fs.js";
+import { loadSessionEntry } from "../../gateway/session-utils.js";
+import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
+import { onAgentEvent } from "../agent-events.js";
 
 type RunState = {
   status: "active" | "ended";
@@ -30,24 +29,38 @@ export type OverseerTelemetrySnapshot = {
 };
 
 function extractMessageText(message: unknown): string | null {
-  if (!message || typeof message !== "object") return null;
+  if (!message || typeof message !== "object") {
+    return null;
+  }
   const content = (message as { content?: unknown }).content;
-  if (typeof content === "string") return content.trim() || null;
-  if (!Array.isArray(content)) return null;
+  if (typeof content === "string") {
+    return content.trim() || null;
+  }
+  if (!Array.isArray(content)) {
+    return null;
+  }
   const parts: string[] = [];
   for (const block of content) {
-    if (!block || typeof block !== "object") continue;
+    if (!block || typeof block !== "object") {
+      continue;
+    }
     const type = (block as { type?: unknown }).type;
-    if (type !== "text" && type !== "output_text" && type !== "input_text") continue;
+    if (type !== "text" && type !== "output_text" && type !== "input_text") {
+      continue;
+    }
     const text = (block as { text?: unknown }).text;
-    if (typeof text === "string" && text.trim()) parts.push(text.trim());
+    if (typeof text === "string" && text.trim()) {
+      parts.push(text.trim());
+    }
   }
   const joined = parts.join("\n").trim();
   return joined || null;
 }
 
 function fingerprintText(text: string | null | undefined): string | undefined {
-  if (!text) return undefined;
+  if (!text) {
+    return undefined;
+  }
   const hash = crypto.createHash("sha1");
   hash.update(text, "utf8");
   return hash.digest("hex");
@@ -58,18 +71,26 @@ function fingerprintText(text: string | null | undefined): string | undefined {
  * Looks for the last ```json fenced block containing { overseerUpdate: {...} }
  */
 export function parseStructuredUpdate(text: string | null): OverseerStructuredUpdate | undefined {
-  if (!text) return undefined;
+  if (!text) {
+    return undefined;
+  }
   const fenceRe = /```json\s*([\s\S]*?)```/gi;
   let match: RegExpExecArray | null = null;
   let last: string | undefined;
   while ((match = fenceRe.exec(text))) {
     last = match[1]?.trim();
   }
-  if (!last) return undefined;
+  if (!last) {
+    return undefined;
+  }
   try {
     const parsed = JSON.parse(last) as { overseerUpdate?: OverseerStructuredUpdate };
-    if (!parsed || typeof parsed !== "object") return undefined;
-    if (!parsed.overseerUpdate || typeof parsed.overseerUpdate !== "object") return undefined;
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+    if (!parsed.overseerUpdate || typeof parsed.overseerUpdate !== "object") {
+      return undefined;
+    }
     return parsed.overseerUpdate;
   } catch {
     return undefined;
@@ -85,7 +106,9 @@ export function parseStructuredUpdateFromTexts(
 ): OverseerStructuredUpdate | undefined {
   for (const text of texts) {
     const update = parseStructuredUpdate(text);
-    if (update) return update;
+    if (update) {
+      return update;
+    }
   }
   return undefined;
 }
@@ -101,11 +124,12 @@ export type OverseerMonitor = {
 export function createOverseerMonitor(): OverseerMonitor {
   const runStates = new Map<string, RunState>();
   const unsub = onAgentEvent((evt) => {
-    if (!evt || evt.stream !== "lifecycle") return;
+    if (!evt || evt.stream !== "lifecycle") {
+      return;
+    }
     const phase = evt.data?.phase;
     if (phase === "start") {
-      const startedAt =
-        typeof evt.data?.startedAt === "number" ? (evt.data.startedAt as number) : Date.now();
+      const startedAt = typeof evt.data?.startedAt === "number" ? evt.data.startedAt : Date.now();
       runStates.set(evt.runId, {
         status: "active",
         lastEventAt: Date.now(),
@@ -113,9 +137,10 @@ export function createOverseerMonitor(): OverseerMonitor {
       });
       return;
     }
-    if (phase !== "end" && phase !== "error") return;
-    const endedAt =
-      typeof evt.data?.endedAt === "number" ? (evt.data.endedAt as number) : Date.now();
+    if (phase !== "end" && phase !== "error") {
+      return;
+    }
+    const endedAt = typeof evt.data?.endedAt === "number" ? evt.data.endedAt : Date.now();
     const state = runStates.get(evt.runId);
     runStates.set(evt.runId, {
       status: "ended",
@@ -130,7 +155,9 @@ export function createOverseerMonitor(): OverseerMonitor {
     sampleForAssignmentIds,
   }) => {
     const snapshot: OverseerTelemetrySnapshot = { ts: Date.now(), assignments: {} };
-    if (assignments.length === 0) return snapshot;
+    if (assignments.length === 0) {
+      return snapshot;
+    }
     for (const assignment of assignments) {
       const sessionKey = assignment.sessionKey?.trim();
       const telemetry: OverseerAssignmentTelemetry = {
@@ -142,7 +169,9 @@ export function createOverseerMonitor(): OverseerMonitor {
         if (entry?.updatedAt) {
           telemetry.sessionUpdatedAt = entry.updatedAt;
         }
-        if (entry?.sessionId) telemetry.sessionId = entry.sessionId;
+        if (entry?.sessionId) {
+          telemetry.sessionId = entry.sessionId;
+        }
         telemetry.deliveryContext = normalizeDeliveryContext(entry?.deliveryContext);
 
         if (sampleForAssignmentIds?.has(assignment.assignmentId) && entry?.sessionId) {

@@ -1,10 +1,9 @@
 import { z } from "zod";
-
+import type { OverseerPlan } from "./store.types.js";
+import { AGENT_LANE_SUBAGENT } from "../../agents/lanes.js";
+import { runAgentStep } from "../../agents/tools/agent-step.js";
 import { loadConfig } from "../../config/config.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
-import { runAgentStep } from "../../agents/tools/agent-step.js";
-import { AGENT_LANE_SUBAGENT } from "../../agents/lanes.js";
-import type { OverseerPlan } from "./store.types.js";
 
 const DEFAULT_MAX_PHASES = 5;
 const DEFAULT_MAX_TASKS = 7;
@@ -109,10 +108,18 @@ function buildRepairPrompt(params: { errors: string[]; previousOutput: string })
 }
 
 function summarizeErrors(err: unknown): string[] {
-  if (!err) return ["unknown error"];
-  if (err instanceof Error) return [err.message];
-  if (Array.isArray(err)) return err.map((e) => String(e));
-  if (typeof err === "string") return [err];
+  if (!err) {
+    return ["unknown error"];
+  }
+  if (err instanceof Error) {
+    return [err.message];
+  }
+  if (Array.isArray(err)) {
+    return err.map((e) => String(e));
+  }
+  if (typeof err === "string") {
+    return [err];
+  }
   try {
     return [JSON.stringify(err)];
   } catch {

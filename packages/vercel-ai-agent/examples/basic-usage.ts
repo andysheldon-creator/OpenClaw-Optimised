@@ -16,7 +16,6 @@ import {
 	type AgentToolDefinition,
 	type StepResult,
 	type StreamChunk,
-	type AgentResponse,
 } from "../src/index.js";
 
 // 1. Create a custom tool
@@ -326,4 +325,4 @@ async function main() {
 	}
 }
 
-main();
+void main();

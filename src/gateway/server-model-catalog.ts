@@ -27,10 +27,18 @@ function hasAuthForProvider(
   cfg: OpenClawConfig,
   authStore: AuthProfileStore,
 ): boolean {
-  if (listProfilesForProvider(authStore, provider).length > 0) return true;
-  if (provider === "amazon-bedrock" && resolveAwsSdkEnvVarName()) return true;
-  if (resolveEnvApiKey(provider)) return true;
-  if (getCustomProviderApiKey(cfg, provider)) return true;
+  if (listProfilesForProvider(authStore, provider).length > 0) {
+    return true;
+  }
+  if (provider === "amazon-bedrock" && resolveAwsSdkEnvVarName()) {
+    return true;
+  }
+  if (resolveEnvApiKey(provider)) {
+    return true;
+  }
+  if (getCustomProviderApiKey(cfg, provider)) {
+    return true;
+  }
   return false;
 }
 
@@ -50,7 +58,9 @@ export async function loadGatewayModelCatalog(): Promise<GatewayModelChoice[]> {
   const providerAuthCache = new Map<string, boolean>();
   const resolveAuth = (provider: string): boolean => {
     const cached = providerAuthCache.get(provider);
-    if (cached !== undefined) return cached;
+    if (cached !== undefined) {
+      return cached;
+    }
     if (!authStore) {
       providerAuthCache.set(provider, false);
       return false;

@@ -16,8 +16,8 @@ export class LanceDbStore implements MemoryStore {
   ) {}
 
   private async ensureInitialized(): Promise<void> {
-    if (this.table) return;
-    if (this.initPromise) return this.initPromise;
+    if (this.table) {return;}
+    if (this.initPromise) {return this.initPromise;}
 
     this.initPromise = this.doInitialize();
     return this.initPromise;
@@ -34,7 +34,7 @@ export class LanceDbStore implements MemoryStore {
         {
           id: "__schema__",
           text: "",
-          vector: new Array(this.vectorDim).fill(0),
+          vector: Array.from({ length: this.vectorDim }, () => 0),
           importance: 0,
           category: "other",
           createdAt: 0,

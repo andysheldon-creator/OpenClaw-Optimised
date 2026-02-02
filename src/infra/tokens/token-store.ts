@@ -183,7 +183,9 @@ export async function verifyToken(
  * Check if a token has a specific scope.
  */
 export function hasScope(scopes: TokenScope[], required: TokenScope): boolean {
-  if (scopes.includes("*")) return true;
+  if (scopes.includes("*")) {
+    return true;
+  }
   return scopes.includes(required);
 }
 

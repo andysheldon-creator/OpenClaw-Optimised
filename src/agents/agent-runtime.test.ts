@@ -53,14 +53,14 @@ describe("AgentRuntime interface conformance", () => {
     const runtime = createPiAgentRuntime({});
     const result = await runtime.run(baseRunParams);
     expect(result.payloads).toBeDefined();
-    expect(result.payloads![0]!.text).toBe("pi-response");
+    expect(result.payloads![0].text).toBe("pi-response");
   });
 
   it("SDK runtime run() returns EmbeddedPiRunResult", async () => {
     const runtime = createSdkAgentRuntime({ tools: [] });
     const result = await runtime.run(baseRunParams);
     expect(result.payloads).toBeDefined();
-    expect(result.payloads![0]!.text).toBe("sdk-response");
+    expect(result.payloads![0].text).toBe("sdk-response");
   });
 });
 

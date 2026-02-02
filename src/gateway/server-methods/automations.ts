@@ -13,6 +13,7 @@
  */
 
 import type { Automation, AutomationCreate } from "../../automations/index.js";
+import type { GatewayRequestHandlers } from "./types.js";
 import {
   ErrorCodes,
   errorShape,
@@ -26,7 +27,6 @@ import {
   validateAutomationsRunParams,
   validateAutomationsUpdateParams,
 } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 /**
  * Convert internal Automation type to gateway protocol Automation type.
@@ -83,7 +83,7 @@ function toGatewayAutomation(automation: Automation): {
       ? {
           lastRun: {
             at: state.lastRunAtMs,
-            status: (state.lastStatus === "error" ? "failed" : "success") as "success" | "failed",
+            status: state.lastStatus === "error" ? "failed" : "success",
             durationMs: state.lastDurationMs,
             summary: state.lastError,
           },

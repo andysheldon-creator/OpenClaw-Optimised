@@ -1,11 +1,21 @@
 import crypto from "node:crypto";
-
+import type {
+  OverseerAssignmentRecord,
+  OverseerGoalRecord,
+  OverseerPhase,
+  OverseerPlanNodeBase,
+  OverseerTask,
+} from "../../infra/overseer/store.types.js";
+import type { OverseerGoalCreateResult, OverseerStatusResult } from "../protocol/index.js";
+import type { GatewayRequestHandlers } from "./types.js";
+import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import { parseDurationMs } from "../../cli/parse-duration.js";
 import { loadConfig } from "../../config/config.js";
 import { resolveAgentMainSessionKey } from "../../config/sessions/main-session.js";
-import { parseDurationMs } from "../../cli/parse-duration.js";
-import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import { appendOverseerEvent } from "../../infra/overseer/events.js";
+import { generateOverseerPlan } from "../../infra/overseer/planner.js";
+import { updateOverseerStore, loadOverseerStoreFromDisk } from "../../infra/overseer/store.js";
 import { normalizeAgentId, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import { loadSessionEntry } from "../session-utils.js";
 import {
   ErrorCodes,
   errorShape,
@@ -17,28 +27,12 @@ import {
   validateOverseerTickParams,
   validateOverseerWorkUpdateParams,
 } from "../protocol/index.js";
-import type {
-  OverseerGoalCreateParams,
-  OverseerGoalCreateResult,
-  OverseerGoalUpdateParams,
-  OverseerStatusResult,
-  OverseerTickParams,
-  OverseerWorkUpdateParams,
-} from "../protocol/index.js";
-import { generateOverseerPlan } from "../../infra/overseer/planner.js";
-import { updateOverseerStore, loadOverseerStoreFromDisk } from "../../infra/overseer/store.js";
-import { appendOverseerEvent } from "../../infra/overseer/events.js";
-import type {
-  OverseerAssignmentRecord,
-  OverseerGoalRecord,
-  OverseerPhase,
-  OverseerPlanNodeBase,
-  OverseerTask,
-} from "../../infra/overseer/store.types.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import { loadSessionEntry } from "../session-utils.js";
 
 function normalizeWorkStatus(value?: string) {
-  if (!value) return undefined;
+  if (!value) {
+    return undefined;
+  }
   const trimmed = value.trim();
   switch (trimmed) {
     case "todo":
@@ -54,7 +48,9 @@ function normalizeWorkStatus(value?: string) {
 }
 
 function normalizeAssignmentStatus(value?: string) {
-  if (!value) return undefined;
+  if (!value) {
+    return undefined;
+  }
   const trimmed = value.trim();
   switch (trimmed) {
     case "queued":
@@ -73,10 +69,14 @@ function normalizeAssignmentStatus(value?: string) {
 
 function updateGoalRollups(goal: OverseerGoalRecord) {
   const plan = goal.plan;
-  if (!plan) return;
+  if (!plan) {
+    return;
+  }
   for (const phase of plan.phases) {
     for (const task of phase.tasks) {
-      if (task.subtasks.length === 0) continue;
+      if (task.subtasks.length === 0) {
+        continue;
+      }
       if (task.subtasks.every((subtask) => subtask.status === "done")) {
         task.status = "done";
       } else if (task.subtasks.some((subtask) => subtask.status === "in_progress")) {
@@ -198,7 +198,9 @@ function buildAssignmentsFromPlan(params: {
   deliveryContext?: OverseerAssignmentRecord["deliveryContext"];
 }): OverseerAssignmentRecord[] {
   const plan = params.goal.plan;
-  if (!plan) return [];
+  if (!plan) {
+    return [];
+  }
   const assignments: OverseerAssignmentRecord[] = [];
   for (const phase of plan.phases) {
     for (const task of phase.tasks) {
@@ -240,8 +242,12 @@ export const overseerHandlers: GatewayRequestHandlers = {
     }
     const request = params as { includeGoals?: boolean; includeAssignments?: boolean };
     const result = summarizeStatus();
-    if (request.includeGoals === false) result.goals = [];
-    if (request.includeAssignments === false) result.stalledAssignments = [];
+    if (request.includeGoals === false) {
+      result.goals = [];
+    }
+    if (request.includeAssignments === false) {
+      result.stalledAssignments = [];
+    }
     respond(true, result, undefined);
   },
   "overseer.goal.create": async ({ params, respond }) => {
@@ -258,7 +264,7 @@ export const overseerHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const request = params as OverseerGoalCreateParams;
+    const request = params;
     const cfg = loadConfig();
     const idleAfterMs = (() => {
       try {
@@ -475,10 +481,12 @@ export const overseerHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const request = params as OverseerGoalUpdateParams;
+    const request = params;
     await updateOverseerStore(async (store) => {
       const goal = store.goals[request.goalId];
-      if (!goal) return { store, result: true };
+      if (!goal) {
+        return { store, result: true };
+      }
       if (typeof request.title === "string") {
         goal.title = request.title.trim();
       }
@@ -519,7 +527,9 @@ export const overseerHandlers: GatewayRequestHandlers = {
     const now = Date.now();
     await updateOverseerStore(async (store) => {
       const goal = store.goals[request.goalId];
-      if (!goal) return { store, result: true };
+      if (!goal) {
+        return { store, result: true };
+      }
 
       goal.status = "cancelled";
       goal.updatedAt = now;
@@ -528,7 +538,9 @@ export const overseerHandlers: GatewayRequestHandlers = {
         for (const phase of goal.plan.phases) {
           const nodes = [phase, ...phase.tasks, ...phase.tasks.flatMap((task) => task.subtasks)];
           for (const node of nodes) {
-            if (node.status === "done") continue;
+            if (node.status === "done") {
+              continue;
+            }
             node.status = "cancelled";
             node.updatedAt = now;
             node.endedAt = node.endedAt ?? now;
@@ -537,8 +549,12 @@ export const overseerHandlers: GatewayRequestHandlers = {
       }
 
       for (const assignment of Object.values(store.assignments ?? {})) {
-        if (assignment.goalId !== goal.goalId) continue;
-        if (assignment.status === "done") continue;
+        if (assignment.goalId !== goal.goalId) {
+          continue;
+        }
+        if (assignment.status === "done") {
+          continue;
+        }
         assignment.status = "cancelled";
         assignment.updatedAt = now;
       }
@@ -567,7 +583,7 @@ export const overseerHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const request = params as OverseerWorkUpdateParams;
+    const request = params;
     const normalizedStatus = normalizeWorkStatus(request.status);
     if (request.status && !normalizedStatus) {
       respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "invalid status value"));
@@ -576,12 +592,16 @@ export const overseerHandlers: GatewayRequestHandlers = {
     const assignmentStatus = normalizeAssignmentStatus(request.status);
     await updateOverseerStore(async (store) => {
       const goal = store.goals[request.goalId];
-      if (!goal || !goal.plan) return { store, result: true };
+      if (!goal || !goal.plan) {
+        return { store, result: true };
+      }
       const workNodeId = request.workNodeId;
       for (const phase of goal.plan.phases) {
         const nodes = [phase, ...phase.tasks, ...phase.tasks.flatMap((task) => task.subtasks)];
         for (const node of nodes) {
-          if (node.id !== workNodeId) continue;
+          if (node.id !== workNodeId) {
+            continue;
+          }
           if (normalizedStatus) {
             node.status = normalizedStatus;
             node.updatedAt = Date.now();
@@ -595,10 +615,18 @@ export const overseerHandlers: GatewayRequestHandlers = {
         }
       }
       for (const assignment of Object.values(store.assignments ?? {})) {
-        if (assignment.goalId !== goal.goalId) continue;
-        if (assignment.workNodeId !== workNodeId) continue;
-        if (assignmentStatus) assignment.status = assignmentStatus as any;
-        if (request.blockedReason) assignment.blockedReason = request.blockedReason;
+        if (assignment.goalId !== goal.goalId) {
+          continue;
+        }
+        if (assignment.workNodeId !== workNodeId) {
+          continue;
+        }
+        if (assignmentStatus) {
+          assignment.status = assignmentStatus as any;
+        }
+        if (request.blockedReason) {
+          assignment.blockedReason = request.blockedReason;
+        }
         assignment.updatedAt = Date.now();
       }
       updateGoalRollups(goal);
@@ -642,7 +670,7 @@ export const overseerHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    const request = params as OverseerTickParams;
+    const request = params;
     const res = await context.overseerRunner?.tickNow({ reason: request.reason });
     respond(true, res ?? { ok: false, didWork: false }, undefined);
   },

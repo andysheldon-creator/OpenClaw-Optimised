@@ -6,7 +6,11 @@
  */
 
 import path from "node:path";
-
+import type {
+  OverseerAssignmentRecord,
+  OverseerStore,
+  OverseerStructuredUpdate,
+} from "./store.types.js";
 import {
   onCompletion,
   type CompletionEvent,
@@ -15,15 +19,10 @@ import {
   type RunCompletionEvent,
   type QueueCompletionEvent,
 } from "../../auto-reply/continuation/index.js";
-import { updateOverseerStore } from "./store.js";
 import { appendOverseerEvent } from "./events.js";
-import { requestOverseerNow } from "./wake.js";
 import { applyStructuredUpdate } from "./runner.js";
-import type {
-  OverseerAssignmentRecord,
-  OverseerStore,
-  OverseerStructuredUpdate,
-} from "./store.types.js";
+import { updateOverseerStore } from "./store.js";
+import { requestOverseerNow } from "./wake.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,7 +94,9 @@ async function processTurnCompletion(
         (event.sessionKey && findAssignmentBySessionKey(store, event.sessionKey)) ||
         findAssignmentByRunId(store, event.runId);
 
-      if (!assignment) return { store, result: null };
+      if (!assignment) {
+        return { store, result: null };
+      }
 
       const now = Date.now();
 
@@ -183,7 +184,9 @@ async function processRunCompletion(
         findAssignmentBySessionKey(store, event.sessionKey) ||
         findAssignmentByRunId(store, event.runId);
 
-      if (!assignment) return { store, result: null };
+      if (!assignment) {
+        return { store, result: null };
+      }
 
       const now = Date.now();
 
@@ -229,13 +232,17 @@ async function processQueueCompletion(
 ): Promise<void> {
   const { storePath, hooks, autoTriggerTick } = config;
 
-  if (!event.sessionKey) return;
+  if (!event.sessionKey) {
+    return;
+  }
 
   await updateOverseerStore(
     async (store) => {
       const assignment = findAssignmentBySessionKey(store, event.sessionKey!);
 
-      if (!assignment) return { store, result: null };
+      if (!assignment) {
+        return { store, result: null };
+      }
 
       const now = Date.now();
 
@@ -359,7 +366,9 @@ export async function reportStructuredUpdate(params: {
   await updateOverseerStore(
     async (store) => {
       const assignment = findAssignmentBySessionKey(store, sessionKey);
-      if (!assignment) return { store, result: null };
+      if (!assignment) {
+        return { store, result: null };
+      }
 
       const now = Date.now();
 
@@ -412,7 +421,9 @@ export async function markAssignmentNeedsRecovery(params: {
   await updateOverseerStore(
     async (store) => {
       const assignment = findAssignmentBySessionKey(store, sessionKey);
-      if (!assignment) return { store, result: null };
+      if (!assignment) {
+        return { store, result: null };
+      }
 
       const now = Date.now();
 

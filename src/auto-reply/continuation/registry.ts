@@ -24,7 +24,9 @@ export function onCompletion(
   handlers.sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
   return () => {
     const idx = handlers.indexOf(registration);
-    if (idx >= 0) handlers.splice(idx, 1);
+    if (idx >= 0) {
+      handlers.splice(idx, 1);
+    }
   };
 }
 
@@ -33,15 +35,21 @@ export function onCompletion(
  * Returns first actionable decision (non-"none" action, or "none" with reason/goalUpdate).
  */
 export async function processCompletion(event: CompletionEvent): Promise<ContinuationDecision> {
-  if (handlers.length === 0) return { action: "none" };
+  if (handlers.length === 0) {
+    return { action: "none" };
+  }
 
   for (const { handler, levels, id } of handlers) {
     // Skip if handler doesn't handle this level
-    if (levels && !levels.includes(event.level)) continue;
+    if (levels && !levels.includes(event.level)) {
+      continue;
+    }
 
     try {
       const result = await handler(event);
-      if (!result) continue;
+      if (!result) {
+        continue;
+      }
 
       // Return if action is non-"none", or if it's "none" with additional info (reason/goalUpdate)
       const hasAdditionalInfo = result.reason || result.goalUpdate;

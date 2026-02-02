@@ -68,7 +68,9 @@ export async function persistSessionUsageUpdate(params: {
           return patch;
         },
       });
-      if (next) queueSessionDescriptionRefresh({ storePath, sessionKey, entry: next });
+      if (next) {
+        queueSessionDescriptionRefresh({ storePath, sessionKey, entry: next });
+      }
     } catch (err) {
       logVerbose(`failed to persist ${label}usage update: ${String(err)}`);
     }
@@ -109,7 +111,9 @@ export async function persistSessionUsageUpdate(params: {
           return patch;
         },
       });
-      if (next) queueSessionDescriptionRefresh({ storePath, sessionKey, entry: next });
+      if (next) {
+        queueSessionDescriptionRefresh({ storePath, sessionKey, entry: next });
+      }
     } catch (err) {
       logVerbose(`failed to persist ${label}model/context update: ${String(err)}`);
     }

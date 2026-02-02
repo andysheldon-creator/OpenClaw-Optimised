@@ -70,7 +70,9 @@ export function setProviderMaxConcurrent(provider: string, maxConcurrent: number
  */
 export function initProviderConcurrencyFromConfig(cfg: OpenClawConfig | undefined): void {
   const providers = cfg?.models?.providers;
-  if (!providers) return;
+  if (!providers) {
+    return;
+  }
   for (const [rawId, entry] of Object.entries(providers)) {
     const max = (entry as { maxConcurrent?: unknown } | undefined)?.maxConcurrent;
     if (typeof max === "number" && Number.isFinite(max) && max >= 1) {
@@ -87,7 +89,9 @@ export function resolveProviderMaxConcurrent(
   provider: string,
 ): number | undefined {
   const providers = cfg?.models?.providers;
-  if (!providers) return undefined;
+  if (!providers) {
+    return undefined;
+  }
   const key = normalizeProviderId(provider);
   for (const [rawId, entry] of Object.entries(providers)) {
     if (normalizeProviderId(rawId) === key) {
@@ -115,7 +119,9 @@ export function resolveProviderMaxConcurrent(
 export function wrapStreamFnWithConcurrencyGate(streamFn: StreamFn, provider: string): StreamFn {
   const key = normalizeProviderId(provider);
   const semaphore = providerSemaphores.get(key);
-  if (!semaphore) return streamFn;
+  if (!semaphore) {
+    return streamFn;
+  }
 
   const wrapped: StreamFn = async (...args) => {
     diag.debug(
@@ -126,7 +132,9 @@ export function wrapStreamFnWithConcurrencyGate(streamFn: StreamFn, provider: st
 
     let released = false;
     const releaseOnce = () => {
-      if (released) return;
+      if (released) {
+        return;
+      }
       released = true;
       semaphore.release();
       diag.debug(
@@ -168,6 +176,8 @@ export function getProviderSemaphore(
 ): { available: number; pendingCount: number } | undefined {
   const key = normalizeProviderId(provider);
   const sem = providerSemaphores.get(key);
-  if (!sem) return undefined;
+  if (!sem) {
+    return undefined;
+  }
   return { available: sem.available, pendingCount: sem.pendingCount };
 }

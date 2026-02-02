@@ -73,8 +73,10 @@ function createModel(config: ModelConfig) {
 			});
 			return custom(modelId);
 		}
-		default:
-			throw new Error(`Unsupported provider: ${provider}`);
+		default: {
+			const _exhaustive: never = provider;
+			throw new Error(`Unsupported provider: ${_exhaustive as string}`);
+		}
 	}
 }
 
@@ -419,6 +421,7 @@ export class ConversationalAgent {
 		let fullText = "";
 
 		// Capture class instance for use in async iterator
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this;
 
 		// Create deferred promises

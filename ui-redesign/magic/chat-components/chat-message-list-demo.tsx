@@ -39,7 +39,7 @@ export function ChatMessageListDemo() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim()) {return;}
 
     setMessages((prev) => [
       ...prev,

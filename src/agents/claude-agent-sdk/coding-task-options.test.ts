@@ -13,7 +13,7 @@ describe("buildCodingTaskSdkOptions", () => {
       expect.arrayContaining(["AskUserQuestion", "ExitPlanMode"]),
     );
 
-    const canUseTool = resolved.options.canUseTool as unknown as (
+    const canUseTool = resolved.options.canUseTool as (
       toolName: string,
       input: unknown,
     ) => Promise<Record<string, unknown>>;
@@ -44,7 +44,7 @@ describe("buildCodingTaskSdkOptions", () => {
     );
     expect(resolved.disallowedTools).toEqual(expect.arrayContaining(["Bash"]));
 
-    const canUseTool = resolved.options.canUseTool as unknown as (
+    const canUseTool = resolved.options.canUseTool as (
       toolName: string,
       input: unknown,
     ) => Promise<Record<string, unknown>>;
@@ -68,7 +68,7 @@ describe("buildCodingTaskSdkOptions", () => {
     };
 
     const resolved = buildCodingTaskSdkOptions({ config: cfg, cwd: "/repo" });
-    const canUseTool = resolved.options.canUseTool as unknown as (
+    const canUseTool = resolved.options.canUseTool as (
       toolName: string,
       input: unknown,
     ) => Promise<Record<string, unknown>>;

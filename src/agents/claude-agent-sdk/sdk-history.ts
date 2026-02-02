@@ -51,7 +51,9 @@ export function serializeConversationHistory(
   turns: SdkConversationTurn[] | undefined,
   options?: SerializeHistoryOptions,
 ): string {
-  if (!turns || turns.length === 0) return "";
+  if (!turns || turns.length === 0) {
+    return "";
+  }
 
   const maxChars = options?.maxChars ?? DEFAULT_MAX_HISTORY_CHARS;
   const maxTurns = options?.maxTurns ?? DEFAULT_MAX_HISTORY_TURNS;
@@ -82,7 +84,9 @@ export function serializeConversationHistory(
     totalChars += block.length + 2; // +2 for \n\n separator
   }
 
-  if (parts.length === 0) return "";
+  if (parts.length === 0) {
+    return "";
+  }
 
   const truncatedNote =
     turns.length > recentTurns.length
@@ -104,7 +108,9 @@ export function buildHistorySystemPromptSuffix(
   options?: SerializeHistoryOptions,
 ): string {
   const serialized = serializeConversationHistory(turns, options);
-  if (!serialized) return "";
+  if (!serialized) {
+    return "";
+  }
 
   return (
     "\n\n## Prior Conversation Context\n\n" +

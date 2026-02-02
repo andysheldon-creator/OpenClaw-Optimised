@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Canvas } from "@react-three/fiber";
-import { Environment, Html, OrbitControls, Stars } from "@react-three/drei";
+import { Environment, OrbitControls, Stars } from "@react-three/drei";
 import { ArrowRight, Crosshair, Layers, Shield, X } from "lucide-react";
 import React, { useMemo, useRef, useState } from "react";
 import type { SecuritySurface, SurfaceCategory } from "./surfaces";
@@ -11,14 +11,14 @@ import { clsx } from "./lib/clsx";
 type Filter = SurfaceCategory | "All";
 
 function severityBadgeClass(sev: SecuritySurface["severity"]) {
-  if (sev === "High") return "badge badgeHigh";
-  if (sev === "Medium") return "badge badgeMed";
+  if (sev === "High") {return "badge badgeHigh";}
+  if (sev === "Medium") {return "badge badgeMed";}
   return "badge badgeLow";
 }
 
 function metricFromSurfaces(surfaces: SecuritySurface[]) {
   const counts = { High: 0, Medium: 0, Low: 0 } as Record<SecuritySurface["severity"], number>;
-  for (const s of surfaces) counts[s.severity] += 1;
+  for (const s of surfaces) {counts[s.severity] += 1;}
   return counts;
 }
 
@@ -30,12 +30,12 @@ export function App() {
 
   const categories = useMemo(() => {
     const set = new Set<SurfaceCategory>();
-    for (const s of SURFACES) set.add(s.category);
+    for (const s of SURFACES) {set.add(s.category);}
     return ["All", ...Array.from(set)] as const;
   }, []);
 
   const filtered = useMemo(() => {
-    if (filter === "All") return SURFACES;
+    if (filter === "All") {return SURFACES;}
     return SURFACES.filter((s) => s.category === filter);
   }, [filter]);
 

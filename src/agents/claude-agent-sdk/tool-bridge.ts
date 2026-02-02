@@ -99,20 +99,26 @@ function convertJsonSchemaPropertyToZod(
   switch (schemaType) {
     case "string": {
       let schema = z.string();
-      if (description) schema = schema.describe(description);
+      if (description) {
+        schema = schema.describe(description);
+      }
       return schema;
     }
 
     case "number":
     case "integer": {
       let schema = z.number();
-      if (description) schema = schema.describe(description);
+      if (description) {
+        schema = schema.describe(description);
+      }
       return schema;
     }
 
     case "boolean": {
       let schema = z.boolean();
-      if (description) schema = schema.describe(description);
+      if (description) {
+        schema = schema.describe(description);
+      }
       return schema;
     }
 
@@ -123,7 +129,9 @@ function convertJsonSchemaPropertyToZod(
         itemZod = convertJsonSchemaPropertyToZod(itemsSchema, `${propName}[]`);
       }
       let schema = z.array(itemZod);
-      if (description) schema = schema.describe(description);
+      if (description) {
+        schema = schema.describe(description);
+      }
       return schema;
     }
 
@@ -140,7 +148,9 @@ function convertJsonSchemaPropertyToZod(
         );
         const shape: Record<string, z.ZodTypeAny> = {};
         for (const [nestedKey, nestedPropSchema] of Object.entries(nestedProps)) {
-          if (!nestedPropSchema || typeof nestedPropSchema !== "object") continue;
+          if (!nestedPropSchema || typeof nestedPropSchema !== "object") {
+            continue;
+          }
           let nestedZod = convertJsonSchemaPropertyToZod(
             nestedPropSchema,
             `${propName}.${nestedKey}`,
@@ -151,19 +161,25 @@ function convertJsonSchemaPropertyToZod(
           shape[nestedKey] = nestedZod;
         }
         let schema = z.object(shape);
-        if (description) schema = schema.describe(description);
+        if (description) {
+          schema = schema.describe(description);
+        }
         return schema;
       }
       // Generic object without defined properties
       let schema = z.record(z.string(), z.unknown());
-      if (description) schema = schema.describe(description);
+      if (description) {
+        schema = schema.describe(description);
+      }
       return schema;
     }
 
     default: {
       // Fallback for unknown types
       let schema = z.unknown();
-      if (description) schema = schema.describe(description);
+      if (description) {
+        schema = schema.describe(description);
+      }
       return schema;
     }
   }
@@ -442,10 +458,9 @@ async function loadMcpServerClass(): Promise<McpServerConstructor> {
     const hint = isModuleNotFound
       ? "Install with: npm install @modelcontextprotocol/sdk"
       : "Check MCP SDK version compatibility";
-    throw new Error(
-      `Failed to load MCP SDK (${hint}).\n` + `Module: ${moduleName}\n` + `Error: ${message}`,
-      { cause: err },
-    );
+    throw new Error(`Failed to load MCP SDK (${hint}).\nModule: ${moduleName}\nError: ${message}`, {
+      cause: err,
+    });
   }
 }
 

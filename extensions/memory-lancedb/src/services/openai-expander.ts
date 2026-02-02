@@ -35,7 +35,7 @@ export class OpenAiExpander implements Expander {
     currentPrompt: string,
     api: ClawdbrainPluginApi,
   ): Promise<string> {
-    if (history.length === 0) return currentPrompt;
+    if (history.length === 0) {return currentPrompt;}
 
     const context = history.slice(-5)
       .map((m) => `${m.role.toUpperCase()}: ${m.content}`)

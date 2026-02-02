@@ -3,8 +3,12 @@ import type { AgentRuntime } from "./agent-runtime.js";
 import type { SandboxContext } from "./sandbox.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { resolveMcpToolsForAgent } from "../mcp/mcp-tools.js";
+import {
+  DEFAULT_AGENT_ID,
+  isSubagentSessionKey,
+  normalizeAgentId,
+} from "../routing/session-key.js";
 import { resolveSessionAgentId } from "./agent-scope.js";
-import { DEFAULT_AGENT_ID, isSubagentSessionKey, normalizeAgentId } from "../routing/session-key.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 import { createSdkAgentRuntime } from "./claude-agent-sdk/sdk-agent-runtime.js";
 import { resolveThinkingBudget } from "./claude-agent-sdk/sdk-runner.config.js";
@@ -191,7 +195,7 @@ export async function createSdkMainAgentRuntime(
   const sdkCfg = params.config?.agents?.main?.sdk;
 
   return createSdkAgentRuntime({
-    tools: tools as AnyAgentTool[],
+    tools: tools,
     claudeSessionId: params.claudeSessionId,
     model: sdkCfg?.model,
     thinkingBudget: resolveThinkingBudget(sdkCfg?.thinkingBudget),

@@ -17,8 +17,8 @@ type Node = {
 };
 
 function colorForSeverity(sev: SecuritySurface["severity"]) {
-  if (sev === "High") return new THREE.Color("#ff3a73");
-  if (sev === "Medium") return new THREE.Color("#ffd34d");
+  if (sev === "High") {return new THREE.Color("#ff3a73");}
+  if (sev === "Medium") {return new THREE.Color("#ffd34d");}
   return new THREE.Color("#35ffb0");
 }
 
@@ -62,7 +62,7 @@ export function AtlasScene(props: Props) {
   }, [props.surfaces]);
 
   const focus = useMemo(() => {
-    if (!props.focusId) return null;
+    if (!props.focusId) {return null;}
     return nodes.find((n) => n.surface.id === props.focusId) ?? null;
   }, [nodes, props.focusId]);
 
@@ -72,14 +72,14 @@ export function AtlasScene(props: Props) {
 
     // Build “constellation” edges: for each node, connect to its nearest neighbors.
     for (let i = 0; i < nodes.length; i++) {
-      const a = nodes[i]!;
+      const a = nodes[i];
       const nearest = nodes
         .map((b, idx) => ({ idx, d: a.position.distanceTo(b.position) }))
         .filter((x) => x.idx !== i)
-        .sort((x, y) => x.d - y.d)
+        .toSorted((x, y) => x.d - y.d)
         .slice(0, 2);
       for (const n of nearest) {
-        const b = nodes[n.idx]!;
+        const b = nodes[n.idx];
         positions.push(a.position.x, a.position.y, a.position.z);
         positions.push(b.position.x, b.position.y, b.position.z);
       }

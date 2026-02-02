@@ -220,7 +220,9 @@ export function resolveCcsdkModelMappings(params: {
   // 3. For main agent, prefer agents.main.sdk.models
   if (isMainAgent) {
     const mainSdkModels = params.config?.agents?.main?.sdk?.models;
-    if (mainSdkModels) return mainSdkModels;
+    if (mainSdkModels) {
+      return mainSdkModels;
+    }
   }
 
   // 4. Fall back to global ccsdkModels
@@ -239,12 +241,16 @@ export function resolveSdkProviders(params: {
   env?: NodeJS.ProcessEnv;
 }): SdkProviderEntry[] {
   const codingTaskCfg = params.config?.tools?.codingTask;
-  if (!codingTaskCfg) return [];
+  if (!codingTaskCfg) {
+    return [];
+  }
 
   // Each provider has an `env` dict with potential ${VAR} references.
   const providersCfg = codingTaskCfg.providers;
 
-  if (!providersCfg) return [];
+  if (!providersCfg) {
+    return [];
+  }
 
   const processEnv = params.env ?? process.env;
   const entries: SdkProviderEntry[] = [];
@@ -282,7 +288,9 @@ export function resolveSdkProviders(params: {
  */
 function resolveEnvValue(value: string, env: NodeJS.ProcessEnv): string {
   const match = /^\$\{([A-Z0-9_]+)\}$/.exec(value.trim());
-  if (!match) return value;
+  if (!match) {
+    return value;
+  }
 
   const varName = match[1];
   const resolved = env[varName];
@@ -372,7 +380,9 @@ export function resolveDefaultSdkProvider(params: {
         agentConfig.claudeSdkOptions.provider,
         modelMappings,
       );
-      if (wellKnown) return wellKnown;
+      if (wellKnown) {
+        return wellKnown;
+      }
     }
   }
 
@@ -386,22 +396,30 @@ export function resolveDefaultSdkProvider(params: {
           parentConfig.claudeSdkOptions.provider,
           modelMappings,
         );
-        if (wellKnown) return wellKnown;
+        if (wellKnown) {
+          return wellKnown;
+        }
       }
     }
   }
 
   // 3. Fall back to tools.codingTask.providers (existing logic).
   const providers = resolveSdkProviders(params);
-  if (providers.length === 0) return undefined;
+  if (providers.length === 0) {
+    return undefined;
+  }
 
   // Prefer z.AI if configured.
   const zai = providers.find((p) => p.key === "zai");
-  if (zai) return zai;
+  if (zai) {
+    return zai;
+  }
 
   // Prefer anthropic.
   const anthropic = providers.find((p) => p.key === "anthropic");
-  if (anthropic) return anthropic;
+  if (anthropic) {
+    return anthropic;
+  }
 
   // Fall back to the first provider.
   return providers[0];
@@ -433,16 +451,26 @@ export function resolveApiKeyFromAuthProfile(params: {
   providerKey: string;
   store?: AuthProfileStore;
 }): string | undefined {
-  if (!params.store) return undefined;
+  if (!params.store) {
+    return undefined;
+  }
 
   const profileId = PROVIDER_TO_AUTH_PROFILE[params.providerKey];
-  if (!profileId) return undefined;
+  if (!profileId) {
+    return undefined;
+  }
 
   const cred = params.store.profiles[profileId];
-  if (!cred) return undefined;
+  if (!cred) {
+    return undefined;
+  }
 
-  if (cred.type === "api_key") return cred.key;
-  if (cred.type === "token") return cred.token;
+  if (cred.type === "api_key") {
+    return cred.key;
+  }
+  if (cred.type === "token") {
+    return cred.token;
+  }
   // OAuth tokens require async refresh — not supported in sync resolution.
   // The caller should use resolveApiKeyForProfile() for OAuth.
   return undefined;
@@ -459,7 +487,9 @@ export function enrichProvidersWithAuthProfiles(params: {
   providers: SdkProviderEntry[];
   store?: AuthProfileStore;
 }): SdkProviderEntry[] {
-  if (!params.store) return params.providers;
+  if (!params.store) {
+    return params.providers;
+  }
 
   return params.providers.map((entry) => {
     const authKey = entry.config.env?.ANTHROPIC_AUTH_TOKEN;

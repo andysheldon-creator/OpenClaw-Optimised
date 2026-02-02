@@ -31,7 +31,9 @@ function parseDecisionButtonValue(value: string): {
   optionValue: string;
 } | null {
   const parts = value.split("|");
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) {
+    return null;
+  }
   return {
     decisionId: parts[0],
     optionId: parts[1],
@@ -375,7 +377,9 @@ export function createSlackDecisionManager(
 
 async function routeDecisionResponseToAgent(decision: DecisionRecord): Promise<void> {
   const sessionKey = decision.context.sessionKey;
-  if (!sessionKey) return;
+  if (!sessionKey) {
+    return;
+  }
 
   const responseText =
     decision.response?.textValue ??

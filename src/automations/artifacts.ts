@@ -49,7 +49,9 @@ export interface StoredArtifactMetadata {
  * Defaults to ~/.clawdbrain/automations/artifacts
  */
 export function resolveArtifactsDir(customDir?: string): string {
-  if (customDir) return path.resolve(customDir);
+  if (customDir) {
+    return path.resolve(customDir);
+  }
   const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? ".";
   return path.join(homeDir, ".clawdbrain", "automations", "artifacts");
 }
@@ -58,7 +60,9 @@ export function resolveArtifactsDir(customDir?: string): string {
  * Format bytes as human-readable size.
  */
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -201,7 +205,9 @@ export class ArtifactStorage {
       for (const runDir of runDirs) {
         const runPath = path.join(this.artifactsDir, runDir);
         const stat = await fs.stat(runPath);
-        if (!stat.isDirectory()) continue;
+        if (!stat.isDirectory()) {
+          continue;
+        }
 
         const files = await fs.readdir(runPath);
         for (const file of files) {
@@ -254,7 +260,9 @@ export class ArtifactStorage {
         const runPath = path.join(this.artifactsDir, runId);
         try {
           const stat = await fs.stat(runPath);
-          if (!stat.isDirectory()) continue;
+          if (!stat.isDirectory()) {
+            continue;
+          }
 
           // Calculate total size of the run directory
           const sizeBytes = await this.calculateDirSize(runPath);
@@ -285,7 +293,9 @@ export class ArtifactStorage {
       }
 
       // Stop if we're under the size limit
-      if (totalBytes <= maxTotalBytes) break;
+      if (totalBytes <= maxTotalBytes) {
+        break;
+      }
     }
 
     if (deletedBytes > 0) {

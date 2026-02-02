@@ -1,8 +1,8 @@
-import path from "node:path";
 import fs from "node:fs/promises";
-import { ErrorCodes, errorShape } from "../protocol/index.js";
+import path from "node:path";
 import { resolveAgentWorkspaceDir } from "../../agents/agent-scope.js";
 import { loadConfig } from "../../config/config.js";
+import { ErrorCodes, errorShape } from "../protocol/index.js";
 
 /**
  * Validates and resolves a path within an agent's workspace.
@@ -35,7 +35,7 @@ export function validateAndResolvePath(
  * Gets the workspace root for an agent and verifies it exists.
  */
 export async function getAndValidateWorkspace(agentId: string): Promise<string> {
-  const cfg = await loadConfig();
+  const cfg = loadConfig();
   const workspaceRoot = resolveAgentWorkspaceDir(cfg, agentId);
 
   try {

@@ -4,9 +4,9 @@
  * Subscribes to agent events and transforms them into audit events.
  */
 
+import type { AuditSeverity } from "./types.js";
 import { onAgentEvent, type AgentEventPayload } from "../agent-events.js";
 import { logAuditEvent, createAgentAuditEvent } from "./audit-log.js";
-import type { AuditSeverity } from "./types.js";
 
 let unsubscribe: (() => void) | null = null;
 let homeDir: string | null = null;
@@ -92,7 +92,9 @@ export function stopAuditSubscriber(): void {
  * Redact sensitive data from tool input.
  */
 function redactSensitiveData(input?: Record<string, unknown>): Record<string, unknown> | undefined {
-  if (!input) return undefined;
+  if (!input) {
+    return undefined;
+  }
 
   const sensitiveKeys = ["password", "apiKey", "api_key", "secret", "token", "credential", "auth"];
 
@@ -112,7 +114,9 @@ function redactSensitiveData(input?: Record<string, unknown>): Record<string, un
  * Truncate large output values.
  */
 function truncateOutput(output?: unknown): unknown {
-  if (output === undefined) return undefined;
+  if (output === undefined) {
+    return undefined;
+  }
 
   const str = typeof output === "string" ? output : JSON.stringify(output);
 

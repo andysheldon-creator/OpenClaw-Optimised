@@ -177,13 +177,21 @@ function buildNudgeMessage(params: {
 
 function findWorkNode(goal: OverseerGoalRecord, workNodeId: string): OverseerPlanNodeBase | null {
   const plan = goal.plan;
-  if (!plan) return null;
+  if (!plan) {
+    return null;
+  }
   for (const phase of plan.phases) {
-    if (phase.id === workNodeId) return phase;
+    if (phase.id === workNodeId) {
+      return phase;
+    }
     for (const task of phase.tasks) {
-      if (task.id === workNodeId) return task;
+      if (task.id === workNodeId) {
+        return task;
+      }
       for (const subtask of task.subtasks) {
-        if (subtask.id === workNodeId) return subtask;
+        if (subtask.id === workNodeId) {
+          return subtask;
+        }
       }
     }
   }
@@ -192,10 +200,14 @@ function findWorkNode(goal: OverseerGoalRecord, workNodeId: string): OverseerPla
 
 function updateRollups(goal: OverseerGoalRecord) {
   const plan = goal.plan;
-  if (!plan) return;
+  if (!plan) {
+    return;
+  }
   for (const phase of plan.phases) {
     for (const task of phase.tasks) {
-      if (task.subtasks.length === 0) continue;
+      if (task.subtasks.length === 0) {
+        continue;
+      }
       if (task.subtasks.every((subtask) => subtask.status === "done")) {
         task.status = "done";
       } else if (task.subtasks.some((subtask) => subtask.status === "in_progress")) {
@@ -223,11 +235,15 @@ function isAssignmentAllowed(cfg: OverseerResolvedConfig, assignment: OverseerAs
     );
     return targetAgent === cfg.defaultAgentId;
   }
-  if (cfg.allowAnyAgent) return true;
+  if (cfg.allowAnyAgent) {
+    return true;
+  }
   const agentId = normalizeAgentId(
     assignment.agentId ?? resolveAgentIdFromSessionKey(assignment.sessionKey),
   );
-  if (cfg.allowAgents.size === 0) return agentId === cfg.defaultAgentId;
+  if (cfg.allowAgents.size === 0) {
+    return agentId === cfg.defaultAgentId;
+  }
   return cfg.allowAgents.has(agentId);
 }
 
@@ -237,10 +253,14 @@ function shouldDispatch(params: {
   minResendIntervalMs: number;
 }): boolean {
   const { assignment, now, minResendIntervalMs } = params;
-  if (assignment.backoffUntil && assignment.backoffUntil > now) return false;
+  if (assignment.backoffUntil && assignment.backoffUntil > now) {
+    return false;
+  }
   if (assignment.lastDispatchAt && assignment.instructionHash) {
     const elapsed = now - assignment.lastDispatchAt;
-    if (elapsed < minResendIntervalMs) return false;
+    if (elapsed < minResendIntervalMs) {
+      return false;
+    }
   }
   return true;
 }
@@ -263,7 +283,9 @@ export function applyStructuredUpdate(params: {
   now: number;
 }) {
   const goal = params.store.goals[params.assignment.goalId];
-  if (!goal) return;
+  if (!goal) {
+    return;
+  }
   const workNode = params.update.workNodeId
     ? findWorkNode(goal, params.update.workNodeId)
     : findWorkNode(goal, params.assignment.workNodeId);
@@ -344,7 +366,9 @@ export function reconcileOverseerState(params: {
   }
 
   for (const assignment of assignments) {
-    if (!isAssignmentAllowed(cfg, assignment)) continue;
+    if (!isAssignmentAllowed(cfg, assignment)) {
+      continue;
+    }
 
     // Graceful degradation: the store can contain orphan assignments when goals are
     // pruned/migrated/corrupted. We still want to nudge the assignee so the system
@@ -607,13 +631,21 @@ async function maybeApplyPlanner(store: OverseerStore, now: number): Promise<boo
   const stalledAssignments = Object.values(store.assignments ?? {}).filter(
     (assignment) => assignment.status === "stalled" && assignment.recoveryPolicy === "replan",
   );
-  if (stalledAssignments.length === 0) return false;
+  if (stalledAssignments.length === 0) {
+    return false;
+  }
   let mutated = false;
   for (const assignment of stalledAssignments) {
     const goal = store.goals[assignment.goalId];
-    if (!goal) continue;
-    if (goal.status !== "active") continue;
-    if (!goal.problemStatement || !goal.title) continue;
+    if (!goal) {
+      continue;
+    }
+    if (goal.status !== "active") {
+      continue;
+    }
+    if (!goal.problemStatement || !goal.title) {
+      continue;
+    }
     try {
       const planResult = await generateOverseerPlan({
         goalTitle: goal.title,
@@ -661,8 +693,12 @@ export async function runOverseerTick(opts?: {
 }): Promise<OverseerTickResult> {
   const cfg = opts?.cfg ?? loadConfig();
   const resolved = resolveOverseerConfig(cfg);
-  if (!resolved.enabled) return { status: "skipped", reason: "disabled" };
-  if (!resolved.tickEveryMs) return { status: "skipped", reason: "disabled" };
+  if (!resolved.enabled) {
+    return { status: "skipped", reason: "disabled" };
+  }
+  if (!resolved.tickEveryMs) {
+    return { status: "skipped", reason: "disabled" };
+  }
   const queueSize = getQueueSize(CommandLane.Main);
   if (queueSize > 0) {
     return { status: "skipped", reason: "requests-in-flight" };
@@ -731,7 +767,9 @@ export async function runOverseerTick(opts?: {
     // Allow hooks to modify or filter actions before dispatch
     if (hooks?.onBeforeDispatch) {
       const modified = hooks.onBeforeDispatch(actions);
-      if (modified) actions = modified;
+      if (modified) {
+        actions = modified;
+      }
     }
 
     const outcomes = await executeOverseerActions({ actions });
@@ -742,13 +780,19 @@ export async function runOverseerTick(opts?: {
     await updateOverseerStore(async (store) => {
       for (const outcomeEntry of outcomes) {
         const assignment = store.assignments[outcomeEntry.assignmentId];
-        if (!assignment) continue;
+        if (!assignment) {
+          continue;
+        }
         const history = assignment.dispatchHistory;
         const entry = history.find((rec) => rec.dispatchId === outcomeEntry.dispatchId);
         if (entry) {
           entry.result = outcomeEntry.status;
-          if (outcomeEntry.runId) entry.runId = outcomeEntry.runId;
-          if (outcomeEntry.notes) entry.notes = outcomeEntry.notes;
+          if (outcomeEntry.runId) {
+            entry.runId = outcomeEntry.runId;
+          }
+          if (outcomeEntry.notes) {
+            entry.notes = outcomeEntry.notes;
+          }
         }
         if (outcomeEntry.runId) {
           assignment.runId = outcomeEntry.runId;
@@ -771,7 +815,9 @@ export async function runOverseerTick(opts?: {
     log.error("overseer tick failed", { error: String(err) });
     return { status: "failed", reason: String(err) };
   } finally {
-    if (!opts?.monitor) monitor.stop();
+    if (!opts?.monitor) {
+      monitor.stop();
+    }
   }
 }
 
@@ -789,7 +835,9 @@ export function startOverseerRunner(opts?: {
 
   const stop = () => {
     stopped = true;
-    if (timer) clearInterval(timer);
+    if (timer) {
+      clearInterval(timer);
+    }
     timer = null;
     setOverseerWakeHandler(null);
     monitor.stop();
@@ -802,11 +850,15 @@ export function startOverseerRunner(opts?: {
 
   const startInterval = () => {
     if (!resolved.enabled || !resolved.tickEveryMs) {
-      if (timer) clearInterval(timer);
+      if (timer) {
+        clearInterval(timer);
+      }
       timer = null;
       return;
     }
-    if (timer) clearInterval(timer);
+    if (timer) {
+      clearInterval(timer);
+    }
     timer = setInterval(() => {
       requestOverseerNow({ reason: "periodic" });
     }, resolved.tickEveryMs);
@@ -814,7 +866,9 @@ export function startOverseerRunner(opts?: {
   };
 
   setOverseerWakeHandler(async ({ reason }) => {
-    if (stopped) return { status: "skipped", reason: "stopped" };
+    if (stopped) {
+      return { status: "skipped", reason: "stopped" };
+    }
     return await runOverseerTick({ reason, cfg, monitor, hooks });
   });
 

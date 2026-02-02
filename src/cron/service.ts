@@ -48,6 +48,8 @@ export class CronService {
 
   /** @internal Wait for the current timer execution to complete. For testing only. */
   async _waitForTimerRun() {
-    if (this.state._lastTimerRun) await this.state._lastTimerRun;
+    if (this.state._lastTimerRun) {
+      await this.state._lastTimerRun;
+    }
   }
 }

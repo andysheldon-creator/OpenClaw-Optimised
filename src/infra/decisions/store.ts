@@ -1,10 +1,6 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
-
-import { resolveStateDir } from "../../config/paths.js";
-import { createSubsystemLogger } from "../../logging/subsystem.js";
-
 import type {
   CreateDecisionParams,
   DecisionOption,
@@ -12,6 +8,8 @@ import type {
   DecisionStore,
   RespondDecisionParams,
 } from "./store.types.js";
+import { resolveStateDir } from "../../config/paths.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 
 const log = createSubsystemLogger("decisions");
 
@@ -52,7 +50,9 @@ function buildOptions(
   type: CreateDecisionParams["type"],
   rawOptions?: CreateDecisionParams["options"],
 ): DecisionOption[] | undefined {
-  if (type === "text") return undefined;
+  if (type === "text") {
+    return undefined;
+  }
 
   if (type === "binary") {
     return [
@@ -178,7 +178,9 @@ export function listDecisions(filter?: {
       needsSave = true;
     }
   }
-  if (needsSave) saveDecisionStore(store);
+  if (needsSave) {
+    saveDecisionStore(store);
+  }
 
   if (filter?.status) {
     decisions = decisions.filter((d) => d.status === filter.status);
@@ -190,7 +192,7 @@ export function listDecisions(filter?: {
     decisions = decisions.filter((d) => d.context.sessionKey === filter.sessionKey);
   }
 
-  return decisions.sort((a, b) => b.createdAt - a.createdAt);
+  return decisions.toSorted((a, b) => b.createdAt - a.createdAt);
 }
 
 export function updateDecisionSlackInfo(
@@ -201,7 +203,9 @@ export function updateDecisionSlackInfo(
   const store = loadDecisionStore();
   const decision = store.decisions[decisionId];
 
-  if (!decision) return null;
+  if (!decision) {
+    return null;
+  }
 
   decision.slackChannel = slackChannel;
   decision.slackMessageTs = slackMessageTs;

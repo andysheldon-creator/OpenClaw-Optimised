@@ -31,7 +31,7 @@ const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export const worktreeHandlers: GatewayRequestHandlers = {
   "worktree.list": async ({ params, respond }) => {
-    const p = params as Record<string, unknown>;
+    const p = params;
     if (!validateWorktreeListParams(p)) {
       respond(
         false,
@@ -92,7 +92,7 @@ export const worktreeHandlers: GatewayRequestHandlers = {
             );
             entries.push(...subResult);
           }
-        } catch (_error) {
+        } catch {
           // Skip entries that can't be stat'd (permissions, etc.)
           continue;
         }
@@ -114,7 +114,7 @@ export const worktreeHandlers: GatewayRequestHandlers = {
   },
 
   "worktree.read": async ({ params, respond }) => {
-    const p = params as Record<string, unknown>;
+    const p = params;
     if (!validateWorktreeReadParams(p)) {
       respond(
         false,
@@ -202,7 +202,7 @@ export const worktreeHandlers: GatewayRequestHandlers = {
   },
 
   "worktree.write": async ({ params, respond }) => {
-    const p = params as Record<string, unknown>;
+    const p = params;
     if (!validateWorktreeWriteParams(p)) {
       respond(
         false,
@@ -301,7 +301,7 @@ export const worktreeHandlers: GatewayRequestHandlers = {
   },
 
   "worktree.delete": async ({ params, respond }) => {
-    const p = params as Record<string, unknown>;
+    const p = params;
     if (!validateWorktreeDeleteParams(p)) {
       respond(
         false,
@@ -376,7 +376,7 @@ export const worktreeHandlers: GatewayRequestHandlers = {
   },
 
   "worktree.move": async ({ params, respond }) => {
-    const p = params as Record<string, unknown>;
+    const p = params;
     if (!validateWorktreeMoveParams(p)) {
       respond(
         false,
@@ -467,7 +467,7 @@ export const worktreeHandlers: GatewayRequestHandlers = {
   },
 
   "worktree.mkdir": async ({ params, respond }) => {
-    const p = params as Record<string, unknown>;
+    const p = params;
     if (!validateWorktreeMkdirParams(p)) {
       respond(
         false,
@@ -562,12 +562,12 @@ async function listRecursive(
           const subEntries = await listRecursive(workspaceRoot, entryRelPath, includeHidden);
           entries.push(...subEntries);
         }
-      } catch (_error) {
+      } catch {
         // Skip entries that can't be accessed
         continue;
       }
     }
-  } catch (_error) {
+  } catch {
     // Skip directories that can't be read
   }
 

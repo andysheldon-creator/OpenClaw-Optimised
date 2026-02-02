@@ -47,14 +47,20 @@ async function tryAsyncOAuthResolution(
   params: { config?: OpenClawConfig; agentDir?: string },
 ): Promise<SdkProviderEntry> {
   // Only attempt if we still don't have an auth token.
-  if (entry.config.env?.ANTHROPIC_AUTH_TOKEN) return entry;
+  if (entry.config.env?.ANTHROPIC_AUTH_TOKEN) {
+    return entry;
+  }
 
   // Skip for anthropic provider — OAuth tokens don't work via env var.
   // The anthropic provider should use Claude Code's built-in auth or keychain fallback.
-  if (entry.key === "anthropic") return entry;
+  if (entry.key === "anthropic") {
+    return entry;
+  }
 
   const profileId = PROVIDER_AUTH_PROFILES[entry.key];
-  if (!profileId) return entry;
+  if (!profileId) {
+    return entry;
+  }
 
   let store;
   try {
@@ -109,11 +115,17 @@ async function tryAsyncOAuthResolution(
  */
 function tryPlatformCredentialResolution(entry: SdkProviderEntry): SdkProviderEntry {
   // Only attempt if we still don't have an auth token.
-  if (entry.config.env?.ANTHROPIC_AUTH_TOKEN) return entry;
-  if (entry.config.env?.ANTHROPIC_API_KEY) return entry;
+  if (entry.config.env?.ANTHROPIC_AUTH_TOKEN) {
+    return entry;
+  }
+  if (entry.config.env?.ANTHROPIC_API_KEY) {
+    return entry;
+  }
 
   // Only for the default anthropic provider (subscription auth).
-  if (entry.key !== "anthropic") return entry;
+  if (entry.key !== "anthropic") {
+    return entry;
+  }
 
   const platform = os.platform();
 
@@ -142,7 +154,9 @@ function tryMacOsKeychainResolution(entry: SdkProviderEntry): SdkProviderEntry {
     const cmd = `security find-generic-password -s "Claude Code-credentials" -a "${username}" -w 2>/dev/null`;
     const output = execSync(cmd, { encoding: "utf-8", timeout: 5000 }).trim();
 
-    if (!output) return entry;
+    if (!output) {
+      return entry;
+    }
 
     const parsed = JSON.parse(output);
     const accessToken = parsed?.claudeAiOauth?.accessToken;
@@ -237,12 +251,16 @@ if ($result) { Write-Output $result }
         const parsed = JSON.parse(output);
         const accessToken = parsed?.claudeAiOauth?.accessToken;
         const result = processAccessToken(entry, accessToken, "Windows Credential Manager");
-        if (result !== entry) return result;
+        if (result !== entry) {
+          return result;
+        }
       } catch {
         // Output wasn't JSON, try as raw token
         if (output.startsWith("sk-ant-")) {
           const result = processAccessToken(entry, output, "Windows Credential Manager");
-          if (result !== entry) return result;
+          if (result !== entry) {
+            return result;
+          }
         }
       }
     }
@@ -273,7 +291,9 @@ function tryFileBasedCredentialResolution(entry: SdkProviderEntry): SdkProviderE
     }
 
     const content = fs.readFileSync(credPath, "utf-8").trim();
-    if (!content) return entry;
+    if (!content) {
+      return entry;
+    }
 
     const parsed = JSON.parse(content);
     const accessToken = parsed?.claudeAiOauth?.accessToken;

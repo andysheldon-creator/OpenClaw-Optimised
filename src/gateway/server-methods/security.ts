@@ -3,6 +3,7 @@
  */
 
 import { homedir } from "node:os";
+import type { GatewayRequestHandlers } from "./types.js";
 import {
   getSecurityState,
   setupPassword,
@@ -16,7 +17,6 @@ import {
   getSecurityHistory,
 } from "../../infra/security/index.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 const homeDir = homedir();
 
@@ -116,7 +116,7 @@ export const securityHandlers: GatewayRequestHandlers = {
     }
   },
 
-  "security.unlock": async ({ params, req, respond }) => {
+  "security.unlock": async ({ params, respond }) => {
     const { password, totpCode, recoveryCode } = params as {
       password?: string;
       totpCode?: string;

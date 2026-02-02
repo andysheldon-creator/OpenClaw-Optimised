@@ -91,7 +91,7 @@ export async function getUnlockHistory(
   const events = await loadUnlockHistory(historyPath);
 
   // Sort by timestamp descending (newest first)
-  const sorted = events.sort((a, b) => b.ts - a.ts);
+  const sorted = events.toSorted((a, b) => b.ts - a.ts);
 
   return {
     events: sorted.slice(offset, offset + limit),

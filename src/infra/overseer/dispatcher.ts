@@ -1,13 +1,12 @@
 import crypto from "node:crypto";
-
-import { callGateway } from "../../gateway/call.js";
-import { createSubsystemLogger } from "../../logging/subsystem.js";
-import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
+import type { DeliveryContext } from "../../utils/delivery-context.js";
+import { AGENT_LANE_SUBAGENT } from "../../agents/lanes.js";
 import { buildSubagentSystemPrompt } from "../../agents/subagent-announce.js";
 import { registerSubagentRun } from "../../agents/subagent-registry.js";
+import { callGateway } from "../../gateway/call.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
-import { AGENT_LANE_SUBAGENT } from "../../agents/lanes.js";
-import type { DeliveryContext } from "../../utils/delivery-context.js";
+import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 
 const log = createSubsystemLogger("gateway/overseer.dispatcher");
 
@@ -53,7 +52,7 @@ async function dispatchToSession(params: {
   message: string;
   dispatchId: string;
 }) {
-  const response = (await callGateway({
+  const response = await callGateway({
     method: "agent",
     params: {
       message: params.message,
@@ -63,7 +62,7 @@ async function dispatchToSession(params: {
       lane: AGENT_LANE_SUBAGENT,
     },
     timeoutMs: 10_000,
-  })) as { runId?: string };
+  });
   const runId = typeof response?.runId === "string" ? response.runId : undefined;
   return runId;
 }
@@ -89,7 +88,7 @@ async function dispatchSpawn(params: {
     label: params.label,
     task: params.message,
   });
-  const response = (await callGateway({
+  const response = await callGateway({
     method: "agent",
     params: {
       message: params.message,
@@ -102,7 +101,7 @@ async function dispatchSpawn(params: {
       spawnedBy: requesterSessionKey,
     },
     timeoutMs: 10_000,
-  })) as { runId?: string };
+  });
   const runId = typeof response?.runId === "string" ? response.runId : params.dispatchId;
   registerSubagentRun({
     runId,

@@ -8,9 +8,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-
-import { CONFIG_DIR } from "../utils.js";
 import type { AutomationStoreFile } from "./types.js";
+import { CONFIG_DIR } from "../utils.js";
 
 /** Default directory for automations state */
 export const DEFAULT_AUTOMATIONS_DIR = path.join(CONFIG_DIR, "automations");
@@ -65,8 +64,8 @@ export async function loadAutomationsStore(storePath: string): Promise<Automatio
 
     return {
       version: 1,
-      automations: automations as AutomationStoreFile["automations"],
-      runHistory: runHistory as AutomationStoreFile["runHistory"],
+      automations: automations,
+      runHistory: runHistory,
       historyRetentionDays: parsed?.historyRetentionDays ?? DEFAULT_HISTORY_RETENTION_DAYS,
       historyMaxRunsPerAutomation: parsed?.historyMaxRunsPerAutomation ?? DEFAULT_HISTORY_MAX_RUNS,
     };
@@ -140,7 +139,7 @@ export function cleanOldHistory(store: AutomationStoreFile): void {
 
     // Get all runs for this automation and sort by time (newest first)
     const automationRuns = runsByAutomation.get(run.automationId) ?? [];
-    const sortedRuns = [...automationRuns].sort(
+    const sortedRuns = [...automationRuns].toSorted(
       (a, b) => b.startedAt.getTime() - a.startedAt.getTime(),
     );
 

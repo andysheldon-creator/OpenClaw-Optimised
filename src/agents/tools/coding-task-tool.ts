@@ -20,10 +20,14 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
 }
 
 async function coerceAsyncIterable(value: unknown): Promise<AsyncIterable<unknown>> {
-  if (isAsyncIterable(value)) return value;
+  if (isAsyncIterable(value)) {
+    return value;
+  }
   if (value instanceof Promise) {
     const awaited = await value;
-    if (isAsyncIterable(awaited)) return awaited;
+    if (isAsyncIterable(awaited)) {
+      return awaited;
+    }
   }
   throw new Error("Claude Agent SDK query did not return an async iterable");
 }
@@ -121,14 +125,20 @@ export function createCodingTaskTool(opts?: {
           }
 
           const text = extractTextFromClaudeAgentSdkEvent(event);
-          if (!text) continue;
+          if (!text) {
+            continue;
+          }
 
           const trimmed = text.trimEnd();
-          if (!trimmed) continue;
+          if (!trimmed) {
+            continue;
+          }
 
           // Avoid obvious duplication when SDK emits both deltas and full messages.
           const last = chunks.at(-1);
-          if (last && (last === trimmed || last.endsWith(trimmed))) continue;
+          if (last && (last === trimmed || last.endsWith(trimmed))) {
+            continue;
+          }
 
           chunks.push(trimmed);
           extractedChars += trimmed.length;

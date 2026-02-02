@@ -22,7 +22,9 @@ function lowerSet(list: string[]): Set<string> {
 
 function extractBaseToolName(rule: string): string {
   const trimmed = rule.trim();
-  if (!trimmed || trimmed === "*") return "";
+  if (!trimmed || trimmed === "*") {
+    return "";
+  }
   const openParen = trimmed.indexOf("(");
   const base = openParen === -1 ? trimmed : trimmed.slice(0, openParen).trim();
   return canonicalizeClaudeAgentSdkToolName(base);
@@ -84,8 +86,12 @@ export function buildCodingTaskSdkOptions(params: {
       input = args[1];
     } else if (args.length >= 1 && isRecord(args[0])) {
       const record = args[0];
-      if (typeof record.toolName === "string") toolName = record.toolName;
-      if ("input" in record) input = record.input;
+      if (typeof record.toolName === "string") {
+        toolName = record.toolName;
+      }
+      if ("input" in record) {
+        input = record.input;
+      }
     }
 
     if (typeof toolName !== "string" || !toolName.trim()) {

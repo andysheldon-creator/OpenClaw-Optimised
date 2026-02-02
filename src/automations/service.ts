@@ -5,8 +5,6 @@
  * Follows the same pattern as CronService.
  */
 
-import * as ops from "./service/ops.js";
-import { createAutomationServiceState } from "./service/state.js";
 import type {
   Automation,
   AutomationCreate,
@@ -18,6 +16,8 @@ import type {
   AutomationServiceDeps,
   AutomationStatusSummary,
 } from "./types.js";
+import * as ops from "./service/ops.js";
+import { createAutomationServiceState } from "./service/state.js";
 
 // Re-export key types for consumers
 export type {
@@ -165,6 +165,8 @@ export class AutomationService {
    * For testing only.
    */
   async _waitForTimerRun(): Promise<void> {
-    if (this.state._lastTimerRun) await this.state._lastTimerRun;
+    if (this.state._lastTimerRun) {
+      await this.state._lastTimerRun;
+    }
   }
 }

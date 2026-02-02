@@ -78,14 +78,19 @@ export default defineConfig(({ mode }) => {
               if (id.includes('reagraph') || id.includes('graphology')) {
                 return 'vendor-graph';
               }
-              // React ecosystem - bundle React core with state management to avoid circular deps
-              // zustand and immer are React-specific, so keep them with React
+              // React ecosystem - bundle React core with state management and shared utilities
+              // to minimize circular dependencies
               if (
                 id.match(/\/react\//) ||
                 id.match(/\/react-dom\//) ||
                 id.includes('zustand') ||
                 id.includes('immer') ||
-                id.includes('use-sync-external-store')
+                id.includes('scheduler') ||
+                id.includes('use-sync-external-store') ||
+                // Common utilities that React and other packages share
+                id.includes('loose-envify') ||
+                id.includes('object-assign') ||
+                id.includes('prop-types')
               ) {
                 return 'vendor-react';
               }

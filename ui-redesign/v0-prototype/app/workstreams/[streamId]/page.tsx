@@ -112,7 +112,7 @@ function getTaskPositions(tasks: typeof workstreamData["q1-launch"]["tasks"]) {
 
   // Calculate depth for each task
   function calculateDepth(taskId: string): number {
-    if (depths[taskId] !== undefined) return depths[taskId]
+    if (depths[taskId] !== undefined) {return depths[taskId]}
     const task = tasks.find((t) => t.id === taskId)
     if (!task || task.dependencies.length === 0) {
       depths[taskId] = 0
@@ -130,7 +130,7 @@ function getTaskPositions(tasks: typeof workstreamData["q1-launch"]["tasks"]) {
   // Group tasks by depth
   const depthGroups: Record<number, string[]> = {}
   for (const [id, depth] of Object.entries(depths)) {
-    if (!depthGroups[depth]) depthGroups[depth] = []
+    if (!depthGroups[depth]) {depthGroups[depth] = []}
     depthGroups[depth].push(id)
   }
 
@@ -178,7 +178,7 @@ export default function WorkstreamPage() {
   const getTaskDetails = useCallback(
     (taskId: string) => {
       const task = workstream.tasks.find((t) => t.id === taskId)
-      if (!task) return null
+      if (!task) {return null}
       return {
         ...task,
         dependencies: task.dependencies.map((depId) => {
@@ -287,7 +287,7 @@ export default function WorkstreamPage() {
                       task.blocks.map((blockId) => {
                         const fromPos = positions[task.id]
                         const toPos = positions[blockId]
-                        if (!fromPos || !toPos) return null
+                        if (!fromPos || !toPos) {return null}
                         const startX = fromPos.x + 140
                         const startY = fromPos.y + 45
                         const endX = toPos.x
@@ -415,7 +415,7 @@ export default function WorkstreamPage() {
             {/* Task Detail Panel */}
             {selectedTask && (
               <TaskDetailPanel
-                task={getTaskDetails(selectedTask.id)!}
+                task={getTaskDetails(selectedTask.id)}
                 onClose={() => setSelectedTaskId(null)}
                 onEdit={() => {}}
                 onPause={() => {}}

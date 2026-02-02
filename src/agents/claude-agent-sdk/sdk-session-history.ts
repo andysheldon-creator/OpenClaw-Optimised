@@ -6,8 +6,8 @@
  */
 
 import fs from "node:fs";
-import { logDebug } from "../../logger.js";
 import type { SdkConversationTurn } from "./sdk-runner.types.js";
+import { logDebug } from "../../logger.js";
 
 // ---------------------------------------------------------------------------
 // JSONL line parsing
@@ -25,7 +25,9 @@ type SessionLine = {
  * Handles both string content and content block arrays.
  */
 function extractTextContent(content: SessionLine["content"]): string | undefined {
-  if (typeof content === "string") return content;
+  if (typeof content === "string") {
+    return content;
+  }
   if (Array.isArray(content)) {
     const texts = content
       .filter((block) => block.type === "text" && block.text)
@@ -64,13 +66,17 @@ export function readSessionHistory(sessionFile: string): SdkConversationTurn[] {
     return [];
   }
 
-  if (!raw.trim()) return [];
+  if (!raw.trim()) {
+    return [];
+  }
 
   const turns: SdkConversationTurn[] = [];
 
   for (const line of raw.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed) continue;
+    if (!trimmed) {
+      continue;
+    }
 
     let parsed: SessionLine;
     try {
@@ -81,16 +87,24 @@ export function readSessionHistory(sessionFile: string): SdkConversationTurn[] {
     }
 
     // Skip session headers and metadata lines.
-    if (parsed.type && !parsed.role) continue;
+    if (parsed.type && !parsed.role) {
+      continue;
+    }
 
     // Skip tool results.
-    if (parsed.role === "tool" || parsed.type === "toolResult") continue;
+    if (parsed.role === "tool" || parsed.type === "toolResult") {
+      continue;
+    }
 
     // Only extract user and assistant turns.
-    if (parsed.role !== "user" && parsed.role !== "assistant") continue;
+    if (parsed.role !== "user" && parsed.role !== "assistant") {
+      continue;
+    }
 
     const text = extractTextContent(parsed.content);
-    if (!text?.trim()) continue;
+    if (!text?.trim()) {
+      continue;
+    }
 
     turns.push({
       role: parsed.role,
@@ -115,7 +129,9 @@ export function loadSessionHistoryForSdk(params: {
   const maxTurns = params.maxTurns ?? 20;
   const turns = readSessionHistory(params.sessionFile);
 
-  if (turns.length <= maxTurns) return turns;
+  if (turns.length <= maxTurns) {
+    return turns;
+  }
 
   // Keep the most recent turns.
   return turns.slice(-maxTurns);

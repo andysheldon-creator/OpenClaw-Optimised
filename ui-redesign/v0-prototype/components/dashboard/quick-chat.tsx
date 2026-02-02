@@ -30,7 +30,7 @@ export function QuickChat({ className }: QuickChatProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim()) return
+    if (!message.trim()) {return}
     // Navigate to chat with message
     window.location.href = `/chat/${selectedAgent.id}?message=${encodeURIComponent(message)}`
   }

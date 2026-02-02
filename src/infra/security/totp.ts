@@ -59,7 +59,9 @@ function base32Decode(input: string): Buffer {
 
   for (const char of cleaned) {
     const index = BASE32_CHARS.indexOf(char);
-    if (index === -1) continue;
+    if (index === -1) {
+      continue;
+    }
 
     value = (value << 5) | index;
     bits += 5;
@@ -136,7 +138,7 @@ function buildOtpauthUrl(secret: string, accountName: string): string {
  * Generate a simple ASCII QR code as a data URL (SVG-based).
  * For production, users should be able to manually enter the secret.
  */
-async function generateQRCodeDataUrl(text: string): Promise<string> {
+async function generateQRCodeDataUrl(_text: string): Promise<string> {
   // Generate a simple SVG-based placeholder that includes the text
   // In production, you'd want to use a proper QR library or generate server-side
   // For now, we'll create a simple "manual entry" fallback
@@ -197,7 +199,9 @@ export function verifyTotpCode(secret: string, code: string): boolean {
       for (let j = 0; j < code.length; j++) {
         result |= code.charCodeAt(j) ^ expectedCode.charCodeAt(j);
       }
-      if (result === 0) return true;
+      if (result === 0) {
+        return true;
+      }
     }
   }
 

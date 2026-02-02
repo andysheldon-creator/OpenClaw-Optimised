@@ -31,9 +31,15 @@ function formatRelativeTime(timestamp: number): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffMins < 1) {
+    return "just now";
+  }
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
   return `${diffDays}d ago`;
 }
 
@@ -298,7 +304,7 @@ function buildAgentDetailBlocks(
         return { key, entry };
       })
       .filter((s): s is { key: string; entry: NonNullable<typeof s.entry> } => !!s.entry?.updatedAt)
-      .sort((a, b) => (b.entry.updatedAt ?? 0) - (a.entry.updatedAt ?? 0))
+      .toSorted((a, b) => (b.entry.updatedAt ?? 0) - (a.entry.updatedAt ?? 0))
       .slice(0, 3);
 
     const activityItems = recentSessions.map((s) => {

@@ -2,13 +2,13 @@
  * Tests for Custom Script Executor
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import crypto from "node:crypto";
-import { CustomScriptExecutor } from "./custom-script.js";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { AutomationServiceState } from "../service/state.js";
 import type { Automation, CustomScriptConfig } from "../types.js";
+import { CustomScriptExecutor } from "./custom-script.js";
 
 // Mock dependencies
 vi.mock("../../process/exec.js", () => ({
@@ -20,9 +20,6 @@ const artifactCalls: Array<{ name: string; type: string; content: string }> = []
 
 vi.mock("../artifacts.js", () => ({
   ArtifactStorage: class {
-    constructor(_opts: unknown) {
-      // Store constructor args if needed
-    }
     init = vi.fn();
     async storeText(runId: string, name: string, type: string, content: string) {
       artifactCalls.push({ runId, name, type, content });

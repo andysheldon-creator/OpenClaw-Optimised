@@ -216,7 +216,7 @@ class GatewayClient {
   }
 
   private doConnect() {
-    if (this.stopped) return;
+    if (this.stopped) {return;}
 
     const url = this.config.url || DEFAULT_GATEWAY_URL;
     this.setConnectionState({ status: "connecting" });
@@ -280,14 +280,14 @@ class GatewayClient {
   }
 
   private async sendConnect() {
-    if (this.connectSent) return;
+    if (this.connectSent) {return;}
     this.connectSent = true;
     if (this.connectTimer !== null) {
       clearTimeout(this.connectTimer);
       this.connectTimer = null;
     }
 
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {return;}
 
     // crypto.subtle is only available in secure contexts (HTTPS, localhost)
     const isSecureContext = typeof crypto !== "undefined" && !!crypto.subtle;
@@ -433,7 +433,7 @@ class GatewayClient {
 
   private handleResponse(id: string, ok: boolean, payload: unknown, error?: { code: string; message: string }) {
     const pending = this.pending.get(id);
-    if (!pending) return;
+    if (!pending) {return;}
 
     clearTimeout(pending.timer);
     this.pending.delete(id);
@@ -491,7 +491,7 @@ class GatewayClient {
   }
 
   private scheduleReconnect() {
-    if (this.stopped || this.reconnectTimer) return;
+    if (this.stopped || this.reconnectTimer) {return;}
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;

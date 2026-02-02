@@ -15,6 +15,7 @@ import type {
   AutomationRunResult,
   AutomationStatusSummary,
 } from "../types.js";
+import type { AutomationServiceState } from "./state.js";
 import {
   applyAutomationPatch,
   createAutomation,
@@ -23,7 +24,6 @@ import {
   recomputeNextRuns,
 } from "./jobs.js";
 import { locked } from "./locked.js";
-import type { AutomationServiceState } from "./state.js";
 import { ensureLoaded, persist, warnIfDisabled } from "./store.js";
 import { armTimer, executeAutomation, nextWakeAtMs, stopTimer } from "./timer.js";
 
@@ -67,7 +67,9 @@ export function stop(state: AutomationServiceState): void {
  */
 export async function status(state: AutomationServiceState): Promise<AutomationStatusSummary> {
   // Fast path: store already loaded — return snapshot without lock
-  if (state.store) return statusSnapshot(state);
+  if (state.store) {
+    return statusSnapshot(state);
+  }
 
   return await locked(state, async () => {
     await ensureLoaded(state);
@@ -99,7 +101,9 @@ export async function listImpl(
   opts?: { includeDisabled?: boolean },
 ): Promise<Automation[]> {
   // Fast path: store already loaded
-  if (state.store) return listSnapshot(state, opts);
+  if (state.store) {
+    return listSnapshot(state, opts);
+  }
 
   return await locked(state, async () => {
     await ensureLoaded(state);
@@ -114,7 +118,7 @@ function listSnapshot(
 ): Automation[] {
   const includeDisabled = opts?.includeDisabled === true;
   const automations = (state.store?.automations ?? []).filter((a) => includeDisabled || a.enabled);
-  return automations.sort((a, b) => (a.state.nextRunAtMs ?? 0) - (b.state.nextRunAtMs ?? 0));
+  return automations.toSorted((a, b) => (a.state.nextRunAtMs ?? 0) - (b.state.nextRunAtMs ?? 0));
 }
 
 /**
@@ -195,7 +199,9 @@ export async function delete_(
     warnIfDisabled(state, "delete");
     await ensureLoaded(state);
 
-    if (!state.store) return { ok: false, deleted: false };
+    if (!state.store) {
+      return { ok: false, deleted: false };
+    }
 
     const before = state.store.automations.length;
     state.store.automations = state.store.automations.filter((a) => a.id !== id);
@@ -231,7 +237,9 @@ export async function run(
     const now = state.deps.nowMs();
     const due = isAutomationDue(a, now, { forced });
 
-    if (!due) return null;
+    if (!due) {
+      return null;
+    }
 
     a.state.runningAtMs = state.deps.nowMs();
     return a;
@@ -301,7 +309,7 @@ export async function getHistory(
     let runs = (state.store?.runHistory ?? []).filter((r) => r.automationId === automationId);
 
     // Sort by startedAt descending (newest first)
-    runs = runs.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    runs = runs.toSorted((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
 
     // Apply limit
     if (opts?.limit && opts.limit > 0) {

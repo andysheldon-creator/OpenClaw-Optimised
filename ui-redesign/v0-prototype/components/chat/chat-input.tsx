@@ -27,7 +27,7 @@ export function ChatInput({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim() || disabled) return
+    if (!message.trim() || disabled) {return}
     onSend(message)
     setMessage("")
     if (textareaRef.current) {

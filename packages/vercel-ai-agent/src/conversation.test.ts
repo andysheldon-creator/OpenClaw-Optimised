@@ -50,7 +50,7 @@ describe("ConversationManager", () => {
 		});
 
 		it("should set active session", () => {
-			const session1 = manager.createSession();
+			const _session1 = manager.createSession();
 			const session2 = manager.createSession();
 
 			manager.setActiveSession(session2);
@@ -459,7 +459,7 @@ describe("truncateToTokenBudget", () => {
 	});
 
 	it("should respect token budget", () => {
-		const messages = Array.from({ length: 10 }, (_, i) =>
+		const messages = Array.from({ length: 10 }, () =>
 			createMessage("x".repeat(100))
 		);
 

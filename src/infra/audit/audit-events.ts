@@ -4,7 +4,7 @@
  * Pub/sub pattern for audit events, similar to agent-events.ts.
  */
 
-import type { AuditEvent, AuditEventBase } from "./types.js";
+import type { AuditEvent } from "./types.js";
 
 const listeners = new Set<(evt: AuditEvent) => void>();
 

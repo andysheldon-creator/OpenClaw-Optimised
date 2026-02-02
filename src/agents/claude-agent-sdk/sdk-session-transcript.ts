@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-
 import { logDebug } from "../../logger.js";
 
 type TranscriptRole = "user" | "assistant";
@@ -8,7 +7,9 @@ type TranscriptRole = "user" | "assistant";
 function fileEndsWithNewline(filePath: string): boolean {
   try {
     const stat = fs.statSync(filePath);
-    if (!stat.isFile() || stat.size === 0) return true;
+    if (!stat.isFile() || stat.size === 0) {
+      return true;
+    }
     const fd = fs.openSync(filePath, "r");
     try {
       const buffer = Buffer.alloc(1);
@@ -36,7 +37,9 @@ export function appendSdkTextTurnToSessionTranscript(params: {
   timestamp?: number;
 }): void {
   const trimmed = params.text.trim();
-  if (!trimmed) return;
+  if (!trimmed) {
+    return;
+  }
 
   try {
     // Wrap in `message` envelope to match the format expected by readSessionMessages()

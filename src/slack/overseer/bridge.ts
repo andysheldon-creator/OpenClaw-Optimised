@@ -103,7 +103,9 @@ export function createSlackOverseerBridge(params: SlackOverseerBridgeParams): Sl
   };
 
   const handleAssignmentStalled = (assignment: OverseerAssignmentRecord): void => {
-    if (!resolvedConfig) return;
+    if (!resolvedConfig) {
+      return;
+    }
 
     const store = loadOverseerStoreFromDisk(cfg);
     const goal = store.goals[assignment.goalId];
@@ -138,7 +140,9 @@ export function createSlackOverseerBridge(params: SlackOverseerBridgeParams): Sl
   };
 
   const handleAssignmentActive = (assignment: OverseerAssignmentRecord): void => {
-    if (!resolvedConfig) return;
+    if (!resolvedConfig) {
+      return;
+    }
 
     const store = loadOverseerStoreFromDisk(cfg);
     const goal = store.goals[assignment.goalId];
@@ -159,7 +163,9 @@ export function createSlackOverseerBridge(params: SlackOverseerBridgeParams): Sl
   };
 
   const handleAssignmentDone = (assignment: OverseerAssignmentRecord): void => {
-    if (!resolvedConfig) return;
+    if (!resolvedConfig) {
+      return;
+    }
 
     const store = loadOverseerStoreFromDisk(cfg);
     const goal = store.goals[assignment.goalId];

@@ -55,12 +55,20 @@ export function resolveDashboardUrl(
   const gatewayPort = cfg.gateway?.port ?? 18789;
   const baseUrl = `http://localhost:${gatewayPort}/ui`;
 
-  if (!params) return baseUrl;
+  if (!params) {
+    return baseUrl;
+  }
 
   const searchParams = new URLSearchParams();
-  if (params.agentId) searchParams.set("agentId", params.agentId);
-  if (params.goalId) searchParams.set("goalId", params.goalId);
-  if (params.assignmentId) searchParams.set("assignmentId", params.assignmentId);
+  if (params.agentId) {
+    searchParams.set("agentId", params.agentId);
+  }
+  if (params.goalId) {
+    searchParams.set("goalId", params.goalId);
+  }
+  if (params.assignmentId) {
+    searchParams.set("assignmentId", params.assignmentId);
+  }
 
   const query = searchParams.toString();
   return query ? `${baseUrl}?${query}` : baseUrl;

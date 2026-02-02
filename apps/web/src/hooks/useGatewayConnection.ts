@@ -66,7 +66,6 @@ export function useGatewayConnection(
   const { url, token, password, autoConnect = true, onEvent } = options;
 
   const mountedRef = useRef(true);
-  const clientRef = useRef<ReturnType<typeof getGatewayClient> | null>(null);
 
   // Initialize client once with config
   const client = useMemo(() => {
@@ -76,9 +75,7 @@ export function useGatewayConnection(
       password,
       onEvent,
     };
-    const c = getGatewayClient(config);
-    clientRef.current = c;
-    return c;
+    return getGatewayClient(config);
   }, [url, token, password, onEvent]);
 
   const [state, setState] = useState<GatewayConnectionState>(client.getConnectionState());

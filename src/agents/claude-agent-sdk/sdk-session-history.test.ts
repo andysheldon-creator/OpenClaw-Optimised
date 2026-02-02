@@ -35,8 +35,8 @@ describe("readSessionHistory", () => {
     fs.writeFileSync(file, lines.join("\n"));
     const result = readSessionHistory(file);
     expect(result).toHaveLength(1);
-    expect(result[0]!.role).toBe("user");
-    expect(result[0]!.content).toBe("hello");
+    expect(result[0].role).toBe("user");
+    expect(result[0].content).toBe("hello");
   });
 
   it("extracts string content", () => {
@@ -48,8 +48,8 @@ describe("readSessionHistory", () => {
     fs.writeFileSync(file, lines.join("\n"));
     const result = readSessionHistory(file);
     expect(result).toHaveLength(2);
-    expect(result[0]!.content).toBe("question");
-    expect(result[1]!.content).toBe("answer");
+    expect(result[0].content).toBe("question");
+    expect(result[1].content).toBe("answer");
   });
 
   it("extracts content block arrays", () => {
@@ -66,7 +66,7 @@ describe("readSessionHistory", () => {
     fs.writeFileSync(file, lines.join("\n"));
     const result = readSessionHistory(file);
     expect(result).toHaveLength(1);
-    expect(result[0]!.content).toBe("part 1\npart 2");
+    expect(result[0].content).toBe("part 1\npart 2");
   });
 
   it("skips toolResult entries", () => {
@@ -80,8 +80,8 @@ describe("readSessionHistory", () => {
     fs.writeFileSync(file, lines.join("\n"));
     const result = readSessionHistory(file);
     expect(result).toHaveLength(2);
-    expect(result[0]!.role).toBe("user");
-    expect(result[1]!.role).toBe("assistant");
+    expect(result[0].role).toBe("user");
+    expect(result[1].role).toBe("assistant");
   });
 
   it("preserves timestamps", () => {
@@ -90,7 +90,7 @@ describe("readSessionHistory", () => {
     const lines = [JSON.stringify({ role: "user", content: "hi", timestamp: ts })];
     fs.writeFileSync(file, lines.join("\n"));
     const result = readSessionHistory(file);
-    expect(result[0]!.timestamp).toBe(ts);
+    expect(result[0].timestamp).toBe(ts);
   });
 
   it("handles malformed JSON lines gracefully", () => {
@@ -99,7 +99,7 @@ describe("readSessionHistory", () => {
     fs.writeFileSync(file, lines.join("\n"));
     const result = readSessionHistory(file);
     expect(result).toHaveLength(1);
-    expect(result[0]!.content).toBe("valid");
+    expect(result[0].content).toBe("valid");
   });
 
   it("skips lines with empty content", () => {
@@ -112,7 +112,7 @@ describe("readSessionHistory", () => {
     fs.writeFileSync(file, lines.join("\n"));
     const result = readSessionHistory(file);
     expect(result).toHaveLength(1);
-    expect(result[0]!.content).toBe("real content");
+    expect(result[0].content).toBe("real content");
   });
 });
 
@@ -135,8 +135,8 @@ describe("loadSessionHistoryForSdk", () => {
     fs.writeFileSync(file, lines.join("\n"));
     const result = loadSessionHistoryForSdk({ sessionFile: file, maxTurns: 5 });
     expect(result).toHaveLength(5);
-    expect(result[0]!.content).toBe("msg 25");
-    expect(result[4]!.content).toBe("msg 29");
+    expect(result[0].content).toBe("msg 25");
+    expect(result[4].content).toBe("msg 29");
   });
 
   it("returns all turns when under maxTurns", () => {

@@ -36,20 +36,30 @@ const TOOL_ALIASES_BY_LOWER: Record<string, string> = {
 
 export function canonicalizeClaudeAgentSdkToolName(name: string): string {
   const trimmed = name.trim();
-  if (!trimmed) return "";
+  if (!trimmed) {
+    return "";
+  }
   const lower = trimmed.toLowerCase();
   const aliased = TOOL_ALIASES_BY_LOWER[lower];
-  if (aliased) return aliased;
+  if (aliased) {
+    return aliased;
+  }
   return TOOL_NAME_BY_LOWER[lower] ?? trimmed;
 }
 
 export function canonicalizeClaudeAgentSdkToolRule(rule: string): string {
   const trimmed = rule.trim();
-  if (!trimmed) return "";
-  if (trimmed === "*") return "*";
+  if (!trimmed) {
+    return "";
+  }
+  if (trimmed === "*") {
+    return "*";
+  }
 
   const openParen = trimmed.indexOf("(");
-  if (openParen === -1) return canonicalizeClaudeAgentSdkToolName(trimmed);
+  if (openParen === -1) {
+    return canonicalizeClaudeAgentSdkToolName(trimmed);
+  }
 
   const base = trimmed.slice(0, openParen).trim();
   const rest = trimmed.slice(openParen);

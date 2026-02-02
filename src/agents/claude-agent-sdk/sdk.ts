@@ -20,7 +20,9 @@ export function coerceClaudeAgentSdkQuery(rawQuery: unknown): ClaudeAgentSdkQuer
     const args: ClaudeAgentSdkQueryArgs = { prompt, options };
 
     // Heuristic: legacy signature tends to have arity >= 2.
-    if (fn.length >= 2) return fn(prompt, options);
+    if (fn.length >= 2) {
+      return fn(prompt, options);
+    }
 
     try {
       return fn(args);

@@ -2,11 +2,11 @@
  * Block Kit message builders for Overseer → Slack integration.
  */
 
+import type { DecisionRecord } from "../../infra/decisions/store.types.js";
 import type {
   OverseerAssignmentRecord,
   OverseerGoalRecord,
 } from "../../infra/overseer/store.types.js";
-import type { DecisionRecord } from "../../infra/decisions/store.types.js";
 
 type SlackBlock = { type: string; [key: string]: unknown };
 
@@ -17,9 +17,15 @@ function formatRelativeTime(timestamp: number): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffMins < 1) {
+    return "just now";
+  }
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
   return `${diffDays}d ago`;
 }
 
@@ -28,9 +34,15 @@ function formatDuration(ms: number): string {
   const hours = Math.floor(mins / 60);
   const days = Math.floor(hours / 24);
 
-  if (mins < 1) return "< 1 minute";
-  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"}`;
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  if (mins < 1) {
+    return "< 1 minute";
+  }
+  if (mins < 60) {
+    return `${mins} minute${mins === 1 ? "" : "s"}`;
+  }
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"}`;
+  }
   return `${days} day${days === 1 ? "" : "s"}`;
 }
 

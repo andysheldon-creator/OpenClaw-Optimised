@@ -1,11 +1,12 @@
 import type { Command } from "commander";
-
 import { danger } from "../globals.js";
 import { defaultRuntime } from "../runtime.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "./gateway-rpc.js";
 
 function parseList(input?: string | string[]): string[] | undefined {
-  if (!input) return undefined;
+  if (!input) {
+    return undefined;
+  }
   const parts = Array.isArray(input) ? input : [input];
   const out = parts
     .flatMap((value) => value.split(","))

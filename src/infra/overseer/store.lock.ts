@@ -15,7 +15,9 @@ type HeldLock = {
 const HELD_LOCKS = new Map<string, HeldLock>();
 
 function isAlive(pid: number): boolean {
-  if (!Number.isFinite(pid) || pid <= 0) return false;
+  if (!Number.isFinite(pid) || pid <= 0) {
+    return false;
+  }
   try {
     process.kill(pid, 0);
     return true;
@@ -28,8 +30,12 @@ async function readLockPayload(lockPath: string): Promise<LockFilePayload | null
   try {
     const raw = await fs.readFile(lockPath, "utf8");
     const parsed = JSON.parse(raw) as Partial<LockFilePayload>;
-    if (typeof parsed.pid !== "number") return null;
-    if (typeof parsed.createdAt !== "string") return null;
+    if (typeof parsed.pid !== "number") {
+      return null;
+    }
+    if (typeof parsed.createdAt !== "string") {
+      return null;
+    }
     return { pid: parsed.pid, createdAt: parsed.createdAt };
   } catch {
     return null;
@@ -61,9 +67,13 @@ export async function acquireOverseerStoreLock(params: {
     return {
       release: async () => {
         const current = HELD_LOCKS.get(normalizedStorePath);
-        if (!current) return;
+        if (!current) {
+          return;
+        }
         current.count -= 1;
-        if (current.count > 0) return;
+        if (current.count > 0) {
+          return;
+        }
         HELD_LOCKS.delete(normalizedStorePath);
         await current.handle.close();
         await fs.rm(current.lockPath, { force: true });
@@ -85,9 +95,13 @@ export async function acquireOverseerStoreLock(params: {
       return {
         release: async () => {
           const current = HELD_LOCKS.get(normalizedStorePath);
-          if (!current) return;
+          if (!current) {
+            return;
+          }
           current.count -= 1;
-          if (current.count > 0) return;
+          if (current.count > 0) {
+            return;
+          }
           HELD_LOCKS.delete(normalizedStorePath);
           await current.handle.close();
           await fs.rm(current.lockPath, { force: true });
@@ -95,7 +109,9 @@ export async function acquireOverseerStoreLock(params: {
       };
     } catch (err) {
       const code = (err as { code?: unknown }).code;
-      if (code !== "EEXIST") throw err;
+      if (code !== "EEXIST") {
+        throw err;
+      }
       const payload = await readLockPayload(lockPath);
       const createdAt = payload?.createdAt ? Date.parse(payload.createdAt) : NaN;
       const stale = !Number.isFinite(createdAt) || Date.now() - createdAt > staleMs;

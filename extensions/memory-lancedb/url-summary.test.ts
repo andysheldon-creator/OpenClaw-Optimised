@@ -67,7 +67,6 @@ describe("Inbox URL Summarization", () => {
   let memoryPlugin: any;
   let mockApi: any;
   let agentEndHandler: Function;
-  let OpenAiExtractorMock: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();

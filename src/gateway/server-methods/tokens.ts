@@ -3,13 +3,13 @@
  */
 
 import { homedir } from "node:os";
+import type { GatewayRequestHandlers } from "./types.js";
 import { listTokens, createToken, revokeToken, type TokenScope } from "../../infra/tokens/index.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 const homeDir = homedir();
 
-const VALID_SCOPES: TokenScope[] = [
+const VALID_SCOPES: Set<TokenScope> = new Set([
   "agent:read",
   "agent:write",
   "config:read",
@@ -18,7 +18,7 @@ const VALID_SCOPES: TokenScope[] = [
   "sessions:read",
   "sessions:write",
   "*",
-];
+]);
 
 export const tokenHandlers: GatewayRequestHandlers = {
   "tokens.list": async ({ respond }) => {
@@ -59,7 +59,7 @@ export const tokenHandlers: GatewayRequestHandlers = {
     }
 
     // Validate scopes
-    const invalidScopes = scopes.filter((s) => !VALID_SCOPES.includes(s as TokenScope));
+    const invalidScopes = scopes.filter((s) => !VALID_SCOPES.has(s as TokenScope));
     if (invalidScopes.length > 0) {
       respond(
         false,

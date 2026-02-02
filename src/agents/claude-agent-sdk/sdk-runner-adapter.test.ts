@@ -1,15 +1,14 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./sdk-runner.js", () => ({
   runSdkAgent: vi.fn(),
 }));
 
-import { runSdkAgent } from "./sdk-runner.js";
 import { runSdkAgentAdapted } from "./sdk-runner-adapter.js";
+import { runSdkAgent } from "./sdk-runner.js";
 
 const mockRunSdkAgent = vi.mocked(runSdkAgent);
 
@@ -51,8 +50,8 @@ describe("runSdkAgentAdapted", () => {
 
       expect(lines).toHaveLength(2);
       // Transcript lines are wrapped in a `message` envelope for UI compatibility.
-      const userLine = JSON.parse(lines[0]!) as { message?: { role?: string; content?: unknown } };
-      const assistantLine = JSON.parse(lines[1]!) as {
+      const userLine = JSON.parse(lines[0]) as { message?: { role?: string; content?: unknown } };
+      const assistantLine = JSON.parse(lines[1]) as {
         message?: { role?: string; content?: unknown };
       };
 

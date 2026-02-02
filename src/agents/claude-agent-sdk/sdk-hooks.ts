@@ -14,7 +14,9 @@ function normalizeSdkToolName(
   mcpServerName: string,
 ): { name: string; rawName: string } {
   const trimmed = raw.trim();
-  if (!trimmed) return { name: "tool", rawName: "" };
+  if (!trimmed) {
+    return { name: "tool", rawName: "" };
+  }
   const parts = trimmed.split("__");
   const withoutMcpPrefix =
     parts.length >= 3 && parts[0] === "mcp" && parts[1] === mcpServerName
@@ -59,7 +61,9 @@ export type SdkHookCallbackMatcher = {
 export type SdkHooksConfig = Partial<Record<SdkHookEventName, SdkHookCallbackMatcher[]>>;
 
 function sanitizeHookToolPayload(value: unknown): unknown {
-  if (!value || typeof value !== "object") return value;
+  if (!value || typeof value !== "object") {
+    return value;
+  }
   return sanitizeToolResult(value);
 }
 

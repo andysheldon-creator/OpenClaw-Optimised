@@ -1,10 +1,9 @@
 import { Type } from "@sinclair/typebox";
-
+import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import { loadSessionEntry } from "../../gateway/session-utils.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringArrayParam, readStringParam } from "./common.js";
 import {
   createAgentToAgentPolicy,
@@ -22,18 +21,28 @@ const SessionsTagsToolSchema = Type.Object({
 });
 
 function normalizeTagList(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) {
+    return [];
+  }
   const out: string[] = [];
   const seen = new Set<string>();
   for (const entry of raw) {
-    if (typeof entry !== "string") continue;
+    if (typeof entry !== "string") {
+      continue;
+    }
     const trimmed = entry.trim().replace(/\s+/g, " ");
-    if (!trimmed) continue;
+    if (!trimmed) {
+      continue;
+    }
     const key = trimmed.toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      continue;
+    }
     seen.add(key);
     out.push(trimmed);
-    if (out.length >= 64) break;
+    if (out.length >= 64) {
+      break;
+    }
   }
   return out;
 }
@@ -113,7 +122,7 @@ export function createSessionsTagsTool(opts?: {
       }
 
       if (restrictToSpawned && !resolvedSession.resolvedViaSessionId) {
-        const sessions = (await callGateway({
+        const sessions = await callGateway({
           method: "sessions.list",
           params: {
             includeGlobal: false,
@@ -122,7 +131,7 @@ export function createSessionsTagsTool(opts?: {
             spawnedBy: requesterInternalKey,
           },
           timeoutMs: 10_000,
-        })) as { sessions?: Array<Record<string, unknown>> };
+        });
         const ok = (Array.isArray(sessions?.sessions) ? sessions.sessions : []).some(
           (entry) => entry?.key === canonicalKey,
         );
@@ -162,7 +171,9 @@ export function createSessionsTagsTool(opts?: {
         const baseSet = new Set(base.map((t) => t.toLowerCase()));
         for (const tag of additions) {
           const key = tag.toLowerCase();
-          if (baseSet.has(key)) continue;
+          if (baseSet.has(key)) {
+            continue;
+          }
           baseSet.add(key);
           base.push(tag);
         }
@@ -171,14 +182,14 @@ export function createSessionsTagsTool(opts?: {
         return jsonResult({ ok: false, error: "Provide one of: tags, add/remove, or clear" });
       }
 
-      const patched = (await callGateway({
+      const patched = await callGateway<{ entry?: { tags?: unknown } }>({
         method: "sessions.patch",
         params: {
           key: canonicalKey,
           tags: nextTags,
         },
         timeoutMs: 10_000,
-      })) as { ok?: boolean; key?: string; entry?: { tags?: unknown } };
+      });
 
       const updatedTags = normalizeTagList(patched?.entry?.tags);
       return jsonResult({

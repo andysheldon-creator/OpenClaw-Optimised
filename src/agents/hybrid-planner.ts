@@ -5,10 +5,14 @@ import type { ModelRef } from "./model-selection.js";
 import { runEmbeddedPiAgent } from "./pi-embedded.js";
 
 function extractLastText(payloads: Array<{ text?: string }> | undefined): string {
-  if (!payloads || payloads.length === 0) return "";
+  if (!payloads || payloads.length === 0) {
+    return "";
+  }
   for (let i = payloads.length - 1; i >= 0; i--) {
     const text = payloads[i]?.text ?? "";
-    if (text.trim()) return text.trim();
+    if (text.trim()) {
+      return text.trim();
+    }
   }
   return "";
 }
@@ -92,7 +96,9 @@ export async function planHybridSpec(params: {
   });
 
   const raw = extractLastText(result.payloads);
-  if (!raw) return { spec: null, raw: "" };
+  if (!raw) {
+    return { spec: null, raw: "" };
+  }
 
   try {
     const parsed = JSON.parse(raw) as HybridPlannerSpec;

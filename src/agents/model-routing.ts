@@ -30,7 +30,9 @@ function resolveRefFromConfig(params: {
   fallback: ModelRef;
 }): ModelRef {
   const trimmed = params.raw?.trim() ?? "";
-  if (!trimmed) return params.fallback;
+  if (!trimmed) {
+    return params.fallback;
+  }
 
   const aliasIndex = buildModelAliasIndex({
     cfg: params.cfg,
@@ -72,8 +74,12 @@ function resolveTierModel(params: {
 function defaultHybridTier(cfg: OpenClawConfig): ModelRoutingTier {
   const routing = cfg.agents?.defaults?.modelRouting;
   const models = routing?.models;
-  if (models?.localLarge?.trim()) return "local-large";
-  if (models?.localSmall?.trim()) return "local-small";
+  if (models?.localLarge?.trim()) {
+    return "local-large";
+  }
+  if (models?.localSmall?.trim()) {
+    return "local-small";
+  }
   return "remote";
 }
 
@@ -85,13 +91,19 @@ function chooseTierFromSignals(params: {
   const verifiability = params.policy.verifiability ?? "medium";
   const allowWriteTools = params.policy.allowWriteTools ?? true;
 
-  if (stakes === "high") return "remote";
-  if (verifiability === "low") return "remote";
+  if (stakes === "high") {
+    return "remote";
+  }
+  if (verifiability === "low") {
+    return "remote";
+  }
 
   if (verifiability === "high" && stakes === "low" && !allowWriteTools) {
     // Prefer smaller local tiers for highly verifiable + low-stakes, read-only work.
     const routing = params.cfg.agents?.defaults?.modelRouting;
-    if (routing?.models?.localSmall?.trim()) return "local-small";
+    if (routing?.models?.localSmall?.trim()) {
+      return "local-small";
+    }
   }
 
   // Default to the biggest available local tier (better tool discipline), else remote.

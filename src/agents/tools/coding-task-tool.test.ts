@@ -24,7 +24,9 @@ describe("coding_task tool", () => {
       (candidate) => candidate.name === "coding_task",
     );
     expect(tool).toBeTruthy();
-    if (!tool) return;
+    if (!tool) {
+      return;
+    }
 
     const result = await tool.execute("call1", { task: "Plan how to refactor foo" });
     expect(result.details).toMatchObject({

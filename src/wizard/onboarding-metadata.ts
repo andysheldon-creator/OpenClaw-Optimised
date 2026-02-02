@@ -35,10 +35,14 @@ export type OnboardingMetadata = {
  */
 export function readOnboardingProgress(config: OpenClawConfig): OnboardingProgress | undefined {
   const wizard = config.wizard as Record<string, unknown> | undefined;
-  if (!wizard) return undefined;
+  if (!wizard) {
+    return undefined;
+  }
 
   const onboarding = wizard.onboarding as OnboardingProgress | undefined;
-  if (!onboarding) return undefined;
+  if (!onboarding) {
+    return undefined;
+  }
 
   // Validate structure
   if (
@@ -60,7 +64,9 @@ export function readOnboardingProgress(config: OpenClawConfig): OnboardingProgre
  */
 export function isOnboardingComplete(config: OpenClawConfig): boolean {
   const progress = readOnboardingProgress(config);
-  if (!progress) return false;
+  if (!progress) {
+    return false;
+  }
 
   // Required phases: essentials, health-check
   const requiredPhases = ["essentials", "health-check"];
@@ -81,7 +87,9 @@ export function isOnboardingInProgress(config: OpenClawConfig): boolean {
  */
 export function getResumptionPhase(config: OpenClawConfig): string | null {
   const progress = readOnboardingProgress(config);
-  if (!progress) return null;
+  if (!progress) {
+    return null;
+  }
 
   // If current phase is not completed, resume there
   if (!progress.completedPhases.includes(progress.currentPhase)) {
@@ -108,7 +116,9 @@ export function getPhaseData(
   phaseId: string,
 ): Record<string, unknown> | undefined {
   const progress = readOnboardingProgress(config);
-  if (!progress) return undefined;
+  if (!progress) {
+    return undefined;
+  }
 
   return progress.phaseData[phaseId];
 }
@@ -199,7 +209,9 @@ export function writeOnboardingProgress(
  */
 export function updateCurrentPhase(config: OpenClawConfig, phaseId: string): OpenClawConfig {
   const progress = readOnboardingProgress(config);
-  if (!progress) return config;
+  if (!progress) {
+    return config;
+  }
 
   const now = new Date().toISOString();
 
@@ -222,7 +234,9 @@ export function updateCurrentPhase(config: OpenClawConfig, phaseId: string): Ope
  */
 export function completeOnboarding(config: OpenClawConfig): OpenClawConfig {
   const wizard = config.wizard as Record<string, unknown> | undefined;
-  if (!wizard) return config;
+  if (!wizard) {
+    return config;
+  }
 
   // Remove onboarding metadata
   const { onboarding: _onboarding, ...remainingWizard } = wizard;
