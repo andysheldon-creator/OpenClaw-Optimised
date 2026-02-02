@@ -251,6 +251,7 @@ export function renderApp(state: AppViewState) {
                 error: state.activityError,
                 securityFindings: state.activitySecurityFindings,
                 onDaysChange: (days) => {
+                  state.activityDays = days;
                   void state.loadActivity(days);
                 },
                 onRefresh: () => state.loadActivity(),

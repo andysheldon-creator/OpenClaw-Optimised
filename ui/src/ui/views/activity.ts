@@ -16,8 +16,7 @@ function formatTokenCount(value: number): string {
 
 function formatUsd(value: number): string {
   if (!Number.isFinite(value)) return "—";
-  if (value >= 0.01) return `$${value.toFixed(2)}`;
-  return `$${value.toFixed(4)}`;
+  return value >= 0.01 ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`;
 }
 
 export type ActivityProps = {
