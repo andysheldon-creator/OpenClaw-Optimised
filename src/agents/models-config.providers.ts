@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { ModelDefinitionConfig } from "../config/types.models.js";
 import {
@@ -86,6 +89,46 @@ const OLLAMA_DEFAULT_COST = {
   cacheRead: 0,
   cacheWrite: 0,
 };
+
+const CC_SWITCH_BASE_URL = "http://127.0.0.1:5000";
+const CC_SWITCH_CONTEXT_WINDOW = 200000;
+const CC_SWITCH_MAX_TOKENS = 8192;
+
+interface CcSwitchSettings {
+  env?: {
+    ANTHROPIC_BASE_URL?: string;
+    ANTHROPIC_AUTH_TOKEN?: string;
+  };
+}
+
+async function isCcSwitchActive(): Promise<boolean> {
+  try {
+    const fs = await import("node:fs");
+    const claudeSettingsPath = join(homedir(), ".claude", "settings.json");
+    const claudeConfigPath = join(homedir(), ".claude", "claude.json");
+
+    let settingsPath: string | null = null;
+    if (existsSync(claudeSettingsPath)) {
+      settingsPath = claudeSettingsPath;
+    } else if (existsSync(claudeConfigPath)) {
+      settingsPath = claudeConfigPath;
+    }
+
+    if (!settingsPath) {
+      return false;
+    }
+
+    // Read the settings file
+    const content = fs.readFileSync(settingsPath, "utf-8");
+    const settings = JSON.parse(content) as CcSwitchSettings;
+
+    // Check if cc-switch proxy is configured
+    const baseUrl = settings.env?.ANTHROPIC_BASE_URL;
+    return baseUrl === CC_SWITCH_BASE_URL || (baseUrl?.startsWith("http://127.0.0.1:5") ?? false);
+  } catch {
+    return false;
+  }
+}
 
 interface OllamaModel {
   name: string;
@@ -352,6 +395,33 @@ function buildNvidiaProvider(): ProviderConfig {
   };
 }
 
+function buildCcSwitchProvider(): ProviderConfig {
+  return {
+    baseUrl: CC_SWITCH_BASE_URL,
+    api: "anthropic-messages",
+    models: [
+      {
+        id: "claude-sonnet-4-20250514",
+        name: "Claude Sonnet 4 (via cc-switch)",
+        reasoning: false,
+        input: ["text"],
+        cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 1.5 },
+        contextWindow: CC_SWITCH_CONTEXT_WINDOW,
+        maxTokens: CC_SWITCH_MAX_TOKENS,
+      },
+      {
+        id: "claude-haiku-4-20250514",
+        name: "Claude Haiku 4 (via cc-switch)",
+        reasoning: false,
+        input: ["text"],
+        cost: { input: 0.8, output: 4, cacheRead: 0.08, cacheWrite: 0.4 },
+        contextWindow: CC_SWITCH_CONTEXT_WINDOW,
+        maxTokens: CC_SWITCH_MAX_TOKENS,
+      },
+    ],
+  };
+}
+
 function buildQwenPortalProvider(): ProviderConfig {
   return {
     baseUrl: QWEN_PORTAL_BASE_URL,
@@ -458,6 +528,11 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "nvidia", store: authStore });
   if (nvidiaKey) {
     providers.nvidia = { ...buildNvidiaProvider(), apiKey: nvidiaKey };
+  }
+
+  // cc-switch provider - auto-detect if cc-switch proxy is active
+  if (await isCcSwitchActive()) {
+    providers["cc-switch"] = { ...buildCcSwitchProvider(), apiKey: "CC_SWITCH_MANAGED" };
   }
 
   const syntheticKey =
