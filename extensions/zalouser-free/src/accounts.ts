@@ -8,22 +8,27 @@ const DEFAULT_ACCOUNT_ID = "default";
 
 function normalizeAccountId(accountId?: string | null): string {
     const trimmed = accountId?.trim();
-    if (!trimmed) return DEFAULT_ACCOUNT_ID;
+    if (!trimmed) {
+        return DEFAULT_ACCOUNT_ID;
+    }
     return trimmed;
 }
 
-export function listAccountIds(cfg: any): string[] {
-    const channelConfig = cfg?.channels?.["zalouser-free"] as ZaloUserFreeChannelConfig | undefined;
+export function listAccountIds(cfg: unknown): string[] {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const channelConfig = (cfg as any)?.channels?.["zalouser-free"] as ZaloUserFreeChannelConfig | undefined;
     const accounts = channelConfig?.accounts;
     if (!accounts || typeof accounts !== "object") {
         return [DEFAULT_ACCOUNT_ID];
     }
     const ids = Object.keys(accounts).filter(Boolean);
-    return ids.length > 0 ? ids.sort() : [DEFAULT_ACCOUNT_ID];
+    // eslint-disable-next-line eslint-plugin-unicorn/no-array-sort
+    return ids.length > 0 ? [...ids].sort() : [DEFAULT_ACCOUNT_ID];
 }
 
-export function resolveDefaultAccountId(cfg: any): string {
-    const channelConfig = cfg?.channels?.["zalouser-free"] as ZaloUserFreeChannelConfig | undefined;
+export function resolveDefaultAccountId(cfg: unknown): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const channelConfig = (cfg as any)?.channels?.["zalouser-free"] as ZaloUserFreeChannelConfig | undefined;
     if (channelConfig?.defaultAccount?.trim()) {
         return channelConfig.defaultAccount.trim();
     }
@@ -40,9 +45,10 @@ export interface ResolvedAccount {
     config: ZaloUserFreeAccountConfig;
 }
 
-export function resolveAccount(cfg: any, accountId?: string | null): ResolvedAccount {
+export function resolveAccount(cfg: unknown, accountId?: string | null): ResolvedAccount {
     const id = normalizeAccountId(accountId);
-    const channelConfig = cfg?.channels?.["zalouser-free"] as ZaloUserFreeChannelConfig | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const channelConfig = (cfg as any)?.channels?.["zalouser-free"] as ZaloUserFreeChannelConfig | undefined;
     const baseEnabled = channelConfig?.enabled !== false;
     const accountCfg = channelConfig?.accounts?.[id];
     const accountEnabled = accountCfg?.enabled !== false;

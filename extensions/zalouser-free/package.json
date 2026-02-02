@@ -38,7 +38,8 @@
     "jsqr": "^1.4.0",
     "pngjs": "^7.0.0",
     "qrcode-terminal": "^0.12.0",
-    "zca-js": "^2.0.4"
+    "zca-js": "^2.0.4",
+    "openclaw": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",

@@ -1,6 +1,8 @@
 {
   "id": "zalouser-free",
-  "channels": ["zalouser-free"],
+  "channels": [
+    "zalouser-free"
+  ],
   "name": "Zalo Personal (Free)",
   "version": "1.0.0",
   "description": "Free Zalo Personal channel plugin using zca-js library",
@@ -24,30 +26,37 @@
               "default": false,
               "description": "Enable this account on gateway startup"
             },
-            "userAgent": {
-              "type": "string",
-              "description": "Custom user agent for login (optional)"
-            },
             "dmAccess": {
               "type": "string",
-              "enum": ["open", "whitelist"],
+              "enum": [
+                "open",
+                "whitelist"
+              ],
               "default": "whitelist",
               "description": "DM access control: 'open' (anyone) or 'whitelist' (only allowed users)"
             },
             "groupAccess": {
               "type": "string",
-              "enum": ["open", "mention", "whitelist"],
+              "enum": [
+                "open",
+                "mention",
+                "whitelist"
+              ],
               "default": "mention",
               "description": "Group access: 'open' (anyone), 'mention' (only when mentioned), or 'whitelist' (only allowed users)"
             },
             "allowedUsers": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "List of allowed user IDs (for whitelist modes)"
             },
             "allowedGroups": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "List of allowed group IDs (for whitelist modes)"
             }
           }

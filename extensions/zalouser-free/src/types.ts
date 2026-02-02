@@ -23,8 +23,6 @@ export interface ZaloUserFreeAccountConfig {
     allowedUsers?: string[];
     /** List of allowed group IDs (for whitelist modes) */
     allowedGroups?: string[];
-    /** Custom user agent for this account */
-    userAgent?: string;
 }
 
 export interface ZaloUserFreeChannelConfig {

@@ -4,7 +4,7 @@
  */
 
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import type { ChatType, IncomingMessage } from "./types.js";
+import type { IncomingMessage } from "./types.js";
 import { ZaloSessionManager } from "./session-manager.js";
 import { listAccountIds, resolveAccount, DEFAULT_ACCOUNT_ID } from "./accounts.js";
 import { getZalouserFreeRuntime, hasZalouserFreeRuntime } from "./runtime.js";
@@ -12,7 +12,7 @@ import { getZalouserFreeRuntime, hasZalouserFreeRuntime } from "./runtime.js";
 // Shared session manager instance
 let sharedSessionManager: ZaloSessionManager | null = null;
 
-export function initSessionManager(sessionPath?: string, logger?: any): ZaloSessionManager {
+export function initSessionManager(sessionPath?: string, logger?: unknown): ZaloSessionManager {
     if (!sharedSessionManager) {
         sharedSessionManager = new ZaloSessionManager(sessionPath, logger);
     }
@@ -30,10 +30,12 @@ async function processMessage(
     msg: IncomingMessage,
     accountId: string,
     config: OpenClawConfig,
-    logger: any
+    logger: unknown
 ): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const log = logger as any;
     if (!hasZalouserFreeRuntime()) {
-        logger.error?.("[zalouser-free] Runtime not initialized, cannot dispatch message");
+        log.error?.("[zalouser-free] Runtime not initialized, cannot dispatch message");
         return;
     }
 
@@ -53,6 +55,10 @@ async function processMessage(
     const fromLabel = isGroup ? `group:${chatId}` : senderName || `user:${senderId}`;
 
     // Resolve agent route
+    const route = core.channel.routing.resolveAgentRoute({
+        cfg: config,
+        channel: "zalouser-free",
+        accountId: account.accountId,
         peer: {
             kind: isGroup ? ("group" as const) : ("direct" as const),
             id: isGroup ? chatId : senderId,
@@ -107,7 +113,7 @@ async function processMessage(
         sessionKey: ctxPayload.SessionKey ?? route.sessionKey,
         ctx: ctxPayload,
         onRecordError: (err) => {
-            logger.error?.(`[zalouser-free] Failed updating session meta: ${String(err)}`);
+            log.error?.(`[zalouser-free] Failed updating session meta: ${String(err)}`);
         },
     });
 
@@ -128,23 +134,26 @@ async function processMessage(
                         text
                     );
                     if (!sendResult.ok) {
-                        logger.error?.(`[zalouser-free] Failed to send reply: ${sendResult.error}`);
+                        log.error?.(`[zalouser-free] Failed to send reply: ${sendResult.error}`);
                     }
                 }
             },
             onError: (err, info) => {
-                logger.error?.(`[zalouser-free] ${info.kind} reply failed: ${String(err)}`);
+                log.error?.(`[zalouser-free] ${info.kind} reply failed: ${String(err)}`);
             },
         },
     });
 }
 
-export function createChannelPlugin(sessionManager: ZaloSessionManager, api: any) {
-    const logger = api.logger || console;
-    const config = api.config as OpenClawConfig;
+export function createChannelPlugin(sessionManager: ZaloSessionManager, api: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const logger = (api as any).logger || console;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const config = (api as any).config as OpenClawConfig;
 
     // Set config provider for access control
-    sessionManager.setConfigProvider(() => api.config);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sessionManager.setConfigProvider(() => (api as any).config);
 
     // Message dispatch handler - uses PluginRuntime for proper dispatch
     sessionManager.setMessageHandler((msg, accountId) => {
@@ -174,8 +183,8 @@ export function createChannelPlugin(sessionManager: ZaloSessionManager, api: any
         },
 
         config: {
-            listAccountIds: (cfg: any): string[] => listAccountIds(cfg),
-            resolveAccount: (cfg: any, accountId?: string) => resolveAccount(cfg, accountId),
+            listAccountIds: (cfg: unknown): string[] => listAccountIds(cfg),
+            resolveAccount: (cfg: unknown, accountId?: string) => resolveAccount(cfg, accountId),
         },
 
         outbound: {
@@ -186,7 +195,7 @@ export function createChannelPlugin(sessionManager: ZaloSessionManager, api: any
                 to: string;
                 text: string;
                 accountId?: string;
-                cfg?: any;
+                cfg?: unknown;
             }): Promise<{ channel: string; ok: boolean; messageId?: string; error?: Error }> => {
                 const accountId = params.accountId ?? DEFAULT_ACCOUNT_ID;
                 const chatType = sessionManager.getChatType(params.to);
@@ -221,15 +230,18 @@ export function createChannelPlugin(sessionManager: ZaloSessionManager, api: any
                 const chatType = sessionManager.getChatType(params.to);
                 if (params.messageId) {
                     const result = await sessionManager.sendSeenEvent(accountId, params.to, [params.messageId], chatType);
-                    if (!result.ok) return { ok: false, error: new Error(result.error) };
+                    if (!result.ok) {
+                        return { ok: false, error: new Error(result.error) };
+                    }
                 }
                 return { ok: true };
             },
         },
 
         gateway: {
-            startAccount: async (ctx: any): Promise<void> => {
-                const accountId = ctx.accountId ?? DEFAULT_ACCOUNT_ID;
+            startAccount: async (ctx: unknown): Promise<void> => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const accountId = (ctx as any).accountId ?? DEFAULT_ACCOUNT_ID;
 
                 if (sessionManager.hasSavedCredentials(accountId)) {
                     const result = await sessionManager.restoreSession(accountId);
@@ -244,8 +256,9 @@ export function createChannelPlugin(sessionManager: ZaloSessionManager, api: any
                 }
             },
 
-            stopAccount: async (ctx: any): Promise<void> => {
-                const accountId = ctx.accountId ?? DEFAULT_ACCOUNT_ID;
+            stopAccount: async (ctx: unknown): Promise<void> => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const accountId = (ctx as any).accountId ?? DEFAULT_ACCOUNT_ID;
                 await sessionManager.disconnect(accountId);
                 logger.info?.(`[zalouser-free] Account ${accountId} stopped`);
             },
