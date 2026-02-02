@@ -6,7 +6,7 @@ export type McpServerConfig = {
   url?: string;
   command?: string;
   args?: string[];
-  env?: Record<string, string>;
+  env?: Array<{ name: string; value: string }>;
 };
 
 export type AcpSession = {

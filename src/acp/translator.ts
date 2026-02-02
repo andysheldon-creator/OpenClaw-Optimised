@@ -41,13 +41,23 @@ import { ACP_AGENT_INFO, type AcpServerOptions, type McpServerConfig } from "./t
  * Convert ACP McpServer to our McpServerConfig
  */
 function convertMcpServer(server: McpServer): McpServerConfig {
-  return {
+  // McpServer is a union type: (McpServerHttp & {type: "http"}) | (McpServerSse & {type: "sse"}) | McpServerStdio
+  const config: McpServerConfig = {
     name: server.name,
-    url: server.url,
-    command: server.command,
-    args: server.args,
-    env: server.env,
   };
+
+  // HTTP or SSE server
+  if ("url" in server) {
+    config.url = server.url;
+  }
+  // Stdio server
+  if ("command" in server) {
+    config.command = server.command;
+    config.args = server.args;
+    config.env = server.env;
+  }
+
+  return config;
 }
 
 type PendingPrompt = {
