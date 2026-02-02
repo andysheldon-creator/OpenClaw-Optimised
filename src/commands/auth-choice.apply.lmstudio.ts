@@ -83,9 +83,9 @@ export async function applyAuthChoiceLmStudio(
   const existingProvider = params.config.models?.providers?.lmstudio;
   const baseUrlDefault = existingProvider?.baseUrl ?? DEFAULT_LMSTUDIO_BASE_URL;
   const baseUrlInput = await params.prompter.text({
-    message: "LM Studio base URL (host:port)",
-    initialValue: baseUrlDefault.replace(/\/v1\/?$/, ""),
-    placeholder: DEFAULT_LMSTUDIO_BASE_URL,
+    message: "LM Studio base URL (host:port or full URL)",
+    initialValue: baseUrlDefault,
+    placeholder: `${DEFAULT_LMSTUDIO_BASE_URL}/v1`,
     validate: (value) =>
       normalizeLmStudioBaseUrl(String(value ?? "")) ? undefined : "Enter a valid host:port or URL",
   });
@@ -95,9 +95,12 @@ export async function applyAuthChoiceLmStudio(
     typeof params.config.agents?.defaults?.model === "string"
       ? params.config.agents.defaults.model
       : params.config.agents?.defaults?.model?.primary;
+  const providerModelDefault = Array.isArray(existingProvider?.models)
+    ? existingProvider?.models?.[0]?.id
+    : undefined;
   const modelDefault = configuredRaw?.startsWith("lmstudio/")
     ? configuredRaw.replace(/^lmstudio\//, "")
-    : undefined;
+    : providerModelDefault;
 
   const modelInput = await params.prompter.text({
     message: "LM Studio model (vendor/model)",
