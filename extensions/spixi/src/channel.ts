@@ -86,8 +86,14 @@ export const spixiPlugin: ChannelPlugin<ResolvedSpixiAccount> = {
 
             log?.info(`[${account.accountId}] Received Spixi message from ${sender}`);
             
-            // Inbound relay logic to OpenClaw core would go here
-            // This usually involves calling ctx.onMessage or similar
+            // Inbound relay logic to OpenClaw core
+            ctx.onMessage?.({
+              id: data.id || `spixi-${Date.now()}`,
+              from: sender,
+              text,
+              timestamp: data.timestamp || Date.now(),
+              raw: data,
+            });
           } catch (e: any) {
             log?.error(`[${account.accountId}] Error processing Spixi message: ${e.message}`);
           }

@@ -13,7 +13,7 @@ export const SpixiAccountSchemaBase = z
       .optional()
       .default("http://localhost:8001")
       .describe(
-        "URL of the QuIXI API. WARNING: Requires a running QuIXI node on the server."
+        "URL of the QuIXI API. WARNING: Requires a running QuIXI node on the server. Repo: https://github.com/ixian-platform/QuIXI"
       ),
     mqttHost: z
       .string()
