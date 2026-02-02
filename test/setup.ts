@@ -3,6 +3,15 @@ import { afterAll, afterEach, beforeEach, vi } from "vitest";
 // Ensure Vitest environment is properly set
 process.env.VITEST = "true";
 
+// Set mock API keys for testing - NEVER use real API keys in tests
+// These are fake keys that will never hit real APIs
+process.env.ANTHROPIC_API_KEY = "sk-ant-test-mock-key-for-unit-tests-only";
+process.env.OPENAI_API_KEY = "sk-test-mock-key-for-unit-tests-only";
+process.env.OPENROUTER_API_KEY = "sk-or-test-mock-key-for-unit-tests-only";
+process.env.GROQ_API_KEY = "gsk-test-mock-key-for-unit-tests-only";
+process.env.GEMINI_API_KEY = "test-mock-gemini-key-for-unit-tests-only";
+process.env.DEEPSEEK_API_KEY = "sk-test-mock-deepseek-key-for-unit-tests-only";
+
 import type {
   ChannelId,
   ChannelOutboundAdapter,

@@ -346,18 +346,20 @@ describe("web_fetch extraction fallbacks", () => {
     });
 
     let message = "";
+    let debugDetail = "";
     try {
       await tool?.execute?.("call", { url: "https://example.com/missing" });
     } catch (error) {
       message = (error as Error).message;
+      debugDetail = (error as unknown as Record<string, unknown>)._debugDetail as string;
     }
 
-    expect(message).toContain("Web fetch failed (404):");
-    expect(message).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
-    expect(message).toContain("SECURITY NOTICE");
-    expect(message).toContain("Not Found");
-    expect(message).not.toContain("<html");
-    expect(message.length).toBeLessThan(5_000);
+    expect(message).toBe("Web fetch failed (404)");
+    expect(debugDetail).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+    expect(debugDetail).toContain("SECURITY NOTICE");
+    expect(debugDetail).toContain("Not Found");
+    expect(debugDetail).not.toContain("<html");
+    expect(debugDetail.length).toBeLessThan(5_000);
   });
 
   it("strips HTML errors when content-type is missing", async () => {
@@ -381,15 +383,17 @@ describe("web_fetch extraction fallbacks", () => {
     });
 
     let message = "";
+    let debugDetail = "";
     try {
       await tool?.execute?.("call", { url: "https://example.com/oops" });
     } catch (error) {
       message = (error as Error).message;
+      debugDetail = (error as unknown as Record<string, unknown>)._debugDetail as string;
     }
 
-    expect(message).toContain("Web fetch failed (500):");
-    expect(message).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
-    expect(message).toContain("Oops");
+    expect(message).toBe("Web fetch failed (500)");
+    expect(debugDetail).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+    expect(debugDetail).toContain("Oops");
   });
 
   it("wraps firecrawl error details", async () => {
@@ -419,14 +423,16 @@ describe("web_fetch extraction fallbacks", () => {
     });
 
     let message = "";
+    let debugDetail = "";
     try {
       await tool?.execute?.("call", { url: "https://example.com/firecrawl-error" });
     } catch (error) {
       message = (error as Error).message;
+      debugDetail = (error as unknown as Record<string, unknown>)._debugDetail as string;
     }
 
-    expect(message).toContain("Firecrawl fetch failed (403):");
-    expect(message).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
-    expect(message).toContain("blocked");
+    expect(message).toBe("Firecrawl fetch failed (403)");
+    expect(debugDetail).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+    expect(debugDetail).toContain("blocked");
   });
 });

@@ -1,10 +1,8 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import crypto from "node:crypto";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
 import {
   cleanupExpiredDecisions,
   createDecision,
@@ -26,9 +24,9 @@ describe("decisions store", () => {
   let uuidSpy: ReturnType<typeof vi.spyOn<typeof crypto, "randomUUID">>;
 
   beforeEach(() => {
-    prevStateDir = process.env.CLAWDBRAIN_STATE_DIR;
-    stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "clawdbrain-state-"));
-    process.env.CLAWDBRAIN_STATE_DIR = stateDir;
+    prevStateDir = process.env.OPENCLAW_STATE_DIR;
+    stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-state-"));
+    process.env.OPENCLAW_STATE_DIR = stateDir;
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
@@ -42,9 +40,9 @@ describe("decisions store", () => {
     vi.restoreAllMocks();
 
     if (prevStateDir === undefined) {
-      delete process.env.CLAWDBRAIN_STATE_DIR;
+      delete process.env.OPENCLAW_STATE_DIR;
     } else {
-      process.env.CLAWDBRAIN_STATE_DIR = prevStateDir;
+      process.env.OPENCLAW_STATE_DIR = prevStateDir;
     }
 
     fs.rmSync(stateDir, { recursive: true, force: true });

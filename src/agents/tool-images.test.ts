@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { sanitizeContentBlocksImages, sanitizeImageBlocks } from "./tool-images.js";
 
 describe("tool image sanitizing", () => {
-  it("shrinks oversized images to <=10MB", async () => {
+  it("shrinks oversized images to <=5MB", async () => {
     const width = 2800;
     const height = 2800;
     const raw = Buffer.alloc(width * height * 3, 0xff);
@@ -12,7 +12,7 @@ describe("tool image sanitizing", () => {
     })
       .png({ compressionLevel: 0 })
       .toBuffer();
-    expect(bigPng.byteLength).toBeGreaterThan(10 * 1024 * 1024);
+    expect(bigPng.byteLength).toBeGreaterThan(5 * 1024 * 1024);
 
     const blocks = [
       {
@@ -28,12 +28,12 @@ describe("tool image sanitizing", () => {
       throw new Error("expected image block");
     }
     const size = Buffer.from(image.data, "base64").byteLength;
-    expect(size).toBeLessThanOrEqual(10 * 1024 * 1024);
+    expect(size).toBeLessThanOrEqual(5 * 1024 * 1024);
     expect(image.mimeType).toBe("image/jpeg");
   }, 20_000);
 
   it("sanitizes image arrays and reports drops", async () => {
-    const width = 2600;
+    const width = 1900;
     const height = 400;
     const raw = Buffer.alloc(width * height * 3, 0x7f);
     const png = await sharp(raw, {
@@ -54,8 +54,8 @@ describe("tool image sanitizing", () => {
     expect(out[0].mimeType).toBe("image/png");
   }, 20_000);
 
-  it("preserves images that are large in pixels but under the size limit", async () => {
-    const width = 2600;
+  it("preserves images that are large in pixels but under the size and dimension limits", async () => {
+    const width = 1900;
     const height = 400;
     const raw = Buffer.alloc(width * height * 3, 0x7f);
     const png = await sharp(raw, {

@@ -50,7 +50,7 @@ export interface UseGatewayConnectionResult {
   isConnecting: boolean;
   /** Error message if auth failed */
   authError: string | undefined;
-  /** Connection error (legacy) */
+  /** Connection error */
   error: Error | null;
   /** Authenticate with credentials and retry connection */
   authenticate: (credentials: GatewayAuthCredentials) => Promise<void>;
@@ -62,8 +62,6 @@ export interface UseGatewayConnectionResult {
   retryConnect: () => Promise<void>;
   /** Stop the gateway connection */
   disconnect: () => void;
-  /** Connection error if any */
-  error: Error | null;
   /** Hello data from the gateway (features, auth info, etc.) */
   helloData: GatewayHelloOk | null;
   /** Number of reconnection attempts */
@@ -83,16 +81,14 @@ export function useGatewayConnection(
 ): UseGatewayConnectionResult {
   const { url, token, password, autoConnect = true, onEvent, onGap, onHello } = options;
 
-  const [status, setStatus] = useState<GatewayStatus>("disconnected");
-  const [error, setError] = useState<Error | null>(null);
+  const mountedRef = useRef(true);
+  const wasConnectedRef = useRef(false);
+  const clientRef = useRef<ReturnType<typeof getGatewayClient> | null>(null);
+
+  // Legacy state for backward compatibility
   const [helloData, setHelloData] = useState<GatewayHelloOk | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [lastGap, setLastGap] = useState<GapInfo | null>(null);
-  const mountedRef = useRef(true);
-  const wasConnectedRef = useRef(false);
-
-  const mountedRef = useRef(true);
-  const clientRef = useRef<ReturnType<typeof getGatewayClient> | null>(null);
 
   // Initialize client once with config
   const client = useMemo(() => {
@@ -100,30 +96,12 @@ export function useGatewayConnection(
       url,
       token,
       password,
-      onStatusChange: (newStatus) => {
-        if (mountedRef.current) {
-          setStatus(newStatus);
-
-          // Track reconnection attempts
-          if (newStatus === "connecting" && wasConnectedRef.current) {
-            setReconnectAttempts((prev) => prev + 1);
-          }
-
-          if (newStatus === "connected") {
-            wasConnectedRef.current = true;
-          }
-        }
-      },
       onEvent,
-      onError: (err) => {
-        if (mountedRef.current) {
-          setError(err);
-        }
-      },
       onHello: (hello) => {
         if (mountedRef.current) {
           setHelloData(hello);
           setReconnectAttempts(0); // Reset on successful connection
+          wasConnectedRef.current = true;
           onHello?.(hello);
         }
       },
@@ -133,12 +111,11 @@ export function useGatewayConnection(
           onGap?.(info);
         }
       },
-      onEvent,
     };
     const c = getGatewayClient(config);
     clientRef.current = c;
     return c;
-  }, [url, token, password, onEvent]);
+  }, [url, token, password, onEvent, onGap, onHello]);
 
   const [state, setState] = useState<GatewayConnectionState>(client.getConnectionState());
   const [error, setError] = useState<Error | null>(null);
@@ -148,6 +125,12 @@ export function useGatewayConnection(
     const unsubscribe = client.onStateChange((newState) => {
       if (mountedRef.current) {
         setState(newState);
+
+        // Track reconnection attempts
+        if (newState.status === "connecting" && wasConnectedRef.current) {
+          setReconnectAttempts((prev) => prev + 1);
+        }
+
         // Update error for backward compatibility
         if (newState.status === "error") {
           setError(new Error((newState as { error: string }).error));
@@ -160,16 +143,12 @@ export function useGatewayConnection(
           setError(null);
         }
       }
-    }
-   }, [url, token, password, onEvent, onGap, onHello]);
+    });
 
-  const disconnect = useCallback(() => {
-    const client = getGatewayClient();
-    client.stop();
-    setStatus("disconnected");
-    setHelloData(null);
-    wasConnectedRef.current = false;
-  }, []);
+    return () => {
+      unsubscribe();
+    };
+  }, [client]);
 
   // Auto-connect on mount if enabled
   useEffect(() => {
@@ -244,6 +223,8 @@ export function useGatewayConnection(
 
   const disconnect = useCallback(() => {
     client.stop();
+    setHelloData(null);
+    wasConnectedRef.current = false;
   }, [client]);
 
   const isConnected = state.status === "connected";
@@ -264,7 +245,6 @@ export function useGatewayConnection(
     connect,
     retryConnect,
     disconnect,
-    error,
     helloData,
     reconnectAttempts,
     lastGap,
