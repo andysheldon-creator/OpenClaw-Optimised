@@ -12,6 +12,7 @@ import { routeTree } from "./routeTree.gen";
 // Import security provider for app lock & 2FA
 import { SecurityProvider } from "./features/security";
 import { OpenClawProvider } from "./integrations/openclaw/react";
+import { GatewayAuthGuard } from "./components/composed/GatewayAuthGuard";
 import { useUIStore } from "./stores/useUIStore";
 
 // Create a QueryClient instance
@@ -43,9 +44,11 @@ function AppGatewayProviders({ children }: { children: React.ReactNode }) {
   const useLiveGateway = useUIStore((state) => state.useLiveGateway);
   const liveMode = (import.meta.env?.DEV ?? false) && useLiveGateway;
   return (
-    <OpenClawProvider autoConnect={liveMode}>
-      {children}
-    </OpenClawProvider>
+    <GatewayAuthGuard enabled={liveMode}>
+      <OpenClawProvider autoConnect={liveMode}>
+        {children}
+      </OpenClawProvider>
+    </GatewayAuthGuard>
   );
 }
 
