@@ -49,7 +49,6 @@ import {
   buildSenderName,
   buildTelegramGroupFrom,
   buildTelegramGroupPeerId,
-  buildTelegramThreadParams,
   resolveTelegramForumThreadId,
   resolveTelegramThreadSpec,
 } from "./bot/helpers.js";
@@ -157,9 +156,10 @@ async function resolveTelegramCommandAuth(params: {
     messageThreadId,
   });
 
-  // Preserve forum topic routing for auth/diagnostic responses.
-  // For General topic (id=1), Telegram rejects message_thread_id=1, so helper omits it.
-  const threadParams = buildTelegramThreadParams(isGroup ? resolvedThreadId : messageThreadId);
+  // Preserve topic routing for auth/diagnostic responses.
+  // For General forum topic (id=1), Telegram rejects message_thread_id=1, so helper omits it.
+  const threadSpec = resolveTelegramThreadSpec({ isGroup, isForum, messageThreadId });
+  const threadParams = buildTelegramThreadParams(threadSpec);
   const storeAllowFrom = await readChannelAllowFromStore("telegram").catch(() => []);
   const { groupConfig, topicConfig } = resolveTelegramGroupConfig(chatId, resolvedThreadId);
   const groupAllowOverride = firstDefined(topicConfig?.allowFrom, groupConfig?.allowFrom);
@@ -636,13 +636,15 @@ export const registerTelegramNativeCommands = ({
             return;
           }
           const chatId = msg.chat.id;
+          const isGroup = msg.chat.type === "group" || msg.chat.type === "supergroup";
           const messageThreadId = (msg as { message_thread_id?: number }).message_thread_id;
           const isForum = (msg.chat as { is_forum?: boolean }).is_forum === true;
-          const resolvedThreadId = resolveTelegramForumThreadId({
+          const threadSpec = resolveTelegramThreadSpec({
+            isGroup,
             isForum,
             messageThreadId,
           });
-          const threadParams = buildTelegramThreadParams(resolvedThreadId);
+          const threadParams = buildTelegramThreadParams(threadSpec);
 
           const rawText = ctx.match?.trim() ?? "";
           const commandBody = `/${pluginCommand.command}${rawText ? ` ${rawText}` : ""}`;
@@ -670,13 +672,7 @@ export const registerTelegramNativeCommands = ({
           if (!auth) {
             return;
           }
-          const { senderId, commandAuthorized, isGroup, isForum } = auth;
-          const messageThreadId = (msg as { message_thread_id?: number }).message_thread_id;
-          const threadSpec = resolveTelegramThreadSpec({
-            isGroup,
-            isForum,
-            messageThreadId,
-          });
+          const { senderId, commandAuthorized } = auth;
 
           const result = await executePluginCommand({
             command: match.command,

@@ -93,7 +93,8 @@ describe("registerTelegramNativeCommands", () => {
     const params = buildParams(cfg, "bot-a");
     registerTelegramNativeCommands(params);
 
-    const setMyCommands = (params.bot as any).api.setMyCommands as ReturnType<typeof vi.fn>;
+    const setMyCommands = (params.bot.api as unknown as { setMyCommands: ReturnType<typeof vi.fn> })
+      .setMyCommands;
 
     // Expect default-scope registration.
     expect(setMyCommands.mock.calls.some((call) => call.length === 1)).toBe(true);
