@@ -528,7 +528,7 @@ describe("applyMediaUnderstanding", () => {
     expect(ctx.BodyForCommands).toBe("audio ok");
   });
 
-  it("treats text-like audio attachments as CSV (comma wins over tabs)", async () => {
+  it("skips text-like audio attachments (audio files should never be extracted as text)", async () => {
     const { applyMediaUnderstanding } = await loadApply();
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-media-"));
     const csvPath = path.join(dir, "data.mp3");
@@ -553,22 +553,23 @@ describe("applyMediaUnderstanding", () => {
 
     const result = await applyMediaUnderstanding({ ctx, cfg });
 
-    expect(result.appliedFile).toBe(true);
-    expect(ctx.Body).toContain('<file name="data.mp3" mime="text/csv">');
-    expect(ctx.Body).toContain('"a","b"\t"c"');
+    // Audio files should never be extracted as text - they have their own transcription pipeline
+    expect(result.appliedFile).toBe(false);
+    expect(ctx.Body).toBe("<media:audio>");
   });
 
-  it("infers TSV when tabs are present without commas", async () => {
+  it("infers TSV for actual text files (not misidentified audio)", async () => {
     const { applyMediaUnderstanding } = await loadApply();
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-media-"));
-    const tsvPath = path.join(dir, "report.mp3");
+    // Use .tsv extension so it's recognized as a text file, not audio
+    const tsvPath = path.join(dir, "report.tsv");
     const tsvText = "a\tb\tc\n1\t2\t3";
     await fs.writeFile(tsvPath, tsvText);
 
     const ctx: MsgContext = {
-      Body: "<media:audio>",
+      Body: "<media:document>",
       MediaPath: tsvPath,
-      MediaType: "audio/mpeg",
+      MediaType: "text/tab-separated-values",
     };
     const cfg: OpenClawConfig = {
       tools: {
@@ -583,11 +584,11 @@ describe("applyMediaUnderstanding", () => {
     const result = await applyMediaUnderstanding({ ctx, cfg });
 
     expect(result.appliedFile).toBe(true);
-    expect(ctx.Body).toContain('<file name="report.mp3" mime="text/tab-separated-values">');
+    expect(ctx.Body).toContain('<file name="report.tsv" mime="text/tab-separated-values">');
     expect(ctx.Body).toContain("a\tb\tc");
   });
 
-  it("treats cp1252-like audio attachments as text", async () => {
+  it("skips cp1252-like audio attachments (audio files should never be extracted as text)", async () => {
     const { applyMediaUnderstanding } = await loadApply();
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-media-"));
     const filePath = path.join(dir, "legacy.mp3");
@@ -611,9 +612,9 @@ describe("applyMediaUnderstanding", () => {
 
     const result = await applyMediaUnderstanding({ ctx, cfg });
 
-    expect(result.appliedFile).toBe(true);
-    expect(ctx.Body).toContain("<file");
-    expect(ctx.Body).toContain("Hi");
+    // Audio files should never be extracted as text, even if they contain text-like bytes
+    expect(result.appliedFile).toBe(false);
+    expect(ctx.Body).toBe("<media:audio>");
   });
 
   it("skips binary audio attachments that are not text-like", async () => {

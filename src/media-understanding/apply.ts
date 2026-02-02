@@ -364,7 +364,10 @@ async function extractFileBlocks(params: {
     const utf16Charset = resolveUtf16Charset(bufferResult?.buffer);
     const textSample = decodeTextSample(bufferResult?.buffer);
     const textLike = Boolean(utf16Charset) || looksLikeUtf8Text(bufferResult?.buffer);
-    if (!forcedTextMimeResolved && kind === "audio" && !textLike) {
+    // Audio files should never be extracted as text - they are handled by audio transcription.
+    // Some audio formats (e.g., OGG/Opus) have byte patterns that pass looksLikeUtf8Text(),
+    // causing binary audio data to be incorrectly appended to messages as corrupted text.
+    if (!forcedTextMimeResolved && kind === "audio") {
       continue;
     }
     const guessedDelimited = textLike ? guessDelimitedMime(textSample) : undefined;
