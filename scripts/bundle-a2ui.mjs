@@ -62,12 +62,12 @@ async function computeHash() {
 function run(command, args, options = {}) {
   const isWindows = process.platform === "win32";
   const cmd = isWindows ? `${command}.cmd` : command;
-  
-  console.log(`Running: ${command} ${args.join(" ")}`);
+
+  console.log(`Running: ${cmd} ${args.join(" ")}`);
   const result = spawnSync(cmd, args, {
     cwd: ROOT_DIR,
     stdio: "inherit",
-    shell: isWindows,
+    shell: false,
     ...options,
   });
 
@@ -91,7 +91,7 @@ async function main() {
   try {
     const previousHash = await fs.readFile(HASH_FILE, "utf-8");
     const outputExists = await fs.access(OUTPUT_FILE).then(() => true).catch(() => false);
-    
+
     if (previousHash.trim() === currentHash && outputExists) {
       console.log("A2UI bundle up to date; skipping.");
       return;
