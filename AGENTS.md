@@ -6,7 +6,7 @@
 ## Project Structure & Module Organization
 
 - Source code: `src/` (CLI wiring in `src/cli`, commands in `src/commands`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).
-- Tests: colocated `*.test.ts`.
+- Tests: colocated `*.test.ts`, e2e tests as `*.e2e.test.ts`, live tests as `*.live.test.ts`.
 - Docs: `docs/` (images, queue, Pi config). Built output lives in `dist/`.
 - Plugins/extensions: live under `extensions/*` (workspace packages). Keep plugin-only deps in the extension `package.json`; do not add them to the root `package.json` unless core uses them.
 - Plugins: install runs `npm install --omit=dev` in plugin dir; runtime deps must live in `dependencies`. Avoid `workspace:*` in `dependencies` (npm install breaks); put `openclaw` in `devDependencies` or `peerDependencies` instead (runtime resolves `openclaw/plugin-sdk` via jiti alias).
@@ -16,6 +16,17 @@
   - Core channel code: `src/telegram`, `src/discord`, `src/slack`, `src/signal`, `src/imessage`, `src/web` (WhatsApp web), `src/channels`, `src/routing`
   - Extensions (channel plugins): `extensions/*` (e.g. `extensions/msteams`, `extensions/matrix`, `extensions/zalo`, `extensions/zalouser`, `extensions/voice-call`)
 - When adding channels/extensions/apps/docs, review `.github/labeler.yml` for label coverage.
+
+## Core Architecture
+
+- **Gateway** (`src/gateway/`): WebSocket-based control plane managing all messaging surfaces, sessions, tools, and events. See `docs/concepts/architecture.md`.
+- **Agent Runtime** (`src/agents/`): Pi-based agent execution with tool streaming, block streaming, auth profiles, and model failover.
+- **Routing** (`src/routing/`): Maps inbound channels/accounts/peers to agents via `bindings` configuration; determines session keys.
+- **Channels** (`src/telegram`, `src/discord`, etc.): Individual messaging platform integrations with shared channel abstractions.
+- **ACP (Agent Client Protocol)** (`src/acp/`): Protocol adapter connecting agents to the gateway via WebSocket.
+- **Session Management** (`src/sessions/`, `src/config/sessions.ts`): JSON-based session stores with compaction and pruning.
+- **CLI** (`src/cli/`, `src/commands/`): Commander-based CLI interface with lazy-loading subcommands.
+- **Config** (`src/config/`): JSON5 configuration with env var overrides, profile management, and workspace isolation.
 
 ## Docs Linking (Mintlify)
 
@@ -49,18 +60,27 @@
 - Run CLI in dev: `pnpm openclaw ...` (bun) or `pnpm dev`.
 - Node remains supported for running built output (`dist/*`) and production installs.
 - Mac packaging (dev): `scripts/package-mac-app.sh` defaults to current arch. Release checklist: `docs/platforms/mac/release.md`.
-- Type-check/build: `pnpm build`
-- Lint/format: `pnpm check`
-- Tests: `pnpm test` (vitest); coverage: `pnpm test:coverage`
+- Type-check/build: `pnpm build` (includes A2UI bundle, TS compilation, and metadata generation)
+- Lint/format: `pnpm lint` (oxlint), `pnpm format` (oxfmt)
+- Tests:
+  - Unit/integration: `pnpm test` (vitest)
+  - Coverage: `pnpm test:coverage`
+  - E2E: `pnpm test:e2e`
+  - Live tests (requires real API keys): `pnpm test:live` (see `docs/testing.md`)
+  - Docker E2E: `pnpm test:docker:onboard`, `pnpm test:docker:live-gateway`
+- Single test: `pnpm test <pattern>` (e.g., `pnpm test agent.test.ts`)
 
 ## Coding Style & Naming Conventions
 
 - Language: TypeScript (ESM). Prefer strict typing; avoid `any`.
 - Formatting/linting via Oxlint and Oxfmt; run `pnpm check` before commits.
 - Add brief code comments for tricky or non-obvious logic.
-- Keep files concise; extract helpers instead of “V2” copies. Use existing patterns for CLI options and dependency injection via `createDefaultDeps`.
+- Keep files concise; extract helpers instead of "V2" copies. Use existing patterns for CLI options and dependency injection via `createDefaultDeps`.
 - Aim to keep files under ~700 LOC; guideline only (not a hard guardrail). Split/refactor when it improves clarity or testability.
 - Naming: use **OpenClaw** for product/app/docs headings; use `openclaw` for CLI command, package/binary, paths, and config keys.
+- Test structure: Unit tests should be fast and deterministic. Use test helpers in `src/test-helpers/` and `src/test-utils/`.
+- Avoid test-side effects: Don't mutate shared state; clean up resources in `afterEach`.
+- Use TypeBox for schemas (protocol, tool inputs, config). See `docs/concepts/typebox.md`.
 
 ## Release Channels (Naming)
 
@@ -71,11 +91,16 @@
 ## Testing Guidelines
 
 - Framework: Vitest with V8 coverage thresholds (70% lines/branches/functions/statements).
-- Naming: match source names with `*.test.ts`; e2e in `*.e2e.test.ts`.
+- Naming: match source names with `*.test.ts`; e2e in `*.e2e.test.ts`; live tests with real keys in `*.live.test.ts`.
+- Test types:
+  - **Unit/integration** (`pnpm test`): Fast, deterministic, no external dependencies. Covers routing, auth, tooling, parsing, config.
+  - **E2E** (`pnpm test:e2e`): Multi-instance gateway, WebSocket/HTTP surfaces, node pairing.
+  - **Live** (`pnpm test:live`): Real providers/models with actual API keys. Costs money; use narrow subsets via env vars (see `docs/testing.md`).
 - Run `pnpm test` (or `pnpm test:coverage`) before pushing when you touch logic.
 - Do not set test workers above 16; tried already.
-- Live tests (real keys): `CLAWDBOT_LIVE_TEST=1 pnpm test:live` (OpenClaw-only) or `LIVE=1 pnpm test:live` (includes provider live tests). Docker: `pnpm test:docker:live-models`, `pnpm test:docker:live-gateway`. Onboarding Docker E2E: `pnpm test:docker:onboard`.
-- Full kit + what’s covered: `docs/testing.md`.
+- Live tests (real keys): `OPENCLAW_LIVE_TEST=1 pnpm test:live`. Use `OPENCLAW_LIVE_MODELS` or `OPENCLAW_LIVE_GATEWAY_MODELS` to narrow.
+- Docker E2E: `pnpm test:docker:onboard`, `pnpm test:docker:live-gateway`, `pnpm test:docker:live-models`.
+- Full kit + what's covered: `docs/testing.md`.
 - Pure test additions/fixes generally do **not** need a changelog entry unless they alter user-facing behavior or the user asks for one.
 - Mobile: before using a simulator, check for connected real devices (iOS + Android) and prefer them when available.
 
@@ -113,7 +138,12 @@
 - Pi sessions live under `~/.openclaw/sessions/` by default; the base directory is not configurable.
 - Environment variables: see `~/.profile`.
 - Never commit or publish real phone numbers, videos, or live configuration values. Use obviously fake placeholders in docs, tests, and examples.
+  <<<<<<< HEAD
+- # Release flow: always read `docs/reference/RELEASING.md` and `docs/platforms/mac/release.md` before any release work; do not ask routine questions once those docs answer them.
+- DM security: Default `dmPolicy="pairing"` requires unknown senders to pair via approval code. Public DMs need explicit opt-in (`dmPolicy="open"` with `"*"` in allowlist). See `docs/gateway/security.md`.
+- Gateway auth: Use `gateway.auth.token` or `OPENCLAW_GATEWAY_TOKEN` for all WS connections. Local connections can be auto-approved; remote requires explicit pairing.
 - Release flow: always read `docs/reference/RELEASING.md` and `docs/platforms/mac/release.md` before any release work; do not ask routine questions once those docs answer them.
+  > > > > > > > 20e1f5459 (docs: sync AGENTS.md with CLAUDE.md)
 
 ## Troubleshooting
 
@@ -176,3 +206,23 @@
 - Publish: `npm publish --access public --otp="<otp>"` (run from the package dir).
 - Verify without local npmrc side effects: `npm view <pkg> version --userconfig "$(mktemp)"`.
 - Kill the tmux session after publish.
+
+## Key Architecture Patterns
+
+- **Gateway as control plane**: All messaging channels, sessions, tools, and events flow through a single Gateway WebSocket server (default `127.0.0.1:18789`).
+- **Session routing**: Inbound messages route to agents via `bindings` config. Session keys follow pattern `agent:<agentId>:<channel>:<type>:<id>`. Direct messages collapse to `agent:<agentId>:main`.
+- **Provider abstraction**: Models support multiple providers (Anthropic, OpenAI, Google, etc.) with unified profiles and failover. See `src/providers/` and `src/agents/auth-profiles/`.
+- **Channel plugin system**: Extensions in `extensions/*/` can add new messaging channels. Plugin SDK provides typed interfaces for channel implementation.
+- **Tool policy**: Tools can be gated by sandbox policy, exec approval, or node permissions. See `docs/gateway/sandbox-vs-tool-policy-vs-elevated.md`.
+- **Media pipeline**: Images/audio/video flow through `src/media/` with transcription hooks, size caps, and temp file lifecycle management.
+- **Streaming**: Agent responses stream blocks and tool calls. Gateway forwards chunks to channels that support it. See `docs/concepts/streaming.md`.
+
+## Important Gotchas
+
+- Gateway is the only component that opens WhatsApp sessions (Baileys). Never run multiple gateways against the same session.
+- Always consider all built-in + extension channels when refactoring routing, allowlists, or pairing logic.
+- Test coverage excludes CLI/commands/daemon/hooks and some integration surfaces (intentionally validated via e2e/manual runs). See `vitest.config.ts`.
+- A2UI bundle hash in `src/canvas-host/a2ui/.bundle.hash` is auto-generated; regenerate via `pnpm canvas:a2ui:bundle` when needed.
+- Carbon dependency is locked; never update without explicit approval.
+- Dependencies with `pnpm.patchedDependencies` must use exact versions (no `^`/`~`).
+- Avoid `Type.Union` in tool input schemas; use `stringEnum`/`optionalStringEnum` for string lists, `Type.Optional()` instead of `| null`.
