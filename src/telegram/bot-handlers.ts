@@ -754,7 +754,8 @@ export const registerTelegramHandlers = ({
       }
 
       // Channel policy filtering
-      const defaultChannelPolicy = cfg.channels?.defaults?.groupPolicy;
+      // Note: channels reuse groupPolicy default if no channelPolicy is set
+      const defaultChannelPolicy = (cfg.channels?.defaults as { channelPolicy?: string })?.channelPolicy ?? cfg.channels?.defaults?.groupPolicy;
       const channelPolicy =
         (telegramCfg as { channelPolicy?: string }).channelPolicy ?? defaultChannelPolicy ?? "allowlist";
       if (channelPolicy === "disabled") {

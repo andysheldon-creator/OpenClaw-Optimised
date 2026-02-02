@@ -59,7 +59,7 @@ export const TelegramGroupSchema = z
 
 export const TelegramChannelSchema = z
   .object({
-    tools: ToolPolicySchema,
+    tools: ToolPolicySchema.optional(),
     skills: z.array(z.string()).optional(),
     enabled: z.boolean().optional(),
     allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
