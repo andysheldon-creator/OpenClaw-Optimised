@@ -137,6 +137,10 @@ export async function extractArchive(params: {
         // Security: validate tar entries don't escape destination directory
         filter: (entryPath: string) => {
           const normalizedEntry = entryPath.replaceAll("\\", "/");
+          // Allow standard tar root entries like "." or "./".
+          if (normalizedEntry === "." || normalizedEntry === "./" || normalizedEntry === "") {
+            return true;
+          }
           if (!isPathWithinBase(params.destDir, normalizedEntry)) {
             throw new Error(`tar entry escapes destination: ${entryPath}`);
           }

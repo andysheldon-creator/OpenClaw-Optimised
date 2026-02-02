@@ -5,36 +5,42 @@ import { describe, expect, it } from "vitest";
 import { isPathWithinBase, extractArchive } from "./archive.js";
 
 describe("isPathWithinBase security validation", () => {
+  const baseDir = path.join(os.tmpdir(), "openclaw-isPathWithinBase-test");
+
   it("returns true for paths within base directory", () => {
-    expect(isPathWithinBase("/tmp/foo", "/tmp/foo/bar.txt")).toBe(true);
-    expect(isPathWithinBase("/tmp/foo", "bar.txt")).toBe(true);
-    expect(isPathWithinBase("/tmp/foo", "subdir/baz.txt")).toBe(true);
+    expect(isPathWithinBase(baseDir, path.join(baseDir, "bar.txt"))).toBe(true);
+    expect(isPathWithinBase(baseDir, "bar.txt")).toBe(true);
+    expect(isPathWithinBase(baseDir, path.join("subdir", "baz.txt"))).toBe(true);
   });
 
   it("returns false for paths outside base directory (path traversal)", () => {
-    expect(isPathWithinBase("/tmp/foo", "../evil.txt")).toBe(false);
-    expect(isPathWithinBase("/tmp/foo", "../../etc/passwd")).toBe(false);
-    expect(isPathWithinBase("/tmp/foo", "subdir/../../../etc/passwd")).toBe(false);
+    expect(isPathWithinBase(baseDir, "../evil.txt")).toBe(false);
+    expect(isPathWithinBase(baseDir, path.join("..", "..", "etc", "passwd"))).toBe(false);
+    expect(isPathWithinBase(baseDir, path.join("subdir", "..", "..", "..", "etc", "passwd"))).toBe(
+      false,
+    );
   });
 
   it("returns false for startsWith bypass attacks", () => {
-    // This is the specific vulnerability: /tmp/foobar starts with /tmp/foo
-    expect(isPathWithinBase("/tmp/foo", "/tmp/foobar/evil.txt")).toBe(false);
-    expect(isPathWithinBase("/home/user", "/home/username/secret.txt")).toBe(false);
+    // This is the specific vulnerability: `${baseDir}bar` starts with `${baseDir}` as a string
+    // but is NOT within the base directory.
+    const bypassPath = `${baseDir}bar${path.sep}evil.txt`;
+    expect(isPathWithinBase(baseDir, bypassPath)).toBe(false);
   });
 
   it("returns false for absolute paths outside base", () => {
-    expect(isPathWithinBase("/tmp/foo", "/etc/passwd")).toBe(false);
-    expect(isPathWithinBase("/tmp/foo", "/home/user/.ssh/id_rsa")).toBe(false);
+    const root = path.parse(baseDir).root;
+    expect(isPathWithinBase(baseDir, path.join(root, "etc", "passwd"))).toBe(false);
+    expect(isPathWithinBase(baseDir, path.join(root, "outside", "file.txt"))).toBe(false);
   });
 
   it("handles edge cases correctly", () => {
     // Empty path
-    expect(isPathWithinBase("/tmp/foo", "")).toBe(false);
+    expect(isPathWithinBase(baseDir, "")).toBe(false);
     // Same directory
-    expect(isPathWithinBase("/tmp/foo", "/tmp/foo")).toBe(false); // Not a file path
+    expect(isPathWithinBase(baseDir, baseDir)).toBe(false);
     // Current directory reference
-    expect(isPathWithinBase("/tmp/foo", "./file.txt")).toBe(true);
+    expect(isPathWithinBase(baseDir, "./file.txt")).toBe(true);
   });
 });
 
