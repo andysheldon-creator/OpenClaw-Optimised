@@ -665,3 +665,121 @@ describe("Per-agent provider overrides", () => {
     expect(isSdkRunnerEnabled(config, "worker2")).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Parent agent inheritance
+// ---------------------------------------------------------------------------
+
+describe("Parent agent inheritance", () => {
+  it("subagent inherits provider from parent when not specified", () => {
+    const config: OpenClawConfig = {
+      agents: {
+        list: [
+          { id: "parent", claudeSdkOptions: { provider: "zai" } },
+          { id: "child" }, // No provider specified
+        ],
+      },
+    };
+    const provider = resolveDefaultSdkProvider({
+      config,
+      agentId: "child",
+      parentAgentId: "parent",
+    });
+    expect(provider?.key).toBe("zai");
+  });
+
+  it("subagent overrides parent provider when specified", () => {
+    const config: OpenClawConfig = {
+      agents: {
+        list: [
+          { id: "parent", claudeSdkOptions: { provider: "anthropic" } },
+          { id: "child", claudeSdkOptions: { provider: "openrouter" } },
+        ],
+      },
+    };
+    const provider = resolveDefaultSdkProvider({
+      config,
+      agentId: "child",
+      parentAgentId: "parent",
+    });
+    expect(provider?.key).toBe("openrouter");
+  });
+
+  it("subagent inherits model mappings from parent", () => {
+    const config: OpenClawConfig = {
+      agents: {
+        list: [
+          {
+            id: "parent",
+            claudeSdkOptions: {
+              models: {
+                opus: "custom-opus",
+                sonnet: "custom-sonnet",
+              },
+            },
+          },
+          { id: "child" },
+        ],
+      },
+    };
+    const models = resolveCcsdkModelMappings({
+      config,
+      agentId: "child",
+      parentAgentId: "parent",
+    });
+    expect(models?.opus).toBe("custom-opus");
+    expect(models?.sonnet).toBe("custom-sonnet");
+  });
+
+  it("subagent model mappings override parent mappings", () => {
+    const config: OpenClawConfig = {
+      agents: {
+        list: [
+          {
+            id: "parent",
+            claudeSdkOptions: {
+              models: {
+                opus: "parent-opus",
+              },
+            },
+          },
+          {
+            id: "child",
+            claudeSdkOptions: {
+              models: {
+                opus: "child-opus",
+              },
+            },
+          },
+        ],
+      },
+    };
+    const models = resolveCcsdkModelMappings({
+      config,
+      agentId: "child",
+      parentAgentId: "parent",
+    });
+    expect(models?.opus).toBe("child-opus");
+  });
+
+  it("falls back to global defaults when neither agent nor parent has config", () => {
+    const config: OpenClawConfig = {
+      agents: {
+        defaults: {
+          ccsdkModels: {
+            opus: "global-opus",
+            sonnet: "global-sonnet",
+          },
+        },
+        list: [{ id: "parent" }, { id: "child" }],
+      },
+    };
+    const models = resolveCcsdkModelMappings({
+      config,
+      agentId: "child",
+      parentAgentId: "parent",
+    });
+    expect(models?.opus).toBe("global-opus");
+    expect(models?.sonnet).toBe("global-sonnet");
+  });
+});

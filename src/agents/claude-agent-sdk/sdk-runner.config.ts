@@ -181,33 +181,49 @@ export type SdkProviderEntry = {
 /**
  * Resolve Claude SDK model mappings from config.
  *
- * Resolution order:
+ * Resolution order (only when runtime is "claude"):
  * 1. Per-agent claudeSdkOptions.models
- * 2. agents.main.sdk.models (for main agent)
- * 3. agents.defaults.ccsdkModels (global defaults)
+ * 2. Parent agent claudeSdkOptions.models (if this is a subagent with runtime="claude")
+ * 3. agents.main.sdk.models (for main agent)
+ * 4. agents.defaults.ccsdkModels (global defaults)
  */
 export function resolveCcsdkModelMappings(params: {
   config?: OpenClawConfig;
   agentId?: string;
+  parentAgentId?: string;
 }): { opus?: string; sonnet?: string; haiku?: string; subagent?: string } | undefined {
   const defaults = params.config?.agents?.defaults;
   const isMainAgent = !params.agentId || normalizeAgentId(params.agentId) === DEFAULT_AGENT_ID;
 
-  // 1. Try per-agent override first
-  if (params.agentId) {
+  // Only apply claudeSdkOptions if runtime is "claude"
+  const isSdkEnabled = params.agentId ? isSdkRunnerEnabled(params.config, params.agentId) : true;
+
+  // 1. Try per-agent override first (only if claude runtime)
+  if (isSdkEnabled && params.agentId) {
     const agentConfig = resolveAgentConfig(params.config ?? {}, params.agentId);
     if (agentConfig?.claudeSdkOptions?.models) {
       return agentConfig.claudeSdkOptions.models;
     }
   }
 
-  // 2. For main agent, prefer agents.main.sdk.models
+  // 2. Try parent agent if this is a subagent (only if parent also uses claude runtime)
+  if (isSdkEnabled && params.parentAgentId) {
+    const parentSdkEnabled = isSdkRunnerEnabled(params.config, params.parentAgentId);
+    if (parentSdkEnabled) {
+      const parentConfig = resolveAgentConfig(params.config ?? {}, params.parentAgentId);
+      if (parentConfig?.claudeSdkOptions?.models) {
+        return parentConfig.claudeSdkOptions.models;
+      }
+    }
+  }
+
+  // 3. For main agent, prefer agents.main.sdk.models
   if (isMainAgent) {
     const mainSdkModels = params.config?.agents?.main?.sdk?.models;
     if (mainSdkModels) return mainSdkModels;
   }
 
-  // 3. Fall back to global ccsdkModels
+  // 4. Fall back to global ccsdkModels
   return defaults?.ccsdkModels;
 }
 
@@ -320,9 +336,10 @@ export function isSdkRunnerEnabled(config?: OpenClawConfig, agentId?: string): b
 /**
  * Resolve the default SDK provider from config.
  *
- * Resolution order:
+ * Resolution order (only when runtime is "claude"):
  * 1. Per-agent override: `agents.list[i].claudeSdkOptions.provider`
- * 2. Legacy fallback: `tools.codingTask.providers`
+ * 2. Parent agent override: `agents.list[parent].claudeSdkOptions.provider` (if subagent with runtime="claude")
+ * 3. Legacy fallback: `tools.codingTask.providers`
  *
  * Within the legacy fallback, prefers "zai" if configured, then "anthropic",
  * then the first available provider.
@@ -332,11 +349,19 @@ export function resolveDefaultSdkProvider(params: {
   config?: OpenClawConfig;
   env?: NodeJS.ProcessEnv;
   agentId?: string;
+  parentAgentId?: string;
 }): SdkProviderEntry | undefined {
+  // Check if SDK runtime is enabled for this agent
+  const isSdkEnabled = isSdkRunnerEnabled(params.config, params.agentId);
+  if (!isSdkEnabled) {
+    return undefined;
+  }
+
   // Resolve model mappings for this agent
   const modelMappings = resolveCcsdkModelMappings({
     config: params.config,
     agentId: params.agentId,
+    parentAgentId: params.parentAgentId,
   });
 
   // 1. Try per-agent override first
@@ -351,7 +376,22 @@ export function resolveDefaultSdkProvider(params: {
     }
   }
 
-  // 2. Fall back to tools.codingTask.providers (existing logic).
+  // 2. Try parent agent if this is a subagent (only if parent also uses claude runtime)
+  if (params.parentAgentId) {
+    const parentSdkEnabled = isSdkRunnerEnabled(params.config, params.parentAgentId);
+    if (parentSdkEnabled) {
+      const parentConfig = resolveAgentConfig(params.config ?? {}, params.parentAgentId);
+      if (parentConfig?.claudeSdkOptions?.provider) {
+        const wellKnown = resolveWellKnownProvider(
+          parentConfig.claudeSdkOptions.provider,
+          modelMappings,
+        );
+        if (wellKnown) return wellKnown;
+      }
+    }
+  }
+
+  // 3. Fall back to tools.codingTask.providers (existing logic).
   const providers = resolveSdkProviders(params);
   if (providers.length === 0) return undefined;
 
