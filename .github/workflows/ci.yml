@@ -280,7 +280,7 @@ jobs:
       matrix:
         include:
           - task: test
-            command: pnpm test
+            command: pnpm canvas:a2ui:bundle && pnpm test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
