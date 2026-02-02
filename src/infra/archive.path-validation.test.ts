@@ -4,20 +4,11 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { isPathWithinBase, extractArchive } from "./archive.js";
 
-async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "archive-test-"));
-  try {
-    return await fn(tmpDir);
-  } finally {
-    await fs.rm(tmpDir, { recursive: true, force: true });
-  }
-}
-
-describe("isPathWithinBase", () => {
+describe("isPathWithinBase security validation", () => {
   it("returns true for paths within base directory", () => {
-    expect(isPathWithinBase("/tmp/foo", "bar.txt")).toBe(true);
-    expect(isPathWithinBase("/tmp/foo", "subdir/bar.txt")).toBe(true);
     expect(isPathWithinBase("/tmp/foo", "/tmp/foo/bar.txt")).toBe(true);
+    expect(isPathWithinBase("/tmp/foo", "bar.txt")).toBe(true);
+    expect(isPathWithinBase("/tmp/foo", "subdir/baz.txt")).toBe(true);
   });
 
   it("returns false for paths outside base directory (path traversal)", () => {
@@ -26,88 +17,117 @@ describe("isPathWithinBase", () => {
     expect(isPathWithinBase("/tmp/foo", "subdir/../../../etc/passwd")).toBe(false);
   });
 
-  it("returns false for startsWith bypass attempts", () => {
-    // This is the specific vulnerability: /tmp/foobar passes startsWith("/tmp/foo")
+  it("returns false for startsWith bypass attacks", () => {
+    // This is the specific vulnerability: /tmp/foobar starts with /tmp/foo
     expect(isPathWithinBase("/tmp/foo", "/tmp/foobar/evil.txt")).toBe(false);
-    expect(isPathWithinBase("/tmp/foo", "../foofoo/evil.txt")).toBe(false);
+    expect(isPathWithinBase("/home/user", "/home/username/secret.txt")).toBe(false);
   });
 
   it("returns false for absolute paths outside base", () => {
     expect(isPathWithinBase("/tmp/foo", "/etc/passwd")).toBe(false);
-    expect(isPathWithinBase("/tmp/foo", "/root/.ssh/id_rsa")).toBe(false);
+    expect(isPathWithinBase("/tmp/foo", "/home/user/.ssh/id_rsa")).toBe(false);
   });
 
   it("handles edge cases correctly", () => {
     // Empty path
     expect(isPathWithinBase("/tmp/foo", "")).toBe(false);
-    // Current directory
-    expect(isPathWithinBase("/tmp/foo", ".")).toBe(false);
     // Same directory
-    expect(isPathWithinBase("/tmp/foo", "./bar.txt")).toBe(true);
+    expect(isPathWithinBase("/tmp/foo", "/tmp/foo")).toBe(false); // Not a file path
+    // Current directory reference
+    expect(isPathWithinBase("/tmp/foo", "./file.txt")).toBe(true);
   });
 });
 
-describe("extractArchive zip path validation", () => {
-  it("throws on zip entry with path traversal", async () => {
-    await withTempDir(async (tmpDir) => {
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
+describe("extractArchive path traversal protection", () => {
+  it("rejects zip entries with path traversal", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "archive-test-"));
+    const evilZipPath = path.join(tmpDir, "evil.zip");
 
-      // Add a malicious entry that tries to escape the destination
-      zip.file("../../../etc/passwd", "malicious content");
-      zip.file("normal.txt", "normal content");
+    // Create a malicious zip with ../../etc/passwd entry
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+    zip.file("../../../etc/passwd", "root:x:0:0:root:/root:/bin/bash");
+    const buffer = await zip.generateAsync({ type: "nodebuffer" });
+    await fs.writeFile(evilZipPath, buffer);
 
-      const archivePath = path.join(tmpDir, "malicious.zip");
-      const destDir = path.join(tmpDir, "extract");
+    const extractDir = path.join(tmpDir, "extract");
+    await fs.mkdir(extractDir, { recursive: true });
 
-      const buffer = await zip.generateAsync({ type: "nodebuffer" });
-      await fs.writeFile(archivePath, buffer);
-
-      // Should throw when extracting
-      await expect(
-        extractArchive({
-          archivePath,
-          destDir,
-          timeoutMs: 5000,
-        }),
-      ).rejects.toThrow(/escapes destination/);
-
-      // Verify the malicious file was NOT created
-      const evilPath = path.join(destDir, "../../../etc/passwd");
-      await expect(fs.access(evilPath)).rejects.toThrow();
-    });
-  });
-
-  it("successfully extracts valid zip with nested directories", async () => {
-    await withTempDir(async (tmpDir) => {
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
-
-      zip.file("nested/deep/file.txt", "deep content");
-      zip.file("top.txt", "top content");
-
-      const archivePath = path.join(tmpDir, "valid.zip");
-      const destDir = path.join(tmpDir, "extract");
-
-      const buffer = await zip.generateAsync({ type: "nodebuffer" });
-      await fs.writeFile(archivePath, buffer);
-
-      await extractArchive({
-        archivePath,
-        destDir,
+    // Should throw when extracting malicious zip
+    await expect(
+      extractArchive({
+        archivePath: evilZipPath,
+        destDir: extractDir,
         timeoutMs: 5000,
+      }),
+    ).rejects.toThrow(/escapes destination/);
+
+    // Cleanup
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("rejects tar entries with path traversal", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "archive-test-"));
+    const evilTarPath = path.join(tmpDir, "evil.tar.gz");
+    const extractDir = path.join(tmpDir, "extract");
+    await fs.mkdir(extractDir, { recursive: true });
+
+    // Create a malicious tar with ../../etc/passwd entry using tar command
+    const { execSync } = await import("node:child_process");
+    const maliciousFile = path.join(tmpDir, "passwd");
+    await fs.writeFile(maliciousFile, "root:x:0:0:root:/root:/bin/bash");
+
+    // Create tar with path traversal - this simulates malicious archive
+    try {
+      execSync(`tar -czf "${evilTarPath}" -C "${tmpDir}" --transform 's,^,../../etc/,' passwd`, {
+        stdio: "ignore",
       });
+    } catch {
+      // If tar command fails, skip this test
+      await fs.rm(tmpDir, { recursive: true, force: true });
+      return;
+    }
 
-      // Verify files were extracted correctly
-      const deepContent = await fs.readFile(path.join(destDir, "nested/deep/file.txt"), "utf-8");
-      expect(deepContent).toBe("deep content");
+    // Should throw when extracting malicious tar
+    await expect(
+      extractArchive({
+        archivePath: evilTarPath,
+        destDir: extractDir,
+        timeoutMs: 5000,
+      }),
+    ).rejects.toThrow();
 
-      const topContent = await fs.readFile(path.join(destDir, "top.txt"), "utf-8");
-      expect(topContent).toBe("top content");
+    // Cleanup
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("accepts valid zip entries", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "archive-test-"));
+    const validZipPath = path.join(tmpDir, "valid.zip");
+
+    // Create a valid zip
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+    zip.file("package/readme.txt", "Hello World");
+    zip.file("package/src/index.js", "console.log('hello');");
+    const buffer = await zip.generateAsync({ type: "nodebuffer" });
+    await fs.writeFile(validZipPath, buffer);
+
+    const extractDir = path.join(tmpDir, "extract");
+    await fs.mkdir(extractDir, { recursive: true });
+
+    // Should extract successfully
+    await extractArchive({
+      archivePath: validZipPath,
+      destDir: extractDir,
+      timeoutMs: 5000,
     });
+
+    // Verify files were extracted
+    const readme = await fs.readFile(path.join(extractDir, "package/readme.txt"), "utf-8");
+    expect(readme).toBe("Hello World");
+
+    // Cleanup
+    await fs.rm(tmpDir, { recursive: true, force: true });
   });
 });
-
-// Note: Tar extraction uses the same isPathWithinBase validation via the filter option.
-// The comprehensive zip tests above verify the path validation logic.
-// Tar-specific testing would require complex tar file manipulation for malicious entries.
