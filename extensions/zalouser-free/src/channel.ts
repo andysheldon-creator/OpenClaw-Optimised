@@ -53,12 +53,8 @@ async function processMessage(
     const fromLabel = isGroup ? `group:${chatId}` : senderName || `user:${senderId}`;
 
     // Resolve agent route
-    const route = core.channel.routing.resolveAgentRoute({
-        cfg: config,
-        channel: "zalouser-free",
-        accountId: account.accountId,
         peer: {
-            kind: "group" as const,
+            kind: isGroup ? ("group" as const) : ("direct" as const),
             id: isGroup ? chatId : senderId,
         },
     });
