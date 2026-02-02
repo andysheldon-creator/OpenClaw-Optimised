@@ -10,6 +10,7 @@ import { resolveSessionFilePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { formatContextUsageShort, formatTokenCount } from "../status.js";
+import { resolveMaxThinkLevel } from "../thinking.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
 import { incrementCompactionCount } from "./session-updates.js";
 
@@ -85,7 +86,11 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     skillsSnapshot: params.sessionEntry.skillsSnapshot,
     provider: params.provider,
     model: params.model,
-    thinkLevel: params.resolvedThinkLevel ?? (await params.resolveDefaultThinkingLevel()),
+    thinkLevel: resolveMaxThinkLevel(
+      params.resolvedThinkLevel ?? (await params.resolveDefaultThinkingLevel()),
+      params.provider,
+      params.model,
+    ),
     bashElevated: {
       enabled: false,
       allowed: false,

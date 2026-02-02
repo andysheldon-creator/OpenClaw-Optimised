@@ -8,6 +8,9 @@ export function mapThinkingLevel(level?: ThinkLevel): ThinkingLevel {
   if (!level) {
     return "off";
   }
+  if (level === "max") {
+    return "high";
+  }
   return level;
 }
 
