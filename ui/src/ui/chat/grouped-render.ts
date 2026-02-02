@@ -60,6 +60,15 @@ function extractImages(message: unknown): ImageBlock[] {
   return images;
 }
 
+/**
+ * Check if a tool result message contains images.
+ * Used to decide whether to render tool results even when showThinking is off.
+ */
+export function hasToolResultImages(message: unknown): boolean {
+  const images = extractImages(message);
+  return images.length > 0;
+}
+
 export function renderReadingIndicatorGroup(assistant?: AssistantIdentity) {
   return html`
     <div class="chat-group assistant">

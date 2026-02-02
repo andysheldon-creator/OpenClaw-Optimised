@@ -8,6 +8,7 @@ import {
   renderMessageGroup,
   renderReadingIndicatorGroup,
   renderStreamingGroup,
+  hasToolResultImages,
 } from "../chat/grouped-render";
 import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer";
 import { icons } from "../icons";
@@ -622,8 +623,11 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
     const msg = history[i];
     const normalized = normalizeMessage(msg);
 
+    // Skip tool results unless showThinking is on OR the result contains images
     if (!props.showThinking && normalized.role.toLowerCase() === "toolresult") {
-      continue;
+      if (!hasToolResultImages(msg)) {
+        continue;
+      }
     }
 
     items.push({
