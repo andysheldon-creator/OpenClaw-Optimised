@@ -69,7 +69,7 @@ describe("CronService", () => {
     const jobs = await cron.list({ includeDisabled: true });
     const updated = jobs.find((j) => j.id === job.id);
     expect(updated?.enabled).toBe(false);
-    expect(enqueueSystemEvent).toHaveBeenCalledWith("hello", {
+    expect(enqueueSystemEvent).toHaveBeenCalledWith("Cron reminder: hello", {
       agentId: undefined,
     });
     expect(requestHeartbeatNow).toHaveBeenCalled();
@@ -110,7 +110,7 @@ describe("CronService", () => {
 
     const jobs = await cron.list({ includeDisabled: true });
     expect(jobs.find((j) => j.id === job.id)).toBeUndefined();
-    expect(enqueueSystemEvent).toHaveBeenCalledWith("hello", {
+    expect(enqueueSystemEvent).toHaveBeenCalledWith("Cron reminder: hello", {
       agentId: undefined,
     });
     expect(requestHeartbeatNow).toHaveBeenCalled();
@@ -170,7 +170,7 @@ describe("CronService", () => {
 
     expect(runHeartbeatOnce).toHaveBeenCalledTimes(1);
     expect(requestHeartbeatNow).not.toHaveBeenCalled();
-    expect(enqueueSystemEvent).toHaveBeenCalledWith("hello", {
+    expect(enqueueSystemEvent).toHaveBeenCalledWith("Cron reminder: hello", {
       agentId: undefined,
     });
     expect(job.state.runningAtMs).toBeTypeOf("number");

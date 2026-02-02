@@ -558,7 +558,7 @@ export async function runHeartbeatOnce(opts: {
   const shouldCheckEvents = isExecEvent || isCronEvent;
   const pendingEvents = shouldCheckEvents ? peekSystemEvents(sessionKey) : [];
   const hasExecCompletion = pendingEvents.some((evt) => evt.includes("Exec finished"));
-  const hasCronEvents = isCronEvent && pendingEvents.length > 0;
+  const hasCronEvents = isCronEvent && pendingEvents.some((evt) => evt.includes("Cron reminder:"));
 
   const prompt = hasExecCompletion
     ? EXEC_EVENT_PROMPT
