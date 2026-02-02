@@ -322,7 +322,30 @@ Expected output:
 
 ---
 
-## 9) Verify Gateway
+## 9) Configure Gateway
+
+Apply first-run fixes and recommended proxy settings via the CLI container:
+
+```bash
+# Missing config on first run
+docker compose run --rm openclaw-cli -- setup
+# Or just run onboard
+docker compose run --rm openclaw-cli -- onboard
+
+# Ensure local mode when running the gateway here
+docker compose run --rm openclaw-cli -- config set gateway.mode local
+# Avoid pairing problems with web UI over SSH
+docker compose run --rm openclaw-cli -- config set gateway.controlUi.allowInsecureAuth true
+
+# Restart the gateway to apply changes
+docker compose restart openclaw-gateway
+```
+
+Note: the bridge IP may differ on your host; adjust if needed.
+
+## 10) Validate & Access
+
+Tail logs and confirm the gateway is listening:
 
 ```bash
 docker compose logs -f openclaw-gateway
@@ -334,23 +357,16 @@ Success:
 [gateway] listening on ws://0.0.0.0:18789
 ```
 
-If you see a config hint on first run, initialize config via the CLI container:
-
-```bash
-# Case A: "Missing config. Run `openclaw setup` ..."
-docker compose run --rm openclaw-cli -- setup
-
-# Case B: "Gateway start blocked: set gateway.mode=local ..."
-docker compose run --rm openclaw-cli -- config set gateway.mode local
-
-# Then restart the gateway container
-docker compose restart openclaw-gateway
-```
-
-From your laptop:
+From your laptop, create an SSH tunnel:
 
 ```bash
 ssh -N -L 18789:127.0.0.1:18789 root@YOUR_VPS_IP
+```
+
+Or
+
+```bash
+hcloud server ssh openclaw -N -L 18789:127.0.0.1:18789
 ```
 
 Open:
@@ -358,6 +374,8 @@ Open:
 `http://127.0.0.1:18789/`
 
 Paste your gateway token.
+
+Tip: For the browser dashboard, open with `?token=...` once or paste the token in Settings. This setup should always be used over SSH or VPN.
 
 ---
 
