@@ -351,8 +351,6 @@ export async function compactEmbeddedPiSessionDirect(
       userTimeFormat,
       contextFiles,
     });
-    const systemPromptOverride = createSystemPromptOverride(appendPrompt);
-
     const sessionLock = await acquireSessionWriteLock({
       sessionFile: params.sessionFile,
     });
@@ -400,7 +398,7 @@ export async function compactEmbeddedPiSessionDirect(
         sessionManager,
         settingsManager,
       });
-      applySystemPromptOverrideToSession(session, systemPromptOverride);
+      applySystemPromptOverrideToSession(session, appendPrompt);
 
       try {
         const prior = await sanitizeSessionHistory({

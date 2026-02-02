@@ -389,8 +389,7 @@ export async function runEmbeddedAttempt(
       skillsPrompt,
       tools,
     });
-    const systemPromptOverride = createSystemPromptOverride(appendPrompt);
-    const systemPromptText = systemPromptOverride;
+    const systemPromptText = appendPrompt;
 
     const sessionLock = await acquireSessionWriteLock({
       sessionFile: params.sessionFile,
@@ -475,7 +474,7 @@ export async function runEmbeddedAttempt(
         sessionManager,
         settingsManager,
       }));
-      applySystemPromptOverrideToSession(session, systemPromptOverride);
+      applySystemPromptOverrideToSession(session, appendPrompt);
       if (!session) {
         throw new Error("Embedded agent session missing");
       }

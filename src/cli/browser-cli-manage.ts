@@ -12,10 +12,15 @@ import { defaultRuntime } from "../runtime.js";
 import { shortenHomePath } from "../utils.js";
 import { callBrowserRequest, type BrowserParentOpts } from "./browser-cli-shared.js";
 import { runCommandWithRuntime } from "./cli-utils.js";
+import { formatCliCommand } from "./command-format.js";
 
 function runBrowserCommand(action: () => Promise<void>) {
   return runCommandWithRuntime(defaultRuntime, action, (err) => {
-    defaultRuntime.error(danger(String(err)));
+    let msg = String(err);
+    if (msg.includes("gateway closed") || msg.includes("gateway timeout")) {
+      msg += `\n\nIs the gateway running?\nTry starting it with: ${formatCliCommand("openclaw gateway")}`;
+    }
+    defaultRuntime.error(danger(msg));
     defaultRuntime.exit(1);
   });
 }
