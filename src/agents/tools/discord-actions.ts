@@ -54,12 +54,16 @@ const moderationActions = new Set(["timeout", "kick", "ban"]);
 export async function handleDiscordAction(
   params: Record<string, unknown>,
   cfg: OpenClawConfig,
+  opts?: { agentId?: string },
 ): Promise<AgentToolResult<unknown>> {
   const action = readStringParam(params, "action", { required: true });
   const isActionEnabled = createActionGate(cfg.channels?.discord?.actions);
 
   if (messagingActions.has(action)) {
-    return await handleDiscordMessagingAction(action, params, isActionEnabled);
+    return await handleDiscordMessagingAction(action, params, isActionEnabled, {
+      cfg,
+      agentId: opts?.agentId,
+    });
   }
   if (guildActions.has(action)) {
     return await handleDiscordGuildAction(action, params, isActionEnabled);

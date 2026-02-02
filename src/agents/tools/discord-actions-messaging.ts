@@ -1,5 +1,5 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import type { DiscordActionConfig } from "../../config/config.js";
+import type { DiscordActionConfig, OpenClawConfig } from "../../config/config.js";
 import {
   createThreadDiscord,
   deleteMessageDiscord,
@@ -20,7 +20,9 @@ import {
   sendStickerDiscord,
   unpinMessageDiscord,
 } from "../../discord/send.js";
+import { sendDiscordWebhook } from "../../discord/send.webhook.js";
 import { resolveDiscordChannelId } from "../../discord/targets.js";
+import { resolveAgentWebhook, resolveAgentWebhookAsync } from "../../discord/webhook-identity.js";
 import { withNormalizedTimestamp } from "../date-time.js";
 import {
   type ActionGate,
@@ -51,6 +53,7 @@ export async function handleDiscordMessagingAction(
   action: string,
   params: Record<string, unknown>,
   isActionEnabled: ActionGate<DiscordActionConfig>,
+  opts?: { cfg?: OpenClawConfig; agentId?: string },
 ): Promise<AgentToolResult<unknown>> {
   const resolveChannelId = () =>
     resolveDiscordChannelId(
@@ -235,6 +238,19 @@ export async function handleDiscordMessagingAction(
       const replyTo = readStringParam(params, "replyTo");
       const embeds =
         Array.isArray(params.embeds) && params.embeds.length > 0 ? params.embeds : undefined;
+
+      // Route through webhook if agent has one configured
+      const webhook = opts?.cfg ? resolveAgentWebhook(opts.cfg, opts.agentId, to) : null;
+      if (webhook) {
+        const result = await sendDiscordWebhook(webhook.webhookUrl, content, {
+          username: webhook.username,
+          avatarUrl: webhook.avatarUrl,
+          mediaUrl: mediaUrl ?? undefined,
+          replyTo: replyTo ?? undefined,
+        });
+        return jsonResult({ ok: true, result });
+      }
+
       const result = await sendMessageDiscord(to, content, {
         ...(accountId ? { accountId } : {}),
         mediaUrl,
@@ -340,6 +356,23 @@ export async function handleDiscordMessagingAction(
       });
       const mediaUrl = readStringParam(params, "mediaUrl");
       const replyTo = readStringParam(params, "replyTo");
+
+      // Route through webhook if agent has one configured
+      // Use async version to resolve thread parent channel for webhook lookup
+      const threadWebhook = opts?.cfg
+        ? await resolveAgentWebhookAsync(opts.cfg, opts.agentId, `channel:${channelId}`)
+        : null;
+      if (threadWebhook) {
+        const result = await sendDiscordWebhook(threadWebhook.webhookUrl, content, {
+          username: threadWebhook.username,
+          avatarUrl: threadWebhook.avatarUrl,
+          mediaUrl: mediaUrl ?? undefined,
+          replyTo: replyTo ?? undefined,
+          threadId: threadWebhook.threadId ?? channelId,
+        });
+        return jsonResult({ ok: true, result });
+      }
+
       const result = await sendMessageDiscord(`channel:${channelId}`, content, {
         ...(accountId ? { accountId } : {}),
         mediaUrl,

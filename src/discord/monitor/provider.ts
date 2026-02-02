@@ -21,6 +21,7 @@ import { createDiscordRetryRunner } from "../../infra/retry-policy.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { resolveDiscordAccount } from "../accounts.js";
 import { attachDiscordGatewayLogging } from "../gateway-logging.js";
+import { GatewayWatchdog } from "../gateway-watchdog.js";
 import { getDiscordGatewayEmitter, waitForDiscordGatewayStop } from "../monitor.gateway.js";
 import { fetchDiscordApplicationId } from "../probe.js";
 import { resolveDiscordChannelAllowlist } from "../resolve-channels.js";
@@ -539,6 +540,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     token,
     runtime,
     botUserId,
+    applicationId,
     guildHistories,
     historyLimit,
     mediaMaxBytes,
@@ -596,6 +598,34 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     emitter: gatewayEmitter,
     runtime,
   });
+
+  // Start gateway watchdog to detect stale connections and force reconnect
+  let watchdog: GatewayWatchdog | undefined;
+  if (gateway) {
+    const gw = gateway as unknown as {
+      isConnected: boolean;
+      disconnect: () => void;
+      connect: (resume?: boolean) => void;
+      state: { sessionId: string | null; resumeGatewayUrl: string | null; sequence: number | null };
+      sequence: number | null;
+      emitter?: import("node:events").EventEmitter;
+    };
+    watchdog = new GatewayWatchdog({
+      gateway: {
+        get isConnected() {
+          return gw.isConnected;
+        },
+        disconnect: () => gw.disconnect(),
+        connect: (resume) => gw.connect(resume),
+        state: gw.state,
+        emitter: gatewayEmitter,
+      },
+      runtime,
+      abortSignal: opts.abortSignal,
+    });
+    watchdog.start();
+  }
+
   const abortSignal = opts.abortSignal;
   const onAbort = () => {
     if (!gateway) {
@@ -657,6 +687,7 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
       },
     });
   } finally {
+    watchdog?.stop();
     stopGatewayLogging();
     if (helloTimeoutId) {
       clearTimeout(helloTimeoutId);

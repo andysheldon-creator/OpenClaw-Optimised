@@ -38,6 +38,7 @@ import {
   resolveMediaList,
 } from "./message-utils.js";
 import { buildDirectLabel, buildGuildLabel, resolveReplyContext } from "./reply-context.js";
+import { deliverDiscordWebhookReply } from "./reply-delivery-webhook.js";
 import { deliverDiscordReply } from "./reply-delivery.js";
 import { resolveDiscordAutoThreadReplyPlan, resolveDiscordThreadStarter } from "./threading.js";
 import { sendTyping } from "./typing.js";
@@ -340,19 +341,39 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
     humanDelay: resolveHumanDelayConfig(cfg, route.agentId),
     deliver: async (payload: ReplyPayload) => {
       const replyToId = replyReference.use();
-      await deliverDiscordReply({
-        replies: [payload],
-        target: deliverTarget,
-        token,
-        accountId,
-        rest: client.rest,
-        runtime,
-        replyToId,
-        textLimit,
-        maxLinesPerMessage: discordConfig?.maxLinesPerMessage,
-        tableMode,
-        chunkMode: resolveChunkMode(cfg, "discord", accountId),
-      });
+      // Check for agent webhook routing — allows per-agent visual identity
+      const channelId = deliverTarget.startsWith("channel:")
+        ? deliverTarget.slice("channel:".length)
+        : message.channelId;
+      const { resolveAgentWebhookForChannel } = await import("./reply-delivery-webhook.js");
+      const webhook = resolveAgentWebhookForChannel(cfg, route.agentId, channelId);
+      if (webhook) {
+        await deliverDiscordWebhookReply({
+          replies: [payload],
+          webhookUrl: webhook.webhookUrl,
+          username: webhook.username,
+          avatarUrl: webhook.avatarUrl,
+          replyToId,
+          textLimit,
+          maxLinesPerMessage: discordConfig?.maxLinesPerMessage,
+          tableMode,
+          chunkMode: resolveChunkMode(cfg, "discord", accountId),
+        });
+      } else {
+        await deliverDiscordReply({
+          replies: [payload],
+          target: deliverTarget,
+          token,
+          accountId,
+          rest: client.rest,
+          runtime,
+          replyToId,
+          textLimit,
+          maxLinesPerMessage: discordConfig?.maxLinesPerMessage,
+          tableMode,
+          chunkMode: resolveChunkMode(cfg, "discord", accountId),
+        });
+      }
       replyReference.markSent();
     },
     onError: (err, info) => {

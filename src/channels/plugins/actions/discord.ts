@@ -102,7 +102,7 @@ export const discordMessageActions: ChannelMessageActionAdapter = {
     }
     return null;
   },
-  handleAction: async ({ action, params, cfg, accountId }) => {
-    return await handleDiscordMessageAction({ action, params, cfg, accountId });
+  handleAction: async ({ action, params, cfg, accountId, agentId }) => {
+    return await handleDiscordMessageAction({ action, params, cfg, accountId, agentId });
   },
 };

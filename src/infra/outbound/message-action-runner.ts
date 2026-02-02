@@ -763,6 +763,7 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
       channel,
       params,
       accountId: accountId ?? undefined,
+      agentId,
       gateway,
       toolContext: input.toolContext,
       deps: input.deps,
@@ -860,7 +861,7 @@ async function handlePollAction(ctx: ResolvedActionContext): Promise<MessageActi
 }
 
 async function handlePluginAction(ctx: ResolvedActionContext): Promise<MessageActionRunResult> {
-  const { cfg, params, channel, accountId, dryRun, gateway, input, abortSignal } = ctx;
+  const { cfg, params, channel, accountId, agentId, dryRun, gateway, input, abortSignal } = ctx;
   throwIfAborted(abortSignal);
   const action = input.action as Exclude<ChannelMessageActionName, "send" | "poll" | "broadcast">;
   if (dryRun) {
@@ -880,6 +881,7 @@ async function handlePluginAction(ctx: ResolvedActionContext): Promise<MessageAc
     cfg,
     params,
     accountId: accountId ?? undefined,
+    agentId,
     gateway,
     toolContext: input.toolContext,
     dryRun,
@@ -1036,6 +1038,7 @@ export async function runMessageAction(
     params,
     channel,
     accountId,
+    agentId: resolvedAgentId,
     dryRun,
     gateway,
     input,

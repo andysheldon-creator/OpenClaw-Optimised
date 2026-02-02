@@ -289,6 +289,7 @@ export type ChannelMessageActionContext = {
   cfg: OpenClawConfig;
   params: Record<string, unknown>;
   accountId?: string | null;
+  agentId?: string;
   gateway?: {
     url?: string;
     token?: string;
