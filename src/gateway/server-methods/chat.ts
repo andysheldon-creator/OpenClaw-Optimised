@@ -88,6 +88,35 @@ function ensureTranscriptFile(params: { transcriptPath: string; sessionId: strin
   }
 }
 
+function getLastEntryId(transcriptPath: string): string | null {
+  if (!fs.existsSync(transcriptPath)) {
+    return null;
+  }
+
+  try {
+    const content = fs.readFileSync(transcriptPath, "utf-8");
+    const lines = content.split(/\r?\n/).filter((line) => line.trim());
+
+    // Read backwards to find the last message entry
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const parsed = JSON.parse(lines[i]);
+        if (parsed?.type === "message" && parsed?.id) {
+          return parsed.id;
+        }
+      } catch {
+        // Skip malformed lines
+        continue;
+      }
+    }
+  } catch {
+    // File read error
+    return null;
+  }
+
+  return null;
+}
+
 function appendAssistantTranscriptMessage(params: {
   message: string;
   label?: string;
@@ -120,6 +149,7 @@ function appendAssistantTranscriptMessage(params: {
 
   const now = Date.now();
   const messageId = randomUUID().slice(0, 8);
+  const parentId = getLastEntryId(transcriptPath);
   const labelPrefix = params.label ? `[${params.label}]\n\n` : "";
   const messageBody: Record<string, unknown> = {
     role: "assistant",
@@ -131,6 +161,7 @@ function appendAssistantTranscriptMessage(params: {
   const transcriptEntry = {
     type: "message",
     id: messageId,
+    parentId,
     timestamp: new Date(now).toISOString(),
     message: messageBody,
   };
