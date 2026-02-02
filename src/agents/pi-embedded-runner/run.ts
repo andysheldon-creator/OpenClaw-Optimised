@@ -304,6 +304,9 @@ export async function runEmbeddedPiAgent(
       }
 
       let overflowCompactionAttempted = false;
+      // Limit network error retries to prevent infinite loops on persistent failures
+      const MAX_NETWORK_RETRIES = 3;
+      let networkRetryCount = 0;
       try {
         while (true) {
           attemptedThinking.add(thinkLevel);
@@ -507,9 +510,12 @@ export async function runEmbeddedPiAgent(
             ) {
               continue;
             }
-            // For network errors, retry with same profile (transient failure)
-            if (promptFailoverReason === "network") {
-              log.info(`retrying after transient network error for ${provider}/${modelId}`);
+            // For network errors, retry with same profile (transient failure) up to a limit
+            if (promptFailoverReason === "network" && networkRetryCount < MAX_NETWORK_RETRIES) {
+              networkRetryCount++;
+              log.info(
+                `retrying after transient network error for ${provider}/${modelId} (attempt ${networkRetryCount}/${MAX_NETWORK_RETRIES})`,
+              );
               continue;
             }
             const fallbackThinking = pickFallbackThinkingLevel({
@@ -593,7 +599,7 @@ export async function runEmbeddedPiAgent(
                 agentDir: params.agentDir,
               });
             }
-            if (timedOut && !isProbeSession) {
+            if (lastProfileId && timedOut && !isProbeSession) {
               log.warn(
                 `Profile ${lastProfileId} timed out (possible rate limit). Trying next account...`,
               );
@@ -603,15 +609,18 @@ export async function runEmbeddedPiAgent(
                 `Network error for ${provider}/${modelId}: ${lastAssistant?.errorMessage?.slice(0, 200) ?? "unknown"}. Retrying...`,
               );
             }
-            if (cloudCodeAssistFormatError) {
+            if (lastProfileId && cloudCodeAssistFormatError) {
               log.warn(
                 `Profile ${lastProfileId} hit Cloud Code Assist format error. Tool calls will be sanitized on retry.`,
               );
             }
 
-            // For network errors, retry immediately with same profile first
-            if (isNetworkFailure) {
-              log.info(`retrying after transient network error for ${provider}/${modelId}`);
+            // For network errors, retry with same profile up to a limit before falling through to failover
+            if (isNetworkFailure && networkRetryCount < MAX_NETWORK_RETRIES) {
+              networkRetryCount++;
+              log.info(
+                `retrying after transient network error for ${provider}/${modelId} (attempt ${networkRetryCount}/${MAX_NETWORK_RETRIES})`,
+              );
               continue;
             }
 
