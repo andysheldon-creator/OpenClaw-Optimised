@@ -86,8 +86,16 @@ if (isMain) {
     process.exit(1);
   });
 
-  void program.parseAsync(process.argv).catch((err) => {
-    console.error("[openclaw] CLI failed:", formatUncaughtError(err));
-    process.exit(1);
-  });
+  void program
+    .parseAsync(process.argv)
+    .then(() => {
+      // If parseAsync resolves, the command has finished. Long-running commands
+      // (gateway run, tui, etc.) never resolve - they run until killed.
+      // Exit explicitly to avoid lingering handles keeping the process alive.
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("[openclaw] CLI failed:", formatUncaughtError(err));
+      process.exit(1);
+    });
 }

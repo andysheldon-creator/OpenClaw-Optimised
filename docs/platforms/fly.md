@@ -55,6 +55,8 @@ primary_region = "iad"
   OPENCLAW_PREFER_PNPM = "1"
   OPENCLAW_STATE_DIR = "/data"
   NODE_OPTIONS = "--max-old-space-size=1536"
+  # CLI commands need to know the gateway port for WebSocket connections
+  OPENCLAW_GATEWAY_PORT = "3000"
 
 [processes]
   app = "node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan"
@@ -82,7 +84,8 @@ primary_region = "iad"
 | ------------------------------ | --------------------------------------------------------------------------- |
 | `--bind lan`                   | Binds to `0.0.0.0` so Fly's proxy can reach the gateway                     |
 | `--allow-unconfigured`         | Starts without a config file (you'll create one after)                      |
-| `internal_port = 3000`         | Must match `--port 3000` (or `OPENCLAW_GATEWAY_PORT`) for Fly health checks |
+| `internal_port = 3000`         | Must match `--port 3000` for Fly health checks                              |
+| `OPENCLAW_GATEWAY_PORT`        | Tells CLI commands which port the gateway uses (must match `--port`)        |
 | `memory = "2048mb"`            | 512MB is too small; 2GB recommended                                         |
 | `OPENCLAW_STATE_DIR = "/data"` | Persists state on the volume                                                |
 
@@ -285,6 +288,19 @@ fly machine restart <machine-id>
 ```
 
 The lock file is at `/data/gateway.*.lock` (not in a subdirectory).
+
+### CLI Commands Hang or Fail
+
+If CLI commands like `node dist/index.js devices list` hang or fail with connection errors:
+
+**Symptom:** Commands try to connect to `ws://127.0.0.1:18789` (default port) instead of port 3000.
+
+**Fix:** Add `OPENCLAW_GATEWAY_PORT = "3000"` to your `[env]` section in `fly.toml` and redeploy. This tells CLI commands which port the gateway is running on.
+
+```toml
+[env]
+  OPENCLAW_GATEWAY_PORT = "3000"
+```
 
 ### Config Not Being Read
 
