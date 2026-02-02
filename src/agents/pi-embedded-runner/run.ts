@@ -495,8 +495,11 @@ export async function runEmbeddedPiAgent(
                     profileId: lastProfileId,
                   });
                   continue;
-                } catch {
-                  // re-apply failed, fall through to normal failure handling
+                } catch (resyncErr) {
+                  log.warn("re-synced external cli credentials but apply failed", {
+                    profileId: lastProfileId,
+                    error: resyncErr instanceof Error ? resyncErr.message : String(resyncErr),
+                  });
                 }
               }
             }
@@ -594,8 +597,11 @@ export async function runEmbeddedPiAgent(
                     profileId: lastProfileId,
                   });
                   continue;
-                } catch {
-                  // re-apply failed, fall through to normal failure handling
+                } catch (resyncErr) {
+                  log.warn("re-synced external cli credentials but apply failed", {
+                    profileId: lastProfileId,
+                    error: resyncErr instanceof Error ? resyncErr.message : String(resyncErr),
+                  });
                 }
               }
             }

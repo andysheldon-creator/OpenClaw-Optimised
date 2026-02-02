@@ -224,7 +224,7 @@ export function resyncExternalCliOnAuthError(store: AuthProfileStore, profileId:
 
     if (creds.type === "token") {
       const existingToken = existing?.type === "token" ? existing : undefined;
-      if (existingToken?.token === creds.token) {
+      if (existingToken?.token === creds.token && existingToken.expires === creds.expires) {
         return false;
       }
       if (typeof creds.expires === "number" && creds.expires <= now) {
