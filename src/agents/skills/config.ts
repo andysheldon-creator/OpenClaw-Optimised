@@ -99,6 +99,13 @@ export function isBundledSkillAllowed(entry: SkillEntry, allowlist?: string[]): 
 export function hasBinary(bin: string): boolean {
   const pathEnv = process.env.PATH ?? "";
   const parts = pathEnv.split(path.delimiter).filter(Boolean);
+
+  // Add local node_modules/.bin to the search parts
+  const localBin = path.join(process.cwd(), "node_modules", ".bin");
+  if (!parts.includes(localBin)) {
+    parts.unshift(localBin);
+  }
+
   for (const part of parts) {
     const candidate = path.join(part, bin);
     try {

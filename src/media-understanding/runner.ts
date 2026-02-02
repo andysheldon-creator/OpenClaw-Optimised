@@ -270,26 +270,16 @@ async function probeGeminiCli(): Promise<boolean> {
     return cached;
   }
   const resolved = (async () => {
-    // Try "gemini" first
-    if (await hasBinary("gemini")) {
-      try {
-        const { stdout } = await runExec("gemini", ["--output-format", "json", "ok"], {
-          timeoutMs: 8000,
-        });
-        if (extractGeminiResponse(stdout) ?? stdout.toLowerCase().includes("ok")) {
-          return true;
-        }
-      } catch {
-        // fall through to npx
-      }
-    }
-
-    // Try "npx @google/gemini-cli" fallback
+    // We strictly use the local NPM package via npx --no-install to avoid auto-installs.
     if (await hasBinary("npx")) {
       try {
-        const { stdout } = await runExec("npx", ["@google/gemini-cli", "--output-format", "json", "ok"], {
-          timeoutMs: 8000,
-        });
+        const { stdout } = await runExec(
+          "npx",
+          ["--no-install", "@google/gemini-cli", "--output-format", "json", "ok"],
+          {
+            timeoutMs: 8000,
+          },
+        );
         return Boolean(extractGeminiResponse(stdout) ?? stdout.toLowerCase().includes("ok"));
       } catch {
         return false;
@@ -669,7 +659,8 @@ async function resolveCliOutput(params: {
 }): Promise<string> {
   const commandId = commandBase(params.command);
   const isGemini =
-    commandId === "gemini" || (commandId === "npx" && params.args[0] === "@google/gemini-cli");
+    commandId === "gemini" ||
+    (commandId === "npx" && params.args.includes("@google/gemini-cli"));
   const fileOutput =
     commandId === "whisper-cli"
       ? resolveWhisperCppOutputPath(params.args)
@@ -1057,19 +1048,19 @@ async function runCliEntry(params: {
   let execArgs = [...args];
   let isNpxFallback = false;
 
-  // Fallback "gemini" to "npx @google/gemini-cli" if not found
-  if (command === "gemini" && !(await hasBinary("gemini"))) {
+  // For Gemini, force usage of the local NPM package via npx --no-install
+  if (command === "gemini") {
     if (await hasBinary("npx")) {
       execCommand = "npx";
-      execArgs = ["@google/gemini-cli", ...args];
+      execArgs = ["--no-install", "@google/gemini-cli", ...args];
       isNpxFallback = true;
     }
   }
 
   const argv = [execCommand, ...execArgs].map((part, index) => {
-    // If we're using npx fallback, the first 2 parts (npx, @google/gemini-cli) are not templates.
+    // If we're using npx fallback, the first 3 parts (npx, --no-install, @google/gemini-cli) are not templates.
     // Otherwise, only the first part (command) is not a template.
-    const isFixed = isNpxFallback ? index < 2 : index === 0;
+    const isFixed = isNpxFallback ? index < 3 : index === 0;
     return isFixed ? part : applyTemplate(part, templCtx);
   });
   try {
