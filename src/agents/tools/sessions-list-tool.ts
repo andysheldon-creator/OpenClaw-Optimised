@@ -182,6 +182,7 @@ export function createSessionsListTool(opts?: {
           abortedLastRun:
             typeof entry.abortedLastRun === "boolean" ? entry.abortedLastRun : undefined,
           sendPolicy: typeof entry.sendPolicy === "string" ? entry.sendPolicy : undefined,
+          spawnedBy: typeof entry.spawnedBy === "string" ? entry.spawnedBy : undefined,
           lastChannel,
           lastTo: deliveryTo ?? (typeof entry.lastTo === "string" ? entry.lastTo : undefined),
           lastAccountId,

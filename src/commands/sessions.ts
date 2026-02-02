@@ -26,6 +26,7 @@ type SessionRow = {
   totalTokens?: number;
   model?: string;
   contextTokens?: number;
+  spawnedBy?: string;
 };
 
 const KIND_PAD = 6;
@@ -174,6 +175,7 @@ function toRows(store: Record<string, SessionEntry>): SessionRow[] {
         totalTokens: entry?.totalTokens,
         model: entry?.model,
         contextTokens: entry?.contextTokens,
+        spawnedBy: entry?.spawnedBy ?? undefined,
       } satisfies SessionRow;
     })
     .toSorted((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
