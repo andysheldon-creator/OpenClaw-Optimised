@@ -9,7 +9,6 @@ import type {
 } from "./types.js";
 import { finalizeInboundContext } from "../auto-reply/reply/inbound-context.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
-import { detectMime, kindFromMime } from "../media/mime.js";
 import {
   DEFAULT_INPUT_FILE_MAX_BYTES,
   DEFAULT_INPUT_FILE_MAX_CHARS,
@@ -23,6 +22,7 @@ import {
   normalizeMimeList,
   normalizeMimeType,
 } from "../media/input-files.js";
+import { detectMime, kindFromMime } from "../media/mime.js";
 import { resolveAttachmentKind } from "./attachments.js";
 import { runWithConcurrency } from "./concurrency.js";
 import {
