@@ -7,6 +7,7 @@ import os from "node:os";
 import type { EmbeddedRunAttemptParams, EmbeddedRunAttemptResult } from "./types.js";
 import { resolveHeartbeatPrompt } from "../../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../../config/channel-capabilities.js";
+import { buildEventContext, formatContextForPrompt } from "../../../infra/event-context.js";
 import { getMachineDisplayName } from "../../../infra/machine-name.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
@@ -341,6 +342,33 @@ export async function runEmbeddedAttempt(
     });
     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
 
+    // Load event-sourced context if enabled
+    let eventContextHint: string | undefined;
+    const eventStoreConfig = params.config?.gateway?.eventStore;
+    if (eventStoreConfig?.enabled) {
+      try {
+        const eventContext = await buildEventContext(
+          {
+            natsUrl: eventStoreConfig.natsUrl || "nats://localhost:4222",
+            streamName: eventStoreConfig.streamName || "openclaw-events",
+            subjectPrefix: eventStoreConfig.subjectPrefix || "openclaw.events",
+          },
+          {
+            agent: "agent",
+            sessionKey: params.sessionKey,
+            hoursBack: 2,
+            maxEvents: 100,
+          },
+        );
+        if (eventContext.eventsProcessed > 0) {
+          eventContextHint = formatContextForPrompt(eventContext);
+          log.info(`[event-context] Loaded ${eventContext.eventsProcessed} events for context`);
+        }
+      } catch (err) {
+        log.warn(`[event-context] Failed to load: ${err}`);
+      }
+    }
+
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
@@ -366,6 +394,7 @@ export async function runEmbeddedAttempt(
       userTime,
       userTimeFormat,
       contextFiles,
+      eventContextHint,
     });
     const systemPromptReport = buildSystemPromptReport({
       source: "run",
