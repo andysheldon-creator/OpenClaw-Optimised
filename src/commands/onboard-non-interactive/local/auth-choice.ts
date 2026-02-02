@@ -10,6 +10,7 @@ import { buildTokenProfileId, validateAnthropicSetupToken } from "../../auth-tok
 import { applyGoogleGeminiModelDefault } from "../../google-gemini-model-default.js";
 import {
   applyAuthProfileConfig,
+  applyCommonstackConfig,
   applyKimiCodeConfig,
   applyMinimaxApiConfig,
   applyMinimaxConfig,
@@ -22,6 +23,7 @@ import {
   applyXiaomiConfig,
   applyZaiConfig,
   setAnthropicApiKey,
+  setCommonstackApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
   setMinimaxApiKey,
@@ -255,6 +257,33 @@ export async function applyNonInteractiveAuthChoice(params: {
       mode: "api_key",
     });
     return applyOpenrouterConfig(nextConfig);
+  }
+
+  if (authChoice === "commonstack-api-key") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "commonstack",
+      cfg: baseConfig,
+      flagValue: opts.commonstackApiKey,
+      flagName: "--commonstack-api-key",
+      envVar: "COMMONSTACK_API_KEY",
+      runtime,
+    });
+    if (!resolved) {
+      return null;
+    }
+    if (resolved.source !== "profile") {
+      await setCommonstackApiKey(resolved.key);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "commonstack:default",
+      provider: "commonstack",
+      mode: "api_key",
+    });
+    // Non-interactive mode: do not set default model (user must configure manually)
+    const result = await applyCommonstackConfig(nextConfig, {
+      nonInteractive: true,
+    });
+    return result.config;
   }
 
   if (authChoice === "ai-gateway-api-key") {

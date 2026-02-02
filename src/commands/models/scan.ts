@@ -1,7 +1,11 @@
 import { cancel, multiselect as clackMultiselect, isCancel } from "@clack/prompts";
 import type { RuntimeEnv } from "../../runtime.js";
 import { resolveApiKeyForProvider } from "../../agents/model-auth.js";
-import { type ModelScanResult, scanOpenRouterModels } from "../../agents/model-scan.js";
+import {
+  type ModelScanResult,
+  scanCommonstackModels,
+  scanOpenRouterModels,
+} from "../../agents/model-scan.js";
 import { withProgressTotals } from "../../cli/progress.js";
 import { loadConfig } from "../../config/config.js";
 import { logConfigUpdated } from "../../config/logging.js";
@@ -143,6 +147,7 @@ export async function modelsScanCommand(
     minParams?: string;
     maxAgeDays?: string;
     provider?: string;
+    scanProvider?: string;
     maxCandidates?: string;
     timeout?: string;
     concurrency?: string;
@@ -176,13 +181,19 @@ export async function modelsScanCommand(
     throw new Error("--concurrency must be > 0");
   }
 
+  // Determine which provider to scan (openrouter or commonstack)
+  const scanProvider = opts.scanProvider?.toLowerCase() || "openrouter";
+  if (scanProvider !== "openrouter" && scanProvider !== "commonstack") {
+    throw new Error("--scan-provider must be 'openrouter' or 'commonstack'");
+  }
+
   const cfg = loadConfig();
   const probe = opts.probe ?? true;
   let storedKey: string | undefined;
   if (probe) {
     try {
       const resolved = await resolveApiKeyForProvider({
-        provider: "openrouter",
+        provider: scanProvider,
         cfg,
       });
       storedKey = resolved.apiKey;
@@ -190,6 +201,122 @@ export async function modelsScanCommand(
       storedKey = undefined;
     }
   }
+
+  // CommonStack scan
+  if (scanProvider === "commonstack") {
+    const results = await withProgressTotals(
+      {
+        label: "Scanning CommonStack models...",
+        indeterminate: false,
+        enabled: opts.json !== true,
+      },
+      async (update) =>
+        await scanCommonstackModels({
+          apiKey: storedKey ?? undefined,
+          timeoutMs: timeout,
+          concurrency,
+          probe,
+          onProgress: ({ phase, completed, total }) => {
+            if (phase !== "probe") {
+              return;
+            }
+            const labelBase = probe ? "Probing models" : "Scanning models";
+            update({
+              completed,
+              total,
+              label: `${labelBase} (${completed}/${total})`,
+            });
+          },
+        }),
+    );
+
+    if (!probe) {
+      if (!opts.json) {
+        runtime.log(
+          `Found ${results.length} CommonStack models (metadata only; pass --probe to test tools/images).`,
+        );
+        printScanTable(sortScanResults(results), runtime);
+      } else {
+        runtime.log(JSON.stringify(results, null, 2));
+      }
+      return;
+    }
+
+    const toolOk = results.filter((entry) => entry.tool.ok);
+    const sorted = sortScanResults(results);
+
+    if (!opts.json) {
+      printScanSummary(results, runtime);
+      printScanTable(sorted, runtime);
+    }
+
+    if (toolOk.length === 0) {
+      runtime.error("No tool-capable CommonStack models found.");
+      return;
+    }
+
+    const toolSorted = sortScanResults(toolOk);
+    const preselectPool = toolSorted;
+    const preselected = preselectPool
+      .slice(0, Math.floor(maxCandidates))
+      .map((entry) => entry.modelRef);
+
+    const noInput = opts.input === false;
+    const canPrompt = process.stdin.isTTY && !opts.yes && !noInput && !opts.json;
+    let selected: string[] = preselected;
+
+    if (canPrompt) {
+      const fallbacksRaw = await multiselect({
+        message: stylePromptMessage("Select model fallbacks"),
+        options: toolSorted.map((entry) => ({
+          value: entry.modelRef,
+          label: entry.name,
+          hint: `${formatTokenK(entry.contextLength)} ctx, tools ${formatMs(entry.tool.latencyMs)}`,
+        })),
+        initialValues: preselected,
+        required: false,
+      });
+      if (isCancel(fallbacksRaw)) {
+        cancel("Scan cancelled.");
+        return;
+      }
+      selected = fallbacksRaw.filter((value): value is string => typeof value === "string");
+    }
+
+    if (selected.length > 0) {
+      const _updated = await updateConfig((cfg) => {
+        const nextModels = { ...cfg.agents?.defaults?.models };
+        for (const entry of selected) {
+          if (!nextModels[entry]) {
+            nextModels[entry] = {};
+          }
+        }
+        const existingModel = cfg.agents?.defaults?.model as
+          | { primary?: string; fallbacks?: string[] }
+          | undefined;
+        const defaults = {
+          ...cfg.agents?.defaults,
+          model: {
+            ...(existingModel?.primary ? { primary: existingModel.primary } : undefined),
+            fallbacks: selected,
+            ...(opts.setDefault ? { primary: selected[0] } : {}),
+          },
+          models: nextModels,
+        } satisfies NonNullable<NonNullable<typeof cfg.agents>["defaults"]>;
+        return {
+          ...cfg,
+          agents: {
+            ...cfg.agents,
+            defaults,
+          },
+        };
+      });
+      logConfigUpdated(runtime);
+    }
+    return;
+  }
+
+  // OpenRouter scan (existing logic)
   const results = await withProgressTotals(
     {
       label: "Scanning OpenRouter models...",

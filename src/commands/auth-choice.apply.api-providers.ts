@@ -13,6 +13,7 @@ import {
 } from "./google-gemini-model-default.js";
 import {
   applyAuthProfileConfig,
+  applyCommonstackConfig,
   applyKimiCodeConfig,
   applyKimiCodeProviderConfig,
   applyMoonshotConfig,
@@ -37,6 +38,7 @@ import {
   VENICE_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   XIAOMI_DEFAULT_MODEL_REF,
+  setCommonstackApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
   setMoonshotApiKey,
@@ -174,6 +176,88 @@ export async function applyAuthChoiceApiProviders(
       nextConfig = applied.config;
       agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
     }
+    return { config: nextConfig, agentModelOverride };
+  }
+
+  if (authChoice === "commonstack-api-key") {
+    const store = ensureAuthProfileStore(params.agentDir, {
+      allowKeychainPrompt: false,
+    });
+    const profileOrder = resolveAuthProfileOrder({
+      cfg: nextConfig,
+      store,
+      provider: "commonstack",
+    });
+    const existingProfileId = profileOrder.find((profileId) => Boolean(store.profiles[profileId]));
+    const existingCred = existingProfileId ? store.profiles[existingProfileId] : undefined;
+    let profileId = "commonstack:default";
+    let mode: "api_key" | "oauth" | "token" = "api_key";
+    let hasCredential = false;
+
+    if (existingProfileId && existingCred?.type) {
+      profileId = existingProfileId;
+      mode =
+        existingCred.type === "oauth"
+          ? "oauth"
+          : existingCred.type === "token"
+            ? "token"
+            : "api_key";
+      hasCredential = true;
+    }
+
+    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "commonstack") {
+      await setCommonstackApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      hasCredential = true;
+    }
+
+    if (!hasCredential) {
+      const envKey = resolveEnvApiKey("commonstack");
+      if (envKey) {
+        const useExisting = await params.prompter.confirm({
+          message: `Use existing COMMONSTACK_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
+          initialValue: true,
+        });
+        if (useExisting) {
+          await setCommonstackApiKey(envKey.apiKey, params.agentDir);
+          hasCredential = true;
+        }
+      }
+    }
+
+    if (!hasCredential) {
+      const key = await params.prompter.text({
+        message: "Enter CommonStack API key",
+        validate: validateApiKeyInput,
+      });
+      await setCommonstackApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      hasCredential = true;
+    }
+
+    if (hasCredential) {
+      nextConfig = applyAuthProfileConfig(nextConfig, {
+        profileId,
+        provider: "commonstack",
+        mode,
+      });
+    }
+    // CommonStack requires interactive model selection
+    // Resolve API key from auth profile (just saved above)
+    const { resolveApiKeyForProvider } = await import("../agents/model-auth.js");
+    const resolved = await resolveApiKeyForProvider({
+      provider: "commonstack",
+      cfg: nextConfig,
+      agentDir: params.agentDir,
+    });
+    const commonstackResult = await applyCommonstackConfig(nextConfig, {
+      agentDir: params.agentDir,
+      nonInteractive: false,
+      apiKey: resolved.apiKey,
+      setDefaultModel: params.setDefaultModel,
+      noteAgentModel,
+    });
+    nextConfig = commonstackResult.config;
+    // Return the selected model as agentModelOverride to skip model-picker (when setDefaultModel === false)
+    agentModelOverride = commonstackResult.selectedModel ?? agentModelOverride;
     return { config: nextConfig, agentModelOverride };
   }
 

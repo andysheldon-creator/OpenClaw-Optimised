@@ -1,4 +1,7 @@
+import { select, spinner } from "@clack/prompts";
 import type { OpenClawConfig } from "../config/config.js";
+import { resolveEnvApiKey } from "../agents/model-auth.js";
+import { scanCommonstackModels } from "../agents/model-scan.js";
 import { buildXiaomiProvider, XIAOMI_DEFAULT_MODEL_ID } from "../agents/models-config.providers.js";
 import {
   buildSyntheticModelDefinition,
@@ -504,4 +507,146 @@ export function applyAuthProfileConfig(
       ...(order ? { order } : {}),
     },
   };
+}
+
+/**
+ * Apply CommonStack provider configuration without changing the default model.
+ * Registers CommonStack provider with baseUrl, API type, and custom headers.
+ */
+export function applyCommonstackProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.commonstack;
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim();
+
+  providers.commonstack = {
+    ...existingProviderRest,
+    baseUrl: "https://api.commonstack.ai/v1",
+    api: "openai-completions",
+    headers: {
+      "User-Agent": "https://openclaw.ai",
+    },
+    ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+    models: existingModels,
+  };
+
+  return {
+    ...cfg,
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
+    },
+  };
+}
+
+/**
+ * Apply CommonStack provider configuration with interactive model selection.
+ * Scans available models and prompts the user to select a default model.
+ * Returns config and optionally selected model (for use as agentModelOverride).
+ */
+export async function applyCommonstackConfig(
+  cfg: OpenClawConfig,
+  params: {
+    agentDir?: string;
+    nonInteractive?: boolean;
+    apiKey?: string;
+    setDefaultModel?: boolean;
+    noteAgentModel?: (model: string) => Promise<void>;
+  },
+): Promise<{ config: OpenClawConfig; selectedModel?: string }> {
+  const next = applyCommonstackProviderConfig(cfg);
+
+  // Interactive flow: scan and select model
+  if (!params.nonInteractive) {
+    // Try to get API key from: params > env > auth profile
+    let apiKey = params.apiKey ?? resolveEnvApiKey("commonstack")?.apiKey;
+
+    if (!apiKey) {
+      // Try to read from auth profile store
+      const { resolveApiKeyForProvider } = await import("../agents/model-auth.js");
+      try {
+        const resolved = await resolveApiKeyForProvider({
+          provider: "commonstack",
+          cfg,
+          agentDir: params.agentDir,
+        });
+        apiKey = resolved.apiKey;
+      } catch {
+        throw new Error("CommonStack API key not found. Please configure it first.");
+      }
+    }
+
+    const spin = spinner();
+    spin.start("Scanning CommonStack models...");
+    let models;
+    try {
+      models = await scanCommonstackModels({
+        apiKey,
+        probe: false, // Skip probe during onboarding for speed
+      });
+      spin.stop();
+    } catch (err) {
+      spin.stop();
+      throw err;
+    }
+
+    if (models.length === 0) {
+      throw new Error("No CommonStack models found.");
+    }
+
+    const modelOptions = models.map((m) => ({
+      value: m.modelRef,
+      label: `${m.name} (${m.id})`,
+      hint: m.pricing
+        ? `$${m.pricing.prompt}/M input, $${m.pricing.completion}/M output`
+        : undefined,
+    }));
+
+    const selectedModel = await select({
+      message: "Select default CommonStack model",
+      options: modelOptions,
+    });
+
+    if (!selectedModel || typeof selectedModel !== "string") {
+      throw new Error("Model selection cancelled.");
+    }
+
+    const existingModel = next.agents?.defaults?.model;
+    const updatedConfig = {
+      ...next,
+      agents: {
+        ...next.agents,
+        defaults: {
+          ...next.agents?.defaults,
+          model: {
+            ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+              ? {
+                  fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+                }
+              : undefined),
+            primary: selectedModel,
+          },
+        },
+      },
+    };
+
+    // If setDefaultModel is true, just return config (don't override agent model)
+    if (params.setDefaultModel) {
+      return { config: updatedConfig };
+    }
+
+    // If setDefaultModel is false, call noteAgentModel and return selectedModel as override
+    if (params.noteAgentModel) {
+      await params.noteAgentModel(selectedModel);
+    }
+    return { config: updatedConfig, selectedModel };
+  }
+
+  // Non-interactive flow: do not set default model
+  return { config: next };
 }

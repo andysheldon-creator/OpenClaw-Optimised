@@ -178,3 +178,15 @@ export async function setOpencodeZenApiKey(key: string, agentDir?: string) {
     agentDir: resolveAuthAgentDir(agentDir),
   });
 }
+
+export async function setCommonstackApiKey(key: string, agentDir?: string) {
+  upsertAuthProfile({
+    profileId: "commonstack:default",
+    credential: {
+      type: "api_key",
+      provider: "commonstack",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
