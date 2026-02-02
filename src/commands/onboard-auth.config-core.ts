@@ -467,7 +467,7 @@ export function applyVeniceConfig(cfg: OpenClawConfig): OpenClawConfig {
  * Apply Baseten provider configuration without changing the default model.
  * Registers Baseten models and sets up the provider, but preserves existing model selection.
  */
-export function applyBasetenProviderConfig(cfg: MoltbotConfig): MoltbotConfig {
+export function applyBasetenProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[BASETEN_DEFAULT_MODEL_REF] = {
     ...models[BASETEN_DEFAULT_MODEL_REF],
@@ -481,7 +481,7 @@ export function applyBasetenProviderConfig(cfg: MoltbotConfig): MoltbotConfig {
   const mergedModels = [
     ...existingModels,
     ...basetenModels.filter(
-      (model) => !existingModels.some((existing) => existing.id === model.id),
+      (model) => !existingModels.some((existing: { id: string }) => existing.id === model.id),
     ),
   ];
   const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
@@ -518,7 +518,7 @@ export function applyBasetenProviderConfig(cfg: MoltbotConfig): MoltbotConfig {
  * Apply Baseten provider configuration AND set Baseten as the default model.
  * Use this when Baseten is the primary provider choice during onboarding.
  */
-export function applyBasetenConfig(cfg: MoltbotConfig): MoltbotConfig {
+export function applyBasetenConfig(cfg: OpenClawConfig): OpenClawConfig {
   const next = applyBasetenProviderConfig(cfg);
   const existingModel = next.agents?.defaults?.model;
   return {
