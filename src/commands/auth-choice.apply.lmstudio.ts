@@ -124,6 +124,7 @@ export async function applyAuthChoiceLmStudio(
       providers: {
         ...params.config.models?.providers,
         lmstudio: {
+          ...(existingProvider ? { ...existingProvider } : {}),
           baseUrl: normalizedBaseUrl,
           apiKey: existingProvider?.apiKey ?? "lmstudio",
           api: existingProvider?.api ?? DEFAULT_LMSTUDIO_API,
