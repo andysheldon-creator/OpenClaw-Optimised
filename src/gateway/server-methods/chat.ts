@@ -9,6 +9,8 @@ import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import { dispatchInboundMessage } from "../../auto-reply/dispatch.js";
 import { createReplyDispatcher } from "../../auto-reply/reply/reply-dispatcher.js";
 import { createReplyPrefixOptions } from "../../channels/reply-prefix.js";
+import { resolveSessionTranscriptsDir } from "../../config/sessions/paths.js";
+import { isPathWithinBase } from "../../infra/archive.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import {
@@ -55,6 +57,15 @@ function resolveTranscriptPath(params: {
 }): string | null {
   const { sessionId, storePath, sessionFile } = params;
   if (sessionFile) {
+    // Security: validate sessionFile doesn't escape the transcripts directory
+    // Prevents path traversal attacks (e.g., sessionFile: "../../../etc/passwd")
+    const baseDir = storePath ? path.dirname(storePath) : resolveSessionTranscriptsDir();
+    if (!isPathWithinBase(baseDir, sessionFile)) {
+      throw new Error(
+        `sessionFile escapes allowed directory: ${sessionFile}. ` +
+          `Path must be within ${baseDir}`,
+      );
+    }
     return sessionFile;
   }
   if (!storePath) {

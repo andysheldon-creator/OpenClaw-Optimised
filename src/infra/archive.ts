@@ -3,6 +3,26 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import * as tar from "tar";
 
+/**
+ * Validates that a resolved path stays within a base directory.
+ * Prevents path traversal attacks (e.g., ../../etc/passwd).
+ *
+ * @param baseDir - The allowed base directory (must be absolute)
+ * @param targetPath - The path to validate (can be relative or absolute)
+ * @returns true if targetPath is within baseDir
+ *
+ * @example
+ * isPathWithinBase("/tmp/foo", "/tmp/foo/bar.txt") // true
+ * isPathWithinBase("/tmp/foo", "/tmp/foobar/evil.txt") // false (startsWith bypass)
+ * isPathWithinBase("/tmp/foo", "../../etc/passwd") // false
+ */
+export function isPathWithinBase(baseDir: string, targetPath: string): boolean {
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedTarget = path.resolve(resolvedBase, targetPath);
+  const rel = path.relative(resolvedBase, resolvedTarget);
+  return rel.length > 0 && !rel.startsWith("..") && !path.isAbsolute(rel);
+}
+
 export type ArchiveKind = "tar" | "zip";
 
 export type ArchiveLogger = {
@@ -77,18 +97,20 @@ async function extractZip(params: { archivePath: string; destDir: string }): Pro
   for (const entry of entries) {
     const entryPath = entry.name.replaceAll("\\", "/");
     if (!entryPath || entryPath.endsWith("/")) {
-      const dirPath = path.resolve(params.destDir, entryPath);
-      if (!dirPath.startsWith(params.destDir)) {
+      // Validate directory path doesn't escape destination
+      if (!isPathWithinBase(params.destDir, entryPath)) {
         throw new Error(`zip entry escapes destination: ${entry.name}`);
       }
+      const dirPath = path.resolve(params.destDir, entryPath);
       await fs.mkdir(dirPath, { recursive: true });
       continue;
     }
 
-    const outPath = path.resolve(params.destDir, entryPath);
-    if (!outPath.startsWith(params.destDir)) {
+    // Validate file path doesn't escape destination (prevents ../../ attacks)
+    if (!isPathWithinBase(params.destDir, entryPath)) {
       throw new Error(`zip entry escapes destination: ${entry.name}`);
     }
+    const outPath = path.resolve(params.destDir, entryPath);
     await fs.mkdir(path.dirname(outPath), { recursive: true });
     const data = await entry.async("nodebuffer");
     await fs.writeFile(outPath, data);
@@ -109,7 +131,18 @@ export async function extractArchive(params: {
   const label = kind === "zip" ? "extract zip" : "extract tar";
   if (kind === "tar") {
     await withTimeout(
-      tar.x({ file: params.archivePath, cwd: params.destDir }),
+      tar.x({
+        file: params.archivePath,
+        cwd: params.destDir,
+        // Security: validate tar entries don't escape destination directory
+        filter: (entryPath: string) => {
+          const normalizedEntry = entryPath.replaceAll("\\", "/");
+          if (!isPathWithinBase(params.destDir, normalizedEntry)) {
+            throw new Error(`tar entry escapes destination: ${entryPath}`);
+          }
+          return true;
+        },
+      }),
       params.timeoutMs,
       label,
     );
