@@ -344,7 +344,7 @@ class GatewayClient {
       this.connectTimer = null;
     }
   }
-  
+
   private async sendConnect() {
       if (this.connectSent) return;
       this.connectSent = true;
@@ -567,8 +567,6 @@ class GatewayClient {
   stop() {
     this.stopped = true;
 
-    this.clearConnectTimer();
-
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -590,8 +588,12 @@ class GatewayClient {
     this.connectReject = null;
   }
 
-  async request<T = unknown>(method: string, params?: unknown, options?: GatewayRequestOptions): Promise<T> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+  async request<T = unknown>(
+    method: string,
+    params?: unknown,
+    options?: GatewayRequestOptions
+  ): Promise<T> {
+    if (!this.isConnected()) {
       throw new Error("Not connected to gateway");
     }
 
@@ -631,10 +633,6 @@ let gatewayClient: GatewayClient | null = null;
 export function getGatewayClient(config?: GatewayClientConfig): GatewayClient {
   if (!gatewayClient) {
     gatewayClient = new GatewayClient(config);
-  } else if (config) {
-    // Update config on existing client if provided
-    // This allows hooks to register event handlers
-    Object.assign(gatewayClient["config"], config);
   }
   return gatewayClient;
 }

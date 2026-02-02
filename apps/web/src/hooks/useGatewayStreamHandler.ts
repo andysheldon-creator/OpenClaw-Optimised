@@ -2,16 +2,17 @@
  * Gateway Stream Handler Hook
  *
  * Processes gateway streaming events and routes them appropriately:
- * - Text deltas go to message content
- * - Tool outputs go ONLY to tool calls (not message content)
+ * - `chat` events update streaming message content
+ * - `agent` events with `stream=tool` update tool call UI
+ * - `agent` events with `stream=compaction` update compaction UI
  */
 
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import type { GatewayEvent } from "@/lib/api";
+import type { ToolCall } from "@/lib/api/sessions";
 import { useOptionalGateway } from "@/providers/GatewayProvider";
 import { useSessionStore } from "@/stores/useSessionStore";
-import type { ToolCall } from "@/lib/api/sessions";
 
 interface GatewayChatEvent {
   runId: string;
@@ -19,6 +20,7 @@ interface GatewayChatEvent {
   seq: number;
   state: "delta" | "final" | "error" | "aborted";
   message?: unknown;
+  // Older clients sometimes send a delta field; keep as a best-effort fallback.
   delta?: {
     type: string;
     text?: string;
@@ -81,11 +83,11 @@ function extractToolCalls(message: unknown): ToolCall[] {
   return toolUse
     .filter((tool) => isRecord(tool))
     .map((tool) => ({
-    id: asString(tool.id) ?? "unknown",
-    name: asString(tool.name) ?? "unknown",
-    status: "done" as const,
-    input: toPrettyString(tool.input),
-  }));
+      id: asString(tool.id) ?? "unknown",
+      name: asString(tool.name) ?? "unknown",
+      status: "done" as const,
+      input: toPrettyString(tool.input),
+    }));
 }
 
 export interface UseGatewayStreamHandlerOptions {
@@ -93,14 +95,7 @@ export interface UseGatewayStreamHandlerOptions {
   enabled?: boolean;
 }
 
-/**
- * Hook that processes gateway streaming events and updates session store appropriately.
- *
- * Ensures tool outputs are NEVER added to message content - they only go to tool calls.
- */
-export function useGatewayStreamHandler(
-  options: UseGatewayStreamHandlerOptions = {}
-) {
+export function useGatewayStreamHandler(options: UseGatewayStreamHandlerOptions = {}) {
   const { enabled = true } = options;
   const gatewayCtx = useOptionalGateway();
 
@@ -122,49 +117,53 @@ export function useGatewayStreamHandler(
     [startStreaming]
   );
 
-  const handleChatEvent = useCallback((event: GatewayChatEvent) => {
-    const { sessionKey, state } = event;
-    ensureStreaming(sessionKey, event.runId);
+  const handleChatEvent = useCallback(
+    (event: GatewayChatEvent) => {
+      const { sessionKey, state } = event;
+      ensureStreaming(sessionKey, event.runId);
 
-    switch (state) {
-      case "delta": {
-        // Gateway `chat` delta uses the full assistant buffer in `message.content[]` (not a token delta).
-        if (event.message) {
-          setStreamingContent(sessionKey, extractTextContent(event.message));
+      switch (state) {
+        case "delta": {
+          // Gateway `chat` delta uses the full assistant buffer in `message.content[]` (not a token delta).
+          if (event.message) {
+            setStreamingContent(sessionKey, extractTextContent(event.message));
+            break;
+          }
+
+          // Fallback for any older/alternate delta shapes.
+          if (event.delta?.type === "text" && event.delta.text) {
+            appendStreamingContent(sessionKey, event.delta.text);
+          }
           break;
         }
-        // Fallback for older clients that emit a token delta field.
-        if (event.delta?.type === "text" && event.delta.text) {
-          appendStreamingContent(sessionKey, event.delta.text);
-        }
-        break;
-      }
 
-      case "final": {
-        if (event.message) {
-          setStreamingContent(sessionKey, extractTextContent(event.message));
-          for (const toolCall of extractToolCalls(event.message)) {
-            updateToolCall(sessionKey, toolCall);
+        case "final": {
+          if (event.message) {
+            setStreamingContent(sessionKey, extractTextContent(event.message));
+            for (const toolCall of extractToolCalls(event.message)) {
+              updateToolCall(sessionKey, toolCall);
+            }
           }
+
+          finishStreaming(sessionKey);
+          break;
         }
 
-        finishStreaming(sessionKey);
-        break;
-      }
+        case "error": {
+          console.error("[StreamHandler] Chat error:", event.errorMessage);
+          finishStreaming(sessionKey);
+          break;
+        }
 
-      case "error": {
-        console.error("[StreamHandler] Chat error:", event.errorMessage);
-        finishStreaming(sessionKey);
-        break;
+        case "aborted": {
+          console.debug("[StreamHandler] Chat aborted");
+          clearStreaming(sessionKey);
+          break;
+        }
       }
-
-      case "aborted": {
-        console.debug("[StreamHandler] Chat aborted");
-        clearStreaming(sessionKey);
-        break;
-      }
-    }
-  }, [appendStreamingContent, clearStreaming, ensureStreaming, finishStreaming, setStreamingContent, updateToolCall]);
+    },
+    [appendStreamingContent, clearStreaming, ensureStreaming, finishStreaming, setStreamingContent, updateToolCall]
+  );
 
   const handleAgentEvent = useCallback(
     (raw: GatewayAgentEvent) => {
@@ -221,19 +220,22 @@ export function useGatewayStreamHandler(
     [ensureStreaming, findSessionKeyByRunId, updateToolCall]
   );
 
-  const handleEvent = useCallback((event: GatewayEvent) => {
-    // Handle chat streaming events
-    if (event.event === "chat") {
-      handleChatEvent(event.payload as GatewayChatEvent);
-      return;
-    }
+  const handleEvent = useCallback(
+    (event: GatewayEvent) => {
+      // Handle chat streaming events
+      if (event.event === "chat") {
+        handleChatEvent(event.payload as GatewayChatEvent);
+        return;
+      }
 
-    // Tool output + compaction come from `agent` stream events.
-    if (event.event === "agent") {
-      handleAgentEvent(event.payload as GatewayAgentEvent);
-      return;
-    }
-  }, [handleAgentEvent, handleChatEvent]);
+      // Tool output + compaction come from `agent` stream events.
+      if (event.event === "agent") {
+        handleAgentEvent(event.payload as GatewayAgentEvent);
+        return;
+      }
+    },
+    [handleAgentEvent, handleChatEvent]
+  );
 
   useEffect(() => {
     if (!enabled) {return;}
