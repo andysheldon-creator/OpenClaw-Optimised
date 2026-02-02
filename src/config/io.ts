@@ -118,6 +118,8 @@ export type ConfigIoDeps = {
   homedir?: () => string;
   configPath?: string;
   logger?: Pick<typeof console, "error" | "warn">;
+  /** When true, throw on INVALID_CONFIG instead of returning empty config. Used by gateway to fail closed. */
+  strict?: boolean;
 };
 
 function warnOnConfigMiskeys(raw: unknown, logger: Pick<typeof console, "warn">): void {
@@ -189,6 +191,7 @@ function normalizeDeps(overrides: ConfigIoDeps = {}): Required<ConfigIoDeps> {
       overrides.homedir ?? (() => resolveRequiredHomeDir(overrides.env ?? process.env, os.homedir)),
     configPath: overrides.configPath ?? "",
     logger: overrides.logger ?? console,
+    strict: overrides.strict ?? false,
   };
 }
 
@@ -326,12 +329,13 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       }
       const error = err as { code?: string };
       if (error?.code === "INVALID_CONFIG") {
-        // Fail closed: do not start with empty config that resets security settings to insecure defaults
-        // This prevents issues like dmPolicy resetting to "pairing" and allowing unauthorized access
-        deps.logger.error(
-          `Config validation failed at ${configPath}. Fix the config errors above and restart.`,
-        );
-        throw err;
+        if (deps.strict) {
+          // Fail closed in strict mode (gateway): do not start with empty config
+          // This prevents security settings from resetting to insecure defaults
+          throw err;
+        }
+        // Fail open in non-strict mode (CLI): allow commands to run for config repair
+        return {};
       }
       deps.logger.error(`Failed to read config at ${configPath}`, err);
       return {};
