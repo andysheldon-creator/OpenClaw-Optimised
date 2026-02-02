@@ -6,6 +6,13 @@ import { makeMissingToolResult } from "./session-transcript-repair.js";
 type ToolCall = { id: string; name?: string };
 
 function extractAssistantToolCalls(msg: Extract<AgentMessage, { role: "assistant" }>): ToolCall[] {
+  // Skip aborted messages — their tool calls are incomplete/partial and
+  // must not trigger synthetic tool_result generation. (#6788)
+  const stopReason = (msg as { stopReason?: unknown }).stopReason;
+  if (stopReason === "aborted") {
+    return [];
+  }
+
   const content = msg.content;
   if (!Array.isArray(content)) {
     return [];
