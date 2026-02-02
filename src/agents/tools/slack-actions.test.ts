@@ -397,18 +397,18 @@ describe("handleSlackAction", () => {
 
   it("uses user token for reads when available", async () => {
     const cfg = {
-      channels: { slack: { botToken: "xoxb-1", userToken: "xoxp-1" } },
+      channels: { slack: { botToken: "<BOT_TOKEN>", userToken: "<USER_TOKEN>" } },
     } as OpenClawConfig;
     readSlackMessages.mockClear();
     readSlackMessages.mockResolvedValueOnce({ messages: [], hasMore: false });
     await handleSlackAction({ action: "readMessages", channelId: "C1" }, cfg);
     const [, opts] = readSlackMessages.mock.calls[0] ?? [];
-    expect(opts?.token).toBe("xoxp-1");
+    expect(opts?.token).toBe("<USER_TOKEN>");
   });
 
   it("falls back to bot token for reads when user token missing", async () => {
     const cfg = {
-      channels: { slack: { botToken: "xoxb-1" } },
+      channels: { slack: { botToken: "<BOT_TOKEN>" } },
     } as OpenClawConfig;
     readSlackMessages.mockClear();
     readSlackMessages.mockResolvedValueOnce({ messages: [], hasMore: false });
@@ -419,7 +419,7 @@ describe("handleSlackAction", () => {
 
   it("uses bot token for writes when userTokenReadOnly is true", async () => {
     const cfg = {
-      channels: { slack: { botToken: "xoxb-1", userToken: "xoxp-1" } },
+      channels: { slack: { botToken: "<BOT_TOKEN>", userToken: "<USER_TOKEN>" } },
     } as OpenClawConfig;
     sendSlackMessage.mockClear();
     await handleSlackAction({ action: "sendMessage", to: "channel:C1", content: "Hello" }, cfg);
@@ -430,18 +430,18 @@ describe("handleSlackAction", () => {
   it("allows user token writes when bot token is missing", async () => {
     const cfg = {
       channels: {
-        slack: { userToken: "xoxp-1", userTokenReadOnly: false },
+        slack: { userToken: "<USER_TOKEN>", userTokenReadOnly: false },
       },
     } as OpenClawConfig;
     sendSlackMessage.mockClear();
     await handleSlackAction({ action: "sendMessage", to: "channel:C1", content: "Hello" }, cfg);
     const [, , opts] = sendSlackMessage.mock.calls[0] ?? [];
-    expect(opts?.token).toBe("xoxp-1");
+    expect(opts?.token).toBe("<USER_TOKEN>");
   });
 
   it("searches messages with user token", async () => {
     const cfg = {
-      channels: { slack: { botToken: "xoxb-1", userToken: "xoxp-1" } },
+      channels: { slack: { botToken: "<BOT_TOKEN>", userToken: "<USER_TOKEN>" } },
     } as OpenClawConfig;
     searchSlackMessages.mockClear();
     searchSlackMessages.mockResolvedValueOnce({
@@ -453,7 +453,7 @@ describe("handleSlackAction", () => {
     const result = await handleSlackAction({ action: "searchMessages", query: "hello" }, cfg);
 
     expect(searchSlackMessages).toHaveBeenCalledWith("hello", {
-      token: "xoxp-1",
+      token: "<USER_TOKEN>",
       sort: "timestamp",
       sortDir: "desc",
       count: 20,
@@ -464,7 +464,7 @@ describe("handleSlackAction", () => {
 
   it("rejects search without user token", async () => {
     const cfg = {
-      channels: { slack: { botToken: "xoxb-1" } },
+      channels: { slack: { botToken: "<BOT_TOKEN>" } },
     } as OpenClawConfig;
 
     await expect(
@@ -473,7 +473,7 @@ describe("handleSlackAction", () => {
   });
 
   it("passes blocks to sendSlackMessage", async () => {
-    const cfg = { channels: { slack: { botToken: "tok" } } } as OpenClawConfig;
+    const cfg = { channels: { slack: { botToken: "<BOT_TOKEN>" } } } as OpenClawConfig;
     sendSlackMessage.mockClear();
     const blocks = [{ type: "section", text: { type: "mrkdwn", text: "Hello" } }];
 
@@ -488,7 +488,7 @@ describe("handleSlackAction", () => {
 
   it("passes search options correctly", async () => {
     const cfg = {
-      channels: { slack: { botToken: "xoxb-1", userToken: "xoxp-1" } },
+      channels: { slack: { botToken: "<BOT_TOKEN>", userToken: "<USER_TOKEN>" } },
     } as OpenClawConfig;
     searchSlackMessages.mockClear();
     searchSlackMessages.mockResolvedValueOnce({
@@ -510,7 +510,7 @@ describe("handleSlackAction", () => {
     );
 
     expect(searchSlackMessages).toHaveBeenCalledWith("from:@user test", {
-      token: "xoxp-1",
+      token: "<USER_TOKEN>",
       sort: "score",
       sortDir: "asc",
       count: 50,
