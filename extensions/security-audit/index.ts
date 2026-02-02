@@ -190,7 +190,102 @@ const BUILT_IN_RULES: SensitivePathRule[] = [
     patterns: ["~/.docker/config.json"],
     operations: ["read", "write"],
   },
+
+  // System files (read protection)
+  {
+    id: "system-passwd",
+    description: "System password file",
+    patterns: ["/etc/passwd", "/etc/shadow", "/etc/sudoers"],
+    operations: ["read", "write"],
+  },
+
+  // Certificate and key files
+  {
+    id: "certificate-files",
+    description: "Certificate and private key files",
+    patterns: ["**/*.pem", "**/*.key", "**/*.p12", "**/*.pfx"],
+    operations: ["read", "write"],
+  },
+
+  // Password store
+  {
+    id: "password-store",
+    description: "Password store directory",
+    patterns: ["~/.password-store/*"],
+    operations: ["read", "write"],
+  },
+
+  // Additional AI tool credentials
+  {
+    id: "codex-credentials",
+    description: "OpenAI Codex credentials",
+    patterns: ["~/.codex/auth.json", "~/.codex/*"],
+    operations: ["read", "write"],
+  },
+  {
+    id: "qwen-credentials",
+    description: "Qwen OAuth credentials",
+    patterns: ["~/.qwen/oauth_creds.json", "~/.qwen/*"],
+    operations: ["read", "write"],
+  },
+  {
+    id: "minimax-credentials",
+    description: "MiniMax OAuth credentials",
+    patterns: ["~/.minimax/oauth_creds.json", "~/.minimax/*"],
+    operations: ["read", "write"],
+  },
+
+  // WhatsApp session credentials
+  {
+    id: "whatsapp-credentials",
+    description: "WhatsApp session credentials",
+    patterns: ["**/whatsapp/*/creds.json", "**/whatsapp/**/creds.json"],
+    operations: ["read", "write"],
+  },
+
+  // Google CLI OAuth
+  {
+    id: "google-cli-credentials",
+    description: "Google CLI OAuth credentials",
+    patterns: ["~/.config/gcloud/**/credentials.json", "**/gogcli/credentials.json"],
+    operations: ["read", "write"],
+  },
+
+  // Fish shell config
+  {
+    id: "fish-config",
+    description: "Fish shell configuration",
+    patterns: ["~/.config/fish/config.fish"],
+    operations: ["write"],
+  },
 ];
+
+// ============================================================================
+// Exception Patterns (paths that match but should be allowed)
+// ============================================================================
+
+const EXCEPTION_PATTERNS: RegExp[] = [
+  /node_modules\//,
+  /\.test\./,
+  /\/test\//,
+  /\/tests\//,
+  /\/fixtures\//,
+  /\/__fixtures__\//,
+  /\/mocks\//,
+  /\/__mocks__\//,
+  /package-lock\.json$/,
+  /pnpm-lock\.yaml$/,
+  /yarn\.lock$/,
+];
+
+/**
+ * Check if a path should be excepted from security checks.
+ * Allows test files, fixtures, and dependency locks to avoid false positives.
+ */
+function isExceptedPath(filePath: string): boolean {
+  const normalized = filePath.toLowerCase();
+  return EXCEPTION_PATTERNS.some((pattern) => pattern.test(normalized));
+}
 
 // ============================================================================
 // Helper Functions
@@ -251,20 +346,21 @@ function pathMatchesPatterns(filePath: string, patterns: string[]): boolean {
 
 /**
  * Determine the operation type from tool name.
+ * Tool names are lowercase (e.g. "exec", "read", "write").
  */
 function getOperationType(
   toolName: string,
   params: unknown,
 ): "read" | "write" | "execute" | null {
   switch (toolName) {
-    case "Read":
+    case "read":
       return "read";
-    case "Write":
-    case "Edit":
-    case "NotebookEdit":
+    case "write":
+    case "edit":
+    case "apply_patch":
       return "write";
-    case "Bash": {
-      // Bash can be read, write, or execute depending on command
+    case "exec": {
+      // exec can be read, write, or execute depending on command
       const cmd = (params as { command?: string })?.command ?? "";
       if (/\b(cat|head|tail|less|more|grep|awk|sed)\b/.test(cmd)) {
         return "read";
@@ -274,8 +370,8 @@ function getOperationType(
       }
       return "execute";
     }
-    case "Glob":
-    case "Grep":
+    case "find":
+    case "grep":
       return "read";
     default:
       return null;
@@ -284,22 +380,23 @@ function getOperationType(
 
 /**
  * Extract file paths from tool parameters.
+ * Tool names are lowercase (e.g. "exec", "read", "write").
  */
 function extractPaths(toolName: string, params: unknown): string[] {
   if (!params || typeof params !== "object") return [];
   const p = params as Record<string, unknown>;
 
   switch (toolName) {
-    case "Read":
-    case "Write":
-    case "Edit":
-    case "NotebookEdit":
+    case "read":
+    case "write":
+    case "edit":
+    case "apply_patch":
       if (typeof p.file_path === "string") return [p.file_path];
       if (typeof p.path === "string") return [p.path];
       return [];
 
-    case "Glob":
-    case "Grep":
+    case "find":
+    case "grep":
       if (typeof p.path === "string") return [p.path];
       if (typeof p.pattern === "string") {
         // Extract directory from glob pattern
@@ -310,7 +407,7 @@ function extractPaths(toolName: string, params: unknown): string[] {
       }
       return [];
 
-    case "Bash": {
+    case "exec": {
       // Try to extract paths from command
       const cmd = (p.command as string) ?? "";
       const paths: string[] = [];
@@ -338,7 +435,8 @@ function extractPaths(toolName: string, params: unknown): string[] {
 const securityAuditPlugin = createGuardrailPlugin<SecurityAuditConfig>({
   id: "security-audit",
   name: "Security Audit",
-  description: "Restricts access to sensitive credential and configuration files",
+  description:
+    "Restricts access to sensitive credential and configuration files",
 
   async evaluate(
     ctx: GuardrailEvaluationContext,
@@ -374,8 +472,16 @@ const securityAuditPlugin = createGuardrailPlugin<SecurityAuditConfig>({
     const disabledRules = new Set(config.disabledRules ?? []);
 
     for (const filePath of paths) {
+      // Skip test/fixture paths to reduce false positives
+      if (isExceptedPath(filePath)) {
+        continue;
+      }
+
       // Skip if path is in allow list
-      if (allowPatterns.length > 0 && pathMatchesPatterns(filePath, allowPatterns)) {
+      if (
+        allowPatterns.length > 0 &&
+        pathMatchesPatterns(filePath, allowPatterns)
+      ) {
         continue;
       }
 
@@ -423,12 +529,17 @@ const securityAuditPlugin = createGuardrailPlugin<SecurityAuditConfig>({
     return { safe: true };
   },
 
-  formatViolationMessage(evaluation: GuardrailEvaluation, location: string): string {
-    const details = evaluation.details as {
-      path?: string;
-      operation?: string;
-      ruleId?: string;
-    } | undefined;
+  formatViolationMessage(
+    evaluation: GuardrailEvaluation,
+    location: string,
+  ): string {
+    const details = evaluation.details as
+      | {
+          path?: string;
+          operation?: string;
+          ruleId?: string;
+        }
+      | undefined;
 
     const parts = [`Access blocked: ${evaluation.reason}.`];
 
@@ -461,5 +572,13 @@ const pluginWithSchema = {
 export default pluginWithSchema;
 
 // Export for testing
-export { BUILT_IN_RULES, normalizePath, patternToRegex, pathMatchesPatterns, extractPaths };
+export {
+  BUILT_IN_RULES,
+  EXCEPTION_PATTERNS,
+  normalizePath,
+  patternToRegex,
+  pathMatchesPatterns,
+  extractPaths,
+  isExceptedPath,
+};
 export type { SecurityAuditConfig, SensitivePathRule };
