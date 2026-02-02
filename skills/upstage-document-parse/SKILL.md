@@ -2,15 +2,7 @@
 name: upstage-document-parse
 description: Parse documents (PDF, images, DOCX, PPTX, XLSX, HWP) using Upstage Document Parse API. Extracts text, tables, figures, and layout elements with bounding boxes. Use when user asks to parse, extract, or analyze document content, convert documents to markdown/HTML, or extract structured data from PDFs and images.
 homepage: https://console.upstage.ai/api/document-digitization/document-parsing
-metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "📑",
-        "requires": { "bins": ["curl"], "env": ["UPSTAGE_API_KEY"] },
-        "primaryEnv": "UPSTAGE_API_KEY",
-      },
-  }
+metadata: {"openclaw":{"emoji":"📑","requires":{"bins":["curl"],"env":["UPSTAGE_API_KEY"]},"primaryEnv":"UPSTAGE_API_KEY"}}
 ---
 
 # Upstage Document Parse
@@ -24,7 +16,7 @@ PDF (up to 1000 pages with async), PNG, JPG, JPEG, TIFF, BMP, GIF, WEBP, DOCX, P
 ## Installation
 
 ```bash
-clawhub install upstage-document-parse
+openclaw install upstage-document-parse
 ```
 
 ## API Key Setup
