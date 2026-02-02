@@ -1,4 +1,9 @@
-import { type FilesUploadV2Arguments, type WebClient } from "@slack/web-api";
+import {
+  type Block,
+  type FilesUploadV2Arguments,
+  type KnownBlock,
+  type WebClient,
+} from "@slack/web-api";
 import type { SlackTokenSource } from "./accounts.js";
 import {
   chunkMarkdownTextWithMode,
@@ -33,6 +38,8 @@ type SlackSendOpts = {
   mediaUrl?: string;
   client?: WebClient;
   threadTs?: string;
+  /** Block Kit blocks for interactive messages */
+  blocks?: (Block | KnownBlock)[];
 };
 
 export type SlackSendResult = {
@@ -130,8 +137,9 @@ export async function sendMessageSlack(
   opts: SlackSendOpts = {},
 ): Promise<SlackSendResult> {
   const trimmedMessage = message?.trim() ?? "";
-  if (!trimmedMessage && !opts.mediaUrl) {
-    throw new Error("Slack send requires text or media");
+  const hasBlocks = opts.blocks && opts.blocks.length > 0;
+  if (!trimmedMessage && !opts.mediaUrl && !hasBlocks) {
+    throw new Error("Slack send requires text, media, or blocks");
   }
   const cfg = loadConfig();
   const account = resolveSlackAccount({
@@ -188,6 +196,26 @@ export async function sendMessageSlack(
         thread_ts: opts.threadTs,
       });
       lastMessageId = response.ts ?? lastMessageId;
+    }
+  } else if (hasBlocks) {
+    // When blocks are provided, send them with the first chunk
+    // Blocks are only supported on the first message (Slack limitation)
+    const [firstChunk, ...rest] = chunks.length ? chunks : [""];
+    const response = await client.chat.postMessage({
+      channel: channelId,
+      text: firstChunk || " ", // Fallback text is required even with blocks
+      blocks: opts.blocks,
+      thread_ts: opts.threadTs,
+    });
+    lastMessageId = response.ts ?? lastMessageId;
+    // Send remaining chunks as plain text
+    for (const chunk of rest) {
+      const followUpResponse = await client.chat.postMessage({
+        channel: channelId,
+        text: chunk,
+        thread_ts: opts.threadTs,
+      });
+      lastMessageId = followUpResponse.ts ?? lastMessageId;
     }
   } else {
     for (const chunk of chunks.length ? chunks : [""]) {
