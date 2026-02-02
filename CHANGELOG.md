@@ -23,6 +23,7 @@ Docs: https://docs.openclaw.ai
 ### Fixes
 
 - Agents: re-run tool_use/result pairing repair after history limiting to prevent orphaned tool_result API rejections. (#6680, #4650, #4323, #4367)
+- Security: guard remote media fetches with SSRF protections (block private/localhost, DNS pinning).
 - Plugins: validate plugin/hook install paths and reject traversal-like names.
 - Telegram: add download timeouts for file fetches. (#6914) Thanks @hclsys.
 - Telegram: enforce thread specs for DM vs forum sends. (#6833) Thanks @obviyus.
