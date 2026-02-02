@@ -193,11 +193,6 @@ export function buildAuthChoiceOptions(params: {
     label: "Copilot Proxy (local)",
     hint: "Local proxy for VS Code Copilot models",
   });
-  options.push({
-    value: "lmstudio",
-    label: "LM Studio (local)",
-    hint: "Configure local LM Studio host + model",
-  });
   options.push({ value: "apiKey", label: "Anthropic API key" });
   // Token flow is currently Anthropic-only; use CLI for advanced providers.
   options.push({
