@@ -245,8 +245,8 @@ _"我们都只是在玩弄自己的提示词罢了。"_ — 大概是一个嗑�
 
 ## 致谢
 
-- **Peter Steinberger** （[@steipete](https://twitter.com/steipete)）— 创作者，龙虾低语者
-- **Mario Zechner** （[@badlogicc](https://twitter.com/badlogicgames)）— Pi 创作者，安全渗透测试员
+- **Peter Steinberger** （[@steipete](https://x.com/steipete)）— 创作者，龙虾低语者
+- **Mario Zechner** （[@badlogicc](https://x.com/badlogicgames)）— Pi 创作者，安全渗透测试员
 - **Clawd** — 那只要求取个更好名字的太空龙虾
 
 ## 核心贡献者
