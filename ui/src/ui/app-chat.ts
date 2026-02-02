@@ -1,14 +1,14 @@
-import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat";
-import { loadSessions } from "./controllers/sessions";
-import { generateUUID } from "./uuid";
-import { resetToolStream } from "./app-tool-stream";
+import type { OpenClawApp } from "./app";
+import type { GatewayHelloOk } from "./gateway";
+import type { ChatAttachment, ChatQueueItem } from "./ui-types";
+import { parseAgentSessionKey } from "../../../src/sessions/session-key-utils.js";
 import { scheduleChatScroll } from "./app-scroll";
 import { setLastActiveSessionKey } from "./app-settings";
+import { resetToolStream } from "./app-tool-stream";
+import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat";
+import { loadSessions } from "./controllers/sessions";
 import { normalizeBasePath } from "./navigation";
-import type { GatewayHelloOk } from "./gateway";
-import { parseAgentSessionKey } from "../../../src/sessions/session-key-utils.js";
-import type { OpenClawApp } from "./app";
-import type { ChatAttachment, ChatQueueItem } from "./ui-types";
+import { generateUUID } from "./uuid";
 
 type ChatHost = {
   connected: boolean;
@@ -24,7 +24,7 @@ type ChatHost = {
   refreshSessionsAfterChat: Set<string>;
 };
 
-export const CHAT_SESSIONS_ACTIVE_MINUTES = 10;
+export const CHAT_SESSIONS_ACTIVE_MINUTES = 120;
 
 export function isChatBusy(host: ChatHost) {
   return host.chatSending || Boolean(host.chatRunId);
