@@ -246,6 +246,15 @@ These hooks are not event-stream listeners; they let plugins synchronously adjus
 
 - **`tool_result_persist`**: transform tool results before they are written to the session transcript. Must be synchronous; return the updated tool result payload or `undefined` to keep it as-is. See [Agent Loop](/concepts/agent-loop).
 
+### Session Events
+
+Triggered during session lifecycle:
+
+- **`session:compact:pre`**: Before context compaction begins. Use to save working state.
+  - Context includes: `sessionId`, `sessionFile`, `workspaceDir`, `messageCount`
+- **`session:compact:post`**: After context compaction completes. Use to inject state back.
+  - Context includes: `sessionId`, `sessionFile`, `workspaceDir`, `summary`, `tokensBefore`, `tokensAfter`, `firstKeptEntryId`
+
 ### Future Events
 
 Planned event types:

@@ -4,6 +4,7 @@ import {
   SessionManager,
   SettingsManager,
 } from "@mariozechner/pi-coding-agent";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import fs from "node:fs/promises";
 import os from "node:os";
 import type { ReasoningLevel, ThinkLevel } from "../../auto-reply/thinking.js";
@@ -425,6 +426,21 @@ export async function compactEmbeddedPiSessionDirect(
         if (limited.length > 0) {
           session.agent.replaceMessages(limited);
         }
+
+        // Trigger pre-compaction hook
+        const preCompactEvent = createInternalHookEvent(
+          "session",
+          "compact:pre",
+          params.sessionKey ?? params.sessionId,
+          {
+            sessionId: params.sessionId,
+            sessionFile: params.sessionFile,
+            workspaceDir: effectiveWorkspace,
+            messageCount: session.messages.length,
+          },
+        );
+        await triggerInternalHook(preCompactEvent);
+
         const result = await session.compact(params.customInstructions);
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;
@@ -441,6 +457,24 @@ export async function compactEmbeddedPiSessionDirect(
           // If estimation fails, leave tokensAfter undefined
           tokensAfter = undefined;
         }
+
+        // Trigger post-compaction hook
+        const postCompactEvent = createInternalHookEvent(
+          "session",
+          "compact:post",
+          params.sessionKey ?? params.sessionId,
+          {
+            sessionId: params.sessionId,
+            sessionFile: params.sessionFile,
+            workspaceDir: effectiveWorkspace,
+            summary: result.summary,
+            tokensBefore: result.tokensBefore,
+            tokensAfter,
+            firstKeptEntryId: result.firstKeptEntryId,
+          },
+        );
+        await triggerInternalHook(postCompactEvent);
+
         return {
           ok: true,
           compacted: true,
