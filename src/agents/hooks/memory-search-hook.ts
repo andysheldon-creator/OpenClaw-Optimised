@@ -65,7 +65,8 @@ function getMemoryGatewayUrl(): string | null {
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
     // Find memory-gateway MCP server
-    for (const [id, server]: Object.entries<any>(config.mcpServers ?? {})) {
+    for (const entry of Object.entries<any>(config.mcpServers ?? {})) {
+      const [id, server] = entry;
       if (id === "memory-gateway" || server.transport?.type === "sse") {
         return server.transport?.url || null;
       }
@@ -136,7 +137,10 @@ async function searchMemoryGateway(
 
     return [];
   } catch (error) {
-    console.warn("[memory-search-hook] Memory search failed:", error instanceof Error ? error.message : String(error));
+    console.warn(
+      "[memory-search-hook] Memory search failed:",
+      error instanceof Error ? error.message : String(error),
+    );
     return [];
   }
 }
@@ -170,7 +174,9 @@ export const memorySearchHook: PreAnswerHook = {
     return isQuestion(commandBody);
   },
 
-  async execute(params: PreAnswerHookParams): Promise<{ contextFragments: ContextFragment[]; metadata?: Record<string, unknown> }> {
+  async execute(
+    params: PreAnswerHookParams,
+  ): Promise<{ contextFragments: ContextFragment[]; metadata?: Record<string, unknown> }> {
     const commandBody = params.commandBody.trim();
 
     // Search memory
