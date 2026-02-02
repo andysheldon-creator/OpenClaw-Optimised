@@ -46,6 +46,21 @@ sparkle_framework_for_arch() {
   echo "$(build_path_for_arch "$1")/$BUILD_CONFIG/Sparkle.framework"
 }
 
+# Check for stale SPM workspace state (e.g., from repo rebrand/rename)
+check_spm_workspace_state() {
+  local workspace_state="$BUILD_ROOT/workspace-state.json"
+  if [ -f "$workspace_state" ]; then
+    # Check if workspace-state.json contains hardcoded paths that don't match current ROOT_DIR
+    if grep -q '"path" : "' "$workspace_state" && ! grep -q "\"path\" : \"$ROOT_DIR" "$workspace_state"; then
+      echo "⚠️  Detected stale SPM workspace state with old paths"
+      echo "🧹 Cleaning SPM build cache to resolve path conflicts"
+      rm -rf "$BUILD_ROOT"
+      return 0
+    fi
+  fi
+  return 1
+}
+
 merge_framework_machos() {
   local primary="$1"
   local dest="$2"
@@ -106,6 +121,8 @@ merge_framework_machos() {
     fi
   done < <(find "$primary" -type f -print0)
 }
+
+check_spm_workspace_state
 
 echo "📦 Ensuring deps (pnpm install)"
 (cd "$ROOT_DIR" && pnpm install --no-frozen-lockfile --config.node-linker=hoisted)
