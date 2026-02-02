@@ -162,7 +162,11 @@ export function getQueueSize(lane: string = CommandLane.Main) {
   if (!state) {
     return 0;
   }
-  return state.queue.length + state.active;
+  const size = state.queue.length + state.active;
+  if (size === 0) {
+    maybeRemoveIdleLane(state);
+  }
+  return size;
 }
 
 export function getTotalQueueSize() {
