@@ -2,6 +2,16 @@
 
 Docs: https://docs.openclaw.ai
 
+## 2026.2.2
+
+### Fixes
+
+- Plugins: validate plugin/hook install paths and reject traversal-like names.
+- Telegram: add download timeouts for file fetches. (#6914) Thanks @hclsys.
+- Telegram: enforce thread specs for DM vs forum sends. (#6833) Thanks @obviyus.
+- Streaming: avoid stuck typing indicator after streamed BlueBubbles replies.
+- Streaming: dedupe fence-split handling and cover maxChars fallback for newline chunking.
+
 ## 2026.2.1
 
 ### Changes
@@ -17,10 +27,6 @@ Docs: https://docs.openclaw.ai
 ### Fixes
 
 - Agents: re-run tool_use/result pairing repair after history limiting to prevent orphaned tool_result API rejections. (#6680, #4650, #4323, #4367)
-- Telegram: add download timeouts for file fetches. (#6914) Thanks @hclsys.
-- Telegram: enforce thread specs for DM vs forum sends. (#6833) Thanks @obviyus.
-- Streaming: avoid stuck typing indicator after streamed BlueBubbles replies.
-- Streaming: dedupe fence-split handling and cover maxChars fallback for newline chunking.
 - Auto-reply: avoid referencing workspace files in /new greeting prompt. (#5706) Thanks @bravostation.
 - Tools: treat `"*"` tool allowlist entries as valid to avoid spurious unknown-entry warnings.
 - Slack: harden media fetch limits and Slack file URL validation. (#6639) Thanks @davidiach.
