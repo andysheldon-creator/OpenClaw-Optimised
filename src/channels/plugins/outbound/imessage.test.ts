@@ -142,5 +142,30 @@ describe("imessageOutbound", () => {
         expect.objectContaining({ mediaUrl: "file:///path/to/image.jpg" }),
       );
     });
+
+    it("handles undefined caption in media sends", async () => {
+      const mockSend = createMockSend();
+      const cfg: OpenClawConfig = {
+        channels: {
+          imessage: {
+            markdown: { strip: true },
+          },
+        },
+      };
+
+      await imessageOutbound.sendMedia!({
+        cfg,
+        to: "+1234567890",
+        text: undefined as unknown as string,
+        mediaUrl: "file:///path/to/image.jpg",
+        deps: { sendIMessage: mockSend },
+      });
+
+      expect(mockSend).toHaveBeenCalledWith(
+        "+1234567890",
+        undefined,
+        expect.objectContaining({ mediaUrl: "file:///path/to/image.jpg" }),
+      );
+    });
   });
 });

@@ -10,7 +10,12 @@ function shouldStripMarkdown(cfg: OpenClawConfig, accountId?: string): boolean {
   return accountConfig?.markdown?.strip ?? cfg.channels?.imessage?.markdown?.strip ?? false;
 }
 
-function maybeStripMarkdown(text: string, cfg: OpenClawConfig, accountId?: string): string {
+function maybeStripMarkdown(
+  text: string | undefined,
+  cfg: OpenClawConfig,
+  accountId?: string,
+): string | undefined {
+  if (!text) return text;
   return shouldStripMarkdown(cfg, accountId) ? stripMarkdown(text) : text;
 }
 
