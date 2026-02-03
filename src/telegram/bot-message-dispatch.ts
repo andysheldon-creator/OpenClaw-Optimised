@@ -67,6 +67,7 @@ export const dispatchTelegramMessage = async ({
     sendRecordVoice,
     ackReactionPromise,
     reactionApi,
+    reactionTracker,
     removeAckAfterReply,
   } = context;
 
@@ -235,6 +236,13 @@ export const dispatchTelegramMessage = async ({
           await flushDraft();
           draftStream?.stop();
         }
+        // Detect tool use from payload content
+        if (payload && typeof payload === "object" && "toolCalls" in payload) {
+          const tc = (payload as { toolCalls?: unknown[] }).toolCalls;
+          if (Array.isArray(tc) && tc.length > 0) {
+            reactionTracker?.toolUse();
+          }
+        }
         const result = await deliverReplies({
           replies: [payload],
           chatId: String(chatId),
@@ -252,6 +260,7 @@ export const dispatchTelegramMessage = async ({
         });
         if (result.delivered) {
           deliveryState.delivered = true;
+          reactionTracker?.delivered();
         }
       },
       onSkip: (_payload, info) => {
@@ -261,23 +270,43 @@ export const dispatchTelegramMessage = async ({
       },
       onError: (err, info) => {
         runtime.error?.(danger(`telegram ${info.kind} reply failed: ${String(err)}`));
+        reactionTracker?.error();
       },
-      onReplyStart: createTypingCallbacks({
-        start: sendTyping,
-        onStartError: (err) => {
-          logTypingFailure({
-            log: logVerbose,
-            channel: "telegram",
-            target: String(chatId),
-            error: err,
-          });
-        },
-      }).onReplyStart,
+      onReplyStart: (() => {
+        const typingCb = createTypingCallbacks({
+          start: sendTyping,
+          onStartError: (err) => {
+            logTypingFailure({
+              log: logVerbose,
+              channel: "telegram",
+              target: String(chatId),
+              error: err,
+            });
+          },
+        }).onReplyStart;
+        return (...args: Parameters<typeof typingCb>) => {
+          reactionTracker?.llmProcessing();
+          return typingCb(...args);
+        };
+      })(),
     },
     replyOptions: {
       skillFilter,
       disableBlockStreaming,
-      onPartialReply: draftStream ? (payload) => updateDraftFromPartial(payload.text) : undefined,
+      onPartialReply: draftStream
+        ? (payload: { text?: string; toolCalls?: unknown[] }) => {
+            if (payload.toolCalls && payload.toolCalls.length > 0) {
+              reactionTracker?.toolUse();
+            }
+            updateDraftFromPartial(payload.text);
+          }
+        : reactionTracker
+          ? (payload: { text?: string; toolCalls?: unknown[] }) => {
+              if (payload.toolCalls && payload.toolCalls.length > 0) {
+                reactionTracker.toolUse();
+              }
+            }
+          : undefined,
       onModelSelected: (ctx) => {
         prefixContext.onModelSelected(ctx);
       },
@@ -305,6 +334,16 @@ export const dispatchTelegramMessage = async ({
 
   const hasFinalResponse = queuedFinal || sentFallback;
   if (!hasFinalResponse) {
+    // No response generated — signal error stage
+    reactionTracker?.error();
+    if (isGroup && historyKey) {
+      clearHistoryEntriesIfEnabled({ historyMap: groupHistories, historyKey, limit: historyLimit });
+    }
+    return;
+  }
+  // When reaction stages are active, skip the legacy ack removal
+  // (the tracker has already transitioned to "delivered")
+  if (reactionTracker?.currentStage) {
     if (isGroup && historyKey) {
       clearHistoryEntriesIfEnabled({ historyMap: groupHistories, historyKey, limit: historyLimit });
     }

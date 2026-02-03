@@ -96,6 +96,22 @@ export const MessagesSchema = z
     ackReaction: z.string().optional(),
     ackReactionScope: z.enum(["group-mentions", "group-all", "direct", "all"]).optional(),
     removeAckAfterReply: z.boolean().optional(),
+    reactionStages: z
+      .object({
+        enabled: z.boolean().optional(),
+        emoji: z
+          .object({
+            received: z.string().optional(),
+            llmProcessing: z.string().optional(),
+            toolUse: z.string().optional(),
+            delivered: z.string().optional(),
+            error: z.string().optional(),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
     tts: TtsConfigSchema,
   })
   .strict()

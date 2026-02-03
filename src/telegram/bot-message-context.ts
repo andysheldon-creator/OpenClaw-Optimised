@@ -53,6 +53,11 @@ import {
   hasBotMention,
   resolveTelegramThreadSpec,
 } from "./bot/helpers.js";
+import {
+  createReactionTracker,
+  createNoopTracker,
+  type ReactionTracker,
+} from "./reaction-stages.js";
 
 type TelegramMediaRef = {
   path: string;
@@ -485,19 +490,45 @@ export const buildTelegramMessageContext = async ({
   };
   const reactionApi =
     typeof api.setMessageReaction === "function" ? api.setMessageReaction.bind(api) : null;
-  const ackReactionPromise =
-    shouldAckReaction() && msg.message_id && reactionApi
-      ? withTelegramApiErrorLogging({
-          operation: "setMessageReaction",
-          fn: () => reactionApi(chatId, msg.message_id, [{ type: "emoji", emoji: ackReaction }]),
-        }).then(
-          () => true,
-          (err) => {
-            logVerbose(`telegram react failed for chat ${chatId}: ${String(err)}`);
-            return false;
-          },
-        )
-      : null;
+
+  // Multi-stage reaction tracker (when enabled, replaces single ack reaction)
+  const reactionStagesCfg = cfg.messages?.reactionStages;
+  const reactionStagesEnabled = reactionStagesCfg?.enabled === true;
+  let reactionTracker: ReactionTracker;
+  let ackReactionPromise: Promise<boolean> | null;
+
+  if (reactionStagesEnabled && shouldAckReaction() && msg.message_id && reactionApi) {
+    // Use multi-stage tracker instead of single ack
+    reactionTracker = createReactionTracker({
+      reactionApi,
+      chatId,
+      messageId: msg.message_id,
+      emoji: reactionStagesCfg?.emoji,
+      log: logVerbose,
+    });
+    reactionTracker.received();
+    ackReactionPromise = null; // tracker handles everything
+  } else if (!reactionStagesEnabled) {
+    // Original single-ack behavior
+    reactionTracker = createNoopTracker();
+    ackReactionPromise =
+      shouldAckReaction() && msg.message_id && reactionApi
+        ? withTelegramApiErrorLogging({
+            operation: "setMessageReaction",
+            fn: () => reactionApi(chatId, msg.message_id, [{ type: "emoji", emoji: ackReaction }]),
+          }).then(
+            () => true,
+            (err) => {
+              logVerbose(`telegram react failed for chat ${chatId}: ${String(err)}`);
+              return false;
+            },
+          )
+        : null;
+  } else {
+    // reactionStages enabled but ack conditions not met
+    reactionTracker = createNoopTracker();
+    ackReactionPromise = null;
+  }
 
   const replyTarget = describeReplyTarget(msg);
   const forwardOrigin = normalizeForwardedContext(msg);
@@ -689,6 +720,7 @@ export const buildTelegramMessageContext = async ({
     sendRecordVoice,
     ackReactionPromise,
     reactionApi,
+    reactionTracker,
     removeAckAfterReply,
     accountId: account.accountId,
   };

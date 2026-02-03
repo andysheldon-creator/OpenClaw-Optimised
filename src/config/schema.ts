@@ -311,6 +311,15 @@ const FIELD_LABELS: Record<string, string> = {
   "session.agentToAgent.maxPingPongTurns": "Agent-to-Agent Ping-Pong Turns",
   "messages.ackReaction": "Ack Reaction Emoji",
   "messages.ackReactionScope": "Ack Reaction Scope",
+  "messages.removeAckAfterReply": "Remove Ack After Reply",
+  "messages.reactionStages": "Reaction Stages",
+  "messages.reactionStages.enabled": "Reaction Stages Enabled",
+  "messages.reactionStages.emoji": "Reaction Stages Emoji",
+  "messages.reactionStages.emoji.received": "Received Stage Emoji",
+  "messages.reactionStages.emoji.llmProcessing": "LLM Processing Stage Emoji",
+  "messages.reactionStages.emoji.toolUse": "Tool Use Stage Emoji",
+  "messages.reactionStages.emoji.delivered": "Delivered Stage Emoji",
+  "messages.reactionStages.emoji.error": "Error Stage Emoji",
   "messages.inbound.debounceMs": "Inbound Message Debounce (ms)",
   "talk.apiKey": "Talk API Key",
   "channels.whatsapp": "WhatsApp",
@@ -689,6 +698,18 @@ const FIELD_HELP: Record<string, string> = {
   "messages.ackReaction": "Emoji reaction used to acknowledge inbound messages (empty disables).",
   "messages.ackReactionScope":
     'When to send ack reactions ("group-mentions", "group-all", "direct", "all").',
+  "messages.reactionStages.enabled":
+    "Enable multi-stage reaction progress indicators showing processing pipeline stages (default: false). When enabled, replaces the single ack reaction with stage-based emoji transitions.",
+  "messages.reactionStages.emoji.received":
+    'Emoji for the "received" stage — shown when gateway receives the message (default: 👀).',
+  "messages.reactionStages.emoji.llmProcessing":
+    'Emoji for the "LLM processing" stage — shown when the LLM API call starts (default: 🔥).',
+  "messages.reactionStages.emoji.toolUse":
+    'Emoji for the "tool use" stage — shown when the agent invokes a tool (default: ⚡).',
+  "messages.reactionStages.emoji.delivered":
+    'Emoji for the "delivered" stage — shown when the response is sent (default: 👍).',
+  "messages.reactionStages.emoji.error":
+    'Emoji for the "error" stage — shown when processing fails or no response is generated (default: 💔).',
   "messages.inbound.debounceMs":
     "Debounce window (ms) for batching rapid inbound messages from the same sender (0 to disable).",
   "channels.telegram.dmPolicy":

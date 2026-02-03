@@ -49,6 +49,21 @@ export type AudioConfig = {
   };
 };
 
+export type ReactionStageEmojiConfig = {
+  received?: string;
+  llmProcessing?: string;
+  toolUse?: string;
+  delivered?: string;
+  error?: string;
+};
+
+export type ReactionStagesConfig = {
+  /** Enable multi-stage reaction progress indicators (default: false). */
+  enabled?: boolean;
+  /** Customize emoji for each processing stage. */
+  emoji?: ReactionStageEmojiConfig;
+};
+
 export type MessagesConfig = {
   /** @deprecated Use `whatsapp.messagePrefix` (WhatsApp-only inbound prefix). */
   messagePrefix?: string;
@@ -82,6 +97,8 @@ export type MessagesConfig = {
   ackReactionScope?: "group-mentions" | "group-all" | "direct" | "all";
   /** Remove ack reaction after reply is sent (default: false). */
   removeAckAfterReply?: boolean;
+  /** Multi-stage reaction progress indicators for message processing pipeline. */
+  reactionStages?: ReactionStagesConfig;
   /** Text-to-speech settings for outbound replies. */
   tts?: TtsConfig;
 };
