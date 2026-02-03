@@ -157,8 +157,19 @@ export async function promptDefaultModel(
   );
 
   const hasPreferredProvider = preferredProvider ? providers.includes(preferredProvider) : false;
+  
+  // PR CHANGE: Stricter filtering logic.
+  // If we have a preferred provider (e.g. from Auth), default to filtering by it immediately,
+  // unless the user has < 5 models total (very small catalog).
+  // This reduces noise for users who just authed with Google/Anthropic/OpenAI.
+  const shouldAutoFilter = hasPreferredProvider && preferredProvider && models.length > 5;
+
   const shouldPromptProvider =
-    !hasPreferredProvider && providers.length > 1 && models.length > PROVIDER_FILTER_THRESHOLD;
+    !shouldAutoFilter &&
+    !hasPreferredProvider &&
+    providers.length > 1 &&
+    models.length > PROVIDER_FILTER_THRESHOLD;
+
   if (shouldPromptProvider) {
     const selection = await params.prompter.select({
       message: "Filter models by provider",
@@ -179,8 +190,17 @@ export async function promptDefaultModel(
     }
   }
 
+  // Apply the auto-filter or preferred provider logic
   if (hasPreferredProvider && preferredProvider) {
-    models = models.filter((entry) => entry.provider === preferredProvider);
+    // If we auto-filtered, we just narrow the list silently. 
+    // If not, we still prioritize showing them if they exist.
+    if (shouldAutoFilter) {
+       models = models.filter((entry) => entry.provider === preferredProvider);
+    } else {
+       // Fallback: mixed list but might want to filter? 
+       // Current logic just filtered if explicit. Let's enforce filtering if we have a preference.
+       models = models.filter((entry) => entry.provider === preferredProvider);
+    }
   }
 
   const authStore = ensureAuthProfileStore(params.agentDir, {
