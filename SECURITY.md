@@ -12,6 +12,7 @@ If you believe you've found a security issue in Moltbot, please report it privat
 For threat model + hardening guidance (including `moltbot security audit --deep` and `--fix`), see:
 
 - `https://docs.molt.bot/gateway/security`
+- [Hardball Security Framework (MFA-protected Integrity)](/docs/concepts/hardball-security.md)
 
 ### Web Interface Safety
 
