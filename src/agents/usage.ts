@@ -47,7 +47,7 @@ export function hasNonzeroUsage(usage?: NormalizedUsage | null): usage is Normal
   if (!usage) {
     return false;
   }
-  return [usage.input, usage.output, usage.cacheRead, usage.cacheWrite, usage.total].some(
+  return [usage.input, usage.output, usage.cacheRead, usage.cacheWrite, usage.reasoning, usage.total].some(
     (v) => typeof v === "number" && Number.isFinite(v) && v > 0,
   );
 }
