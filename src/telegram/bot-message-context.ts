@@ -46,19 +46,28 @@ import {
   buildTelegramGroupFrom,
   buildTelegramGroupPeerId,
   buildTypingThreadParams,
-  expandTextLinks,
+  expandEntities,
   normalizeForwardedContext,
   describeReplyTarget,
   extractTelegramLocation,
   hasBotMention,
   resolveTelegramThreadSpec,
 } from "./bot/helpers.js";
+import { extractCustomEmojiEntities, resolveCustomEmojis } from "./custom-emoji.js";
 
 type TelegramMediaRef = {
   path: string;
   contentType?: string;
   stickerMetadata?: {
     emoji?: string;
+    setName?: string;
+    fileId?: string;
+    fileUniqueId?: string;
+    cachedDescription?: string;
+  };
+  customEmojiMetadata?: {
+    customEmojiId: string;
+    emoji: string;
     setName?: string;
     fileId?: string;
     fileUniqueId?: string;
@@ -373,7 +382,23 @@ export const buildTelegramMessageContext = async ({
   const locationData = extractTelegramLocation(msg);
   const locationText = locationData ? formatLocationText(locationData) : undefined;
   const rawTextSource = msg.text ?? msg.caption ?? "";
-  const rawText = expandTextLinks(rawTextSource, msg.entities ?? msg.caption_entities).trim();
+  const entities = msg.entities ?? msg.caption_entities;
+
+  // Resolve custom emoji info for text expansion (if any)
+  let resolvedEmojis: Map<string, { emoji: string; setName?: string }> | undefined;
+  const customEmojiEntities = extractCustomEmojiEntities(entities);
+  if (customEmojiEntities.length > 0) {
+    try {
+      const emojiIds = customEmojiEntities.map((e) => e.custom_emoji_id);
+      resolvedEmojis = await resolveCustomEmojis(bot, emojiIds);
+    } catch (err) {
+      logVerbose(`Failed to resolve custom emojis: ${String(err)}`);
+    }
+  }
+
+  // Expand text_link and custom_emoji entities in a single pass to preserve offsets
+  const rawText = expandEntities(rawTextSource, entities, resolvedEmojis).trim();
+
   let rawBody = [rawText, locationText].filter(Boolean).join("\n").trim();
   if (!rawBody) {
     rawBody = placeholder;
@@ -601,26 +626,29 @@ export const buildTelegramMessageContext = async ({
     ForwardedDate: forwardOrigin?.date ? forwardOrigin.date * 1000 : undefined,
     Timestamp: msg.date ? msg.date * 1000 : undefined,
     WasMentioned: isGroup ? effectiveWasMentioned : undefined,
-    // Filter out cached stickers from media - their description is already in the message body
-    MediaPath: stickerCacheHit ? undefined : allMedia[0]?.path,
-    MediaType: stickerCacheHit ? undefined : allMedia[0]?.contentType,
-    MediaUrl: stickerCacheHit ? undefined : allMedia[0]?.path,
-    MediaPaths: stickerCacheHit
-      ? undefined
-      : allMedia.length > 0
-        ? allMedia.map((m) => m.path)
-        : undefined,
-    MediaUrls: stickerCacheHit
-      ? undefined
-      : allMedia.length > 0
-        ? allMedia.map((m) => m.path)
-        : undefined,
-    MediaTypes: stickerCacheHit
-      ? undefined
-      : allMedia.length > 0
-        ? (allMedia.map((m) => m.contentType).filter(Boolean) as string[])
-        : undefined,
-    Sticker: allMedia[0]?.stickerMetadata,
+    // Filter out entries with empty paths (e.g., cached custom emoji with no file)
+    ...(() => {
+      if (stickerCacheHit) {
+        return {};
+      }
+      const mediaWithPaths = allMedia.filter((m) => m.path);
+      const first = mediaWithPaths[0];
+      return {
+        MediaPath: first?.path,
+        MediaType: first?.contentType,
+        MediaUrl: first?.path,
+        MediaPaths: mediaWithPaths.length > 0 ? mediaWithPaths.map((m) => m.path) : undefined,
+        MediaUrls: mediaWithPaths.length > 0 ? mediaWithPaths.map((m) => m.path) : undefined,
+        MediaTypes:
+          mediaWithPaths.length > 0
+            ? (mediaWithPaths.map((m) => m.contentType).filter(Boolean) as string[])
+            : undefined,
+      };
+    })(),
+    Sticker: allMedia.find((m) => m.stickerMetadata)?.stickerMetadata,
+    CustomEmojis: allMedia
+      .map((m) => m.customEmojiMetadata)
+      .filter((m): m is NonNullable<typeof m> => Boolean(m)),
     ...(locationData ? toLocationContext(locationData) : undefined),
     CommandAuthorized: commandAuthorized,
     // For groups: use resolved forum topic id; for DMs: use raw messageThreadId

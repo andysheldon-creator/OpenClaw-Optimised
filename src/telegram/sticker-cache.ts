@@ -1,18 +1,9 @@
-import fs from "node:fs/promises";
 import path from "node:path";
-import type { ModelCatalogEntry } from "../agents/model-catalog.js";
+import { z } from "zod";
 import type { OpenClawConfig } from "../config/config.js";
-import { resolveApiKeyForProvider } from "../agents/model-auth.js";
-import {
-  findModelInCatalog,
-  loadModelCatalog,
-  modelSupportsVision,
-} from "../agents/model-catalog.js";
-import { resolveDefaultModelForAgent } from "../agents/model-selection.js";
 import { STATE_DIR } from "../config/paths.js";
-import { logVerbose } from "../globals.js";
 import { loadJsonFile, saveJsonFile } from "../infra/json-file.js";
-import { resolveAutoImageModel } from "../media-understanding/runner.js";
+import { describeImageWithVision } from "./vision-describe.js";
 
 const CACHE_FILE = path.join(STATE_DIR, "telegram", "sticker-cache.json");
 const CACHE_VERSION = 1;
@@ -27,9 +18,39 @@ export interface CachedSticker {
   receivedFrom?: string;
 }
 
-interface StickerCache {
-  version: number;
-  stickers: Record<string, CachedSticker>;
+// Zod schema for runtime validation of cache structure
+const CachedStickerSchema = z.object({
+  fileId: z.string(),
+  fileUniqueId: z.string(),
+  emoji: z.string().optional(),
+  setName: z.string().optional(),
+  description: z.string(),
+  cachedAt: z.string(),
+  receivedFrom: z.string().optional(),
+});
+
+const StickerCacheSchema = z.object({
+  version: z.number(),
+  stickers: z.record(z.string(), CachedStickerSchema),
+});
+
+type StickerCache = z.infer<typeof StickerCacheSchema>;
+
+// Simple in-memory lock for cache operations to prevent race conditions
+let cacheLock: Promise<void> = Promise.resolve();
+
+async function withCacheLock<T>(fn: () => T | Promise<T>): Promise<T> {
+  const previousLock = cacheLock;
+  let resolve: () => void;
+  cacheLock = new Promise((r) => {
+    resolve = r;
+  });
+  try {
+    await previousLock;
+    return await fn();
+  } finally {
+    resolve!();
+  }
 }
 
 function loadCache(): StickerCache {
@@ -37,12 +58,18 @@ function loadCache(): StickerCache {
   if (!data || typeof data !== "object") {
     return { version: CACHE_VERSION, stickers: {} };
   }
-  const cache = data as StickerCache;
-  if (cache.version !== CACHE_VERSION) {
-    // Future: handle migration if needed
+
+  // Validate cache structure with Zod
+  const result = StickerCacheSchema.safeParse(data);
+  if (!result.success) {
     return { version: CACHE_VERSION, stickers: {} };
   }
-  return cache;
+
+  if (result.data.version !== CACHE_VERSION) {
+    return { version: CACHE_VERSION, stickers: {} };
+  }
+
+  return result.data;
 }
 
 function saveCache(cache: StickerCache): void {
@@ -59,11 +86,25 @@ export function getCachedSticker(fileUniqueId: string): CachedSticker | null {
 
 /**
  * Add or update a sticker in the cache.
+ * Uses locking to prevent race conditions during concurrent writes.
  */
 export function cacheSticker(sticker: CachedSticker): void {
+  // Synchronous version for backwards compatibility
   const cache = loadCache();
   cache.stickers[sticker.fileUniqueId] = sticker;
   saveCache(cache);
+}
+
+/**
+ * Add or update a sticker in the cache with locking.
+ * Prevents race conditions during concurrent writes.
+ */
+export async function cacheStickerAsync(sticker: CachedSticker): Promise<void> {
+  await withCacheLock(() => {
+    const cache = loadCache();
+    cache.stickers[sticker.fileUniqueId] = sticker;
+    saveCache(cache);
+  });
 }
 
 /**
@@ -142,13 +183,13 @@ export function getCacheStats(): { count: number; oldestAt?: string; newestAt?: 
 
 const STICKER_DESCRIPTION_PROMPT =
   "Describe this sticker image in 1-2 sentences. Focus on what the sticker depicts (character, object, action, emotion). Be concise and objective.";
-const VISION_PROVIDERS = ["openai", "anthropic", "google", "minimax"] as const;
 
 export interface DescribeStickerParams {
   imagePath: string;
   cfg: OpenClawConfig;
   agentDir?: string;
   agentId?: string;
+  contentType?: string;
 }
 
 /**
@@ -157,108 +198,14 @@ export interface DescribeStickerParams {
  * Returns null if no vision provider is available.
  */
 export async function describeStickerImage(params: DescribeStickerParams): Promise<string | null> {
-  const { imagePath, cfg, agentDir, agentId } = params;
-
-  const defaultModel = resolveDefaultModelForAgent({ cfg, agentId });
-  let activeModel = undefined as { provider: string; model: string } | undefined;
-  let catalog: ModelCatalogEntry[] = [];
-  try {
-    catalog = await loadModelCatalog({ config: cfg });
-    const entry = findModelInCatalog(catalog, defaultModel.provider, defaultModel.model);
-    const supportsVision = modelSupportsVision(entry);
-    if (supportsVision) {
-      activeModel = { provider: defaultModel.provider, model: defaultModel.model };
-    }
-  } catch {
-    // Ignore catalog failures; fall back to auto selection.
-  }
-
-  const hasProviderKey = async (provider: string) => {
-    try {
-      await resolveApiKeyForProvider({ provider, cfg, agentDir });
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const selectCatalogModel = (provider: string) => {
-    const entries = catalog.filter(
-      (entry) =>
-        entry.provider.toLowerCase() === provider.toLowerCase() && modelSupportsVision(entry),
-    );
-    if (entries.length === 0) {
-      return undefined;
-    }
-    const defaultId =
-      provider === "openai"
-        ? "gpt-5-mini"
-        : provider === "anthropic"
-          ? "claude-opus-4-5"
-          : provider === "google"
-            ? "gemini-3-flash-preview"
-            : "MiniMax-VL-01";
-    const preferred = entries.find((entry) => entry.id === defaultId);
-    return preferred ?? entries[0];
-  };
-
-  let resolved = null as { provider: string; model?: string } | null;
-  if (
-    activeModel &&
-    VISION_PROVIDERS.includes(activeModel.provider as (typeof VISION_PROVIDERS)[number]) &&
-    (await hasProviderKey(activeModel.provider))
-  ) {
-    resolved = activeModel;
-  }
-
-  if (!resolved) {
-    for (const provider of VISION_PROVIDERS) {
-      if (!(await hasProviderKey(provider))) {
-        continue;
-      }
-      const entry = selectCatalogModel(provider);
-      if (entry) {
-        resolved = { provider, model: entry.id };
-        break;
-      }
-    }
-  }
-
-  if (!resolved) {
-    resolved = await resolveAutoImageModel({
-      cfg,
-      agentDir,
-      activeModel,
-    });
-  }
-
-  if (!resolved?.model) {
-    logVerbose("telegram: no vision provider available for sticker description");
-    return null;
-  }
-
-  const { provider, model } = resolved;
-  logVerbose(`telegram: describing sticker with ${provider}/${model}`);
-
-  try {
-    const buffer = await fs.readFile(imagePath);
-    // Dynamic import to avoid circular dependency
-    const { describeImageWithModel } = await import("../media-understanding/providers/image.js");
-    const result = await describeImageWithModel({
-      buffer,
-      fileName: "sticker.webp",
-      mime: "image/webp",
-      prompt: STICKER_DESCRIPTION_PROMPT,
-      cfg,
-      agentDir: agentDir ?? "",
-      provider,
-      model,
-      maxTokens: 150,
-      timeoutMs: 30000,
-    });
-    return result.text;
-  } catch (err) {
-    logVerbose(`telegram: failed to describe sticker: ${String(err)}`);
-    return null;
-  }
+  return describeImageWithVision({
+    imagePath: params.imagePath,
+    cfg: params.cfg,
+    agentDir: params.agentDir,
+    agentId: params.agentId,
+    prompt: STICKER_DESCRIPTION_PROMPT,
+    fileName: "sticker.webp",
+    logPrefix: "telegram",
+    contentType: params.contentType,
+  });
 }

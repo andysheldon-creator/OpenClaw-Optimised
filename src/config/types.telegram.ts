@@ -130,6 +130,10 @@ export type TelegramAccountConfig = {
   heartbeat?: ChannelHeartbeatVisibilityConfig;
   /** Controls whether link previews are shown in outbound messages. Default: true. */
   linkPreview?: boolean;
+  /** Enable vision AI analysis for stickers. Default: false. */
+  stickerVision?: boolean;
+  /** Enable vision AI analysis for custom emoji in messages. Default: false (expensive). */
+  customEmojiVision?: boolean;
 };
 
 export type TelegramTopicConfig = {

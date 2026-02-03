@@ -3,7 +3,7 @@ import type {
   MediaUnderstandingDecision,
   MediaUnderstandingOutput,
 } from "../media-understanding/types.js";
-import type { StickerMetadata } from "../telegram/bot/types.js";
+import type { CustomEmojiMetadata, StickerMetadata } from "../telegram/bot/types.js";
 import type { InternalMessageChannel } from "../utils/message-channel.js";
 import type { CommandArgs } from "./commands-registry.types.js";
 
@@ -68,6 +68,8 @@ export type MsgContext = {
   MediaTypes?: string[];
   /** Telegram sticker metadata (emoji, set name, file IDs, cached description). */
   Sticker?: StickerMetadata;
+  /** Telegram custom emoji metadata (from messages containing custom emoji). */
+  CustomEmojis?: CustomEmojiMetadata[];
   OutputDir?: string;
   OutputBase?: string;
   /** Remote host for SCP when media lives on a different machine (e.g., openclaw@192.168.64.3). */

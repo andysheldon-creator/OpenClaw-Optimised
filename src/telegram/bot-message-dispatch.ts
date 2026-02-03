@@ -1,5 +1,4 @@
 import { resolveAgentDir } from "../agents/agent-scope.js";
-// @ts-nocheck
 import {
   findModelInCatalog,
   loadModelCatalog,
@@ -18,6 +17,7 @@ import { OpenClawConfig } from "../config/config.js";
 import { resolveMarkdownTableMode } from "../config/markdown-tables.js";
 import { danger, logVerbose } from "../globals.js";
 import { deliverReplies } from "./bot/delivery.js";
+import { cacheCustomEmoji, describeCustomEmojiImage } from "./custom-emoji-cache.js";
 import { resolveTelegramDraftStreamingChunking } from "./draft-chunking.js";
 import { createTelegramDraftStream } from "./draft-stream.js";
 import { cacheSticker, describeStickerImage } from "./sticker-cache.js";
@@ -167,8 +167,10 @@ export const dispatchTelegramMessage = async ({
 
   // Handle uncached stickers: get a dedicated vision description before dispatch
   // This ensures we cache a raw description rather than a conversational response
+  // Skip if stickerVision is not explicitly enabled (default: disabled)
+  const stickerVisionEnabled = telegramCfg?.stickerVision === true;
   const sticker = ctxPayload.Sticker;
-  if (sticker?.fileUniqueId && ctxPayload.MediaPath) {
+  if (stickerVisionEnabled && sticker?.fileUniqueId && ctxPayload.MediaPath) {
     const agentDir = resolveAgentDir(cfg, route.agentId);
     const stickerSupportsVision = await resolveStickerVisionSupport(cfg, route.agentId);
     let description = sticker.cachedDescription ?? null;
@@ -178,6 +180,7 @@ export const dispatchTelegramMessage = async ({
         cfg,
         agentDir,
         agentId: route.agentId,
+        contentType: ctxPayload.MediaType,
       });
     }
     if (description) {
@@ -212,6 +215,77 @@ export const dispatchTelegramMessage = async ({
         receivedFrom: ctxPayload.From,
       });
       logVerbose(`telegram: cached sticker description for ${sticker.fileUniqueId}`);
+    }
+  }
+
+  // Handle custom emoji vision: describe and cache uncached custom emojis
+  // Skip if customEmojiVision is not explicitly enabled (default: disabled)
+  const customEmojiVisionEnabled = telegramCfg?.customEmojiVision === true;
+  const customEmojis = ctxPayload.CustomEmojis ?? [];
+  if (customEmojiVisionEnabled && customEmojis.length > 0) {
+    const agentDir = resolveAgentDir(cfg, route.agentId);
+    const descriptions: string[] = [];
+
+    // Build a map of customEmojiId -> {filePath, contentType} for reliable lookup
+    const emojiIdToMedia = new Map<string, { path: string; contentType?: string }>();
+    for (const emoji of customEmojis) {
+      if (emoji.filePath && emoji.customEmojiId) {
+        emojiIdToMedia.set(emoji.customEmojiId, {
+          path: emoji.filePath,
+          contentType: emoji.contentType,
+        });
+      }
+    }
+
+    for (const emoji of customEmojis) {
+      // Skip if already has cached description
+      if (emoji.cachedDescription) {
+        const context = emoji.setName ? `${emoji.emoji} from "${emoji.setName}"` : emoji.emoji;
+        descriptions.push(`[Custom emoji ${context}] ${emoji.cachedDescription}`);
+        continue;
+      }
+
+      // Find the media for this custom emoji using the ID map
+      const media = emojiIdToMedia.get(emoji.customEmojiId);
+      if (!media) {
+        continue;
+      }
+
+      // Describe the custom emoji
+      const description = await describeCustomEmojiImage({
+        imagePath: media.path,
+        cfg,
+        agentDir,
+        agentId: route.agentId,
+        contentType: media.contentType,
+      });
+
+      if (description) {
+        emoji.cachedDescription = description;
+        const context = emoji.setName ? `${emoji.emoji} from "${emoji.setName}"` : emoji.emoji;
+        descriptions.push(`[Custom emoji ${context}] ${description}`);
+
+        // Cache the description
+        cacheCustomEmoji({
+          customEmojiId: emoji.customEmojiId,
+          fileId: emoji.fileId,
+          fileUniqueId: emoji.fileUniqueId,
+          emoji: emoji.emoji,
+          setName: emoji.setName,
+          description,
+          cachedAt: new Date().toISOString(),
+        });
+        logVerbose(`telegram: cached custom emoji description for ${emoji.customEmojiId}`);
+      }
+    }
+
+    // Append custom emoji descriptions to the body if any were generated
+    if (descriptions.length > 0) {
+      const emojiContext = descriptions.join("\n");
+      ctxPayload.Body = ctxPayload.Body ? `${ctxPayload.Body}\n\n${emojiContext}` : emojiContext;
+      if (ctxPayload.BodyForAgent) {
+        ctxPayload.BodyForAgent = `${ctxPayload.BodyForAgent}\n\n${emojiContext}`;
+      }
     }
   }
 

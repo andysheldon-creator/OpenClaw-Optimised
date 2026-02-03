@@ -137,6 +137,8 @@ export const TelegramAccountSchemaBase = z
     reactionLevel: z.enum(["off", "ack", "minimal", "extensive"]).optional(),
     heartbeat: ChannelHeartbeatVisibilitySchema,
     linkPreview: z.boolean().optional(),
+    stickerVision: z.boolean().optional(),
+    customEmojiVision: z.boolean().optional(),
   })
   .strict();
 

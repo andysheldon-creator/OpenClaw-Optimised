@@ -87,3 +87,19 @@ export interface StickerMetadata {
   /** Cached description from previous vision processing (skip re-processing if present). */
   cachedDescription?: string;
 }
+
+/** Telegram custom emoji metadata for context enrichment. */
+export interface CustomEmojiMetadata {
+  /** Unique identifier for the custom emoji. */
+  customEmojiId: string;
+  /** Emoji character associated with the custom emoji. */
+  emoji: string;
+  /** Name of the sticker set the custom emoji belongs to. */
+  setName?: string;
+  /** Telegram file_id for the custom emoji sticker. */
+  fileId?: string;
+  /** Stable file_unique_id for cache deduplication. */
+  fileUniqueId?: string;
+  /** Cached description from previous vision processing (skip re-processing if present). */
+  cachedDescription?: string;
+}

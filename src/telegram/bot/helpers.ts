@@ -200,6 +200,71 @@ export function expandTextLinks(text: string, entities?: TelegramTextLinkEntity[
   return result;
 }
 
+type ExpandableEntity = {
+  type: string;
+  offset: number;
+  length: number;
+  url?: string;
+  custom_emoji_id?: string;
+};
+
+/**
+ * Expand both text_link and custom_emoji entities in a single pass.
+ * This avoids offset corruption that would occur if expanding sequentially.
+ */
+export function expandEntities(
+  text: string,
+  entities: ExpandableEntity[] | null | undefined,
+  resolvedEmojis?: Map<string, { emoji: string; setName?: string }>,
+): string {
+  if (!text || !entities?.length) {
+    return text;
+  }
+
+  // Collect all expandable entities
+  const expandable: Array<{
+    offset: number;
+    length: number;
+    replacement: string;
+  }> = [];
+
+  for (const entity of entities) {
+    if (entity.type === "text_link" && entity.url) {
+      const linkText = text.slice(entity.offset, entity.offset + entity.length);
+      expandable.push({
+        offset: entity.offset,
+        length: entity.length,
+        replacement: `[${linkText}](${entity.url})`,
+      });
+    } else if (entity.type === "custom_emoji" && entity.custom_emoji_id && resolvedEmojis) {
+      const info = resolvedEmojis.get(entity.custom_emoji_id);
+      if (info) {
+        const annotation = info.setName ? `[${info.emoji}:${info.setName}]` : `[${info.emoji}]`;
+        expandable.push({
+          offset: entity.offset,
+          length: entity.length,
+          replacement: annotation,
+        });
+      }
+    }
+  }
+
+  if (expandable.length === 0) {
+    return text;
+  }
+
+  // Sort by offset descending to preserve positions during replacement
+  expandable.sort((a, b) => b.offset - a.offset);
+
+  let result = text;
+  for (const item of expandable) {
+    result =
+      result.slice(0, item.offset) + item.replacement + result.slice(item.offset + item.length);
+  }
+
+  return result;
+}
+
 export function resolveTelegramReplyId(raw?: string): number | undefined {
   if (!raw) {
     return undefined;
@@ -243,6 +308,8 @@ export function describeReplyTarget(msg: TelegramMessage): TelegramReplyTarget |
         body = "<media:audio>";
       } else if (reply.document) {
         body = "<media:document>";
+      } else if (reply.sticker) {
+        body = "<media:sticker>";
       } else {
         const locationData = extractTelegramLocation(reply);
         if (locationData) {

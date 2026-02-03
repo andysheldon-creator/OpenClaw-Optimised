@@ -1,6 +1,5 @@
 import type { TelegramMessage } from "./bot/types.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-// @ts-nocheck
 import { hasControlCommand } from "../auto-reply/command-detection.js";
 import {
   createInboundDebouncer,
@@ -20,6 +19,12 @@ import { RegisterTelegramHandlerParams } from "./bot-native-commands.js";
 import { MEDIA_GROUP_TIMEOUT_MS, type MediaGroupEntry } from "./bot-updates.js";
 import { resolveMedia } from "./bot/delivery.js";
 import { resolveTelegramForumThreadId } from "./bot/helpers.js";
+import { getCachedCustomEmoji } from "./custom-emoji-cache.js";
+import {
+  extractCustomEmojiEntities,
+  resolveCustomEmojis,
+  downloadCustomEmojiFiles,
+} from "./custom-emoji.js";
 import { migrateTelegramGroupConfig } from "./group-migration.js";
 import { resolveTelegramInlineButtonsScope } from "./inline-buttons.js";
 import { buildInlineKeyboard } from "./send.js";
@@ -60,7 +65,25 @@ export const registerTelegramHandlers = ({
   type TelegramDebounceEntry = {
     ctx: unknown;
     msg: TelegramMessage;
-    allMedia: Array<{ path: string; contentType?: string }>;
+    allMedia: Array<{
+      path: string;
+      contentType?: string;
+      stickerMetadata?: {
+        emoji?: string;
+        setName?: string;
+        fileId?: string;
+        fileUniqueId?: string;
+        cachedDescription?: string;
+      };
+      customEmojiMetadata?: {
+        customEmojiId: string;
+        emoji: string;
+        setName?: string;
+        fileId?: string;
+        fileUniqueId?: string;
+        cachedDescription?: string;
+      };
+    }>;
     storeAllowFrom: string[];
     debounceKey: string | null;
     botUsername?: string;
@@ -129,7 +152,21 @@ export const registerTelegramHandlers = ({
       const allMedia: Array<{
         path: string;
         contentType?: string;
-        stickerMetadata?: { emoji?: string; setName?: string; fileId?: string };
+        stickerMetadata?: {
+          emoji?: string;
+          setName?: string;
+          fileId?: string;
+          fileUniqueId?: string;
+          cachedDescription?: string;
+        };
+        customEmojiMetadata?: {
+          customEmojiId: string;
+          emoji: string;
+          setName?: string;
+          fileId?: string;
+          fileUniqueId?: string;
+          cachedDescription?: string;
+        };
       }> = [];
       for (const { ctx } of entry.messages) {
         const media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch);
@@ -701,7 +738,25 @@ export const registerTelegramHandlers = ({
         return;
       }
 
-      const allMedia = media
+      const allMedia: Array<{
+        path: string;
+        contentType?: string;
+        stickerMetadata?: {
+          emoji?: string;
+          setName?: string;
+          fileId?: string;
+          fileUniqueId?: string;
+          cachedDescription?: string;
+        };
+        customEmojiMetadata?: {
+          customEmojiId: string;
+          emoji: string;
+          setName?: string;
+          fileId?: string;
+          fileUniqueId?: string;
+          cachedDescription?: string;
+        };
+      }> = media
         ? [
             {
               path: media.path,
@@ -710,6 +765,81 @@ export const registerTelegramHandlers = ({
             },
           ]
         : [];
+
+      // Download custom emoji files for AI analysis (requires customEmojiVision: true)
+      if (telegramCfg?.customEmojiVision) {
+        try {
+          const entities = msg.entities ?? msg.caption_entities;
+          const customEmojiEntities = extractCustomEmojiEntities(entities);
+          if (customEmojiEntities.length > 0) {
+            // Check cache first, only resolve uncached emojis
+            const uncachedIds: string[] = [];
+            const cachedEmojis: Array<{
+              id: string;
+              emoji: string;
+              setName?: string;
+              description: string;
+            }> = [];
+            for (const entity of customEmojiEntities) {
+              const cached = getCachedCustomEmoji(entity.custom_emoji_id);
+              if (cached) {
+                cachedEmojis.push({
+                  id: cached.customEmojiId,
+                  emoji: cached.emoji,
+                  setName: cached.setName,
+                  description: cached.description,
+                });
+                logVerbose(`telegram: custom emoji cache hit for ${entity.custom_emoji_id}`);
+              } else {
+                uncachedIds.push(entity.custom_emoji_id);
+              }
+            }
+
+            // Add cached emojis with their descriptions (no need to download/re-describe)
+            for (const cached of cachedEmojis) {
+              allMedia.push({
+                path: "", // No file needed - we have the description
+                customEmojiMetadata: {
+                  customEmojiId: cached.id,
+                  emoji: cached.emoji,
+                  setName: cached.setName,
+                  cachedDescription: cached.description,
+                },
+              });
+            }
+
+            // Download and process uncached emojis
+            if (uncachedIds.length > 0) {
+              const resolved = await resolveCustomEmojis(bot, uncachedIds);
+              const emojiFiles = await downloadCustomEmojiFiles(
+                bot,
+                opts.token,
+                resolved,
+                mediaMaxBytes,
+                opts.proxyFetch,
+              );
+              for (const emoji of emojiFiles) {
+                if (emoji.filePath) {
+                  allMedia.push({
+                    path: emoji.filePath,
+                    contentType: emoji.contentType,
+                    customEmojiMetadata: {
+                      customEmojiId: emoji.id,
+                      emoji: emoji.emoji,
+                      setName: emoji.setName,
+                      fileId: emoji.fileId,
+                      fileUniqueId: emoji.fileUniqueId,
+                    },
+                  });
+                }
+              }
+            }
+          }
+        } catch (emojiErr) {
+          logVerbose(`Failed to download custom emoji files: ${String(emojiErr)}`);
+        }
+      }
+
       const senderId = msg.from?.id ? String(msg.from.id) : "";
       const conversationKey =
         resolvedThreadId != null ? `${chatId}:topic:${resolvedThreadId}` : String(chatId);
