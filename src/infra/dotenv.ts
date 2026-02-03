@@ -1,5 +1,4 @@
 import * as dotenv from "@dotenvx/dotenvx";
-import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 import { resolveConfigDir } from "../utils.js";
