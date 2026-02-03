@@ -170,7 +170,7 @@ export function createReplyDispatcher(options: ReplyDispatcherOptions): ReplyDis
             kind,
             hasMedia: Boolean(normalized.mediaUrl) || (normalized.mediaUrls?.length ?? 0) > 0,
           };
-          let hookResult: PluginHookMessageSendingResult | void;
+          let hookResult: PluginHookMessageSendingResult | void = undefined;
           try {
             hookResult = await hookRunner.runMessageSending(
               {

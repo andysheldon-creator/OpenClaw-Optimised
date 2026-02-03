@@ -349,7 +349,7 @@ export async function deliverOutboundPayloads(params: {
         replyToId: params.replyToId ?? undefined,
         hasMedia: payloadSummary.mediaUrls.length > 0,
       };
-      let hookResult: PluginHookMessageSendingResult | void;
+      let hookResult: PluginHookMessageSendingResult | void = undefined;
       try {
         hookResult = await hookRunner.runMessageSending(
           {
