@@ -523,7 +523,9 @@ export async function prepareSlackMessage(params: {
         await Promise.all(
           uniqueUserIds.map(async (id) => {
             const user = await ctx.resolveUserName(id);
-            if (user) userMap.set(id, user);
+            if (user) {
+              userMap.set(id, user);
+            }
           }),
         );
 

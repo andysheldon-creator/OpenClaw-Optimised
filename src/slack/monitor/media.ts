@@ -254,8 +254,12 @@ export async function resolveSlackThreadHistory(params: {
     return messages
       .filter((msg) => {
         // Keep messages with text OR file attachments
-        if (!msg.text?.trim() && !msg.files?.length) return false;
-        if (params.currentMessageTs && msg.ts === params.currentMessageTs) return false;
+        if (!msg.text?.trim() && !msg.files?.length) {
+          return false;
+        }
+        if (params.currentMessageTs && msg.ts === params.currentMessageTs) {
+          return false;
+        }
         return true;
       })
       .slice(-maxMessages) // Take the most recent N messages
