@@ -16,8 +16,10 @@
 
 import type { SdkRunnerParams, SdkRunnerResult } from "./sdk-runner.types.js";
 import type { SdkRunnerQueryOptions } from "./tool-bridge.types.js";
-import { logDebug, logError, logInfo, logWarn } from "../../logger.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { normalizeToolName } from "../tool-policy.js";
+
+const log = createSubsystemLogger("sdk-runner");
 import { normalizeUsage, type NormalizedUsage, type UsageLike } from "../usage.js";
 import { extractTextFromClaudeAgentSdkEvent } from "./extract.js";
 import { isSdkTerminalToolEventType } from "./sdk-event-checks.js";
@@ -228,15 +230,15 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
 
   let sdk;
   try {
-    logDebug("[sdk-runner] Loading Claude Agent SDK...");
+    log.trace("Loading Claude Agent SDK...");
     sdk = await loadClaudeAgentSdk();
-    logDebug("[sdk-runner] Claude Agent SDK loaded successfully");
+    log.trace("Claude Agent SDK loaded successfully");
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const stack = err instanceof Error ? err.stack : undefined;
-    logError(`[sdk-runner] Failed to load Claude Agent SDK: ${message}`);
+    log.error(`Failed to load Claude Agent SDK: ${message}`);
     if (stack) {
-      logDebug(`[sdk-runner] Stack trace:\n${stack}`);
+      log.trace(`Stack trace:\n${stack}`);
     }
     emitEvent("lifecycle", {
       phase: "error",
@@ -273,21 +275,19 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
 
   let bridgeResult;
   try {
-    logDebug(
-      `[sdk-runner] Bridging ${params.tools.length} tools to MCP server "${mcpServerName}"...`,
-    );
+    log.trace(`Bridging ${params.tools.length} tools to MCP server "${mcpServerName}"...`);
     bridgeResult = await bridgeClawdbrainToolsToMcpServer({
       name: mcpServerName,
       tools: params.tools,
       abortSignal: params.abortSignal,
     });
-    logDebug(`[sdk-runner] Tool bridge complete: ${bridgeResult.toolCount} tools registered`);
+    log.trace(`Tool bridge complete: ${bridgeResult.toolCount} tools registered`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const stack = err instanceof Error ? err.stack : undefined;
-    logError(`[sdk-runner] Failed to bridge tools to MCP: ${message}`);
+    log.error(`Failed to bridge tools to MCP: ${message}`);
     if (stack) {
-      logDebug(`[sdk-runner] Stack trace:\n${stack}`);
+      log.trace(`Stack trace:\n${stack}`);
     }
     emitEvent("lifecycle", {
       phase: "error",
@@ -317,8 +317,8 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     };
   }
 
-  logInfo(
-    `[sdk-runner] Bridged ${bridgeResult.toolCount} tools to MCP server "${mcpServerName}"` +
+  log.debug(
+    `Bridged ${bridgeResult.toolCount} tools to MCP server "${mcpServerName}"` +
       (bridgeResult.skippedTools.length > 0
         ? ` (skipped: ${bridgeResult.skippedTools.join(", ")})`
         : ""),
@@ -371,13 +371,13 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   // Model selection (e.g., "sonnet", "opus", "haiku", or full model ID).
   if (params.model) {
     sdkOptions.model = params.model;
-    logDebug(`[sdk-runner] Using model: ${params.model}`);
+    log.trace(`Using model: ${params.model}`);
   }
 
   // Extended thinking budget (token allocation for reasoning).
   if (params.thinkingBudget && params.thinkingBudget > 0) {
     sdkOptions.thinkingBudget = params.thinkingBudget;
-    logInfo(`[sdk-runner] Extended thinking enabled with budget: ${params.thinkingBudget} tokens`);
+    log.debug(`Extended thinking enabled with budget: ${params.thinkingBudget} tokens`);
   }
 
   // System prompt (no history suffix - we use SDK's native session resume instead).
@@ -388,7 +388,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   // Resume from previous Claude Code session if available (avoids re-serializing history).
   if (params.claudeSessionId) {
     sdkOptions.resume = params.claudeSessionId;
-    logInfo(`[sdk-runner] Resuming Claude Code session: ${params.claudeSessionId}`);
+    log.debug(`Resuming Claude Code session: ${params.claudeSessionId}`);
   }
 
   // Provider env overrides (z.AI, custom endpoints, etc.).
@@ -423,7 +423,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   const betas = params.betas ?? params.provider?.betas;
   if (betas && betas.length > 0) {
     sdkOptions.betas = betas;
-    logInfo(`[sdk-runner] Beta features enabled: ${betas.join(", ")}`);
+    log.debug(`Beta features enabled: ${betas.join(", ")}`);
   }
 
   // Hook callbacks (Claude Code hooks; richer tool + lifecycle signals).
@@ -479,9 +479,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   try {
     emitEvent("sdk", { type: "query_start" });
     const promptLen = typeof prompt === "string" ? prompt.length : "(async)";
-    logInfo(
-      `[sdk-runner] Starting SDK query (prompt: ${promptLen} chars, maxTurns: ${sdkOptions.maxTurns})`,
-    );
+    log.debug(`Starting SDK query (prompt: ${promptLen} chars, maxTurns: ${sdkOptions.maxTurns})`);
 
     const stream = await coerceAsyncIterable(
       sdk.query({
@@ -489,13 +487,13 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         options: sdkOptions as Record<string, unknown>,
       }),
     );
-    logInfo("[sdk-runner] SDK query stream created, iterating events...");
+    log.debug("SDK query stream created, iterating events...");
 
     for await (const event of stream) {
       // Check abort before processing each event.
       if (combinedAbort.aborted) {
         aborted = true;
-        logDebug("[sdk-runner] Aborted during event stream");
+        log.trace("Aborted during event stream");
         break;
       }
 
@@ -503,7 +501,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
 
       // Diagnostic: log raw event types for debugging stream issues.
       const eventType = isRecord(event) ? String(event.type) : "non-object";
-      logDebug(`[sdk-runner] Event #${eventCount}: type=${eventType}`);
+      log.trace(`Event #${eventCount}: type=${eventType}`);
 
       // Best-effort assistant message boundary detection.
       // Some SDK versions emit `type: "message_start"`; otherwise, we fall back
@@ -513,10 +511,10 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         turnCount += 1;
         try {
           void Promise.resolve(params.onAssistantMessageStart?.()).catch((err) => {
-            logDebug(`[sdk-runner] onAssistantMessageStart callback error: ${String(err)}`);
+            log.trace(`onAssistantMessageStart callback error: ${String(err)}`);
           });
         } catch (err) {
-          logDebug(`[sdk-runner] onAssistantMessageStart callback error: ${String(err)}`);
+          log.trace(`onAssistantMessageStart callback error: ${String(err)}`);
         }
       }
 
@@ -538,8 +536,8 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
                 undefined,
               total: Math.max(accumulatedUsage?.total ?? 0, normalized.total ?? 0) || undefined,
             };
-            logDebug(
-              `[sdk-runner] Accumulated usage: input=${accumulatedUsage.input} output=${accumulatedUsage.output}`,
+            log.trace(
+              `Accumulated usage: input=${accumulatedUsage.input} output=${accumulatedUsage.output}`,
             );
           }
         }
@@ -553,8 +551,8 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         const preTokens =
           typeof compactMeta?.pre_tokens === "number" ? compactMeta.pre_tokens : undefined;
 
-        logInfo(
-          `[sdk-runner] Compaction completed: trigger=${trigger}` +
+        log.debug(
+          `Compaction completed: trigger=${trigger}` +
             (preTokens !== undefined ? `, pre_tokens=${preTokens}` : ""),
         );
 
@@ -650,12 +648,12 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         const sessionId = event.session_id ?? event.sessionId;
         if (typeof sessionId === "string" && sessionId) {
           returnedSessionId = sessionId;
-          logDebug(`[sdk-runner] SDK returned session ID: ${sessionId}`);
+          log.trace(`SDK returned session ID: ${sessionId}`);
         }
         // Also check for error results.
         const subtype = event.subtype;
         if (subtype === "error" && typeof event.error === "string") {
-          logWarn(`[sdk-runner] SDK returned error result: ${event.error}`);
+          log.warn(`SDK returned error result: ${event.error}`);
         }
         break;
       }
@@ -665,7 +663,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         const sessionId = event.session_id ?? event.sessionId;
         if (typeof sessionId === "string" && sessionId) {
           returnedSessionId = sessionId;
-          logDebug(`[sdk-runner] SDK session ID from system event: ${sessionId}`);
+          log.trace(`SDK session ID from system event: ${sessionId}`);
         }
       }
 
@@ -685,10 +683,10 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
           didAssistantMessageStart = true;
           try {
             void Promise.resolve(params.onAssistantMessageStart?.()).catch((err) => {
-              logDebug(`[sdk-runner] onAssistantMessageStart callback error: ${String(err)}`);
+              log.trace(`onAssistantMessageStart callback error: ${String(err)}`);
             });
           } catch (err) {
-            logDebug(`[sdk-runner] onAssistantMessageStart callback error: ${String(err)}`);
+            log.trace(`onAssistantMessageStart callback error: ${String(err)}`);
           }
         }
 
@@ -719,14 +717,14 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         // Truncate if we've extracted too much text.
         if (extractedChars >= DEFAULT_MAX_EXTRACTED_CHARS) {
           truncated = true;
-          logDebug(`[sdk-runner] Truncated after ${extractedChars} chars`);
+          log.trace(`Truncated after ${extractedChars} chars`);
           break;
         }
       }
     }
 
-    logInfo(
-      `[sdk-runner] Event stream completed: events=${eventCount} extractedChars=${extractedChars} truncated=${truncated} aborted=${aborted}`,
+    log.debug(
+      `Event stream completed: events=${eventCount} extractedChars=${extractedChars} truncated=${truncated} aborted=${aborted}`,
     );
   } catch (err) {
     if (timeoutId) {
@@ -734,11 +732,11 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     }
 
     const message = err instanceof Error ? err.message : String(err);
-    logWarn(`[sdk-runner] Event stream threw: ${message}`);
+    log.warn(`Event stream threw: ${message}`);
 
     // Check if this was a timeout.
     if (timeoutController.signal.aborted && !params.abortSignal?.aborted) {
-      logWarn(`[sdk-runner] Timed out after ${params.timeoutMs}ms`);
+      log.warn(`Timed out after ${params.timeoutMs}ms`);
       emitEvent("lifecycle", {
         phase: "error",
         startedAt,
@@ -777,7 +775,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     if (params.abortSignal?.aborted) {
       aborted = true;
     } else {
-      logError(`[sdk-runner] Query failed: ${message}`);
+      log.error(`Query failed: ${message}`);
       emitEvent("lifecycle", {
         phase: "error",
         startedAt,
@@ -819,14 +817,14 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   // Step 6: Build result
   // -------------------------------------------------------------------------
 
-  logInfo(
-    `[sdk-runner] Building result: resultText=${resultText?.length ?? 0} chars, chunks=${chunks.length}, aborted=${aborted}`,
+  log.trace(
+    `Building result: resultText=${resultText?.length ?? 0} chars, chunks=${chunks.length}, aborted=${aborted}`,
   );
 
   const text = (resultText ?? chunks.join("\n\n")).trim();
 
   if (!text) {
-    logWarn("[sdk-runner] No text output after stream — returning error");
+    log.warn("No text output after stream — returning error");
     emitEvent("lifecycle", {
       phase: "error",
       startedAt,
@@ -894,12 +892,12 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     turnCount: turnCount > 0 ? turnCount : undefined,
   });
 
-  // Log usage summary if available
+  // Log usage summary if available - this is the key session end log
   const usageLog = accumulatedUsage
     ? ` usage=[in=${accumulatedUsage.input ?? 0} out=${accumulatedUsage.output ?? 0}]`
     : "";
-  logInfo(
-    `[sdk-runner] Run complete: durationMs=${Date.now() - startedAt} finalTextLen=${finalText.length} turns=${turnCount}${usageLog}`,
+  log.info(
+    `Run complete: durationMs=${Date.now() - startedAt} finalTextLen=${finalText.length} turns=${turnCount}${usageLog}`,
   );
 
   return {

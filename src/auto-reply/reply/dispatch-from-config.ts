@@ -14,9 +14,33 @@ import {
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { maybeApplyTtsToPayload, normalizeTtsAutoMode, resolveTtsConfig } from "../../tts/tts.js";
 import { getReplyFromConfig } from "../reply.js";
+import { normalizeVerboseLevel, type VerboseLevel } from "../thinking.js";
 import { formatAbortReplyText, tryFastAbortFromMessage } from "./abort.js";
 import { shouldSkipDuplicateInbound } from "./inbound-dedupe.js";
 import { isRoutableChannel, routeReply } from "./route-reply.js";
+
+/**
+ * Resolve the verbose level for a session, controlling tool result emission.
+ * Returns "off" to suppress tool results, any other level to allow them.
+ */
+const resolveSessionVerboseLevel = (
+  ctx: FinalizedMsgContext,
+  cfg: OpenClawConfig,
+): VerboseLevel | undefined => {
+  const sessionKey = ctx.SessionKey?.trim();
+  if (!sessionKey) {
+    return undefined;
+  }
+  const agentId = resolveSessionAgentId({ sessionKey, config: cfg });
+  const storePath = resolveStorePath(cfg.session?.store, { agentId });
+  try {
+    const store = loadSessionStore(storePath);
+    const entry = store[sessionKey.toLowerCase()] ?? store[sessionKey];
+    return normalizeVerboseLevel(String(entry?.verboseLevel ?? ""));
+  } catch {
+    return undefined;
+  }
+};
 
 const AUDIO_PLACEHOLDER_RE = /^<media:audio>(\s*\([^)]*\))?$/i;
 const AUDIO_HEADER_RE = /^\[Audio\b/i;
@@ -292,12 +316,18 @@ export async function dispatchReplyFromConfig(params: {
     let accumulatedBlockText = "";
     let blockCount = 0;
 
+    // Check verbose level to determine if tool results should be emitted to channels.
+    // When verbose is "off" (default), suppress tool results to avoid noisy error messages.
+    const verboseLevel = resolveSessionVerboseLevel(ctx, cfg);
+    const shouldEmitToolResults =
+      verboseLevel !== undefined && verboseLevel !== "off" && verboseLevel !== null;
+
     const replyResult = await (params.replyResolver ?? getReplyFromConfig)(
       ctx,
       {
         ...params.replyOptions,
         onToolResult:
-          ctx.ChatType !== "group" && ctx.CommandSource !== "native"
+          shouldEmitToolResults && ctx.ChatType !== "group" && ctx.CommandSource !== "native"
             ? (payload: ReplyPayload) => {
                 const run = async () => {
                   const ttsPayload = await maybeApplyTtsToPayload({

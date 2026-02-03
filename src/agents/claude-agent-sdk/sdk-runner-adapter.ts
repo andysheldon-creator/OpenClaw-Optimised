@@ -14,7 +14,9 @@ import type { AgentRuntimePayload } from "../agent-runtime.js";
 import type { EmbeddedPiRunResult } from "../pi-embedded-runner/types.js";
 import type { AnyAgentTool } from "../tools/common.js";
 import type { SdkRunnerResult } from "./sdk-runner.types.js";
-import { logDebug, logInfo, logWarn } from "../../logger.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
+
+const log = createSubsystemLogger("sdk-runner-adapter");
 import { resolveAgentIdFromSessionKey } from "../agent-scope.js";
 import { resolveApiKeyForProfile } from "../auth-profiles/oauth.js";
 import { ensureAuthProfileStore } from "../auth-profiles/store.js";
@@ -77,7 +79,7 @@ async function tryAsyncOAuthResolution(
       agentDir: params.agentDir,
     });
     if (resolved?.apiKey) {
-      logDebug(`[sdk-runner-adapter] Resolved API key via async OAuth for ${entry.key}`);
+      log.trace(`Resolved API key via async OAuth for ${entry.key}`);
       return {
         ...entry,
         config: {
@@ -90,7 +92,7 @@ async function tryAsyncOAuthResolution(
       };
     }
   } catch (err) {
-    logWarn(`[sdk-runner-adapter] Async OAuth resolution failed for ${entry.key}: ${String(err)}`);
+    log.warn(`Async OAuth resolution failed for ${entry.key}: ${String(err)}`);
   }
 
   return entry;
@@ -163,7 +165,7 @@ function tryMacOsKeychainResolution(entry: SdkProviderEntry): SdkProviderEntry {
 
     return processAccessToken(entry, accessToken, "macOS Keychain");
   } catch (err) {
-    logDebug(`[sdk-runner-adapter] macOS Keychain resolution failed: ${String(err)}`);
+    log.trace(`macOS Keychain resolution failed: ${String(err)}`);
   }
 
   return entry;
@@ -265,7 +267,7 @@ if ($result) { Write-Output $result }
       }
     }
   } catch (err) {
-    logDebug(`[sdk-runner-adapter] Windows Credential Manager resolution failed: ${String(err)}`);
+    log.trace(`Windows Credential Manager resolution failed: ${String(err)}`);
   }
 
   // Fall back to file-based credentials.
@@ -286,7 +288,7 @@ function tryFileBasedCredentialResolution(entry: SdkProviderEntry): SdkProviderE
     const credPath = path.join(homeDir, ".claude", ".credentials.json");
 
     if (!fs.existsSync(credPath)) {
-      logDebug(`[sdk-runner-adapter] No credentials file at ${credPath}`);
+      log.trace(`No credentials file at ${credPath}`);
       return entry;
     }
 
@@ -300,7 +302,7 @@ function tryFileBasedCredentialResolution(entry: SdkProviderEntry): SdkProviderE
 
     return processAccessToken(entry, accessToken, "credentials file");
   } catch (err) {
-    logDebug(`[sdk-runner-adapter] File-based credential resolution failed: ${String(err)}`);
+    log.trace(`File-based credential resolution failed: ${String(err)}`);
   }
 
   return entry;
@@ -324,14 +326,12 @@ function processAccessToken(
   // as ANTHROPIC_API_KEY because they're not API keys. Instead, don't set any auth
   // env var and let Claude Code access the credential store itself.
   if (accessToken.startsWith("sk-ant-oat")) {
-    logInfo(
-      `[sdk-runner-adapter] Found OAuth token in ${source} - letting Claude Code handle auth`,
-    );
+    log.debug(`Found OAuth token in ${source} - letting Claude Code handle auth`);
     return entry;
   }
 
   // For actual API keys stored in credential store (unlikely but possible), pass them through.
-  logInfo(`[sdk-runner-adapter] Resolved API key from ${source}`);
+  log.debug(`Resolved API key from ${source}`);
   return {
     ...entry,
     config: {
@@ -433,7 +433,7 @@ export async function runSdkAgentAdapted(
   try {
     authStore = ensureAuthProfileStore(params.agentDir);
   } catch {
-    logDebug("[sdk-runner-adapter] Could not load auth profile store");
+    log.trace("Could not load auth profile store");
   }
 
   // Resolve agent ID from session key to select the appropriate CCSDK provider.
@@ -474,8 +474,8 @@ export async function runSdkAgentAdapted(
     providerEntry = tryPlatformCredentialResolution(defaultEntry);
   }
 
-  logInfo(
-    `[sdk-runner-adapter] Running SDK agent` +
+  log.debug(
+    `Running SDK agent` +
       (providerEntry ? ` with provider "${providerEntry.config.name}"` : " (default provider)"),
   );
 
