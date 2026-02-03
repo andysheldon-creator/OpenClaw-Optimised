@@ -203,7 +203,6 @@ class Embeddings {
         `Failed to load OpenAI client. Make sure 'openai' package is installed. Error: ${String(err)}`,
       );
       if (err instanceof Error) {
-        // @ts-expect-error - Error.cause is available in Node 16.9+
         error.cause = err;
       }
       throw error;
