@@ -96,14 +96,18 @@ async function readRequestBody(
     const chunks: Buffer[] = [];
 
     const timeout = setTimeout(() => {
-      if (done) return;
+      if (done) {
+        return;
+      }
       done = true;
       req.destroy();
       reject(new Error("Request body read timeout"));
     }, timeoutMs);
 
     req.on("data", (chunk: Buffer) => {
-      if (done) return;
+      if (done) {
+        return;
+      }
       totalSize += chunk.length;
       if (totalSize > maxSizeBytes) {
         done = true;
@@ -116,21 +120,27 @@ async function readRequestBody(
     });
 
     req.on("end", () => {
-      if (done) return;
+      if (done) {
+        return;
+      }
       done = true;
       clearTimeout(timeout);
       resolve(Buffer.concat(chunks).toString("utf-8"));
     });
 
     req.on("error", (err) => {
-      if (done) return;
+      if (done) {
+        return;
+      }
       done = true;
       clearTimeout(timeout);
       reject(err);
     });
 
     req.on("close", () => {
-      if (done) return;
+      if (done) {
+        return;
+      }
       done = true;
       clearTimeout(timeout);
       reject(new Error("Client disconnected"));
