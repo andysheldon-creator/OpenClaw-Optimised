@@ -1210,33 +1210,37 @@ export async function runCapability(params: {
   const MAX_NATIVE_VISION_BYTES = 5_000_000; // 5MB limit for providers like Anthropic
   let hasOversizedAttachment = false;
 
+  console.error(
+    `[image-size-check] ENTERING size check, capability=${capability}, selected=${selected.length}`,
+  );
+
   if (capability === "image") {
     for (const att of selected) {
       try {
         const size = await params.attachments.getSize(att.index);
-        logVerbose(
+        console.error(
           `[image-size-check] attachment ${att.index}: size=${size}, threshold=${MAX_NATIVE_VISION_BYTES}`,
         );
         if (size === undefined) {
           // Can't determine size (likely remote URL) - be conservative and use CLI
-          logVerbose(`[image-size-check] size unknown, forcing CLI`);
+          console.error(`[image-size-check] size unknown, forcing CLI`);
           hasOversizedAttachment = true;
           break;
         }
         if (size > MAX_NATIVE_VISION_BYTES) {
-          logVerbose(`[image-size-check] size exceeds threshold, forcing CLI`);
+          console.error(`[image-size-check] size exceeds threshold, forcing CLI`);
           hasOversizedAttachment = true;
           break;
         }
       } catch (err) {
         // If we can't determine size, be conservative and use CLI
-        logVerbose(`[image-size-check] error getting size: ${err}, forcing CLI`);
+        console.error(`[image-size-check] error getting size: ${err}, forcing CLI`);
         hasOversizedAttachment = true;
         break;
       }
     }
   }
-  logVerbose(`[image-size-check] hasOversizedAttachment=${hasOversizedAttachment}`);
+  console.error(`[image-size-check] hasOversizedAttachment=${hasOversizedAttachment}`);
 
   if (!hasOversizedAttachment) {
     const activeProvider = params.activeModel?.provider?.trim();
