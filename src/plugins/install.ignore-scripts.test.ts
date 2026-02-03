@@ -15,20 +15,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * CWE-494: Download of Code Without Integrity Check
  */
 
-// Capture all commands passed to runCommandWithTimeout
-const capturedCommands: string[][] = [];
+// Capture all commands and options passed to runCommandWithTimeout
+interface CapturedCommand {
+  argv: string[];
+  opts?: { timeoutMs?: number; cwd?: string; env?: Record<string, string> };
+}
+const capturedCommands: CapturedCommand[] = [];
 
 vi.mock("../process/exec.js", () => ({
-  runCommandWithTimeout: vi.fn(async (argv: string[]) => {
-    capturedCommands.push(argv);
-    return {
-      stdout: "",
-      stderr: "",
-      code: 0,
-      signal: null,
-      killed: false,
-    };
-  }),
+  runCommandWithTimeout: vi.fn(
+    async (
+      argv: string[],
+      opts?: { timeoutMs?: number; cwd?: string; env?: Record<string, string> },
+    ) => {
+      capturedCommands.push({ argv, opts });
+      return {
+        stdout: "",
+        stderr: "",
+        code: 0,
+        signal: null,
+        killed: false,
+      };
+    },
+  ),
 }));
 
 const tempDirs: string[] = [];
@@ -82,10 +91,21 @@ describe("VULN-210: plugin install must use --ignore-scripts", () => {
       extensionsDir,
     });
 
-    // Find the npm install call
-    const npmInstallCall = capturedCommands.find((cmd) => cmd[0] === "npm" && cmd[1] === "install");
+    // Find all npm install calls
+    const npmInstallCalls = capturedCommands.filter(
+      (cmd) => cmd.argv[0] === "npm" && cmd.argv[1] === "install",
+    );
 
-    expect(npmInstallCall).toBeDefined();
-    expect(npmInstallCall).toContain("--ignore-scripts");
+    // Should have exactly one npm install call
+    expect(npmInstallCalls.length).toBe(1);
+
+    const npmInstallCall = npmInstallCalls[0];
+
+    // Must include --ignore-scripts flag
+    expect(npmInstallCall.argv).toContain("--ignore-scripts");
+
+    // Must run in the plugin target directory (security: ensures we install deps in isolated dir)
+    expect(npmInstallCall.opts?.cwd).toBeDefined();
+    expect(npmInstallCall.opts?.cwd).toContain("extensions");
   });
 });
