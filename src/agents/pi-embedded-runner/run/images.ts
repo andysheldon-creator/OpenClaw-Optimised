@@ -220,10 +220,22 @@ export async function loadImageFromRef(
       }
     }
 
-    // Check file exists for local paths
+    // Check file exists and size for local paths
     if (ref.type === "path") {
       try {
-        await fs.stat(targetPath);
+        const stats = await fs.stat(targetPath);
+        // Check size BEFORE loading - account for base64 overhead (~33%)
+        // Anthropic limit is 5MB base64, so reject files > 3.75MB raw
+        const MAX_NATIVE_VISION_BYTES = 3_750_000;
+        if (stats.size > MAX_NATIVE_VISION_BYTES) {
+          console.error(
+            `[native-image] File too large for native vision: ${targetPath} (${stats.size} bytes > ${MAX_NATIVE_VISION_BYTES})`,
+          );
+          log.debug(
+            `Native image: file too large for native vision: ${targetPath} (${stats.size} bytes)`,
+          );
+          return null;
+        }
       } catch {
         log.debug(`Native image: file not found: ${targetPath}`);
         return null;
