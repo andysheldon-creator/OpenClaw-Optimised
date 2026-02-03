@@ -167,6 +167,7 @@ type VoiceMessageOpts = {
   rest?: RequestClient;
   replyTo?: string;
   retry?: RetryConfig;
+  silent?: boolean;
 };
 
 /**
@@ -212,6 +213,7 @@ export async function sendVoiceMessageDiscord(
       opts.replyTo,
       request,
       token,
+      opts.silent,
     );
 
     recordChannelActivity({
