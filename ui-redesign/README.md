@@ -8,13 +8,13 @@ This redesign transforms a developer-focused control panel into a **warm, approa
 
 ### Key Shifts
 
-| From | To |
-|------|-----|
-| Developer-centric | Power user friendly |
-| Information density | Progressive disclosure |
-| Technical terminology | Human-centric language |
-| Monolithic state | Feature-based architecture |
-| Lit/Web Components | React + Shadcn/Radix |
+| From                  | To                         |
+| --------------------- | -------------------------- |
+| Developer-centric     | Power user friendly        |
+| Information density   | Progressive disclosure     |
+| Technical terminology | Human-centric language     |
+| Monolithic state      | Feature-based architecture |
+| Lit/Web Components    | React + Shadcn/Radix       |
 
 ---
 
@@ -22,53 +22,53 @@ This redesign transforms a developer-focused control panel into a **warm, approa
 
 ### Core Specifications
 
-| Document | Description |
-|----------|-------------|
-| [00-DESIGN-BRIEF.md](./00-DESIGN-BRIEF.md) | Project overview, personas, goals |
-| [01-CONCEPTUAL-MODEL.md](./01-CONCEPTUAL-MODEL.md) | Core concepts (You, Agents, Goals, Memories, etc.) |
-| [02-INFORMATION-ARCHITECTURE.md](./02-INFORMATION-ARCHITECTURE.md) | Navigation structure, routing |
-| [03-VIEW-SPECIFICATIONS.md](./03-VIEW-SPECIFICATIONS.md) | Detailed wireframes for all views |
-| [04-VIEW-COMPONENTS.md](./04-VIEW-COMPONENTS.md) | Reusable component library |
-| [05-VISUAL-DESIGN.md](./05-VISUAL-DESIGN.md) | Colors, typography, spacing |
-| [06-INTERACTIONS.md](./06-INTERACTIONS.md) | Animations, feedback patterns |
-| [07-POWER-USER-MODE.md](./07-POWER-USER-MODE.md) | Advanced features specification |
+| Document                                                           | Description                                        |
+| ------------------------------------------------------------------ | -------------------------------------------------- |
+| [00-DESIGN-BRIEF.md](./00-DESIGN-BRIEF.md)                         | Project overview, personas, goals                  |
+| [01-CONCEPTUAL-MODEL.md](./01-CONCEPTUAL-MODEL.md)                 | Core concepts (You, Agents, Goals, Memories, etc.) |
+| [02-INFORMATION-ARCHITECTURE.md](./02-INFORMATION-ARCHITECTURE.md) | Navigation structure, routing                      |
+| [03-VIEW-SPECIFICATIONS.md](./03-VIEW-SPECIFICATIONS.md)           | Detailed wireframes for all views                  |
+| [04-VIEW-COMPONENTS.md](./04-VIEW-COMPONENTS.md)                   | Reusable component library                         |
+| [05-VISUAL-DESIGN.md](./05-VISUAL-DESIGN.md)                       | Colors, typography, spacing                        |
+| [06-INTERACTIONS.md](./06-INTERACTIONS.md)                         | Animations, feedback patterns                      |
+| [07-POWER-USER-MODE.md](./07-POWER-USER-MODE.md)                   | Advanced features specification                    |
 
 ### Development Guidelines
 
-| Document | Description |
-|----------|-------------|
-| [CLAUDE.md](./CLAUDE.md) | Comprehensive development guidelines, patterns, and quick start |
-| [COMPONENT-LIBRARIES.md](./COMPONENT-LIBRARIES.md) | Research on external component libraries to leverage |
+| Document                                           | Description                                                     |
+| -------------------------------------------------- | --------------------------------------------------------------- |
+| [CLAUDE.md](./CLAUDE.md)                           | Comprehensive development guidelines, patterns, and quick start |
+| [COMPONENT-LIBRARIES.md](./COMPONENT-LIBRARIES.md) | Research on external component libraries to leverage            |
 
 ### Magic MCP Inspiration
 
 Component inspiration and code from the 21st.dev Magic MCP server:
 
-| Directory | Contents |
-|-----------|----------|
-| [magic/chat-components/](./magic/chat-components/) | Chat bubble, message list, input components |
-| [magic/dashboard-inspiration/](./magic/dashboard-inspiration/) | Dashboard layout patterns |
-| [magic/activity-components/](./magic/activity-components/) | Activity feed, timeline, chart components |
-| [magic/workflow-components/](./magic/workflow-components/) | Agent Plan (task hierarchy), Workflow Builder Card |
-| [magic/agent-components/](./magic/agent-components/) | AgentStatusCard with status indicators and actions |
+| Directory                                                      | Contents                                           |
+| -------------------------------------------------------------- | -------------------------------------------------- |
+| [magic/chat-components/](./magic/chat-components/)             | Chat bubble, message list, input components        |
+| [magic/dashboard-inspiration/](./magic/dashboard-inspiration/) | Dashboard layout patterns                          |
+| [magic/activity-components/](./magic/activity-components/)     | Activity feed, timeline, chart components          |
+| [magic/workflow-components/](./magic/workflow-components/)     | Agent Plan (task hierarchy), Workflow Builder Card |
+| [magic/agent-components/](./magic/agent-components/)           | AgentStatusCard with status indicators and actions |
 
 ---
 
 ## Tech Stack
 
-| Layer | Choice |
-|-------|--------|
-| Framework | React 19 |
-| Build | Vite |
-| Styling | Tailwind CSS 4 |
-| Components | Shadcn/ui + Radix |
-| State (server) | TanStack Query v5 |
-| State (client) | Zustand |
-| Forms | React Hook Form + Zod |
-| Routing | TanStack Router |
-| Icons | Lucide React |
-| Workflow Viz | ReactFlow (from Crabwalk) |
-| Animation | Framer Motion |
+| Layer          | Choice                    |
+| -------------- | ------------------------- |
+| Framework      | React 19                  |
+| Build          | Vite                      |
+| Styling        | Tailwind CSS 4            |
+| Components     | Shadcn/ui + Radix         |
+| State (server) | TanStack Query v5         |
+| State (client) | Zustand                   |
+| Forms          | React Hook Form + Zod     |
+| Routing        | TanStack Router           |
+| Icons          | Lucide React              |
+| Workflow Viz   | ReactFlow (from Crabwalk) |
+| Animation      | Framer Motion             |
 
 ---
 
@@ -127,15 +127,18 @@ App (Second Brain)
 The [04-VIEW-COMPONENTS.md](./04-VIEW-COMPONENTS.md) document is designed for parallel development:
 
 **Week 1-2: Foundation**
+
 - AppShell, Sidebar, PageHeader (Foundation Team)
 - StatusBadge, EntityCard, MetricCard (Data Display Team)
 
 **Week 2-3: Features**
+
 - FormSection, MarkdownEditor, SchedulePicker (Forms Team)
 - ChatMessage, ChatInput, ChatThread (Chat Team)
 - WorkflowCanvas, TaskNode (Workflow Team)
 
 **Week 3-4: Domain**
+
 - Agent components
 - Memory components
 - Goal components

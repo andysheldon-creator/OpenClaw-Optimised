@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { AgentAvatar } from "@/components/dashboard/agent-avatar"
-import { RefreshCw, SkipForward, Pencil, Play, Pause, Clock } from "lucide-react"
+import { RefreshCw, SkipForward, Pencil, Play, Pause, Clock } from "lucide-react";
+import { AgentAvatar } from "@/components/dashboard/agent-avatar";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export type RitualStatus = "upcoming" | "paused" | "completed"
+export type RitualStatus = "upcoming" | "paused" | "completed";
 
 interface RitualCardProps {
-  name: string
-  agentName: string
-  agentColor?: string
-  prompt: string
-  time: string
-  status: RitualStatus
-  onSkip?: () => void
-  onEdit?: () => void
-  onResume?: () => void
-  onPause?: () => void
-  className?: string
+  name: string;
+  agentName: string;
+  agentColor?: string;
+  prompt: string;
+  time: string;
+  status: RitualStatus;
+  onSkip?: () => void;
+  onEdit?: () => void;
+  onResume?: () => void;
+  onPause?: () => void;
+  className?: string;
 }
 
 export function RitualCard({
@@ -39,7 +39,7 @@ export function RitualCard({
       className={cn(
         "group relative rounded-xl border bg-card p-4 shadow-soft transition-all hover:shadow-soft-lg",
         status === "paused" && "opacity-60",
-        className
+        className,
       )}
     >
       <div className="flex items-start gap-4">
@@ -58,7 +58,7 @@ export function RitualCard({
                 <span className="text-sm text-muted-foreground">{agentName}</span>
               </div>
             </div>
-            
+
             {/* Time / Status */}
             <div className="shrink-0 text-right">
               {status === "paused" ? (
@@ -76,9 +76,7 @@ export function RitualCard({
           </div>
 
           {/* Prompt */}
-          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-            {`"${prompt}"`}
-          </p>
+          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{`"${prompt}"`}</p>
 
           {/* Actions */}
           <div className="mt-3 flex items-center gap-2">
@@ -128,5 +126,5 @@ export function RitualCard({
         </div>
       </div>
     </div>
-  )
+  );
 }

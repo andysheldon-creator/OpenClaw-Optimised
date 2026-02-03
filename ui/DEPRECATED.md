@@ -11,6 +11,7 @@ All UI development happens in: **`apps/web/`**
 ```
 
 This is our revamped UI built with:
+
 - React
 - TanStack Router
 - shadcn/ui components
@@ -19,6 +20,7 @@ This is our revamped UI built with:
 ## Why this is deprecated
 
 The upstream `ui/` directory:
+
 - Is maintained by the community for the original OpenClaw project
 - Has different design goals than our fork
 - Contributions upstream are difficult to merge
@@ -32,4 +34,4 @@ The upstream `ui/` directory:
 
 ---
 
-*Last updated: 2026-02-02*
+_Last updated: 2026-02-02_

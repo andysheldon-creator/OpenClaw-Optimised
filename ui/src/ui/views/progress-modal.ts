@@ -1,9 +1,6 @@
 import { html, nothing } from "lit";
+import type { ProgressModalState, AutomationRunMilestone } from "../controllers/automations";
 import { icon } from "../icons";
-import type {
-  ProgressModalState,
-  AutomationRunMilestone,
-} from "../controllers/automations";
 
 type MilestoneStatus = AutomationRunMilestone["status"];
 
@@ -21,7 +18,9 @@ function getMilestoneStatusIcon(status: MilestoneStatus) {
     case "current":
       return html`${icon("loader", { size: 20, class: "text-accent animate-spin" })}`;
     case "pending":
-      return html`<div class="milestone-icon milestone-icon--pending"></div>`;
+      return html`
+        <div class="milestone-icon milestone-icon--pending"></div>
+      `;
   }
 }
 
@@ -36,7 +35,11 @@ function getMilestoneStatusColor(status: MilestoneStatus): string {
   }
 }
 
-function renderTimelineItem(milestone: AutomationRunMilestone, index: number, allMilestones: AutomationRunMilestone[]) {
+function renderTimelineItem(
+  milestone: AutomationRunMilestone,
+  index: number,
+  allMilestones: AutomationRunMilestone[],
+) {
   const statusColor = getMilestoneStatusColor(milestone.status);
 
   return html`
@@ -44,21 +47,29 @@ function renderTimelineItem(milestone: AutomationRunMilestone, index: number, al
       <div class="timeline-item__icon">
         ${getMilestoneStatusIcon(milestone.status)}
       </div>
-      ${index < allMilestones.length - 1
-        ? html`
+      ${
+        index < allMilestones.length - 1
+          ? html`
             <div class="timeline-item__line ${
               milestone.status === "completed" ? "timeline-item__line--completed" : ""
             }"></div>
           `
-        : nothing}
+          : nothing
+      }
       <div class="timeline-item__content">
         <div class="timeline-item__title ${statusColor}">${milestone.title}</div>
-        ${milestone.timestamp
-          ? html`<div class="timeline-item__timestamp">${milestone.timestamp}</div>`
-          : nothing}
-        ${milestone.status === "current"
-          ? html`<div class="timeline-item__status">Processing...</div>`
-          : nothing}
+        ${
+          milestone.timestamp
+            ? html`<div class="timeline-item__timestamp">${milestone.timestamp}</div>`
+            : nothing
+        }
+        ${
+          milestone.status === "current"
+            ? html`
+                <div class="timeline-item__status">Processing...</div>
+              `
+            : nothing
+        }
       </div>
     </div>
   `;
@@ -70,7 +81,8 @@ export function renderProgressModal(props: ProgressModalProps) {
   if (!state.isOpen) return nothing;
 
   const isRunning = state.status === "running";
-  const isComplete = state.status === "complete" || state.status === "failed" || state.status === "cancelled";
+  const isComplete =
+    state.status === "complete" || state.status === "failed" || state.status === "cancelled";
 
   return html`
     <div class="modal-overlay" @click=${onClose}>
@@ -79,18 +91,34 @@ export function renderProgressModal(props: ProgressModalProps) {
         <div class="modal-header">
           <div class="modal-header__left">
             <div class="modal-header__icon">
-              ${icon(isRunning ? "loader" : isComplete && state.status === "complete" ? "check" : state.status === "failed" ? "x-circle" : "info", {
-                size: 24,
-                class: isRunning ? "animate-spin" : "",
-              })}
+              ${icon(
+                isRunning
+                  ? "loader"
+                  : isComplete && state.status === "complete"
+                    ? "check"
+                    : state.status === "failed"
+                      ? "x-circle"
+                      : "info",
+                {
+                  size: 24,
+                  class: isRunning ? "animate-spin" : "",
+                },
+              )}
             </div>
             <div>
               <h2 class="modal-title">${state.automationName}</h2>
               <p class="modal-subtitle">
-                ${state.status === "running" ? "Execution in progress" :
-                  state.status === "complete" ? "Completed successfully" :
-                  state.status === "failed" ? "Execution failed" :
-                  state.status === "cancelled" ? "Cancelled" : "Automation"}
+                ${
+                  state.status === "running"
+                    ? "Execution in progress"
+                    : state.status === "complete"
+                      ? "Completed successfully"
+                      : state.status === "failed"
+                        ? "Execution failed"
+                        : state.status === "cancelled"
+                          ? "Cancelled"
+                          : "Automation"
+                }
               </p>
             </div>
           </div>
@@ -115,7 +143,7 @@ export function renderProgressModal(props: ProgressModalProps) {
           <h3 class="timeline-section__title">Execution Timeline</h3>
           <div class="timeline">
             ${state.milestones.map((milestone, index) =>
-              renderTimelineItem(milestone, index, state.milestones)
+              renderTimelineItem(milestone, index, state.milestones),
             )}
           </div>
         </div>
@@ -147,17 +175,19 @@ export function renderProgressModal(props: ProgressModalProps) {
             ${icon("message-square", { size: 16 })}
             Jump to Chat
           </button>
-          ${isRunning
-            ? html`
+          ${
+            isRunning
+              ? html`
                 <button class="btn btn-secondary" @click=${onCancel}>
                   Cancel
                 </button>
               `
-            : html`
+              : html`
                 <button class="btn btn-secondary" @click=${onClose}>
                   Close
                 </button>
-              `}
+              `
+          }
         </div>
       </div>
     </div>

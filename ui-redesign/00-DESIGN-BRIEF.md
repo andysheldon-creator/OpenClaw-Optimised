@@ -11,17 +11,20 @@ Complete UI redesign for a cloud-hosted AI agent management platform. The goal i
 ## Target Personas
 
 ### Primary: Tech-Comfortable Power User
+
 - Not a developer, but comfortable with technology
 - Values: clean defaults, accessible depth, reliability indicators
 - Wants: progressive disclosure (simple surface, power underneath)
 - Examples: Marketing director with AI assistant, consultant managing client workflows
 
 ### Secondary: Small Business Owner
+
 - Running AI to handle customer inquiries, scheduling, workflows
 - Values: reliability, cost visibility, easy setup, clear status
 - Wants: confidence that things are working, minimal learning curve
 
 ### Tertiary: Power User (Opt-in)
+
 - Wants full control when needed
 - Unlocks: raw config, terminal views, cron expressions, debug tools
 - Toggle: "Enable Advanced Features" in settings
@@ -33,6 +36,7 @@ Complete UI redesign for a cloud-hosted AI agent management platform. The goal i
 **Dashboard + Chat** with progressive disclosure:
 
 ### Standard User Experience
+
 - **Home = Dashboard**: Agent health, recent activity, quick stats
 - **Agent Cards**: Simple status indicators, one-click actions
 - **Chat**: Full-featured conversational interface
@@ -40,7 +44,9 @@ Complete UI redesign for a cloud-hosted AI agent management platform. The goal i
 - **Visual Editors**: Personality sliders, preset templates
 
 ### Power User Mode (Opt-in Toggle)
+
 Unlocks:
+
 - Multi-pane workspace layouts
 - Raw config editing (YAML/JSON)
 - Filesystem browser + terminal view
@@ -54,6 +60,7 @@ Unlocks:
 ## Visual Style
 
 **Playful and Warm** - Think Notion, Linear, Figma
+
 - Rounded corners, soft shadows
 - Warm color palette with personality
 - Friendly typography
@@ -65,6 +72,7 @@ Unlocks:
 ## Technical Foundation
 
 ### Stack (from SETUP.md)
+
 - React 19 + Vite
 - Tailwind CSS 4
 - Shadcn/ui + Radix primitives
@@ -77,6 +85,7 @@ Unlocks:
 - Framer Motion (animations)
 
 ### Key Integrations
+
 - WebSocket connection to gateway
 - Third-party MCP servers
 - Enterprise OAuth flows (browser auth challenges for containers)

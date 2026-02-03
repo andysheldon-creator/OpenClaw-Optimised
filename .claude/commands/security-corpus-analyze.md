@@ -9,6 +9,7 @@ allowed-tools: Read, Grep, Glob, Bash(git *), Bash(rg *), Bash(ls *), Bash(wc *)
 # Security Corpus Analyzer
 
 You are an NLP-driven security analyzer for autonomous agent codebases. Your job is to:
+
 1. Interpret the user's natural language description of what to analyze
 2. Discover relevant files using ls/grep/rg/git
 3. Build a comprehensive scan plan (abbreviated with regex where possible)
@@ -17,11 +18,13 @@ You are an NLP-driven security analyzer for autonomous agent codebases. Your job
 ## Input Interpretation
 
 **If arguments provided**: Parse the NLP description to determine:
+
 - File patterns (e.g., "markdown files" → `**/*.md`, "tool implementations" → `src/**/tool*.ts`)
 - Scope (e.g., "changed since sync" → use git diff, "all prompt files" → full repo search)
 - Analysis type (e.g., "prompt injection" → focus on injection surfaces, "API calls" → focus on outbound)
 
 **If no arguments**:
+
 1. Default to `git diff` scope (changes since last upstream sync)
 2. Ask the user what type of analysis they want:
    - (1) **Prompt injection surfaces** - Find all prompt-related content and injection risks
@@ -38,33 +41,33 @@ Based on previous audits, ALWAYS look for these patterns regardless of corpus:
 
 ### HIGH-RISK Patterns
 
-| Pattern | Regex | Risk |
-|---------|-------|------|
-| Unguarded fetch | `fetch\([^)]*\)` without pinned dispatcher | SSRF |
-| Shell execution | `spawn\|exec\|execFile\|execSync` | RCE |
-| Archive extraction | `tar\|unzip` with external input | Path traversal |
-| Elevated bypass | `elevatedMode.*full\|bypassApprovals` | Approval bypass |
-| Tool coupling | `apply_patch.*exec\|exec.*apply_patch` | Implicit allow |
-| Config writes | `writeConfigFile\|writeFile.*config` | Persistence |
+| Pattern            | Regex                                      | Risk            |
+| ------------------ | ------------------------------------------ | --------------- |
+| Unguarded fetch    | `fetch\([^)]*\)` without pinned dispatcher | SSRF            |
+| Shell execution    | `spawn\|exec\|execFile\|execSync`          | RCE             |
+| Archive extraction | `tar\|unzip` with external input           | Path traversal  |
+| Elevated bypass    | `elevatedMode.*full\|bypassApprovals`      | Approval bypass |
+| Tool coupling      | `apply_patch.*exec\|exec.*apply_patch`     | Implicit allow  |
+| Config writes      | `writeConfigFile\|writeFile.*config`       | Persistence     |
 
 ### PROMPT INJECTION Patterns
 
-| Pattern | Regex | Risk |
-|---------|-------|------|
-| Raw file injection | `file\.content\|contextFiles.*push` | Injection surface |
-| System prompt building | `role.*system\|systemPrompt` | Message construction |
-| Untrusted in prompt | `conversation\|userMessage\|body` in messages | Injection point |
-| Missing boundary | `injected\|Project Context` without policy | No fence |
-| Automatic execution | `isHeartbeat\|runHeartbeatOnce\|schedule` | No human review |
+| Pattern                | Regex                                         | Risk                 |
+| ---------------------- | --------------------------------------------- | -------------------- |
+| Raw file injection     | `file\.content\|contextFiles.*push`           | Injection surface    |
+| System prompt building | `role.*system\|systemPrompt`                  | Message construction |
+| Untrusted in prompt    | `conversation\|userMessage\|body` in messages | Injection point      |
+| Missing boundary       | `injected\|Project Context` without policy    | No fence             |
+| Automatic execution    | `isHeartbeat\|runHeartbeatOnce\|schedule`     | No human review      |
 
 ### INGRESS Patterns
 
-| Pattern | Regex | Risk |
-|---------|-------|------|
-| Public HTTP bind | `0\.0\.0\.0\|listen.*host` | Exposure |
-| Webhook handlers | `webhookCallback\|POST.*webhook` | Untrusted input |
-| Bearer token auth | `getBearerToken\|Authorization.*Bearer` | Token leak risk |
-| Missing auth check | `req\.body\|req\.params` without auth | Bypass |
+| Pattern            | Regex                                   | Risk            |
+| ------------------ | --------------------------------------- | --------------- |
+| Public HTTP bind   | `0\.0\.0\.0\|listen.*host`              | Exposure        |
+| Webhook handlers   | `webhookCallback\|POST.*webhook`        | Untrusted input |
+| Bearer token auth  | `getBearerToken\|Authorization.*Bearer` | Token leak risk |
+| Missing auth check | `req\.body\|req\.params` without auth   | Bypass          |
 
 ---
 
@@ -84,26 +87,31 @@ Use most recent sync merge as BASELINE. If ambiguous, ask user.
 Based on the corpus description, generate discovery commands:
 
 **For "tool implementations"**:
+
 ```bash
 rg -l 'export.*Tool|createTool|tool.*execute' src/ --type ts
 ```
 
 **For "prompt templates"**:
+
 ```bash
 rg -l 'system.*prompt|role.*system|messages\[' src/ --type ts
 ```
 
 **For "webhook handlers"**:
+
 ```bash
 rg -l 'webhookCallback|POST.*webhook|app\.post' src/ extensions/ --type ts
 ```
 
 **For "SSRF-vulnerable"**:
+
 ```bash
 rg -l 'fetch\(' src/ extensions/ --type ts | xargs rg -L 'pinnedDispatcher|resolvePinnedHostname'
 ```
 
 **For "changed files only"**:
+
 ```bash
 git diff $BASELINE..HEAD --name-only
 ```
@@ -156,6 +164,7 @@ For each plan item, extract and analyze using the appropriate focus:
 ### For Prompt-Related Files
 
 Check for:
+
 - [ ] System/developer/user message construction
 - [ ] Tool descriptions and schemas
 - [ ] Document injection points (contextFiles, bootstrapFiles)
@@ -165,6 +174,7 @@ Check for:
 ### For Outbound Call Files
 
 Check for:
+
 - [ ] Network calls (fetch, http, WebSocket) - do they use SSRF guards?
 - [ ] Subprocess execution (spawn, exec) - what inputs reach them?
 - [ ] Filesystem writes (writeFile, rm, mkdir) - path validation?
@@ -174,6 +184,7 @@ Check for:
 ### For Ingress/Auth Files
 
 Check for:
+
 - [ ] HTTP server bind address (loopback vs public)
 - [ ] Authentication middleware (bearer token, secret token)
 - [ ] Authorization checks (isAuthorizedSender, allowFrom)
@@ -182,6 +193,7 @@ Check for:
 ### For Tool Policy Files
 
 Check for:
+
 - [ ] Tool groupings (group:fs, group:runtime) - mixed READ/WRITE?
 - [ ] Implicit coupling (exec → apply_patch)
 - [ ] Subagent restrictions (DEFAULT_SUBAGENT_TOOL_DENY)
@@ -192,55 +204,61 @@ Check for:
 ## Known File Locations Reference
 
 ### Prompt Generation
-| Purpose | File |
-|---------|------|
-| Primary system prompt | `src/agents/system-prompt.ts` |
-| Embedded runner prompt | `src/agents/pi-embedded-runner/system-prompt.ts` |
-| Workspace file loading | `src/agents/workspace.ts` |
-| Bootstrap context | `src/agents/bootstrap-files.ts` |
-| Heartbeat prompt | `src/infra/heartbeat-runner.ts` |
-| Memory extraction | `extensions/memory-lancedb/src/services/openai-extractor.ts` |
+
+| Purpose                | File                                                         |
+| ---------------------- | ------------------------------------------------------------ |
+| Primary system prompt  | `src/agents/system-prompt.ts`                                |
+| Embedded runner prompt | `src/agents/pi-embedded-runner/system-prompt.ts`             |
+| Workspace file loading | `src/agents/workspace.ts`                                    |
+| Bootstrap context      | `src/agents/bootstrap-files.ts`                              |
+| Heartbeat prompt       | `src/infra/heartbeat-runner.ts`                              |
+| Memory extraction      | `extensions/memory-lancedb/src/services/openai-extractor.ts` |
 
 ### Outbound Calls
-| Purpose | File |
-|---------|------|
-| exec tool | `src/agents/bash-tools.exec.ts` |
-| web_fetch tool | `src/agents/tools/web-fetch.ts` |
-| SSRF guards | `src/infra/net/ssrf.ts` |
-| Skill installer | `src/agents/skills-install.ts` |
+
+| Purpose          | File                                   |
+| ---------------- | -------------------------------------- |
+| exec tool        | `src/agents/bash-tools.exec.ts`        |
+| web_fetch tool   | `src/agents/tools/web-fetch.ts`        |
+| SSRF guards      | `src/infra/net/ssrf.ts`                |
+| Skill installer  | `src/agents/skills-install.ts`         |
 | Webhook executor | `src/automations/executors/webhook.ts` |
-| Media store | `src/media/store.ts` |
+| Media store      | `src/media/store.ts`                   |
 
 ### Ingress Points
-| Purpose | File |
-|---------|------|
-| Telegram webhook | `src/telegram/webhook.ts` |
-| Telegram bot handlers | `src/telegram/bot-handlers.ts` |
-| Voice-call webhook | `extensions/voice-call/src/webhook.ts` |
-| Browser control server | `src/browser/server.ts` |
-| Gateway tools invoke | `src/gateway/tools-invoke-http.ts` |
+
+| Purpose                | File                                   |
+| ---------------------- | -------------------------------------- |
+| Telegram webhook       | `src/telegram/webhook.ts`              |
+| Telegram bot handlers  | `src/telegram/bot-handlers.ts`         |
+| Voice-call webhook     | `extensions/voice-call/src/webhook.ts` |
+| Browser control server | `src/browser/server.ts`                |
+| Gateway tools invoke   | `src/gateway/tools-invoke-http.ts`     |
 
 ### Tool Policy
-| Purpose | File |
-|---------|------|
-| Tool groups/aliases | `src/agents/tool-policy.ts` |
-| Policy resolution | `src/agents/pi-tools.policy.ts` |
-| Tool assembly | `src/agents/pi-tools.ts` |
-| Config types | `src/config/types.tools.ts` |
+
+| Purpose             | File                            |
+| ------------------- | ------------------------------- |
+| Tool groups/aliases | `src/agents/tool-policy.ts`     |
+| Policy resolution   | `src/agents/pi-tools.policy.ts` |
+| Tool assembly       | `src/agents/pi-tools.ts`        |
+| Config types        | `src/config/types.tools.ts`     |
 
 ### Command Handling
-| Purpose | File |
-|---------|------|
-| /bash command | `src/auto-reply/reply/commands-bash.ts`, `bash-command.ts` |
-| /config command | `src/auto-reply/reply/commands-config.ts`, `config-commands.ts` |
-| Directive parsing | `src/auto-reply/reply/get-reply-directives.ts` |
-| Elevated resolution | `src/auto-reply/reply/reply-elevated.ts` |
+
+| Purpose             | File                                                            |
+| ------------------- | --------------------------------------------------------------- |
+| /bash command       | `src/auto-reply/reply/commands-bash.ts`, `bash-command.ts`      |
+| /config command     | `src/auto-reply/reply/commands-config.ts`, `config-commands.ts` |
+| Directive parsing   | `src/auto-reply/reply/get-reply-directives.ts`                  |
+| Elevated resolution | `src/auto-reply/reply/reply-elevated.ts`                        |
 
 ---
 
 ## Output Format
 
 ### Summary Section
+
 ```
 CORPUS ANALYZED: <description>
 FILES SCANNED: <count>
@@ -252,6 +270,7 @@ ANALYSIS TYPE: <type>
 ### Findings by Risk
 
 **HIGH RISK** (P0 - Fix immediately)
+
 ```
 H1: FILE:LINE - Issue description
     Evidence: "short quote"
@@ -260,6 +279,7 @@ H1: FILE:LINE - Issue description
 ```
 
 **MEDIUM RISK** (P1 - Fix soon)
+
 ```
 M1: FILE:LINE - Issue description
     Evidence: "short quote"
@@ -268,6 +288,7 @@ M1: FILE:LINE - Issue description
 ```
 
 **LOW RISK** (P2 - Hygiene)
+
 ```
 L1: FILE:LINE - Issue description
     Recommendation: Suggested improvement
@@ -276,21 +297,25 @@ L1: FILE:LINE - Issue description
 ### Detailed Tables
 
 **For prompt analysis:**
+
 ```
 SURFACE_ID | FILE:LINE | TYPE | UNTRUSTED_INPUTS | BOUNDARY | RISK
 ```
 
 **For outbound analysis:**
+
 ```
 CALL_ID | FILE:LINE | CATEGORY | TARGET | GATING | READ/WRITE | RISK
 ```
 
 **For ingress analysis:**
+
 ```
 INGRESS_ID | FILE:LINE | BIND | AUTH | UNTRUSTED_INPUTS | RISK
 ```
 
 **For tool classification:**
+
 ```
 TOOL_NAME | FILE:LINE | GROUP | ACTUAL_CAPABILITY | CLASSIFICATION | MATCH
 ```

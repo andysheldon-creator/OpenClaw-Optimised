@@ -225,4 +225,3 @@ Even when input is “just text”, consider it prompt-adjacent if it gets:
 - or used to select/gate tools (group policies, allowFrom lists).
 
 This is the bridge from “social network jailbreak prompt” to “real side effects”.
-

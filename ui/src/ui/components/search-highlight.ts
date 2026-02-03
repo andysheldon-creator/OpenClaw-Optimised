@@ -31,7 +31,7 @@ export function highlightText(
     className?: string;
     /** Maximum number of highlights to show (default: unlimited) */
     maxHighlights?: number;
-  } = {}
+  } = {},
 ): TemplateResult {
   const { ignoreCase = true, className = "search-highlight", maxHighlights } = options;
 
@@ -74,11 +74,7 @@ export function highlightText(
  * @param ignoreCase Case-insensitive matching (default: true)
  * @returns The number of matches found
  */
-export function countMatches(
-  text: string,
-  query: string,
-  ignoreCase = true
-): number {
+export function countMatches(text: string, query: string, ignoreCase = true): number {
   if (!query || !query.trim()) return 0;
 
   const flags = ignoreCase ? "gi" : "g";
@@ -96,11 +92,7 @@ export function countMatches(
  * @param ignoreCase Case-insensitive matching (default: true)
  * @returns True if the text contains the query
  */
-export function textContains(
-  text: string,
-  query: string,
-  ignoreCase = true
-): boolean {
+export function textContains(text: string, query: string, ignoreCase = true): boolean {
   if (!query || !query.trim()) return true;
 
   if (ignoreCase) {
@@ -124,7 +116,7 @@ export function highlightMultiple(
   options: {
     ignoreCase?: boolean;
     className?: string;
-  } = {}
+  } = {},
 ): TemplateResult {
   const { ignoreCase = true, className = "search-highlight" } = options;
 

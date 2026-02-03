@@ -93,9 +93,7 @@ down into a specific entity.
       "keywords": ["oauth", "login", "delegation"]
     }
   ],
-  "sourceChunks": [
-    { "path": "memory/2026-01-15.md", "startLine": 45, "endLine": 62 }
-  ]
+  "sourceChunks": [{ "path": "memory/2026-01-15.md", "startLine": 45, "endLine": 62 }]
 }
 ```
 

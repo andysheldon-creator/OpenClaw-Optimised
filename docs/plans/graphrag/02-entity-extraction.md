@@ -17,18 +17,18 @@ and typed relationships.
 ```typescript
 export type ExtractionConfig = {
   enabled: boolean;
-  entityTypes: EntityType[];     // customizable per agent
-  relationshipTypes: string[];   // customizable per agent
-  model?: string;                // override model for extraction (default: agent's model)
+  entityTypes: EntityType[]; // customizable per agent
+  relationshipTypes: string[]; // customizable per agent
+  model?: string; // override model for extraction (default: agent's model)
   gleaning: {
     enabled: boolean;
-    passes: number;              // 0 = no gleaning, 1 = one re-prompt, 2 = two
+    passes: number; // 0 = no gleaning, 1 = one re-prompt, 2 = two
   };
   consolidation: {
     aliasMergeThreshold: number; // cosine similarity threshold (default 0.92)
     maxDescriptionFragments: number; // before triggering summarization (default 6)
   };
-  batchSize: number;             // chunks per extraction call (default 1)
+  batchSize: number; // chunks per extraction call (default 1)
 };
 ```
 
@@ -95,14 +95,17 @@ export function parseExtractionOutput(raw: string): {
   relationships: ParsedRelationship[];
   unparsed: string[];
 } {
-  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  const lines = raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const entities: ParsedEntity[] = [];
   const relationships: ParsedRelationship[] = [];
   const unparsed: string[] = [];
 
   for (const line of lines) {
     const entityMatch = line.match(
-      /\("entity"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\)/
+      /\("entity"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\)/,
     );
     if (entityMatch) {
       entities.push({
@@ -114,7 +117,7 @@ export function parseExtractionOutput(raw: string): {
     }
 
     const relMatch = line.match(
-      /\("relationship"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*(\d+)\)/
+      /\("relationship"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*(\d+)\)/,
     );
     if (relMatch) {
       relationships.push({
@@ -122,7 +125,7 @@ export function parseExtractionOutput(raw: string): {
         targetName: relMatch[2],
         type: relMatch[3],
         description: relMatch[4],
-        keywords: relMatch[5].split(",").map(k => k.trim()),
+        keywords: relMatch[5].split(",").map((k) => k.trim()),
         strength: parseInt(relMatch[6], 10),
       });
       continue;
@@ -154,13 +157,14 @@ concurrency control:
 
 For 100 chunks at ~400 tokens each, extraction adds approximately:
 
-| Model | Input tokens | Output tokens | Cost per sync |
-|-------|-------------|---------------|---------------|
-| GPT-4.1-mini | ~40K | ~10K | ~$0.03 |
-| Gemini 2.0 Flash | ~40K | ~10K | ~$0.01 |
-| Local (Ollama) | ~40K | ~10K | $0.00 |
+| Model            | Input tokens | Output tokens | Cost per sync |
+| ---------------- | ------------ | ------------- | ------------- |
+| GPT-4.1-mini     | ~40K         | ~10K          | ~$0.03        |
+| Gemini 2.0 Flash | ~40K         | ~10K          | ~$0.01        |
+| Local (Ollama)   | ~40K         | ~10K          | $0.00         |
 
 **Mitigation strategies:**
+
 - Only extract from new/changed chunks (delta sync, already the existing behavior)
 - Use cheaper models for extraction (configurable `model` override)
 - Batch extraction calls where possible

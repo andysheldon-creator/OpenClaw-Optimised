@@ -1,23 +1,23 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Bell, User, Settings, Moon, Sun, HelpCircle, LogOut, Menu } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Bell, User, Settings, Moon, Sun, HelpCircle, LogOut, Menu } from "lucide-react"
-import { useState } from "react"
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
-  greeting?: string
-  userName?: string
-  notificationCount?: number
-  onMenuClick?: () => void
-  className?: string
+  greeting?: string;
+  userName?: string;
+  notificationCount?: number;
+  onMenuClick?: () => void;
+  className?: string;
 }
 
 export function PageHeader({
@@ -27,28 +27,29 @@ export function PageHeader({
   onMenuClick,
   className,
 }: PageHeaderProps) {
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(false);
 
   const toggleTheme = () => {
-    setIsDark(!isDark)
-    document.documentElement.classList.toggle("dark")
-  }
+    setIsDark(!isDark);
+    document.documentElement.classList.toggle("dark");
+  };
 
   const getGreeting = () => {
-    if (greeting) {return greeting}
-    const hour = new Date().getHours()
-    if (hour < 12) {return "Good morning"}
-    if (hour < 17) {return "Good afternoon"}
-    return "Good evening"
-  }
+    if (greeting) {
+      return greeting;
+    }
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      return "Good morning";
+    }
+    if (hour < 17) {
+      return "Good afternoon";
+    }
+    return "Good evening";
+  };
 
   return (
-    <header
-      className={cn(
-        "flex items-center justify-between gap-4 px-4 py-4 md:px-6",
-        className
-      )}
-    >
+    <header className={cn("flex items-center justify-between gap-4 px-4 py-4 md:px-6", className)}>
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -124,5 +125,5 @@ export function PageHeader({
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }

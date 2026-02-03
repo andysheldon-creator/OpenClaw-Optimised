@@ -1,17 +1,20 @@
 # Task 8: Redesign Debug/RPC Console View
 
 ## Overview
+
 Redesign the debug view (`ui/src/ui/views/debug.ts`) with a modern developer console aesthetic, better RPC call interface, and improved data visualization.
 
 ## Project Context
 
 ### Tech Stack
+
 - **Framework**: Lit (Web Components) - NOT React
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **Build**: Vite
 - **Icons**: Custom SVG icon system in `ui/src/ui/icons.ts`
 
 ### Key Files
+
 - View to modify: `ui/src/ui/views/debug.ts`
 - Styles: `ui/src/styles/components.css` (append new styles)
 - Icons: `ui/src/ui/icons.ts` (import and use `icon()` function)
@@ -20,6 +23,7 @@ Redesign the debug view (`ui/src/ui/views/debug.ts`) with a modern developer con
 ## Design System Reference
 
 ### CSS Variables (from base.css)
+
 ```css
 /* Dark theme */
 --bg: #0a0f14;
@@ -36,6 +40,7 @@ Redesign the debug view (`ui/src/ui/views/debug.ts`) with a modern developer con
 ```
 
 ### Icon System Usage
+
 ```typescript
 import { icon } from "../icons";
 
@@ -50,6 +55,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ## Design Requirements
 
 ### Visual Style - Developer Console
+
 1. **Dark theme** - Deep dark background for console feel
 2. **Monospace fonts** - For all code/data displays
 3. **Syntax highlighting** - JSON output with colors
@@ -57,6 +63,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 5. **Tabbed sections** - Status, Health, Models, RPC Console
 
 ### Debug View Specific Requirements
+
 1. **System status panel** - Gateway status, uptime, health
 2. **Health metrics** - Memory, connections, queues
 3. **Models list** - Available AI models with status
@@ -66,6 +73,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 7. **Heartbeat status** - Last heartbeat indicator
 
 ### Suggested Layout
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Debug Console Header                            │
@@ -92,6 +100,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ```
 
 ### Status Panel Layout
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Status Overview                                 │
@@ -108,73 +117,175 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 
 ```css
 /* Debug Console Styles */
-.debug-container { /* main container */ }
-.debug-tabs { /* tab navigation */ }
-.debug-tab { /* individual tab */ }
-.debug-tab--active { /* active tab */ }
-.debug-content { /* tab content area */ }
+.debug-container {
+  /* main container */
+}
+.debug-tabs {
+  /* tab navigation */
+}
+.debug-tab {
+  /* individual tab */
+}
+.debug-tab--active {
+  /* active tab */
+}
+.debug-content {
+  /* tab content area */
+}
 
 /* Status Panel */
-.debug-status { /* status grid */ }
-.debug-status__card { /* status card */ }
-.debug-status__icon { /* status icon */ }
-.debug-status__label { /* status label */ }
-.debug-status__value { /* status value */ }
-.debug-status__ok { /* healthy state */ }
-.debug-status__warn { /* warning state */ }
-.debug-status__error { /* error state */ }
+.debug-status {
+  /* status grid */
+}
+.debug-status__card {
+  /* status card */
+}
+.debug-status__icon {
+  /* status icon */
+}
+.debug-status__label {
+  /* status label */
+}
+.debug-status__value {
+  /* status value */
+}
+.debug-status__ok {
+  /* healthy state */
+}
+.debug-status__warn {
+  /* warning state */
+}
+.debug-status__error {
+  /* error state */
+}
 
 /* RPC Console */
-.rpc-console { /* console container */ }
-.rpc-console__input { /* input panel */ }
-.rpc-console__output { /* output panel */ }
+.rpc-console {
+  /* console container */
+}
+.rpc-console__input {
+  /* input panel */
+}
+.rpc-console__output {
+  /* output panel */
+}
 
-.rpc-method { /* method input */ }
-.rpc-method__label { /* method label */ }
-.rpc-method__input { /* method text input */ }
-.rpc-method__suggestions { /* autocomplete dropdown */ }
+.rpc-method {
+  /* method input */
+}
+.rpc-method__label {
+  /* method label */
+}
+.rpc-method__input {
+  /* method text input */
+}
+.rpc-method__suggestions {
+  /* autocomplete dropdown */
+}
 
-.rpc-params { /* params editor */ }
-.rpc-params__label { /* params label */ }
-.rpc-params__editor { /* JSON textarea */ }
+.rpc-params {
+  /* params editor */
+}
+.rpc-params__label {
+  /* params label */
+}
+.rpc-params__editor {
+  /* JSON textarea */
+}
 
-.rpc-execute { /* execute button */ }
+.rpc-execute {
+  /* execute button */
+}
 
-.rpc-response { /* response container */ }
-.rpc-response__header { /* response header */ }
-.rpc-response__body { /* response JSON */ }
-.rpc-response__error { /* error message */ }
-.rpc-response__actions { /* copy/clear buttons */ }
+.rpc-response {
+  /* response container */
+}
+.rpc-response__header {
+  /* response header */
+}
+.rpc-response__body {
+  /* response JSON */
+}
+.rpc-response__error {
+  /* error message */
+}
+.rpc-response__actions {
+  /* copy/clear buttons */
+}
 
 /* JSON Viewer */
-.json-viewer { /* JSON display */ }
-.json-viewer__string { color: #a5d6ff; }
-.json-viewer__number { color: #79c0ff; }
-.json-viewer__boolean { color: #ff7b72; }
-.json-viewer__null { color: #8b949e; }
-.json-viewer__key { color: #7ee787; }
-.json-viewer__bracket { color: #8b949e; }
+.json-viewer {
+  /* JSON display */
+}
+.json-viewer__string {
+  color: #a5d6ff;
+}
+.json-viewer__number {
+  color: #79c0ff;
+}
+.json-viewer__boolean {
+  color: #ff7b72;
+}
+.json-viewer__null {
+  color: #8b949e;
+}
+.json-viewer__key {
+  color: #7ee787;
+}
+.json-viewer__bracket {
+  color: #8b949e;
+}
 
 /* Event Log */
-.event-log { /* event log container */ }
-.event-log__entry { /* log entry */ }
-.event-log__time { /* timestamp */ }
-.event-log__type { /* event type badge */ }
-.event-log__data { /* event data */ }
+.event-log {
+  /* event log container */
+}
+.event-log__entry {
+  /* log entry */
+}
+.event-log__time {
+  /* timestamp */
+}
+.event-log__type {
+  /* event type badge */
+}
+.event-log__data {
+  /* event data */
+}
 
 /* Health Metrics */
-.health-grid { /* metrics grid */ }
-.health-metric { /* individual metric */ }
-.health-metric__label { /* metric name */ }
-.health-metric__value { /* metric value */ }
-.health-metric__bar { /* progress bar */ }
+.health-grid {
+  /* metrics grid */
+}
+.health-metric {
+  /* individual metric */
+}
+.health-metric__label {
+  /* metric name */
+}
+.health-metric__value {
+  /* metric value */
+}
+.health-metric__bar {
+  /* progress bar */
+}
 
 /* Models List */
-.models-list { /* models container */ }
-.model-card { /* individual model */ }
-.model-card__name { /* model name */ }
-.model-card__provider { /* provider badge */ }
-.model-card__status { /* availability status */ }
+.models-list {
+  /* models container */
+}
+.model-card {
+  /* individual model */
+}
+.model-card__name {
+  /* model name */
+}
+.model-card__provider {
+  /* provider badge */
+}
+.model-card__status {
+  /* availability status */
+}
 ```
 
 ## Implementation Steps
@@ -235,7 +346,7 @@ html`
       </div>
     </div>
   </div>
-`
+`;
 ```
 
 ## Example Status Card Pattern
@@ -249,11 +360,13 @@ html`
     <div class="debug-status__label">Gateway</div>
     <div class="debug-status__value">${connected ? "Connected" : "Disconnected"}</div>
   </div>
-`
+`;
 ```
 
 ## Testing
+
 After changes, run:
+
 ```bash
 cd ui && pnpm build
 ```

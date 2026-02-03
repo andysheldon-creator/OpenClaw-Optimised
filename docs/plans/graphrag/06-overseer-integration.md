@@ -42,12 +42,12 @@ When the Overseer creates or updates a goal (`OverseerGoalRecord`), the bridge:
 
 4. **Creates relationships:**
 
-   | Relationship | Type | Example |
-   |-------------|------|---------|
-   | Goal → Task | `has_task` | "Auth Refactor" → "Update JWT signing" |
-   | Task → Subtask | `has_subtask` | "Update JWT signing" → "Migrate to RS256" |
-   | Task → Entity | `references`, `depends_on`, `modifies` | "Update JWT signing" → "Auth Service" |
-   | Goal → Goal | `blocks`, `depends_on` | "Auth Refactor" → "API Migration" |
+   | Relationship   | Type                                   | Example                                   |
+   | -------------- | -------------------------------------- | ----------------------------------------- |
+   | Goal → Task    | `has_task`                             | "Auth Refactor" → "Update JWT signing"    |
+   | Task → Subtask | `has_subtask`                          | "Update JWT signing" → "Migrate to RS256" |
+   | Task → Entity  | `references`, `depends_on`, `modifies` | "Update JWT signing" → "Auth Service"     |
+   | Goal → Goal    | `blocks`, `depends_on`                 | "Auth Refactor" → "API Migration"         |
 
 ### Sync Mechanism
 
@@ -69,6 +69,7 @@ export function createOverseerBridge(params: {
 ```
 
 When a goal is created or updated, the bridge:
+
 1. Upserts the goal entity node
 2. Upserts task/subtask entity nodes
 3. Extracts entity mentions from goal text fields
@@ -108,6 +109,7 @@ A user creates a goal: "Add two-factor authentication to the login flow."
 Without graph integration, the planner generates tasks based solely on the goal text.
 
 With graph integration, the planner:
+
 1. Extracts entities: "two-factor authentication", "login flow"
 2. Queries the graph and discovers:
    - "Login Flow" entity is connected to "Auth Service" (part_of)

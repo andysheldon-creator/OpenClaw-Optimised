@@ -3,6 +3,7 @@
 ## Document Structure
 
 Each view specification includes:
+
 - **Purpose**: What the user accomplishes here
 - **Route**: URL path
 - **Layout**: ASCII wireframe
@@ -19,9 +20,11 @@ Each view specification includes:
 ## 1. Home Dashboard
 
 ### Purpose
+
 First view after login. Shows system health, active work, and quick actions.
 
 ### Route
+
 `/`
 
 ### Layout
@@ -82,6 +85,7 @@ First view after login. Shows system health, active work, and quick actions.
 ```
 
 ### Components Used
+
 - `PageHeader` (with greeting)
 - `RichTextInput` (quick chat)
 - `AgentSelector` (dropdown)
@@ -93,15 +97,18 @@ First view after login. Shows system health, active work, and quick actions.
 ### States
 
 **Loading:**
+
 - Skeleton cards for all sections
 - Greeting still shows (from session)
 
 **Empty (new user):**
+
 - Onboarding wizard overlay
 - "Create your first agent" CTA
 - Sample workspace pre-populated
 
 **Error:**
+
 - Error banner at top
 - Retry button
 - Cached data shown if available
@@ -109,6 +116,7 @@ First view after login. Shows system health, active work, and quick actions.
 ### Inner Views
 
 #### Notification Panel (Slide-in)
+
 Triggered by 🔔 icon.
 
 ```
@@ -136,6 +144,7 @@ Triggered by 🔔 icon.
 ```
 
 #### User Menu (Dropdown)
+
 Triggered by 👤 icon.
 
 ```
@@ -183,9 +192,11 @@ Triggered by 👤 icon.
 ## 2. Conversations View
 
 ### Purpose
+
 List all conversations and start new ones.
 
 ### Route
+
 `/chat`
 
 ### Layout
@@ -225,6 +236,7 @@ List all conversations and start new ones.
 ### Inner Views
 
 #### New Chat Modal
+
 Triggered by "+ New Chat" button.
 
 ```
@@ -258,9 +270,11 @@ Triggered by "+ New Chat" button.
 ## 3. Chat View (Single Conversation)
 
 ### Purpose
+
 Full conversation interface with an agent.
 
 ### Route
+
 `/chat/:agentId` or `/chat/:agentId/:sessionId`
 
 ### Layout
@@ -321,6 +335,7 @@ Full conversation interface with an agent.
 ```
 
 ### Components Used
+
 - `PageHeader` (with back button)
 - `ChatThread` (virtualized message list)
 - `ChatMessage` (individual messages)
@@ -330,11 +345,13 @@ Full conversation interface with an agent.
 ### States
 
 **Streaming:**
+
 - Animated cursor on assistant message
 - Stop button visible
 - Tool calls show progress
 
 **Error:**
+
 - Error message inline
 - Retry button on message
 
@@ -371,6 +388,7 @@ Full conversation interface with an agent.
 ```
 
 #### Task Panel (Slide-in)
+
 Triggered by 📋 icon.
 
 ```
@@ -407,6 +425,7 @@ Triggered by 📋 icon.
 ```
 
 #### Chat Settings (Slide-in)
+
 Triggered by ⚙️ icon.
 
 ```
@@ -469,9 +488,11 @@ Triggered by ⚙️ icon.
 ## 4. Agents View
 
 ### Purpose
+
 Browse and manage all agents in your team.
 
 ### Route
+
 `/agents`
 
 ### Layout
@@ -522,6 +543,7 @@ Browse and manage all agents in your team.
 #### Create Agent Wizard (Multi-step Modal)
 
 **Step 1: Choose Template**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Create New Agent                                               [×]  │
@@ -549,6 +571,7 @@ Browse and manage all agents in your team.
 ```
 
 **Step 2: Basic Info**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Create New Agent                                               [×]  │
@@ -577,6 +600,7 @@ Browse and manage all agents in your team.
 ```
 
 **Step 3: Personality**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Create New Agent                                               [×]  │
@@ -611,6 +635,7 @@ Browse and manage all agents in your team.
 ```
 
 **Step 4: Tools & Finish**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Create New Agent                                               [×]  │
@@ -648,9 +673,11 @@ Browse and manage all agents in your team.
 ## 5. Agent Detail View
 
 ### Purpose
+
 Deep dive into a single agent's configuration, activity, and workstreams.
 
 ### Route
+
 `/agents/:agentId`
 
 ### Layout
@@ -828,9 +855,11 @@ Deep dive into a single agent's configuration, activity, and workstreams.
 ## 6. Workstream DAG View
 
 ### Purpose
+
 Visualize and manage the task dependency graph for a workstream.
 
 ### Route
+
 `/workstreams/:streamId`
 
 ### Layout
@@ -880,6 +909,7 @@ Visualize and manage the task dependency graph for a workstream.
 ### Inner Views
 
 #### Task Detail Panel (Slide-in)
+
 Opens when clicking a task node.
 
 ```
@@ -957,9 +987,11 @@ Opens when clicking a task node.
 ## 7. Goals View
 
 ### Purpose
+
 Track high-level goals and their progress.
 
 ### Route
+
 `/goals`
 
 ### Layout
@@ -1056,9 +1088,11 @@ Route: `/goals/:goalId`
 ## 8. Memories View
 
 ### Purpose
+
 Browse, search, and manage what your agents know.
 
 ### Route
+
 `/memories`
 
 ### Layout
@@ -1166,9 +1200,11 @@ Browse, search, and manage what your agents know.
 ## 9. You (Profile/Identity) View
 
 ### Purpose
+
 Define who you are to your agents - identity, values, preferences.
 
 ### Route
+
 `/you`
 
 ### Layout
@@ -1284,9 +1320,11 @@ Define who you are to your agents - identity, values, preferences.
 ## 10. Rituals View
 
 ### Purpose
+
 Manage scheduled, recurring interactions with agents.
 
 ### Route
+
 `/rituals`
 
 ### Layout
@@ -1371,6 +1409,7 @@ Manage scheduled, recurring interactions with agents.
 ```
 
 **Weekly variant:**
+
 ```
 │ FREQUENCY                                                               │
 │ [○ Daily] [● Weekly] [○ Monthly] [○ Custom]                             │
@@ -1387,9 +1426,11 @@ Manage scheduled, recurring interactions with agents.
 ## 11. Workspaces View
 
 ### Purpose
+
 Manage workspace contexts within your team.
 
 ### Route
+
 `/workspaces`
 
 ### Layout
@@ -1437,9 +1478,11 @@ Manage workspace contexts within your team.
 ## 12. Connections View
 
 ### Purpose
+
 Manage channels (messaging) and integrations (MCP servers, OAuth).
 
 ### Route
+
 `/connections`
 
 ### Layout
@@ -1619,9 +1662,11 @@ Manage channels (messaging) and integrations (MCP servers, OAuth).
 ## 13. Settings View
 
 ### Purpose
+
 Configure application settings, appearance, and account.
 
 ### Route
+
 `/settings`
 
 ### Layout
@@ -1690,6 +1735,7 @@ Configure application settings, appearance, and account.
 ## 14. Debug View
 
 ### Route
+
 `/debug` (only when Advanced Features enabled)
 
 ### Layout
@@ -1766,6 +1812,7 @@ Configure application settings, appearance, and account.
 ## 15. Filesystem View
 
 ### Route
+
 `/filesystem` (only when Advanced Features enabled)
 
 ### Layout
@@ -1807,6 +1854,7 @@ Configure application settings, appearance, and account.
 ## 16. Jobs View (Cron)
 
 ### Route
+
 `/jobs` (only when Advanced Features enabled)
 
 ### Layout
@@ -2076,6 +2124,7 @@ Triggered by: `?` or from Settings
 ## Summary
 
 This document specifies **16 main views** plus:
+
 - **20+ inner views** (panels, modals, sub-views)
 - **Onboarding flow** (5 steps)
 - **Global overlays** (command palette, shortcuts)

@@ -11,7 +11,8 @@
 
 @theme {
   /* Font families */
-  --font-sans: "Work Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    "Work Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: "Unbounded", "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
@@ -56,48 +57,95 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 5px var(--accent-glow); }
-  50% { box-shadow: 0 0 20px var(--accent-glow); }
+  0%,
+  100% {
+    box-shadow: 0 0 5px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
 }
 
 @keyframes shimmer {
-  from { background-position: -200% 0; }
-  to { background-position: 200% 0; }
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* =============================================================================
@@ -167,7 +215,9 @@
   /* Fonts (referenced by Tailwind) */
   --font-body: "Work Sans", system-ui, sans-serif;
   --font-display: "Unbounded", "Times New Roman", serif;
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --mono:
+    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
 
   /* =============================================================================
      LANDING PAGE (CLAWDBRAIN)
@@ -231,7 +281,8 @@
   /* Typography */
   --landing-font-display: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --landing-font-body: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --landing-font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --landing-font-mono:
+    "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Layout */
   --landing-max-width: 1100px;
@@ -406,10 +457,18 @@
    ============================================================================= */
 
 /* Surface utilities */
-.surface-0 { background: var(--surface-0); }
-.surface-1 { background: var(--surface-1); }
-.surface-2 { background: var(--surface-2); }
-.surface-3 { background: var(--surface-3); }
+.surface-0 {
+  background: var(--surface-0);
+}
+.surface-1 {
+  background: var(--surface-1);
+}
+.surface-2 {
+  background: var(--surface-2);
+}
+.surface-3 {
+  background: var(--surface-3);
+}
 
 /* Glass morphism */
 .glass {
@@ -466,10 +525,22 @@
   border-radius: 50%;
 }
 
-.status-dot-ok { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
-.status-dot-warn { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
-.status-dot-danger { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
-.status-dot-info { background: var(--info); box-shadow: 0 0 6px var(--info); }
+.status-dot-ok {
+  background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
+}
+.status-dot-warn {
+  background: var(--warn);
+  box-shadow: 0 0 6px var(--warn);
+}
+.status-dot-danger {
+  background: var(--danger);
+  box-shadow: 0 0 6px var(--danger);
+}
+.status-dot-info {
+  background: var(--info);
+  box-shadow: 0 0 6px var(--info);
+}
 
 /* Scrollbar styling */
 .scrollbar-thin {
@@ -722,7 +793,7 @@
 }
 
 .toggle::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 2px;
   left: 2px;
@@ -901,8 +972,16 @@
   object-fit: cover;
 }
 
-.avatar-sm { width: 32px; height: 32px; font-size: 0.875rem; }
-.avatar-lg { width: 48px; height: 48px; font-size: 1.25rem; }
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 0.875rem;
+}
+.avatar-lg {
+  width: 48px;
+  height: 48px;
+  font-size: 1.25rem;
+}
 
 /* Empty state */
 .empty-state {
@@ -1049,7 +1128,9 @@
   background: var(--panel-strong);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-elevated-lg), 0 0 60px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    var(--shadow-elevated-lg),
+    0 0 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   animation: fadeInDown var(--duration-normal) var(--ease-spring);
 }
@@ -1187,7 +1268,15 @@
   background: var(--bg-overlay);
 }
 
-.toast-success .toast-icon { color: var(--ok); }
-.toast-warning .toast-icon { color: var(--warn); }
-.toast-error .toast-icon { color: var(--danger); }
-.toast-info .toast-icon { color: var(--info); }
+.toast-success .toast-icon {
+  color: var(--ok);
+}
+.toast-warning .toast-icon {
+  color: var(--warn);
+}
+.toast-error .toast-icon {
+  color: var(--danger);
+}
+.toast-info .toast-icon {
+  color: var(--info);
+}

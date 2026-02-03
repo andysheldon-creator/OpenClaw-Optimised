@@ -1,17 +1,20 @@
 # Task 5: Redesign Channels View with Integration Cards
 
 ## Overview
+
 Redesign the channels view (`ui/src/ui/views/channels.ts`) with modern integration card patterns, better status indicators, and improved channel management UX.
 
 ## Project Context
 
 ### Tech Stack
+
 - **Framework**: Lit (Web Components) - NOT React
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **Build**: Vite
 - **Icons**: Custom SVG icon system in `ui/src/ui/icons.ts`
 
 ### Key Files
+
 - View to modify: `ui/src/ui/views/channels.ts`
 - Related files: `ui/src/ui/views/channels.*.ts` (sub-components)
 - Styles: `ui/src/styles/components.css` (append new styles)
@@ -21,6 +24,7 @@ Redesign the channels view (`ui/src/ui/views/channels.ts`) with modern integrati
 ## Design System Reference
 
 ### CSS Variables (from base.css)
+
 ```css
 /* Dark theme */
 --bg: #0a0f14;
@@ -40,6 +44,7 @@ Redesign the channels view (`ui/src/ui/views/channels.ts`) with modern integrati
 ```
 
 ### Icon System Usage
+
 ```typescript
 import { icon } from "../icons";
 
@@ -53,6 +58,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ### Pattern Examples (from completed work)
 
 #### Card with Icon Header
+
 ```typescript
 html`
   <div class="card">
@@ -65,10 +71,11 @@ html`
     </div>
     <!-- content -->
   </div>
-`
+`;
 ```
 
 #### Status Indicator
+
 ```typescript
 html`
   <div class="stat stat--modern ${connected ? "stat--ok" : "stat--warn"}">
@@ -80,22 +87,24 @@ html`
       <div class="stat-value">${connected ? "Connected" : "Disconnected"}</div>
     </div>
   </div>
-`
+`;
 ```
 
 #### Callout/Alert
+
 ```typescript
 html`
   <div class="callout callout--info">
     <div class="callout__icon">${icon("info", { size: 18 })}</div>
     <div class="callout__content">Message text here</div>
   </div>
-`
+`;
 ```
 
 ## Design Requirements
 
 ### Visual Style
+
 1. **Integration cards** - Each channel as a distinct card with logo/icon area
 2. **Status badges** - Connected/disconnected/error states with color coding
 3. **Glass morphism** - Subtle transparency effects
@@ -103,6 +112,7 @@ html`
 5. **Smooth transitions** - 180ms animations on state changes
 
 ### Channels View Specific Requirements
+
 1. **Channel grid** - Responsive grid of channel cards
 2. **Status indicators** - Clear connected/disconnected/error states
 3. **Quick actions** - Configure, refresh, connect/disconnect buttons
@@ -112,6 +122,7 @@ html`
 7. **Channel logos** - Visual identification (can use colored icons)
 
 ### Suggested Layout
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Channels Header (title, refresh, probe button)  │
@@ -132,6 +143,7 @@ html`
 ```
 
 ### Channel Card States
+
 1. **Connected** - Green accent, check icon, account count
 2. **Disconnected** - Muted styling, prompt to connect
 3. **Error** - Red accent, error icon, error message
@@ -142,31 +154,74 @@ html`
 
 ```css
 /* Channel View Styles */
-.channels-grid { /* responsive grid container */ }
-.channel-card { /* individual channel card */ }
-.channel-card--connected { /* connected state */ }
-.channel-card--error { /* error state */ }
-.channel-card--loading { /* loading state */ }
-.channel-card__header { /* logo + name area */ }
-.channel-card__logo { /* channel icon/logo */ }
-.channel-card__status { /* status badge */ }
-.channel-card__accounts { /* account count */ }
-.channel-card__actions { /* action buttons */ }
-.channel-card__error { /* error message */ }
-.channel-card__config { /* expanded config form */ }
-.channel-qr { /* QR code container for WhatsApp */ }
-.channel-qr__image { /* QR code image */ }
-.channel-qr__message { /* QR instructions */ }
+.channels-grid {
+  /* responsive grid container */
+}
+.channel-card {
+  /* individual channel card */
+}
+.channel-card--connected {
+  /* connected state */
+}
+.channel-card--error {
+  /* error state */
+}
+.channel-card--loading {
+  /* loading state */
+}
+.channel-card__header {
+  /* logo + name area */
+}
+.channel-card__logo {
+  /* channel icon/logo */
+}
+.channel-card__status {
+  /* status badge */
+}
+.channel-card__accounts {
+  /* account count */
+}
+.channel-card__actions {
+  /* action buttons */
+}
+.channel-card__error {
+  /* error message */
+}
+.channel-card__config {
+  /* expanded config form */
+}
+.channel-qr {
+  /* QR code container for WhatsApp */
+}
+.channel-qr__image {
+  /* QR code image */
+}
+.channel-qr__message {
+  /* QR instructions */
+}
 ```
 
 ### Channel-Specific Colors (suggested)
+
 ```css
-.channel-card--whatsapp { --channel-color: #25D366; }
-.channel-card--telegram { --channel-color: #0088cc; }
-.channel-card--discord { --channel-color: #5865F2; }
-.channel-card--signal { --channel-color: #3A76F0; }
-.channel-card--imessage { --channel-color: #34C759; }
-.channel-card--slack { --channel-color: #4A154B; }
+.channel-card--whatsapp {
+  --channel-color: #25d366;
+}
+.channel-card--telegram {
+  --channel-color: #0088cc;
+}
+.channel-card--discord {
+  --channel-color: #5865f2;
+}
+.channel-card--signal {
+  --channel-color: #3a76f0;
+}
+.channel-card--imessage {
+  --channel-color: #34c759;
+}
+.channel-card--slack {
+  --channel-color: #4a154b;
+}
 ```
 
 ## Implementation Steps
@@ -182,7 +237,9 @@ html`
 9. **Test build** - Run `pnpm build` to verify no errors
 
 ## Testing
+
 After changes, run:
+
 ```bash
 cd ui && pnpm build
 ```

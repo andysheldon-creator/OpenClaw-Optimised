@@ -179,21 +179,27 @@ export const AutomationConfigSchema = z.object({
   config: z.record(z.any()),
 
   // Run tracking
-  lastRun: z.object({
-    timestamp: z.string().datetime(),
-    status: z.enum(["success", "partial", "failed", "cancelled"]),
-    duration: z.number(), // milliseconds
-    summary: z.string(),
-  }).optional(),
+  lastRun: z
+    .object({
+      timestamp: z.string().datetime(),
+      status: z.enum(["success", "partial", "failed", "cancelled"]),
+      duration: z.number(), // milliseconds
+      summary: z.string(),
+    })
+    .optional(),
 
   nextRun: z.string().datetime().optional(),
 
-  runHistory: z.array(z.object({
-    timestamp: z.string().datetime(),
-    status: z.enum(["success", "partial", "failed", "cancelled"]),
-    duration: z.number(),
-    summary: z.string(),
-  })).max(100), // Keep last 100 runs
+  runHistory: z
+    .array(
+      z.object({
+        timestamp: z.string().datetime(),
+        status: z.enum(["success", "partial", "failed", "cancelled"]),
+        duration: z.number(),
+        summary: z.string(),
+      }),
+    )
+    .max(100), // Keep last 100 runs
 
   // Timestamps
   created: z.string().datetime(),
@@ -228,12 +234,14 @@ export type AutomationConfig = z.infer<typeof AutomationConfigSchema>;
 export const ConcurrencyStateSchema = z.object({
   version: z.literal(1),
   maxSlots: z.number().min(1).max(10),
-  activeSlots: z.array(z.object({
-    automationId: z.string(),
-    sessionId: z.string(),
-    acquiredAt: z.string().datetime(),
-    slotNumber: z.number().int().positive(),
-  })),
+  activeSlots: z.array(
+    z.object({
+      automationId: z.string(),
+      sessionId: z.string(),
+      acquiredAt: z.string().datetime(),
+      slotNumber: z.number().int().positive(),
+    }),
+  ),
   lastUpdated: z.string().datetime(),
 });
 
@@ -379,6 +387,7 @@ export type ConcurrencyState = z.infer<typeof ConcurrencyStateSchema>;
 #### File Format
 
 Logs are stored as **JSONL** (JSON Lines) files - one JSON object per line. This format allows for:
+
 - Easy streaming and appending
 - Line-by-line parsing without loading entire file
 - Structured querying with tools like `jq`
@@ -447,7 +456,17 @@ export type DispatcherLogEntry = z.infer<typeof DispatcherLogEntrySchema>;
 export const AutomationLogEntrySchema = z.object({
   timestamp: z.string().datetime(),
   level: z.enum(["debug", "info", "warn", "error"]),
-  phase: z.enum(["init", "workspace", "git", "merge", "conflict", "resolution", "pr", "complete", "cleanup"]),
+  phase: z.enum([
+    "init",
+    "workspace",
+    "git",
+    "merge",
+    "conflict",
+    "resolution",
+    "pr",
+    "complete",
+    "cleanup",
+  ]),
   message: z.string(),
   automationId: z.string(),
   sessionId: z.string().optional(),
@@ -548,10 +567,10 @@ export type RepositoryLock = z.infer<typeof RepositoryLockSchema>;
 ```typescript
 function normalizeRepoKey(repoUrl: string): string {
   return repoUrl
-    .replace(/\.git$/, "")           // Remove .git suffix
-    .replace(/^https?:\/\//, "")      // Remove protocol
-    .replace(/^git@([^:]+):/, "$1/")  // Convert SSH to HTTPS-style
-    .toLowerCase();                    // Normalize case
+    .replace(/\.git$/, "") // Remove .git suffix
+    .replace(/^https?:\/\//, "") // Remove protocol
+    .replace(/^git@([^:]+):/, "$1/") // Convert SSH to HTTPS-style
+    .toLowerCase(); // Normalize case
 }
 
 // Examples:
@@ -585,11 +604,7 @@ class AutomationConfigStore {
   private configDir: string;
 
   constructor() {
-    this.configDir = path.join(
-      getConfigPath(),
-      "automations",
-      "config"
-    );
+    this.configDir = path.join(getConfigPath(), "automations", "config");
   }
 
   /**
@@ -631,7 +646,7 @@ class AutomationConfigStore {
 
     for (const type of types) {
       const typeDir = path.join(this.configDir, type);
-      if (!await isDirectory(typeDir)) continue;
+      if (!(await isDirectory(typeDir))) continue;
 
       const filePath = path.join(typeDir, `${id}.json`);
 
@@ -685,10 +700,7 @@ class AutomationConfigStore {
   /**
    * Update the last run information for an automation.
    */
-  async updateLastRun(
-    id: string,
-    runResult: LastRunInfo
-  ): Promise<void> {
+  async updateLastRun(id: string, runResult: LastRunInfo): Promise<void> {
     const config = await this.getAutomation(id);
     if (!config) {
       throw new Error(`Automation ${id} not found`);
@@ -698,10 +710,7 @@ class AutomationConfigStore {
     config.lastRun = runResult;
 
     // Add to history (keep last 100)
-    config.runHistory = [
-      runResult,
-      ...(config.runHistory || []),
-    ].slice(0, 100);
+    config.runHistory = [runResult, ...(config.runHistory || [])].slice(0, 100);
 
     await this.saveAutomation(config);
   }
@@ -727,11 +736,7 @@ class WorkspaceManager {
   private workspaceBaseDir: string;
 
   constructor() {
-    this.workspaceBaseDir = path.join(
-      getConfigPath(),
-      "automations",
-      "workspaces"
-    );
+    this.workspaceBaseDir = path.join(getConfigPath(), "automations", "workspaces");
   }
 
   /**
@@ -770,7 +775,7 @@ class WorkspaceManager {
   async getWorkspaceSize(automationId: string): Promise<number> {
     const workspaceDir = this.getWorkspaceDir(automationId);
 
-    if (!await fileExists(workspaceDir)) {
+    if (!(await fileExists(workspaceDir))) {
       return 0;
     }
 
@@ -789,14 +794,12 @@ class WorkspaceManager {
    * List all workspace directories.
    */
   async listWorkspaces(): Promise<string[]> {
-    if (!await fileExists(this.workspaceBaseDir)) {
+    if (!(await fileExists(this.workspaceBaseDir))) {
       return [];
     }
 
     const entries = await fs.readdir(this.workspaceBaseDir, { withFileTypes: true });
-    return entries
-      .filter(e => e.isDirectory())
-      .map(e => e.name);
+    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
   }
 
   /**
@@ -806,7 +809,7 @@ class WorkspaceManager {
     const workspaceDir = this.getWorkspaceDir(automationId);
     const infoPath = path.join(workspaceDir, "workspace-info.json");
 
-    if (!await fileExists(infoPath)) {
+    if (!(await fileExists(infoPath))) {
       return null;
     }
 
@@ -817,10 +820,7 @@ class WorkspaceManager {
   /**
    * Update workspace runtime state.
    */
-  async updateState(
-    automationId: string,
-    state: Record<string, any>
-  ): Promise<void> {
+  async updateState(automationId: string, state: Record<string, any>): Promise<void> {
     const workspaceDir = this.getWorkspaceDir(automationId);
     const statePath = path.join(workspaceDir, "state.json");
 
@@ -830,10 +830,7 @@ class WorkspaceManager {
   /**
    * Update progress state.
    */
-  async updateProgress(
-    automationId: string,
-    progress: ProgressUpdate
-  ): Promise<void> {
+  async updateProgress(automationId: string, progress: ProgressUpdate): Promise<void> {
     const workspaceDir = this.getWorkspaceDir(automationId);
     const progressPath = path.join(workspaceDir, "progress.json");
 
@@ -917,7 +914,7 @@ class AutomationLogManager {
   async writeLog(
     automationType: string,
     automationId: string,
-    entry: AutomationLogEntry | DispatcherLogEntry
+    entry: AutomationLogEntry | DispatcherLogEntry,
   ): Promise<void> {
     const logDir = path.join(this.logBaseDir, automationType);
     await fs.mkdir(logDir, { recursive: true });
@@ -940,7 +937,7 @@ class AutomationLogManager {
   async readLogs(
     automationType: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<Array<AutomationLogEntry | DispatcherLogEntry>> {
     const entries = [];
 
@@ -972,7 +969,7 @@ class AutomationLogManager {
   async getRecentLogs(
     automationType: string,
     automationId: string,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<AutomationLogEntry[]> {
     const logs: AutomationLogEntry[] = [];
 
@@ -985,8 +982,9 @@ class AutomationLogManager {
 
     // Filter by automation ID and limit
     return allLogs
-      .filter((log): log is AutomationLogEntry =>
-        "automationId" in log && log.automationId === automationId
+      .filter(
+        (log): log is AutomationLogEntry =>
+          "automationId" in log && log.automationId === automationId,
       )
       .slice(-limit);
   }
@@ -1002,7 +1000,7 @@ class AutomationLogManager {
 
     for (const typeDir of typeDirs) {
       const dirPath = path.join(this.logBaseDir, typeDir);
-      if (!await isDirectory(dirPath)) continue;
+      if (!(await isDirectory(dirPath))) continue;
 
       const files = await fs.readdir(dirPath);
 
@@ -1044,7 +1042,7 @@ class RepositoryLockManager {
   async acquireLock(
     repoUrl: string,
     automationId: string,
-    sessionId: string
+    sessionId: string,
   ): Promise<RepositoryLock | null> {
     await fs.mkdir(this.lockDir, { recursive: true });
 
@@ -1109,7 +1107,7 @@ class RepositoryLockManager {
     const repoKey = normalizeRepoKey(repoUrl);
     const lockFile = path.join(this.lockDir, `${repoKey}.lock`);
 
-    if (!await fileExists(lockFile)) {
+    if (!(await fileExists(lockFile))) {
       return null;
     }
 
@@ -1130,7 +1128,7 @@ class RepositoryLockManager {
    * List all active locks.
    */
   async listLocks(): Promise<RepositoryLock[]> {
-    if (!await fileExists(this.lockDir)) {
+    if (!(await fileExists(this.lockDir))) {
       return [];
     }
 

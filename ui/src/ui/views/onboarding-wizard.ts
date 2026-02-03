@@ -7,10 +7,21 @@
  */
 
 import { html, nothing, type TemplateResult } from "lit";
-
-import { icon } from "../icons";
 import type { ConfigUiHints } from "../types";
 import type { JsonSchema } from "./config-form";
+import { icon } from "../icons";
+import {
+  renderChannelCardList,
+  renderModelCardList,
+  renderAddCardModal,
+  type ChannelCard as ChannelCardType,
+  type ModelCard as ModelCardType,
+} from "./onboarding-cards";
+import {
+  renderConfigModal,
+  type ConfigModalState,
+  createConfigModalState,
+} from "./onboarding-modal";
 import {
   ONBOARDING_PHASES,
   type QuickStartForm,
@@ -26,14 +37,6 @@ import {
   getModelById,
   getDefaultQuickStartForm,
 } from "./onboarding-phases";
-import {
-  renderChannelCardList,
-  renderModelCardList,
-  renderAddCardModal,
-  type ChannelCard as ChannelCardType,
-  type ModelCard as ModelCardType,
-} from "./onboarding-cards";
-import { renderConfigModal, type ConfigModalState, createConfigModalState } from "./onboarding-modal";
 
 // ============================================================================
 // Types
@@ -105,13 +108,15 @@ function renderProgressIndicator(params: {
           style="width: ${(params.step / params.totalSteps) * 100}%"
         ></div>
       </div>
-      ${currentPhaseDef
-        ? html`
+      ${
+        currentPhaseDef
+          ? html`
             <div class="onboarding-wizard-v2__progress-time">
               ${icon("clock", { size: 12 })} ${currentPhaseDef.estimatedTime}
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -354,30 +359,45 @@ function renderFooter(params: {
   onSkip: () => void;
   onContinue: () => void;
 }): TemplateResult {
-  const { currentPhase, hasNextPhase, hasPreviousPhase, canSkip, isSaving, onBack, onSkip, onContinue } = params;
+  const {
+    currentPhase,
+    hasNextPhase,
+    hasPreviousPhase,
+    canSkip,
+    isSaving,
+    onBack,
+    onSkip,
+    onContinue,
+  } = params;
 
   const isLastPhase = !hasNextPhase;
 
   return html`
     <div class="onboarding-wizard-v2__footer">
       <div class="onboarding-wizard-v2__footer-nav">
-        ${hasPreviousPhase
-          ? html`
+        ${
+          hasPreviousPhase
+            ? html`
               <button type="button" class="btn btn--sm" @click=${onBack}>
                 ← Back
               </button>
             `
-          : html`<div></div>`}
+            : html`
+                <div></div>
+              `
+        }
       </div>
 
       <div class="onboarding-wizard-v2__footer-actions">
-        ${canSkip && !isLastPhase
-          ? html`
+        ${
+          canSkip && !isLastPhase
+            ? html`
               <button type="button" class="btn btn--sm" @click=${onSkip}>
                 Skip →
               </button>
             `
-          : nothing}
+            : nothing
+        }
 
         <button
           type="button"
@@ -399,8 +419,19 @@ function renderFooter(params: {
 /**
  * Render the simplified onboarding wizard
  */
-export function renderOnboardingWizard(params: OnboardingWizardProps): TemplateResult | typeof nothing {
-  const { state, configValue, onAddChannel, onEditChannel, onRemoveChannel, onAddModel, onEditModel, onRemoveModel } = params;
+export function renderOnboardingWizard(
+  params: OnboardingWizardProps,
+): TemplateResult | typeof nothing {
+  const {
+    state,
+    configValue,
+    onAddChannel,
+    onEditChannel,
+    onRemoveChannel,
+    onAddModel,
+    onEditModel,
+    onRemoveModel,
+  } = params;
 
   if (!state.open) {
     return nothing;
@@ -461,7 +492,7 @@ export function renderOnboardingWizard(params: OnboardingWizardProps): TemplateR
   }
 
   return html`
-    <div class="onboarding-wizard-v2-backdrop" @click=${() => state.isDirty ? params.onClose() : params.onClose()}></div>
+    <div class="onboarding-wizard-v2-backdrop" @click=${() => (state.isDirty ? params.onClose() : params.onClose())}></div>
     <div class="onboarding-wizard-v2" @click=${(e: Event) => e.stopPropagation()}>
       ${renderProgressIndicator({
         currentPhase: state.currentPhase,
@@ -482,36 +513,40 @@ export function renderOnboardingWizard(params: OnboardingWizardProps): TemplateR
         onContinue: params.onContinue,
       })}
 
-      ${state.addModalOpen && state.addModalType === "channel"
-        ? renderAddCardModal({
-            isOpen: true,
-            title: "Add a messaging app",
-            options: DEFAULT_CHANNELS,
-            onSelect: (id) => onAddChannel(id),
-            onClose: () => {
-              state.addModalOpen = false;
-              state.addModalType = null;
-            },
-          })
-        : nothing}
+      ${
+        state.addModalOpen && state.addModalType === "channel"
+          ? renderAddCardModal({
+              isOpen: true,
+              title: "Add a messaging app",
+              options: DEFAULT_CHANNELS,
+              onSelect: (id) => onAddChannel(id),
+              onClose: () => {
+                state.addModalOpen = false;
+                state.addModalType = null;
+              },
+            })
+          : nothing
+      }
 
-      ${state.addModalOpen && state.addModalType === "model"
-        ? renderAddCardModal({
-            isOpen: true,
-            title: "Add an AI model",
-            options: DEFAULT_MODELS.map((m) => ({
-              id: m.id,
-              name: m.name,
-              icon: m.icon,
-              description: `${m.provider} • ${m.description}`,
-            })),
-            onSelect: (id) => onAddModel(id),
-            onClose: () => {
-              state.addModalOpen = false;
-              state.addModalType = null;
-            },
-          })
-        : nothing}
+      ${
+        state.addModalOpen && state.addModalType === "model"
+          ? renderAddCardModal({
+              isOpen: true,
+              title: "Add an AI model",
+              options: DEFAULT_MODELS.map((m) => ({
+                id: m.id,
+                name: m.name,
+                icon: m.icon,
+                description: `${m.provider} • ${m.description}`,
+              })),
+              onSelect: (id) => onAddModel(id),
+              onClose: () => {
+                state.addModalOpen = false;
+                state.addModalType = null;
+              },
+            })
+          : nothing
+      }
 
       ${renderConfigModal({
         state: state.configModal,

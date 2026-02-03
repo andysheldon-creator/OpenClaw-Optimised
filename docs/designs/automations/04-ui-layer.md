@@ -44,16 +44,19 @@ ui/src/ui/
 
 const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
-  { label: "Control", tabs: [
-    "overview",
-    "agents",
-    "channels",
-    "instances",
-    "sessions",
-    "cron",
-    "overseer",
-    "automations"  // NEW
-  ]},
+  {
+    label: "Control",
+    tabs: [
+      "overview",
+      "agents",
+      "channels",
+      "instances",
+      "sessions",
+      "cron",
+      "overseer",
+      "automations", // NEW
+    ],
+  },
   { label: "Agent", tabs: ["skills", "nodes"] },
   { label: "Settings", tabs: ["config", "debug", "logs"] },
 ] as const;
@@ -2134,7 +2137,7 @@ useEffect(() => {
         ...prev,
         progress,
       }));
-    }
+    },
   );
 
   return () => {

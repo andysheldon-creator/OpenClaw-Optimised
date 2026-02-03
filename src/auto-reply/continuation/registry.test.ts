@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-
+import type { CompletionEvent, CompletionHandler } from "./types.js";
 import {
   clearCompletionHandlers,
   getHandlerCount,
   onCompletion,
   processCompletion,
 } from "./registry.js";
-import type { CompletionEvent, CompletionHandler } from "./types.js";
 
 describe("continuation/registry", () => {
   afterEach(() => {

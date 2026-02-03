@@ -85,13 +85,15 @@ export function renderAuthModal(opts: AuthModalOptions): TemplateResult | typeof
         </div>
 
         <div class="modal-body">
-          ${gatewayUrl
-            ? html`
+          ${
+            gatewayUrl
+              ? html`
                 <p style="margin: 0 0 16px; color: var(--muted); font-size: 13px;">
                   Authenticating to: <code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">${gatewayUrl}</code>
                 </p>
               `
-            : nothing}
+              : nothing
+          }
 
           <div class="auth-tabs" style="display: flex; gap: 4px; margin-bottom: 16px;">
             <button
@@ -123,9 +125,11 @@ export function renderAuthModal(opts: AuthModalOptions): TemplateResult | typeof
                 type="${method === "password" ? "password" : "text"}"
                 class="input"
                 style="width: 100%;"
-                placeholder="${method === "token"
-                  ? "Enter your gateway token..."
-                  : "Enter your gateway password..."}"
+                placeholder="${
+                  method === "token"
+                    ? "Enter your gateway token..."
+                    : "Enter your gateway password..."
+                }"
                 .value=${value}
                 @input=${handleInput}
                 autocomplete="${method === "password" ? "current-password" : "off"}"
@@ -133,8 +137,9 @@ export function renderAuthModal(opts: AuthModalOptions): TemplateResult | typeof
               />
             </div>
 
-            ${error
-              ? html`
+            ${
+              error
+                ? html`
                   <div
                     style="
                       display: flex;
@@ -152,12 +157,20 @@ export function renderAuthModal(opts: AuthModalOptions): TemplateResult | typeof
                     <span style="margin-left: 6px;">${error}</span>
                   </div>
                 `
-              : nothing}
+                : nothing
+            }
 
             <p style="margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5;">
-              ${method === "token"
-                ? html`Enter the gateway token from your configuration. This is stored locally and used for all future connections.`
-                : html`Enter your gateway password. Passwords are not stored and must be re-entered each session.`}
+              ${
+                method === "token"
+                  ? html`
+                      Enter the gateway token from your configuration. This is stored locally and used for all future
+                      connections.
+                    `
+                  : html`
+                      Enter your gateway password. Passwords are not stored and must be re-entered each session.
+                    `
+              }
             </p>
           </form>
         </div>

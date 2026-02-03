@@ -8,8 +8,8 @@
 import crypto from "node:crypto";
 import path from "node:path";
 import type { AutomationRunnerResult } from "../runner.js";
-import type { WebhookConfig, AutomationArtifact, AutomationMilestone } from "../types.js";
 import type { AutomationServiceState } from "../service/state.js";
+import type { WebhookConfig, AutomationArtifact, AutomationMilestone } from "../types.js";
 import { retryAsync, type RetryOptions } from "../../infra/retry.js";
 import { ArtifactStorage } from "../artifacts.js";
 import { emitAutomationProgress } from "../events.js";

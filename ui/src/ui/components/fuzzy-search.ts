@@ -45,11 +45,7 @@ export function fuzzyScorePart(query: string, text: string): number {
   for (let i = 0; i < t.length && qIndex < q.length; i++) {
     if (t[i] === q[qIndex]) {
       const isWordBoundary =
-        i === 0 ||
-        t[i - 1] === " " ||
-        t[i - 1] === "-" ||
-        t[i - 1] === "_" ||
-        t[i - 1] === "/";
+        i === 0 || t[i - 1] === " " || t[i - 1] === "-" || t[i - 1] === "_" || t[i - 1] === "/";
 
       score += 12 + consecutive * 6 + (isWordBoundary ? 10 : 0);
       consecutive++;
@@ -82,11 +78,7 @@ export interface Scorable {
  * (label, category, id) or the command is rejected (returns 0).
  */
 export function scoreCommand<T extends Scorable>(cmd: T, query: string): number {
-  const parts = query
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
   if (parts.length === 0) return 0;
 

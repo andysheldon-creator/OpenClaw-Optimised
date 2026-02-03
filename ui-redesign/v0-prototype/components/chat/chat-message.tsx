@@ -1,59 +1,53 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { AgentAvatar } from "@/components/dashboard/agent-avatar"
-import { User, ChevronDown, ChevronUp, Check, Loader2 } from "lucide-react"
-import { useState } from "react"
+import { User, ChevronDown, ChevronUp, Check, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { AgentAvatar } from "@/components/dashboard/agent-avatar";
+import { cn } from "@/lib/utils";
 
 interface ToolCall {
-  id: string
-  name: string
-  status: "running" | "done" | "error"
-  input?: string
-  output?: string
-  duration?: string
-  progress?: number
+  id: string;
+  name: string;
+  status: "running" | "done" | "error";
+  input?: string;
+  output?: string;
+  duration?: string;
+  progress?: number;
 }
 
 interface ChatMessageProps {
   message: {
-    id: string
-    role: "user" | "assistant"
-    content: string
-    timestamp: string
-    agentName?: string
-    agentStatus?: "active" | "ready"
-    toolCalls?: ToolCall[]
-    isStreaming?: boolean
-  }
-  className?: string
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+    timestamp: string;
+    agentName?: string;
+    agentStatus?: "active" | "ready";
+    toolCalls?: ToolCall[];
+    isStreaming?: boolean;
+  };
+  className?: string;
 }
 
 export function ChatMessage({ message, className }: ChatMessageProps) {
-  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set())
+  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
 
   const toggleToolExpand = (toolId: string) => {
     setExpandedTools((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(toolId)) {
-        next.delete(toolId)
+        next.delete(toolId);
       } else {
-        next.add(toolId)
+        next.add(toolId);
       }
-      return next
-    })
-  }
+      return next;
+    });
+  };
 
-  const isUser = message.role === "user"
+  const isUser = message.role === "user";
 
   return (
-    <div
-      className={cn(
-        "flex gap-3",
-        isUser ? "justify-end" : "justify-start",
-        className
-      )}
-    >
+    <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start", className)}>
       {!isUser && message.agentName && (
         <AgentAvatar
           name={message.agentName}
@@ -63,18 +57,13 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
         />
       )}
 
-      <div
-        className={cn(
-          "max-w-[85%] md:max-w-[75%] space-y-2",
-          isUser && "order-first"
-        )}
-      >
+      <div className={cn("max-w-[85%] md:max-w-[75%] space-y-2", isUser && "order-first")}>
         <div
           className={cn(
             "rounded-2xl px-4 py-3",
             isUser
               ? "bg-primary text-primary-foreground"
-              : "bg-card border border-border shadow-soft"
+              : "bg-card border border-border shadow-soft",
           )}
         >
           {/* Header */}
@@ -82,16 +71,12 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
             <span
               className={cn(
                 "font-medium",
-                isUser ? "text-primary-foreground/90" : "text-foreground"
+                isUser ? "text-primary-foreground/90" : "text-foreground",
               )}
             >
               {isUser ? "You" : message.agentName}
             </span>
-            <span
-              className={cn(
-                isUser ? "text-primary-foreground/70" : "text-muted-foreground"
-              )}
-            >
+            <span className={cn(isUser ? "text-primary-foreground/70" : "text-muted-foreground")}>
               {message.timestamp}
             </span>
           </div>
@@ -100,7 +85,7 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
           <div
             className={cn(
               "text-sm leading-relaxed",
-              isUser ? "text-primary-foreground" : "text-foreground"
+              isUser ? "text-primary-foreground" : "text-foreground",
             )}
           >
             {message.content}
@@ -131,13 +116,13 @@ export function ChatMessage({ message, className }: ChatMessageProps) {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 interface ToolCallCardProps {
-  tool: ToolCall
-  isExpanded: boolean
-  onToggle: () => void
+  tool: ToolCall;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
 function ToolCallCard({ tool, isExpanded, onToggle }: ToolCallCardProps) {
@@ -213,5 +198,5 @@ function ToolCallCard({ tool, isExpanded, onToggle }: ToolCallCardProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

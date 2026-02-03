@@ -54,14 +54,7 @@ export function saveButton(options: SaveButtonOptions): TemplateResult {
   const variantClass = `btn--${variant}`;
   const sizeClass = size ? `btn--${size}` : "";
 
-  const classes = [
-    "btn",
-    "btn--save",
-    variantClass,
-    sizeClass,
-    stateClass,
-    className,
-  ]
+  const classes = ["btn", "btn--save", variantClass, sizeClass, stateClass, className]
     .filter(Boolean)
     .join(" ");
 

@@ -3,6 +3,7 @@
 ## Purpose
 
 This document defines **reusable custom components** that enable:
+
 1. **Parallel development** - teams can build components independently
 2. **Consistency** - shared patterns across all views
 3. **Velocity** - compose views from proven building blocks
@@ -10,12 +11,15 @@ This document defines **reusable custom components** that enable:
 ## Component Tiers
 
 ### Tier 1: Primitives (from Shadcn/Radix)
+
 Use directly, configure via props. No custom wrapper needed.
 
 ### Tier 2: Composed Components
+
 Custom components built from Shadcn primitives with domain-specific logic.
 
 ### Tier 3: Domain Components
+
 Feature-specific components that encapsulate business logic.
 
 ---
@@ -24,29 +28,29 @@ Feature-specific components that encapsulate business logic.
 
 These are installed via `npx shadcn@latest add <component>`:
 
-| Component | Usage | Notes |
-|-----------|-------|-------|
-| `Button` | All actions | Variants: default, secondary, outline, ghost, destructive |
-| `Card` | Content containers | With CardHeader, CardContent, CardFooter |
-| `Dialog` | Modals | For confirmations, forms |
-| `Sheet` | Slide-in panels | For detail views, inspectors |
-| `Tabs` | View switching | Within cards and pages |
-| `Input` | Text entry | With label, error states |
-| `Textarea` | Multi-line text | Markdown support areas |
-| `Select` | Dropdowns | Single selection |
-| `Switch` | Toggles | Boolean settings |
-| `Badge` | Status indicators | Variants for states |
-| `Avatar` | Agent/user images | With fallback initials |
-| `Skeleton` | Loading states | Content placeholders |
-| `Tooltip` | Hints | On hover information |
-| `Command` | Command palette | Cmd+K interface |
-| `DropdownMenu` | Action menus | Context menus |
-| `ScrollArea` | Scrollable regions | With custom scrollbars |
-| `Separator` | Visual dividers | Horizontal/vertical |
-| `Form` | Form wrapper | With react-hook-form |
-| `Toast` / Sonner | Notifications | Transient feedback |
-| `Progress` | Progress bars | For workstreams, tasks |
-| `Collapsible` | Expandable sections | For tool calls, details |
+| Component        | Usage               | Notes                                                     |
+| ---------------- | ------------------- | --------------------------------------------------------- |
+| `Button`         | All actions         | Variants: default, secondary, outline, ghost, destructive |
+| `Card`           | Content containers  | With CardHeader, CardContent, CardFooter                  |
+| `Dialog`         | Modals              | For confirmations, forms                                  |
+| `Sheet`          | Slide-in panels     | For detail views, inspectors                              |
+| `Tabs`           | View switching      | Within cards and pages                                    |
+| `Input`          | Text entry          | With label, error states                                  |
+| `Textarea`       | Multi-line text     | Markdown support areas                                    |
+| `Select`         | Dropdowns           | Single selection                                          |
+| `Switch`         | Toggles             | Boolean settings                                          |
+| `Badge`          | Status indicators   | Variants for states                                       |
+| `Avatar`         | Agent/user images   | With fallback initials                                    |
+| `Skeleton`       | Loading states      | Content placeholders                                      |
+| `Tooltip`        | Hints               | On hover information                                      |
+| `Command`        | Command palette     | Cmd+K interface                                           |
+| `DropdownMenu`   | Action menus        | Context menus                                             |
+| `ScrollArea`     | Scrollable regions  | With custom scrollbars                                    |
+| `Separator`      | Visual dividers     | Horizontal/vertical                                       |
+| `Form`           | Form wrapper        | With react-hook-form                                      |
+| `Toast` / Sonner | Notifications       | Transient feedback                                        |
+| `Progress`       | Progress bars       | For workstreams, tasks                                    |
+| `Collapsible`    | Expandable sections | For tool calls, details                                   |
 
 ---
 
@@ -55,6 +59,7 @@ These are installed via `npx shadcn@latest add <component>`:
 ### Layout Components
 
 #### `<AppShell>`
+
 The root layout wrapper for the entire application.
 
 ```tsx
@@ -67,6 +72,7 @@ interface AppShellProps {
 ```
 
 **Responsibilities:**
+
 - Sidebar rendering and collapse state
 - Topbar with notifications, user menu
 - Main content scrolling
@@ -75,6 +81,7 @@ interface AppShellProps {
 ---
 
 #### `<Sidebar>`
+
 The main navigation sidebar.
 
 ```tsx
@@ -85,6 +92,7 @@ interface SidebarProps {
 ```
 
 **Subcomponents:**
+
 - `<SidebarSection>` - grouped nav items with label
 - `<SidebarItem>` - individual nav link
 - `<SidebarWorkspaceSwitcher>` - workspace dropdown
@@ -92,6 +100,7 @@ interface SidebarProps {
 ---
 
 #### `<PageHeader>`
+
 Consistent header for all page views.
 
 ```tsx
@@ -106,6 +115,7 @@ interface PageHeaderProps {
 ---
 
 #### `<DetailPanel>`
+
 Slide-in panel for detail views (uses Sheet).
 
 ```tsx
@@ -116,13 +126,14 @@ interface DetailPanelProps {
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  width?: 'sm' | 'md' | 'lg' | 'xl'; // 320, 400, 480, 640px
+  width?: "sm" | "md" | "lg" | "xl"; // 320, 400, 480, 640px
 }
 ```
 
 ---
 
 #### `<SplitPane>`
+
 Resizable multi-pane layout.
 
 ```tsx
@@ -132,7 +143,7 @@ interface SplitPaneProps {
   defaultRatio?: number; // 0-1, default 0.5
   minLeft?: number; // min px
   minRight?: number;
-  collapsible?: 'left' | 'right' | 'both';
+  collapsible?: "left" | "right" | "both";
 }
 ```
 
@@ -141,17 +152,19 @@ interface SplitPaneProps {
 ### Data Display Components
 
 #### `<StatusBadge>`
+
 Universal status indicator.
 
 ```tsx
 interface StatusBadgeProps {
-  status: 'online' | 'offline' | 'busy' | 'error' | 'pending' | 'success';
+  status: "online" | "offline" | "busy" | "error" | "pending" | "success";
   label?: string;
   pulse?: boolean; // Animated pulse for active states
 }
 ```
 
 **Visual:**
+
 - `online` → green dot + "Online"
 - `offline` → gray dot + "Offline"
 - `busy` → yellow dot + "Busy" (pulsing)
@@ -162,6 +175,7 @@ interface StatusBadgeProps {
 ---
 
 #### `<EntityCard>`
+
 Reusable card for displaying entities (agents, goals, workstreams).
 
 ```tsx
@@ -172,7 +186,7 @@ interface EntityCardProps {
   subtitle?: string;
   status?: StatusBadgeProps;
   metadata?: { label: string; value: string }[];
-  actions?: { label: string; onClick: () => void; variant?: 'default' | 'destructive' }[];
+  actions?: { label: string; onClick: () => void; variant?: "default" | "destructive" }[];
   onClick?: () => void;
   selected?: boolean;
 }
@@ -183,13 +197,14 @@ interface EntityCardProps {
 ---
 
 #### `<MetricCard>`
+
 Dashboard metric display.
 
 ```tsx
 interface MetricCardProps {
   label: string;
   value: string | number;
-  change?: { value: number; trend: 'up' | 'down' | 'neutral' };
+  change?: { value: number; trend: "up" | "down" | "neutral" };
   icon?: React.ReactNode;
   href?: string;
 }
@@ -198,6 +213,7 @@ interface MetricCardProps {
 ---
 
 #### `<ProgressBar>`
+
 Enhanced progress with labels.
 
 ```tsx
@@ -205,14 +221,15 @@ interface ProgressBarProps {
   value: number; // 0-100
   label?: string;
   showPercentage?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'default' | 'success' | 'warning' | 'error';
+  size?: "sm" | "md" | "lg";
+  variant?: "default" | "success" | "warning" | "error";
 }
 ```
 
 ---
 
 #### `<Timeline>`
+
 Chronological event display.
 
 ```tsx
@@ -233,6 +250,7 @@ interface TimelineEvent {
 ---
 
 #### `<DataList>`
+
 Key-value pair display.
 
 ```tsx
@@ -247,6 +265,7 @@ interface DataListProps {
 ### Form Components
 
 #### `<FormSection>`
+
 Grouped form fields with title.
 
 ```tsx
@@ -260,6 +279,7 @@ interface FormSectionProps {
 ---
 
 #### `<FormField>`
+
 Wrapper for labeled form inputs.
 
 ```tsx
@@ -275,6 +295,7 @@ interface FormFieldProps {
 ---
 
 #### `<MarkdownEditor>`
+
 Rich markdown editing with preview.
 
 ```tsx
@@ -289,6 +310,7 @@ interface MarkdownEditorProps {
 ```
 
 **Features:**
+
 - Formatting toolbar (bold, italic, lists, headers)
 - Split view with live preview
 - Drag-and-drop file upload
@@ -297,6 +319,7 @@ interface MarkdownEditorProps {
 ---
 
 #### `<RichTextInput>`
+
 Enhanced textarea with attachments.
 
 ```tsx
@@ -315,6 +338,7 @@ interface RichTextInputProps {
 ---
 
 #### `<SchedulePicker>`
+
 User-friendly schedule selection (Rituals).
 
 ```tsx
@@ -325,7 +349,7 @@ interface SchedulePickerProps {
 }
 
 interface ScheduleValue {
-  type: 'daily' | 'weekly' | 'monthly' | 'custom';
+  type: "daily" | "weekly" | "monthly" | "custom";
   time?: string; // "09:00"
   days?: number[]; // 0-6 for weekly
   dayOfMonth?: number;
@@ -339,6 +363,7 @@ interface ScheduleValue {
 ---
 
 #### `<PersonalitySlider>`
+
 Custom slider for personality traits.
 
 ```tsx
@@ -359,11 +384,12 @@ interface PersonalitySliderProps {
 ### Chat Components
 
 #### `<ChatMessage>`
+
 Individual message in conversation.
 
 ```tsx
 interface ChatMessageProps {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string; // Markdown
   timestamp: Date;
   avatar?: string;
@@ -377,12 +403,13 @@ interface ChatMessageProps {
 ---
 
 #### `<ToolCallCard>`
+
 Collapsible tool call display.
 
 ```tsx
 interface ToolCallCardProps {
   name: string;
-  status: 'pending' | 'running' | 'success' | 'error';
+  status: "pending" | "running" | "success" | "error";
   duration?: number; // ms
   input?: unknown;
   output?: unknown;
@@ -393,6 +420,7 @@ interface ToolCallCardProps {
 ---
 
 #### `<ChatInput>`
+
 Message composition area.
 
 ```tsx
@@ -412,6 +440,7 @@ interface ChatInputProps {
 ---
 
 #### `<ChatThread>`
+
 Full conversation thread with virtualization.
 
 ```tsx
@@ -428,6 +457,7 @@ interface ChatThreadProps {
 ### Workflow Components
 
 #### `<WorkflowCanvas>`
+
 ReactFlow-based DAG visualization.
 
 ```tsx
@@ -445,16 +475,17 @@ interface WorkflowCanvasProps {
 ---
 
 #### `<TaskNode>`
+
 Custom ReactFlow node for tasks.
 
 ```tsx
 interface TaskNodeProps {
   data: {
     title: string;
-    status: 'pending' | 'in_progress' | 'completed' | 'blocked';
+    status: "pending" | "in_progress" | "completed" | "blocked";
     assignee?: { name: string; avatar?: string };
     dueDate?: Date;
-    priority?: 'low' | 'medium' | 'high';
+    priority?: "low" | "medium" | "high";
   };
 }
 ```
@@ -462,6 +493,7 @@ interface TaskNodeProps {
 ---
 
 #### `<TaskList>`
+
 Linear task display (alternative to DAG).
 
 ```tsx
@@ -469,7 +501,7 @@ interface TaskListProps {
   tasks: Task[];
   onTaskClick?: (taskId: string) => void;
   onStatusChange?: (taskId: string, status: TaskStatus) => void;
-  groupBy?: 'status' | 'assignee' | 'priority';
+  groupBy?: "status" | "assignee" | "priority";
   showCompleted?: boolean;
 }
 ```
@@ -479,6 +511,7 @@ interface TaskListProps {
 ### Navigation Components
 
 #### `<Breadcrumbs>`
+
 Navigation breadcrumb trail.
 
 ```tsx
@@ -490,6 +523,7 @@ interface BreadcrumbsProps {
 ---
 
 #### `<TabNav>`
+
 Tab navigation with route integration.
 
 ```tsx
@@ -503,6 +537,7 @@ interface TabNavProps {
 ---
 
 #### `<WorkspaceSwitcher>`
+
 Dropdown for switching workspaces.
 
 ```tsx
@@ -519,6 +554,7 @@ interface WorkspaceSwitcherProps {
 ### Feedback Components
 
 #### `<EmptyState>`
+
 Empty content placeholder.
 
 ```tsx
@@ -533,6 +569,7 @@ interface EmptyStateProps {
 ---
 
 #### `<LoadingState>`
+
 Full-area loading indicator.
 
 ```tsx
@@ -545,6 +582,7 @@ interface LoadingStateProps {
 ---
 
 #### `<ErrorState>`
+
 Error display with retry.
 
 ```tsx
@@ -558,6 +596,7 @@ interface ErrorStateProps {
 ---
 
 #### `<ConfirmDialog>`
+
 Confirmation modal.
 
 ```tsx
@@ -568,7 +607,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: 'default' | 'destructive';
+  variant?: "default" | "destructive";
   onConfirm: () => void;
 }
 ```
@@ -580,6 +619,7 @@ interface ConfirmDialogProps {
 ### Agent Components
 
 #### `<AgentCard>`
+
 Agent display card (extends EntityCard).
 
 ```tsx
@@ -594,12 +634,13 @@ interface AgentCardProps {
 ---
 
 #### `<AgentAvatar>`
+
 Agent avatar with status indicator.
 
 ```tsx
 interface AgentAvatarProps {
   agent: Agent;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl";
   showStatus?: boolean;
 }
 ```
@@ -607,6 +648,7 @@ interface AgentAvatarProps {
 ---
 
 #### `<AgentSelector>`
+
 Agent picker dropdown/modal.
 
 ```tsx
@@ -621,6 +663,7 @@ interface AgentSelectorProps {
 ---
 
 #### `<SoulEditor>`
+
 Personality/SOUL.md visual editor.
 
 ```tsx
@@ -632,6 +675,7 @@ interface SoulEditorProps {
 ```
 
 **Features:**
+
 - Personality sliders
 - Values/principles editor
 - Communication style picker
@@ -643,6 +687,7 @@ interface SoulEditorProps {
 ### Memory Components
 
 #### `<MemoryCard>`
+
 Individual memory display.
 
 ```tsx
@@ -658,6 +703,7 @@ interface MemoryCardProps {
 ---
 
 #### `<MemoryBrowser>`
+
 Searchable memory list with filters.
 
 ```tsx
@@ -675,6 +721,7 @@ interface MemoryBrowserProps {
 ### Goal Components
 
 #### `<GoalCard>`
+
 Goal display with progress.
 
 ```tsx
@@ -688,6 +735,7 @@ interface GoalCardProps {
 ---
 
 #### `<GoalProgress>`
+
 Visual goal progress indicator.
 
 ```tsx
@@ -702,6 +750,7 @@ interface GoalProgressProps {
 ### Connection Components
 
 #### `<ChannelCard>`
+
 Messaging channel status and config.
 
 ```tsx
@@ -715,6 +764,7 @@ interface ChannelCardProps {
 ---
 
 #### `<IntegrationCard>`
+
 MCP/OAuth integration card.
 
 ```tsx
@@ -729,6 +779,7 @@ interface IntegrationCardProps {
 ---
 
 #### `<OAuthFlow>`
+
 OAuth authentication flow handler.
 
 ```tsx
@@ -839,6 +890,7 @@ src/components/
 ### Testing Requirements
 
 Each component should have:
+
 - Unit tests with React Testing Library
 - Storybook stories for visual testing
 - Accessibility audit (axe-core)
@@ -846,6 +898,7 @@ Each component should have:
 ### Documentation
 
 Each component file should include:
+
 - JSDoc comments on props
 - Usage examples in Storybook
 - Accessibility notes

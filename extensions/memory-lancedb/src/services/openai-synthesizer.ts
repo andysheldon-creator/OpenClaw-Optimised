@@ -1,8 +1,8 @@
-import OpenAI from "openai";
-import { appendFile } from "node:fs/promises";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import type { ClawdbrainPluginApi } from "clawdbrain/plugin-sdk";
+import { appendFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import OpenAI from "openai";
 import type { Synthesizer, MemoryEntry } from "../types.js";
 
 async function logLedger(api: ClawdbrainPluginApi, action: string, data: any) {
@@ -32,7 +32,7 @@ export class OpenAiSynthesizer implements Synthesizer {
 
   async synthesize(
     memories: MemoryEntry[],
-    api: ClawdbrainPluginApi
+    api: ClawdbrainPluginApi,
   ): Promise<{
     merged: MemoryEntry[];
     archived: string[];
@@ -45,8 +45,8 @@ export class OpenAiSynthesizer implements Synthesizer {
     // 1. Cluster memories (Naive approach: just send all recent ones to LLM for now)
     // For a large number, we'd need embeddings-based clustering first.
     // Assuming we pass a manageable batch (< 50 items).
-    
-    const memoryText = memories.map(m => `[${m.id}] (${m.category}) ${m.text}`).join("\n");
+
+    const memoryText = memories.map((m) => `[${m.id}] (${m.category}) ${m.text}`).join("\n");
 
     const systemPrompt = `You are a memory maintenance engine.
 Your goal is to review a list of memory entries and perform "Garbage Collection".
@@ -79,7 +79,7 @@ Return JSON:
 
       const content = response.choices[0].message.content ?? "{}";
       const result = JSON.parse(content);
-      
+
       const merged: MemoryEntry[] = (result.merged || []).map((m: any) => ({
         id: "new-" + Math.random().toString(36).slice(2, 9), // Temp ID
         text: m.text,
@@ -99,11 +99,10 @@ Return JSON:
         mergedCount: merged.length,
         archivedCount: archived.length,
         latency: Date.now() - start,
-        model: this.model
+        model: this.model,
       });
 
       return { merged, archived, summary };
-
     } catch (err) {
       api.logger.warn(`memory-lancedb: synthesis failed: ${String(err)}`);
       return { merged: [], archived: [], summary: "Synthesis failed." };

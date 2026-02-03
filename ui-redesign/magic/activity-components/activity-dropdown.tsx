@@ -2,21 +2,20 @@
 // Component: Activity Dropdown
 // Search Query: "activity feed timeline"
 
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { Bell, MessageCircle, Award, Calendar, Tag, CheckSquare, ChevronUp } from "lucide-react"
-import { cn } from "@/lib/utils"
+import type React from "react";
+import { Bell, MessageCircle, Award, Calendar, Tag, CheckSquare, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface Activity {
-  id: number
-  icon: React.ReactNode
-  iconBg: string
-  title: string
-  description: string
-  time: string
+  id: number;
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  description: string;
+  time: string;
 }
 
 const activities: Activity[] = [
@@ -60,10 +59,10 @@ const activities: Activity[] = [
     description: "A new task is awaiting your action.",
     time: "Yesterday",
   },
-]
+];
 
 export function ActivityDropdown() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div
@@ -82,7 +81,9 @@ export function ActivityDropdown() {
           <Bell className="h-5 w-5 text-neutral-600 dark:text-neutral-300" />
         </div>
         <div className="flex-1 overflow-hidden">
-          <h3 className="text-base font-semibold text-neutral-900 dark:text-white">5 New Activities</h3>
+          <h3 className="text-base font-semibold text-neutral-900 dark:text-white">
+            5 New Activities
+          </h3>
           <p
             className={cn(
               "text-sm text-neutral-500 dark:text-neutral-400",
@@ -131,8 +132,12 @@ export function ActivityDropdown() {
                     <span className="text-neutral-600 dark:text-neutral-300">{activity.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">{activity.title}</h4>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">{activity.description}</p>
+                    <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">
+                      {activity.title}
+                    </h4>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">
+                      {activity.description}
+                    </p>
                   </div>
                   <span className="text-xs text-neutral-400 dark:text-neutral-500 shrink-0 pt-0.5">
                     {activity.time}
@@ -144,5 +149,5 @@ export function ActivityDropdown() {
         </div>
       </div>
     </div>
-  )
+  );
 }

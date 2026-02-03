@@ -130,9 +130,11 @@ export function isCompactField(schema: JsonSchema, hint?: { compact?: boolean })
   const variants = schema.anyOf ?? schema.oneOf;
   if (variants) {
     const nonNull = variants.filter(
-      (v) => !(v.type === "null" || (Array.isArray(v.type) && v.type.includes("null")))
+      (v) => !(v.type === "null" || (Array.isArray(v.type) && v.type.includes("null"))),
     );
-    const allLiterals = nonNull.every((v) => v.const !== undefined || (v.enum && v.enum.length === 1));
+    const allLiterals = nonNull.every(
+      (v) => v.const !== undefined || (v.enum && v.enum.length === 1),
+    );
     if (allLiterals && nonNull.length > 0 && nonNull.length <= 5) return true;
   }
   return false;

@@ -73,53 +73,38 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  transform:
-    translate(-50%, -50%)
-    rotate(var(--orbital-rot))
-    translateX(var(--orbital-radius))
+  transform: translate(-50%, -50%) rotate(var(--orbital-rot)) translateX(var(--orbital-radius))
     rotate(var(--orbital-rot-neg));
   width: var(--orbital-item-width);
   max-width: var(--orbital-item-width);
   padding: 12px 12px 11px 12px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.09);
-  background: linear-gradient(
-    135deg,
-    rgba(var(--panel-rgb), 0.78),
-    rgba(var(--panel-rgb), 0.5)
-  );
+  background: linear-gradient(135deg, rgba(var(--panel-rgb), 0.78), rgba(var(--panel-rgb), 0.5));
   backdrop-filter: blur(18px);
   color: var(--text);
   text-align: left;
   cursor: pointer;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
 }
 
 :root[data-theme="light"] .orbital__item {
   border-color: rgba(0, 0, 0, 0.08);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.92),
-    rgba(255, 255, 255, 0.72)
-  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.72));
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.1);
 }
 
 .orbital__item:hover:not(:disabled) {
   border-color: rgba(245, 159, 74, 0.35);
-  background: linear-gradient(
-    135deg,
-    rgba(var(--panel-rgb), 0.86),
-    rgba(var(--panel-rgb), 0.58)
-  );
+  background: linear-gradient(135deg, rgba(var(--panel-rgb), 0.86), rgba(var(--panel-rgb), 0.58));
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.32);
-  transform:
-    translate(-50%, -50%)
-    rotate(var(--orbital-rot))
-    translateX(var(--orbital-radius))
-    rotate(var(--orbital-rot-neg))
-    scale(1.02);
+  transform: translate(-50%, -50%) rotate(var(--orbital-rot)) translateX(var(--orbital-radius))
+    rotate(var(--orbital-rot-neg)) scale(1.02);
 }
 
 .orbital__item:disabled {
@@ -163,11 +148,7 @@
   width: min(380px, 72%);
   padding: 18px 18px 16px 18px;
   border-radius: 22px;
-  background: linear-gradient(
-    135deg,
-    rgba(var(--panel-rgb), 0.78),
-    rgba(var(--panel-rgb), 0.52)
-  );
+  background: linear-gradient(135deg, rgba(var(--panel-rgb), 0.78), rgba(var(--panel-rgb), 0.52));
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(20px);

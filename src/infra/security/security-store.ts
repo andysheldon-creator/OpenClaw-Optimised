@@ -7,6 +7,14 @@
 import crypto from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import type {
+  SecurityConfig,
+  SecurityState,
+  UnlockSession,
+  UnlockFailureReason,
+  TwoFactorSetupData,
+  RecoveryCodesData,
+} from "./types.js";
 import { hashPassword, verifyPassword } from "./password.js";
 import {
   generateTotpSetupData,
@@ -16,26 +24,18 @@ import {
   verifyRecoveryCode,
 } from "./totp.js";
 import {
+  DEFAULT_SECURITY_CONFIG,
+  DEFAULT_SESSION_DURATION_MS,
+  MAX_UNLOCK_ATTEMPTS,
+  LOCKOUT_DURATION_MS,
+} from "./types.js";
+import {
   recordUnlockAttempt,
   getUnlockHistory,
   createSuccessEvent,
   createFailureEvent,
   resolveUnlockHistoryPath,
 } from "./unlock-history.js";
-import type {
-  SecurityConfig,
-  SecurityState,
-  UnlockSession,
-  UnlockFailureReason,
-  TwoFactorSetupData,
-  RecoveryCodesData,
-} from "./types.js";
-import {
-  DEFAULT_SECURITY_CONFIG,
-  DEFAULT_SESSION_DURATION_MS,
-  MAX_UNLOCK_ATTEMPTS,
-  LOCKOUT_DURATION_MS,
-} from "./types.js";
 
 /** Directory for security data */
 const SECURITY_DIR = ".clawdbrain/security";

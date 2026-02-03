@@ -20,18 +20,19 @@ Every interaction should feel **immediate, responsive, and informative**. Users 
 
 For any user action, provide instant visual feedback:
 
-| Action | Feedback |
-|--------|----------|
-| Button click | Subtle press state (scale, color shift) |
-| Checkbox toggle | Immediate check animation |
-| Form input focus | Border color change, subtle glow |
-| Hover | Background color shift, shadow change |
-| Link hover | Underline, color change |
-| Drag start | Element lifts, cursor changes |
+| Action           | Feedback                                |
+| ---------------- | --------------------------------------- |
+| Button click     | Subtle press state (scale, color shift) |
+| Checkbox toggle  | Immediate check animation               |
+| Form input focus | Border color change, subtle glow        |
+| Hover            | Background color shift, shadow change   |
+| Link hover       | Underline, color change                 |
+| Drag start       | Element lifts, cursor changes           |
 
 ### Loading States
 
 #### Skeleton Loading
+
 Use for content that's being fetched:
 
 ```tsx
@@ -49,11 +50,13 @@ Use for content that's being fetched:
 ```
 
 **Rules:**
+
 - Match skeleton shape to final content shape
 - Use subtle pulse animation
 - Show within 200ms of navigation
 
 #### Progress Indicators
+
 Use for operations with known duration or progress:
 
 ```tsx
@@ -65,6 +68,7 @@ Use for operations with known duration or progress:
 ```
 
 #### Spinners
+
 Use sparingly, only for short operations (< 2s):
 
 ```tsx
@@ -83,17 +87,13 @@ Update UI immediately, then sync with server:
 // Example: Toggle agent status
 const toggleAgent = async (id: string) => {
   // Optimistically update
-  setAgents(prev =>
-    prev.map(a => a.id === id ? {...a, enabled: !a.enabled} : a)
-  );
+  setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)));
 
   try {
     await api.toggleAgent(id);
   } catch {
     // Revert on failure
-    setAgents(prev =>
-      prev.map(a => a.id === id ? {...a, enabled: !a.enabled} : a)
-    );
+    setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)));
     toast.error("Failed to update agent");
   }
 };
@@ -107,13 +107,13 @@ Using Sonner for toast notifications.
 
 ### Toast Types
 
-| Type | When to Use | Duration |
-|------|-------------|----------|
-| Success | Action completed | 3s |
-| Error | Action failed | 5s (with action to retry) |
-| Warning | Potential issue | 5s |
-| Info | FYI notification | 4s |
-| Loading | Async operation in progress | Until complete |
+| Type    | When to Use                 | Duration                  |
+| ------- | --------------------------- | ------------------------- |
+| Success | Action completed            | 3s                        |
+| Error   | Action failed               | 5s (with action to retry) |
+| Warning | Potential issue             | 5s                        |
+| Info    | FYI notification            | 4s                        |
+| Loading | Async operation in progress | Until complete            |
 
 ### Toast Patterns
 
@@ -220,7 +220,7 @@ toast("Workstream completed", {
 <motion.div
   whileDrag={{
     scale: 1.02,
-    boxShadow: "0 10px 25px rgba(0,0,0,0.15)"
+    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
   }}
 >
   <DraggableItem />
@@ -256,16 +256,10 @@ toast("Workstream completed", {
 
 ```tsx
 // Inline validation as user types (debounced)
-<Input
-  className={cn(
-    error && "border-error focus-visible:ring-error"
-  )}
-/>
-{error && (
-  <p className="text-sm text-error mt-1 animate-slide-in-bottom">
-    {error}
-  </p>
-)}
+<Input className={cn(error && "border-error focus-visible:ring-error")} />;
+{
+  error && <p className="text-sm text-error mt-1 animate-slide-in-bottom">{error}</p>;
+}
 ```
 
 ### Form Submission
@@ -360,11 +354,7 @@ Keep it subtle - don't slow down navigation:
 
 ```tsx
 <TabsContent asChild value={tab}>
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ duration: 0.15 }}
-  >
+  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
     {content}
   </motion.div>
 </TabsContent>
@@ -386,13 +376,13 @@ Keep it subtle - don't slow down navigation:
 
 ### Agent Status
 
-| Status | Visual |
-|--------|--------|
+| Status           | Visual            |
+| ---------------- | ----------------- |
 | Active (working) | Pulsing green dot |
-| Ready (idle) | Solid green dot |
-| Paused | Yellow dot |
-| Error | Red dot |
-| Offline | Gray dot |
+| Ready (idle)     | Solid green dot   |
+| Paused           | Yellow dot        |
+| Error            | Red dot           |
+| Offline          | Gray dot          |
 
 ### Workstream Progress
 
@@ -437,6 +427,7 @@ Keep it subtle - don't slow down navigation:
 ### Recovery Actions
 
 Always provide a way forward:
+
 - Retry button for network errors
 - Help link for persistent issues
 - Clear error state on next attempt
@@ -447,35 +438,36 @@ Always provide a way forward:
 
 ### Global
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+K` | Open command palette |
-| `Cmd+N` | New conversation |
-| `Cmd+\` | Toggle sidebar |
-| `Cmd+Shift+D` | Toggle dark mode |
-| `?` | Show keyboard shortcuts |
+| Shortcut      | Action                  |
+| ------------- | ----------------------- |
+| `Cmd+K`       | Open command palette    |
+| `Cmd+N`       | New conversation        |
+| `Cmd+\`       | Toggle sidebar          |
+| `Cmd+Shift+D` | Toggle dark mode        |
+| `?`           | Show keyboard shortcuts |
 
 ### Chat
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+Enter` | Send message |
-| `Escape` | Stop streaming / cancel |
-| `Cmd+Shift+T` | Toggle task panel |
-| `/` | Focus input |
+| Shortcut      | Action                  |
+| ------------- | ----------------------- |
+| `Cmd+Enter`   | Send message            |
+| `Escape`      | Stop streaming / cancel |
+| `Cmd+Shift+T` | Toggle task panel       |
+| `/`           | Focus input             |
 
 ### Navigation
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+1` | Go to Home |
-| `Cmd+2` | Go to Chat |
-| `Cmd+3` | Go to Agents |
-| `Cmd+,` | Go to Settings |
+| Shortcut | Action         |
+| -------- | -------------- |
+| `Cmd+1`  | Go to Home     |
+| `Cmd+2`  | Go to Chat     |
+| `Cmd+3`  | Go to Agents   |
+| `Cmd+,`  | Go to Settings |
 
 ### Showing Shortcuts
 
 Display keyboard shortcut hints in:
+
 - Tooltips on hover
 - Command palette results
 - Button hover states (for power actions)
@@ -487,26 +479,26 @@ Display keyboard shortcut hints in:
 For users with `prefers-reduced-motion: reduce`:
 
 ```tsx
-const prefersReducedMotion = useMediaQuery(
-  "(prefers-reduced-motion: reduce)"
-);
+const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
 // Use instant transitions
 <motion.div
   animate={{ opacity: 1 }}
   transition={{
-    duration: prefersReducedMotion ? 0 : 0.2
+    duration: prefersReducedMotion ? 0 : 0.2,
   }}
-/>
+/>;
 ```
 
 **What to reduce:**
+
 - Page transitions → instant
 - Micro-animations → instant or static
 - Loading spinners → static progress indicator
 - Pulse animations → solid states
 
 **What to keep:**
+
 - Essential progress indicators
 - State change feedback (just instant)
 - Focus indicators

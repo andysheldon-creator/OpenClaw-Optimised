@@ -10,26 +10,26 @@ A phased rollout with file manifests, demo scenarios, and trade-off analysis.
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `src/knowledge/graph/schema.ts` | SQLite graph table creation + migration |
-| `src/knowledge/graph/types.ts` | Shared types (ExtractedEntity, ExtractedRelationship, GraphSnapshot, etc.) |
-| `src/knowledge/graph/query.ts` | GraphQueryEngine implementation (recursive CTEs) |
-| `src/knowledge/extraction/extractor.ts` | LLM extraction pipeline |
-| `src/knowledge/extraction/parser.ts` | Output parsing (delimiter + JSON fallback) |
-| `src/knowledge/extraction/prompts.ts` | Extraction prompt templates |
-| `src/knowledge/extraction/consolidation.ts` | Entity merging algorithm |
-| `src/knowledge/index.ts` | Public API barrel |
+| File                                        | Purpose                                                                    |
+| ------------------------------------------- | -------------------------------------------------------------------------- |
+| `src/knowledge/graph/schema.ts`             | SQLite graph table creation + migration                                    |
+| `src/knowledge/graph/types.ts`              | Shared types (ExtractedEntity, ExtractedRelationship, GraphSnapshot, etc.) |
+| `src/knowledge/graph/query.ts`              | GraphQueryEngine implementation (recursive CTEs)                           |
+| `src/knowledge/extraction/extractor.ts`     | LLM extraction pipeline                                                    |
+| `src/knowledge/extraction/parser.ts`        | Output parsing (delimiter + JSON fallback)                                 |
+| `src/knowledge/extraction/prompts.ts`       | Extraction prompt templates                                                |
+| `src/knowledge/extraction/consolidation.ts` | Entity merging algorithm                                                   |
+| `src/knowledge/index.ts`                    | Public API barrel                                                          |
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/memory/memory-schema.ts` | Add graph tables to `ensureMemoryIndexSchema()` |
-| `src/memory/manager.ts` | Hook extraction into `syncFiles()` post-embedding |
-| `src/agents/memory-search.ts` | Add knowledge config resolution |
-| `src/config/types.agent-defaults.ts` | Add `KnowledgeConfig` type |
-| `src/config/zod-schema.agent-defaults.ts` | Add Zod validation |
+| File                                      | Change                                            |
+| ----------------------------------------- | ------------------------------------------------- |
+| `src/memory/memory-schema.ts`             | Add graph tables to `ensureMemoryIndexSchema()`   |
+| `src/memory/manager.ts`                   | Hook extraction into `syncFiles()` post-embedding |
+| `src/agents/memory-search.ts`             | Add knowledge config resolution                   |
+| `src/config/types.agent-defaults.ts`      | Add `KnowledgeConfig` type                        |
+| `src/config/zod-schema.agent-defaults.ts` | Add Zod validation                                |
 
 ### Tests
 
@@ -53,21 +53,21 @@ A phased rollout with file manifests, demo scenarios, and trade-off analysis.
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `src/knowledge/retrieval/graph-rag.ts` | Graph expansion retriever |
+| File                                                 | Purpose                                  |
+| ---------------------------------------------------- | ---------------------------------------- |
+| `src/knowledge/retrieval/graph-rag.ts`               | Graph expansion retriever                |
 | `src/knowledge/retrieval/query-entity-recognizer.ts` | Fast entity mention detection in queries |
-| `src/knowledge/retrieval/context-formatter.ts` | Structured context formatting |
-| `src/agents/tools/knowledge-tools.ts` | graph_search, graph_inspect tools |
+| `src/knowledge/retrieval/context-formatter.ts`       | Structured context formatting            |
+| `src/agents/tools/knowledge-tools.ts`                | graph_search, graph_inspect tools        |
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/memory/manager.ts` | Wire graph expansion into `search()` |
-| `src/agents/tools/memory-tool.ts` | Add `useGraph` parameter |
-| `src/agents/system-prompt.ts` | Add knowledge graph context section |
-| Agent tool registration | Register new tools conditionally |
+| File                              | Change                               |
+| --------------------------------- | ------------------------------------ |
+| `src/memory/manager.ts`           | Wire graph expansion into `search()` |
+| `src/agents/tools/memory-tool.ts` | Add `useGraph` parameter             |
+| `src/agents/system-prompt.ts`     | Add knowledge graph context section  |
+| Agent tool registration           | Register new tools conditionally     |
 
 ### Tests
 
@@ -89,25 +89,25 @@ A phased rollout with file manifests, demo scenarios, and trade-off analysis.
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `src/knowledge/ingest.ts` | Ingestion pipeline orchestrator |
-| `src/knowledge/crawler.ts` | Web crawl orchestrator |
-| `src/knowledge/crawler-discovery.ts` | URL discovery (sitemap, BFS) |
-| `src/knowledge/crawler-fetcher.ts` | HTTP fetching with rate limiting |
-| `src/knowledge/parsers/pdf.ts` | PDF extraction wrapper |
-| `src/knowledge/parsers/docx.ts` | DOCX extraction wrapper |
-| `src/knowledge/parsers/html.ts` | HTML readability extraction |
-| `src/commands/knowledge.ts` | CLI commands (ingest, crawl, list, remove) |
+| File                                 | Purpose                                    |
+| ------------------------------------ | ------------------------------------------ |
+| `src/knowledge/ingest.ts`            | Ingestion pipeline orchestrator            |
+| `src/knowledge/crawler.ts`           | Web crawl orchestrator                     |
+| `src/knowledge/crawler-discovery.ts` | URL discovery (sitemap, BFS)               |
+| `src/knowledge/crawler-fetcher.ts`   | HTTP fetching with rate limiting           |
+| `src/knowledge/parsers/pdf.ts`       | PDF extraction wrapper                     |
+| `src/knowledge/parsers/docx.ts`      | DOCX extraction wrapper                    |
+| `src/knowledge/parsers/html.ts`      | HTML readability extraction                |
+| `src/commands/knowledge.ts`          | CLI commands (ingest, crawl, list, remove) |
 
 ### Dependencies to Add
 
-| Package | Purpose | Size |
-|---------|---------|------|
-| `pdf-parse` | PDF text extraction | Pure JS, ~200KB |
-| `mammoth` | DOCX to markdown | Pure JS, ~300KB |
-| `@mozilla/readability` | HTML article extraction | Pure JS, ~30KB |
-| `linkedom` | Lightweight DOM for Readability | Pure JS, ~100KB |
+| Package                | Purpose                         | Size            |
+| ---------------------- | ------------------------------- | --------------- |
+| `pdf-parse`            | PDF text extraction             | Pure JS, ~200KB |
+| `mammoth`              | DOCX to markdown                | Pure JS, ~300KB |
+| `@mozilla/readability` | HTML article extraction         | Pure JS, ~30KB  |
+| `linkedom`             | Lightweight DOM for Readability | Pure JS, ~100KB |
 
 ### Tests
 
@@ -133,17 +133,17 @@ A phased rollout with file manifests, demo scenarios, and trade-off analysis.
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
+| File                               | Purpose                   |
+| ---------------------------------- | ------------------------- |
 | `src/knowledge/overseer-bridge.ts` | Goal/task graph node sync |
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/infra/overseer/planner.ts` | Inject graph context into planning prompt |
-| `src/infra/overseer/store.types.ts` | Optional `entityIds` field on records |
-| `src/infra/overseer/runner.ts` | Call bridge on goal/task lifecycle events |
+| File                                | Change                                    |
+| ----------------------------------- | ----------------------------------------- |
+| `src/infra/overseer/planner.ts`     | Inject graph context into planning prompt |
+| `src/infra/overseer/store.types.ts` | Optional `entityIds` field on records     |
+| `src/infra/overseer/runner.ts`      | Call bridge on goal/task lifecycle events |
 
 ### Exit Criteria
 
@@ -159,24 +159,24 @@ A phased rollout with file manifests, demo scenarios, and trade-off analysis.
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `ui/src/ui/pages/knowledge-graph.ts` | Graph explorer page (Lit component) |
-| `ui/src/ui/pages/knowledge-sources.ts` | Ingestion management page |
-| `ui/src/ui/components/graph-renderer.ts` | D3-force rendering logic |
-| `ui/src/ui/components/entity-detail-panel.ts` | Entity detail sidebar |
-| `ui/src/ui/components/source-upload.ts` | File upload component |
-| `ui/src/ui/components/crawl-panel.ts` | Crawl launcher + progress |
-| Gateway route handlers | `/api/knowledge/*` endpoints |
+| File                                          | Purpose                             |
+| --------------------------------------------- | ----------------------------------- |
+| `ui/src/ui/pages/knowledge-graph.ts`          | Graph explorer page (Lit component) |
+| `ui/src/ui/pages/knowledge-sources.ts`        | Ingestion management page           |
+| `ui/src/ui/components/graph-renderer.ts`      | D3-force rendering logic            |
+| `ui/src/ui/components/entity-detail-panel.ts` | Entity detail sidebar               |
+| `ui/src/ui/components/source-upload.ts`       | File upload component               |
+| `ui/src/ui/components/crawl-panel.ts`         | Crawl launcher + progress           |
+| Gateway route handlers                        | `/api/knowledge/*` endpoints        |
 
 ### Dependencies to Add (ui/)
 
-| Package | Purpose | Size |
-|---------|---------|------|
-| `d3-force` | Force simulation | ~8KB gzip |
+| Package        | Purpose              | Size      |
+| -------------- | -------------------- | --------- |
+| `d3-force`     | Force simulation     | ~8KB gzip |
 | `d3-selection` | SVG DOM manipulation | ~8KB gzip |
-| `d3-zoom` | Zoom/pan behavior | ~8KB gzip |
-| `d3-drag` | Drag behavior | ~4KB gzip |
+| `d3-zoom`      | Zoom/pan behavior    | ~8KB gzip |
+| `d3-drag`      | Drag behavior        | ~4KB gzip |
 
 ### Exit Criteria
 
@@ -195,11 +195,11 @@ A phased rollout with file manifests, demo scenarios, and trade-off analysis.
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `extensions/knowledge-neo4j/package.json` | Extension package |
-| `extensions/knowledge-neo4j/src/index.ts` | Neo4j GraphQueryEngine implementation |
-| `extensions/knowledge-neo4j/src/cypher.ts` | Cypher query builders |
+| File                                       | Purpose                               |
+| ------------------------------------------ | ------------------------------------- |
+| `extensions/knowledge-neo4j/package.json`  | Extension package                     |
+| `extensions/knowledge-neo4j/src/index.ts`  | Neo4j GraphQueryEngine implementation |
+| `extensions/knowledge-neo4j/src/cypher.ts` | Cypher query builders                 |
 
 ### Exit Criteria
 
@@ -301,6 +301,7 @@ Entity extraction adds LLM calls per chunk. For 100 chunks at ~400 tokens each:
 approximately $0.03 per full sync.
 
 **Mitigations:**
+
 - Only extract from new/changed chunks (delta sync)
 - Use cheaper models for extraction (configurable `model` override)
 - Batch extraction calls where possible
@@ -311,6 +312,7 @@ approximately $0.03 per full sync.
 Entities extracted from old chunks may reference outdated information.
 
 **Mitigations:**
+
 - `last_seen` timestamps enable recency-weighted retrieval
 - Periodic re-extraction on changed files (piggybacks on existing file watcher)
 - Manual `clawdbrain knowledge reindex` command for full re-extraction
@@ -321,6 +323,7 @@ Entities extracted from old chunks may reference outdated information.
 Graph context competes with vector/BM25 results for context window space.
 
 **Mitigations:**
+
 - Configurable `maxChunks` for graph-sourced results (default 4)
 - Graph context is formatted as structured summary (compact, ~50-100 tokens per entity)
 - Total graph context block capped at ~500 tokens by default

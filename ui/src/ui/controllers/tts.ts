@@ -37,9 +37,7 @@ function normalizeProvider(entry: Record<string, unknown>): TtsProviderInfo | nu
     id,
     name: typeof entry.name === "string" ? entry.name : id,
     configured: entry.configured === true,
-    models: Array.isArray(entry.models)
-      ? entry.models.map((m) => String(m)).filter(Boolean)
-      : [],
+    models: Array.isArray(entry.models) ? entry.models.map((m) => String(m)).filter(Boolean) : [],
     voices: Array.isArray(entry.voices)
       ? entry.voices.map((v) => String(v)).filter(Boolean)
       : undefined,

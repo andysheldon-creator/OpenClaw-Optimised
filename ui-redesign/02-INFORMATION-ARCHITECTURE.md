@@ -3,6 +3,7 @@
 ## Navigation Philosophy
 
 The navigation is organized around **human mental models**, not technical concepts:
+
 - "Your Brain" = personal identity and knowledge
 - "Team" = the agents that help you and their work
 - Workspaces scope work context, not the entire app
@@ -32,15 +33,15 @@ App (Second Brain - your whole system)
 
 ### Key Insight: Scoping Rules
 
-| Concept | Scope | Rationale |
-|---------|-------|-----------|
-| You (Identity) | Global | You're the same person everywhere |
-| Goals | Global | Aspirations span contexts |
-| Memories | Mixed | Some global, some workspace-specific |
-| Agents | Team-level | Agents work across workspaces |
-| Workstreams | Workspace | Active work is context-specific |
-| Rituals | Agent-level | Scheduled per-agent, may reference workspace |
-| Connections | Global | Channels/integrations are system-wide |
+| Concept        | Scope       | Rationale                                    |
+| -------------- | ----------- | -------------------------------------------- |
+| You (Identity) | Global      | You're the same person everywhere            |
+| Goals          | Global      | Aspirations span contexts                    |
+| Memories       | Mixed       | Some global, some workspace-specific         |
+| Agents         | Team-level  | Agents work across workspaces                |
+| Workstreams    | Workspace   | Active work is context-specific              |
+| Rituals        | Agent-level | Scheduled per-agent, may reference workspace |
+| Connections    | Global      | Channels/integrations are system-wide        |
 
 ---
 
@@ -202,6 +203,7 @@ When "Advanced Features" is enabled:
 ### Workspace Switching
 
 The workspace switcher appears in the Team section:
+
 - Click to open dropdown
 - Shows all workspaces with status indicators
 - "Create new workspace" at bottom
@@ -214,12 +216,14 @@ The workspace switcher appears in the Team section:
 ### Quick Navigation
 
 **Command Palette** (Cmd+K):
+
 - Search across all concepts
 - Quick actions ("New agent", "Start conversation")
 - Recent items
 - Keyboard-first navigation
 
 **Breadcrumbs**:
+
 - Shown in main content area
 - Context-aware (Agent > Soul, Goal > Workstream)
 - Clickable for navigation
@@ -227,6 +231,7 @@ The workspace switcher appears in the Team section:
 ### Mobile Navigation
 
 On mobile:
+
 - Bottom tab bar with 4-5 primary items
 - "More" tab for secondary navigation
 - Swipe gestures for workspace switching
@@ -247,16 +252,17 @@ On mobile:
 
 ## Responsive Breakpoints
 
-| Breakpoint | Width | Layout |
-|------------|-------|--------|
-| Desktop XL | > 1400px | Sidebar + content + optional panel |
-| Desktop | 1024-1400px | Sidebar + content |
-| Tablet | 768-1023px | Collapsible sidebar or top nav |
-| Mobile | < 768px | Bottom nav, full-screen views |
+| Breakpoint | Width       | Layout                             |
+| ---------- | ----------- | ---------------------------------- |
+| Desktop XL | > 1400px    | Sidebar + content + optional panel |
+| Desktop    | 1024-1400px | Sidebar + content                  |
+| Tablet     | 768-1023px  | Collapsible sidebar or top nav     |
+| Mobile     | < 768px     | Bottom nav, full-screen views      |
 
 ### Layout Modes
 
 **Standard (Desktop)**:
+
 ```
 ┌──────────┬─────────────────────────────────┐
 │          │                                 │
@@ -267,6 +273,7 @@ On mobile:
 ```
 
 **With Detail Panel (Desktop XL)**:
+
 ```
 ┌──────────┬───────────────────────┬─────────┐
 │          │                       │         │
@@ -277,6 +284,7 @@ On mobile:
 ```
 
 **Collapsed Sidebar (Tablet)**:
+
 ```
 ┌────┬────────────────────────────────────────┐
 │    │                                        │
@@ -291,11 +299,13 @@ On mobile:
 ## Deep Linking
 
 All views should support deep linking:
+
 - Share links to specific agents, goals, memories
 - Bookmarkable states (filters, search queries)
 - URL reflects full navigation path
 
 Examples:
+
 - `/agents/assistant-1/soul` → Direct to personality editor
 - `/workstreams/ws-123?view=dag` → Workstream in DAG mode
 - `/memories?search=project+alpha` → Memory search results

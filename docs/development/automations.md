@@ -55,8 +55,8 @@ interface Automation {
   agentId?: string;
   name: string;
   description?: string;
-  type: AutomationTypeKind;  // "smart-sync-fork" | "custom-script" | "webhook"
-  status: AutomationStatus;   // "active" | "suspended" | "error"
+  type: AutomationTypeKind; // "smart-sync-fork" | "custom-script" | "webhook"
+  status: AutomationStatus; // "active" | "suspended" | "error"
   enabled: boolean;
   schedule: AutomationSchedule;
   config: AutomationConfig;
@@ -113,23 +113,26 @@ Main service facade that delegates to `ops` module:
 ```typescript
 class AutomationService {
   // Lifecycle
-  async start(): Promise<void>
-  stop(): void
+  async start(): Promise<void>;
+  stop(): void;
 
   // CRUD
-  async list(opts?: { includeDisabled?: boolean }): Promise<Automation[]>
-  async get(id: string): Promise<Automation | null>
-  async create(input: AutomationCreate): Promise<Automation>
-  async update(id: string, patch: AutomationPatch): Promise<Automation>
-  async delete(id: string): Promise<{ ok: true; deleted: boolean }>
+  async list(opts?: { includeDisabled?: boolean }): Promise<Automation[]>;
+  async get(id: string): Promise<Automation | null>;
+  async create(input: AutomationCreate): Promise<Automation>;
+  async update(id: string, patch: AutomationPatch): Promise<Automation>;
+  async delete(id: string): Promise<{ ok: true; deleted: boolean }>;
 
   // Execution
-  async run(id: string, opts?: { mode?: "force" }): Promise<AutomationRunResult>
-  async cancel(runId: string): Promise<AutomationCancelResult>
+  async run(id: string, opts?: { mode?: "force" }): Promise<AutomationRunResult>;
+  async cancel(runId: string): Promise<AutomationCancelResult>;
 
   // History
-  async getHistory(automationId: string, opts?: { limit?: number }): Promise<AutomationHistoryResult>
-  async getRun(runId: string): Promise<AutomationRun | null>
+  async getHistory(
+    automationId: string,
+    opts?: { limit?: number },
+  ): Promise<AutomationHistoryResult>;
+  async getRun(runId: string): Promise<AutomationRun | null>;
 }
 ```
 
@@ -145,7 +148,11 @@ Key patterns:
 
 ```typescript
 // 3-phase execution pattern
-async function run(state: AutomationServiceState, id: string, opts: RunOpts): Promise<AutomationRunResult> {
+async function run(
+  state: AutomationServiceState,
+  id: string,
+  opts: RunOpts,
+): Promise<AutomationRunResult> {
   // Phase 1: Validate and mark running (locked)
   await locked(state, async () => {
     await ensureLoaded(state);
@@ -175,16 +182,10 @@ async function run(state: AutomationServiceState, id: string, opts: RunOpts): Pr
 The `locked()` wrapper ensures serialized access to shared state:
 
 ```typescript
-async function locked<T>(
-  state: AutomationServiceState,
-  fn: () => Promise<T>,
-): Promise<T> {
+async function locked<T>(state: AutomationServiceState, fn: () => Promise<T>): Promise<T> {
   const storePath = state.deps.storePath;
   const storeOp = storeLocks.get(storePath) ?? Promise.resolve();
-  const next = Promise.all([
-    resolveChain(state.op),
-    resolveChain(storeOp),
-  ]).then(fn);
+  const next = Promise.all([resolveChain(state.op), resolveChain(storeOp)]).then(fn);
   const keepAlive = resolveChain(next);
   state.op = keepAlive;
   storeLocks.set(storePath, keepAlive);
@@ -209,10 +210,7 @@ interface AutomationStoreFile {
 ### Atomic Write Pattern
 
 ```typescript
-async function saveAutomationsStore(
-  storePath: string,
-  store: AutomationStoreFile,
-): Promise<void> {
+async function saveAutomationsStore(storePath: string, store: AutomationStoreFile): Promise<void> {
   // 1. Create temp file
   const tmp = `${storePath}.${process.pid}.${Math.random().toString(16).slice(2)}.tmp`;
 
@@ -322,16 +320,16 @@ Manages local filesystem storage for automation outputs:
 ```typescript
 class ArtifactStorage {
   // Store methods
-  async storeBuffer(runId, name, type, data): Promise<AutomationArtifact>
-  async storeFile(runId, name, type, sourcePath): Promise<AutomationArtifact>
-  async storeText(runId, name, type, content, encoding?): Promise<AutomationArtifact>
+  async storeBuffer(runId, name, type, data): Promise<AutomationArtifact>;
+  async storeFile(runId, name, type, sourcePath): Promise<AutomationArtifact>;
+  async storeText(runId, name, type, content, encoding?): Promise<AutomationArtifact>;
 
   // Retrieve
-  async getArtifact(artifactId): Promise<{filePath, type, name} | null>
+  async getArtifact(artifactId): Promise<{ filePath; type; name } | null>;
 
   // Cleanup
-  async deleteRunArtifacts(runId): Promise<void>
-  async cleanup(maxAgeMs, maxTotalBytes): Promise<void>
+  async deleteRunArtifacts(runId): Promise<void>;
+  async cleanup(maxAgeMs, maxTotalBytes): Promise<void>;
 }
 ```
 
@@ -340,6 +338,7 @@ class ArtifactStorage {
 Default: `~/.clawdbrain/automations/artifacts/`
 
 Structure:
+
 ```
 ~/.clawdbrain/automations/artifacts/
 ├── <run-id-1>/
@@ -357,14 +356,30 @@ Located in `src/gateway/server-methods/automations.ts`:
 
 ```typescript
 export const automationsHandlers: GatewayRequestHandlers = {
-  "automations.list": async ({ params, respond, context }) => { /* ... */ },
-  "automations.create": async ({ params, respond, context }) => { /* ... */ },
-  "automations.update": async ({ params, respond, context }) => { /* ... */ },
-  "automations.delete": async ({ params, respond, context }) => { /* ... */ },
-  "automations.run": async ({ params, respond, context }) => { /* ... */ },
-  "automations.cancel": async ({ params, respond, context }) => { /* ... */ },
-  "automations.history": async ({ params, respond, context }) => { /* ... */ },
-  "automations.artifact.download": async ({ params, respond, context }) => { /* ... */ },
+  "automations.list": async ({ params, respond, context }) => {
+    /* ... */
+  },
+  "automations.create": async ({ params, respond, context }) => {
+    /* ... */
+  },
+  "automations.update": async ({ params, respond, context }) => {
+    /* ... */
+  },
+  "automations.delete": async ({ params, respond, context }) => {
+    /* ... */
+  },
+  "automations.run": async ({ params, respond, context }) => {
+    /* ... */
+  },
+  "automations.cancel": async ({ params, respond, context }) => {
+    /* ... */
+  },
+  "automations.history": async ({ params, respond, context }) => {
+    /* ... */
+  },
+  "automations.artifact.download": async ({ params, respond, context }) => {
+    /* ... */
+  },
 };
 ```
 
@@ -521,17 +536,20 @@ for (const run of history.runs) {
 ### Common Issues
 
 **Automation not running**:
+
 - Check `enabled` flag
 - Verify schedule is valid
 - Check `nextRunAtMs` in state
 - Review gateway logs
 
 **Artifacts not saving**:
+
 - Check permissions on artifacts directory
 - Verify disk space
 - Check artifact storage path in config
 
 **High memory usage**:
+
 - Reduce `maxConcurrentRuns`
 - Run cleanup more frequently
 - Check for stuck runs

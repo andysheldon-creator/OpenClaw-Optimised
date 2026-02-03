@@ -8,9 +8,11 @@ last_updated: "2026-01-25"
 # Coding Task Tool (Claude Agent SDK) - Implementation Plan
 
 This plan implements the proposal in:
+
 - [Coding Task Tool (Claude Agent SDK) - Proposal](/experiments/proposals/coding-task-tool)
 
 The plan is intentionally staged:
+
 - Phase 1 is "readonly by default" and low-risk.
 - Later phases incrementally add capability (MCP bridge, sandbox alignment).
 
@@ -68,6 +70,7 @@ The plan is intentionally staged:
     - `codingTask: { enabled?: boolean, permissionMode?, toolPreset?, allowedTools?, disallowedTools?, settingSources?, additionalDirectories? }`
 
 Acceptance:
+
 - `validateConfigObject({ tools: { codingTask: { enabled: true } } })` succeeds.
 - Unknown keys under `tools.codingTask` are rejected (schema remains strict).
 
@@ -87,10 +90,12 @@ Acceptance:
     - If runtime fails: return error with minimal redaction
 
 Implementation notes:
+
 - Use lazy `await import("@anthropic-ai/claude-agent-sdk")` inside `execute(...)`.
 - Keep the SDK wrapper logic in the same file or a sibling helper module (see next task).
 
 Optional helper:
+
 - Add `src/agents/claude-agent-sdk/extract.ts`
   - Pure functions for extracting text from SDK events (unit-testable).
 
@@ -101,6 +106,7 @@ Optional helper:
   - Otherwise do nothing.
 
 Acceptance:
+
 - Default runtime has no `coding_task` tool.
 - Enabling config makes it show up (subject to tool policy filtering).
 
@@ -121,6 +127,7 @@ Acceptance:
 #### 5) Manual verification steps
 
 Preconditions:
+
 - Claude Code is installed and authenticated on the machine running the gateway.
 - `@anthropic-ai/claude-agent-sdk` is installed and resolvable by the Clawdbrain runtime.
 - The agent you're testing has a tool policy that allows calling `coding_task` (for example, `tools.profile="coding"`).
@@ -133,9 +140,9 @@ Preconditions:
        codingTask: {
          enabled: true,
          toolPreset: "readonly",
-         permissionMode: "default"
-       }
-     }
+         permissionMode: "default",
+       },
+     },
    }
    ```
 2. Restart the gateway to pick up config changes (macOS: restart via the Clawdbrain mac app).
@@ -149,15 +156,16 @@ Preconditions:
    - Attempts to use write/edit/exec tools are denied (expect mention of blocked `Write`/`Edit`/`Bash`).
 
 Optional: expand capabilities (example: allow write/edit + limited bash)
+
 ```json5
 {
   tools: {
     codingTask: {
       toolPreset: "claude_code",
       allowedTools: ["Read", "Grep", "Glob", "LS", "Edit", "Write", "Bash(git*)"],
-      disallowedTools: ["AskUserQuestion", "ExitPlanMode"]
-    }
-  }
+      disallowedTools: ["AskUserQuestion", "ExitPlanMode"],
+    },
+  },
 }
 ```
 
@@ -171,6 +179,7 @@ Optional: expand capabilities (example: allow write/edit + limited bash)
 ### Scope
 
 Expose a small, policy-respecting subset of Clawdbrain tools to the Claude agent via MCP:
+
 - Candidate tools:
   - `sessions_send`
   - `sessions_list`
@@ -184,6 +193,7 @@ Expose a small, policy-respecting subset of Clawdbrain tools to the Claude agent
 - Audit all inputs/outputs to avoid secret leakage via tool logs.
 
 Deliverables:
+
 - MCP server implementation (in-repo) that forwards calls to existing Clawdbrain tool handlers.
 - Config gating for MCP enablement.
 - Tests for policy enforcement and tool mapping.
@@ -193,6 +203,7 @@ Deliverables:
 ### Goal
 
 Ensure that when a session is sandboxed, the Claude agent runs with equivalent restrictions:
+
 - Either run the SDK inside the sandbox container, or
 - Replace built-in filesystem/exec tooling with MCP forwarders to sandbox-aware tools.
 

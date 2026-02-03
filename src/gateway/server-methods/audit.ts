@@ -3,9 +3,9 @@
  */
 
 import { homedir } from "node:os";
+import type { GatewayRequestHandlers } from "./types.js";
 import { queryAuditEvents, type AuditQueryParams } from "../../infra/audit/index.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 const homeDir = homedir();
 

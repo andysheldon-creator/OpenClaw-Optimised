@@ -5,6 +5,7 @@ read_when:
   - Implementing supervisor/recovery loops over multiple agents/sessions
   - Adding persistence, decomposition prompts, and lossless handoffs
 ---
+
 # Overseer (Supervisor Agent)
 
 Overseer is a gateway feature that runs "on top" of all other agents/sessions.
@@ -17,6 +18,7 @@ This document is a lossless implementation spec: data model, scheduler loop,
 planner contracts, delivery strategies, safety/policy, and testing.
 
 ## Goals
+
 - **Lossless planning**: capture and persist 3-tier decompositions (phases/tasks/subtasks) plus the "why".
 - **Durable execution state**: persist what is queued/in progress/done/blocked across restarts.
 - **Recovery-first**: detect idle/stalled work and choose the best recovery action (nudge/resend/replan/reassign/escalate).
@@ -24,11 +26,13 @@ planner contracts, delivery strategies, safety/policy, and testing.
 - **Auditability**: append-only event log for "why did Overseer do that?"
 
 ## Non-goals
+
 - Perfect semantic "understanding" of progress. Overseer should be robust with simple signals first, and only consult a model when necessary.
 - Replacing existing heartbeat/cron workflows. Overseer complements them (and can use them).
 - Storing full transcripts in the Overseer store. Session transcripts already live in `~/.clawdbrain/agents/<id>/sessions/*.jsonl`; Overseer stores references.
 
 ## Terminology
+
 - **Goal**: a major objective that requires long-horizon planning and multiple tasks.
 - **Plan**: a 3-tier decomposition: **Phases -> Tasks -> Subtasks**.
 - **Work node**: any Phase/Task/Subtask node in the plan graph.
@@ -41,13 +45,14 @@ planner contracts, delivery strategies, safety/policy, and testing.
 
 High-level architecture (code-owned state + model-owned planning):
 
-1) **OverseerStore (durable)**: the authoritative record for goals, plans, assignments, and event log.
-2) **OverseerRunner (loop)**: wakes periodically + on relevant events, evaluates what should happen next, and triggers actions.
-3) **OverseerMonitor (signals)**: gathers telemetry about sessions/runs needed to compute liveness.
-4) **OverseerDispatcher (actions)**: sends nudges, spawns subagents, and escalates to humans using appropriate delivery routing.
-5) **OverseerPlanner (LLM)**: produces strictly-validated JSON for plan generation and (optionally) stall diagnosis.
+1. **OverseerStore (durable)**: the authoritative record for goals, plans, assignments, and event log.
+2. **OverseerRunner (loop)**: wakes periodically + on relevant events, evaluates what should happen next, and triggers actions.
+3. **OverseerMonitor (signals)**: gathers telemetry about sessions/runs needed to compute liveness.
+4. **OverseerDispatcher (actions)**: sends nudges, spawns subagents, and escalates to humans using appropriate delivery routing.
+5. **OverseerPlanner (LLM)**: produces strictly-validated JSON for plan generation and (optionally) stall diagnosis.
 
 Overseer should be implemented so that:
+
 - the **store** is the source of truth,
 - the **runner** is deterministic and safe by default,
 - the **planner** is invoked only when beneficial, and its output must validate.
@@ -58,6 +63,7 @@ This section proposes a concrete module breakdown that mirrors existing patterns
 in `src/infra/heartbeat-runner.ts` and `src/agents/subagent-registry.ts`.
 
 Suggested directories/files:
+
 - `src/infra/overseer/store.ts`: load/save/update store + migrations + bounds enforcement
 - `src/infra/overseer/store.types.ts`: TypeScript types and enums (optional; can live in `store.ts`)
 - `src/infra/overseer/store.lock.ts`: lock helper (or reuse a shared lock utility)
@@ -70,6 +76,7 @@ Suggested directories/files:
 - `src/commands/overseer/*.ts`: CLI commands (optional but recommended)
 
 Suggested public interfaces:
+
 ```ts
 export type OverseerRunner = {
   stop: () => void;
@@ -84,6 +91,7 @@ export function startOverseerRunner(opts: {
 ```
 
 Store update API (recommended pattern):
+
 ```ts
 export async function updateOverseerStore<T>(
   fn: (store: OverseerStore) => Promise<{ store: OverseerStore; result: T }>,
@@ -91,12 +99,14 @@ export async function updateOverseerStore<T>(
 ```
 
 Notes:
+
 - Keep the tick deterministic: it should be pure given (store + telemetry snapshot).
 - Keep the dispatcher side-effecting but idempotent: actions should be safe to retry.
 
 ## Integration points (existing primitives to reuse)
 
 Overseer should build on existing gateway/session facilities:
+
 - Session listing and timestamps: gateway `sessions.list`
 - Session message sampling: gateway `chat.history` (used sparingly)
 - Agent lifecycle events (start/end/error): `src/infra/agent-events.ts`
@@ -115,7 +125,9 @@ Overseer should primarily use lightweight session store metadata, and only sampl
 message history when it has to.
 
 ### sessions.list (preferred)
+
 Gateway `sessions.list` returns rows that include:
+
 - `key` (canonical session key)
 - `kind` (derived from key/entry)
 - `label`, `displayName`
@@ -130,18 +142,23 @@ Gateway `sessions.list` returns rows that include:
 For idle/stall detection, `key` and `updatedAt` are the MVP signals.
 
 ### sessions.preview (optional)
+
 If you want a cheap "what's going on" without full `chat.history`, consider
 gateway `sessions.preview` (reads a bounded preview from transcripts).
 
 ### chat.history (use sparingly)
+
 Use only for stale assignments and only with tight limits (e.g., last 10-20 messages)
 to classify:
+
 - "blocked waiting on human"
 - "actively working but slow"
 - "failed and needs intervention"
 
 ### agent lifecycle events (strong signal for spawned work)
+
 If the dispatcher uses gateway `agent` with a known `runId`, Overseer can observe:
+
 - `start`, `end`, `error` lifecycle events via `src/infra/agent-events.ts`
 
 This is most reliable for `sessions_spawn` work (bounded runs).
@@ -150,6 +167,7 @@ This is most reliable for `sessions_spawn` work (bounded runs).
 
 Overseer operates on a recurring "tick" (e.g., every 1-5 minutes) plus on-demand wakes.
 Each tick must be:
+
 - bounded (time, IO, and model usage),
 - idempotent (safe to run twice),
 - spam-safe (backoff + dedupe),
@@ -157,36 +175,37 @@ Each tick must be:
 
 Suggested tick phases:
 
-1) Load store (with lock) and compute the "workset":
+1. Load store (with lock) and compute the "workset":
    - work nodes that are `queued` or `in_progress`
    - assignments that are `active` or `stalled`
    - due reminders (expectedNextUpdateAt <= now)
 
-2) Gather telemetry snapshot for workset targets:
+2. Gather telemetry snapshot for workset targets:
    - `sessions.list` for involved agentIds/sessions
    - lifecycle events since last tick (or in-memory last-seen map)
    - optional `chat.history` sampling only for stale assignments (to classify stall)
 
-3) Reconcile store state:
+3. Reconcile store state:
    - update assignment `lastObservedActivityAt`
    - detect stalls and transitions (active -> stalled, stalled -> active, etc.)
    - update rollups (goal progress, phase/task completion percent)
 
-4) Decide actions (deterministic rules first):
+4. Decide actions (deterministic rules first):
    - nudge/resend
    - replan (planner) when ambiguous and expensive to spam
    - reassign/spawn for self-contained chunks
    - escalate to human for blockers or repeated failures
 
-5) Persist state updates + append events (pre-dispatch):
+5. Persist state updates + append events (pre-dispatch):
    - record "what we intend to do" so we do not lose recovery intent on crash
    - apply backoff/dedupe scheduling decisions
 
-6) Execute actions (dispatcher) with idempotency:
+6. Execute actions (dispatcher) with idempotency:
    - send/spawn/escalate
    - record outcomes immediately if possible, otherwise reconcile on next tick
 
 ### Tick pseudo-code (recommended structure)
+
 ```ts
 async function tick(reason: string) {
   return await updateOverseerStore(async (store) => {
@@ -209,12 +228,14 @@ async function tick(reason: string) {
 ```
 
 Why "persist then dispatch"?
+
 - It avoids losing the plan/recovery intent if the gateway crashes.
 - It makes retries safe: outcomes are reconciled on the next tick.
 
 ### Concurrency and queue pressure (recommended)
 
 Overseer should avoid interfering with user-facing latency:
+
 - Prefer short ticks (bounded IO, bounded message sampling).
 - If the main lane is busy (requests in flight), either:
   - skip the tick, or
@@ -229,26 +250,32 @@ dispatch actions are throttled and do not enqueue unbounded work into the main l
 Overseer should prefer assignment-scoped liveness, not "agent idle" globally.
 
 Signals (in descending preference):
+
 - **Run in-flight**: a runId is known for the assignment and has not ended (from lifecycle events / `agent.wait` if available).
 - **Session updatedAt**: target session `updatedAt` is newer than assignment `lastDispatchAt`.
 - **Message fingerprint**: message sampling shows new assistant/user content since last dispatch (only for stale cases).
 
 Suggested thresholds:
+
 - `idleAfterMs`: how long without activity before labeling stalled (e.g., 10-20 minutes).
 - `expectedNextUpdateAt`: explicit due time per assignment; if exceeded, treat as stalled even if `idleAfterMs` not reached.
 - `maxRetries`: e.g., 2 nudges before escalation/replan.
 
 Backoff:
+
 - exponential backoff per assignment (`backoffUntil`) to avoid spam loops.
 - dedupe on `instructionHash` so resends are not repeated inside a minimum resend interval.
 
 ### Work state rollups (phases/tasks/goals)
+
 Define a single canonical rule set for rollups so UI/CLI views are consistent:
+
 - A **task** is `done` when all its subtasks are `done` (unless explicitly overridden).
 - A **phase** is `done` when all its tasks are `done`.
 - A **goal** is `completed` when all phases are `done`.
 
 Allow overrides, but record them:
+
 - manual override must append an event with `reason` and `actor` (human vs overseer).
 
 ### Status enums and transition rules (normative)
@@ -256,6 +283,7 @@ Allow overrides, but record them:
 Keep transitions strict and evented so the system is debuggable.
 
 Work node statuses:
+
 - `todo`: not yet ready to be worked
 - `queued`: ready and waiting for assignment/dispatch
 - `in_progress`: currently being worked
@@ -264,6 +292,7 @@ Work node statuses:
 - `cancelled`: intentionally stopped (terminal)
 
 Assignment statuses:
+
 - `queued`: work node exists but not yet dispatched
 - `dispatched`: a dispatch attempt was recorded (may or may not be accepted)
 - `active`: progress observed since last dispatch
@@ -273,6 +302,7 @@ Assignment statuses:
 - `cancelled`: intentionally stopped (terminal)
 
 Recommended allowed transitions (illustrative, not exhaustive):
+
 - Work nodes:
   - `todo -> queued -> in_progress -> done`
   - `queued|in_progress -> blocked -> queued` (after unblock)
@@ -284,6 +314,7 @@ Recommended allowed transitions (illustrative, not exhaustive):
   - `active|stalled|blocked -> done`
 
 Rules:
+
 - Any transition to `done` should attach a crystallization or evidence anchors.
 - A `blocked` assignment must have `blockedReason` (structured when possible).
 
@@ -292,12 +323,14 @@ Rules:
 This section is normative. If you persist all fields below, you can reconstruct state after a crash and resume without losing planning context.
 
 Principles:
+
 - Store **structure + intent + evidence + provenance** (not only todo lists).
 - Store **anchors** to transcripts and artifacts (do not duplicate entire logs).
 - Store **event history** for auditability and debugging.
 - Do not store secrets (tokens, credentials). Store references to where they are configured and what is missing.
 
 ### Goal record (must persist)
+
 - Identity:
   - `goalId` (stable, never reused)
   - `title`
@@ -328,6 +361,7 @@ Principles:
 ### Plan graph (Phases -> Tasks -> Subtasks)
 
 Every node (phase/task/subtask) must persist:
+
 - Stable IDs:
   - `phaseId` / `taskId` / `subtaskId`
   - `parentId` (for linking) and `path` (optional convenience)
@@ -356,6 +390,7 @@ Every node (phase/task/subtask) must persist:
 Assignments are separate from the plan nodes so the same work can be reassigned without mutating the plan structure.
 
 Persist:
+
 - Identity:
   - `assignmentId`
   - `goalId`
@@ -383,6 +418,7 @@ Persist:
 ### Dispatch history (auditability + dedupe)
 
 Persist an append-only list per assignment, e.g.:
+
 - `dispatchId` (uuid)
 - `ts`, `mode` (sessions_send/sessions_spawn/escalate)
 - `target` (sessionKey + deliveryContext)
@@ -394,6 +430,7 @@ Persist an append-only list per assignment, e.g.:
 ### Crystallizations (lossless handoffs)
 
 Persist structured handoffs at multiple levels (subtask/task/phase/goal):
+
 - `summary` (what happened)
 - `currentState` (what exists now)
 - `decisions[]` (decision + rationale)
@@ -412,6 +449,7 @@ Persist structured handoffs at multiple levels (subtask/task/phase/goal):
 ### Event log (global, append-only)
 
 Persist `events[]` at the store root for reconstructability:
+
 - `ts`
 - `type` (e.g., `goal.created`, `plan.generated`, `assignment.dispatched`, `assignment.stalled`, `assignment.escalated`, `work.done`)
 - `goalId`, optional `assignmentId` / `workNodeId`
@@ -420,7 +458,9 @@ Persist `events[]` at the store root for reconstructability:
 The event log is the "black box recorder" for: "why did Overseer do that?"
 
 ### Store root schema (recommended v1 shape)
+
 Example structure (abbreviated but complete at top-level):
+
 ```json
 {
   "version": 1,
@@ -433,46 +473,59 @@ Example structure (abbreviated but complete at top-level):
 ```
 
 Notes:
+
 - `dispatchIndex` is optional if you store dispatch history only inside assignments, but it can make querying and dedupe faster.
 - Keep `events` append-only; if it grows unbounded, implement periodic compaction into summarized "milestone" events.
 
 ## Store format and operational safety
 
 ### Storage location
+
 Suggested default:
+
 - Store dir: `~/.clawdbrain/overseer/`
 - Store file: `~/.clawdbrain/overseer/store.json`
 
 If desired, allow overrides via environment variables (e.g., `CLAWDBRAIN_OVERSEER_DIR`) but keep defaults stable.
 
 ### Versioning + migrations
+
 The store must include `version: number`.
 When schema changes:
+
 - load old versions and migrate in memory,
 - write back the new version (best effort),
 - never crash the gateway due to store parse failures (fail open with a warning + safe mode).
 
 ### Write locking
+
 Multiple concurrent writers (tick loop + manual CLI actions + remote ops) can corrupt state.
 Use a lock file approach similar to `src/agents/session-write-lock.ts`:
+
 - acquire `store.json.lock` with `wx` semantics
 - include `{pid, createdAt}`
 - break stale locks after a TTL if the pid is dead or the lock is too old
 
 ### Data bounds
+
 To keep the store safe and portable:
+
 - cap `lastInstructionText` length (e.g., 8-16 KB)
 - cap `crystallization.summary` length and keep structured fields preferred
 - avoid storing raw transcripts; store references
 
 ### Never store secrets
+
 Overseer should not persist:
+
 - tokens, API keys, cookies, credential files, phone numbers
-Instead persist:
-- missing credential *type* and *where to configure it* (e.g., "requires WhatsApp pairing", "needs OPENAI_API_KEY").
+  Instead persist:
+- missing credential _type_ and _where to configure it_ (e.g., "requires WhatsApp pairing", "needs OPENAI_API_KEY").
 
 ### Failure modes and safe mode
+
 Overseer must never prevent the gateway from operating. Recommended behavior:
+
 - If store JSON is corrupt:
   - rename it to `store.corrupt-<ts>.json` (best effort)
   - start with an empty store in "safe mode"
@@ -486,16 +539,19 @@ Overseer must never prevent the gateway from operating. Recommended behavior:
 ## Planner contracts (strict JSON only)
 
 Overseer uses a model for two things:
-1) **Plan generation**: decompose goal -> phases/tasks/subtasks
-2) **Stall diagnosis (optional)**: choose the best recovery action when deterministic rules are insufficient
+
+1. **Plan generation**: decompose goal -> phases/tasks/subtasks
+2. **Stall diagnosis (optional)**: choose the best recovery action when deterministic rules are insufficient
 
 The planner must produce strictly-validated JSON. If invalid:
+
 - retry with a repair prompt (bounded attempts),
 - fall back to deterministic "safe" actions (nudge + escalate) rather than guessing.
 
 ### Prompt templates (recommended)
 
 Plan generation (user message template):
+
 ```text
 You are OverseerPlanner. Decompose the following goal into a 3-tier plan:
 Phases -> Tasks -> Subtasks.
@@ -524,6 +580,7 @@ Repo context snapshot:
 ```
 
 Repair prompt (when JSON invalid):
+
 ```text
 Your previous output was invalid JSON or did not match the required schema.
 Return ONLY corrected JSON that matches the schema exactly. Do not add commentary.
@@ -542,6 +599,7 @@ structured update payload that Overseer can parse without model inference.
 
 Recommended format: a single JSON object in a fenced block labeled `json`.
 Example nudge request can ask for:
+
 ```json
 {
   "overseerUpdate": {
@@ -563,6 +621,7 @@ Example nudge request can ask for:
 Overseer should accept partial updates (e.g., just `status` + `summary`) and merge them into the store.
 
 Parsing guidance (recommended):
+
 - Prefer parsing the **last** fenced `json` block from the assistant reply.
 - Validate the parsed object shape at runtime (strict keys, bounded strings).
 - If `goalId`/`workNodeId` are missing, infer them from the assignment that triggered the nudge (do not guess across multiple assignments).
@@ -573,12 +632,14 @@ Parsing guidance (recommended):
 ### Plan generation output (normative shape)
 
 Constraints:
+
 - max 5 phases
 - max 7 tasks per phase
 - max 7 subtasks per task
 - every node must have a stable id and acceptance criteria
 
 Example (shape only):
+
 ```json
 {
   "planVersion": 1,
@@ -614,7 +675,9 @@ Example (shape only):
 ```
 
 ### Stall diagnosis output (optional)
+
 When used, output a small action list:
+
 ```json
 {
   "actions": [
@@ -634,6 +697,7 @@ When used, output a small action list:
 ## Dispatcher: choosing the best delivery mode
 
 Overseer can deliver "more work" via:
+
 - **sessions_send**: prompt an existing session/agent to continue or report status
 - **sessions_spawn**: run a bounded sub-agent task and announce results back
 - **human escalation**: send a message to the original thread/owner (deliveryContext)
@@ -641,37 +705,45 @@ Overseer can deliver "more work" via:
 ### Dispatcher implementation notes (how to deliver safely)
 
 Idempotency:
+
 - Always create a `dispatchId` and use it consistently:
   - store it in dispatchHistory
   - when calling gateway `agent`, set `idempotencyKey = dispatchId`
   - compute and store `instructionHash` for store-level dedupe across restarts
 
 Session keys:
+
 - Store canonical session keys (e.g., `agent:<id>:...`), not display aliases like `main`.
 - Use the session store entry's `deliveryContext` and "last seen" routing fields for escalation.
 
 Delivery routing:
+
 - For agent-to-agent work (no human delivery): `deliver: false` and record outcomes in the Overseer store.
 - For escalation to human: use the originating `deliveryContext` (channel/to/thread/account) and send a message via the outbound message subsystem.
 
 ### Decision matrix
 
 Prefer **sessions_spawn** when:
+
 - the chunk is self-contained and can run without back-and-forth
 - you want a clear run boundary and completion semantics
 - you want parallelism without interrupting the main agent
 
 Prefer **sessions_send** when:
+
 - you need the agent to decide next steps, interpret ambiguous context, or integrate information
 - you want a "status ping" that produces a crystallization
 
 Prefer **human escalation** when:
+
 - blocked on approvals/choices/credentials/environment
 - `maxRetries` exceeded without progress
 - the model indicates it is waiting on a human
 
 ### Nudge message contract (recommended)
+
 To make recovery reliable, nudges should request a structured response:
+
 - "Status: what changed since last instruction"
 - "Next: the next concrete action"
 - "Blockers: what is needed to proceed"
@@ -684,13 +756,14 @@ This structure enables Overseer to update the store without heavy transcript par
 Each assignment has a `recoveryPolicy` plus guardrails.
 Recommended default escalation ladder:
 
-1) **Nudge**: send a status request to the same session (deduped/backoff).
-2) **Resend last instruction**: only if the dispatch likely failed (e.g., timeout) and idempotency constraints are met.
-3) **Replan**: if the node is too large/ambiguous; ask planner for smaller subtasks.
-4) **Reassign**: spawn a subagent or move to another agent (if policy allows).
-5) **Escalate**: ask human for decisions or to confirm the right direction.
+1. **Nudge**: send a status request to the same session (deduped/backoff).
+2. **Resend last instruction**: only if the dispatch likely failed (e.g., timeout) and idempotency constraints are met.
+3. **Replan**: if the node is too large/ambiguous; ask planner for smaller subtasks.
+4. **Reassign**: spawn a subagent or move to another agent (if policy allows).
+5. **Escalate**: ask human for decisions or to confirm the right direction.
 
 Never loop forever:
+
 - cap retries,
 - record each attempt in dispatchHistory,
 - prefer escalation over infinite nudging.
@@ -698,16 +771,19 @@ Never loop forever:
 ### Redelivery semantics ("resend last message")
 
 Overseer should distinguish between:
+
 - **Resend for delivery uncertainty**: the instruction may not have been delivered/seen.
 - **Re-run on purpose**: the instruction was delivered but needs to be executed again.
 
 Recommended approach:
+
 - Each dispatch has a stable `dispatchId`.
 - When calling gateway `agent`, set `idempotencyKey = dispatchId`.
   - Reusing the same `dispatchId` is safe for "delivery uncertainty" retries.
   - Generating a new `dispatchId` forces a new run for intentional re-execution.
 
 Also keep store-level dedupe:
+
 - do not resend the same `instructionHash` within `minResendInterval`
 - respect `backoffUntil`
 
@@ -716,15 +792,18 @@ Also keep store-level dedupe:
 Overseer supervises multiple sessions and may message across agent boundaries.
 
 Policy requirements:
+
 - By default, keep supervision **within a single agentId** unless explicitly enabled.
 - If cross-agent supervision is enabled, it should be **allowlisted** and ideally **directed**:
   - "overseer can access all; normal agents cannot access overseer" (recommended)
 
 If reusing the existing symmetric `tools.agentToAgent` allowlist:
+
 - document the risk: enabling it broadly allows agent-to-agent history and sends.
 - consider adding a dedicated `tools.overseer` policy surface to scope permissions.
 
 Also apply channel/provider routing guardrails when sending to humans:
+
 - prefer using the stored `deliveryContext` from the session entry that originated the goal,
 - avoid cross-context sends unless explicitly configured.
 
@@ -734,32 +813,33 @@ This is a proposed `clawdbrain.json` schema; implement as needed.
 
 ```json5
 {
-  "overseer": {
-    "enabled": false,
-    "tickEvery": "2m",
-    "idleAfter": "15m",
-    "maxRetries": 2,
-    "minResendInterval": "5m",
-    "backoff": { "base": "2m", "max": "30m" },
-    "planner": {
-      "model": "openai/gpt-5-mini",
-      "maxPlanPhases": 5,
-      "maxTasksPerPhase": 7,
-      "maxSubtasksPerTask": 7,
-      "maxRepairAttempts": 2
+  overseer: {
+    enabled: false,
+    tickEvery: "2m",
+    idleAfter: "15m",
+    maxRetries: 2,
+    minResendInterval: "5m",
+    backoff: { base: "2m", max: "30m" },
+    planner: {
+      model: "openai/gpt-5-mini",
+      maxPlanPhases: 5,
+      maxTasksPerPhase: 7,
+      maxSubtasksPerTask: 7,
+      maxRepairAttempts: 2,
     },
-    "policy": {
-      "allowAgents": ["main"], // or ["*"] explicitly
-      "allowCrossAgent": false
+    policy: {
+      allowAgents: ["main"], // or ["*"] explicitly
+      allowCrossAgent: false,
     },
-    "storage": {
-      "dir": "~/.clawdbrain/overseer"
-    }
-  }
+    storage: {
+      dir: "~/.clawdbrain/overseer",
+    },
+  },
 }
 ```
 
 Notes:
+
 - Keep defaults conservative (disabled by default).
 - Prefer duration strings and reuse existing duration parsing patterns.
 
@@ -768,6 +848,7 @@ Notes:
 Overseer should be operable without editing JSON by hand.
 
 ### CLI commands (suggested)
+
 - `clawdbrain overseer status` (summary: goals, stalled assignments)
 - `clawdbrain overseer goal create --title "..." [--from-session main]`
 - `clawdbrain overseer goal pause <goalId>`
@@ -777,6 +858,7 @@ Overseer should be operable without editing JSON by hand.
 - `clawdbrain overseer tick --now` (manual run)
 
 ### Gateway methods (suggested)
+
 - `overseer.status`
 - `overseer.goal.create`, `overseer.goal.update`, `overseer.goal.pause`, `overseer.goal.resume`
 - `overseer.work.update` (status transitions)
@@ -787,11 +869,13 @@ Even if you do not expose all methods publicly, keep internal function boundarie
 ## Observability
 
 Overseer should emit:
+
 - diagnostic logs for tick start/end, actions chosen, and outcomes
 - store event log entries for all state transitions and dispatches
 - (optional) gateway events for UI dashboards: `overseer.tick`, `overseer.action`, `overseer.stalled`
 
 For debugging, ensure you can answer:
+
 - "Which assignment is stalled and why?"
 - "What was the last dispatch and did it get accepted?"
 - "What backoff is currently active?"
@@ -802,6 +886,7 @@ For debugging, ensure you can answer:
 Start with deterministic unit tests before adding planner/model-dependent flows.
 
 Recommended tests:
+
 - Store:
   - load/save with versioning, lock behavior, corruption fallback
   - migrations: v1 -> v2 etc
@@ -816,11 +901,13 @@ Recommended tests:
   - bounded output enforcement (max phases/tasks/subtasks)
 
 E2E tests (optional):
+
 - Create a goal, generate plan, dispatch a task, simulate no progress, assert a nudge is sent, then simulate progress and assert state converges.
 
 ## Implementation checklist (phased)
 
 ### Phase 1: MVP supervisor loop (no planner dependency)
+
 - Implement OverseerStore v1 + event log + file lock
 - Implement OverseerRunner tick loop with deterministic liveness + stall detection
 - Implement Dispatcher actions:
@@ -830,11 +917,13 @@ E2E tests (optional):
 - Add minimal CLI/admin surfaces (status dump + manual tick)
 
 ### Phase 2: Planner integration + lossless decomposition
+
 - Implement OverseerPlanner plan generation with strict JSON schema
 - Add goal.create -> plan.generate -> persist -> initial assignments
 - Add crystallization capture utilities (structured summaries attached to work nodes)
 
 ### Phase 3: Recovery hardening
+
 - Integrate lifecycle events and subagent registry for better in-flight detection
 - Add replan/reassign flows and directed policy configuration
 - Add observability events and dashboards

@@ -1,16 +1,25 @@
 import { html, nothing } from "lit";
-import { icon } from "../icons";
 import type {
   AutomationRunHistoryState,
   AutomationRunRecord,
   AutomationArtifact,
   AutomationConflict,
 } from "../controllers/automations";
+import { icon } from "../icons";
 
 export interface RunHistoryProps {
-  state: Pick<AutomationRunHistoryState,
-    "records" | "loading" | "error" | "expandedRows" | "currentPage" |
-    "statusFilter" | "dateFrom" | "dateTo" | "itemsPerPage" | "automationId"
+  state: Pick<
+    AutomationRunHistoryState,
+    | "records"
+    | "loading"
+    | "error"
+    | "expandedRows"
+    | "currentPage"
+    | "statusFilter"
+    | "dateFrom"
+    | "dateTo"
+    | "itemsPerPage"
+    | "automationId"
   >;
   filteredData: AutomationRunRecord[];
   totalPages: number;
@@ -25,7 +34,10 @@ export interface RunHistoryProps {
   onClose: () => void;
 }
 
-function getStatusConfig(status: AutomationRunRecord["status"]): { classes: string; icon: import("../icons").IconName } {
+function getStatusConfig(status: AutomationRunRecord["status"]): {
+  classes: string;
+  icon: import("../icons").IconName;
+} {
   switch (status) {
     case "success":
       return { classes: "badge badge--ok", icon: "check-circle" };
@@ -58,15 +70,23 @@ function renderStatusBadge(status: AutomationRunRecord["status"]) {
   `;
 }
 
-function renderTimelineItem(event: { timestamp?: string; title?: string; action?: string; details?: string; status: string }, index: number) {
-  const colorClass = event.status === "success" ? "bg-ok" : event.status === "warning" ? "bg-warn" : "bg-danger";
+function renderTimelineItem(
+  event: { timestamp?: string; title?: string; action?: string; details?: string; status: string },
+  index: number,
+) {
+  const colorClass =
+    event.status === "success" ? "bg-ok" : event.status === "warning" ? "bg-warn" : "bg-danger";
 
   return html`
     <div class="run-timeline-item">
       <div class="run-timeline-item__dot ${colorClass}"></div>
-      ${index < 10
-        ? html`<div class="run-timeline-item__line"></div>`
-        : nothing}
+      ${
+        index < 10
+          ? html`
+              <div class="run-timeline-item__line"></div>
+            `
+          : nothing
+      }
       <div class="run-timeline-item__content">
         ${event.timestamp ? html`<div class="run-timeline-item__timestamp">${event.timestamp}</div>` : nothing}
         <div class="run-timeline-item__action">${event.title ?? event.action ?? ""}</div>
@@ -89,7 +109,10 @@ function renderConflictItem(conflict: AutomationConflict) {
   `;
 }
 
-function renderArtifactItem(artifact: AutomationArtifact, onDownload: (artifact: AutomationArtifact) => void) {
+function renderArtifactItem(
+  artifact: AutomationArtifact,
+  onDownload: (artifact: AutomationArtifact) => void,
+) {
   return html`
     <div class="artifact-item">
       <div class="artifact-item__icon">${icon("file-text", { size: 16 })}</div>
@@ -138,7 +161,9 @@ function renderHistoryRow(record: AutomationRunRecord, props: RunHistoryProps) {
     </div>
 
     <!-- Expanded Details -->
-    ${isExpanded ? html`
+    ${
+      isExpanded
+        ? html`
       <div class="data-table__expanded">
         <div class="expanded-content">
           <div class="expanded-content__section">
@@ -148,18 +173,24 @@ function renderHistoryRow(record: AutomationRunRecord, props: RunHistoryProps) {
             </div>
           </div>
 
-          ${record.conflicts.length > 0 ? html`
+          ${
+            record.conflicts.length > 0
+              ? html`
             <div class="expanded-content__section">
               <h4 class="expanded-content__title">Conflict Details</h4>
               <div class="conflict-list">
                 ${record.conflicts.map((conflict) => renderConflictItem(conflict))}
               </div>
             </div>
-          ` : nothing}
+          `
+              : nothing
+          }
 
           <div class="expanded-content__section">
             <h4 class="expanded-content__title">AI Model Information</h4>
-            ${record.aiModel ? html`
+            ${
+              record.aiModel
+                ? html`
               <div class="ai-model-info">
                 <div class="ai-model-info__row">
                   <span class="text-muted-foreground text-sm">Model:</span>
@@ -178,7 +209,11 @@ function renderHistoryRow(record: AutomationRunRecord, props: RunHistoryProps) {
                   <span class="text-sm font-medium">${record.aiModel.cost}</span>
                 </div>
               </div>
-            ` : html`<p class="text-sm text-muted-foreground">No AI information available</p>`}
+            `
+                : html`
+                    <p class="text-sm text-muted-foreground">No AI information available</p>
+                  `
+            }
           </div>
 
           <div class="expanded-content__section">
@@ -194,25 +229,31 @@ function renderHistoryRow(record: AutomationRunRecord, props: RunHistoryProps) {
             <span class="text-muted-foreground text-sm">Started:</span>
             <span class="text-mono text-sm">${formatTimestamp(record.startedAt)}</span>
           </div>
-          ${record.completedAt
-            ? html`
+          ${
+            record.completedAt
+              ? html`
                 <div class="expanded-content__meta-item">
                   <span class="text-muted-foreground text-sm">Completed:</span>
                   <span class="text-mono text-sm">${formatTimestamp(record.completedAt)}</span>
                 </div>
               `
-            : nothing}
-          ${record.durationMs
-            ? html`
+              : nothing
+          }
+          ${
+            record.durationMs
+              ? html`
                 <div class="expanded-content__meta-item">
                   <span class="text-muted-foreground text-sm">Duration:</span>
                   <span class="text-mono text-sm">${formatDuration(record.durationMs)}</span>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
-    ` : nothing}
+    `
+        : nothing
+    }
   `;
 }
 
@@ -337,40 +378,47 @@ export function renderRunHistory(props: RunHistoryProps) {
       </div>
 
       <!-- Error Display -->
-      ${state.error
-        ? html`
+      ${
+        state.error
+          ? html`
             <div class="alert alert--danger">
               ${icon("alert-circle", { size: 16 })}
               <span>${state.error}</span>
             </div>
           `
-        : nothing}
+          : nothing
+      }
 
       <!-- Loading State -->
-      ${state.loading
-        ? html`
-            <div class="loading-state">
-              <div class="spinner"></div>
-              <span>Loading run history...</span>
-            </div>
-          `
-        : nothing}
+      ${
+        state.loading
+          ? html`
+              <div class="loading-state">
+                <div class="spinner"></div>
+                <span>Loading run history...</span>
+              </div>
+            `
+          : nothing
+      }
 
       <!-- Table -->
       <div class="data-table">
-        ${!state.loading && paginatedData.length === 0
-          ? html`
+        ${
+          !state.loading && paginatedData.length === 0
+            ? html`
               <div class="data-table__empty">
                 <div class="data-table__empty-icon">${icon("scroll-text", { size: 32 })}</div>
                 <div class="data-table__empty-title">No run history</div>
                 <div class="data-table__empty-desc">
-                  ${state.automationId
-                    ? "This automation hasn't been executed yet"
-                    : "Select an automation to view its run history"}
+                  ${
+                    state.automationId
+                      ? "This automation hasn't been executed yet"
+                      : "Select an automation to view its run history"
+                  }
                 </div>
               </div>
             `
-          : html`
+            : html`
               <div class="data-table__container">
                 <div class="data-table__header">
                   <div class="data-table__row data-table__row--header">

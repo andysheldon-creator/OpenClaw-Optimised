@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement 3-tier entity consolidation to prevent graph bloat from near-duplicate entities:
+
 1. **Tier 1:** Exact match (MD5 hash of normalized name)
 2. **Tier 2:** Edit distance similarity (fast-levenshtein)
 3. **Tier 3:** Embedding similarity (cosine ≥0.92)
@@ -50,13 +51,13 @@ src/knowledge/consolidation/
  * Reference: docs/plans/graphrag/ZAI-DECISIONS.md AD-04
  */
 
-import type { RelationalDatastore } from '../datastore/interface.js';
-import type { Entity, EntityType } from '../graph/types.js';
-import type { LanguageModel } from '../../models/interface.js';
-import { Tier1ExactMatch } from './tiers/exact-match.js';
-import { Tier2EditDistance } from './tiers/edit-distance.js';
-import { Tier3EmbeddingSimilarity } from './tiers/embedding.js';
-import { Tier4LLMConfirmation } from './tiers/llm-confirm.js';
+import type { RelationalDatastore } from "../datastore/interface.js";
+import type { Entity, EntityType } from "../graph/types.js";
+import type { LanguageModel } from "../../models/interface.js";
+import { Tier1ExactMatch } from "./tiers/exact-match.js";
+import { Tier2EditDistance } from "./tiers/edit-distance.js";
+import { Tier3EmbeddingSimilarity } from "./tiers/embedding.js";
+import { Tier4LLMConfirmation } from "./tiers/llm-confirm.js";
 
 // ============================================================================
 // CONFIG
@@ -70,18 +71,18 @@ export interface ConsolidationConfig {
   /** Tier 2: Edit distance threshold */
   tier2?: {
     enabled: boolean;
-    threshold: number;  // Max edit distance (default: 3)
+    threshold: number; // Max edit distance (default: 3)
   };
   /** Tier 3: Embedding similarity threshold */
   tier3?: {
     enabled: boolean;
-    threshold: number;  // Cosine similarity (default: 0.92)
+    threshold: number; // Cosine similarity (default: 0.92)
   };
   /** Tier 4: LLM confirmation for borderline cases */
   tier4?: {
     enabled: boolean;
-    minSimilarity: number;  // Below this, ask LLM (default: 0.88)
-    maxSimilarity: number;  // Above this, auto-merge (default: 0.92)
+    minSimilarity: number; // Below this, ask LLM (default: 0.88)
+    maxSimilarity: number; // Above this, auto-merge (default: 0.92)
   };
   /** Maximum description fragments to merge */
   maxDescriptionFragments?: number;
@@ -89,9 +90,9 @@ export interface ConsolidationConfig {
 
 export interface ConsolidationResult {
   mergedCount: number;
-  canonicalIds: Map<string, string>;  // oldId -> canonicalId
-  newEntities: Entity[];  // Entities that didn't match
-  skipped: string[];  // IDs skipped (failed all tiers)
+  canonicalIds: Map<string, string>; // oldId -> canonicalId
+  newEntities: Entity[]; // Entities that didn't match
+  skipped: string[]; // IDs skipped (failed all tiers)
 }
 
 // ============================================================================
@@ -103,25 +104,22 @@ export class EntityConsolidator {
   private model?: LanguageModel;
   private config: ConsolidationConfig;
 
-  constructor(
-    datastore: RelationalDatastore,
-    config: ConsolidationConfig = {}
-  );
+  constructor(datastore: RelationalDatastore, config: ConsolidationConfig = {});
 
   constructor(
     datastore: RelationalDatastore,
     model: LanguageModel,
-    config: ConsolidationConfig = {}
+    config: ConsolidationConfig = {},
   );
 
   constructor(
     datastore: RelationalDatastore,
     modelOrConfig: LanguageModel | ConsolidationConfig,
-    config: ConsolidationConfig = {}
+    config: ConsolidationConfig = {},
   ) {
     this.datastore = datastore;
 
-    if ('chat' in modelOrConfig) {
+    if ("chat" in modelOrConfig) {
       this.model = modelOrConfig as LanguageModel;
       this.config = {
         tier1: { enabled: true },
@@ -136,7 +134,7 @@ export class EntityConsolidator {
         tier1: { enabled: true },
         tier2: { enabled: true, threshold: 3 },
         tier3: { enabled: true, threshold: 0.92 },
-        tier4: { enabled: false },  // Disabled if no LLM
+        tier4: { enabled: false }, // Disabled if no LLM
         maxDescriptionFragments: 5,
         ...modelOrConfig,
         ...config,
@@ -183,12 +181,9 @@ export class EntityConsolidator {
   /**
    * Find a matching entity for consolidation.
    */
-  private async findMatch(
-    entity: Entity,
-    existing: Entity[]
-  ): Promise<Entity | null> {
+  private async findMatch(entity: Entity, existing: Entity[]): Promise<Entity | null> {
     // Filter by type first (consolidate only within same type)
-    const sameType = existing.filter(e => e.type === entity.type);
+    const sameType = existing.filter((e) => e.type === entity.type);
 
     // Tier 1: Exact match (normalized name hash)
     if (this.config.tier1?.enabled) {
@@ -206,10 +201,7 @@ export class EntityConsolidator {
 
     // Tier 3: Embedding similarity
     if (this.config.tier3?.enabled && this.model) {
-      const tier3 = new Tier3EmbeddingSimilarity(
-        this.model,
-        this.config.tier3.threshold
-      );
+      const tier3 = new Tier3EmbeddingSimilarity(this.model, this.config.tier3.threshold);
       const result = await tier3.findMatch(entity, sameType);
 
       if (result.match) {
@@ -236,15 +228,9 @@ export class EntityConsolidator {
   /**
    * Merge a new entity into an existing canonical entity.
    */
-  private async mergeEntity(
-    newEntity: Entity,
-    canonical: Entity
-  ): Promise<void> {
+  private async mergeEntity(newEntity: Entity, canonical: Entity): Promise<void> {
     // Merge description fragments
-    const mergedDescription = this.mergeDescriptions(
-      canonical.description,
-      newEntity.description
-    );
+    const mergedDescription = this.mergeDescriptions(canonical.description, newEntity.description);
 
     // Update canonical entity
     await this.datastore.execute(
@@ -262,7 +248,7 @@ export class EntityConsolidator {
         Math.max(canonical.lastSeen, newEntity.lastSeen),
         newEntity.id,
         canonical.id,
-      ]
+      ],
     );
 
     // Record history
@@ -275,57 +261,48 @@ export class EntityConsolidator {
   /**
    * Merge description fragments.
    */
-  private mergeDescriptions(
-    existing?: string,
-    newDesc?: string
-  ): string | undefined {
+  private mergeDescriptions(existing?: string, newDesc?: string): string | undefined {
     if (!newDesc) return existing;
     if (!existing) return newDesc;
 
     const maxFragments = this.config.maxDescriptionFragments || 5;
-    const existingFragments = existing.split(' | ');
-    const newFragments = newDesc.split(' | ');
+    const existingFragments = existing.split(" | ");
+    const newFragments = newDesc.split(" | ");
 
     // Combine and deduplicate
     const combined = [...new Set([...existingFragments, ...newFragments])];
 
     // Keep only the most recent fragments
-    return combined.slice(-maxFragments).join(' | ');
+    return combined.slice(-maxFragments).join(" | ");
   }
 
   /**
    * Record merge in entity history.
    */
-  private async recordMergeHistory(
-    merged: Entity,
-    canonical: Entity
-  ): Promise<void> {
+  private async recordMergeHistory(merged: Entity, canonical: Entity): Promise<void> {
     await this.datastore.execute(
       `INSERT INTO kg_entity_history (history_id, entity_id, event, data, timestamp)
        VALUES ($1, $2, $3, $4, $5)`,
       [
         `merge-${merged.id}-${Date.now()}`,
         canonical.id,
-        'merged',
+        "merged",
         JSON.stringify({ mergedFrom: merged.id }),
         Date.now(),
-      ]
+      ],
     );
   }
 
   /**
    * Repoint relationships from merged entity to canonical entity.
    */
-  private async repointRelationships(
-    oldId: string,
-    newId: string
-  ): Promise<void> {
+  private async repointRelationships(oldId: string, newId: string): Promise<void> {
     // Update source_id
     await this.datastore.execute(
       `UPDATE kg_relationships
        SET source_id = $1
        WHERE source_id = $2`,
-      [newId, oldId]
+      [newId, oldId],
     );
 
     // Update target_id
@@ -333,14 +310,14 @@ export class EntityConsolidator {
       `UPDATE kg_relationships
        SET target_id = $1
        WHERE target_id = $2`,
-      [newId, oldId]
+      [newId, oldId],
     );
 
     // Remove self-loops created by merge
     await this.datastore.execute(
       `DELETE FROM kg_relationships
        WHERE source_id = $1 AND target_id = $1`,
-      [newId]
+      [newId],
     );
   }
 
@@ -351,10 +328,10 @@ export class EntityConsolidator {
     const rows = await this.datastore.query<any>(
       `SELECT * FROM kg_entities
        WHERE canonical_id IS NULL  -- Only canonical entities
-       ORDER BY last_seen DESC`
+       ORDER BY last_seen DESC`,
     );
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id,
       name: row.name,
       nameHash: row.name_hash,
@@ -385,8 +362,8 @@ export class EntityConsolidator {
  * Catches: "Auth Service" == "auth service" == "AuthService"
  */
 
-import crypto from 'crypto';
-import type { Entity } from '../../graph/types.js';
+import crypto from "crypto";
+import type { Entity } from "../../graph/types.js";
 
 export class Tier1ExactMatch {
   /**
@@ -409,7 +386,7 @@ export class Tier1ExactMatch {
    */
   hashName(name: string): string {
     const normalized = this.normalizeName(name);
-    return crypto.createHash('md5').update(normalized).digest('hex');
+    return crypto.createHash("md5").update(normalized).digest("hex");
   }
 
   /**
@@ -419,8 +396,8 @@ export class Tier1ExactMatch {
     return name
       .toLowerCase()
       .trim()
-      .replace(/[^\w\s]/g, '')  // Remove punctuation
-      .replace(/\s+/g, ' ');     // Normalize whitespace
+      .replace(/[^\w\s]/g, "") // Remove punctuation
+      .replace(/\s+/g, " "); // Normalize whitespace
   }
 }
 ```
@@ -439,8 +416,8 @@ export class Tier1ExactMatch {
  * - "Database" vs "DataBase"
  */
 
-import levenshtein from 'fast-levenshtein';
-import type { Entity } from '../../graph/types.js';
+import levenshtein from "fast-levenshtein";
+import type { Entity } from "../../graph/types.js";
 
 export class Tier2EditDistance {
   constructor(private threshold: number = 3) {}
@@ -453,10 +430,7 @@ export class Tier2EditDistance {
     let bestDistance = this.threshold + 1;
 
     for (const candidate of candidates) {
-      const distance = levenshtein.get(
-        entity.name.toLowerCase(),
-        candidate.name.toLowerCase()
-      );
+      const distance = levenshtein.get(entity.name.toLowerCase(), candidate.name.toLowerCase());
 
       if (distance < bestDistance && distance <= this.threshold) {
         bestMatch = candidate;
@@ -483,8 +457,8 @@ export class Tier2EditDistance {
  * - "DB" vs "Database"
  */
 
-import type { Entity } from '../../graph/types.js';
-import type { LanguageModel } from '../../../models/interface.js';
+import type { Entity } from "../../graph/types.js";
+import type { LanguageModel } from "../../../models/interface.js";
 
 export interface EmbeddingMatchResult {
   match: Entity | null;
@@ -494,7 +468,7 @@ export interface EmbeddingMatchResult {
 export class Tier3EmbeddingSimilarity {
   constructor(
     private model: LanguageModel,
-    private threshold: number = 0.92
+    private threshold: number = 0.92,
   ) {}
 
   /**
@@ -521,7 +495,7 @@ export class Tier3EmbeddingSimilarity {
 
     // If no cached embeddings, compute on-the-fly (expensive)
     if (!bestMatch && candidates.length > 0) {
-      const candidateNames = candidates.map(c => c.name);
+      const candidateNames = candidates.map((c) => c.name);
       const embeddings = await this.model.embed(candidateNames);
 
       for (let i = 0; i < candidates.length; i++) {
@@ -568,8 +542,8 @@ export class Tier3EmbeddingSimilarity {
  * Asks LLM: "Are these two entities the same?"
  */
 
-import type { Entity } from '../../graph/types.js';
-import type { LanguageModel, ChatMessage } from '../../../models/interface.js';
+import type { Entity } from "../../graph/types.js";
+import type { LanguageModel, ChatMessage } from "../../../models/interface.js";
 
 export class Tier4LLMConfirmation {
   constructor(private model: LanguageModel) {}
@@ -582,16 +556,17 @@ export class Tier4LLMConfirmation {
 
     const messages: ChatMessage[] = [
       {
-        role: 'system',
-        content: 'You are an expert at determining if two entities refer to the same thing. Answer only with "yes" or "no".',
+        role: "system",
+        content:
+          'You are an expert at determining if two entities refer to the same thing. Answer only with "yes" or "no".',
       },
-      { role: 'user', content: prompt },
+      { role: "user", content: prompt },
     ];
 
     const response = await this.model.chat(messages, { temperature: 0 });
     const normalized = response.toLowerCase().trim();
 
-    return normalized.startsWith('yes') || normalized === 'y';
+    return normalized.startsWith("yes") || normalized === "y";
   }
 
   /**
@@ -603,12 +578,12 @@ export class Tier4LLMConfirmation {
 Entity 1:
 - Name: ${entity1.name}
 - Type: ${entity1.type}
-- Description: ${entity1.description || 'No description'}
+- Description: ${entity1.description || "No description"}
 
 Entity 2:
 - Name: ${entity2.name}
 - Type: ${entity2.type}
-- Description: ${entity2.description || 'No description'}
+- Description: ${entity2.description || "No description"}
 
 Consider:
 - Names may be variations or aliases
@@ -632,13 +607,13 @@ pnpm add fast-levenshtein
 **File:** `src/knowledge/consolidation/consolidator.test.ts`
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { EntityConsolidator } from './consolidator.js';
-import { createDatastore } from '../datastore/interface.js';
+import { describe, it, expect } from "vitest";
+import { EntityConsolidator } from "./consolidator.js";
+import { createDatastore } from "../datastore/interface.js";
 
-describe('EntityConsolidator', () => {
-  it('should merge exact name matches', async () => {
-    const ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+describe("EntityConsolidator", () => {
+  it("should merge exact name matches", async () => {
+    const ds = createDatastore({ type: "sqlite", path: ":memory:" });
 
     const consolidator = new EntityConsolidator(ds, {
       tier1: { enabled: true },
@@ -647,15 +622,15 @@ describe('EntityConsolidator', () => {
     });
 
     const result = await consolidator.consolidate([
-      { id: 'e1', name: 'Auth Service', type: 'concept', /* ... */ },
-      { id: 'e2', name: 'auth service', type: 'concept', /* ... */ },
+      { id: "e1", name: "Auth Service", type: "concept" /* ... */ },
+      { id: "e2", name: "auth service", type: "concept" /* ... */ },
     ]);
 
     expect(result.mergedCount).toBe(1);
   });
 
-  it('should merge within edit distance threshold', async () => {
-    const ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+  it("should merge within edit distance threshold", async () => {
+    const ds = createDatastore({ type: "sqlite", path: ":memory:" });
 
     const consolidator = new EntityConsolidator(ds, {
       tier1: { enabled: false },
@@ -664,21 +639,21 @@ describe('EntityConsolidator', () => {
     });
 
     const result = await consolidator.consolidate([
-      { id: 'e1', name: 'Payment Handler', type: 'concept', /* ... */ },
-      { id: 'e2', name: 'Paymnet Handler', type: 'concept', /* ... */ },
+      { id: "e1", name: "Payment Handler", type: "concept" /* ... */ },
+      { id: "e2", name: "Paymnet Handler", type: "concept" /* ... */ },
     ]);
 
     expect(result.mergedCount).toBe(1);
   });
 
-  it('should not merge different entity types', async () => {
-    const ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+  it("should not merge different entity types", async () => {
+    const ds = createDatastore({ type: "sqlite", path: ":memory:" });
 
     const consolidator = new EntityConsolidator(ds);
 
     const result = await consolidator.consolidate([
-      { id: 'e1', name: 'Redis', type: 'concept', /* ... */ },
-      { id: 'e2', name: 'Redis', type: 'tool', /* ... */ },
+      { id: "e1", name: "Redis", type: "concept" /* ... */ },
+      { id: "e2", name: "Redis", type: "tool" /* ... */ },
     ]);
 
     expect(result.mergedCount).toBe(0);

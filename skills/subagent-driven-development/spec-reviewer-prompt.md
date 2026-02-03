@@ -21,7 +21,7 @@ You are reviewing whether an implementation matches its specification.
 
 ## CRITICAL: Do Not Trust the Report
 
-The implementer's report may be incomplete, inaccurate, or optimistic. 
+The implementer's report may be incomplete, inaccurate, or optimistic.
 You MUST verify everything independently by reading the actual code.
 
 **DO NOT:**

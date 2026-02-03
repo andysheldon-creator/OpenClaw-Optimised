@@ -6,9 +6,8 @@
  */
 
 import { html, nothing, type TemplateResult } from "lit";
-
-import { icon } from "../icons";
 import type { JsonSchema } from "./config-form";
+import { icon } from "../icons";
 import { renderNode } from "./config-form";
 
 // ============================================================================
@@ -64,7 +63,7 @@ export function renderConfigModal(params: ConfigModalProps): TemplateResult | ty
   }
 
   return html`
-    <div class="onboarding-config-backdrop" @click=${() => state.isDirty ? onConfirmClose() : onCancel()}></div>
+    <div class="onboarding-config-backdrop" @click=${() => (state.isDirty ? onConfirmClose() : onCancel())}></div>
     <div class="onboarding-config-modal">
       <div class="onboarding-config-modal__header">
         <div class="onboarding-config-modal__title-row">
@@ -84,31 +83,35 @@ export function renderConfigModal(params: ConfigModalProps): TemplateResult | ty
       </div>
 
       <div class="onboarding-config-modal__body">
-        ${state.isDirty
-          ? html`
+        ${
+          state.isDirty
+            ? html`
               <div class="onboarding-config-modal__dirty-banner">
                 ${icon("alert-circle", { size: 14 })} You have unsaved changes
               </div>
             `
-          : nothing}
+            : nothing
+        }
 
         <div class="onboarding-config-modal__form">
-          ${schema
-            ? renderNode({
-                schema,
-                value: configValue,
-                path: [],
-                hints: configUiHints,
-                unsupported,
-                disabled,
-                showLabel: true,
-                compactToggles: true,
-                flattenObjects: true,
-                onPatch: onConfigPatch,
-              })
-            : html`
-                <div class="onboarding-config-modal__placeholder">No configuration available</div>
-              `}
+          ${
+            schema
+              ? renderNode({
+                  schema,
+                  value: configValue,
+                  path: [],
+                  hints: configUiHints,
+                  unsupported,
+                  disabled,
+                  showLabel: true,
+                  compactToggles: true,
+                  flattenObjects: true,
+                  onPatch: onConfigPatch,
+                })
+              : html`
+                  <div class="onboarding-config-modal__placeholder">No configuration available</div>
+                `
+          }
         </div>
       </div>
 

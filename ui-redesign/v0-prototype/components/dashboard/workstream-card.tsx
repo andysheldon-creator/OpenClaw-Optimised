@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Progress } from "@/components/ui/progress"
-import Link from "next/link"
+import Link from "next/link";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface WorkstreamCardProps {
   workstream: {
-    id: string
-    name: string
-    progress: number
-    totalTasks: number
-    inProgressTasks: number
-    blockedTasks?: number
-    agentName: string
-  }
-  className?: string
+    id: string;
+    name: string;
+    progress: number;
+    totalTasks: number;
+    inProgressTasks: number;
+    blockedTasks?: number;
+    agentName: string;
+  };
+  className?: string;
 }
 
 export function WorkstreamCard({ workstream, className }: WorkstreamCardProps) {
@@ -23,7 +23,7 @@ export function WorkstreamCard({ workstream, className }: WorkstreamCardProps) {
       href={`/workstreams/${workstream.id}`}
       className={cn(
         "group block rounded-xl border border-border bg-card p-4 shadow-soft transition-all hover:border-primary/30 hover:shadow-soft-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        className
+        className,
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -47,5 +47,5 @@ export function WorkstreamCard({ workstream, className }: WorkstreamCardProps) {
         </div>
       </div>
     </Link>
-  )
+  );
 }

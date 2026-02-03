@@ -11,9 +11,9 @@
  */
 
 import { html, nothing, type TemplateResult } from "lit";
-
-import { icon, type IconName } from "../icons";
+import type { OverseerStatusResult } from "../types/overseer";
 import { clampText, formatAgo, formatDurationMs } from "../format";
+import { icon, type IconName } from "../icons";
 import {
   RULE_TEMPLATES,
   SCENARIO_TEMPLATES,
@@ -29,7 +29,6 @@ import {
   type SimulatedEventType,
   type SimulatorActivityEntry,
 } from "../types/overseer-simulator";
-import type { OverseerStatusResult } from "../types/overseer";
 
 // ============================================================================
 // Types
@@ -62,7 +61,13 @@ export type SimulatorProps = {
   onUpdateFilters: (updates: Partial<SimulatorState["filters"]>) => void;
   onClearFilters: () => void;
   // Event operations
-  onQueueEvent: (event: { type: SimulatedEventType; goalId?: string; assignmentId?: string; data?: Record<string, unknown>; delay?: number }) => void;
+  onQueueEvent: (event: {
+    type: SimulatedEventType;
+    goalId?: string;
+    assignmentId?: string;
+    data?: Record<string, unknown>;
+    delay?: number;
+  }) => void;
   onRemoveQueuedEvent: (eventId: string) => void;
   onClearEventQueue: () => void;
   onExecuteEvent: (eventId: string) => void;
@@ -126,7 +131,11 @@ const ACTION_TYPES: Array<{ value: RuleActionType; label: string; description: s
   { value: "log", label: "Log Message", description: "Write to activity log" },
   { value: "notify", label: "Send Notification", description: "Send a notification" },
   { value: "set_status", label: "Set Status", description: "Change assignment status" },
-  { value: "set_recovery_policy", label: "Set Recovery Policy", description: "Change recovery policy" },
+  {
+    value: "set_recovery_policy",
+    label: "Set Recovery Policy",
+    description: "Change recovery policy",
+  },
   { value: "trigger_tick", label: "Trigger Tick", description: "Trigger Overseer tick" },
   { value: "pause_goal", label: "Pause Goal", description: "Pause the goal" },
   { value: "resume_goal", label: "Resume Goal", description: "Resume the goal" },
@@ -141,10 +150,26 @@ const EVENT_TYPES: Array<{ value: SimulatedEventType; label: string; description
   { value: "run_completion", label: "Run Completion", description: "Agent run completed" },
   { value: "queue_completion", label: "Queue Completion", description: "Queue drained" },
   { value: "tool_error", label: "Tool Error", description: "Tool execution failed" },
-  { value: "silent_completion", label: "Silent Completion", description: "Agent completed without output" },
-  { value: "structured_update", label: "Structured Update", description: "Progress update from agent" },
-  { value: "assignment_stalled", label: "Assignment Stalled", description: "Assignment became stalled" },
-  { value: "assignment_active", label: "Assignment Active", description: "Assignment became active" },
+  {
+    value: "silent_completion",
+    label: "Silent Completion",
+    description: "Agent completed without output",
+  },
+  {
+    value: "structured_update",
+    label: "Structured Update",
+    description: "Progress update from agent",
+  },
+  {
+    value: "assignment_stalled",
+    label: "Assignment Stalled",
+    description: "Assignment became stalled",
+  },
+  {
+    value: "assignment_active",
+    label: "Assignment Active",
+    description: "Assignment became active",
+  },
   { value: "goal_created", label: "Goal Created", description: "New goal was created" },
   { value: "goal_completed", label: "Goal Completed", description: "Goal was completed" },
   { value: "tick_triggered", label: "Tick Triggered", description: "Manual tick trigger" },
@@ -241,8 +266,9 @@ function renderSimulatorHeader(props: SimulatorProps): TemplateResult {
           )}
         </div>
         <div class="simulator__run-controls">
-          ${isRunning
-            ? html`
+          ${
+            isRunning
+              ? html`
                 <button class="btn btn--sm" @click=${props.onPauseRun}>
                   ${icon("pause", { size: 14 })} Pause
                 </button>
@@ -250,8 +276,8 @@ function renderSimulatorHeader(props: SimulatorProps): TemplateResult {
                   ${icon("square", { size: 14 })} Stop
                 </button>
               `
-            : isPaused
-              ? html`
+              : isPaused
+                ? html`
                   <button class="btn btn--sm primary" @click=${props.onResumeRun}>
                     ${icon("play", { size: 14 })} Resume
                   </button>
@@ -259,26 +285,30 @@ function renderSimulatorHeader(props: SimulatorProps): TemplateResult {
                     ${icon("square", { size: 14 })} Stop
                   </button>
                 `
-              : html`
+                : html`
                   <button class="btn btn--sm primary" @click=${() => props.onStartRun()}>
                     ${icon("play", { size: 14 })} Start
                   </button>
-                `}
+                `
+          }
           <button class="btn btn--sm" @click=${props.onTriggerTick} title="Trigger Overseer Tick">
             ${icon("refresh-cw", { size: 14 })} Tick
           </button>
-          ${state.run
-            ? html`
+          ${
+            state.run
+              ? html`
                 <button class="btn btn--sm" @click=${props.onResetRun} title="Reset Simulation">
                   ${icon("rotate-ccw", { size: 14 })}
                 </button>
               `
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
       <div class="simulator__header-right">
-        ${state.run
-          ? html`
+        ${
+          state.run
+            ? html`
               <div class="simulator__run-status">
                 <span class="simulator__run-status-badge simulator__run-status-badge--${state.run.status}">
                   ${state.run.status}
@@ -288,12 +318,13 @@ function renderSimulatorHeader(props: SimulatorProps): TemplateResult {
                 </span>
               </div>
             `
-          : html`
+            : html`
               <div class="simulator__connection-status ${props.connected ? "simulator__connection-status--connected" : ""}">
                 ${icon(props.connected ? "check-circle" : "alert-circle", { size: 14 })}
                 <span>${props.connected ? "Connected" : "Disconnected"}</span>
               </div>
-            `}
+            `
+        }
         <button
           class="simulator__close"
           @click=${props.onTogglePanel}
@@ -326,12 +357,16 @@ function renderSimulatorSidebar(props: SimulatorProps): TemplateResult {
             >
               <span class="simulator__nav-icon">${icon(section.icon, { size: 16 })}</span>
               <span class="simulator__nav-label">${section.label}</span>
-              ${section.id === "rules" && state.rules.length > 0
-                ? html`<span class="simulator__nav-badge">${state.rules.length}</span>`
-                : nothing}
-              ${section.id === "events" && state.eventQueue.length > 0
-                ? html`<span class="simulator__nav-badge">${state.eventQueue.length}</span>`
-                : nothing}
+              ${
+                section.id === "rules" && state.rules.length > 0
+                  ? html`<span class="simulator__nav-badge">${state.rules.length}</span>`
+                  : nothing
+              }
+              ${
+                section.id === "events" && state.eventQueue.length > 0
+                  ? html`<span class="simulator__nav-badge">${state.eventQueue.length}</span>`
+                  : nothing
+              }
             </button>
           `,
         )}
@@ -370,7 +405,9 @@ function renderSimulatorSection(props: SimulatorProps): TemplateResult {
     case "activity":
       return renderActivitySection(props);
     default:
-      return html`<div class="simulator__section-empty">Select a section</div>`;
+      return html`
+        <div class="simulator__section-empty">Select a section</div>
+      `;
   }
 }
 
@@ -416,8 +453,9 @@ function renderRulesSection(props: SimulatorProps): TemplateResult {
         </div>
       </div>
       <div class="simulator__section-body">
-        ${state.rules.length === 0
-          ? html`
+        ${
+          state.rules.length === 0
+            ? html`
               <div class="simulator__empty-state">
                 <div class="simulator__empty-icon">${icon("filter", { size: 32 })}</div>
                 <div class="simulator__empty-title">No rules defined</div>
@@ -426,11 +464,12 @@ function renderRulesSection(props: SimulatorProps): TemplateResult {
                 </div>
               </div>
             `
-          : html`
+            : html`
               <div class="simulator__rules-list">
                 ${state.rules.map((rule) => renderRuleCard(rule, props))}
               </div>
-            `}
+            `
+        }
       </div>
     </div>
   `;
@@ -455,9 +494,11 @@ function renderRuleCard(rule: SimulatorRule, props: SimulatorProps): TemplateRes
         </div>
         <div class="simulator__rule-actions">
           <span class="simulator__rule-priority">P${rule.priority}</span>
-          ${rule.triggerCount > 0
-            ? html`<span class="simulator__rule-trigger-count">${rule.triggerCount}x</span>`
-            : nothing}
+          ${
+            rule.triggerCount > 0
+              ? html`<span class="simulator__rule-trigger-count">${rule.triggerCount}x</span>`
+              : nothing
+          }
           <button
             class="btn btn--sm btn--icon"
             @click=${() => props.onSelectRule(rule.id)}
@@ -478,37 +519,47 @@ function renderRuleCard(rule: SimulatorRule, props: SimulatorProps): TemplateRes
         <div class="simulator__rule-conditions">
           <span class="simulator__rule-label">If</span>
           <span class="simulator__rule-logic">${rule.logic.toUpperCase()}</span>
-          ${rule.conditions.length === 0
-            ? html`<span class="muted">No conditions</span>`
-            : rule.conditions.map(
-                (c, i) => html`
+          ${
+            rule.conditions.length === 0
+              ? html`
+                  <span class="muted">No conditions</span>
+                `
+              : rule.conditions.map(
+                  (c, i) => html`
                   <span class="simulator__rule-condition">
                     ${i > 0 ? html`<span class="simulator__rule-logic-sep">${rule.logic}</span>` : nothing}
                     ${c.field} ${OPERATORS.find((o) => o.value === c.operator)?.label ?? c.operator} "${c.value}"
                   </span>
                 `,
-              )}
+                )
+          }
         </div>
         <div class="simulator__rule-actions-list">
           <span class="simulator__rule-label">Then</span>
-          ${rule.actions.length === 0
-            ? html`<span class="muted">No actions</span>`
-            : rule.actions.map(
-                (a) => html`
+          ${
+            rule.actions.length === 0
+              ? html`
+                  <span class="muted">No actions</span>
+                `
+              : rule.actions.map(
+                  (a) => html`
                   <span class="simulator__rule-action">
                     ${ACTION_TYPES.find((t) => t.value === a.type)?.label ?? a.type}
                   </span>
                 `,
-              )}
+                )
+          }
         </div>
       </div>
-      ${rule.tags.length > 0
-        ? html`
+      ${
+        rule.tags.length > 0
+          ? html`
             <div class="simulator__rule-tags">
               ${rule.tags.map((tag) => html`<span class="tag">${tag}</span>`)}
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -550,7 +601,10 @@ function renderFiltersSection(props: SimulatorProps): TemplateResult {
                   @change=${(e: Event) => {
                     const value = (e.target as HTMLSelectElement).value;
                     props.onUpdateFilters({
-                      goals: { ...state.filters.goals, status: value ? value.split(",") : undefined },
+                      goals: {
+                        ...state.filters.goals,
+                        status: value ? value.split(",") : undefined,
+                      },
                     });
                   }}
                 >
@@ -568,7 +622,10 @@ function renderFiltersSection(props: SimulatorProps): TemplateResult {
                   @change=${(e: Event) => {
                     const value = (e.target as HTMLSelectElement).value;
                     props.onUpdateFilters({
-                      goals: { ...state.filters.goals, priority: value ? value.split(",") : undefined },
+                      goals: {
+                        ...state.filters.goals,
+                        priority: value ? value.split(",") : undefined,
+                      },
                     });
                   }}
                 >
@@ -587,7 +644,10 @@ function renderFiltersSection(props: SimulatorProps): TemplateResult {
                   .value=${state.filters.goals.searchText ?? ""}
                   @input=${(e: Event) =>
                     props.onUpdateFilters({
-                      goals: { ...state.filters.goals, searchText: (e.target as HTMLInputElement).value || undefined },
+                      goals: {
+                        ...state.filters.goals,
+                        searchText: (e.target as HTMLInputElement).value || undefined,
+                      },
                     })}
                 />
               </label>
@@ -611,7 +671,10 @@ function renderFiltersSection(props: SimulatorProps): TemplateResult {
                   @change=${(e: Event) => {
                     const value = (e.target as HTMLSelectElement).value;
                     props.onUpdateFilters({
-                      assignments: { ...state.filters.assignments, status: value ? value.split(",") : undefined },
+                      assignments: {
+                        ...state.filters.assignments,
+                        status: value ? value.split(",") : undefined,
+                      },
                     });
                   }}
                 >
@@ -630,7 +693,10 @@ function renderFiltersSection(props: SimulatorProps): TemplateResult {
                   ?checked=${state.filters.assignments.isStalled}
                   @change=${(e: Event) =>
                     props.onUpdateFilters({
-                      assignments: { ...state.filters.assignments, isStalled: (e.target as HTMLInputElement).checked || undefined },
+                      assignments: {
+                        ...state.filters.assignments,
+                        isStalled: (e.target as HTMLInputElement).checked || undefined,
+                      },
                     })}
                 />
                 <span>Stalled only</span>
@@ -641,7 +707,10 @@ function renderFiltersSection(props: SimulatorProps): TemplateResult {
                   ?checked=${state.filters.assignments.hasBackoff}
                   @change=${(e: Event) =>
                     props.onUpdateFilters({
-                      assignments: { ...state.filters.assignments, hasBackoff: (e.target as HTMLInputElement).checked || undefined },
+                      assignments: {
+                        ...state.filters.assignments,
+                        hasBackoff: (e.target as HTMLInputElement).checked || undefined,
+                      },
                     })}
                 />
                 <span>In backoff</span>
@@ -665,7 +734,10 @@ function renderFiltersSection(props: SimulatorProps): TemplateResult {
                     const select = e.target as HTMLSelectElement;
                     const values = Array.from(select.selectedOptions).map((o) => o.value);
                     props.onUpdateFilters({
-                      events: { ...state.filters.events, types: values.length > 0 ? values : undefined },
+                      events: {
+                        ...state.filters.events,
+                        types: values.length > 0 ? values : undefined,
+                      },
                     });
                   }}
                 >
@@ -682,7 +754,10 @@ function renderFiltersSection(props: SimulatorProps): TemplateResult {
                   .value=${state.filters.events.goalId ?? ""}
                   @input=${(e: Event) =>
                     props.onUpdateFilters({
-                      events: { ...state.filters.events, goalId: (e.target as HTMLInputElement).value || undefined },
+                      events: {
+                        ...state.filters.events,
+                        goalId: (e.target as HTMLInputElement).value || undefined,
+                      },
                     })}
                 />
               </label>
@@ -709,13 +784,15 @@ function renderEventsSection(props: SimulatorProps): TemplateResult {
           <h4 class="simulator__section-title">Event Simulation</h4>
           <p class="simulator__section-desc">Queue and execute simulated events</p>
         </div>
-        ${state.eventQueue.length > 0
-          ? html`
+        ${
+          state.eventQueue.length > 0
+            ? html`
               <button class="btn btn--sm danger" @click=${props.onClearEventQueue}>
                 ${icon("trash-2", { size: 14 })} Clear Queue
               </button>
             `
-          : nothing}
+            : nothing
+        }
       </div>
       <div class="simulator__section-body">
         <div class="simulator__events-layout">
@@ -807,19 +884,21 @@ function renderEventsSection(props: SimulatorProps): TemplateResult {
               <span>Event Queue</span>
               <span class="badge badge--muted">${state.eventQueue.length}</span>
             </div>
-            ${state.eventQueue.length === 0
-              ? html`
+            ${
+              state.eventQueue.length === 0
+                ? html`
                   <div class="simulator__empty-state simulator__empty-state--sm">
                     <div class="simulator__empty-icon">${icon("inbox", { size: 24 })}</div>
                     <div class="simulator__empty-title">Queue is empty</div>
                     <div class="simulator__empty-desc">Add events to simulate</div>
                   </div>
                 `
-              : html`
+                : html`
                   <div class="simulator__event-list">
                     ${state.eventQueue.map((event) => renderQueuedEvent(event, props))}
                   </div>
-                `}
+                `
+            }
           </div>
         </div>
       </div>
@@ -851,8 +930,9 @@ function renderQueuedEvent(event: QueuedSimulatedEvent, props: SimulatorProps): 
         </div>
       </div>
       <div class="simulator__event-actions">
-        ${event.status === "pending"
-          ? html`
+        ${
+          event.status === "pending"
+            ? html`
               <button
                 class="btn btn--sm btn--icon"
                 @click=${() => props.onExecuteEvent(event.id)}
@@ -861,7 +941,8 @@ function renderQueuedEvent(event: QueuedSimulatedEvent, props: SimulatorProps): 
                 ${icon("play", { size: 14 })}
               </button>
             `
-          : nothing}
+            : nothing
+        }
         <button
           class="btn btn--sm btn--icon danger"
           @click=${() => props.onRemoveQueuedEvent(event.id)}
@@ -914,8 +995,9 @@ function renderScenariosSection(props: SimulatorProps): TemplateResult {
         </div>
       </div>
       <div class="simulator__section-body">
-        ${state.scenarios.length === 0
-          ? html`
+        ${
+          state.scenarios.length === 0
+            ? html`
               <div class="simulator__empty-state">
                 <div class="simulator__empty-icon">${icon("list", { size: 32 })}</div>
                 <div class="simulator__empty-title">No scenarios</div>
@@ -924,11 +1006,12 @@ function renderScenariosSection(props: SimulatorProps): TemplateResult {
                 </div>
               </div>
             `
-          : html`
+            : html`
               <div class="simulator__scenarios-grid">
                 ${state.scenarios.map((scenario) => renderScenarioCard(scenario, props))}
               </div>
-            `}
+            `
+        }
       </div>
     </div>
   `;
@@ -971,13 +1054,15 @@ function renderScenarioCard(scenario: SimulatorScenario, props: SimulatorProps):
           <span>${scenario.events.length} events</span>
           <span>${scenario.rules.length} rules</span>
         </div>
-        ${scenario.tags.length > 0
-          ? html`
+        ${
+          scenario.tags.length > 0
+            ? html`
               <div class="simulator__scenario-tags">
                 ${scenario.tags.map((tag) => html`<span class="tag tag--sm">${tag}</span>`)}
               </div>
             `
-          : nothing}
+            : nothing
+        }
       </div>
       <div class="simulator__scenario-footer">
         <span class="muted">Updated ${formatAgo(scenario.updatedAt)}</span>
@@ -1005,8 +1090,9 @@ function renderActivitySection(props: SimulatorProps): TemplateResult {
         </button>
       </div>
       <div class="simulator__section-body">
-        ${state.activityLog.length === 0
-          ? html`
+        ${
+          state.activityLog.length === 0
+            ? html`
               <div class="simulator__empty-state">
                 <div class="simulator__empty-icon">${icon("activity", { size: 32 })}</div>
                 <div class="simulator__empty-title">No activity</div>
@@ -1015,11 +1101,12 @@ function renderActivitySection(props: SimulatorProps): TemplateResult {
                 </div>
               </div>
             `
-          : html`
+            : html`
               <div class="simulator__activity-list">
                 ${state.activityLog.map((entry) => renderActivityEntry(entry))}
               </div>
-            `}
+            `
+        }
       </div>
     </div>
   `;
@@ -1046,15 +1133,17 @@ function renderActivityEntry(entry: SimulatorActivityEntry): TemplateResult {
           <span class="simulator__activity-time">${formatAgo(entry.timestamp)}</span>
         </div>
         <div class="simulator__activity-desc">${entry.description}</div>
-        ${entry.goalId || entry.assignmentId || entry.ruleId
-          ? html`
+        ${
+          entry.goalId || entry.assignmentId || entry.ruleId
+            ? html`
               <div class="simulator__activity-refs">
                 ${entry.goalId ? html`<span class="tag tag--sm">Goal: ${entry.goalId.slice(0, 8)}...</span>` : nothing}
                 ${entry.assignmentId ? html`<span class="tag tag--sm">Assignment: ${entry.assignmentId.slice(0, 8)}...</span>` : nothing}
                 ${entry.ruleId ? html`<span class="tag tag--sm">Rule: ${entry.ruleId.slice(0, 8)}...</span>` : nothing}
               </div>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     </div>
   `;
@@ -1096,7 +1185,9 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
               <textarea
                 .value=${rule.description}
                 @input=${(e: Event) =>
-                  props.onUpdateRule(rule.id, { description: (e.target as HTMLTextAreaElement).value })}
+                  props.onUpdateRule(rule.id, {
+                    description: (e.target as HTMLTextAreaElement).value,
+                  })}
               ></textarea>
             </label>
             <div class="field-row">
@@ -1108,7 +1199,9 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                   min="0"
                   max="100"
                   @input=${(e: Event) =>
-                    props.onUpdateRule(rule.id, { priority: Number((e.target as HTMLInputElement).value) })}
+                    props.onUpdateRule(rule.id, {
+                      priority: Number((e.target as HTMLInputElement).value),
+                    })}
                 />
               </label>
               <label class="field">
@@ -1116,7 +1209,9 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                 <select
                   .value=${rule.logic}
                   @change=${(e: Event) =>
-                    props.onUpdateRule(rule.id, { logic: (e.target as HTMLSelectElement).value as "and" | "or" })}
+                    props.onUpdateRule(rule.id, {
+                      logic: (e.target as HTMLSelectElement).value as "and" | "or",
+                    })}
                 >
                   <option value="and">AND (all conditions)</option>
                   <option value="or">OR (any condition)</option>
@@ -1127,7 +1222,9 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                   type="checkbox"
                   ?checked=${rule.enabled}
                   @change=${(e: Event) =>
-                    props.onUpdateRule(rule.id, { enabled: (e.target as HTMLInputElement).checked })}
+                    props.onUpdateRule(rule.id, {
+                      enabled: (e.target as HTMLInputElement).checked,
+                    })}
                 />
                 <span>Enabled</span>
               </label>
@@ -1142,17 +1239,23 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                 ${icon("plus", { size: 14 })} Add Condition
               </button>
             </div>
-            ${rule.conditions.length === 0
-              ? html`<div class="muted">No conditions (rule will always match)</div>`
-              : html`
+            ${
+              rule.conditions.length === 0
+                ? html`
+                    <div class="muted">No conditions (rule will always match)</div>
+                  `
+                : html`
                   <div class="simulator__conditions-list">
-                    ${rule.conditions.map((condition, i) => html`
+                    ${rule.conditions.map(
+                      (condition, i) => html`
                       <div class="simulator__condition-row">
                         ${i > 0 ? html`<span class="simulator__condition-logic">${rule.logic}</span>` : nothing}
                         <select
                           .value=${condition.field}
                           @change=${(e: Event) =>
-                            props.onUpdateCondition(condition.id, { field: (e.target as HTMLSelectElement).value as RuleConditionField })}
+                            props.onUpdateCondition(condition.id, {
+                              field: (e.target as HTMLSelectElement).value as RuleConditionField,
+                            })}
                         >
                           ${CONDITION_FIELDS.map(
                             (f) => html`<option value=${f.value}>${f.label}</option>`,
@@ -1161,7 +1264,9 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                         <select
                           .value=${condition.operator}
                           @change=${(e: Event) =>
-                            props.onUpdateCondition(condition.id, { operator: (e.target as HTMLSelectElement).value as RuleOperator })}
+                            props.onUpdateCondition(condition.id, {
+                              operator: (e.target as HTMLSelectElement).value as RuleOperator,
+                            })}
                         >
                           ${OPERATORS.map(
                             (o) => html`<option value=${o.value}>${o.label}</option>`,
@@ -1172,7 +1277,9 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                           .value=${condition.value}
                           placeholder="Value"
                           @input=${(e: Event) =>
-                            props.onUpdateCondition(condition.id, { value: (e.target as HTMLInputElement).value })}
+                            props.onUpdateCondition(condition.id, {
+                              value: (e.target as HTMLInputElement).value,
+                            })}
                         />
                         <button
                           class="btn btn--sm btn--icon danger"
@@ -1181,9 +1288,11 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                           ${icon("trash-2", { size: 14 })}
                         </button>
                       </div>
-                    `)}
+                    `,
+                    )}
                   </div>
-                `}
+                `
+            }
           </div>
 
           <!-- Actions -->
@@ -1194,16 +1303,22 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                 ${icon("plus", { size: 14 })} Add Action
               </button>
             </div>
-            ${rule.actions.length === 0
-              ? html`<div class="muted">No actions defined</div>`
-              : html`
+            ${
+              rule.actions.length === 0
+                ? html`
+                    <div class="muted">No actions defined</div>
+                  `
+                : html`
                   <div class="simulator__actions-list">
-                    ${rule.actions.map((action) => html`
+                    ${rule.actions.map(
+                      (action) => html`
                       <div class="simulator__action-row">
                         <select
                           .value=${action.type}
                           @change=${(e: Event) =>
-                            props.onUpdateAction(action.id, { type: (e.target as HTMLSelectElement).value as RuleActionType })}
+                            props.onUpdateAction(action.id, {
+                              type: (e.target as HTMLSelectElement).value as RuleActionType,
+                            })}
                         >
                           ${ACTION_TYPES.map(
                             (t) => html`<option value=${t.value}>${t.label}</option>`,
@@ -1217,9 +1332,11 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                           ${icon("trash-2", { size: 14 })}
                         </button>
                       </div>
-                    `)}
+                    `,
+                    )}
                   </div>
-                `}
+                `
+            }
           </div>
 
           <!-- Tags -->
@@ -1231,7 +1348,10 @@ function renderRuleEditor(props: SimulatorProps): TemplateResult | typeof nothin
                 .value=${rule.tags.join(", ")}
                 @input=${(e: Event) => {
                   const value = (e.target as HTMLInputElement).value;
-                  const tags = value.split(",").map((t) => t.trim()).filter(Boolean);
+                  const tags = value
+                    .split(",")
+                    .map((t) => t.trim())
+                    .filter(Boolean);
                   props.onUpdateRule(rule.id, { tags });
                 }}
               />
@@ -1259,7 +1379,9 @@ function renderActionParams(action: RuleAction, props: SimulatorProps): Template
           placeholder="Message"
           .value=${params.message ?? ""}
           @input=${(e: Event) =>
-            props.onUpdateAction(action.id, { params: { ...params, message: (e.target as HTMLInputElement).value } })}
+            props.onUpdateAction(action.id, {
+              params: { ...params, message: (e.target as HTMLInputElement).value },
+            })}
         />
       `;
     case "set_status":
@@ -1267,7 +1389,9 @@ function renderActionParams(action: RuleAction, props: SimulatorProps): Template
         <select
           .value=${params.status ?? "active"}
           @change=${(e: Event) =>
-            props.onUpdateAction(action.id, { params: { ...params, status: (e.target as HTMLSelectElement).value } })}
+            props.onUpdateAction(action.id, {
+              params: { ...params, status: (e.target as HTMLSelectElement).value },
+            })}
         >
           <option value="active">Active</option>
           <option value="stalled">Stalled</option>
@@ -1280,7 +1404,9 @@ function renderActionParams(action: RuleAction, props: SimulatorProps): Template
         <select
           .value=${params.policy ?? "nudge"}
           @change=${(e: Event) =>
-            props.onUpdateAction(action.id, { params: { ...params, policy: (e.target as HTMLSelectElement).value } })}
+            props.onUpdateAction(action.id, {
+              params: { ...params, policy: (e.target as HTMLSelectElement).value },
+            })}
         >
           <option value="nudge">Nudge</option>
           <option value="resend_last">Resend Last</option>
@@ -1296,11 +1422,15 @@ function renderActionParams(action: RuleAction, props: SimulatorProps): Template
           placeholder="Backoff (ms)"
           .value=${params.backoffMs ?? ""}
           @input=${(e: Event) =>
-            props.onUpdateAction(action.id, { params: { ...params, backoffMs: (e.target as HTMLInputElement).value } })}
+            props.onUpdateAction(action.id, {
+              params: { ...params, backoffMs: (e.target as HTMLInputElement).value },
+            })}
         />
       `;
     default:
-      return html`<span class="muted">No parameters</span>`;
+      return html`
+        <span class="muted">No parameters</span>
+      `;
   }
 }
 
@@ -1338,7 +1468,9 @@ function renderScenarioEditor(props: SimulatorProps): TemplateResult | typeof no
             <textarea
               .value=${scenario.description}
               @input=${(e: Event) =>
-                props.onUpdateScenario(scenario.id, { description: (e.target as HTMLTextAreaElement).value })}
+                props.onUpdateScenario(scenario.id, {
+                  description: (e.target as HTMLTextAreaElement).value,
+                })}
             ></textarea>
           </label>
           <label class="field">
@@ -1348,7 +1480,10 @@ function renderScenarioEditor(props: SimulatorProps): TemplateResult | typeof no
               .value=${scenario.tags.join(", ")}
               @input=${(e: Event) => {
                 const value = (e.target as HTMLInputElement).value;
-                const tags = value.split(",").map((t) => t.trim()).filter(Boolean);
+                const tags = value
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean);
                 props.onUpdateScenario(scenario.id, { tags });
               }}
             />

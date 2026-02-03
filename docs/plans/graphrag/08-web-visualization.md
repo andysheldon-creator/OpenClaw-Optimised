@@ -18,6 +18,7 @@ graph.
 **Decision:** React Flow for knowledge graph visualization
 
 **Rationale:**
+
 - **Native React Integration:** Clawdbot's web UI is React-based; React Flow provides seamless integration
 - **Interactive Features:** Built-in drag-and-drop, zoom, pan, mini-map navigation
 - **Developer Experience:** Excellent TypeScript support, comprehensive documentation, active community
@@ -28,6 +29,7 @@ graph.
 The current UI uses Lit (web components) + Tailwind. React Flow components can be integrated into the existing Lit-based UI via web components or by migrating the knowledge graph section to React.
 
 **React Flow Features Used:**
+
 - Force-directed layout (built-in)
 - Custom node components (React components)
 - Interactive controls (zoom, fit view)
@@ -36,6 +38,7 @@ The current UI uses Lit (web components) + Tailwind. React Flow components can b
 - Edge types with animations
 
 **When to Reconsider:**
+
 - Graph grows to >2000 visible nodes (consider G6 for better performance)
 - Need 3D visualization capabilities
 - Need advanced graph algorithms (centrality, community detection)
@@ -43,12 +46,14 @@ The current UI uses Lit (web components) + Tailwind. React Flow components can b
 ### Features
 
 **Force-directed layout:**
+
 - Entities rendered as colored circles (color = entity type)
 - Relationships rendered as lines (thickness = weight, labeled with type)
 - Physics simulation with configurable charge, link distance, collision
 - Smooth drag, zoom (scroll wheel), and pan (click-drag background)
 
 **Node interactions:**
+
 - Click: Select entity, show detail panel in sidebar
 - Double-click: Expand neighborhood (lazy-load connected nodes not yet visible)
 - Right-click: Context menu with options:
@@ -58,10 +63,12 @@ The current UI uses Lit (web components) + Tailwind. React Flow components can b
   - "Remove from view" (hide node without deleting)
 
 **Edge interactions:**
+
 - Hover: Tooltip with relationship description, keywords, weight
 - Click: Show source chunks where this relationship was extracted
 
 **Filtering controls:**
+
 - Entity type checkboxes (person, org, concept, tool, etc.) with color legend
 - Relationship type checkboxes
 - Source filter dropdown (memory, manual, crawl, or specific source)
@@ -70,11 +77,13 @@ The current UI uses Lit (web components) + Tailwind. React Flow components can b
 - Min-weight slider (hide low-weight relationships)
 
 **Goal overlay toggle:**
+
 - When enabled, Overseer goal/task nodes appear as special shapes (diamonds/hexagons)
 - Their relationships to entities are highlighted with distinct edge styles
 - This shows how planning goals connect to the broader knowledge graph
 
 **Stats sidebar:**
+
 - Total entities, relationships, sources
 - Entity type distribution (horizontal bar chart)
 - Most connected entities (hub list, clickable)
@@ -200,23 +209,25 @@ computed fields:
 
 **Source list table:**
 
-| Column | Description |
-|--------|-------------|
-| Name | Source name (file name, URL, or label) |
-| Type | memory / manual / crawl |
-| Tags | User-supplied tags (filterable) |
-| Chunks | Number of chunks |
-| Entities | Number of entities extracted |
-| Updated | Last update timestamp |
-| Actions | Delete, re-index, view graph |
+| Column   | Description                            |
+| -------- | -------------------------------------- |
+| Name     | Source name (file name, URL, or label) |
+| Type     | memory / manual / crawl                |
+| Tags     | User-supplied tags (filterable)        |
+| Chunks   | Number of chunks                       |
+| Entities | Number of entities extracted           |
+| Updated  | Last update timestamp                  |
+| Actions  | Delete, re-index, view graph           |
 
 **Upload panel:**
+
 - Drag-and-drop zone for file upload
 - Supported formats: PDF, DOCX, MD, TXT, HTML, JSON
 - Tag input (comma-separated or chip-style)
 - Upload button with progress indicator
 
 **Crawl panel:**
+
 - URL input field
 - Mode selector (single / sitemap / recursive)
 - Max pages input (default 100)
@@ -225,6 +236,7 @@ computed fields:
 - Active crawls list with real-time progress bars (pages crawled, entities extracted)
 
 **Source detail view:**
+
 - Click a source row to expand/navigate to detail view
 - Shows all entities extracted from this source
 - Shows all relationships
@@ -236,9 +248,9 @@ computed fields:
 
 ```json5
 {
-  "dependencies": {
-    "reactflow": "^11.0.0"
-  }
+  dependencies: {
+    reactflow: "^11.0.0",
+  },
 }
 ```
 
@@ -249,6 +261,7 @@ computed fields:
 ## Files to Create
 
 **UI:**
+
 - `ui/src/ui/pages/knowledge-graph.ts` -- graph explorer page
 - `ui/src/ui/pages/knowledge-sources.ts` -- ingestion management page
 - `ui/src/ui/components/graph-renderer.ts` -- D3-force rendering logic
@@ -257,5 +270,6 @@ computed fields:
 - `ui/src/ui/components/crawl-panel.ts` -- crawl launcher + progress
 
 **Gateway:**
+
 - Gateway route handlers for `/api/knowledge/*` (location depends on gateway router
   structure)

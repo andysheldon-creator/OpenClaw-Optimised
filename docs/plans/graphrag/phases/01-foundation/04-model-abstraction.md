@@ -11,6 +11,7 @@
 ## Task Overview
 
 Create a pluggable model abstraction layer that supports:
+
 - Multiple LLM providers (OpenAI, Gemini, Ollama)
 - Structured output with delimiter fallback
 - Cloud vs local model swapping
@@ -51,7 +52,7 @@ src/models/
  * Reference: docs/plans/graphrag/ZAI-UPDATED-DESIGN.md Part 1
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================================================
 // CAPABILITIES
@@ -102,7 +103,7 @@ export interface ModelConfig {
 // MESSAGES
 // ============================================================================
 
-export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
+export type MessageRole = "system" | "user" | "assistant" | "tool";
 
 export interface ChatMessage {
   role: MessageRole;
@@ -175,7 +176,7 @@ export interface LanguageModel {
     messages: ChatMessage[],
     schema: z.Schema<T>,
     examples?: T[],
-    options?: ModelConfig
+    options?: ModelConfig,
   ): Promise<StructuredOutput<T>>;
 
   /**
@@ -196,7 +197,7 @@ export interface LanguageModel {
   streamChat(
     messages: ChatMessage[],
     onChunk: (chunk: string) => void,
-    options?: ModelConfig
+    options?: ModelConfig,
   ): Promise<void>;
 
   /**
@@ -217,7 +218,7 @@ export interface ModelProvider {
   name: string;
 
   /** Provider type (cloud vs local) */
-  type: 'cloud' | 'local';
+  type: "cloud" | "local";
 
   /**
    * Create a model instance from configuration.
@@ -290,13 +291,9 @@ export interface DelimiterParserOptions {
 
 export function parseDelimiterOutput(
   raw: string,
-  options: DelimiterParserOptions = {}
+  options: DelimiterParserOptions = {},
 ): { entities: any[]; relationships: any[] } {
-  const {
-    recordDelimiter = '\\n',
-    fieldDelimiter = '\\|',
-    allowPartial = false,
-  } = options;
+  const { recordDelimiter = "\\n", fieldDelimiter = "\\|", allowPartial = false } = options;
 
   const lines = raw.split(recordDelimiter);
   const entities: any[] = [];
@@ -312,8 +309,10 @@ export function parseDelimiterOutput(
 
       const [, type, field1, field2] = match;
 
-      if (type === 'entity') {
-        const nameMatch = line.match(/"([^"]+)"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]+)"/);
+      if (type === "entity") {
+        const nameMatch = line.match(
+          /"([^"]+)"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]+)"/,
+        );
         if (nameMatch) {
           entities.push({
             name: nameMatch[1],
@@ -321,10 +320,10 @@ export function parseDelimiterOutput(
             description: nameMatch[3],
           });
         }
-      } else if (type === 'relationship') {
+      } else if (type === "relationship") {
         // Parse relationship tuple
         const relMatch = line.match(
-          /"relationship"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]*)"\\s*\\|\\s*\\[?([^\\]]*)\\]?\\s*\\|\\s*(\\d+)/
+          /"relationship"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]+)"\\s*\\|\\s*"([^"]*)"\\s*\\|\\s*\\[?([^\\]]*)\\]?\\s*\\|\\s*(\\d+)/,
         );
         if (relMatch) {
           relationships.push({
@@ -332,7 +331,7 @@ export function parseDelimiterOutput(
             target: relMatch[2],
             type: relMatch[3],
             description: relMatch[4],
-            keywords: relMatch[5] ? relMatch[5].split(',').map((s: string) => s.trim()) : [],
+            keywords: relMatch[5] ? relMatch[5].split(",").map((s: string) => s.trim()) : [],
             strength: parseInt(relMatch[6], 10),
           });
         }
@@ -378,18 +377,18 @@ export function zodToJSONSchema(schema: z.ZodTypeAny): any {
   const zodType = schema._def;
 
   switch (zodType.typeName) {
-    case 'ZodString':
-      return { type: 'string' };
-    case 'ZodNumber':
-      return { type: 'number' };
-    case 'ZodBoolean':
-      return { type: 'boolean' };
-    case 'ZodArray':
+    case "ZodString":
+      return { type: "string" };
+    case "ZodNumber":
+      return { type: "number" };
+    case "ZodBoolean":
+      return { type: "boolean" };
+    case "ZodArray":
       return {
-        type: 'array',
+        type: "array",
         items: zodToJSONSchema(zodType.type),
       };
-    case 'ZodObject': {
+    case "ZodObject": {
       const properties: Record<string, any> = {};
       const required: string[] = [];
 
@@ -401,20 +400,20 @@ export function zodToJSONSchema(schema: z.ZodTypeAny): any {
       }
 
       return {
-        type: 'object',
+        type: "object",
         properties,
         required: required.length > 0 ? required : undefined,
       };
     }
-    case 'ZodOptional':
+    case "ZodOptional":
       return zodToJSONSchema(zodType.innerType());
-    case 'ZodEnum':
+    case "ZodEnum":
       return {
-        type: 'string',
+        type: "string",
         enum: zodType.values,
       };
     default:
-      return { type: 'string' };
+      return { type: "string" };
   }
 }
 ```
@@ -428,18 +427,18 @@ export function zodToJSONSchema(schema: z.ZodTypeAny): any {
  * OpenAI provider implementation.
  */
 
-import OpenAI from 'openai';
+import OpenAI from "openai";
 import type {
   LanguageModel,
   ModelConfig,
   ModelCapabilities,
   ChatMessage,
   StructuredOutput,
-} from '../interface.js';
-import { zodToJSONSchema, buildDelimiterPrompt, parseDelimiterOutput } from '../interface.js';
+} from "../interface.js";
+import { zodToJSONSchema, buildDelimiterPrompt, parseDelimiterOutput } from "../interface.js";
 
 export class OpenAIModel implements LanguageModel {
-  readonly name = 'OpenAI';
+  readonly name = "OpenAI";
   readonly capabilities: ModelCapabilities;
   readonly defaultConfig: ModelConfig;
 
@@ -456,13 +455,13 @@ export class OpenAIModel implements LanguageModel {
       maxInputTokens: 128000,
       maxOutputTokens: 4096,
       streaming: true,
-      costPerMillionInputTokens: 2.50,
-      costPerMillionOutputTokens: 10.00,
+      costPerMillionInputTokens: 2.5,
+      costPerMillionOutputTokens: 10.0,
       embeddings: true,
     };
 
     this.defaultConfig = {
-      model: 'gpt-4o',
+      model: "gpt-4o",
       temperature: 0,
       maxTokens: 4096,
       timeout: 30000,
@@ -479,7 +478,7 @@ export class OpenAIModel implements LanguageModel {
 
     const response = await this.client.chat.completions.create({
       model: config.model,
-      messages: messages.map(m => ({
+      messages: messages.map((m) => ({
         role: m.role,
         content: m.content,
       })),
@@ -487,14 +486,14 @@ export class OpenAIModel implements LanguageModel {
       max_tokens: config.maxTokens,
     });
 
-    return response.choices[0]?.message?.content || '';
+    return response.choices[0]?.message?.content || "";
   }
 
   async structuredChat<T>(
     messages: ChatMessage[],
-    schema: import('zod').ZodSchema<T>,
+    schema: import("zod").ZodSchema<T>,
     examples?: T[],
-    options?: ModelConfig
+    options?: ModelConfig,
   ): Promise<StructuredOutput<T>> {
     const config = { ...this.defaultConfig, ...options };
     let attempts = 0;
@@ -510,16 +509,16 @@ export class OpenAIModel implements LanguageModel {
             model: config.model,
             messages: this.buildMessagesWithSchema(messages, schema, examples),
             response_format: {
-              type: 'json_schema',
+              type: "json_schema",
               json_schema: {
-                name: 'extraction',
+                name: "extraction",
                 schema: zodToJSONSchema(schema),
               },
             } as any,
             temperature: config.temperature || 0,
           });
 
-          const raw = response.choices[0]?.message?.content || '';
+          const raw = response.choices[0]?.message?.content || "";
           const parsed = JSON.parse(raw);
           const validated = schema.safeParse(parsed);
 
@@ -537,15 +536,12 @@ export class OpenAIModel implements LanguageModel {
         if (attempts === 2) {
           const delimiterPrompt = this.buildDelimiterPrompt(messages, schema);
           const response = await this.client.chat.completions.create({
-            model: config.model || 'gpt-4o-mini',  // Use cheaper model for fallback
-            messages: [
-              ...messages.slice(0, -1),
-              { role: 'user', content: delimiterPrompt },
-            ],
+            model: config.model || "gpt-4o-mini", // Use cheaper model for fallback
+            messages: [...messages.slice(0, -1), { role: "user", content: delimiterPrompt }],
             temperature: 0,
           });
 
-          const raw = response.choices[0]?.message?.content || '';
+          const raw = response.choices[0]?.message?.content || "";
           const parsed = this.parseDelimiterOutput(raw, schema);
 
           const validated = schema.safeParse(parsed);
@@ -565,7 +561,7 @@ export class OpenAIModel implements LanguageModel {
 
       // Backoff before retry
       if (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, config.retry?.backoffMs || 1000));
+        await new Promise((resolve) => setTimeout(resolve, config.retry?.backoffMs || 1000));
       }
     }
 
@@ -578,23 +574,23 @@ export class OpenAIModel implements LanguageModel {
 
   async embed(text: string | string[]): Promise<number[][]> {
     const response = await this.client.embeddings.create({
-      model: 'text-embedding-3-small',
+      model: "text-embedding-3-small",
       input: text,
     });
 
-    return response.data.map(d => d.embedding);
+    return response.data.map((d) => d.embedding);
   }
 
   async streamChat(
     messages: ChatMessage[],
     onChunk: (chunk: string) => void,
-    options?: ModelConfig
+    options?: ModelConfig,
   ): Promise<void> {
     const config = { ...this.defaultConfig, ...options };
 
     const stream = await this.client.chat.completions.create({
       model: config.model,
-      messages: messages.map(m => ({
+      messages: messages.map((m) => ({
         role: m.role,
         content: m.content,
       })),
@@ -621,13 +617,13 @@ export class OpenAIModel implements LanguageModel {
 
   private buildMessagesWithSchema<T>(
     messages: ChatMessage[],
-    schema: import('zod').ZodSchema<T>,
-    examples?: T[]
+    schema: import("zod").ZodSchema<T>,
+    examples?: T[],
   ): ChatMessage[] {
     const jsonSchema = zodToJSONSchema(schema);
     const examplesStr = examples
       ? `\n\nExamples of valid output:\n${JSON.stringify(examples[0], null, 2)}`
-      : '';
+      : "";
 
     return [
       ...messages.slice(0, -1),
@@ -643,15 +639,15 @@ ${JSON.stringify(jsonSchema, null, 2)}${examplesStr}`,
 
   private buildDelimiterPrompt<T>(
     messages: ChatMessage[],
-    schema: import('zod').ZodSchema<T>
+    schema: import("zod").ZodSchema<T>,
   ): string {
     const lastMessage = messages[messages.length - 1];
     return buildDelimiterPrompt(lastMessage.content);
   }
 
-  private parseDelimiterOutput<T>(raw: string, schema: import('zod').ZodSchema<T>): T {
+  private parseDelimiterOutput<T>(raw: string, schema: import("zod").ZodSchema<T>): T {
     const result = parseDelimiterOutput(raw);
-    return result as any;  // Will be validated by schema
+    return result as any; // Will be validated by schema
   }
 }
 ```
@@ -665,25 +661,25 @@ export type ModelsConfig = {
   models?: {
     /** Default model for chat/extraction */
     chat?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
       fallback?: {
-        provider: 'openai' | 'gemini' | 'ollama';
+        provider: "openai" | "gemini" | "ollama";
         model: string;
       };
     };
 
     /** Model for embeddings */
     embeddings?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
     };
 
     /** Model for small/fast operations */
     fast?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
     };
@@ -702,11 +698,11 @@ pnpm add openai zod
 **File:** `src/models/interface.test.ts`
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { OpenAIModel } from './providers/openai.js';
+import { describe, it, expect } from "vitest";
+import { OpenAIModel } from "./providers/openai.js";
 
-describe('LanguageModel Interface', () => {
-  it('should implement all required methods', () => {
+describe("LanguageModel Interface", () => {
+  it("should implement all required methods", () => {
     const model = new OpenAIModel();
     expect(model.chat).toBeDefined();
     expect(model.structuredChat).toBeDefined();
@@ -715,18 +711,16 @@ describe('LanguageModel Interface', () => {
     expect(model.countTokens).toBeDefined();
   });
 
-  it('should have capabilities', () => {
+  it("should have capabilities", () => {
     const model = new OpenAIModel();
     expect(model.capabilities.structuredOutput).toBe(true);
     expect(model.capabilities.streaming).toBe(true);
     expect(model.capabilities.embeddings).toBe(true);
   });
 
-  it('should count tokens', () => {
+  it("should count tokens", () => {
     const model = new OpenAIModel();
-    const messages = [
-      { role: 'user' as const, content: 'Hello world' },
-    ];
+    const messages = [{ role: "user" as const, content: "Hello world" }];
     const count = model.countTokens(messages);
     expect(count).toBeGreaterThan(0);
   });

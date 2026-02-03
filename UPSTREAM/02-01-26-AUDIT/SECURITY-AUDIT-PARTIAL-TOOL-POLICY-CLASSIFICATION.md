@@ -132,10 +132,9 @@ Evidence:
 
 ## 5) Unknowns / needs human review (policy/classification)
 
-1) Canonical “READ vs WRITE” classification metadata:
+1. Canonical “READ vs WRITE” classification metadata:
    - NOT FOUND in the inspected config/types/policy files; classification appears implicit via tool names and groups.
-2) Whether policy is enforced uniformly across all tool entrypoints:
+2. Whether policy is enforced uniformly across all tool entrypoints:
    - Gateway `/tools/invoke` applies policy filtering (`src/gateway/tools-invoke-http.ts:273-296`), but other runners may build tools differently; confirm there are no bypass paths.
-3) Whether plugin tools declare capabilities (read/write) in metadata:
+3. Whether plugin tools declare capabilities (read/write) in metadata:
    - Plugin tool meta is referenced via `getPluginToolMeta` in other files, but classification fields were not inspected in this partial.
-

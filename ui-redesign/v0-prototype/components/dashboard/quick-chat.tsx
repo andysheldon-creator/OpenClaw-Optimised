@@ -1,47 +1,43 @@
-"use client"
+"use client";
 
-import React from "react"
-
-import { useState } from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { ChevronDown, Send, MessageSquare } from "lucide-react";
+import React from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ChevronDown, Send, MessageSquare } from "lucide-react"
-import { AgentAvatar } from "./agent-avatar"
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { AgentAvatar } from "./agent-avatar";
 
 const agents = [
   { id: "research", name: "Research Assistant", status: "active" as const },
   { id: "writing", name: "Writing Partner", status: "ready" as const },
   { id: "scheduler", name: "Scheduler", status: "ready" as const },
-]
+];
 
 interface QuickChatProps {
-  className?: string
+  className?: string;
 }
 
 export function QuickChat({ className }: QuickChatProps) {
-  const [selectedAgent, setSelectedAgent] = useState(agents[0])
-  const [message, setMessage] = useState("")
+  const [selectedAgent, setSelectedAgent] = useState(agents[0]);
+  const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!message.trim()) {return}
+    e.preventDefault();
+    if (!message.trim()) {
+      return;
+    }
     // Navigate to chat with message
-    window.location.href = `/chat/${selectedAgent.id}?message=${encodeURIComponent(message)}`
-  }
+    window.location.href = `/chat/${selectedAgent.id}?message=${encodeURIComponent(message)}`;
+  };
 
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-border bg-card p-4 shadow-soft",
-        className
-      )}
-    >
+    <div className={cn("rounded-2xl border border-border bg-card p-4 shadow-soft", className)}>
       <div className="mb-3 flex items-center gap-2 text-muted-foreground">
         <MessageSquare className="h-4 w-4" />
         <span className="text-sm font-medium">Quick Chat</span>
@@ -92,5 +88,5 @@ export function QuickChat({ className }: QuickChatProps) {
         </div>
       </form>
     </div>
-  )
+  );
 }

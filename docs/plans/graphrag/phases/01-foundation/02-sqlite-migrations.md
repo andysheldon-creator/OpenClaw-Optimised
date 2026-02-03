@@ -11,6 +11,7 @@
 ## Task Overview
 
 Create the database schema for the knowledge graph with support for:
+
 - Entities and relationships
 - Extensible user-defined types
 - Temporal history tracking
@@ -19,6 +20,7 @@ Create the database schema for the knowledge graph with support for:
 ## Schema Design Decisions
 
 **Reference:** `docs/plans/graphrag/ZAI-DECISIONS.md`
+
 - AD-05: Extensible Schema for User-Defined Types
 - AD-09: Temporal History Tables for Graph Evolution
 
@@ -50,7 +52,7 @@ src/knowledge/graph/
  * - Vector embeddings for entity names
  */
 
-import type { Migration } from '../datastore/interface.js';
+import type { Migration } from "../datastore/interface.js";
 
 // ============================================================================
 // ENTITY TABLES
@@ -334,7 +336,7 @@ CREATE INDEX IF NOT EXISTS idx_kg_relationship_sources_chunk ON kg_relationship_
 export const GRAPH_MIGRATIONS: Migration[] = [
   {
     version: 1,
-    name: 'initial_graph_schema',
+    name: "initial_graph_schema",
     up: KG_ENTITIES_TABLE + KG_RELATIONSHIPS_TABLE,
     down: `
       DROP TABLE IF EXISTS kg_relationships;
@@ -345,7 +347,7 @@ export const GRAPH_MIGRATIONS: Migration[] = [
   },
   {
     version: 2,
-    name: 'extensible_types',
+    name: "extensible_types",
     up: KG_ENTITY_TYPES_TABLE + KG_RELATIONSHIP_TYPES_TABLE,
     down: `
       DROP TABLE IF EXISTS kg_relationship_types;
@@ -354,7 +356,7 @@ export const GRAPH_MIGRATIONS: Migration[] = [
   },
   {
     version: 3,
-    name: 'temporal_history',
+    name: "temporal_history",
     up: KG_ENTITY_HISTORY_TABLE + KG_RELATIONSHIP_HISTORY_TABLE,
     down: `
       DROP TABLE IF EXISTS kg_relationship_history;
@@ -363,7 +365,7 @@ export const GRAPH_MIGRATIONS: Migration[] = [
   },
   {
     version: 4,
-    name: 'extraction_progress',
+    name: "extraction_progress",
     up: KG_EXTRACTION_PROGRESS_TABLE,
     down: `
       DROP TABLE IF EXISTS kg_extraction_progress;
@@ -371,7 +373,7 @@ export const GRAPH_MIGRATIONS: Migration[] = [
   },
   {
     version: 5,
-    name: 'entity_sources',
+    name: "entity_sources",
     up: KG_ENTITY_SOURCES_TABLE + KG_RELATIONSHIP_SOURCES_TABLE,
     down: `
       DROP TABLE IF EXISTS kg_relationship_sources;
@@ -395,7 +397,7 @@ export function getGraphMigrations(): Migration[] {
  * Apply graph schema migrations to a datastore.
  */
 export async function migrateGraphSchema(
-  datastore: import('../datastore/interface.js').RelationalDatastore
+  datastore: import("../datastore/interface.js").RelationalDatastore,
 ): Promise<void> {
   await datastore.migrate(getGraphMigrations());
 }
@@ -404,7 +406,7 @@ export async function migrateGraphSchema(
  * Check if graph schema is up to date.
  */
 export async function isGraphSchemaCurrent(
-  datastore: import('../datastore/interface.js').RelationalDatastore
+  datastore: import("../datastore/interface.js").RelationalDatastore,
 ): Promise<boolean> {
   const version = await datastore.getVersion();
   return version >= GRAPH_MIGRATIONS[GRAPH_MIGRATIONS.length - 1].version;
@@ -420,24 +422,24 @@ export async function isGraphSchemaCurrent(
  * Knowledge graph type definitions.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================================================
 // ENTITY TYPES
 // ============================================================================
 
 export const EntityTypeEnum = z.enum([
-  'person',
-  'org',
-  'repo',
-  'concept',
-  'tool',
-  'location',
-  'event',
-  'goal',
-  'task',
-  'file',
-  'custom',
+  "person",
+  "org",
+  "repo",
+  "concept",
+  "tool",
+  "location",
+  "event",
+  "goal",
+  "task",
+  "file",
+  "custom",
 ]);
 
 export type EntityType = z.infer<typeof EntityTypeEnum>;
@@ -448,12 +450,12 @@ export interface Entity {
   nameHash: string;
   nameEmbedding?: number[];
   type: EntityType;
-  customType?: string;  // If type === 'custom'
+  customType?: string; // If type === 'custom'
   description?: string;
   firstSeen: number;
   lastSeen: number;
-  canonicalId?: string;  // If merged, points to canonical entity
-  mergedFrom?: string[];  // IDs of entities merged into this one
+  canonicalId?: string; // If merged, points to canonical entity
+  mergedFrom?: string[]; // IDs of entities merged into this one
   sourceCount: number;
 }
 
@@ -476,7 +478,7 @@ export interface Relationship {
   type: string;
   description?: string;
   keywords: string[];
-  strength: number;  // 1-10
+  strength: number; // 1-10
   firstSeen: number;
   lastSeen: number;
   sourceCount: number;
@@ -484,7 +486,7 @@ export interface Relationship {
 
 export interface RelationshipTypeDefinition {
   name: string;
-  direction: 'directed' | 'undirected';
+  direction: "directed" | "undirected";
   weightRange: string;
   createdAt: number;
 }
@@ -493,17 +495,17 @@ export interface RelationshipTypeDefinition {
 // HISTORY
 // ============================================================================
 
-export type EntityHistoryEvent = 'created' | 'updated' | 'merged' | 'deleted';
+export type EntityHistoryEvent = "created" | "updated" | "merged" | "deleted";
 
 export interface EntityHistoryEntry {
   historyId: string;
   entityId: string;
   event: EntityHistoryEvent;
-  data?: Entity;  // Snapshot of entity state
+  data?: Entity; // Snapshot of entity state
   timestamp: number;
 }
 
-export type RelationshipHistoryEvent = 'created' | 'updated' | 'deleted';
+export type RelationshipHistoryEvent = "created" | "updated" | "deleted";
 
 export interface RelationshipHistoryEntry {
   historyId: string;
@@ -587,12 +589,12 @@ export const EntityExtractionSchema = z.object({
  * Graph tables are created lazily when knowledge.enabled is true.
  */
 
-import { migrateGraphSchema, isGraphSchemaCurrent } from '../knowledge/graph/schema.js';
-import type { RelationalDatastore } from '../knowledge/datastore/interface.js';
+import { migrateGraphSchema, isGraphSchemaCurrent } from "../knowledge/graph/schema.js";
+import type { RelationalDatastore } from "../knowledge/datastore/interface.js";
 
 export async function ensureMemoryIndexSchema(
   db: RelationalDatastore,
-  options: { enableKnowledge?: boolean } = {}
+  options: { enableKnowledge?: boolean } = {},
 ): Promise<void> {
   // ... existing memory schema migrations ...
 
@@ -632,7 +634,7 @@ export type KnowledgeConfig = {
   };
 
   graph: {
-    backend: 'sqlite' | 'neo4j';
+    backend: "sqlite" | "neo4j";
     // ... backend-specific config
   };
 };
@@ -643,60 +645,55 @@ export type KnowledgeConfig = {
 **File:** `src/knowledge/graph/schema.test.ts`
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { createDatastore } from '../datastore/interface.js';
-import { migrateGraphSchema, isGraphSchemaCurrent } from './schema.js';
+import { describe, it, expect } from "vitest";
+import { createDatastore } from "../datastore/interface.js";
+import { migrateGraphSchema, isGraphSchemaCurrent } from "./schema.js";
 
-describe('Graph Schema', () => {
-  it('should apply all migrations', async () => {
-    const ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+describe("Graph Schema", () => {
+  it("should apply all migrations", async () => {
+    const ds = createDatastore({ type: "sqlite", path: ":memory:" });
     await migrateGraphSchema(ds);
 
     const version = await ds.getVersion();
-    expect(version).toBe(5);  // Latest migration version
+    expect(version).toBe(5); // Latest migration version
 
     await ds.close();
   });
 
-  it('should create entity types table', async () => {
-    const ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+  it("should create entity types table", async () => {
+    const ds = createDatastore({ type: "sqlite", path: ":memory:" });
     await migrateGraphSchema(ds);
 
-    const types = await ds.query<{ name: string }>(
-      'SELECT name FROM kg_entity_types'
-    );
+    const types = await ds.query<{ name: string }>("SELECT name FROM kg_entity_types");
 
     expect(types.length).toBeGreaterThan(0);
-    expect(types.some(t => t.name === 'person')).toBe(true);
+    expect(types.some((t) => t.name === "person")).toBe(true);
 
     await ds.close();
   });
 
-  it('should create entities with relationships', async () => {
-    const ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+  it("should create entities with relationships", async () => {
+    const ds = createDatastore({ type: "sqlite", path: ":memory:" });
     await migrateGraphSchema(ds);
 
     // Create entity
     await ds.execute(
       `INSERT INTO kg_entities (id, name, name_hash, type, description)
        VALUES ($1, $2, $3, $4, $5)`,
-      ['e1', 'Test Entity', 'hash1', 'person', 'A test entity']
+      ["e1", "Test Entity", "hash1", "person", "A test entity"],
     );
 
     // Query back
-    const entity = await ds.queryOne(
-      'SELECT * FROM kg_entities WHERE id = $1',
-      ['e1']
-    );
+    const entity = await ds.queryOne("SELECT * FROM kg_entities WHERE id = $1", ["e1"]);
 
     expect(entity).toBeDefined();
-    expect(entity.name).toBe('Test Entity');
+    expect(entity.name).toBe("Test Entity");
 
     await ds.close();
   });
 
-  it('should enforce foreign key constraints', async () => {
-    const ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+  it("should enforce foreign key constraints", async () => {
+    const ds = createDatastore({ type: "sqlite", path: ":memory:" });
     await migrateGraphSchema(ds);
 
     // Try to create relationship with non-existent entities
@@ -704,38 +701,35 @@ describe('Graph Schema', () => {
       ds.execute(
         `INSERT INTO kg_relationships (id, source_id, target_id, type, strength)
          VALUES ($1, $2, $3, $4, $5)`,
-        ['r1', 'nonexistent', 'alsofake', 'depends_on', 5]
-      )
+        ["r1", "nonexistent", "alsofake", "depends_on", 5],
+      ),
     ).rejects.toThrow();
 
     await ds.close();
   });
 
-  it('should track entity history', async () => {
-    const ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+  it("should track entity history", async () => {
+    const ds = createDatastore({ type: "sqlite", path: ":memory:" });
     await migrateGraphSchema(ds);
 
     // Create entity
     await ds.execute(
       `INSERT INTO kg_entities (id, name, name_hash, type)
        VALUES ($1, $2, $3, $4)`,
-      ['e1', 'Test', 'hash', 'concept']
+      ["e1", "Test", "hash", "concept"],
     );
 
     // Record history
     await ds.execute(
       `INSERT INTO kg_entity_history (history_id, entity_id, event, data)
        VALUES ($1, $2, $3, $4)`,
-      ['h1', 'e1', 'created', '{"id":"e1","name":"Test"}']
+      ["h1", "e1", "created", '{"id":"e1","name":"Test"}'],
     );
 
-    const history = await ds.query(
-      'SELECT * FROM kg_entity_history WHERE entity_id = $1',
-      ['e1']
-    );
+    const history = await ds.query("SELECT * FROM kg_entity_history WHERE entity_id = $1", ["e1"]);
 
     expect(history.length).toBe(1);
-    expect(history[0].event).toBe('created');
+    expect(history[0].event).toBe("created");
 
     await ds.close();
   });

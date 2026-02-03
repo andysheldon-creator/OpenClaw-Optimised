@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement parsers for various document formats:
+
 - PDF: pdfjs-dist
 - DOCX: mammoth
 - HTML: @mozilla/readability
@@ -29,21 +30,21 @@ src/knowledge/ingest/parsers/
 ## PDF Parser
 
 ```typescript
-import * as pdfjs from 'pdfjs-dist';
+import * as pdfjs from "pdfjs-dist";
 
 export async function parsePDF(content: string | Buffer): Promise<{ text: string }> {
-  const data = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content;
+  const data = typeof content === "string" ? Buffer.from(content, "utf-8") : content;
 
   const loadingTask = pdfjs.getDocument({ data: Array.from(data) });
   const pdf = await loadingTask.promise;
 
-  let fullText = '';
+  let fullText = "";
 
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items.map((item: any) => item.str).join(' ');
-    fullText += pageText + '\n';
+    const pageText = textContent.items.map((item: any) => item.str).join(" ");
+    fullText += pageText + "\n";
   }
 
   return { text: fullText.trim() };
@@ -53,10 +54,10 @@ export async function parsePDF(content: string | Buffer): Promise<{ text: string
 ## DOCX Parser
 
 ```typescript
-import mammoth from 'mammoth';
+import mammoth from "mammoth";
 
 export async function parseDOCX(content: string | Buffer): Promise<{ text: string }> {
-  const buffer = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content;
+  const buffer = typeof content === "string" ? Buffer.from(content, "utf-8") : content;
 
   const result = await mammoth.extractRawText({ buffer });
 
@@ -67,16 +68,16 @@ export async function parseDOCX(content: string | Buffer): Promise<{ text: strin
 ## HTML Parser
 
 ```typescript
-import { Readability } from '@mozilla/readability';
-import { DOMParser } from 'linkedom';
+import { Readability } from "@mozilla/readability";
+import { DOMParser } from "linkedom";
 
 export async function parseHTML(content: string): Promise<{ text: string; metadata?: any }> {
-  const doc = new DOMParser().parseFromString(content, 'text/html');
+  const doc = new DOMParser().parseFromString(content, "text/html");
   const reader = new Readability(doc as any);
   const article = reader.parse();
 
   if (!article) {
-    return { text: '' };
+    return { text: "" };
   }
 
   return {
@@ -93,7 +94,7 @@ export async function parseHTML(content: string): Promise<{ text: string; metada
 ## Markdown Parser
 
 ```typescript
-import MarkdownIt from 'markdown-it';
+import MarkdownIt from "markdown-it";
 
 const md = new MarkdownIt();
 
@@ -102,7 +103,7 @@ export async function parseMarkdown(content: string): Promise<{ text: string }> 
   const html = md.render(content);
 
   // Strip HTML tags
-  const text = html.replace(/<[^>]*>/g, '');
+  const text = html.replace(/<[^>]*>/g, "");
 
   return { text: text.trim() };
 }

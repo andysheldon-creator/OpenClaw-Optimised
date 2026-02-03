@@ -86,8 +86,8 @@ For each entity recognized in the query:
 
 ```typescript
 function computeGraphScore(params: {
-  relationshipWeight: number;  // 1-10 from extraction
-  hopDistance: number;         // 1, 2, or 3
+  relationshipWeight: number; // 1-10 from extraction
+  hopDistance: number; // 1, 2, or 3
   entityMentionCount: number;
 }): number {
   const hopDecay = 1 / Math.pow(2, params.hopDistance - 1);

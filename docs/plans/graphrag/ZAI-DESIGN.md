@@ -64,15 +64,13 @@
 export class ExtractionPipeline {
   async extractFromChunks(
     chunks: MemoryChunk[],
-    options: ExtractionOptions
+    options: ExtractionOptions,
   ): Promise<ExtractionResult> {
     // Phase 1: Initial LLM extraction (delimiter-based)
     const initial = await this.llmExtract(chunks, options);
 
     // Phase 2: Gleaning loop (optional, 1-2 passes)
-    const gleaned = options.gleaning.enabled
-      ? await this.glean(chunks, initial)
-      : initial;
+    const gleaned = options.gleaning.enabled ? await this.glean(chunks, initial) : initial;
 
     // Phase 3: Parse and structure
     const entities = this.parseExtraction(gleaned);
@@ -101,8 +99,8 @@ export class ExtractionPipeline {
   }
 
   private buildExtractionPrompt(chunks: MemoryChunk[], options: ExtractionOptions): string {
-    const entityTypes = options.entityTypes.join(', ');
-    const relTypes = options.relationshipTypes.join(', ');
+    const entityTypes = options.entityTypes.join(", ");
+    const relTypes = options.relationshipTypes.join(", ");
 
     let prompt = `Extract entities and relationships from the following text.
 
@@ -125,12 +123,14 @@ Output format (one per line):
   }
 
   private parseDelimitedOutput(raw: string): ParsedResult {
-    const lines = raw.split('\n');
+    const lines = raw.split("\n");
     const entities: ExtractedEntity[] = [];
     const relationships: ExtractedRelationship[] = [];
 
     for (const line of lines) {
-      const entityMatch = line.match(/\("entity"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"/);
+      const entityMatch = line.match(
+        /\("entity"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"/,
+      );
       if (entityMatch) {
         entities.push({
           name: entityMatch[1],
@@ -140,14 +140,16 @@ Output format (one per line):
         });
       }
 
-      const relMatch = line.match(/\("relationship"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\|\s*(\d+)\)/);
+      const relMatch = line.match(
+        /\("relationship"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\s*"([^"]+)"\s*\|\|\s*(\d+)\)/,
+      );
       if (relMatch) {
         relationships.push({
           sourceName: relMatch[1],
           targetName: relMatch[2],
           type: relMatch[3],
           description: relMatch[4],
-          keywords: relMatch[5].split(',').map(k => k.trim()),
+          keywords: relMatch[5].split(",").map((k) => k.trim()),
           strength: parseInt(relMatch[6], 10),
         });
       }
@@ -171,27 +173,27 @@ export type KnowledgeConfig = {
     relationshipTypes: string[];
 
     // Model selection (uses existing provider system)
-    provider?: 'openai' | 'gemini' | 'local';
-    model?: string;  // Override default model
+    provider?: "openai" | "gemini" | "local";
+    model?: string; // Override default model
 
     // Extraction quality
     gleaning: {
       enabled: boolean;
-      passes: 0 | 1 | 2;  // 0 = none, 1 = one re-prompt, 2 = two
+      passes: 0 | 1 | 2; // 0 = none, 1 = one re-prompt, 2 = two
     };
 
     // Consolidation thresholds
     consolidation: {
-      exactMatch: boolean;      // Always true
-      fuzzyThreshold: number;  // 0.92 for embedding similarity
-      editDistanceThreshold: number;  // 3 for fast-levenshtein
-      llmConfirm: boolean;     // Borderline cases (0.88-0.92 band)
+      exactMatch: boolean; // Always true
+      fuzzyThreshold: number; // 0.92 for embedding similarity
+      editDistanceThreshold: number; // 3 for fast-levenshtein
+      llmConfirm: boolean; // Borderline cases (0.88-0.92 band)
     };
 
     // Performance
-    batchSize: number;        // Chunks per LLM call (default 5)
-    concurrency: number;      // Parallel extraction calls (default 3)
-    cacheExtracted: boolean;  // Cache extraction per chunk hash
+    batchSize: number; // Chunks per LLM call (default 5)
+    concurrency: number; // Parallel extraction calls (default 3)
+    cacheExtracted: boolean; // Cache extraction per chunk hash
   };
 };
 ```
@@ -207,7 +209,7 @@ export type KnowledgeConfig = {
 export class EntityConsolidator {
   async consolidate(
     entities: ExtractedEntity[],
-    existingEntities: Map<string, ExtractedEntity>
+    existingEntities: Map<string, ExtractedEntity>,
   ): Promise<Map<string, ExtractedEntity>> {
     const result = new Map(existingEntities);
 
@@ -258,10 +260,7 @@ export class EntityConsolidator {
     return result;
   }
 
-  private async mergeEntities(
-    target: ExtractedEntity,
-    source: ExtractedEntity
-  ): Promise<void> {
+  private async mergeEntities(target: ExtractedEntity, source: ExtractedEntity): Promise<void> {
     // Keep the longer/more descriptive name
     if (source.name.length > target.name) {
       target.name = source.name;
@@ -292,7 +291,7 @@ export class EntityConsolidator {
 
   private async llmConfirmSimilar(
     entityA: ExtractedEntity,
-    entityB: ExtractedEntity
+    entityB: ExtractedEntity,
   ): Promise<boolean> {
     const prompt = `Are these the same entity?
 
@@ -305,7 +304,7 @@ Answer yes or no with a brief reason.`;
     const response = await provider.complete(prompt);
 
     const normalized = response.toLowerCase().trim();
-    return normalized.startsWith('yes') || normalized.includes('same');
+    return normalized.startsWith("yes") || normalized.includes("same");
   }
 }
 ```
@@ -346,8 +345,8 @@ export class CrawlerOrchestrator {
       await this.rateLimiter.throttle(url.domain);
 
       // Check robots.txt
-      if (!await this.isAllowed(url)) {
-        progress.skipped(url, 'robots.txt');
+      if (!(await this.isAllowed(url))) {
+        progress.skipped(url, "robots.txt");
         continue;
       }
 
@@ -367,13 +366,13 @@ export class CrawlerOrchestrator {
 
   private async discoverUrls(options: CrawlOptions): Promise<CrawlUrl[]> {
     switch (options.mode) {
-      case 'single':
+      case "single":
         return [{ url: options.url, depth: 0 }];
 
-      case 'sitemap':
+      case "sitemap":
         return await this.discoverFromSitemap(options.url);
 
-      case 'recursive':
+      case "recursive":
         return await this.breadthFirstDiscovery(options);
 
       default:
@@ -389,7 +388,7 @@ export class CrawlerOrchestrator {
     // Parse sitemap XML
     const urls = this.parseSitemap(xml);
 
-    return urls.map(u => ({ url: u, depth: 0, domain: this.extractDomain(u) }));
+    return urls.map((u) => ({ url: u, depth: 0, domain: this.extractDomain(u) }));
   }
 
   private async breadthFirstDiscovery(options: CrawlOptions): Promise<CrawlUrl[]> {
@@ -414,7 +413,7 @@ export class CrawlerOrchestrator {
       }
     }
 
-    return Array.from(visited).map(url => ({ url, depth: 0, domain: this.extractDomain(url) }));
+    return Array.from(visited).map((url) => ({ url, depth: 0, domain: this.extractDomain(url) }));
   }
 
   private async fetchPage(url: string, options: CrawlOptions): Promise<PageContent> {
@@ -425,7 +424,7 @@ export class CrawlerOrchestrator {
 
     // Default: HTTP fetch
     const response = await fetch(url, {
-      headers: options.auth ? { 'Authorization': `Bearer ${options.auth.token}` } : {},
+      headers: options.auth ? { Authorization: `Bearer ${options.auth.token}` } : {},
     });
 
     const html = await response.text();
@@ -435,7 +434,7 @@ export class CrawlerOrchestrator {
   private async processContent(
     content: PageContent,
     url: string,
-    options: CrawlOptions
+    options: CrawlOptions,
   ): Promise<ProcessedDocument> {
     // Extract readable content
     const markdown = await this.htmlToMarkdown(content.html);
@@ -475,8 +474,8 @@ export class CrawlerOrchestrator {
 
 ```typescript
 // crawler/robots.ts
-import { parse } from 'robots-txt-parser';
-import { readFile } from 'fs/promises';
+import { parse } from "robots-txt-parser";
+import { readFile } from "fs/promises";
 
 export class RobotsHandler {
   private cache: Map<string, RobotsTxt> = new Map();
@@ -540,11 +539,11 @@ export class MemoryGraphQuery {
   constructor(private db: Database) {}
 
   async findEntitiesByChunk(chunkId: string): Promise<Entity[]> {
-    const row = this.db.prepare('SELECT entity_ids FROM chunks WHERE id = ?').get(chunkId);
+    const row = this.db.prepare("SELECT entity_ids FROM chunks WHERE id = ?").get(chunkId);
     if (!row?.entity_ids) return [];
 
     const entityIds = JSON.parse(row.entity_ids);
-    const placeholders = entityIds.map(() => '?').join(',');
+    const placeholders = entityIds.map(() => "?").join(",");
 
     const stmt = this.db.prepare(`
       SELECT * FROM kg_entities
@@ -557,7 +556,7 @@ export class MemoryGraphQuery {
   async getEntityNeighborhood(
     entityId: string,
     maxHops: number = 1,
-    limit: number = 50
+    limit: number = 50,
   ): Promise<GraphNeighborhood> {
     const stmt = this.db.prepare(`
       WITH RECURSIVE neighborhood(entity_id, depth) AS (
@@ -584,12 +583,12 @@ export class MemoryGraphQuery {
     const entities = stmt.all(entityId, maxHops, limit);
 
     // Get relationships
-    const entityIds = entities.map(e => e.entity_id);
+    const entityIds = entities.map((e) => e.entity_id);
     const relStmt = this.db.prepare(`
       SELECT r.*
       FROM kg_relationships r
-      WHERE r.source_entity_id IN (${Array(entityIds).fill('?').join(',')})
-        OR r.target_entity_id IN (${Array(entityIds).fill('?').join(',')})
+      WHERE r.source_entity_id IN (${Array(entityIds).fill("?").join(",")})
+        OR r.target_entity_id IN (${Array(entityIds).fill("?").join(",")})
     `);
 
     const relationships = relStmt.all(...entityIds);
@@ -622,13 +621,15 @@ export class GraphAwareSearchManager extends MemorySearchManager {
 
   private async expandWithGraph(
     entities: Entity[],
-    options: SearchOptions
+    options: SearchOptions,
   ): Promise<SearchResult[]> {
     const graphNeighborhoods = await Promise.all(
-      entities.map(e => this.graphQuery.getNeighborhood(e.id, {
-        maxHops: options.graphMaxHops || 1,
-        limit: options.graphMaxChunks || 4
-      }))
+      entities.map((e) =>
+        this.graphQuery.getNeighborhood(e.id, {
+          maxHops: options.graphMaxHops || 1,
+          limit: options.graphMaxChunks || 4,
+        }),
+      ),
     );
 
     // Convert graph results to search results
@@ -654,7 +655,7 @@ export class GraphAwareSearchManager extends MemorySearchManager {
             endLine: chunk.endLine,
             snippet: chunk.snippet,
             score: score,
-            source: 'graph-expansion',
+            source: "graph-expansion",
           });
         }
       }
@@ -692,7 +693,7 @@ export class MultiModalEmbeddingProvider implements EmbeddingProvider {
       text: await this.embedText(content.fullText),
       code: await this.embedCodeBlocks(content.codeBlocks),
       tables: await this.embedTables(content.tables),
-      images: await this.embedImages(content.images),  // Optional, CLIP model
+      images: await this.embedImages(content.images), // Optional, CLIP model
     };
 
     return embeddings;
@@ -706,7 +707,7 @@ export class MultiModalEmbeddingProvider implements EmbeddingProvider {
   private async embedCodeBlocks(blocks: CodeBlock[]): Promise<Map<string, number[]>> {
     // Use code-aware embedding model (optional)
     // Could use sentence-transformers with code model
-    return new Map(blocks.map(b => [b.id, await this.provider.embedQuery(b.code)]));
+    return new Map(blocks.map((b) => [b.id, await this.provider.embedQuery(b.code)]));
   }
 }
 ```
@@ -748,7 +749,7 @@ export class ContextualEmbeddingService {
 
     // Normalize
     const norm = Math.sqrt(presenceVector.reduce((sum, val) => sum + val * val, 0));
-    return presenceVector.map(v => v / norm);
+    return presenceVector.map((v) => v / norm);
   }
 }
 ```
@@ -812,16 +813,16 @@ export class HierarchicalEmbeddingCache {
       this.currentModel,
       this.currentProvider,
       Date.now(),
-      Date.now()
+      Date.now(),
     );
   }
 }
 
 enum CacheLevel {
-  Query = 'query',        // Single query string
-  Chunk = 'chunk',        // Single chunk content
-  Document = 'document',  // Full document (all chunks)
-  Entity = 'entity',       // Entity with context
+  Query = "query", // Single query string
+  Chunk = "chunk", // Single chunk content
+  Document = "document", // Full document (all chunks)
+  Entity = "entity", // Entity with context
 }
 ```
 
@@ -854,29 +855,29 @@ clawdbot config set knowledge.extraction.model gpt-4.1-mini
 // agents/tools/knowledge-tools.ts
 export const knowledgeTools = [
   {
-    name: 'knowledge_search',
-    description: 'Search knowledge graph with entity awareness',
+    name: "knowledge_search",
+    description: "Search knowledge graph with entity awareness",
     parameters: {
-      query: { type: 'string' },
-      useGraph: { type: 'boolean', default: true },
-      maxHops: { type: 'number', default: 1 },
+      query: { type: "string" },
+      useGraph: { type: "boolean", default: true },
+      maxHops: { type: "number", default: 1 },
     },
   },
   {
-    name: 'knowledge_inspect',
-    description: 'Get detailed information about an entity',
+    name: "knowledge_inspect",
+    description: "Get detailed information about an entity",
     parameters: {
-      entityName: { type: 'string' },
-      includeNeighborhood: { type: 'boolean', default: true },
+      entityName: { type: "string" },
+      includeNeighborhood: { type: "boolean", default: true },
     },
   },
   {
-    name: 'knowledge_ingest',
-    description: 'Ingest a document into knowledge base',
+    name: "knowledge_ingest",
+    description: "Ingest a document into knowledge base",
     parameters: {
-      path: { type: 'string' },
-      text: { type: 'string' },
-      extractEntities: { type: 'boolean', default: true },
+      path: { type: "string" },
+      text: { type: "string" },
+      extractEntities: { type: "boolean", default: true },
     },
   },
 ];
@@ -912,8 +913,8 @@ export class IncrementalExtractor {
 
       const currentHash = this.computeContentHash(chunk);
 
-      if (status?.checksum === currentHash && status?.status === 'done') {
-        continue;  // Already extracted, content unchanged
+      if (status?.checksum === currentHash && status?.status === "done") {
+        continue; // Already extracted, content unchanged
       }
 
       // Perform extraction
@@ -935,8 +936,8 @@ export class BackgroundExtractionQueue {
 
   constructor() {
     this.queue = new PQueue({
-      concurrency: 3,  // Max parallel extractions
-      interval: 1000,  // Poll interval
+      concurrency: 3, // Max parallel extractions
+      interval: 1000, // Poll interval
       autoStart: true,
     });
 
@@ -948,9 +949,9 @@ export class BackgroundExtractionQueue {
 
   async enqueueChunk(chunk: MemoryChunk): Promise<void> {
     await this.queue.add({
-      type: 'chunk',
+      type: "chunk",
       chunk,
-      priority: 'normal',
+      priority: "normal",
     });
   }
 }
@@ -1076,10 +1077,7 @@ agents:
 ```typescript
 // extraction/error-handling.ts
 export class ExtractionErrorHandler {
-  async handleExtractionFailure(
-    chunk: MemoryChunk,
-    error: Error
-  ): Promise<ExtractionResult> {
+  async handleExtractionFailure(chunk: MemoryChunk, error: Error): Promise<ExtractionResult> {
     // Log error but don't fail entire sync
     logger.warn(`Extraction failed for chunk ${chunk.id}: ${error.message}`);
 
@@ -1091,10 +1089,7 @@ export class ExtractionErrorHandler {
     };
   }
 
-  async retryWithFallback(
-    chunk: MemoryChunk,
-    maxAttempts: number = 3
-  ): Promise<ExtractionResult> {
+  async retryWithFallback(chunk: MemoryChunk, maxAttempts: number = 3): Promise<ExtractionResult> {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         return await this.extractor.extractFromChunk(chunk);
@@ -1138,14 +1133,9 @@ export class ResilientCrawler {
   private isRecoverable(error: Error): boolean {
     // Network errors, timeouts, rate limits - recoverable
     // Parse errors, invalid URLs - not recoverable
-    const recoverablePatterns = [
-      /ETIMEDOUT/,
-      /ECONNREFUSED/,
-      /rate limit/i,
-      /timeout/i,
-    ];
+    const recoverablePatterns = [/ETIMEDOUT/, /ECONNREFUSED/, /rate limit/i, /timeout/i];
 
-    return recoverablePatterns.some(pattern => pattern.test(error.message));
+    return recoverablePatterns.some((pattern) => pattern.test(error.message));
   }
 }
 ```
@@ -1191,26 +1181,24 @@ export class KnowledgeHealthCheck {
   async health(): Promise<HealthStatus> {
     const checks: HealthCheck[] = [
       {
-        name: 'extraction_service',
+        name: "extraction_service",
         status: await this.checkExtractionService(),
       },
       {
-        name: 'graph_database',
+        name: "graph_database",
         status: await this.checkGraphTables(),
       },
       {
-        name: 'entity_embeddings',
+        name: "entity_embeddings",
         status: await this.checkEmbeddingIndex(),
       },
       {
-        name: 'crawler_queue',
+        name: "crawler_queue",
         status: await this.checkCrawlerQueue(),
       },
     ];
 
-    const overall = checks.every(c => c.status === 'healthy')
-      ? 'healthy'
-      : 'degraded';
+    const overall = checks.every((c) => c.status === "healthy") ? "healthy" : "degraded";
 
     return { status: overall, checks };
   }
@@ -1272,12 +1260,14 @@ export class KnowledgeHealthCheck {
 **Choice:** Use SQLite recursive CTEs for graph queries
 
 **Rationale:**
+
 - No additional infrastructure
 - Proven performance up to 50K entities
 - Consistent with existing memory system
 - Optional Neo4j extension for scale
 
 **Trade-offs:**
+
 - Max 3-hop queries at scale
 - No built-in graph algorithms
 - Can add Python service for advanced features
@@ -1287,12 +1277,14 @@ export class KnowledgeHealthCheck {
 **Choice:** Delimiter format over JSON mode
 
 **Rationale:**
+
 - More token-efficient
 - Works reliably across models
 - Easier to parse
 - Proven pattern from LightRAG
 
 **Trade-offs:**
+
 - Custom parser required
 - No schema validation at parse time
 
@@ -1301,11 +1293,13 @@ export class KnowledgeHealthCheck {
 **Choice:** Node.js with Playwright for crawling
 
 **Rationale:**
+
 - Playwright already in dependencies
 - Better HTTP performance
 - Easier integration with existing code
 
 **Trade-offs:**
+
 - Python has better HTML parsing libraries (but Node.js is sufficient)
 - JS rendering requires Playwright either way
 
@@ -1314,11 +1308,13 @@ export class KnowledgeHealthCheck {
 **Choice:** Extract only from changed chunks
 
 **Rationale:**
+
 - Reduces LLM costs
 - Faster sync cycles
 - Easier debugging
 
 **Trade-offs:**
+
 - Need extraction status tracking
 - May miss implicit changes
 
@@ -1327,11 +1323,13 @@ export class KnowledgeHealthCheck {
 **Choice:** Add graph expansion as enhancement to hybrid search
 
 **Rationale:**
+
 - Doesn't break existing search
 - Configurable and can be disabled
 - Improves results for entity-heavy queries
 
 **Trade-offs:**
+
 - Additional latency for graph queries
 - More complex result merging
 - Requires graph to be useful

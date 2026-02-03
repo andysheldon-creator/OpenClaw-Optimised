@@ -14,6 +14,7 @@
 This document has been translated from React patterns to Lit Web Components following Clawdbrain's conventions.
 
 ### Translation Applied:
+
 - React `useState` → Controller state with reactive properties
 - React Table → `<table>` with Tailwind classes
 - Expandable rows → Lit reactive state with CSS transitions
@@ -53,7 +54,7 @@ export interface Artifact {
 export interface TimelineEvent {
   timestamp: string;
   action: string;
-  status: 'success' | 'warning' | 'error';
+  status: "success" | "warning" | "error";
   details: string;
 }
 
@@ -67,7 +68,7 @@ export interface ExecutionRecord {
   id: string;
   timestamp: string;
   duration: string;
-  status: 'success' | 'failed' | 'warning' | 'running';
+  status: "success" | "failed" | "warning" | "running";
   summary: string;
   artifacts: Artifact[];
   timeline: TimelineEvent[];
@@ -87,7 +88,7 @@ export interface RunHistoryState {
   records: ExecutionRecord[];
   expandedRows: Set<string>;
   currentPage: number;
-  statusFilter: 'all' | ExecutionRecord['status'];
+  statusFilter: "all" | ExecutionRecord["status"];
   dateFrom: string;
   dateTo: string;
   itemsPerPage: number;
@@ -96,8 +97,8 @@ export interface RunHistoryState {
 
 // Computed properties
 export function getFilteredData(state: RunHistoryState): ExecutionRecord[] {
-  return state.records.filter(record => {
-    if (state.statusFilter !== 'all' && record.status !== state.statusFilter) return false;
+  return state.records.filter((record) => {
+    if (state.statusFilter !== "all" && record.status !== state.statusFilter) return false;
     if (state.dateFrom && record.timestamp < state.dateFrom) return false;
     if (state.dateTo && record.timestamp > state.dateTo) return false;
     return true;
@@ -108,7 +109,10 @@ export function getTotalPages(state: RunHistoryState, filteredData: ExecutionRec
   return Math.ceil(filteredData.length / state.itemsPerPage);
 }
 
-export function getPaginatedData(state: RunHistoryState, filteredData: ExecutionRecord[]): ExecutionRecord[] {
+export function getPaginatedData(
+  state: RunHistoryState,
+  filteredData: ExecutionRecord[],
+): ExecutionRecord[] {
   const startIndex = (state.currentPage - 1) * state.itemsPerPage;
   return filteredData.slice(startIndex, startIndex + state.itemsPerPage);
 }
@@ -122,9 +126,9 @@ export function toggleRow(state: RunHistoryState, id: string): void {
 }
 
 export function clearFilters(state: RunHistoryState): void {
-  state.statusFilter = 'all';
-  state.dateFrom = '';
-  state.dateTo = '';
+  state.statusFilter = "all";
+  state.dateFrom = "";
+  state.dateTo = "";
 }
 ```
 
@@ -146,7 +150,15 @@ export interface RunHistoryProps {
 }
 
 export function renderRunHistory(props: RunHistoryProps) {
-  const { state, onToggleRow, onPageChange, onStatusFilterChange, onDateFromChange, onDateToChange, onClearFilters } = props;
+  const {
+    state,
+    onToggleRow,
+    onPageChange,
+    onStatusFilterChange,
+    onDateFromChange,
+    onDateToChange,
+    onClearFilters,
+  } = props;
 
   const filteredData = getFilteredData(state);
   const totalPages = getTotalPages(state, filteredData);
@@ -178,7 +190,8 @@ export function renderRunHistory(props: RunHistoryProps) {
               <input
                 type="date"
                 .value="${state.dateFrom}"
-                @input="${(e: InputEvent) => onDateFromChange((e.target as HTMLInputElement).value)}"
+                @input="${(e: InputEvent) =>
+                  onDateFromChange((e.target as HTMLInputElement).value)}"
                 class="w-40 px-3 py-2 text-sm rounded-md border border-input bg-background"
                 placeholder="From"
               />
@@ -221,11 +234,21 @@ export function renderRunHistory(props: RunHistoryProps) {
             <thead class="bg-muted/50">
               <tr>
                 <th class="w-12 px-4 py-3 text-left text-sm font-medium text-muted-foreground"></th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Timestamp</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Duration</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Summary</th>
-                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Artifacts</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  Timestamp
+                </th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  Duration
+                </th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  Status
+                </th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  Summary
+                </th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  Artifacts
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
@@ -234,14 +257,18 @@ export function renderRunHistory(props: RunHistoryProps) {
           </table>
 
           <!-- Empty State -->
-          ${paginatedData.length === 0 ? html`
-            <div class="text-center py-12">
-              <p class="text-muted-foreground">No execution records found</p>
-            </div>
-          ` : nothing}
+          ${paginatedData.length === 0
+            ? html`
+                <div class="text-center py-12">
+                  <p class="text-muted-foreground">No execution records found</p>
+                </div>
+              `
+            : nothing}
 
           <!-- Pagination -->
-          ${totalPages > 1 ? renderPagination(state, filteredData, totalPages, startIndex, onPageChange) : nothing}
+          ${totalPages > 1
+            ? renderPagination(state, filteredData, totalPages, startIndex, onPageChange)
+            : nothing}
         </div>
       </div>
     </div>
@@ -252,7 +279,7 @@ function renderHistoryRow(
   record: ExecutionRecord,
   state: RunHistoryState,
   onToggleRow: (id: string) => void,
-  props: RunHistoryProps
+  props: RunHistoryProps,
 ) {
   const isExpanded = state.expandedRows.has(record.id);
 
@@ -279,97 +306,108 @@ function renderHistoryRow(
         <p class="text-sm truncate">${record.summary}</p>
       </td>
       <td class="px-4 py-3">
-        <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-muted text-muted-foreground font-mono">
+        <span
+          class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-muted text-muted-foreground font-mono"
+        >
           ${record.artifacts.length} files
         </span>
       </td>
     </tr>
 
     <!-- Expanded Details Row -->
-    ${isExpanded ? html`
-      <tr class="expanded-row">
-        <td colspan="6" class="bg-muted/30 px-6 py-4">
-          <div class="space-y-6">
-            <!-- Two Column Layout -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Left Column: Timeline + Conflicts -->
-              <div class="space-y-4">
-                <!-- Execution Timeline -->
-                <div>
-                  <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
-                    ${icon("clock", { size: 16, class: "text-muted-foreground" })}
-                    Execution Timeline
-                  </h3>
-                  <div class="space-y-3">
-                    ${record.timeline.map((event, idx) => renderTimelineItem(event, idx, record.timeline))}
-                  </div>
-                </div>
+    ${isExpanded
+      ? html`
+          <tr class="expanded-row">
+            <td colspan="6" class="bg-muted/30 px-6 py-4">
+              <div class="space-y-6">
+                <!-- Two Column Layout -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Left Column: Timeline + Conflicts -->
+                  <div class="space-y-4">
+                    <!-- Execution Timeline -->
+                    <div>
+                      <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
+                        ${icon("clock", { size: 16, class: "text-muted-foreground" })} Execution
+                        Timeline
+                      </h3>
+                      <div class="space-y-3">
+                        ${record.timeline.map((event, idx) =>
+                          renderTimelineItem(event, idx, record.timeline),
+                        )}
+                      </div>
+                    </div>
 
-                <!-- Conflict Details (if any) -->
-                ${record.conflicts.length > 0 ? html`
-                  <div>
-                    <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
-                      ${icon("alert-triangle", { size: 16, class: "text-orange-500" })}
-                      Conflict Details
-                    </h3>
-                    <div class="space-y-2">
-                      ${record.conflicts.map((conflict) => renderConflictItem(conflict))}
+                    <!-- Conflict Details (if any) -->
+                    ${record.conflicts.length > 0
+                      ? html`
+                          <div>
+                            <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
+                              ${icon("alert-triangle", { size: 16, class: "text-orange-500" })}
+                              Conflict Details
+                            </h3>
+                            <div class="space-y-2">
+                              ${record.conflicts.map((conflict) => renderConflictItem(conflict))}
+                            </div>
+                          </div>
+                        `
+                      : nothing}
+                  </div>
+
+                  <!-- Right Column: AI Info + Artifacts -->
+                  <div class="space-y-4">
+                    <!-- AI Model Information -->
+                    <div>
+                      <h3 class="text-sm font-semibold mb-3">AI Model Information</h3>
+                      <div class="bg-background rounded-lg p-4 border border-border space-y-2">
+                        <div class="flex justify-between">
+                          <span class="text-sm text-muted-foreground">Model:</span>
+                          <span class="text-sm font-medium">${record.aiModel.name}</span>
+                        </div>
+                        <div class="h-px bg-border"></div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-muted-foreground">Version:</span>
+                          <span class="text-sm font-mono">${record.aiModel.version}</span>
+                        </div>
+                        <div class="h-px bg-border"></div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-muted-foreground">Tokens Used:</span>
+                          <span class="text-sm font-mono"
+                            >${record.aiModel.tokensUsed.toLocaleString()}</span
+                          >
+                        </div>
+                        <div class="h-px bg-border"></div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-muted-foreground">Cost:</span>
+                          <span class="text-sm font-medium">${record.aiModel.cost}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Artifacts -->
+                    <div>
+                      <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
+                        ${icon("file-text", { size: 16, class: "text-muted-foreground" })} Artifacts
+                      </h3>
+                      <div class="space-y-2">
+                        ${record.artifacts.map((artifact) => renderArtifactItem(artifact, props))}
+                      </div>
                     </div>
                   </div>
-                ` : nothing}
+                </div>
               </div>
-
-              <!-- Right Column: AI Info + Artifacts -->
-              <div class="space-y-4">
-                <!-- AI Model Information -->
-                <div>
-                  <h3 class="text-sm font-semibold mb-3">AI Model Information</h3>
-                  <div class="bg-background rounded-lg p-4 border border-border space-y-2">
-                    <div class="flex justify-between">
-                      <span class="text-sm text-muted-foreground">Model:</span>
-                      <span class="text-sm font-medium">${record.aiModel.name}</span>
-                    </div>
-                    <div class="h-px bg-border"></div>
-                    <div class="flex justify-between">
-                      <span class="text-sm text-muted-foreground">Version:</span>
-                      <span class="text-sm font-mono">${record.aiModel.version}</span>
-                    </div>
-                    <div class="h-px bg-border"></div>
-                    <div class="flex justify-between">
-                      <span class="text-sm text-muted-foreground">Tokens Used:</span>
-                      <span class="text-sm font-mono">${record.aiModel.tokensUsed.toLocaleString()}</span>
-                    </div>
-                    <div class="h-px bg-border"></div>
-                    <div class="flex justify-between">
-                      <span class="text-sm text-muted-foreground">Cost:</span>
-                      <span class="text-sm font-medium">${record.aiModel.cost}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Artifacts -->
-                <div>
-                  <h3 class="text-sm font-semibold mb-3 flex items-center gap-2">
-                    ${icon("file-text", { size: 16, class: "text-muted-foreground" })}
-                    Artifacts
-                  </h3>
-                  <div class="space-y-2">
-                    ${record.artifacts.map((artifact) => renderArtifactItem(artifact, props))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </td>
-      </tr>
-    ` : nothing}
+            </td>
+          </tr>
+        `
+      : nothing}
   `;
 }
 
-function renderStatusBadge(status: ExecutionRecord['status']) {
+function renderStatusBadge(status: ExecutionRecord["status"]) {
   const config = getStatusConfig(status);
   return html`
-    <span class="${config.classes} inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border">
+    <span
+      class="${config.classes} inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border"
+    >
       ${icon(config.icon, { size: 12 })}
       <span class="capitalize">${status}</span>
     </span>
@@ -383,7 +421,9 @@ function renderTimelineItem(event: TimelineEvent, idx: number, allEvents: Timeli
     <div class="flex gap-3">
       <div class="flex flex-col items-center">
         <div class="w-2 h-2 rounded-full ${colorClass}"></div>
-        ${idx < allEvents.length - 1 ? html`<div class="w-0.5 h-full bg-border mt-1"></div>` : nothing}
+        ${idx < allEvents.length - 1
+          ? html`<div class="w-0.5 h-full bg-border mt-1"></div>`
+          : nothing}
       </div>
       <div class="flex-1 pb-4">
         <div class="flex items-center gap-2 mb-1">
@@ -400,7 +440,9 @@ function renderConflictItem(conflict: ConflictDetail) {
   return html`
     <div class="bg-background rounded-lg p-3 border border-border">
       <div class="flex items-start gap-2">
-        <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md border border-border">
+        <span
+          class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md border border-border"
+        >
           ${conflict.type}
         </span>
       </div>
@@ -416,7 +458,9 @@ function renderConflictItem(conflict: ConflictDetail) {
 
 function renderArtifactItem(artifact: Artifact, props: RunHistoryProps) {
   return html`
-    <div class="bg-background rounded-lg p-3 border border-border flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer">
+    <div
+      class="bg-background rounded-lg p-3 border border-border flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer"
+    >
       <div class="flex items-center gap-3">
         ${icon("file-text", { size: 16, class: "text-muted-foreground" })}
         <div>
@@ -441,13 +485,14 @@ function renderPagination(
   filteredData: ExecutionRecord[],
   totalPages: number,
   startIndex: number,
-  onPageChange: (page: number) => void
+  onPageChange: (page: number) => void,
 ) {
   return html`
     <div class="flex items-center justify-between px-6 py-4 border-t border-border">
       <div class="text-sm text-muted-foreground">
-        Showing ${startIndex + 1} to ${Math.min(startIndex + state.itemsPerPage, filteredData.length)} of
-        ${filteredData.length} results
+        Showing ${startIndex + 1} to
+        ${Math.min(startIndex + state.itemsPerPage, filteredData.length)} of ${filteredData.length}
+        results
       </div>
       <div class="flex items-center gap-2">
         <!-- Previous Button -->
@@ -456,8 +501,7 @@ function renderPagination(
           ?disabled="${state.currentPage === 1}"
           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          ${icon("chevron-left", { size: 16 })}
-          Previous
+          ${icon("chevron-left", { size: 16 })} Previous
         </button>
 
         <!-- Page Numbers -->
@@ -478,7 +522,9 @@ function renderPagination(
             return html`
               <button
                 @click="${() => onPageChange(pageNum)}"
-                class="w-8 h-8 flex items-center justify-center text-sm font-medium rounded-md ${isActive ? 'bg-primary text-primary-foreground' : 'border border-input bg-background hover:bg-muted'}"
+                class="w-8 h-8 flex items-center justify-center text-sm font-medium rounded-md ${isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-input bg-background hover:bg-muted"}"
               >
                 ${pageNum}
               </button>
@@ -492,8 +538,7 @@ function renderPagination(
           ?disabled="${state.currentPage === totalPages}"
           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Next
-          ${icon("chevron-right", { size: 16 })}
+          Next ${icon("chevron-right", { size: 16 })}
         </button>
       </div>
     </div>
@@ -517,37 +562,41 @@ function renderPagination(
 }
 
 // Status configuration
-function getStatusConfig(status: ExecutionRecord['status']) {
+function getStatusConfig(status: ExecutionRecord["status"]) {
   switch (status) {
-    case 'success':
+    case "success":
       return {
-        classes: 'bg-green-500/10 text-green-700 border-green-500/20',
-        icon: 'check-circle'
+        classes: "bg-green-500/10 text-green-700 border-green-500/20",
+        icon: "check-circle",
       };
-    case 'failed':
+    case "failed":
       return {
-        classes: 'bg-red-500/10 text-red-700 border-red-500/20',
-        icon: 'x-circle'
+        classes: "bg-red-500/10 text-red-700 border-red-500/20",
+        icon: "x-circle",
       };
-    case 'warning':
+    case "warning":
       return {
-        classes: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20',
-        icon: 'alert-triangle'
+        classes: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+        icon: "alert-triangle",
       };
-    case 'running':
+    case "running":
       return {
-        classes: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
-        icon: 'clock'
+        classes: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+        icon: "clock",
       };
   }
 }
 
-function getTimelineStatusColor(status: TimelineEvent['status']): string {
+function getTimelineStatusColor(status: TimelineEvent["status"]): string {
   switch (status) {
-    case 'success': return 'bg-green-500';
-    case 'warning': return 'bg-yellow-500';
-    case 'error': return 'bg-red-500';
-    default: return 'bg-gray-500';
+    case "success":
+      return "bg-green-500";
+    case "warning":
+      return "bg-yellow-500";
+    case "error":
+      return "bg-red-500";
+    default:
+      return "bg-gray-500";
   }
 }
 ```
@@ -557,11 +606,13 @@ function getTimelineStatusColor(status: TimelineEvent['status']): string {
 ## Key Features Captured
 
 ### Filter Controls
+
 1. **Date Range Picker** - From/To date inputs for filtering by date range
 2. **Status Dropdown** - Filter by execution status (All/Success/Failed/Warning/Running)
 3. **Clear Filters Button** - Reset all filters to default
 
 ### Table Columns
+
 1. **Expand Toggle** - Chevron up/down button to expand row details
 2. **Timestamp** - Formatted date string
 3. **Duration** - Time elapsed with clock icon
@@ -570,23 +621,27 @@ function getTimelineStatusColor(status: TimelineEvent['status']): string {
 6. **Artifacts Count** - Number of artifacts produced
 
 ### Expanded Details Section
+
 1. **Execution Timeline** - Vertical timeline with colored dots, connecting lines, timestamps
 2. **Conflict Details** - Shows conflict type, description, resolution (when applicable)
 3. **AI Model Info** - Model name, version, tokens used, cost
 4. **Artifacts List** - Downloadable files with type, size, and name
 
 ### Status Colors
+
 - **Success**: Green background, checkmark icon
 - **Failed**: Red background, X icon
 - **Warning**: Yellow background, alert triangle icon
 - **Running**: Blue background, clock icon
 
 ### Timeline Visuals
+
 - Colored dots (green/yellow/red/gray) for each event status
 - Vertical connecting lines between timeline events
 - Timestamp + action label + details for each event
 
 ### Pagination
+
 - Smart page number display (shows max 5 page numbers)
 - Previous/Next buttons with disabled states
 - Results count display ("Showing 1 to 20 of 156 results")
@@ -603,46 +658,76 @@ interface GitSyncExecutionRecord extends ExecutionRecord {
   id: string;
   timestamp: string;
   duration: string;
-  status: 'success' | 'partial' | 'failed';
+  status: "success" | "partial" | "failed";
   summary: string;
 
   // Git-specific artifacts
   artifacts: [
-    { id: 'art-1', name: 'feature-branch', type: 'branch', url: 'https://github.com/user/repo/tree/branch' },
-    { id: 'art-2', name: 'PR #123', type: 'pr', url: 'https://github.com/user/repo/pull/123' },
-    { id: 'art-3', name: 'run-log.txt', type: 'log', url: '/api/logs/automation-run-id.log' },
+    {
+      id: "art-1";
+      name: "feature-branch";
+      type: "branch";
+      url: "https://github.com/user/repo/tree/branch";
+    },
+    { id: "art-2"; name: "PR #123"; type: "pr"; url: "https://github.com/user/repo/pull/123" },
+    { id: "art-3"; name: "run-log.txt"; type: "log"; url: "/api/logs/automation-run-id.log" },
   ];
 
   // Git-specific timeline
   timeline: [
-    { timestamp: '10:30:15', action: 'Clone Repository', status: 'success', details: 'Cloned from git@github.com:user/repo.git' },
-    { timestamp: '10:30:30', action: 'Fetch Upstream', status: 'success', details: 'Fetched 15 commits from upstream' },
-    { timestamp: '10:31:00', action: 'Merge Detected', status: 'warning', details: 'Found 5 merge conflicts' },
-    { timestamp: '10:32:15', action: 'Conflicts Resolved', status: 'success', details: 'Resolved 4 conflicts, 1 requires attention' },
-    { timestamp: '10:33:00', action: 'Pushed Branch', status: 'success', details: 'Pushed to smart-sync/auto-sync-timestamp' },
-    { timestamp: '10:33:15', action: 'PR Created', status: 'success', details: 'Opened PR #123' },
+    {
+      timestamp: "10:30:15";
+      action: "Clone Repository";
+      status: "success";
+      details: "Cloned from git@github.com:user/repo.git";
+    },
+    {
+      timestamp: "10:30:30";
+      action: "Fetch Upstream";
+      status: "success";
+      details: "Fetched 15 commits from upstream";
+    },
+    {
+      timestamp: "10:31:00";
+      action: "Merge Detected";
+      status: "warning";
+      details: "Found 5 merge conflicts";
+    },
+    {
+      timestamp: "10:32:15";
+      action: "Conflicts Resolved";
+      status: "success";
+      details: "Resolved 4 conflicts, 1 requires attention";
+    },
+    {
+      timestamp: "10:33:00";
+      action: "Pushed Branch";
+      status: "success";
+      details: "Pushed to smart-sync/auto-sync-timestamp";
+    },
+    { timestamp: "10:33:15"; action: "PR Created"; status: "success"; details: "Opened PR #123" },
   ];
 
   // Conflict details
   conflicts: [
     {
-      type: 'Merge Conflict',
-      description: 'src/core/processor.ts - Conflicting changes in function signature',
-      resolution: 'Accepted upstream version, preserved local additions'
+      type: "Merge Conflict";
+      description: "src/core/processor.ts - Conflicting changes in function signature";
+      resolution: "Accepted upstream version, preserved local additions";
     },
     {
-      type: 'Uncertain Resolution',
-      description: 'package.json - Dependency version conflict',
-      resolution: 'Flagged for review - not auto-resolved'
+      type: "Uncertain Resolution";
+      description: "package.json - Dependency version conflict";
+      resolution: "Flagged for review - not auto-resolved";
     },
   ];
 
   // AI information
   aiModel: {
-    name: 'claude-opus-4-5-20251101',
-    version: 'latest',
-    tokensUsed: 12450,
-    cost: '$0.08',
+    name: "claude-opus-4-5-20251101";
+    version: "latest";
+    tokensUsed: 12450;
+    cost: "$0.08";
   };
 }
 ```
@@ -654,7 +739,12 @@ interface GitSyncExecutionRecord extends ExecutionRecord {
 ```html
 <!-- When no history exists -->
 <div class="text-center py-12">
-  <svg class="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg
+    class="w-16 h-16 mx-auto mb-4 text-muted-foreground/30"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8v4l-6 6" />
   </svg>
   <h3 class="text-lg font-semibold text-foreground mb-2">No run history yet</h3>
@@ -711,7 +801,11 @@ interface GitSyncExecutionRecord extends ExecutionRecord {
 // ui/src/ui/controllers/run-history.ts
 
 // Fetch run history from Clawdbrain API
-export async function fetchRunHistory(state: RunHistoryState, automationId: string, limit = 50): Promise<void> {
+export async function fetchRunHistory(
+  state: RunHistoryState,
+  automationId: string,
+  limit = 50,
+): Promise<void> {
   if (!state.client || !state.connected) return;
 
   try {
@@ -731,7 +825,7 @@ export async function fetchRunHistory(state: RunHistoryState, automationId: stri
 export function subscribeToHistoryUpdates(
   state: RunHistoryState,
   automationId: string,
-  onUpdate: (record: ExecutionRecord) => void
+  onUpdate: (record: ExecutionRecord) => void,
 ): () => void {
   const eventSource = new EventSource(`/api/automations/${automationId}/history/stream`);
 
@@ -750,7 +844,7 @@ export function subscribeToHistoryUpdates(
 
 // Download artifact
 export async function downloadArtifact(artifact: Artifact): Promise<void> {
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = artifact.url;
   link.download = artifact.name;
   document.body.appendChild(link);

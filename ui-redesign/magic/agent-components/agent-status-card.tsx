@@ -4,7 +4,6 @@
 
 "use client";
 
-import * as React from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
   Activity,
@@ -14,8 +13,9 @@ import {
   Clock,
   AlertCircle,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 // Type definitions
@@ -79,11 +79,7 @@ function HyperText({
         if (interations.current < text.length) {
           setDisplayText((t) =>
             t.map((l, i) =>
-              l === " "
-                ? l
-                : i <= interations.current
-                  ? text[i]
-                  : alphabets[getRandomInt(26)],
+              l === " " ? l : i <= interations.current ? text[i] : alphabets[getRandomInt(26)],
             ),
           );
           interations.current = interations.current + 0.1;
@@ -98,10 +94,7 @@ function HyperText({
   }, [text, duration, triggerAnim, animateOnLoad, trigger]);
 
   return (
-    <div
-      className="flex scale-100 cursor-default overflow-hidden"
-      onMouseEnter={triggerAnimation}
-    >
+    <div className="flex scale-100 cursor-default overflow-hidden" onMouseEnter={triggerAnimation}>
       <AnimatePresence mode="wait">
         {displayText.map((letter, i) => (
           <motion.span
@@ -156,7 +149,10 @@ const StatusIndicator = ({ status }: { status: AgentStatus }) => {
   return (
     <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full", config.bgColor)}>
       <div className="relative">
-        <Icon className={cn("w-4 h-4", config.color, status === "busy" && "animate-spin")} strokeWidth={3} />
+        <Icon
+          className={cn("w-4 h-4", config.color, status === "busy" && "animate-spin")}
+          strokeWidth={3}
+        />
         {config.showPulse && (
           <span className="absolute inset-0 flex">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -211,7 +207,7 @@ export const AgentStatusCard = ({
         animate="visible"
         className={cn(
           "flex items-center justify-between gap-4 p-4 rounded-lg border border-border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow",
-          className
+          className,
         )}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -227,11 +223,7 @@ export const AgentStatusCard = ({
             className="p-2 rounded-md hover:bg-accent transition-colors"
             aria-label={isPaused ? "Resume" : "Pause"}
           >
-            {isPaused ? (
-              <Play className="w-4 h-4" />
-            ) : (
-              <Pause className="w-4 h-4" />
-            )}
+            {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
           </button>
           <button
             onClick={onConfigure}
@@ -252,7 +244,7 @@ export const AgentStatusCard = ({
       animate="visible"
       className={cn(
         "w-full max-w-md rounded-xl border border-border bg-card text-card-foreground shadow-lg p-6",
-        className
+        className,
       )}
     >
       {/* Header */}
@@ -328,7 +320,7 @@ export const AgentStatusCard = ({
             "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors",
             isPaused
               ? "bg-green-500 hover:bg-green-600 text-white"
-              : "bg-yellow-500 hover:bg-yellow-600 text-white"
+              : "bg-yellow-500 hover:bg-yellow-600 text-white",
           )}
         >
           {isPaused ? (

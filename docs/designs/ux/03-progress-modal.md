@@ -14,6 +14,7 @@
 This document has been translated from React patterns to Lit Web Components following Clawdbrain's conventions.
 
 ### Translation Applied:
+
 - React `useState` → Controller state with reactive properties
 - React Dialog → Custom modal overlay with Lit template
 - Framer Motion animations → CSS `@keyframes` for fade-in/scale-in
@@ -75,11 +76,9 @@ export function setupProgressUpdates(
     milestone: string;
     timeline: Milestone[];
     status: ProgressModalStatus;
-  }) => void
+  }) => void,
 ): () => void {
-  const eventSource = new EventSource(
-    `/api/automations/${automationId}/progress/stream`
-  );
+  const eventSource = new EventSource(`/api/automations/${automationId}/progress/stream`);
 
   eventSource.onmessage = (event) => {
     const update = JSON.parse(event.data);
@@ -93,7 +92,10 @@ export function setupProgressUpdates(
   return () => eventSource.close();
 }
 
-export async function cancelAutomation(state: ProgressModalState, automationId: string): Promise<void> {
+export async function cancelAutomation(
+  state: ProgressModalState,
+  automationId: string,
+): Promise<void> {
   if (!state.client || !state.connected) return;
 
   try {
@@ -137,9 +139,7 @@ export function renderProgressModal(props: ProgressModalProps) {
               ${icon("loader", { size: 20, class: "text-blue-500 animate-spin" })}
             </div>
             <div>
-              <h2 class="text-xl font-semibold text-foreground">
-                ${state.automationName}
-              </h2>
+              <h2 class="text-xl font-semibold text-foreground">${state.automationName}</h2>
               <p class="text-sm text-muted-foreground">Execution in progress</p>
             </div>
           </div>
@@ -156,9 +156,7 @@ export function renderProgressModal(props: ProgressModalProps) {
         <div class="mb-6 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
           <div class="flex items-center gap-2 mb-2">
             ${icon("loader", { size: 16, class: "text-blue-500 animate-spin" })}
-            <span class="text-sm font-medium text-foreground">
-              ${state.currentMilestone}
-            </span>
+            <span class="text-sm font-medium text-foreground"> ${state.currentMilestone} </span>
           </div>
           <div class="progress-bar bg-primary/20 relative h-2 w-full overflow-hidden rounded-full">
             <div
@@ -167,22 +165,18 @@ export function renderProgressModal(props: ProgressModalProps) {
             ></div>
           </div>
           <div class="flex items-center justify-between mt-2">
-            <span class="text-xs text-muted-foreground">
-              ${state.progress}% complete
-            </span>
-            <span class="text-xs text-blue-500 font-medium">
-              ${state.progress}% of 100%
-            </span>
+            <span class="text-xs text-muted-foreground"> ${state.progress}% complete </span>
+            <span class="text-xs text-blue-500 font-medium"> ${state.progress}% of 100% </span>
           </div>
         </div>
 
         <!-- Execution Timeline -->
         <div class="mb-6">
-          <h3 class="text-sm font-semibold text-foreground mb-4">
-            Execution Timeline
-          </h3>
+          <h3 class="text-sm font-semibold text-foreground mb-4">Execution Timeline</h3>
           <div class="space-y-3">
-            ${state.milestones.map((milestone, index) => renderTimelineItem(milestone, index, state.milestones))}
+            ${state.milestones.map((milestone, index) =>
+              renderTimelineItem(milestone, index, state.milestones),
+            )}
           </div>
         </div>
 
@@ -210,8 +204,7 @@ export function renderProgressModal(props: ProgressModalProps) {
             @click=${onJumpToChat}
             class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground"
           >
-            ${icon("message-square", { size: 16 })}
-            Jump to Chat
+            ${icon("message-square", { size: 16 })} Jump to Chat
           </button>
           ${state.status === "running"
             ? html`
@@ -259,8 +252,12 @@ export function renderProgressModal(props: ProgressModalProps) {
         animation: zoomIn 0.2s ease-out;
       }
       @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
       @keyframes zoomIn {
         from {
@@ -273,8 +270,12 @@ export function renderProgressModal(props: ProgressModalProps) {
         }
       }
       @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
       }
       .animate-spin {
         animation: spin 1s linear infinite;
@@ -305,16 +306,17 @@ function renderTimelineItem(milestone: Milestone, index: number, allMilestones: 
         ${index < allMilestones.length - 1
           ? html`
               <div
-                class="absolute left-1/2 top-6 w-0.5 h-6 -translate-x-1/2 ${milestone.status === "completed" ? "bg-green-500" : "bg-muted"}"
+                class="absolute left-1/2 top-6 w-0.5 h-6 -translate-x-1/2 ${milestone.status ===
+                "completed"
+                  ? "bg-green-500"
+                  : "bg-muted"}"
               ></div>
             `
           : nothing}
       </div>
       <div class="flex-1 pt-0.5">
         <div class="flex items-center justify-between">
-          <span class="text-sm font-medium ${statusColor}">
-            ${milestone.title}
-          </span>
+          <span class="text-sm font-medium ${statusColor}"> ${milestone.title} </span>
           ${milestone.timestamp
             ? html`<span class="text-xs text-muted-foreground">${milestone.timestamp}</span>`
             : nothing}
@@ -355,18 +357,21 @@ function getMilestoneStatusColor(status: MilestoneStatus): string {
 ## Key Features Captured
 
 ### Modal Structure
+
 1. **Overlay** - Semi-transparent backdrop with CSS animation (`bg-black/80` with `fadeIn` animation)
 2. **Centered Content** - Fixed positioning with translate transforms
 3. **Close Button** - X icon in top-right corner
 4. **Animation** - CSS `@keyframes fadeIn` and `zoomIn` for 0.2s ease-out
 
 ### Header Section
+
 - Status icon (spinning loader for running) with CSS `animate-spin`
 - Automation name
 - Status subtitle
 - Close button
 
 ### Progress Display
+
 - Blue highlighted status banner
 - Spinning loader icon (CSS animation)
 - Current milestone text
@@ -374,6 +379,7 @@ function getMilestoneStatusColor(status: MilestoneStatus): string {
 - Dual percentage display (text + visual)
 
 ### Execution Timeline
+
 - Vertical list of milestones
 - Three states per milestone:
   - **Completed**: Green checkmark icon + timestamp
@@ -382,17 +388,20 @@ function getMilestoneStatusColor(status: MilestoneStatus): string {
 - Connecting lines between milestones (green when completed, gray otherwise)
 
 ### Statistics Section
+
 - Two-column grid layout
 - Cards with Clawdbrain icons + label + value
 - Elapsed Time card
 - Conflicts count card
 
 ### Action Buttons
+
 - "Jump to Chat" - Primary style, message-square icon
 - "Cancel" - Outline style
 - "Close" - Shown when not running
 
 ### Animations Preserved
+
 - **Modal open**: `fadeIn` (opacity) + `zoomIn` (scale) - 0.2s ease-out
 - **Spinner**: `spin` keyframe animation - 1s linear infinite
 - **Progress bar**: CSS `transition: transform 0.3s ease`
@@ -416,4 +425,3 @@ const gitSyncMilestones = [
   { id: "9", title: "Complete", status: "pending" },
 ];
 ```
-

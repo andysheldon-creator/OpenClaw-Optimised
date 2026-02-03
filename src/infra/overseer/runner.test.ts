@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-
 import type { OverseerTelemetrySnapshot } from "./monitor.js";
-import { reconcileOverseerState } from "./runner.js";
 import type { OverseerStore } from "./store.types.js";
+import { reconcileOverseerState } from "./runner.js";
 
 function buildStore(now: number): OverseerStore {
   return {

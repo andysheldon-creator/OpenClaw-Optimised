@@ -15,19 +15,19 @@ MCP server configuration lives in `~/.openclaw/openclaw.json`:
 
 ```json5
 {
-  "mcpServers": {
+  mcpServers: {
     // Global MCP server definitions
   },
-  "agents": {
-    "list": [
+  agents: {
+    list: [
       {
-        "id": "work",
-        "mcpServers": {
+        id: "work",
+        mcpServers: {
           // Per-agent overrides and additions
-        }
-      }
-    ]
-  }
+        },
+      },
+    ],
+  },
 }
 ```
 
@@ -41,29 +41,29 @@ Spawns a local process and communicates via standard input/output. **Default tra
 
 ```json5
 {
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"],
-      "env": {
-        "DEBUG": "1"
-      }
-    }
-  }
+  mcpServers: {
+    filesystem: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "./"],
+      env: {
+        DEBUG: "1",
+      },
+    },
+  },
 }
 ```
 
 **STDIO Configuration Options:**
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `command` | string | Yes | Command to execute (e.g., `npx`, `node`, `python`) |
-| `args` | string[] | No | Command arguments |
-| `env` | object | No | Environment variables to pass to the process |
-| `cwd` | string | No | Working directory for the process |
-| `stderr` | string | No | How to handle stderr (`inherit`, `pipe`, `ignore`) |
-| `enabled` | boolean | No | Enable/disable this server (default: `true`) |
-| `label` | string | No | Human-readable label for the server |
+| Option    | Type     | Required | Description                                        |
+| --------- | -------- | -------- | -------------------------------------------------- |
+| `command` | string   | Yes      | Command to execute (e.g., `npx`, `node`, `python`) |
+| `args`    | string[] | No       | Command arguments                                  |
+| `env`     | object   | No       | Environment variables to pass to the process       |
+| `cwd`     | string   | No       | Working directory for the process                  |
+| `stderr`  | string   | No       | How to handle stderr (`inherit`, `pipe`, `ignore`) |
+| `enabled` | boolean  | No       | Enable/disable this server (default: `true`)       |
+| `label`   | string   | No       | Human-readable label for the server                |
 
 ### 2. SSE (Server-Sent Events)
 
@@ -71,27 +71,27 @@ Remote MCP server accessible via HTTP Server-Sent Events endpoint.
 
 ```json5
 {
-  "mcpServers": {
-    "remote_api": {
-      "transport": "sse",
-      "url": "https://example.com/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_TOKEN"
-      }
-    }
-  }
+  mcpServers: {
+    remote_api: {
+      transport: "sse",
+      url: "https://example.com/mcp",
+      headers: {
+        Authorization: "Bearer YOUR_TOKEN",
+      },
+    },
+  },
 }
 ```
 
 **SSE Configuration Options:**
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `transport` | string | Yes | Must be `"sse"` |
-| `url` | string | Yes | URL of the SSE endpoint |
-| `headers` | object | No | HTTP headers (e.g., authentication) |
-| `enabled` | boolean | No | Enable/disable this server (default: `true`) |
-| `label` | string | No | Human-readable label for the server |
+| Option      | Type    | Required | Description                                  |
+| ----------- | ------- | -------- | -------------------------------------------- |
+| `transport` | string  | Yes      | Must be `"sse"`                              |
+| `url`       | string  | Yes      | URL of the SSE endpoint                      |
+| `headers`   | object  | No       | HTTP headers (e.g., authentication)          |
+| `enabled`   | boolean | No       | Enable/disable this server (default: `true`) |
+| `label`     | string  | No       | Human-readable label for the server          |
 
 ### 3. HTTP
 
@@ -99,27 +99,27 @@ Remote MCP server accessible via HTTP endpoint.
 
 ```json5
 {
-  "mcpServers": {
-    "http_endpoint": {
-      "transport": "http",
-      "url": "https://api.example.com/mcp",
-      "headers": {
-        "X-API-Key": "your-api-key"
-      }
-    }
-  }
+  mcpServers: {
+    http_endpoint: {
+      transport: "http",
+      url: "https://api.example.com/mcp",
+      headers: {
+        "X-API-Key": "your-api-key",
+      },
+    },
+  },
 }
 ```
 
 **HTTP Configuration Options:**
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `transport` | string | Yes | Must be `"http"` |
-| `url` | string | Yes | URL of the HTTP endpoint |
-| `headers` | object | No | HTTP headers (e.g., authentication) |
-| `enabled` | boolean | No | Enable/disable this server (default: `true`) |
-| `label` | string | No | Human-readable label for the server |
+| Option      | Type    | Required | Description                                  |
+| ----------- | ------- | -------- | -------------------------------------------- |
+| `transport` | string  | Yes      | Must be `"http"`                             |
+| `url`       | string  | Yes      | URL of the HTTP endpoint                     |
+| `headers`   | object  | No       | HTTP headers (e.g., authentication)          |
+| `enabled`   | boolean | No       | Enable/disable this server (default: `true`) |
+| `label`     | string  | No       | Human-readable label for the server          |
 
 ## Examples
 
@@ -129,29 +129,29 @@ Make MCP servers available to all agents:
 
 ```json5
 {
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"],
-      "label": "Filesystem Tools"
+  mcpServers: {
+    filesystem: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "./"],
+      label: "Filesystem Tools",
     },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_TOKEN": "your-token"
+    github: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-github"],
+      env: {
+        GITHUB_TOKEN: "your-token",
       },
-      "label": "GitHub API"
+      label: "GitHub API",
     },
-    "sequential_thinking": {
-      "command": "npx",
-      "args": ["-y", "mcp-sequentialthinking-tools"],
-      "env": {
-        "MAX_HISTORY_SIZE": "1000"
+    sequential_thinking: {
+      command: "npx",
+      args: ["-y", "mcp-sequentialthinking-tools"],
+      env: {
+        MAX_HISTORY_SIZE: "1000",
       },
-      "label": "Sequential Thinking Tools"
-    }
-  }
+      label: "Sequential Thinking Tools",
+    },
+  },
 }
 ```
 
@@ -161,43 +161,43 @@ Override global servers or add agent-specific servers:
 
 ```json5
 {
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"]
-    }
+  mcpServers: {
+    filesystem: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "./"],
+    },
   },
-  "agents": {
-    "list": [
+  agents: {
+    list: [
       {
-        "id": "work",
-        "mcpServers": {
-          "github": {
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-github"],
-            "env": {
-              "GITHUB_TOKEN": "work-github-token"
-            }
-          }
-        }
+        id: "work",
+        mcpServers: {
+          github: {
+            command: "npx",
+            args: ["-y", "@modelcontextprotocol/server-github"],
+            env: {
+              GITHUB_TOKEN: "work-github-token",
+            },
+          },
+        },
       },
       {
-        "id": "personal",
-        "mcpServers": {
-          "filesystem": {
-            "enabled": false
+        id: "personal",
+        mcpServers: {
+          filesystem: {
+            enabled: false,
           },
-          "github": {
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-github"],
-            "env": {
-              "GITHUB_TOKEN": "personal-github-token"
-            }
-          }
-        }
-      }
-    ]
-  }
+          github: {
+            command: "npx",
+            args: ["-y", "@modelcontextprotocol/server-github"],
+            env: {
+              GITHUB_TOKEN: "personal-github-token",
+            },
+          },
+        },
+      },
+    ],
+  },
 }
 ```
 
@@ -207,19 +207,20 @@ Register the sequential thinking MCP server globally:
 
 ```json5
 {
-  "mcpServers": {
+  mcpServers: {
     "mcp-sequentialthinking-tools": {
-      "command": "npx",
-      "args": ["-y", "mcp-sequentialthinking-tools"],
-      "env": {
-        "MAX_HISTORY_SIZE": "1000"
-      }
-    }
-  }
+      command: "npx",
+      args: ["-y", "mcp-sequentialthinking-tools"],
+      env: {
+        MAX_HISTORY_SIZE: "1000",
+      },
+    },
+  },
 }
 ```
 
 This configuration:
+
 - Uses STDIO transport (default)
 - Spawns the sequential thinking tools server via `npx`
 - Sets `MAX_HISTORY_SIZE` environment variable to 1000
@@ -234,6 +235,7 @@ mcp__<server_id>__<tool_name>
 ```
 
 Examples:
+
 - `mcp__filesystem__read_file`
 - `mcp__github__create_issue`
 - `mcp__mcp-sequentialthinking-tools__think_deeply`
@@ -244,13 +246,13 @@ Examples:
 
 ```json5
 {
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"],
-      "enabled": false
-    }
-  }
+  mcpServers: {
+    filesystem: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "./"],
+      enabled: false,
+    },
+  },
 }
 ```
 
@@ -258,24 +260,24 @@ Examples:
 
 ```json5
 {
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"]
-    }
+  mcpServers: {
+    filesystem: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "./"],
+    },
   },
-  "agents": {
-    "list": [
+  agents: {
+    list: [
       {
-        "id": "sandboxed",
-        "mcpServers": {
-          "filesystem": {
-            "enabled": false
-          }
-        }
-      }
-    ]
-  }
+        id: "sandboxed",
+        mcpServers: {
+          filesystem: {
+            enabled: false,
+          },
+        },
+      },
+    ],
+  },
 }
 ```
 
@@ -283,27 +285,27 @@ Examples:
 
 ```json5
 {
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"],
-      "enabled": false
-    }
+  mcpServers: {
+    filesystem: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "./"],
+      enabled: false,
+    },
   },
-  "agents": {
-    "list": [
+  agents: {
+    list: [
       {
-        "id": "work",
-        "mcpServers": {
-          "filesystem": {
-            "enabled": true,
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"]
-          }
-        }
-      }
-    ]
-  }
+        id: "work",
+        mcpServers: {
+          filesystem: {
+            enabled: true,
+            command: "npx",
+            args: ["-y", "@modelcontextprotocol/server-filesystem", "./"],
+          },
+        },
+      },
+    ],
+  },
 }
 ```
 
@@ -324,16 +326,16 @@ Use environment variables to inject secrets and configuration:
 
 ```json5
 {
-  "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "DEBUG": "true"
-      }
-    }
-  }
+  mcpServers: {
+    github: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-github"],
+      env: {
+        GITHUB_TOKEN: "${GITHUB_TOKEN}",
+        DEBUG: "true",
+      },
+    },
+  },
 }
 ```
 
@@ -358,11 +360,13 @@ Note: Environment variable expansion (e.g., `${VAR}`) follows standard shell con
 ### Permission Errors
 
 For local processes:
+
 - Ensure the command path is executable
 - Check working directory (`cwd`) exists and is readable
 - Verify environment variables don't conflict with system settings
 
 For remote servers:
+
 - Verify URL is accessible from your network
 - Check authentication headers are correct
 - Confirm SSL/TLS certificates (if applicable)
@@ -370,6 +374,7 @@ For remote servers:
 ## Integration with Channels
 
 MCP servers integrated via this configuration automatically appear in:
+
 - Pi Agent runtime (direct tool access)
 - Claude Agent SDK runtime (via MCP bridge)
 - All built-in Clawdbrain channels (Telegram, Discord, Slack, etc.)

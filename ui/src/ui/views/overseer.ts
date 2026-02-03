@@ -1,8 +1,4 @@
 import { html, nothing } from "lit";
-
-import { skeleton } from "../components/design-utils";
-import { clampText, formatAgo, formatDurationMs, formatList } from "../format";
-import { icon, type IconName } from "../icons";
 import type {
   AgentsListResult,
   ChannelsStatusSnapshot,
@@ -12,12 +8,13 @@ import type {
   SessionsListResult,
   SkillStatusReport,
 } from "../types";
-import type { GraphDragState, GraphViewport } from "../ui-types";
-import type {
-  OverseerGoalStatusResult,
-  OverseerStatusResult,
-} from "../types/overseer";
+import type { OverseerGoalStatusResult, OverseerStatusResult } from "../types/overseer";
 import type { SimulatorState } from "../types/overseer-simulator";
+import type { GraphDragState, GraphViewport } from "../ui-types";
+import { skeleton } from "../components/design-utils";
+import { clampText, formatAgo, formatDurationMs, formatList } from "../format";
+import { icon, type IconName } from "../icons";
+import { renderSimulator, type SimulatorProps } from "./overseer-simulator";
 import {
   buildOverseerGraphLayout,
   buildSystemGraphLayout,
@@ -26,7 +23,6 @@ import {
   type GraphLayout,
   type GraphNode,
 } from "./overseer.graph";
-import { renderSimulator, type SimulatorProps } from "./overseer-simulator";
 
 export type OverseerProps = {
   loading: boolean;
@@ -45,14 +41,7 @@ export type OverseerProps = {
   selectedOverseerNodeId: string | null;
   selectedSystemNodeId: string | null;
   drawerOpen: boolean;
-  drawerKind:
-    | "cron"
-    | "session"
-    | "skill"
-    | "channel"
-    | "node"
-    | "instance"
-    | null;
+  drawerKind: "cron" | "session" | "skill" | "channel" | "node" | "instance" | null;
   drawerNodeId: string | null;
   nodes: Array<Record<string, unknown>>;
   presenceEntries: PresenceEntry[];
@@ -175,50 +164,54 @@ export function renderOverseer(props: OverseerProps) {
       ${renderHeader(props, statusGoals.length, stalledAssignments.length)}
       ${renderStatsCards(props, statusGoals, stalledAssignments)}
       ${renderControls(props, statusGoals)}
-      ${props.error
-        ? html`<div class="overseer-notice overseer-notice--error">${props.error}</div>`
-        : nothing}
-      ${props.goalActionError
-        ? html`<div class="overseer-notice overseer-notice--error">${props.goalActionError}</div>`
-        : nothing}
-      ${stalledAssignments.length > 0
-        ? renderStalledPanel(stalledAssignments, props)
-        : nothing}
+      ${
+        props.error
+          ? html`<div class="overseer-notice overseer-notice--error">${props.error}</div>`
+          : nothing
+      }
+      ${
+        props.goalActionError
+          ? html`<div class="overseer-notice overseer-notice--error">${props.goalActionError}</div>`
+          : nothing
+      }
+      ${stalledAssignments.length > 0 ? renderStalledPanel(stalledAssignments, props) : nothing}
       <div class="overseer-main-grid" style="display: grid; grid-template-columns: 1fr 380px; gap: 20px;">
         <div class="overseer-main-content">
-          ${!props.loading && statusGoals.length === 0
-            ? renderOverseerEmptyState(props)
-            : nothing}
-          ${props.showOverseerGraph && statusGoals.length > 0
-            ? renderGraphPanel({
-                title: "Overseer Plan",
-                description: props.goal?.goal?.title ?? "Select a goal to view its plan.",
-                loading: props.loading || props.goalLoading,
-                layout: overseerLayout,
-                viewport: props.overseerViewport,
-                drag: props.overseerDrag,
-                selectedId: props.selectedOverseerNodeId,
-                onSelect: props.onSelectOverseerNode,
-                onViewportChange: (next) => props.onViewportChange("overseer", next),
-                onDragChange: (next) => props.onDragChange("overseer", next),
-                details: renderOverseerDetails(props, overseerLayout),
-              })
-            : nothing}
-          ${props.showSystemGraph
-            ? renderGraphPanel({
-                title: "System View",
-                description: "Gateway, nodes, agents, sessions, and channels.",
-                loading: props.loading,
-                layout: systemLayout,
-                viewport: props.systemViewport,
-                drag: props.systemDrag,
-                selectedId: props.selectedSystemNodeId,
-                onSelect: props.onSelectSystemNode,
-                onViewportChange: (next) => props.onViewportChange("system", next),
-                onDragChange: (next) => props.onDragChange("system", next),
-                details: renderSystemDetails(props, systemLayout),
-              })
-            : nothing}
+          ${!props.loading && statusGoals.length === 0 ? renderOverseerEmptyState(props) : nothing}
+          ${
+            props.showOverseerGraph && statusGoals.length > 0
+              ? renderGraphPanel({
+                  title: "Overseer Plan",
+                  description: props.goal?.goal?.title ?? "Select a goal to view its plan.",
+                  loading: props.loading || props.goalLoading,
+                  layout: overseerLayout,
+                  viewport: props.overseerViewport,
+                  drag: props.overseerDrag,
+                  selectedId: props.selectedOverseerNodeId,
+                  onSelect: props.onSelectOverseerNode,
+                  onViewportChange: (next) => props.onViewportChange("overseer", next),
+                  onDragChange: (next) => props.onDragChange("overseer", next),
+                  details: renderOverseerDetails(props, overseerLayout),
+                })
+              : nothing
+          }
+          ${
+            props.showSystemGraph
+              ? renderGraphPanel({
+                  title: "System View",
+                  description: "Gateway, nodes, agents, sessions, and channels.",
+                  loading: props.loading,
+                  layout: systemLayout,
+                  viewport: props.systemViewport,
+                  drag: props.systemDrag,
+                  selectedId: props.selectedSystemNodeId,
+                  onSelect: props.onSelectSystemNode,
+                  onViewportChange: (next) => props.onViewportChange("system", next),
+                  onDragChange: (next) => props.onDragChange("system", next),
+                  details: renderSystemDetails(props, systemLayout),
+                })
+              : nothing
+          }
         </div>
         ${renderActivityFeed(activityEvents, props)}
       </div>
@@ -272,8 +265,9 @@ function renderOverseerEmptyState(props: OverseerProps) {
         constraints, and success criteria — the Overseer will break it into work nodes,
         assign agents, and track progress.
       </p>
-      ${props.onOpenCreateGoal
-        ? html`
+      ${
+        props.onOpenCreateGoal
+          ? html`
             <button
               class="btn btn--primary"
               @click=${props.onOpenCreateGoal}
@@ -283,11 +277,12 @@ function renderOverseerEmptyState(props: OverseerProps) {
               <span>Create Your First Goal</span>
             </button>
           `
-        : html`
-            <p style="font-size: 0.8125rem; color: var(--text-muted, #64748b);">
-              Connect to the gateway to create goals.
-            </p>
-          `}
+          : html`
+              <p style="font-size: 0.8125rem; color: var(--text-muted, #64748b)">
+                Connect to the gateway to create goals.
+              </p>
+            `
+      }
     </div>
   `;
 }
@@ -312,7 +307,9 @@ function renderOverseerSkeleton() {
 
       <!-- Stats cards skeleton -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:20px 0;">
-        ${Array.from({ length: 4 }, () => html`
+        ${Array.from(
+          { length: 4 },
+          () => html`
           <div style="padding:16px;border-radius:12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               ${skeleton({ width: "100px", height: "14px" })}
@@ -320,7 +317,8 @@ function renderOverseerSkeleton() {
             </div>
             ${skeleton({ width: "48px", height: "28px" })}
           </div>
-        `)}
+        `,
+        )}
       </div>
 
       <!-- Controls skeleton -->
@@ -337,7 +335,9 @@ function renderOverseerSkeleton() {
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;">
           ${skeleton({ width: "140px", height: "20px" })}
-          ${Array.from({ length: 5 }, (_, i) => html`
+          ${Array.from(
+            { length: 5 },
+            (_, i) => html`
             <div style="padding:12px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 ${skeleton({ width: `${150 - i * 10}px`, height: "14px" })}
@@ -345,7 +345,8 @@ function renderOverseerSkeleton() {
               </div>
               ${skeleton({ width: "100%", height: "12px" })}
             </div>
-          `)}
+          `,
+          )}
         </div>
       </div>
     </div>
@@ -376,8 +377,9 @@ function renderHeader(props: OverseerProps, goalsCount: number, stalledCount: nu
             ${stalledCount} stalled
           </span>
         </div>
-        ${props.onOpenCreateGoal
-          ? html`
+        ${
+          props.onOpenCreateGoal
+            ? html`
               <button
                 class="btn btn--primary"
                 ?disabled=${props.loading || actionPending}
@@ -388,9 +390,11 @@ function renderHeader(props: OverseerProps, goalsCount: number, stalledCount: nu
                 <span>New Goal</span>
               </button>
             `
-          : nothing}
-        ${canPause
-          ? html`
+            : nothing
+        }
+        ${
+          canPause
+            ? html`
               <button
                 class="btn btn--secondary"
                 ?disabled=${props.loading || actionPending}
@@ -401,9 +405,11 @@ function renderHeader(props: OverseerProps, goalsCount: number, stalledCount: nu
                 <span>Pause</span>
               </button>
             `
-          : nothing}
-        ${canResume
-          ? html`
+            : nothing
+        }
+        ${
+          canResume
+            ? html`
               <button
                 class="btn btn--accent"
                 ?disabled=${props.loading || actionPending}
@@ -414,7 +420,8 @@ function renderHeader(props: OverseerProps, goalsCount: number, stalledCount: nu
                 <span>Resume</span>
               </button>
             `
-          : nothing}
+            : nothing
+        }
         <button class="btn btn--secondary" ?disabled=${props.loading} @click=${props.onRefresh}>
           ${icon("refresh-cw", { size: 16 })}
           <span>${props.loading ? "Loading..." : "Refresh"}</span>
@@ -428,10 +435,7 @@ function renderHeader(props: OverseerProps, goalsCount: number, stalledCount: nu
   `;
 }
 
-function renderControls(
-  props: OverseerProps,
-  goals: OverseerStatusResult["goals"],
-) {
+function renderControls(props: OverseerProps, goals: OverseerStatusResult["goals"]) {
   return html`
     <div class="overseer-controls">
       <label class="field">
@@ -443,11 +447,13 @@ function renderControls(
             props.onSelectGoal(value || null);
           }}
         >
-          ${goals.length === 0
-            ? html`<option value="">No goals yet</option>`
-            : goals.map(
-                (goal) => html`<option value=${goal.goalId}>${goal.title}</option>`,
-              )}
+          ${
+            goals.length === 0
+              ? html`
+                  <option value="">No goals yet</option>
+                `
+              : goals.map((goal) => html`<option value=${goal.goalId}>${goal.title}</option>`)
+          }
         </select>
       </label>
       <label class="toggle-field">
@@ -547,8 +553,7 @@ function renderGraphPanel(props: GraphPanelProps) {
           <button
             class="btn btn--sm btn--icon"
             title="Reset view"
-            @click=${() =>
-              props.onViewportChange({ scale: 1, offsetX: 24, offsetY: 24 })}
+            @click=${() => props.onViewportChange({ scale: 1, offsetX: 24, offsetY: 24 })}
           >
             ${icon("refresh-cw", { size: 14 })}
           </button>
@@ -595,10 +600,20 @@ function renderGraphPanel(props: GraphPanelProps) {
             );
           }}
         >
-          ${props.loading ? html`<div class="graph-loading">Loading…</div>` : nothing}
-          ${props.layout.nodes.length === 0
-            ? html`<div class="graph-empty">No graph data yet.</div>`
-            : renderGraph(props.layout, props.viewport, props.selectedId, props.onSelect)}
+          ${
+            props.loading
+              ? html`
+                  <div class="graph-loading">Loading…</div>
+                `
+              : nothing
+          }
+          ${
+            props.layout.nodes.length === 0
+              ? html`
+                  <div class="graph-empty">No graph data yet.</div>
+                `
+              : renderGraph(props.layout, props.viewport, props.selectedId, props.onSelect)
+          }
         </div>
         <div class="graph-details">${props.details}</div>
       </div>
@@ -664,7 +679,9 @@ function renderGraphNode(
 
 function renderOverseerDetails(props: OverseerProps, layout: GraphLayout) {
   if (!props.goal?.goal) {
-    return html`<div class="graph-details__empty">Select a goal to see details.</div>`;
+    return html`
+      <div class="graph-details__empty">Select a goal to see details.</div>
+    `;
   }
   if (props.goalError) {
     return html`<div class="graph-details__empty">${props.goalError}</div>`;
@@ -681,9 +698,11 @@ function renderOverseerDetails(props: OverseerProps, layout: GraphLayout) {
       ${detailRow("Updated", formatAgo(goal.updatedAt))}
       ${goal.tags.length ? detailRow("Tags", goal.tags.join(", ")) : nothing}
       ${detailRow("Problem", goal.problemStatement)}
-      ${goal.successCriteria.length
-        ? detailRow("Success", formatList(goal.successCriteria))
-        : nothing}
+      ${
+        goal.successCriteria.length
+          ? detailRow("Success", formatList(goal.successCriteria))
+          : nothing
+      }
       ${goal.constraints?.length ? detailRow("Constraints", formatList(goal.constraints)) : nothing}
       ${goal.assumptions?.length ? detailRow("Assumptions", formatList(goal.assumptions)) : nothing}
     `;
@@ -691,7 +710,9 @@ function renderOverseerDetails(props: OverseerProps, layout: GraphLayout) {
 
   const node = findPlanNode(goal, selected);
   if (!node) {
-    return html`<div class="graph-details__empty">Select a node to see details.</div>`;
+    return html`
+      <div class="graph-details__empty">Select a node to see details.</div>
+    `;
   }
 
   const assignment = props.goal.assignments.find((entry) => entry.workNodeId === node.id);
@@ -710,14 +731,18 @@ function renderOverseerDetails(props: OverseerProps, layout: GraphLayout) {
     ${node.objective ? detailRow("Objective", node.objective) : nothing}
     ${node.expectedOutcome ? detailRow("Outcome", node.expectedOutcome) : nothing}
     ${node.definitionOfDone ? detailRow("Definition", node.definitionOfDone) : nothing}
-    ${node.acceptanceCriteria?.length
-      ? detailRow("Acceptance", formatList(node.acceptanceCriteria))
-      : nothing}
-    ${canMarkDone || canBlock || canRetry
-      ? html`
+    ${
+      node.acceptanceCriteria?.length
+        ? detailRow("Acceptance", formatList(node.acceptanceCriteria))
+        : nothing
+    }
+    ${
+      canMarkDone || canBlock || canRetry
+        ? html`
           <div class="graph-details__actions">
-            ${canMarkDone
-              ? html`
+            ${
+              canMarkDone
+                ? html`
                   <button
                     class="btn btn--sm btn--accent"
                     ?disabled=${actionPending}
@@ -731,9 +756,11 @@ function renderOverseerDetails(props: OverseerProps, layout: GraphLayout) {
                     <span>Mark Done</span>
                   </button>
                 `
-              : nothing}
-            ${canBlock
-              ? html`
+                : nothing
+            }
+            ${
+              canBlock
+                ? html`
                   <button
                     class="btn btn--sm btn--secondary"
                     ?disabled=${actionPending}
@@ -749,9 +776,11 @@ function renderOverseerDetails(props: OverseerProps, layout: GraphLayout) {
                     <span>Block</span>
                   </button>
                 `
-              : nothing}
-            ${canRetry
-              ? html`
+                : nothing
+            }
+            ${
+              canRetry
+                ? html`
                   <button
                     class="btn btn--sm btn--accent"
                     ?disabled=${actionPending}
@@ -762,43 +791,59 @@ function renderOverseerDetails(props: OverseerProps, layout: GraphLayout) {
                     <span>Retry</span>
                   </button>
                 `
-              : nothing}
+                : nothing
+            }
           </div>
         `
-      : nothing}
-    ${assignment
-      ? html`
+        : nothing
+    }
+    ${
+      assignment
+        ? html`
           <div class="graph-details__section">
             <div class="graph-details__label">Assignment</div>
             ${detailRow("Status", assignment.status)}
             ${assignment.agentId ? detailRow("Agent", assignment.agentId) : nothing}
             ${assignment.sessionKey ? detailRow("Session", assignment.sessionKey) : nothing}
-            ${assignment.lastDispatchAt
-              ? detailRow("Last dispatch", formatAgo(assignment.lastDispatchAt))
-              : nothing}
-            ${assignment.lastObservedActivityAt
-              ? detailRow("Last activity", formatAgo(assignment.lastObservedActivityAt))
-              : nothing}
-            ${assignment.backoffUntil
-              ? detailRow("Backoff", formatAgo(assignment.backoffUntil))
-              : nothing}
+            ${
+              assignment.lastDispatchAt
+                ? detailRow("Last dispatch", formatAgo(assignment.lastDispatchAt))
+                : nothing
+            }
+            ${
+              assignment.lastObservedActivityAt
+                ? detailRow("Last activity", formatAgo(assignment.lastObservedActivityAt))
+                : nothing
+            }
+            ${
+              assignment.backoffUntil
+                ? detailRow("Backoff", formatAgo(assignment.backoffUntil))
+                : nothing
+            }
           </div>
         `
-      : nothing}
-    ${latestCrystal
-      ? html`
+        : nothing
+    }
+    ${
+      latestCrystal
+        ? html`
           <div class="graph-details__section">
             <div class="graph-details__label">Latest crystallization</div>
             ${latestCrystal.summary ? detailRow("Summary", latestCrystal.summary) : nothing}
-            ${latestCrystal.decisions?.length
-              ? detailRow("Decisions", formatList(latestCrystal.decisions))
-              : nothing}
-            ${latestCrystal.nextActions?.length
-              ? detailRow("Next", formatList(latestCrystal.nextActions))
-              : nothing}
+            ${
+              latestCrystal.decisions?.length
+                ? detailRow("Decisions", formatList(latestCrystal.decisions))
+                : nothing
+            }
+            ${
+              latestCrystal.nextActions?.length
+                ? detailRow("Next", formatList(latestCrystal.nextActions))
+                : nothing
+            }
           </div>
         `
-      : nothing}
+        : nothing
+    }
   `;
 }
 
@@ -818,7 +863,9 @@ function renderSystemDetails(props: OverseerProps, layout: GraphLayout) {
   }
   const node = layout.nodes.find((entry) => entry.id === selectedId);
   if (!node) {
-    return html`<div class="graph-details__empty">Select a node to see details.</div>`;
+    return html`
+      <div class="graph-details__empty">Select a node to see details.</div>
+    `;
   }
   if (node.kind === "gateway") {
     return html`
@@ -846,9 +893,11 @@ function renderSystemDetails(props: OverseerProps, layout: GraphLayout) {
       ${detailRow("Status", data.connected ? "Online" : "Offline")}
       ${data.version ? detailRow("Version", String(data.version)) : nothing}
       ${data.remoteIp ? detailRow("IP", String(data.remoteIp)) : nothing}
-      ${Array.isArray(data.caps) && data.caps.length
-        ? detailRow("Caps", formatList(data.caps as string[]))
-        : nothing}
+      ${
+        Array.isArray(data.caps) && data.caps.length
+          ? detailRow("Caps", formatList(data.caps as string[]))
+          : nothing
+      }
     `;
   }
   if (node.kind === "agent") {
@@ -893,9 +942,11 @@ function renderSystemDetails(props: OverseerProps, layout: GraphLayout) {
       ${data.mode ? detailRow("Mode", String(data.mode)) : nothing}
       ${data.deviceFamily ? detailRow("Device", String(data.deviceFamily)) : nothing}
       ${data.modelIdentifier ? detailRow("Model", String(data.modelIdentifier)) : nothing}
-      ${lastInputSeconds != null
-        ? detailRow("Last input", `${formatDurationMs(lastInputSeconds * 1000)} ago`)
-        : nothing}
+      ${
+        lastInputSeconds != null
+          ? detailRow("Last input", `${formatDurationMs(lastInputSeconds * 1000)} ago`)
+          : nothing
+      }
       ${data.reason ? detailRow("Reason", String(data.reason)) : nothing}
     `;
   }
@@ -908,9 +959,9 @@ function renderSystemDetails(props: OverseerProps, layout: GraphLayout) {
       ${data.description ? detailRow("Description", String(data.description)) : nothing}
       ${data.agentId ? detailRow("Agent", String(data.agentId)) : nothing}
       ${data.schedule ? detailRow("Schedule", formatCronSchedule(data.schedule)) : nothing}
-      ${state?.nextRunAtMs
-        ? detailRow("Next run", formatAgo(state.nextRunAtMs as number))
-        : nothing}
+      ${
+        state?.nextRunAtMs ? detailRow("Next run", formatAgo(state.nextRunAtMs as number)) : nothing
+      }
       ${state?.lastStatus ? detailRow("Last status", String(state.lastStatus)) : nothing}
     `;
   }
@@ -929,7 +980,9 @@ function renderSystemDetails(props: OverseerProps, layout: GraphLayout) {
       ${missingEnv.length ? detailRow("Missing env", formatList(missingEnv)) : nothing}
     `;
   }
-  return html`<div class="graph-details__empty">Select a node to see details.</div>`;
+  return html`
+    <div class="graph-details__empty">Select a node to see details.</div>
+  `;
 }
 
 function renderDrawer(props: OverseerProps) {
@@ -941,9 +994,11 @@ function renderDrawer(props: OverseerProps) {
       <div class="overseer-drawer__header">
         <div>
           <div class="overseer-drawer__title">${content.title}</div>
-          ${content.subtitle
-            ? html`<div class="overseer-drawer__subtitle">${content.subtitle}</div>`
-            : nothing}
+          ${
+            content.subtitle
+              ? html`<div class="overseer-drawer__subtitle">${content.subtitle}</div>`
+              : nothing
+          }
         </div>
         <button class="btn btn--icon btn--sm" @click=${props.onDrawerClose} title="Close">
           ${icon("x", { size: 14 })}
@@ -971,9 +1026,7 @@ function buildDrawerContent(props: OverseerProps): {
     };
   }
   if (props.drawerKind === "session") {
-    const session = props.sessions?.sessions.find(
-      (entry) => entry.key === props.drawerNodeId,
-    );
+    const session = props.sessions?.sessions.find((entry) => entry.key === props.drawerNodeId);
     if (!session) return null;
     return {
       title: session.displayName ?? session.key,
@@ -982,9 +1035,7 @@ function buildDrawerContent(props: OverseerProps): {
     };
   }
   if (props.drawerKind === "skill") {
-    const skill = props.skillsReport?.skills.find(
-      (entry) => entry.skillKey === props.drawerNodeId,
-    );
+    const skill = props.skillsReport?.skills.find((entry) => entry.skillKey === props.drawerNodeId);
     if (!skill) return null;
     return {
       title: skill.name,
@@ -994,9 +1045,7 @@ function buildDrawerContent(props: OverseerProps): {
   }
   if (props.drawerKind === "channel") {
     const channelId = props.drawerNodeId;
-    const channel = props.channels?.channels?.[channelId] as
-      | Record<string, unknown>
-      | undefined;
+    const channel = props.channels?.channels?.[channelId] as Record<string, unknown> | undefined;
     return {
       title: props.channels?.channelLabels?.[channelId] ?? channelId,
       subtitle: "Channel",
@@ -1005,8 +1054,7 @@ function buildDrawerContent(props: OverseerProps): {
   }
   if (props.drawerKind === "node") {
     const node = props.nodes.find(
-      (entry) =>
-        String(entry.nodeId ?? entry.displayName ?? "") === props.drawerNodeId,
+      (entry) => String(entry.nodeId ?? entry.displayName ?? "") === props.drawerNodeId,
     );
     if (!node) return null;
     return {
@@ -1017,8 +1065,7 @@ function buildDrawerContent(props: OverseerProps): {
   }
   if (props.drawerKind === "instance") {
     const entry = props.presenceEntries.find(
-      (item) =>
-        String(item.instanceId ?? item.host ?? "") === props.drawerNodeId,
+      (item) => String(item.instanceId ?? item.host ?? "") === props.drawerNodeId,
     );
     if (!entry) return null;
     return {
@@ -1038,9 +1085,7 @@ function renderCronDrawerBody(job: CronJob, runs: CronRunLogEntry[], props: Over
       ${job.description ? detailRow("Description", job.description) : nothing}
       ${job.agentId ? detailRow("Agent", job.agentId) : nothing}
       ${detailRow("Schedule", schedule)}
-      ${job.state?.nextRunAtMs
-        ? detailRow("Next run", formatAgo(job.state.nextRunAtMs))
-        : nothing}
+      ${job.state?.nextRunAtMs ? detailRow("Next run", formatAgo(job.state.nextRunAtMs)) : nothing}
     </div>
     <div class="overseer-drawer__section">
       <div class="overseer-drawer__section-header">
@@ -1053,18 +1098,23 @@ function renderCronDrawerBody(job: CronJob, runs: CronRunLogEntry[], props: Over
           <span>Refresh</span>
         </button>
       </div>
-      ${runs.length === 0
-        ? html`<div class="muted">No runs recorded.</div>`
-        : html`
+      ${
+        runs.length === 0
+          ? html`
+              <div class="muted">No runs recorded.</div>
+            `
+          : html`
             <div class="overseer-run-list">
               ${runs.map(
                 (run) => html`
                   <div class="overseer-run-list__row">
-                    <span class="badge ${run.status === "ok"
-                      ? "badge--ok"
-                      : run.status === "error"
-                        ? "badge--danger"
-                        : "badge--muted"}"
+                    <span class="badge ${
+                      run.status === "ok"
+                        ? "badge--ok"
+                        : run.status === "error"
+                          ? "badge--danger"
+                          : "badge--muted"
+                    }"
                     >
                       ${run.status}
                     </span>
@@ -1077,7 +1127,8 @@ function renderCronDrawerBody(job: CronJob, runs: CronRunLogEntry[], props: Over
                 `,
               )}
             </div>
-          `}
+          `
+      }
     </div>
   `;
 }
@@ -1105,18 +1156,20 @@ function renderSkillDrawerBody(skill: SkillStatusReport["skills"][number]) {
     </div>
     <div class="overseer-drawer__section">
       <div class="overseer-drawer__section-title">Missing requirements</div>
-      ${skill.missing.bins.length
-        ? detailRow("Bins", formatList(skill.missing.bins))
-        : nothing}
+      ${skill.missing.bins.length ? detailRow("Bins", formatList(skill.missing.bins)) : nothing}
       ${skill.missing.env.length ? detailRow("Env", formatList(skill.missing.env)) : nothing}
-      ${skill.missing.config.length
-        ? detailRow("Config", formatList(skill.missing.config))
-        : nothing}
-      ${skill.missing.bins.length ||
-      skill.missing.env.length ||
-      skill.missing.config.length
-        ? nothing
-        : html`<div class="muted">All requirements met.</div>`}
+      ${
+        skill.missing.config.length
+          ? detailRow("Config", formatList(skill.missing.config))
+          : nothing
+      }
+      ${
+        skill.missing.bins.length || skill.missing.env.length || skill.missing.config.length
+          ? nothing
+          : html`
+              <div class="muted">All requirements met.</div>
+            `
+      }
     </div>
   `;
 }
@@ -1129,15 +1182,17 @@ function renderChannelDrawerBody(
   const accounts = props.channels?.channelAccounts?.[channelId] ?? [];
   return html`
     <div class="overseer-drawer__section">
-      ${channel?.configured != null
-        ? detailRow("Configured", channel.configured ? "Yes" : "No")
-        : nothing}
-      ${channel?.running != null
-        ? detailRow("Running", channel.running ? "Yes" : "No")
-        : nothing}
-      ${channel?.connected != null
-        ? detailRow("Connected", channel.connected ? "Yes" : "No")
-        : nothing}
+      ${
+        channel?.configured != null
+          ? detailRow("Configured", channel.configured ? "Yes" : "No")
+          : nothing
+      }
+      ${channel?.running != null ? detailRow("Running", channel.running ? "Yes" : "No") : nothing}
+      ${
+        channel?.connected != null
+          ? detailRow("Connected", channel.connected ? "Yes" : "No")
+          : nothing
+      }
       ${detailRow("Accounts", String(accounts.length))}
     </div>
   `;
@@ -1150,9 +1205,11 @@ function renderNodeDrawerBody(node: Record<string, unknown>) {
       ${detailRow("Status", node.connected ? "Online" : "Offline")}
       ${node.version ? detailRow("Version", String(node.version)) : nothing}
       ${node.remoteIp ? detailRow("IP", String(node.remoteIp)) : nothing}
-      ${Array.isArray(node.caps) && node.caps.length
-        ? detailRow("Caps", formatList(node.caps as string[]))
-        : nothing}
+      ${
+        Array.isArray(node.caps) && node.caps.length
+          ? detailRow("Caps", formatList(node.caps as string[]))
+          : nothing
+      }
     </div>
   `;
 }
@@ -1168,18 +1225,17 @@ function renderInstanceDrawerBody(entry: PresenceEntry) {
       ${entry.mode ? detailRow("Mode", entry.mode) : nothing}
       ${entry.deviceFamily ? detailRow("Device", entry.deviceFamily) : nothing}
       ${entry.modelIdentifier ? detailRow("Model", entry.modelIdentifier) : nothing}
-      ${lastInputSeconds != null
-        ? detailRow("Last input", `${formatDurationMs(lastInputSeconds * 1000)} ago`)
-        : nothing}
+      ${
+        lastInputSeconds != null
+          ? detailRow("Last input", `${formatDurationMs(lastInputSeconds * 1000)} ago`)
+          : nothing
+      }
       ${entry.reason ? detailRow("Reason", entry.reason) : nothing}
     </div>
   `;
 }
 
-function findPlanNode(
-  goal: NonNullable<OverseerGoalStatusResult["goal"]>,
-  nodeId: string,
-) {
+function findPlanNode(goal: NonNullable<OverseerGoalStatusResult["goal"]>, nodeId: string) {
   const phases = goal.plan?.phases ?? [];
   for (const phase of phases) {
     if (phase.id === nodeId) return phase;
@@ -1406,8 +1462,9 @@ function renderStalledPanel(
                 </div>
               </div>
               <div class="stalled-item__actions">
-                ${props.onRetryAssignment
-                  ? html`
+                ${
+                  props.onRetryAssignment
+                    ? html`
                       <button
                         class="btn btn--sm btn--accent"
                         title="Retry assignment"
@@ -1418,13 +1475,15 @@ function renderStalledPanel(
                         <span>Retry</span>
                       </button>
                     `
-                  : html`
+                    : html`
                       <button class="btn btn--sm" title="Retry assignment" disabled>
                         ${icon("refresh-cw", { size: 12 })}
                       </button>
-                    `}
-                ${props.onBlockWork
-                  ? html`
+                    `
+                }
+                ${
+                  props.onBlockWork
+                    ? html`
                       <button
                         class="btn btn--sm btn--secondary"
                         title="Mark as blocked"
@@ -1439,7 +1498,8 @@ function renderStalledPanel(
                         ${icon("x-circle", { size: 12 })}
                       </button>
                     `
-                  : nothing}
+                    : nothing
+                }
               </div>
             </div>
           `,
@@ -1565,9 +1625,11 @@ function renderCreateGoalModal(props: OverseerProps) {
             <span>Generate plan automatically</span>
           </label>
         </div>
-        ${props.goalActionError
-          ? html`<div class="overseer-modal__error">${props.goalActionError}</div>`
-          : nothing}
+        ${
+          props.goalActionError
+            ? html`<div class="overseer-modal__error">${props.goalActionError}</div>`
+            : nothing
+        }
       </div>
       <div class="overseer-modal__footer">
         <button
@@ -1600,9 +1662,7 @@ function renderActivityFeed(events: ActivityEvent[], props: OverseerProps) {
 
   const filterStatus = props.activityFilterStatus ?? null;
   const limit = props.activityLimit ?? 50;
-  const filteredEvents = filterStatus
-    ? events.filter((e) => e.status === filterStatus)
-    : events;
+  const filteredEvents = filterStatus ? events.filter((e) => e.status === filterStatus) : events;
   const displayedEvents = filteredEvents.slice(0, limit);
   const hasClickHandler = Boolean(props.onActivityEventClick);
 
@@ -1623,8 +1683,9 @@ function renderActivityFeed(events: ActivityEvent[], props: OverseerProps) {
           <span>Live</span>
         </div>
       </div>
-      ${props.onActivityFilterChange
-        ? html`
+      ${
+        props.onActivityFilterChange
+          ? html`
             <div class="activity-feed__filters">
               <button
                 class="activity-feed__filter ${!filterStatus ? "activity-feed__filter--active" : ""}"
@@ -1658,11 +1719,13 @@ function renderActivityFeed(events: ActivityEvent[], props: OverseerProps) {
               </button>
             </div>
           `
-        : nothing}
+          : nothing
+      }
       <div class="activity-feed__body">
         <div class="activity-feed__items">
-          ${displayedEvents.length === 0
-            ? html`
+          ${
+            displayedEvents.length === 0
+              ? html`
                 <div class="activity-feed__empty">
                   <div class="activity-feed__empty-icon">${icon("activity", { size: 32 })}</div>
                   <div class="activity-feed__empty-text">
@@ -1670,8 +1733,8 @@ function renderActivityFeed(events: ActivityEvent[], props: OverseerProps) {
                   </div>
                 </div>
               `
-            : displayedEvents.map(
-                (event, index) => html`
+              : displayedEvents.map(
+                  (event, index) => html`
                   <div
                     class="activity-feed__item ${hasClickHandler ? "activity-feed__item--clickable" : ""}"
                     style="animation-delay: ${index * 50}ms;"
@@ -1697,13 +1760,16 @@ function renderActivityFeed(events: ActivityEvent[], props: OverseerProps) {
                     </div>
                   </div>
                 `,
-              )}
-          ${filteredEvents.length > limit
-            ? html`
+                )
+          }
+          ${
+            filteredEvents.length > limit
+              ? html`
                 <div class="activity-feed__more">
                   ${filteredEvents.length - limit} more events
-                  ${props.onActivityLimitChange
-                    ? html`
+                  ${
+                    props.onActivityLimitChange
+                      ? html`
                         <button
                           class="btn btn--sm btn--secondary"
                           @click=${() => props.onActivityLimitChange!(limit + 50)}
@@ -1711,10 +1777,12 @@ function renderActivityFeed(events: ActivityEvent[], props: OverseerProps) {
                           Show more
                         </button>
                       `
-                    : nothing}
+                      : nothing
+                  }
                 </div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
     </div>

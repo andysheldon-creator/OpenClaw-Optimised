@@ -1,6 +1,6 @@
 import type { GatewayBrowserClient } from "../gateway";
-import { toast } from "../components/toast";
 import { showDangerConfirmDialog } from "../components/confirm-dialog";
+import { toast } from "../components/toast";
 
 export type AutomationStatus = "active" | "suspended" | "error";
 export type AutomationType = "smart-sync-fork" | "custom-script" | "webhook";
@@ -89,7 +89,10 @@ export type AutomationsState = {
 };
 
 // Status configuration for rendering
-export const statusConfig: Record<AutomationStatus, { icon: string; class: string; label: string }> = {
+export const statusConfig: Record<
+  AutomationStatus,
+  { icon: string; class: string; label: string }
+> = {
   active: { icon: "check-circle", class: "status-active", label: "Active" },
   suspended: { icon: "pause", class: "status-suspended", label: "Suspended" },
   error: { icon: "alert-circle", class: "status-error", label: "Error" },
@@ -101,7 +104,7 @@ export async function loadAutomations(state: AutomationsState) {
   state.loading = true;
   state.error = null;
   try {
-    const res = await state.client.request("automations.list", {}, { timeoutMs: 10_000 }) as {
+    const res = (await state.client.request("automations.list", {}, { timeoutMs: 10_000 })) as {
       automations?: Automation[];
     };
     state.automations = res.automations ?? [];
@@ -140,7 +143,7 @@ export async function toggleSuspendAutomation(state: AutomationsState, id: strin
   try {
     await state.client.request("automations.update", { id, enabled });
     state.automations = state.automations.map((a) =>
-      a.id === id ? { ...a, enabled, status: newStatus } : a
+      a.id === id ? { ...a, enabled, status: newStatus } : a,
     );
     toast.success(`Automation ${newStatus === "active" ? "resumed" : "suspended"}`);
   } catch (err) {
@@ -156,7 +159,7 @@ export async function deleteAutomation(state: AutomationsState, id: string) {
   const confirmed = await showDangerConfirmDialog(
     "Delete Automation",
     `Delete automation "${automation.name}"? This action cannot be undone.`,
-    "Delete"
+    "Delete",
   );
 
   if (!confirmed) return;
@@ -208,7 +211,7 @@ export interface AutomationRunHistoryState {
   records: AutomationRunRecord[];
   expandedRows: Set<string>;
   currentPage: number;
-  statusFilter: 'all' | 'success' | 'failed' | 'running';
+  statusFilter: "all" | "success" | "failed" | "running";
   dateFrom: string;
   dateTo: string;
   itemsPerPage: number;
@@ -219,7 +222,7 @@ export interface AutomationRunHistoryState {
 export async function loadAutomationRuns(
   state: AutomationRunHistoryState,
   automationId: string,
-  limit = 50
+  limit = 50,
 ) {
   if (!state.client || !state.connected) return;
 
@@ -227,7 +230,11 @@ export async function loadAutomationRuns(
   state.error = null;
   state.automationId = automationId;
   try {
-    const res = await state.client.request("automations.history", { id: automationId, limit }, { timeoutMs: 10_000 }) as {
+    const res = (await state.client.request(
+      "automations.history",
+      { id: automationId, limit },
+      { timeoutMs: 10_000 },
+    )) as {
       records?: AutomationRunRecord[];
     };
     state.records = res.records ?? [];
@@ -250,26 +257,32 @@ export function toggleHistoryRow(state: AutomationRunHistoryState, id: string): 
 
 export function getFilteredHistoryData(state: AutomationRunHistoryState): AutomationRunRecord[] {
   return state.records.filter((record) => {
-    if (state.statusFilter !== 'all' && record.status !== state.statusFilter) return false;
+    if (state.statusFilter !== "all" && record.status !== state.statusFilter) return false;
     if (state.dateFrom && record.startedAt < new Date(state.dateFrom).getTime()) return false;
     if (state.dateTo && record.startedAt > new Date(state.dateTo).getTime()) return false;
     return true;
   });
 }
 
-export function getTotalHistoryPages(state: AutomationRunHistoryState, filteredData: AutomationRunRecord[]): number {
+export function getTotalHistoryPages(
+  state: AutomationRunHistoryState,
+  filteredData: AutomationRunRecord[],
+): number {
   return Math.ceil(filteredData.length / state.itemsPerPage);
 }
 
-export function getPaginatedHistoryData(state: AutomationRunHistoryState, filteredData: AutomationRunRecord[]): AutomationRunRecord[] {
+export function getPaginatedHistoryData(
+  state: AutomationRunHistoryState,
+  filteredData: AutomationRunRecord[],
+): AutomationRunRecord[] {
   const startIndex = (state.currentPage - 1) * state.itemsPerPage;
   return filteredData.slice(startIndex, startIndex + state.itemsPerPage);
 }
 
 export function clearHistoryFilters(state: AutomationRunHistoryState): void {
-  state.statusFilter = 'all';
-  state.dateFrom = '';
-  state.dateTo = '';
+  state.statusFilter = "all";
+  state.dateFrom = "";
+  state.dateTo = "";
 }
 
 // Progress modal state and functions
@@ -366,7 +379,7 @@ export function prevFormStep(state: AutomationFormState): void {
 
 export async function createAutomation(
   state: AutomationsState,
-  formState: AutomationFormState
+  formState: AutomationFormState,
 ): Promise<boolean> {
   if (!state.client || !state.connected) return false;
 
@@ -419,7 +432,7 @@ export async function createAutomation(
 export async function downloadArtifact(
   client: GatewayBrowserClient | null,
   connected: boolean,
-  artifactId: string
+  artifactId: string,
 ): Promise<string | null> {
   if (!client || !connected) {
     toast.error("Not connected to gateway");
@@ -427,7 +440,11 @@ export async function downloadArtifact(
   }
 
   try {
-    const res = await client.request("automations.artifact.download", { artifactId }, { timeoutMs: 30_000 }) as {
+    const res = (await client.request(
+      "automations.artifact.download",
+      { artifactId },
+      { timeoutMs: 30_000 },
+    )) as {
       url?: string;
       expiresAt?: number;
     };

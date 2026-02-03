@@ -13,6 +13,7 @@ last_updated: "2026-01-25"
 ## Context
 
 Clawdbrain already has:
+
 - An **embedded, tool-using agent runtime** (Pi embedded) used for normal runs.
 - A **CLI backend** mode that can call local CLIs like Claude Code CLI / Codex CLI as a
   **text-only fallback** (see [CLI backends](/gateway/cli-backends)).
@@ -23,6 +24,7 @@ coding task on demand, while keeping Clawdbrain's existing runtime unchanged.
 ## Motivation
 
 Operators want:
+
 - A way to use the Claude Code agent harness (planning + repo understanding) inside a Clawdbrain
   session, without switching tools or copying context manually.
 - A safe, opt-in integration that can gradually expand from "readonly" to more capable modes.
@@ -52,10 +54,12 @@ When enabled, a Clawdbrain session can call:
 - `coding_task(task="Investigate failing tests in src/foo")`
 
 And receive:
+
 - A structured plan (steps, hypotheses, file targets, next actions).
 - Optional metadata (elapsed time, tool usage summary, raw event count).
 
 The calling Clawdbrain agent can then decide to:
+
 - Execute the plan itself using existing Clawdbrain tools, or
 - Ask the user for approval to proceed, or
 - Spawn subagents to implement parts of the plan.
@@ -69,15 +73,18 @@ The calling Clawdbrain agent can then decide to:
 ### Input (Phase 1)
 
 Minimal schema:
+
 - `task` (string, required): what to do (plan, investigate, implement), subject to configured tool gates.
 
 Phase 1 intentionally omits:
+
 - Per-invocation overrides for permissions/tooling (capabilities are configured via `tools.codingTask.*`).
 - MCP configuration (no Clawdbrain tool bridging yet).
 
 ### Output
 
 Tool returns:
+
 - `content`: a text block containing the Claude Code run output (plan, investigation notes, diffs, etc).
 - `details`: JSON with fields like:
   - `status`: "ok" | "error"
@@ -109,13 +116,14 @@ Add a new config stanza:
       settingSources: ["project"],
 
       // Optional: allow access outside cwd
-      additionalDirectories: ["/tmp"]
-    }
-  }
+      additionalDirectories: ["/tmp"],
+    },
+  },
 }
 ```
 
 Notes:
+
 - `allowedTools` / `disallowedTools` are passed through to Claude Code's permission system.
   Prefer using these for safety instead of `permissionMode="bypassPermissions"`.
 
@@ -145,6 +153,7 @@ The tool is not registered unless `tools.codingTask.enabled=true`.
 ### Capability gate (Phase 1)
 
 Even if called, `coding_task` is intended to be safe-by-default:
+
 - Default `toolPreset="readonly"` (read/search style tools only).
 - Default `permissionMode="default"` (no bypassing approvals).
 - Operators can explicitly expand capabilities via `tools.codingTask` config.
@@ -152,6 +161,7 @@ Even if called, `coding_task` is intended to be safe-by-default:
 ### Tool policy integration
 
 Clawdbrain's tool allow/deny policies still apply because this is just another tool:
+
 - Global (`tools.allow/deny`)
 - Agent-specific (`agents.list[].tools.allow/deny`)
 - Sandbox tool policy (`tools.sandbox.tools`)
@@ -178,10 +188,12 @@ that forward to Clawdbrain's sandbox-aware `exec/read/write/edit`.
 ## Observability
 
 Phase 1:
+
 - Return basic metadata in tool `details` (event count, extracted chars).
 - Keep debug logging behind existing logging controls (no noisy logs by default).
 
 Future:
+
 - Add an opt-in debug mode that writes raw SDK events to a run-local artifact file.
 
 ## Testing Strategy

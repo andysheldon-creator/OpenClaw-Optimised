@@ -17,17 +17,18 @@ This audit identifies the **weakest areas** of Clawdbrain's user interface for m
 
 **Current State:** Goal lifecycle operations are CLI-only.
 
-| Operation | CLI | Web UI | macOS | iOS |
-|-----------|-----|--------|-------|-----|
-| Create goal | ✅ `clawdbrain overseer goal create` | ❌ | ❌ | ❌ |
-| Pause goal | ✅ `clawdbrain overseer goal pause` | ❌ | ❌ | ❌ |
-| Resume goal | ✅ `clawdbrain overseer goal resume` | ❌ | ❌ | ❌ |
-| Mark work done | ✅ `clawdbrain overseer work done` | ❌ | ❌ | ❌ |
-| Block work node | ✅ `clawdbrain overseer work block` | ❌ | ❌ | ❌ |
+| Operation       | CLI                                  | Web UI | macOS | iOS |
+| --------------- | ------------------------------------ | ------ | ----- | --- |
+| Create goal     | ✅ `clawdbrain overseer goal create` | ❌     | ❌    | ❌  |
+| Pause goal      | ✅ `clawdbrain overseer goal pause`  | ❌     | ❌    | ❌  |
+| Resume goal     | ✅ `clawdbrain overseer goal resume` | ❌     | ❌    | ❌  |
+| Mark work done  | ✅ `clawdbrain overseer work done`   | ❌     | ❌    | ❌  |
+| Block work node | ✅ `clawdbrain overseer work block`  | ❌     | ❌    | ❌  |
 
 **Impact:** Users must switch to terminal to intervene in running workflows, breaking flow and increasing latency for urgent corrections.
 
 **Files:**
+
 - `src/cli/overseer-cli.ts` - CLI implementation
 - `ui/src/ui/views/overseer.ts:1112` - Stalled panel has a "Retry" button that does nothing
 
@@ -36,11 +37,13 @@ This audit identifies the **weakest areas** of Clawdbrain's user interface for m
 ### 2. **No Mid-Execution Abort in Web UI**
 
 **Current State:** The chat interface has `canAbort` prop and `onAbort` handler wired up (`ui/src/ui/views/chat.ts:36-37, 74`), but:
+
 - Only works during active streaming
 - No abort capability for background agent tasks
 - No abort for Overseer-dispatched work
 
 **Evidence:**
+
 ```typescript
 // chat.ts:187
 const canAbort = Boolean(props.canAbort && props.onAbort);
@@ -55,11 +58,13 @@ The CLI has `clawdbrain agent --abort` but this is not exposed in any UI.
 ### 3. **Execution Approval UX Friction**
 
 **Current State:** `ui/src/ui/views/exec-approval.ts` provides a modal overlay with three options:
+
 - Allow once
 - Always allow
 - Deny
 
 **Problems:**
+
 1. **No approval history view** - Can't see what was previously approved/denied
 2. **No bulk management** - Must handle approvals one-by-one
 3. **No pattern-based rules in UI** - `exec-approvals.ts` settings exist but are buried
@@ -67,6 +72,7 @@ The CLI has `clawdbrain agent --abort` but this is not exposed in any UI.
 5. **No "allow for this session"** option - Only "once" or "always"
 
 **Files:**
+
 - `ui/src/ui/views/exec-approval.ts` - Approval modal (79 lines, minimal)
 - `ui/src/ui/controllers/exec-approval.ts` - Queue management
 
@@ -75,11 +81,13 @@ The CLI has `clawdbrain agent --abort` but this is not exposed in any UI.
 ### 4. **Mobile Has No Workflow Visibility**
 
 **Current State:** iOS app (`apps/ios/Sources/RootCanvas.swift`) is primarily a camera/voice interface with:
+
 - Chat sheet for conversations
 - Status pill showing gateway connection
 - Voice wake functionality
 
 **Missing entirely:**
+
 - No Overseer view
 - No agent list
 - No session management
@@ -93,12 +101,14 @@ The CLI has `clawdbrain agent --abort` but this is not exposed in any UI.
 ### 5. **Activity Feed is Passive Only**
 
 **Current State:** `ui/src/ui/views/overseer.ts:1123-1186` renders an activity feed showing:
+
 - Task dispatched events
 - Stalled assignments
 - Crystallizations
 - Goal status changes
 
 **Problems:**
+
 1. **No actionable items** - Events are display-only
 2. **No click-through** - Can't jump to related goal/task
 3. **No filtering** - Can't focus on errors or a specific agent
@@ -110,11 +120,13 @@ The CLI has `clawdbrain agent --abort` but this is not exposed in any UI.
 ### 6. **Task Sidebar Lacks Intervention Controls**
 
 **Current State:** `ui/src/ui/views/chat-task-sidebar.ts` shows:
+
 - Task tree with status icons
 - Activity log entries
 - Completion stats
 
 **Missing:**
+
 1. **No cancel/abort per task**
 2. **No retry mechanism**
 3. **No priority adjustment**
@@ -128,11 +140,13 @@ The sidebar is read-only observation, not a control surface.
 ### 7. **Agent Events Window (macOS) is Developer-Focused**
 
 **Current State:** `apps/macos/Sources/Clawdbrain/AgentEventsWindow.swift` displays:
+
 - Raw event stream with JSON pretty-printing
 - Run ID and sequence numbers
 - Timestamp formatting
 
 **Problems:**
+
 1. **Too technical** - Shows raw `[String: AnyCodable]` payloads
 2. **No action buttons** - Can only "Clear" history
 3. **No filtering** - All events mixed together
@@ -144,11 +158,13 @@ The sidebar is read-only observation, not a control surface.
 ### 8. **Sessions View Lacks Agent Context**
 
 **Current State:** `ui/src/ui/views/sessions.ts` shows session table with:
+
 - Key, label, kind, updated, tokens
 - Thinking/verbose/reasoning level controls
 - Delete action
 
 **Problems:**
+
 1. **No agent association visible** - Can't see which agent owns which session
 2. **No active task indicator** - No way to know if session is running work
 3. **No "view logs" shortcut** - Must navigate separately
@@ -160,13 +176,13 @@ The sidebar is read-only observation, not a control surface.
 
 ### Current Mechanisms
 
-| Mechanism | Implementation | UX Quality |
-|-----------|---------------|------------|
-| Execution approvals | Modal overlay | ⚠️ Minimal (3 buttons) |
-| Thinking level | Session dropdown | ✅ Adequate |
-| Verbose level | Session dropdown | ✅ Adequate |
-| Stalled detection | Passive display | ❌ No action path |
-| Crystallization | CLI only | ❌ No UI |
+| Mechanism           | Implementation   | UX Quality             |
+| ------------------- | ---------------- | ---------------------- |
+| Execution approvals | Modal overlay    | ⚠️ Minimal (3 buttons) |
+| Thinking level      | Session dropdown | ✅ Adequate            |
+| Verbose level       | Session dropdown | ✅ Adequate            |
+| Stalled detection   | Passive display  | ❌ No action path      |
+| Crystallization     | CLI only         | ❌ No UI               |
 
 ### Missing Nudging Capabilities
 
@@ -252,16 +268,16 @@ The sidebar is read-only observation, not a control surface.
 
 ## Files Reviewed
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `ui/src/ui/views/overseer.ts` | 1188 | Workflow visualization |
-| `ui/src/ui/views/exec-approval.ts` | 79 | Approval modal |
-| `ui/src/ui/views/sessions.ts` | 488 | Session table |
-| `ui/src/ui/views/chat.ts` | 300+ | Chat interface |
-| `ui/src/ui/views/chat-task-sidebar.ts` | 274 | Task breakdown |
-| `src/cli/overseer-cli.ts` | - | CLI commands |
-| `apps/macos/.../AgentEventsWindow.swift` | 110 | macOS events |
-| `apps/ios/Sources/RootCanvas.swift` | 342 | iOS main view |
+| File                                     | Lines | Purpose                |
+| ---------------------------------------- | ----- | ---------------------- |
+| `ui/src/ui/views/overseer.ts`            | 1188  | Workflow visualization |
+| `ui/src/ui/views/exec-approval.ts`       | 79    | Approval modal         |
+| `ui/src/ui/views/sessions.ts`            | 488   | Session table          |
+| `ui/src/ui/views/chat.ts`                | 300+  | Chat interface         |
+| `ui/src/ui/views/chat-task-sidebar.ts`   | 274   | Task breakdown         |
+| `src/cli/overseer-cli.ts`                | -     | CLI commands           |
+| `apps/macos/.../AgentEventsWindow.swift` | 110   | macOS events           |
+| `apps/ios/Sources/RootCanvas.swift`      | 342   | iOS main view          |
 
 ---
 

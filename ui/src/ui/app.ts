@@ -469,7 +469,10 @@ export class OpenClawApp extends LitElement {
     this.authRequired = false;
     this.authError = null;
     this.authValue = "";
-    applySettingsInternal(this as unknown as Parameters<typeof applySettingsInternal>[0], nextSettings);
+    applySettingsInternal(
+      this as unknown as Parameters<typeof applySettingsInternal>[0],
+      nextSettings,
+    );
     this.connect();
   }
 

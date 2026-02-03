@@ -13,12 +13,14 @@
 **Solution:** Introduce a `RelationalDatastore` interface that abstracts database operations, allowing implementations to swap seamlessly.
 
 **Impact:**
+
 - Zero breaking changes to existing repositories/services
 - Supports both SQLite (development/local) and PostgreSQL (production/Scale)
 - Enables future database backends (MySQL, SQL Server, etc.)
 - Maintains SQLite simplicity for local development
 
 **Required Changes:**
+
 1. New `src/datastore/` module with interface and implementations
 2. Update existing memory manager to use datastore interface
 3. Configuration-driven datastore selection
@@ -184,7 +186,7 @@ export interface RelationalDatastore {
   readonly displayName: string;
 
   /** Database type identifier */
-  readonly type: 'sqlite' | 'postgresql' | string;
+  readonly type: "sqlite" | "postgresql" | string;
 
   // ===== Query Operations =====
 
@@ -194,10 +196,7 @@ export interface RelationalDatastore {
    * @param params Parameter values for placeholders
    * @returns Array of rows matching the query result type
    */
-  query<T extends Record<string, any> = any>(
-    sql: string,
-    params?: any[]
-  ): Promise<T[]>;
+  query<T extends Record<string, any> = any>(sql: string, params?: any[]): Promise<T[]>;
 
   /**
    * Execute a SELECT query and return the first row or null
@@ -205,10 +204,7 @@ export interface RelationalDatastore {
    * @param params Parameter values for placeholders
    * @returns First matching row or null if no results
    */
-  queryOne<T extends Record<string, any> = any>(
-    sql: string,
-    params?: any[]
-  ): Promise<T | null>;
+  queryOne<T extends Record<string, any> = any>(sql: string, params?: any[]): Promise<T | null>;
 
   // ===== Mutation Operations =====
 
@@ -272,7 +268,7 @@ export interface RelationalDatastore {
     column: string,
     query: number[],
     limit: number,
-    filter?: string
+    filter?: string,
   ): Promise<VectorResult[]>;
 
   // ===== Full-Text Search (Optional) =====
@@ -291,7 +287,7 @@ export interface RelationalDatastore {
     table: string,
     columns: string[],
     query: string,
-    limit: number
+    limit: number,
   ): Promise<VectorResult[]>;
 
   // ===== Lifecycle =====
@@ -307,7 +303,7 @@ export interface RelationalDatastore {
  */
 export interface DatastoreConfig {
   /** Datastore type identifier */
-  type: 'sqlite' | 'postgresql';
+  type: "sqlite" | "postgresql";
 
   /** SQLite-specific configuration */
   sqlite?: {
@@ -360,9 +356,9 @@ export interface DatastoreFactory {
 export function normalizeSQL(
   sql: string,
   params: any[],
-  dialect: 'sqlite' | 'postgresql'
+  dialect: "sqlite" | "postgresql",
 ): { sql: string; params: any[] } {
-  if (dialect === 'postgresql') {
+  if (dialect === "postgresql") {
     // Convert ? placeholders to $1, $2, ...
     let paramIndex = 0;
     const normalizedSQL = sql.replace(/\?/g, () => `$${++paramIndex}`);
@@ -398,7 +394,7 @@ export class QueryBuilder {
 
   build(): { sql: string; params: any[] } {
     if (this.conditions.length) {
-      this.query += ` WHERE ${this.conditions.join(' AND ')}`;
+      this.query += ` WHERE ${this.conditions.join(" AND ")}`;
     }
     return { sql: this.query, params: this.params };
   }
@@ -406,10 +402,10 @@ export class QueryBuilder {
 
 // Usage:
 const builder = new QueryBuilder()
-  .select('*')
-  .from('chunks')
-  .where('entity_id', '=', entityId)
-  .where('created_at', '>', startDate);
+  .select("*")
+  .from("chunks")
+  .where("entity_id", "=", entityId)
+  .where("created_at", ">", startDate);
 
 const { sql, params } = builder.build();
 // SQL dialect normalization happens in datastore implementation
@@ -424,8 +420,8 @@ const { sql, params } = builder.build();
 **Location:** `src/datastore/implementations/sqlite-datastore.ts`
 
 ```typescript
-import Database from 'better-sqlite3';
-import { open } from 'sqlite';
+import Database from "better-sqlite3";
+import { open } from "sqlite";
 import type {
   RelationalDatastore,
   DatastoreConfig,
@@ -433,20 +429,20 @@ import type {
   BatchStatement,
   Transaction,
   Migration,
-} from '../relational-datastore.interface.js';
+} from "../relational-datastore.interface.js";
 
 /**
  * SQLite implementation of RelationalDatastore
  * Uses better-sqlite3 for synchronous operations with async wrapper
  */
 export class SQLiteDatastore implements RelationalDatastore {
-  readonly displayName = 'SQLite';
-  readonly type = 'sqlite' as const;
+  readonly displayName = "SQLite";
+  readonly type = "sqlite" as const;
 
   private db: Database.Database | null = null;
-  private config: DatastoreConfig['sqlite'];
+  private config: DatastoreConfig["sqlite"];
 
-  constructor(config: DatastoreConfig['sqlite']) {
+  constructor(config: DatastoreConfig["sqlite"]) {
     this.config = config;
   }
 
@@ -458,13 +454,13 @@ export class SQLiteDatastore implements RelationalDatastore {
 
     // Enable WAL mode for better concurrency
     if (this.config.wal !== false) {
-      await this.db.exec('PRAGMA journal_mode = WAL');
-      await this.db.exec('PRAGMA synchronous = NORMAL');
+      await this.db.exec("PRAGMA journal_mode = WAL");
+      await this.db.exec("PRAGMA synchronous = NORMAL");
     }
 
     // Performance optimizations
-    await this.db.exec('PRAGMA foreign_keys = ON');
-    await this.db.exec('PRAGMA temp_store = MEMORY');
+    await this.db.exec("PRAGMA foreign_keys = ON");
+    await this.db.exec("PRAGMA temp_store = MEMORY");
   }
 
   async query<T>(sql: string, params?: any[]): Promise<T[]> {
@@ -476,7 +472,7 @@ export class SQLiteDatastore implements RelationalDatastore {
   async queryOne<T>(sql: string, params?: any[]): Promise<T | null> {
     this.ensureInitialized();
     const stmt = this.db!.prepare(sql);
-    return stmt.get(...(params || [])) as T || null;
+    return (stmt.get(...(params || [])) as T) || null;
   }
 
   async execute(sql: string, params?: any[]): Promise<RunResult> {
@@ -500,9 +496,7 @@ export class SQLiteDatastore implements RelationalDatastore {
     });
   }
 
-  async transaction<T>(
-    fn: (tx: Transaction) => Promise<T>
-  ): Promise<T> {
+  async transaction<T>(fn: (tx: Transaction) => Promise<T>): Promise<T> {
     this.ensureInitialized();
     const txImpl = this.db!.transaction((txFn: any) => {
       const txWrapper: Transaction = {
@@ -515,7 +509,9 @@ export class SQLiteDatastore implements RelationalDatastore {
           return { changes: result.changes, lastInsertRowid: result.lastInsertRowid };
         },
         commit: async () => {}, // No-op for SQLite (auto-commit on success)
-        rollback: async () => { throw new Error('Transaction failed'); },
+        rollback: async () => {
+          throw new Error("Transaction failed");
+        },
       };
       return txFn(txWrapper);
     });
@@ -537,7 +533,7 @@ export class SQLiteDatastore implements RelationalDatastore {
 
     // Get current version
     const current = await this.queryOne<{ version: number }>(
-      'SELECT MAX(version) as version FROM _datastore_migrations'
+      "SELECT MAX(version) as version FROM _datastore_migrations",
     );
     const currentVersion = current?.version || 0;
 
@@ -550,16 +546,16 @@ export class SQLiteDatastore implements RelationalDatastore {
         throw new Error(`Migration ${migration.id} has no SQLite SQL`);
       }
 
-      await this.db!.exec('BEGIN');
+      await this.db!.exec("BEGIN");
       try {
         await this.db!.exec(sql);
         await this.db!.run(
-          'INSERT INTO _datastore_migrations (id, version, applied_at) VALUES (?, ?, ?)',
-          [migration.id, migration.version, Date.now()]
+          "INSERT INTO _datastore_migrations (id, version, applied_at) VALUES (?, ?, ?)",
+          [migration.id, migration.version, Date.now()],
         );
-        await this.db!.exec('COMMIT');
+        await this.db!.exec("COMMIT");
       } catch (error) {
-        await this.db!.exec('ROLLBACK');
+        await this.db!.exec("ROLLBACK");
         throw error;
       }
     }
@@ -569,11 +565,11 @@ export class SQLiteDatastore implements RelationalDatastore {
     this.ensureInitialized();
 
     const tables = await this.query<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
     );
 
     return {
-      tables: tables.map(t => t.name),
+      tables: tables.map((t) => t.name),
       indexes: [], // TODO: Query sqlite_master for indexes
       version: await this.getSchemaVersion(),
       metadata: {
@@ -588,10 +584,10 @@ export class SQLiteDatastore implements RelationalDatastore {
     column: string,
     query: number[],
     limit: number,
-    filter?: string
+    filter?: string,
   ): Promise<VectorResult[]> {
     // Requires sqlite-vec extension
-    const whereClause = filter ? `WHERE ${filter}` : '';
+    const whereClause = filter ? `WHERE ${filter}` : "";
     const sql = `
       SELECT
         id,
@@ -608,7 +604,7 @@ export class SQLiteDatastore implements RelationalDatastore {
     const vecParam = new Float32Array(query).buffer;
 
     const results = await this.query<any>(sql, [vecParam]);
-    return results.map(r => ({
+    return results.map((r) => ({
       id: r.id,
       score: 1 - r.distance, // Convert distance to similarity
       row: r,
@@ -624,13 +620,13 @@ export class SQLiteDatastore implements RelationalDatastore {
 
   private ensureInitialized(): asserts this is { db: Database.Database } {
     if (!this.db) {
-      throw new Error('SQLiteDatastore not initialized. Call initialize() first.');
+      throw new Error("SQLiteDatastore not initialized. Call initialize() first.");
     }
   }
 
   private async getSchemaVersion(): Promise<number> {
     const result = await this.queryOne<{ version: number }>(
-      'SELECT MAX(version) as version FROM _datastore_migrations'
+      "SELECT MAX(version) as version FROM _datastore_migrations",
     );
     return result?.version || 0;
   }
@@ -713,7 +709,7 @@ async getEntityNeighborhood(
 **Location:** `src/datastore/implementations/postgresql-datastore.ts`
 
 ```typescript
-import { Pool, PoolClient } from 'pg';
+import { Pool, PoolClient } from "pg";
 import type {
   RelationalDatastore,
   DatastoreConfig,
@@ -721,20 +717,20 @@ import type {
   BatchStatement,
   Transaction,
   Migration,
-} from '../relational-datastore.interface.js';
+} from "../relational-datastore.interface.js";
 
 /**
  * PostgreSQL implementation of RelationalDatastore
  * Uses pg driver with connection pooling
  */
 export class PostgreSQLDatastore implements RelationalDatastore {
-  readonly displayName = 'PostgreSQL';
-  readonly type = 'postgresql' as const;
+  readonly displayName = "PostgreSQL";
+  readonly type = "postgresql" as const;
 
   private pool: Pool | null = null;
-  private config: DatastoreConfig['postgresql'];
+  private config: DatastoreConfig["postgresql"];
 
-  constructor(config: DatastoreConfig['postgresql']) {
+  constructor(config: DatastoreConfig["postgresql"]) {
     this.config = config;
   }
 
@@ -764,7 +760,7 @@ export class PostgreSQLDatastore implements RelationalDatastore {
   async queryOne<T>(sql: string, params?: any[]): Promise<T | null> {
     this.ensureInitialized();
     const result = await this.pool!.query(sql, params || []);
-    return result.rows[0] as T || null;
+    return (result.rows[0] as T) || null;
   }
 
   async execute(sql: string, params?: any[]): Promise<RunResult> {
@@ -787,14 +783,12 @@ export class PostgreSQLDatastore implements RelationalDatastore {
     });
   }
 
-  async transaction<T>(
-    fn: (tx: Transaction) => Promise<T>
-  ): Promise<T> {
+  async transaction<T>(fn: (tx: Transaction) => Promise<T>): Promise<T> {
     this.ensureInitialized();
     const client = await this.pool!.connect();
 
     try {
-      await client.query('BEGIN');
+      await client.query("BEGIN");
 
       const txWrapper: Transaction = {
         query: async (sql: string, params?: any[]) => {
@@ -806,18 +800,18 @@ export class PostgreSQLDatastore implements RelationalDatastore {
           return { changes: result.rowCount || 0 };
         },
         commit: async () => {
-          await client.query('COMMIT');
+          await client.query("COMMIT");
         },
         rollback: async () => {
-          await client.query('ROLLBACK');
+          await client.query("ROLLBACK");
         },
       };
 
       const result = await fn(txWrapper);
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return result;
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       throw error;
     } finally {
       client.release();
@@ -838,7 +832,7 @@ export class PostgreSQLDatastore implements RelationalDatastore {
 
     // Get current version
     const current = await this.queryOne<{ version: number }>(
-      'SELECT COALESCE(MAX(version), 0) as version FROM _datastore_migrations'
+      "SELECT COALESCE(MAX(version), 0) as version FROM _datastore_migrations",
     );
     const currentVersion = current?.version || 0;
 
@@ -854,8 +848,8 @@ export class PostgreSQLDatastore implements RelationalDatastore {
       await this.transaction(async (tx) => {
         await tx.execute(sql);
         await tx.execute(
-          'INSERT INTO _datastore_migrations (id, version, applied_at) VALUES ($1, $2, $3)',
-          [migration.id, migration.version, Date.now()]
+          "INSERT INTO _datastore_migrations (id, version, applied_at) VALUES ($1, $2, $3)",
+          [migration.id, migration.version, Date.now()],
         );
       });
     }
@@ -863,11 +857,11 @@ export class PostgreSQLDatastore implements RelationalDatastore {
 
   async getSchema(): Promise<DatabaseSchema> {
     const tables = await this.query<{ tablename: string }>(
-      "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+      "SELECT tablename FROM pg_tables WHERE schemaname = 'public'",
     );
 
     return {
-      tables: tables.map(t => t.tablename),
+      tables: tables.map((t) => t.tablename),
       indexes: [], // TODO: Query pg_indexes
       version: await this.getSchemaVersion(),
       metadata: {
@@ -883,10 +877,10 @@ export class PostgreSQLDatastore implements RelationalDatastore {
     column: string,
     query: number[],
     limit: number,
-    filter?: string
+    filter?: string,
   ): Promise<VectorResult[]> {
     // Requires pgvector extension
-    const whereClause = filter ? `AND ${filter}` : '';
+    const whereClause = filter ? `AND ${filter}` : "";
     const sql = `
       SELECT
         id,
@@ -897,8 +891,8 @@ export class PostgreSQLDatastore implements RelationalDatastore {
       LIMIT ${limit}
     `;
 
-    const results = await this.query<any>(sql, [`[${query.join(',')}]`]);
-    return results.map(r => ({
+    const results = await this.query<any>(sql, [`[${query.join(",")}]`]);
+    return results.map((r) => ({
       id: r.id,
       score: r.score,
       row: r,
@@ -914,13 +908,13 @@ export class PostgreSQLDatastore implements RelationalDatastore {
 
   private ensureInitialized(): asserts this is { pool: Pool } {
     if (!this.pool) {
-      throw new Error('PostgreSQLDatastore not initialized. Call initialize() first.');
+      throw new Error("PostgreSQLDatastore not initialized. Call initialize() first.");
     }
   }
 
   private async getSchemaVersion(): Promise<number> {
     const result = await this.queryOne<{ version: number }>(
-      'SELECT COALESCE(MAX(version), 0) as version FROM _datastore_migrations'
+      "SELECT COALESCE(MAX(version), 0) as version FROM _datastore_migrations",
     );
     return result?.version || 0;
   }
@@ -1004,26 +998,26 @@ import type {
   RelationalDatastore,
   DatastoreConfig,
   DatastoreFactory,
-} from './relational-datastore.interface.js';
-import { SQLiteDatastore } from './implementations/sqlite-datastore.js';
-import { PostgreSQLDatastore } from './implementations/postgresql-datastore.js';
+} from "./relational-datastore.interface.js";
+import { SQLiteDatastore } from "./implementations/sqlite-datastore.js";
+import { PostgreSQLDatastore } from "./implementations/postgresql-datastore.js";
 
 /**
  * Factory function to create datastore instances
  * Supports dependency injection for testing
  */
 export const createDatastore: DatastoreFactory = async (
-  config: DatastoreConfig
+  config: DatastoreConfig,
 ): Promise<RelationalDatastore> => {
   let datastore: RelationalDatastore;
 
   switch (config.type) {
-    case 'sqlite':
-      datastore = new SQLiteDatastore(config.sqlite || { path: ':memory:' });
+    case "sqlite":
+      datastore = new SQLiteDatastore(config.sqlite || { path: ":memory:" });
       break;
-    case 'postgresql':
+    case "postgresql":
       if (!config.postgresql) {
-        throw new Error('PostgreSQL configuration required');
+        throw new Error("PostgreSQL configuration required");
       }
       datastore = new PostgreSQLDatastore(config.postgresql);
       break;
@@ -1041,16 +1035,16 @@ export const createDatastore: DatastoreFactory = async (
  * Create datastore from environment configuration
  */
 export async function createDatastoreFromEnv(): Promise<RelationalDatastore> {
-  const type = (process.env.DATASTORE_TYPE || 'sqlite') as DatastoreConfig['type'];
+  const type = (process.env.DATASTORE_TYPE || "sqlite") as DatastoreConfig["type"];
 
   const config: DatastoreConfig = { type };
 
-  if (type === 'sqlite') {
+  if (type === "sqlite") {
     config.sqlite = {
-      path: process.env.SQLITE_PATH || '~/.clawdbot/memory.db',
-      wal: process.env.SQLITE_WAL !== 'false',
+      path: process.env.SQLITE_PATH || "~/.clawdbot/memory.db",
+      wal: process.env.SQLITE_WAL !== "false",
     };
-  } else if (type === 'postgresql') {
+  } else if (type === "postgresql") {
     config.postgresql = {
       connectionString: process.env.DATABASE_URL,
       host: process.env.PG_HOST,
@@ -1062,7 +1056,7 @@ export async function createDatastoreFromEnv(): Promise<RelationalDatastore> {
     };
   }
 
-  config.logging = process.env.DATASTORE_LOGGING === 'true';
+  config.logging = process.env.DATASTORE_LOGGING === "true";
 
   return createDatastore(config);
 }
@@ -1076,12 +1070,12 @@ export async function createDatastoreFromEnv(): Promise<RelationalDatastore> {
 export type DatastoreTypeConfig = {
   // Datastore selection
   datastore?: {
-    type?: 'sqlite' | 'postgresql';
+    type?: "sqlite" | "postgresql";
 
     // SQLite configuration
     sqlite?: {
-      path?: string;  // Default: ~/.clawdbot/memory.db
-      wal?: boolean;  // Default: true
+      path?: string; // Default: ~/.clawdbot/memory.db
+      wal?: boolean; // Default: true
     };
 
     // PostgreSQL configuration
@@ -1092,7 +1086,7 @@ export type DatastoreTypeConfig = {
       database?: string;
       user?: string;
       password?: string;
-      poolSize?: number;  // Default: 10
+      poolSize?: number; // Default: 10
     };
   };
 };
@@ -1103,7 +1097,7 @@ export type DatastoreTypeConfig = {
 ```yaml
 # config.yaml
 datastore:
-  type: sqlite  # or 'postgresql'
+  type: sqlite # or 'postgresql'
   sqlite:
     path: ~/.clawdbot/memory.db
     wal: true
@@ -1128,7 +1122,7 @@ datastore:
 
 ```typescript
 // src/infra/memory-manager.ts
-import type { RelationalDatastore } from '../datastore/relational-datastore.interface.js';
+import type { RelationalDatastore } from "../datastore/relational-datastore.interface.js";
 
 export class MemoryManager {
   private datastore: RelationalDatastore;
@@ -1140,8 +1134,8 @@ export class MemoryManager {
   // Example: Get chunks by file path
   async getChunksByPath(path: string): Promise<MemoryChunk[]> {
     return this.datastore.query<MemoryChunk>(
-      'SELECT * FROM chunks WHERE path = ? ORDER BY start_line',
-      [path]
+      "SELECT * FROM chunks WHERE path = ? ORDER BY start_line",
+      [path],
     );
   }
 
@@ -1150,18 +1144,25 @@ export class MemoryManager {
     await this.datastore.execute(
       `INSERT INTO chunks (id, path, start_line, end_line, content, embedding)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [chunk.id, chunk.path, chunk.startLine, chunk.endLine, chunk.content, chunk.embedding]
+      [chunk.id, chunk.path, chunk.startLine, chunk.endLine, chunk.content, chunk.embedding],
     );
   }
 
   // Example: Transactional batch insert
   async insertChunks(chunks: MemoryChunk[]): Promise<void> {
     await this.datastore.batch(
-      chunks.map(chunk => ({
+      chunks.map((chunk) => ({
         sql: `INSERT INTO chunks (id, path, start_line, end_line, content, embedding)
               VALUES (?, ?, ?, ?, ?, ?)`,
-        params: [chunk.id, chunk.path, chunk.startLine, chunk.endLine, chunk.content, chunk.embedding],
-      }))
+        params: [
+          chunk.id,
+          chunk.path,
+          chunk.startLine,
+          chunk.endLine,
+          chunk.content,
+          chunk.embedding,
+        ],
+      })),
     );
   }
 
@@ -1169,17 +1170,17 @@ export class MemoryManager {
   async search(query: string, options: SearchOptions): Promise<SearchResult[]> {
     // Standard search using query interface
     const results = await this.datastore.query<SearchResult>(
-      'SELECT * FROM search_index WHERE content MATCH ? LIMIT ?',
-      [query, options.limit]
+      "SELECT * FROM search_index WHERE content MATCH ? LIMIT ?",
+      [query, options.limit],
     );
 
     // Graph expansion if datastore supports vector search
     if (this.datastore.vectorSearch && options.useGraph) {
       const graphResults = await this.datastore.vectorSearch(
-        'kg_entities',
-        'name_embedding',
+        "kg_entities",
+        "name_embedding",
         options.queryEmbedding,
-        options.graphMaxChunks
+        options.graphMaxChunks,
       );
       // Merge results...
     }
@@ -1194,7 +1195,7 @@ export class MemoryManager {
 **Location:** `src/knowledge/graph.repository.ts`
 
 ```typescript
-import type { RelationalDatastore } from '../datastore/relational-datastore.interface.js';
+import type { RelationalDatastore } from "../datastore/relational-datastore.interface.js";
 
 export class GraphRepository {
   constructor(private datastore: RelationalDatastore) {}
@@ -1203,25 +1204,22 @@ export class GraphRepository {
     await this.datastore.execute(
       `INSERT INTO kg_entities (entity_id, name, type, description, mention_count)
        VALUES (?, ?, ?, ?, ?)`,
-      [entity.id, entity.name, entity.type, entity.description, entity.mentionCount]
+      [entity.id, entity.name, entity.type, entity.description, entity.mentionCount],
     );
   }
 
-  async getEntityNeighborhood(
-    entityId: string,
-    maxHops: number
-  ): Promise<GraphNeighborhood> {
+  async getEntityNeighborhood(entityId: string, maxHops: number): Promise<GraphNeighborhood> {
     // Recursive CTE - same SQL works for both SQLite and PostgreSQL
-    const entities = await this.datastore.query<Entity>(
-      this.getNeighborhoodSQL(),
-      [entityId, maxHops]
-    );
+    const entities = await this.datastore.query<Entity>(this.getNeighborhoodSQL(), [
+      entityId,
+      maxHops,
+    ]);
 
     // Fetch relationships
     const relationships = await this.datastore.query<Relationship>(
       `SELECT * FROM kg_relationships
        WHERE source_entity_id = ? OR target_entity_id = ?`,
-      [entityId, entityId]
+      [entityId, entityId],
     );
 
     return { entities, relationships };
@@ -1258,7 +1256,7 @@ export class GraphRepository {
 **Location:** `src/datastore/migration.repository.ts`
 
 ```typescript
-import type { RelationalDatastore, Migration } from './relational-datastore.interface.js';
+import type { RelationalDatastore, Migration } from "./relational-datastore.interface.js";
 
 /**
  * Centralized migration definitions
@@ -1266,9 +1264,9 @@ import type { RelationalDatastore, Migration } from './relational-datastore.inte
  */
 export const MIGRATIONS: Migration[] = [
   {
-    id: '001_initial_memory_schema',
+    id: "001_initial_memory_schema",
     version: 1,
-    description: 'Initial memory schema with chunks and embeddings',
+    description: "Initial memory schema with chunks and embeddings",
     up: {
       sqlite: `
         CREATE TABLE IF NOT EXISTS chunks (
@@ -1298,14 +1296,14 @@ export const MIGRATIONS: Migration[] = [
       `,
     },
     down: {
-      sqlite: 'DROP TABLE IF EXISTS chunks;',
-      postgresql: 'DROP TABLE IF EXISTS chunks;',
+      sqlite: "DROP TABLE IF EXISTS chunks;",
+      postgresql: "DROP TABLE IF EXISTS chunks;",
     },
   },
   {
-    id: '002_knowledge_graph_schema',
+    id: "002_knowledge_graph_schema",
     version: 2,
-    description: 'Knowledge graph entities and relationships',
+    description: "Knowledge graph entities and relationships",
     up: {
       sqlite: `
         -- Tables from ZAI-DESIGN.md
@@ -1366,9 +1364,9 @@ export const MIGRATIONS: Migration[] = [
     },
   },
   {
-    id: '003_vector_search_extensions',
+    id: "003_vector_search_extensions",
     version: 3,
-    description: 'Add vector search support (sqlite-vec or pgvector)',
+    description: "Add vector search support (sqlite-vec or pgvector)",
     up: {
       sqlite: `
         -- Load sqlite-vec extension
@@ -1412,9 +1410,7 @@ export const MIGRATIONS: Migration[] = [
 /**
  * Run all pending migrations
  */
-export async function runMigrations(
-  datastore: RelationalDatastore
-): Promise<void> {
+export async function runMigrations(datastore: RelationalDatastore): Promise<void> {
   await datastore.migrate(MIGRATIONS);
 }
 ```
@@ -1425,48 +1421,48 @@ export async function runMigrations(
 
 ### 7.1 Placeholder Syntax
 
-| Feature | SQLite | PostgreSQL |
-|---------|--------|------------|
-| Placeholders | `?` | `$1`, `$2`, `$3` |
-| Example | `SELECT * FROM t WHERE id = ?` | `SELECT * FROM t WHERE id = $1` |
+| Feature      | SQLite                         | PostgreSQL                      |
+| ------------ | ------------------------------ | ------------------------------- |
+| Placeholders | `?`                            | `$1`, `$2`, `$3`                |
+| Example      | `SELECT * FROM t WHERE id = ?` | `SELECT * FROM t WHERE id = $1` |
 
 **Solution:** Datastore implementations normalize placeholders internally.
 
 ### 7.2 Data Types
 
-| Concept | SQLite | PostgreSQL |
-|---------|--------|------------|
-| Text | `TEXT` | `TEXT`, `VARCHAR` |
-| Integer | `INTEGER` | `INTEGER`, `BIGINT`, `SMALLINT` |
-| Float | `REAL` | `REAL`, `DOUBLE PRECISION` |
-| Boolean | `INTEGER` (0/1) | `BOOLEAN` |
-| Timestamp | `INTEGER` (Unix ms) | `BIGINT` or `TIMESTAMPTZ` |
-| Blob/Bytes | `BLOB` | `BYTEA` |
-| Array | JSON string | `TEXT[]`, `INTEGER[]` |
-| Vector | `BLOB` (sqlite-vec) | `VECTOR(n)` (pgvector) |
+| Concept    | SQLite              | PostgreSQL                      |
+| ---------- | ------------------- | ------------------------------- |
+| Text       | `TEXT`              | `TEXT`, `VARCHAR`               |
+| Integer    | `INTEGER`           | `INTEGER`, `BIGINT`, `SMALLINT` |
+| Float      | `REAL`              | `REAL`, `DOUBLE PRECISION`      |
+| Boolean    | `INTEGER` (0/1)     | `BOOLEAN`                       |
+| Timestamp  | `INTEGER` (Unix ms) | `BIGINT` or `TIMESTAMPTZ`       |
+| Blob/Bytes | `BLOB`              | `BYTEA`                         |
+| Array      | JSON string         | `TEXT[]`, `INTEGER[]`           |
+| Vector     | `BLOB` (sqlite-vec) | `VECTOR(n)` (pgvector)          |
 
 **Recommendation:** Use portable types in schema, let implementation handle conversion.
 
 ### 7.3 Full-Text Search
 
-| Feature | SQLite | PostgreSQL |
-|---------|--------|------------|
-| Extension | FTS5 (built-in) | GIN + to_tsquery |
-| Create | `CREATE VIRTUAL TABLE t_fts USING fts5(...)` | `CREATE INDEX ... USING GIN (to_tsvector('english', content))` |
-| Query | `SELECT * FROM t_fts WHERE t_fts MATCH 'query'` | `SELECT * FROM t WHERE document @@ to_tsquery('query')` |
-| Ranking | `bm25(t_fts)` | `ts_rank(document, query)` |
+| Feature   | SQLite                                          | PostgreSQL                                                     |
+| --------- | ----------------------------------------------- | -------------------------------------------------------------- |
+| Extension | FTS5 (built-in)                                 | GIN + to_tsquery                                               |
+| Create    | `CREATE VIRTUAL TABLE t_fts USING fts5(...)`    | `CREATE INDEX ... USING GIN (to_tsvector('english', content))` |
+| Query     | `SELECT * FROM t_fts WHERE t_fts MATCH 'query'` | `SELECT * FROM t WHERE document @@ to_tsquery('query')`        |
+| Ranking   | `bm25(t_fts)`                                   | `ts_rank(document, query)`                                     |
 
 **Recommendation:** Abstract behind `fullTextSearch()` optional method.
 
 ### 7.4 Vector Search
 
-| Feature | SQLite | PostgreSQL |
-|---------|--------|------------|
-| Extension | sqlite-vec | pgvector |
-| Storage | `BLOB` (float32 array) | `VECTOR(n)` type |
-| Index | `vec0` virtual table | `ivfflat` or `hnsw` |
-| Query | `WHERE v_id MATCH ?` | `ORDER BY embedding <=> query` |
-| Distance | L2 distance | Cosine, L2, inner product |
+| Feature   | SQLite                 | PostgreSQL                     |
+| --------- | ---------------------- | ------------------------------ |
+| Extension | sqlite-vec             | pgvector                       |
+| Storage   | `BLOB` (float32 array) | `VECTOR(n)` type               |
+| Index     | `vec0` virtual table   | `ivfflat` or `hnsw`            |
+| Query     | `WHERE v_id MATCH ?`   | `ORDER BY embedding <=> query` |
+| Distance  | L2 distance            | Cosine, L2, inner product      |
 
 **Recommendation:** Abstract behind `vectorSearch()` optional method.
 
@@ -1479,10 +1475,10 @@ export async function runMigrations(
 **Location:** `src/index.ts` or `src/infra/index.ts`
 
 ```typescript
-import { createDatastoreFromEnv } from './datastore/datastore-factory.js';
-import { runMigrations } from './datastore/migration.repository.js';
-import { MemoryManager } from './memory-manager.js';
-import { KnowledgeGraphService } from './knowledge/graph.service.js';
+import { createDatastoreFromEnv } from "./datastore/datastore-factory.js";
+import { runMigrations } from "./datastore/migration.repository.js";
+import { MemoryManager } from "./memory-manager.js";
+import { KnowledgeGraphService } from "./knowledge/graph.service.js";
 
 // Initialize datastore
 const datastore = await createDatastoreFromEnv();
@@ -1508,7 +1504,7 @@ export const services = {
 
 ```typescript
 // src/commands/memory.ts
-import { services } from '../infra/index.js';
+import { services } from "../infra/index.js";
 
 export async function searchCommand(query: string) {
   // Uses datastore through MemoryManager
@@ -1523,8 +1519,8 @@ export async function searchCommand(query: string) {
 // src/agents/tools/knowledge-tools.ts
 export const knowledgeTools = [
   {
-    name: 'knowledge_search',
-    description: 'Search knowledge graph',
+    name: "knowledge_search",
+    description: "Search knowledge graph",
     handler: async (query: string) => {
       // Uses datastore through GraphRepository
       return await graphRepository.search(query);
@@ -1541,22 +1537,20 @@ export const knowledgeTools = [
 
 ```typescript
 // test/memory-manager.test.ts
-import { describe, it, expect } from 'vitest';
-import { MemoryManager } from '../src/memory-manager.js';
-import { MockDatastore } from './mocks/datastore.js';
+import { describe, it, expect } from "vitest";
+import { MemoryManager } from "../src/memory-manager.js";
+import { MockDatastore } from "./mocks/datastore.js";
 
-describe('MemoryManager', () => {
-  it('should get chunks by path', async () => {
+describe("MemoryManager", () => {
+  it("should get chunks by path", async () => {
     const mockDatastore = new MockDatastore();
     const manager = new MemoryManager(mockDatastore);
 
-    mockDatastore.setQueryResult([
-      { id: '1', path: 'test.ts', content: 'hello' },
-    ]);
+    mockDatastore.setQueryResult([{ id: "1", path: "test.ts", content: "hello" }]);
 
-    const chunks = await manager.getChunksByPath('test.ts');
+    const chunks = await manager.getChunksByPath("test.ts");
     expect(chunks).toHaveLength(1);
-    expect(chunks[0].path).toBe('test.ts');
+    expect(chunks[0].path).toBe("test.ts");
   });
 });
 ```
@@ -1565,27 +1559,35 @@ describe('MemoryManager', () => {
 
 ```typescript
 // test/integration/datastore-compat.test.ts
-import { describe, it, expect } from 'vitest';
-import { SQLiteDatastore } from '../src/datastore/implementations/sqlite-datastore.js';
-import { PostgreSQLDatastore } from '../src/datastore/implementations/postgresql-datastore.js';
-import { MemoryManager } from '../src/memory-manager.js';
+import { describe, it, expect } from "vitest";
+import { SQLiteDatastore } from "../src/datastore/implementations/sqlite-datastore.js";
+import { PostgreSQLDatastore } from "../src/datastore/implementations/postgresql-datastore.js";
+import { MemoryManager } from "../src/memory-manager.js";
 
-describe('Datastore Compatibility', () => {
+describe("Datastore Compatibility", () => {
   const testCases = [
-    { name: 'SQLite', create: () => new SQLiteDatastore({ path: ':memory:' }) },
-    { name: 'PostgreSQL', create: () => new PostgreSQLDatastore({ /* test config */ }) },
+    { name: "SQLite", create: () => new SQLiteDatastore({ path: ":memory:" }) },
+    {
+      name: "PostgreSQL",
+      create: () =>
+        new PostgreSQLDatastore({
+          /* test config */
+        }),
+    },
   ];
 
   for (const { name, create } of testCases) {
     describe(name, () => {
-      it('should support basic CRUD', async () => {
+      it("should support basic CRUD", async () => {
         const datastore = await create();
         await datastore.initialize();
         const manager = new MemoryManager(datastore);
 
         // Test same operations work with both datastores
-        await manager.insertChunk({ /* test chunk */ });
-        const chunks = await manager.getChunksByPath('test.ts');
+        await manager.insertChunk({
+          /* test chunk */
+        });
+        const chunks = await manager.getChunksByPath("test.ts");
 
         expect(chunks).toHaveLength(1);
 
@@ -1603,10 +1605,12 @@ describe('Datastore Compatibility', () => {
 ### Updated Phase 1: Schema & Storage (Week 1)
 
 **Previous (ZAI-DESIGN.md):**
+
 - Add graph tables to `ensureMemoryIndexSchema()`
 - Create migration script for existing data
 
 **Updated:**
+
 1. **Create datastore interface** (`src/datastore/`)
    - Define `RelationalDatastore` interface
    - Implement `SQLiteDatastore`

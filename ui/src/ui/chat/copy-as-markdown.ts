@@ -1,6 +1,6 @@
 import { html, type TemplateResult } from "lit";
-import { icons } from "../icons";
 import { toast } from "../components/toast";
+import { icons } from "../icons";
 
 const COPIED_FOR_MS = 1500;
 const ERROR_FOR_MS = 2000;

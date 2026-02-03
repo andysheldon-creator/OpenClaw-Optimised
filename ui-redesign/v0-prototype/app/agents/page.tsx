@@ -1,18 +1,26 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { AppShell } from "@/components/navigation/app-shell"
-import { PageHeader } from "@/components/dashboard/page-header"
-import { AgentAvatar } from "@/components/dashboard/agent-avatar"
-import { Button } from "@/components/ui/button"
+import {
+  Plus,
+  Search,
+  Filter,
+  ArrowUpDown,
+  MessageSquare,
+  Settings,
+  MoreVertical,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { AgentAvatar } from "@/components/dashboard/agent-avatar";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { AppShell } from "@/components/navigation/app-shell";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Plus, Search, Filter, ArrowUpDown, MessageSquare, Settings, MoreVertical } from "lucide-react"
-import Link from "next/link"
+} from "@/components/ui/dropdown-menu";
 
 const agents = [
   {
@@ -41,21 +49,21 @@ const agents = [
     status: "paused" as const,
     description: "Reviews PRs and provides feedback",
   },
-]
+];
 
 const statusLabel = {
   active: "Active",
   ready: "Ready",
   paused: "Paused",
-}
+};
 
 export default function AgentsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState<"recent" | "name" | "status">("recent")
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "name" | "status">("recent");
 
   const filteredAgents = agents.filter((agent) =>
-    agent.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+    agent.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   return (
     <AppShell>
@@ -167,9 +175,7 @@ export default function AgentsPage() {
                       }`}
                     />
                     {statusLabel[agent.status]}
-                    {agent.activeTasks && (
-                      <span> · {agent.activeTasks} active tasks</span>
-                    )}
+                    {agent.activeTasks && <span> · {agent.activeTasks} active tasks</span>}
                     {agent.nextEvent && <span> · Next: {agent.nextEvent}</span>}
                   </p>
                 </div>
@@ -185,7 +191,12 @@ export default function AgentsPage() {
                       Chat
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" size="sm" className="flex-1 gap-2 rounded-xl bg-transparent">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-2 rounded-xl bg-transparent"
+                  >
                     <Link href={`/agents/${agent.id}`}>
                       <Settings className="h-4 w-4" />
                       Config
@@ -217,5 +228,5 @@ export default function AgentsPage() {
         </main>
       </div>
     </AppShell>
-  )
+  );
 }

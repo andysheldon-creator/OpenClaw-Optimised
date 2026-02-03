@@ -21,6 +21,7 @@ The GraphRAG proposal is **well-structured and generally sound**, but I've ident
 **Problem:** The plan assumes a fixed entity type schema (`person | org | repo | concept | tool | location | event | goal | task | file | custom`).
 
 **Why it matters:**
+
 - Users will want custom entity types (e.g., `APIEndpoint`, `Database`, `Service`, `Product`)
 - Relationship types will proliferate beyond the hardcoded list
 - Type hierarchies emerge (e.g., `Service` → `Microservice` → `Auth Service`)
@@ -36,11 +37,13 @@ The GraphRAG proposal is **well-structured and generally sound**, but I've ident
 **Problem:** The web crawler plan assumes public URLs. Many valuable docs require authentication.
 
 **Missing capabilities:**
+
 - Authentication (GitHub private repos, Confluence, Notion)
 - JavaScript rendering (noted but underweighted as just a "fallback")
 - Rate limiting nuances (GitHub has stricter limits)
 
 **Recommendation:**
+
 - Add credential hooks for GitHub/GitLab personal access tokens
 - Support for `-H "Authorization: Bearer ..."` crawl headers
 - Since Playwright is already a dev dependency, make JS rendering an opt-in `--js-render` flag
@@ -54,6 +57,7 @@ The GraphRAG proposal is **well-structured and generally sound**, but I've ident
 **Problem:** The plan stores `first_seen`/`last_seen` timestamps but provides no query capability for temporal graph evolution.
 
 **Missing queries:**
+
 - "Show me how the Auth Service's connections changed over the past month"
 - "What entities were related to PaymentIntent before we switched to Stripe?"
 - "Snapshot the graph as of date X"
@@ -81,6 +85,7 @@ The GraphRAG proposal is **well-structured and generally sound**, but I've ident
 **Problem:** The graph expansion could introduce noise. If a query mentions "Auth" and the graph returns 20 weakly-connected entities, this degrades retrieval quality.
 
 **Missing:**
+
 - Confidence scoring for graph-sourced results
 - Re-ranking after graph expansion (e.g., using Cross-Encoders)
 - Fallback to pure vector mode when graph expansion produces low-confidence matches
@@ -96,11 +101,13 @@ The GraphRAG proposal is **well-structured and generally sound**, but I've ident
 **Problem:** The implementation plan mentions unit tests (`*.test.ts`) but no integration/e2e tests that verify graph consistency.
 
 **Missing test coverage:**
+
 - Graph consistency after extraction → consolidation → merge pipeline
 - No orphaned relationships after entity deletion
 - Correct re-pointing after Tier 2/3 consolidation merges
 
 **Recommendation:** Add `src/knowledge/graph/integration.test.ts`:
+
 ```typescript
 test("consolidation re-points relationships correctly");
 test("self-loops removed after merge");
@@ -116,11 +123,13 @@ test("orphaned relationships cleaned after source deletion");
 **Problem:** The original plan recommended D3-force for <10K nodes. This has been updated to React Flow which provides better developer experience and native React integration for knowledge graphs with <1000 visible nodes.
 
 **Missing:**
+
 - What happens at 50K+ nodes? (SQLite query performance mentioned, but not rendering)
 - Lazy loading strategy for large graphs
 - Server-side rendering option for initial layout
 
 **Recommendation:**
+
 - Implement **virtualization** (only render visible + 1-hop neighborhood)
 - Use **Web Workers** for force simulation
 - Add a "large graph mode" that pre-aggregates clusters server-side
@@ -144,30 +153,30 @@ test("orphaned relationships cleaned after source deletion");
 
 ## Part 2: Complexity & Impact Analysis by Phase
 
-| Phase | Component | Complexity | Impact | Risk |
-|-------|-----------|------------|--------|------|
-| **1** | Graph Storage + Entity Extraction Core | **Medium** | **High** | Low |
-| | - Schema design | Low | High | Low |
-| | - Recursive CTE queries | Medium | High | Low |
-| | - LLM extraction pipeline | High | High | Medium (cost/quality) |
-| | - Consolidation algorithm | Medium | High | Medium (false merges) |
-| **2** | Hybrid GraphRAG + Agent Tools | **Medium** | **Very High** | Medium |
-| | - Query entity recognition | Low | High | Low |
-| | - Graph expansion | Medium | Very High | Medium (noise) |
-| | - Context formatting | Low | Medium | Low |
-| | - Agent tools registration | Low | High | Low |
-| **3** | Manual Ingestion + Web Crawler | **High** | **Medium** | Medium |
-| | - Document parsers (PDF/DOCX) | Medium | Medium | Low |
-| | - Crawler orchestration | High | Medium | High (rate limits, JS rendering) |
-| | - CLI commands | Low | Medium | Low |
-| **4** | Overseer Bridge | **Medium** | **High** | Low |
-| | - Goal/task entity sync | Low | High | Low |
-| | - Planner graph context injection | Medium | High | Medium (prompt budget) |
-| **5** | Web Visualization | **High** | **Medium** | High |
-| | - React Flow integration | Low | Low | Low (well-documented, native React) |
-| | - Gateway API endpoints | Low | Medium | Low |
-| | - Ingestion management UI | Medium | Medium | Low |
-| **6** | Neo4j Extension | **Low** | **Low** | Low |
+| Phase | Component                              | Complexity | Impact        | Risk                                |
+| ----- | -------------------------------------- | ---------- | ------------- | ----------------------------------- |
+| **1** | Graph Storage + Entity Extraction Core | **Medium** | **High**      | Low                                 |
+|       | - Schema design                        | Low        | High          | Low                                 |
+|       | - Recursive CTE queries                | Medium     | High          | Low                                 |
+|       | - LLM extraction pipeline              | High       | High          | Medium (cost/quality)               |
+|       | - Consolidation algorithm              | Medium     | High          | Medium (false merges)               |
+| **2** | Hybrid GraphRAG + Agent Tools          | **Medium** | **Very High** | Medium                              |
+|       | - Query entity recognition             | Low        | High          | Low                                 |
+|       | - Graph expansion                      | Medium     | Very High     | Medium (noise)                      |
+|       | - Context formatting                   | Low        | Medium        | Low                                 |
+|       | - Agent tools registration             | Low        | High          | Low                                 |
+| **3** | Manual Ingestion + Web Crawler         | **High**   | **Medium**    | Medium                              |
+|       | - Document parsers (PDF/DOCX)          | Medium     | Medium        | Low                                 |
+|       | - Crawler orchestration                | High       | Medium        | High (rate limits, JS rendering)    |
+|       | - CLI commands                         | Low        | Medium        | Low                                 |
+| **4** | Overseer Bridge                        | **Medium** | **High**      | Low                                 |
+|       | - Goal/task entity sync                | Low        | High          | Low                                 |
+|       | - Planner graph context injection      | Medium     | High          | Medium (prompt budget)              |
+| **5** | Web Visualization                      | **High**   | **Medium**    | High                                |
+|       | - React Flow integration               | Low        | Low           | Low (well-documented, native React) |
+|       | - Gateway API endpoints                | Low        | Medium        | Low                                 |
+|       | - Ingestion management UI              | Medium     | Medium        | Low                                 |
+| **6** | Neo4j Extension                        | **Low**    | **Low**       | Low                                 |
 
 **Total Development Effort Estimate:** 6-8 weeks for a solo developer, 3-4 weeks with parallel work.
 
@@ -181,15 +190,16 @@ test("orphaned relationships cleaned after source deletion");
 
 **Better alternative:** Use **[`graphology`](https://graphology.github.io/)** as the in-memory graph abstraction layer.
 
-| Library | Why Consider | Status |
-|---------|--------------|--------|
-| [`graphology`](https://graphology.github.io/) | Comprehensive graph library, BFS/DFS/PageRank/community detection, excellent TypeScript, production-proven (used by Sigma.js) | **RECOMMENDED** |
-| [`ngraph.graph`](https://github.com/anvaka/ngraph.graph) | Efficient graph data structure, pagerank | Alternative |
-| [`js-graph-algorithms`](https://github.com/dgrcodee/js-graph-algorithms) | BFS, DFS, shortest path, centrality | Alternative |
+| Library                                                                  | Why Consider                                                                                                                  | Status          |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| [`graphology`](https://graphology.github.io/)                            | Comprehensive graph library, BFS/DFS/PageRank/community detection, excellent TypeScript, production-proven (used by Sigma.js) | **RECOMMENDED** |
+| [`ngraph.graph`](https://github.com/anvaka/ngraph.graph)                 | Efficient graph data structure, pagerank                                                                                      | Alternative     |
+| [`js-graph-algorithms`](https://github.com/dgrcodee/js-graph-algorithms) | BFS, DFS, shortest path, centrality                                                                                           | Alternative     |
 
 **Modified Architecture:**
+
 ```typescript
-import { Graph } from 'graphology';
+import { Graph } from "graphology";
 
 // SQLiteGraphQueryEngine uses graphology for in-memory operations
 // and SQLite for persistence. For queries that fit in memory,
@@ -204,10 +214,10 @@ import { Graph } from 'graphology';
 
 **Consideration:** Before LLM extraction, run a fast rule-based NER to reduce LLM calls.
 
-| Library | Why | Cons |
-|---------|------|------|
+| Library                                                       | Why                             | Cons           |
+| ------------------------------------------------------------- | ------------------------------- | -------------- |
 | [`compromise`](https://github.com/spencermountain/compromise) | Fast, no deps, Person/Place/Org | Not code-aware |
-| [`ner`](https://github.com/wrigmrazer/ner) | Fast, rule-based | Limited types |
+| [`ner`](https://github.com/wrigmrazer/ner)                    | Fast, rule-based                | Limited types  |
 
 **Recommendation:** For Phase 1, skip rule-based NER (adds complexity for modest savings). Revisit if extraction cost becomes prohibitive.
 
@@ -215,11 +225,11 @@ import { Graph } from 'graphology';
 
 ### C. Document Parsers: One Substitution Recommended
 
-| Choice | Verdict | Action |
-|--------|---------|--------|
-| `pdf-parse` (plan) | OK, but... | **Use `pdfjs-dist` instead** (already a dep) |
-| `mammoth` | ✅ Good | Keep |
-| `@mozilla/readability` + `linkedom` | ✅ Good | Keep |
+| Choice                              | Verdict    | Action                                       |
+| ----------------------------------- | ---------- | -------------------------------------------- |
+| `pdf-parse` (plan)                  | OK, but... | **Use `pdfjs-dist` instead** (already a dep) |
+| `mammoth`                           | ✅ Good    | Keep                                         |
+| `@mozilla/readability` + `linkedom` | ✅ Good    | Keep                                         |
 
 **Note:** `pdfjs-dist` is already in `package.json` (line 194). Use it for consistency and better PDF handling.
 
@@ -227,10 +237,10 @@ import { Graph } from 'graphology';
 
 ### D. Crawler: Add Robots.txt Parser
 
-| Library | Why |
-|---------|-----|
-| [`robotstxt`](https://www.npmjs.com/package/robotstxt) | Google's robots.txt parser, well-maintained |
-| [`robots-txt-parser`](https://www.npmjs.com/package/robots-txt-parser) | Alternative |
+| Library                                                                | Why                                         |
+| ---------------------------------------------------------------------- | ------------------------------------------- |
+| [`robotstxt`](https://www.npmjs.com/package/robotstxt)                 | Google's robots.txt parser, well-maintained |
+| [`robots-txt-parser`](https://www.npmjs.com/package/robots-txt-parser) | Alternative                                 |
 
 **Recommendation:** Use `robotstxt` (Google's implementation).
 
@@ -240,10 +250,10 @@ import { Graph } from 'graphology';
 
 **Decision:** React Flow for knowledge graph visualization
 
-| Library | When to Use |
-|---------|-------------|
-| **React Flow** | Knowledge graphs <1000 visible nodes, interactive editing |
-| (Not recommended) | Alternative frameworks considered but not selected |
+| Library           | When to Use                                               |
+| ----------------- | --------------------------------------------------------- |
+| **React Flow**    | Knowledge graphs <1000 visible nodes, interactive editing |
+| (Not recommended) | Alternative frameworks considered but not selected        |
 
 **Recommendation:** Use React Flow for all knowledge graph visualization needs. It provides native React integration, built-in force-directed layout, interactive controls (drag, zoom, mini-map), and excellent TypeScript support.
 
@@ -257,10 +267,10 @@ import { Graph } from 'graphology';
 
 **Better approach:** Add `fast-levenshtein` for Tier 1.5 (edit distance check before embedding).
 
-| Library | Why |
-|---------|-----|
-| [`fast-levenshtein`](https://www.npmjs.com/package/fast-levenshtein) | Edit distance for near-duplicate detection |
-| [`fuse.js`](https://www.fusejs.ie/) | Fast fuzzy string matching for initial pass |
+| Library                                                              | Why                                         |
+| -------------------------------------------------------------------- | ------------------------------------------- |
+| [`fast-levenshtein`](https://www.npmjs.com/package/fast-levenshtein) | Edit distance for near-duplicate detection  |
+| [`fuse.js`](https://www.fusejs.ie/)                                  | Fast fuzzy string matching for initial pass |
 
 **Recommendation:** Add `fast-levenshtein` to catch `Auth Service` vs `Authservce` typos without embedding cost.
 
@@ -270,10 +280,10 @@ import { Graph } from 'graphology';
 
 The plan correctly uses the existing Vitest setup. Add:
 
-| Package | Why |
-|---------|-----|
+| Package                                                            | Why                                                                  |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------- |
 | [`@vitest/browser`](https://www.npmjs.com/package/@vitest/browser) | Already in ui/package.json, test React Flow visualization in browser |
-| [`msw`](https://www.npmjs.com/package/msw) | Mock HTTP for crawler tests |
+| [`msw`](https://www.npmjs.com/package/msw)                         | Mock HTTP for crawler tests                                          |
 
 ---
 
@@ -282,7 +292,7 @@ The plan correctly uses the existing Vitest setup. Add:
 The codebase already uses `@sinclair/typebox` (line 167). Use it for tool schema validation:
 
 ```typescript
-import { Type } from '@sinclair/typebox';
+import { Type } from "@sinclair/typebox";
 
 export const GraphSearchToolSchema = Type.Object({
   query: Type.String(),
@@ -296,6 +306,7 @@ export const GraphSearchToolSchema = Type.Object({
 ### I. Markdown Parsing: Reuse Existing `markdown-it`
 
 The codebase already has `markdown-it` (line 191). Reuse it for:
+
 - Parsing markdown chunks during extraction
 - Rendering formatted content in web UI
 
@@ -340,6 +351,7 @@ The plan's 6-phase order is generally good, but I recommend:
 **Change:** Build crawler/ingestion **before** hybrid retrieval
 
 **Why:**
+
 - You need real data to test retrieval quality
 - Current Phase 2 relies on synthetic test data
 - Crawler provides diverse content for extraction testing
@@ -347,6 +359,7 @@ The plan's 6-phase order is generally good, but I recommend:
 ### 2. Add Phase 0: Schema Validation
 
 **Before any code:**
+
 1. Validate the schema with 10 sample documents (PDF, DOCX, MD, code)
 2. Create manual entity extraction ground truth
 3. Measure extraction quality (precision/recall)
@@ -354,6 +367,7 @@ The plan's 6-phase order is generally good, but I recommend:
 ### 3. Add Phase 7: Performance Benchmarking
 
 **After Phase 5:**
+
 1. Benchmark extraction throughput (chunks/second)
 2. Benchmark graph query latency vs entity count
 3. Benchmark React Flow rendering FPS vs node count
@@ -362,15 +376,15 @@ The plan's 6-phase order is generally good, but I recommend:
 
 ## Part 6: Summary of Critical Issues
 
-| Issue | Severity | Fix Complexity |
-|-------|----------|----------------|
-| No schema evolution mechanism | High | Medium |
-| Crawler lacks auth support | Medium | Low |
-| No temporal graph queries | Medium | High |
-| Graph expansion noise risk | Medium | Medium |
-| No E2E graph integrity tests | High | Low |
-| React Flow performance at scale | Low | Low | Optimized for <1000 nodes; reconsider if >2000 nodes |
-| No backfill strategy for existing data | High | Medium |
+| Issue                                  | Severity | Fix Complexity |
+| -------------------------------------- | -------- | -------------- | ---------------------------------------------------- |
+| No schema evolution mechanism          | High     | Medium         |
+| Crawler lacks auth support             | Medium   | Low            |
+| No temporal graph queries              | Medium   | High           |
+| Graph expansion noise risk             | Medium   | Medium         |
+| No E2E graph integrity tests           | High     | Low            |
+| React Flow performance at scale        | Low      | Low            | Optimized for <1000 nodes; reconsider if >2000 nodes |
+| No backfill strategy for existing data | High     | Medium         |
 
 ---
 
@@ -386,14 +400,14 @@ The plan's 6-phase order is generally good, but I recommend:
 
 ## Part 8: Library Substitution Summary
 
-| Plan's Choice | Recommended Substitution | Why |
-|---------------|--------------------------|-----|
-| Custom `GraphQueryEngine` with CTEs | **`graphology`** + SQLite storage | Better algorithms, tested |
-| `pdf-parse` | **`pdfjs-dist`** (already a dep) | Consistency, better PDF handling |
-| Custom robots.txt parser | **`robotstxt`** (Google's) | Proper implementation |
-| Embedding-only fuzzy match | **`fast-levenshtein`** + embedding | Catch typos faster |
-| No negative sampling | **Re-ranking with cross-encoder** (optional) | Improves quality |
-| D3-force (from original plan) | **React Flow for knowledge graph visualization** | Better DX, native React integration |
+| Plan's Choice                       | Recommended Substitution                         | Why                                 |
+| ----------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| Custom `GraphQueryEngine` with CTEs | **`graphology`** + SQLite storage                | Better algorithms, tested           |
+| `pdf-parse`                         | **`pdfjs-dist`** (already a dep)                 | Consistency, better PDF handling    |
+| Custom robots.txt parser            | **`robotstxt`** (Google's)                       | Proper implementation               |
+| Embedding-only fuzzy match          | **`fast-levenshtein`** + embedding               | Catch typos faster                  |
+| No negative sampling                | **Re-ranking with cross-encoder** (optional)     | Improves quality                    |
+| D3-force (from original plan)       | **React Flow for knowledge graph visualization** | Better DX, native React integration |
 
 ---
 

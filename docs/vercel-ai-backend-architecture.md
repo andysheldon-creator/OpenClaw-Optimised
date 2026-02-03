@@ -34,26 +34,26 @@ POST /api/v1/embeddings           # Embeddings
 ```typescript
 interface ClawdbrainAIApiKey {
   id: string;
-  key: string;                    // Hashed API key
+  key: string; // Hashed API key
   userId: string;
-  name: string;                   // User-friendly name
-  mode: 'proxy' | 'agent';       // Routing mode
+  name: string; // User-friendly name
+  mode: "proxy" | "agent"; // Routing mode
   createdAt: Date;
   lastUsedAt: Date;
 
   // Agent mode configuration
   agentConfig?: {
     enablePiAgent: boolean;
-    sdkRunner: 'default' | 'custom';
+    sdkRunner: "default" | "custom";
     routingRules?: RoutingRule[];
   };
 
   // Proxy mode configuration
   proxyConfig?: {
     providerMappings: {
-      openai?: string;      // Actual OpenAI API key
-      anthropic?: string;   // Actual Anthropic API key
-      google?: string;      // Actual Google API key
+      openai?: string; // Actual OpenAI API key
+      anthropic?: string; // Actual Anthropic API key
+      google?: string; // Actual Google API key
     };
   };
 
@@ -70,7 +70,7 @@ interface RoutingRule {
     prompt?: RegExp;
     userContext?: Record<string, any>;
   };
-  action: 'proxy' | 'agent';
+  action: "proxy" | "agent";
 }
 ```
 
@@ -96,7 +96,7 @@ async function handleChatCompletion(req: Request) {
   const { model, messages, stream, tools, ...options } = body;
 
   // 4. Route based on mode
-  if (keyConfig.mode === 'proxy') {
+  if (keyConfig.mode === "proxy") {
     return await handleProxyMode(keyConfig, body);
   } else {
     return await handleAgentMode(keyConfig, body);
@@ -107,10 +107,7 @@ async function handleChatCompletion(req: Request) {
 ### Proxy Mode (Simple Passthrough)
 
 ```typescript
-async function handleProxyMode(
-  keyConfig: ClawdbrainAIApiKey,
-  request: OpenAIRequest
-) {
+async function handleProxyMode(keyConfig: ClawdbrainAIApiKey, request: OpenAIRequest) {
   // Determine provider from model prefix
   const provider = detectProvider(request.model); // "gpt-4" -> openai
 
@@ -118,21 +115,18 @@ async function handleProxyMode(
   const providerApiKey = keyConfig.proxyConfig.providerMappings[provider];
 
   if (!providerApiKey) {
-    return error('Provider not configured for this API key');
+    return error("Provider not configured for this API key");
   }
 
   // Forward to actual provider
-  const response = await fetch(
-    getProviderEndpoint(provider),
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${providerApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    }
-  );
+  const response = await fetch(getProviderEndpoint(provider), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${providerApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
 
   // Log usage, apply rate limits
   await trackUsage(keyConfig.id, response);
@@ -144,15 +138,9 @@ async function handleProxyMode(
 ### Agent Mode (Pi Agent / SDK Runner)
 
 ```typescript
-async function handleAgentMode(
-  keyConfig: ClawdbrainAIApiKey,
-  request: OpenAIRequest
-) {
+async function handleAgentMode(keyConfig: ClawdbrainAIApiKey, request: OpenAIRequest) {
   // Check routing rules for dynamic mode switching
-  const shouldUseAgent = evaluateRoutingRules(
-    keyConfig.agentConfig.routingRules,
-    request
-  );
+  const shouldUseAgent = evaluateRoutingRules(keyConfig.agentConfig.routingRules, request);
 
   if (!shouldUseAgent) {
     // Fall back to proxy for simple queries
@@ -238,21 +226,21 @@ async function handleAgentMode(
 ### Proxy Mode Example
 
 ```typescript
-import { createAgent } from '@clawdbrain/vercel-ai-agent';
+import { createAgent } from "@clawdbrain/vercel-ai-agent";
 
 const agent = createAgent({
   model: {
-    provider: 'openai',
-    modelId: 'gpt-4',
-    apiKey: userSettings.clawdbrainAIApiKey,  // Clawdbrain key
-    baseUrl: 'https://api.clawdbrain.bot/v1', // Your backend
+    provider: "openai",
+    modelId: "gpt-4",
+    apiKey: userSettings.clawdbrainAIApiKey, // Clawdbrain key
+    baseUrl: "https://api.clawdbrain.bot/v1", // Your backend
   },
-  systemPrompt: 'You are a helpful assistant',
+  systemPrompt: "You are a helpful assistant",
 });
 
 // Backend routes to OpenAI based on key config
 const response = await agent.run({
-  messages: 'What is the weather?',
+  messages: "What is the weather?",
 });
 ```
 
@@ -262,13 +250,13 @@ const response = await agent.run({
 // Same code! Mode determined by backend key configuration
 const agent = createAgent({
   model: {
-    provider: 'openai',
-    modelId: 'gpt-4',
-    apiKey: userSettings.clawdbrainAIApiKey,  // Configured for agent mode
-    baseUrl: 'https://api.clawdbrain.bot/v1',
+    provider: "openai",
+    modelId: "gpt-4",
+    apiKey: userSettings.clawdbrainAIApiKey, // Configured for agent mode
+    baseUrl: "https://api.clawdbrain.bot/v1",
   },
   tools: {
-    getCurrentWeather: weatherTool,  // Optional client-side tools
+    getCurrentWeather: weatherTool, // Optional client-side tools
   },
 });
 
@@ -278,7 +266,7 @@ const agent = createAgent({
 // 3. Applies routing rules
 // 4. Returns streaming response
 const response = await agent.runStream({
-  messages: 'What is the weather and remind me to water plants?',
+  messages: "What is the weather and remind me to water plants?",
 });
 ```
 
@@ -289,7 +277,7 @@ const response = await agent.runStream({
 ### Option A: Vercel Agent as SDK Runner
 
 ```typescript
-import { Experimental_Agent as Agent } from 'ai';
+import { Experimental_Agent as Agent } from "ai";
 
 class VercelSDKRunner implements SDKRunner {
   async run(session: PiSession, input: AgentInput) {
@@ -303,7 +291,7 @@ class VercelSDKRunner implements SDKRunner {
       prompt: input.message,
       messages: session.history,
       onStepFinish: (step) => {
-        session.emit('step', step);
+        session.emit("step", step);
       },
     });
   }
@@ -347,9 +335,7 @@ class PiAgentOrchestrator {
 
 ```typescript
 // Convert Gateway tools to Vercel AI SDK v5 format
-function mapGatewayToolsToVercelTools(
-  gatewayTools: GatewayTool[]
-): Record<string, VercelTool> {
+function mapGatewayToolsToVercelTools(gatewayTools: GatewayTool[]): Record<string, VercelTool> {
   const vercelTools: Record<string, VercelTool> = {};
 
   for (const gwTool of gatewayTools) {
@@ -380,15 +366,15 @@ const routingRules: RoutingRule[] = [
     condition: {
       prompt: /remind|schedule|calendar|task/i,
     },
-    action: 'agent',
+    action: "agent",
   },
 
   // Use agent mode for specific models
   {
     condition: {
-      modelId: 'gpt-4-agentic',
+      modelId: "gpt-4-agentic",
     },
-    action: 'agent',
+    action: "agent",
   },
 
   // Use proxy for simple queries (faster, cheaper)
@@ -396,7 +382,7 @@ const routingRules: RoutingRule[] = [
     condition: {
       prompt: /^(what|who|when|where|how)/i,
     },
-    action: 'proxy',
+    action: "proxy",
   },
 ];
 ```

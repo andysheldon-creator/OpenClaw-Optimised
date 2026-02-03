@@ -213,4 +213,3 @@ Stop and ask the user if:
 --------------------------------------------------------------------
 Now begin. First: determine BASELINE and HEAD (or ask for BASELINE).
 ```
-

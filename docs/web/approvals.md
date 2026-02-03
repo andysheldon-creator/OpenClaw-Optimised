@@ -44,4 +44,3 @@ After MVP, if the “approval timed out” experience is frequent or confusing, 
 - **Per-approval age** and “requested X minutes ago” display (UI-only).
 - **TTL metadata** from the runtime (for example `expiresAtMs`), enabling accurate countdowns and better snooze guidance.
 - **Focus and visibility re-alerting** (check on tab focus/visibility change) to reduce reliance on background timers.
-

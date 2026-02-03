@@ -1,17 +1,5 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-} from "@/components/ui/command"
 import {
   MessageSquare,
   Bot,
@@ -25,14 +13,26 @@ import {
   Link,
   User,
   Plus,
-} from "lucide-react"
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command";
 
 interface CommandPaletteProps {
-  onNewConversation?: () => void
-  onNewAgent?: () => void
-  onNewGoal?: () => void
-  onNewMemory?: () => void
-  onNewRitual?: () => void
+  onNewConversation?: () => void;
+  onNewAgent?: () => void;
+  onNewGoal?: () => void;
+  onNewMemory?: () => void;
+  onNewRitual?: () => void;
 }
 
 export function CommandPalette({
@@ -42,25 +42,25 @@ export function CommandPalette({
   onNewMemory,
   onNewRitual,
 }: CommandPaletteProps) {
-  const [open, setOpen] = useState(false)
-  const router = useRouter()
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setOpen((open) => !open)
+        e.preventDefault();
+        setOpen((open) => !open);
       }
-    }
+    };
 
-    document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
-  }, [])
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   const runCommand = useCallback((command: () => void) => {
-    setOpen(false)
-    command()
-  }, [])
+    setOpen(false);
+    command();
+  }, []);
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
@@ -71,45 +71,31 @@ export function CommandPalette({
         {/* Quick Actions */}
         <CommandGroup heading="Quick Actions">
           <CommandItem
-            onSelect={() =>
-              runCommand(() => onNewConversation?.() || router.push("/chat"))
-            }
+            onSelect={() => runCommand(() => onNewConversation?.() || router.push("/chat"))}
           >
             <MessageSquare className="size-4" />
             <span>New conversation</span>
             <CommandShortcut>N</CommandShortcut>
           </CommandItem>
-          <CommandItem
-            onSelect={() =>
-              runCommand(() => onNewAgent?.() || router.push("/agents"))
-            }
-          >
+          <CommandItem onSelect={() => runCommand(() => onNewAgent?.() || router.push("/agents"))}>
             <Bot className="size-4" />
             <span>Create new agent</span>
             <CommandShortcut>A</CommandShortcut>
           </CommandItem>
-          <CommandItem
-            onSelect={() =>
-              runCommand(() => onNewGoal?.() || router.push("/goals"))
-            }
-          >
+          <CommandItem onSelect={() => runCommand(() => onNewGoal?.() || router.push("/goals"))}>
             <Target className="size-4" />
             <span>Add goal</span>
             <CommandShortcut>G</CommandShortcut>
           </CommandItem>
           <CommandItem
-            onSelect={() =>
-              runCommand(() => onNewMemory?.() || router.push("/memories"))
-            }
+            onSelect={() => runCommand(() => onNewMemory?.() || router.push("/memories"))}
           >
             <Brain className="size-4" />
             <span>Add memory</span>
             <CommandShortcut>M</CommandShortcut>
           </CommandItem>
           <CommandItem
-            onSelect={() =>
-              runCommand(() => onNewRitual?.() || router.push("/rituals"))
-            }
+            onSelect={() => runCommand(() => onNewRitual?.() || router.push("/rituals"))}
           >
             <RefreshCw className="size-4" />
             <span>Create ritual</span>
@@ -182,24 +168,24 @@ export function CommandPalette({
         </CommandGroup>
       </CommandList>
     </CommandDialog>
-  )
+  );
 }
 
 // Hook to use the command palette from anywhere
 export function useCommandPalette() {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setOpen((open) => !open)
+        e.preventDefault();
+        setOpen((open) => !open);
       }
-    }
+    };
 
-    document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
-  }, [])
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
-  return { open, setOpen }
+  return { open, setOpen };
 }

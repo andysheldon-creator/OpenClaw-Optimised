@@ -17,8 +17,12 @@ type Node = {
 };
 
 function colorForSeverity(sev: SecuritySurface["severity"]) {
-  if (sev === "High") {return new THREE.Color("#ff3a73");}
-  if (sev === "Medium") {return new THREE.Color("#ffd34d");}
+  if (sev === "High") {
+    return new THREE.Color("#ff3a73");
+  }
+  if (sev === "Medium") {
+    return new THREE.Color("#ffd34d");
+  }
   return new THREE.Color("#35ffb0");
 }
 
@@ -62,7 +66,9 @@ export function AtlasScene(props: Props) {
   }, [props.surfaces]);
 
   const focus = useMemo(() => {
-    if (!props.focusId) {return null;}
+    if (!props.focusId) {
+      return null;
+    }
     return nodes.find((n) => n.surface.id === props.focusId) ?? null;
   }, [nodes, props.focusId]);
 
@@ -170,4 +176,3 @@ export function AtlasScene(props: Props) {
     </group>
   );
 }
-

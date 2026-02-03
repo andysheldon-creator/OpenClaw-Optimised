@@ -246,11 +246,7 @@ describe("filterByFuzzy", () => {
   });
 
   it("preserves original order for tied scores", () => {
-    const tied: Scorable[] = [
-      cmd("a", "Foo Bar"),
-      cmd("b", "Foo Bar"),
-      cmd("c", "Foo Bar"),
-    ];
+    const tied: Scorable[] = [cmd("a", "Foo Bar"), cmd("b", "Foo Bar"), cmd("c", "Foo Bar")];
     const result = filterByFuzzy(tied, "foo");
     expect(labels(result)).toEqual(["Foo Bar", "Foo Bar", "Foo Bar"]);
     expect(result.map((r) => r.id)).toEqual(["a", "b", "c"]);
@@ -265,10 +261,7 @@ describe("filterByFuzzy", () => {
   });
 
   it("ranks exact label match above category match", () => {
-    const items: Scorable[] = [
-      cmd("x", "Other", "Config"),
-      cmd("y", "Config", "Other"),
-    ];
+    const items: Scorable[] = [cmd("x", "Other", "Config"), cmd("y", "Config", "Other")];
     const result = filterByFuzzy(items, "config");
     expect(result[0].id).toBe("y"); // exact label match wins
   });

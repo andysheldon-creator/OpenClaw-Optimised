@@ -1,12 +1,15 @@
 import { html, nothing } from "lit";
-
+import type {
+  AgentsListResult,
+  GatewayAgentRow,
+  GatewaySessionRow,
+  SessionsListResult,
+} from "../types";
 import { parseAgentSessionKey } from "../../../../src/routing/session-key.js";
-
-import { icon } from "../icons";
 import { skeleton } from "../components/design-utils";
 import { formatAgo } from "../format";
+import { icon } from "../icons";
 import { inferSessionType, type AgentSessionType } from "../session-meta";
-import type { AgentsListResult, GatewayAgentRow, GatewaySessionRow, SessionsListResult } from "../types";
 
 export type AgentSessionsTypeFilter = "all" | AgentSessionType;
 
@@ -151,7 +154,8 @@ function buildAgentEntries(params: {
 
   return allAgents.sort((a, b) => {
     if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
-    if (b.stats.updatedAtMax !== a.stats.updatedAtMax) return b.stats.updatedAtMax - a.stats.updatedAtMax;
+    if (b.stats.updatedAtMax !== a.stats.updatedAtMax)
+      return b.stats.updatedAtMax - a.stats.updatedAtMax;
     if (b.stats.total !== a.stats.total) return b.stats.total - a.stats.total;
     return a.displayName.localeCompare(b.displayName);
   });
@@ -191,7 +195,8 @@ function filterSessionsForAgent(params: {
       const parsed = parseAgentSessionKey(row.key);
       if (!parsed?.agentId) return false;
       if (parsed.agentId !== params.agentId) return false;
-      if (params.typeFilter !== "all" && inferSessionType(row.key) !== params.typeFilter) return false;
+      if (params.typeFilter !== "all" && inferSessionType(row.key) !== params.typeFilter)
+        return false;
       if (search && !matchesSessionSearch(row, search)) return false;
       return true;
     })
@@ -249,9 +254,12 @@ function renderAgentsList(props: AgentsProps, entries: AgentEntry[]) {
       </div>
 
       <div class="agents-pane__body">
-        ${entries.length === 0
-          ? html`<div class="agents-empty">No agents match the current search.</div>`
-          : html`
+        ${
+          entries.length === 0
+            ? html`
+                <div class="agents-empty">No agents match the current search.</div>
+              `
+            : html`
             <div class="agents-list" role="list">
               ${entries.map((entry) => {
                 const isSelected = selected === entry.agentId;
@@ -271,16 +279,35 @@ function renderAgentsList(props: AgentsProps, entries: AgentEntry[]) {
                       ${entry.subtitle ? html`<span class="agents-list-item__sub" title=${entry.subtitle}>${entry.subtitle}</span>` : nothing}
                     </span>
                     <span class="agents-list-item__badges" aria-hidden="true">
-                      ${entry.isDefault ? html`<span class="badge badge--success">Default</span>` : nothing}
-                      ${entry.known ? nothing : html`<span class="badge badge--warning">Unknown</span>`}
-                      ${stats.total > 0 ? html`<span class="badge badge--muted">${stats.total} sessions</span>` : html`<span class="badge badge--muted">No sessions</span>`}
+                      ${
+                        entry.isDefault
+                          ? html`
+                              <span class="badge badge--success">Default</span>
+                            `
+                          : nothing
+                      }
+                      ${
+                        entry.known
+                          ? nothing
+                          : html`
+                              <span class="badge badge--warning">Unknown</span>
+                            `
+                      }
+                      ${
+                        stats.total > 0
+                          ? html`<span class="badge badge--muted">${stats.total} sessions</span>`
+                          : html`
+                              <span class="badge badge--muted">No sessions</span>
+                            `
+                      }
                       ${stats.cron > 0 ? html`<span class="badge badge--warning">Cron ${stats.cron}</span>` : nothing}
                     </span>
                   </button>
                 `;
               })}
             </div>
-          `}
+          `
+        }
       </div>
     </div>
   `;
@@ -288,7 +315,7 @@ function renderAgentsList(props: AgentsProps, entries: AgentEntry[]) {
 
 function renderAgentDetail(props: AgentsProps, entries: AgentEntry[], rows: GatewaySessionRow[]) {
   const selected = props.selectedAgentKey?.trim() || null;
-  const entry = selected ? entries.find((e) => e.agentId === selected) ?? null : null;
+  const entry = selected ? (entries.find((e) => e.agentId === selected) ?? null) : null;
 
   if (!selected) {
     return html`
@@ -296,7 +323,9 @@ function renderAgentDetail(props: AgentsProps, entries: AgentEntry[], rows: Gate
         <div class="agents-pane__body">
           <div class="agents-empty agents-empty--detail">
             <div class="agents-empty__title">Select an agent</div>
-            <div class="agents-empty__sub">Pick an agent on the left to see identity details and recent sessions.</div>
+            <div class="agents-empty__sub">
+              Pick an agent on the left to see identity details and recent sessions.
+            </div>
           </div>
         </div>
       </div>
@@ -304,7 +333,9 @@ function renderAgentDetail(props: AgentsProps, entries: AgentEntry[], rows: Gate
   }
 
   const agent = entry?.agent ?? { id: selected };
-  const stats = entry?.stats ?? ({ total: 0, cron: 0, regular: 0, updatedAtMax: 0 } satisfies AgentSessionStats);
+  const stats =
+    entry?.stats ??
+    ({ total: 0, cron: 0, regular: 0, updatedAtMax: 0 } satisfies AgentSessionStats);
   const filtered = filterSessionsForAgent({
     rows,
     agentId: selected,
@@ -326,9 +357,21 @@ function renderAgentDetail(props: AgentsProps, entries: AgentEntry[], rows: Gate
               <div class="agents-detail-header__title" title=${agentDisplayName(agent)}>${agentDisplayName(agent)}</div>
               <div class="agents-detail-header__subtitle" title=${selected}>${selected}</div>
               <div class="agents-detail-header__badges">
-                ${entry?.isDefault ? html`<span class="badge badge--success">Default</span>` : nothing}
+                ${
+                  entry?.isDefault
+                    ? html`
+                        <span class="badge badge--success">Default</span>
+                      `
+                    : nothing
+                }
                 ${agent.identity?.theme ? html`<span class="badge badge--muted">${agent.identity.theme}</span>` : nothing}
-                ${stats.total > 0 ? html`<span class="badge badge--muted">${stats.total} sessions</span>` : html`<span class="badge badge--muted">No sessions yet</span>`}
+                ${
+                  stats.total > 0
+                    ? html`<span class="badge badge--muted">${stats.total} sessions</span>`
+                    : html`
+                        <span class="badge badge--muted">No sessions yet</span>
+                      `
+                }
                 ${stats.cron > 0 ? html`<span class="badge badge--warning">Cron ${stats.cron}</span>` : nothing}
                 ${stats.regular > 0 ? html`<span class="badge badge--muted">Regular ${stats.regular}</span>` : nothing}
               </div>
@@ -366,7 +409,13 @@ function renderAgentDetail(props: AgentsProps, entries: AgentEntry[], rows: Gate
           <div class="agents-sessions__header">
             <div class="agents-sessions__title">Recent sessions</div>
             <div class="agents-sessions__hint">
-              Showing ${Math.min(shownSessions.length, filtered.length)} of ${filtered.length}${overflow > 0 ? html` (showing newest)` : nothing}
+              Showing ${Math.min(shownSessions.length, filtered.length)} of ${filtered.length}${
+                overflow > 0
+                  ? html`
+                      (showing newest)
+                    `
+                  : nothing
+              }
             </div>
           </div>
 
@@ -398,9 +447,12 @@ function renderAgentDetail(props: AgentsProps, entries: AgentEntry[], rows: Gate
             </div>
           </div>
 
-          ${filtered.length === 0
-            ? html`<div class="agents-empty">No sessions match the current filters.</div>`
-            : html`
+          ${
+            filtered.length === 0
+              ? html`
+                  <div class="agents-empty">No sessions match the current filters.</div>
+                `
+              : html`
               <div class="agents-session-list" role="list">
                 ${shownSessions.map((row) => {
                   const type = inferSessionType(row.key);
@@ -427,9 +479,11 @@ function renderAgentDetail(props: AgentsProps, entries: AgentEntry[], rows: Gate
                       <span class="agents-session-item__meta">
                         <span class="agents-session-item__title" title=${title}>${title}</span>
                         ${subtitle ? html`<span class="agents-session-item__sub" title=${subtitle}>${subtitle}</span>` : nothing}
-                        ${preview
-                          ? html`<span class="agents-session-item__preview" title=${preview}>${preview}</span>`
-                          : nothing}
+                        ${
+                          preview
+                            ? html`<span class="agents-session-item__preview" title=${preview}>${preview}</span>`
+                            : nothing
+                        }
                       </span>
                       <span class="agents-session-item__badges" aria-hidden="true">
                         <span class="badge ${type === "cron" ? "badge--warning" : "badge--muted"}">
@@ -441,7 +495,8 @@ function renderAgentDetail(props: AgentsProps, entries: AgentEntry[], rows: Gate
                   `;
                 })}
               </div>
-            `}
+            `
+          }
         </div>
       </div>
     </div>
@@ -483,14 +538,16 @@ export function renderAgents(props: AgentsProps) {
 
       ${props.error ? html`<div class="callout--danger"><div class="callout__content">${props.error}</div></div>` : nothing}
 
-      ${props.loading && !props.agents && !props.sessions
-        ? renderAgentsSkeleton()
-        : html`
+      ${
+        props.loading && !props.agents && !props.sessions
+          ? renderAgentsSkeleton()
+          : html`
           <div class="agents-layout">
             ${renderAgentsList(props, entries)}
             ${renderAgentDetail(props, entries, rows)}
           </div>
-        `}
+        `
+      }
     </section>
   `;
 }

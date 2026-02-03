@@ -16,13 +16,13 @@ export function formatToolName(name: string): string {
 
   // Common tool name mappings
   const mappings: Record<string, string> = {
-    "Read": "Read File",
-    "Write": "Write File",
-    "Edit": "Edit File",
-    "Bash": "Run Command",
-    "Grep": "Search Code",
-    "Glob": "Find Files",
-    "Task": "Run Task",
+    Read: "Read File",
+    Write: "Write File",
+    Edit: "Edit File",
+    Bash: "Run Command",
+    Grep: "Search Code",
+    Glob: "Find Files",
+    Task: "Run Task",
     "Web Fetch": "Fetch URL",
     "Web Search": "Search Web",
   };
@@ -39,42 +39,24 @@ export function summarizeToolArgs(name: string, args: unknown): string {
   // Extract meaningful info based on tool type
   switch (name.toLowerCase()) {
     case "read":
-      return typeof record.file_path === "string"
-        ? truncatePath(record.file_path)
-        : "";
+      return typeof record.file_path === "string" ? truncatePath(record.file_path) : "";
     case "write":
-      return typeof record.file_path === "string"
-        ? truncatePath(record.file_path)
-        : "";
+      return typeof record.file_path === "string" ? truncatePath(record.file_path) : "";
     case "edit":
-      return typeof record.file_path === "string"
-        ? truncatePath(record.file_path)
-        : "";
+      return typeof record.file_path === "string" ? truncatePath(record.file_path) : "";
     case "bash":
-      return typeof record.command === "string"
-        ? truncateText(record.command, 60)
-        : "";
+      return typeof record.command === "string" ? truncateText(record.command, 60) : "";
     case "grep":
-      return typeof record.pattern === "string"
-        ? `"${truncateText(record.pattern, 40)}"`
-        : "";
+      return typeof record.pattern === "string" ? `"${truncateText(record.pattern, 40)}"` : "";
     case "glob":
-      return typeof record.pattern === "string"
-        ? truncateText(record.pattern, 50)
-        : "";
+      return typeof record.pattern === "string" ? truncateText(record.pattern, 50) : "";
     case "task":
-      return typeof record.description === "string"
-        ? truncateText(record.description, 50)
-        : "";
+      return typeof record.description === "string" ? truncateText(record.description, 50) : "";
     case "webfetch":
     case "mcp__fetch__fetch":
-      return typeof record.url === "string"
-        ? truncateUrl(record.url)
-        : "";
+      return typeof record.url === "string" ? truncateUrl(record.url) : "";
     case "websearch":
-      return typeof record.query === "string"
-        ? `"${truncateText(record.query, 40)}"`
-        : "";
+      return typeof record.query === "string" ? `"${truncateText(record.query, 40)}"` : "";
     default:
       // Try to find a meaningful field
       for (const key of ["path", "file", "query", "name", "description", "url"]) {
@@ -140,9 +122,10 @@ function nextActivityId(): string {
 }
 
 /** Derive tasks and activity log from tool stream entries */
-export function deriveTasksFromToolStream(
-  entries: ToolStreamEntry[],
-): { tasks: ChatTask[]; activityLog: ChatActivityLog[] } {
+export function deriveTasksFromToolStream(entries: ToolStreamEntry[]): {
+  tasks: ChatTask[];
+  activityLog: ChatActivityLog[];
+} {
   const tasks: ChatTask[] = [];
   const activityLog: ChatActivityLog[] = [];
 
@@ -179,9 +162,10 @@ export function deriveTasksFromToolStream(
         id: nextActivityId(),
         type: status === "error" ? "tool-error" : "tool-result",
         timestamp: entry.updatedAt,
-        title: status === "error"
-          ? `Error in ${formatToolName(entry.name)}`
-          : `${formatToolName(entry.name)} completed`,
+        title:
+          status === "error"
+            ? `Error in ${formatToolName(entry.name)}`
+            : `${formatToolName(entry.name)} completed`,
         details: truncateText(entry.output, 200),
         toolCallId: entry.toolCallId,
       });
@@ -212,8 +196,8 @@ export function countTasksByStatus(tasks: ChatTask[]): Record<TaskStatus, number
   const counts: Record<TaskStatus, number> = {
     "not-started": 0,
     "in-progress": 0,
-    "completed": 0,
-    "error": 0,
+    completed: 0,
+    error: 0,
     "user-feedback": 0,
   };
 

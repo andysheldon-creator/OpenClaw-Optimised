@@ -1,10 +1,10 @@
-import { html, css, LitElement, TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { createScrollObserver } from '../animation-utils';
+import { html, css, LitElement, TemplateResult } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import { createScrollObserver } from "../animation-utils";
 
 interface MemoryTile {
   id: string;
-  type: 'goal' | 'constraint' | 'tool' | 'preference';
+  type: "goal" | "constraint" | "tool" | "preference";
   icon: string;
   label: string;
   color: string;
@@ -12,17 +12,59 @@ interface MemoryTile {
 }
 
 const MEMORY_TILES: MemoryTile[] = [
-  { id: 'goal-1', type: 'goal', icon: '🎯', label: 'Ship v1 in 2 weeks', color: 'primary', delay: 0 },
-  { id: 'goal-2', type: 'goal', icon: '🚀', label: 'Launch onboarding flow', color: 'lavender', delay: 100 },
-  { id: 'constraint-1', type: 'constraint', icon: '🛡️', label: 'No prod changes without approval', color: 'amber', delay: 250 },
-  { id: 'constraint-2', type: 'constraint', icon: '⏱️', label: 'Daily status at 9:00 AM', color: 'teal', delay: 350 },
-  { id: 'tool-1', type: 'tool', icon: '🔗', label: 'GitHub + CI', color: 'primary', delay: 500 },
-  { id: 'tool-2', type: 'tool', icon: '💬', label: 'Slack', color: 'teal', delay: 600 },
-  { id: 'preference-1', type: 'preference', icon: '✍️', label: 'Concise summaries', color: 'lavender', delay: 720 },
-  { id: 'preference-2', type: 'preference', icon: '🧩', label: 'TypeScript-first', color: 'coral', delay: 820 },
+  {
+    id: "goal-1",
+    type: "goal",
+    icon: "🎯",
+    label: "Ship v1 in 2 weeks",
+    color: "primary",
+    delay: 0,
+  },
+  {
+    id: "goal-2",
+    type: "goal",
+    icon: "🚀",
+    label: "Launch onboarding flow",
+    color: "lavender",
+    delay: 100,
+  },
+  {
+    id: "constraint-1",
+    type: "constraint",
+    icon: "🛡️",
+    label: "No prod changes without approval",
+    color: "amber",
+    delay: 250,
+  },
+  {
+    id: "constraint-2",
+    type: "constraint",
+    icon: "⏱️",
+    label: "Daily status at 9:00 AM",
+    color: "teal",
+    delay: 350,
+  },
+  { id: "tool-1", type: "tool", icon: "🔗", label: "GitHub + CI", color: "primary", delay: 500 },
+  { id: "tool-2", type: "tool", icon: "💬", label: "Slack", color: "teal", delay: 600 },
+  {
+    id: "preference-1",
+    type: "preference",
+    icon: "✍️",
+    label: "Concise summaries",
+    color: "lavender",
+    delay: 720,
+  },
+  {
+    id: "preference-2",
+    type: "preference",
+    icon: "🧩",
+    label: "TypeScript-first",
+    color: "coral",
+    delay: 820,
+  },
 ];
 
-@customElement('landing-understanding')
+@customElement("landing-understanding")
 export class LandingUnderstanding extends LitElement {
   static styles = css`
     :host {
@@ -32,7 +74,7 @@ export class LandingUnderstanding extends LitElement {
       font-family: var(--landing-font-body, inherit);
       scroll-margin-top: var(--landing-scroll-offset, 92px);
     }
-
+    
     .section-container {
       max-width: 1200px;
       margin: 0 auto;
@@ -41,19 +83,19 @@ export class LandingUnderstanding extends LitElement {
       gap: 4rem;
       align-items: center;
     }
-
+    
     /* Left column - Text */
     .text-column {
       opacity: 0;
       transform: translateX(-30px);
       transition: all 0.8s ease-out;
     }
-
+    
     .text-column.is-visible {
       opacity: 1;
       transform: translateX(0);
     }
-
+    
     .section-label {
       font-size: 0.75rem;
       font-weight: 600;
@@ -62,7 +104,7 @@ export class LandingUnderstanding extends LitElement {
       color: var(--landing-primary);
       margin-bottom: 1rem;
     }
-
+    
     .section-headline {
       font-family: var(--landing-font-display, inherit);
       font-size: clamp(2rem, 4vw, 3rem);
@@ -71,31 +113,31 @@ export class LandingUnderstanding extends LitElement {
       color: var(--landing-text-primary);
       margin: 0 0 1.5rem;
     }
-
+    
     .section-body {
       font-size: 1.125rem;
       line-height: 1.8;
       color: var(--landing-text-secondary);
     }
-
+    
     .section-body strong {
       color: var(--landing-text-primary);
       font-weight: 500;
     }
-
+    
     .section-footnote {
       margin-top: 2rem;
       font-size: 0.875rem;
       color: var(--landing-text-muted);
       font-style: italic;
     }
-
+    
     /* Right column - Profile card */
     .profile-column {
       display: flex;
       justify-content: center;
     }
-
+    
     .profile-card {
       position: relative;
       width: 100%;
@@ -107,9 +149,9 @@ export class LandingUnderstanding extends LitElement {
       border-radius: 24px;
       box-shadow: var(--landing-shadow-lg);
     }
-
+    
     .profile-card::before {
-      content: '';
+      content: "";
       position: absolute;
       inset: -1px;
       border-radius: 24px;
@@ -123,11 +165,11 @@ export class LandingUnderstanding extends LitElement {
       opacity: 0;
       transition: opacity 0.3s ease;
     }
-
+    
     .profile-card:hover::before {
       opacity: 1;
     }
-
+    
     .profile-header {
       display: flex;
       align-items: center;
@@ -136,7 +178,7 @@ export class LandingUnderstanding extends LitElement {
       padding-bottom: 1.5rem;
       border-bottom: 1px solid var(--landing-border);
     }
-
+    
     .profile-avatar {
       width: 48px;
       height: 48px;
@@ -147,25 +189,25 @@ export class LandingUnderstanding extends LitElement {
       justify-content: center;
       font-size: 1.5rem;
     }
-
+    
     .profile-name {
       font-size: 1.125rem;
       font-weight: 600;
       color: var(--landing-text-primary);
     }
-
+    
     .profile-subtitle {
       font-size: 0.875rem;
       color: var(--landing-text-muted);
     }
-
+    
     /* Tiles container */
     .tiles-container {
       display: flex;
       flex-wrap: wrap;
       gap: 0.75rem;
     }
-
+    
     /* Individual tile */
     .profile-tile {
       display: inline-flex;
@@ -181,53 +223,53 @@ export class LandingUnderstanding extends LitElement {
       transform: translateY(20px) scale(0.9);
       transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-
+    
     .profile-tile.is-visible {
       opacity: 1;
       transform: translateY(0) scale(1);
     }
-
+    
     .profile-tile:hover {
       transform: translateY(-2px) scale(1.02);
       border-color: var(--landing-border-hover);
     }
-
+    
     .tile-icon {
       font-size: 1rem;
     }
-
+    
     /* Color variants */
     .profile-tile.amber {
       border-color: rgba(245, 158, 11, 0.3);
       background: rgba(245, 158, 11, 0.1);
     }
-
+    
     .profile-tile.coral {
       border-color: rgba(251, 113, 133, 0.3);
       background: rgba(251, 113, 133, 0.1);
     }
-
+    
     .profile-tile.teal {
       border-color: rgba(45, 212, 191, 0.3);
       background: rgba(45, 212, 191, 0.1);
     }
-
+    
     .profile-tile.lavender {
       border-color: rgba(167, 139, 250, 0.3);
       background: rgba(167, 139, 250, 0.1);
     }
-
+    
     .profile-tile.primary {
       border-color: rgba(99, 102, 241, 0.3);
       background: rgba(99, 102, 241, 0.1);
     }
-
+    
     /* Section dividers in profile */
     .tile-section {
       width: 100%;
       margin: 1rem 0 0.5rem;
     }
-
+    
     .tile-section-label {
       font-size: 0.75rem;
       font-weight: 600;
@@ -235,14 +277,14 @@ export class LandingUnderstanding extends LitElement {
       text-transform: uppercase;
       color: var(--landing-text-muted);
     }
-
+    
     /* Section next CTA */
     .section-next {
       margin-top: 2.25rem;
       display: flex;
       justify-content: flex-start;
     }
-
+    
     .next-button {
       display: inline-flex;
       align-items: center;
@@ -257,43 +299,43 @@ export class LandingUnderstanding extends LitElement {
       cursor: pointer;
       transition: all 0.2s ease;
     }
-
+    
     .next-button:hover {
       transform: translateY(-1px);
       border-color: var(--landing-border-hover);
       background: rgba(255, 255, 255, 0.05);
     }
-
+    
     .next-button:focus-visible {
       outline: 2px solid var(--landing-primary);
       outline-offset: 2px;
     }
-
+    
     .next-arrow {
       color: var(--landing-primary);
     }
-
+    
     /* Responsive */
     @media (max-width: 1024px) {
       .section-container {
         gap: 3rem;
       }
     }
-
+    
     @media (max-width: 768px) {
       .section-container {
         grid-template-columns: 1fr;
         gap: 3rem;
       }
-
+    
       .text-column {
         text-align: center;
       }
-
+    
       .profile-column {
         order: -1;
       }
-
+    
       .section-next {
         justify-content: center;
       }
@@ -312,13 +354,13 @@ export class LandingUnderstanding extends LitElement {
   firstUpdated(): void {
     this.observer = createScrollObserver({ threshold: 0.3 });
 
-    const textColumn = this.renderRoot.querySelector('.text-column');
+    const textColumn = this.renderRoot.querySelector(".text-column");
     if (textColumn) {
       this.observer.observe(textColumn);
     }
 
     // Observe profile card for tile animations
-    const profileCard = this.renderRoot.querySelector('.profile-card');
+    const profileCard = this.renderRoot.querySelector(".profile-card");
     if (profileCard) {
       const tileObserver = new IntersectionObserver(
         (entries) => {
@@ -329,7 +371,7 @@ export class LandingUnderstanding extends LitElement {
             }
           });
         },
-        { threshold: 0.2 }
+        { threshold: 0.2 },
       );
       tileObserver.observe(profileCard);
     }
@@ -341,7 +383,7 @@ export class LandingUnderstanding extends LitElement {
   }
 
   private renderTile(tile: MemoryTile): TemplateResult {
-    const visibleClass = this.tilesVisible ? 'is-visible' : '';
+    const visibleClass = this.tilesVisible ? "is-visible" : "";
 
     return html`
       <div
@@ -355,10 +397,10 @@ export class LandingUnderstanding extends LitElement {
   }
 
   render(): TemplateResult {
-    const goals = MEMORY_TILES.filter(t => t.type === 'goal');
-    const constraints = MEMORY_TILES.filter(t => t.type === 'constraint');
-    const tools = MEMORY_TILES.filter(t => t.type === 'tool');
-    const preferences = MEMORY_TILES.filter(t => t.type === 'preference');
+    const goals = MEMORY_TILES.filter((t) => t.type === "goal");
+    const constraints = MEMORY_TILES.filter((t) => t.type === "constraint");
+    const tools = MEMORY_TILES.filter((t) => t.type === "tool");
+    const preferences = MEMORY_TILES.filter((t) => t.type === "preference");
 
     return html`
       <section id="understanding-section">
@@ -399,28 +441,28 @@ export class LandingUnderstanding extends LitElement {
                 <span class="tile-section-label">Goals</span>
               </div>
               <div class="tiles-container">
-                ${goals.map(t => this.renderTile(t))}
+                ${goals.map((t) => this.renderTile(t))}
               </div>
 
               <div class="tile-section">
                 <span class="tile-section-label">Constraints</span>
               </div>
               <div class="tiles-container">
-                ${constraints.map(t => this.renderTile(t))}
+                ${constraints.map((t) => this.renderTile(t))}
               </div>
 
               <div class="tile-section">
                 <span class="tile-section-label">Tools</span>
               </div>
               <div class="tiles-container">
-                ${tools.map(t => this.renderTile(t))}
+                ${tools.map((t) => this.renderTile(t))}
               </div>
 
               <div class="tile-section">
                 <span class="tile-section-label">Preferences</span>
               </div>
               <div class="tiles-container">
-                ${preferences.map(t => this.renderTile(t))}
+                ${preferences.map((t) => this.renderTile(t))}
               </div>
             </div>
           </div>
@@ -430,16 +472,18 @@ export class LandingUnderstanding extends LitElement {
   }
 
   private handleNext(): void {
-    this.dispatchEvent(new CustomEvent('landing-navigate', {
-      detail: { section: 'control' },
-      bubbles: true,
-      composed: true,
-    }));
+    this.dispatchEvent(
+      new CustomEvent("landing-navigate", {
+        detail: { section: "control" },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'landing-understanding': LandingUnderstanding;
+    "landing-understanding": LandingUnderstanding;
   }
 }

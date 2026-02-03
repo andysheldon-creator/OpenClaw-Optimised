@@ -48,14 +48,14 @@ Testing is part of implementation, not optional follow-up. Can't claim complete 
 
 ## Quick Reference
 
-| Anti-Pattern | Fix |
-|--------------|-----|
-| Assert on mock elements | Test real component or unmock it |
-| Test-only methods in production | Move to test utilities |
-| Mock without understanding | Understand dependencies first, mock minimally |
-| Incomplete mocks | Mirror real API completely |
-| Tests as afterthought | TDD - tests first |
-| Over-complex mocks | Consider integration tests |
+| Anti-Pattern                    | Fix                                           |
+| ------------------------------- | --------------------------------------------- |
+| Assert on mock elements         | Test real component or unmock it              |
+| Test-only methods in production | Move to test utilities                        |
+| Mock without understanding      | Understand dependencies first, mock minimally |
+| Incomplete mocks                | Mirror real API completely                    |
+| Tests as afterthought           | TDD - tests first                             |
+| Over-complex mocks              | Consider integration tests                    |
 
 ## Red Flags
 

@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement context formatter that:
+
 - Formats retrieved chunks with sources
 - Formats entity descriptions
 - Formats relationship information
@@ -55,10 +56,10 @@ export class ContextFormatter {
    */
   format(
     chunks: Array<{ content: string; score: number; source: any }>,
-    graphContext?: { entities: any[]; relationships: any[] }
+    graphContext?: { entities: any[]; relationships: any[] },
   ): FormattedContext {
     const parts: string[] = [];
-    const sources: FormattedContext['sources'] = [];
+    const sources: FormattedContext["sources"] = [];
 
     // Add entity context if available
     if (graphContext && graphContext.entities.length > 0) {
@@ -72,21 +73,21 @@ export class ContextFormatter {
       parts.push(`[Score: ${chunk.score.toFixed(2)}]\n${chunk.content}\n`);
 
       if (this.options.includeSources) {
-        if (chunk.source.type === 'graph' && chunk.source.entity) {
+        if (chunk.source.type === "graph" && chunk.source.entity) {
           sources.push({
-            type: 'entity',
+            type: "entity",
             id: chunk.source.entity.id,
             name: chunk.source.entity.name,
           });
         } else {
-          sources.push({ type: 'chunk' });
+          sources.push({ type: "chunk" });
         }
       }
     }
 
     return {
-      text: parts.join('\n---\n\n'),
-      tokens: this.estimateTokens(parts.join('\n')),
+      text: parts.join("\n---\n\n"),
+      tokens: this.estimateTokens(parts.join("\n")),
       sources,
     };
   }
@@ -103,11 +104,11 @@ export class ContextFormatter {
       if (entity.description) {
         parts.push(entity.description);
       }
-      sources.push({ type: 'entity', id: entity.id, name: entity.name });
+      sources.push({ type: "entity", id: entity.id, name: entity.name });
     }
 
     return {
-      text: '## Related Entities\n\n' + parts.join('\n\n') + '\n\n',
+      text: "## Related Entities\n\n" + parts.join("\n\n") + "\n\n",
       sources,
     };
   }

@@ -110,21 +110,30 @@ primitives:
 ```typescript
 export type GraphQueryEngine = {
   /** Find entities by name (exact or fuzzy via FTS) */
-  findEntities(query: string, opts?: {
-    type?: EntityType;
-    limit?: number;
-  }): Promise<ExtractedEntity[]>;
+  findEntities(
+    query: string,
+    opts?: {
+      type?: EntityType;
+      limit?: number;
+    },
+  ): Promise<ExtractedEntity[]>;
 
   /** Get N-hop neighborhood of an entity */
-  getNeighborhood(entityId: string, opts?: {
-    maxHops?: number;       // default 1, max 3
-    relTypes?: string[];    // filter by relationship type
-    limit?: number;         // max entities returned
-  }): Promise<{ entities: ExtractedEntity[]; relationships: ExtractedRelationship[] }>;
+  getNeighborhood(
+    entityId: string,
+    opts?: {
+      maxHops?: number; // default 1, max 3
+      relTypes?: string[]; // filter by relationship type
+      limit?: number; // max entities returned
+    },
+  ): Promise<{ entities: ExtractedEntity[]; relationships: ExtractedRelationship[] }>;
 
   /** Find shortest path between two entities */
-  findPath(fromEntityId: string, toEntityId: string, maxHops?: number):
-    Promise<Array<{ entity: ExtractedEntity; relationship?: ExtractedRelationship }>>;
+  findPath(
+    fromEntityId: string,
+    toEntityId: string,
+    maxHops?: number,
+  ): Promise<Array<{ entity: ExtractedEntity; relationship?: ExtractedRelationship }>>;
 
   /** Get entities with highest degree (most connected) */
   getHubs(opts?: { type?: EntityType; limit?: number }): Promise<ExtractedEntity[]>;
@@ -232,13 +241,13 @@ LIMIT :limit;
 
 ### Performance Characteristics
 
-| Query | Graph size 1K | Graph size 10K | Graph size 50K |
-|-------|--------------|----------------|----------------|
-| 1-hop neighborhood | <1ms | ~5ms | ~20ms |
-| 2-hop neighborhood | ~2ms | ~15ms | ~80ms |
-| 3-hop neighborhood | ~5ms | ~50ms | ~300ms |
-| Shortest path (3 hops max) | ~3ms | ~30ms | ~150ms |
-| Hub detection (top 10) | ~2ms | ~10ms | ~50ms |
+| Query                      | Graph size 1K | Graph size 10K | Graph size 50K |
+| -------------------------- | ------------- | -------------- | -------------- |
+| 1-hop neighborhood         | <1ms          | ~5ms           | ~20ms          |
+| 2-hop neighborhood         | ~2ms          | ~15ms          | ~80ms          |
+| 3-hop neighborhood         | ~5ms          | ~50ms          | ~300ms         |
+| Shortest path (3 hops max) | ~3ms          | ~30ms          | ~150ms         |
+| Hub detection (top 10)     | ~2ms          | ~10ms          | ~50ms          |
 
 These are estimates based on SQLite CTE performance benchmarks. The 50K entity tier is
 where users should consider the Neo4j extension for complex multi-hop queries.
@@ -281,7 +290,7 @@ agents:
   defaults:
     knowledge:
       graph:
-        backend: "sqlite"  # or "neo4j"
+        backend: "sqlite" # or "neo4j"
         neo4j:
           uri: "bolt://localhost:7687"
           username: "neo4j"
@@ -290,14 +299,14 @@ agents:
 
 ### When to Use Neo4j
 
-| Criterion | SQLite | Neo4j |
-|-----------|--------|-------|
-| Entity count | <50K | Any |
-| Max hop depth | 3 | Unlimited |
-| Community detection | No | Yes |
-| PageRank/centrality | No | Yes |
-| Infrastructure | Zero | Requires Neo4j server |
-| Setup complexity | None | Moderate |
+| Criterion           | SQLite | Neo4j                 |
+| ------------------- | ------ | --------------------- |
+| Entity count        | <50K   | Any                   |
+| Max hop depth       | 3      | Unlimited             |
+| Community detection | No     | Yes                   |
+| PageRank/centrality | No     | Yes                   |
+| Infrastructure      | Zero   | Requires Neo4j server |
+| Setup complexity    | None   | Moderate              |
 
 ---
 

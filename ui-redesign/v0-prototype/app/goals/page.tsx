@@ -1,32 +1,32 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { AppShell } from "@/components/navigation/app-shell"
-import { PageHeader } from "@/components/dashboard/page-header"
-import { SectionHeader } from "@/components/dashboard/section-header"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
+import { Plus, Target, Calendar, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import { AppShell } from "@/components/navigation/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Plus, Target, Calendar, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils"
-import Link from "next/link"
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 // Mock data
 const activeGoals = [
@@ -59,7 +59,7 @@ const activeGoals = [
     agentName: "All Agents",
     priority: "low" as const,
   },
-]
+];
 
 const completedGoals = [
   {
@@ -71,17 +71,17 @@ const completedGoals = [
     agentName: "All Agents",
     priority: "high" as const,
   },
-]
+];
 
 const priorityConfig = {
   high: { label: "High", className: "bg-destructive/10 text-destructive" },
   medium: { label: "Medium", className: "bg-warning/10 text-warning-foreground" },
   low: { label: "Low", className: "bg-muted text-muted-foreground" },
-}
+};
 
 interface GoalCardProps {
-  goal: (typeof activeGoals)[0]
-  completed?: boolean
+  goal: (typeof activeGoals)[0];
+  completed?: boolean;
 }
 
 function GoalCard({ goal, completed }: GoalCardProps) {
@@ -89,18 +89,13 @@ function GoalCard({ goal, completed }: GoalCardProps) {
     <div
       className={cn(
         "group rounded-xl border border-border bg-card p-4 shadow-soft transition-all hover:border-primary/30 hover:shadow-soft-lg",
-        completed && "opacity-60"
+        completed && "opacity-60",
       )}
     >
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h3
-              className={cn(
-                "font-medium text-foreground",
-                completed && "line-through"
-              )}
-            >
+            <h3 className={cn("font-medium text-foreground", completed && "line-through")}>
               {goal.name}
             </h3>
             <Badge
@@ -110,9 +105,7 @@ function GoalCard({ goal, completed }: GoalCardProps) {
               {priorityConfig[goal.priority].label}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {goal.description}
-          </p>
+          <p className="text-sm text-muted-foreground line-clamp-2">{goal.description}</p>
         </div>
       </div>
 
@@ -142,11 +135,11 @@ function GoalCard({ goal, completed }: GoalCardProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export default function GoalsPage() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   return (
     <AppShell>
@@ -252,5 +245,5 @@ export default function GoalsPage() {
         </Dialog>
       </div>
     </AppShell>
-  )
+  );
 }

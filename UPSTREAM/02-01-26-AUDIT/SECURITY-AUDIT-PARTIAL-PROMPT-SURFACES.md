@@ -189,10 +189,9 @@ Evidence:
 
 ## 7) Key UNKNOWNs for prompt surfaces
 
-1) Whether `systemPromptReport` is accessible to untrusted users (potential sensitive-content leak):
+1. Whether `systemPromptReport` is accessible to untrusted users (potential sensitive-content leak):
    - `src/agents/pi-embedded-runner/run/attempt.ts:370-391`
-2) Exact truncation/delimiting rules in `buildBootstrapContextFiles` (risk of partial injection / broken delimiters):
+2. Exact truncation/delimiting rules in `buildBootstrapContextFiles` (risk of partial injection / broken delimiters):
    - `src/agents/bootstrap-files.ts:55-58` calls it, but implementation not inspected here.
-3) Provider-specific message packing and sanitization (OpenAI/Anthropic/Google) outside the snippets above:
+3. Provider-specific message packing and sanitization (OpenAI/Anthropic/Google) outside the snippets above:
    - A large number of provider-related files exist under `src/providers/*`; only limited sampling done here.
-

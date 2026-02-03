@@ -1,5 +1,5 @@
-import { updateSessionStoreEntry } from "../../config/sessions.js";
 import type { GoalState } from "./types.js";
+import { updateSessionStoreEntry } from "../../config/sessions.js";
 
 export async function persistGoalState(params: {
   storePath: string;

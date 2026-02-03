@@ -10,6 +10,7 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 ## Requirements Summary
 
 ### Core Features
+
 1. Automatically sync forked repos with upstream using AI conflict resolution
 2. New "Automations" vertical tab under existing Jobs/Cron tab
 3. Smart cron scheduling: one dispatcher job checking due automations
@@ -27,6 +28,7 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 ### Git Isolation Strategy: **Option B - Separate Clone Per Automation**
 
 **Rationale:**
+
 - Complete isolation between automation runs
 - Simpler to reason about and debug
 - Easier cleanup (delete directory)
@@ -38,6 +40,7 @@ An automation system for Clawdbrain that automatically syncs forked repositories
   - `--depth=1` for initial clone, deepen if needed
 
 **Workspace Structure:**
+
 ```
 ~/.clawdbrain/automations/
 ├── smart-sync-fork/
@@ -55,12 +58,14 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 ## Existing Codebase Integration Points
 
 ### Web UI Structure
+
 - **Current tabs:** `/ui/src/ui/navigation.ts`
 - **Tab groups:** Chat, Control, Agent, Settings
 - **Cron tab location:** Under "Control" group, route `/cron`
 - **New tab:** "Automations" under "Control", route `/automations`
 
 ### Cron Infrastructure
+
 - **Service:** `/src/cron/service.ts` - cron job lifecycle
 - **Types:** `/src/cron/types.ts` - schedule/payload structures
 - **Store:** `/src/cron/store.ts` - persistent storage
@@ -68,15 +73,18 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 - **Isolated agent:** `/src/cron/isolated-agent.ts` - isolated runs
 
 ### Session Management
+
 - **Session keys:** Pattern `cron:${jobId}` for cron jobs
 - **Main session:** `/src/config/sessions/main-session.ts`
 - **Session utils:** `/src/gateway/session-utils.ts`
 
 ### Notification System
+
 - **Toast:** `/ui/src/ui/components/toast.ts`
 - **Activity tracking:** `/src/infra/channel-activity.ts`
 
 ### Data Persistence
+
 - **Config:** JSON5-based with Zod validation
 - **Storage:** File-based in `~/.clawdbrain/`
 - **Paths:** `/src/config/config-paths.ts`
@@ -88,12 +96,14 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 **Challenge:** Don't flood the Cron tab with many automation entries.
 
 **Solution:** Single dispatcher cron job that:
+
 - Runs at LCM (Least Common Multiple) of all automation schedules
 - Checks which automations are due
 - Spawns isolated agent sessions for due automations
 - Enforces max 1 sync per repo, max N concurrent automations
 
 **LCM Calculation Examples:**
+
 - Hourly + Daily → LCM = Daily (run dispatcher daily)
 - Every 15min + Every 20min → LCM = 60min (run dispatcher hourly)
 - Every 6h + Every 8h → LCM = 24h (run dispatcher daily)
@@ -101,6 +111,7 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 ### 2. AI Confidence Threshold & Uncertainty Handling
 
 **Flow:**
+
 1. Agent encounters merge conflict
 2. Agent assesses confidence (0-100%)
 3. If confidence < threshold:
@@ -112,6 +123,7 @@ An automation system for Clawdbrain that automatically syncs forked repositories
    - Track "wrong path" corrections
 
 **Uncertainty Actions:**
+
 - **Report at end (default):** Continue, summarize all uncertainties at end
 - **Pause and ask:** Stop immediately, notify user
 - **Skip file:** Leave conflict markers, move to next file
@@ -119,10 +131,12 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 ### 3. Git Retry Logic
 
 **Two limits (whichever comes first):**
+
 - Max 3 "wrong path" corrections total
 - OR 5 minutes per single conflict (configurable)
 
 **"Wrong path" detection:**
+
 - Agent makes code change
 - Agent realizes it's incorrect
 - Agent must revert/backtrack
@@ -130,6 +144,7 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 ### 4. Real-time Progress Updates
 
 **Progress Milestones:**
+
 1. Cloning fork repository
 2. Adding upstream remote
 3. Fetching upstream changes
@@ -140,6 +155,7 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 8. (If auto-merge enabled) Merging branch
 
 **Update Mechanism:**
+
 - Agent writes to state.json in automation directory
 - UI polls or receives SSE updates
 - Display progress bar + current milestone
@@ -147,6 +163,7 @@ An automation system for Clawdbrain that automatically syncs forked repositories
 ### 5. Agent-Session Link in Notifications
 
 **Notification Format:**
+
 ```
 Smart-Sync Fork: [automation-name]
 ✅ Sync complete - 12 conflicts resolved, PR auto-merged
@@ -155,12 +172,14 @@ Smart-Sync Fork: [automation-name]
 ```
 
 **Link Format:**
+
 - Session link: `/#sessions?sessionId=<agent-session-id>`
 - PR link: standard GitHub URL
 
 ## Questions & Answers
 
 ### Q1: Git Isolation Strategy
+
 **Answer:** Option B - Separate clone per automation in `~/.clawdbrain/automations/`
 
 ## Comprehensive Design Documents
@@ -181,6 +200,7 @@ Comprehensive UI prototypes have been generated for all major views, capturing f
 ⚠️ **Stack Translation Required:** Magic MCP generates React components, but Clawdbrain uses **Lit Web Components**.
 
 **📖 Translation Guide:** See **[React to Lit Translation Guide](docs/designs/ux/00-react-to-lit-translation-guide.md)** for comprehensive, detailed instructions on translating React components to Lit Web Components following Clawdbrain patterns. Covers:
+
 - Component structure (render functions vs class-based)
 - State management (controllers vs hooks)
 - Event handling, forms, and lists
@@ -189,6 +209,7 @@ Comprehensive UI prototypes have been generated for all major views, capturing f
 - Quick reference cheat sheet
 
 UX Prototype Documents:
+
 1. **[Automations List View](docs/designs/ux/01-automations-list-view.md)** - Grid layout for automation cards with status badges, filter/search, quick actions (Run Now, Suspend, History, Edit, Delete)
 2. **[Automation Form](docs/designs/ux/02-automation-form.md)** - Multi-step configuration wizard with 6 steps: Basic Info, Schedule, Repositories, AI Settings, Merge Behavior, Notifications
 3. **[Progress Modal](docs/designs/ux/03-progress-modal.md)** - Real-time execution tracking with progress bar, execution timeline, statistics cards, SSE integration examples

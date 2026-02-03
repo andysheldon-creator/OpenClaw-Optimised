@@ -1,8 +1,5 @@
 import type { GatewayBrowserClient } from "../gateway";
-import type {
-  OverseerGoalStatusResult,
-  OverseerStatusResult,
-} from "../types/overseer";
+import type { OverseerGoalStatusResult, OverseerStatusResult } from "../types/overseer";
 import {
   createInitialSimulatorState,
   RULE_TEMPLATES,
@@ -47,10 +44,7 @@ export type OverseerState = {
   simulator: SimulatorState;
 };
 
-export async function loadOverseerStatus(
-  state: OverseerState,
-  opts?: { quiet?: boolean },
-) {
+export async function loadOverseerStatus(state: OverseerState, opts?: { quiet?: boolean }) {
   if (!state.client || !state.connected) return;
   if (state.overseerLoading) return;
   state.overseerLoading = true;
@@ -89,10 +83,7 @@ export async function loadOverseerGoal(
   }
 }
 
-export async function refreshOverseer(
-  state: OverseerState,
-  opts?: { quiet?: boolean },
-) {
+export async function refreshOverseer(state: OverseerState, opts?: { quiet?: boolean }) {
   await loadOverseerStatus(state, opts);
   const goals = state.overseerStatus?.goals ?? [];
   if (goals.length === 0) {
@@ -101,9 +92,10 @@ export async function refreshOverseer(
     return;
   }
   const selected =
-    state.overseerSelectedGoalId && goals.some((goal) => goal.goalId === state.overseerSelectedGoalId)
+    state.overseerSelectedGoalId &&
+    goals.some((goal) => goal.goalId === state.overseerSelectedGoalId)
       ? state.overseerSelectedGoalId
-      : goals[0]?.goalId ?? null;
+      : (goals[0]?.goalId ?? null);
   state.overseerSelectedGoalId = selected;
   if (selected) {
     await loadOverseerGoal(state, selected, { quiet: true });
@@ -282,10 +274,7 @@ export function setSimulatorSection(
   state.simulator = SimulatorController.setSimulatorSection(state.simulator, section);
 }
 
-export function setSimulatorMode(
-  state: OverseerState,
-  mode: SimulatorState["mode"],
-): void {
+export function setSimulatorMode(state: OverseerState, mode: SimulatorState["mode"]): void {
   state.simulator = SimulatorController.setSimulatorMode(state.simulator, mode);
 }
 
@@ -338,7 +327,11 @@ export function updateSimulatorCondition(
   conditionId: string,
   updates: Partial<RuleCondition>,
 ): void {
-  state.simulator = SimulatorController.updateConditionInDraft(state.simulator, conditionId, updates);
+  state.simulator = SimulatorController.updateConditionInDraft(
+    state.simulator,
+    conditionId,
+    updates,
+  );
 }
 
 export function deleteSimulatorCondition(state: OverseerState, conditionId: string): void {
@@ -395,10 +388,7 @@ export function clearSimulatorEventQueue(state: OverseerState): void {
   state.simulator = SimulatorController.clearEventQueue(state.simulator);
 }
 
-export async function executeSimulatorEvent(
-  state: OverseerState,
-  eventId: string,
-): Promise<void> {
+export async function executeSimulatorEvent(state: OverseerState, eventId: string): Promise<void> {
   const event = state.simulator.eventQueue.find((e) => e.id === eventId);
   if (!event) return;
 
@@ -426,10 +416,7 @@ export function addSimulatorScenario(
   state.simulator = SimulatorController.addScenario(state.simulator, scenario);
 }
 
-export function addSimulatorScenarioFromTemplate(
-  state: OverseerState,
-  templateKey: string,
-): void {
+export function addSimulatorScenarioFromTemplate(state: OverseerState, templateKey: string): void {
   state.simulator = SimulatorController.addScenarioFromTemplate(
     state.simulator,
     templateKey as keyof typeof SimulatorController.SCENARIO_TEMPLATES,

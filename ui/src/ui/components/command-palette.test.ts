@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-
 import { createContextCommands, createDefaultCommands } from "./command-palette";
 
 describe("createContextCommands", () => {
@@ -23,11 +22,7 @@ describe("createContextCommands", () => {
 
     expect(cmds).toHaveLength(3);
     expect(cmds.every((c) => c.category === "Current View")).toBe(true);
-    expect(cmds.map((c) => c.id)).toEqual([
-      "ctx-new-session",
-      "ctx-clear-chat",
-      "ctx-abort-chat",
-    ]);
+    expect(cmds.map((c) => c.id)).toEqual(["ctx-new-session", "ctx-clear-chat", "ctx-abort-chat"]);
   });
 
   it("omits chat commands when callbacks are not provided", () => {

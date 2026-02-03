@@ -73,17 +73,17 @@ When two entities are confirmed as the same, the merge proceeds:
 
 ### Entity Fields
 
-| Field | Merge strategy |
-|-------|---------------|
-| `id` | Keep the earlier entity's ID (stable references) |
-| `name` | Keep the longer/more descriptive name |
-| `type` | Most-frequent type wins (counter across all mentions) |
-| `description` | Append with `\|\|\|` separator; summarize via LLM if fragments > `maxDescriptionFragments` (default 6) |
-| `sourceChunkIds` | Set union |
-| `sourceFiles` | Set union |
-| `mentionCount` | Sum |
-| `firstSeen` | Minimum |
-| `lastSeen` | Maximum |
+| Field            | Merge strategy                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `id`             | Keep the earlier entity's ID (stable references)                                                       |
+| `name`           | Keep the longer/more descriptive name                                                                  |
+| `type`           | Most-frequent type wins (counter across all mentions)                                                  |
+| `description`    | Append with `\|\|\|` separator; summarize via LLM if fragments > `maxDescriptionFragments` (default 6) |
+| `sourceChunkIds` | Set union                                                                                              |
+| `sourceFiles`    | Set union                                                                                              |
+| `mentionCount`   | Sum                                                                                                    |
+| `firstSeen`      | Minimum                                                                                                |
+| `lastSeen`       | Maximum                                                                                                |
 
 ### Relationship Re-pointing
 

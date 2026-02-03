@@ -5,19 +5,19 @@
  * conflict detection, and pull request creation.
  */
 
-import fs from "node:fs/promises";
-import path from "node:path";
-import { tmpdir } from "node:os";
-import crypto from "node:crypto";
 import { Octokit } from "@octokit/rest";
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import type { AutomationRunnerResult } from "../runner.js";
+import type { AutomationServiceState } from "../service/state.js";
 import type {
   SmartSyncForkConfig,
   AutomationArtifact,
   AutomationMilestone,
   AutomationConflict,
 } from "../types.js";
-import type { AutomationServiceState } from "../service/state.js";
 import { ArtifactStorage } from "../artifacts.js";
 import { emitAutomationProgress } from "../events.js";
 

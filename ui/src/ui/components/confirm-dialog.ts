@@ -34,10 +34,10 @@ function createFocusTrap(container: HTMLElement): (e: KeyboardEvent) => void {
     if (e.key !== "Tab") return;
 
     const focusableElements = container.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     const focusable = Array.from(focusableElements).filter(
-      (el) => !el.hasAttribute("disabled") && el.offsetParent !== null
+      (el) => !el.hasAttribute("disabled") && el.offsetParent !== null,
     );
 
     if (focusable.length === 0) return;
@@ -81,7 +81,13 @@ function renderDialog() {
     return;
   }
 
-  const { title, message, confirmText = "Confirm", cancelText = "Cancel", variant = "default" } = state.options;
+  const {
+    title,
+    message,
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+    variant = "default",
+  } = state.options;
   const isDanger = variant === "danger";
 
   const handleConfirm = () => {
@@ -166,7 +172,9 @@ function renderDialog() {
       focusTrapCleanup = () => document.removeEventListener("keydown", trapHandler);
     }
 
-    const confirmBtn = container.querySelector(".modal-footer .btn--primary, .modal-footer .btn--danger") as HTMLButtonElement | null;
+    const confirmBtn = container.querySelector(
+      ".modal-footer .btn--primary, .modal-footer .btn--danger",
+    ) as HTMLButtonElement | null;
     confirmBtn?.focus();
   });
 }
@@ -202,7 +210,7 @@ export function showConfirmDialog(options: ConfirmDialogOptions): Promise<boolea
 export function showDangerConfirmDialog(
   title: string,
   message: string | TemplateResult,
-  confirmText = "Delete"
+  confirmText = "Delete",
 ): Promise<boolean> {
   return showConfirmDialog({
     title,

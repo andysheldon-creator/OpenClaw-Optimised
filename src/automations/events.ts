@@ -4,8 +4,8 @@
  * Emits events during automation lifecycle for real-time UI updates.
  */
 
-import type { AutomationArtifact, AutomationConflict, AutomationEvent } from "./types.js";
 import type { AutomationServiceState } from "./service/state.js";
+import type { AutomationArtifact, AutomationConflict, AutomationEvent } from "./types.js";
 
 /**
  * Emit an event when an automation starts running.

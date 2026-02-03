@@ -20,8 +20,12 @@
 }
 
 @keyframes onboarding-v2-backdrop-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ============================================================================
@@ -98,7 +102,11 @@
 
 .onboarding-wizard-v2__progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-primary, 99, 102, 241), var(--accent-secondary, 168, 85, 247));
+  background: linear-gradient(
+    90deg,
+    var(--accent-primary, 99, 102, 241),
+    var(--accent-secondary, 168, 85, 247)
+  );
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -133,7 +141,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent-primary, 99, 102, 241), var(--accent-secondary, 168, 85, 247));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary, 99, 102, 241),
+    var(--accent-secondary, 168, 85, 247)
+  );
   border-radius: 12px;
   color: white;
   flex-shrink: 0;

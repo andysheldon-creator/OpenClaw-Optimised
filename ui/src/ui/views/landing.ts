@@ -1,5 +1,4 @@
 import { html } from "lit";
-
 // Import the landing page component
 import "../landing/index";
 

@@ -29,15 +29,15 @@
 
 ### Value Proposition Narrative Flow
 
-| Section | Message | Emotional Goal |
-|---------|---------|----------------|
-| Hero | "Turn your ideas into reality, automatically" | Aspiration, excitement |
-| Understanding | "An AI that truly knows you" | Trust, personalization |
-| 24/7 Work | "Works around the clock" | Relief, efficiency |
-| Control | "Autonomous, not unsupervised" | Safety, confidence |
-| Features | "What Clawdbrain can do" | Capability, comprehension |
-| Social Proof | "People are realizing dreams" | Validation, FOMO |
-| CTA | "Ready to meet your AI?" | Urgency, action |
+| Section       | Message                                       | Emotional Goal            |
+| ------------- | --------------------------------------------- | ------------------------- |
+| Hero          | "Turn your ideas into reality, automatically" | Aspiration, excitement    |
+| Understanding | "An AI that truly knows you"                  | Trust, personalization    |
+| 24/7 Work     | "Works around the clock"                      | Relief, efficiency        |
+| Control       | "Autonomous, not unsupervised"                | Safety, confidence        |
+| Features      | "What Clawdbrain can do"                      | Capability, comprehension |
+| Social Proof  | "People are realizing dreams"                 | Validation, FOMO          |
+| CTA           | "Ready to meet your AI?"                      | Urgency, action           |
 
 ### Core Design Principles
 
@@ -59,27 +59,27 @@
 
 :root {
   /* Primary brand colors */
-  --landing-primary: #6366f1;        /* Indigo-500 - main accent */
-  --landing-primary-light: #818cf8;  /* Indigo-400 */
-  --landing-primary-dark: #4f46e5;   /* Indigo-600 */
+  --landing-primary: #6366f1; /* Indigo-500 - main accent */
+  --landing-primary-light: #818cf8; /* Indigo-400 */
+  --landing-primary-dark: #4f46e5; /* Indigo-600 */
 
   /* Secondary accents */
-  --landing-accent-warm: #f59e0b;    /* Amber-500 - for highlights */
-  --landing-accent-coral: #fb7185;   /* Rose-400 - for energy */
-  --landing-accent-teal: #2dd4bf;    /* Teal-400 - for calm/analytical */
+  --landing-accent-warm: #f59e0b; /* Amber-500 - for highlights */
+  --landing-accent-coral: #fb7185; /* Rose-400 - for energy */
+  --landing-accent-teal: #2dd4bf; /* Teal-400 - for calm/analytical */
   --landing-accent-lavender: #a78bfa; /* Violet-400 */
 
   /* Neutral palette */
-  --landing-bg-dark: #0a0a0f;        /* Near-black with blue tint */
-  --landing-bg-elevated: #12121a;    /* Slightly lighter for cards */
-  --landing-bg-surface: #1a1a24;     /* Card backgrounds */
+  --landing-bg-dark: #0a0a0f; /* Near-black with blue tint */
+  --landing-bg-elevated: #12121a; /* Slightly lighter for cards */
+  --landing-bg-surface: #1a1a24; /* Card backgrounds */
   --landing-border: rgba(255, 255, 255, 0.08);
   --landing-border-hover: rgba(255, 255, 255, 0.15);
 
   /* Text hierarchy */
-  --landing-text-primary: #f8fafc;   /* Slate-50 */
+  --landing-text-primary: #f8fafc; /* Slate-50 */
   --landing-text-secondary: #94a3b8; /* Slate-400 */
-  --landing-text-muted: #64748b;     /* Slate-500 */
+  --landing-text-muted: #64748b; /* Slate-500 */
 
   /* Gradients */
   --landing-gradient-hero: linear-gradient(
@@ -141,9 +141,9 @@
 ```css
 /* Add to design-system.css */
 :root {
-  --landing-font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --landing-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --landing-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --landing-font-display: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --landing-font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --landing-font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 
 /* Typography scale */
@@ -290,7 +290,8 @@
    ============================================ */
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(var(--float-rotate, 0deg));
   }
   50% {
@@ -299,7 +300,8 @@
 }
 
 @keyframes floatSlow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0);
   }
   25% {
@@ -314,7 +316,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -323,7 +326,8 @@
 }
 
 @keyframes pulseGlow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
   }
   50% {
@@ -395,7 +399,9 @@
 .animate-on-scroll {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out;
 }
 
 .animate-on-scroll.is-visible {
@@ -404,12 +410,24 @@
 }
 
 /* Stagger delays for children */
-.stagger-children > *:nth-child(1) { transition-delay: 0ms; }
-.stagger-children > *:nth-child(2) { transition-delay: 100ms; }
-.stagger-children > *:nth-child(3) { transition-delay: 200ms; }
-.stagger-children > *:nth-child(4) { transition-delay: 300ms; }
-.stagger-children > *:nth-child(5) { transition-delay: 400ms; }
-.stagger-children > *:nth-child(6) { transition-delay: 500ms; }
+.stagger-children > *:nth-child(1) {
+  transition-delay: 0ms;
+}
+.stagger-children > *:nth-child(2) {
+  transition-delay: 100ms;
+}
+.stagger-children > *:nth-child(3) {
+  transition-delay: 200ms;
+}
+.stagger-children > *:nth-child(4) {
+  transition-delay: 300ms;
+}
+.stagger-children > *:nth-child(5) {
+  transition-delay: 400ms;
+}
+.stagger-children > *:nth-child(6) {
+  transition-delay: 500ms;
+}
 
 /* ============================================
    PARALLAX UTILITIES
@@ -441,12 +459,10 @@
 /**
  * Intersection Observer for scroll-triggered animations
  */
-export function createScrollObserver(
-  options: IntersectionObserverInit = {}
-): IntersectionObserver {
+export function createScrollObserver(options: IntersectionObserverInit = {}): IntersectionObserver {
   const defaultOptions: IntersectionObserverInit = {
     root: null,
-    rootMargin: '0px 0px -10% 0px',
+    rootMargin: "0px 0px -10% 0px",
     threshold: 0.1,
     ...options,
   };
@@ -454,7 +470,7 @@ export function createScrollObserver(
   return new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
-        entry.target.classList.add('is-visible');
+        entry.target.classList.add("is-visible");
       }
     });
   }, defaultOptions);
@@ -464,7 +480,7 @@ export function createScrollObserver(
  * Parallax scroll effect
  */
 export function initParallax(container: HTMLElement): () => void {
-  const layers = container.querySelectorAll<HTMLElement>('.parallax-layer');
+  const layers = container.querySelectorAll<HTMLElement>(".parallax-layer");
 
   function updateParallax() {
     const scrollY = window.scrollY;
@@ -474,17 +490,17 @@ export function initParallax(container: HTMLElement): () => void {
 
     layers.forEach((layer) => {
       const speed = parseFloat(
-        getComputedStyle(layer).getPropertyValue('--parallax-speed') || '0.5'
+        getComputedStyle(layer).getPropertyValue("--parallax-speed") || "0.5",
       );
       const yOffset = relativeScroll * speed;
       layer.style.transform = `translateY(${yOffset}px)`;
     });
   }
 
-  window.addEventListener('scroll', updateParallax, { passive: true });
+  window.addEventListener("scroll", updateParallax, { passive: true });
   updateParallax();
 
-  return () => window.removeEventListener('scroll', updateParallax);
+  return () => window.removeEventListener("scroll", updateParallax);
 }
 
 /**
@@ -520,11 +536,11 @@ export class TextRotator {
   }
 
   private animate(): void {
-    this.element.style.animation = 'textRotateOut 0.4s ease-in forwards';
+    this.element.style.animation = "textRotateOut 0.4s ease-in forwards";
 
     setTimeout(() => {
       this.render();
-      this.element.style.animation = 'textRotateIn 0.4s ease-out forwards';
+      this.element.style.animation = "textRotateIn 0.4s ease-out forwards";
     }, 400);
   }
 
@@ -537,14 +553,12 @@ export class TextRotator {
  * Smooth scroll to anchor
  */
 export function smoothScrollTo(target: string | HTMLElement): void {
-  const element = typeof target === 'string'
-    ? document.querySelector(target)
-    : target;
+  const element = typeof target === "string" ? document.querySelector(target) : target;
 
   if (element) {
     element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
+      behavior: "smooth",
+      block: "start",
     });
   }
 }
@@ -555,7 +569,7 @@ export function smoothScrollTo(target: string | HTMLElement): void {
 export function staggerAnimation(
   elements: NodeListOf<Element> | Element[],
   animationClass: string,
-  staggerMs = 100
+  staggerMs = 100,
 ): void {
   Array.from(elements).forEach((el, index) => {
     setTimeout(() => {
@@ -604,15 +618,15 @@ export function staggerAnimation(
 ```typescript
 // ui/src/ui/landing/sections/hero-section.ts
 
-import { html, css, LitElement, TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { TextRotator, initParallax } from '../animation-utils';
+import { html, css, LitElement, TemplateResult } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import { TextRotator, initParallax } from "../animation-utils";
 
 interface FloatingCard {
   id: string;
   icon: string;
   label: string;
-  status: 'active' | 'complete' | 'pending';
+  status: "active" | "complete" | "pending";
   position: {
     top?: string;
     bottom?: string;
@@ -625,51 +639,46 @@ interface FloatingCard {
 
 const FLOATING_CARDS: FloatingCard[] = [
   {
-    id: 'research',
-    icon: '🔍',
-    label: 'Researching...',
-    status: 'active',
-    position: { top: '15%', left: '8%' },
+    id: "research",
+    icon: "🔍",
+    label: "Researching...",
+    status: "active",
+    position: { top: "15%", left: "8%" },
     rotation: -3,
     parallaxSpeed: 0.3,
   },
   {
-    id: 'building',
-    icon: '🔨',
-    label: 'Building...',
-    status: 'active',
-    position: { top: '20%', right: '10%' },
+    id: "building",
+    icon: "🔨",
+    label: "Building...",
+    status: "active",
+    position: { top: "20%", right: "10%" },
     rotation: 4,
     parallaxSpeed: 0.5,
   },
   {
-    id: 'learning',
-    icon: '🧠',
-    label: 'Learning...',
-    status: 'active',
-    position: { bottom: '25%', left: '12%' },
+    id: "learning",
+    icon: "🧠",
+    label: "Learning...",
+    status: "active",
+    position: { bottom: "25%", left: "12%" },
     rotation: 2,
     parallaxSpeed: 0.4,
   },
   {
-    id: 'delivering',
-    icon: '✨',
-    label: 'Ready!',
-    status: 'complete',
-    position: { bottom: '20%', right: '8%' },
+    id: "delivering",
+    icon: "✨",
+    label: "Ready!",
+    status: "complete",
+    position: { bottom: "20%", right: "8%" },
     rotation: -2,
     parallaxSpeed: 0.6,
   },
 ];
 
-const ROTATING_TEXTS = [
-  'Automatically.',
-  'While you sleep.',
-  'Before you ask.',
-  'On your behalf.',
-];
+const ROTATING_TEXTS = ["Automatically.", "While you sleep.", "Before you ask.", "On your behalf."];
 
-@customElement('landing-hero')
+@customElement("landing-hero")
 export class LandingHero extends LitElement {
   static styles = css`
     :host {
@@ -690,7 +699,7 @@ export class LandingHero extends LitElement {
     }
 
     .hero-background::before {
-      content: '';
+      content: "";
       position: absolute;
       inset: 0;
       background: var(--landing-gradient-hero);
@@ -710,10 +719,19 @@ export class LandingHero extends LitElement {
     }
 
     @keyframes meshMove {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      25% { transform: translate(2%, -2%) scale(1.02); }
-      50% { transform: translate(-1%, 1%) scale(0.98); }
-      75% { transform: translate(1%, 2%) scale(1.01); }
+      0%,
+      100% {
+        transform: translate(0, 0) scale(1);
+      }
+      25% {
+        transform: translate(2%, -2%) scale(1.02);
+      }
+      50% {
+        transform: translate(-1%, 1%) scale(0.98);
+      }
+      75% {
+        transform: translate(1%, 2%) scale(1.01);
+      }
     }
 
     /* Content container */
@@ -795,7 +813,9 @@ export class LandingHero extends LitElement {
 
     .cta-primary:hover {
       transform: translateY(-2px);
-      box-shadow: var(--landing-shadow-lg), 0 0 60px rgba(99, 102, 241, 0.4);
+      box-shadow:
+        var(--landing-shadow-lg),
+        0 0 60px rgba(99, 102, 241, 0.4);
     }
 
     .cta-secondary {
@@ -918,13 +938,9 @@ export class LandingHero extends LitElement {
     this.parallaxCleanup = initParallax(this.renderRoot as HTMLElement);
 
     // Initialize text rotation
-    const rotatingEl = this.renderRoot.querySelector('.hero-rotating-text');
+    const rotatingEl = this.renderRoot.querySelector(".hero-rotating-text");
     if (rotatingEl) {
-      this.textRotator = new TextRotator(
-        rotatingEl as HTMLElement,
-        ROTATING_TEXTS,
-        3000
-      );
+      this.textRotator = new TextRotator(rotatingEl as HTMLElement, ROTATING_TEXTS, 3000);
       this.textRotator.start();
     }
   }
@@ -937,20 +953,17 @@ export class LandingHero extends LitElement {
 
   private renderFloatingCard(card: FloatingCard, index: number): TemplateResult {
     const style = `
-      top: ${card.position.top || 'auto'};
-      bottom: ${card.position.bottom || 'auto'};
-      left: ${card.position.left || 'auto'};
-      right: ${card.position.right || 'auto'};
+      top: ${card.position.top || "auto"};
+      bottom: ${card.position.bottom || "auto"};
+      left: ${card.position.left || "auto"};
+      right: ${card.position.right || "auto"};
       transform: rotate(${card.rotation}deg);
       --parallax-speed: ${card.parallaxSpeed};
       animation-delay: ${0.8 + index * 0.15}s;
     `;
 
     return html`
-      <div
-        class="floating-card parallax-layer"
-        style=${style}
-      >
+      <div class="floating-card parallax-layer" style=${style}>
         <div class="floating-card-content">
           <span class="floating-card-icon">${card.icon}</span>
           <span class="floating-card-label">${card.label}</span>
@@ -969,31 +982,31 @@ export class LandingHero extends LitElement {
         ${FLOATING_CARDS.map((card, i) => this.renderFloatingCard(card, i))}
 
         <div class="hero-content">
-          <h1 class="hero-headline">
-            Turn your ideas into reality.
-          </h1>
+          <h1 class="hero-headline">Turn your ideas into reality.</h1>
           <div class="hero-headline hero-rotating">
             <span class="hero-rotating-text">${ROTATING_TEXTS[0]}</span>
           </div>
 
           <p class="hero-subheadline">
-            An AI that works for you — researching, building, and delivering
-            while you focus on what matters most.
+            An AI that works for you — researching, building, and delivering while you focus on what
+            matters most.
           </p>
 
           <div class="hero-ctas">
-            <button class="cta-primary" @click=${this.handleGetStarted}>
-              Get Started
-            </button>
-            <button class="cta-secondary" @click=${this.handleLearnMore}>
-              See How It Works
-            </button>
+            <button class="cta-primary" @click=${this.handleGetStarted}>Get Started</button>
+            <button class="cta-secondary" @click=${this.handleLearnMore}>See How It Works</button>
           </div>
         </div>
 
         <div class="scroll-indicator">
-          <svg class="scroll-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
+          <svg
+            class="scroll-arrow"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
           </svg>
         </div>
       </section>
@@ -1001,18 +1014,18 @@ export class LandingHero extends LitElement {
   }
 
   private handleGetStarted(): void {
-    this.dispatchEvent(new CustomEvent('get-started', { bubbles: true, composed: true }));
+    this.dispatchEvent(new CustomEvent("get-started", { bubbles: true, composed: true }));
   }
 
   private handleLearnMore(): void {
-    const target = document.querySelector('#understanding-section');
-    target?.scrollIntoView({ behavior: 'smooth' });
+    const target = document.querySelector("#understanding-section");
+    target?.scrollIntoView({ behavior: "smooth" });
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'landing-hero': LandingHero;
+    "landing-hero": LandingHero;
   }
 }
 ```
@@ -1055,13 +1068,13 @@ declare global {
 ```typescript
 // ui/src/ui/landing/sections/understanding-section.ts
 
-import { html, css, LitElement, TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { createScrollObserver } from '../animation-utils';
+import { html, css, LitElement, TemplateResult } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import { createScrollObserver } from "../animation-utils";
 
 interface ProfileTile {
   id: string;
-  type: 'interest' | 'strength' | 'weakness' | 'goal' | 'mood';
+  type: "interest" | "strength" | "weakness" | "goal" | "mood";
   icon: string;
   label: string;
   color: string;
@@ -1069,17 +1082,38 @@ interface ProfileTile {
 }
 
 const PROFILE_TILES: ProfileTile[] = [
-  { id: 'interest-1', type: 'interest', icon: '💡', label: 'Innovation', color: 'amber', delay: 0 },
-  { id: 'interest-2', type: 'interest', icon: '🎨', label: 'Design', color: 'coral', delay: 100 },
-  { id: 'interest-3', type: 'interest', icon: '📚', label: 'Learning', color: 'teal', delay: 200 },
-  { id: 'strength-1', type: 'strength', icon: '⚡', label: 'Quick learner', color: 'amber', delay: 300 },
-  { id: 'strength-2', type: 'strength', icon: '🎯', label: 'Detail-oriented', color: 'lavender', delay: 400 },
-  { id: 'goal-1', type: 'goal', icon: '🚀', label: 'Launch a product', color: 'primary', delay: 500 },
-  { id: 'goal-2', type: 'goal', icon: '📈', label: 'Grow audience', color: 'teal', delay: 600 },
-  { id: 'mood', type: 'mood', icon: '🧘', label: 'Focused & calm', color: 'lavender', delay: 700 },
+  { id: "interest-1", type: "interest", icon: "💡", label: "Innovation", color: "amber", delay: 0 },
+  { id: "interest-2", type: "interest", icon: "🎨", label: "Design", color: "coral", delay: 100 },
+  { id: "interest-3", type: "interest", icon: "📚", label: "Learning", color: "teal", delay: 200 },
+  {
+    id: "strength-1",
+    type: "strength",
+    icon: "⚡",
+    label: "Quick learner",
+    color: "amber",
+    delay: 300,
+  },
+  {
+    id: "strength-2",
+    type: "strength",
+    icon: "🎯",
+    label: "Detail-oriented",
+    color: "lavender",
+    delay: 400,
+  },
+  {
+    id: "goal-1",
+    type: "goal",
+    icon: "🚀",
+    label: "Launch a product",
+    color: "primary",
+    delay: 500,
+  },
+  { id: "goal-2", type: "goal", icon: "📈", label: "Grow audience", color: "teal", delay: 600 },
+  { id: "mood", type: "mood", icon: "🧘", label: "Focused & calm", color: "lavender", delay: 700 },
 ];
 
-@customElement('landing-understanding')
+@customElement("landing-understanding")
 export class LandingUnderstanding extends LitElement {
   static styles = css`
     :host {
@@ -1163,7 +1197,7 @@ export class LandingUnderstanding extends LitElement {
     }
 
     .profile-card::before {
-      content: '';
+      content: "";
       position: absolute;
       inset: -1px;
       border-radius: 24px;
@@ -1319,13 +1353,13 @@ export class LandingUnderstanding extends LitElement {
   firstUpdated(): void {
     this.observer = createScrollObserver({ threshold: 0.3 });
 
-    const textColumn = this.renderRoot.querySelector('.text-column');
+    const textColumn = this.renderRoot.querySelector(".text-column");
     if (textColumn) {
       this.observer.observe(textColumn);
     }
 
     // Observe profile card for tile animations
-    const profileCard = this.renderRoot.querySelector('.profile-card');
+    const profileCard = this.renderRoot.querySelector(".profile-card");
     if (profileCard) {
       const tileObserver = new IntersectionObserver(
         (entries) => {
@@ -1336,7 +1370,7 @@ export class LandingUnderstanding extends LitElement {
             }
           });
         },
-        { threshold: 0.2 }
+        { threshold: 0.2 },
       );
       tileObserver.observe(profileCard);
     }
@@ -1348,7 +1382,7 @@ export class LandingUnderstanding extends LitElement {
   }
 
   private renderTile(tile: ProfileTile): TemplateResult {
-    const visibleClass = this.tilesVisible ? 'is-visible' : '';
+    const visibleClass = this.tilesVisible ? "is-visible" : "";
 
     return html`
       <div
@@ -1362,29 +1396,23 @@ export class LandingUnderstanding extends LitElement {
   }
 
   render(): TemplateResult {
-    const interests = PROFILE_TILES.filter(t => t.type === 'interest');
-    const strengths = PROFILE_TILES.filter(t => t.type === 'strength');
-    const goals = PROFILE_TILES.filter(t => t.type === 'goal');
-    const mood = PROFILE_TILES.filter(t => t.type === 'mood');
+    const interests = PROFILE_TILES.filter((t) => t.type === "interest");
+    const strengths = PROFILE_TILES.filter((t) => t.type === "strength");
+    const goals = PROFILE_TILES.filter((t) => t.type === "goal");
+    const mood = PROFILE_TILES.filter((t) => t.type === "mood");
 
     return html`
       <section id="understanding-section">
         <div class="section-container">
           <div class="text-column animate-on-scroll">
             <span class="section-label">Personalization</span>
-            <h2 class="section-headline">
-              An AI that truly understands you.
-            </h2>
+            <h2 class="section-headline">An AI that truly understands you.</h2>
+            <p class="section-body">Not just what you ask — but what you <strong>need</strong>.</p>
             <p class="section-body">
-              Not just what you ask — but what you <strong>need</strong>.
+              Your interests. Your strengths. Your stressors. What lights you up and what holds you
+              back.
             </p>
-            <p class="section-body">
-              Your interests. Your strengths. Your stressors.
-              What lights you up and what holds you back.
-            </p>
-            <p class="section-footnote">
-              The more you share, the more it anticipates.
-            </p>
+            <p class="section-footnote">The more you share, the more it anticipates.</p>
           </div>
 
           <div class="profile-column">
@@ -1400,30 +1428,22 @@ export class LandingUnderstanding extends LitElement {
               <div class="tile-section">
                 <span class="tile-section-label">Interests</span>
               </div>
-              <div class="tiles-container">
-                ${interests.map(t => this.renderTile(t))}
-              </div>
+              <div class="tiles-container">${interests.map((t) => this.renderTile(t))}</div>
 
               <div class="tile-section">
                 <span class="tile-section-label">Strengths</span>
               </div>
-              <div class="tiles-container">
-                ${strengths.map(t => this.renderTile(t))}
-              </div>
+              <div class="tiles-container">${strengths.map((t) => this.renderTile(t))}</div>
 
               <div class="tile-section">
                 <span class="tile-section-label">Goals</span>
               </div>
-              <div class="tiles-container">
-                ${goals.map(t => this.renderTile(t))}
-              </div>
+              <div class="tiles-container">${goals.map((t) => this.renderTile(t))}</div>
 
               <div class="tile-section">
                 <span class="tile-section-label">Current State</span>
               </div>
-              <div class="tiles-container">
-                ${mood.map(t => this.renderTile(t))}
-              </div>
+              <div class="tiles-container">${mood.map((t) => this.renderTile(t))}</div>
             </div>
           </div>
         </div>
@@ -1434,7 +1454,7 @@ export class LandingUnderstanding extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'landing-understanding': LandingUnderstanding;
+    "landing-understanding": LandingUnderstanding;
   }
 }
 ```
@@ -1448,8 +1468,8 @@ declare global {
 ```typescript
 // ui/src/ui/landing/sections/activity-section.ts
 
-import { html, css, LitElement, TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { html, css, LitElement, TemplateResult } from "lit";
+import { customElement, state } from "lit/decorators.js";
 
 interface ActivityEvent {
   id: string;
@@ -1457,51 +1477,51 @@ interface ActivityEvent {
   icon: string;
   title: string;
   description: string;
-  status: 'complete' | 'active';
+  status: "complete" | "active";
 }
 
 const ACTIVITY_EVENTS: ActivityEvent[] = [
   {
-    id: '1',
-    time: '3:42 AM',
-    icon: '🔍',
-    title: 'Research completed',
-    description: 'Analyzed 47 competitor products',
-    status: 'complete',
+    id: "1",
+    time: "3:42 AM",
+    icon: "🔍",
+    title: "Research completed",
+    description: "Analyzed 47 competitor products",
+    status: "complete",
   },
   {
-    id: '2',
-    time: '6:15 AM',
-    icon: '📝',
-    title: 'Drafted proposal',
-    description: 'Business plan ready for review',
-    status: 'complete',
+    id: "2",
+    time: "6:15 AM",
+    icon: "📝",
+    title: "Drafted proposal",
+    description: "Business plan ready for review",
+    status: "complete",
   },
   {
-    id: '3',
-    time: '9:30 AM',
-    icon: '🎯',
-    title: 'Found 3 leads',
-    description: 'Matching your criteria',
-    status: 'complete',
+    id: "3",
+    time: "9:30 AM",
+    icon: "🎯",
+    title: "Found 3 leads",
+    description: "Matching your criteria",
+    status: "complete",
   },
   {
-    id: '4',
-    time: 'Now',
-    icon: '✨',
-    title: 'Ready for review',
-    description: 'Awaiting your approval',
-    status: 'active',
+    id: "4",
+    time: "Now",
+    icon: "✨",
+    title: "Ready for review",
+    description: "Awaiting your approval",
+    status: "active",
   },
 ];
 
 const FEATURE_CALLOUTS = [
-  { icon: '🌙', title: 'Researches while you rest' },
-  { icon: '💭', title: 'Drafts while you dream' },
-  { icon: '☀️', title: 'Delivers when you wake' },
+  { icon: "🌙", title: "Researches while you rest" },
+  { icon: "💭", title: "Drafts while you dream" },
+  { icon: "☀️", title: "Delivers when you wake" },
 ];
 
-@customElement('landing-activity')
+@customElement("landing-activity")
 export class LandingActivity extends LitElement {
   static styles = css`
     :host {
@@ -1561,7 +1581,7 @@ export class LandingActivity extends LitElement {
 
     /* Timeline line */
     .timeline::before {
-      content: '';
+      content: "";
       position: absolute;
       top: 50%;
       left: 0;
@@ -1756,21 +1776,18 @@ export class LandingActivity extends LitElement {
           }
         });
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     observer.observe(this);
   }
 
   private renderEvent(event: ActivityEvent, index: number): TemplateResult {
-    const visibleClass = this.isVisible ? 'is-visible' : '';
+    const visibleClass = this.isVisible ? "is-visible" : "";
     const delay = index * 200;
 
     return html`
-      <div
-        class="timeline-event ${visibleClass}"
-        style="transition-delay: ${delay}ms"
-      >
+      <div class="timeline-event ${visibleClass}" style="transition-delay: ${delay}ms">
         <div class="event-card ${event.status}">
           <div class="event-time">${event.time}</div>
           <div class="event-icon">${event.icon}</div>
@@ -1783,7 +1800,7 @@ export class LandingActivity extends LitElement {
   }
 
   render(): TemplateResult {
-    const visibleClass = this.isVisible ? 'is-visible' : '';
+    const visibleClass = this.isVisible ? "is-visible" : "";
 
     return html`
       <section id="activity-section">
@@ -1800,15 +1817,14 @@ export class LandingActivity extends LitElement {
           </div>
 
           <div class="callouts">
-            ${FEATURE_CALLOUTS.map((callout, i) => html`
-              <div
-                class="callout ${visibleClass}"
-                style="transition-delay: ${800 + i * 150}ms"
-              >
-                <div class="callout-icon">${callout.icon}</div>
-                <div class="callout-title">${callout.title}</div>
-              </div>
-            `)}
+            ${FEATURE_CALLOUTS.map(
+              (callout, i) => html`
+                <div class="callout ${visibleClass}" style="transition-delay: ${800 + i * 150}ms">
+                  <div class="callout-icon">${callout.icon}</div>
+                  <div class="callout-title">${callout.title}</div>
+                </div>
+              `,
+            )}
           </div>
         </div>
       </section>
@@ -1818,7 +1834,7 @@ export class LandingActivity extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'landing-activity': LandingActivity;
+    "landing-activity": LandingActivity;
   }
 }
 ```
@@ -1832,29 +1848,29 @@ declare global {
 ```typescript
 // ui/src/ui/landing/sections/control-section.ts
 
-import { html, css, LitElement, TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { html, css, LitElement, TemplateResult } from "lit";
+import { customElement, state } from "lit/decorators.js";
 
 interface Agent {
   id: string;
   name: string;
-  status: 'running' | 'paused' | 'pending';
+  status: "running" | "paused" | "pending";
   icon: string;
 }
 
 const MOCK_AGENTS: Agent[] = [
-  { id: '1', name: 'Research Agent', status: 'running', icon: '🔍' },
-  { id: '2', name: 'Content Agent', status: 'paused', icon: '📝' },
-  { id: '3', name: 'Outreach Agent', status: 'running', icon: '📤' },
+  { id: "1", name: "Research Agent", status: "running", icon: "🔍" },
+  { id: "2", name: "Content Agent", status: "paused", icon: "📝" },
+  { id: "3", name: "Outreach Agent", status: "running", icon: "📤" },
 ];
 
 const TRUST_SIGNALS = [
-  { icon: '🔒', label: 'End-to-end encrypted' },
-  { icon: '👁', label: 'Full activity logs' },
-  { icon: '✋', label: 'Approval for sensitive actions' },
+  { icon: "🔒", label: "End-to-end encrypted" },
+  { icon: "👁", label: "Full activity logs" },
+  { icon: "✋", label: "Approval for sensitive actions" },
 ];
 
-@customElement('landing-control')
+@customElement("landing-control")
 export class LandingControl extends LitElement {
   static styles = css`
     :host {
@@ -2147,15 +2163,15 @@ export class LandingControl extends LitElement {
           }
         });
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     observer.observe(this);
   }
 
   private renderAgent(agent: Agent): TemplateResult {
-    const statusLabel = agent.status === 'running' ? 'Running' : 'Paused';
-    const actionLabel = agent.status === 'running' ? 'View' : 'Resume';
+    const statusLabel = agent.status === "running" ? "Running" : "Paused";
+    const actionLabel = agent.status === "running" ? "View" : "Resume";
 
     return html`
       <div class="agent-card">
@@ -2169,16 +2185,14 @@ export class LandingControl extends LitElement {
         </div>
         <div class="agent-actions">
           <button class="agent-action">${actionLabel}</button>
-          ${agent.status === 'running' ? html`
-            <button class="agent-action">Stop</button>
-          ` : ''}
+          ${agent.status === "running" ? html` <button class="agent-action">Stop</button> ` : ""}
         </div>
       </div>
     `;
   }
 
   render(): TemplateResult {
-    const visibleClass = this.isVisible ? 'is-visible' : '';
+    const visibleClass = this.isVisible ? "is-visible" : "";
 
     return html`
       <section id="control-section">
@@ -2201,14 +2215,20 @@ export class LandingControl extends LitElement {
             </div>
 
             <div class="dashboard-body">
-              <div class="agents-grid">
-                ${MOCK_AGENTS.map(agent => this.renderAgent(agent))}
-              </div>
+              <div class="agents-grid">${MOCK_AGENTS.map((agent) => this.renderAgent(agent))}</div>
 
               <div class="guardrail-row">
                 <div class="guardrail-content">
-                  <svg class="guardrail-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <svg
+                    class="guardrail-icon"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
                   <span class="guardrail-label">
                     <strong>Guardrail:</strong> "Never send without approval"
@@ -2220,15 +2240,17 @@ export class LandingControl extends LitElement {
           </div>
 
           <div class="trust-signals">
-            ${TRUST_SIGNALS.map((signal, i) => html`
-              <div
-                class="trust-signal ${visibleClass}"
-                style="transition-delay: ${300 + i * 150}ms"
-              >
-                <span class="trust-signal-icon">${signal.icon}</span>
-                <span>${signal.label}</span>
-              </div>
-            `)}
+            ${TRUST_SIGNALS.map(
+              (signal, i) => html`
+                <div
+                  class="trust-signal ${visibleClass}"
+                  style="transition-delay: ${300 + i * 150}ms"
+                >
+                  <span class="trust-signal-icon">${signal.icon}</span>
+                  <span>${signal.label}</span>
+                </div>
+              `,
+            )}
           </div>
         </div>
       </section>
@@ -2238,7 +2260,7 @@ export class LandingControl extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'landing-control': LandingControl;
+    "landing-control": LandingControl;
   }
 }
 ```
@@ -2252,65 +2274,66 @@ declare global {
 ```typescript
 // ui/src/ui/landing/sections/features-section.ts
 
-import { html, css, LitElement, TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { html, css, LitElement, TemplateResult } from "lit";
+import { customElement, state } from "lit/decorators.js";
 
 interface Feature {
   id: string;
   icon: string;
   title: string;
   description: string;
-  size: 'large' | 'medium' | 'small';
+  size: "large" | "medium" | "small";
   accent?: string;
 }
 
 const FEATURES: Feature[] = [
   {
-    id: 'idea-development',
-    icon: '💡',
-    title: 'Idea Development',
-    description: 'From napkin sketch to actionable plan. Your concepts get researched, structured, and refined into something real.',
-    size: 'large',
-    accent: 'primary',
+    id: "idea-development",
+    icon: "💡",
+    title: "Idea Development",
+    description:
+      "From napkin sketch to actionable plan. Your concepts get researched, structured, and refined into something real.",
+    size: "large",
+    accent: "primary",
   },
   {
-    id: 'research',
-    icon: '🔍',
-    title: 'Research & Discovery',
-    description: 'Explores topics deeply so you don\'t have to.',
-    size: 'medium',
+    id: "research",
+    icon: "🔍",
+    title: "Research & Discovery",
+    description: "Explores topics deeply so you don't have to.",
+    size: "medium",
   },
   {
-    id: 'automation',
-    icon: '⚙️',
-    title: 'Task Automation',
-    description: 'Handles operational busywork automatically.',
-    size: 'medium',
+    id: "automation",
+    icon: "⚙️",
+    title: "Task Automation",
+    description: "Handles operational busywork automatically.",
+    size: "medium",
   },
   {
-    id: 'learning',
-    icon: '📈',
-    title: 'Learning & Growth',
-    description: 'Surfaces insights tailored to your goals.',
-    size: 'small',
+    id: "learning",
+    icon: "📈",
+    title: "Learning & Growth",
+    description: "Surfaces insights tailored to your goals.",
+    size: "small",
   },
   {
-    id: 'content',
-    icon: '✍️',
-    title: 'Content Creation',
-    description: 'Drafts, iterates, and refines on your behalf.',
-    size: 'small',
+    id: "content",
+    icon: "✍️",
+    title: "Content Creation",
+    description: "Drafts, iterates, and refines on your behalf.",
+    size: "small",
   },
   {
-    id: 'integrations',
-    icon: '🔗',
-    title: 'External Integrations',
-    description: 'Connects to your existing tools and workflows.',
-    size: 'small',
+    id: "integrations",
+    icon: "🔗",
+    title: "External Integrations",
+    description: "Connects to your existing tools and workflows.",
+    size: "small",
   },
 ];
 
-@customElement('landing-features')
+@customElement("landing-features")
 export class LandingFeatures extends LitElement {
   static styles = css`
     :host {
@@ -2380,7 +2403,7 @@ export class LandingFeatures extends LitElement {
     }
 
     .feature-card::before {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: 0;
@@ -2493,15 +2516,15 @@ export class LandingFeatures extends LitElement {
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(this);
   }
 
   private renderFeatureCard(feature: Feature, index: number): TemplateResult {
-    const visibleClass = this.isVisible ? 'is-visible' : '';
-    const accentClass = feature.accent ? `accent-${feature.accent}` : '';
+    const visibleClass = this.isVisible ? "is-visible" : "";
+    const accentClass = feature.accent ? `accent-${feature.accent}` : "";
     const delay = index * 100;
 
     return html`
@@ -2536,7 +2559,7 @@ export class LandingFeatures extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'landing-features': LandingFeatures;
+    "landing-features": LandingFeatures;
   }
 }
 ```
@@ -2550,8 +2573,8 @@ declare global {
 ```typescript
 // ui/src/ui/landing/sections/social-proof-section.ts
 
-import { html, css, LitElement, TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { html, css, LitElement, TemplateResult } from "lit";
+import { customElement, state } from "lit/decorators.js";
 
 interface Testimonial {
   id: string;
@@ -2564,38 +2587,37 @@ interface Testimonial {
 
 const TESTIMONIALS: Testimonial[] = [
   {
-    id: '1',
-    quote: 'I had a business idea for years but never knew where to start. Clawdbrain researched the market, drafted a plan, and I launched in 6 weeks.',
-    author: 'Sarah K.',
-    role: 'First-time founder',
-    avatar: 'S',
-    transformation: 'Had an idea → Launched a business',
+    id: "1",
+    quote:
+      "I had a business idea for years but never knew where to start. Clawdbrain researched the market, drafted a plan, and I launched in 6 weeks.",
+    author: "Sarah K.",
+    role: "First-time founder",
+    avatar: "S",
+    transformation: "Had an idea → Launched a business",
   },
   {
-    id: '2',
-    quote: 'It\'s like having a brilliant research assistant that never sleeps. I wake up to insights I never would have found myself.',
-    author: 'Marcus T.',
-    role: 'Content creator',
-    avatar: 'M',
-    transformation: 'Overwhelmed → In control',
+    id: "2",
+    quote:
+      "It's like having a brilliant research assistant that never sleeps. I wake up to insights I never would have found myself.",
+    author: "Marcus T.",
+    role: "Content creator",
+    avatar: "M",
+    transformation: "Overwhelmed → In control",
   },
   {
-    id: '3',
-    quote: 'The proactive suggestions are uncanny. It surfaces opportunities I didn\'t even know existed for my work.',
-    author: 'Elena R.',
-    role: 'Freelance consultant',
-    avatar: 'E',
-    transformation: 'Reactive → Proactive',
+    id: "3",
+    quote:
+      "The proactive suggestions are uncanny. It surfaces opportunities I didn't even know existed for my work.",
+    author: "Elena R.",
+    role: "Freelance consultant",
+    avatar: "E",
+    transformation: "Reactive → Proactive",
   },
 ];
 
-const TRUST_BADGES = [
-  'No credit card required',
-  'Cancel anytime',
-  'Setup in 5 minutes',
-];
+const TRUST_BADGES = ["No credit card required", "Cancel anytime", "Setup in 5 minutes"];
 
-@customElement('landing-social-proof')
+@customElement("landing-social-proof")
 export class LandingSocialProof extends LitElement {
   static styles = css`
     :host {
@@ -2774,7 +2796,9 @@ export class LandingSocialProof extends LitElement {
 
     .cta-primary:hover {
       transform: translateY(-2px);
-      box-shadow: var(--landing-shadow-lg), 0 0 60px rgba(99, 102, 241, 0.4);
+      box-shadow:
+        var(--landing-shadow-lg),
+        0 0 60px rgba(99, 102, 241, 0.4);
     }
 
     .cta-secondary {
@@ -2853,26 +2877,23 @@ export class LandingSocialProof extends LitElement {
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(this);
   }
 
   private renderTestimonial(testimonial: Testimonial, index: number): TemplateResult {
-    const visibleClass = this.isVisible ? 'is-visible' : '';
+    const visibleClass = this.isVisible ? "is-visible" : "";
     const delay = index * 150;
 
     return html`
-      <div
-        class="testimonial-card ${visibleClass}"
-        style="transition-delay: ${delay}ms"
-      >
+      <div class="testimonial-card ${visibleClass}" style="transition-delay: ${delay}ms">
         <div class="quote-mark">"</div>
         <p class="testimonial-quote">${testimonial.quote}</p>
-        ${testimonial.transformation ? html`
-          <div class="testimonial-transformation">${testimonial.transformation}</div>
-        ` : ''}
+        ${testimonial.transformation
+          ? html` <div class="testimonial-transformation">${testimonial.transformation}</div> `
+          : ""}
         <div class="testimonial-author">
           <div class="author-avatar">${testimonial.avatar}</div>
           <div class="author-info">
@@ -2908,23 +2929,27 @@ export class LandingSocialProof extends LitElement {
             <p class="cta-subheadline">Start building your second brain today.</p>
 
             <div class="cta-buttons">
-              <button class="cta-primary" @click=${this.handleGetStarted}>
-                Get Started Free
-              </button>
-              <button class="cta-secondary" @click=${this.handleDemo}>
-                Book a Demo
-              </button>
+              <button class="cta-primary" @click=${this.handleGetStarted}>Get Started Free</button>
+              <button class="cta-secondary" @click=${this.handleDemo}>Book a Demo</button>
             </div>
 
             <div class="trust-badges">
-              ${TRUST_BADGES.map(badge => html`
-                <div class="trust-badge">
-                  <svg class="trust-badge-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>${badge}</span>
-                </div>
-              `)}
+              ${TRUST_BADGES.map(
+                (badge) => html`
+                  <div class="trust-badge">
+                    <svg
+                      class="trust-badge-check"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>${badge}</span>
+                  </div>
+                `,
+              )}
             </div>
           </div>
         </div>
@@ -2933,17 +2958,17 @@ export class LandingSocialProof extends LitElement {
   }
 
   private handleGetStarted(): void {
-    this.dispatchEvent(new CustomEvent('get-started', { bubbles: true, composed: true }));
+    this.dispatchEvent(new CustomEvent("get-started", { bubbles: true, composed: true }));
   }
 
   private handleDemo(): void {
-    this.dispatchEvent(new CustomEvent('book-demo', { bubbles: true, composed: true }));
+    this.dispatchEvent(new CustomEvent("book-demo", { bubbles: true, composed: true }));
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'landing-social-proof': LandingSocialProof;
+    "landing-social-proof": LandingSocialProof;
   }
 }
 ```
@@ -2957,29 +2982,29 @@ declare global {
 ```typescript
 // ui/src/ui/landing/sections/footer-section.ts
 
-import { html, css, LitElement, TemplateResult } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { html, css, LitElement, TemplateResult } from "lit";
+import { customElement } from "lit/decorators.js";
 
 const NAV_LINKS = [
-  { label: 'Product', href: '#' },
-  { label: 'Pricing', href: '#' },
-  { label: 'Docs', href: '#' },
-  { label: 'Blog', href: '#' },
-  { label: 'Contact', href: '#' },
+  { label: "Product", href: "#" },
+  { label: "Pricing", href: "#" },
+  { label: "Docs", href: "#" },
+  { label: "Blog", href: "#" },
+  { label: "Contact", href: "#" },
 ];
 
 const SOCIAL_LINKS = [
-  { icon: 'twitter', href: '#', label: 'Twitter' },
-  { icon: 'github', href: '#', label: 'GitHub' },
-  { icon: 'discord', href: '#', label: 'Discord' },
+  { icon: "twitter", href: "#", label: "Twitter" },
+  { icon: "github", href: "#", label: "GitHub" },
+  { icon: "discord", href: "#", label: "Discord" },
 ];
 
 const LEGAL_LINKS = [
-  { label: 'Privacy', href: '#' },
-  { label: 'Terms', href: '#' },
+  { label: "Privacy", href: "#" },
+  { label: "Terms", href: "#" },
 ];
 
-@customElement('landing-footer')
+@customElement("landing-footer")
 export class LandingFooter extends LitElement {
   static styles = css`
     :host {
@@ -3109,22 +3134,28 @@ export class LandingFooter extends LitElement {
 
   private renderSocialIcon(icon: string): TemplateResult {
     switch (icon) {
-      case 'twitter':
+      case "twitter":
         return html`
           <svg class="footer-social-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            <path
+              d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+            />
           </svg>
         `;
-      case 'github':
+      case "github":
         return html`
           <svg class="footer-social-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            <path
+              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+            />
           </svg>
         `;
-      case 'discord':
+      case "discord":
         return html`
           <svg class="footer-social-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+            <path
+              d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"
+            />
           </svg>
         `;
       default:
@@ -3139,38 +3170,32 @@ export class LandingFooter extends LitElement {
       <footer>
         <div class="footer-container">
           <div class="footer-main">
-            <a href="/" class="footer-logo">
-              Clawd<span>brain</span>
-            </a>
+            <a href="/" class="footer-logo"> Clawd<span>brain</span> </a>
 
             <nav class="footer-nav">
-              ${NAV_LINKS.map(link => html`
-                <a href=${link.href} class="footer-nav-link">${link.label}</a>
-              `)}
+              ${NAV_LINKS.map(
+                (link) => html` <a href=${link.href} class="footer-nav-link">${link.label}</a> `,
+              )}
             </nav>
 
             <div class="footer-social">
-              ${SOCIAL_LINKS.map(link => html`
-                <a
-                  href=${link.href}
-                  class="footer-social-link"
-                  aria-label=${link.label}
-                >
-                  ${this.renderSocialIcon(link.icon)}
-                </a>
-              `)}
+              ${SOCIAL_LINKS.map(
+                (link) => html`
+                  <a href=${link.href} class="footer-social-link" aria-label=${link.label}>
+                    ${this.renderSocialIcon(link.icon)}
+                  </a>
+                `,
+              )}
             </div>
           </div>
 
           <div class="footer-bottom">
-            <p class="footer-copyright">
-              © ${year} Clawdbrain. All rights reserved.
-            </p>
+            <p class="footer-copyright">© ${year} Clawdbrain. All rights reserved.</p>
 
             <div class="footer-legal">
-              ${LEGAL_LINKS.map(link => html`
-                <a href=${link.href} class="footer-legal-link">${link.label}</a>
-              `)}
+              ${LEGAL_LINKS.map(
+                (link) => html` <a href=${link.href} class="footer-legal-link">${link.label}</a> `,
+              )}
             </div>
           </div>
         </div>
@@ -3181,7 +3206,7 @@ export class LandingFooter extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'landing-footer': LandingFooter;
+    "landing-footer": LandingFooter;
   }
 }
 ```
@@ -3241,29 +3266,34 @@ ui/src/
 ## Implementation Tasks
 
 ### Phase 1: Foundation
+
 1. [ ] Create `ui/src/ui/landing/` directory structure
 2. [ ] Add landing page CSS tokens to `design-system.css`
 3. [ ] Create `landing-animations.css` with keyframes
 4. [ ] Create `animation-utils.ts` with scroll observers & parallax
 
 ### Phase 2: Core Sections
+
 5. [ ] Implement `hero-section.ts` with floating cards & text rotation
 6. [ ] Implement `understanding-section.ts` with profile mosaic
 7. [ ] Implement `activity-section.ts` with animated timeline
 8. [ ] Implement `control-section.ts` with dashboard mockup
 
 ### Phase 3: Feature & Social Proof
+
 9. [ ] Implement `features-section.ts` with bento grid
 10. [ ] Implement `social-proof-section.ts` with testimonials & CTA
 11. [ ] Implement `footer-section.ts`
 
 ### Phase 4: Main Component & Integration
+
 12. [ ] Create main `landing-page.ts` that composes all sections
 13. [ ] Add route/view for landing page in app router
 14. [ ] Test responsive behavior on all breakpoints
 15. [ ] Optimize animations for performance (will-change, GPU acceleration)
 
 ### Phase 5: Polish
+
 16. [ ] Fine-tune animation timing and easing
 17. [ ] Add keyboard navigation and focus states
 18. [ ] Ensure accessibility (ARIA labels, color contrast)

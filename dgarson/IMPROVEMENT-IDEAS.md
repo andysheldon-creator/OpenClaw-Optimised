@@ -30,6 +30,7 @@
 **File**: `ui/src/ui/components/toast.ts`
 
 ### What Exists
+
 - Global `toast()` function
 - Convenience methods: `toast.success()`, `toast.error()`, `toast.warning()`, `toast.info()`
 - Auto-dismiss with configurable duration (default 5s)
@@ -40,32 +41,32 @@
 
 ### ✅ COMPLETED: Wire Up Copy Operations
 
-| File | Status |
-|------|--------|
-| `views/sessions.ts` | ✅ `toast.success("Session key copied")` |
-| `views/logs.ts` | ✅ `toast.success("Log entry copied")` |
-| `views/config.ts` | ✅ `toast.success("Copied to clipboard")` |
-| `views/debug.ts` | ✅ `toast.success("Response copied")` |
+| File                       | Status                                                                  |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `views/sessions.ts`        | ✅ `toast.success("Session key copied")`                                |
+| `views/logs.ts`            | ✅ `toast.success("Log entry copied")`                                  |
+| `views/config.ts`          | ✅ `toast.success("Copied to clipboard")`                               |
+| `views/debug.ts`           | ✅ `toast.success("Response copied")`                                   |
 | `chat/copy-as-markdown.ts` | ✅ `toast.success("Copied as markdown")` / `toast.error("Copy failed")` |
 
 ### ✅ COMPLETED: WebSocket Connection Toasts
 
-| Event | Status |
-|-------|--------|
-| Connected | ✅ `toast.success("Connected to gateway")` |
+| Event        | Status                                          |
+| ------------ | ----------------------------------------------- |
+| Connected    | ✅ `toast.success("Connected to gateway")`      |
 | Disconnected | ✅ `toast.warning("Disconnected from gateway")` |
 
 ### ✅ COMPLETED: Add Toasts for Operations
 
-| Operation | Status |
-|-----------|--------|
-| Config save success | ✅ `toast.success("Configuration saved")` |
-| Config save failure | ✅ `toast.error("Failed to save configuration")` |
-| Config apply success | ✅ `toast.success("Configuration applied")` |
-| Config apply failure | ✅ `toast.error("Failed to apply configuration")` |
-| Session deletion success | ✅ `toast.success("Session deleted")` |
-| Session deletion failure | ✅ `toast.error("Failed to delete session")` |
-| Log export complete | ✅ `toast.success("Logs exported (N entries)")` |
+| Operation                | Status                                            |
+| ------------------------ | ------------------------------------------------- |
+| Config save success      | ✅ `toast.success("Configuration saved")`         |
+| Config save failure      | ✅ `toast.error("Failed to save configuration")`  |
+| Config apply success     | ✅ `toast.success("Configuration applied")`       |
+| Config apply failure     | ✅ `toast.error("Failed to apply configuration")` |
+| Session deletion success | ✅ `toast.success("Session deleted")`             |
+| Session deletion failure | ✅ `toast.error("Failed to delete session")`      |
+| Log export complete      | ✅ `toast.success("Logs exported (N entries)")`   |
 
 ### ✅ COMPLETED: Add Toasts for Remaining Operations
 
@@ -82,6 +83,7 @@
 Current: Bottom-right only
 
 Suggested additions:
+
 - [ ] Add position prop: `top-right`, `top-center`, `bottom-center`
 - [ ] Add `toast.promise()` for async operations with loading/success/error states
 
@@ -96,12 +98,13 @@ Suggested additions:
 **File**: `ui/src/ui/components/confirm-dialog.ts`
 
 API implemented:
+
 ```typescript
 type ConfirmDialogOptions = {
   title: string;
   message: string | TemplateResult;
-  confirmText?: string;  // default: "Confirm"
-  cancelText?: string;   // default: "Cancel"
+  confirmText?: string; // default: "Confirm"
+  cancelText?: string; // default: "Cancel"
   variant?: "default" | "danger";
 };
 
@@ -110,6 +113,7 @@ function showDangerConfirmDialog(title, message, confirmText?): Promise<boolean>
 ```
 
 Features:
+
 - ✅ Promise-based API (returns true/false)
 - ✅ Danger variant for destructive actions
 - ✅ Keyboard support (Escape to cancel, Enter to confirm)
@@ -119,6 +123,7 @@ Features:
 ### ✅ COMPLETED: Wire ConfirmDialog to Existing Usages
 
 Replace `window.confirm()` calls:
+
 - ✅ `controllers/sessions.ts` - Delete session confirmation
 - ✅ `controllers/devices.ts` - Reject device pairing
 - ✅ `controllers/devices.ts` - Revoke device token
@@ -142,19 +147,23 @@ Replace `window.confirm()` calls:
 ### Current Commands (14 base + context-aware per tab + 3 system)
 
 Navigation (11):
+
 - Go to Chat, Overview, Channels, Sessions, Instances, Cron, Skills, Nodes, Config, Debug, Logs
 
 Actions (3):
+
 - Refresh Current View
 - New Chat Session
 - Toggle Theme
 
 System (3):
+
 - Keyboard Shortcuts
 - Open Documentation
 - Copy Gateway URL
 
 Context-Aware (per tab):
+
 - Chat: New Session, Clear History, Abort Response
 - Sessions: Refresh Sessions
 - Channels: Refresh Channels
@@ -172,12 +181,14 @@ Context-Aware (per tab):
 ### Improvement: Add Domain-Specific Commands
 
 **Chat Commands**:
+
 - [ ] `Send message` - Cmd+Enter
 - [ ] `Clear input` - Escape
 - [ ] `Focus chat input` - /
 - [ ] `Copy last response` - Cmd+Shift+C
 
 **Config Commands**:
+
 - [ ] `Save config` - Cmd+S
 - [ ] `Reload config` - Cmd+Shift+R
 - [ ] `Search config` - Focus config search
@@ -186,6 +197,7 @@ Context-Aware (per tab):
 - [ ] `Import config` - Upload JSON
 
 **Logs Commands**:
+
 - [x] `Clear logs` - With confirmation
 - [x] `Export logs` - Download as file
 - [x] `Toggle auto-follow` - Toggle scroll lock
@@ -194,6 +206,7 @@ Context-Aware (per tab):
 - [x] `Refresh logs` - Reload logs
 
 **Sessions Commands**:
+
 - [x] `New session` - Already exists
 - [ ] `Delete current session` - With confirmation
 - [ ] `Duplicate session` - Clone current
@@ -201,22 +214,26 @@ Context-Aware (per tab):
 - [x] `Refresh sessions` - Reload sessions list
 
 **Skills Commands**:
+
 - [x] `Refresh skills` - Reload skills list
 - [ ] `Install skill` - Open install dialog
 - [ ] `Toggle skill` - Enable/disable
 
 **Channels Commands**:
+
 - [ ] `Probe all channels` - Health check
 - [ ] `Probe channel...` - Select channel to probe
 - [ ] `Configure channel...` - Quick config access
 
 **Debug Commands**:
+
 - [x] `Refresh debug` - Reload debug info
 - [ ] `Clear RPC result` - Clear output
 - [ ] `Copy RPC result` - Copy to clipboard
 - [ ] `Run last RPC` - Re-execute
 
 **System Commands**:
+
 - [x] `Show keyboard shortcuts` - ? key
 - [x] `Open documentation` - External link
 - [x] `Copy gateway URL` - Copy to clipboard
@@ -244,56 +261,62 @@ Context-Aware (per tab):
 
 ### Current Loading Patterns
 
-| View | Current UI | File:Line |
-|------|-----------|-----------|
-| Chat | "Loading chat…" text | `views/chat.ts:125` |
-| Sessions | "Loading..." button text | `views/sessions.ts:114` |
-| Skills | "Loading..." button text | `views/skills.ts:55` |
-| Config | Spinner + "Loading schema…" | `views/config.ts:920-922` |
-| Logs | Button with spinner class | `views/logs.ts:447-451` |
-| Channels | Dot animation on cards | `views/channels.ts:240` |
-| Debug | "Refreshing..." button text | `views/debug.ts:411` |
-| Nodes | "Loading..." button text | `views/nodes.ts:91` |
-| Instances | "Loading…" button text | `views/instances.ts:23` |
-| Cron | "Refreshing..." button text | `views/cron.ts:104` |
-| Overseer | "Loading..." button + graph | `views/overseer.ts:187,365` |
+| View      | Current UI                  | File:Line                   |
+| --------- | --------------------------- | --------------------------- |
+| Chat      | "Loading chat…" text        | `views/chat.ts:125`         |
+| Sessions  | "Loading..." button text    | `views/sessions.ts:114`     |
+| Skills    | "Loading..." button text    | `views/skills.ts:55`        |
+| Config    | Spinner + "Loading schema…" | `views/config.ts:920-922`   |
+| Logs      | Button with spinner class   | `views/logs.ts:447-451`     |
+| Channels  | Dot animation on cards      | `views/channels.ts:240`     |
+| Debug     | "Refreshing..." button text | `views/debug.ts:411`        |
+| Nodes     | "Loading..." button text    | `views/nodes.ts:91`         |
+| Instances | "Loading…" button text      | `views/instances.ts:23`     |
+| Cron      | "Refreshing..." button text | `views/cron.ts:104`         |
+| Overseer  | "Loading..." button + graph | `views/overseer.ts:187,365` |
 
 ### Available Helpers (Underused)
 
 ```typescript
 // From components/design-utils.ts
-skeleton({ width, height, rounded, className })  // Line 198
-skeletonList(count, itemHeight)                  // Line 217
+skeleton({ width, height, rounded, className }); // Line 198
+skeletonList(count, itemHeight); // Line 217
 ```
 
 ### Improvement: Skeleton Loaders by View
 
 **Chat View**: ✅ COMPLETED
+
 - ✅ Message bubble skeletons while loading
 - ✅ 4 stacked bubble shapes
 - ✅ Alternate left/right alignment (user/assistant)
 
 **Sessions View**: ✅ COMPLETED
+
 - ✅ Table row skeletons (5 rows)
 - ✅ Column-aligned placeholders
 - ✅ Staggered animation with `aria-busy`
 
 **Skills View**: ✅ COMPLETED
+
 - ✅ Skill card skeletons (6 cards)
 - ✅ Icon + text placeholders
 - ✅ Staggered animation with `aria-busy`
 
 **Logs View**: ✅ COMPLETED
+
 - ✅ Log entry skeletons
 - ✅ Timestamp + message shapes
 - ✅ Level indicator placeholders
 
 **Config View**:
+
 - [ ] Form field skeletons (already good)
 - [ ] Section header skeletons
 - [ ] Toggle row skeletons
 
 **Nodes View**: ✅ COMPLETED
+
 - ✅ Node card skeletons
 - ✅ Device card skeletons
 - ✅ Status indicator placeholders
@@ -301,6 +324,7 @@ skeletonList(count, itemHeight)                  // Line 217
 ### Improvement: Loading Component
 
 Create unified loading spinner component:
+
 ```typescript
 type LoadingSpinnerProps = {
   size?: "sm" | "md" | "lg";
@@ -312,6 +336,7 @@ type LoadingSpinnerProps = {
 ### Improvement: Progress Indicators
 
 For long operations:
+
 - [ ] Config apply progress
 - [ ] Log export progress
 - [ ] Skill installation progress
@@ -328,6 +353,7 @@ For long operations:
 ### Current Implementation
 
 Uses `data-tooltip` attribute with CSS `::after` pseudo-element:
+
 ```css
 .tooltip::after {
   content: attr(data-tooltip);
@@ -355,6 +381,7 @@ function tooltip(props: TooltipProps): TemplateResult;
 ### Improvement: Add Tooltips Throughout
 
 **Icon-only buttons** (need `aria-label` too):
+
 - [ ] Refresh buttons
 - [ ] Copy buttons
 - [ ] Close buttons
@@ -362,17 +389,20 @@ function tooltip(props: TooltipProps): TemplateResult;
 - [ ] Action buttons in tables
 
 **Truncated content**:
+
 - [ ] Session names
 - [ ] Log messages
 - [ ] Config values
 - [ ] Channel descriptions
 
 **Status indicators**:
+
 - [ ] Connection status dots
 - [ ] Skill status badges
 - [ ] Channel state indicators
 
 **Form fields**:
+
 - [ ] Help text on hover
 - [ ] Validation error details
 
@@ -385,6 +415,7 @@ function tooltip(props: TooltipProps): TemplateResult;
 ### Available Animations
 
 From `design-system.css`:
+
 ```css
 --animate-fade-in: fadeIn 0.2s var(--ease-out);
 --animate-fade-in-up: fadeInUp 0.3s var(--ease-out);
@@ -455,6 +486,7 @@ prefersReducedMotion(): boolean
 ### Current Pattern
 
 Most views use:
+
 ```html
 <div class="data-table__empty">
   <icon>
@@ -506,13 +538,13 @@ emptyState({ icon, title, description, action }): TemplateResult
 
 ### Current ARIA Usage
 
-| Pattern | Count | Files |
-|---------|-------|-------|
-| `role="log"` | 1 | chat.ts |
-| `role="alert"` | 1 | toast.ts |
-| `aria-live` | 1 | chat.ts |
-| `aria-label` | ~20 | various |
-| `aria-hidden` | ~10 | icons |
+| Pattern        | Count | Files    |
+| -------------- | ----- | -------- |
+| `role="log"`   | 1     | chat.ts  |
+| `role="alert"` | 1     | toast.ts |
+| `aria-live`    | 1     | chat.ts  |
+| `aria-label`   | ~20   | various  |
+| `aria-hidden`  | ~10   | icons    |
 
 ### Improvement: Command Palette Accessibility
 
@@ -540,6 +572,7 @@ emptyState({ icon, title, description, action }): TemplateResult
 ### ✅ COMPLETED: Button Accessibility (Chat Controls)
 
 Icon-only buttons in chat controls now have aria-labels:
+
 - ✅ Refresh button: `aria-label="Refresh chat history"`
 - ✅ Thinking toggle: `aria-label` with descriptive text
 - ✅ Focus mode toggle: `aria-label` with descriptive text
@@ -547,15 +580,18 @@ Icon-only buttons in chat controls now have aria-labels:
 ### ✅ COMPLETED: More aria-labels
 
 Sessions view:
+
 - ✅ Copy session key button
 - ✅ Open chat button
 - ✅ Delete session button
 
 Skills view:
+
 - ✅ Enable/disable skill button
 - ✅ Install skill button
 
 Remaining icon-only buttons need:
+
 - ✅ Copy buttons in logs view (`aria-label="Copy log entry to clipboard"`)
 - ✅ Close button in confirm dialog
 - [ ] Copy buttons in other views (debug, config)
@@ -606,6 +642,7 @@ Remaining icon-only buttons need:
 Current: Inconsistent (CSS class toggle, sometimes silent)
 
 Suggested pattern:
+
 ```typescript
 async function copyWithFeedback(text: string, label: string) {
   await navigator.clipboard.writeText(text);
@@ -662,16 +699,19 @@ async function copyWithFeedback(text: string, label: string) {
 ### Improvement: Error Categories
 
 **Transient errors** (use toast):
+
 - [ ] Network timeout
 - [ ] Rate limiting
 - [ ] Clipboard failure
 
 **Persistent errors** (use inline callout):
+
 - [ ] Configuration validation
 - [ ] Missing credentials
 - [ ] Invalid input
 
 **Critical errors** (use modal):
+
 - [ ] Authentication failure
 - [ ] Server unavailable
 - [ ] Data corruption
@@ -696,11 +736,11 @@ async function copyWithFeedback(text: string, label: string) {
 
 ### Current Search Features
 
-| View | Feature | Location |
-|------|---------|----------|
-| Logs | Filter text | `views/logs.ts` |
-| Skills | Filter by name | `views/skills.ts` |
-| Config | Section search | `views/config.ts` |
+| View            | Feature        | Location                        |
+| --------------- | -------------- | ------------------------------- |
+| Logs            | Filter text    | `views/logs.ts`                 |
+| Skills          | Filter by name | `views/skills.ts`               |
+| Config          | Section search | `views/config.ts`               |
 | Command Palette | Command search | `components/command-palette.ts` |
 
 ### Improvement: Search Highlighting
@@ -712,17 +752,20 @@ async function copyWithFeedback(text: string, label: string) {
 ### Improvement: Advanced Filters
 
 **Logs**:
+
 - [ ] Filter by level (error, warn, info, debug)
 - [ ] Filter by time range
 - [ ] Filter by source/category
 - [ ] Regex support
 
 **Sessions**:
+
 - [ ] Filter by agent
 - [ ] Filter by date
 - [ ] Filter by kind
 
 **Skills**:
+
 - [ ] Filter by source (core, custom)
 - [ ] Filter by status (enabled, disabled)
 - [ ] Filter by requirements
@@ -746,37 +789,40 @@ async function copyWithFeedback(text: string, label: string) {
 
 ### Current Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| Cmd/Ctrl+K | Open command palette |
-| Escape | Close command palette |
+| Shortcut   | Action                   |
+| ---------- | ------------------------ |
+| Cmd/Ctrl+K | Open command palette     |
+| Escape     | Close command palette    |
 | Arrow keys | Navigate command palette |
-| Enter | Select command |
+| Enter      | Select command           |
 
 ### Improvement: Global Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `?` | Show keyboard shortcuts help |
-| `Cmd+S` | Save (in config) |
-| `Cmd+Enter` | Send (in chat) |
-| `Cmd+/` | Toggle sidebar (if applicable) |
-| `Cmd+1-9` | Switch to tab by number |
-| `Escape` | Close modal/palette/cancel |
+| Shortcut    | Action                         |
+| ----------- | ------------------------------ |
+| `?`         | Show keyboard shortcuts help   |
+| `Cmd+S`     | Save (in config)               |
+| `Cmd+Enter` | Send (in chat)                 |
+| `Cmd+/`     | Toggle sidebar (if applicable) |
+| `Cmd+1-9`   | Switch to tab by number        |
+| `Escape`    | Close modal/palette/cancel     |
 
 ### Improvement: View-Specific Shortcuts
 
 **Chat**:
+
 - [ ] `Cmd+Enter` - Send message
 - [ ] `Escape` - Clear input
 - [ ] `Cmd+Shift+C` - Copy last response
 
 **Logs**:
+
 - [ ] `Cmd+F` - Focus filter
 - [ ] `G` then `B` - Go to bottom
 - [ ] `G` then `T` - Go to top
 
 **Config**:
+
 - [ ] `Cmd+S` - Save
 - [ ] `Cmd+Z` - Undo (if implemented)
 - [ ] `/` - Focus search
@@ -843,22 +889,27 @@ async function copyWithFeedback(text: string, label: string) {
 ### Missing Components
 
 **Confirm Dialog**: ✅ COMPLETED
+
 - CSS exists: `design-system.css:811-864`
 - ✅ JS component: `components/confirm-dialog.ts` with promise-based API
 
 **Tooltip**:
+
 - CSS exists: `design-system.css:662-692`
 - JS needed: Component for rich tooltips
 
 **Progress Bar**:
+
 - CSS exists: `design-system.css:694-707`
 - Not used anywhere
 
 **Avatar**:
+
 - CSS exists: `design-system.css:709-731`
 - Not used anywhere
 
 **Dropdown Menu**:
+
 - CSS exists: `design-system.css:605-660`
 - Partial usage
 
@@ -874,59 +925,59 @@ async function copyWithFeedback(text: string, label: string) {
 
 ### Quick Wins (Do First)
 
-| Item | Impact | Effort | Category | Status |
-|------|--------|--------|----------|--------|
-| Wire up toast for copy ops | High | Low | Toast | ✅ Done |
-| Add aria-labels to icon buttons | High | Low | Accessibility | ✅ Done (Sessions/Skills) |
-| Use skeleton loaders | Medium | Low | Loading | ✅ Done (Sessions/Skills) |
-| Add view fade-in animation | Medium | Low | Animation | ✅ Done |
-| WebSocket connection toasts | Medium | Low | Toast | ✅ Done |
-| aria-current on active nav | Medium | Low | Accessibility | ✅ Done |
-| Toast for save operations | Medium | Low | Toast | ✅ Done |
-| Toast for session deletion | Medium | Low | Toast | ✅ Done |
-| Toast for log export | Medium | Low | Toast | ✅ Done |
-| Clear button in search inputs | Medium | Low | UX | ✅ Done (Skills) |
-| aria-busy for loading states | Medium | Low | Accessibility | ✅ Done |
-| Keyboard shortcut hints | Medium | Low | Command Palette | ✅ Done |
-| ConfirmDialog component | High | Medium | Components | ✅ Done |
+| Item                            | Impact | Effort | Category        | Status                    |
+| ------------------------------- | ------ | ------ | --------------- | ------------------------- |
+| Wire up toast for copy ops      | High   | Low    | Toast           | ✅ Done                   |
+| Add aria-labels to icon buttons | High   | Low    | Accessibility   | ✅ Done (Sessions/Skills) |
+| Use skeleton loaders            | Medium | Low    | Loading         | ✅ Done (Sessions/Skills) |
+| Add view fade-in animation      | Medium | Low    | Animation       | ✅ Done                   |
+| WebSocket connection toasts     | Medium | Low    | Toast           | ✅ Done                   |
+| aria-current on active nav      | Medium | Low    | Accessibility   | ✅ Done                   |
+| Toast for save operations       | Medium | Low    | Toast           | ✅ Done                   |
+| Toast for session deletion      | Medium | Low    | Toast           | ✅ Done                   |
+| Toast for log export            | Medium | Low    | Toast           | ✅ Done                   |
+| Clear button in search inputs   | Medium | Low    | UX              | ✅ Done (Skills)          |
+| aria-busy for loading states    | Medium | Low    | Accessibility   | ✅ Done                   |
+| Keyboard shortcut hints         | Medium | Low    | Command Palette | ✅ Done                   |
+| ConfirmDialog component         | High   | Medium | Components      | ✅ Done                   |
 
 ### Medium Priority
 
-| Item | Impact | Effort | Category | Status |
-|------|--------|--------|----------|--------|
-| Wire ConfirmDialog to usages | High | Low | Components | ✅ Done |
-| Expand command palette | High | Medium | Command Palette | |
-| Add global keyboard shortcuts | Medium | Medium | Navigation | |
-| Skeleton for Logs view | Medium | Low | Loading | ✅ Done |
-| Skeleton for Nodes view | Medium | Low | Loading | ✅ Done |
-| Clear button in search inputs | Medium | Low | UX | ✅ Done |
-| Focus trap for modals | Medium | Medium | Accessibility | ✅ Done |
-| Toast for channel/skill ops | Medium | Low | Toast | ✅ Done |
-| aria-label for copy buttons | Medium | Low | Accessibility | ✅ Done |
+| Item                          | Impact | Effort | Category        | Status  |
+| ----------------------------- | ------ | ------ | --------------- | ------- |
+| Wire ConfirmDialog to usages  | High   | Low    | Components      | ✅ Done |
+| Expand command palette        | High   | Medium | Command Palette |         |
+| Add global keyboard shortcuts | Medium | Medium | Navigation      |         |
+| Skeleton for Logs view        | Medium | Low    | Loading         | ✅ Done |
+| Skeleton for Nodes view       | Medium | Low    | Loading         | ✅ Done |
+| Clear button in search inputs | Medium | Low    | UX              | ✅ Done |
+| Focus trap for modals         | Medium | Medium | Accessibility   | ✅ Done |
+| Toast for channel/skill ops   | Medium | Low    | Toast           | ✅ Done |
+| aria-label for copy buttons   | Medium | Low    | Accessibility   | ✅ Done |
 
 ### Lower Priority
 
-| Item | Impact | Effort | Category |
-|------|--------|--------|----------|
-| Tooltip component | Medium | Medium | Components |
-| Advanced log filtering | Medium | Medium | Search |
-| Empty state illustrations | Low | Medium | Empty States |
-| Keyboard shortcuts help modal | Medium | Medium | Navigation |
+| Item                          | Impact | Effort | Category     |
+| ----------------------------- | ------ | ------ | ------------ |
+| Tooltip component             | Medium | Medium | Components   |
+| Advanced log filtering        | Medium | Medium | Search       |
+| Empty state illustrations     | Low    | Medium | Empty States |
+| Keyboard shortcuts help modal | Medium | Medium | Navigation   |
 
 ---
 
 ## File Reference
 
-| File | Purpose | Key Changes Needed |
-|------|---------|-------------------|
-| `components/toast.ts` | Toast system | Wire up to operations |
-| `components/command-palette.ts` | Command launcher | Add more commands |
-| `components/design-utils.ts` | UI helpers | Use skeleton helpers |
-| `styles/design-system.css` | Design tokens | Reference only |
-| `controllers/*.ts` | Business logic | Add toasts, replace confirm |
-| `views/*.ts` | View rendering | Add skeletons, ARIA, toasts |
-| `app.ts` | Main app | Add keyboard shortcuts |
-| `app-render.ts` | Render logic | View transitions |
+| File                            | Purpose          | Key Changes Needed          |
+| ------------------------------- | ---------------- | --------------------------- |
+| `components/toast.ts`           | Toast system     | Wire up to operations       |
+| `components/command-palette.ts` | Command launcher | Add more commands           |
+| `components/design-utils.ts`    | UI helpers       | Use skeleton helpers        |
+| `styles/design-system.css`      | Design tokens    | Reference only              |
+| `controllers/*.ts`              | Business logic   | Add toasts, replace confirm |
+| `views/*.ts`                    | View rendering   | Add skeletons, ARIA, toasts |
+| `app.ts`                        | Main app         | Add keyboard shortcuts      |
+| `app-render.ts`                 | Render logic     | View transitions            |
 
 ---
 

@@ -1,17 +1,20 @@
 # Task 6: Redesign Sessions/Cron/Skills Data Tables
 
 ## Overview
+
 Redesign the data table views for Sessions, Cron, and Skills with modern table patterns, better row styling, and improved data presentation.
 
 ## Project Context
 
 ### Tech Stack
+
 - **Framework**: Lit (Web Components) - NOT React
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **Build**: Vite
 - **Icons**: Custom SVG icon system in `ui/src/ui/icons.ts`
 
 ### Key Files
+
 - Sessions view: `ui/src/ui/views/sessions.ts`
 - Cron view: `ui/src/ui/views/cron.ts`
 - Skills view: `ui/src/ui/views/skills.ts`
@@ -22,6 +25,7 @@ Redesign the data table views for Sessions, Cron, and Skills with modern table p
 ## Design System Reference
 
 ### CSS Variables (from base.css)
+
 ```css
 /* Dark theme */
 --bg: #0a0f14;
@@ -38,6 +42,7 @@ Redesign the data table views for Sessions, Cron, and Skills with modern table p
 ```
 
 ### Icon System Usage
+
 ```typescript
 import { icon } from "../icons";
 
@@ -52,6 +57,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ### Pattern Examples
 
 #### Card Header
+
 ```typescript
 html`
   <div class="card-header">
@@ -61,31 +67,30 @@ html`
       <div class="card-sub">Active conversation sessions</div>
     </div>
   </div>
-`
+`;
 ```
 
 #### Status Badge
+
 ```typescript
 html`
   <span class="badge badge--${status}">
     ${icon(statusIcon, { size: 12 })}
     <span>${statusText}</span>
   </span>
-`
+`;
 ```
 
 #### Action Button
+
 ```typescript
-html`
-  <button class="btn btn--sm btn--icon" title="Edit">
-    ${icon("edit", { size: 14 })}
-  </button>
-`
+html` <button class="btn btn--sm btn--icon" title="Edit">${icon("edit", { size: 14 })}</button> `;
 ```
 
 ## Design Requirements
 
 ### Visual Style
+
 1. **Clean table rows** - Alternating backgrounds, hover states
 2. **Status badges** - Color-coded with icons
 3. **Inline actions** - Icon buttons that appear on hover
@@ -94,6 +99,7 @@ html`
 6. **Empty states** - Friendly message when no data
 
 ### Common Table Patterns
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Table Header (title, filters, actions)          │
@@ -113,6 +119,7 @@ html`
 ## View-Specific Requirements
 
 ### Sessions View
+
 - **Session key** - Monospace, truncatable with copy button
 - **Agent** - Agent name/ID
 - **Last active** - Relative timestamp
@@ -121,6 +128,7 @@ html`
 - **Filters** - By agent, active time, include global/unknown
 
 ### Cron View
+
 - **Job name** - Primary identifier
 - **Schedule** - Cron expression with human-readable
 - **Status** - Enabled/disabled toggle
@@ -130,6 +138,7 @@ html`
 - **Add job form** - Expandable form at top
 
 ### Skills View
+
 - **Skill name** - With icon if available
 - **Status** - Enabled/disabled/error
 - **API key status** - Configured/missing indicator
@@ -141,56 +150,128 @@ html`
 
 ```css
 /* Modern Data Table Styles */
-.data-table { /* table container */ }
-.data-table__header { /* sticky header row */ }
-.data-table__header-cell { /* column header */ }
-.data-table__header-cell--sortable { /* sortable column */ }
-.data-table__header-cell--sorted { /* active sort */ }
-.data-table__body { /* scrollable body */ }
-.data-table__row { /* data row */ }
-.data-table__row:hover { /* hover state */ }
-.data-table__row--selected { /* selected row */ }
-.data-table__cell { /* data cell */ }
-.data-table__cell--mono { /* monospace text */ }
-.data-table__cell--actions { /* action buttons */ }
-.data-table__empty { /* empty state */ }
+.data-table {
+  /* table container */
+}
+.data-table__header {
+  /* sticky header row */
+}
+.data-table__header-cell {
+  /* column header */
+}
+.data-table__header-cell--sortable {
+  /* sortable column */
+}
+.data-table__header-cell--sorted {
+  /* active sort */
+}
+.data-table__body {
+  /* scrollable body */
+}
+.data-table__row {
+  /* data row */
+}
+.data-table__row:hover {
+  /* hover state */
+}
+.data-table__row--selected {
+  /* selected row */
+}
+.data-table__cell {
+  /* data cell */
+}
+.data-table__cell--mono {
+  /* monospace text */
+}
+.data-table__cell--actions {
+  /* action buttons */
+}
+.data-table__empty {
+  /* empty state */
+}
 
 /* Table Filters */
-.table-filters { /* filter bar container */ }
-.table-filters__search { /* search input */ }
-.table-filters__select { /* filter dropdown */ }
-.table-filters__toggle { /* toggle filter */ }
+.table-filters {
+  /* filter bar container */
+}
+.table-filters__search {
+  /* search input */
+}
+.table-filters__select {
+  /* filter dropdown */
+}
+.table-filters__toggle {
+  /* toggle filter */
+}
 
 /* Status Badges */
-.badge { /* base badge */ }
-.badge--ok { /* success/enabled */ }
-.badge--warn { /* warning */ }
-.badge--danger { /* error/disabled */ }
-.badge--muted { /* neutral */ }
+.badge {
+  /* base badge */
+}
+.badge--ok {
+  /* success/enabled */
+}
+.badge--warn {
+  /* warning */
+}
+.badge--danger {
+  /* error/disabled */
+}
+.badge--muted {
+  /* neutral */
+}
 
 /* Row Actions */
-.row-actions { /* action buttons container */ }
-.row-actions__btn { /* action button */ }
+.row-actions {
+  /* action buttons container */
+}
+.row-actions__btn {
+  /* action button */
+}
 
 /* Expandable Row */
-.expandable-row { /* expandable content */ }
-.expandable-row--open { /* expanded state */ }
-.expandable-row__content { /* inner content */ }
+.expandable-row {
+  /* expandable content */
+}
+.expandable-row--open {
+  /* expanded state */
+}
+.expandable-row__content {
+  /* inner content */
+}
 
 /* Sessions Specific */
-.session-key { /* session key display */ }
-.session-key__copy { /* copy button */ }
+.session-key {
+  /* session key display */
+}
+.session-key__copy {
+  /* copy button */
+}
 
 /* Cron Specific */
-.cron-schedule { /* schedule display */ }
-.cron-schedule__expr { /* cron expression */ }
-.cron-schedule__human { /* human readable */ }
-.cron-next-run { /* next run countdown */ }
+.cron-schedule {
+  /* schedule display */
+}
+.cron-schedule__expr {
+  /* cron expression */
+}
+.cron-schedule__human {
+  /* human readable */
+}
+.cron-next-run {
+  /* next run countdown */
+}
 
 /* Skills Specific */
-.skill-row { /* skill row */ }
-.skill-row__icon { /* skill icon */ }
-.skill-row__api-status { /* API key status */ }
+.skill-row {
+  /* skill row */
+}
+.skill-row__icon {
+  /* skill icon */
+}
+.skill-row__api-status {
+  /* API key status */
+}
 ```
 
 ## Implementation Steps
@@ -235,11 +316,13 @@ html`
       </div>
     </div>
   </div>
-`
+`;
 ```
 
 ## Testing
+
 After changes, run:
+
 ```bash
 cd ui && pnpm build
 ```

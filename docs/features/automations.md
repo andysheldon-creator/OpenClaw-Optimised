@@ -97,7 +97,7 @@ Run once at a specific time:
 ```yaml
 schedule:
   type: at
-  atMs: 1704067200000  # Unix timestamp in milliseconds
+  atMs: 1704067200000 # Unix timestamp in milliseconds
 ```
 
 ### Every (Recurring)
@@ -107,8 +107,8 @@ Run at regular intervals:
 ```yaml
 schedule:
   type: every
-  everyMs: 3600000  # Run every hour (in milliseconds)
-  anchorMs: 1704000000000  # Optional anchor time for alignment
+  everyMs: 3600000 # Run every hour (in milliseconds)
+  anchorMs: 1704000000000 # Optional anchor time for alignment
 ```
 
 ### Cron (Advanced)
@@ -118,8 +118,8 @@ Use cron expressions for complex scheduling:
 ```yaml
 schedule:
   type: cron
-  expr: "0 0 * * *"  # Daily at midnight
-  tz: "America/New_York"  # Optional timezone
+  expr: "0 0 * * *" # Daily at midnight
+  tz: "America/New_York" # Optional timezone
 ```
 
 ## CLI Commands
@@ -207,10 +207,10 @@ name: "Daily Database Backup"
 type: custom-script
 schedule:
   type: cron
-  expr: "0 2 * * *"  # 2 AM daily
+  expr: "0 2 * * *" # 2 AM daily
 config:
   script: /usr/local/bin/backup-db.sh
-  timeoutMs: 600000  # 10 minutes
+  timeoutMs: 600000 # 10 minutes
 ```
 
 ### Hourly Health Check
@@ -220,7 +220,7 @@ name: "Service Health Check"
 type: webhook
 schedule:
   type: every
-  everyMs: 3600000  # Every hour
+  everyMs: 3600000 # Every hour
 config:
   url: https://monitoring.example.com/healthcheck
   method: POST
@@ -233,7 +233,7 @@ name: "Weekly Report"
 type: custom-script
 schedule:
   type: cron
-  expr: "0 9 * * 1"  # 9 AM every Monday
+  expr: "0 9 * * 1" # 9 AM every Monday
 config:
   script: /usr/local/bin/generate-report.sh
   workingDirectory: /var/reports

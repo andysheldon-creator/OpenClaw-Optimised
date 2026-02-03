@@ -42,13 +42,13 @@ src/knowledge/datastore/
  * Reference: docs/plans/graphrag/ZAI-DATASTORE.md
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type DatastoreType = 'sqlite' | 'postgresql';
+export type DatastoreType = "sqlite" | "postgresql";
 
 export interface DatabaseSchema {
   tables: TableSchema[];
@@ -64,7 +64,7 @@ export interface TableSchema {
 
 export interface ColumnSchema {
   name: string;
-  type: 'TEXT' | 'INTEGER' | 'REAL' | 'BLOB' | 'JSON';
+  type: "TEXT" | "INTEGER" | "REAL" | "BLOB" | "JSON";
   nullable: boolean;
   defaultValue?: any;
 }
@@ -80,7 +80,7 @@ export interface ForeignKeySchema {
   column: string;
   referencedTable: string;
   referencedColumn: string;
-  onDelete?: 'CASCADE' | 'SET NULL' | 'RESTRICT';
+  onDelete?: "CASCADE" | "SET NULL" | "RESTRICT";
 }
 
 // ============================================================================
@@ -123,8 +123,8 @@ export interface BatchStatement {
 export interface Migration {
   version: number;
   name: string;
-  up: string;  // SQL to apply migration
-  down: string;  // SQL to rollback migration
+  up: string; // SQL to apply migration
+  down: string; // SQL to rollback migration
 }
 
 export interface MigrationResult {
@@ -203,9 +203,7 @@ export interface RelationalDatastore {
    * Execute a function within a transaction.
    * Automatically commits on success, rolls back on error.
    */
-  transaction<T>(
-    fn: (tx: Transaction) => Promise<T>
-  ): Promise<T>;
+  transaction<T>(fn: (tx: Transaction) => Promise<T>): Promise<T>;
 
   /**
    * Begin a new transaction manually.
@@ -248,7 +246,7 @@ export interface RelationalDatastore {
     column: string,
     query: number[],
     limit: number,
-    threshold?: number
+    threshold?: number,
   ): Promise<VectorResult[]>;
 
   // ------------------------------------------------------------------------
@@ -275,13 +273,13 @@ export interface DatastoreConfig {
 }
 
 export interface SQLiteConfig extends DatastoreConfig {
-  type: 'sqlite';
+  type: "sqlite";
   path: string;
-  wal?: boolean;  // Write-Ahead Logging (default: true)
+  wal?: boolean; // Write-Ahead Logging (default: true)
 }
 
 export interface PostgreSQLConfig extends DatastoreConfig {
-  type: 'postgresql';
+  type: "postgresql";
   connectionString?: string;
   host?: string;
   port?: number;
@@ -305,15 +303,13 @@ export interface DatastoreFactory {
 /**
  * Create a datastore instance from configuration.
  */
-export function createDatastore(
-  config: DatastoreConfigWithTypes
-): RelationalDatastore {
+export function createDatastore(config: DatastoreConfigWithTypes): RelationalDatastore {
   switch (config.type) {
-    case 'sqlite':
-      const { createSQLiteDatastore } = require('./sqlite');
+    case "sqlite":
+      const { createSQLiteDatastore } = require("./sqlite");
       return createSQLiteDatastore(config);
-    case 'postgresql':
-      const { createPostgreSQLDatastore } = require('./postgresql');
+    case "postgresql":
+      const { createPostgreSQLDatastore } = require("./postgresql");
       return createPostgreSQLDatastore(config);
     default:
       throw new Error(`Unsupported datastore type: ${(config as any).type}`);
@@ -330,31 +326,27 @@ export function createDatastore(
  * PostgreSQL: $1, $2, $3
  * MySQL: ?, ?, ?
  */
-export function getPlaceholderStyle(type: DatastoreType): '$' | '?' {
+export function getPlaceholderStyle(type: DatastoreType): "$" | "?" {
   switch (type) {
-    case 'sqlite':
-    case 'postgresql':
-      return '$';
+    case "sqlite":
+    case "postgresql":
+      return "$";
     default:
-      return '$';
+      return "$";
   }
 }
 
 /**
  * Convert ? placeholders to $1, $2 style for compatible databases.
  */
-export function normalizePlaceholders(
-  sql: string,
-  from: '?' | '$',
-  to: '?' | '$'
-): string {
+export function normalizePlaceholders(sql: string, from: "?" | "$", to: "?" | "$"): string {
   if (from === to) return sql;
 
-  if (to === '$') {
+  if (to === "$") {
     let count = 0;
     return sql.replace(/\?/g, () => `$${++count}`);
   } else {
-    return sql.replace(/\$\d+/g, '?');
+    return sql.replace(/\$\d+/g, "?");
   }
 }
 ```
@@ -374,8 +366,8 @@ export function normalizePlaceholders(
  * - Built-in connection pooling via better-sqlite3
  */
 
-import Database from 'better-sqlite3';
-import { open } from 'sqlite';
+import Database from "better-sqlite3";
+import { open } from "sqlite";
 import type {
   RelationalDatastore,
   Transaction,
@@ -385,10 +377,10 @@ import type {
   RunResult,
   BatchStatement,
   VectorResult,
-} from './interface.js';
+} from "./interface.js";
 
 export interface SQLiteDatastoreConfig extends DatastoreConfig {
-  type: 'sqlite';
+  type: "sqlite";
   path: string;
   wal?: boolean;
 }
@@ -397,7 +389,7 @@ export interface SQLiteDatastoreConfig extends DatastoreConfig {
  * Create a SQLite datastore instance.
  */
 export async function createSQLiteDatastore(
-  config: SQLiteDatastoreConfig
+  config: SQLiteDatastoreConfig,
 ): Promise<RelationalDatastore> {
   const db = await open({
     filename: config.path,
@@ -406,23 +398,23 @@ export async function createSQLiteDatastore(
 
   // Enable WAL mode for better concurrency
   if (config.wal !== false) {
-    await db.exec('PRAGMA journal_mode = WAL;');
-    await db.exec('PRAGMA synchronous = NORMAL;');
+    await db.exec("PRAGMA journal_mode = WAL;");
+    await db.exec("PRAGMA synchronous = NORMAL;");
   }
 
   // Enable foreign keys
-  await db.exec('PRAGMA foreign_keys = ON;');
+  await db.exec("PRAGMA foreign_keys = ON;");
 
   return new SQLiteDatastore(db, config);
 }
 
 class SQLiteDatastore implements RelationalDatastore {
-  readonly displayName = 'SQLite';
-  readonly type = 'sqlite' as const;
+  readonly displayName = "SQLite";
+  readonly type = "sqlite" as const;
 
   constructor(
     private db: Database.Database,
-    private config: SQLiteDatastoreConfig
+    private config: SQLiteDatastoreConfig,
   ) {}
 
   async getSchema() {
@@ -468,7 +460,7 @@ class SQLiteDatastore implements RelationalDatastore {
   }
 
   async beginTransaction(): Promise<Transaction> {
-    await this.db.exec('BEGIN TRANSACTION;');
+    await this.db.exec("BEGIN TRANSACTION;");
     return new SQLiteTransaction(this.db);
   }
 
@@ -490,10 +482,11 @@ class SQLiteDatastore implements RelationalDatastore {
 
       const start = Date.now();
       await this.exec(migration.up);
-      await this.run(
-        'INSERT INTO _migrations (version, name, applied_at) VALUES (?, ?, ?)',
-        [migration.version, migration.name, Date.now()]
-      );
+      await this.run("INSERT INTO _migrations (version, name, applied_at) VALUES (?, ?, ?)", [
+        migration.version,
+        migration.name,
+        Date.now(),
+      ]);
 
       results.push({
         applied: true,
@@ -506,9 +499,7 @@ class SQLiteDatastore implements RelationalDatastore {
   }
 
   async getVersion(): Promise<number> {
-    const result = await this.get(
-      'SELECT MAX(version) as version FROM _migrations'
-    );
+    const result = await this.get("SELECT MAX(version) as version FROM _migrations");
     return result?.version || 0;
   }
 
@@ -521,18 +512,18 @@ class SQLiteDatastore implements RelationalDatastore {
     column: string,
     query: number[],
     limit: number,
-    threshold = 0.0
+    threshold = 0.0,
   ): Promise<VectorResult[]> {
     // Check if sqlite-vec is available
     const extCheck = await this.get(
-      "SELECT name FROM pragma_function_list WHERE name = 'vec_distance_cosine'"
+      "SELECT name FROM pragma_function_list WHERE name = 'vec_distance_cosine'",
     );
 
     if (!extCheck) {
-      throw new Error('sqlite-vec extension not loaded');
+      throw new Error("sqlite-vec extension not loaded");
     }
 
-    const queryStr = `[${query.join(',')}]`;
+    const queryStr = `[${query.join(",")}]`;
 
     const sql = `
       SELECT
@@ -553,7 +544,7 @@ class SQLiteDatastore implements RelationalDatastore {
 
   async healthCheck(): Promise<boolean> {
     try {
-      await this.get('SELECT 1');
+      await this.get("SELECT 1");
       return true;
     } catch {
       return false;
@@ -607,7 +598,7 @@ class SQLiteTransaction implements Transaction {
   }
 
   async rollback(): Promise<void> {
-    throw new Error('Rollback handled by Database.transaction wrapper');
+    throw new Error("Rollback handled by Database.transaction wrapper");
   }
 }
 ```
@@ -633,7 +624,7 @@ Add to `src/config/types.ts`:
 ```typescript
 export type DatastoreConfigType = {
   datastore?: {
-    type: 'sqlite' | 'postgresql';
+    type: "sqlite" | "postgresql";
     sqlite?: {
       path: string;
       wal?: boolean;
@@ -656,56 +647,54 @@ export type DatastoreConfigType = {
 Create: `src/knowledge/datastore/interface.test.ts`
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { createDatastore, type RelationalDatastore } from './interface.js';
+import { describe, it, expect } from "vitest";
+import { createDatastore, type RelationalDatastore } from "./interface.js";
 
-describe('RelationalDatastore Interface', () => {
+describe("RelationalDatastore Interface", () => {
   let ds: RelationalDatastore;
 
-  it('should create SQLite datastore', async () => {
+  it("should create SQLite datastore", async () => {
     ds = createDatastore({
-      type: 'sqlite',
-      path: ':memory:',
+      type: "sqlite",
+      path: ":memory:",
     });
 
-    expect(ds.type).toBe('sqlite');
+    expect(ds.type).toBe("sqlite");
     expect(await ds.healthCheck()).toBe(true);
   });
 
-  it('should execute queries', async () => {
-    const result = await ds.query<{ value: number }>(
-      'SELECT 1 as value'
-    );
+  it("should execute queries", async () => {
+    const result = await ds.query<{ value: number }>("SELECT 1 as value");
     expect(result[0].value).toBe(1);
   });
 
-  it('should support transactions', async () => {
-    await ds.execute('CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)');
+  it("should support transactions", async () => {
+    await ds.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)");
 
     await ds.transaction(async (tx) => {
-      await tx.execute('INSERT INTO test (value) VALUES (?)', ['a']);
-      await tx.execute('INSERT INTO test (value) VALUES (?)', ['b']);
+      await tx.execute("INSERT INTO test (value) VALUES (?)", ["a"]);
+      await tx.execute("INSERT INTO test (value) VALUES (?)", ["b"]);
     });
 
-    const rows = await ds.query<{ value: string }>('SELECT value FROM test');
+    const rows = await ds.query<{ value: string }>("SELECT value FROM test");
     expect(rows.length).toBe(2);
   });
 
-  it('should rollback on error', async () => {
-    await ds.execute('DELETE FROM test');
+  it("should rollback on error", async () => {
+    await ds.execute("DELETE FROM test");
 
     try {
       await ds.transaction(async (tx) => {
-        await tx.execute('INSERT INTO test (value) VALUES (?)', ['c']);
-        throw new Error('Intentional error');
+        await tx.execute("INSERT INTO test (value) VALUES (?)", ["c"]);
+        throw new Error("Intentional error");
       });
     } catch {}
 
-    const rows = await ds.query('SELECT COUNT(*) as count FROM test');
+    const rows = await ds.query("SELECT COUNT(*) as count FROM test");
     expect(rows[0].count).toBe(0);
   });
 
-  it('should close cleanly', async () => {
+  it("should close cleanly", async () => {
     await ds.close();
     expect(await ds.healthCheck()).toBe(false);
   });

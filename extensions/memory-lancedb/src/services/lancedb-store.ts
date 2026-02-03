@@ -1,7 +1,7 @@
 import * as lancedb from "@lancedb/lancedb";
 import { randomUUID } from "node:crypto";
-import type { MemoryEntry, MemorySearchResult, MemoryStore } from "../types.js";
 import type { MemoryCategory } from "../../config.js";
+import type { MemoryEntry, MemorySearchResult, MemoryStore } from "../types.js";
 
 const TABLE_NAME = "memories_v2";
 
@@ -16,8 +16,12 @@ export class LanceDbStore implements MemoryStore {
   ) {}
 
   private async ensureInitialized(): Promise<void> {
-    if (this.table) {return;}
-    if (this.initPromise) {return this.initPromise;}
+    if (this.table) {
+      return;
+    }
+    if (this.initPromise) {
+      return this.initPromise;
+    }
 
     this.initPromise = this.doInitialize();
     return this.initPromise;
@@ -48,9 +52,7 @@ export class LanceDbStore implements MemoryStore {
     }
   }
 
-  async store(
-    entry: Omit<MemoryEntry, "id" | "createdAt">,
-  ): Promise<MemoryEntry> {
+  async store(entry: Omit<MemoryEntry, "id" | "createdAt">): Promise<MemoryEntry> {
     await this.ensureInitialized();
 
     const fullEntry: MemoryEntry = {
@@ -63,11 +65,7 @@ export class LanceDbStore implements MemoryStore {
     return fullEntry;
   }
 
-  async search(
-    vector: number[],
-    limit = 5,
-    minScore = 0.5,
-  ): Promise<MemorySearchResult[]> {
+  async search(vector: number[], limit = 5, minScore = 0.5): Promise<MemorySearchResult[]> {
     await this.ensureInitialized();
 
     const results = await this.table!.vectorSearch(vector).limit(limit).toArray();

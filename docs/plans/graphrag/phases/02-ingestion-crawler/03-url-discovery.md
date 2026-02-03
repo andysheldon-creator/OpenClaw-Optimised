@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement URL discovery mechanisms for the web crawler:
+
 - Sitemap.xml parsing
 - Recursive BFS link extraction
 - Robots.txt filtering
@@ -35,8 +36,8 @@ src/knowledge/crawler/
  * - Robots.txt filtering
  */
 
-import { URL } from 'url';
-import robotstxt from 'robotstxt';
+import { URL } from "url";
+import robotstxt from "robotstxt";
 
 export interface DiscoveryOptions {
   auth?: CrawlAuth;
@@ -73,7 +74,7 @@ export class CrawlURLDiscovery {
 
       return this.filterUrls(urls, baseUrl, options);
     } catch {
-      return [startUrl];  // Fallback to single URL
+      return [startUrl]; // Fallback to single URL
     }
   }
 
@@ -84,9 +85,7 @@ export class CrawlURLDiscovery {
     const maxDepth = options.maxDepth || 2;
     const baseUrl = new URL(startUrl);
     const visited = new Set<string>();
-    const queue: Array<{ url: string; depth: number }> = [
-      { url: startUrl, depth: 0 },
-    ];
+    const queue: Array<{ url: string; depth: number }> = [{ url: startUrl, depth: 0 }];
     const urls: string[] = [];
 
     while (queue.length > 0) {
@@ -143,13 +142,13 @@ export class CrawlURLDiscovery {
   private async filterUrls(
     urls: string[],
     baseUrl: URL,
-    options: DiscoveryOptions
+    options: DiscoveryOptions,
   ): Promise<string[]> {
     let filtered = urls;
 
     // Same domain filter
     if (options.sameDomain) {
-      filtered = filtered.filter(url => {
+      filtered = filtered.filter((url) => {
         const u = new URL(url);
         return u.origin === baseUrl.origin;
       });
@@ -157,15 +156,15 @@ export class CrawlURLDiscovery {
 
     // Allowed patterns
     if (options.allowedPatterns) {
-      filtered = filtered.filter(url =>
-        options.allowedPatterns!.some(pattern => pattern.test(url))
+      filtered = filtered.filter((url) =>
+        options.allowedPatterns!.some((pattern) => pattern.test(url)),
       );
     }
 
     // Blocked patterns
     if (options.blockedPatterns) {
-      filtered = filtered.filter(url =>
-        !options.blockedPatterns!.some(pattern => pattern.test(url))
+      filtered = filtered.filter(
+        (url) => !options.blockedPatterns!.some((pattern) => pattern.test(url)),
       );
     }
 
@@ -173,7 +172,7 @@ export class CrawlURLDiscovery {
     if (this.config.respectRobotsTxt) {
       const robots = await this.getRobotsTxt(baseUrl.origin);
       if (robots) {
-        filtered = filtered.filter(url => robots.isAllowed(url));
+        filtered = filtered.filter((url) => robots.isAllowed(url));
       }
     }
 
@@ -191,7 +190,7 @@ export class CrawlURLDiscovery {
     try {
       const robotsUrl = `${origin}/robots.txt`;
       const response = await fetch(robotsUrl, {
-        headers: { 'User-Agent': this.config.userAgent },
+        headers: { "User-Agent": this.config.userAgent },
       });
       const robotsTxt = await response.text();
 

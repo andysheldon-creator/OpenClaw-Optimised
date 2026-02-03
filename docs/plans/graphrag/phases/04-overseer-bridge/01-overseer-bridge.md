@@ -11,6 +11,7 @@
 ## Task Overview
 
 Create a bridge between the Overseer planning system and the knowledge graph:
+
 - Goals and tasks appear as graph entities
 - Planner receives graph context about related entities
 - Users can query "what goals reference entity X?"
@@ -44,10 +45,10 @@ src/knowledge/overseer-bridge/
  * Reference: docs/plans/graphrag/ZAI-PLAN.md Phase 4
  */
 
-import type { RelationalDatastore } from '../datastore/interface.js';
-import type { GraphQueryEngine } from '../graph/query.js';
-import { OverseerEntitySync } from './entity-sync.js';
-import { PlannerGraphInjection } from './planner-injection.js';
+import type { RelationalDatastore } from "../datastore/interface.js";
+import type { GraphQueryEngine } from "../graph/query.js";
+import { OverseerEntitySync } from "./entity-sync.js";
+import { PlannerGraphInjection } from "./planner-injection.js";
 
 // ============================================================================
 // BRIDGE
@@ -59,7 +60,7 @@ export class OverseerKnowledgeBridge {
 
   constructor(
     private datastore: RelationalDatastore,
-    private graphQuery: GraphQueryEngine
+    private graphQuery: GraphQueryEngine,
   ) {
     this.entitySync = new OverseerEntitySync(datastore);
     this.plannerInjection = new PlannerGraphInjection(graphQuery);
@@ -102,25 +103,29 @@ export class OverseerKnowledgeBridge {
   /**
    * Find goals related to an entity.
    */
-  async findGoalsForEntity(entityId: string): Promise<Array<{
-    id: string;
-    title: string;
-    description?: string;
-    status: string;
-  }>> {
+  async findGoalsForEntity(entityId: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      description?: string;
+      status: string;
+    }>
+  > {
     return this.entitySync.findGoalsForEntity(entityId);
   }
 
   /**
    * Find tasks related to an entity.
    */
-  async findTasksForEntity(entityId: string): Promise<Array<{
-    id: string;
-    goalId?: string;
-    title: string;
-    description?: string;
-    status: string;
-  }>> {
+  async findTasksForEntity(entityId: string): Promise<
+    Array<{
+      id: string;
+      goalId?: string;
+      title: string;
+      description?: string;
+      status: string;
+    }>
+  > {
     return this.entitySync.findTasksForEntity(entityId);
   }
 }
@@ -135,7 +140,7 @@ export class OverseerKnowledgeBridge {
  * Synchronize goals and tasks as graph entities.
  */
 
-import type { RelationalDatastore } from '../datastore/interface.js';
+import type { RelationalDatastore } from "../datastore/interface.js";
 
 export class OverseerEntitySync {
   constructor(private datastore: RelationalDatastore) {}
@@ -150,7 +155,7 @@ export class OverseerEntitySync {
     status: string;
     relatedEntityIds?: string[];
   }): Promise<void> {
-    await this.datastore.transaction(async tx => {
+    await this.datastore.transaction(async (tx) => {
       // Create/update goal entity
       await tx.execute(
         `INSERT INTO kg_entities (id, name, name_hash, type, description, first_seen, last_seen)
@@ -163,11 +168,11 @@ export class OverseerEntitySync {
           `goal-${goal.id}`,
           goal.title,
           this.hashName(goal.title),
-          'goal',
+          "goal",
           goal.description,
           Date.now(),
           Date.now(),
-        ]
+        ],
       );
 
       // Link to related entities
@@ -182,12 +187,12 @@ export class OverseerEntitySync {
               `goal-${goal.id}-${entityId}`,
               `goal-${goal.id}`,
               entityId,
-              'references',
+              "references",
               `Goal "${goal.title}" references this entity`,
               7,
               Date.now(),
               Date.now(),
-            ]
+            ],
           );
         }
       }
@@ -199,10 +204,10 @@ export class OverseerEntitySync {
         [
           `history-goal-${goal.id}-${Date.now()}`,
           `goal-${goal.id}`,
-          'created',
+          "created",
           JSON.stringify({ goalId: goal.id, status: goal.status }),
           Date.now(),
-        ]
+        ],
       );
     });
   }
@@ -218,7 +223,7 @@ export class OverseerEntitySync {
     status: string;
     relatedEntityIds?: string[];
   }): Promise<void> {
-    await this.datastore.transaction(async tx => {
+    await this.datastore.transaction(async (tx) => {
       const taskId = `task-${task.id}`;
 
       // Create/update task entity
@@ -233,11 +238,11 @@ export class OverseerEntitySync {
           taskId,
           task.title,
           this.hashName(task.title),
-          'task',
+          "task",
           task.description,
           Date.now(),
           Date.now(),
-        ]
+        ],
       );
 
       // Link to goal if present
@@ -252,12 +257,12 @@ export class OverseerEntitySync {
             `task-${task.id}-goal`,
             taskId,
             goalEntityId,
-            'part_of',
+            "part_of",
             `Task "${task.title}" is part of goal`,
             10,
             Date.now(),
             Date.now(),
-          ]
+          ],
         );
       }
 
@@ -272,12 +277,12 @@ export class OverseerEntitySync {
               `task-${task.id}-${entityId}`,
               taskId,
               entityId,
-              'references',
+              "references",
               `Task "${task.title}" references this entity`,
               6,
               Date.now(),
               Date.now(),
-            ]
+            ],
           );
         }
       }
@@ -287,12 +292,14 @@ export class OverseerEntitySync {
   /**
    * Find goals that reference an entity.
    */
-  async findGoalsForEntity(entityId: string): Promise<Array<{
-    id: string;
-    title: string;
-    description?: string;
-    status: string;
-  }>> {
+  async findGoalsForEntity(entityId: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      description?: string;
+      status: string;
+    }>
+  > {
     const results = await this.datastore.query<any>(
       `SELECT
          e.id,
@@ -306,11 +313,11 @@ export class OverseerEntitySync {
          AND e.type = 'goal'
          AND eh.event = 'created'
        ORDER BY eh.timestamp DESC`,
-      [entityId]
+      [entityId],
     );
 
-    return results.map(r => ({
-      id: r.id.replace('goal-', ''),
+    return results.map((r) => ({
+      id: r.id.replace("goal-", ""),
       title: r.title,
       description: r.description,
       status: r.status,
@@ -320,13 +327,15 @@ export class OverseerEntitySync {
   /**
    * Find tasks that reference an entity.
    */
-  async findTasksForEntity(entityId: string): Promise<Array<{
-    id: string;
-    goalId?: string;
-    title: string;
-    description?: string;
-    status: string;
-  }>> {
+  async findTasksForEntity(entityId: string): Promise<
+    Array<{
+      id: string;
+      goalId?: string;
+      title: string;
+      description?: string;
+      status: string;
+    }>
+  > {
     const results = await this.datastore.query<any>(
       `SELECT DISTINCT
          e.id,
@@ -339,15 +348,15 @@ export class OverseerEntitySync {
        WHERE r.target_id = $1
          AND e.type = 'task'
        ORDER BY e.last_seen DESC`,
-      [entityId]
+      [entityId],
     );
 
-    return results.map(r => ({
-      id: r.id.replace('task-', ''),
-      goalId: r.goal_entity_id?.replace('goal-', ''),
+    return results.map((r) => ({
+      id: r.id.replace("task-", ""),
+      goalId: r.goal_entity_id?.replace("goal-", ""),
       title: r.title,
       description: r.description,
-      status: 'active',  // Would fetch from actual task store
+      status: "active", // Would fetch from actual task store
     }));
   }
 
@@ -355,9 +364,12 @@ export class OverseerEntitySync {
    * Hash entity name for consolidation.
    */
   private hashName(name: string): string {
-    const normalized = name.toLowerCase().trim().replace(/[^\w\s]/g, '');
-    const crypto = await import('crypto');
-    return crypto.createHash('md5').update(normalized).digest('hex');
+    const normalized = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s]/g, "");
+    const crypto = await import("crypto");
+    return crypto.createHash("md5").update(normalized).digest("hex");
   }
 }
 ```
@@ -371,7 +383,7 @@ export class OverseerEntitySync {
  * Inject graph context into Overseer planning prompts.
  */
 
-import type { GraphQueryEngine } from '../graph/query.js';
+import type { GraphQueryEngine } from "../graph/query.js";
 
 export class PlannerGraphInjection {
   constructor(private graphQuery: GraphQueryEngine) {}
@@ -386,10 +398,10 @@ export class PlannerGraphInjection {
     const queryEntities = await this.recognizeEntities(query);
 
     if (queryEntities.length === 0) {
-      return '';
+      return "";
     }
 
-    context.push('## Relevant Knowledge Graph Entities\n');
+    context.push("## Relevant Knowledge Graph Entities\n");
 
     for (const entity of queryEntities) {
       // Get neighborhood
@@ -405,7 +417,7 @@ export class PlannerGraphInjection {
 
       // List related entities
       if (neighborhood.relationships.length > 0) {
-        context.push('\n**Related entities:**');
+        context.push("\n**Related entities:**");
         for (const { targetEntity, relationship } of neighborhood.relationships.slice(0, 5)) {
           context.push(`- ${targetEntity.name} (${relationship.type})`);
         }
@@ -414,22 +426,24 @@ export class PlannerGraphInjection {
       // Check for active goals
       const goals = await this.findActiveGoals(entity.id);
       if (goals.length > 0) {
-        context.push('\n**Active goals:**');
+        context.push("\n**Active goals:**");
         for (const goal of goals) {
           context.push(`- ${goal.title}`);
         }
       }
 
-      context.push('');
+      context.push("");
     }
 
-    return context.join('\n');
+    return context.join("\n");
   }
 
   /**
    * Recognize entities mentioned in query.
    */
-  private async recognizeEntities(query: string): Promise<Array<{ id: string; name: string; type: string; description?: string }>> {
+  private async recognizeEntities(
+    query: string,
+  ): Promise<Array<{ id: string; name: string; type: string; description?: string }>> {
     // This would use QueryEntityRecognizer from Phase 3
     // For now, simplified implementation:
     return [];
@@ -451,14 +465,13 @@ export class PlannerGraphInjection {
 
 ```typescript
 // Import bridge
-import { OverseerKnowledgeBridge } from '../../knowledge/overseer-bridge/bridge.js';
+import { OverseerKnowledgeBridge } from "../../knowledge/overseer-bridge/bridge.js";
 
 export class OverseerPlanner {
   private bridge?: OverseerKnowledgeBridge;
 
-  constructor(
-    // ... existing deps
-  ) {
+  constructor() // ... existing deps
+  {
     // Initialize bridge if knowledge enabled
     if (config.knowledge?.enabled) {
       this.bridge = new OverseerKnowledgeBridge(datastore, graphQuery);
@@ -469,7 +482,7 @@ export class OverseerPlanner {
    * Generate plan with graph context.
    */
   async generatePlan(goal: Goal): Promise<Plan> {
-    let contextAddition = '';
+    let contextAddition = "";
 
     // Add graph context if available
     if (this.bridge) {
@@ -489,7 +502,7 @@ export class OverseerPlanner {
         title: goal.title,
         description: goal.description,
         status: goal.status,
-        relatedEntityIds: plan.relatedEntityIds,  // Extracted from plan
+        relatedEntityIds: plan.relatedEntityIds, // Extracted from plan
       });
     }
 
@@ -515,7 +528,7 @@ export class OverseerRunner {
         title: task.title,
         description: task.description,
         status: task.status,
-        relatedEntityIds: task.relatedEntityIds,  // Extracted from task
+        relatedEntityIds: task.relatedEntityIds, // Extracted from task
       });
     }
 

@@ -1,29 +1,29 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
-type Frequency = "daily" | "weekly" | "monthly" | "custom"
-type DayOfWeek = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
+type Frequency = "daily" | "weekly" | "monthly" | "custom";
+type DayOfWeek = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
 const daysOfWeek: { value: DayOfWeek; label: string }[] = [
   { value: "mon", label: "Mon" },
@@ -33,50 +33,73 @@ const daysOfWeek: { value: DayOfWeek; label: string }[] = [
   { value: "fri", label: "Fri" },
   { value: "sat", label: "Sat" },
   { value: "sun", label: "Sun" },
-]
+];
 
 const timeOptions = [
-  "6:00 AM", "6:30 AM", "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM",
-  "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-  "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM",
-  "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM",
-  "6:00 PM", "6:30 PM", "7:00 PM", "7:30 PM", "8:00 PM", "8:30 PM",
-  "9:00 PM", "9:30 PM", "10:00 PM"
-]
+  "6:00 AM",
+  "6:30 AM",
+  "7:00 AM",
+  "7:30 AM",
+  "8:00 AM",
+  "8:30 AM",
+  "9:00 AM",
+  "9:30 AM",
+  "10:00 AM",
+  "10:30 AM",
+  "11:00 AM",
+  "11:30 AM",
+  "12:00 PM",
+  "12:30 PM",
+  "1:00 PM",
+  "1:30 PM",
+  "2:00 PM",
+  "2:30 PM",
+  "3:00 PM",
+  "3:30 PM",
+  "4:00 PM",
+  "4:30 PM",
+  "5:00 PM",
+  "5:30 PM",
+  "6:00 PM",
+  "6:30 PM",
+  "7:00 PM",
+  "7:30 PM",
+  "8:00 PM",
+  "8:30 PM",
+  "9:00 PM",
+  "9:30 PM",
+  "10:00 PM",
+];
 
 const agents = [
   { id: "1", name: "Research Assistant" },
   { id: "2", name: "Writing Partner" },
   { id: "3", name: "Scheduler" },
   { id: "all", name: "All Agents" },
-]
+];
 
 interface CreateRitualDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSubmit?: (ritual: RitualFormData) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit?: (ritual: RitualFormData) => void;
 }
 
 interface RitualFormData {
-  name: string
-  prompt: string
-  agentId: string
-  frequency: Frequency
-  selectedDays: DayOfWeek[]
-  time: string
+  name: string;
+  prompt: string;
+  agentId: string;
+  frequency: Frequency;
+  selectedDays: DayOfWeek[];
+  time: string;
   deliveryMethods: {
-    chat: boolean
-    whatsapp: boolean
-    telegram: boolean
-    email: boolean
-  }
+    chat: boolean;
+    whatsapp: boolean;
+    telegram: boolean;
+    email: boolean;
+  };
 }
 
-export function CreateRitualDialog({
-  open,
-  onOpenChange,
-  onSubmit,
-}: CreateRitualDialogProps) {
+export function CreateRitualDialog({ open, onOpenChange, onSubmit }: CreateRitualDialogProps) {
   const [formData, setFormData] = useState<RitualFormData>({
     name: "",
     prompt: "",
@@ -90,11 +113,11 @@ export function CreateRitualDialog({
       telegram: false,
       email: false,
     },
-  })
+  });
 
   const handleSubmit = () => {
-    onSubmit?.(formData)
-    onOpenChange(false)
+    onSubmit?.(formData);
+    onOpenChange(false);
     // Reset form
     setFormData({
       name: "",
@@ -109,8 +132,8 @@ export function CreateRitualDialog({
         telegram: false,
         email: false,
       },
-    })
-  }
+    });
+  };
 
   const toggleDay = (day: DayOfWeek) => {
     setFormData((prev) => ({
@@ -118,8 +141,8 @@ export function CreateRitualDialog({
       selectedDays: prev.selectedDays.includes(day)
         ? prev.selectedDays.filter((d) => d !== day)
         : [...prev.selectedDays, day],
-    }))
-  }
+    }));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -136,9 +159,7 @@ export function CreateRitualDialog({
               id="ritual-name"
               placeholder="Morning Planning"
               value={formData.name}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, name: e.target.value }))
-              }
+              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
             />
           </div>
 
@@ -146,18 +167,14 @@ export function CreateRitualDialog({
           <div className="space-y-2">
             <Label htmlFor="ritual-prompt">
               Prompt{" "}
-              <span className="text-muted-foreground font-normal">
-                (what the agent does)
-              </span>
+              <span className="text-muted-foreground font-normal">(what the agent does)</span>
             </Label>
             <Textarea
               id="ritual-prompt"
               placeholder="Review my calendar for today and suggest how I should prioritize my tasks..."
               rows={3}
               value={formData.prompt}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, prompt: e.target.value }))
-              }
+              onChange={(e) => setFormData((prev) => ({ ...prev, prompt: e.target.value }))}
             />
           </div>
 
@@ -166,9 +183,7 @@ export function CreateRitualDialog({
             <Label>Agent</Label>
             <Select
               value={formData.agentId}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, agentId: value }))
-              }
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, agentId: value }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select an agent" />
@@ -191,22 +206,18 @@ export function CreateRitualDialog({
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground">Frequency</Label>
               <div className="flex flex-wrap gap-2">
-                {(["daily", "weekly", "monthly", "custom"] as Frequency[]).map(
-                  (freq) => (
-                    <Button
-                      key={freq}
-                      type="button"
-                      variant={formData.frequency === freq ? "default" : "outline"}
-                      size="sm"
-                      onClick={() =>
-                        setFormData((prev) => ({ ...prev, frequency: freq }))
-                      }
-                      className="capitalize"
-                    >
-                      {freq}
-                    </Button>
-                  )
-                )}
+                {(["daily", "weekly", "monthly", "custom"] as Frequency[]).map((freq) => (
+                  <Button
+                    key={freq}
+                    type="button"
+                    variant={formData.frequency === freq ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFormData((prev) => ({ ...prev, frequency: freq }))}
+                    className="capitalize"
+                  >
+                    {freq}
+                  </Button>
+                ))}
               </div>
             </div>
 
@@ -219,17 +230,13 @@ export function CreateRitualDialog({
                     <Button
                       key={day.value}
                       type="button"
-                      variant={
-                        formData.selectedDays.includes(day.value)
-                          ? "default"
-                          : "outline"
-                      }
+                      variant={formData.selectedDays.includes(day.value) ? "default" : "outline"}
                       size="sm"
                       onClick={() => toggleDay(day.value)}
                       className={cn(
                         "w-12",
                         formData.selectedDays.includes(day.value) &&
-                          "bg-primary text-primary-foreground"
+                          "bg-primary text-primary-foreground",
                       )}
                     >
                       {day.label}
@@ -243,15 +250,11 @@ export function CreateRitualDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm text-muted-foreground">Time</Label>
-                <span className="text-xs text-muted-foreground">
-                  Timezone: PST
-                </span>
+                <span className="text-xs text-muted-foreground">Timezone: PST</span>
               </div>
               <Select
                 value={formData.time}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, time: value }))
-                }
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, time: value }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -316,5 +319,5 @@ export function CreateRitualDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

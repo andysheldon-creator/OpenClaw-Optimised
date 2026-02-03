@@ -8,9 +8,9 @@
  * into a single primary entry + N older entries accessible via expand.
  */
 
+import type { GatewaySessionRow, AgentsListResult, GatewayAgentRow } from "./types";
 import { parseAgentSessionKey } from "../../../src/sessions/session-key-utils.js";
 import { inferSessionType } from "./session-meta";
-import type { GatewaySessionRow, AgentsListResult, GatewayAgentRow } from "./types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -198,9 +198,11 @@ export function groupSessionsByAgent(
 
     nodes.push({
       agentId,
-      displayName: agentId === "_unassigned" ? "Unassigned" : agentDisplayName(knownAgent ?? { id: agentId }),
+      displayName:
+        agentId === "_unassigned" ? "Unassigned" : agentDisplayName(knownAgent ?? { id: agentId }),
       emoji: knownAgent?.identity?.emoji?.trim() || null,
-      avatarUrl: knownAgent?.identity?.avatarUrl?.trim() || knownAgent?.identity?.avatar?.trim() || null,
+      avatarUrl:
+        knownAgent?.identity?.avatarUrl?.trim() || knownAgent?.identity?.avatar?.trim() || null,
       isDefault: defaultId === agentId,
       totalSessions: agentRows.length,
       lastActive,
@@ -313,8 +315,7 @@ export function filterAgentNodes(nodes: AgentNode[], search: string): AgentNode[
     .map((node) => {
       // Agent-level match
       const agentMatch =
-        node.agentId.toLowerCase().includes(q) ||
-        node.displayName.toLowerCase().includes(q);
+        node.agentId.toLowerCase().includes(q) || node.displayName.toLowerCase().includes(q);
       if (agentMatch) return node;
 
       // Filter channels/groups that match
@@ -378,7 +379,9 @@ export function resolveCurrentSessionInfo(
   const rest = parsed?.rest ?? sessionKey;
   const row = sessions.find((s) => s.key === sessionKey);
 
-  const channel = row ? deriveChannel(row, rest) : deriveChannel({ key: sessionKey } as GatewaySessionRow, rest);
+  const channel = row
+    ? deriveChannel(row, rest)
+    : deriveChannel({ key: sessionKey } as GatewaySessionRow, rest);
   const label = row ? deriveGroupLabel(row, rest) : rest;
 
   return { agentId, rest, channel, label };

@@ -1,17 +1,20 @@
 # Task 3: Redesign Chat View with Modern AI Chat Patterns
 
 ## Overview
+
 Redesign the chat view (`ui/src/ui/views/chat.ts` and related files) with modern AI chat patterns, better message styling, and improved composition UX.
 
 ## Project Context
 
 ### Tech Stack
+
 - **Framework**: Lit (Web Components) - NOT React
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **Build**: Vite
 - **Icons**: Custom SVG icon system in `ui/src/ui/icons.ts`
 
 ### Key Files
+
 - Main view: `ui/src/ui/views/chat.ts`
 - Chat styles: `ui/src/styles/chat.css`
 - Message rendering: `ui/src/ui/chat/grouped-render.ts`
@@ -23,6 +26,7 @@ Redesign the chat view (`ui/src/ui/views/chat.ts` and related files) with modern
 ## Design System Reference
 
 ### CSS Variables (from base.css)
+
 ```css
 /* Dark theme */
 --bg: #0a0f14;
@@ -40,6 +44,7 @@ Redesign the chat view (`ui/src/ui/views/chat.ts` and related files) with modern
 ```
 
 ### Icon System Usage
+
 ```typescript
 import { icon } from "../icons";
 
@@ -53,6 +58,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ## Design Requirements
 
 ### Visual Style - Modern AI Chat
+
 1. **Message bubbles** - Distinct user vs assistant styling
 2. **Avatar indicators** - User icon, assistant avatar/icon
 3. **Typing indicator** - Animated dots during streaming
@@ -62,6 +68,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 7. **Smooth scrolling** - Auto-scroll to new messages
 
 ### Chat View Specific Requirements
+
 1. **Message thread** - Scrollable message history
 2. **Message groups** - Group consecutive messages from same sender
 3. **Streaming display** - Real-time token display during generation
@@ -74,7 +81,8 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 10. **Abort button** - Cancel ongoing generation
 
 ### Suggested Layout
-```
+
+````
 ┌─────────────────────────────────────────────────┐
 │ Chat Header (session selector, controls)        │
 ├─────────────────────────────────────────────────┤
@@ -105,11 +113,12 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 │ └─────────────────────────────────────────────┘ │
 │ Queue: 2 messages pending                       │
 └─────────────────────────────────────────────────┘
-```
+````
 
 ### Message Bubble Patterns
 
 #### User Message
+
 ```
 ┌─────────────────────────────────────────────────┐
 │                              ┌────────────────┐ │
@@ -121,6 +130,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ```
 
 #### Assistant Message
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ 🤖 Assistant                              2m ago│
@@ -139,73 +149,162 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 
 ```css
 /* Chat Layout */
-.chat-container { /* main chat container */ }
-.chat-thread { /* scrollable message area */ }
-.chat-compose { /* composition area */ }
+.chat-container {
+  /* main chat container */
+}
+.chat-thread {
+  /* scrollable message area */
+}
+.chat-compose {
+  /* composition area */
+}
 
 /* Message Groups */
-.message-group { /* group of messages from same sender */ }
-.message-group--user { /* user message group */ }
-.message-group--assistant { /* assistant message group */ }
+.message-group {
+  /* group of messages from same sender */
+}
+.message-group--user {
+  /* user message group */
+}
+.message-group--assistant {
+  /* assistant message group */
+}
 
 /* Message Bubble */
-.message-bubble { /* individual message */ }
-.message-bubble--user { /* user styling */ }
-.message-bubble--assistant { /* assistant styling */ }
-.message-bubble__header { /* sender + timestamp */ }
-.message-bubble__avatar { /* avatar icon/image */ }
-.message-bubble__sender { /* sender name */ }
-.message-bubble__time { /* timestamp */ }
-.message-bubble__content { /* message content */ }
-.message-bubble__actions { /* copy, etc. */ }
+.message-bubble {
+  /* individual message */
+}
+.message-bubble--user {
+  /* user styling */
+}
+.message-bubble--assistant {
+  /* assistant styling */
+}
+.message-bubble__header {
+  /* sender + timestamp */
+}
+.message-bubble__avatar {
+  /* avatar icon/image */
+}
+.message-bubble__sender {
+  /* sender name */
+}
+.message-bubble__time {
+  /* timestamp */
+}
+.message-bubble__content {
+  /* message content */
+}
+.message-bubble__actions {
+  /* copy, etc. */
+}
 
 /* Code Blocks */
-.code-block { /* code block container */ }
-.code-block__header { /* language + copy button */ }
-.code-block__content { /* code content */ }
-.code-block__copy { /* copy button */ }
+.code-block {
+  /* code block container */
+}
+.code-block__header {
+  /* language + copy button */
+}
+.code-block__content {
+  /* code content */
+}
+.code-block__copy {
+  /* copy button */
+}
 
 /* Tool Calls */
-.tool-call { /* tool call container */ }
-.tool-call--collapsed { /* collapsed state */ }
-.tool-call--expanded { /* expanded state */ }
-.tool-call__header { /* tool name + toggle */ }
-.tool-call__icon { /* tool icon */ }
-.tool-call__name { /* tool name */ }
-.tool-call__toggle { /* expand/collapse */ }
-.tool-call__content { /* tool input/output */ }
-.tool-call__view { /* view output button */ }
+.tool-call {
+  /* tool call container */
+}
+.tool-call--collapsed {
+  /* collapsed state */
+}
+.tool-call--expanded {
+  /* expanded state */
+}
+.tool-call__header {
+  /* tool name + toggle */
+}
+.tool-call__icon {
+  /* tool icon */
+}
+.tool-call__name {
+  /* tool name */
+}
+.tool-call__toggle {
+  /* expand/collapse */
+}
+.tool-call__content {
+  /* tool input/output */
+}
+.tool-call__view {
+  /* view output button */
+}
 
 /* Thinking/Reasoning */
-.thinking-block { /* thinking container */ }
-.thinking-block__header { /* toggle header */ }
-.thinking-block__content { /* thinking content */ }
+.thinking-block {
+  /* thinking container */
+}
+.thinking-block__header {
+  /* toggle header */
+}
+.thinking-block__content {
+  /* thinking content */
+}
 
 /* Typing Indicator */
-.typing-indicator { /* indicator container */ }
-.typing-indicator__dot { /* animated dot */ }
+.typing-indicator {
+  /* indicator container */
+}
+.typing-indicator__dot {
+  /* animated dot */
+}
 
 /* Composition Area */
-.chat-compose { /* compose container */ }
-.chat-compose__input { /* textarea */ }
-.chat-compose__actions { /* send/abort buttons */ }
-.chat-compose__send { /* send button */ }
-.chat-compose__abort { /* abort button */ }
+.chat-compose {
+  /* compose container */
+}
+.chat-compose__input {
+  /* textarea */
+}
+.chat-compose__actions {
+  /* send/abort buttons */
+}
+.chat-compose__send {
+  /* send button */
+}
+.chat-compose__abort {
+  /* abort button */
+}
 
 /* Queue Display */
-.chat-queue { /* queue container */ }
-.chat-queue__item { /* queued message */ }
-.chat-queue__remove { /* remove button */ }
+.chat-queue {
+  /* queue container */
+}
+.chat-queue__item {
+  /* queued message */
+}
+.chat-queue__remove {
+  /* remove button */
+}
 
 /* Streaming */
-.streaming-message { /* streaming state */ }
-.streaming-cursor { /* blinking cursor */ }
+.streaming-message {
+  /* streaming state */
+}
+.streaming-cursor {
+  /* blinking cursor */
+}
 
 /* Focus Mode */
-.chat-container--focus { /* focus mode styles */ }
+.chat-container--focus {
+  /* focus mode styles */
+}
 ```
 
 ### Chat Bubble Styling
+
 ```css
 .message-bubble--user {
   margin-left: auto;
@@ -255,13 +354,25 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
   animation: typingBounce 1.4s ease-in-out infinite;
 }
 
-.typing-indicator__dot:nth-child(1) { animation-delay: 0ms; }
-.typing-indicator__dot:nth-child(2) { animation-delay: 200ms; }
-.typing-indicator__dot:nth-child(3) { animation-delay: 400ms; }
+.typing-indicator__dot:nth-child(1) {
+  animation-delay: 0ms;
+}
+.typing-indicator__dot:nth-child(2) {
+  animation-delay: 200ms;
+}
+.typing-indicator__dot:nth-child(3) {
+  animation-delay: 400ms;
+}
 
 @keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-8px); }
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-8px);
+  }
 }
 
 /* Streaming cursor */
@@ -272,12 +383,18 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 ```
 
 ### Compose Area Styling
+
 ```css
 .chat-compose {
   padding: 16px;
@@ -298,7 +415,9 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
   line-height: 1.5;
   resize: none;
   outline: none;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .chat-compose__input:focus {
@@ -324,7 +443,9 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
   color: #000;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 150ms ease, box-shadow 150ms ease;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .chat-compose__send:hover:not(:disabled) {
@@ -347,7 +468,9 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
   border: 1px solid rgba(255, 107, 107, 0.3);
   color: var(--danger);
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
 }
 
 .chat-compose__abort:hover {
@@ -384,16 +507,14 @@ html`
             ? html`<img src=${assistantAvatar} alt="" />`
             : icon("sparkles", { size: 18 })}
       </div>
-      <span class="message-bubble__sender">
-        ${role === "user" ? "You" : assistantName}
-      </span>
+      <span class="message-bubble__sender"> ${role === "user" ? "You" : assistantName} </span>
       <span class="message-bubble__time">${formatAgo(timestamp)}</span>
     </div>
     <div class="message-group__messages">
-      ${messages.map(msg => renderMessageBubble(msg, role))}
+      ${messages.map((msg) => renderMessageBubble(msg, role))}
     </div>
   </div>
-`
+`;
 ```
 
 ## Example Compose Area Pattern
@@ -438,16 +559,19 @@ html`
       </button>
     </div>
   </div>
-`
+`;
 ```
 
 ## Testing
+
 After changes, run:
+
 ```bash
 cd ui && pnpm build
 ```
 
 Build should complete without errors. Test in browser:
+
 1. Messages display correctly with bubbles
 2. User vs assistant styling is distinct
 3. Typing indicator shows during streaming

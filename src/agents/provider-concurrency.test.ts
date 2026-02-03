@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
 import type { StreamFn } from "@mariozechner/pi-agent-core";
-
+import { afterEach, describe, expect, it } from "vitest";
 import {
   AsyncSemaphore,
   clearProviderConcurrency,

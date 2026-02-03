@@ -11,34 +11,49 @@ This document captures the complete design specification for implementing a hier
 ### Pattern 1: Expandable Card Component
 
 **Demo Code:**
+
 ```tsx
 // FILE: src/demos/expandable-card-demo.tsx
-"use client"
+"use client";
 
-import React, { useState } from "react"
+import React, { useState } from "react";
 import {
-  Battery, Bluetooth, Calendar, Clock, Cloud, Droplets,
-  Fingerprint, MapPin, MessageSquare, Mic, ShoppingCart,
-  Star, Sun, Users, Video, Wind,
-} from "lucide-react"
-import { motion as framerMotion } from "framer-motion"
+  Battery,
+  Bluetooth,
+  Calendar,
+  Clock,
+  Cloud,
+  Droplets,
+  Fingerprint,
+  MapPin,
+  MessageSquare,
+  Mic,
+  ShoppingCart,
+  Star,
+  Sun,
+  Users,
+  Video,
+  Wind,
+} from "lucide-react";
+import { motion as framerMotion } from "framer-motion";
 
-import { Component, ExpandableCard, ExpandableCardContent,
-         ExpandableCardFooter, ExpandableCardHeader,
-         ExpandableContent, ExpandableTrigger } from "@/components/ui/expandable"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }
-         from "@/components/ui/tooltip"
+import {
+  Component,
+  ExpandableCard,
+  ExpandableCardContent,
+  ExpandableCardFooter,
+  ExpandableCardHeader,
+  ExpandableContent,
+  ExpandableTrigger,
+} from "@/components/ui/expandable";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function DesignSyncExample() {
   return (
-    <Component
-      expandDirection="both"
-      expandBehavior="replace"
-      initialDelay={0.2}
-    >
+    <Component expandDirection="both" expandBehavior="replace" initialDelay={0.2}>
       {({ isExpanded }) => (
         <ExpandableTrigger>
           <ExpandableCard
@@ -52,8 +67,10 @@ function DesignSyncExample() {
             <ExpandableCardHeader>
               <div className="flex justify-between items-start w-full">
                 <div>
-                  <Badge variant="secondary"
-                         className="bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-100 mb-2">
+                  <Badge
+                    variant="secondary"
+                    className="bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-100 mb-2"
+                  >
                     In 15 mins
                   </Badge>
                   <h3 className="font-semibold text-xl text-gray-800 dark:text-white">
@@ -91,8 +108,8 @@ function DesignSyncExample() {
               </div>
               <ExpandableContent preset="blur-md" stagger staggerChildren={0.2}>
                 <p className="text-sm text-gray-700 dark:text-gray-200 mb-4">
-                  Weekly design sync to discuss ongoing projects, share updates,
-                  and address any design-related challenges.
+                  Weekly design sync to discuss ongoing projects, share updates, and address any
+                  design-related challenges.
                 </p>
                 <div className="mb-4">
                   <h4 className="font-medium text-sm text-gray-800 dark:text-gray-100 mb-2 flex items-center">
@@ -146,11 +163,12 @@ function DesignSyncExample() {
         </ExpandableTrigger>
       )}
     </Component>
-  )
+  );
 }
 ```
 
 **Key Design Insights:**
+
 - Uses Framer Motion for smooth expand/collapse animations
 - `ExpandableContent` with presets like "blur-md" for content that appears on expansion
 - `stagger` and `staggerChildren` for sequential reveal animations
@@ -163,13 +181,14 @@ function DesignSyncExample() {
 ### Pattern 2: Hierarchical Tree Structure
 
 **Demo Code:**
-```tsx
-'use client';
 
-import React from 'react';
-import { Tree, TreeItem, TreeItemLabel } from '@/components/ui/tree';
-import { hotkeysCoreFeature, syncDataLoaderFeature } from '@headless-tree/core';
-import { useTree } from '@headless-tree/react';
+```tsx
+"use client";
+
+import React from "react";
+import { Tree, TreeItem, TreeItemLabel } from "@/components/ui/tree";
+import { hotkeysCoreFeature, syncDataLoaderFeature } from "@headless-tree/core";
+import { useTree } from "@headless-tree/react";
 
 interface Item {
   name: string;
@@ -178,26 +197,26 @@ interface Item {
 
 const items: Record<string, Item> = {
   crm: {
-    name: 'CRM',
-    children: ['leads', 'accounts', 'activities', 'support'],
+    name: "CRM",
+    children: ["leads", "accounts", "activities", "support"],
   },
   leads: {
-    name: 'Leads',
-    children: ['new-lead', 'contacted-lead', 'qualified-lead'],
+    name: "Leads",
+    children: ["new-lead", "contacted-lead", "qualified-lead"],
   },
-  'new-lead': { name: 'New Lead' },
-  'contacted-lead': { name: 'Contacted Lead' },
-  'qualified-lead': { name: 'Qualified Lead' },
+  "new-lead": { name: "New Lead" },
+  "contacted-lead": { name: "Contacted Lead" },
+  "qualified-lead": { name: "Qualified Lead" },
   // ... more items
 };
 
 export default function Component() {
   const tree = useTree<Item>({
     initialState: {
-      expandedItems: ['leads', 'accounts', 'activities'],
+      expandedItems: ["leads", "accounts", "activities"],
     },
     indent: 20,
-    rootItemId: 'crm',
+    rootItemId: "crm",
     getItemName: (item) => item.getItemData().name,
     isItemFolder: (item) => (item.getItemData()?.children?.length ?? 0) > 0,
     dataLoader: {
@@ -222,6 +241,7 @@ export default function Component() {
 ```
 
 **Tree Component Code:**
+
 ```tsx
 interface TreeContextValue<T = any> {
   indent: number;
@@ -232,14 +252,17 @@ interface TreeContextValue<T = any> {
 
 const TreeContext = React.createContext<TreeContextValue>({
   indent: 20,
-  toggleIconType: 'chevron',
+  toggleIconType: "chevron",
 });
 
-function Tree({ indent = 20, tree, className, toggleIconType = 'chevron', ...props }) {
+function Tree({ indent = 20, tree, className, toggleIconType = "chevron", ...props }) {
   return (
     <TreeContext.Provider value={{ indent, tree, toggleIconType }}>
-      <div style={{ '--tree-indent': `${indent}px` }}
-           className={cn('flex flex-col', className)} {...props} />
+      <div
+        style={{ "--tree-indent": `${indent}px` }}
+        className={cn("flex flex-col", className)}
+        {...props}
+      />
     </TreeContext.Provider>
   );
 }
@@ -251,10 +274,10 @@ function TreeItem<T>({ item, className, ...props }) {
   return (
     <TreeContext.Provider value={{ ...parentContext, currentItem: item }}>
       <button
-        style={{ '--tree-padding': `${item.getItemMeta().level * indent}px` }}
+        style={{ "--tree-padding": `${item.getItemMeta().level * indent}px` }}
         className={cn(
-          'ps-(--tree-padding) outline-hidden select-none focus:z-20',
-          'data-[folder=true]:folder-indicator'
+          "ps-(--tree-padding) outline-hidden select-none focus:z-20",
+          "data-[folder=true]:folder-indicator",
         )}
         aria-expanded={item.isExpanded()}
         {...itemProps}
@@ -267,6 +290,7 @@ function TreeItem<T>({ item, className, ...props }) {
 ```
 
 **Key Design Insights:**
+
 - Hierarchical indentation based on level
 - Folder vs leaf item distinction
 - Toggle icons (chevron or plus/minus) for expand/collapse
@@ -279,6 +303,7 @@ function TreeItem<T>({ item, className, ...props }) {
 ### Pattern 3: Grouped Listbox
 
 **Demo Code:**
+
 ```tsx
 "use client";
 
@@ -337,6 +362,7 @@ export default function WithGroups() {
 ```
 
 **Key Design Insights:**
+
 - Group-by function for categorization
 - Category headers with uppercase styling
 - Spacer between groups
@@ -405,10 +431,10 @@ export function cn(...inputs: ClassValue[]) {
 ### Component: components/ui/badge.tsx
 
 ```tsx
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
   "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0",
@@ -422,18 +448,14 @@ const badgeVariants = cva(
       },
     },
     defaultVariants: { variant: "default" },
-  }
-)
+  },
+);
 
 export function Badge({ className, variant, asChild = false, ...props }) {
-  const Comp = asChild ? Slot : "span"
+  const Comp = asChild ? Slot : "span";
   return (
-    <Comp
-      data-slot="badge"
-      className={cn(badgeVariants({ variant }), className)}
-      {...props}
-    />
-  )
+    <Comp data-slot="badge" className={cn(badgeVariants({ variant }), className)} {...props} />
+  );
 }
 ```
 
@@ -605,9 +627,7 @@ function HierarchicalSessionsList({
 
   const toggleAgent = (agentId: string) => {
     setExpandedAgents((prev) =>
-      prev.includes(agentId)
-        ? prev.filter((id) => id !== agentId)
-        : [...prev, agentId]
+      prev.includes(agentId) ? prev.filter((id) => id !== agentId) : [...prev, agentId],
     );
   };
 
@@ -619,10 +639,7 @@ function HierarchicalSessionsList({
         const historicalSessions = agent.sessions.slice(1);
 
         return (
-          <div
-            key={agent.id}
-            className="border border-border rounded-lg bg-card overflow-hidden"
-          >
+          <div key={agent.id} className="border border-border rounded-lg bg-card overflow-hidden">
             {/* Agent Header */}
             <div className="p-4 border-b border-border bg-muted/30">
               <div className="flex items-center justify-between">
@@ -631,9 +648,7 @@ function HierarchicalSessionsList({
                     {agent.icon}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">
-                      {agent.name}
-                    </h3>
+                    <h3 className="font-semibold text-foreground">{agent.name}</h3>
                     <p className="text-xs text-muted-foreground">
                       {agent.sessions.length} session
                       {agent.sessions.length !== 1 ? "s" : ""}
@@ -667,10 +682,7 @@ function HierarchicalSessionsList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <div
-                      className={cn(
-                        "w-2 h-2 rounded-full",
-                        getStatusDot(mostRecentSession.status)
-                      )}
+                      className={cn("w-2 h-2 rounded-full", getStatusDot(mostRecentSession.status))}
                     />
                     <h4 className="font-medium text-foreground truncate">
                       {mostRecentSession.title}
@@ -693,7 +705,7 @@ function HierarchicalSessionsList({
                   variant="outline"
                   className={cn(
                     "capitalize text-xs font-medium",
-                    getStatusColor(mostRecentSession.status)
+                    getStatusColor(mostRecentSession.status),
                   )}
                 >
                   {mostRecentSession.status}
@@ -735,7 +747,7 @@ function HierarchicalSessionsList({
                                 <div
                                   className={cn(
                                     "w-1.5 h-1.5 rounded-full",
-                                    getStatusDot(session.status)
+                                    getStatusDot(session.status),
                                   )}
                                 />
                                 <h5 className="text-sm text-foreground truncate">
@@ -747,19 +759,15 @@ function HierarchicalSessionsList({
                                   <Clock className="h-3 w-3" />
                                   {session.timestamp}
                                 </span>
-                                {session.duration && (
-                                  <span>{session.duration}</span>
-                                )}
-                                {session.messages && (
-                                  <span>{session.messages} messages</span>
-                                )}
+                                {session.duration && <span>{session.duration}</span>}
+                                {session.messages && <span>{session.messages} messages</span>}
                               </div>
                             </div>
                             <Badge
                               variant="outline"
                               className={cn(
                                 "capitalize text-xs font-medium shrink-0",
-                                getStatusColor(session.status)
+                                getStatusColor(session.status),
                               )}
                             >
                               {session.status}
@@ -784,9 +792,7 @@ export default function Demo() {
     <div className="min-h-screen w-full bg-background p-6">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Agent Sessions
-          </h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Agent Sessions</h1>
           <p className="text-muted-foreground">
             View and manage sessions grouped by agent with expandable history
           </p>
@@ -805,6 +811,7 @@ export default function Demo() {
 ### Core Interaction Model
 
 #### Primary Navigation (Click Agent Row)
+
 - **Action**: Click anywhere on the agent's most recent session row
 - **Result**: Navigate directly to the Chat view with that session loaded
 - **Visual Feedback**: Entire row becomes clickable, hover state shows cursor change
@@ -814,6 +821,7 @@ export default function Demo() {
   - Enter/Space keyboard support
 
 #### Secondary Action (Expand/Collapse History)
+
 - **Action**: Click the "Show history" button or chevron icon
 - **Result**: Toggle inline expansion of historical sessions
 - **Visual Feedback**:
@@ -829,12 +837,14 @@ export default function Demo() {
 ### Information Hierarchy
 
 #### Agent Header (Always Visible)
+
 1. **Agent Icon**: Visual identifier, uses primary color background
 2. **Agent Name**: Bold, primary text color
 3. **Session Count**: Smaller, muted text ("X sessions")
 4. **History Toggle**: Right-aligned, shows only if history exists
 
 #### Most Recent Session (Default View)
+
 1. **Status Dot**: 2px colored circle, indicates current state
 2. **Session Title**: Truncated with ellipsis, full title in tooltip
 3. **Metadata Row**:
@@ -844,6 +854,7 @@ export default function Demo() {
 4. **Status Badge**: Right-aligned, color-coded
 
 #### Historical Sessions (Expanded)
+
 1. **Section Header**: "HISTORY" label, uppercase, muted
 2. **Session Items** (same structure as most recent but condensed)
 3. **Hover State**: Subtle background highlight
@@ -851,37 +862,37 @@ export default function Demo() {
 
 ### State Mapping (From Existing Sessions)
 
-| Session Field | Component Display | Notes |
-|---------------|------------------|-------|
-| `key` | Session ID | Used for navigation |
-| `displayName` or `derivedTitle` | Title | Truncate at ~60 chars |
-| `updatedAt` | Timestamp | Use `formatAgo()` |
-| `status` (derived) | Badge + Dot | active/idle/completed/aborted |
-| `abortedLastRun` | Error State | Overrides status with "aborted" |
-| `totalTokens` | Token Count | Format with `formatSessionTokens()` |
-| `modelProvider` + `model` | Model Info | "provider · model" format |
-| `contextTokens` | Context Window | "ctx {tokens}" suffix |
-| `thinkingLevel` | Thinking Badge | Brain icon + level |
-| `activeTasks` | Activity Indicator | Pulsing dot if in-progress |
+| Session Field                   | Component Display  | Notes                               |
+| ------------------------------- | ------------------ | ----------------------------------- |
+| `key`                           | Session ID         | Used for navigation                 |
+| `displayName` or `derivedTitle` | Title              | Truncate at ~60 chars               |
+| `updatedAt`                     | Timestamp          | Use `formatAgo()`                   |
+| `status` (derived)              | Badge + Dot        | active/idle/completed/aborted       |
+| `abortedLastRun`                | Error State        | Overrides status with "aborted"     |
+| `totalTokens`                   | Token Count        | Format with `formatSessionTokens()` |
+| `modelProvider` + `model`       | Model Info         | "provider · model" format           |
+| `contextTokens`                 | Context Window     | "ctx {tokens}" suffix               |
+| `thinkingLevel`                 | Thinking Badge     | Brain icon + level                  |
+| `activeTasks`                   | Activity Indicator | Pulsing dot if in-progress          |
 
 ### Color System Mapping
 
-| Status | Background | Text | Border |
-|--------|-----------|------|--------|
-| Active | Green-100 | Green-700 | Green-200 |
-| Idle | Yellow-100 | Yellow-700 | Yellow-200 |
-| Completed | Blue/Gray-100 | Muted | Muted |
-| Aborted/Errored | Red-100 | Red-700 | Red-200 |
+| Status          | Background    | Text       | Border     |
+| --------------- | ------------- | ---------- | ---------- |
+| Active          | Green-100     | Green-700  | Green-200  |
+| Idle            | Yellow-100    | Yellow-700 | Yellow-200 |
+| Completed       | Blue/Gray-100 | Muted      | Muted      |
+| Aborted/Errored | Red-100       | Red-700    | Red-200    |
 
 Dark mode uses `dark:` prefix with inverted luminance values.
 
 ### Responsive Behavior
 
-| Breakpoint | Behavior |
-|------------|----------|
-| < 640px | - Stack agent header (icon + name on new line)<br>- Hide "Show history" text, keep chevron<br>- Reduce padding to 12px |
-| 640px - 980px | - Keep header inline<br>- Show "Show history" text<br>- Metadata wraps to 2 lines if needed |
-| > 980px | - Full layout with all elements<br>- History section max-width 600px |
+| Breakpoint    | Behavior                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| < 640px       | - Stack agent header (icon + name on new line)<br>- Hide "Show history" text, keep chevron<br>- Reduce padding to 12px |
+| 640px - 980px | - Keep header inline<br>- Show "Show history" text<br>- Metadata wraps to 2 lines if needed                            |
+| > 980px       | - Full layout with all elements<br>- History section max-width 600px                                                   |
 
 ### Keyboard Navigation
 
@@ -898,15 +909,9 @@ Dark mode uses `dark:` prefix with inverted luminance values.
   <div role="listitem" aria-labelledby="agent-{id}-name">
     <h3 id="agent-{id}-name">{agentName}</h3>
     <div role="group" aria-label="Most recent session">
-      <a href="/chat?session={sessionId}"
-         aria-label="Open session {title}">
-        ...
-      </a>
+      <a href="/chat?session={sessionId}" aria-label="Open session {title}"> ... </a>
     </div>
-    <div role="group" aria-label="Session history"
-         aria-expanded="{isExpanded}">
-      ...
-    </div>
+    <div role="group" aria-label="Session history" aria-expanded="{isExpanded}">...</div>
   </div>
 </div>
 ```
@@ -1426,11 +1431,13 @@ set sessionsViewMode(value: SessionViewMode) {
 **Scenario**: User clicks "Show history" to expand, then clicks on a historical session.
 
 **Expected Behavior**:
+
 1. Navigate to the selected session in Chat view
 2. Maintain expanded state when returning to Sessions view
 3. Highlight the currently selected session visually
 
 **Implementation**:
+
 ```typescript
 @property({ attribute: false })
 activeSessionKey?: string;
@@ -1462,6 +1469,7 @@ private _renderSession(session: GatewaySessionRow, isHistory: boolean) {
 **Scenario**: An agent has 50+ historical sessions.
 
 **Expected Behavior**:
+
 - Show all by default (no arbitrary pagination)
 - Consider virtualization if performance degrades
 - Could add "Load more" at 20 sessions if needed
@@ -1471,6 +1479,7 @@ private _renderSession(session: GatewaySessionRow, isHistory: boolean) {
 **Scenario**: An agent has 3 active sessions (unusual but possible with cron).
 
 **Expected Behavior**:
+
 - Show the most recent (highest `updatedAt`) as the primary session
 - Include all active sessions in history
 - Each shows the active indicator (pulsing green dot)
@@ -1478,6 +1487,7 @@ private _renderSession(session: GatewaySessionRow, isHistory: boolean) {
 ### Agent Name Resolution
 
 **Priority Order for Display**:
+
 1. `row.label` - User-set label
 2. `row.displayName` - Session display name (fallback)
 3. Extracted agent ID from `row.key` - Parse "agent:{agentId}:..."
@@ -1486,6 +1496,7 @@ private _renderSession(session: GatewaySessionRow, isHistory: boolean) {
 ### Session Key Parsing
 
 **Key Formats to Handle**:
+
 - `agent:{agentId}:{rest}` - Standard agent session
 - `agent:{agentId}` - Agent without specific session ID
 - `subagent:{agentId}:{rest}` - Subagent session
@@ -1496,6 +1507,7 @@ Only group sessions where a clear agent ID can be extracted.
 ### Error State Handling
 
 When `abortedLastRun === true`:
+
 1. Override status badge to show "aborted" (red)
 2. Status dot should be red
 3. This takes precedence over active/idle/completed
@@ -1503,6 +1515,7 @@ When `abortedLastRun === true`:
 ### Activity Indicators
 
 When `activeTasks` array has items with `status === "in-progress"`:
+
 1. Show pulsing animation on status dot
 2. Add task count badge next to session title
 3. Animation: `pulse 2s infinite` using `@keyframes`

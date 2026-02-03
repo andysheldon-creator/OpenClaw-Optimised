@@ -1,6 +1,5 @@
 import { render } from "lit";
 import { describe, expect, it } from "vitest";
-
 import type { SessionsListResult } from "../types";
 import { renderSessions, type SessionsProps } from "./sessions";
 

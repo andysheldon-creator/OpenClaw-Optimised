@@ -91,11 +91,15 @@ function requireConfigBaseHash(
  * Returns undefined if path doesn't exist.
  */
 function getPathValue(obj: unknown, path: string): unknown {
-  if (!obj || typeof obj !== "object") return undefined;
+  if (!obj || typeof obj !== "object") {
+    return undefined;
+  }
   const parts = path.split(".");
   let current: unknown = obj;
   for (const part of parts) {
-    if (!current || typeof current !== "object") return undefined;
+    if (!current || typeof current !== "object") {
+      return undefined;
+    }
     current = (current as Record<string, unknown>)[part];
   }
   return current;
@@ -106,10 +110,14 @@ function getPathValue(obj: unknown, path: string): unknown {
  * Returns the sub-schema for that section, or undefined if not found.
  */
 function getSchemaSection(schema: unknown, section: string): unknown {
-  if (!schema || typeof schema !== "object") return undefined;
+  if (!schema || typeof schema !== "object") {
+    return undefined;
+  }
   const s = schema as Record<string, unknown>;
   const props = s.properties as Record<string, unknown> | undefined;
-  if (!props) return undefined;
+  if (!props) {
+    return undefined;
+  }
   return props[section];
 }
 
@@ -118,14 +126,20 @@ function getSchemaSection(schema: unknown, section: string): unknown {
  * Navigates through properties at each level.
  */
 function getSchemaAtPath(schema: unknown, path: string): unknown {
-  if (!schema || typeof schema !== "object") return undefined;
+  if (!schema || typeof schema !== "object") {
+    return undefined;
+  }
   const parts = path.split(".");
   let current: unknown = schema;
   for (const part of parts) {
-    if (!current || typeof current !== "object") return undefined;
+    if (!current || typeof current !== "object") {
+      return undefined;
+    }
     const c = current as Record<string, unknown>;
     const props = c.properties as Record<string, unknown> | undefined;
-    if (!props) return undefined;
+    if (!props) {
+      return undefined;
+    }
     current = props[part];
   }
   return current;

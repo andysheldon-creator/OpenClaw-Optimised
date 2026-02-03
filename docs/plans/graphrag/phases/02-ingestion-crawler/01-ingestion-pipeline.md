@@ -11,6 +11,7 @@
 ## Task Overview
 
 Create an ingestion pipeline that:
+
 - Accepts file uploads (PDF, DOCX, MD, TXT, HTML, JSON)
 - Accepts raw text input
 - Parses documents into chunks
@@ -53,28 +54,28 @@ src/knowledge/ingest/
  * Reference: docs/plans/graphrag/ZAI-PLAN.md Phase 2
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { createHash } from 'crypto';
-import type { RelationalDatastore } from '../datastore/interface.js';
-import type { EntityExtraction } from '../graph/types.js';
-import { HybridExtractor } from '../extraction/hybrid-extractor.js';
-import { EntityConsolidator } from '../consolidation/consolidator.js';
-import { parsePDF } from './parsers/pdf.js';
-import { parseDOCX } from './parsers/docx.js';
-import { parseHTML } from './parsers/html.js';
-import { parseMarkdown } from './parsers/markdown.js';
-import { parseText } from './parsers/text.js';
+import fs from "fs/promises";
+import path from "path";
+import { createHash } from "crypto";
+import type { RelationalDatastore } from "../datastore/interface.js";
+import type { EntityExtraction } from "../graph/types.js";
+import { HybridExtractor } from "../extraction/hybrid-extractor.js";
+import { EntityConsolidator } from "../consolidation/consolidator.js";
+import { parsePDF } from "./parsers/pdf.js";
+import { parseDOCX } from "./parsers/docx.js";
+import { parseHTML } from "./parsers/html.js";
+import { parseMarkdown } from "./parsers/markdown.js";
+import { parseText } from "./parsers/text.js";
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 export type IngestionSource =
-  | 'memory'      // From memory sync (automatic)
-  | 'manual'      // User uploaded file
-  | 'crawl'       // From web crawler
-  | 'api';        // From API ingestion
+  | "memory" // From memory sync (automatic)
+  | "manual" // User uploaded file
+  | "crawl" // From web crawler
+  | "api"; // From API ingestion
 
 export interface IngestionOptions {
   /** Source type */
@@ -93,7 +94,7 @@ export interface IngestionOptions {
 
 export interface IngestionResult {
   sourceId: string;
-  status: 'success' | 'partial' | 'error';
+  status: "success" | "partial" | "error";
   chunksProcessed: number;
   entitiesExtracted: number;
   relationshipsExtracted: number;
@@ -102,19 +103,19 @@ export interface IngestionResult {
 }
 
 export interface FileIngestionOptions extends IngestionOptions {
-  source: 'manual';
+  source: "manual";
   filePath: string;
   mimeType?: string;
 }
 
 export interface TextIngestionOptions extends IngestionOptions {
-  source: 'manual';
+  source: "manual";
   text: string;
   title?: string;
 }
 
 export interface URLIngestionOptions extends IngestionOptions {
-  source: 'crawl';
+  source: "crawl";
   url: string;
   crawlId?: string;
 }
@@ -133,7 +134,7 @@ export class IngestionPipeline {
   constructor(
     datastore: RelationalDatastore,
     extractor: HybridExtractor,
-    consolidator: EntityConsolidator
+    consolidator: EntityConsolidator,
   ) {
     this.datastore = datastore;
     this.extractor = extractor;
@@ -148,7 +149,7 @@ export class IngestionPipeline {
 
     try {
       // Read file
-      const content = await fs.readFile(options.filePath, 'utf-8');
+      const content = await fs.readFile(options.filePath, "utf-8");
 
       // Detect MIME type if not provided
       const mimeType = options.mimeType || this.detectMimeType(options.filePath);
@@ -157,9 +158,9 @@ export class IngestionPipeline {
       const parsed = await this.parseContent(content, mimeType);
 
       // Create source record
-      const sourceId = this.generateSourceId(options.filePath, 'manual');
+      const sourceId = this.generateSourceId(options.filePath, "manual");
       await this.createSourceRecord(sourceId, {
-        type: 'file',
+        type: "file",
         path: options.filePath,
         mimeType,
         tags: options.tags || [],
@@ -167,15 +168,11 @@ export class IngestionPipeline {
       });
 
       // Process content
-      const result = await this.processContent(
-        sourceId,
-        parsed.text,
-        options
-      );
+      const result = await this.processContent(sourceId, parsed.text, options);
 
       return {
         sourceId,
-        status: 'success',
+        status: "success",
         chunksProcessed: result.chunksProcessed,
         entitiesExtracted: result.entitiesExtracted,
         relationshipsExtracted: result.relationshipsExtracted,
@@ -183,8 +180,8 @@ export class IngestionPipeline {
       };
     } catch (error) {
       return {
-        sourceId: '',
-        status: 'error',
+        sourceId: "",
+        status: "error",
         chunksProcessed: 0,
         entitiesExtracted: 0,
         relationshipsExtracted: 0,
@@ -201,11 +198,11 @@ export class IngestionPipeline {
     const startTime = Date.now();
 
     try {
-      const sourceId = this.generateSourceId(options.title || options.text.slice(0, 50), 'manual');
+      const sourceId = this.generateSourceId(options.title || options.text.slice(0, 50), "manual");
 
       await this.createSourceRecord(sourceId, {
-        type: 'text',
-        title: options.title || 'Untitled',
+        type: "text",
+        title: options.title || "Untitled",
         tags: options.tags || [],
         metadata: options.metadata || {},
       });
@@ -214,7 +211,7 @@ export class IngestionPipeline {
 
       return {
         sourceId,
-        status: 'success',
+        status: "success",
         chunksProcessed: result.chunksProcessed,
         entitiesExtracted: result.entitiesExtracted,
         relationshipsExtracted: result.relationshipsExtracted,
@@ -222,8 +219,8 @@ export class IngestionPipeline {
       };
     } catch (error) {
       return {
-        sourceId: '',
-        status: 'error',
+        sourceId: "",
+        status: "error",
         chunksProcessed: 0,
         entitiesExtracted: 0,
         relationshipsExtracted: 0,
@@ -240,10 +237,10 @@ export class IngestionPipeline {
     const startTime = Date.now();
 
     try {
-      const sourceId = this.generateSourceId(options.url, 'crawl');
+      const sourceId = this.generateSourceId(options.url, "crawl");
 
       await this.createSourceRecord(sourceId, {
-        type: 'url',
+        type: "url",
         url: options.url,
         crawlId: options.crawlId,
         tags: options.tags || [],
@@ -257,7 +254,7 @@ export class IngestionPipeline {
 
       return {
         sourceId,
-        status: 'success',
+        status: "success",
         chunksProcessed: result.chunksProcessed,
         entitiesExtracted: result.entitiesExtracted,
         relationshipsExtracted: result.relationshipsExtracted,
@@ -265,8 +262,8 @@ export class IngestionPipeline {
       };
     } catch (error) {
       return {
-        sourceId: '',
-        status: 'error',
+        sourceId: "",
+        status: "error",
         chunksProcessed: 0,
         entitiesExtracted: 0,
         relationshipsExtracted: 0,
@@ -286,7 +283,7 @@ export class IngestionPipeline {
   private async processContent(
     sourceId: string,
     text: string,
-    options: IngestionOptions
+    options: IngestionOptions,
   ): Promise<{
     chunksProcessed: number;
     entitiesExtracted: number;
@@ -314,19 +311,14 @@ export class IngestionPipeline {
           const consolidated = await this.consolidator.consolidate(result.data.entities);
 
           // Store entities and relationships
-          await this.storeExtraction(
-            chunkId,
-            sourceId,
-            result.data,
-            consolidated
-          );
+          await this.storeExtraction(chunkId, sourceId, result.data, consolidated);
 
           totalEntities += result.data.entities.length;
           totalRelationships += result.data.relationships.length;
         }
 
         // Update extraction progress
-        await this.updateExtractionProgress(chunkId, 'done');
+        await this.updateExtractionProgress(chunkId, "done");
       }
 
       // Store chunk
@@ -353,8 +345,8 @@ export class IngestionPipeline {
       // Try to break at sentence boundary
       let breakPoint = end;
       if (end < text.length) {
-        const lastPeriod = text.lastIndexOf('.', end);
-        const lastNewline = text.lastIndexOf('\n', end);
+        const lastPeriod = text.lastIndexOf(".", end);
+        const lastNewline = text.lastIndexOf("\n", end);
         breakPoint = Math.max(lastPeriod, lastNewline, position + size / 2);
       }
 
@@ -368,17 +360,20 @@ export class IngestionPipeline {
   /**
    * Parse content based on MIME type.
    */
-  private async parseContent(content: string, mimeType: string): Promise<{ text: string; metadata?: any }> {
+  private async parseContent(
+    content: string,
+    mimeType: string,
+  ): Promise<{ text: string; metadata?: any }> {
     switch (mimeType) {
-      case 'application/pdf':
+      case "application/pdf":
         return parsePDF(content);
-      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         return parseDOCX(content);
-      case 'text/html':
+      case "text/html":
         return parseHTML(content);
-      case 'text/markdown':
+      case "text/markdown":
         return parseMarkdown(content);
-      case 'text/plain':
+      case "text/plain":
       default:
         return parseText(content);
     }
@@ -391,29 +386,25 @@ export class IngestionPipeline {
     const ext = path.extname(filePath).toLowerCase();
 
     const mimeTypes: Record<string, string> = {
-      '.pdf': 'application/pdf',
-      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      '.doc': 'application/msword',
-      '.html': 'text/html',
-      '.htm': 'text/html',
-      '.md': 'text/markdown',
-      '.markdown': 'text/markdown',
-      '.txt': 'text/plain',
-      '.json': 'application/json',
+      ".pdf": "application/pdf",
+      ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".doc": "application/msword",
+      ".html": "text/html",
+      ".htm": "text/html",
+      ".md": "text/markdown",
+      ".markdown": "text/markdown",
+      ".txt": "text/plain",
+      ".json": "application/json",
     };
 
-    return mimeTypes[ext] || 'text/plain';
+    return mimeTypes[ext] || "text/plain";
   }
 
   /**
    * Generate unique source ID.
    */
   private generateSourceId(identifier: string, source: IngestionSource): string {
-    const hash = createHash('sha256')
-      .update(identifier)
-      .update(source)
-      .digest('hex')
-      .slice(0, 16);
+    const hash = createHash("sha256").update(identifier).update(source).digest("hex").slice(0, 16);
 
     return `${source}-${hash}`;
   }
@@ -432,7 +423,7 @@ export class IngestionPipeline {
       crawlId?: string;
       tags: string[];
       metadata: Record<string, any>;
-    }
+    },
   ): Promise<void> {
     await this.datastore.execute(
       `INSERT INTO kg_sources (id, type, path, url, title, mime_type, crawl_id, tags, metadata, created_at)
@@ -448,7 +439,7 @@ export class IngestionPipeline {
         JSON.stringify(data.tags),
         JSON.stringify(data.metadata),
         Date.now(),
-      ]
+      ],
     );
   }
 
@@ -459,12 +450,12 @@ export class IngestionPipeline {
     chunkId: string,
     sourceId: string,
     text: string,
-    index: number
+    index: number,
   ): Promise<void> {
     await this.datastore.execute(
       `INSERT INTO kg_chunks (id, source_id, content, chunk_index, created_at)
        VALUES ($1, $2, $3, $4, $5)`,
-      [chunkId, sourceId, text, index, Date.now()]
+      [chunkId, sourceId, text, index, Date.now()],
     );
   }
 
@@ -475,7 +466,7 @@ export class IngestionPipeline {
     chunkId: string,
     sourceId: string,
     extraction: EntityExtraction,
-    consolidation: Awaited<ReturnType<EntityConsolidator['consolidate']>>
+    consolidation: Awaited<ReturnType<EntityConsolidator["consolidate"]>>,
   ): Promise<void> {
     // Store entities (using canonical IDs from consolidation)
     for (const entity of extraction.entities) {
@@ -496,14 +487,14 @@ export class IngestionPipeline {
           Date.now(),
           Date.now(),
           1,
-        ]
+        ],
       );
 
       // Link entity to source
       await this.datastore.execute(
         `INSERT INTO kg_entity_sources (entity_id, chunk_id, source_type, confidence, created_at)
          VALUES ($1, $2, $3, $4, $5)`,
-        [canonicalId, chunkId, 'manual', 1.0, Date.now()]
+        [canonicalId, chunkId, "manual", 1.0, Date.now()],
       );
     }
 
@@ -529,7 +520,7 @@ export class IngestionPipeline {
           Date.now(),
           Date.now(),
           1,
-        ]
+        ],
       );
     }
   }
@@ -537,7 +528,10 @@ export class IngestionPipeline {
   /**
    * Update extraction progress.
    */
-  private async updateExtractionProgress(chunkId: string, status: 'pending' | 'processing' | 'done' | 'error'): Promise<void> {
+  private async updateExtractionProgress(
+    chunkId: string,
+    status: "pending" | "processing" | "done" | "error",
+  ): Promise<void> {
     await this.datastore.execute(
       `INSERT INTO kg_extraction_progress (chunk_id, status, attempts, last_attempt, updated_at)
        VALUES ($1, $2, 1, $3, $4)
@@ -546,7 +540,7 @@ export class IngestionPipeline {
          attempts = attempts + 1,
          last_attempt = $3,
          updated_at = $4`,
-      [chunkId, status, Date.now(), Date.now()]
+      [chunkId, status, Date.now(), Date.now()],
     );
   }
 
@@ -554,8 +548,11 @@ export class IngestionPipeline {
    * Hash entity name for Tier 1 consolidation.
    */
   private hashName(name: string): string {
-    const normalized = name.toLowerCase().trim().replace(/[^\w\s]/g, '');
-    return createHash('md5').update(normalized).digest('hex');
+    const normalized = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s]/g, "");
+    return createHash("md5").update(normalized).digest("hex");
   }
 }
 
@@ -602,21 +599,23 @@ CREATE INDEX IF NOT EXISTS idx_kg_chunks_source ON kg_chunks(source_id);
  * Note: pdfjs-dist is already a dependency in package.json (line 194)
  */
 
-import * as pdfjs from 'pdfjs-dist';
+import * as pdfjs from "pdfjs-dist";
 
-export async function parsePDF(content: string | Buffer): Promise<{ text: string; metadata?: any }> {
-  const data = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content;
+export async function parsePDF(
+  content: string | Buffer,
+): Promise<{ text: string; metadata?: any }> {
+  const data = typeof content === "string" ? Buffer.from(content, "utf-8") : content;
 
   const loadingTask = pdfjs.getDocument({ data: Array.from(data) });
   const pdf = await loadingTask.promise;
 
-  let fullText = '';
+  let fullText = "";
 
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items.map((item: any) => item.str).join(' ');
-    fullText += pageText + '\n';
+    const pageText = textContent.items.map((item: any) => item.str).join(" ");
+    fullText += pageText + "\n";
   }
 
   return { text: fullText.trim() };
@@ -630,10 +629,12 @@ export async function parsePDF(content: string | Buffer): Promise<{ text: string
  * DOCX document parser using mammoth.
  */
 
-import mammoth from 'mammoth';
+import mammoth from "mammoth";
 
-export async function parseDOCX(content: string | Buffer): Promise<{ text: string; metadata?: any }> {
-  const buffer = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content;
+export async function parseDOCX(
+  content: string | Buffer,
+): Promise<{ text: string; metadata?: any }> {
+  const buffer = typeof content === "string" ? Buffer.from(content, "utf-8") : content;
 
   const result = await mammoth.extractRawText({ buffer });
 
@@ -650,16 +651,16 @@ export async function parseDOCX(content: string | Buffer): Promise<{ text: strin
  * Extracts main article content, stripping navigation, ads, etc.
  */
 
-import { Readability } from '@mozilla/readability';
-import { DOMParser } from 'linkedom';
+import { Readability } from "@mozilla/readability";
+import { DOMParser } from "linkedom";
 
 export async function parseHTML(content: string): Promise<{ text: string; metadata?: any }> {
-  const doc = new DOMParser().parseFromString(content, 'text/html');
+  const doc = new DOMParser().parseFromString(content, "text/html");
   const reader = new Readability(doc as any);
   const article = reader.parse();
 
   if (!article) {
-    return { text: '' };  // No article content found
+    return { text: "" }; // No article content found
   }
 
   return {
@@ -678,7 +679,7 @@ export async function parseHTML(content: string): Promise<{ text: string; metada
 **Add to:** `src/commands/knowledge.ts`
 
 ```typescript
-import { IngestionPipeline } from '../knowledge/ingest/pipeline.js';
+import { IngestionPipeline } from "../knowledge/ingest/pipeline.js";
 
 export const knowledgeCommands = {
   async ingest(pathOrText: string, options: any) {
@@ -687,19 +688,19 @@ export const knowledgeCommands = {
     // Check if path or inline text
     if (options.text) {
       const result = await pipeline.ingestText({
-        source: 'manual',
+        source: "manual",
         text: pathOrText,
         title: options.title,
-        tags: options.tags?.split(','),
+        tags: options.tags?.split(","),
       });
-      console.log('Ingested:', result);
+      console.log("Ingested:", result);
     } else {
       const result = await pipeline.ingestFile({
-        source: 'manual',
+        source: "manual",
         filePath: pathOrText,
-        tags: options.tags?.split(','),
+        tags: options.tags?.split(","),
       });
-      console.log('Ingested:', result);
+      console.log("Ingested:", result);
     }
   },
 };

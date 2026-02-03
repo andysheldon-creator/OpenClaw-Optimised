@@ -1,17 +1,20 @@
 # Task 9: Redesign Nodes View with Visual Hierarchy
 
 ## Overview
+
 Redesign the nodes view (`ui/src/ui/views/nodes.ts`) with better visual hierarchy, node cards with status indicators, and improved device/exec approval management.
 
 ## Project Context
 
 ### Tech Stack
+
 - **Framework**: Lit (Web Components) - NOT React
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **Build**: Vite
 - **Icons**: Custom SVG icon system in `ui/src/ui/icons.ts`
 
 ### Key Files
+
 - View to modify: `ui/src/ui/views/nodes.ts`
 - Styles: `ui/src/styles/components.css` (append new styles)
 - Icons: `ui/src/ui/icons.ts` (import and use `icon()` function)
@@ -20,6 +23,7 @@ Redesign the nodes view (`ui/src/ui/views/nodes.ts`) with better visual hierarch
 ## Design System Reference
 
 ### CSS Variables (from base.css)
+
 ```css
 /* Dark theme */
 --bg: #0a0f14;
@@ -36,6 +40,7 @@ Redesign the nodes view (`ui/src/ui/views/nodes.ts`) with better visual hierarch
 ```
 
 ### Icon System Usage
+
 ```typescript
 import { icon } from "../icons";
 
@@ -50,6 +55,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ## Design Requirements
 
 ### Visual Style
+
 1. **Node cards** - Each node as a distinct card with status
 2. **Visual hierarchy** - Gateway at top, nodes below
 3. **Status indicators** - Online/offline/pending states
@@ -58,6 +64,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 6. **Exec approvals** - Approval request management
 
 ### Nodes View Specific Requirements
+
 1. **Node overview** - List of connected nodes with status
 2. **Node details** - Expandable details for each node
 3. **Device pairing** - Pending requests, approved devices
@@ -66,6 +73,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 6. **Actions** - Approve, reject, rotate, revoke tokens
 
 ### Suggested Layout
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Nodes Header (title, refresh)                   │
@@ -92,6 +100,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ```
 
 ### Devices Tab Layout
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Pending Requests                                │
@@ -116,69 +125,165 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 
 ```css
 /* Nodes View Styles */
-.nodes-container { /* main container */ }
-.nodes-tabs { /* tab navigation */ }
-.nodes-tab { /* individual tab */ }
-.nodes-tab--active { /* active tab */ }
-.nodes-content { /* tab content area */ }
+.nodes-container {
+  /* main container */
+}
+.nodes-tabs {
+  /* tab navigation */
+}
+.nodes-tab {
+  /* individual tab */
+}
+.nodes-tab--active {
+  /* active tab */
+}
+.nodes-content {
+  /* tab content area */
+}
 
 /* Node Tree Visualization */
-.node-tree { /* tree container */ }
-.node-tree__gateway { /* gateway node (root) */ }
-.node-tree__branches { /* branch lines container */ }
-.node-tree__children { /* child nodes container */ }
+.node-tree {
+  /* tree container */
+}
+.node-tree__gateway {
+  /* gateway node (root) */
+}
+.node-tree__branches {
+  /* branch lines container */
+}
+.node-tree__children {
+  /* child nodes container */
+}
 
 /* Node Card */
-.node-card { /* individual node card */ }
-.node-card--online { /* online state */ }
-.node-card--offline { /* offline state */ }
-.node-card--pending { /* pending state */ }
-.node-card__header { /* card header */ }
-.node-card__icon { /* node icon */ }
-.node-card__name { /* node name */ }
-.node-card__status { /* status indicator */ }
-.node-card__details { /* expandable details */ }
-.node-card__meta { /* metadata rows */ }
-.node-card__actions { /* action buttons */ }
+.node-card {
+  /* individual node card */
+}
+.node-card--online {
+  /* online state */
+}
+.node-card--offline {
+  /* offline state */
+}
+.node-card--pending {
+  /* pending state */
+}
+.node-card__header {
+  /* card header */
+}
+.node-card__icon {
+  /* node icon */
+}
+.node-card__name {
+  /* node name */
+}
+.node-card__status {
+  /* status indicator */
+}
+.node-card__details {
+  /* expandable details */
+}
+.node-card__meta {
+  /* metadata rows */
+}
+.node-card__actions {
+  /* action buttons */
+}
 
 /* Status Dot */
-.status-dot { /* base dot */ }
-.status-dot--online { /* green */ }
-.status-dot--offline { /* gray */ }
-.status-dot--pending { /* yellow pulse */ }
+.status-dot {
+  /* base dot */
+}
+.status-dot--online {
+  /* green */
+}
+.status-dot--offline {
+  /* gray */
+}
+.status-dot--pending {
+  /* yellow pulse */
+}
 
 /* Devices Section */
-.devices-section { /* section container */ }
-.devices-section__title { /* section title */ }
-.devices-list { /* device list */ }
+.devices-section {
+  /* section container */
+}
+.devices-section__title {
+  /* section title */
+}
+.devices-list {
+  /* device list */
+}
 
-.device-card { /* device card */ }
-.device-card--pending { /* pending request */ }
-.device-card--active { /* active device */ }
-.device-card__header { /* card header */ }
-.device-card__icon { /* device icon */ }
-.device-card__name { /* device name */ }
-.device-card__status { /* status badge */ }
-.device-card__meta { /* metadata */ }
-.device-card__actions { /* action buttons */ }
+.device-card {
+  /* device card */
+}
+.device-card--pending {
+  /* pending request */
+}
+.device-card--active {
+  /* active device */
+}
+.device-card__header {
+  /* card header */
+}
+.device-card__icon {
+  /* device icon */
+}
+.device-card__name {
+  /* device name */
+}
+.device-card__status {
+  /* status badge */
+}
+.device-card__meta {
+  /* metadata */
+}
+.device-card__actions {
+  /* action buttons */
+}
 
 /* Pending Request */
-.pending-request { /* pending request card */ }
-.pending-request__id { /* request ID */ }
-.pending-request__actions { /* approve/reject buttons */ }
+.pending-request {
+  /* pending request card */
+}
+.pending-request__id {
+  /* request ID */
+}
+.pending-request__actions {
+  /* approve/reject buttons */
+}
 
 /* Exec Approvals */
-.exec-approvals { /* approvals container */ }
-.exec-approvals__target { /* target selector */ }
-.exec-approvals__form { /* approval form */ }
-.exec-approvals__agent { /* agent selector */ }
-.exec-approvals__rules { /* rules list */ }
+.exec-approvals {
+  /* approvals container */
+}
+.exec-approvals__target {
+  /* target selector */
+}
+.exec-approvals__form {
+  /* approval form */
+}
+.exec-approvals__agent {
+  /* agent selector */
+}
+.exec-approvals__rules {
+  /* rules list */
+}
 
 /* Bindings Section */
-.bindings-section { /* bindings container */ }
-.binding-row { /* binding row */ }
-.binding-row__label { /* binding label */ }
-.binding-row__value { /* binding value/selector */ }
+.bindings-section {
+  /* bindings container */
+}
+.binding-row {
+  /* binding row */
+}
+.binding-row__label {
+  /* binding label */
+}
+.binding-row__value {
+  /* binding value/selector */
+}
 ```
 
 ## Implementation Steps
@@ -200,9 +305,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 html`
   <div class="node-card node-card--${node.online ? "online" : "offline"}">
     <div class="node-card__header">
-      <div class="node-card__icon">
-        ${icon("server", { size: 20 })}
-      </div>
+      <div class="node-card__icon">${icon("server", { size: 20 })}</div>
       <div class="node-card__name">${node.id}</div>
       <div class="node-card__status">
         <span class="status-dot status-dot--${node.online ? "online" : "offline"}"></span>
@@ -226,7 +329,7 @@ html`
       </button>
     </div>
   </div>
-`
+`;
 ```
 
 ## Example Device Card Pattern
@@ -235,47 +338,49 @@ html`
 html`
   <div class="device-card device-card--${device.pending ? "pending" : "active"}">
     <div class="device-card__header">
-      <div class="device-card__icon">
-        ${icon("monitor", { size: 18 })}
-      </div>
+      <div class="device-card__icon">${icon("monitor", { size: 18 })}</div>
       <div class="device-card__name">${device.name || device.deviceId}</div>
       <span class="badge badge--${device.pending ? "warn" : "ok"}">
         ${device.pending ? "Pending" : "Active"}
       </span>
     </div>
-    ${device.pending ? html`
-      <div class="pending-request__actions">
-        <button class="btn btn--primary btn--sm" @click=${() => onApprove(device.requestId)}>
-          ${icon("check", { size: 14 })}
-          <span>Approve</span>
-        </button>
-        <button class="btn btn--danger btn--sm" @click=${() => onReject(device.requestId)}>
-          ${icon("x", { size: 14 })}
-          <span>Reject</span>
-        </button>
-      </div>
-    ` : html`
-      <div class="device-card__meta">
-        <span class="muted">Role:</span> ${device.role}
-        <span class="muted">Scopes:</span> ${device.scopes?.join(", ")}
-      </div>
-      <div class="device-card__actions">
-        <button class="btn btn--sm" @click=${() => onRotate(device.deviceId)}>
-          ${icon("refresh-cw", { size: 14 })}
-          <span>Rotate</span>
-        </button>
-        <button class="btn btn--danger btn--sm" @click=${() => onRevoke(device.deviceId)}>
-          ${icon("trash", { size: 14 })}
-          <span>Revoke</span>
-        </button>
-      </div>
-    `}
+    ${device.pending
+      ? html`
+          <div class="pending-request__actions">
+            <button class="btn btn--primary btn--sm" @click=${() => onApprove(device.requestId)}>
+              ${icon("check", { size: 14 })}
+              <span>Approve</span>
+            </button>
+            <button class="btn btn--danger btn--sm" @click=${() => onReject(device.requestId)}>
+              ${icon("x", { size: 14 })}
+              <span>Reject</span>
+            </button>
+          </div>
+        `
+      : html`
+          <div class="device-card__meta">
+            <span class="muted">Role:</span> ${device.role}
+            <span class="muted">Scopes:</span> ${device.scopes?.join(", ")}
+          </div>
+          <div class="device-card__actions">
+            <button class="btn btn--sm" @click=${() => onRotate(device.deviceId)}>
+              ${icon("refresh-cw", { size: 14 })}
+              <span>Rotate</span>
+            </button>
+            <button class="btn btn--danger btn--sm" @click=${() => onRevoke(device.deviceId)}>
+              ${icon("trash", { size: 14 })}
+              <span>Revoke</span>
+            </button>
+          </div>
+        `}
   </div>
-`
+`;
 ```
 
 ## Testing
+
 After changes, run:
+
 ```bash
 cd ui && pnpm build
 ```

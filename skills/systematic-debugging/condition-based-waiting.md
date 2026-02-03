@@ -10,7 +10,7 @@ Flaky tests often guess at timing with arbitrary delays. This creates race condi
 
 ```typescript
 // ❌ BEFORE: Guessing at timing
-await new Promise(r => setTimeout(r, 50));
+await new Promise((r) => setTimeout(r, 50));
 const result = getResult();
 
 // ✅ AFTER: Waiting for condition
@@ -20,12 +20,12 @@ const result = getResult();
 
 ## Quick Patterns
 
-| Scenario | Pattern |
-|----------|---------|
+| Scenario       | Pattern                                              |
+| -------------- | ---------------------------------------------------- |
 | Wait for event | `waitFor(() => events.find(e => e.type === 'DONE'))` |
-| Wait for state | `waitFor(() => machine.state === 'ready')` |
-| Wait for count | `waitFor(() => items.length >= 5)` |
-| Wait for file | `waitFor(() => fs.existsSync(path))` |
+| Wait for state | `waitFor(() => machine.state === 'ready')`           |
+| Wait for count | `waitFor(() => items.length >= 5)`                   |
+| Wait for file  | `waitFor(() => fs.existsSync(path))`                 |
 
 ## Generic Implementation
 
@@ -33,7 +33,7 @@ const result = getResult();
 async function waitFor<T>(
   condition: () => T | undefined | null | false,
   description: string,
-  timeoutMs = 5000
+  timeoutMs = 5000,
 ): Promise<T> {
   const startTime = Date.now();
   while (true) {
@@ -42,7 +42,7 @@ async function waitFor<T>(
     if (Date.now() - startTime > timeoutMs) {
       throw new Error(`Timeout waiting for ${description} after ${timeoutMs}ms`);
     }
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
   }
 }
 ```

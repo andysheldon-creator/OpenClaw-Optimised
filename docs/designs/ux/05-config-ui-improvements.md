@@ -7,6 +7,7 @@ This document captures comprehensive design instructions and concrete changesets
 **Stack:** Lit 3.3.2 templates, vanilla CSS with custom properties, JSON Schema-driven form rendering.
 
 **Key files:**
+
 - `ui/src/styles/config.css` - All config page styles
 - `ui/src/ui/views/config.ts` - Main config view rendering
 - `ui/src/ui/views/config-form.render.ts` - Form section/subsection rendering
@@ -45,25 +46,30 @@ These principles guide all changes:
 These improvements were implemented in prior sessions and should NOT be reverted:
 
 ### 2a. Status Overview Grid
+
 - Added `--configured` class with green left accent bar
 - Added `--unset` class with dashed border and dimmed icon
 - Added right chevron to indicate clickability
 - Added icon background circles
 
 ### 2b. Collapsible Panel Headers
+
 - Fixed center-aligned titles: changed from `justify-content: space-between` to `gap: 10px` + `flex: 1` on title
 - Title now left-aligns near the disclosure icon
 
 ### 2c. Segmented Controls
+
 - Added visible borders and elevated backgrounds to inactive buttons
 - Active state uses accent color fill with `font-weight: 600`
 - Added hover, focus-visible, and disabled states
 
 ### 2d. Subsection Intro Blocks
+
 - When navigating to a subsection tab, a description block now shows the subsection label and help text
 - Styled with left accent border and subtle background
 
 ### 2e. Unsaved Changes UX
+
 - Replaced collapsible "Quick Preview" panel with clickable "Unsaved Changes (N)" badge
 - Badge opens native `<dialog>` modal with the pending diff
 - Removed redundant "Copy pending changes" and "View pending changes" buttons
@@ -77,6 +83,7 @@ These improvements were implemented in prior sessions and should NOT be reverted
 **Pattern:** Clean dialog with icon + label + switch rows, grouped sections with `<hr>` dividers.
 
 **Key UX patterns observed:**
+
 - Toggle rows: `flex items-center justify-between` with icon + label on left, switch on right
 - Section dividers via `<hr className="my-4" />`
 - Consistent `space-y-4` vertical rhythm
@@ -84,154 +91,139 @@ These improvements were implemented in prior sessions and should NOT be reverted
 
 ```tsx
 // Quick Settings Dialog - shadcn/ui Dialog + Switch
-import React from 'react';
+import React from "react";
 import {
-    Dialog,
-    DialogBody,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import {
-  Settings,
-  Bell,
-  Globe,
-  Shield,
-} from 'lucide-react';
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Settings, Bell, Globe, Shield } from "lucide-react";
 
 export default function QuickSettingsDialog() {
-    const [settings, setSettings] = React.useState({
-        notifications: true,
-        publicProfile: false,
-        twoFactor: true,
-        darkMode: false,
-        emailUpdates: true,
-    });
+  const [settings, setSettings] = React.useState({
+    notifications: true,
+    publicProfile: false,
+    twoFactor: true,
+    darkMode: false,
+    emailUpdates: true,
+  });
 
-    const toggleSetting = (key: string) => {
-        setSettings((prev) => ({
-            ...prev,
-            [key]: !prev[key as keyof typeof settings],
-        }));
-    };
+  const toggleSetting = (key: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      [key]: !prev[key as keyof typeof settings],
+    }));
+  };
 
-    return (
-        <Dialog>
-        <DialogTrigger asChild>
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
         <Button variant="outline">Quick Settings</Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-md">
-            <DialogHeader>
-            <DialogTitle className="flex items-center justify-center sm:justify-start gap-2">
-                <Settings className="h-5 w-5" />
-                Quick Settings
-            </DialogTitle>
-            <DialogDescription>Manage your account preferences</DialogDescription>
-            </DialogHeader>
-            <DialogBody>
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Bell className="h-4 w-4" />
-                        <span className="text-sm">Push Notifications</span>
-                    </div>
-                    <Switch
-                        checked={settings.notifications}
-                        onCheckedChange={() => toggleSetting('notifications')}
-                    />
-                </div>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Globe className="h-4 w-4" />
-                        <span className="text-sm">Public Profile</span>
-                    </div>
-                    <Switch
-                        checked={settings.publicProfile}
-                        onCheckedChange={() => toggleSetting('publicProfile')}
-                    />
-                </div>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        <span className="text-sm">Two-Factor Authentication</span>
-                    </div>
-                    <Switch
-                        checked={settings.twoFactor}
-                        onCheckedChange={() => toggleSetting('twoFactor')}
-                    />
-                </div>
-                <hr className="my-4" />
-                <div className="flex items-center justify-between">
-                    <span className="text-sm">Dark Mode</span>
-                    <Switch
-                        checked={settings.darkMode}
-                        onCheckedChange={() => toggleSetting('darkMode')}
-                    />
-                </div>
-                <div className="flex items-center justify-between">
-                    <span className="text-sm">Email Updates</span>
-                    <Switch
-                        checked={settings.emailUpdates}
-                        onCheckedChange={() => toggleSetting('emailUpdates')}
-                    />
-                </div>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-center sm:justify-start gap-2">
+            <Settings className="h-5 w-5" />
+            Quick Settings
+          </DialogTitle>
+          <DialogDescription>Manage your account preferences</DialogDescription>
+        </DialogHeader>
+        <DialogBody>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                <span className="text-sm">Push Notifications</span>
+              </div>
+              <Switch
+                checked={settings.notifications}
+                onCheckedChange={() => toggleSetting("notifications")}
+              />
             </div>
-            </DialogBody>
-            <DialogFooter>
-            <DialogClose asChild>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                <span className="text-sm">Public Profile</span>
+              </div>
+              <Switch
+                checked={settings.publicProfile}
+                onCheckedChange={() => toggleSetting("publicProfile")}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                <span className="text-sm">Two-Factor Authentication</span>
+              </div>
+              <Switch
+                checked={settings.twoFactor}
+                onCheckedChange={() => toggleSetting("twoFactor")}
+              />
+            </div>
+            <hr className="my-4" />
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Dark Mode</span>
+              <Switch
+                checked={settings.darkMode}
+                onCheckedChange={() => toggleSetting("darkMode")}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Email Updates</span>
+              <Switch
+                checked={settings.emailUpdates}
+                onCheckedChange={() => toggleSetting("emailUpdates")}
+              />
+            </div>
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <DialogClose asChild>
             <Button variant="outline">Close</Button>
-            </DialogClose>
-            <DialogClose asChild>
-                <Button onClick={() => alert('Settings saved!')}>
-                    Save Changes
-                </Button>
-            </DialogClose>
-            </DialogFooter>
-        </DialogContent>
-        </Dialog>
-    );
+          </DialogClose>
+          <DialogClose asChild>
+            <Button onClick={() => alert("Settings saved!")}>Save Changes</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 ```
 
 **shadcn/ui Dialog component code:**
 
 ```tsx
-'use client';
+"use client";
 
-import * as React from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { XIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { XIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-function Dialog({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
-function DialogTrigger({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
+function DialogTrigger({ ...props }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
-function DialogPortal({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
+function DialogPortal({ ...props }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
 
-function DialogClose({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Close>) {
+function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
@@ -243,7 +235,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 bg-background/50 fixed inset-0 z-50 backdrop-blur',
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 bg-background/50 fixed inset-0 z-50 backdrop-blur",
         className,
       )}
       {...props}
@@ -262,7 +254,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] rounded-lg border shadow-lg duration-200 sm:max-w-lg',
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] rounded-lg border shadow-lg duration-200 sm:max-w-lg",
           className,
         )}
         {...props}
@@ -273,14 +265,8 @@ function DialogContent({
   );
 }
 
-function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="dialog-body"
-      className={cn('px-4 py-6', className)}
-      {...props}
-    />
-  );
+function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
+  return <div data-slot="dialog-body" className={cn("px-4 py-6", className)} {...props} />;
 }
 
 function DialogHeader({
@@ -288,12 +274,12 @@ function DialogHeader({
   children,
   hideCloseButton = false,
   ...props
-}: React.ComponentProps<'div'> & { hideCloseButton?: boolean }) {
+}: React.ComponentProps<"div"> & { hideCloseButton?: boolean }) {
   return (
     <div
       data-slot="dialog-header"
       className={cn(
-        'bg-muted/30 flex flex-col gap-2 rounded-t-lg border-b p-4 text-center sm:text-left',
+        "bg-muted/30 flex flex-col gap-2 rounded-t-lg border-b p-4 text-center sm:text-left",
         className,
       )}
       {...props}
@@ -309,12 +295,12 @@ function DialogHeader({
   );
 }
 
-function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
+function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-footer"
       className={cn(
-        'bg-muted/30 flex flex-col gap-2 rounded-b-lg border-t px-4 py-3 sm:flex-row sm:justify-end',
+        "bg-muted/30 flex flex-col gap-2 rounded-b-lg border-t px-4 py-3 sm:flex-row sm:justify-end",
         className,
       )}
       {...props}
@@ -322,14 +308,11 @@ function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function DialogTitle({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('font-heading text-lg leading-none font-medium', className)}
+      className={cn("font-heading text-lg leading-none font-medium", className)}
       {...props}
     />
   );
@@ -342,7 +325,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn('text-muted-foreground text-sm', className)}
+      className={cn("text-muted-foreground text-sm", className)}
       {...props}
     />
   );
@@ -368,6 +351,7 @@ export {
 **Pattern:** Tabbed settings with proper Labels above every input, Select dropdowns with trigger/content pattern.
 
 **Key UX patterns observed:**
+
 - Card wrapper with header (title + description) and footer (save button)
 - Tabs with `grid-cols-2` tab list above content
 - `space-y-2` within each field group (label + input)
@@ -377,86 +361,93 @@ export {
 
 ```tsx
 // Settings Card - shadcn/ui Card + Tabs + Select + Switch + Input
-'use client';
+"use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import {
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SettingsCard() {
-    const [activeTab, setActiveTab] = useState("account")
+  const [activeTab, setActiveTab] = useState("account");
 
-    return (
-      <Card className="w-[310px]">
-        <CardHeader>
-          <CardTitle>Settings</CardTitle>
-          <CardDescription>
-            Manage your account settings and preferences.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="account">Account</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            </TabsList>
-            <TabsContent value="account">
-              <div className="space-y-4 py-2">
-                <div className="space-y-2 mt-5">
-                  <Label htmlFor="username">Username</Label>
-                  <Input id="username" placeholder="Enter username" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="Enter email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <Select>
-                    <SelectTrigger id="language">
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+  return (
+    <Card className="w-[310px]">
+      <CardHeader>
+        <CardTitle>Settings</CardTitle>
+        <CardDescription>Manage your account settings and preferences.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="account">Account</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          </TabsList>
+          <TabsContent value="account">
+            <div className="space-y-4 py-2">
+              <div className="space-y-2 mt-5">
+                <Label htmlFor="username">Username</Label>
+                <Input id="username" placeholder="Enter username" />
               </div>
-            </TabsContent>
-            <TabsContent value="notifications">
-              <div className="space-y-4 py-2">
-                <div className="flex items-center space-x-2">
-                  <Switch id="emailNotifications" />
-                  <Label htmlFor="emailNotifications">Email Notifications</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch id="pushNotifications" />
-                  <Label htmlFor="pushNotifications">Push Notifications</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch id="weeklyDigest" />
-                  <Label htmlFor="weeklyDigest">Weekly Digest</Label>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="Enter email" />
               </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full">Save Changes</Button>
-        </CardFooter>
-      </Card>
-    )
+              <div className="space-y-2">
+                <Label htmlFor="language">Language</Label>
+                <Select>
+                  <SelectTrigger id="language">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="fr">French</SelectItem>
+                    <SelectItem value="de">German</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="notifications">
+            <div className="space-y-4 py-2">
+              <div className="flex items-center space-x-2">
+                <Switch id="emailNotifications" />
+                <Label htmlFor="emailNotifications">Email Notifications</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch id="pushNotifications" />
+                <Label htmlFor="pushNotifications">Push Notifications</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch id="weeklyDigest" />
+                <Label htmlFor="weeklyDigest">Weekly Digest</Label>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+      <CardFooter>
+        <Button className="w-full">Save Changes</Button>
+      </CardFooter>
+    </Card>
+  );
 }
 ```
 
@@ -465,6 +456,7 @@ export default function SettingsCard() {
 **Pattern:** Grouped sections with headings, custom toggle switches, native select with full styling.
 
 **Key UX patterns observed:**
+
 - Section headings: `<h3 className="text-sm font-medium mb-3">Section Name</h3>`
 - Settings grouped by category (General, Language, Audio, Help & Tips)
 - `space-y-6` between section groups, `space-y-3` between items within a group
@@ -566,9 +558,7 @@ export default function SettingsPanel() {
                 {/* Audio Settings */}
                 <div>
                   <h3 className="text-sm font-medium mb-3">Audio</h3>
-                  <div className="space-y-3">
-                    {/* toggle rows */}
-                  </div>
+                  <div className="space-y-3">{/* toggle rows */}</div>
                 </div>
 
                 {/* Action Buttons */}
@@ -595,6 +585,7 @@ export default function SettingsPanel() {
 **Pattern:** Structured form fields with explicit label, description, and error slots.
 
 **Key UX patterns observed:**
+
 - `Field` > `FieldLabel` > `Input` > `FieldDescription` vertical stack
 - `FieldGroup` provides consistent `gap-7` between fields
 - `FieldSet` wraps multiple `FieldGroup`s with `gap-6`
@@ -604,10 +595,8 @@ export default function SettingsPanel() {
 
 ```tsx
 // Field input pattern
-import {
-  Field, FieldDescription, FieldGroup, FieldLabel, FieldSet,
-} from "@/components/ui/field-1"
-import { Input } from "@/components/ui/input"
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field-1";
+import { Input } from "@/components/ui/input";
 
 export default function FieldInput() {
   return (
@@ -617,25 +606,22 @@ export default function FieldInput() {
           <Field>
             <FieldLabel htmlFor="username">Username</FieldLabel>
             <Input id="username" type="text" placeholder="Max Leiter" />
-            <FieldDescription>
-              Choose a unique username for your account.
-            </FieldDescription>
+            <FieldDescription>Choose a unique username for your account.</FieldDescription>
           </Field>
           <Field>
             <FieldLabel htmlFor="password">Password</FieldLabel>
-            <FieldDescription>
-              Must be at least 8 characters long.
-            </FieldDescription>
+            <FieldDescription>Must be at least 8 characters long.</FieldDescription>
             <Input id="password" type="password" placeholder="********" />
           </Field>
         </FieldGroup>
       </FieldSet>
     </div>
-  )
+  );
 }
 ```
 
 **Field component code (key classes):**
+
 ```tsx
 // FieldSet: "flex flex-col gap-6"
 // FieldGroup: "flex w-full flex-col gap-7"
@@ -652,19 +638,19 @@ export default function FieldInput() {
 
 ### Patterns common across ALL reference designs:
 
-| Pattern | Current State | Target State |
-|---------|--------------|-------------|
-| **Field internal gap** | `5px` (`.cfg-field`) | `8px` - more breathing room between label, input, help text |
-| **Field group gap** | `14px` (`.cfg-fields`) | `14-16px` - already close, keep or bump to 16px |
-| **Labels** | 12px/600 weight | Good. Keep. Consider bumping to 13px for readability |
-| **Help text** | 12px muted | Good. Ensure every field has help when available from schema |
-| **Section grouping** | Flat list of fields | Group related fields with section headings + dividers |
-| **Select styling** | Has border/chevron | Good after recent fixes. Consider stronger contrast on trigger |
-| **Toggle rows** | Card-style with border | Good. Already matches reference patterns |
-| **Segmented controls** | Recently fixed | Good. Active uses accent fill |
-| **Vertical rhythm** | Inconsistent | Standardize: 8px within field, 16px between fields, 24px between sections |
-| **Focus states** | Present but subtle | Ensure all interactive elements have visible focus ring |
-| **Disabled states** | `opacity: 0.5` | Good. Consistent with references |
+| Pattern                | Current State          | Target State                                                              |
+| ---------------------- | ---------------------- | ------------------------------------------------------------------------- |
+| **Field internal gap** | `5px` (`.cfg-field`)   | `8px` - more breathing room between label, input, help text               |
+| **Field group gap**    | `14px` (`.cfg-fields`) | `14-16px` - already close, keep or bump to 16px                           |
+| **Labels**             | 12px/600 weight        | Good. Keep. Consider bumping to 13px for readability                      |
+| **Help text**          | 12px muted             | Good. Ensure every field has help when available from schema              |
+| **Section grouping**   | Flat list of fields    | Group related fields with section headings + dividers                     |
+| **Select styling**     | Has border/chevron     | Good after recent fixes. Consider stronger contrast on trigger            |
+| **Toggle rows**        | Card-style with border | Good. Already matches reference patterns                                  |
+| **Segmented controls** | Recently fixed         | Good. Active uses accent fill                                             |
+| **Vertical rhythm**    | Inconsistent           | Standardize: 8px within field, 16px between fields, 24px between sections |
+| **Focus states**       | Present but subtle     | Ensure all interactive elements have visible focus ring                   |
+| **Disabled states**    | `opacity: 0.5`         | Good. Consistent with references                                          |
 
 ### Critical gaps between current and reference designs:
 
@@ -683,6 +669,7 @@ export default function FieldInput() {
 **Problem:** `.cfg-field` has `gap: 5px`, making label-input-help feel cramped.
 
 **CSS Change:**
+
 ```css
 /* Before */
 .cfg-field {
@@ -702,6 +689,7 @@ export default function FieldInput() {
 **Problem:** Labels at 12px can be hard to read, especially in dark mode.
 
 **CSS Change:**
+
 ```css
 /* Before */
 .cfg-field__label {
@@ -726,6 +714,7 @@ export default function FieldInput() {
 **Approach:** Add a CSS class for section dividers that can be injected between logical groups of fields in `config-form.node.ts`.
 
 **CSS Addition:**
+
 ```css
 /* Field group divider */
 .cfg-field-divider {
@@ -754,6 +743,7 @@ export default function FieldInput() {
 **Problem:** Many fields render without help text even when the JSON schema provides a `description`.
 
 **TypeScript Change (config-form.node.ts):** In each `renderTextInput()`, `renderNumberInput()`, `renderSelect()`, etc., ensure:
+
 ```typescript
 // Current: help text only if hints provide it
 const help = hint?.help ?? schema.description ?? "";
@@ -769,6 +759,7 @@ This is already partially done but should be audited across ALL field renderers 
 **Problem:** The `cfg-select` blends with the dark background. References show selects with stronger borders.
 
 **CSS Change:**
+
 ```css
 /* Before */
 .cfg-select {
@@ -794,6 +785,7 @@ This is already partially done but should be audited across ALL field renderers 
 **Problem:** Some controls have focus rings, others don't. References use `focus:ring-2 focus:ring-ring focus:ring-offset-2` consistently.
 
 **CSS Change:** Add to any controls missing focus states:
+
 ```css
 /* Ensure all interactive form controls have focus ring */
 .cfg-input:focus-visible,
@@ -810,14 +802,15 @@ This is already partially done but should be audited across ALL field renderers 
 **Problem:** Toggle rows are already card-style which is good. Minor polish: ensure help text wraps properly and the switch is vertically centered with the label (not the full card).
 
 **CSS Change:**
+
 ```css
 /* Ensure toggle switch aligns with first line of label */
 .cfg-toggle-row {
-  align-items: flex-start;  /* was: center */
+  align-items: flex-start; /* was: center */
 }
 
 .cfg-toggle-row .cfg-toggle {
-  margin-top: 2px;  /* align with text baseline */
+  margin-top: 2px; /* align with text baseline */
 }
 ```
 
@@ -826,10 +819,11 @@ This is already partially done but should be audited across ALL field renderers 
 **Problem:** Nested objects (rendered as `<details>`) can feel tight when opened.
 
 **CSS Change:**
+
 ```css
 /* Add breathing room inside expanded objects */
 .cfg-object__body {
-  padding: 16px 18px;  /* ensure consistent */
+  padding: 16px 18px; /* ensure consistent */
 }
 
 /* Separator between object header and body */
@@ -843,6 +837,7 @@ This is already partially done but should be audited across ALL field renderers 
 **Problem:** When search finds nothing, the empty state is functional but plain.
 
 **CSS Change:**
+
 ```css
 .config-empty {
   display: flex;
@@ -873,13 +868,14 @@ This is already partially done but should be audited across ALL field renderers 
 **Problem:** The action bar buttons can feel crowded on smaller screens.
 
 **CSS Change:**
+
 ```css
 .config-actions {
-  gap: 12px;  /* ensure enough gap */
+  gap: 12px; /* ensure enough gap */
 }
 
 .config-actions__right {
-  gap: 8px;  /* between action buttons */
+  gap: 8px; /* between action buttons */
 }
 ```
 
@@ -992,6 +988,7 @@ This is already partially done but should be audited across ALL field renderers 
 **Task:** Audit every `render*` function to ensure schema.description is passed through as help text.
 
 In each field renderer, ensure this pattern:
+
 ```typescript
 const hint = hintForPath(path, hints);
 const label = hint?.label ?? schema.title ?? humanize(path[path.length - 1] as string);
@@ -1002,6 +999,7 @@ ${help ? html`<div class="cfg-field__help">${help}</div>` : nothing}
 ```
 
 Functions to audit:
+
 - `renderTextInput()` - likely already done
 - `renderNumberInput()` - check
 - `renderSelect()` - check (for both `<select>` and segmented)
@@ -1015,6 +1013,7 @@ Functions to audit:
 **Task:** When rendering an object's properties, check for a `group` ui hint. If properties have group hints, render them in groups with headings and dividers.
 
 **Proposed ui hint format:**
+
 ```typescript
 // In ConfigUiHints, add optional group to field hints:
 {
@@ -1029,6 +1028,7 @@ Functions to audit:
 ```
 
 **Rendering logic:**
+
 ```typescript
 // In renderObject(), group properties by their group hint:
 const groups = new Map<string, Array<[string, JsonSchema]>>();
@@ -1082,25 +1082,25 @@ return html`
 
 Current CSS custom properties used by config UI:
 
-| Token | Purpose |
-|-------|---------|
-| `--accent` | Primary accent color (orange) |
-| `--text` | Primary text color |
-| `--muted` | Secondary/help text color |
-| `--border` | Default border color |
+| Token             | Purpose                         |
+| ----------------- | ------------------------------- |
+| `--accent`        | Primary accent color (orange)   |
+| `--text`          | Primary text color              |
+| `--muted`         | Secondary/help text color       |
+| `--border`        | Default border color            |
 | `--border-strong` | Stronger border (form controls) |
-| `--bg-accent` | Input/control background |
-| `--bg-elevated` | Raised surface background |
-| `--bg-hover` | Hover state background |
-| `--surface-1` | Card surface level 1 |
-| `--surface-2` | Card surface level 2 |
-| `--panel` | Main panel background |
-| `--radius-sm` | Small border radius |
-| `--radius-md` | Medium border radius |
-| `--radius-xl` | Large border radius |
-| `--duration-fast` | Fast transition timing |
-| `--shadow-sm` | Small shadow |
-| `--focus-ring` | Focus ring box-shadow |
-| `--danger` | Error/danger color |
-| `--danger-subtle` | Subtle danger background |
-| `--mono` | Monospace font family |
+| `--bg-accent`     | Input/control background        |
+| `--bg-elevated`   | Raised surface background       |
+| `--bg-hover`      | Hover state background          |
+| `--surface-1`     | Card surface level 1            |
+| `--surface-2`     | Card surface level 2            |
+| `--panel`         | Main panel background           |
+| `--radius-sm`     | Small border radius             |
+| `--radius-md`     | Medium border radius            |
+| `--radius-xl`     | Large border radius             |
+| `--duration-fast` | Fast transition timing          |
+| `--shadow-sm`     | Small shadow                    |
+| `--focus-ring`    | Focus ring box-shadow           |
+| `--danger`        | Error/danger color              |
+| `--danger-subtle` | Subtle danger background        |
+| `--mono`          | Monospace font family           |

@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { AppShell } from "@/components/navigation/app-shell"
-import { PageHeader } from "@/components/dashboard/page-header"
-import { ConversationItem } from "@/components/chat/conversation-item"
-import { AgentCard } from "@/components/dashboard/agent-card"
-import { Button } from "@/components/ui/button"
+import { Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { ConversationItem } from "@/components/chat/conversation-item";
+import { AgentCard } from "@/components/dashboard/agent-card";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { AppShell } from "@/components/navigation/app-shell";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Plus, Search } from "lucide-react"
+} from "@/components/ui/dialog";
 
 const agents = [
   { id: "research", name: "Research Assistant", status: "ready" as const },
   { id: "writing", name: "Writing Partner", status: "ready" as const },
   { id: "scheduler", name: "Scheduler", status: "ready" as const },
-]
+];
 
 const conversations = {
   active: [
@@ -62,11 +62,11 @@ const conversations = {
       isActive: false,
     },
   ],
-}
+};
 
 export default function ConversationsPage() {
-  const [isNewChatOpen, setIsNewChatOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <AppShell>
@@ -88,9 +88,7 @@ export default function ConversationsPage() {
                 <DialogHeader>
                   <DialogTitle>Start a New Conversation</DialogTitle>
                 </DialogHeader>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Choose an agent to chat with:
-                </p>
+                <p className="text-sm text-muted-foreground mb-4">Choose an agent to chat with:</p>
                 <div className="grid grid-cols-2 gap-3">
                   {agents.map((agent) => (
                     <AgentCard key={agent.id} agent={agent} />
@@ -146,5 +144,5 @@ export default function ConversationsPage() {
         </main>
       </div>
     </AppShell>
-  )
+  );
 }

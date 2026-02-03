@@ -10,16 +10,10 @@
  */
 
 import { html, nothing, type TemplateResult } from "lit";
-
-import { icon, type IconName } from "../icons";
 import type { ConfigUiHints } from "../types";
 import type { ChannelKey, ChannelsProps } from "./channels.types";
-import {
-  analyzeConfigSchema,
-  renderNode,
-  schemaType,
-  type JsonSchema,
-} from "./config-form";
+import { icon, type IconName } from "../icons";
+import { analyzeConfigSchema, renderNode, schemaType, type JsonSchema } from "./config-form";
 
 // ============================================================================
 // Types
@@ -75,7 +69,17 @@ export const DEFAULT_CHANNEL_SECTIONS: WizardSection[] = [
     label: "Authentication",
     icon: "user",
     description: "API tokens, credentials, and connection settings",
-    fields: ["token", "botToken", "appToken", "userToken", "apiKey", "signingSecret", "serviceAccount", "account", "credentials"],
+    fields: [
+      "token",
+      "botToken",
+      "appToken",
+      "userToken",
+      "apiKey",
+      "signingSecret",
+      "serviceAccount",
+      "account",
+      "credentials",
+    ],
   },
   {
     id: "general",
@@ -89,10 +93,25 @@ export const DEFAULT_CHANNEL_SECTIONS: WizardSection[] = [
     label: "Access Control",
     icon: "check-circle",
     description: "DM policies, group policies, and allowlists",
-    fields: ["dmPolicy", "dm", "groupPolicy", "allowFrom", "groupAllowFrom", "allowBots", "requireMention", "allowlist", "blocklist", "adminOnly"],
+    fields: [
+      "dmPolicy",
+      "dm",
+      "groupPolicy",
+      "allowFrom",
+      "groupAllowFrom",
+      "allowBots",
+      "requireMention",
+      "allowlist",
+      "blocklist",
+      "adminOnly",
+    ],
     fieldGroups: [
       { id: "dms", title: "Direct Messages", fields: ["dmPolicy", "dm", "allowFrom"] },
-      { id: "groups", title: "Groups & Channels", fields: ["groupPolicy", "groupAllowFrom", "allowBots", "requireMention"] },
+      {
+        id: "groups",
+        title: "Groups & Channels",
+        fields: ["groupPolicy", "groupAllowFrom", "allowBots", "requireMention"],
+      },
       { id: "permissions", title: "Permissions", fields: ["allowlist", "blocklist", "adminOnly"] },
     ],
   },
@@ -101,11 +120,25 @@ export const DEFAULT_CHANNEL_SECTIONS: WizardSection[] = [
     label: "Messaging",
     icon: "message-square",
     description: "Text handling, streaming, and message formatting",
-    fields: ["textChunkLimit", "blockStreaming", "blockStreamingCoalesce", "markdown", "commands", "configWrites", "replyToMode", "typing", "readReceipts"],
+    fields: [
+      "textChunkLimit",
+      "blockStreaming",
+      "blockStreamingCoalesce",
+      "markdown",
+      "commands",
+      "configWrites",
+      "replyToMode",
+      "typing",
+      "readReceipts",
+    ],
     fieldGroups: [
       { id: "text", title: "Text Handling", fields: ["textChunkLimit", "markdown"] },
       { id: "streaming", title: "Streaming", fields: ["blockStreaming", "blockStreamingCoalesce"] },
-      { id: "features", title: "Features", fields: ["commands", "configWrites", "replyToMode", "typing", "readReceipts"] },
+      {
+        id: "features",
+        title: "Features",
+        fields: ["commands", "configWrites", "replyToMode", "typing", "readReceipts"],
+      },
     ],
   },
   {
@@ -113,21 +146,49 @@ export const DEFAULT_CHANNEL_SECTIONS: WizardSection[] = [
     label: "History & Context",
     icon: "history",
     description: "Message history limits and per-chat overrides",
-    fields: ["historyLimit", "dmHistoryLimit", "dms", "groups", "channels", "guilds", "threads", "contextWindow"],
+    fields: [
+      "historyLimit",
+      "dmHistoryLimit",
+      "dms",
+      "groups",
+      "channels",
+      "guilds",
+      "threads",
+      "contextWindow",
+    ],
   },
   {
     id: "reactions",
     label: "Reactions & Actions",
     icon: "sparkles",
     description: "Reaction notifications, acknowledgments, and tool permissions",
-    fields: ["reactionNotifications", "reactionAllowlist", "reactionLevel", "ackReaction", "actions", "reactions", "emoji"],
+    fields: [
+      "reactionNotifications",
+      "reactionAllowlist",
+      "reactionLevel",
+      "ackReaction",
+      "actions",
+      "reactions",
+      "emoji",
+    ],
   },
   {
     id: "advanced",
     label: "Advanced",
     icon: "settings",
     description: "Webhooks, retry policies, and special features",
-    fields: ["retry", "webhookUrl", "webhookPath", "webhookSecret", "proxy", "mediaMaxMb", "timeoutSeconds", "heartbeat", "debug", "verbose"],
+    fields: [
+      "retry",
+      "webhookUrl",
+      "webhookPath",
+      "webhookSecret",
+      "proxy",
+      "mediaMaxMb",
+      "timeoutSeconds",
+      "heartbeat",
+      "debug",
+      "verbose",
+    ],
   },
 ];
 
@@ -219,9 +280,7 @@ function resolveChannelValue(
     (fromChannels && typeof fromChannels === "object"
       ? (fromChannels as Record<string, unknown>)
       : null) ??
-    (fallback && typeof fallback === "object"
-      ? (fallback as Record<string, unknown>)
-      : null);
+    (fallback && typeof fallback === "object" ? (fallback as Record<string, unknown>) : null);
   return resolved ?? {};
 }
 
@@ -257,10 +316,7 @@ function getChannelIcon(channelId: ChannelKey): IconName {
 /**
  * Get fields that exist in the schema for a given section
  */
-function getSectionFields(
-  section: WizardSection,
-  channelSchema: JsonSchema | null,
-): string[] {
+function getSectionFields(section: WizardSection, channelSchema: JsonSchema | null): string[] {
   if (!channelSchema || !channelSchema.properties || !section.fields) {
     return [];
   }
@@ -271,10 +327,7 @@ function getSectionFields(
 /**
  * Check if a section has any configurable fields
  */
-function sectionHasFields(
-  section: WizardSection,
-  channelSchema: JsonSchema | null,
-): boolean {
+function sectionHasFields(section: WizardSection, channelSchema: JsonSchema | null): boolean {
   return getSectionFields(section, channelSchema).length > 0;
 }
 
@@ -360,11 +413,13 @@ function renderSidebar(params: {
               </span>
               <span class="channel-wizard__nav-label">${section.label}</span>
               <span class="channel-wizard__nav-status ${statusClass}">
-                ${section.hasErrors
-                  ? icon("alert-circle", { size: 16 })
-                  : section.hasRequired
-                    ? icon("alert-triangle", { size: 16 })
-                    : icon("check", { size: 16 })}
+                ${
+                  section.hasErrors
+                    ? icon("alert-circle", { size: 16 })
+                    : section.hasRequired
+                      ? icon("alert-triangle", { size: 16 })
+                      : icon("check", { size: 16 })
+                }
               </span>
             </button>
           `;
@@ -387,7 +442,8 @@ function renderFieldGroup(params: {
   disabled: boolean;
   onPatch: (path: Array<string | number>, value: unknown) => void;
 }): TemplateResult | typeof nothing {
-  const { group, channelId, channelSchema, channelValue, uiHints, unsupported, disabled, onPatch } = params;
+  const { group, channelId, channelSchema, channelValue, uiHints, unsupported, disabled, onPatch } =
+    params;
 
   // Filter to only fields that exist in schema
   const existingFields = group.fields.filter((field) => channelSchema.properties?.[field]);
@@ -442,7 +498,16 @@ function renderContent(params: {
   disabled: boolean;
   onPatch: (path: Array<string | number>, value: unknown) => void;
 }): TemplateResult {
-  const { section, channelId, channelSchema, channelValue, uiHints, unsupported, disabled, onPatch } = params;
+  const {
+    section,
+    channelId,
+    channelSchema,
+    channelValue,
+    uiHints,
+    unsupported,
+    disabled,
+    onPatch,
+  } = params;
 
   if (!channelSchema || !channelSchema.properties) {
     return html`
@@ -484,20 +549,22 @@ function renderContent(params: {
                 unsupported,
                 disabled,
                 onPatch,
-              })
+              }),
             )}
-            ${ungroupedFields.length > 0
-              ? renderFieldGroup({
-                  group: { id: "other", title: "Other", fields: ungroupedFields },
-                  channelId,
-                  channelSchema,
-                  channelValue,
-                  uiHints,
-                  unsupported,
-                  disabled,
-                  onPatch,
-                })
-              : nothing}
+            ${
+              ungroupedFields.length > 0
+                ? renderFieldGroup({
+                    group: { id: "other", title: "Other", fields: ungroupedFields },
+                    channelId,
+                    channelSchema,
+                    channelValue,
+                    uiHints,
+                    unsupported,
+                    disabled,
+                    onPatch,
+                  })
+                : nothing
+            }
           </div>
         </div>
       </div>
@@ -592,7 +659,16 @@ export type ChannelWizardProps = {
  * Render the channel configuration wizard
  */
 export function renderChannelWizard(params: ChannelWizardProps): TemplateResult | typeof nothing {
-  const { state, props, onClose, onSave, onDiscard, onSectionChange, onConfirmClose, onCancelClose } = params;
+  const {
+    state,
+    props,
+    onClose,
+    onSave,
+    onDiscard,
+    onSectionChange,
+    onConfirmClose,
+    onCancelClose,
+  } = params;
 
   if (!state.open || !state.channelId) {
     return nothing;
@@ -643,14 +719,16 @@ export function renderChannelWizard(params: ChannelWizardProps): TemplateResult 
           </div>
         </div>
         <div class="channel-wizard__header-right">
-          ${state.isDirty
-            ? html`
+          ${
+            state.isDirty
+              ? html`
                 <span class="channel-wizard__dirty-badge">
                   ${icon("alert-circle", { size: 14 })}
                   Unsaved Changes
                 </span>
               `
-            : nothing}
+              : nothing
+          }
           <button
             type="button"
             class="channel-wizard__close"
@@ -723,15 +801,17 @@ export function renderChannelWizard(params: ChannelWizardProps): TemplateResult 
       </div>
     </div>
 
-    ${state.showConfirmClose
-      ? renderConfirmDialog({
-          onKeepEditing: onCancelClose,
-          onDiscard: () => {
-            onDiscard();
-            onClose();
-          },
-        })
-      : nothing}
+    ${
+      state.showConfirmClose
+        ? renderConfirmDialog({
+            onKeepEditing: onCancelClose,
+            onDiscard: () => {
+              onDiscard();
+              onClose();
+            },
+          })
+        : nothing
+    }
   `;
 }
 
@@ -756,10 +836,7 @@ export function createWizardState(): ChannelWizardState {
 /**
  * Open the wizard for a specific channel
  */
-export function openWizard(
-  state: ChannelWizardState,
-  channelId: ChannelKey,
-): ChannelWizardState {
+export function openWizard(state: ChannelWizardState, channelId: ChannelKey): ChannelWizardState {
   return {
     ...state,
     open: true,
@@ -786,10 +863,7 @@ export function closeWizard(state: ChannelWizardState): ChannelWizardState {
 /**
  * Set the active section
  */
-export function setActiveSection(
-  state: ChannelWizardState,
-  sectionId: string,
-): ChannelWizardState {
+export function setActiveSection(state: ChannelWizardState, sectionId: string): ChannelWizardState {
   return {
     ...state,
     activeSection: sectionId,
@@ -799,10 +873,7 @@ export function setActiveSection(
 /**
  * Mark the wizard as having unsaved changes
  */
-export function setDirty(
-  state: ChannelWizardState,
-  isDirty: boolean,
-): ChannelWizardState {
+export function setDirty(state: ChannelWizardState, isDirty: boolean): ChannelWizardState {
   return {
     ...state,
     isDirty,

@@ -2,8 +2,8 @@
  * Shared utilities for automations CLI commands.
  */
 
-import { callGatewayFromCli } from "../gateway-rpc.js";
 import { defaultRuntime } from "../../runtime.js";
+import { callGatewayFromCli } from "../gateway-rpc.js";
 
 export async function warnIfAutomationsDisabled(opts: Record<string, unknown>): Promise<void> {
   try {

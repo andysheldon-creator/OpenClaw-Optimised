@@ -14,6 +14,7 @@
 2. **Forking** (Apache 2.0 licensed, fully permitted)
 
 However, the extraction methodology differs fundamentally from our design:
+
 - **Graphiti:** JSON-based structured output (Pydantic models)
 - **Our Design:** Delimiter-based parsing (token-efficient)
 
@@ -28,6 +29,7 @@ However, the extraction methodology differs fundamentally from our design:
 Based on the actual source code:
 
 **`graphiti_core/prompts/extract_nodes.py`**
+
 ```python
 def extract_message(context: dict[str, Any]) -> list[Message]:
     return [
@@ -42,6 +44,7 @@ def extract_message(context: dict[str, Any]) -> list[Message]:
 ```
 
 **`graphiti_core/prompts/extract_edges.py`**
+
 ```python
 def edge(context: dict[str, Any]) -> list[Message]:
     return [
@@ -78,6 +81,7 @@ await graphiti.add_episode(
 ```
 
 **Limitations:**
+
 - Can only **add** instructions, not replace prompts
 - Must work within existing Pydantic schema constraints
 - Can't change extraction methodology (JSON vs delimiters)
@@ -87,6 +91,7 @@ await graphiti.add_episode(
 **Since Graphiti is Apache 2.0 licensed, forking is fully permitted.**
 
 **Fork Strategy:**
+
 ```bash
 # Fork the repo
 gh repo fork getzep/graphiti --clone=true
@@ -101,12 +106,14 @@ pip install -e /path/to/your/fork
 ```
 
 **What You Can Change via Fork:**
+
 1. **Replace entire prompts** with delimiter-based extraction
 2. **Modify Pydantic models** for different output format
 3. **Remove gleaning/reflexion** if not needed
 4. **Simplify instructions** for token efficiency
 
 **Fork Maintenance Burden:**
+
 - Need to merge upstream updates manually
 - Breaking changes in Graphiti will affect your fork
 - Must maintain your own PyPI package
@@ -118,6 +125,7 @@ pip install -e /path/to/your/fork
 ### 2.1 Graphiti: Structured JSON Output
 
 **Prompt Template:**
+
 ```python
 # Graphiti's actual prompt (simplified)
 user_prompt = f"""
@@ -137,6 +145,7 @@ Output format (JSON):
 ```
 
 **Output Schema (Pydantic):**
+
 ```python
 class ExtractedEntity(BaseModel):
     name: str = Field(..., description='Name of the extracted entity')
@@ -147,11 +156,13 @@ class ExtractedEntities(BaseModel):
 ```
 
 **Pros:**
+
 - Guaranteed valid output (LLM generates JSON)
 - Type-safe parsing (Pydantic validation)
 - Works with structured output APIs (OpenAI, Gemini)
 
 **Cons:**
+
 - **Higher token cost:** JSON format is verbose
 - **Less efficient:** ~40% more tokens than delimiter format
 - **Model requirements:** Requires models with structured output support
@@ -159,6 +170,7 @@ class ExtractedEntities(BaseModel):
 ### 2.2 Our Design: Delimiter-Based Extraction
 
 **Prompt Template (from ZAI-DESIGN.md):**
+
 ```python
 # Our delimiter-based prompt
 prompt = """
@@ -176,6 +188,7 @@ Extract ALL entities and relationships.
 ```
 
 **Parser:**
+
 ```python
 def parse_delimited_output(raw: str):
     entities = []
@@ -191,12 +204,14 @@ def parse_delimited_output(raw: str):
 ```
 
 **Pros:**
+
 - **Lower token cost:** ~40% fewer tokens than JSON
 - **Works with any model:** No structured output required
 - **Simpler parsing:** Regex-based, lightweight
 - **More flexible:** Easier to modify format
 
 **Cons:**
+
 - Parsing failures possible (malformed output)
 - No schema validation at LLM level
 - Requires robust error handling
@@ -208,25 +223,28 @@ def parse_delimited_output(raw: str):
 ### 3.1 What Changes
 
 **Previous Assessment (Incorrect):**
+
 > "Loss of extraction control - must use their prompts"
 
 **Corrected Assessment:**
+
 > "Can customize via `custom_extraction_instructions` or fork, but extraction methodology differs"
 
 ### 3.2 Updated Comparison Table
 
-| Factor | Build Ourselves | Graphiti (Built-in) | Graphiti (Forked) |
-|--------|-----------------|---------------------|-------------------|
-| **Extraction Method** | Delimiter-based (our choice) | Structured JSON | Either (if forked) |
-| **Token Efficiency** | High (delimiter format) | Medium (JSON verbose) | High (if delimiter added) |
-| **Prompt Control** | Full (write from scratch) | Partial (add instructions) | Full (modify prompts) |
-| **Implementation Effort** | 2-3 weeks | 3-5 days (integration) | 1-2 weeks (fork + adapt) |
-| **Maintenance** | Our burden | Upstream handles | Merge burden |
-| **Infrastructure** | SQLite only | Neo4j/FalkorDB required | Neo4j/FalkorDB required |
+| Factor                    | Build Ourselves              | Graphiti (Built-in)        | Graphiti (Forked)         |
+| ------------------------- | ---------------------------- | -------------------------- | ------------------------- |
+| **Extraction Method**     | Delimiter-based (our choice) | Structured JSON            | Either (if forked)        |
+| **Token Efficiency**      | High (delimiter format)      | Medium (JSON verbose)      | High (if delimiter added) |
+| **Prompt Control**        | Full (write from scratch)    | Partial (add instructions) | Full (modify prompts)     |
+| **Implementation Effort** | 2-3 weeks                    | 3-5 days (integration)     | 1-2 weeks (fork + adapt)  |
+| **Maintenance**           | Our burden                   | Upstream handles           | Merge burden              |
+| **Infrastructure**        | SQLite only                  | Neo4j/FalkorDB required    | Neo4j/FalkorDB required   |
 
 ### 3.3 Fork vs Build Decision
 
 **Choose Graphiti + Fork if:**
+
 1. You want Neo4j/FalkorDB graph database
 2. You value bi-temporal tracking (state-of-the-art)
 3. You're OK with Python service in Node.js stack
@@ -234,6 +252,7 @@ def parse_delimited_output(raw: str):
 5. You're willing to maintain fork updates
 
 **Choose Build Ourselves if:**
+
 1. You want SQLite-first (embedded, zero-config)
 2. You want delimiter-based extraction (token-efficient)
 3. You want TypeScript native (unified stack)
@@ -249,6 +268,7 @@ def parse_delimited_output(raw: str):
 **To make Graphiti work with delimiter extraction:**
 
 **File: `graphiti_core/prompts/extract_nodes.py`**
+
 ```python
 def extract_message(context: dict[str, Any]) -> list[Message]:
     # Replace JSON-based prompt with delimiter-based
@@ -269,6 +289,7 @@ def extract_message(context: dict[str, Any]) -> list[Message]:
 ```
 
 **File: `graphiti_core/prompts/extract_edges.py`**
+
 ```python
 def edge(context: dict[str, Any]) -> list[Message]:
     return [
@@ -288,6 +309,7 @@ def edge(context: dict[str, Any]) -> list[Message]:
 ```
 
 **File: Add parser module**
+
 ```python
 # graphiti_core/prompts/delimiter_parser.py
 import re
@@ -307,17 +329,20 @@ def parse_delimited_entities(raw: str) -> ExtractedEntities:
 ### 4.2 Fork Maintenance Strategy
 
 **Approach 1: Minimal Fork (Recommended)**
+
 - Only modify prompt files
 - Keep all other Graphiti code unchanged
 - Merge upstream changes regularly
 - Low maintenance burden
 
 **Approach 2: Full Fork**
+
 - Modify any code you want
 - Full control but high maintenance
 - Must manually resolve merge conflicts
 
 **Tooling:**
+
 ```bash
 # Add upstream remote
 git remote add upstream https://github.com/getzep/graphiti.git
@@ -335,11 +360,11 @@ git rebase upstream/main
 
 ### 5.1 Three Options
 
-| Option | When to Choose | Effort | Maintenance |
-|--------|---------------|--------|-------------|
-| **A: Build Ourselves** | SQLite-first, TypeScript native, delimiter extraction | 2-3 weeks | Our burden |
-| **B: Graphiti (Built-in)** | OK with JSON extraction, want proven solution | 3-5 days | Upstream handles |
-| **C: Graphiti (Forked)** | Want Graphiti + delimiter extraction | 1-2 weeks | Merge burden |
+| Option                     | When to Choose                                        | Effort    | Maintenance      |
+| -------------------------- | ----------------------------------------------------- | --------- | ---------------- |
+| **A: Build Ourselves**     | SQLite-first, TypeScript native, delimiter extraction | 2-3 weeks | Our burden       |
+| **B: Graphiti (Built-in)** | OK with JSON extraction, want proven solution         | 3-5 days  | Upstream handles |
+| **C: Graphiti (Forked)**   | Want Graphiti + delimiter extraction                  | 1-2 weeks | Merge burden     |
 
 ### 5.2 Decision Tree
 
@@ -361,6 +386,7 @@ Need Neo4j/FalkorDB graph database?
 **For Clawdbot: Build Option A (ourselves)**
 
 **Reasons:**
+
 1. **SQLite-first** aligns with current architecture
 2. **TypeScript native** avoids polyglot complexity
 3. **Delimiter extraction** is more token-efficient
@@ -370,12 +396,14 @@ Need Neo4j/FalkorDB graph database?
 **However, if you want to accelerate:**
 
 **Option B (Graphiti Built-in) is viable if:**
+
 - You're OK with JSON extraction (slightly higher cost)
 - You're OK with Python service + Neo4j
 - You want proven bi-temporal tracking
 - Time pressure is significant
 
 **Option C (Graphiti Fork) is viable if:**
+
 - You want Graphiti's architecture with delimiter extraction
 - You're willing to maintain fork updates
 - You need Neo4j/FalkorDB from day one
@@ -391,6 +419,7 @@ Need Neo4j/FalkorDB graph database?
 **Our Project License:** Need to verify
 
 **Apache 2.0 Permissions:**
+
 - ✅ Can fork and modify
 - ✅ Can use commercially
 - ✅ Can redistribute
@@ -398,6 +427,7 @@ Need Neo4j/FalkorDB graph database?
 - ⚠️ Must state changes made
 
 **Fork Attribution Requirement:**
+
 ```python
 # Clawdbot fork of Graphiti
 # Based on: https://github.com/getzep/graphiti
@@ -411,12 +441,14 @@ Need Neo4j/FalkorDB graph database?
 ### 6.2 Fork Maintenance Costs
 
 **Annual Effort Estimate:**
+
 - **Merging upstream:** 4-8 hours per quarter
 - **Testing after merge:** 4-8 hours per quarter
 - **Resolving conflicts:** 2-4 hours per quarter
 - **Total:** ~40-80 hours/year
 
 **Break-even Point:**
+
 - If building ourselves takes 80 hours vs 40 hours for fork
 - And maintenance is 40 hours/year
 - Fork wins if you use it for >2 years
@@ -427,18 +459,19 @@ Need Neo4j/FalkorDB graph database?
 
 ### Updated Decision Matrix (Corrected)
 
-| Factor | Build | Graphiti (Built-in) | Graphiti (Forked) |
-|--------|-------|---------------------|-------------------|
-| Implementation Time | 2-3 weeks | 3-5 days | 1-2 weeks |
-| Prompt Control | Full | Partial | Full |
-| Token Efficiency | High (delimiter) | Medium (JSON) | High (if delimiter added) |
-| Infrastructure | SQLite only | Neo4j/FalkorDB | Neo4j/FalkorDB |
-| Language | TypeScript | Python | Python |
-| Maintenance | Full burden | Upstream handles | Merge burden |
-| Bi-temporal Tracking | Add ourselves | Built-in | Built-in |
-| Proven in Production | No | Yes | Yes (base) |
+| Factor               | Build            | Graphiti (Built-in) | Graphiti (Forked)         |
+| -------------------- | ---------------- | ------------------- | ------------------------- |
+| Implementation Time  | 2-3 weeks        | 3-5 days            | 1-2 weeks                 |
+| Prompt Control       | Full             | Partial             | Full                      |
+| Token Efficiency     | High (delimiter) | Medium (JSON)       | High (if delimiter added) |
+| Infrastructure       | SQLite only      | Neo4j/FalkorDB      | Neo4j/FalkorDB            |
+| Language             | TypeScript       | Python              | Python                    |
+| Maintenance          | Full burden      | Upstream handles    | Merge burden              |
+| Bi-temporal Tracking | Add ourselves    | Built-in            | Built-in                  |
+| Proven in Production | No               | Yes                 | Yes (base)                |
 
 **Scores:**
+
 - Build Ourselves: **3.2/5**
 - Graphiti Built-in: **3.1/5**
 - Graphiti Forked: **3.4/5**
@@ -446,6 +479,7 @@ Need Neo4j/FalkorDB graph database?
 **Winner:** Graphiti Forked (by narrow margin)
 
 **But:** For Clawdbot specifically, I still recommend **Build Ourselves** first because:
+
 1. SQLite-first is strategic for our use case
 2. TypeScript native aligns with team expertise
 3. We can always integrate Graphiti later via interface abstraction
@@ -457,6 +491,7 @@ Need Neo4j/FalkorDB graph database?
 **Key Correction:** Graphiti DOES support prompt customization through `custom_extraction_instructions` and forking.
 
 **Key Insight:** The trade-off is not about prompt control, but about:
+
 1. **Extraction methodology:** Delimiter (efficient) vs JSON (reliable)
 2. **Infrastructure:** SQLite (simple) vs Neo4j (scalable)
 3. **Stack:** TypeScript (unified) vs Python (polyglot)
@@ -464,6 +499,7 @@ Need Neo4j/FalkorDB graph database?
 **Recommendation Stands:** Build ourselves first for SQLite/TypeScript alignment. Consider Graphiti fork if needing production-grade temporal tracking at scale.
 
 **Exit Strategy Remains Viable:**
+
 ```typescript
 interface KnowledgeGraph { ... }
 class SQLiteGraph implements KnowledgeGraph { ... }

@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement entity recognition for user queries:
+
 - Extract candidate phrases (capitalized, quoted)
 - Look up in entity FTS index
 - Return matched entities
@@ -34,8 +35,8 @@ src/knowledge/retrieval/
  * 3. Return matched entities
  */
 
-import type { RelationalDatastore } from '../datastore/interface.js';
-import type { Entity } from '../graph/types.js';
+import type { RelationalDatastore } from "../datastore/interface.js";
+import type { Entity } from "../graph/types.js";
 
 export class QueryEntityRecognizer {
   constructor(private datastore: RelationalDatastore) {}
@@ -58,7 +59,7 @@ export class QueryEntityRecognizer {
          JOIN kg_entities_fts fts ON e.id = fts.rowid
          WHERE kg_entities_fts MATCH $1
          LIMIT 5`,
-        [candidate]
+        [candidate],
       );
 
       for (const match of matches) {

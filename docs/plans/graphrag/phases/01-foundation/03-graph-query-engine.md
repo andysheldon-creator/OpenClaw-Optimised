@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement a graph query engine that provides:
+
 - Neighborhood queries (1-hop, 2-hop, n-hop)
 - Path finding between entities
 - Hub detection (highly connected entities)
@@ -46,19 +47,12 @@ src/knowledge/graph/
  * Reference: docs/plans/graphrag/ZAI-DECISIONS.md AD-02
  */
 
-import { Graph, UndirectedGraph } from 'graphology';
-import { bfs, dfs } from 'graphology-traversal';
-import { connectedComponents } from 'graphology-components';
-import { degreeCentrality } from 'graphology-centrality';
-import type {
-  RelationalDatastore,
-} from '../datastore/interface.js';
-import type {
-  Entity,
-  Relationship,
-  EntityNeighborhood,
-  GraphPath,
-} from './types.js';
+import { Graph, UndirectedGraph } from "graphology";
+import { bfs, dfs } from "graphology-traversal";
+import { connectedComponents } from "graphology-components";
+import { degreeCentrality } from "graphology-centrality";
+import type { RelationalDatastore } from "../datastore/interface.js";
+import type { Entity, Relationship, EntityNeighborhood, GraphPath } from "./types.js";
 
 // ============================================================================
 // QUERY OPTIONS
@@ -101,7 +95,7 @@ export interface HubQueryOptions {
   /** Limit number of results */
   limit?: number;
   /** Centrality algorithm: 'degree' | 'pagerank' */
-  algorithm?: 'degree' | 'pagerank';
+  algorithm?: "degree" | "pagerank";
 }
 
 // ============================================================================
@@ -112,7 +106,7 @@ export class GraphQueryEngine {
   private datastore: RelationalDatastore;
   private inMemoryCache: Map<string, Graph> = new Map();
   private cacheMaxSize = 100;
-  private cacheTTL = 60000;  // 60 seconds
+  private cacheTTL = 60000; // 60 seconds
 
   constructor(datastore: RelationalDatastore) {
     this.datastore = datastore;
@@ -128,7 +122,7 @@ export class GraphQueryEngine {
   async getEntity(entityId: string): Promise<Entity | null> {
     const result = await this.datastore.queryOne<Entity>(
       `SELECT * FROM kg_entities WHERE id = $1`,
-      [entityId]
+      [entityId],
     );
     return this.parseEntity(result);
   }
@@ -142,7 +136,7 @@ export class GraphQueryEngine {
       limit?: number;
       types?: string[];
       fuzzy?: boolean;
-    } = {}
+    } = {},
   ): Promise<Entity[]> {
     const { limit = 20, types, fuzzy = false } = options;
 
@@ -159,7 +153,7 @@ export class GraphQueryEngine {
       params = [query];
 
       if (types && types.length > 0) {
-        sql += ` AND e.type IN (${types.map((_, i) => `$${i + 2}`).join(',')})`;
+        sql += ` AND e.type IN (${types.map((_, i) => `$${i + 2}`).join(",")})`;
         params.push(...types);
       }
 
@@ -174,7 +168,7 @@ export class GraphQueryEngine {
       params = [`${query}%`];
 
       if (types && types.length > 0) {
-        sql += ` AND type IN (${types.map((_, i) => `$${i + 2}`).join(',')})`;
+        sql += ` AND type IN (${types.map((_, i) => `$${i + 2}`).join(",")})`;
         params.push(...types);
       }
 
@@ -183,7 +177,7 @@ export class GraphQueryEngine {
     }
 
     const results = await this.datastore.query<any>(sql, params);
-    return results.map(r => this.parseEntity(r)).filter(Boolean) as Entity[];
+    return results.map((r) => this.parseEntity(r)).filter(Boolean) as Entity[];
   }
 
   /**
@@ -191,7 +185,7 @@ export class GraphQueryEngine {
    */
   async getEntitiesByType(
     type: string,
-    options: { limit?: number; offset?: number } = {}
+    options: { limit?: number; offset?: number } = {},
   ): Promise<Entity[]> {
     const { limit = 100, offset = 0 } = options;
 
@@ -200,10 +194,10 @@ export class GraphQueryEngine {
        WHERE type = $1
        ORDER BY last_seen DESC
        LIMIT $2 OFFSET $3`,
-      [type, limit, offset]
+      [type, limit, offset],
     );
 
-    return results.map(r => this.parseEntity(r)).filter(Boolean) as Entity[];
+    return results.map((r) => this.parseEntity(r)).filter(Boolean) as Entity[];
   }
 
   // ------------------------------------------------------------------------
@@ -217,7 +211,7 @@ export class GraphQueryEngine {
    */
   async getNeighborhood(
     entityId: string,
-    options: NeighborhoodQueryOptions = {}
+    options: NeighborhoodQueryOptions = {},
   ): Promise<EntityNeighborhood> {
     const {
       maxHops = 1,
@@ -229,8 +223,8 @@ export class GraphQueryEngine {
 
     // Build the recursive CTE
     const relationshipFilter = relationshipTypes
-      ? `AND r.type IN (${relationshipTypes.map((_, i) => `$${i + 3}`).join(',')})`
-      : '';
+      ? `AND r.type IN (${relationshipTypes.map((_, i) => `$${i + 3}`).join(",")})`
+      : "";
 
     const sql = `
       WITH RECURSIVE neighborhood AS (
@@ -283,14 +277,10 @@ export class GraphQueryEngine {
       SELECT DISTINCT * FROM neighborhood
       WHERE hops > 0  -- Exclude the starting entity itself
       ORDER BY hops, rel_strength DESC
-      ${limit ? `LIMIT $${4 + (relationshipTypes?.length || 0)}` : ''}
+      ${limit ? `LIMIT $${4 + (relationshipTypes?.length || 0)}` : ""}
     `;
 
-    const params: any[] = [
-      entityId,
-      maxHops,
-      minStrength,
-    ];
+    const params: any[] = [entityId, maxHops, minStrength];
     if (relationshipTypes) params.push(...relationshipTypes);
     if (limit) params.push(limit);
 
@@ -318,7 +308,7 @@ export class GraphQueryEngine {
   async getNHops(
     entityId: string,
     hops: number,
-    options: Omit<NeighborhoodQueryOptions, 'maxHops'> = {}
+    options: Omit<NeighborhoodQueryOptions, "maxHops"> = {},
   ): Promise<Map<string, Entity>> {
     const neighborhood = await this.getNeighborhood(entityId, {
       ...options,
@@ -347,7 +337,7 @@ export class GraphQueryEngine {
   async findPath(
     fromId: string,
     toId: string,
-    options: PathQueryOptions = {}
+    options: PathQueryOptions = {},
   ): Promise<GraphPath | null> {
     const { maxLength = 5, relationshipTypes, minStrength = 0 } = options;
 
@@ -375,7 +365,7 @@ export class GraphQueryEngine {
   async findAllPaths(
     fromId: string,
     toId: string,
-    options: PathQueryOptions = {}
+    options: PathQueryOptions = {},
   ): Promise<GraphPath[]> {
     const { maxLength = 3, relationshipTypes, minStrength = 0 } = options;
 
@@ -387,9 +377,7 @@ export class GraphQueryEngine {
 
     const paths = this.findAllPathsDFS(graph, fromId, toId, maxLength);
 
-    return await Promise.all(
-      paths.map(path => this.buildGraphPath(path))
-    );
+    return await Promise.all(paths.map((path) => this.buildGraphPath(path)));
   }
 
   // ------------------------------------------------------------------------
@@ -400,9 +388,9 @@ export class GraphQueryEngine {
    * Find highly connected entities (hubs).
    */
   async getHubs(options: HubQueryOptions = {}): Promise<Array<Entity & { score: number }>> {
-    const { minDegree = 3, limit = 20, algorithm = 'degree' } = options;
+    const { minDegree = 3, limit = 20, algorithm = "degree" } = options;
 
-    if (algorithm === 'degree') {
+    if (algorithm === "degree") {
       return this.getHubsByDegree(minDegree, limit);
     }
 
@@ -415,7 +403,7 @@ export class GraphQueryEngine {
    */
   private async getHubsByDegree(
     minDegree: number,
-    limit: number
+    limit: number,
   ): Promise<Array<Entity & { score: number }>> {
     const sql = `
       SELECT
@@ -441,7 +429,7 @@ export class GraphQueryEngine {
 
     const results = await this.datastore.query<any>(sql, [minDegree, limit]);
 
-    return results.map(r => ({
+    return results.map((r) => ({
       ...this.parseEntity(r),
       score: r.score,
     }));
@@ -452,11 +440,11 @@ export class GraphQueryEngine {
    */
   private async getHubsByPageRank(
     minDegree: number,
-    limit: number
+    limit: number,
   ): Promise<Array<Entity & { score: number }>> {
     // Load a larger subgraph for PageRank calculation
     const hubIds = await this.getHubsByDegree(minDegree, limit * 2);
-    const ids = hubIds.map(h => h.id);
+    const ids = hubIds.map((h) => h.id);
 
     const graph = await this.buildSubgraph(ids, { maxDepth: 2 });
 
@@ -472,7 +460,7 @@ export class GraphQueryEngine {
       sorted.map(async ([id, score]) => {
         const entity = await this.getEntity(id);
         return { ...entity!, score };
-      })
+      }),
     );
   }
 
@@ -490,13 +478,13 @@ export class GraphQueryEngine {
     relationshipTypeCounts: Record<string, number>;
   }> {
     const [entityResult, relResult, typeResults, relTypeResults] = await Promise.all([
-      this.datastore.queryOne<{ count: number }>('SELECT COUNT(*) as count FROM kg_entities'),
-      this.datastore.queryOne<{ count: number }>('SELECT COUNT(*) as count FROM kg_relationships'),
+      this.datastore.queryOne<{ count: number }>("SELECT COUNT(*) as count FROM kg_entities"),
+      this.datastore.queryOne<{ count: number }>("SELECT COUNT(*) as count FROM kg_relationships"),
       this.datastore.query<{ type: string; count: number }>(
-        'SELECT type, COUNT(*) as count FROM kg_entities GROUP BY type'
+        "SELECT type, COUNT(*) as count FROM kg_entities GROUP BY type",
       ),
       this.datastore.query<{ type: string; count: number }>(
-        'SELECT type, COUNT(*) as count FROM kg_relationships GROUP BY type'
+        "SELECT type, COUNT(*) as count FROM kg_relationships GROUP BY type",
       ),
     ]);
 
@@ -551,7 +539,7 @@ export class GraphQueryEngine {
       maxDepth?: number;
       relationshipTypes?: string[];
       minStrength?: number;
-    } = {}
+    } = {},
   ): Promise<Graph> {
     const graph = new Graph();
 
@@ -575,8 +563,8 @@ export class GraphQueryEngine {
         `SELECT * FROM kg_relationships
          WHERE (source_id = $1 OR target_id = $1)
            AND strength >= $2
-         ${options.relationshipTypes ? `AND type IN (${options.relationshipTypes.map((_, i) => `$${i + 3}`).join(',')})` : ''}`,
-        [id, options.minStrength ?? 0, ...(options.relationshipTypes ?? [])]
+         ${options.relationshipTypes ? `AND type IN (${options.relationshipTypes.map((_, i) => `$${i + 3}`).join(",")})` : ""}`,
+        [id, options.minStrength ?? 0, ...(options.relationshipTypes ?? [])],
       );
 
       for (const rel of relationships) {
@@ -607,9 +595,7 @@ export class GraphQueryEngine {
    * BFS path finding in graphology graph.
    */
   private bfsPath(graph: Graph, from: string, to: string): string[] | null {
-    const queue: Array<{ node: string; path: string[] }> = [
-      { node: from, path: [from] },
-    ];
+    const queue: Array<{ node: string; path: string[] }> = [{ node: from, path: [from] }];
     const visited = new Set<string>([from]);
 
     while (queue.length > 0) {
@@ -636,12 +622,7 @@ export class GraphQueryEngine {
   /**
    * Find all paths using DFS (can be expensive).
    */
-  private findAllPathsDFS(
-    graph: Graph,
-    from: string,
-    to: string,
-    maxLength: number
-  ): string[][] {
+  private findAllPathsDFS(graph: Graph, from: string, to: string, maxLength: number): string[][] {
     const paths: string[][] = [];
 
     const dfs = (node: string, path: string[], visited: Set<string>) => {
@@ -669,15 +650,15 @@ export class GraphQueryEngine {
    * Build relationship objects from neighborhood query results.
    */
   private async buildRelationshipsFromNeighborhood(
-    rows: any[]
+    rows: any[],
   ): Promise<Array<{ relationship: Relationship; targetEntity: Entity }>> {
     const results: Array<{ relationship: Relationship; targetEntity: Entity }> = [];
 
     for (const row of rows) {
       if (row.rel_id) {
         const rel = await this.datastore.queryOne<Relationship>(
-          'SELECT * FROM kg_relationships WHERE id = $1',
-          [row.rel_id]
+          "SELECT * FROM kg_relationships WHERE id = $1",
+          [row.rel_id],
         );
 
         const entity = await this.getEntity(row.id);
@@ -695,9 +676,7 @@ export class GraphQueryEngine {
    * Build a GraphPath from an array of entity IDs.
    */
   private async buildGraphPath(entityIds: string[]): Promise<GraphPath> {
-    const entities = await Promise.all(
-      entityIds.map(id => this.getEntity(id))
-    );
+    const entities = await Promise.all(entityIds.map((id) => this.getEntity(id)));
 
     const relationships: Relationship[] = [];
 
@@ -710,7 +689,7 @@ export class GraphQueryEngine {
          WHERE (source_id = $1 AND target_id = $2)
             OR (source_id = $2 AND target_id = $1)
          LIMIT 1`,
-        [from.id, to.id]
+        [from.id, to.id],
       );
 
       if (rel) {
@@ -751,14 +730,14 @@ Add to `package.json`:
 const engine = new GraphQueryEngine(datastore);
 
 // Get 2-hop neighborhood around an entity
-const neighborhood = await engine.getNeighborhood('entity-123', {
+const neighborhood = await engine.getNeighborhood("entity-123", {
   maxHops: 2,
   minStrength: 5,
-  relationshipTypes: ['depends_on', 'implements'],
+  relationshipTypes: ["depends_on", "implements"],
 });
 
 // Find path between two entities
-const path = await engine.findPath('entity-a', 'entity-b', {
+const path = await engine.findPath("entity-a", "entity-b", {
   maxLength: 3,
 });
 
@@ -766,12 +745,12 @@ const path = await engine.findPath('entity-a', 'entity-b', {
 const hubs = await engine.getHubs({
   minDegree: 5,
   limit: 10,
-  algorithm: 'pagerank',
+  algorithm: "pagerank",
 });
 
 // Search entities
-const results = await engine.searchEntities('auth', {
-  types: ['concept', 'tool'],
+const results = await engine.searchEntities("auth", {
+  types: ["concept", "tool"],
   fuzzy: true,
   limit: 20,
 });
@@ -782,17 +761,17 @@ const results = await engine.searchEntities('auth', {
 **File:** `src/knowledge/graph/query.test.ts`
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { createDatastore } from '../datastore/interface.js';
-import { migrateGraphSchema } from './schema.js';
-import { GraphQueryEngine } from './query.js';
+import { describe, it, expect } from "vitest";
+import { createDatastore } from "../datastore/interface.js";
+import { migrateGraphSchema } from "./schema.js";
+import { GraphQueryEngine } from "./query.js";
 
-describe('GraphQueryEngine', () => {
+describe("GraphQueryEngine", () => {
   let engine: GraphQueryEngine;
   let ds: RelationalDatastore;
 
   beforeEach(async () => {
-    ds = createDatastore({ type: 'sqlite', path: ':memory:' });
+    ds = createDatastore({ type: "sqlite", path: ":memory:" });
     await migrateGraphSchema(ds);
     engine = new GraphQueryEngine(ds);
 
@@ -800,36 +779,36 @@ describe('GraphQueryEngine', () => {
     await seedTestData(ds);
   });
 
-  it('should get entity by ID', async () => {
-    const entity = await engine.getEntity('e1');
+  it("should get entity by ID", async () => {
+    const entity = await engine.getEntity("e1");
     expect(entity).toBeDefined();
-    expect(entity?.name).toBe('Entity 1');
+    expect(entity?.name).toBe("Entity 1");
   });
 
-  it('should search entities', async () => {
-    const results = await engine.searchEntities('entity');
+  it("should search entities", async () => {
+    const results = await engine.searchEntities("entity");
     expect(results.length).toBeGreaterThan(0);
   });
 
-  it('should get 1-hop neighborhood', async () => {
-    const neighborhood = await engine.getNeighborhood('e1', { maxHops: 1 });
-    expect(neighborhood.entity.id).toBe('e1');
+  it("should get 1-hop neighborhood", async () => {
+    const neighborhood = await engine.getNeighborhood("e1", { maxHops: 1 });
+    expect(neighborhood.entity.id).toBe("e1");
     expect(neighborhood.relationships.length).toBeGreaterThan(0);
   });
 
-  it('should find path between entities', async () => {
-    const path = await engine.findPath('e1', 'e3');
+  it("should find path between entities", async () => {
+    const path = await engine.findPath("e1", "e3");
     expect(path).not.toBeNull();
     expect(path.entities.length).toBe(3);
   });
 
-  it('should identify hubs', async () => {
+  it("should identify hubs", async () => {
     const hubs = await engine.getHubs({ minDegree: 2 });
     expect(hubs.length).toBeGreaterThan(0);
     expect(hubs[0].score).toBeGreaterThanOrEqual(2);
   });
 
-  it('should get graph stats', async () => {
+  it("should get graph stats", async () => {
     const stats = await engine.getStats();
     expect(stats.entityCount).toBeGreaterThan(0);
     expect(stats.relationshipCount).toBeGreaterThan(0);

@@ -1,4 +1,3 @@
-import type { OverseerGoalStatusResult } from "../types/overseer";
 import type {
   AgentsListResult,
   ChannelsStatusSnapshot,
@@ -7,6 +6,7 @@ import type {
   SessionsListResult,
   SkillStatusReport,
 } from "../types";
+import type { OverseerGoalStatusResult } from "../types/overseer";
 import type { GraphViewport } from "../ui-types";
 
 export type GraphNodeKind =
@@ -145,7 +145,7 @@ export function buildOverseerGraphLayout(
           subtaskCenters.push(subtaskNode.y + NODE_HEIGHT / 2);
           cursorY += NODE_HEIGHT + ROW_GAP;
         }
-        const taskCenter = average(subtaskCenters) ?? (cursorY - ROW_GAP - NODE_HEIGHT / 2);
+        const taskCenter = average(subtaskCenters) ?? cursorY - ROW_GAP - NODE_HEIGHT / 2;
         const taskNode: GraphNode = {
           id: task.id,
           kind: "task",
@@ -163,8 +163,7 @@ export function buildOverseerGraphLayout(
     }
 
     const phaseCenter =
-      average(phaseTaskCenters) ??
-      (phaseStartY + (cursorY - phaseStartY - ROW_GAP) / 2);
+      average(phaseTaskCenters) ?? phaseStartY + (cursorY - phaseStartY - ROW_GAP) / 2;
     const phaseNode: GraphNode = {
       id: phase.id,
       kind: "phase",
@@ -250,7 +249,8 @@ export function buildSystemGraphLayout(input: SystemGraphInput): GraphLayout {
       items: input.presenceEntries.map((entry) => ({
         id: `instance:${String(entry.instanceId ?? entry.host ?? "instance")}`,
         label: String(entry.host ?? entry.instanceId ?? "Instance"),
-        status: entry.lastInputSeconds != null && entry.lastInputSeconds <= 90 ? "online" : undefined,
+        status:
+          entry.lastInputSeconds != null && entry.lastInputSeconds <= 90 ? "online" : undefined,
         data: entry as unknown as Record<string, unknown>,
       })),
     },
@@ -272,11 +272,7 @@ export function buildSystemGraphLayout(input: SystemGraphInput): GraphLayout {
       items: (input.skillsReport?.skills ?? []).map((skill) => ({
         id: `skill:${skill.skillKey}`,
         label: skill.name,
-        status: skill.disabled
-          ? "disabled"
-          : skill.eligible
-            ? "eligible"
-            : "blocked",
+        status: skill.disabled ? "disabled" : skill.eligible ? "eligible" : "blocked",
         data: skill as unknown as Record<string, unknown>,
       })),
     },
@@ -317,9 +313,7 @@ export function buildSystemGraphLayout(input: SystemGraphInput): GraphLayout {
       cursorY += NODE_HEIGHT + ROW_GAP;
     }
 
-    const groupCenter =
-      average(itemCenters) ??
-      (groupStartY + (NODE_HEIGHT / 2));
+    const groupCenter = average(itemCenters) ?? groupStartY + NODE_HEIGHT / 2;
     const groupNode: GraphNode = {
       id: group.id,
       kind: "group",

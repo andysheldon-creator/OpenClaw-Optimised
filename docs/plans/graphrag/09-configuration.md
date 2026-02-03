@@ -8,6 +8,7 @@ under agent defaults, following the same pattern as the existing `memorySearch` 
 ## Config Schema
 
 **Files to modify:**
+
 - `src/config/types.agent-defaults.ts` -- add `KnowledgeConfig` type
 - `src/config/zod-schema.agent-defaults.ts` -- add Zod validation schema
 - `src/agents/memory-search.ts` -- add knowledge config resolution
@@ -110,8 +111,16 @@ export const DEFAULT_KNOWLEDGE_CONFIG: KnowledgeConfig = {
     enabled: true,
     entityTypes: ["person", "org", "repo", "concept", "tool", "location", "event", "file"],
     relationshipTypes: [
-      "uses", "depends_on", "authored_by", "discussed_in", "blocks",
-      "related_to", "implements", "references", "part_of", "scheduled_for",
+      "uses",
+      "depends_on",
+      "authored_by",
+      "discussed_in",
+      "blocks",
+      "related_to",
+      "implements",
+      "references",
+      "part_of",
+      "scheduled_for",
     ],
     gleaning: { enabled: true, passes: 1 },
     consolidation: { aliasMergeThreshold: 0.92, maxDescriptionFragments: 6 },
@@ -132,9 +141,12 @@ export const DEFAULT_KNOWLEDGE_CONFIG: KnowledgeConfig = {
 
   ingestion: {
     allowedMimeTypes: [
-      "text/markdown", "text/plain", "application/pdf",
+      "text/markdown",
+      "text/plain",
+      "application/pdf",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/html", "application/json",
+      "text/html",
+      "application/json",
     ],
     maxFileSizeMb: 50,
   },

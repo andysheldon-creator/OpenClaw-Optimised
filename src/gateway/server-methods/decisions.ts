@@ -1,12 +1,12 @@
+import type { CreateDecisionParams, DecisionStatus } from "../../infra/decisions/store.types.js";
+import type { GatewayRequestHandlers } from "./types.js";
 import {
   createDecision,
   getDecision,
   listDecisions,
   respondToDecision,
 } from "../../infra/decisions/store.js";
-import type { CreateDecisionParams, DecisionStatus } from "../../infra/decisions/store.types.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 type DecisionCreateParams = CreateDecisionParams & {
   sessionKey?: string;

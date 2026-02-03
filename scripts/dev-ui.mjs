@@ -78,12 +78,16 @@ const gatewayArgs = [
   "scripts/run-node.mjs",
   "gateway",
   "run",
-  "--port", String(port),
+  "--port",
+  String(port),
   "--force",
   "--no-ui",
-  "--auth", "password",
-  "--password", password,
-  "--token", token,
+  "--auth",
+  "password",
+  "--password",
+  password,
+  "--token",
+  token,
 ];
 
 // Skip channels by default for faster dev startup, but allow override via env var.
