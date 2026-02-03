@@ -13,6 +13,12 @@ import {
   SYNTHETIC_MODEL_CATALOG,
 } from "./synthetic-models.js";
 import { discoverVeniceModels, VENICE_BASE_URL } from "./venice-models.js";
+import {
+  buildVertexKimiProvider,
+  hasGcloudAdc,
+  resolveGcpLocation,
+  resolveGcpProject,
+} from "./vertex-kimi-models.js";
 
 type ModelsConfig = NonNullable<OpenClawConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
@@ -451,6 +457,17 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "xiaomi", store: authStore });
   if (xiaomiKey) {
     providers.xiaomi = { ...buildXiaomiProvider(), apiKey: xiaomiKey };
+  }
+
+  // Vertex AI Kimi K2 - auto-discover when GCP project + ADC are available
+  const gcpProject = resolveGcpProject();
+  const gcpHasAdc = hasGcloudAdc();
+  if (gcpProject && gcpHasAdc) {
+    const gcpLocation = resolveGcpLocation();
+    providers["vertex-kimi"] = {
+      ...buildVertexKimiProvider(gcpProject, gcpLocation),
+      apiKey: "gcloud-adc",
+    };
   }
 
   // Ollama provider - only add if explicitly configured
