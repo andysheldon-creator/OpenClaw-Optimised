@@ -39,9 +39,13 @@ This separation emerged from a key insight: Rust excels at synchronous, CPU-boun
 
 ### Why This Boundary?
 
-1. **Summarization requires async**: The LLM call is inherently async. Rust's async story is complex; TypeScript's is trivial.
-2. **Computation is synchronous**: Token estimation, string manipulation, and data extraction are CPU-bound and synchronous.
+This was a pragmatic choice for the experiment, not a fundamental requirement:
+
+1. **Pure computation separates cleanly**: Token estimation, string manipulation, and data extraction have no I/O dependencies—they're ideal Rust candidates.
+2. **I/O strategy is flexible**: The summarizer (which makes LLM calls) was injected as a callback. This lets the caller decide the I/O pattern—the core module doesn't need to know.
 3. **Data conversion at boundaries**: TypeScript uses `Set<string>` idiomatically; Rust uses `Vec<String>`. Convert at the boundary, not throughout.
+
+Note: The hybrid split was about separating concerns, not about async complexity. A pure Rust implementation could handle I/O via blocking calls, async/await, or callback injection.
 
 ---
 
@@ -208,23 +212,57 @@ pub fn estimate_tokens(message: Message) -> u32 {
 }
 ```
 
-### 3. Async Boundaries Should Stay in TypeScript
+### 3. I/O Patterns for External Calls
 
-Don't try to make Rust async just because TypeScript is async. Keep async operations in TypeScript and call into synchronous Rust:
+When a module needs to make external calls (like LLM API requests), there are several patterns:
 
-```typescript
-// TypeScript orchestrates async
-export async function compact(...): Promise<CompactionResult> {
-  // Sync Rust call
-  const prepared = native.prepareCompaction(messages, fileOps, maxTokens);
+**Callback injection** - The module stays pure; the caller provides the I/O mechanism:
 
-  // Async TS call
-  const summary = await config.summarize(messages);
-
-  // Sync Rust call
-  return native.assembleSummary(summary, prepared.sections);
+```rust
+fn compact<F>(messages: Vec<Message>, summarize: F) -> Result<Summary>
+where
+    F: FnOnce(&[Message]) -> Result<String>
+{
+    // Module doesn't care how summarize is implemented
+    let summary = summarize(&messages)?;
+    // ...
 }
 ```
+
+**Blocking I/O** - Simple and correct for sequential operations:
+
+```rust
+// Using ureq for synchronous HTTP
+let response = ureq::post(url)
+    .send_json(&request)?
+    .into_string()?;
+```
+
+**Thread + channel** - When you need concurrency without async:
+
+```rust
+let (tx, rx) = mpsc::channel();
+thread::spawn(move || {
+    let result = make_llm_call();
+    tx.send(result).unwrap();
+});
+let response = rx.recv()?;
+```
+
+**Async/await** - When handling many concurrent operations (e.g., a server):
+
+```rust
+async fn summarize(messages: &[Message]) -> Result<String> {
+    let response = reqwest::Client::new()
+        .post(url)
+        .json(&request)
+        .send()
+        .await?;
+    // ...
+}
+```
+
+The experimental implementation used callback injection, keeping the core module I/O-agnostic. This is often the cleanest pattern—it separates the "what" (computation) from the "how" (I/O strategy).
 
 ### 4. Validation Works Identically
 
@@ -279,10 +317,10 @@ Port a module to Rust when:
 
 Keep in TypeScript when:
 
-1. **Async dominates**: The module primarily coordinates async operations
-2. **Interface is unstable**: The API is still being designed
-3. **Integration is complex**: Heavy interop with Node.js APIs or npm packages
-4. **Iteration speed matters**: You need to change and test rapidly
+1. **Interface is unstable**: The API is still being designed
+2. **Integration is complex**: Heavy interop with Node.js APIs or npm packages
+3. **Iteration speed matters**: You need to change and test rapidly
+4. **Node ecosystem dependency**: The module relies heavily on npm packages without Rust equivalents
 
 ---
 

@@ -52,8 +52,8 @@ See [DISTILLATION.md](./DISTILLATION.md) for the full principles. The key ones:
 See [PROGRESS.md](./PROGRESS.md) for the full list. Highlights:
 
 1. **TypeScript with Rust portability** - Write TypeScript that converts easily to Rust
-2. **Minimal viable agent** - CLI where an agent can read and write files via tools
-3. **No gateway for minimal scope** - Single-process CLI; multi-agent deferred
+2. **CLI + Backend architecture** - Thin CLI client; backend handles agent logic, LLM calls, memory
+3. **Backend-first, gateway-deferred** - Single-process backend initially; multi-agent deferred
 4. **Validate before advancing** - Tests for each component before moving on
 
 ---
