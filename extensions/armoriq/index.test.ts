@@ -424,7 +424,7 @@ describe("ArmorIQ plugin", () => {
       apiKey: "ak_live_test123",
       userId: "user-enforcement-test",
       agentId: "agent-enforcement-test",
-      backendEndpoint: "https://iap.armoriq.dev",
+      backendEndpoint: "https://customer-iap.armoriq.ai",
     });
     register(api as any);
 
@@ -645,7 +645,7 @@ describe("ArmorIQ plugin", () => {
       apiKey: "ak_live_test",
       userId: "user-full-flow",
       agentId: "agent-full-flow",
-      backendEndpoint: "https://iap.armoriq.dev",
+      backendEndpoint: "https://customer-iap.armoriq.ai",
     });
     register(api as any);
 
@@ -825,7 +825,7 @@ describe("ArmorIQ plugin", () => {
       apiKey: "ak_live_complete_test",
       userId: "user-complete",
       agentId: "agent-complete",
-      backendEndpoint: "https://iap.armoriq.dev",
+      backendEndpoint: "https://customer-iap.armoriq.ai",
     });
     register(api as any);
 
@@ -999,7 +999,7 @@ describe("ArmorIQ plugin", () => {
     log(`     - Extract: path, proof array, value_digest`);
     log(`     - Build CsrgProofHeaders object`);
     log(`\n  5️⃣  IAP Verification Request`);
-    log(`     - POST https://iap.armoriq.dev/iap/verify-step`);
+    log(`     - POST https://customer-iap.armoriq.ai/iap/verify-step`);
     log(`     - Payload: { token, tool_name, path, proof, context }`);
     log(`     - IAP validates: JWT, plan_id, step sequence, proofs`);
     log(`\n  6️⃣  IAP Response Processing`);
