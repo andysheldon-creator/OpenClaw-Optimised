@@ -449,7 +449,7 @@ def cmd_transcribe(args):
                     ".m4a": "audio/mp4", ".aac": "audio/aac", ".mp4": "video/mp4"}
         mime = mime_map.get(suffix, "application/octet-stream")
     else:
-        print("Error: provide --file or --url", file=sys.stderr)
+        print("Error: provide FILE or --url", file=sys.stderr)
         sys.exit(1)
 
     fields = {"model": "nvidia/parakeet-tdt-0.6b-v3"}
