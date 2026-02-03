@@ -1,13 +1,20 @@
 import { Command, Option } from "commander";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { formatDocsLink } from "../terminal/links.js";
+import { resolveCliName } from "./cli-name.js";
 import { getSubCliEntries, registerSubCliByName } from "./program/register.subclis.js";
 
 export function registerCompletionCli(program: Command) {
   program
     .command("completion")
     .description("Generate shell completion script")
+    .addHelpText(
+      "after",
+      () => `\n${formatDocsLink("/cli/completion", "docs.openclaw.ai/cli/completion")}\n`,
+    )
     .addOption(
       new Option("-s, --shell <shell>", "Shell to generate completion for")
         .choices(["zsh", "bash", "powershell", "fish"])
@@ -27,34 +34,32 @@ export function registerCompletionCli(program: Command) {
         await registerSubCliByName(program, entry.name);
       }
 
+      const script = renderCompletionScript(shell, program);
       if (options.install) {
-        await installCompletion(shell, Boolean(options.yes), program.name());
+        await installCompletion(shell, Boolean(options.yes), program.name(), script);
         return;
-      }
-
-      let script = "";
-      if (shell === "zsh") {
-        script = generateZshCompletion(program);
-      } else if (shell === "bash") {
-        script = generateBashCompletion(program);
-      } else if (shell === "powershell") {
-        script = generatePowerShellCompletion(program);
-      } else if (shell === "fish") {
-        script = generateFishCompletion(program);
       }
 
       console.log(script);
     });
 }
 
-export async function installCompletion(shell: string, yes: boolean, binName = "openclaw") {
+export async function installCompletion(
+  shell: string,
+  yes: boolean,
+  binName = "openclaw",
+  script?: string,
+) {
   const home = process.env.HOME || os.homedir();
   let profilePath = "";
   let sourceLine = "";
+  let completionPath = "";
+  const completionDir = path.join(home, ".openclaw", "completions");
 
   if (shell === "zsh") {
     profilePath = path.join(home, ".zshrc");
-    sourceLine = `source <(${binName} completion --shell zsh)`;
+    completionPath = path.join(completionDir, `${binName}.zsh`);
+    sourceLine = `source "${completionPath}"`;
   } else if (shell === "bash") {
     // Try .bashrc first, then .bash_profile
     profilePath = path.join(home, ".bashrc");
@@ -63,16 +68,41 @@ export async function installCompletion(shell: string, yes: boolean, binName = "
     } catch {
       profilePath = path.join(home, ".bash_profile");
     }
-    sourceLine = `source <(${binName} completion --shell bash)`;
+    completionPath = path.join(completionDir, `${binName}.bash`);
+    sourceLine = `source "${completionPath}"`;
   } else if (shell === "fish") {
     profilePath = path.join(home, ".config", "fish", "config.fish");
-    sourceLine = `${binName} completion --shell fish | source`;
+    completionPath = path.join(completionDir, `${binName}.fish`);
+    sourceLine = `source "${completionPath}"`;
   } else {
     console.error(`Automated installation not supported for ${shell} yet.`);
     return;
   }
 
   try {
+    const cliName = resolveCliName();
+    let cachedScript: string | undefined;
+    const getScript = () => {
+      if (cachedScript !== undefined) {
+        return cachedScript;
+      }
+      cachedScript = script ?? getCompletionScriptFromCli(shell, binName, cliName);
+      return cachedScript;
+    };
+    const ensureCompletionFile = async (): Promise<boolean> => {
+      if (await pathExists(completionPath)) {
+        return true;
+      }
+      const completionScript = getScript();
+      if (!completionScript.trim()) {
+        console.error("Failed to generate completion script.");
+        return false;
+      }
+      await fs.mkdir(completionDir, { recursive: true });
+      await fs.writeFile(completionPath, completionScript, "utf-8");
+      return true;
+    };
+
     // Check if profile exists
     try {
       await fs.access(profilePath);
@@ -85,10 +115,23 @@ export async function installCompletion(shell: string, yes: boolean, binName = "
     }
 
     const content = await fs.readFile(profilePath, "utf-8");
-    if (content.includes(`${binName} completion`)) {
+    if (content.includes(sourceLine)) {
+      if (!(await ensureCompletionFile())) {
+        return;
+      }
       if (!yes) {
         console.log(`Completion already installed in ${profilePath}`);
       }
+      return;
+    }
+
+    const updatedContent = replaceLegacyCompletionLine(content, shell, binName, sourceLine);
+    if (updatedContent !== content) {
+      if (!(await ensureCompletionFile())) {
+        return;
+      }
+      await fs.writeFile(profilePath, updatedContent, "utf-8");
+      console.log(`Completion updated in ${profilePath}`);
       return;
     }
 
@@ -99,10 +142,104 @@ export async function installCompletion(shell: string, yes: boolean, binName = "
       console.log(`Installing completion to ${profilePath}...`);
     }
 
-    await fs.appendFile(profilePath, `\n# OpenClaw Completion\n${sourceLine}\n`);
+    if (!(await ensureCompletionFile())) {
+      return;
+    }
+    await fs.appendFile(profilePath, `\n# ${formatCompletionHeader(binName)}\n${sourceLine}\n`);
     console.log(`Completion installed. Restart your shell or run: source ${profilePath}`);
   } catch (err) {
-    console.error(`Failed to install completion: ${err as string}`);
+    const message = err instanceof Error ? (err.stack ?? err.message) : String(err);
+    console.error(`Failed to install completion: ${message}`);
+  }
+}
+
+function renderCompletionScript(shell: string, program: Command): string {
+  if (shell === "zsh") {
+    return generateZshCompletion(program);
+  }
+  if (shell === "bash") {
+    return generateBashCompletion(program);
+  }
+  if (shell === "powershell") {
+    return generatePowerShellCompletion(program);
+  }
+  if (shell === "fish") {
+    return generateFishCompletion(program);
+  }
+  return "";
+}
+
+function getCompletionScriptFromCli(shell: string, binName: string, cliName: string): string {
+  const env = { ...process.env };
+  const args = ["completion", "--shell", shell];
+  const attempts: Array<{ label: string; result: ReturnType<typeof spawnSync> }> = [];
+  attempts.push({
+    label: binName,
+    result: spawnSync(binName, args, { encoding: "utf-8", env }),
+  });
+  const argv1 = process.argv[1];
+  if (argv1 && argv1 !== binName && argv1 !== cliName) {
+    attempts.push({
+      label: `${process.execPath} ${argv1}`,
+      result: spawnSync(process.execPath, [argv1, ...args], { encoding: "utf-8", env }),
+    });
+  }
+  if (cliName !== binName) {
+    attempts.push({
+      label: cliName,
+      result: spawnSync(cliName, args, { encoding: "utf-8", env }),
+    });
+  }
+  const success = attempts.find((entry) => entry.result.status === 0);
+  if (success) {
+    return success.result.stdout?.toString() ?? "";
+  }
+  const last = attempts.at(-1);
+  const stderr = last?.result.stderr?.toString().trim();
+  const exitCode = last?.result.status ?? "unknown";
+  const name = last?.label ?? binName;
+  console.error(`Failed to generate completion (${name}, exit ${exitCode}).`);
+  if (stderr) {
+    console.error(stderr);
+  }
+  return "";
+}
+
+function formatCompletionHeader(binName: string) {
+  if (!binName.trim()) {
+    return "OpenClaw Completion";
+  }
+  const label = binName
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+  return `${label} Completion`;
+}
+
+function replaceLegacyCompletionLine(
+  content: string,
+  shell: string,
+  binName: string,
+  replacement: string,
+): string {
+  const legacyPattern =
+    shell === "fish"
+      ? new RegExp(`^\\s*${escapeRegExp(binName)}\\s+completion\\b.*\\|\\s*source\\s*$`, "gm")
+      : new RegExp(`^\\s*source\\s+<\\(${escapeRegExp(binName)}\\s+completion\\b.*\\)\\s*$`, "gm");
+  return content.replace(legacyPattern, replacement);
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function pathExists(filePath: string) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
   }
 }
 
