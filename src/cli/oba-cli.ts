@@ -2,7 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Command } from "commander";
 
+import { openUrl } from "../commands/onboard-helpers.js";
 import { defaultRuntime } from "../runtime.js";
+import { loginOba, saveObaToken } from "../security/oba/login.js";
 import { getObaKeysDir } from "../security/oba/keys.js";
 import {
   generateObaKeyPair,
@@ -53,7 +55,7 @@ function resolveToken(tokenOpt?: string): string {
     // ignore
   }
   throw new Error(
-    "No API token. Provide --token, set OPENBOTAUTH_TOKEN env var, or save token to ~/.openclaw/oba/token",
+    "No API token. Run `openclaw oba login`, provide --token, or set OPENBOTAUTH_TOKEN",
   );
 }
 
@@ -66,6 +68,51 @@ export function registerObaCli(program: Command): void {
       () =>
         `\n${theme.muted("Docs:")} ${formatDocsLink("/oba-verification", "docs.openclaw.ai/oba-verification")}\n`,
     );
+
+  // --- login ---
+  oba
+    .command("login")
+    .description("Log in to OpenBotAuth via browser (creates API token)")
+    .option("--api-url <url>", "API base URL", "https://api.openbotauth.org")
+    .option("--timeout <seconds>", "Login timeout in seconds", "180")
+    .option("--manual", "Show URL instead of auto-opening browser", false)
+    .action(async (opts: { apiUrl: string; timeout: string; manual?: boolean }) => {
+      const timeoutMs = Number(opts.timeout) * 1000;
+      if (!Number.isFinite(timeoutMs) || timeoutMs < 10_000) {
+        defaultRuntime.log("Error: timeout must be at least 10 seconds");
+        process.exitCode = 1;
+        return;
+      }
+
+      const result = await loginOba({
+        apiUrl: opts.apiUrl,
+        timeoutMs,
+        openBrowser: async (url) => {
+          if (opts.manual) {
+            defaultRuntime.log(`Open this URL in your browser:\n  ${url}`);
+          } else {
+            defaultRuntime.log("Opening browser...");
+            const opened = await openUrl(url);
+            if (!opened) {
+              defaultRuntime.log(`Could not open browser. Visit this URL manually:\n  ${url}`);
+            } else {
+              defaultRuntime.log(theme.muted(`If the browser didn't open, visit:\n  ${url}`));
+            }
+          }
+        },
+        onProgress: (msg) => defaultRuntime.log(theme.muted(msg)),
+      });
+
+      if (!result.ok) {
+        defaultRuntime.log(`Login failed: ${result.error}`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const tokenFile = saveObaToken(result.token!);
+      defaultRuntime.log(`Login successful! Token saved to ${tokenFile}`);
+      defaultRuntime.log(theme.muted("Next: openclaw oba keygen && openclaw oba register"));
+    });
 
   // --- keygen ---
   oba
