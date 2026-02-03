@@ -1,30 +1,21 @@
 ---
-summary: "Configure Amazon Nova APi"
+summary: "Configure Nova models via nova.amazon.com"
 read_when:
-  - You want to use Amazon Nova models via the API at nova.amazon.com
+  - You want to use Nova models via the API
   - You need to set up NOVA_API_KEY authentication
-  - You want copy/paste config for Amazon Nova
+  - You want copy/paste config for Nova
+title: "Nova"
 ---
 
-# Amazon Nova (1P API)
+# Nova
 
-Amazon Nova 1P API provides direct access to Nova models without going through
-AWS Bedrock. This is a separate integration from the Bedrock provider.
+Nova provides frontier AI models with extended thinking capabilities. Configure the
+provider and set the default model to `amazon-nova/nova-2-lite-v1`.
 
 Available models:
 
 - `nova-2-lite-v1` - 1M context, 65k output, multimodal (text + image), extended thinking
-- `nova-2-pro-v1` - 1M context, 65k output, multimodal (text + image)
-
-## Setup
-
-Set the `NOVA_API_KEY` environment variable:
-
-```bash
-export NOVA_API_KEY="your-api-key"
-```
-
-Or use the onboarding flow:
+- `nova-2-pro-v1` - 1M context, 65k output, multimodal (text + image), extended thinking
 
 ```bash
 openclaw onboard --auth-choice amazon-nova-api-key
@@ -38,8 +29,13 @@ openclaw agent --model amazon-nova/nova-2-lite-v1
 
 ## Extended Thinking
 
-Nova 2 Lite supports extended reasoning via the `reasoning_effort` parameter. Configure it
-in your model params:
+Nova models support extended reasoning. Use the `--thinking` flag:
+
+```bash
+openclaw agent --thinking high
+```
+
+Or configure it in your model params:
 
 ```json5
 {
@@ -59,11 +55,11 @@ in your model params:
 }
 ```
 
-| Level      | Behavior                     |
-| ---------- | ---------------------------- |
-| `low`      | Fast, basic reasoning        |
-| `medium`   | Balanced reasoning and speed |
-| `high`     | Deep, thorough analysis      |
+| Level    | Behavior                     |
+| -------- | ---------------------------- |
+| `low`    | Fast, basic reasoning        |
+| `medium` | Balanced reasoning and speed |
+| `high`   | Deep, thorough analysis      |
 
 ## Config snippet
 
@@ -96,15 +92,25 @@ in your model params:
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
             contextWindow: 1000000,
             maxTokens: 65535,
+            compat: {
+              supportsReasoningEffort: true,
+              supportsDeveloperRole: false,
+              maxTokensField: "max_tokens",
+            },
           },
           {
             id: "nova-2-pro-v1",
             name: "Amazon Nova 2 Pro",
-            reasoning: false,
+            reasoning: true,
             input: ["text", "image"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
             contextWindow: 1000000,
             maxTokens: 65535,
+            compat: {
+              supportsReasoningEffort: true,
+              supportsDeveloperRole: false,
+              maxTokensField: "max_tokens",
+            },
           },
         ],
       },
@@ -113,25 +119,7 @@ in your model params:
 }
 ```
 
-## Testing the API directly
-
-```bash
-curl -L 'https://api.nova.amazon.com/v1/chat/completions' \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer $NOVA_API_KEY' \
-  -d '{
-    "model": "nova-2-lite-v1",
-    "messages": [
-      {
-        "role": "user",
-        "content": "Hello! How are you?"
-      }
-    ]
-  }'
-```
-
 ## Notes
 
-- The `Accept-Encoding: identity` header is required by the Nova API to disable compression.
-- This provider is separate from Amazon Bedrock. For Bedrock-hosted Nova models, use the `amazon-bedrock` provider.
+- The `Accept-Encoding: identity` header is required by the Nova API.
 - Model refs use `amazon-nova/<modelId>` format.
