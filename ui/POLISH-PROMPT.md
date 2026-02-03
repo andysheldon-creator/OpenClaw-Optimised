@@ -1,20 +1,24 @@
 # Task 10: Global UI Polish - Toasts, Command Palette, Animations
 
 ## Overview
+
 Add final UI polish across the entire application including toast notifications, command palette, micro-animations, and consistency fixes.
 
 ## IMPORTANT: Run This Task LAST
+
 This task should be run AFTER all other view redesigns (Tasks 1-9) are complete. It adds global polish and ensures consistency across all views.
 
 ## Project Context
 
 ### Tech Stack
+
 - **Framework**: Lit (Web Components) - NOT React
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **Build**: Vite
 - **Icons**: Custom SVG icon system in `ui/src/ui/icons.ts`
 
 ### Key Files to Modify
+
 - New file: `ui/src/ui/components/toast.ts` (create)
 - New file: `ui/src/ui/components/command-palette.ts` (create)
 - Styles: `ui/src/styles/components.css` (append new styles)
@@ -25,6 +29,7 @@ This task should be run AFTER all other view redesigns (Tasks 1-9) are complete.
 ## Design System Reference
 
 ### CSS Variables (from base.css)
+
 ```css
 /* Dark theme */
 --bg: #0a0f14;
@@ -43,18 +48,87 @@ This task should be run AFTER all other view redesigns (Tasks 1-9) are complete.
 ```
 
 ### Existing Keyframe Animations (from design-system.css)
+
 ```css
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes slideInLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-@keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 5px var(--accent-glow); } 50% { box-shadow: 0 0 20px var(--accent-glow); } }
-@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
 ```
 
 ### Icon System Usage
+
 ```typescript
 import { icon } from "../icons";
 
@@ -66,12 +140,14 @@ ${icon("search", { size: 18 })}
 ## Part 1: Toast Notification System
 
 ### Toast Types
+
 1. **Success** - Green, check icon, auto-dismiss
 2. **Error** - Red, alert icon, manual dismiss
 3. **Warning** - Yellow, warning icon, auto-dismiss
 4. **Info** - Blue, info icon, auto-dismiss
 
 ### Toast Component Structure
+
 ```typescript
 // ui/src/ui/components/toast.ts
 import { html, nothing } from "lit";
@@ -95,7 +171,7 @@ export type ToastState = {
 export function renderToastContainer(state: ToastState) {
   return html`
     <div class="toast-container">
-      ${state.toasts.map(toast => renderToast(toast, state.removeToast))}
+      ${state.toasts.map((toast) => renderToast(toast, state.removeToast))}
     </div>
   `;
 }
@@ -121,6 +197,7 @@ function renderToast(toast: Toast, onDismiss: (id: string) => void) {
 ```
 
 ### Toast CSS
+
 ```css
 /* Toast Notifications */
 .toast-container {
@@ -173,10 +250,18 @@ function renderToast(toast: Toast, onDismiss: (id: string) => void) {
   flex-shrink: 0;
 }
 
-.toast--success .toast__icon { color: var(--ok); }
-.toast--error .toast__icon { color: var(--danger); }
-.toast--warning .toast__icon { color: var(--warn); }
-.toast--info .toast__icon { color: var(--accent-2); }
+.toast--success .toast__icon {
+  color: var(--ok);
+}
+.toast--error .toast__icon {
+  color: var(--danger);
+}
+.toast--warning .toast__icon {
+  color: var(--warn);
+}
+.toast--info .toast__icon {
+  color: var(--accent-2);
+}
 
 .toast__message {
   flex: 1;
@@ -192,7 +277,9 @@ function renderToast(toast: Toast, onDismiss: (id: string) => void) {
   color: var(--muted);
   cursor: pointer;
   border-radius: 6px;
-  transition: color 150ms ease, background 150ms ease;
+  transition:
+    color 150ms ease,
+    background 150ms ease;
 }
 
 .toast__dismiss:hover {
@@ -206,19 +293,24 @@ function renderToast(toast: Toast, onDismiss: (id: string) => void) {
 }
 
 @keyframes fadeOut {
-  to { opacity: 0; transform: translateX(20px); }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
 }
 ```
 
 ## Part 2: Command Palette (Cmd+K)
 
 ### Command Palette Features
+
 1. **Quick navigation** - Jump to any tab
 2. **Actions** - Common actions (refresh, new session, etc.)
 3. **Search** - Filter commands as you type
 4. **Keyboard nav** - Arrow keys, Enter to select, Esc to close
 
 ### Command Palette Structure
+
 ```typescript
 // ui/src/ui/components/command-palette.ts
 import { html, nothing } from "lit";
@@ -249,8 +341,8 @@ export function renderCommandPalette(
 ) {
   if (!state.open) return nothing;
 
-  const filtered = state.commands.filter(cmd =>
-    cmd.label.toLowerCase().includes(state.query.toLowerCase())
+  const filtered = state.commands.filter((cmd) =>
+    cmd.label.toLowerCase().includes(state.query.toLowerCase()),
   );
 
   return html`
@@ -264,26 +356,33 @@ export function renderCommandPalette(
             placeholder="Type a command..."
             .value=${state.query}
             @input=${(e: Event) => onQueryChange((e.target as HTMLInputElement).value)}
-            @keydown=${(e: KeyboardEvent) => handlePaletteKeydown(e, state, filtered, onClose, onSelect, onIndexChange)}
+            @keydown=${(e: KeyboardEvent) =>
+              handlePaletteKeydown(e, state, filtered, onClose, onSelect, onIndexChange)}
             autofocus
           />
           <kbd class="command-palette__kbd">ESC</kbd>
         </div>
         <div class="command-palette__list">
-          ${filtered.map((cmd, i) => html`
-            <button
-              class="command-palette__item ${i === state.selectedIndex ? "command-palette__item--selected" : ""}"
-              @click=${() => onSelect(cmd)}
-              @mouseenter=${() => onIndexChange(i)}
-            >
-              <span class="command-palette__item-icon">${icon(cmd.icon, { size: 16 })}</span>
-              <span class="command-palette__item-label">${cmd.label}</span>
-              ${cmd.shortcut ? html`<kbd class="command-palette__item-shortcut">${cmd.shortcut}</kbd>` : nothing}
-            </button>
-          `)}
-          ${filtered.length === 0 ? html`
-            <div class="command-palette__empty">No commands found</div>
-          ` : nothing}
+          ${filtered.map(
+            (cmd, i) => html`
+              <button
+                class="command-palette__item ${i === state.selectedIndex
+                  ? "command-palette__item--selected"
+                  : ""}"
+                @click=${() => onSelect(cmd)}
+                @mouseenter=${() => onIndexChange(i)}
+              >
+                <span class="command-palette__item-icon">${icon(cmd.icon, { size: 16 })}</span>
+                <span class="command-palette__item-label">${cmd.label}</span>
+                ${cmd.shortcut
+                  ? html`<kbd class="command-palette__item-shortcut">${cmd.shortcut}</kbd>`
+                  : nothing}
+              </button>
+            `,
+          )}
+          ${filtered.length === 0
+            ? html` <div class="command-palette__empty">No commands found</div> `
+            : nothing}
         </div>
       </div>
     </div>
@@ -321,6 +420,7 @@ function handlePaletteKeydown(
 ```
 
 ### Command Palette CSS
+
 ```css
 /* Command Palette */
 .command-palette-overlay {
@@ -442,6 +542,7 @@ function handlePaletteKeydown(
 ## Part 3: Micro-Animations & Polish
 
 ### Add to components.css
+
 ```css
 /* =============================================================================
    GLOBAL MICRO-ANIMATIONS
@@ -454,7 +555,10 @@ function handlePaletteKeydown(
 
 /* Card hover lift */
 .card {
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
 }
 
 .card:hover {
@@ -466,7 +570,9 @@ function handlePaletteKeydown(
 input:focus,
 textarea:focus,
 select:focus {
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 /* Badge pulse for active states */
@@ -493,8 +599,13 @@ select:focus {
 }
 
 @keyframes statusPulse {
-  0%, 100% { box-shadow: 0 0 0 0 currentColor; }
-  50% { box-shadow: 0 0 0 4px transparent; }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
 
 /* Smooth page transitions */
@@ -508,12 +619,24 @@ select:focus {
   animation: fadeInUp 0.3s ease-out forwards;
 }
 
-.stagger-item:nth-child(1) { animation-delay: 0ms; }
-.stagger-item:nth-child(2) { animation-delay: 50ms; }
-.stagger-item:nth-child(3) { animation-delay: 100ms; }
-.stagger-item:nth-child(4) { animation-delay: 150ms; }
-.stagger-item:nth-child(5) { animation-delay: 200ms; }
-.stagger-item:nth-child(n+6) { animation-delay: 250ms; }
+.stagger-item:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger-item:nth-child(2) {
+  animation-delay: 50ms;
+}
+.stagger-item:nth-child(3) {
+  animation-delay: 100ms;
+}
+.stagger-item:nth-child(4) {
+  animation-delay: 150ms;
+}
+.stagger-item:nth-child(5) {
+  animation-delay: 200ms;
+}
+.stagger-item:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
 
 /* Tooltip */
 [data-tooltip] {
@@ -534,7 +657,9 @@ select:focus {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 150ms ease, transform 150ms ease;
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
 }
 
 [data-tooltip]:hover::after {
@@ -563,6 +688,7 @@ select:focus {
 ## Part 4: Consistency Checks
 
 ### Review all views for:
+
 1. **Icon usage** - All icons use `icon()` function from icons.ts
 2. **Button styling** - Consistent `btn`, `btn--primary`, `btn--secondary`, `btn--danger` classes
 3. **Card patterns** - All cards use `card-header` with icon pattern
@@ -590,9 +716,19 @@ select:focus {
 ```typescript
 const defaultCommands: Command[] = [
   { id: "nav-chat", label: "Go to Chat", icon: "message-square", action: () => setTab("chat") },
-  { id: "nav-overview", label: "Go to Overview", icon: "layout-dashboard", action: () => setTab("overview") },
+  {
+    id: "nav-overview",
+    label: "Go to Overview",
+    icon: "layout-dashboard",
+    action: () => setTab("overview"),
+  },
   { id: "nav-channels", label: "Go to Channels", icon: "link", action: () => setTab("channels") },
-  { id: "nav-sessions", label: "Go to Sessions", icon: "file-text", action: () => setTab("sessions") },
+  {
+    id: "nav-sessions",
+    label: "Go to Sessions",
+    icon: "file-text",
+    action: () => setTab("sessions"),
+  },
   { id: "nav-config", label: "Go to Config", icon: "settings", action: () => setTab("config") },
   { id: "nav-logs", label: "Go to Logs", icon: "scroll-text", action: () => setTab("logs") },
   { id: "action-refresh", label: "Refresh", icon: "refresh-cw", shortcut: "R", action: refresh },
@@ -602,12 +738,15 @@ const defaultCommands: Command[] = [
 ```
 
 ## Testing
+
 After all changes, run:
+
 ```bash
 cd ui && pnpm build
 ```
 
 Build should complete without errors. Test in browser:
+
 1. Toast notifications appear and dismiss correctly
 2. Cmd/Ctrl+K opens command palette
 3. Animations are smooth

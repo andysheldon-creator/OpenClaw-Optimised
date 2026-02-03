@@ -4,9 +4,9 @@
  */
 
 import { html, nothing } from "lit";
-import { icon, type IconName } from "../icons";
 import type { ChatTask, ChatActivityLog, TaskStatus } from "../types/task-types";
 import { formatAgo } from "../format";
+import { icon, type IconName } from "../icons";
 
 export type ChatTaskSidebarProps = {
   open: boolean;
@@ -38,9 +38,7 @@ export function setupTaskSidebarKeyboardShortcuts(props: {
     const target = event.target as HTMLElement | null;
     if (
       target &&
-      (target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.tagName === "SELECT")
+      (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")
     ) {
       target.blur();
     }
@@ -104,8 +102,9 @@ function renderTask(
           ${icon(statusIcon, { size: 14 })}
         </span>
         <span class="task-item__name">${task.name}</span>
-        ${hasDetails
-          ? html`
+        ${
+          hasDetails
+            ? html`
               <button
                 class="task-item__toggle"
                 type="button"
@@ -116,10 +115,12 @@ function renderTask(
                 ${icon(isExpanded ? "chevron-down" : "chevron-right", { size: 12 })}
               </button>
             `
-          : nothing}
+            : nothing
+        }
         <div class="task-item__actions">
-          ${canAbortTask
-            ? html`
+          ${
+            canAbortTask
+              ? html`
                 <button
                   class="task-item__action task-item__action--abort"
                   type="button"
@@ -133,9 +134,11 @@ function renderTask(
                   ${icon("x", { size: 12 })}
                 </button>
               `
-            : nothing}
-          ${canRetryTask
-            ? html`
+              : nothing
+          }
+          ${
+            canRetryTask
+              ? html`
                 <button
                   class="task-item__action task-item__action--retry"
                   type="button"
@@ -148,19 +151,20 @@ function renderTask(
                   ${icon("refresh-cw", { size: 12 })}
                 </button>
               `
-            : nothing}
+              : nothing
+          }
         </div>
         <span class="task-item__time">${formatAgo(task.startedAt)}</span>
       </div>
 
-      ${isExpanded && hasDetails
-        ? html`
+      ${
+        isExpanded && hasDetails
+          ? html`
             <div class="task-item__details">
-              ${task.error
-                ? html`<div class="task-item__error">${task.error}</div>`
-                : nothing}
-              ${task.output && props.onOpenToolOutput
-                ? html`
+              ${task.error ? html`<div class="task-item__error">${task.error}</div>` : nothing}
+              ${
+                task.output && props.onOpenToolOutput
+                  ? html`
                     <button
                       class="task-item__output-btn"
                       type="button"
@@ -170,11 +174,13 @@ function renderTask(
                       View output
                     </button>
                   `
-                : nothing}
+                  : nothing
+              }
               ${task.children.map((child) => renderTask(child, props, depth + 1))}
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -225,22 +231,26 @@ function renderStats(tasks: ChatTask[]) {
         ${icon("check-circle", { size: 12 })}
         ${completed}
       </span>
-      ${inProgress > 0
-        ? html`
+      ${
+        inProgress > 0
+          ? html`
             <span class="task-stat task-stat--active">
               ${icon("clock", { size: 12 })}
               ${inProgress}
             </span>
           `
-        : nothing}
-      ${errors > 0
-        ? html`
+          : nothing
+      }
+      ${
+        errors > 0
+          ? html`
             <span class="task-stat task-stat--error">
               ${icon("alert-circle", { size: 12 })}
               ${errors}
             </span>
           `
-        : nothing}
+          : nothing
+      }
       <span class="task-stat task-stat--total">${total} total</span>
     </div>
   `;
@@ -268,8 +278,9 @@ export function renderChatTaskSidebar(props: ChatTaskSidebarProps) {
           ${renderStats(props.tasks)}
         </div>
         <div class="task-sidebar__header-actions">
-          ${canAbortAll
-            ? html`
+          ${
+            canAbortAll
+              ? html`
                 <button
                   class="task-sidebar__abort-all"
                   type="button"
@@ -281,7 +292,8 @@ export function renderChatTaskSidebar(props: ChatTaskSidebarProps) {
                   <span>${abortPending ? "Aborting..." : "Stop All"}</span>
                 </button>
               `
-            : nothing}
+              : nothing
+          }
           <button
             class="task-sidebar__close"
             type="button"
@@ -294,8 +306,9 @@ export function renderChatTaskSidebar(props: ChatTaskSidebarProps) {
       </header>
 
       <div class="task-sidebar__body">
-        ${hasTasks
-          ? html`
+        ${
+          hasTasks
+            ? html`
               <section class="task-sidebar__section">
                 <h3 class="task-sidebar__section-title">Tasks</h3>
                 <div class="task-list">
@@ -303,10 +316,12 @@ export function renderChatTaskSidebar(props: ChatTaskSidebarProps) {
                 </div>
               </section>
             `
-          : nothing}
+            : nothing
+        }
 
-        ${hasActivity
-          ? html`
+        ${
+          hasActivity
+            ? html`
               <section class="task-sidebar__section">
                 <h3 class="task-sidebar__section-title">Activity Log</h3>
                 <div class="activity-list">
@@ -314,10 +329,12 @@ export function renderChatTaskSidebar(props: ChatTaskSidebarProps) {
                 </div>
               </section>
             `
-          : nothing}
+            : nothing
+        }
 
-        ${!hasTasks && !hasActivity
-          ? html`
+        ${
+          !hasTasks && !hasActivity
+            ? html`
               <div class="task-sidebar__empty">
                 <span class="task-sidebar__empty-icon">
                   ${icon("layers", { size: 32 })}
@@ -326,7 +343,8 @@ export function renderChatTaskSidebar(props: ChatTaskSidebarProps) {
                 <p class="muted">Tasks will appear as the assistant uses tools.</p>
               </div>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     </aside>
   `;

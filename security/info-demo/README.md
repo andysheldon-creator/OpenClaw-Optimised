@@ -13,4 +13,3 @@ From the repo root:
 Or directly:
 
 - `pnpm -C SECURITY/info-demo dev`
-

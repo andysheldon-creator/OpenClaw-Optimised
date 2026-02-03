@@ -2,10 +2,10 @@
 // Component: Chat Message List
 // Search Query: "chat message bubbles conversation"
 
-import * as React from "react";
 import { ArrowDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import * as React from "react";
 import { useAutoScroll } from "@/components/hooks/use-auto-scroll";
+import { Button } from "@/components/ui/button";
 
 interface ChatMessageListProps extends React.HTMLAttributes<HTMLDivElement> {
   smooth?: boolean;
@@ -13,16 +13,11 @@ interface ChatMessageListProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const ChatMessageList = React.forwardRef<HTMLDivElement, ChatMessageListProps>(
   ({ className, children, smooth = false, ...props }, _ref) => {
-    const {
-      scrollRef,
-      isAtBottom,
-      autoScrollEnabled,
-      scrollToBottom,
-      disableAutoScroll,
-    } = useAutoScroll({
-      smooth,
-      content: children,
-    });
+    const { scrollRef, isAtBottom, autoScrollEnabled, scrollToBottom, disableAutoScroll } =
+      useAutoScroll({
+        smooth,
+        content: children,
+      });
 
     return (
       <div className="relative w-full h-full">
@@ -51,7 +46,7 @@ const ChatMessageList = React.forwardRef<HTMLDivElement, ChatMessageListProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 ChatMessageList.displayName = "ChatMessageList";

@@ -523,7 +523,7 @@
 }
 
 .channel-wizard__toggle::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 2px;
   left: 2px;
@@ -772,7 +772,7 @@
 
   /* Gradient fade indicator for horizontal scrolling */
   .channel-wizard__sidebar::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     right: 0;

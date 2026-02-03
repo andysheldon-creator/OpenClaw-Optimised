@@ -55,9 +55,9 @@ This increases the security stakes of any write primitive that can modify SOUL.m
 
 Common jailbreak pattern:
 
-1) attacker convinces the agent to write a “policy” file, skill, or context file,
-2) future runs ingest it as system prompt content,
-3) tool use becomes easier to induce.
+1. attacker convinces the agent to write a “policy” file, skill, or context file,
+2. future runs ingest it as system prompt content,
+3. tool use becomes easier to induce.
 
 Evidence (raw context file inclusion):
 
@@ -90,22 +90,22 @@ If a gateway client is authorized, it can write files remotely:
 
 ### 3.1 Prompt hardening and trust boundaries
 
-1) **Treat injected context as untrusted data by default.**
+1. **Treat injected context as untrusted data by default.**
    - Place explicit instructions adjacent to `# Project Context` to never treat it as policy/instructions, and to ignore tool-usage requests embedded there.
    - Evidence (current injection point): `lines.push("# Project Context"...` (`src/agents/system-prompt.ts:542`)
 
-2) **Reduce “persona authority” of SOUL.md or constrain it.**
+2. **Reduce “persona authority” of SOUL.md or constrain it.**
    - Evidence (persona instruction): (`src/agents/system-prompt.ts:545`)
 
-3) **Add “tool-use requires user intent” guidance to mitigate social engineering.**
+3. **Add “tool-use requires user intent” guidance to mitigate social engineering.**
    - Evidence (tool list includes exec/process/gateway): (`src/agents/system-prompt.ts:220-236`)
 
 ### 3.2 Capability scoping and channel-specific least privilege
 
-1) Default group policy should deny high-power tools and only allow a small subset (read-only tools, message tool).
+1. Default group policy should deny high-power tools and only allow a small subset (read-only tools, message tool).
    - Evidence (group policy exists): `resolveToolPolicy: resolveTelegramGroupToolPolicy` (`src/channels/dock.ts:114`)
 
-2) For “social network” style channels: require explicit mention + enforce per-sender tool policy and disallow “write/exec/gateway”.
+2. For “social network” style channels: require explicit mention + enforce per-sender tool policy and disallow “write/exec/gateway”.
 
 ### 3.3 Centralize URL-fetch policy (SSRF defense-in-depth)
 
@@ -117,17 +117,16 @@ Enforce a single SSRF/URL allowlist helper for:
 
 ### 3.4 Reduce “unexpected remote execution” surfaces
 
-1) Consider binding `POST /tools/invoke` to loopback-only, or add extra authentication layers and rate limits.
+1. Consider binding `POST /tools/invoke` to loopback-only, or add extra authentication layers and rate limits.
    - Evidence (endpoint): (`src/gateway/tools-invoke-http.ts:108`)
 
-2) For worktree RPC: ensure per-client scopes can distinguish read vs write, and default to read-only for non-operator roles.
+2. For worktree RPC: ensure per-client scopes can distinguish read vs write, and default to read-only for non-operator roles.
    - Evidence (worktree write method exists): (`src/gateway/server-methods.ts:127`)
 
 ### 3.5 Skills supply-chain hardening
 
-1) Restrict remote skill install sources to allowlisted domains/refs.
+1. Restrict remote skill install sources to allowlisted domains/refs.
    - Evidence (downloads arbitrary URL): (`src/agents/skills-install.ts:182`)
 
-2) Add zip-slip/tar traversal checks beyond invoking `tar`/`unzip`.
+2. Add zip-slip/tar traversal checks beyond invoking `tar`/`unzip`.
    - Evidence (external extraction): (`src/agents/skills-install.ts:212-223`)
-

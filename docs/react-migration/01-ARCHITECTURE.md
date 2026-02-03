@@ -8,12 +8,12 @@
 
 ## 1. Framework & Rendering
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| UI Framework | **React 19** | Latest stable. Server Components not needed (SPA), but the new `use()` hook, `useOptimistic`, and improved Suspense are valuable. |
-| Language | **TypeScript (strict)** | Already TypeScript; keep strict mode. |
-| JSX Transform | **Automatic** (`react-jsx`) | No `import React` boilerplate. |
-| Module Format | **ESM** | Already ESM; no change. |
+| Decision      | Choice                      | Rationale                                                                                                                         |
+| ------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| UI Framework  | **React 19**                | Latest stable. Server Components not needed (SPA), but the new `use()` hook, `useOptimistic`, and improved Suspense are valuable. |
+| Language      | **TypeScript (strict)**     | Already TypeScript; keep strict mode.                                                                                             |
+| JSX Transform | **Automatic** (`react-jsx`) | No `import React` boilerplate.                                                                                                    |
+| Module Format | **ESM**                     | Already ESM; no change.                                                                                                           |
 
 ### Why React 19 specifically
 
@@ -26,22 +26,22 @@
 
 ## 2. Bundler & Dev Server
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Bundler | **Vite 6** | Already using Vite for the Lit app. Zero config change for React via `@vitejs/plugin-react`. |
-| HMR | **Vite + React Fast Refresh** | Instant component-level hot reload. |
-| Path aliases | `@/` → `ui/src/` | Match existing convention if any; otherwise establish `@/` as source root. |
+| Decision     | Choice                        | Rationale                                                                                    |
+| ------------ | ----------------------------- | -------------------------------------------------------------------------------------------- |
+| Bundler      | **Vite 6**                    | Already using Vite for the Lit app. Zero config change for React via `@vitejs/plugin-react`. |
+| HMR          | **Vite + React Fast Refresh** | Instant component-level hot reload.                                                          |
+| Path aliases | `@/` → `ui/src/`              | Match existing convention if any; otherwise establish `@/` as source root.                   |
 
 ### Vite Config Changes
 
 ```ts
 // vite.config.ts
-import react from '@vitejs/plugin-react';
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { '@': resolve(__dirname, 'ui/src') },
+    alias: { "@": resolve(__dirname, "ui/src") },
   },
 });
 ```
@@ -52,15 +52,15 @@ The existing `lit` plugin (if any) is removed after full migration. During the c
 
 ## 3. Component Library & UI Primitives
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Headless primitives | **Radix UI** | Unstyled, accessible, composable. Handles positioning (Floating UI internally), focus trapping, keyboard navigation, ARIA attributes. |
-| Styled components | **Custom on top of Radix** (shadcn/ui pattern) | Copy-paste ownership model. We own every component file; no version-lock to a library's opinions. |
-| Icons | **Lucide React** | Already using Lucide-compatible SVGs in `icons.ts`. Direct drop-in with `lucide-react` package. |
+| Decision            | Choice                                         | Rationale                                                                                                                             |
+| ------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Headless primitives | **Radix UI**                                   | Unstyled, accessible, composable. Handles positioning (Floating UI internally), focus trapping, keyboard navigation, ARIA attributes. |
+| Styled components   | **Custom on top of Radix** (shadcn/ui pattern) | Copy-paste ownership model. We own every component file; no version-lock to a library's opinions.                                     |
+| Icons               | **Lucide React**                               | Already using Lucide-compatible SVGs in `icons.ts`. Direct drop-in with `lucide-react` package.                                       |
 
 ### Why Radix + custom styling (not full shadcn/ui install)
 
-shadcn/ui is a code generator that produces Radix-based components with Tailwind styling. We want the *pattern* (own the component files, compose Radix primitives) but with our *existing design system* (CSS custom properties, glass morphism, accent palette). Installing shadcn/ui CLI and adapting its output would fight our tokens. Instead:
+shadcn/ui is a code generator that produces Radix-based components with Tailwind styling. We want the _pattern_ (own the component files, compose Radix primitives) but with our _existing design system_ (CSS custom properties, glass morphism, accent palette). Installing shadcn/ui CLI and adapting its output would fight our tokens. Instead:
 
 1. Use Radix primitives directly (`@radix-ui/react-popover`, `@radix-ui/react-dialog`, etc.)
 2. Style them with our CSS custom properties
@@ -97,13 +97,13 @@ shadcn/ui is a code generator that produces Radix-based components with Tailwind
 
 ## 4. Styling Approach
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Primary styling | **CSS Modules + CSS custom properties** | Scoped styles, no runtime cost, preserves existing design token system. |
-| Design tokens | **Keep existing `:root` custom properties** | `--accent`, `--panel`, `--border`, `--text`, etc. already define the full palette. No reason to rewrite. |
-| Utility classes | **Tailwind CSS v4** (already imported in design-system.css) | Already present via `@import "tailwindcss"`. Use sparingly for layout utilities (`flex`, `gap-*`, `p-*`). Component-specific styles stay in CSS Modules. |
-| Glass morphism | **Shared CSS class + CSS Module compose** | Extract `.glass`, `.glass-strong` as composable base classes. |
-| Dark/Light theme | **CSS custom properties + `data-theme` attribute** | Already works this way. React reads `data-theme` from `<html>`. No change. |
+| Decision         | Choice                                                      | Rationale                                                                                                                                                |
+| ---------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary styling  | **CSS Modules + CSS custom properties**                     | Scoped styles, no runtime cost, preserves existing design token system.                                                                                  |
+| Design tokens    | **Keep existing `:root` custom properties**                 | `--accent`, `--panel`, `--border`, `--text`, etc. already define the full palette. No reason to rewrite.                                                 |
+| Utility classes  | **Tailwind CSS v4** (already imported in design-system.css) | Already present via `@import "tailwindcss"`. Use sparingly for layout utilities (`flex`, `gap-*`, `p-*`). Component-specific styles stay in CSS Modules. |
+| Glass morphism   | **Shared CSS class + CSS Module compose**                   | Extract `.glass`, `.glass-strong` as composable base classes.                                                                                            |
+| Dark/Light theme | **CSS custom properties + `data-theme` attribute**          | Already works this way. React reads `data-theme` from `<html>`. No change.                                                                               |
 
 ### CSS Module Convention
 
@@ -129,12 +129,12 @@ Each component owns its styles. Global tokens (`--accent`, `--border`, etc.) are
 
 ## 5. State Management
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Global state | **Zustand** | Minimal API, no boilerplate, supports slices pattern for splitting the current monolithic `AppViewState`. Works outside React tree (gateway event handlers). |
-| Server state | **TanStack Query (React Query) v5** | Replaces manual `loading`/`error`/`data` triples, polling intervals, and cache invalidation. Built-in stale-while-revalidate, retry, and optimistic updates. |
-| Local UI state | **React `useState` / `useReducer`** | For component-scoped state (form drafts, dropdown open, expanded sections). |
-| Form state | **React Hook Form + Zod** | Config editor, cron form, automation form, channel wizard all have complex validation. RHF handles dirty detection, validation, and submission. Zod provides schema-based validation (can reuse JSON schema from config). |
+| Decision       | Choice                              | Rationale                                                                                                                                                                                                                 |
+| -------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Global state   | **Zustand**                         | Minimal API, no boilerplate, supports slices pattern for splitting the current monolithic `AppViewState`. Works outside React tree (gateway event handlers).                                                              |
+| Server state   | **TanStack Query (React Query) v5** | Replaces manual `loading`/`error`/`data` triples, polling intervals, and cache invalidation. Built-in stale-while-revalidate, retry, and optimistic updates.                                                              |
+| Local UI state | **React `useState` / `useReducer`** | For component-scoped state (form drafts, dropdown open, expanded sections).                                                                                                                                               |
+| Form state     | **React Hook Form + Zod**           | Config editor, cron form, automation form, channel wizard all have complex validation. RHF handles dirty detection, validation, and submission. Zod provides schema-based validation (can reuse JSON schema from config). |
 
 ### Zustand Store Architecture
 
@@ -178,6 +178,7 @@ const { data, error, isLoading } = useQuery({
 ```
 
 Queries to migrate:
+
 - `sessions.list` → `useSessionsQuery()`
 - `chat.history` → `useChatHistoryQuery(sessionKey)`
 - `config.get` → `useConfigQuery()`
@@ -192,6 +193,7 @@ Queries to migrate:
 - `automations.list` → `useAutomationsQuery()`
 
 Mutations (write operations) use `useMutation()`:
+
 - `chat.send` → `useSendChatMutation()`
 - `config.set` → `useSaveConfigMutation()`
 - `sessions.delete` → `useDeleteSessionMutation()`
@@ -202,10 +204,10 @@ Mutations (write operations) use `useMutation()`:
 
 ## 6. Gateway Integration
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| WebSocket client | **Keep `GatewayBrowserClient`** | Well-tested, handles reconnection, SSE/WS switching. No reason to rewrite. |
-| React integration | **Custom hook + Zustand** | `useGateway()` hook initializes client, stores connection state in Zustand, dispatches events to appropriate stores. |
+| Decision           | Choice                                        | Rationale                                                                                                                     |
+| ------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| WebSocket client   | **Keep `GatewayBrowserClient`**               | Well-tested, handles reconnection, SSE/WS switching. No reason to rewrite.                                                    |
+| React integration  | **Custom hook + Zustand**                     | `useGateway()` hook initializes client, stores connection state in Zustand, dispatches events to appropriate stores.          |
 | SSE event handling | **Zustand actions called from event handler** | Gateway events (chat stream, agent lifecycle, presence) update Zustand stores directly. React components subscribe to slices. |
 
 ### Gateway Hook Pattern
@@ -213,18 +215,24 @@ Mutations (write operations) use `useMutation()`:
 ```tsx
 // hooks/useGateway.ts
 export function useGateway() {
-  const setConnected = useConnectionStore(s => s.setConnected);
-  const handleChatEvent = useChatStore(s => s.handleEvent);
+  const setConnected = useConnectionStore((s) => s.setConnected);
+  const handleChatEvent = useChatStore((s) => s.handleEvent);
   // ...
 
   useEffect(() => {
     const client = new GatewayBrowserClient({
-      onHello: (hello) => { setConnected(true); /* load initial data */ },
+      onHello: (hello) => {
+        setConnected(true); /* load initial data */
+      },
       onClose: () => setConnected(false),
       onEvent: (evt) => {
         switch (evt.type) {
-          case 'chat': handleChatEvent(evt); break;
-          case 'agent': handleAgentEvent(evt); break;
+          case "chat":
+            handleChatEvent(evt);
+            break;
+          case "agent":
+            handleAgentEvent(evt);
+            break;
           // ...
         }
       },
@@ -238,10 +246,10 @@ export function useGateway() {
 
 ## 7. Routing
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Router | **Hash-based routing (keep current)** | The app uses `#/chat`, `#/config`, etc. No server-side routing needed. |
-| Implementation | **Zustand `tab` field + URL sync** | The current approach works. React components read `tab` from `useUIStore()`. A `useHashSync()` hook keeps URL and store in sync. |
+| Decision       | Choice                                | Rationale                                                                                                                        |
+| -------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Router         | **Hash-based routing (keep current)** | The app uses `#/chat`, `#/config`, etc. No server-side routing needed.                                                           |
+| Implementation | **Zustand `tab` field + URL sync**    | The current approach works. React components read `tab` from `useUIStore()`. A `useHashSync()` hook keeps URL and store in sync. |
 
 ### Why not React Router
 
@@ -253,12 +261,12 @@ If the app grows to need deep linking (e.g., `/sessions/:id`, `/config/:section`
 
 ## 8. Testing
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Test runner | **Vitest** (keep) | Already configured with V8 coverage. |
+| Decision          | Choice                    | Rationale                                               |
+| ----------------- | ------------------------- | ------------------------------------------------------- |
+| Test runner       | **Vitest** (keep)         | Already configured with V8 coverage.                    |
 | Component testing | **React Testing Library** | Standard for React. Tests behavior, not implementation. |
-| Hook testing | **`renderHook` from RTL** | For testing custom hooks (stores, queries). |
-| E2E | **Existing e2e setup** | No change needed. |
+| Hook testing      | **`renderHook` from RTL** | For testing custom hooks (stores, queries).             |
+| E2E               | **Existing e2e setup**    | No change needed.                                       |
 
 ### Migration Testing Strategy
 
@@ -300,25 +308,25 @@ ui/src/
 
 During the transition period, Lit and React will coexist:
 
-| Approach | Detail |
-|----------|--------|
-| **Rendering boundary** | The Lit `ClawdbrainApp` element remains the root. Each migrated view is wrapped in a React root mounted into a Lit-rendered `<div>`. |
-| **State bridge** | Zustand stores are initialized from the existing `AppViewState`. During coexistence, a bidirectional sync layer keeps both in sync. |
-| **Gateway sharing** | The `GatewayBrowserClient` instance is shared. Lit handlers and React event handlers both update Zustand stores. |
-| **CSS sharing** | Global CSS (design-system.css, base.css) is shared. New React components use CSS Modules that reference the same custom properties. |
-| **Removal** | Once all views are migrated, the Lit root, `app.ts`, and all `app-*.ts` files are deleted. The React `App.tsx` becomes the sole root. |
+| Approach               | Detail                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Rendering boundary** | The Lit `ClawdbrainApp` element remains the root. Each migrated view is wrapped in a React root mounted into a Lit-rendered `<div>`.  |
+| **State bridge**       | Zustand stores are initialized from the existing `AppViewState`. During coexistence, a bidirectional sync layer keeps both in sync.   |
+| **Gateway sharing**    | The `GatewayBrowserClient` instance is shared. Lit handlers and React event handlers both update Zustand stores.                      |
+| **CSS sharing**        | Global CSS (design-system.css, base.css) is shared. New React components use CSS Modules that reference the same custom properties.   |
+| **Removal**            | Once all views are migrated, the Lit root, `app.ts`, and all `app-*.ts` files are deleted. The React `App.tsx` becomes the sole root. |
 
 ### Mounting Pattern
 
 ```tsx
 // Bridge: mount a React view inside a Lit template
-import { createRoot } from 'react-dom/client';
+import { createRoot } from "react-dom/client";
 
 // In Lit render():
 html`<div id="react-logs-view"></div>`;
 
 // After render, mount React:
-const container = this.shadowRoot?.getElementById('react-logs-view');
+const container = this.shadowRoot?.getElementById("react-logs-view");
 if (container && !container._reactRoot) {
   container._reactRoot = createRoot(container);
   container._reactRoot.render(<LogsView />);
@@ -331,11 +339,11 @@ This is ugly but temporary. Each view migrates independently. Once all views are
 
 ## 11. Lint & Formatting
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Linter | **ESLint + eslint-plugin-react-hooks** | React hooks rules are critical. Add `@typescript-eslint` recommended. |
-| Formatter | **Keep oxfmt** if it handles JSX; otherwise add **Prettier** for `.tsx` files. |
-| Import sorting | **eslint-plugin-simple-import-sort** | Consistent import ordering. |
+| Decision       | Choice                                                                         | Rationale                                                             |
+| -------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| Linter         | **ESLint + eslint-plugin-react-hooks**                                         | React hooks rules are critical. Add `@typescript-eslint` recommended. |
+| Formatter      | **Keep oxfmt** if it handles JSX; otherwise add **Prettier** for `.tsx` files. |
+| Import sorting | **eslint-plugin-simple-import-sort**                                           | Consistent import ordering.                                           |
 
 Existing `oxlint` rules continue to apply to non-React code during coexistence.
 
@@ -343,12 +351,12 @@ Existing `oxlint` rules continue to apply to non-React code during coexistence.
 
 ## 12. Accessibility
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Focus management | **Radix built-in** | Radix primitives handle focus trapping, return focus, and keyboard navigation. |
-| ARIA labels | **Explicit on all interactive elements** | Continue existing practice. Radix adds most automatically. |
-| Keyboard navigation | **Radix + custom hooks** | Command palette, session navigator, and form navigation use keyboard shortcuts. Radix handles arrow-key navigation within dropdowns/menus. |
-| Screen reader | **Semantic HTML + Radix** | Use `<main>`, `<nav>`, `<section>`, `<article>`, `<aside>`. Radix adds `role`, `aria-expanded`, `aria-selected`, etc. |
+| Decision            | Choice                                   | Rationale                                                                                                                                  |
+| ------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Focus management    | **Radix built-in**                       | Radix primitives handle focus trapping, return focus, and keyboard navigation.                                                             |
+| ARIA labels         | **Explicit on all interactive elements** | Continue existing practice. Radix adds most automatically.                                                                                 |
+| Keyboard navigation | **Radix + custom hooks**                 | Command palette, session navigator, and form navigation use keyboard shortcuts. Radix handles arrow-key navigation within dropdowns/menus. |
+| Screen reader       | **Semantic HTML + Radix**                | Use `<main>`, `<nav>`, `<section>`, `<article>`, `<aside>`. Radix adds `role`, `aria-expanded`, `aria-selected`, etc.                      |
 
 ---
 

@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement CLI commands for knowledge graph operations:
+
 - `clawdbot knowledge ingest` - Ingest files or text
 - `clawdbot knowledge crawl` - Crawl URLs
 - `clawdbot knowledge reindex` - Backfill existing data

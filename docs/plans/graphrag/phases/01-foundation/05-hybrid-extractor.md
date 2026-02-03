@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement the entity extraction pipeline that:
+
 - Uses LLM structured output with delimiter fallback
 - Supports gleaning (multi-pass extraction)
 - Tracks extraction progress
@@ -21,6 +22,7 @@ Implement the entity extraction pipeline that:
 **Reference:** Part 2 of `docs/plans/graphrag/ZAI-UPDATED-DESIGN.md`
 
 Hybrid extraction strategy:
+
 1. Try schema-based structured output
 2. Fall back to delimiter parsing if structured output fails
 3. Use gleaning for improved recall
@@ -51,19 +53,11 @@ src/knowledge/extraction/
  * Reference: docs/plans/graphrag/ZAI-UPDATED-DESIGN.md Part 2
  */
 
-import type {
-  LanguageModel,
-  ChatMessage,
-  StructuredOutput,
-} from '../../models/interface.js';
-import type {
-  EntityExtraction,
-  Entity,
-  Relationship,
-} from '../graph/types.js';
-import { EntityExtractionSchema } from '../graph/types.js';
-import { buildExtractionPrompt, buildGleaningPrompt } from './prompts.js';
-import { runGleaning } from './gleaning.js';
+import type { LanguageModel, ChatMessage, StructuredOutput } from "../../models/interface.js";
+import type { EntityExtraction, Entity, Relationship } from "../graph/types.js";
+import { EntityExtractionSchema } from "../graph/types.js";
+import { buildExtractionPrompt, buildGleaningPrompt } from "./prompts.js";
+import { runGleaning } from "./gleaning.js";
 
 // ============================================================================
 // CONFIG
@@ -95,10 +89,7 @@ export class HybridExtractor {
   private model: LanguageModel;
   private config: ExtractionConfig;
 
-  constructor(
-    model: LanguageModel,
-    config: ExtractionConfig = {}
-  ) {
+  constructor(model: LanguageModel, config: ExtractionConfig = {}) {
     this.model = model;
     this.config = {
       maxRetries: 3,
@@ -121,7 +112,7 @@ export class HybridExtractor {
   async extract(
     text: string,
     examples?: EntityExtraction[],
-    config?: ExtractionConfig
+    config?: ExtractionConfig,
   ): Promise<StructuredOutput<EntityExtraction>> {
     const mergedConfig = { ...this.config, ...config };
 
@@ -130,27 +121,19 @@ export class HybridExtractor {
 
     const messages: ChatMessage[] = [
       {
-        role: 'system',
+        role: "system",
         content: `You are an expert at extracting entities and relationships from technical documentation.
 Extract all relevant entities and their relationships, following the output schema exactly.`,
       },
-      { role: 'user', content: prompt },
+      { role: "user", content: prompt },
     ];
 
     // Attempt extraction with retry
-    let result = await this.extractWithRetry(
-      messages,
-      examples,
-      mergedConfig
-    );
+    let result = await this.extractWithRetry(messages, examples, mergedConfig);
 
     // Run gleaning if enabled and initial extraction succeeded
     if (result.success && mergedConfig.gleaning?.enabled) {
-      const gleaned = await this.runGleaning(
-        text,
-        result.data!,
-        mergedConfig.gleaning.passes
-      );
+      const gleaned = await this.runGleaning(text, result.data!, mergedConfig.gleaning.passes);
 
       if (gleaned.success) {
         // Merge gleaned results
@@ -168,7 +151,7 @@ Extract all relevant entities and their relationships, following the output sche
   async extractBatch(
     chunks: Array<{ id: string; text: string }>,
     examples?: EntityExtraction[],
-    config?: ExtractionConfig
+    config?: ExtractionConfig,
   ): Promise<Map<string, StructuredOutput<EntityExtraction>>> {
     const results = new Map<string, StructuredOutput<EntityExtraction>>();
     const mergedConfig = { ...this.config, ...config };
@@ -207,7 +190,7 @@ Extract all relevant entities and their relationships, following the output sche
   private async extractWithRetry(
     messages: ChatMessage[],
     examples?: EntityExtraction[],
-    config?: ExtractionConfig
+    config?: ExtractionConfig,
   ): Promise<StructuredOutput<EntityExtraction>> {
     const mergedConfig = { ...this.config, ...config };
     const maxAttempts = mergedConfig.maxRetries || 3;
@@ -216,38 +199,35 @@ Extract all relevant entities and their relationships, following the output sche
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         // Use fallback model for retry attempts if available
-        const model = attempt > 1 && mergedConfig.fallbackModel
-          ? mergedConfig.fallbackModel
-          : this.model;
+        const model =
+          attempt > 1 && mergedConfig.fallbackModel ? mergedConfig.fallbackModel : this.model;
 
         // Attempt structured extraction
         const result = await model.structuredChat(
           messages,
           EntityExtractionSchema,
           examples,
-          mergedConfig
+          mergedConfig,
         );
 
         if (result.success) {
           return result;
         }
 
-        lastError = new Error(result.error || 'Unknown error');
+        lastError = new Error(result.error || "Unknown error");
       } catch (error) {
         lastError = error as Error;
       }
 
       // Backoff before retry
       if (attempt < maxAttempts) {
-        await new Promise(resolve =>
-          setTimeout(resolve, mergedConfig.retryBackoffMs || 1000)
-        );
+        await new Promise((resolve) => setTimeout(resolve, mergedConfig.retryBackoffMs || 1000));
       }
     }
 
     return {
       success: false,
-      error: lastError?.message || 'Max retries exceeded',
+      error: lastError?.message || "Max retries exceeded",
       attempts: maxAttempts,
     };
   }
@@ -258,14 +238,9 @@ Extract all relevant entities and their relationships, following the output sche
   private async runGleaning(
     text: string,
     existing: EntityExtraction,
-    passes: number
+    passes: number,
   ): Promise<StructuredOutput<EntityExtraction>> {
-    const gleaned = await runGleaning(
-      this.model,
-      text,
-      existing,
-      passes
-    );
+    const gleaned = await runGleaning(this.model, text, existing, passes);
 
     return gleaned;
   }
@@ -275,20 +250,17 @@ Extract all relevant entities and their relationships, following the output sche
    */
   private mergeExtractions(
     primary: StructuredOutput<EntityExtraction>,
-    secondary: StructuredOutput<EntityExtraction>
+    secondary: StructuredOutput<EntityExtraction>,
   ): StructuredOutput<EntityExtraction> {
     if (!primary.success || !secondary.success) {
       return primary;
     }
 
-    const mergedEntities = this.mergeEntities(
-      primary.data.entities,
-      secondary.data.entities
-    );
+    const mergedEntities = this.mergeEntities(primary.data.entities, secondary.data.entities);
 
     const mergedRelationships = this.mergeRelationships(
       primary.data.relationships,
-      secondary.data.relationships
+      secondary.data.relationships,
     );
 
     return {
@@ -303,10 +275,7 @@ Extract all relevant entities and their relationships, following the output sche
   /**
    * Merge entities, deduplicating by name.
    */
-  private mergeEntities(
-    primary: Entity[],
-    secondary: Entity[]
-  ): Entity[] {
+  private mergeEntities(primary: Entity[], secondary: Entity[]): Entity[] {
     const seen = new Map<string, Entity>();
 
     // Add primary entities
@@ -329,10 +298,7 @@ Extract all relevant entities and their relationships, following the output sche
   /**
    * Merge relationships, deduplicating by (source, target, type).
    */
-  private mergeRelationships(
-    primary: Relationship[],
-    secondary: Relationship[]
-  ): Relationship[] {
+  private mergeRelationships(primary: Relationship[], secondary: Relationship[]): Relationship[] {
     const seen = new Map<string, Relationship>();
 
     // Add primary relationships
@@ -371,13 +337,13 @@ Extract all relevant entities and their relationships, following the output sche
    */
   private async processWithConcurrency<T>(
     promises: Promise<T>[],
-    concurrency: number
+    concurrency: number,
   ): Promise<T[]> {
     const results: T[] = [];
     const executing: Promise<void>[] = [];
 
     for (const promise of promises) {
-      const p = promise.then(result => {
+      const p = promise.then((result) => {
         executing.splice(executing.indexOf(p), 1);
         return result;
       });
@@ -404,7 +370,7 @@ Extract all relevant entities and their relationships, following the output sche
  * Entity extraction prompts.
  */
 
-import type { EntityExtraction } from '../graph/types.js';
+import type { EntityExtraction } from "../graph/types.js";
 
 /**
  * Build the main extraction prompt.
@@ -452,14 +418,11 @@ Extract ALL entities and relationships following the schema.`;
 /**
  * Build a gleaning prompt for finding missed entities.
  */
-export function buildGleaningPrompt(
-  text: string,
-  alreadyExtracted: EntityExtraction
-): string {
-  const extractedNames = alreadyExtracted.entities.map(e => e.name).join(', ');
-  const extractedPairs = alreadyExtracted.relationships.map(r =>
-    `${r.sourceId} -> ${r.targetId} (${r.type})`
-  ).join('\n');
+export function buildGleaningPrompt(text: string, alreadyExtracted: EntityExtraction): string {
+  const extractedNames = alreadyExtracted.entities.map((e) => e.name).join(", ");
+  const extractedPairs = alreadyExtracted.relationships
+    .map((r) => `${r.sourceId} -> ${r.targetId} (${r.type})`)
+    .join("\n");
 
   return `Review the text again and find any entities or relationships that were missed.
 
@@ -491,44 +454,44 @@ export const EXTRACTION_EXAMPLES: EntityExtraction[] = [
   {
     entities: [
       {
-        id: 'e1',
-        name: 'Auth Service',
-        type: 'concept',
-        description: 'Handles JWT authentication for all components',
+        id: "e1",
+        name: "Auth Service",
+        type: "concept",
+        description: "Handles JWT authentication for all components",
       },
       {
-        id: 'e2',
-        name: 'Redis',
-        type: 'tool',
-        description: 'In-memory data store used for token blacklisting',
+        id: "e2",
+        name: "Redis",
+        type: "tool",
+        description: "In-memory data store used for token blacklisting",
       },
       {
-        id: 'e3',
-        name: 'PostgreSQL',
-        type: 'tool',
-        description: 'Database for user data',
+        id: "e3",
+        name: "PostgreSQL",
+        type: "tool",
+        description: "Database for user data",
       },
     ],
     relationships: [
       {
-        id: 'r1',
-        sourceId: 'e1',
-        targetId: 'e2',
-        type: 'uses',
-        description: 'Auth Service uses Redis for token blacklisting',
-        keywords: ['uses', 'blacklisting'],
+        id: "r1",
+        sourceId: "e1",
+        targetId: "e2",
+        type: "uses",
+        description: "Auth Service uses Redis for token blacklisting",
+        keywords: ["uses", "blacklisting"],
         strength: 7,
         firstSeen: Date.now(),
         lastSeen: Date.now(),
         sourceCount: 1,
       },
       {
-        id: 'r2',
-        sourceId: 'e1',
-        targetId: 'e3',
-        type: 'uses',
-        description: 'Auth Service uses PostgreSQL for user data',
-        keywords: ['uses', 'user data'],
+        id: "r2",
+        sourceId: "e1",
+        targetId: "e3",
+        type: "uses",
+        description: "Auth Service uses PostgreSQL for user data",
+        keywords: ["uses", "user data"],
         strength: 7,
         firstSeen: Date.now(),
         lastSeen: Date.now(),
@@ -555,14 +518,10 @@ export const EXTRACTION_EXAMPLES: EntityExtraction[] = [
  * Typically improves recall by 10-20%.
  */
 
-import type {
-  LanguageModel,
-  ChatMessage,
-  StructuredOutput,
-} from '../../models/interface.js';
-import type { EntityExtraction } from '../graph/types.js';
-import { EntityExtractionSchema } from '../graph/types.js';
-import { buildGleaningPrompt } from './prompts.js';
+import type { LanguageModel, ChatMessage, StructuredOutput } from "../../models/interface.js";
+import type { EntityExtraction } from "../graph/types.js";
+import { EntityExtractionSchema } from "../graph/types.js";
+import { buildGleaningPrompt } from "./prompts.js";
 
 /**
  * Run gleaning passes to find missed entities.
@@ -571,7 +530,7 @@ export async function runGleaning(
   model: LanguageModel,
   text: string,
   existing: EntityExtraction,
-  passes: number
+  passes: number,
 ): Promise<StructuredOutput<EntityExtraction>> {
   let current: EntityExtraction = { ...existing };
 
@@ -580,16 +539,14 @@ export async function runGleaning(
 
     const messages: ChatMessage[] = [
       {
-        role: 'system',
-        content: 'You are an expert at finding entities and relationships that were missed in initial extraction.',
+        role: "system",
+        content:
+          "You are an expert at finding entities and relationships that were missed in initial extraction.",
       },
-      { role: 'user', content: prompt },
+      { role: "user", content: prompt },
     ];
 
-    const result = await model.structuredChat(
-      messages,
-      EntityExtractionSchema
-    );
+    const result = await model.structuredChat(messages, EntityExtractionSchema);
 
     if (!result.success) {
       return result;
@@ -610,7 +567,7 @@ export async function runGleaning(
  */
 function mergeEntityExtraction(
   base: EntityExtraction,
-  additional: EntityExtraction
+  additional: EntityExtraction,
 ): EntityExtraction {
   const entityMap = new Map<string, any>();
 
@@ -656,22 +613,22 @@ function mergeEntityExtraction(
 **File:** `src/knowledge/extraction/hybrid-extractor.test.ts`
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
-import { HybridExtractor } from './hybrid-extractor.js';
-import type { LanguageModel } from '../../models/interface.js';
+import { describe, it, expect, vi } from "vitest";
+import { HybridExtractor } from "./hybrid-extractor.js";
+import type { LanguageModel } from "../../models/interface.js";
 
-describe('HybridExtractor', () => {
-  it('should extract entities and relationships', async () => {
+describe("HybridExtractor", () => {
+  it("should extract entities and relationships", async () => {
     const mockModel = {
       structuredChat: vi.fn().mockResolvedValue({
         success: true,
         data: {
           entities: [
             {
-              id: 'e1',
-              name: 'Test Entity',
-              type: 'concept',
-              description: 'A test entity',
+              id: "e1",
+              name: "Test Entity",
+              type: "concept",
+              description: "A test entity",
             },
           ],
           relationships: [],
@@ -680,19 +637,19 @@ describe('HybridExtractor', () => {
     } as unknown as LanguageModel;
 
     const extractor = new HybridExtractor(mockModel, { gleaning: { enabled: false } });
-    const result = await extractor.extract('This is a test.');
+    const result = await extractor.extract("This is a test.");
 
     expect(result.success).toBe(true);
     expect(result.data?.entities).toHaveLength(1);
   });
 
-  it('should retry on failure', async () => {
+  it("should retry on failure", async () => {
     let attempts = 0;
     const mockModel = {
       structuredChat: vi.fn().mockImplementation(async () => {
         attempts++;
         if (attempts < 3) {
-          return { success: false, error: 'Transient error' };
+          return { success: false, error: "Transient error" };
         }
         return {
           success: true,
@@ -707,13 +664,13 @@ describe('HybridExtractor', () => {
       gleaning: { enabled: false },
     });
 
-    const result = await extractor.extract('Test');
+    const result = await extractor.extract("Test");
 
     expect(attempts).toBe(3);
     expect(result.success).toBe(true);
   });
 
-  it('should process batches with concurrency', async () => {
+  it("should process batches with concurrency", async () => {
     const mockModel = {
       structuredChat: vi.fn().mockResolvedValue({
         success: true,

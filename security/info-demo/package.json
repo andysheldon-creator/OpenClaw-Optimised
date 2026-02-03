@@ -1,12 +1,12 @@
 {
   "name": "@openclaw/security-info-demo",
-  "private": true,
   "version": "0.0.1",
+  "private": true,
   "type": "module",
   "scripts": {
+    "build": "vite build",
     "dev": "vite",
     "dev:host": "vite --host",
-    "build": "vite build",
     "preview": "vite preview",
     "preview:host": "vite preview --host",
     "typecheck": "tsc --noEmit"

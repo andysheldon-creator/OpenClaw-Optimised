@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ChevronRight, Plus } from "lucide-react"
-import Link from "next/link"
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
+import { ChevronRight, Plus } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface MetricCardProps {
-  title: string
-  href?: string
-  addHref?: string
-  addLabel?: string
-  children: ReactNode
-  className?: string
+  title: string;
+  href?: string;
+  addHref?: string;
+  addLabel?: string;
+  children: ReactNode;
+  className?: string;
 }
 
 export function MetricCard({
@@ -27,7 +27,7 @@ export function MetricCard({
     <div
       className={cn(
         "flex flex-col rounded-xl border border-border bg-card p-4 shadow-soft",
-        className
+        className,
       )}
     >
       <div className="mb-3 flex items-center justify-between">
@@ -47,7 +47,12 @@ export function MetricCard({
       <div className="flex-1 space-y-2">{children}</div>
       {addHref && (
         <div className="mt-3 pt-3 border-t border-border">
-          <Button asChild variant="ghost" size="sm" className="h-8 w-full justify-start gap-2 text-muted-foreground hover:text-foreground">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="h-8 w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+          >
             <Link href={addHref}>
               <Plus className="h-3.5 w-3.5" />
               {addLabel || "Add new"}
@@ -56,15 +61,15 @@ export function MetricCard({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 interface MetricItemProps {
-  icon?: ReactNode
-  label: string
-  value?: string
-  progress?: number
-  className?: string
+  icon?: ReactNode;
+  label: string;
+  value?: string;
+  progress?: number;
+  className?: string;
 }
 
 export function MetricItem({ icon, label, value, progress, className }: MetricItemProps) {
@@ -89,5 +94,5 @@ export function MetricItem({ icon, label, value, progress, className }: MetricIt
         </div>
       )}
     </div>
-  )
+  );
 }

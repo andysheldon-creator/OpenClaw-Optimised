@@ -2,14 +2,13 @@
 // Component: Workflow Builder Card
 // Search Query: "workflow DAG graph nodes"
 
-import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoreHorizontal } from "lucide-react";
-
-import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
+import * as React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 // Define the types for the component props for type-safety and reusability
 interface User {
@@ -69,11 +68,7 @@ export const WorkflowBuilderCard = ({
       <Card className="overflow-hidden rounded-xl shadow-md transition-shadow duration-300 hover:shadow-xl">
         {/* Card Image */}
         <div className="relative h-36 w-full">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="h-full w-full object-cover"
-          />
+          <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
         </div>
 
@@ -88,16 +83,14 @@ export const WorkflowBuilderCard = ({
                   <span
                     className={cn(
                       "h-2 w-2 rounded-full",
-                      status === "Active" ? "bg-green-500" : "bg-red-500"
+                      status === "Active" ? "bg-green-500" : "bg-red-500",
                     )}
                     aria-label={status}
                   />
                   <span>{status}</span>
                 </div>
               </div>
-              <h3 className="mt-1 text-lg font-semibold text-card-foreground">
-                {title}
-              </h3>
+              <h3 className="mt-1 text-lg font-semibold text-card-foreground">{title}</h3>
             </div>
             <button
               aria-label="More options"
@@ -151,7 +144,7 @@ export const WorkflowBuilderCard = ({
                 key={index}
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-full border-2 border-card text-white",
-                  bgColor
+                  bgColor,
                 )}
               >
                 <Icon size={14} />
@@ -169,7 +162,8 @@ import { Code, Share2, Zap } from "lucide-react";
 
 export function WorkflowBuilderCardDemo() {
   const cardData = {
-    imageUrl: "https://images.unsplash.com/photo-1752154344437-44bd7480e8ee?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDY1fENEd3V3WEpBYkV3fHxlbnwwfHx8fHw%3D&auto=format&fit=crop&q=60&w=900?q=80&w=2940&auto=format&fit=crop",
+    imageUrl:
+      "https://images.unsplash.com/photo-1752154344437-44bd7480e8ee?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDY1fENEd3V3WEpBYkV3fHxlbnwwfHx8fHw%3D&auto=format&fit=crop&q=60&w=900?q=80&w=2940&auto=format&fit=crop",
     status: "Active" as const,
     lastUpdated: "5 days ago",
     title: "Personal Email Assistant",

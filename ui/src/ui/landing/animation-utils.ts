@@ -5,12 +5,10 @@
 /**
  * Intersection Observer for scroll-triggered animations
  */
-export function createScrollObserver(
-  options: IntersectionObserverInit = {}
-): IntersectionObserver {
+export function createScrollObserver(options: IntersectionObserverInit = {}): IntersectionObserver {
   const defaultOptions: IntersectionObserverInit = {
     root: null,
-    rootMargin: '0px 0px -10% 0px',
+    rootMargin: "0px 0px -10% 0px",
     threshold: 0.1,
     ...options,
   };
@@ -18,7 +16,7 @@ export function createScrollObserver(
   return new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
-        entry.target.classList.add('is-visible');
+        entry.target.classList.add("is-visible");
       }
     });
   }, defaultOptions);
@@ -28,7 +26,7 @@ export function createScrollObserver(
  * Parallax scroll effect
  */
 export function initParallax(container: HTMLElement): () => void {
-  const layers = container.querySelectorAll<HTMLElement>('.parallax-layer');
+  const layers = container.querySelectorAll<HTMLElement>(".parallax-layer");
 
   function updateParallax() {
     const scrollY = window.scrollY;
@@ -38,18 +36,18 @@ export function initParallax(container: HTMLElement): () => void {
 
     layers.forEach((layer) => {
       const speed = parseFloat(
-        getComputedStyle(layer).getPropertyValue('--parallax-speed') || '0.5'
+        getComputedStyle(layer).getPropertyValue("--parallax-speed") || "0.5",
       );
       const yOffset = relativeScroll * speed;
       // Use a CSS custom property so transform compositions aren't overwritten
-      layer.style.setProperty('--parallax-y', `${yOffset}px`);
+      layer.style.setProperty("--parallax-y", `${yOffset}px`);
     });
   }
 
-  window.addEventListener('scroll', updateParallax, { passive: true });
+  window.addEventListener("scroll", updateParallax, { passive: true });
   updateParallax();
 
-  return () => window.removeEventListener('scroll', updateParallax);
+  return () => window.removeEventListener("scroll", updateParallax);
 }
 
 /**
@@ -85,11 +83,11 @@ export class TextRotator {
   }
 
   private animate(): void {
-    this.element.style.animation = 'textRotateOut 0.4s ease-in forwards';
+    this.element.style.animation = "textRotateOut 0.4s ease-in forwards";
 
     setTimeout(() => {
       this.render();
-      this.element.style.animation = 'textRotateIn 0.4s ease-out forwards';
+      this.element.style.animation = "textRotateIn 0.4s ease-out forwards";
     }, 400);
   }
 
@@ -102,14 +100,12 @@ export class TextRotator {
  * Smooth scroll to anchor
  */
 export function smoothScrollTo(target: string | HTMLElement): void {
-  const element = typeof target === 'string'
-    ? document.querySelector(target)
-    : target;
+  const element = typeof target === "string" ? document.querySelector(target) : target;
 
   if (element) {
     element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
+      behavior: "smooth",
+      block: "start",
     });
   }
 }
@@ -120,7 +116,7 @@ export function smoothScrollTo(target: string | HTMLElement): void {
 export function staggerAnimation(
   elements: NodeListOf<Element> | Element[],
   animationClass: string,
-  staggerMs = 100
+  staggerMs = 100,
 ): void {
   Array.from(elements).forEach((el, index) => {
     setTimeout(() => {
@@ -134,7 +130,7 @@ export function staggerAnimation(
  */
 export function debounce<T extends (...args: unknown[]) => void>(
   fn: T,
-  delay: number
+  delay: number,
 ): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
@@ -148,7 +144,7 @@ export function debounce<T extends (...args: unknown[]) => void>(
  */
 export function throttle<T extends (...args: unknown[]) => void>(
   fn: T,
-  limit: number
+  limit: number,
 ): (...args: Parameters<T>) => void {
   let inThrottle = false;
   return (...args: Parameters<T>) => {

@@ -1,10 +1,10 @@
-import OpenAI from "openai";
-import { appendFile } from "node:fs/promises";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import type { ClawdbrainPluginApi } from "clawdbrain/plugin-sdk";
-import type { Extractor } from "../types.js";
+import { appendFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import OpenAI from "openai";
 import type { MemoryCategory } from "../../config.js";
+import type { Extractor } from "../types.js";
 
 async function logTrace(api: ClawdbrainPluginApi, type: string, data: any) {
   const logDir = join(homedir(), ".clawdbrain", "logs");
@@ -43,9 +43,7 @@ export class OpenAiExtractor implements Extractor {
       tags: string[];
     }[]
   > {
-    const conversation = messages
-      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
-      .join("\n\n");
+    const conversation = messages.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
 
     const systemPrompt = `You are an expert at extracting long-term knowledge from conversations.
 Analyze the following conversation and extract any:
@@ -85,7 +83,7 @@ Rules:
       const latency = Date.now() - start;
       const content = response.choices[0].message.content ?? "{}";
       const parsed = JSON.parse(content);
-      const items = Array.isArray(parsed) ? parsed : (parsed.memories || parsed.items || []);
+      const items = Array.isArray(parsed) ? parsed : parsed.memories || parsed.items || [];
 
       await logTrace(api, "extraction", {
         inputCount: messages.length,
@@ -102,8 +100,9 @@ Rules:
   }
 
   async summarizeUrl(url: string, api: ClawdbrainPluginApi): Promise<string | null> {
-    const systemPrompt = "Summarize the following web content in 3-5 concise bullet points for long-term storage.";
-    
+    const systemPrompt =
+      "Summarize the following web content in 3-5 concise bullet points for long-term storage.";
+
     try {
       // 1. Fetch Content
       const fetchStart = Date.now();
@@ -113,9 +112,9 @@ Rules:
         return null;
       }
       const text = await res.text();
-      // Simple truncation to avoid token limits (10k chars approx) 
-      const truncated = text.slice(0, 10000); 
-      
+      // Simple truncation to avoid token limits (10k chars approx)
+      const truncated = text.slice(0, 10000);
+
       // 2. Summarize
       const aiStart = Date.now();
       const response = await this.client.chat.completions.create({
@@ -125,16 +124,16 @@ Rules:
           { role: "user", content: `URL: ${url}\n\nCONTENT:\n${truncated}` },
         ],
       });
-      
+
       const summary = response.choices[0].message.content ?? "";
-      
-      await logTrace(api, "summarization", { 
-        url, 
+
+      await logTrace(api, "summarization", {
+        url,
         fetchLatency: aiStart - fetchStart,
         aiLatency: Date.now() - aiStart,
-        model: this.model 
+        model: this.model,
       });
-      
+
       return summary;
     } catch (err) {
       api.logger.warn(`memory-lancedb: summarization failed: ${String(err)}`);

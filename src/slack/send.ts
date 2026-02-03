@@ -1,6 +1,7 @@
 import { type FilesUploadV2Arguments, type WebClient } from "@slack/web-api";
 import type { OpenClawConfig } from "../config/config.js";
 import type { SlackTokenSource } from "./accounts.js";
+import type { SlackBlock } from "./blocks/types.js";
 import {
   chunkMarkdownTextWithMode,
   resolveChunkMode,
@@ -35,6 +36,7 @@ type SlackSendOpts = {
   client?: WebClient;
   threadTs?: string;
   config?: OpenClawConfig;
+  blocks?: SlackBlock[];
 };
 
 export type SlackSendResult = {
@@ -188,9 +190,20 @@ export async function sendMessageSlack(
         channel: channelId,
         text: chunk,
         thread_ts: opts.threadTs,
+        ...(opts.blocks ? { blocks: opts.blocks } : {}),
       });
       lastMessageId = response.ts ?? lastMessageId;
     }
+  } else if (opts.blocks) {
+    // When blocks are provided, send them with text as fallback
+    const text = chunks[0] || trimmedMessage || "Message";
+    const response = await client.chat.postMessage({
+      channel: channelId,
+      text,
+      blocks: opts.blocks,
+      thread_ts: opts.threadTs,
+    });
+    lastMessageId = response.ts ?? "unknown";
   } else {
     for (const chunk of chunks.length ? chunks : [""]) {
       const response = await client.chat.postMessage({

@@ -170,10 +170,9 @@ Untrusted inputs:
 
 ## C) Key UNKNOWNs for ingress that require follow-up
 
-1) Browser control route auth: how `getProfileContext` prevents unauthorized control beyond profile selection.
+1. Browser control route auth: how `getProfileContext` prevents unauthorized control beyond profile selection.
    - Start points: `src/browser/routes/utils.ts` (not inspected here), plus `src/browser/server-context.ts` and `src/browser/pw-ai.ts` call paths.
-2) Voice-call provider signature verification: depends on provider-specific code paths.
+2. Voice-call provider signature verification: depends on provider-specific code paths.
    - Start points: provider implementations under `extensions/voice-call/src/providers/*` and `extensions/voice-call/src/webhook-security.*`.
-3) Telegram webhook secret requirements: behavior when `opts.secret` is omitted.
+3. Telegram webhook secret requirements: behavior when `opts.secret` is omitted.
    - Start point: grammy `webhookCallback` behavior + config code that sets `opts.secret` (not inspected here).
-

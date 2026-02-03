@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import { parseStructuredUpdate, parseStructuredUpdateFromTexts } from "./monitor.js";
 
 describe("parseStructuredUpdate", () => {

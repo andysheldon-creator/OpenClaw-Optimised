@@ -130,21 +130,23 @@ function renderModal(): TemplateResult | typeof nothing {
                         <div class="keyboard-shortcut">
                           <div class="keyboard-shortcut__keys">
                             ${shortcut.keys.map(
-                              (key) => html`<kbd class="keyboard-shortcut__key">${key}</kbd>`
+                              (key) => html`<kbd class="keyboard-shortcut__key">${key}</kbd>`,
                             )}
                           </div>
                           <div class="keyboard-shortcut__desc">
                             ${shortcut.description}
-                            ${shortcut.when
-                              ? html`<span class="keyboard-shortcut__when">${shortcut.when}</span>`
-                              : nothing}
+                            ${
+                              shortcut.when
+                                ? html`<span class="keyboard-shortcut__when">${shortcut.when}</span>`
+                                : nothing
+                            }
                           </div>
                         </div>
-                      `
+                      `,
                     )}
                   </div>
                 </div>
-              `
+              `,
             )}
           </div>
         </div>

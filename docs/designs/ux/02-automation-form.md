@@ -14,6 +14,7 @@
 This document has been translated from React patterns to Lit Web Components following Clawdbrain's conventions.
 
 ### Translation Applied:
+
 - React `useState` → Controller state objects with reactive properties
 - React multi-step wizard → Lit render function with step state in controller
 - Framer Motion animations → CSS `@keyframes` and transitions
@@ -73,7 +74,7 @@ export const steps = [
   { id: 3, title: "Repositories", description: "Source and target", icon: "link" },
   { id: 4, title: "AI Settings", description: "AI-powered features", icon: "brain" },
   { id: 5, title: "Merge Behavior", description: "Merge strategy", icon: "git-merge" },
-  { id: 6, title: "Notifications", description: "Alert preferences", icon: "bell" }
+  { id: 6, title: "Notifications", description: "Alert preferences", icon: "bell" },
 ];
 
 export function setFormField<T>(state: AutomationFormState, field: string, value: T): void {
@@ -153,7 +154,9 @@ export function renderAutomationForm(props: AutomationFormProps) {
           <!-- Header with Progress -->
           <div class="border-b border-border px-6 py-6">
             <h2 class="text-2xl font-semibold text-foreground">Smart-Sync Fork Automation</h2>
-            <p class="text-sm text-muted-foreground">Configure your repository synchronization automation</p>
+            <p class="text-sm text-muted-foreground">
+              Configure your repository synchronization automation
+            </p>
 
             <!-- Progress Steps -->
             <div class="mt-6">
@@ -181,22 +184,22 @@ export function renderAutomationForm(props: AutomationFormProps) {
                     return html`
                       <div class="flex flex-col items-center">
                         <div
-                          class="rounded-full flex items-center justify-center transition-all w-10 h-10 ${
-                            isCompleted
-                              ? "bg-primary text-primary-foreground"
-                              : isCurrent
+                          class="rounded-full flex items-center justify-center transition-all w-10 h-10 ${isCompleted
+                            ? "bg-primary text-primary-foreground"
+                            : isCurrent
                               ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
-                              : "bg-muted text-muted-foreground"
-                          }"
+                              : "bg-muted text-muted-foreground"}"
                         >
                           ${isCompleted
                             ? icon("check", { size: 20 })
                             : icon(step.icon, { size: 20 })}
                         </div>
                         <div class="hidden sm:block mt-2 text-center">
-                          <p class="text-xs font-medium ${
-                            (isCurrent || isCompleted) ? "text-primary" : "text-muted-foreground"
-                          }">
+                          <p
+                            class="text-xs font-medium ${isCurrent || isCompleted
+                              ? "text-primary"
+                              : "text-muted-foreground"}"
+                          >
                             ${step.title}
                           </p>
                         </div>
@@ -210,9 +213,7 @@ export function renderAutomationForm(props: AutomationFormProps) {
 
           <div class="p-6">
             <!-- Step Content with CSS Animation -->
-            <div class="step-content min-h-[400px]">
-              ${renderStepContent(state, onFieldChange)}
-            </div>
+            <div class="step-content min-h-[400px]">${renderStepContent(state, onFieldChange)}</div>
 
             <!-- Navigation Buttons -->
             <div class="flex justify-between mt-8 pt-6 border-t border-border">
@@ -222,21 +223,26 @@ export function renderAutomationForm(props: AutomationFormProps) {
                 @click=${onPrevious}
                 ?disabled=${state.currentStep === 1}
               >
-                ${icon("chevron-left", { size: 16 })}
-                Previous
+                ${icon("chevron-left", { size: 16 })} Previous
               </button>
 
               ${state.currentStep < totalSteps
                 ? html`
-                    <button type="button" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" @click=${onNext}>
-                      Next
-                      ${icon("chevron-right", { size: 16 })}
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                      @click=${onNext}
+                    >
+                      Next ${icon("chevron-right", { size: 16 })}
                     </button>
                   `
                 : html`
-                    <button type="button" class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" @click=${onSubmit}>
-                      ${icon("check", { size: 16 })}
-                      Complete Setup
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                      @click=${onSubmit}
+                    >
+                      ${icon("check", { size: 16 })} Complete Setup
                     </button>
                   `}
             </div>
@@ -267,7 +273,10 @@ export function renderAutomationForm(props: AutomationFormProps) {
   `;
 }
 
-function renderStepContent(state: AutomationFormState, onFieldChange: (field: string, value: string | boolean) => void) {
+function renderStepContent(
+  state: AutomationFormState,
+  onFieldChange: (field: string, value: string | boolean) => void,
+) {
   const { formData, errors } = state;
 
   // STEP 1: Basic Information
@@ -290,12 +299,13 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
               .value=${formData.name}
               @input=${(e: Event) => onFieldChange("name", (e.target as HTMLInputElement).value)}
               placeholder="My Fork Sync"
-              class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.name ? "border-destructive" : ""}"
+              class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.name
+                ? "border-destructive"
+                : ""}"
             />
             ${errors.name
               ? html`<p class="text-sm text-destructive mt-1 flex items-center gap-1">
-                  ${icon("alert-circle", { size: 14 })}
-                  ${errors.name}
+                  ${icon("alert-circle", { size: 14 })} ${errors.name}
                 </p>`
               : nothing}
           </div>
@@ -307,7 +317,8 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
             <textarea
               id="description"
               .value=${formData.description}
-              @input=${(e: Event) => onFieldChange("description", (e.target as HTMLTextAreaElement).value)}
+              @input=${(e: Event) =>
+                onFieldChange("description", (e.target as HTMLTextAreaElement).value)}
               placeholder="Describe what this automation does..."
               rows="4"
               class="border-input flex min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -334,7 +345,8 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
             </label>
             <select
               .value=${formData.schedule}
-              @change=${(e: Event) => onFieldChange("schedule", (e.target as HTMLSelectElement).value)}
+              @change=${(e: Event) =>
+                onFieldChange("schedule", (e.target as HTMLSelectElement).value)}
               class="flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs"
             >
               <option value="hourly">Every Hour</option>
@@ -354,19 +366,21 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
                     type="text"
                     id="customCron"
                     .value=${formData.customCron}
-                    @input=${(e: Event) => onFieldChange("customCron", (e.target as HTMLInputElement).value)}
+                    @input=${(e: Event) =>
+                      onFieldChange("customCron", (e.target as HTMLInputElement).value)}
                     placeholder="0 0 * * *"
-                    class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.customCron ? "border-destructive" : ""}"
+                    class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.customCron
+                      ? "border-destructive"
+                      : ""}"
                   />
                   ${errors.customCron
                     ? html`<p class="text-sm text-destructive mt-1 flex items-center gap-1">
-                        ${icon("alert-circle", { size: 14 })}
-                        ${errors.customCron}
+                        ${icon("alert-circle", { size: 14 })} ${errors.customCron}
                       </p>`
                     : nothing}
                   <p class="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                    ${icon("info", { size: 12 })}
-                    Use standard cron syntax (e.g., "0 0 * * *" for daily at midnight)
+                    ${icon("info", { size: 12 })} Use standard cron syntax (e.g., "0 0 * * *" for
+                    daily at midnight)
                   </p>
                 </div>
               `
@@ -394,14 +408,16 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
               type="text"
               id="upstreamUrl"
               .value=${formData.upstreamUrl}
-              @input=${(e: Event) => onFieldChange("upstreamUrl", (e.target as HTMLInputElement).value)}
+              @input=${(e: Event) =>
+                onFieldChange("upstreamUrl", (e.target as HTMLInputElement).value)}
               placeholder="https://github.com/original/repo.git"
-              class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.upstreamUrl ? "border-destructive" : ""}"
+              class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.upstreamUrl
+                ? "border-destructive"
+                : ""}"
             />
             ${errors.upstreamUrl
               ? html`<p class="text-sm text-destructive mt-1 flex items-center gap-1">
-                  ${icon("alert-circle", { size: 14 })}
-                  ${errors.upstreamUrl}
+                  ${icon("alert-circle", { size: 14 })} ${errors.upstreamUrl}
                 </p>`
               : nothing}
           </div>
@@ -416,12 +432,13 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
               .value=${formData.forkUrl}
               @input=${(e: Event) => onFieldChange("forkUrl", (e.target as HTMLInputElement).value)}
               placeholder="https://github.com/yourusername/repo.git"
-              class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.forkUrl ? "border-destructive" : ""}"
+              class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.forkUrl
+                ? "border-destructive"
+                : ""}"
             />
             ${errors.forkUrl
               ? html`<p class="text-sm text-destructive mt-1 flex items-center gap-1">
-                  ${icon("alert-circle", { size: 14 })}
-                  ${errors.forkUrl}
+                  ${icon("alert-circle", { size: 14 })} ${errors.forkUrl}
                 </p>`
               : nothing}
           </div>
@@ -455,7 +472,11 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
               @click=${() => onFieldChange("enableAiReview", !formData.enableAiReview)}
               aria-checked=${formData.enableAiReview}
             >
-              <span class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0 ${formData.enableAiReview ? "translate-x-[calc(100%-2px)]" : ""}"></span>
+              <span
+                class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0 ${formData.enableAiReview
+                  ? "translate-x-[calc(100%-2px)]"
+                  : ""}"
+              ></span>
             </button>
           </div>
 
@@ -469,7 +490,8 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
                     </label>
                     <select
                       .value=${formData.aiProvider}
-                      @change=${(e: Event) => onFieldChange("aiProvider", (e.target as HTMLSelectElement).value)}
+                      @change=${(e: Event) =>
+                        onFieldChange("aiProvider", (e.target as HTMLSelectElement).value)}
                       class="flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs"
                     >
                       <option value="openai">OpenAI</option>
@@ -484,7 +506,8 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
                     </label>
                     <select
                       .value=${formData.aiModel}
-                      @change=${(e: Event) => onFieldChange("aiModel", (e.target as HTMLSelectElement).value)}
+                      @change=${(e: Event) =>
+                        onFieldChange("aiModel", (e.target as HTMLSelectElement).value)}
                       class="flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs"
                     >
                       <option value="gpt-4">GPT-4</option>
@@ -501,14 +524,16 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
                       type="password"
                       id="aiApiKey"
                       .value=${formData.aiApiKey}
-                      @input=${(e: Event) => onFieldChange("aiApiKey", (e.target as HTMLInputElement).value)}
+                      @input=${(e: Event) =>
+                        onFieldChange("aiApiKey", (e.target as HTMLInputElement).value)}
                       placeholder="sk-..."
-                      class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.aiApiKey ? "border-destructive" : ""}"
+                      class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.aiApiKey
+                        ? "border-destructive"
+                        : ""}"
                     />
                     ${errors.aiApiKey
                       ? html`<p class="text-sm text-destructive mt-1 flex items-center gap-1">
-                          ${icon("alert-circle", { size: 14 })}
-                          ${errors.aiApiKey}
+                          ${icon("alert-circle", { size: 14 })} ${errors.aiApiKey}
                         </p>`
                       : nothing}
                   </div>
@@ -536,7 +561,8 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
             </label>
             <select
               .value=${formData.mergeStrategy}
-              @change=${(e: Event) => onFieldChange("mergeStrategy", (e.target as HTMLSelectElement).value)}
+              @change=${(e: Event) =>
+                onFieldChange("mergeStrategy", (e.target as HTMLSelectElement).value)}
               class="flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs"
             >
               <option value="merge">Merge Commit</option>
@@ -559,7 +585,11 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
               @click=${() => onFieldChange("autoMerge", !formData.autoMerge)}
               aria-checked=${formData.autoMerge}
             >
-              <span class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform ${formData.autoMerge ? "translate-x-[calc(100%-2px)]" : ""}"></span>
+              <span
+                class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform ${formData.autoMerge
+                  ? "translate-x-[calc(100%-2px)]"
+                  : ""}"
+              ></span>
             </button>
           </div>
 
@@ -569,7 +599,8 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
             </label>
             <select
               .value=${formData.conflictResolution}
-              @change=${(e: Event) => onFieldChange("conflictResolution", (e.target as HTMLSelectElement).value)}
+              @change=${(e: Event) =>
+                onFieldChange("conflictResolution", (e.target as HTMLSelectElement).value)}
               class="flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs"
             >
               <option value="manual">Manual Review</option>
@@ -606,7 +637,11 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
               @click=${() => onFieldChange("emailNotifications", !formData.emailNotifications)}
               aria-checked=${formData.emailNotifications}
             >
-              <span class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform ${formData.emailNotifications ? "translate-x-[calc(100%-2px)]" : ""}"></span>
+              <span
+                class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform ${formData.emailNotifications
+                  ? "translate-x-[calc(100%-2px)]"
+                  : ""}"
+              ></span>
             </button>
           </div>
 
@@ -618,7 +653,8 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
               type="text"
               id="slackWebhook"
               .value=${formData.slackWebhook}
-              @input=${(e: Event) => onFieldChange("slackWebhook", (e.target as HTMLInputElement).value)}
+              @input=${(e: Event) =>
+                onFieldChange("slackWebhook", (e.target as HTMLInputElement).value)}
               placeholder="https://hooks.slack.com/services/..."
               class="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
@@ -638,7 +674,11 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
                 @click=${() => onFieldChange("notifyOnSuccess", !formData.notifyOnSuccess)}
                 aria-checked=${formData.notifyOnSuccess}
               >
-                <span class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform ${formData.notifyOnSuccess ? "translate-x-[calc(100%-2px)]" : ""}"></span>
+                <span
+                  class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform ${formData.notifyOnSuccess
+                    ? "translate-x-[calc(100%-2px)]"
+                    : ""}"
+                ></span>
               </button>
             </div>
             <div class="flex items-center justify-between">
@@ -650,7 +690,11 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
                 @click=${() => onFieldChange("notifyOnFailure", !formData.notifyOnFailure)}
                 aria-checked=${formData.notifyOnFailure}
               >
-                <span class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform ${formData.notifyOnFailure ? "translate-x-[calc(100%-2px)]" : ""}"></span>
+                <span
+                  class="bg-background pointer-events-none block size-4 rounded-full ring-0 transition-transform ${formData.notifyOnFailure
+                    ? "translate-x-[calc(100%-2px)]"
+                    : ""}"
+                ></span>
               </button>
             </div>
           </div>
@@ -668,6 +712,7 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
 ## Key Features Captured
 
 ### Multi-Step Wizard Pattern
+
 1. **Progress Indicator** - Visual progress bar with step icons using Clawdbrain icon system
 2. **Step Navigation** - Previous/Next buttons with validation in controller
 3. **Animation** - CSS `@keyframes slideIn` for step transitions with 0.4s ease-out
@@ -676,41 +721,49 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
 ### Form Fields Per Step
 
 **Step 1: Basic Info**
+
 - Automation Name (required, with validation)
 - Description (optional textarea)
 
 **Step 2: Schedule**
+
 - Frequency dropdown (Hourly, Daily, Weekly, Custom)
 - Custom Cron expression input (conditional)
 
 **Step 3: Repositories**
+
 - Upstream Repository URL (required, validated)
 - Fork Repository URL (required, validated)
 
 **Step 4: AI Settings**
+
 - Enable AI Review toggle
 - AI Provider dropdown (conditional)
 - AI Model dropdown (conditional)
 - API Key input (conditional, password type)
 
 **Step 5: Merge Behavior**
+
 - Merge Strategy dropdown (Merge, Rebase, Squash)
 - Auto-Merge toggle
 - Conflict Resolution dropdown
 
 **Step 6: Notifications**
+
 - Email Notifications toggle
 - Slack Webhook URL input
 - Notify on Success toggle
 - Notify on Failure toggle
 
 ### Validation & Error Handling
+
 - Per-step validation before proceeding
 - Error messages with AlertCircle icon
 - Visual error states (red border)
 - Help text with Info icon
 
 ### Styling Features
+
 - Tailwind v4 CSS variables
 - Dark mode support
 - Responsive layout
@@ -721,32 +774,33 @@ function renderStepContent(state: AutomationFormState, onFieldChange: (field: st
 
 ## Form Field Types
 
-| Clawdbrain Implementation | Pattern |
-|------------------------|----------|
-| Input fields | `<input>` with Tailwind classes |
-| Textarea | `<textarea>` with Tailwind classes |
-| Toggle/Switch | Custom button with `[role="switch"]` and animated span |
-| Select dropdown | Native `<select>` with Tailwind classes |
-| Labels | `<label>` with Tailwind classes |
-| Page transitions | CSS `@keyframes slideIn` with 0.4s ease-out |
+| Clawdbrain Implementation | Pattern                                                |
+| ------------------------- | ------------------------------------------------------ |
+| Input fields              | `<input>` with Tailwind classes                        |
+| Textarea                  | `<textarea>` with Tailwind classes                     |
+| Toggle/Switch             | Custom button with `[role="switch"]` and animated span |
+| Select dropdown           | Native `<select>` with Tailwind classes                |
+| Labels                    | `<label>` with Tailwind classes                        |
+| Page transitions          | CSS `@keyframes slideIn` with 0.4s ease-out            |
 
 ---
 
 ## Smart-Sync Fork Specific Fields Mapping
 
-| Magic MCP Field | Smart-Sync Fork Field |
-|-----------------|----------------------|
-| `schedule` | `schedule.type` + `schedule.value` |
-| `upstreamUrl` | `upstreamRepoUrl` |
-| `forkUrl` | `forkRepoUrl` |
-| `enableAiReview` | N/A (AI always used) |
-| `aiProvider` | N/A (uses global default) |
-| `aiModel` | `aiModel` (optional override) |
-| `mergeStrategy` | `autoMergeMethod` |
-| `autoMerge` | `autoMerge` |
-| `conflictResolution` | `uncertaintyAction` |
+| Magic MCP Field      | Smart-Sync Fork Field              |
+| -------------------- | ---------------------------------- |
+| `schedule`           | `schedule.type` + `schedule.value` |
+| `upstreamUrl`        | `upstreamRepoUrl`                  |
+| `forkUrl`            | `forkRepoUrl`                      |
+| `enableAiReview`     | N/A (AI always used)               |
+| `aiProvider`         | N/A (uses global default)          |
+| `aiModel`            | `aiModel` (optional override)      |
+| `mergeStrategy`      | `autoMergeMethod`                  |
+| `autoMerge`          | `autoMerge`                        |
+| `conflictResolution` | `uncertaintyAction`                |
 
 Missing fields to add:
+
 - `forkBranch` (default "main")
 - `upstreamBranch` (default "main")
 - `sshKeyPath` (dropdown with auto-detect)

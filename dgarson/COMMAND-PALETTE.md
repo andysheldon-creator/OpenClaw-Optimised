@@ -43,10 +43,10 @@ The command palette is a keyboard-driven interface for quickly executing actions
 
 ### Existing Commands (14 total)
 
-| Category | Commands |
-|----------|----------|
+| Category   | Commands                                                                                |
+| ---------- | --------------------------------------------------------------------------------------- |
 | Navigation | Chat, Overview, Channels, Sessions, Instances, Cron, Skills, Nodes, Config, Debug, Logs |
-| Actions | Refresh Current View, New Chat Session, Toggle Theme |
+| Actions    | Refresh Current View, New Chat Session, Toggle Theme                                    |
 
 ### Current Limitations
 
@@ -136,11 +136,7 @@ Based on analysis of leading command palette implementations (VS Code, Linear, R
 ```css
 /* Smooth selection indicator */
 .command-item--selected {
-  background: linear-gradient(
-    90deg,
-    var(--accent-muted) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, var(--accent-muted) 0%, transparent 100%);
   border-left: 2px solid var(--accent);
 }
 ```
@@ -271,117 +267,117 @@ function loadHistory(): string[] {
 
 ### Navigation Commands (11)
 
-| Command | Shortcut | Description |
-|---------|----------|-------------|
-| Go to Chat | `⌘1` | Open chat view |
-| Go to Overview | `⌘2` | Open overview dashboard |
-| Go to Channels | `⌘3` | Open channels view |
-| Go to Sessions | `⌘4` | Open sessions view |
-| Go to Skills | | Open skills view |
-| Go to Cron | | Open cron jobs view |
-| Go to Nodes | | Open nodes view |
-| Go to Config | `⌘,` | Open configuration |
-| Go to Debug | | Open debug/RPC view |
-| Go to Logs | | Open logs view |
-| Go to Instances | | Open instances view |
+| Command         | Shortcut | Description             |
+| --------------- | -------- | ----------------------- |
+| Go to Chat      | `⌘1`     | Open chat view          |
+| Go to Overview  | `⌘2`     | Open overview dashboard |
+| Go to Channels  | `⌘3`     | Open channels view      |
+| Go to Sessions  | `⌘4`     | Open sessions view      |
+| Go to Skills    |          | Open skills view        |
+| Go to Cron      |          | Open cron jobs view     |
+| Go to Nodes     |          | Open nodes view         |
+| Go to Config    | `⌘,`     | Open configuration      |
+| Go to Debug     |          | Open debug/RPC view     |
+| Go to Logs      |          | Open logs view          |
+| Go to Instances |          | Open instances view     |
 
 ### Chat Commands (8)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Send Message | `⌘↵` | Chat view, has draft |
-| Clear Input | `Esc` | Chat view, has draft |
-| Focus Input | `/` | Chat view |
-| Copy Last Response | `⌘⇧C` | Chat view, has response |
-| New Session | `⌘N` | Any |
-| Refresh Chat | `⌘R` | Chat view |
-| Toggle Focus Mode | | Chat view |
-| Toggle Read Aloud | | Chat view |
+| Command            | Shortcut | Context                 |
+| ------------------ | -------- | ----------------------- |
+| Send Message       | `⌘↵`     | Chat view, has draft    |
+| Clear Input        | `Esc`    | Chat view, has draft    |
+| Focus Input        | `/`      | Chat view               |
+| Copy Last Response | `⌘⇧C`    | Chat view, has response |
+| New Session        | `⌘N`     | Any                     |
+| Refresh Chat       | `⌘R`     | Chat view               |
+| Toggle Focus Mode  |          | Chat view               |
+| Toggle Read Aloud  |          | Chat view               |
 
 ### Config Commands (8)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Save Configuration | `⌘S` | Config view, has changes |
-| Apply Configuration | | Config view |
-| Reload Configuration | `⌘⇧R` | Config view |
-| Search Settings | `/` | Config view |
-| Reset to Defaults | | Config view, confirmation |
-| Export Config | | Config view |
-| Import Config | | Config view |
-| Run Diagnostics | | Config view |
+| Command              | Shortcut | Context                   |
+| -------------------- | -------- | ------------------------- |
+| Save Configuration   | `⌘S`     | Config view, has changes  |
+| Apply Configuration  |          | Config view               |
+| Reload Configuration | `⌘⇧R`    | Config view               |
+| Search Settings      | `/`      | Config view               |
+| Reset to Defaults    |          | Config view, confirmation |
+| Export Config        |          | Config view               |
+| Import Config        |          | Config view               |
+| Run Diagnostics      |          | Config view               |
 
 ### Logs Commands (7)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Focus Filter | `⌘F` | Logs view |
-| Clear Logs | | Logs view, confirmation |
-| Export Logs | | Logs view, has entries |
-| Toggle Auto-Follow | `F` | Logs view |
-| Jump to Bottom | `G` | Logs view |
-| Refresh Logs | `R` | Logs view |
-| Filter by Error | | Logs view |
+| Command            | Shortcut | Context                 |
+| ------------------ | -------- | ----------------------- |
+| Focus Filter       | `⌘F`     | Logs view               |
+| Clear Logs         |          | Logs view, confirmation |
+| Export Logs        |          | Logs view, has entries  |
+| Toggle Auto-Follow | `F`      | Logs view               |
+| Jump to Bottom     | `G`      | Logs view               |
+| Refresh Logs       | `R`      | Logs view               |
+| Filter by Error    |          | Logs view               |
 
 ### Sessions Commands (5)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Refresh Sessions | | Sessions view |
-| Delete Session | | Has selection |
-| Duplicate Session | | Has selection |
-| Open in Chat | | Has selection |
-| Copy Session Key | | Has selection |
+| Command           | Shortcut | Context       |
+| ----------------- | -------- | ------------- |
+| Refresh Sessions  |          | Sessions view |
+| Delete Session    |          | Has selection |
+| Duplicate Session |          | Has selection |
+| Open in Chat      |          | Has selection |
+| Copy Session Key  |          | Has selection |
 
 ### Skills Commands (4)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Refresh Skills | | Skills view |
-| Install Skill | | Skills view |
-| Toggle Skill | | Has selection |
-| Filter Skills | `/` | Skills view |
+| Command        | Shortcut | Context       |
+| -------------- | -------- | ------------- |
+| Refresh Skills |          | Skills view   |
+| Install Skill  |          | Skills view   |
+| Toggle Skill   |          | Has selection |
+| Filter Skills  | `/`      | Skills view   |
 
 ### Channels Commands (5)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Probe All Channels | | Channels view |
-| Probe Channel... | | Channels view |
-| Configure Channel... | | Channels view |
-| Refresh Channels | | Channels view |
-| Start WhatsApp Login | | Channels view |
+| Command              | Shortcut | Context       |
+| -------------------- | -------- | ------------- |
+| Probe All Channels   |          | Channels view |
+| Probe Channel...     |          | Channels view |
+| Configure Channel... |          | Channels view |
+| Refresh Channels     |          | Channels view |
+| Start WhatsApp Login |          | Channels view |
 
 ### Cron Commands (4)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Refresh Cron Jobs | | Cron view |
-| Add Cron Job | | Cron view |
-| Run Job Now | | Has selection |
-| Delete Job | | Has selection, confirmation |
+| Command           | Shortcut | Context                     |
+| ----------------- | -------- | --------------------------- |
+| Refresh Cron Jobs |          | Cron view                   |
+| Add Cron Job      |          | Cron view                   |
+| Run Job Now       |          | Has selection               |
+| Delete Job        |          | Has selection, confirmation |
 
 ### Debug Commands (4)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Clear RPC Result | | Debug view |
-| Copy RPC Result | | Debug view, has result |
-| Run Last RPC | | Debug view, has history |
-| Refresh Methods | | Debug view |
+| Command          | Shortcut | Context                 |
+| ---------------- | -------- | ----------------------- |
+| Clear RPC Result |          | Debug view              |
+| Copy RPC Result  |          | Debug view, has result  |
+| Run Last RPC     |          | Debug view, has history |
+| Refresh Methods  |          | Debug view              |
 
 ### System Commands (8)
 
-| Command | Shortcut | Context |
-|---------|----------|---------|
-| Toggle Theme | `⌘T` | Any |
-| Show Keyboard Shortcuts | `?` | Any |
-| Open Documentation | | Any |
-| Report Issue | | Any |
-| Copy Gateway URL | | Connected |
-| Toggle Command Palette | `⌘K` | Any |
-| Disconnect Gateway | | Connected |
-| Connect Gateway | | Disconnected |
+| Command                 | Shortcut | Context      |
+| ----------------------- | -------- | ------------ |
+| Toggle Theme            | `⌘T`     | Any          |
+| Show Keyboard Shortcuts | `?`      | Any          |
+| Open Documentation      |          | Any          |
+| Report Issue            |          | Any          |
+| Copy Gateway URL        |          | Connected    |
+| Toggle Command Palette  | `⌘K`     | Any          |
+| Disconnect Gateway      |          | Connected    |
+| Connect Gateway         |          | Disconnected |
 
 ---
 
@@ -434,7 +430,7 @@ function fuzzyScore(query: string, text: string): number {
 function searchCommands(
   commands: CommandItem[],
   query: string,
-  category?: CommandCategory
+  category?: CommandCategory,
 ): CommandItem[] {
   const results = commands
     .filter((cmd) => !category || cmd.category === category)
@@ -443,12 +439,9 @@ function searchCommands(
       const descScore = fuzzyScore(query, cmd.description || "") * 0.5;
       const keywordScore = Math.max(
         0,
-        ...(cmd.keywords || []).map((k) => fuzzyScore(query, k) * 0.8)
+        ...(cmd.keywords || []).map((k) => fuzzyScore(query, k) * 0.8),
       );
-      const tagScore = Math.max(
-        0,
-        ...(cmd.tags || []).map((t) => fuzzyScore(query, t) * 0.6)
-      );
+      const tagScore = Math.max(0, ...(cmd.tags || []).map((t) => fuzzyScore(query, t) * 0.6));
 
       return {
         command: cmd,
@@ -467,10 +460,7 @@ function searchCommands(
 ```typescript
 type CategoryFilter = CommandCategory | "All";
 
-function filterByCategory(
-  commands: CommandItem[],
-  filter: CategoryFilter
-): CommandItem[] {
+function filterByCategory(commands: CommandItem[], filter: CategoryFilter): CommandItem[] {
   if (filter === "All") return commands;
   return commands.filter((cmd) => cmd.category === filter);
 }
@@ -480,14 +470,14 @@ function filterByCategory(
 
 Support special prefixes for power users:
 
-| Prefix | Filter |
-|--------|--------|
-| `>` | Commands only (no navigation) |
-| `@` | Sessions/agents |
-| `#` | Channels |
-| `/` | Chat commands |
-| `:` | Config settings |
-| `!` | System commands |
+| Prefix | Filter                        |
+| ------ | ----------------------------- |
+| `>`    | Commands only (no navigation) |
+| `@`    | Sessions/agents               |
+| `#`    | Channels                      |
+| `/`    | Chat commands                 |
+| `:`    | Config settings               |
+| `!`    | System commands               |
 
 ```typescript
 function parseSearchQuery(query: string): {
@@ -511,23 +501,23 @@ function parseSearchQuery(query: string): {
 
 ### Global Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `⌘K` | Toggle command palette |
-| `?` | Show keyboard shortcuts modal |
-| `Esc` | Close command palette |
+| Shortcut | Action                        |
+| -------- | ----------------------------- |
+| `⌘K`     | Toggle command palette        |
+| `?`      | Show keyboard shortcuts modal |
+| `Esc`    | Close command palette         |
 
 ### Within Command Palette
 
-| Shortcut | Action |
-|----------|--------|
-| `↑` / `↓` | Navigate commands |
-| `⌘↑` / `⌘↓` | Jump to section start/end |
-| `Enter` | Execute selected command |
-| `Tab` | Next category |
-| `⇧Tab` | Previous category |
-| `Esc` | Close palette or clear search |
-| `Backspace` (empty) | Reset category to "All" |
+| Shortcut            | Action                        |
+| ------------------- | ----------------------------- |
+| `↑` / `↓`           | Navigate commands             |
+| `⌘↑` / `⌘↓`         | Jump to section start/end     |
+| `Enter`             | Execute selected command      |
+| `Tab`               | Next category                 |
+| `⇧Tab`              | Previous category             |
+| `Esc`               | Close palette or clear search |
+| `Backspace` (empty) | Reset category to "All"       |
 
 ### Focus Management
 
@@ -647,7 +637,9 @@ function handleKeyDown(event: KeyboardEvent, state: CommandPaletteState): void {
 
 /* Item selection */
 .command-palette__item {
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
 }
 
 .command-palette__item--selected {
@@ -655,9 +647,15 @@ function handleKeyDown(event: KeyboardEvent, state: CommandPaletteState): void {
 }
 
 /* Staggered list animation */
-.command-palette__item:nth-child(1) { animation-delay: 0ms; }
-.command-palette__item:nth-child(2) { animation-delay: 20ms; }
-.command-palette__item:nth-child(3) { animation-delay: 40ms; }
+.command-palette__item:nth-child(1) {
+  animation-delay: 0ms;
+}
+.command-palette__item:nth-child(2) {
+  animation-delay: 20ms;
+}
+.command-palette__item:nth-child(3) {
+  animation-delay: 40ms;
+}
 /* ... */
 ```
 
@@ -800,10 +798,7 @@ interface CommandPaletteEvents {
 ### Usage Example
 
 ```typescript
-import {
-  registerCommand,
-  openCommandPalette,
-} from "./components/command-palette";
+import { registerCommand, openCommandPalette } from "./components/command-palette";
 
 // Register a custom command
 registerCommand({

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
-import { clearCompletionHandlers, processCompletion } from "./registry.js";
+import type { CompletionEvent, GoalState } from "./types.js";
 import {
   clearManagerState,
   clearSessionGoal,
@@ -14,7 +13,7 @@ import {
   stopContinuationManager,
   type ContinuationSignal,
 } from "./manager.js";
-import type { CompletionEvent, GoalState } from "./types.js";
+import { clearCompletionHandlers, processCompletion } from "./registry.js";
 
 describe("continuation/manager", () => {
   beforeEach(() => {

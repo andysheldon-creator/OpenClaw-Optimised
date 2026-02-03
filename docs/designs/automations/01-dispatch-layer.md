@@ -50,6 +50,7 @@ The dispatcher itself is registered as a **single cron job** in the existing cro
 ### 1. Dispatcher (`dispatcher.ts`)
 
 **Responsibilities:**
+
 - Receive dispatch triggers from cron system
 - Query all enabled automations
 - Delegate to scheduler for due-checking
@@ -82,7 +83,7 @@ interface AutomationDispatcher {
 }
 
 interface DispatchResult {
-  dispatched: number;      // Number of automations spawned
+  dispatched: number; // Number of automations spawned
   skipped: {
     notDue: number;
     locked: number;
@@ -112,6 +113,7 @@ interface DispatchResult {
 ### 2. Scheduler (`scheduler.ts`)
 
 **Responsibilities:**
+
 - Calculate LCM of all automation schedules
 - Determine if a specific automation is due to run
 - Handle schedule types: cron expression, interval, "at" time
@@ -135,8 +137,8 @@ interface AutomationScheduler {
 }
 
 interface ScheduleInfo {
-  lcmExpression: string;      // Cron expression for dispatcher
-  lcmMinutes: number;         // LCM in minutes
+  lcmExpression: string; // Cron expression for dispatcher
+  lcmMinutes: number; // LCM in minutes
   individualSchedules: Map<string, ScheduleEntry>;
 }
 
@@ -154,7 +156,7 @@ interface ScheduleEntry {
 // Pseudo-code for LCM calculation
 function calculateLCM(schedules: AutomationSchedule[]): string {
   // Convert each schedule to minutes (lowest common denominator)
-  const intervals = schedules.map(s => s.toMinutes());
+  const intervals = schedules.map((s) => s.toMinutes());
 
   // Calculate LCM of all intervals
   const lcmMinutes = calculateLCMOfNumbers(intervals);
@@ -236,6 +238,7 @@ interface Lock {
 ```
 
 **Lock Cleanup:**
+
 - Stale locks (older than 4 hours) are auto-cleaned on dispatcher start
 - Lock files include PID and hostname for orphan detection
 - Force-release available via admin API/CLI
@@ -343,13 +346,13 @@ interface DispatcherConfig {
 
 ### Dispatcher-Level Errors
 
-| Error Type | Handling | User Notification |
-|------------|----------|-------------------|
-| Invalid automation config | Skip automation, log error | Yes (toast) |
-| Lock acquisition failure | Skip with "locked" reason | No (expected) |
-| Concurrency limit reached | Skip with "limit reached" reason | No (expected) |
-| Session spawn failure | Mark as failed, retry next cycle | Yes (toast) |
-| State file corruption | Recreate state, log warning | Yes (warning toast) |
+| Error Type                | Handling                         | User Notification   |
+| ------------------------- | -------------------------------- | ------------------- |
+| Invalid automation config | Skip automation, log error       | Yes (toast)         |
+| Lock acquisition failure  | Skip with "locked" reason        | No (expected)       |
+| Concurrency limit reached | Skip with "limit reached" reason | No (expected)       |
+| Session spawn failure     | Mark as failed, retry next cycle | Yes (toast)         |
+| State file corruption     | Recreate state, log warning      | Yes (warning toast) |
 
 ### Retry Logic
 

@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { AppShell } from "@/components/navigation/app-shell"
-import { PageHeader } from "@/components/dashboard/page-header"
-import { QuickChat } from "@/components/dashboard/quick-chat"
-import { AgentCard } from "@/components/dashboard/agent-card"
-import { WorkstreamCard } from "@/components/dashboard/workstream-card"
-import { MetricCard, MetricItem } from "@/components/dashboard/metric-card"
-import { SectionHeader } from "@/components/dashboard/section-header"
-import { RefreshCw, Lightbulb, FileText, Target } from "lucide-react"
+import { RefreshCw, Lightbulb, FileText, Target } from "lucide-react";
+import { AgentCard } from "@/components/dashboard/agent-card";
+import { MetricCard, MetricItem } from "@/components/dashboard/metric-card";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { QuickChat } from "@/components/dashboard/quick-chat";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import { WorkstreamCard } from "@/components/dashboard/workstream-card";
+import { AppShell } from "@/components/navigation/app-shell";
 
 // Mock data
 const agents = [
@@ -28,7 +28,7 @@ const agents = [
     status: "ready" as const,
     nextEvent: "2pm",
   },
-]
+];
 
 const workstreams = [
   {
@@ -48,30 +48,30 @@ const workstreams = [
     blockedTasks: 1,
     agentName: "Writing Partner",
   },
-]
+];
 
 const rituals = [
   { label: "Daily Standup", value: "in 2h" },
   { label: "Weekly Review", value: "Mon 9am" },
   { label: "End of Day Summary", value: "6pm" },
-]
+];
 
 const insights = [
   { label: 'You mention "deadline" more on Mondays' },
   { label: "Your writing is more detailed in afternoons" },
-]
+];
 
 const memories = [
   { label: "Prefers bullet points" },
   { label: "Project deadline: Feb 1" },
   { label: "Key stakeholder: Jamie" },
-]
+];
 
 const goals = [
   { label: "Launch Podcast", progress: 65 },
   { label: "Improve Response", progress: 40 },
   { label: "Q1 Revenue", progress: 80 },
-]
+];
 
 export default function HomePage() {
   return (
@@ -160,5 +160,5 @@ export default function HomePage() {
         </main>
       </div>
     </AppShell>
-  )
+  );
 }

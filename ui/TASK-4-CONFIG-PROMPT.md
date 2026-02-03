@@ -1,17 +1,20 @@
 # Task 4: Redesign Config/Settings View
 
 ## Overview
+
 Redesign the config/settings view (`ui/src/ui/views/config.ts`) with modern form patterns, better visual hierarchy, and improved UX.
 
 ## Project Context
 
 ### Tech Stack
+
 - **Framework**: Lit (Web Components) - NOT React
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **Build**: Vite
 - **Icons**: Custom SVG icon system in `ui/src/ui/icons.ts`
 
 ### Key Files
+
 - View to modify: `ui/src/ui/views/config.ts`
 - Styles: `ui/src/styles/components.css` (append new styles)
 - Icons: `ui/src/ui/icons.ts` (import and use `icon()` function)
@@ -20,6 +23,7 @@ Redesign the config/settings view (`ui/src/ui/views/config.ts`) with modern form
 ## Design System Reference
 
 ### CSS Variables (from base.css)
+
 ```css
 /* Dark theme */
 --bg: #0a0f14;
@@ -38,6 +42,7 @@ Redesign the config/settings view (`ui/src/ui/views/config.ts`) with modern form
 ```
 
 ### Icon System Usage
+
 ```typescript
 import { icon } from "../icons";
 
@@ -51,6 +56,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ### Pattern Examples (from completed overview.ts)
 
 #### Card with Icon Header
+
 ```typescript
 html`
   <div class="card">
@@ -63,10 +69,11 @@ html`
     </div>
     <!-- content -->
   </div>
-`
+`;
 ```
 
 #### Modern Form Field
+
 ```typescript
 html`
   <label class="field field--modern">
@@ -76,22 +83,24 @@ html`
       <input class="field__input" .value=${value} @input=${handler} />
     </div>
   </label>
-`
+`;
 ```
 
 #### Button with Icon
+
 ```typescript
 html`
   <button class="btn btn--primary" @click=${handler}>
     ${icon("check", { size: 16 })}
     <span>Save</span>
   </button>
-`
+`;
 ```
 
 ## Design Requirements
 
 ### Visual Style
+
 1. **Glass morphism** - Subtle transparency with backdrop blur
 2. **Gradient backgrounds** - Use `linear-gradient(135deg, ...)` patterns
 3. **Accent color highlights** - Orange (#f59f4a) for active/focus states
@@ -99,6 +108,7 @@ html`
 5. **Consistent border radius** - 10-16px for cards, 8-12px for inputs
 
 ### Config View Specific Requirements
+
 1. **Section navigation** - Sidebar or tabs for config sections
 2. **Search/filter** - Quick search through config options
 3. **Form vs Raw toggle** - Switch between form UI and raw JSON/YAML
@@ -107,6 +117,7 @@ html`
 6. **Dirty state indicator** - Show when changes are unsaved
 
 ### Suggested Layout
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Config Header (title, search, mode toggle)      │
@@ -129,18 +140,42 @@ html`
 
 ```css
 /* Config View Styles */
-.config-layout { /* main container */ }
-.config-sidebar { /* section navigation */ }
-.config-sidebar__item { /* nav item */ }
-.config-sidebar__item--active { /* active state */ }
-.config-content { /* main content area */ }
-.config-header { /* header with search/toggle */ }
-.config-search { /* search input */ }
-.config-mode-toggle { /* form/raw toggle */ }
-.config-section { /* section container */ }
-.config-field-group { /* group of related fields */ }
-.config-actions { /* save/apply buttons */ }
-.config-dirty-indicator { /* unsaved changes badge */ }
+.config-layout {
+  /* main container */
+}
+.config-sidebar {
+  /* section navigation */
+}
+.config-sidebar__item {
+  /* nav item */
+}
+.config-sidebar__item--active {
+  /* active state */
+}
+.config-content {
+  /* main content area */
+}
+.config-header {
+  /* header with search/toggle */
+}
+.config-search {
+  /* search input */
+}
+.config-mode-toggle {
+  /* form/raw toggle */
+}
+.config-section {
+  /* section container */
+}
+.config-field-group {
+  /* group of related fields */
+}
+.config-actions {
+  /* save/apply buttons */
+}
+.config-dirty-indicator {
+  /* unsaved changes badge */
+}
 ```
 
 ## Implementation Steps
@@ -154,7 +189,9 @@ html`
 7. **Test build** - Run `pnpm build` to verify no errors
 
 ## Testing
+
 After changes, run:
+
 ```bash
 cd ui && pnpm build
 ```

@@ -5,19 +5,10 @@
  * Handles incremental config writes, progress tracking, and validation.
  */
 
+import type { ConfigSnapshot, ConfigUiHints } from "../types";
+import type { OnboardingProgress, OnboardingWizardState } from "../views/onboarding-phases";
 import { toast } from "../components/toast";
-import type {
-  ConfigSnapshot,
-  ConfigUiHints,
-} from "../types";
-import {
-  cloneConfigObject,
-  serializeConfigForm,
-} from "../config/form-utils";
-import type {
-  OnboardingProgress,
-  OnboardingWizardState,
-} from "../views/onboarding-phases";
+import { cloneConfigObject, serializeConfigForm } from "../config/form-utils";
 import {
   createWizardState,
   openWizard,
@@ -428,20 +419,14 @@ export async function runHealthCheck(state: OnboardingState): Promise<{
 /**
  * Handle phase change in the wizard.
  */
-export function handlePhaseChange(
-  state: OnboardingState,
-  phaseId: string,
-): void {
+export function handlePhaseChange(state: OnboardingState, phaseId: string): void {
   state.wizard = setActivePhase(state.wizard, phaseId);
 }
 
 /**
  * Handle section change within a phase.
  */
-export function handleSectionChange(
-  state: OnboardingState,
-  sectionId: string,
-): void {
+export function handleSectionChange(state: OnboardingState, sectionId: string): void {
   state.wizard = setActiveSection(state.wizard, sectionId);
 }
 

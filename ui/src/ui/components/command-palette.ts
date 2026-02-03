@@ -4,11 +4,11 @@
  */
 
 import { html, nothing } from "lit";
-import { icon, type IconName } from "../icons";
 import type { Tab } from "../navigation";
-import { filterByFuzzy } from "./fuzzy-search";
-import { getRecentCommandIds, recordCommandUsage } from "./command-history";
+import { icon, type IconName } from "../icons";
 import { getFavoriteIds, isFavorite, toggleFavorite } from "./command-favorites";
+import { getRecentCommandIds, recordCommandUsage } from "./command-history";
+import { filterByFuzzy } from "./fuzzy-search";
 
 export type Command = {
   id: string;
@@ -52,7 +52,7 @@ function handlePaletteKeydown(
   onSelect: (cmd: Command) => void,
   onIndexChange: (index: number) => void,
   onCategoryChange: (cat: string) => void,
-  onToggleFavorite?: (cmd: Command) => void
+  onToggleFavorite?: (cmd: Command) => void,
 ) {
   // Ctrl/Cmd + D → toggle favorite on the selected item.
   if (e.key === "d" && (e.metaKey || e.ctrlKey)) {
@@ -119,8 +119,16 @@ function extractCategories(commands: Command[]): string[] {
 }
 
 export function renderCommandPalette(props: CommandPaletteProps) {
-  const { state, commands, onClose, onQueryChange, onIndexChange, onCategoryChange, onSelect, onFavoritesChange } =
-    props;
+  const {
+    state,
+    commands,
+    onClose,
+    onQueryChange,
+    onIndexChange,
+    onCategoryChange,
+    onSelect,
+    onFavoritesChange,
+  } = props;
 
   if (!state.open) return nothing;
 
@@ -198,8 +206,9 @@ export function renderCommandPalette(props: CommandPaletteProps) {
       >
         <span class="command-palette__item-icon">${icon(cmd.icon, { size: 16 })}</span>
         <span class="command-palette__item-label">${cmd.label}</span>
-        ${starred
-          ? html`<span
+        ${
+          starred
+            ? html`<span
               class="command-palette__item-fav"
               title="Favorited (${navigator.platform?.includes("Mac") ? "⌘" : "Ctrl+"}D to toggle)"
               @click=${(e: Event) => {
@@ -208,10 +217,13 @@ export function renderCommandPalette(props: CommandPaletteProps) {
               }}
               >★</span
             >`
-          : nothing}
-        ${cmd.shortcut
-          ? html`<kbd class="command-palette__item-shortcut">${cmd.shortcut}</kbd>`
-          : nothing}
+            : nothing
+        }
+        ${
+          cmd.shortcut
+            ? html`<kbd class="command-palette__item-shortcut">${cmd.shortcut}</kbd>`
+            : nothing
+        }
       </button>
     `;
   };
@@ -243,7 +255,7 @@ export function renderCommandPalette(props: CommandPaletteProps) {
                 handleSelect,
                 onIndexChange,
                 onCategoryChange,
-                handleToggleFavorite
+                handleToggleFavorite,
               )}
             autofocus
           />
@@ -253,9 +265,9 @@ export function renderCommandPalette(props: CommandPaletteProps) {
           ${allCategories.map(
             (cat) => html`
               <button
-                class="command-palette__category ${cat === state.activeCategory
-                  ? "command-palette__category--active"
-                  : ""}"
+                class="command-palette__category ${
+                  cat === state.activeCategory ? "command-palette__category--active" : ""
+                }"
                 @click=${() => {
                   onCategoryChange(cat);
                   onIndexChange(0);
@@ -263,41 +275,47 @@ export function renderCommandPalette(props: CommandPaletteProps) {
               >
                 ${cat}
               </button>
-            `
+            `,
           )}
         </div>
         <div class="command-palette__list">
-          ${totalVisible === 0
-            ? html`<div class="command-palette__empty">
+          ${
+            totalVisible === 0
+              ? html`<div class="command-palette__empty">
                 ${icon("search", { size: 24 })}
                 <span>No commands found</span>
               </div>`
-            : html`
-                ${favoriteCommands.length > 0
-                  ? html`
+              : html`
+                ${
+                  favoriteCommands.length > 0
+                    ? html`
                       <div class="command-palette__group">
                         <div class="command-palette__group-label">★ Favorites</div>
                         ${favoriteCommands.map(renderItem)}
                       </div>
                     `
-                  : nothing}
-                ${recentCommands.length > 0
-                  ? html`
+                    : nothing
+                }
+                ${
+                  recentCommands.length > 0
+                    ? html`
                       <div class="command-palette__group">
                         <div class="command-palette__group-label">Recents</div>
                         ${recentCommands.map(renderItem)}
                       </div>
                     `
-                  : nothing}
+                    : nothing
+                }
                 ${[...grouped.entries()].map(
                   ([category, cmds]) => html`
                     <div class="command-palette__group">
                       <div class="command-palette__group-label">${category}</div>
                       ${cmds.map(renderItem)}
                     </div>
-                  `
+                  `,
                 )}
-              `}
+              `
+          }
         </div>
       </div>
     </div>
@@ -316,35 +334,155 @@ export function createDefaultCommands(
     openKeyboardShortcuts?: () => void;
     openDocumentation?: () => void;
     copyGatewayUrl?: () => void;
-  }
+  },
 ): Command[] {
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   const mod = isMac ? "⌘" : "Ctrl+";
 
   const cmds: Command[] = [
     // Navigation
-    { id: "nav-chat", label: "Go to Chat", icon: "message-square", shortcut: `${mod}1`, category: "Navigation", action: () => setTab("chat") },
-    { id: "nav-overview", label: "Go to Overview", icon: "layout-dashboard", shortcut: `${mod}2`, category: "Navigation", action: () => setTab("overview") },
-    { id: "nav-channels", label: "Go to Channels", icon: "link", shortcut: `${mod}3`, category: "Navigation", action: () => setTab("channels") },
-    { id: "nav-sessions", label: "Go to Sessions", icon: "file-text", shortcut: `${mod}4`, category: "Navigation", action: () => setTab("sessions") },
-    { id: "nav-instances", label: "Go to Instances", icon: "radio", category: "Navigation", action: () => setTab("instances") },
-    { id: "nav-cron", label: "Go to Cron Jobs", icon: "clock", category: "Navigation", action: () => setTab("cron") },
-    { id: "nav-automations", label: "Go to Automations", icon: "play", category: "Navigation", action: () => setTab("automations") },
-    { id: "nav-skills", label: "Go to Skills", icon: "zap", category: "Navigation", action: () => setTab("skills") },
-    { id: "nav-nodes", label: "Go to Nodes", icon: "server", category: "Navigation", action: () => setTab("nodes") },
-    { id: "nav-config", label: "Go to Config", icon: "settings", shortcut: `${mod},`, category: "Navigation", action: () => setTab("config") },
-    { id: "nav-debug", label: "Go to Debug", icon: "bug", category: "Navigation", action: () => setTab("debug") },
-    { id: "nav-logs", label: "Go to Logs", icon: "scroll-text", category: "Navigation", action: () => setTab("logs") },
+    {
+      id: "nav-chat",
+      label: "Go to Chat",
+      icon: "message-square",
+      shortcut: `${mod}1`,
+      category: "Navigation",
+      action: () => setTab("chat"),
+    },
+    {
+      id: "nav-overview",
+      label: "Go to Overview",
+      icon: "layout-dashboard",
+      shortcut: `${mod}2`,
+      category: "Navigation",
+      action: () => setTab("overview"),
+    },
+    {
+      id: "nav-channels",
+      label: "Go to Channels",
+      icon: "link",
+      shortcut: `${mod}3`,
+      category: "Navigation",
+      action: () => setTab("channels"),
+    },
+    {
+      id: "nav-sessions",
+      label: "Go to Sessions",
+      icon: "file-text",
+      shortcut: `${mod}4`,
+      category: "Navigation",
+      action: () => setTab("sessions"),
+    },
+    {
+      id: "nav-instances",
+      label: "Go to Instances",
+      icon: "radio",
+      category: "Navigation",
+      action: () => setTab("instances"),
+    },
+    {
+      id: "nav-cron",
+      label: "Go to Cron Jobs",
+      icon: "clock",
+      category: "Navigation",
+      action: () => setTab("cron"),
+    },
+    {
+      id: "nav-automations",
+      label: "Go to Automations",
+      icon: "play",
+      category: "Navigation",
+      action: () => setTab("automations"),
+    },
+    {
+      id: "nav-skills",
+      label: "Go to Skills",
+      icon: "zap",
+      category: "Navigation",
+      action: () => setTab("skills"),
+    },
+    {
+      id: "nav-nodes",
+      label: "Go to Nodes",
+      icon: "server",
+      category: "Navigation",
+      action: () => setTab("nodes"),
+    },
+    {
+      id: "nav-config",
+      label: "Go to Config",
+      icon: "settings",
+      shortcut: `${mod},`,
+      category: "Navigation",
+      action: () => setTab("config"),
+    },
+    {
+      id: "nav-debug",
+      label: "Go to Debug",
+      icon: "bug",
+      category: "Navigation",
+      action: () => setTab("debug"),
+    },
+    {
+      id: "nav-logs",
+      label: "Go to Logs",
+      icon: "scroll-text",
+      category: "Navigation",
+      action: () => setTab("logs"),
+    },
     // Actions
-    { id: "action-refresh", label: "Refresh Current View", icon: "refresh-cw", shortcut: `${mod}R`, category: "Actions", action: refresh },
-    { id: "action-new-session", label: "New Chat Session", icon: "plus", shortcut: `${mod}N`, category: "Actions", action: newSession },
-    { id: "theme-toggle", label: "Toggle Theme", icon: "sun", shortcut: `${mod}T`, category: "Actions", action: toggleTheme },
+    {
+      id: "action-refresh",
+      label: "Refresh Current View",
+      icon: "refresh-cw",
+      shortcut: `${mod}R`,
+      category: "Actions",
+      action: refresh,
+    },
+    {
+      id: "action-new-session",
+      label: "New Chat Session",
+      icon: "plus",
+      shortcut: `${mod}N`,
+      category: "Actions",
+      action: newSession,
+    },
+    {
+      id: "theme-toggle",
+      label: "Toggle Theme",
+      icon: "sun",
+      shortcut: `${mod}T`,
+      category: "Actions",
+      action: toggleTheme,
+    },
   ];
 
   // System commands
-  if (extras?.openKeyboardShortcuts) cmds.push({ id: "sys-keyboard-shortcuts", label: "Keyboard Shortcuts", icon: "keyboard", shortcut: `${mod}?`, category: "System", action: extras.openKeyboardShortcuts });
-  if (extras?.openDocumentation) cmds.push({ id: "sys-open-docs", label: "Open Documentation", icon: "book-open", category: "System", action: extras.openDocumentation });
-  if (extras?.copyGatewayUrl) cmds.push({ id: "sys-copy-url", label: "Copy Gateway URL", icon: "copy", category: "System", action: extras.copyGatewayUrl });
+  if (extras?.openKeyboardShortcuts)
+    cmds.push({
+      id: "sys-keyboard-shortcuts",
+      label: "Keyboard Shortcuts",
+      icon: "keyboard",
+      shortcut: `${mod}?`,
+      category: "System",
+      action: extras.openKeyboardShortcuts,
+    });
+  if (extras?.openDocumentation)
+    cmds.push({
+      id: "sys-open-docs",
+      label: "Open Documentation",
+      icon: "book-open",
+      category: "System",
+      action: extras.openDocumentation,
+    });
+  if (extras?.copyGatewayUrl)
+    cmds.push({
+      id: "sys-copy-url",
+      label: "Copy Gateway URL",
+      icon: "copy",
+      category: "System",
+      action: extras.copyGatewayUrl,
+    });
 
   return cmds;
 }
@@ -387,55 +525,216 @@ export function createContextCommands(tab: Tab, actions: ContextActions): Comman
 
   switch (tab) {
     case "chat":
-      if (actions.newSession) cmds.push({ id: "ctx-new-session", label: "New Chat Session", icon: "plus", category: cat, action: actions.newSession });
-      if (actions.clearChat) cmds.push({ id: "ctx-clear-chat", label: "Clear Chat History", icon: "trash-2", category: cat, action: actions.clearChat });
-      if (actions.abortChat) cmds.push({ id: "ctx-abort-chat", label: "Abort Current Response", icon: "square", category: cat, action: actions.abortChat });
+      if (actions.newSession)
+        cmds.push({
+          id: "ctx-new-session",
+          label: "New Chat Session",
+          icon: "plus",
+          category: cat,
+          action: actions.newSession,
+        });
+      if (actions.clearChat)
+        cmds.push({
+          id: "ctx-clear-chat",
+          label: "Clear Chat History",
+          icon: "trash-2",
+          category: cat,
+          action: actions.clearChat,
+        });
+      if (actions.abortChat)
+        cmds.push({
+          id: "ctx-abort-chat",
+          label: "Abort Current Response",
+          icon: "square",
+          category: cat,
+          action: actions.abortChat,
+        });
       break;
     case "sessions":
-      if (actions.refreshSessions) cmds.push({ id: "ctx-refresh-sessions", label: "Refresh Sessions", icon: "refresh-cw", category: cat, action: actions.refreshSessions });
+      if (actions.refreshSessions)
+        cmds.push({
+          id: "ctx-refresh-sessions",
+          label: "Refresh Sessions",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshSessions,
+        });
       break;
     case "channels":
-      if (actions.refreshChannels) cmds.push({ id: "ctx-refresh-channels", label: "Refresh Channels", icon: "refresh-cw", category: cat, action: actions.refreshChannels });
+      if (actions.refreshChannels)
+        cmds.push({
+          id: "ctx-refresh-channels",
+          label: "Refresh Channels",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshChannels,
+        });
       break;
     case "cron":
-      if (actions.addCronJob) cmds.push({ id: "ctx-add-cron", label: "Add Cron Job", icon: "plus", category: cat, action: actions.addCronJob });
-      if (actions.refreshCron) cmds.push({ id: "ctx-refresh-cron", label: "Refresh Cron Jobs", icon: "refresh-cw", category: cat, action: actions.refreshCron });
+      if (actions.addCronJob)
+        cmds.push({
+          id: "ctx-add-cron",
+          label: "Add Cron Job",
+          icon: "plus",
+          category: cat,
+          action: actions.addCronJob,
+        });
+      if (actions.refreshCron)
+        cmds.push({
+          id: "ctx-refresh-cron",
+          label: "Refresh Cron Jobs",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshCron,
+        });
       break;
     case "automations":
-      if (actions.createAutomation) cmds.push({ id: "ctx-create-automation", label: "Create Automation", icon: "plus", category: cat, action: actions.createAutomation });
-      if (actions.refreshAutomations) cmds.push({ id: "ctx-refresh-automations", label: "Refresh Automations", icon: "refresh-cw", category: cat, action: actions.refreshAutomations });
+      if (actions.createAutomation)
+        cmds.push({
+          id: "ctx-create-automation",
+          label: "Create Automation",
+          icon: "plus",
+          category: cat,
+          action: actions.createAutomation,
+        });
+      if (actions.refreshAutomations)
+        cmds.push({
+          id: "ctx-refresh-automations",
+          label: "Refresh Automations",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshAutomations,
+        });
       break;
     case "overseer":
-      if (actions.createGoal) cmds.push({ id: "ctx-create-goal", label: "Create New Goal", icon: "target", category: cat, action: actions.createGoal });
-      if (actions.refreshOverseer) cmds.push({ id: "ctx-refresh-overseer", label: "Refresh Overseer", icon: "refresh-cw", category: cat, action: actions.refreshOverseer });
+      if (actions.createGoal)
+        cmds.push({
+          id: "ctx-create-goal",
+          label: "Create New Goal",
+          icon: "target",
+          category: cat,
+          action: actions.createGoal,
+        });
+      if (actions.refreshOverseer)
+        cmds.push({
+          id: "ctx-refresh-overseer",
+          label: "Refresh Overseer",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshOverseer,
+        });
       break;
     case "config":
-      if (actions.saveConfig) cmds.push({ id: "ctx-save-config", label: "Save Configuration", icon: "save", category: cat, action: actions.saveConfig });
+      if (actions.saveConfig)
+        cmds.push({
+          id: "ctx-save-config",
+          label: "Save Configuration",
+          icon: "save",
+          category: cat,
+          action: actions.saveConfig,
+        });
       break;
     case "nodes":
-      if (actions.refreshNodes) cmds.push({ id: "ctx-refresh-nodes", label: "Refresh Nodes", icon: "refresh-cw", category: cat, action: actions.refreshNodes });
+      if (actions.refreshNodes)
+        cmds.push({
+          id: "ctx-refresh-nodes",
+          label: "Refresh Nodes",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshNodes,
+        });
       break;
     case "logs":
-      if (actions.clearLogs) cmds.push({ id: "ctx-clear-logs", label: "Clear Log View", icon: "trash-2", category: cat, action: actions.clearLogs });
-      if (actions.refreshLogs) cmds.push({ id: "ctx-refresh-logs", label: "Refresh Logs", icon: "refresh-cw", category: cat, action: actions.refreshLogs });
-      if (actions.exportLogs) cmds.push({ id: "ctx-export-logs", label: "Export Logs", icon: "download", category: cat, action: actions.exportLogs });
-      if (actions.toggleAutoFollow) cmds.push({ id: "ctx-toggle-follow", label: "Toggle Auto-Follow", icon: "arrow-down-to-line", category: cat, action: actions.toggleAutoFollow });
-      if (actions.jumpToLogsBottom) cmds.push({ id: "ctx-jump-bottom", label: "Jump to Bottom", icon: "chevrons-down", category: cat, action: actions.jumpToLogsBottom });
+      if (actions.clearLogs)
+        cmds.push({
+          id: "ctx-clear-logs",
+          label: "Clear Log View",
+          icon: "trash-2",
+          category: cat,
+          action: actions.clearLogs,
+        });
+      if (actions.refreshLogs)
+        cmds.push({
+          id: "ctx-refresh-logs",
+          label: "Refresh Logs",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshLogs,
+        });
+      if (actions.exportLogs)
+        cmds.push({
+          id: "ctx-export-logs",
+          label: "Export Logs",
+          icon: "download",
+          category: cat,
+          action: actions.exportLogs,
+        });
+      if (actions.toggleAutoFollow)
+        cmds.push({
+          id: "ctx-toggle-follow",
+          label: "Toggle Auto-Follow",
+          icon: "arrow-down-to-line",
+          category: cat,
+          action: actions.toggleAutoFollow,
+        });
+      if (actions.jumpToLogsBottom)
+        cmds.push({
+          id: "ctx-jump-bottom",
+          label: "Jump to Bottom",
+          icon: "chevrons-down",
+          category: cat,
+          action: actions.jumpToLogsBottom,
+        });
       break;
     case "skills":
-      if (actions.refreshSkills) cmds.push({ id: "ctx-refresh-skills", label: "Refresh Skills", icon: "refresh-cw", category: cat, action: actions.refreshSkills });
+      if (actions.refreshSkills)
+        cmds.push({
+          id: "ctx-refresh-skills",
+          label: "Refresh Skills",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshSkills,
+        });
       break;
     case "debug":
-      if (actions.refreshDebug) cmds.push({ id: "ctx-refresh-debug", label: "Refresh Debug", icon: "refresh-cw", category: cat, action: actions.refreshDebug });
+      if (actions.refreshDebug)
+        cmds.push({
+          id: "ctx-refresh-debug",
+          label: "Refresh Debug",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshDebug,
+        });
       break;
     case "instances":
-      if (actions.refreshInstances) cmds.push({ id: "ctx-refresh-instances", label: "Refresh Instances", icon: "refresh-cw", category: cat, action: actions.refreshInstances });
+      if (actions.refreshInstances)
+        cmds.push({
+          id: "ctx-refresh-instances",
+          label: "Refresh Instances",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshInstances,
+        });
       break;
     case "overview":
-      if (actions.refreshOverview) cmds.push({ id: "ctx-refresh-overview", label: "Refresh Overview", icon: "refresh-cw", category: cat, action: actions.refreshOverview });
+      if (actions.refreshOverview)
+        cmds.push({
+          id: "ctx-refresh-overview",
+          label: "Refresh Overview",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshOverview,
+        });
       break;
     case "agents":
-      if (actions.refreshAgents) cmds.push({ id: "ctx-refresh-agents", label: "Refresh Agents", icon: "refresh-cw", category: cat, action: actions.refreshAgents });
+      if (actions.refreshAgents)
+        cmds.push({
+          id: "ctx-refresh-agents",
+          label: "Refresh Agents",
+          icon: "refresh-cw",
+          category: cat,
+          action: actions.refreshAgents,
+        });
       break;
   }
 

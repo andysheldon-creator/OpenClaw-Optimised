@@ -44,14 +44,10 @@ export function toast(options: ToastOptions | string): string {
 }
 
 // Convenience methods
-toast.success = (message: string, title?: string) =>
-  toast({ type: "success", message, title });
-toast.error = (message: string, title?: string) =>
-  toast({ type: "error", message, title });
-toast.warning = (message: string, title?: string) =>
-  toast({ type: "warning", message, title });
-toast.info = (message: string, title?: string) =>
-  toast({ type: "info", message, title });
+toast.success = (message: string, title?: string) => toast({ type: "success", message, title });
+toast.error = (message: string, title?: string) => toast({ type: "error", message, title });
+toast.warning = (message: string, title?: string) => toast({ type: "warning", message, title });
+toast.info = (message: string, title?: string) => toast({ type: "info", message, title });
 toast.dismiss = (id: string) => globalToastContainer?.dismissToast(id);
 toast.dismissAll = () => globalToastContainer?.dismissAll();
 
@@ -67,22 +63,19 @@ toast.promise = async <T>(
     loading: string;
     success: string | ((data: T) => string);
     error: string | ((err: unknown) => string);
-  }
+  },
 ): Promise<T> => {
   const loadingId = toast({ type: "info", message: messages.loading, duration: 0 });
   try {
     const result = await promise;
     toast.dismiss(loadingId);
-    const successMsg = typeof messages.success === "function"
-      ? messages.success(result)
-      : messages.success;
+    const successMsg =
+      typeof messages.success === "function" ? messages.success(result) : messages.success;
     toast.success(successMsg);
     return result;
   } catch (err) {
     toast.dismiss(loadingId);
-    const errorMsg = typeof messages.error === "function"
-      ? messages.error(err)
-      : messages.error;
+    const errorMsg = typeof messages.error === "function" ? messages.error(err) : messages.error;
     toast.error(errorMsg);
     throw err;
   }
@@ -101,7 +94,7 @@ export class ToastContainer extends LitElement {
       gap: 0.5rem;
       pointer-events: none;
     }
-
+    
     .toast {
       display: flex;
       align-items: flex-start;
@@ -116,11 +109,11 @@ export class ToastContainer extends LitElement {
       pointer-events: auto;
       animation: slideInRight 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-
+    
     .toast.exiting {
       animation: slideOutRight 0.2s ease-out forwards;
     }
-
+    
     @keyframes slideInRight {
       from {
         opacity: 0;
@@ -131,7 +124,7 @@ export class ToastContainer extends LitElement {
         transform: translateX(0);
       }
     }
-
+    
     @keyframes slideOutRight {
       from {
         opacity: 1;
@@ -142,37 +135,45 @@ export class ToastContainer extends LitElement {
         transform: translateX(20px);
       }
     }
-
+    
     .toast-icon {
       flex-shrink: 0;
       width: 20px;
       height: 20px;
     }
-
-    .toast-success .toast-icon { color: var(--ok); }
-    .toast-warning .toast-icon { color: var(--warn); }
-    .toast-error .toast-icon { color: var(--danger); }
-    .toast-info .toast-icon { color: var(--info, #60a5fa); }
-
+    
+    .toast-success .toast-icon {
+      color: var(--ok);
+    }
+    .toast-warning .toast-icon {
+      color: var(--warn);
+    }
+    .toast-error .toast-icon {
+      color: var(--danger);
+    }
+    .toast-info .toast-icon {
+      color: var(--info, #60a5fa);
+    }
+    
     .toast-content {
       flex: 1;
       min-width: 0;
     }
-
+    
     .toast-title {
       font-size: 0.875rem;
       font-weight: 600;
       color: var(--text);
       margin: 0;
     }
-
+    
     .toast-message {
       font-size: 0.8125rem;
       color: var(--text-secondary, var(--muted));
       margin-top: 0.25rem;
       line-height: 1.4;
     }
-
+    
     .toast-close {
       flex-shrink: 0;
       padding: 0.25rem;
@@ -186,17 +187,17 @@ export class ToastContainer extends LitElement {
       align-items: center;
       justify-content: center;
     }
-
+    
     .toast-close:hover {
       color: var(--text);
       background: var(--bg-overlay);
     }
-
+    
     .toast-close svg {
       width: 16px;
       height: 16px;
     }
-
+    
     /* Progress bar for auto-dismiss */
     .toast-progress {
       position: absolute;
@@ -208,27 +209,48 @@ export class ToastContainer extends LitElement {
       border-radius: 0 0 var(--radius-lg, 0.75rem) var(--radius-lg, 0.75rem);
       overflow: hidden;
     }
-
+    
     .toast-progress-bar {
       height: 100%;
       background: var(--accent);
       animation: progress linear forwards;
     }
-
+    
     @keyframes progress {
-      from { width: 100%; }
-      to { width: 0%; }
+      from {
+        width: 100%;
+      }
+      to {
+        width: 0%;
+      }
     }
-
-    .toast-success .toast-progress-bar { background: var(--ok); }
-    .toast-warning .toast-progress-bar { background: var(--warn); }
-    .toast-error .toast-progress-bar { background: var(--danger); }
-    .toast-info .toast-progress-bar { background: var(--info, #60a5fa); }
-
+    
+    .toast-success .toast-progress-bar {
+      background: var(--ok);
+    }
+    .toast-warning .toast-progress-bar {
+      background: var(--warn);
+    }
+    .toast-error .toast-progress-bar {
+      background: var(--danger);
+    }
+    .toast-info .toast-progress-bar {
+      background: var(--info, #60a5fa);
+    }
+    
     /* Stacking animation */
-    .toast:nth-last-child(2) { opacity: 0.9; transform: scale(0.98); }
-    .toast:nth-last-child(3) { opacity: 0.8; transform: scale(0.96); }
-    .toast:nth-last-child(n+4) { opacity: 0.7; transform: scale(0.94); }
+    .toast:nth-last-child(2) {
+      opacity: 0.9;
+      transform: scale(0.98);
+    }
+    .toast:nth-last-child(3) {
+      opacity: 0.8;
+      transform: scale(0.96);
+    }
+    .toast:nth-last-child(n + 4) {
+      opacity: 0.7;
+      transform: scale(0.94);
+    }
   `;
 
   @state() private toasts: ToastEntry[] = [];
@@ -288,9 +310,7 @@ export class ToastContainer extends LitElement {
     }
 
     // Mark as exiting for animation
-    this.toasts = this.toasts.map((t) =>
-      t.id === id ? { ...t, exiting: true } : t
-    );
+    this.toasts = this.toasts.map((t) => (t.id === id ? { ...t, exiting: true } : t));
 
     // Remove after animation
     setTimeout(() => {
@@ -305,29 +325,82 @@ export class ToastContainer extends LitElement {
   private getIcon(type: ToastType) {
     switch (type) {
       case "success":
-        return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+        return html`
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        `;
       case "error":
-        return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+        return html`
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        `;
       case "warning":
-        return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+        return html`
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        `;
       case "info":
       default:
-        return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+        return html`
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        `;
     }
   }
 
   render() {
     return html`
       <div class="toast-container">
-        ${this.toasts.map((t) => html`
+        ${this.toasts.map(
+          (t) => html`
           <div class="toast toast-${t.type} ${t.exiting ? "exiting" : ""}" role="alert">
             <div class="toast-icon">${this.getIcon(t.type!)}</div>
             <div class="toast-content">
               ${t.title ? html`<div class="toast-title">${t.title}</div>` : nothing}
               <div class="toast-message">${t.message}</div>
             </div>
-            ${t.dismissible
-              ? html`
+            ${
+              t.dismissible
+                ? html`
                   <button
                     class="toast-close"
                     @click=${() => this.dismissToast(t.id)}
@@ -339,9 +412,11 @@ export class ToastContainer extends LitElement {
                     </svg>
                   </button>
                 `
-              : nothing}
-            ${t.duration && t.duration > 0
-              ? html`
+                : nothing
+            }
+            ${
+              t.duration && t.duration > 0
+                ? html`
                   <div class="toast-progress">
                     <div
                       class="toast-progress-bar"
@@ -349,9 +424,11 @@ export class ToastContainer extends LitElement {
                     ></div>
                   </div>
                 `
-              : nothing}
+                : nothing
+            }
           </div>
-        `)}
+        `,
+        )}
       </div>
     `;
   }

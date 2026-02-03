@@ -3,12 +3,7 @@
  */
 
 /** Status values for a chat task */
-export type TaskStatus =
-  | "not-started"
-  | "in-progress"
-  | "completed"
-  | "error"
-  | "user-feedback";
+export type TaskStatus = "not-started" | "in-progress" | "completed" | "error" | "user-feedback";
 
 /** A task derived from tool stream entries */
 export type ChatTask = {

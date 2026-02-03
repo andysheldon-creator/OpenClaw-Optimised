@@ -7,11 +7,7 @@
  */
 
 import type { IconName } from "../icons";
-import type {
-  ChannelCard,
-  ModelCard,
-  CardStatus,
-} from "./onboarding-cards";
+import type { ChannelCard, ModelCard, CardStatus } from "./onboarding-cards";
 
 // ============================================================================
 // Types
@@ -84,7 +80,13 @@ export const ONBOARDING_PHASES: OnboardingPhase[] = [
 // Default Channels
 // ============================================================================
 
-export const DEFAULT_CHANNELS: Array<{ id: string; name: string; icon: IconName; description: string; popular: boolean }> = [
+export const DEFAULT_CHANNELS: Array<{
+  id: string;
+  name: string;
+  icon: IconName;
+  description: string;
+  popular: boolean;
+}> = [
   {
     id: "whatsapp",
     name: "WhatsApp",
@@ -133,7 +135,13 @@ export const DEFAULT_CHANNELS: Array<{ id: string; name: string; icon: IconName;
 // Default Models
 // ============================================================================
 
-export const DEFAULT_MODELS: Array<{ id: string; name: string; provider: string; icon: IconName; description: string }> = [
+export const DEFAULT_MODELS: Array<{
+  id: string;
+  name: string;
+  provider: string;
+  icon: IconName;
+  description: string;
+}> = [
   {
     id: "claude-3-5-sonnet",
     name: "Claude 3.5 Sonnet",
@@ -195,11 +203,11 @@ export function getPreviousPhase(currentPhaseId: string): OnboardingPhase | unde
   return ONBOARDING_PHASES[currentIndex - 1];
 }
 
-export function getChannelById(channelId: string): typeof DEFAULT_CHANNELS[0] | undefined {
+export function getChannelById(channelId: string): (typeof DEFAULT_CHANNELS)[0] | undefined {
   return DEFAULT_CHANNELS.find((c) => c.id === channelId);
 }
 
-export function getModelById(modelId: string): typeof DEFAULT_MODELS[0] | undefined {
+export function getModelById(modelId: string): (typeof DEFAULT_MODELS)[0] | undefined {
   return DEFAULT_MODELS.find((m) => m.id === modelId);
 }
 
@@ -220,10 +228,7 @@ export function getDefaultQuickStartForm(): QuickStartForm {
 /**
  * Create channel card from config
  */
-export function createChannelCard(
-  channelId: string,
-  config: Record<string, unknown>,
-): ChannelCard {
+export function createChannelCard(channelId: string, config: Record<string, unknown>): ChannelCard {
   const channelDef = getChannelById(channelId);
   const channelConfig = config.channels?.[channelId] as Record<string, unknown> | undefined;
 
@@ -258,10 +263,7 @@ export function createChannelCard(
 /**
  * Create model card from config
  */
-export function createModelCard(
-  modelId: string,
-  config: Record<string, unknown>,
-): ModelCard {
+export function createModelCard(modelId: string, config: Record<string, unknown>): ModelCard {
   const modelDef = getModelById(modelId);
 
   // Determine status (default model from quickstart is always configured)

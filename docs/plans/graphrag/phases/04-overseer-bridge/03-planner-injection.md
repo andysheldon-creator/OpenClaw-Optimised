@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement graph context injection for Overseer planner:
+
 - Recognize entities in goal description
 - Fetch related entities and relationships
 - Format context for planning prompt
@@ -30,14 +31,14 @@ src/knowledge/overseer-bridge/
  * Inject graph context into Overseer planning prompts.
  */
 
-import type { GraphQueryEngine } from '../graph/query.js';
-import { QueryEntityRecognizer } from '../retrieval/query-entity-recognizer.js';
+import type { GraphQueryEngine } from "../graph/query.js";
+import { QueryEntityRecognizer } from "../retrieval/query-entity-recognizer.js";
 
 export class PlannerGraphInjection {
   private entityRecognizer: QueryEntityRecognizer;
 
   constructor(private graphQuery: GraphQueryEngine) {
-    this.entityRecognizer = new QueryEntityRecognizer(graphQuery['datastore']);
+    this.entityRecognizer = new QueryEntityRecognizer(graphQuery["datastore"]);
   }
 
   /**
@@ -50,10 +51,10 @@ export class PlannerGraphInjection {
     const queryEntities = await this.entityRecognizer.recognize(goalDescription);
 
     if (queryEntities.length === 0) {
-      return '';
+      return "";
     }
 
-    context.push('## Relevant Knowledge Graph Entities\n');
+    context.push("## Relevant Knowledge Graph Entities\n");
 
     for (const entity of queryEntities) {
       // Get neighborhood
@@ -69,7 +70,7 @@ export class PlannerGraphInjection {
 
       // List related entities
       if (neighborhood.relationships.length > 0) {
-        context.push('\n**Related entities:**');
+        context.push("\n**Related entities:**");
         for (const { targetEntity, relationship } of neighborhood.relationships.slice(0, 5)) {
           context.push(`- ${targetEntity.name} (${relationship.type})`);
         }
@@ -78,23 +79,23 @@ export class PlannerGraphInjection {
       // Check for active goals
       const goals = await this.findActiveGoals(entity.id);
       if (goals.length > 0) {
-        context.push('\n**Active goals:**');
+        context.push("\n**Active goals:**");
         for (const goal of goals) {
           context.push(`- ${goal.title}`);
         }
       }
 
-      context.push('');
+      context.push("");
     }
 
-    return context.join('\n');
+    return context.join("\n");
   }
 
   /**
    * Find active goals for an entity.
    */
   private async findActiveGoals(entityId: string): Promise<Array<{ title: string }>> {
-    const results = await this.graphQuery['datastore'].query<any>(
+    const results = await this.graphQuery["datastore"].query<any>(
       `SELECT e.name as title
        FROM kg_entities e
        JOIN kg_relationships r ON r.source_id = e.id
@@ -102,7 +103,7 @@ export class PlannerGraphInjection {
          AND e.type = 'goal'
        ORDER BY e.last_seen DESC
        LIMIT 5`,
-      [entityId]
+      [entityId],
     );
 
     return results;
@@ -120,7 +121,7 @@ export class PlannerGraphInjection {
     const contextSection = `\n${context}\n`;
 
     // Find where to inject (before "Create a plan")
-    const injectPoint = prompt.indexOf('Create a plan');
+    const injectPoint = prompt.indexOf("Create a plan");
     if (injectPoint > 0) {
       return prompt.slice(0, injectPoint) + contextSection + prompt.slice(injectPoint);
     }
@@ -135,7 +136,7 @@ export class PlannerGraphInjection {
 ```typescript
 // In OverseerPlanner class
 
-import { PlannerGraphInjection } from '../../knowledge/overseer-bridge/planner-injection.js';
+import { PlannerGraphInjection } from "../../knowledge/overseer-bridge/planner-injection.js";
 
 export class OverseerPlanner {
   private graphInjection?: PlannerGraphInjection;

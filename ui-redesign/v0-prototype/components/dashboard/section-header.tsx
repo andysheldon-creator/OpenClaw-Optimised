@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { ChevronRight } from "lucide-react"
-import Link from "next/link"
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface SectionHeaderProps {
-  title: string
-  href?: string
-  count?: number
-  className?: string
+  title: string;
+  href?: string;
+  count?: number;
+  className?: string;
 }
 
 export function SectionHeader({ title, href, count, className }: SectionHeaderProps) {
@@ -19,9 +19,7 @@ export function SectionHeader({ title, href, count, className }: SectionHeaderPr
           {title}
         </h2>
         {count !== undefined && (
-          <span className="text-xs font-medium text-muted-foreground/60">
-            ({count})
-          </span>
+          <span className="text-xs font-medium text-muted-foreground/60">({count})</span>
         )}
       </div>
       {href && (
@@ -34,5 +32,5 @@ export function SectionHeader({ title, href, count, className }: SectionHeaderPr
         </Link>
       )}
     </div>
-  )
+  );
 }

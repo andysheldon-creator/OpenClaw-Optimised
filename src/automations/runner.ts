@@ -6,18 +6,17 @@
  */
 
 import crypto from "node:crypto";
-
+import type { AutomationServiceState } from "./service/state.js";
 import type {
   Automation,
   AutomationArtifact,
   AutomationConflict,
   AutomationMilestone,
 } from "./types.js";
-import type { AutomationServiceState } from "./service/state.js";
 import { emitAutomationProgress } from "./events.js";
 import { CustomScriptExecutor } from "./executors/custom-script.js";
-import { WebhookExecutor } from "./executors/webhook.js";
 import { SmartSyncForkExecutor } from "./executors/smart-sync-fork.js";
+import { WebhookExecutor } from "./executors/webhook.js";
 
 /**
  * Execution result from an automation run.

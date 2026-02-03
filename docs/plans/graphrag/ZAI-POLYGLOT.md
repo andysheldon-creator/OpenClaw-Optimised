@@ -11,6 +11,7 @@
 After analyzing Archon's microservices architecture, I recommend **selective adoption of Python services** for Clawdbrain, focused on **AI/ML-heavy workloads** where Python's ecosystem is superior. Not everything should move to Python—the key is identifying the right boundary.
 
 **Key Recommendation:** Create a **hybrid Node.js + Python architecture** where:
+
 - **Node.js** remains the orchestrator, CLI, and lightweight services
 - **Python** handles AI/ML, graph algorithms, and data processing
 - **HTTP-based IPC** maintains clean separation
@@ -44,28 +45,28 @@ Archon separates concerns into distinct Python microservices:
 
 ### Service Responsibilities
 
-| Service | Language | Purpose | Key Dependencies |
-|---------|----------|---------|------------------|
-| **archon-server** | Python | Core API, crawling, ML/AI operations | FastAPI, crawl4ai, OpenAI, Supabase, PyPDF2 |
-| **archon-mcp** | Python | MCP protocol interface, lightweight | FastAPI, MCP SDK, HTTP client |
-| **archon-agents** | Python | PydanticAI agent hosting (RAG, Document) | PydanticAI, FastAPI |
-| **archon-ui** | TypeScript | React frontend, user interface | React, Vite, TailwindCSS |
+| Service           | Language   | Purpose                                  | Key Dependencies                            |
+| ----------------- | ---------- | ---------------------------------------- | ------------------------------------------- |
+| **archon-server** | Python     | Core API, crawling, ML/AI operations     | FastAPI, crawl4ai, OpenAI, Supabase, PyPDF2 |
+| **archon-mcp**    | Python     | MCP protocol interface, lightweight      | FastAPI, MCP SDK, HTTP client               |
+| **archon-agents** | Python     | PydanticAI agent hosting (RAG, Document) | PydanticAI, FastAPI                         |
+| **archon-ui**     | TypeScript | React frontend, user interface           | React, Vite, TailwindCSS                    |
 
 ### Why Python for AI/ML?
 
 **Library Ecosystem Gap:**
 
-| Domain | Python | Node.js | Winner |
-|--------|--------|---------|--------|
-| **LLM Frameworks** | LangChain, PydanticAI, LlamaIndex | LangChain.js (port), Vercel AI SDK | **Python** |
-| **Vector DB Clients** | All official clients first | Limited support, ports lag | **Python** |
-| **Web Crawling** | crawl4ai, Scrapy, Playwright | Playwright (Node-native), Puppeteer | **Tie** |
-| **Document Parsing** | PyPDF2, pdfplumber, python-docx | pdf-parse, mammoth (good) | **Tie** |
-| **Graph Algorithms** | NetworkX, graphology, igraph | graphology (port available) | **Python** |
-| **Embedding Models** | sentence-transformers, transformers | None (requires API) | **Python** |
-| **Machine Learning** | scikit-learn, PyTorch, TensorFlow | TensorFlow.js (limited) | **Python** |
-| **Reranking** | sentence-transformers, colbert | None | **Python** |
-| **Data Processing** | pandas, numpy, polars | Danfo.js (limited) | **Python** |
+| Domain                | Python                              | Node.js                             | Winner     |
+| --------------------- | ----------------------------------- | ----------------------------------- | ---------- |
+| **LLM Frameworks**    | LangChain, PydanticAI, LlamaIndex   | LangChain.js (port), Vercel AI SDK  | **Python** |
+| **Vector DB Clients** | All official clients first          | Limited support, ports lag          | **Python** |
+| **Web Crawling**      | crawl4ai, Scrapy, Playwright        | Playwright (Node-native), Puppeteer | **Tie**    |
+| **Document Parsing**  | PyPDF2, pdfplumber, python-docx     | pdf-parse, mammoth (good)           | **Tie**    |
+| **Graph Algorithms**  | NetworkX, graphology, igraph        | graphology (port available)         | **Python** |
+| **Embedding Models**  | sentence-transformers, transformers | None (requires API)                 | **Python** |
+| **Machine Learning**  | scikit-learn, PyTorch, TensorFlow   | TensorFlow.js (limited)             | **Python** |
+| **Reranking**         | sentence-transformers, colbert      | None                                | **Python** |
+| **Data Processing**   | pandas, numpy, polars               | Danfo.js (limited)                  | **Python** |
 
 **Key Insight:** Python wins on **library maturity**, **feature completeness**, and **community support** for AI/ML workloads.
 
@@ -78,17 +79,20 @@ Archon separates concerns into distinct Python microservices:
 #### 1. Entity Extraction Pipeline (GraphRAG)
 
 **Current Plan (Node.js):**
+
 - LLM calls via existing provider abstraction
 - Delimiter-based parsing
 - Consolidation algorithm
 
 **Why Python is Better:**
+
 - **LangChain/LLamaIndex integration** - Pre-built extraction templates
 - **Structured output** - Better JSON schema validation
 - **Batch processing** - asyncio + concurrent futures
 - **Extraction quality** - More proven patterns for NER + relation extraction
 
 **Python Implementation:**
+
 ```python
 # src/python/extraction/extraction_service.py
 from langchain.extractors import EntityExtractor
@@ -110,11 +114,12 @@ class ExtractionService:
 ```
 
 **Interface:**
+
 ```typescript
 // Node.js wrapper calls Python service
 const extractionResult = await pythonService.extract({
-    chunks: processedChunks,
-    config: extractionConfig
+  chunks: processedChunks,
+  config: extractionConfig,
 });
 ```
 
@@ -123,17 +128,20 @@ const extractionResult = await pythonService.extract({
 #### 2. Graph Algorithms & Community Detection
 
 **Current Plan (Node.js with graphology):**
+
 - BFS, DFS, shortest path
 - Basic centrality measures
 - No community detection
 
 **Why Python is Better:**
+
 - **NetworkX** - Comprehensive graph algorithms
 - **igraph** - Performance-optimized (10x faster than Node.js)
 - **python-louvain** - Community detection (missing in Node.js)
 - **graph-tool** - 100K+ nodes at scale
 
 **Python Implementation:**
+
 ```python
 # src/python/graph/graph_service.py
 import networkx as nx
@@ -173,10 +181,11 @@ class GraphAlgorithmsService:
 ```
 
 **Interface:**
+
 ```typescript
 // Node.js delegates complex graph queries to Python
 const communities = await pythonGraphService.detectCommunities({
-    entityIds: relevantEntityIds
+  entityIds: relevantEntityIds,
 });
 ```
 
@@ -185,16 +194,19 @@ const communities = await pythonGraphService.detectCommunities({
 #### 3. Reranking & Cross-Encoders
 
 **Current Plan (Node.js):**
+
 - Basic scoring, no reranking
 - Missing cross-encoder for quality improvement
 
 **Why Python is Better:**
+
 - **sentence-transformers** - Multiple cross-encoder models
 - **colbert** - Late interaction reranking (SOTA)
 - **Cohere Rerank** - API-wrapper but Python has better integration
 - **monot5** - Top-quality reranker
 
 **Python Implementation:**
+
 ```python
 # src/python/reranking/reranking_service.py
 from sentence_transformers import CrossEncoder
@@ -228,12 +240,13 @@ class RerankingService:
 ```
 
 **Interface:**
+
 ```typescript
 // Node.js calls Python for reranking after initial search
 const reranked = await pythonService.rerank({
-    query: userQuery,
-    results: initialResults,
-    topK: 10
+  query: userQuery,
+  results: initialResults,
+  topK: 10,
 });
 ```
 
@@ -242,10 +255,12 @@ const reranked = await pythonService.rerank({
 #### 4. Advanced Document Processing
 
 **Current Plan (Node.js):**
+
 - pdf-parse, mammoth (good, but limited)
 - Basic chunking
 
 **Why Python is Better:**
+
 - **Unstructured** - Advanced layout detection, table extraction
 - **LayoutParser** - Document structure understanding
 - **Nougat** - Table extraction (SOTA for PDF tables)
@@ -253,6 +268,7 @@ const reranked = await pythonService.rerank({
 - **LangChain document loaders** - Pre-built for many formats
 
 **Python Implementation:**
+
 ```python
 # src/python/processing/document_service.py
 from unstructured.partition.pdf import partition_pdf
@@ -306,10 +322,12 @@ class AdvancedDocumentService:
 #### 5. Knowledge Graph Consolidation
 
 **Current Plan (Node.js with graphology):**
+
 - Consolidation algorithm
 - Embedding-based fuzzy matching
 
 **Why Python is Better:**
+
 - **rapidfuzz** - Fuzzy string matching at scale
 - **dedupe** - Record linkage and deduplication
 - **polars** - Faster data processing than pandas
@@ -322,32 +340,35 @@ class AdvancedDocumentService:
 #### 6. Crawler Orchestration (Hybrid)
 
 **Current Plan (Node.js):**
+
 - Playwright already in Node.js
 - HTTP fetching with rate limiting
 
 **Why Hybrid is Better:**
+
 - **Node.js**: Playwright crawling (native), HTTP fetching (fast)
 - **Python**: Content processing, extraction, ML-based filtering
 - **Split responsibility**: Node.js fetches, Python processes
 
 **Hybrid Implementation:**
+
 ```typescript
 // Node.js fetcher
 class CrawlerOrchestrator {
-    async crawl(url: string) {
-        // Use Playwright (Node.js) for JS rendering
-        const html = await this.playwright.fetch(url);
+  async crawl(url: string) {
+    // Use Playwright (Node.js) for JS rendering
+    const html = await this.playwright.fetch(url);
 
-        // Send to Python for processing
-        const extracted = await pythonService.processContent({
-            html,
-            url,
-            extractEntities: true,
-            extractCode: true
-        });
+    // Send to Python for processing
+    const extracted = await pythonService.processContent({
+      html,
+      url,
+      extractEntities: true,
+      extractCode: true,
+    });
 
-        return extracted;
-    }
+    return extracted;
+  }
 }
 ```
 
@@ -358,6 +379,7 @@ class CrawlerOrchestrator {
 #### 7. Gateway, CLI, Channel Interfaces
 
 **Why Node.js Wins:**
+
 - **Performance** - Faster I/O, lower memory footprint
 - **Ecosystem** - Better WebSocket libraries, CLI frameworks
 - **Existing codebase** - Clawdbrain already has mature Node.js services
@@ -366,6 +388,7 @@ class CrawlerOrchestrator {
 #### 8. SQLite Operations
 
 **Why Node.js is Fine:**
+
 - **better-sqlite3** - Excellent async SQLite driver
 - **sqlite-vec** - Vector operations in Node.js
 - **No Python overhead** - Direct database access
@@ -373,6 +396,7 @@ class CrawlerOrchestrator {
 #### 9. Agent Tool Registration
 
 **Why Node.js is Fine:**
+
 - Tools are simple JSON schemas
 - TypeBox validation is already working
 - No ML needed
@@ -514,59 +538,59 @@ async def health_check():
 
 ```typescript
 // src/python/python-client.ts
-import { Injectable } from '@inversify';
-import { HttpService } from './http-service.js';
+import { Injectable } from "@inversify";
+import { HttpService } from "./http-service.js";
 
 export interface ExtractionRequest {
-    chunks: string[];
-    config: ExtractionConfig;
+  chunks: string[];
+  config: ExtractionConfig;
 }
 
 export interface ExtractionResult {
-    entities: Entity[];
-    relationships: Relationship[];
+  entities: Entity[];
+  relationships: Relationship[];
 }
 
 @Injectable()
 export class PythonService {
-    private baseUrl: string;
+  private baseUrl: string;
 
-    constructor(private http: HttpService) {
-        this.baseUrl = process.env.PYTHON_SERVICE_URL || 'http://localhost:8888';
-    }
+  constructor(private http: HttpService) {
+    this.baseUrl = process.env.PYTHON_SERVICE_URL || "http://localhost:8888";
+  }
 
-    async extractEntities(request: ExtractionRequest): Promise<ExtractionResult> {
-        const response = await this.http.post<ExtractionResult>(
-            `${this.baseUrl}/v1/extraction/extract`,
-            request
-        );
-        return response;
-    }
+  async extractEntities(request: ExtractionRequest): Promise<ExtractionResult> {
+    const response = await this.http.post<ExtractionResult>(
+      `${this.baseUrl}/v1/extraction/extract`,
+      request,
+    );
+    return response;
+  }
 
-    async detectCommunities(entityIds: string[]): Promise<CommunityResult> {
-        const response = await this.http.post<CommunityResult>(
-            `${this.baseUrl}/v1/graph/communities`,
-            { entityIds }
-        );
-        return response;
-    }
+  async detectCommunities(entityIds: string[]): Promise<CommunityResult> {
+    const response = await this.http.post<CommunityResult>(`${this.baseUrl}/v1/graph/communities`, {
+      entityIds,
+    });
+    return response;
+  }
 
-    async rerank(query: string, results: SearchResult[]): Promise<SearchResult[]> {
-        const response = await this.http.post<SearchResult[]>(
-            `${this.baseUrl}/v1/search/rerank`,
-            { query, results, topK: 10 }
-        );
-        return response;
-    }
+  async rerank(query: string, results: SearchResult[]): Promise<SearchResult[]> {
+    const response = await this.http.post<SearchResult[]>(`${this.baseUrl}/v1/search/rerank`, {
+      query,
+      results,
+      topK: 10,
+    });
+    return response;
+  }
 
-    async isHealthy(): Promise<boolean> {
-        try {
-            await this.http.get(`${this.baseUrl}/health`);
-            return true;
-        } catch {
-            return false;
-        }
+  async isHealthy(): Promise<boolean> {
+    try {
+      await this.http.get(`${this.baseUrl}/health`);
+      return true;
+    } catch {
+      return false;
     }
+  }
 }
 ```
 
@@ -594,10 +618,11 @@ services:
     networks:
       - clawdbot-network
     profiles:
-      - python  # Only start with --profile python
+      - python # Only start with --profile python
 ```
 
 **Usage:**
+
 ```bash
 # Normal operation (no Python service)
 docker compose up
@@ -618,6 +643,7 @@ clawdbot extensions install python-service
 ### Option 3: Standalone Binary
 
 For users who want zero Docker:
+
 - Python service runs as separate process
 - Managed by CLI (start/stop commands)
 - Configuration via `~/.clawdbot/python-service.json`
@@ -629,6 +655,7 @@ For users who want zero Docker:
 ### Synchronous HTTP (Simple)
 
 **Good for:**
+
 - Entity extraction (batch operation)
 - Graph algorithms (query/response)
 - Reranking (fast, blocking)
@@ -641,6 +668,7 @@ const result = await pythonService.extractEntities({ chunks });
 ### Asynchronous Job Queue (Better for Long Tasks)
 
 **Good for:**
+
 - Large document processing
 - Slow graph computations
 - Batch extraction
@@ -655,8 +683,8 @@ async def process_extraction_job(job: Job):
 ```typescript
 // Node.js - job submission
 const jobId = await pythonService.submitJob({
-    type: 'extraction',
-    chunks: largeDocumentChunks
+  type: "extraction",
+  chunks: largeDocumentChunks,
 });
 
 // Poll for result
@@ -669,23 +697,23 @@ const result = await pythonService.getJobResult(jobId);
 
 ### Why NOT to Move Everything to Python
 
-| Concern | Explanation |
-|---------|-------------|
+| Concern         | Explanation                                                                           |
+| --------------- | ------------------------------------------------------------------------------------- |
 | **Performance** | Node.js has faster I/O, lower memory, better concurrency for simple HTTP/gateway work |
-| **Ecosystem** | Clawdbrain's existing channel providers, CLI, gateway are Node.js-native |
-| **Deployment** | Python adds runtime dependency, larger containers |
-| **Complexity** | Polyglot adds build, deployment, debugging overhead |
-| **Team Skills** | TypeScript/Node.js skills transfer, Python is separate skillset |
+| **Ecosystem**   | Clawdbrain's existing channel providers, CLI, gateway are Node.js-native              |
+| **Deployment**  | Python adds runtime dependency, larger containers                                     |
+| **Complexity**  | Polyglot adds build, deployment, debugging overhead                                   |
+| **Team Skills** | TypeScript/Node.js skills transfer, Python is separate skillset                       |
 
 ### Why Python for Select Services
 
-| Benefit | Explanation |
-|---------|-------------|
-| **AI/ML libraries** | Python has 2-5 year head start on AI/ML tooling |
-| **Proven patterns** | LangChain, LlamaIndex have thousands of production deployments |
-| **Graph algorithms** | NetworkX, igraph are industry standards |
-| **Community** | Larger community for AI/ML, faster bug fixes |
-| **R&D speed** | Faster prototyping of new AI techniques |
+| Benefit              | Explanation                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| **AI/ML libraries**  | Python has 2-5 year head start on AI/ML tooling                |
+| **Proven patterns**  | LangChain, LlamaIndex have thousands of production deployments |
+| **Graph algorithms** | NetworkX, igraph are industry standards                        |
+| **Community**        | Larger community for AI/ML, faster bug fixes                   |
+| **R&D speed**        | Faster prototyping of new AI techniques                        |
 
 ---
 
@@ -733,7 +761,7 @@ agents:
     pythonService:
       enabled: true
       url: "http://localhost:8888"
-      timeout: 30000  # 30 seconds
+      timeout: 30000 # 30 seconds
       features:
         entityExtraction: true
         graphAlgorithms: true
@@ -746,8 +774,8 @@ agents:
 ```typescript
 // Feature flags per operation
 const extractionResult = config.pythonService.enabled
-    ? await pythonService.extractEntities(chunks)
-    : await nodeExtractionService.extractEntities(chunks);
+  ? await pythonService.extractEntities(chunks)
+  : await nodeExtractionService.extractEntities(chunks);
 ```
 
 ---
@@ -758,15 +786,16 @@ const extractionResult = config.pythonService.enabled
 
 ```typescript
 // Node.js checks Python service health
-if (!await pythonService.isHealthy()) {
-    logger.warn('Python service unavailable, falling back to Node.js extraction');
-    return await nodeExtractionService.extractEntities(chunks);
+if (!(await pythonService.isHealthy())) {
+  logger.warn("Python service unavailable, falling back to Node.js extraction");
+  return await nodeExtractionService.extractEntities(chunks);
 }
 ```
 
 ### Metrics
 
 Track:
+
 - Request latency (Node.js → Python)
 - Error rates
 - Fallback frequency
@@ -784,26 +813,27 @@ Track:
 
 ### Upfront Costs
 
-| Cost | Estimate |
-|------|----------|
-| **Development** | 2-4 weeks development time |
-| **Infrastructure** | +200MB Docker image, ~100MB RAM overhead |
-| **Maintenance** | +1 service to monitor, patch, update |
-| **Complexity** | Polyglot debugging, deployment complexity |
+| Cost               | Estimate                                  |
+| ------------------ | ----------------------------------------- |
+| **Development**    | 2-4 weeks development time                |
+| **Infrastructure** | +200MB Docker image, ~100MB RAM overhead  |
+| **Maintenance**    | +1 service to monitor, patch, update      |
+| **Complexity**     | Polyglot debugging, deployment complexity |
 
 ### Ongoing Benefits
 
-| Benefit | Estimate |
-|---------|----------|
-| **Extraction quality** | +10-20% accuracy (LangChain patterns) |
-| **Graph features** | Community detection, PageRank (missing in Node.js) |
-| **Reranking** | +15-30% retrieval quality (cross-encoders) |
-| **Development speed** | Faster AI feature iteration (Python AI ecosystem) |
-| **Community** | Access to cutting-edge AI/ML libraries first |
+| Benefit                | Estimate                                           |
+| ---------------------- | -------------------------------------------------- |
+| **Extraction quality** | +10-20% accuracy (LangChain patterns)              |
+| **Graph features**     | Community detection, PageRank (missing in Node.js) |
+| **Reranking**          | +15-30% retrieval quality (cross-encoders)         |
+| **Development speed**  | Faster AI feature iteration (Python AI ecosystem)  |
+| **Community**          | Access to cutting-edge AI/ML libraries first       |
 
 ### Break-Even Analysis
 
 **Python service makes sense if:**
+
 1. You need advanced AI/ML features not available in Node.js
 2. Team has Python skills or is willing to learn
 3. Infrastructure can support additional service
@@ -813,13 +843,13 @@ Track:
 
 ## Part 12: Risks & Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| **Python service unavailable** | Failover to Node.js implementations |
-| **Latency overhead** | Batch operations, use async job queue |
-| **Version skew** | Lock Python service version to Clawdbot releases |
-| **Debugging complexity** | Structured logs, correlation IDs, distributed tracing |
-| **Team skills gap** | Documentation, examples, training resources |
+| Risk                           | Mitigation                                            |
+| ------------------------------ | ----------------------------------------------------- |
+| **Python service unavailable** | Failover to Node.js implementations                   |
+| **Latency overhead**           | Batch operations, use async job queue                 |
+| **Version skew**               | Lock Python service version to Clawdbot releases      |
+| **Debugging complexity**       | Structured logs, correlation IDs, distributed tracing |
+| **Team skills gap**            | Documentation, examples, training resources           |
 
 ---
 
@@ -828,6 +858,7 @@ Track:
 ### When to Use Python Service
 
 ✅ **Use Python for:**
+
 - Entity extraction with LangChain/LlamaIndex patterns
 - Graph algorithms (community detection, PageRank, centrality)
 - Reranking with cross-encoders
@@ -835,6 +866,7 @@ Track:
 - ML model experimentation
 
 ❌ **Keep in Node.js:**
+
 - Gateway, CLI, channel interfaces
 - SQLite operations (already working well)
 - Agent tool registration

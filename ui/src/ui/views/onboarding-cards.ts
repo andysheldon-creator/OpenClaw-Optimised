@@ -7,7 +7,6 @@
  */
 
 import { html, nothing, type TemplateResult } from "lit";
-
 import { icon, type IconName } from "../icons";
 
 // ============================================================================
@@ -74,7 +73,11 @@ function renderCardStatus(status: CardStatus): TemplateResult {
 /**
  * Render a single channel card
  */
-export function renderChannelCard(card: ChannelCard, onEdit: (id: string) => void, onRemove: (id: string) => void): TemplateResult {
+export function renderChannelCard(
+  card: ChannelCard,
+  onEdit: (id: string) => void,
+  onRemove: (id: string) => void,
+): TemplateResult {
   return html`
     <div class="onboarding-card onboarding-card--${card.status}">
       <div class="onboarding-card__header">
@@ -88,8 +91,9 @@ export function renderChannelCard(card: ChannelCard, onEdit: (id: string) => voi
         ${renderCardStatus(card.status)}
       </div>
       <div class="onboarding-card__actions">
-        ${card.status === "not-configured"
-          ? html`
+        ${
+          card.status === "not-configured"
+            ? html`
               <button
                 type="button"
                 class="btn btn--sm primary onboarding-card__action"
@@ -98,7 +102,7 @@ export function renderChannelCard(card: ChannelCard, onEdit: (id: string) => voi
                 Configure →
               </button>
             `
-          : html`
+            : html`
               <button
                 type="button"
                 class="btn btn--sm onboarding-card__action"
@@ -106,9 +110,11 @@ export function renderChannelCard(card: ChannelCard, onEdit: (id: string) => voi
               >
                 Edit
               </button>
-            `}
-        ${card.status === "configured"
-          ? html`
+            `
+        }
+        ${
+          card.status === "configured"
+            ? html`
               <button
                 type="button"
                 class="btn btn--sm danger onboarding-card__action onboarding-card__action--remove"
@@ -118,7 +124,8 @@ export function renderChannelCard(card: ChannelCard, onEdit: (id: string) => voi
                 ${icon("trash-2", { size: 14 })}
               </button>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     </div>
   `;
@@ -127,7 +134,11 @@ export function renderChannelCard(card: ChannelCard, onEdit: (id: string) => voi
 /**
  * Render a single model card
  */
-export function renderModelCard(card: ModelCard, onEdit: (id: string) => void, onRemove: (id: string) => void): TemplateResult {
+export function renderModelCard(
+  card: ModelCard,
+  onEdit: (id: string) => void,
+  onRemove: (id: string) => void,
+): TemplateResult {
   return html`
     <div class="onboarding-card onboarding-card--${card.status}">
       <div class="onboarding-card__header">
@@ -141,8 +152,9 @@ export function renderModelCard(card: ModelCard, onEdit: (id: string) => void, o
         ${renderCardStatus(card.status)}
       </div>
       <div class="onboarding-card__actions">
-        ${card.status === "not-configured"
-          ? html`
+        ${
+          card.status === "not-configured"
+            ? html`
               <button
                 type="button"
                 class="btn btn--sm primary onboarding-card__action"
@@ -151,7 +163,7 @@ export function renderModelCard(card: ModelCard, onEdit: (id: string) => void, o
                 Configure →
               </button>
             `
-          : html`
+            : html`
               <button
                 type="button"
                 class="btn btn--sm onboarding-card__action"
@@ -159,9 +171,11 @@ export function renderModelCard(card: ModelCard, onEdit: (id: string) => void, o
               >
                 Edit
               </button>
-            `}
-        ${card.status === "configured"
-          ? html`
+            `
+        }
+        ${
+          card.status === "configured"
+            ? html`
               <button
                 type="button"
                 class="btn btn--sm danger onboarding-card__action onboarding-card__action--remove"
@@ -171,7 +185,8 @@ export function renderModelCard(card: ModelCard, onEdit: (id: string) => void, o
                 ${icon("trash-2", { size: 14 })}
               </button>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     </div>
   `;
@@ -188,9 +203,11 @@ export function renderChannelCardList(
     <div class="onboarding-card-list">
       <div class="onboarding-card-list__header">
         <h3 class="onboarding-card-list__title">${props.title}</h3>
-        ${props.description
-          ? html`<p class="onboarding-card-list__description">${props.description}</p>`
-          : nothing}
+        ${
+          props.description
+            ? html`<p class="onboarding-card-list__description">${props.description}</p>`
+            : nothing
+        }
       </div>
 
       <div class="onboarding-card-list__items">
@@ -206,15 +223,17 @@ export function renderChannelCardList(
         </button>
       </div>
 
-      ${props.showSkip && props.onSkip
-        ? html`
+      ${
+        props.showSkip && props.onSkip
+          ? html`
             <div class="onboarding-card-list__footer">
               <button type="button" class="btn btn--sm" @click=${props.onSkip}>
                 Skip for now →
               </button>
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -222,17 +241,16 @@ export function renderChannelCardList(
 /**
  * Render a card list for models
  */
-export function renderModelCardList(
-  models: ModelCard[],
-  props: CardListProps,
-): TemplateResult {
+export function renderModelCardList(models: ModelCard[], props: CardListProps): TemplateResult {
   return html`
     <div class="onboarding-card-list">
       <div class="onboarding-card-list__header">
         <h3 class="onboarding-card-list__title">${props.title}</h3>
-        ${props.description
-          ? html`<p class="onboarding-card-list__description">${props.description}</p>`
-          : nothing}
+        ${
+          props.description
+            ? html`<p class="onboarding-card-list__description">${props.description}</p>`
+            : nothing
+        }
       </div>
 
       <div class="onboarding-card-list__items">
@@ -248,15 +266,17 @@ export function renderModelCardList(
         </button>
       </div>
 
-      ${props.showSkip && props.onSkip
-        ? html`
+      ${
+        props.showSkip && props.onSkip
+          ? html`
             <div class="onboarding-card-list__footer">
               <button type="button" class="btn btn--sm" @click=${props.onSkip}>
                 Skip for now →
               </button>
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -298,11 +318,13 @@ export function renderAddCardModal(params: {
                 <div class="onboarding-modal__option-icon">${icon(option.icon, { size: 24 })}</div>
                 <div class="onboarding-modal__option-content">
                   <div class="onboarding-modal__option-name">${option.name}</div>
-                  ${option.description
-                    ? html`
+                  ${
+                    option.description
+                      ? html`
                         <div class="onboarding-modal__option-desc">${option.description}</div>
                       `
-                    : nothing}
+                      : nothing
+                  }
                 </div>
                 <div class="onboarding-modal__option-arrow">${icon("chevron-right", { size: 16 })}</div>
               </button>

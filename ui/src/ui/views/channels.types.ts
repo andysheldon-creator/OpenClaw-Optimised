@@ -12,8 +12,8 @@ import type {
   TelegramStatus,
   WhatsAppStatus,
 } from "../types";
-import type { NostrProfileFormState } from "./channels.nostr-profile-form";
 import type { ChannelWizardState } from "./channel-config-wizard";
+import type { NostrProfileFormState } from "./channels.nostr-profile-form";
 
 export type ChannelKey = string;
 

@@ -9,6 +9,7 @@ This document provides comprehensive guidelines for developing the Second Brain 
 **Second Brain** is a cloud-hosted AI agent management platform designed for power users and small business owners. The UI transforms a developer-focused control panel into a warm, approachable experience with progressive disclosure for advanced features.
 
 ### Core Philosophy
+
 - **Warm over cold** - Soft colors, rounded corners, friendly shadows
 - **Progressive disclosure** - Simple surface, power underneath
 - **Human language** - "Rituals" not "Cron Jobs", "Memories" not "Vector Store"
@@ -20,21 +21,21 @@ This document provides comprehensive guidelines for developing the Second Brain 
 
 ## Tech Stack
 
-| Layer | Technology | Version |
-|-------|------------|---------|
-| Framework | React | 19 |
-| Build | Vite | Latest |
-| Styling | Tailwind CSS | 4 |
-| Components | shadcn/ui + Radix | Latest |
-| Extended Components | Origin UI | Latest |
-| Animations | Aceternity UI + Framer Motion | Latest |
-| State (server) | TanStack Query | v5 |
-| State (client) | Zustand | Latest |
-| Forms | React Hook Form + Zod | Latest |
-| Routing | TanStack Router | Latest |
-| Icons | Lucide React | Latest |
-| Workflow Viz | ReactFlow | Latest |
-| Charts | Tremor (Recharts-based) | Latest |
+| Layer               | Technology                    | Version |
+| ------------------- | ----------------------------- | ------- |
+| Framework           | React                         | 19      |
+| Build               | Vite                          | Latest  |
+| Styling             | Tailwind CSS                  | 4       |
+| Components          | shadcn/ui + Radix             | Latest  |
+| Extended Components | Origin UI                     | Latest  |
+| Animations          | Aceternity UI + Framer Motion | Latest  |
+| State (server)      | TanStack Query                | v5      |
+| State (client)      | Zustand                       | Latest  |
+| Forms               | React Hook Form + Zod         | Latest  |
+| Routing             | TanStack Router               | Latest  |
+| Icons               | Lucide React                  | Latest  |
+| Workflow Viz        | ReactFlow                     | Latest  |
+| Charts              | Tremor (Recharts-based)       | Latest  |
 
 ---
 
@@ -78,6 +79,7 @@ src/
 ### 1. Use Existing Libraries First
 
 **Priority order for components:**
+
 1. **shadcn/ui** - Base components (Button, Card, Dialog, etc.)
 2. **Origin UI** - Extended components (400+ available)
 3. **Aceternity UI** - Animated effects, hover states
@@ -88,13 +90,13 @@ src/
 
 Reference these captured components in `ui-redesign/magic/`:
 
-| Directory | Components |
-|-----------|------------|
-| `chat-components/` | ChatBubble, ChatMessageList, ChatInput, useAutoScroll |
-| `activity-components/` | ActivityChartCard, ActivityDropdown, DashboardActivities |
-| `workflow-components/` | AgentPlan (task hierarchy), WorkflowBuilderCard |
-| `agent-components/` | AgentStatusCard (expanded/compact variants) |
-| `dashboard-inspiration/` | Raw dashboard patterns (JSON) |
+| Directory                | Components                                               |
+| ------------------------ | -------------------------------------------------------- |
+| `chat-components/`       | ChatBubble, ChatMessageList, ChatInput, useAutoScroll    |
+| `activity-components/`   | ActivityChartCard, ActivityDropdown, DashboardActivities |
+| `workflow-components/`   | AgentPlan (task hierarchy), WorkflowBuilderCard          |
+| `agent-components/`      | AgentStatusCard (expanded/compact variants)              |
+| `dashboard-inspiration/` | Raw dashboard patterns (JSON)                            |
 
 ### 3. Component Anatomy
 
@@ -115,12 +117,7 @@ interface AgentCardProps {
   className?: string;
 }
 
-export function AgentCard({
-  agent,
-  variant = "expanded",
-  onSelect,
-  className,
-}: AgentCardProps) {
+export function AgentCard({ agent, variant = "expanded", onSelect, className }: AgentCardProps) {
   // Component implementation
 }
 ```
@@ -148,21 +145,20 @@ const listVariants = {
 };
 
 // Respect reduced motion
-const prefersReducedMotion =
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 ```
 
 ### 5. Status Indicators
 
 Consistent status colors across the app:
 
-| Status | Color | Animation |
-|--------|-------|-----------|
-| Active/Online | `text-green-500` | Pulsing dot |
-| Idle/Ready | `text-gray-500` | Solid |
+| Status          | Color             | Animation     |
+| --------------- | ----------------- | ------------- |
+| Active/Online   | `text-green-500`  | Pulsing dot   |
+| Idle/Ready      | `text-gray-500`   | Solid         |
 | Busy/Processing | `text-yellow-500` | Spinning icon |
-| Error | `text-red-500` | Solid |
-| Paused | `text-orange-500` | Solid |
+| Error           | `text-red-500`    | Solid         |
+| Paused          | `text-orange-500` | Solid         |
 
 ---
 
@@ -173,15 +169,15 @@ Use CSS variables from `05-VISUAL-DESIGN.md`:
 ```css
 /* Warm color palette - Dark mode first */
 :root {
-  --background: 240 10% 4%;      /* Near black with warmth */
-  --foreground: 60 10% 98%;      /* Warm white */
-  --primary: 25 95% 60%;         /* Warm orange */
-  --secondary: 240 5% 16%;       /* Elevated surface */
-  --accent: 280 60% 65%;         /* Purple accent */
+  --background: 240 10% 4%; /* Near black with warmth */
+  --foreground: 60 10% 98%; /* Warm white */
+  --primary: 25 95% 60%; /* Warm orange */
+  --secondary: 240 5% 16%; /* Elevated surface */
+  --accent: 280 60% 65%; /* Purple accent */
   --muted: 240 5% 26%;
-  --success: 142 76% 46%;        /* Green */
-  --warning: 38 92% 50%;         /* Amber */
-  --error: 0 84% 60%;            /* Red */
+  --success: 142 76% 46%; /* Green */
+  --warning: 38 92% 50%; /* Amber */
+  --error: 0 84% 60%; /* Red */
 }
 ```
 
@@ -216,19 +212,21 @@ Gated behind `isPowerUser` flag:
 const { isPowerUser } = useUserPreferences();
 
 // Conditional navigation
-{isPowerUser && (
-  <SidebarSection title="ADVANCED">
-    <NavItem to="/debug" icon={Terminal} />
-    <NavItem to="/filesystem" icon={Folder} />
-    <NavItem to="/jobs" icon={Clock} />
-    <NavItem to="/nodes" icon={Monitor} />
-  </SidebarSection>
-)}
+{
+  isPowerUser && (
+    <SidebarSection title="ADVANCED">
+      <NavItem to="/debug" icon={Terminal} />
+      <NavItem to="/filesystem" icon={Folder} />
+      <NavItem to="/jobs" icon={Clock} />
+      <NavItem to="/nodes" icon={Monitor} />
+    </SidebarSection>
+  );
+}
 
 // Conditional features within views
-{isPowerUser && (
-  <TabsTrigger value="raw">Raw Markdown</TabsTrigger>
-)}
+{
+  isPowerUser && <TabsTrigger value="raw">Raw Markdown</TabsTrigger>;
+}
 ```
 
 ---
@@ -344,8 +342,8 @@ export const useUIStore = create<UIState>()(
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setPowerUserMode: (enabled) => set({ powerUserMode: enabled }),
     }),
-    { name: "ui-preferences" }
-  )
+    { name: "ui-preferences" },
+  ),
 );
 ```
 
@@ -355,14 +353,14 @@ export const useUIStore = create<UIState>()(
 
 Implement these global shortcuts:
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+K` | Open command palette |
-| `Cmd+N` | New conversation |
-| `Cmd+\` | Toggle sidebar |
-| `Cmd+Shift+D` | Toggle dark mode |
-| `Cmd+Shift+P` | Toggle power user mode |
-| `?` | Show keyboard shortcuts |
+| Shortcut      | Action                  |
+| ------------- | ----------------------- |
+| `Cmd+K`       | Open command palette    |
+| `Cmd+N`       | New conversation        |
+| `Cmd+\`       | Toggle sidebar          |
+| `Cmd+Shift+D` | Toggle dark mode        |
+| `Cmd+Shift+P` | Toggle power user mode  |
+| `?`           | Show keyboard shortcuts |
 
 ---
 
@@ -408,17 +406,17 @@ pnpm test:visual
 
 ## Documentation References
 
-| Document | Purpose |
-|----------|---------|
-| `00-DESIGN-BRIEF.md` | Project overview, personas |
-| `01-CONCEPTUAL-MODEL.md` | Core concepts hierarchy |
-| `02-INFORMATION-ARCHITECTURE.md` | Navigation, routing |
-| `03-VIEW-SPECIFICATIONS.md` | Wireframes for all views |
-| `04-VIEW-COMPONENTS.md` | Component library spec |
-| `05-VISUAL-DESIGN.md` | Colors, typography, spacing |
-| `06-INTERACTIONS.md` | Animations, feedback patterns |
-| `07-POWER-USER-MODE.md` | Advanced features spec |
-| `COMPONENT-LIBRARIES.md` | External library research |
+| Document                         | Purpose                       |
+| -------------------------------- | ----------------------------- |
+| `00-DESIGN-BRIEF.md`             | Project overview, personas    |
+| `01-CONCEPTUAL-MODEL.md`         | Core concepts hierarchy       |
+| `02-INFORMATION-ARCHITECTURE.md` | Navigation, routing           |
+| `03-VIEW-SPECIFICATIONS.md`      | Wireframes for all views      |
+| `04-VIEW-COMPONENTS.md`          | Component library spec        |
+| `05-VISUAL-DESIGN.md`            | Colors, typography, spacing   |
+| `06-INTERACTIONS.md`             | Animations, feedback patterns |
+| `07-POWER-USER-MODE.md`          | Advanced features spec        |
+| `COMPONENT-LIBRARIES.md`         | External library research     |
 
 ---
 

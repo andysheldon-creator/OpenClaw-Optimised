@@ -1,17 +1,20 @@
 # Task 7: Redesign Logs View with Terminal Aesthetic
 
 ## Overview
+
 Redesign the logs view (`ui/src/ui/views/logs.ts`) with a modern terminal aesthetic, syntax highlighting for log levels, and improved log browsing UX.
 
 ## Project Context
 
 ### Tech Stack
+
 - **Framework**: Lit (Web Components) - NOT React
 - **Styling**: Tailwind CSS v4 with CSS-first configuration
 - **Build**: Vite
 - **Icons**: Custom SVG icon system in `ui/src/ui/icons.ts`
 
 ### Key Files
+
 - View to modify: `ui/src/ui/views/logs.ts`
 - Styles: `ui/src/styles/components.css` (append new styles)
 - Icons: `ui/src/ui/icons.ts` (import and use `icon()` function)
@@ -20,6 +23,7 @@ Redesign the logs view (`ui/src/ui/views/logs.ts`) with a modern terminal aesthe
 ## Design System Reference
 
 ### CSS Variables (from base.css)
+
 ```css
 /* Dark theme */
 --bg: #0a0f14;
@@ -35,6 +39,7 @@ Redesign the logs view (`ui/src/ui/views/logs.ts`) with a modern terminal aesthe
 ```
 
 ### Icon System Usage
+
 ```typescript
 import { icon } from "../icons";
 
@@ -49,6 +54,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 ## Design Requirements
 
 ### Visual Style - Terminal Aesthetic
+
 1. **Dark background** - Near-black with subtle texture
 2. **Monospace font** - IBM Plex Mono for all log content
 3. **Syntax highlighting** - Color-coded log levels
@@ -57,16 +63,18 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 6. **Selection** - Easy text selection for copying
 
 ### Log Level Colors
+
 ```css
---log-debug: #6b7280;   /* gray */
---log-info: #3b82f6;    /* blue */
---log-warn: #f59e0b;    /* amber */
---log-error: #ef4444;   /* red */
---log-fatal: #dc2626;   /* dark red */
---log-trace: #8b5cf6;   /* purple */
+--log-debug: #6b7280; /* gray */
+--log-info: #3b82f6; /* blue */
+--log-warn: #f59e0b; /* amber */
+--log-error: #ef4444; /* red */
+--log-fatal: #dc2626; /* dark red */
+--log-trace: #8b5cf6; /* purple */
 ```
 
 ### Logs View Specific Requirements
+
 1. **Log toolbar** - Filter, search, auto-follow toggle, export
 2. **Level filters** - Toggle buttons for each log level
 3. **Text search** - Highlight matches in logs
@@ -77,6 +85,7 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 8. **Truncation indicator** - Show if logs were truncated
 
 ### Suggested Layout
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Logs Header (title, file path)                  │
@@ -101,44 +110,103 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
 
 ```css
 /* Logs View - Terminal Aesthetic */
-.logs-container { /* main container */ }
-.logs-toolbar { /* toolbar container */ }
-.logs-toolbar__search { /* search input */ }
-.logs-toolbar__levels { /* level filter buttons */ }
-.logs-toolbar__actions { /* action buttons */ }
+.logs-container {
+  /* main container */
+}
+.logs-toolbar {
+  /* toolbar container */
+}
+.logs-toolbar__search {
+  /* search input */
+}
+.logs-toolbar__levels {
+  /* level filter buttons */
+}
+.logs-toolbar__actions {
+  /* action buttons */
+}
 
-.logs-level-btn { /* level toggle button */ }
-.logs-level-btn--active { /* active state */ }
-.logs-level-btn--debug { /* debug level */ }
-.logs-level-btn--info { /* info level */ }
-.logs-level-btn--warn { /* warn level */ }
-.logs-level-btn--error { /* error level */ }
+.logs-level-btn {
+  /* level toggle button */
+}
+.logs-level-btn--active {
+  /* active state */
+}
+.logs-level-btn--debug {
+  /* debug level */
+}
+.logs-level-btn--info {
+  /* info level */
+}
+.logs-level-btn--warn {
+  /* warn level */
+}
+.logs-level-btn--error {
+  /* error level */
+}
 
-.logs-terminal { /* terminal-style log viewer */ }
-.logs-terminal__gutter { /* line number column */ }
-.logs-terminal__content { /* log content area */ }
+.logs-terminal {
+  /* terminal-style log viewer */
+}
+.logs-terminal__gutter {
+  /* line number column */
+}
+.logs-terminal__content {
+  /* log content area */
+}
 
-.log-entry { /* single log line */ }
-.log-entry--debug { /* debug styling */ }
-.log-entry--info { /* info styling */ }
-.log-entry--warn { /* warn styling */ }
-.log-entry--error { /* error styling */ }
-.log-entry--highlight { /* search match highlight */ }
+.log-entry {
+  /* single log line */
+}
+.log-entry--debug {
+  /* debug styling */
+}
+.log-entry--info {
+  /* info styling */
+}
+.log-entry--warn {
+  /* warn styling */
+}
+.log-entry--error {
+  /* error styling */
+}
+.log-entry--highlight {
+  /* search match highlight */
+}
 
-.log-entry__line { /* line number */ }
-.log-entry__time { /* timestamp */ }
-.log-entry__level { /* level badge */ }
-.log-entry__message { /* log message */ }
+.log-entry__line {
+  /* line number */
+}
+.log-entry__time {
+  /* timestamp */
+}
+.log-entry__level {
+  /* level badge */
+}
+.log-entry__message {
+  /* log message */
+}
 
-.logs-status { /* status bar */ }
-.logs-status__count { /* entry count */ }
-.logs-status__live { /* live indicator */ }
+.logs-status {
+  /* status bar */
+}
+.logs-status__count {
+  /* entry count */
+}
+.logs-status__live {
+  /* live indicator */
+}
 
-.logs-empty { /* empty state */ }
-.logs-truncated { /* truncation warning */ }
+.logs-empty {
+  /* empty state */
+}
+.logs-truncated {
+  /* truncation warning */
+}
 ```
 
 ### Terminal Styling
+
 ```css
 .logs-terminal {
   font-family: var(--mono);
@@ -179,10 +247,18 @@ Available icons: `message-square`, `layout-dashboard`, `link`, `radio`, `file-te
   text-transform: uppercase;
 }
 
-.log-entry--debug .log-entry__level { color: #6b7280; }
-.log-entry--info .log-entry__level { color: #3b82f6; }
-.log-entry--warn .log-entry__level { color: #f59e0b; }
-.log-entry--error .log-entry__level { color: #ef4444; }
+.log-entry--debug .log-entry__level {
+  color: #6b7280;
+}
+.log-entry--info .log-entry__level {
+  color: #3b82f6;
+}
+.log-entry--warn .log-entry__level {
+  color: #f59e0b;
+}
+.log-entry--error .log-entry__level {
+  color: #ef4444;
+}
 
 .log-entry__message {
   white-space: pre-wrap;
@@ -217,7 +293,7 @@ html`
     <span class="log-entry__level">${entry.level}</span>
     <span class="log-entry__message">${highlightSearch(entry.message, searchTerm)}</span>
   </div>
-`
+`;
 ```
 
 ## Example Level Filter Buttons
@@ -225,21 +301,27 @@ html`
 ```typescript
 html`
   <div class="logs-toolbar__levels">
-    ${["debug", "info", "warn", "error"].map(level => html`
-      <button
-        class="logs-level-btn logs-level-btn--${level} ${levelFilters[level] ? "logs-level-btn--active" : ""}"
-        @click=${() => onLevelToggle(level, !levelFilters[level])}
-        title="${level.toUpperCase()}"
-      >
-        ${level.toUpperCase()}
-      </button>
-    `)}
+    ${["debug", "info", "warn", "error"].map(
+      (level) => html`
+        <button
+          class="logs-level-btn logs-level-btn--${level} ${levelFilters[level]
+            ? "logs-level-btn--active"
+            : ""}"
+          @click=${() => onLevelToggle(level, !levelFilters[level])}
+          title="${level.toUpperCase()}"
+        >
+          ${level.toUpperCase()}
+        </button>
+      `,
+    )}
   </div>
-`
+`;
 ```
 
 ## Testing
+
 After changes, run:
+
 ```bash
 cd ui && pnpm build
 ```

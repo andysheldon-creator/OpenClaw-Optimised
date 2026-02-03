@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement agent tools that expose knowledge graph capabilities:
+
 - `graph_search` - Entity-aware search
 - `graph_inspect` - Detailed entity info
 - `knowledge_ingest` - Self-ingest documents
@@ -36,12 +37,12 @@ src/agents/tools/
  * - Crawl documentation
  */
 
-import { Type } from '@sinclair/typebox';
-import type { RelationalDatastore } from '../../knowledge/datastore/interface.js';
-import type { GraphQueryEngine } from '../../knowledge/graph/query.js';
-import { GraphRAGRetriever } from '../../knowledge/retrieval/graph-rag.js';
-import { IngestionPipeline } from '../../knowledge/ingest/pipeline.js';
-import { WebCrawler } from '../../knowledge/crawler/crawler.js';
+import { Type } from "@sinclair/typebox";
+import type { RelationalDatastore } from "../../knowledge/datastore/interface.js";
+import type { GraphQueryEngine } from "../../knowledge/graph/query.js";
+import { GraphRAGRetriever } from "../../knowledge/retrieval/graph-rag.js";
+import { IngestionPipeline } from "../../knowledge/ingest/pipeline.js";
+import { WebCrawler } from "../../knowledge/crawler/crawler.js";
 
 // ============================================================================
 // TOOL SCHEMAS
@@ -69,7 +70,9 @@ export const KnowledgeIngestToolSchema = Type.Object({
 
 export const KnowledgeCrawlToolSchema = Type.Object({
   url: Type.String(),
-  mode: Type.Optional(Type.Union(Type.Literal('single'), Type.Literal('sitemap'), Type.Literal('recursive'))),
+  mode: Type.Optional(
+    Type.Union(Type.Literal("single"), Type.Literal("sitemap"), Type.Literal("recursive")),
+  ),
   maxPages: Type.Optional(Type.Number()),
   tags: Type.Optional(Type.Array(Type.String())),
 });
@@ -84,10 +87,7 @@ export class KnowledgeAgentTools {
   private ingestion: IngestionPipeline;
   private crawler: WebCrawler;
 
-  constructor(
-    datastore: RelationalDatastore,
-    graphQuery: GraphQueryEngine
-  ) {
+  constructor(datastore: RelationalDatastore, graphQuery: GraphQueryEngine) {
     this.graphQuery = graphQuery;
     this.retriever = new GraphRAGRetriever(datastore, graphQuery);
     this.ingestion = new IngestionPipeline(/* deps */);
@@ -130,7 +130,7 @@ export class KnowledgeAgentTools {
         if (entity.description) {
           output += `: ${entity.description.slice(0, 100)}...`;
         }
-        output += '\n';
+        output += "\n";
       }
     }
 
@@ -191,7 +191,7 @@ export class KnowledgeAgentTools {
     tags?: string[];
   }): Promise<string> {
     if (!params.path && !params.text) {
-      return 'Error: Either path or text must be provided.';
+      return "Error: Either path or text must be provided.";
     }
 
     try {
@@ -199,26 +199,28 @@ export class KnowledgeAgentTools {
 
       if (params.text) {
         result = await this.ingestion.ingestText({
-          source: 'manual',
+          source: "manual",
           text: params.text,
           tags: params.tags || [],
         });
       } else if (params.path) {
         result = await this.ingestion.ingestFile({
-          source: 'manual',
+          source: "manual",
           filePath: params.path!,
           tags: params.tags || [],
         });
       } else {
-        return 'Error: Invalid parameters.';
+        return "Error: Invalid parameters.";
       }
 
-      if (result.status === 'success') {
-        return `Successfully ingested content:\n` +
-               `- Chunks processed: ${result.chunksProcessed}\n` +
-               `- Entities extracted: ${result.entitiesExtracted}\n` +
-               `- Relationships extracted: ${result.relationshipsExtracted}\n` +
-               `- Source ID: ${result.sourceId}`;
+      if (result.status === "success") {
+        return (
+          `Successfully ingested content:\n` +
+          `- Chunks processed: ${result.chunksProcessed}\n` +
+          `- Entities extracted: ${result.entitiesExtracted}\n` +
+          `- Relationships extracted: ${result.relationshipsExtracted}\n` +
+          `- Source ID: ${result.sourceId}`
+        );
       } else {
         return `Ingestion failed: ${result.error}`;
       }
@@ -232,27 +234,29 @@ export class KnowledgeAgentTools {
    */
   async knowledgeCrawl(params: {
     url: string;
-    mode?: 'single' | 'sitemap' | 'recursive';
+    mode?: "single" | "sitemap" | "recursive";
     maxPages?: number;
     tags?: string[];
   }): Promise<string> {
     try {
       const result = await this.crawler.crawl({
         url: params.url,
-        mode: params.mode || 'single',
+        mode: params.mode || "single",
         maxPages: params.maxPages || 100,
         sameDomain: true,
         tags: params.tags || [],
       });
 
-      if (result.status === 'completed' || result.status === 'partial') {
-        return `Crawl completed:\n` +
-               `- Crawl ID: ${result.crawlId}\n` +
-               `- Pages: ${result.successfulPages}/${result.totalPages}\n` +
-               `- Failed: ${result.failedPages}\n` +
-               `- Duration: ${result.duration}ms`;
+      if (result.status === "completed" || result.status === "partial") {
+        return (
+          `Crawl completed:\n` +
+          `- Crawl ID: ${result.crawlId}\n` +
+          `- Pages: ${result.successfulPages}/${result.totalPages}\n` +
+          `- Failed: ${result.failedPages}\n` +
+          `- Duration: ${result.duration}ms`
+        );
       } else {
-        return `Crawl failed: ${result.errors.join(', ')}`;
+        return `Crawl failed: ${result.errors.join(", ")}`;
       }
     } catch (error) {
       return `Error: ${(error as Error).message}`;
@@ -264,26 +268,23 @@ export class KnowledgeAgentTools {
 // TOOL REGISTRATION
 // ============================================================================
 
-export function registerKnowledgeTools(
-  agent: any,
-  tools: KnowledgeAgentTools
-): void {
-  agent.registerTool('graph_search', {
+export function registerKnowledgeTools(agent: any, tools: KnowledgeAgentTools): void {
+  agent.registerTool("graph_search", {
     schema: GraphSearchToolSchema,
     handler: (params: any) => tools.graphSearch(params),
   });
 
-  agent.registerTool('graph_inspect', {
+  agent.registerTool("graph_inspect", {
     schema: GraphInspectToolSchema,
     handler: (params: any) => tools.graphInspect(params),
   });
 
-  agent.registerTool('knowledge_ingest', {
+  agent.registerTool("knowledge_ingest", {
     schema: KnowledgeIngestToolSchema,
     handler: (params: any) => tools.knowledgeIngest(params),
   });
 
-  agent.registerTool('knowledge_crawl', {
+  agent.registerTool("knowledge_crawl", {
     schema: KnowledgeCrawlToolSchema,
     handler: (params: any) => tools.knowledgeCrawl(params),
   });
@@ -299,8 +300,8 @@ export const memorySearchToolSchema = Type.Object({
   query: Type.String(),
   maxResults: Type.Optional(Type.Number()),
   minScore: Type.Optional(Type.Number()),
-  useGraph: Type.Optional(Type.Boolean()),  // NEW: default true
-  minGraphScore: Type.Optional(Type.Number()),  // NEW: confidence threshold
+  useGraph: Type.Optional(Type.Boolean()), // NEW: default true
+  minGraphScore: Type.Optional(Type.Number()), // NEW: confidence threshold
 });
 
 export async function memorySearch(params: {

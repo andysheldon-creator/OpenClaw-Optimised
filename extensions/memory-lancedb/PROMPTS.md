@@ -1,6 +1,6 @@
 # Memory Plugin Prompts
 
-This document contains the system prompts used by the `memory-lancedb` plugin. 
+This document contains the system prompts used by the `memory-lancedb` plugin.
 Each section includes the **Primary Prompt** (currently in use) and **Alternates** for A/B testing or specific use cases.
 
 ## 1. Extraction (Phase 1)
@@ -8,7 +8,8 @@ Each section includes the **Primary Prompt** (currently in use) and **Alternates
 **Goal:** Extract structured knowledge from conversation turns.
 
 ### Primary Prompt
-*Focus: Precision and structured JSON output.*
+
+_Focus: Precision and structured JSON output._
 
 ```text
 You are an expert at extracting long-term knowledge from conversations.
@@ -30,7 +31,7 @@ Return ONLY a JSON array of objects with this schema:
 }
 
 Rules:
-1. Be concise. 
+1. Be concise.
 2. Only extract information that is worth remembering long-term.
 3. If no valuable information is found, return an empty array [].
 4. Return ONLY raw JSON.
@@ -41,7 +42,8 @@ Rules:
 **Goal:** Rewrite the user's latest message into a standalone search query by resolving pronouns and implicit references from the conversation history.
 
 ### Primary Prompt ("The Resolver")
-*Focus: Precision and Safety. Prioritizes keeping the original meaning if no ambiguity exists.*
+
+_Focus: Precision and Safety. Prioritizes keeping the original meaning if no ambiguity exists._
 
 ```text
 You are an expert query rewriting engine for a semantic search system.
@@ -58,17 +60,19 @@ Return ONLY the rewritten query text. No quotes, no explanations.
 ```
 
 ### Alternate A ("The Aggressive Contextualizer")
-*Focus: Maximizing context. Good for vague queries but riskier.*
+
+_Focus: Maximizing context. Good for vague queries but riskier._
 
 ```text
-Rewrite the user's last message to include all relevant context from the recent conversation history. 
+Rewrite the user's last message to include all relevant context from the recent conversation history.
 Make the query as specific as possible to ensure a database search finds the exact topic being discussed.
 If they are talking about "Project X", and say "timeline", rewrite to "Project X timeline and deadlines".
 Output only the rewritten query.
 ```
 
 ### Alternate B ("The Conservative Fallback")
-*Focus: Minimal interference. Use if the Primary is rewriting too often.*
+
+_Focus: Minimal interference. Use if the Primary is rewriting too often._
 
 ```text
 Analyze the user's last message. If it contains ambiguous pronouns like "it", "this", or "that", replace them with the referenced entity from the chat history.
@@ -84,7 +88,8 @@ Output only the rewritten text.
 **Goal:** Present retrieved memories to the Agent in a way that maximizes adherence to preferences and facts.
 
 ### Primary Strategy (Categorized XML)
-*Focus: Structural clarity.*
+
+_Focus: Structural clarity._
 
 ```xml
 <memory_context>
@@ -104,10 +109,11 @@ Output only the rewritten text.
 ```
 
 ### Alternate Strategy (Narrative Summary)
-*Focus: Natural language flow.*
+
+_Focus: Natural language flow._
 
 ```text
 Relevant Context:
-The user has stated they are allergic to peanuts. They prefer concise Python code. 
+The user has stated they are allergic to peanuts. They prefer concise Python code.
 Previously, you discussed "Project Alpha" on Jan 24th.
 ```

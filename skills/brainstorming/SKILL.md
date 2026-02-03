@@ -14,6 +14,7 @@ Start by understanding the current project context, then ask questions one at a 
 ## The Process
 
 **Understanding the idea:**
+
 - Check out the current project state first (files, docs, recent commits)
 - Ask questions one at a time to refine the idea
 - Prefer multiple choice questions when possible, but open-ended is fine too
@@ -21,11 +22,13 @@ Start by understanding the current project context, then ask questions one at a 
 - Focus on understanding: purpose, constraints, success criteria
 
 **Exploring approaches:**
+
 - Propose 2-3 different approaches with trade-offs
 - Present options conversationally with your recommendation and reasoning
 - Lead with your recommended option and explain why
 
 **Presenting the design:**
+
 - Once you believe you understand what you're building, present the design
 - Break it into sections of 200-300 words
 - Ask after each section whether it looks right so far
@@ -35,10 +38,12 @@ Start by understanding the current project context, then ask questions one at a 
 ## After the Design
 
 **Documentation:**
+
 - Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md` (or appropriate location in the project)
 - Commit the design document to git if in a repo context
 
 **Implementation (if continuing):**
+
 - Ask: "Ready to set up for implementation?"
 - Use the `writing-plans` skill to create a detailed implementation plan
 - Consider using `sessions_spawn` for sub-agent driven implementation of larger plans

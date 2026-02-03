@@ -22,25 +22,25 @@ The extractor receives chunks from the existing `chunkMarkdown()` pipeline in
 
 ```typescript
 export type ExtractedEntity = {
-  id: string;              // MD5 hash of normalized name
-  name: string;            // canonical name
-  type: EntityType;        // person | org | repo | concept | tool | location | event
-  description: string;     // LLM-generated description
-  sourceChunkIds: string[];// provenance back to chunk table
-  sourceFiles: string[];   // originating file paths
-  firstSeen: number;       // epoch ms
+  id: string; // MD5 hash of normalized name
+  name: string; // canonical name
+  type: EntityType; // person | org | repo | concept | tool | location | event
+  description: string; // LLM-generated description
+  sourceChunkIds: string[]; // provenance back to chunk table
+  sourceFiles: string[]; // originating file paths
+  firstSeen: number; // epoch ms
   lastSeen: number;
   mentionCount: number;
 };
 
 export type ExtractedRelationship = {
-  id: string;              // MD5 of sorted(sourceId + targetId)
+  id: string; // MD5 of sorted(sourceId + targetId)
   sourceEntityId: string;
   targetEntityId: string;
-  type: string;            // uses | depends_on | authored_by | discussed_in | blocks | etc.
+  type: string; // uses | depends_on | authored_by | discussed_in | blocks | etc.
   description: string;
   keywords: string[];
-  weight: number;          // accumulated strength from repeated mentions
+  weight: number; // accumulated strength from repeated mentions
   sourceChunkIds: string[];
   sourceFiles: string[];
 };
@@ -53,9 +53,9 @@ export type EntityType =
   | "tool"
   | "location"
   | "event"
-  | "goal"       // links to Overseer goals
-  | "task"       // links to Overseer tasks
-  | "file"       // codebase files
+  | "goal" // links to Overseer goals
+  | "task" // links to Overseer tasks
+  | "file" // codebase files
   | "custom";
 ```
 
@@ -95,11 +95,11 @@ references, meeting notes. This is the "bring your own knowledge" pathway, inspi
 ```typescript
 export type IngestSource = {
   type: "file" | "url" | "text";
-  path?: string;         // local file path
-  url?: string;          // for URL sources
-  content?: string;      // raw text for "text" type
-  mimeType?: string;     // auto-detected if absent
-  tags?: string[];       // user-supplied labels
+  path?: string; // local file path
+  url?: string; // for URL sources
+  content?: string; // raw text for "text" type
+  mimeType?: string; // auto-detected if absent
+  tags?: string[]; // user-supplied labels
   metadata?: Record<string, string>;
 };
 
@@ -119,13 +119,13 @@ export type IngestResult = {
 
 2. **Content extraction by type:**
 
-   | Format | Parser | Notes |
-   |--------|--------|-------|
-   | Markdown/Text | Direct pass-through | Feeds straight to chunker |
-   | PDF | `pdf-parse` (pure JS) | Text per page, concatenated with page markers |
-   | DOCX | `mammoth` (pure JS) | Converts to markdown, then chunks |
-   | HTML | `@mozilla/readability` + `linkedom` | Strips nav/footer/ads, extracts article content |
-   | JSON/JSONL | Custom flattener | Preserves key paths for searchability |
+   | Format        | Parser                              | Notes                                           |
+   | ------------- | ----------------------------------- | ----------------------------------------------- |
+   | Markdown/Text | Direct pass-through                 | Feeds straight to chunker                       |
+   | PDF           | `pdf-parse` (pure JS)               | Text per page, concatenated with page markers   |
+   | DOCX          | `mammoth` (pure JS)                 | Converts to markdown, then chunks               |
+   | HTML          | `@mozilla/readability` + `linkedom` | Strips nav/footer/ads, extracts article content |
+   | JSON/JSONL    | Custom flattener                    | Preserves key paths for searchability           |
 
 3. **Chunking:** Reuse `chunkMarkdown()` from `src/memory/internal.ts` with the same
    token/overlap config. For non-markdown content, apply paragraph-aware splitting first.
@@ -190,8 +190,8 @@ and [mcp-crawl4ai-rag](https://github.com/coleam00/mcp-crawl4ai-rag).
 export type CrawlTarget = {
   url: string;
   mode: "single" | "sitemap" | "recursive";
-  maxPages?: number;     // default 100
-  maxDepth?: number;     // default 3 for recursive
+  maxPages?: number; // default 100
+  maxDepth?: number; // default 3 for recursive
   allowPatterns?: string[]; // URL glob patterns to follow
   blockPatterns?: string[]; // URL glob patterns to skip
   tags?: string[];

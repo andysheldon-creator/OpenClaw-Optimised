@@ -16,23 +16,27 @@ Define measurable quality metrics and targets for the entity extraction pipeline
 ### 1. Entity Extraction Metrics
 
 #### Entity Precision
+
 - **Definition:** Of all entities extracted, how many are correct?
 - **Formula:** `True Positives / (True Positives + False Positives)`
 - **Target:** ≥0.85 (85%)
 - **Rationale:** High precision prevents graph pollution from spurious entities
 
 #### Entity Recall
+
 - **Definition:** Of all entities in ground truth, how many were found?
 - **Formula:** `True Positives / (True Positives + False Negatives)`
 - **Target:** ≥0.80 (80%)
 - **Rationale:** Good recall ensures comprehensive coverage
 
 #### Entity F1 Score
+
 - **Definition:** Harmonic mean of precision and recall
 - **Formula:** `2 * (Precision * Recall) / (Precision + Recall)`
 - **Target:** ≥0.82 (balanced)
 
 #### Entity Type Accuracy
+
 - **Definition:** Of correctly identified entities, how many have correct type?
 - **Formula:** `Correct Types / Total Correct Entities`
 - **Target:** ≥0.90 (90%)
@@ -41,23 +45,27 @@ Define measurable quality metrics and targets for the entity extraction pipeline
 ### 2. Relationship Extraction Metrics
 
 #### Relationship Precision
+
 - **Definition:** Of all relationships extracted, how many are correct?
 - **Formula:** `True Positives / (True Positives + False Positives)`
 - **Target:** ≥0.75 (75%)
 - **Rationale:** Relationships are noisier; we accept some false positives
 
 #### Relationship Recall
+
 - **Definition:** Of all relationships in ground truth, how many were found?
 - **Formula:** `True Positives / (True Positives + False Negatives)`
 - **Target:** ≥0.70 (70%)
 - **Rationale:** Relationship extraction is harder; lower target acceptable
 
 #### Relationship Type Accuracy
+
 - **Definition:** Of correctly identified relationships, how many have correct type?
 - **Formula:** `Correct Types / Total Correct Relationships`
 - **Target:** ≥0.80 (80%)
 
 #### Relationship Strength Correlation
+
 - **Definition:** How well extracted strength matches ground truth?
 - **Formula:** `1 - (|ExtractedStrength - GroundTruthStrength| / 10)`
 - **Target:** ≥0.70 (70% correlation)
@@ -66,18 +74,21 @@ Define measurable quality metrics and targets for the entity extraction pipeline
 ### 3. Consolidation Metrics
 
 #### False Merge Rate
+
 - **Definition:** How often distinct entities are incorrectly merged?
 - **Formula:** `False Merges / Total Merges`
 - **Target:** ≤0.05 (5%)
 - **Rationale:** False merges corrupt the graph; must be rare
 
 #### Missed Merge Rate
+
 - **Definition:** How often duplicate entities are not merged?
 - **Formula:** `Missed Merges / Total Should-Merge Pairs`
 - **Target:** ≤0.15 (15%)
 - **Rationale:** Some duplicates acceptable; they can be merged later
 
 #### Alias Detection Rate
+
 - **Definition:** How well are aliases captured?
 - **Formula:** `Detected Aliases / Total Ground Truth Aliases`
 - **Target:** ≥0.75 (75%)
@@ -85,11 +96,13 @@ Define measurable quality metrics and targets for the entity extraction pipeline
 ### 4. Description Quality Metrics
 
 #### Description Completeness
+
 - **Definition:** What percentage of entities have descriptions?
 - **Formula:** `Entities with Descriptions / Total Entities`
 - **Target:** ≥0.90 (90%)
 
 #### Description Accuracy
+
 - **Definition:** Manual assessment of description correctness
 - **Target:** ≥85% rated "accurate" or "mostly accurate"
 - **Method:** Sample 50 random descriptions, rate 1-5
@@ -168,7 +181,7 @@ interface EvaluationResult {
 
 export async function evaluateExtraction(
   extracted: ExtractionResult[],
-  groundTruth: GroundTruthExtraction[]
+  groundTruth: GroundTruthExtraction[],
 ): Promise<EvaluationResult> {
   // Implementation
 }
@@ -179,6 +192,7 @@ export async function evaluateExtraction(
 The extraction pipeline **must meet all targets** before proceeding to Phase 1:
 
 ### Minimum Requirements
+
 - [ ] Entity F1 Score ≥ 0.82
 - [ ] Entity Type Accuracy ≥ 0.90
 - [ ] Relationship F1 Score ≥ 0.72
@@ -226,21 +240,21 @@ After initial evaluation, document baseline results in:
   },
   "results": {
     "entityMetrics": {
-      "precision": 0.00,
-      "recall": 0.00,
-      "f1Score": 0.00,
-      "typeAccuracy": 0.00
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1Score": 0.0,
+      "typeAccuracy": 0.0
     },
     "relationshipMetrics": {
-      "precision": 0.00,
-      "recall": 0.00,
-      "f1Score": 0.00,
-      "typeAccuracy": 0.00
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1Score": 0.0,
+      "typeAccuracy": 0.0
     },
     "consolidationMetrics": {
-      "falseMergeRate": 0.00,
-      "missedMergeRate": 0.00,
-      "aliasDetectionRate": 0.00
+      "falseMergeRate": 0.0,
+      "missedMergeRate": 0.0,
+      "aliasDetectionRate": 0.0
     }
   },
   "targetsMet": false,

@@ -49,14 +49,14 @@ z.AI's OpenAI-compatible REST endpoints. This means:
 
 Claude Code reads these environment variables to determine its API backend:
 
-| Variable | Value for z.AI |
-|----------|---------------|
-| `ANTHROPIC_BASE_URL` | `https://api.z.ai/api/anthropic` |
-| `ANTHROPIC_AUTH_TOKEN` | z.AI API key |
-| `API_TIMEOUT_MS` | `3000000` (z.AI recommends a high timeout) |
-| `ANTHROPIC_DEFAULT_SONNET_MODEL` | `glm-4.7` (optional model mapping) |
-| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `glm-4.7` (optional model mapping) |
-| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | `glm-4.5-air` (optional model mapping) |
+| Variable                         | Value for z.AI                             |
+| -------------------------------- | ------------------------------------------ |
+| `ANTHROPIC_BASE_URL`             | `https://api.z.ai/api/anthropic`           |
+| `ANTHROPIC_AUTH_TOKEN`           | z.AI API key                               |
+| `API_TIMEOUT_MS`                 | `3000000` (z.AI recommends a high timeout) |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | `glm-4.7` (optional model mapping)         |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL`   | `glm-4.7` (optional model mapping)         |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL`  | `glm-4.5-air` (optional model mapping)     |
 
 When these are set, Claude Code talks to z.AI instead of Anthropic, and the Claude Code
 agent harness (planning, tool use, etc.) runs GLM 4.7 under the hood.
@@ -138,22 +138,22 @@ Add a new config stanza for z.AI Claude Code SDK provider:
       // New: provider-specific SDK configurations
       providers: {
         // Default (Anthropic) - uses local Claude Code auth, no env override
-        "anthropic": {},
+        anthropic: {},
 
         // z.AI GLM 4.7 - overrides env to route through z.AI
-        "zai": {
+        zai: {
           env: {
-            "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-            "ANTHROPIC_AUTH_TOKEN": "${ZAI_CLAUDE_CODE_API_KEY}",
-            "API_TIMEOUT_MS": "3000000",
-            "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
-            "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
-            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air"
-          }
-        }
-      }
-    }
-  }
+            ANTHROPIC_BASE_URL: "https://api.z.ai/api/anthropic",
+            ANTHROPIC_AUTH_TOKEN: "${ZAI_CLAUDE_CODE_API_KEY}",
+            API_TIMEOUT_MS: "3000000",
+            ANTHROPIC_DEFAULT_SONNET_MODEL: "glm-4.7",
+            ANTHROPIC_DEFAULT_OPUS_MODEL: "glm-4.7",
+            ANTHROPIC_DEFAULT_HAIKU_MODEL: "glm-4.5-air",
+          },
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -178,6 +178,7 @@ clawdbrain onboard
 ```
 
 When "z.AI subscription (Claude Code)" is selected:
+
 1. Prompt for the z.AI API key.
 2. Store it in `auth-profiles.json` under `zai-claude-code:default`.
 3. Enable `tools.codingTask` if not already enabled.
@@ -193,17 +194,20 @@ coding_task(task="Investigate failing tests", provider="zai")
 ```
 
 When `provider` is specified:
+
 1. Look up `tools.codingTask.providers[provider]`.
 2. Resolve any `${VAR}` references in `env` values from the auth profile store.
 3. Pass the resolved `env` dict into `sdk.query({ options: { env } })`.
 
 When `provider` is omitted:
+
 - Use the default provider (Anthropic, no env override) as today.
 
 ### Alternative: main loop integration
 
 For operators who want z.AI GLM 4.7 as the **primary** agent model (not just a tool),
 a future phase could:
+
 - Route the main agent loop through the Claude Code SDK instead of Pi Agent.
 - Use the `env` option to point the SDK at z.AI.
 - This would give GLM 4.7 full access to Claude Code's agent harness (planning,

@@ -1,29 +1,29 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Check, Clock, AlertCircle, Circle, Loader2 } from "lucide-react"
+import { Check, Clock, AlertCircle, Circle, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export type TaskStatus = "complete" | "running" | "pending" | "blocked"
+export type TaskStatus = "complete" | "running" | "pending" | "blocked";
 
 interface TaskNodeProps {
   task: {
-    id: string
-    name: string
-    status: TaskStatus
-    progress?: number
-  }
-  selected?: boolean
-  onClick?: () => void
+    id: string;
+    name: string;
+    status: TaskStatus;
+    progress?: number;
+  };
+  selected?: boolean;
+  onClick?: () => void;
 }
 
 const statusConfig: Record<
   TaskStatus,
   {
-    icon: typeof Check
-    label: string
-    bgClass: string
-    borderClass: string
-    iconClass: string
+    icon: typeof Check;
+    label: string;
+    bgClass: string;
+    borderClass: string;
+    iconClass: string;
   }
 > = {
   complete: {
@@ -54,11 +54,11 @@ const statusConfig: Record<
     borderClass: "border-destructive/40",
     iconClass: "text-destructive",
   },
-}
+};
 
 export function TaskNode({ task, selected, onClick }: TaskNodeProps) {
-  const config = statusConfig[task.status]
-  const Icon = config.icon
+  const config = statusConfig[task.status];
+  const Icon = config.icon;
 
   return (
     <button
@@ -69,20 +69,14 @@ export function TaskNode({ task, selected, onClick }: TaskNodeProps) {
         config.bgClass,
         config.borderClass,
         selected && "ring-2 ring-primary ring-offset-2 ring-offset-background",
-        "min-w-[140px] min-h-[90px]"
+        "min-w-[140px] min-h-[90px]",
       )}
     >
       <div className="flex items-center gap-2 mb-1">
         <Icon
-          className={cn(
-            "h-4 w-4",
-            config.iconClass,
-            task.status === "running" && "animate-spin"
-          )}
+          className={cn("h-4 w-4", config.iconClass, task.status === "running" && "animate-spin")}
         />
-        <span className="text-xs font-medium text-muted-foreground">
-          {config.label}
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">{config.label}</span>
       </div>
       <span className="text-sm font-medium text-foreground text-center line-clamp-2">
         {task.name}
@@ -96,5 +90,5 @@ export function TaskNode({ task, selected, onClick }: TaskNodeProps) {
         </div>
       )}
     </button>
-  )
+  );
 }

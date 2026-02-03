@@ -1,10 +1,10 @@
-import { processCompletion } from "./registry.js";
 import type {
   TurnCompletionEvent,
   RunCompletionEvent,
   QueueCompletionEvent,
   ContinuationDecision,
 } from "./types.js";
+import { processCompletion } from "./registry.js";
 
 /**
  * Emit turn completion (from handleAgentEnd).

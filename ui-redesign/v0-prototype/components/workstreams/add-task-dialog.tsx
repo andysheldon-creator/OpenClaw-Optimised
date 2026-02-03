@@ -1,19 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { X, Plus } from "lucide-react"
+import { X, Plus } from "lucide-react";
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -21,75 +11,74 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
-type Priority = "low" | "medium" | "high"
+type Priority = "low" | "medium" | "high";
 
 interface AddTaskDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  existingTasks: { id: string; name: string }[]
-  onSubmit?: (task: TaskFormData) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  existingTasks: { id: string; name: string }[];
+  onSubmit?: (task: TaskFormData) => void;
 }
 
 interface TaskFormData {
-  title: string
-  description: string
-  dependencies: string[]
-  priority: Priority
+  title: string;
+  description: string;
+  dependencies: string[];
+  priority: Priority;
 }
 
-export function AddTaskDialog({
-  open,
-  onOpenChange,
-  existingTasks,
-  onSubmit,
-}: AddTaskDialogProps) {
+export function AddTaskDialog({ open, onOpenChange, existingTasks, onSubmit }: AddTaskDialogProps) {
   const [formData, setFormData] = useState<TaskFormData>({
     title: "",
     description: "",
     dependencies: [],
     priority: "medium",
-  })
-  const [depPopoverOpen, setDepPopoverOpen] = useState(false)
+  });
+  const [depPopoverOpen, setDepPopoverOpen] = useState(false);
 
   const handleSubmit = () => {
-    onSubmit?.(formData)
-    onOpenChange(false)
+    onSubmit?.(formData);
+    onOpenChange(false);
     setFormData({
       title: "",
       description: "",
       dependencies: [],
       priority: "medium",
-    })
-  }
+    });
+  };
 
   const addDependency = (taskId: string) => {
     if (!formData.dependencies.includes(taskId)) {
       setFormData((prev) => ({
         ...prev,
         dependencies: [...prev.dependencies, taskId],
-      }))
+      }));
     }
-    setDepPopoverOpen(false)
-  }
+    setDepPopoverOpen(false);
+  };
 
   const removeDependency = (taskId: string) => {
     setFormData((prev) => ({
       ...prev,
       dependencies: prev.dependencies.filter((id) => id !== taskId),
-    }))
-  }
+    }));
+  };
 
-  const availableTasks = existingTasks.filter(
-    (t) => !formData.dependencies.includes(t.id)
-  )
+  const availableTasks = existingTasks.filter((t) => !formData.dependencies.includes(t.id));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,9 +95,7 @@ export function AddTaskDialog({
               id="task-title"
               placeholder="Create presentation slides"
               value={formData.title}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, title: e.target.value }))
-              }
+              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
             />
           </div>
 
@@ -120,27 +107,20 @@ export function AddTaskDialog({
               placeholder="Create slides for the team presentation based on the final report."
               rows={3}
               value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, description: e.target.value }))
-              }
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
             />
           </div>
 
           {/* Dependencies */}
           <div className="space-y-2">
             <Label>
-              Depends On{" "}
-              <span className="text-muted-foreground font-normal">(optional)</span>
+              Depends On <span className="text-muted-foreground font-normal">(optional)</span>
             </Label>
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-input bg-background p-2 min-h-[42px]">
               {formData.dependencies.map((depId) => {
-                const task = existingTasks.find((t) => t.id === depId)
+                const task = existingTasks.find((t) => t.id === depId);
                 return (
-                  <Badge
-                    key={depId}
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
+                  <Badge key={depId} variant="secondary" className="flex items-center gap-1">
                     {task?.name}
                     <button
                       type="button"
@@ -151,7 +131,7 @@ export function AddTaskDialog({
                       <span className="sr-only">Remove</span>
                     </button>
                   </Badge>
-                )
+                );
               })}
               <Popover open={depPopoverOpen} onOpenChange={setDepPopoverOpen}>
                 <PopoverTrigger asChild>
@@ -172,10 +152,7 @@ export function AddTaskDialog({
                       <CommandEmpty>No tasks found.</CommandEmpty>
                       <CommandGroup>
                         {availableTasks.map((task) => (
-                          <CommandItem
-                            key={task.id}
-                            onSelect={() => addDependency(task.id)}
-                          >
+                          <CommandItem key={task.id} onSelect={() => addDependency(task.id)}>
                             {task.name}
                           </CommandItem>
                         ))}
@@ -205,7 +182,7 @@ export function AddTaskDialog({
                       "bg-destructive hover:bg-destructive/90",
                     formData.priority === priority &&
                       priority === "low" &&
-                      "bg-success hover:bg-success/90"
+                      "bg-success hover:bg-success/90",
                   )}
                 >
                   {priority}
@@ -225,5 +202,5 @@ export function AddTaskDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

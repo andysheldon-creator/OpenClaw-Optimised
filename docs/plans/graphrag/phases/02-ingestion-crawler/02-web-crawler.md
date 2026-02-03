@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement a web crawler that supports:
+
 - Single page fetching
 - Sitemap-based discovery
 - Recursive BFS crawling
@@ -40,28 +41,28 @@ src/knowledge/crawler/
  * Web crawler types.
  */
 
-export type CrawlMode = 'single' | 'sitemap' | 'recursive';
+export type CrawlMode = "single" | "sitemap" | "recursive";
 
 export type CrawlAuth =
-  | { type: 'bearer'; token: string }
-  | { type: 'basic'; username: string; password: string }
-  | { type: 'custom'; headers: Record<string, string> };
+  | { type: "bearer"; token: string }
+  | { type: "basic"; username: string; password: string }
+  | { type: "custom"; headers: Record<string, string> };
 
 export interface CrawlTarget {
   url: string;
   mode: CrawlMode;
   auth?: CrawlAuth;
-  jsRender?: boolean;  // Opt-in Playwright rendering
+  jsRender?: boolean; // Opt-in Playwright rendering
   maxPages?: number;
   maxDepth?: number;
-  sameDomain?: boolean;  // Only crawl same domain
-  allowedPatterns?: RegExp[];  // URL patterns to allow
-  blockedPatterns?: RegExp[];  // URL patterns to block
+  sameDomain?: boolean; // Only crawl same domain
+  allowedPatterns?: RegExp[]; // URL patterns to allow
+  blockedPatterns?: RegExp[]; // URL patterns to block
 }
 
 export interface CrawlResult {
   crawlId: string;
-  status: 'completed' | 'partial' | 'failed';
+  status: "completed" | "partial" | "failed";
   totalPages: number;
   successfulPages: number;
   failedPages: number;
@@ -101,12 +102,12 @@ export interface CrawlConfig {
  * Reference: docs/plans/graphrag/ZAI-PLAN.md Phase 2
  */
 
-import pLimit from 'p-limit';
-import { CrawlURLDiscovery } from './discovery.js';
-import { CrawlFetcher } from './fetcher.js';
-import type { RelationalDatastore } from '../datastore/interface.js';
-import type { IngestionPipeline } from '../ingest/pipeline.js';
-import type { CrawlTarget, CrawlResult, CrawlConfig, CrawlMode } from './types.js';
+import pLimit from "p-limit";
+import { CrawlURLDiscovery } from "./discovery.js";
+import { CrawlFetcher } from "./fetcher.js";
+import type { RelationalDatastore } from "../datastore/interface.js";
+import type { IngestionPipeline } from "../ingest/pipeline.js";
+import type { CrawlTarget, CrawlResult, CrawlConfig, CrawlMode } from "./types.js";
 
 export class WebCrawler {
   private datastore: RelationalDatastore;
@@ -119,14 +120,14 @@ export class WebCrawler {
   constructor(
     datastore: RelationalDatastore,
     ingestion: IngestionPipeline,
-    config: Partial<CrawlConfig> = {}
+    config: Partial<CrawlConfig> = {},
   ) {
     this.datastore = datastore;
     this.ingestion = ingestion;
     this.config = {
       requestsPerSecond: 2,
       timeout: 30000,
-      userAgent: 'Clawdbot-Knowledge-Crawler/1.0',
+      userAgent: "Clawdbot-Knowledge-Crawler/1.0",
       respectRobotsTxt: true,
       maxRetries: 3,
       retryBackoffMs: 1000,
@@ -135,7 +136,7 @@ export class WebCrawler {
 
     this.discovery = new CrawlURLDiscovery(this.config);
     this.fetcher = new CrawlFetcher(this.config);
-    this.concurrencyLimit = pLimit(5);  // Max 5 concurrent requests
+    this.concurrencyLimit = pLimit(5); // Max 5 concurrent requests
   }
 
   /**
@@ -157,9 +158,7 @@ export class WebCrawler {
 
       // Crawl URLs with concurrency limit
       const results = await Promise.allSettled(
-        limitedUrls.map(url =>
-          this.concurrencyLimit(() => this.crawlPage(url, target, crawlId))
-        )
+        limitedUrls.map((url) => this.concurrencyLimit(() => this.crawlPage(url, target, crawlId))),
       );
 
       // Count results
@@ -168,7 +167,7 @@ export class WebCrawler {
       const errors: string[] = [];
 
       for (const result of results) {
-        if (result.status === 'fulfilled') {
+        if (result.status === "fulfilled") {
           if (result.value.success) successful++;
           else {
             failed++;
@@ -176,7 +175,7 @@ export class WebCrawler {
           }
         } else {
           failed++;
-          errors.push(result.reason?.message || 'Unknown error');
+          errors.push(result.reason?.message || "Unknown error");
         }
       }
 
@@ -185,12 +184,12 @@ export class WebCrawler {
         totalPages: limitedUrls.length,
         successfulPages: successful,
         failedPages: failed,
-        status: failed === 0 ? 'completed' : 'partial',
+        status: failed === 0 ? "completed" : "partial",
       });
 
       return {
         crawlId,
-        status: failed === 0 ? 'completed' : 'partial',
+        status: failed === 0 ? "completed" : "partial",
         totalPages: limitedUrls.length,
         successfulPages: successful,
         failedPages: failed,
@@ -202,12 +201,12 @@ export class WebCrawler {
         totalPages: 0,
         successfulPages: 0,
         failedPages: 0,
-        status: 'failed',
+        status: "failed",
       });
 
       return {
         crawlId,
-        status: 'failed',
+        status: "failed",
         totalPages: 0,
         successfulPages: 0,
         failedPages: 0,
@@ -221,10 +220,9 @@ export class WebCrawler {
    * Get crawl status.
    */
   async getCrawlStatus(crawlId: string): Promise<CrawlResult | null> {
-    const result = await this.datastore.queryOne<any>(
-      `SELECT * FROM kg_crawls WHERE id = $1`,
-      [crawlId]
-    );
+    const result = await this.datastore.queryOne<any>(`SELECT * FROM kg_crawls WHERE id = $1`, [
+      crawlId,
+    ]);
 
     if (!result) return null;
 
@@ -248,16 +246,16 @@ export class WebCrawler {
    */
   private async discoverURLs(target: CrawlTarget): Promise<string[]> {
     switch (target.mode) {
-      case 'single':
+      case "single":
         return [target.url];
 
-      case 'sitemap':
+      case "sitemap":
         return this.discovery.fromSitemap(target.url, {
           auth: target.auth,
           sameDomain: target.sameDomain,
         });
 
-      case 'recursive':
+      case "recursive":
         return this.discovery.fromBFS(target.url, {
           auth: target.auth,
           maxDepth: target.maxDepth || 2,
@@ -277,7 +275,7 @@ export class WebCrawler {
   private async crawlPage(
     url: string,
     target: CrawlTarget,
-    crawlId: string
+    crawlId: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Fetch page content
@@ -289,12 +287,12 @@ export class WebCrawler {
       // Ingest content
       await this.ingestion.ingestURL(
         {
-          source: 'crawl',
+          source: "crawl",
           url,
           crawlId,
           skipExtraction: false,
         },
-        content
+        content,
       );
 
       return { success: true };
@@ -310,10 +308,10 @@ export class WebCrawler {
    * Generate unique crawl ID.
    */
   private generateCrawlId(url: string): string {
-    const hash = createHash('sha256')
+    const hash = createHash("sha256")
       .update(url)
       .update(Date.now().toString())
-      .digest('hex')
+      .digest("hex")
       .slice(0, 16);
 
     return `crawl-${hash}`;
@@ -326,14 +324,7 @@ export class WebCrawler {
     await this.datastore.execute(
       `INSERT INTO kg_crawls (id, url, mode, config, status, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        crawlId,
-        target.url,
-        target.mode,
-        JSON.stringify(target),
-        'running',
-        Date.now(),
-      ]
+      [crawlId, target.url, target.mode, JSON.stringify(target), "running", Date.now()],
     );
   }
 
@@ -346,8 +337,8 @@ export class WebCrawler {
       totalPages: number;
       successfulPages: number;
       failedPages: number;
-      status: 'completed' | 'partial' | 'failed';
-    }
+      status: "completed" | "partial" | "failed";
+    },
   ): Promise<void> {
     await this.datastore.execute(
       `UPDATE kg_crawls
@@ -365,7 +356,7 @@ export class WebCrawler {
         results.failedPages,
         results.status,
         Date.now(),
-      ]
+      ],
     );
   }
 }
@@ -405,9 +396,9 @@ CREATE INDEX IF NOT EXISTS idx_kg_crawls_created_at ON kg_crawls(created_at);
  * - Robots.txt filtering
  */
 
-import { URL } from 'url';
-import robotstxt from 'robotstxt';
-import type { CrawlConfig, CrawlAuth, CrawlMode } from './types.js';
+import { URL } from "url";
+import robotstxt from "robotstxt";
+import type { CrawlConfig, CrawlAuth, CrawlMode } from "./types.js";
 
 export interface DiscoveryOptions {
   auth?: CrawlAuth;
@@ -456,9 +447,7 @@ export class CrawlURLDiscovery {
     const maxDepth = options.maxDepth || 2;
     const baseUrl = new URL(startUrl);
     const visited = new Set<string>();
-    const queue: Array<{ url: string; depth: number }> = [
-      { url: startUrl, depth: 0 },
-    ];
+    const queue: Array<{ url: string; depth: number }> = [{ url: startUrl, depth: 0 }];
     const urls: string[] = [];
 
     while (queue.length > 0) {
@@ -516,13 +505,13 @@ export class CrawlURLDiscovery {
   private async filterUrls(
     urls: string[],
     baseUrl: URL,
-    options: DiscoveryOptions
+    options: DiscoveryOptions,
   ): Promise<string[]> {
     let filtered = urls;
 
     // Same domain filter
     if (options.sameDomain) {
-      filtered = filtered.filter(url => {
+      filtered = filtered.filter((url) => {
         const u = new URL(url);
         return u.origin === baseUrl.origin;
       });
@@ -530,15 +519,15 @@ export class CrawlURLDiscovery {
 
     // Allowed patterns
     if (options.allowedPatterns && options.allowedPatterns.length > 0) {
-      filtered = filtered.filter(url =>
-        options.allowedPatterns!.some(pattern => pattern.test(url))
+      filtered = filtered.filter((url) =>
+        options.allowedPatterns!.some((pattern) => pattern.test(url)),
       );
     }
 
     // Blocked patterns
     if (options.blockedPatterns && options.blockedPatterns.length > 0) {
-      filtered = filtered.filter(url =>
-        !options.blockedPatterns!.some(pattern => pattern.test(url))
+      filtered = filtered.filter(
+        (url) => !options.blockedPatterns!.some((pattern) => pattern.test(url)),
       );
     }
 
@@ -546,11 +535,11 @@ export class CrawlURLDiscovery {
     if (this.config.respectRobotsTxt) {
       const robots = await this.getRobotsTxt(baseUrl.origin);
       if (robots) {
-        filtered = filtered.filter(url => robots.isAllowed(url));
+        filtered = filtered.filter((url) => robots.isAllowed(url));
       }
     }
 
-    return Array.from(new Set(filtered));  // Deduplicate
+    return Array.from(new Set(filtered)); // Deduplicate
   }
 
   /**
@@ -564,7 +553,7 @@ export class CrawlURLDiscovery {
     try {
       const robotsUrl = `${origin}/robots.txt`;
       const response = await fetch(robotsUrl, {
-        headers: { 'User-Agent': this.config.userAgent },
+        headers: { "User-Agent": this.config.userAgent },
       });
       const robotsTxt = await response.text();
 
@@ -582,18 +571,19 @@ export class CrawlURLDiscovery {
    */
   private async fetch(url: string, auth?: CrawlAuth): Promise<{ text: () => string }> {
     const headers: Record<string, string> = {
-      'User-Agent': this.config.userAgent,
+      "User-Agent": this.config.userAgent,
     };
 
     if (auth) {
       switch (auth.type) {
-        case 'bearer':
-          headers['Authorization'] = `Bearer ${auth.token}`;
+        case "bearer":
+          headers["Authorization"] = `Bearer ${auth.token}`;
           break;
-        case 'basic':
-          headers['Authorization'] = `Basic ${Buffer.from(`${auth.username}:${auth.password}`).toString('base64')}`;
+        case "basic":
+          headers["Authorization"] =
+            `Basic ${Buffer.from(`${auth.username}:${auth.password}`).toString("base64")}`;
           break;
-        case 'custom':
+        case "custom":
           Object.assign(headers, auth.headers);
           break;
       }
@@ -620,8 +610,8 @@ export class CrawlURLDiscovery {
  * HTTP fetcher with rate limiting and retry logic.
  */
 
-import pRetry from 'p-retry';
-import type { CrawlConfig, CrawlAuth } from './types.js';
+import pRetry from "p-retry";
+import type { CrawlConfig, CrawlAuth } from "./types.js";
 
 export interface FetchOptions {
   auth?: CrawlAuth;
@@ -651,10 +641,10 @@ export class CrawlFetcher {
       },
       {
         retries: this.config.maxRetries,
-        onFailedAttempt: error => {
+        onFailedAttempt: (error) => {
           console.log(`Fetch attempt ${error.attemptNumber} failed for ${url}`);
         },
-      }
+      },
     );
   }
 
@@ -663,18 +653,19 @@ export class CrawlFetcher {
    */
   private async fetchHTTP(url: string, options: FetchOptions): Promise<string> {
     const headers: Record<string, string> = {
-      'User-Agent': this.config.userAgent,
+      "User-Agent": this.config.userAgent,
     };
 
     if (options.auth) {
       switch (options.auth.type) {
-        case 'bearer':
-          headers['Authorization'] = `Bearer ${options.auth.token}`;
+        case "bearer":
+          headers["Authorization"] = `Bearer ${options.auth.token}`;
           break;
-        case 'basic':
-          headers['Authorization'] = `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString('base64')}`;
+        case "basic":
+          headers["Authorization"] =
+            `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString("base64")}`;
           break;
-        case 'custom':
+        case "custom":
           Object.assign(headers, options.auth.headers);
           break;
       }
@@ -696,7 +687,7 @@ export class CrawlFetcher {
    * Fetch with JavaScript rendering (Playwright).
    */
   private async fetchWithPlaywright(url: string, options: FetchOptions): Promise<string> {
-    const { chromium } = await import('playwright');
+    const { chromium } = await import("playwright");
 
     const browser = await chromium.launch();
     const page = await browser.newPage();
@@ -704,24 +695,24 @@ export class CrawlFetcher {
     // Set auth headers
     if (options.auth) {
       switch (options.auth.type) {
-        case 'bearer':
+        case "bearer":
           await page.setExtraHTTPHeaders({
-            'Authorization': `Bearer ${options.auth.token}`,
+            Authorization: `Bearer ${options.auth.token}`,
           });
           break;
-        case 'basic':
+        case "basic":
           await page.setExtraHTTPHeaders({
-            'Authorization': `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString('base64')}`,
+            Authorization: `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString("base64")}`,
           });
           break;
-        case 'custom':
+        case "custom":
           await page.setExtraHTTPHeaders(options.auth.headers);
           break;
       }
     }
 
     await page.goto(url, {
-      waitUntil: 'networkidle',
+      waitUntil: "networkidle",
       timeout: this.config.timeout,
     });
 
@@ -740,14 +731,14 @@ export class CrawlFetcher {
     const requests = this.rateLimiter.get(origin) || [];
 
     // Remove old requests (outside 1-second window)
-    const recent = requests.filter(t => now - t < 1000);
+    const recent = requests.filter((t) => now - t < 1000);
 
     // Check if we've exceeded the rate limit
     if (recent.length >= this.config.requestsPerSecond) {
       const oldestRequest = recent[0];
       const waitTime = 1000 - (now - oldestRequest);
       if (waitTime > 0) {
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
       }
     }
 

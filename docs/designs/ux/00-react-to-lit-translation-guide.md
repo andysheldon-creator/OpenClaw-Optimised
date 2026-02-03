@@ -41,6 +41,7 @@ This guide provides detailed, explicit instructions for translating React-based 
 ## 1. Core Framework Differences
 
 ### React
+
 - JSX-based syntax
 - Virtual DOM
 - Hooks (useState, useEffect, etc.)
@@ -48,6 +49,7 @@ This guide provides detailed, explicit instructions for translating React-based 
 - Props passed as function arguments
 
 ### Lit
+
 - Template literals with `html` tag function
 - No virtual DOM (direct DOM manipulation)
 - Decorators (@customElement, @state, @property)
@@ -55,6 +57,7 @@ This guide provides detailed, explicit instructions for translating React-based 
 - Properties as class properties with decorators
 
 ### Key Insight
+
 **Clawdbrain uses a hybrid pattern:** Components are often render FUNCTIONS that return Lit templates, while state is managed in CONTROLLER classes. This is different from pure React OR pure Lit.
 
 ---
@@ -62,8 +65,9 @@ This guide provides detailed, explicit instructions for translating React-based 
 ## 2. Component Structure
 
 ### React Component
+
 ```tsx
-import { useState } from 'react';
+import { useState } from "react";
 
 interface AutomationCardProps {
   automation: Automation;
@@ -83,6 +87,7 @@ export function AutomationCard({ automation, onEdit }: AutomationCardProps) {
 ```
 
 ### Lit Component (Class-Based - Standard Lit Pattern)
+
 ```typescript
 import { LitElement, html, css } from "lit";
 import { customElement, state, property } from "lit/decorators.js";
@@ -123,6 +128,7 @@ export class AutomationCard extends LitElement {
 ```
 
 ### Lit Render Function (Clawdbrain Pattern - PREFERRED)
+
 ```typescript
 import { html, nothing } from "lit";
 import { icon, type IconName } from "../icons";
@@ -146,19 +152,17 @@ export function renderAutomationCard(props: AutomationCardProps) {
     <div class="automation-card">
       <div class="automation-card__header">
         <h3 class="automation-card__name">${automation.name}</h3>
-        <button
-          class="automation-card__edit-btn"
-          @click=${() => onEdit(automation.id)}
-        >
-          ${icon("edit", { size: 16 })}
-          Edit
+        <button class="automation-card__edit-btn" @click=${() => onEdit(automation.id)}>
+          ${icon("edit", { size: 16 })} Edit
         </button>
       </div>
-      ${isExpanded ? html`
-        <div class="automation-card__details">
-          <p>Status: ${automation.status}</p>
-        </div>
-      ` : nothing}
+      ${isExpanded
+        ? html`
+            <div class="automation-card__details">
+              <p>Status: ${automation.status}</p>
+            </div>
+          `
+        : nothing}
     </div>
   `;
 }
@@ -171,6 +175,7 @@ export function renderAutomationCard(props: AutomationCardProps) {
 ## 3. State Management
 
 ### React useState
+
 ```tsx
 const [count, setCount] = useState(0);
 const [name, setName] = useState("");
@@ -178,6 +183,7 @@ const [items, setItems] = useState<string[]>([]);
 ```
 
 ### Lit @state Decorator (Class-Based)
+
 ```typescript
 @state() private count = 0;
 @state() private name = "";
@@ -185,6 +191,7 @@ const [items, setItems] = useState<string[]>([]);
 ```
 
 ### Controller State (Clawdbrain Pattern - PREFERRED)
+
 ```typescript
 // In controller file (e.g., ui/src/ui/controllers/automations.ts)
 export type AutomationsState = {
@@ -206,27 +213,26 @@ export function renderAutomationsList(state: AutomationsState) {
   if (state.loading) {
     return html`<div class="loading">Loading...</div>`;
   }
-  return html`
-    <div class="automations-list">
-      ${state.automations.map(renderAutomationCard)}
-    </div>
-  `;
+  return html` <div class="automations-list">${state.automations.map(renderAutomationCard)}</div> `;
 }
 ```
 
 ### React setState with Updates
+
 ```tsx
-setItems(prev => [...prev, newItem]);
-setCount(prev => prev + 1);
+setItems((prev) => [...prev, newItem]);
+setCount((prev) => prev + 1);
 ```
 
 ### Lit State Updates
+
 ```typescript
 this.items = [...this.items, newItem];
 this.count++;
 ```
 
 ### Controller State Updates
+
 ```typescript
 // In controller function:
 async function loadAutomations(state: AutomationsState) {
@@ -247,6 +253,7 @@ async function loadAutomations(state: AutomationsState) {
 ## 4. Props and Properties
 
 ### React Props
+
 ```tsx
 interface Props {
   title: string;
@@ -256,11 +263,16 @@ interface Props {
 }
 
 function MyComponent({ title, count = 0, onAction, items }: Props) {
-  return <div>{title}: {count}</div>;
+  return (
+    <div>
+      {title}: {count}
+    </div>
+  );
 }
 ```
 
 ### Lit @property Decorator (Class-Based)
+
 ```typescript
 @property() title!: string;
 @property({ type: Number }) count = 0;
@@ -269,6 +281,7 @@ function MyComponent({ title, count = 0, onAction, items }: Props) {
 ```
 
 ### Render Function Props (Clawdbrain Pattern)
+
 ```typescript
 interface MyComponentProps {
   title: string;
@@ -284,6 +297,7 @@ export function renderMyComponent(props: MyComponentProps) {
 ```
 
 ### Property Types in Lit
+
 ```typescript
 @property() // String (default)
 @property({ type: Number }) count: number = 0;
@@ -298,6 +312,7 @@ export function renderMyComponent(props: MyComponentProps) {
 ## 5. Event Handling
 
 ### React Event Handlers
+
 ```tsx
 <button onClick={handleClick}>Click</button>
 <input onChange={handleChange} />
@@ -306,6 +321,7 @@ export function renderMyComponent(props: MyComponentProps) {
 ```
 
 ### Lit Event Handlers
+
 ```typescript
 <button @click=${handleClick}>Click</button>
 <input @input=${handleChange} />
@@ -316,6 +332,7 @@ export function renderMyComponent(props: MyComponentProps) {
 ### Event Handler Differences
 
 #### React
+
 ```tsx
 const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
   e.preventDefault();
@@ -324,6 +341,7 @@ const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
 ```
 
 #### Lit
+
 ```typescript
 const handleClick = (e: Event) => {
   e.preventDefault();
@@ -335,12 +353,14 @@ const handleClick = (e: Event) => {
 ### Passing Arguments to Event Handlers
 
 #### React
+
 ```tsx
 <button onClick={() => onEdit(item.id)}>Edit</button>
 <button onClick={handleClick.bind(null, item.id)}>Edit</button>
 ```
 
 #### Lit
+
 ```typescript
 <button @click=${() => onEdit(item.id)}>Edit</button>
 <!-- Arrow functions work the same way in Lit -->
@@ -349,16 +369,15 @@ const handleClick = (e: Event) => {
 ### Input Handling
 
 #### React
+
 ```tsx
 const [value, setValue] = useState("");
 
-<input
-  value={value}
-  onChange={(e) => setValue(e.target.value)}
-/>
+<input value={value} onChange={(e) => setValue(e.target.value)} />;
 ```
 
 #### Lit
+
 ```typescript
 // Class-based
 @property() value = "";
@@ -399,17 +418,20 @@ export function renderInput(props: {
 ### React Styling Options
 
 #### Inline Styles
+
 ```tsx
-<div style={{ display: 'flex', gap: '1rem' }}>Content</div>
+<div style={{ display: "flex", gap: "1rem" }}>Content</div>
 ```
 
 #### CSS Modules
+
 ```tsx
-import styles from './Component.module.css';
-<div className={styles.container}>Content</div>
+import styles from "./Component.module.css";
+<div className={styles.container}>Content</div>;
 ```
 
 #### Tailwind
+
 ```tsx
 <div className="flex gap-4 p-4 bg-white rounded-lg">Content</div>
 ```
@@ -417,6 +439,7 @@ import styles from './Component.module.css';
 ### Lit Styling
 
 #### Static Styles (Class-Based Components)
+
 ```typescript
 @customElement("my-component")
 export class MyComponent extends LitElement {
@@ -445,18 +468,18 @@ export class MyComponent extends LitElement {
 ```
 
 #### Using Tailwind (Clawdbrain Pattern)
+
 ```typescript
 // In render function - just use Tailwind classes directly
 export function renderAutomationCard(props: AutomationCardProps) {
   return html`
-    <div class="automation-card flex gap-4 p-4 bg-white rounded-lg border">
-      Content
-    </div>
+    <div class="automation-card flex gap-4 p-4 bg-white rounded-lg border">Content</div>
   `;
 }
 ```
 
 #### Clawdbrain CSS Custom Properties
+
 ```typescript
 // Common variables used in Clawdbrain:
 // - var(--panel-strong) - Strong panel background
@@ -474,6 +497,7 @@ export function renderAutomationCard(props: AutomationCardProps) {
 ```
 
 #### Style Tag in Render (For dynamic styles)
+
 ```typescript
 export function renderComponent(props: { color: string }) {
   return html`
@@ -492,6 +516,7 @@ export function renderComponent(props: { color: string }) {
 ## 7. Lifecycle Methods
 
 ### React Effects
+
 ```tsx
 useEffect(() => {
   // On mount
@@ -505,11 +530,12 @@ useEffect(() => {
 
 useEffect(() => {
   // On every render
-  console.log('Rendered');
+  console.log("Rendered");
 });
 ```
 
 ### Lit Lifecycle (Class-Based)
+
 ```typescript
 connectedCallback() {
   super.connectedCallback();
@@ -539,6 +565,7 @@ updated(changedProperties: Map<PropertyKey, unknown>) {
 ```
 
 ### Controller Pattern (Clawdbrain)
+
 ```typescript
 // No lifecycle - just call functions when needed
 export async function initAutomationsController(state: AutomationsState) {
@@ -556,16 +583,23 @@ export async function initAutomationsController(state: AutomationsState) {
 ### React Conditionals
 
 #### Ternary
+
 ```tsx
-{isLoggedIn ? <Dashboard /> : <Login />}
+{
+  isLoggedIn ? <Dashboard /> : <Login />;
+}
 ```
 
 #### Logical AND
+
 ```tsx
-{showDetails && <DetailsPanel />}
+{
+  showDetails && <DetailsPanel />;
+}
 ```
 
 #### Early Return
+
 ```tsx
 if (loading) return <Loading />;
 if (error) return <Error />;
@@ -575,18 +609,21 @@ return <Content />;
 ### Lit Conditionals
 
 #### Ternary
+
 ```typescript
-isLoggedIn ? html`<dashboard-view></dashboard-view>` : html`<login-view></login-view>`
+isLoggedIn ? html`<dashboard-view></dashboard-view>` : html`<login-view></login-view>`;
 ```
 
 #### Logical AND (use nothing for false)
+
 ```typescript
-showDetails ? html`<details-panel></details-panel>` : nothing
+showDetails ? html`<details-panel></details-panel>` : nothing;
 // or
-html`${showDetails ? html`<details-panel></details-panel>` : nothing}`
+html`${showDetails ? html`<details-panel></details-panel>` : nothing}`;
 ```
 
 #### Early Return
+
 ```typescript
 export function renderView(props: ViewProps) {
   if (props.loading) {
@@ -600,6 +637,7 @@ export function renderView(props: ViewProps) {
 ```
 
 #### Using `nothing` from Lit
+
 ```typescript
 import { html, nothing } from "lit";
 
@@ -615,15 +653,19 @@ ${props.showHeader ? html`<header>Header</header>` : nothing}
 ## 9. Lists and Iteration
 
 ### React Lists
+
 ```tsx
-{items.map(item => (
-  <div key={item.id} className="item">
-    {item.name}
-  </div>
-))}
+{
+  items.map((item) => (
+    <div key={item.id} className="item">
+      {item.name}
+    </div>
+  ));
+}
 ```
 
 ### Lit Lists
+
 ```typescript
 ${items.map(item => html`
   <div class="item" data-id="${item.id}">
@@ -633,10 +675,11 @@ ${items.map(item => html`
 ```
 
 ### With Index
+
 ```tsx
-{items.map((item, index) => (
-  <div key={index}>{item.name}</div>
-))}
+{
+  items.map((item, index) => <div key={index}>{item.name}</div>);
+}
 ```
 
 ```typescript
@@ -646,15 +689,18 @@ ${items.map((item, index) => html`
 ```
 
 ### Nested Lists
+
 ```tsx
-{groups.map(group => (
-  <div key={group.id}>
-    <h3>{group.name}</h3>
-    {group.items.map(item => (
-      <div key={item.id}>{item.name}</div>
-    ))}
-  </div>
-))}
+{
+  groups.map((group) => (
+    <div key={group.id}>
+      <h3>{group.name}</h3>
+      {group.items.map((item) => (
+        <div key={item.id}>{item.name}</div>
+      ))}
+    </div>
+  ));
+}
 ```
 
 ```typescript
@@ -673,33 +719,28 @@ ${groups.map(group => html`
 ## 10. Forms and Inputs
 
 ### React Form State
+
 ```tsx
 const [formData, setFormData] = useState({
-  name: '',
-  email: '',
+  name: "",
+  email: "",
   subscribed: false,
-  category: 'general'
+  category: "general",
 });
 
 const handleChange = (field: string, value: any) => {
-  setFormData(prev => ({ ...prev, [field]: value }));
+  setFormData((prev) => ({ ...prev, [field]: value }));
 };
 
 return (
   <form onSubmit={handleSubmit}>
-    <input
-      value={formData.name}
-      onChange={e => handleChange('name', e.target.value)}
-    />
+    <input value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
     <input
       type="checkbox"
       checked={formData.subscribed}
-      onChange={e => handleChange('subscribed', e.target.checked)}
+      onChange={(e) => handleChange("subscribed", e.target.checked)}
     />
-    <select
-      value={formData.category}
-      onChange={e => handleChange('category', e.target.value)}
-    >
+    <select value={formData.category} onChange={(e) => handleChange("category", e.target.value)}>
       <option value="general">General</option>
       <option value="news">News</option>
     </select>
@@ -708,6 +749,7 @@ return (
 ```
 
 ### Lit Form State (Render Function Pattern)
+
 ```typescript
 export interface FormState {
   name: string;
@@ -724,23 +766,28 @@ export function renderAutomationForm(props: {
   const { state, onChange, onSubmit } = props;
 
   return html`
-    <form @submit=${(e: Event) => { e.preventDefault(); onSubmit(); }}>
+    <form
+      @submit=${(e: Event) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
       <input
         type="text"
         .value=${state.name}
-        @input=${(e: Event) => onChange('name', (e.target as HTMLInputElement).value)}
+        @input=${(e: Event) => onChange("name", (e.target as HTMLInputElement).value)}
         placeholder="Name"
       />
 
       <input
         type="checkbox"
         .checked=${state.subscribed}
-        @change=${(e: Event) => onChange('subscribed', (e.target as HTMLInputElement).checked)}
+        @change=${(e: Event) => onChange("subscribed", (e.target as HTMLInputElement).checked)}
       />
 
       <select
         .value=${state.category}
-        @change=${(e: Event) => onChange('category', (e.target as HTMLSelectElement).value)}
+        @change=${(e: Event) => onChange("category", (e.target as HTMLSelectElement).value)}
       >
         <option value="general">General</option>
         <option value="news">News</option>
@@ -753,6 +800,7 @@ export function renderAutomationForm(props: {
 ```
 
 ### Form Validation Pattern
+
 ```typescript
 export interface FormField<T> {
   value: T;
@@ -779,7 +827,7 @@ export function renderFormField(props: {
         type="text"
         .value=${field.value}
         @input=${(e: Event) => onChange((e.target as HTMLInputElement).value)}
-        class=${field.error && field.touched ? 'error' : ''}
+        class=${field.error && field.touched ? "error" : ""}
       />
       ${field.error && field.touched
         ? html`<span class="error-message">${field.error}</span>`
@@ -794,6 +842,7 @@ export function renderFormField(props: {
 ## 11. Icons
 
 ### React Icons (Lucide)
+
 ```tsx
 import { Check, ChevronDown, Play } from 'lucide-react';
 
@@ -803,6 +852,7 @@ import { Check, ChevronDown, Play } from 'lucide-react';
 ```
 
 ### Clawdbrain Icons (PREFERRED)
+
 ```typescript
 import { icon, type IconName } from "../icons";
 
@@ -822,7 +872,9 @@ ${icon("check", { size: 20, class: "text-ok" })}
 ```
 
 ### Available Icon Names in Clawdbrain
+
 From `ui/src/ui/icons.ts`:
+
 - message-square, layout-dashboard, link, radio, file-text, clock
 - zap, server, settings, bug, scroll-text, book-open
 - chevron-down, chevron-right, chevron-left, chevrons-down, menu, x
@@ -839,8 +891,9 @@ From `ui/src/ui/icons.ts`:
 ## 12. Toasts and Notifications
 
 ### React Toast (Typical Pattern)
+
 ```tsx
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
 toast.success("Automation created!");
 toast.error("Failed to create automation");
@@ -848,6 +901,7 @@ toast("Default message");
 ```
 
 ### Clawdbrain Toast (PREFERRED)
+
 ```typescript
 import { toast } from "../components/toast";
 
@@ -866,17 +920,15 @@ const id = toast.info("Processing...");
 toast.dismiss(id);
 
 // Promise tracking
-await toast.promise(
-  executeAutomation(),
-  {
-    loading: "Running automation...",
-    success: "Automation complete!",
-    error: (err) => `Failed: ${err.message}`
-  }
-);
+await toast.promise(executeAutomation(), {
+  loading: "Running automation...",
+  success: "Automation complete!",
+  error: (err) => `Failed: ${err.message}`,
+});
 ```
 
 ### Toast Types
+
 ```typescript
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -894,6 +946,7 @@ export interface ToastOptions {
 ## 13. Modals and Dialogs
 
 ### React Modal Pattern
+
 ```tsx
 const [isOpen, setIsOpen] = useState(false);
 
@@ -902,7 +955,7 @@ return (
     <button onClick={() => setIsOpen(true)}>Open</button>
     {isOpen && (
       <div className="modal-overlay" onClick={() => setIsOpen(false)}>
-        <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
           <h2>Modal Title</h2>
           <button onClick={() => setIsOpen(false)}>Close</button>
         </div>
@@ -913,13 +966,14 @@ return (
 ```
 
 ### Clawdbrain Confirm Dialog Pattern
+
 ```typescript
 import { showDangerConfirmDialog } from "../components/confirm-dialog";
 
 const confirmed = await showDangerConfirmDialog(
   "Delete Automation",
   `Delete automation "${name}"? This action cannot be undone.`,
-  "Delete"
+  "Delete",
 );
 
 if (!confirmed) {
@@ -930,6 +984,7 @@ if (!confirmed) {
 ```
 
 ### Custom Modal Pattern
+
 ```typescript
 export interface ModalState {
   open: boolean;
@@ -937,10 +992,7 @@ export interface ModalState {
   content: TemplateResult | null;
 }
 
-export function renderModal(props: {
-  state: ModalState;
-  onClose: () => void;
-}) {
+export function renderModal(props: { state: ModalState; onClose: () => void }) {
   const { state, onClose } = props;
 
   if (!state.open) return nothing;
@@ -950,13 +1002,9 @@ export function renderModal(props: {
       <div class="modal" @click=${(e: Event) => e.stopPropagation()}>
         <div class="modal-header">
           <h2>${state.title}</h2>
-          <button class="modal-close" @click=${onClose}>
-            ${icon("x")}
-          </button>
+          <button class="modal-close" @click=${onClose}>${icon("x")}</button>
         </div>
-        <div class="modal-content">
-          ${state.content}
-        </div>
+        <div class="modal-content">${state.content}</div>
       </div>
     </div>
   `;
@@ -968,16 +1016,18 @@ export function renderModal(props: {
 ## 14. Navigation and Routing
 
 ### React Router
+
 ```tsx
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from "react-router-dom";
 
 const navigate = useNavigate();
-navigate('/automations/123');
+navigate("/automations/123");
 
-<Link to="/automations/123">View Details</Link>
+<Link to="/automations/123">View Details</Link>;
 ```
 
 ### Clawdbrain Navigation (PREFERRED)
+
 ```typescript
 import {
   type Tab,
@@ -1003,7 +1053,9 @@ window.location.hash = hash;
 ```
 
 ### Tab Groups
+
 From `navigation.ts`:
+
 ```typescript
 export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
@@ -1025,6 +1077,7 @@ export const TAB_GROUPS = [
 ### Pattern 1: Component with State and Actions
 
 #### React
+
 ```tsx
 export function AutomationCard({ automation }: { automation: Automation }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -1043,13 +1096,10 @@ export function AutomationCard({ automation }: { automation: Automation }) {
   };
 
   return (
-    <div className={`card ${isExpanded ? 'expanded' : ''}`}>
+    <div className={`card ${isExpanded ? "expanded" : ""}`}>
       <h3>{automation.name}</h3>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        disabled={isRunning}
-      >
-        {isRunning ? 'Running...' : 'Run Now'}
+      <button onClick={() => setIsExpanded(!isExpanded)} disabled={isRunning}>
+        {isRunning ? "Running..." : "Run Now"}
       </button>
     </div>
   );
@@ -1057,6 +1107,7 @@ export function AutomationCard({ automation }: { automation: Automation }) {
 ```
 
 #### Lit (Render Function + Controller)
+
 ```typescript
 // Controller
 export interface AutomationsState {
@@ -1064,10 +1115,7 @@ export interface AutomationsState {
   runningIds: Set<string>;
 }
 
-export async function runAutomation(
-  state: AutomationsState,
-  id: string
-) {
+export async function runAutomation(state: AutomationsState, id: string) {
   state.runningIds.add(id);
   try {
     await client.request("automations.run", { id });
@@ -1091,13 +1139,10 @@ export function renderAutomationCard(props: {
   const isRunning = state.runningIds.has(automation.id);
 
   return html`
-    <div class="card ${isExpanded ? 'expanded' : ''}">
+    <div class="card ${isExpanded ? "expanded" : ""}">
       <h3>${automation.name}</h3>
-      <button
-        @click=${() => onToggleExpand(automation.id)}
-        ?disabled=${isRunning}
-      >
-        ${isRunning ? 'Running...' : 'Run Now'}
+      <button @click=${() => onToggleExpand(automation.id)} ?disabled=${isRunning}>
+        ${isRunning ? "Running..." : "Run Now"}
       </button>
     </div>
   `;
@@ -1107,47 +1152,44 @@ export function renderAutomationCard(props: {
 ### Pattern 2: List with Filter and Search
 
 #### React
+
 ```tsx
 export function AutomationList({ automations }: { automations: Automation[] }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "suspended">("all");
 
   const filtered = automations
-    .filter(a => filter === "all" || a.status === filter)
-    .filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
+    .filter((a) => filter === "all" || a.status === filter)
+    .filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>
-      <input
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Search..."
-      />
-      <select value={filter} onChange={e => setFilter(e.target.value as any)}>
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." />
+      <select value={filter} onChange={(e) => setFilter(e.target.value as any)}>
         <option value="all">All</option>
         <option value="active">Active</option>
         <option value="suspended">Suspended</option>
       </select>
-      {filtered.map(a => <AutomationCard key={a.id} automation={a} />)}
+      {filtered.map((a) => (
+        <AutomationCard key={a.id} automation={a} />
+      ))}
     </div>
   );
 }
 ```
 
 #### Lit
+
 ```typescript
 export interface ListState {
   search: string;
   filter: "all" | "active" | "suspended";
 }
 
-export function filterAutomations(
-  automations: Automation[],
-  state: ListState
-): Automation[] {
+export function filterAutomations(automations: Automation[], state: ListState): Automation[] {
   return automations
-    .filter(a => state.filter === "all" || a.status === state.filter)
-    .filter(a => a.name.toLowerCase().includes(state.search.toLowerCase()));
+    .filter((a) => state.filter === "all" || a.status === state.filter)
+    .filter((a) => a.name.toLowerCase().includes(state.search.toLowerCase()));
 }
 
 export function renderAutomationList(props: {
@@ -1178,7 +1220,7 @@ export function renderAutomationList(props: {
         </select>
       </div>
       <div class="automation-list__items">
-        ${filtered.map(a => renderAutomationCard({ automation: a }))}
+        ${filtered.map((a) => renderAutomationCard({ automation: a }))}
       </div>
     </div>
   `;
@@ -1188,6 +1230,7 @@ export function renderAutomationList(props: {
 ### Pattern 3: Multi-Step Wizard
 
 #### React
+
 ```tsx
 export function AutomationWizard() {
   const [step, setStep] = useState(1);
@@ -1198,14 +1241,14 @@ export function AutomationWizard() {
     aiSettings: {},
   });
 
-  const nextStep = () => setStep(s => s + 1);
-  const prevStep = () => setStep(s => s - 1);
+  const nextStep = () => setStep((s) => s + 1);
+  const prevStep = () => setStep((s) => s - 1);
 
   return (
     <div className="wizard">
       <div className="wizard-steps">
-        {[1, 2, 3, 4, 5, 6].map(s => (
-          <div key={s} className={s <= step ? 'active' : ''}>
+        {[1, 2, 3, 4, 5, 6].map((s) => (
+          <div key={s} className={s <= step ? "active" : ""}>
             {s}
           </div>
         ))}
@@ -1224,6 +1267,7 @@ export function AutomationWizard() {
 ```
 
 #### Lit
+
 ```typescript
 export interface WizardState {
   currentStep: number;
@@ -1248,12 +1292,12 @@ export function renderAutomationWizard(props: {
   return html`
     <div class="wizard">
       <div class="wizard-steps">
-        ${Array.from({ length: totalSteps }, (_, i) => i + 1).map(step => {
+        ${Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => {
           const isActive = step <= state.currentStep;
           const isCurrent = step === state.currentStep;
           return html`
             <div
-              class="wizard-step ${isActive ? 'active' : ''} ${isCurrent ? 'current' : ''}"
+              class="wizard-step ${isActive ? "active" : ""} ${isCurrent ? "current" : ""}"
               data-step="${step}"
             >
               ${step}
@@ -1266,22 +1310,20 @@ export function renderAutomationWizard(props: {
         ${state.currentStep === 1
           ? renderBasicInfoStep({
               data: state.data,
-              onChange: onDataChange
+              onChange: onDataChange,
             })
           : nothing}
         ${state.currentStep === 2
           ? renderScheduleStep({
               data: state.data,
-              onChange: onDataChange
+              onChange: onDataChange,
             })
           : nothing}
         ${/* ... other steps */ nothing}
       </div>
 
       <div class="wizard-actions">
-        ${state.currentStep > 1
-          ? html`<button @click=${onPrevStep}>Back</button>`
-          : nothing}
+        ${state.currentStep > 1 ? html`<button @click=${onPrevStep}>Back</button>` : nothing}
         ${state.currentStep < totalSteps
           ? html`<button @click=${onNextStep}>Next</button>`
           : nothing}
@@ -1303,6 +1345,7 @@ export function renderAutomationWizard(props: {
 This is the PRIMARY pattern used in Clawdbrain UI code.
 
 #### File Structure
+
 ```
 ui/src/ui/controllers/automations.ts  # State + business logic
 ui/src/ui/views/automations.ts        # Render functions
@@ -1310,6 +1353,7 @@ ui/src/ui/app.ts                      # Main app that wires everything together
 ```
 
 #### Controller Example
+
 ```typescript
 // ui/src/ui/controllers/automations.ts
 import type { GatewayBrowserClient } from "../gateway";
@@ -1351,10 +1395,7 @@ export async function loadAutomations(state: AutomationsState) {
   }
 }
 
-export async function createAutomation(
-  state: AutomationsState,
-  config: Omit<Automation, "id">
-) {
+export async function createAutomation(state: AutomationsState, config: Omit<Automation, "id">) {
   if (!state.client || !state.connected) return;
 
   try {
@@ -1367,10 +1408,7 @@ export async function createAutomation(
   }
 }
 
-export async function deleteAutomation(
-  state: AutomationsState,
-  id: string
-) {
+export async function deleteAutomation(state: AutomationsState, id: string) {
   if (!state.client || !state.connected) return;
 
   try {
@@ -1385,6 +1423,7 @@ export async function deleteAutomation(
 ```
 
 #### View/Render Functions Example
+
 ```typescript
 // ui/src/ui/views/automations.ts
 import { html, nothing } from "lit";
@@ -1412,13 +1451,15 @@ export function renderAutomationsList(props: {
 
   return html`
     <div class="automations-grid">
-      ${automations.map(automation => renderAutomationCard({
-        automation,
-        onSelect,
-        onEdit,
-        onDelete,
-        onRun
-      }))}
+      ${automations.map((automation) =>
+        renderAutomationCard({
+          automation,
+          onSelect,
+          onEdit,
+          onDelete,
+          onRun,
+        }),
+      )}
     </div>
   `;
 }
@@ -1432,21 +1473,19 @@ export function renderAutomationCard(props: {
 }) {
   const { automation, onSelect, onEdit, onDelete, onRun } = props;
 
-  const statusClass = automation.enabled ? 'active' : 'suspended';
-  const statusIcon = automation.enabled ? 'check-circle' : 'pause-circle';
+  const statusClass = automation.enabled ? "active" : "suspended";
+  const statusIcon = automation.enabled ? "check-circle" : "pause-circle";
 
   return html`
     <div class="automation-card" data-status="${statusClass}">
       <div class="automation-card__header">
         <div class="automation-card__title">
           <h3>${automation.name}</h3>
-          ${automation.description
-            ? html`<p>${automation.description}</p>`
-            : nothing}
+          ${automation.description ? html`<p>${automation.description}</p>` : nothing}
         </div>
         <div class="automation-card__status">
           ${icon(statusIcon, { size: 16, class: `status-icon status-icon--${statusClass}` })}
-          <span class="status-text">${automation.enabled ? 'Active' : 'Suspended'}</span>
+          <span class="status-text">${automation.enabled ? "Active" : "Suspended"}</span>
         </div>
       </div>
 
@@ -1461,20 +1500,12 @@ export function renderAutomationCard(props: {
           @click=${() => onRun(automation.id)}
           ?disabled=${!automation.enabled}
         >
-          ${icon("play", { size: 14 })}
-          Run Now
+          ${icon("play", { size: 14 })} Run Now
         </button>
-        <button
-          class="btn btn-secondary"
-          @click=${() => onEdit(automation.id)}
-        >
-          ${icon("edit", { size: 14 })}
-          Edit
+        <button class="btn btn-secondary" @click=${() => onEdit(automation.id)}>
+          ${icon("edit", { size: 14 })} Edit
         </button>
-        <button
-          class="btn btn-danger"
-          @click=${() => onDelete(automation.id)}
-        >
+        <button class="btn btn-danger" @click=${() => onDelete(automation.id)}>
           ${icon("trash", { size: 14 })}
         </button>
       </div>
@@ -1486,8 +1517,9 @@ export function renderAutomationCard(props: {
 ### Pattern: Command Palette Integration
 
 #### React
+
 ```tsx
-import { useCommandPalette } from '@/hooks/useCommandPalette';
+import { useCommandPalette } from "@/hooks/useCommandPalette";
 
 function AutomationsView() {
   const { registerCommands } = useCommandPalette();
@@ -1495,17 +1527,17 @@ function AutomationsView() {
   useEffect(() => {
     return registerCommands([
       {
-        id: 'create-automation',
-        label: 'Create Automation',
-        icon: 'plus',
-        action: () => setShowCreateModal(true)
+        id: "create-automation",
+        label: "Create Automation",
+        icon: "plus",
+        action: () => setShowCreateModal(true),
       },
       {
-        id: 'refresh-automations',
-        label: 'Refresh Automations',
-        icon: 'refresh-cw',
-        action: () => refetch()
-      }
+        id: "refresh-automations",
+        label: "Refresh Automations",
+        icon: "refresh-cw",
+        action: () => refetch(),
+      },
     ]);
   }, [registerCommands]);
 
@@ -1514,6 +1546,7 @@ function AutomationsView() {
 ```
 
 #### Lit/Clawdbrain
+
 ```typescript
 // In controller or view setup
 import type { Command } from "../components/command-palette";
@@ -1529,15 +1562,15 @@ export function createAutomationsCommands(actions: {
       label: "Create Automation",
       icon: "plus",
       category: "Automations",
-      action: actions.onCreate
+      action: actions.onCreate,
     },
     {
       id: "automation-refresh",
       label: "Refresh Automations",
       icon: "refresh-cw",
       category: "Automations",
-      action: actions.onRefresh
-    }
+      action: actions.onRefresh,
+    },
   ];
 }
 
@@ -1550,16 +1583,17 @@ export function createAutomationsCommands(actions: {
 ## 17. Complete Translation Example
 
 ### React Component (Magic MCP Output)
+
 ```tsx
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Check, ChevronDown, Play, Trash2, Settings } from 'lucide-react';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Check, ChevronDown, Play, Trash2, Settings } from "lucide-react";
 
 interface Automation {
   id: string;
   name: string;
   description: string;
-  status: 'active' | 'suspended' | 'error';
+  status: "active" | "suspended" | "error";
   lastRun: string;
   nextRun: string;
 }
@@ -1571,19 +1605,19 @@ export function AutomationCard({ automation }: { automation: Automation }) {
   const handleRun = async () => {
     setIsRunning(true);
     try {
-      await fetch(`/api/automations/${automation.id}/run`, { method: 'POST' });
-      toast.success('Automation started');
+      await fetch(`/api/automations/${automation.id}/run`, { method: "POST" });
+      toast.success("Automation started");
     } catch (err) {
-      toast.error('Failed to start automation');
+      toast.error("Failed to start automation");
     } finally {
       setIsRunning(false);
     }
   };
 
   const statusColors = {
-    active: 'bg-green-100 text-green-800',
-    suspended: 'bg-yellow-100 text-yellow-800',
-    error: 'bg-red-100 text-red-800'
+    active: "bg-green-100 text-green-800",
+    suspended: "bg-yellow-100 text-yellow-800",
+    error: "bg-red-100 text-red-800",
   };
 
   return (
@@ -1606,14 +1640,14 @@ export function AutomationCard({ automation }: { automation: Automation }) {
           onClick={() => setIsExpanded(!isExpanded)}
           className="p-2 hover:bg-gray-100 rounded"
         >
-          <ChevronDown className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} />
         </button>
       </div>
 
       {isExpanded && (
         <motion.div
           initial={{ height: 0 }}
-          animate={{ height: 'auto' }}
+          animate={{ height: "auto" }}
           className="mt-4 pt-4 border-t"
         >
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1634,7 +1668,7 @@ export function AutomationCard({ automation }: { automation: Automation }) {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
               <Play size={16} />
-              {isRunning ? 'Running...' : 'Run Now'}
+              {isRunning ? "Running..." : "Run Now"}
             </button>
             <button className="p-2 hover:bg-gray-100 rounded">
               <Settings size={16} />
@@ -1651,6 +1685,7 @@ export function AutomationCard({ automation }: { automation: Automation }) {
 ```
 
 ### Lit Translation (Clawdbrain Pattern)
+
 ```typescript
 // ui/src/ui/views/automations.ts
 import { html, nothing } from "lit";
@@ -1678,10 +1713,13 @@ export interface AutomationCardProps {
 export function renderAutomationCard(props: AutomationCardProps) {
   const { automation, isExpanded, isRunning, onToggleExpand, onRun, onSettings, onDelete } = props;
 
-  const statusConfig: Record<Automation["status"], { class: string; icon: IconName; label: string }> = {
+  const statusConfig: Record<
+    Automation["status"],
+    { class: string; icon: IconName; label: string }
+  > = {
     active: { class: "status-active", icon: "check-circle", label: "Active" },
     suspended: { class: "status-suspended", icon: "pause", label: "Suspended" },
-    error: { class: "status-error", icon: "alert-circle", label: "Error" }
+    error: { class: "status-error", icon: "alert-circle", label: "Error" },
   };
 
   const status = statusConfig[automation.status];
@@ -1693,8 +1731,7 @@ export function renderAutomationCard(props: AutomationCardProps) {
           <div class="automation-card__title-row">
             <h3 class="automation-card__name">${automation.name}</h3>
             <span class="status-badge ${status.class}">
-              ${icon(status.icon, { size: 14 })}
-              ${status.label}
+              ${icon(status.icon, { size: 14 })} ${status.label}
             </span>
           </div>
           ${automation.description
@@ -1709,56 +1746,58 @@ export function renderAutomationCard(props: AutomationCardProps) {
         >
           ${icon("chevron-down", {
             size: 20,
-            class: isExpanded ? "rotate-180" : ""
+            class: isExpanded ? "rotate-180" : "",
           })}
         </button>
       </div>
 
-      ${isExpanded ? html`
-        <div class="automation-card__details">
-          <div class="automation-card__meta">
-            <div class="meta-item">
-              <span class="meta-label">Last Run:</span>
-              <span class="meta-value">${automation.lastRun}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Next Run:</span>
-              <span class="meta-value">${automation.nextRun}</span>
-            </div>
-          </div>
+      ${isExpanded
+        ? html`
+            <div class="automation-card__details">
+              <div class="automation-card__meta">
+                <div class="meta-item">
+                  <span class="meta-label">Last Run:</span>
+                  <span class="meta-value">${automation.lastRun}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Next Run:</span>
+                  <span class="meta-value">${automation.nextRun}</span>
+                </div>
+              </div>
 
-          <div class="automation-card__actions">
-            <button
-              class="btn btn-primary"
-              @click=${() => onRun(automation.id)}
-              ?disabled=${isRunning || automation.status === "suspended"}
-            >
-              ${icon("play", { size: 16 })}
-              ${isRunning ? "Running..." : "Run Now"}
-            </button>
-            <button
-              class="btn btn-secondary"
-              @click=${() => onSettings(automation.id)}
-              title="Settings"
-            >
-              ${icon("settings", { size: 16 })}
-            </button>
-            <button
-              class="btn btn-danger"
-              @click=${() => onDelete(automation.id)}
-              title="Delete"
-            >
-              ${icon("trash", { size: 16 })}
-            </button>
-          </div>
-        </div>
-      ` : nothing}
+              <div class="automation-card__actions">
+                <button
+                  class="btn btn-primary"
+                  @click=${() => onRun(automation.id)}
+                  ?disabled=${isRunning || automation.status === "suspended"}
+                >
+                  ${icon("play", { size: 16 })} ${isRunning ? "Running..." : "Run Now"}
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  @click=${() => onSettings(automation.id)}
+                  title="Settings"
+                >
+                  ${icon("settings", { size: 16 })}
+                </button>
+                <button
+                  class="btn btn-danger"
+                  @click=${() => onDelete(automation.id)}
+                  title="Delete"
+                >
+                  ${icon("trash", { size: 16 })}
+                </button>
+              </div>
+            </div>
+          `
+        : nothing}
     </div>
   `;
 }
 ```
 
 ### Corresponding Controller
+
 ```typescript
 // ui/src/ui/controllers/automations.ts
 import type { GatewayBrowserClient } from "../gateway";
@@ -1817,13 +1856,13 @@ export async function runAutomation(state: AutomationsState, id: string) {
 }
 
 export async function deleteAutomation(state: AutomationsState, id: string) {
-  const automation = state.automations.find(a => a.id === id);
+  const automation = state.automations.find((a) => a.id === id);
   if (!automation) return;
 
   const confirmed = await showDangerConfirmDialog(
     "Delete Automation",
     `Delete automation "${automation.name}"? This action cannot be undone.`,
-    "Delete"
+    "Delete",
   );
 
   if (!confirmed) return;
@@ -1847,6 +1886,7 @@ export function openSettings(state: AutomationsState, id: string) {
 ```
 
 ### CSS (Tailwind + Custom Properties)
+
 ```css
 /* For ui/src/ui/styles/automations.css or in component <style> tag */
 .automation-card {
@@ -2015,23 +2055,23 @@ export function openSettings(state: AutomationsState, id: string) {
 
 ## Quick Reference: React → Lit Cheat Sheet
 
-| Concept | React | Lit (Clawdbrain Pattern) |
-|---------|-------|------------------------|
-| **Component** | `function Component() { ... }` | `function renderComponent(props: Props) { ... }` |
-| **State** | `const [x, setX] = useState(0)` | Controller: `state.x = 0` |
-| **Effect** | `useEffect(() => { ... }, [])` | Controller function: `async function init() { ... }` |
-| **Props** | Destructured in function args | Interface + destructured: `const { x, y } = props` |
-| **Events** | `onClick={handler}` | `@click=${handler}` |
-| **Input value** | `value={val}` | `.value=${val}` (property binding) |
-| **Conditionals** | `{cond && <div />}` | `cond ? html`<div />` : nothing` |
-| **Lists** | `{items.map(i => <div key={i.id} />)}` | `${items.map(i => html`<div data-id="${i.id}"></div>`)}` |
-| **Icons** | `<Check size={16} />` | `${icon("check", { size: 16 })}` |
-| **Toasts** | `toast.success("msg")` | `toast.success("msg")` (same!) |
-| **Refs** | `const ref = useRef()` | `this.shadowRoot.querySelector()` (class) or direct DOM |
-| **CSS** | `className="flex gap-2"` | `class="flex gap-2"` |
-| **Styles** | `style={{ color: 'red' }}` | `style="color: red"` |
-| **Fragments** | `<><div /><div /></>` | Not needed - just return multiple templates |
-| **Template** | JSX | `html`<div>...</div>`` |
+| Concept          | React                                  | Lit (Clawdbrain Pattern)                                 |
+| ---------------- | -------------------------------------- | -------------------------------------------------------- |
+| **Component**    | `function Component() { ... }`         | `function renderComponent(props: Props) { ... }`         |
+| **State**        | `const [x, setX] = useState(0)`        | Controller: `state.x = 0`                                |
+| **Effect**       | `useEffect(() => { ... }, [])`         | Controller function: `async function init() { ... }`     |
+| **Props**        | Destructured in function args          | Interface + destructured: `const { x, y } = props`       |
+| **Events**       | `onClick={handler}`                    | `@click=${handler}`                                      |
+| **Input value**  | `value={val}`                          | `.value=${val}` (property binding)                       |
+| **Conditionals** | `{cond && <div />}`                    | `cond ? html`<div />` : nothing`                         |
+| **Lists**        | `{items.map(i => <div key={i.id} />)}` | `${items.map(i => html`<div data-id="${i.id}"></div>`)}` |
+| **Icons**        | `<Check size={16} />`                  | `${icon("check", { size: 16 })}`                         |
+| **Toasts**       | `toast.success("msg")`                 | `toast.success("msg")` (same!)                           |
+| **Refs**         | `const ref = useRef()`                 | `this.shadowRoot.querySelector()` (class) or direct DOM  |
+| **CSS**          | `className="flex gap-2"`               | `class="flex gap-2"`                                     |
+| **Styles**       | `style={{ color: 'red' }}`             | `style="color: red"`                                     |
+| **Fragments**    | `<><div /><div /></>`                  | Not needed - just return multiple templates              |
+| **Template**     | JSX                                    | `html`<div>...</div>``                                   |
 
 ---
 

@@ -1,6 +1,5 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
 import {
   Home,
   MessageSquare,
@@ -11,45 +10,46 @@ import {
   Lightbulb,
   Settings,
   HelpCircle,
-} from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const mainNavItems = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/chat", icon: MessageSquare, label: "Conversations" },
   { href: "/agents", icon: Bot, label: "Agents" },
-]
+];
 
 const secondaryNavItems = [
   { href: "/memories", icon: Brain, label: "Memories" },
   { href: "/goals", icon: Target, label: "Goals" },
   { href: "/rituals", icon: RefreshCw, label: "Rituals" },
   { href: "/insights", icon: Lightbulb, label: "Insights" },
-]
+];
 
 const bottomNavItems = [
   { href: "/settings", icon: Settings, label: "Settings" },
   { href: "/help", icon: HelpCircle, label: "Help" },
-]
+];
 
 interface SidebarNavProps {
-  className?: string
+  className?: string;
 }
 
 export function SidebarNav({ className }: SidebarNavProps) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   const NavLink = ({
     href,
     icon: Icon,
     label,
   }: {
-    href: string
-    icon: typeof Home
-    label: string
+    href: string;
+    icon: typeof Home;
+    label: string;
   }) => {
-    const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href)
+    const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
     return (
       <Link
         href={href}
@@ -57,20 +57,20 @@ export function SidebarNav({ className }: SidebarNavProps) {
           "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
           isActive
             ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
         <Icon className="h-5 w-5" />
         {label}
       </Link>
-    )
-  }
+    );
+  };
 
   return (
     <aside
       className={cn(
         "hidden md:flex h-screen w-64 flex-col border-r border-border bg-sidebar p-4",
-        className
+        className,
       )}
     >
       {/* Logo */}
@@ -107,5 +107,5 @@ export function SidebarNav({ className }: SidebarNavProps) {
         ))}
       </div>
     </aside>
-  )
+  );
 }

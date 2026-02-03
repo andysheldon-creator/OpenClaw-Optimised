@@ -154,9 +154,10 @@ interface ConfigField {
  * Abstract base class providing common functionality for all automation types.
  * Implementations can extend this for convenience.
  */
-abstract class BaseAutomation<TConfig = any, TState = any>
-  implements AutomationType<TConfig, TState> {
-
+abstract class BaseAutomation<TConfig = any, TState = any> implements AutomationType<
+  TConfig,
+  TState
+> {
   abstract readonly type: string;
   abstract readonly displayName: string;
   abstract readonly description: string;
@@ -165,7 +166,7 @@ abstract class BaseAutomation<TConfig = any, TState = any>
 
   constructor(
     protected logger: AutomationLogger,
-    protected sessionManager: SessionManager
+    protected sessionManager: SessionManager,
   ) {}
 
   // Template method pattern - subclasses override specific steps
@@ -202,10 +203,7 @@ abstract class BaseAutomation<TConfig = any, TState = any>
     });
   }
 
-  protected async afterExecution(
-    context: PreparedContext,
-    result: ExecutionResult
-  ): Promise<void> {
+  protected async afterExecution(context: PreparedContext, result: ExecutionResult): Promise<void> {
     this.logger.info(`Completed execution of ${this.type}`, {
       status: result.status,
       duration: result.duration,
@@ -215,7 +213,7 @@ abstract class BaseAutomation<TConfig = any, TState = any>
   protected handleError(
     error: unknown,
     context: PreparedContext,
-    startTime: number
+    startTime: number,
   ): ExecutionResult {
     const duration = Date.now() - startTime;
     const message = error instanceof Error ? error.message : String(error);
@@ -306,7 +304,9 @@ export const SmartSyncForkConfigSchema = z.object({
   confidenceThreshold: z.number().min(0).max(100).default(90),
 
   // Uncertainty handling
-  uncertaintyAction: z.enum(["report-at-end", "pause-and-ask", "skip-file"]).default("report-at-end"),
+  uncertaintyAction: z
+    .enum(["report-at-end", "pause-and-ask", "skip-file"])
+    .default("report-at-end"),
 
   // Auto-merge configuration
   autoMerge: z.boolean().default(false),
@@ -317,10 +317,12 @@ export const SmartSyncForkConfigSchema = z.object({
   maxMinutesPerConflict: z.number().min(1).default(5),
 
   // Scheduling
-  schedule: z.object({
-    type: z.enum(["cron", "interval", "at"]),
-    value: z.string(),
-  }).required(),
+  schedule: z
+    .object({
+      type: z.enum(["cron", "interval", "at"]),
+      value: z.string(),
+    })
+    .required(),
 
   // Notifications
   notifyOnSuccess: z.boolean().default(true),
@@ -408,7 +410,8 @@ export class SmartSyncForkAutomation extends BaseAutomation<
 > {
   readonly type = "smart-sync-fork";
   readonly displayName = "Smart-Sync Fork";
-  readonly description = "Automatically sync fork with upstream using AI-powered conflict resolution";
+  readonly description =
+    "Automatically sync fork with upstream using AI-powered conflict resolution";
   readonly category = "git";
   readonly configSchema = SmartSyncForkConfigSchema;
 
@@ -420,7 +423,7 @@ export class SmartSyncForkAutomation extends BaseAutomation<
   constructor(
     logger: AutomationLogger,
     sessionManager: SessionManager,
-    config: SmartSyncForkConfig
+    config: SmartSyncForkConfig,
   ) {
     super(logger, sessionManager);
 
@@ -494,7 +497,9 @@ export class SmartSyncForkAutomation extends BaseAutomation<
   /**
    * Prepare workspace and initial state.
    */
-  async prepare(config: SmartSyncForkConfig): Promise<PreparedContext<SmartSyncForkConfig, SmartSyncForkState>> {
+  async prepare(
+    config: SmartSyncForkConfig,
+  ): Promise<PreparedContext<SmartSyncForkConfig, SmartSyncForkState>> {
     this.logger.info("Preparing Smart-Sync Fork workspace", { config });
 
     const automationId = this.generateAutomationId(config);
@@ -533,7 +538,7 @@ export class SmartSyncForkAutomation extends BaseAutomation<
    * Execute the main automation logic.
    */
   protected async doExecute(
-    context: PreparedContext<SmartSyncForkConfig, SmartSyncForkState>
+    context: PreparedContext<SmartSyncForkConfig, SmartSyncForkState>,
   ): Promise<ExecutionResult> {
     const { config, workspaceDir, state, sessionId } = context;
 
@@ -617,7 +622,9 @@ export class SmartSyncForkAutomation extends BaseAutomation<
   /**
    * Clean up workspace and resources.
    */
-  async cleanup(context: PreparedContext<SmartSyncForkConfig, SmartSyncForkState>): Promise<CleanupResult> {
+  async cleanup(
+    context: PreparedContext<SmartSyncForkConfig, SmartSyncForkState>,
+  ): Promise<CleanupResult> {
     const { workspaceDir, config } = context;
 
     if (config.preserveWorkspace) {
@@ -691,7 +698,7 @@ export class ConflictResolver {
   constructor(
     private logger: AutomationLogger,
     private config: SmartSyncForkConfig,
-    private sessionManager: SessionManager
+    private sessionManager: SessionManager,
   ) {}
 
   /**
@@ -699,7 +706,7 @@ export class ConflictResolver {
    */
   async resolveConflicts(
     context: PreparedContext,
-    conflicts: ConflictInfo[]
+    conflicts: ConflictInfo[],
   ): Promise<ResolutionResult> {
     const { state, config } = context;
     const results: FileResolution[] = [];
@@ -762,7 +769,7 @@ export class ConflictResolver {
    */
   private async resolveConflict(
     context: PreparedContext,
-    conflict: ConflictInfo
+    conflict: ConflictInfo,
   ): Promise<FileResolution> {
     const { config, sessionId } = context;
 
@@ -851,10 +858,7 @@ Respond in JSON format:
   /**
    * Assess AI's resolution for confidence and correctness.
    */
-  private assessResolution(
-    response: AIResponse,
-    conflict: ConflictInfo
-  ): ResolutionAssessment {
+  private assessResolution(response: AIResponse, conflict: ConflictInfo): ResolutionAssessment {
     // Parse AI response
     const result = JSON.parse(response.content);
 
@@ -906,7 +910,7 @@ Respond in JSON format:
    */
   private generateAlternativeOptions(
     conflict: ConflictInfo,
-    assessment: ResolutionAssessment
+    assessment: ResolutionAssessment,
   ): ResolutionOption[] {
     const options: ResolutionOption[] = [];
 

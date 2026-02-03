@@ -25,7 +25,7 @@ Run `git diff [BASE_SHA]..HEAD` to see all changes, or check the specific files 
 
 ## Your Job
 
-Review the implementation for code quality. This is NOT a spec review 
+Review the implementation for code quality. This is NOT a spec review
 (spec compliance already passed). Focus on HOW it was built:
 
 **Code Clarity:**

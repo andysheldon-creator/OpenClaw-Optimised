@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement hybrid retrieval that combines vector search with graph expansion:
+
 - Vector similarity search for initial chunks
 - Graph expansion to include related entities
 - Confidence thresholding to avoid noise
@@ -50,11 +51,11 @@ src/knowledge/retrieval/
  * Reference: docs/plans/graphrag/ZAI-PLAN.md Phase 3
  */
 
-import type { RelationalDatastore } from '../datastore/interface.js';
-import type { GraphQueryEngine } from '../graph/query.js';
-import type { Entity, EntityNeighborhood } from '../graph/types.js';
-import { QueryEntityRecognizer } from './query-entity-recognizer.js';
-import { ContextFormatter } from './context-formatter.js';
+import type { RelationalDatastore } from "../datastore/interface.js";
+import type { GraphQueryEngine } from "../graph/query.js";
+import type { Entity, EntityNeighborhood } from "../graph/types.js";
+import { QueryEntityRecognizer } from "./query-entity-recognizer.js";
+import { ContextFormatter } from "./context-formatter.js";
 
 // ============================================================================
 // CONFIG
@@ -73,10 +74,10 @@ export interface GraphRAGConfig {
   /** Graph expansion settings */
   graphExpansion?: {
     enabled: boolean;
-    maxHops: number;  // 1-3 hops
+    maxHops: number; // 1-3 hops
     maxChunks: number;
-    minGraphScore: number;  // NEW: Skip graph results below this threshold
-    minConfidence: number;  // NEW: Skip expansion if confidence too low
+    minGraphScore: number; // NEW: Skip graph results below this threshold
+    minConfidence: number; // NEW: Skip expansion if confidence too low
   };
 
   /** Context formatting */
@@ -92,7 +93,7 @@ export interface RetrievalResult {
     content: string;
     score: number;
     source: {
-      type: 'vector' | 'graph';
+      type: "vector" | "graph";
       entity?: Entity;
       hops?: number;
     };
@@ -106,12 +107,12 @@ export interface RetrievalResult {
       description: string;
     }>;
   };
-  confidence: number;  // Overall confidence score
+  confidence: number; // Overall confidence score
   metadata: {
     vectorResults: number;
     graphResults: number;
     entitiesRecognized: number;
-    expansionSkipped?: boolean;  // Why graph was skipped
+    expansionSkipped?: boolean; // Why graph was skipped
   };
 }
 
@@ -129,7 +130,7 @@ export class GraphRAGRetriever {
   constructor(
     datastore: RelationalDatastore,
     graphQuery: GraphQueryEngine,
-    config: GraphRAGConfig = {}
+    config: GraphRAGConfig = {},
   ) {
     this.datastore = datastore;
     this.graphQuery = graphQuery;
@@ -143,8 +144,8 @@ export class GraphRAGRetriever {
         enabled: true,
         maxHops: 1,
         maxChunks: 4,
-        minGraphScore: 0.3,  // NEW: Confidence threshold
-        minConfidence: 0.5,  // NEW: Skip expansion below this
+        minGraphScore: 0.3, // NEW: Confidence threshold
+        minConfidence: 0.5, // NEW: Skip expansion below this
       },
       context: {
         maxTokens: 4000,
@@ -173,7 +174,7 @@ export class GraphRAGRetriever {
 
     // Step 2: Recognize entities in query
     const queryEntities = await this.entityRecognizer.recognize(query);
-    const entityNames = queryEntities.map(e => e.name);
+    const entityNames = queryEntities.map((e) => e.name);
 
     // Step 3: Calculate confidence (based on query clarity and entity recognition)
     const confidence = this.calculateConfidence(query, queryEntities, vectorResults);
@@ -186,10 +187,10 @@ export class GraphRAGRetriever {
 
     if (shouldSkipGraph) {
       return {
-        chunks: vectorResults.map(r => ({
+        chunks: vectorResults.map((r) => ({
           content: r.content,
           score: r.score,
-          source: { type: 'vector' },
+          source: { type: "vector" },
         })),
         confidence,
         metadata: {
@@ -202,10 +203,7 @@ export class GraphRAGRetriever {
     }
 
     // Step 5: Graph expansion
-    const graphResults = await this.expandGraph(
-      queryEntities,
-      mergedConfig.graphExpansion
-    );
+    const graphResults = await this.expandGraph(queryEntities, mergedConfig.graphExpansion);
 
     // Step 6: Merge and re-rank
     const merged = this.mergeResults(vectorResults, graphResults, confidence);
@@ -234,17 +232,17 @@ export class GraphRAGRetriever {
    */
   private async vectorOnlyRetrieve(
     query: string,
-    config: GraphRAGConfig
+    config: GraphRAGConfig,
   ): Promise<RetrievalResult> {
     const results = await this.vectorSearch(query, config.vector);
 
     return {
-      chunks: results.map(r => ({
+      chunks: results.map((r) => ({
         content: r.content,
         score: r.score,
-        source: { type: 'vector' },
+        source: { type: "vector" },
       })),
-      confidence: 0.5,  // Medium confidence without graph
+      confidence: 0.5, // Medium confidence without graph
       metadata: {
         vectorResults: results.length,
         graphResults: 0,
@@ -258,7 +256,7 @@ export class GraphRAGRetriever {
    */
   private async vectorSearch(
     query: string,
-    config: GraphRAGConfig['vector']
+    config: GraphRAGConfig["vector"],
   ): Promise<Array<{ content: string; score: number }>> {
     // Generate query embedding
     // (This would use the embedding model)
@@ -266,11 +264,11 @@ export class GraphRAGRetriever {
 
     // Search using sqlite-vec
     const results = await this.datastore.vectorSearch?.(
-      'kg_chunks',
-      'embedding',
+      "kg_chunks",
+      "embedding",
       queryEmbedding,
       config?.maxResults || 5,
-      config?.minScore || 0.7
+      config?.minScore || 0.7,
     );
 
     if (!results) {
@@ -283,8 +281,8 @@ export class GraphRAGRetriever {
 
     for (const result of results) {
       const chunk = await this.datastore.queryOne<{ content: string }>(
-        'SELECT content FROM kg_chunks WHERE id = $1',
-        [result.id]
+        "SELECT content FROM kg_chunks WHERE id = $1",
+        [result.id],
       );
 
       if (chunk) {
@@ -303,7 +301,7 @@ export class GraphRAGRetriever {
    */
   private async fullTextSearch(
     query: string,
-    limit: number
+    limit: number,
   ): Promise<Array<{ content: string; score: number }>> {
     const results = await this.datastore.query<any>(
       `SELECT chunk.content, bm25(kg_chunks_fts) as score
@@ -312,12 +310,12 @@ export class GraphRAGRetriever {
        WHERE kg_chunks_fts MATCH $1
        ORDER BY score
        LIMIT $2`,
-      [query, limit]
+      [query, limit],
     );
 
-    return results.map(r => ({
+    return results.map((r) => ({
       content: r.content,
-      score: 1 / (1 + r.score),  // Convert BM25 to similarity
+      score: 1 / (1 + r.score), // Convert BM25 to similarity
     }));
   }
 
@@ -326,7 +324,7 @@ export class GraphRAGRetriever {
    */
   private async expandGraph(
     entities: Entity[],
-    config: GraphRAGConfig['graphExpansion']
+    config: GraphRAGConfig["graphExpansion"],
   ): Promise<Array<{ content: string; score: number; entity: Entity; hops: number }>> {
     const results: Array<{ content: string; score: number; entity: Entity; hops: number }> = [];
 
@@ -339,7 +337,7 @@ export class GraphRAGRetriever {
 
       // Score related entities
       for (const { targetEntity, relationship } of neighborhood.relationships) {
-        const score = relationship.strength / 10;  // Normalize to 0-1
+        const score = relationship.strength / 10; // Normalize to 0-1
 
         // Filter by minGraphScore (NEW)
         if (score < (config?.minGraphScore || 0.3)) {
@@ -352,7 +350,7 @@ export class GraphRAGRetriever {
         for (const chunk of chunks) {
           results.push({
             content: chunk.content,
-            score: chunk.score * score,  // Combined score
+            score: chunk.score * score, // Combined score
             entity: targetEntity,
             hops: 1,
           });
@@ -368,7 +366,7 @@ export class GraphRAGRetriever {
    */
   private async getEntityChunks(
     entityId: string,
-    limit: number
+    limit: number,
   ): Promise<Array<{ content: string; score: number }>> {
     const chunks = await this.datastore.query<any>(
       `SELECT DISTINCT c.content, 1.0 as score
@@ -376,7 +374,7 @@ export class GraphRAGRetriever {
        JOIN kg_entity_sources es ON c.id = es.chunk_id
        WHERE es.entity_id = $1
        LIMIT $2`,
-      [entityId, limit]
+      [entityId, limit],
     );
 
     return chunks;
@@ -388,23 +386,23 @@ export class GraphRAGRetriever {
   private mergeResults(
     vectorResults: Array<{ content: string; score: number }>,
     graphResults: Array<{ content: string; score: number; entity: Entity; hops: number }>,
-    confidence: number
+    confidence: number,
   ): {
-    chunks: RetrievalResult['chunks'];
+    chunks: RetrievalResult["chunks"];
     confidence: number;
   } {
     const seen = new Set<string>();
-    const chunks: RetrievalResult['chunks'] = [];
+    const chunks: RetrievalResult["chunks"] = [];
 
     // Add vector results
     for (const result of vectorResults) {
-      const key = result.content.slice(0, 100);  // Dedupe by content prefix
+      const key = result.content.slice(0, 100); // Dedupe by content prefix
       if (!seen.has(key)) {
         seen.add(key);
         chunks.push({
           content: result.content,
           score: result.score,
-          source: { type: 'vector' },
+          source: { type: "vector" },
         });
       }
     }
@@ -416,9 +414,9 @@ export class GraphRAGRetriever {
         seen.add(key);
         chunks.push({
           content: result.content,
-          score: result.score * confidence,  // Adjust by confidence
+          score: result.score * confidence, // Adjust by confidence
           source: {
-            type: 'graph',
+            type: "graph",
             entity: result.entity,
             hops: result.hops,
           },
@@ -438,7 +436,7 @@ export class GraphRAGRetriever {
   private calculateConfidence(
     query: string,
     entities: Entity[],
-    vectorResults: Array<{ score: number }>
+    vectorResults: Array<{ score: number }>,
   ): number {
     // Factors:
     // 1. Query specificity (length, clear terms)
@@ -447,22 +445,20 @@ export class GraphRAGRetriever {
 
     const querySpecificity = Math.min(query.length / 100, 1);
     const entityRecognition = entities.length > 0 ? 1 : 0.5;
-    const vectorQuality = vectorResults.length > 0
-      ? vectorResults[0].score
-      : 0;
+    const vectorQuality = vectorResults.length > 0 ? vectorResults[0].score : 0;
 
-    return (querySpecificity * 0.3 + entityRecognition * 0.3 + vectorQuality * 0.4);
+    return querySpecificity * 0.3 + entityRecognition * 0.3 + vectorQuality * 0.4;
   }
 
   /**
    * Format graph context for LLM.
    */
-  private formatGraphContext(entities: Entity[]): RetrievalResult['graphContext'] {
+  private formatGraphContext(entities: Entity[]): RetrievalResult["graphContext"] {
     if (entities.length === 0) return undefined;
 
     return {
       entities,
-      relationships: [],  // Would fetch from graph
+      relationships: [], // Would fetch from graph
     };
   }
 
@@ -490,8 +486,8 @@ export class GraphRAGRetriever {
  * 3. Return matched entities
  */
 
-import type { RelationalDatastore } from '../datastore/interface.js';
-import type { Entity } from '../graph/types.js';
+import type { RelationalDatastore } from "../datastore/interface.js";
+import type { Entity } from "../graph/types.js";
 
 export class QueryEntityRecognizer {
   constructor(private datastore: RelationalDatastore) {}
@@ -514,7 +510,7 @@ export class QueryEntityRecognizer {
          JOIN kg_entities_fts fts ON e.id = fts.rowid
          WHERE kg_entities_fts MATCH $1
          LIMIT 5`,
-        [candidate]
+        [candidate],
       );
 
       for (const match of matches) {
@@ -608,10 +604,10 @@ export class ContextFormatter {
    */
   format(
     chunks: Array<{ content: string; score: number; source: any }>,
-    graphContext?: { entities: any[]; relationships: any[] }
+    graphContext?: { entities: any[]; relationships: any[] },
   ): FormattedContext {
     const parts: string[] = [];
-    const sources: FormattedContext['sources'] = [];
+    const sources: FormattedContext["sources"] = [];
 
     // Add entity context if available
     if (graphContext && graphContext.entities.length > 0) {
@@ -625,21 +621,21 @@ export class ContextFormatter {
       parts.push(`[Score: ${chunk.score.toFixed(2)}]\n${chunk.content}\n`);
 
       if (this.options.includeSources) {
-        if (chunk.source.type === 'graph' && chunk.source.entity) {
+        if (chunk.source.type === "graph" && chunk.source.entity) {
           sources.push({
-            type: 'entity',
+            type: "entity",
             id: chunk.source.entity.id,
             name: chunk.source.entity.name,
           });
         } else {
-          sources.push({ type: 'chunk' });
+          sources.push({ type: "chunk" });
         }
       }
     }
 
     return {
-      text: parts.join('\n---\n\n'),
-      tokens: this.estimateTokens(parts.join('\n')),
+      text: parts.join("\n---\n\n"),
+      tokens: this.estimateTokens(parts.join("\n")),
       sources,
     };
   }
@@ -656,11 +652,11 @@ export class ContextFormatter {
       if (entity.description) {
         parts.push(entity.description);
       }
-      sources.push({ type: 'entity', id: entity.id, name: entity.name });
+      sources.push({ type: "entity", id: entity.id, name: entity.name });
     }
 
     return {
-      text: '## Related Entities\n\n' + parts.join('\n\n') + '\n\n',
+      text: "## Related Entities\n\n" + parts.join("\n\n") + "\n\n",
       sources,
     };
   }
@@ -682,13 +678,13 @@ export class ContextFormatter {
 // Add GraphRAG to existing memory_search tool
 
 export const memorySearchTool = {
-  name: 'memory_search',
-  description: 'Search memory and knowledge graph for relevant information',
+  name: "memory_search",
+  description: "Search memory and knowledge graph for relevant information",
   parameters: {
-    query: { type: 'string' },
-    maxResults: { type: 'number' },
-    useGraph: { type: 'boolean', default: true },  // NEW
-    minGraphScore: { type: 'number', default: 0.3 },  // NEW
+    query: { type: "string" },
+    maxResults: { type: "number" },
+    useGraph: { type: "boolean", default: true }, // NEW
+    minGraphScore: { type: "number", default: 0.3 }, // NEW
   },
   handler: async (params, context) => {
     const { query, maxResults = 10, useGraph = true, minGraphScore = 0.3 } = params;

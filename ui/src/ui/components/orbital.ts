@@ -96,22 +96,24 @@ export function renderOrbital(props: {
     >
       <div class="orbital__rings" aria-hidden="true">
         ${ringRadii.map(
-          (radiusPx) => html`<div class="orbital__ring" style="--orbital-ring:${radiusPx}px;"></div>`,
+          (radiusPx) =>
+            html`<div class="orbital__ring" style="--orbital-ring:${radiusPx}px;"></div>`,
         )}
       </div>
       <div class="orbital__center">
         ${props.center}
       </div>
       <div class="orbital__items">
-        ${items.length === 0
-          ? nothing
-          : items.map((item, idx) => {
-          const placement = placements[idx]!;
-          const angle = placement.angleDeg;
-          const angleNeg = -angle;
-          const disabled = Boolean(item.disabled);
-          const click = item.onClick;
-          return html`
+        ${
+          items.length === 0
+            ? nothing
+            : items.map((item, idx) => {
+                const placement = placements[idx]!;
+                const angle = placement.angleDeg;
+                const angleNeg = -angle;
+                const disabled = Boolean(item.disabled);
+                const click = item.onClick;
+                return html`
             <button
               class="orbital__item"
               style="--orbital-rot:${angle}deg; --orbital-rot-neg:${angleNeg}deg; --orbital-radius:${placement.radiusPx}px;"
@@ -125,7 +127,8 @@ export function renderOrbital(props: {
               ${item.subtitle ? html`<div class="orbital__subtitle">${item.subtitle}</div>` : nothing}
             </button>
           `;
-        })}
+              })
+        }
       </div>
     </div>
   `;

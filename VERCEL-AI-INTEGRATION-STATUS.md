@@ -3,6 +3,7 @@
 ## ✅ Completed Work
 
 ### Phase 1: Package Setup
+
 - ✅ Extracted `vercel-ai-agent` package from fork branch
 - ✅ Moved to `packages/vercel-ai-agent` (workspace structure)
 - ✅ Updated package.json with correct naming (`@clawdbrain/vercel-ai-agent`)
@@ -10,6 +11,7 @@
 - ✅ Workspace automatically recognizes the package (via `pnpm-workspace.yaml`)
 
 ### Phase 2: Integration Layer
+
 - ✅ Created `apps/web/src/integrations/vercel-ai/vercel-agent-adapter.ts`
   - Wraps Vercel AI SDK agent with gateway-compatible interface
   - Handles model provider mapping (OpenAI, Anthropic)
@@ -28,6 +30,7 @@
   - Runtime switchable without rebuild
 
 ### Phase 3: Unified Chat Hook
+
 - ✅ Created `apps/web/src/hooks/useChatBackend.ts`
   - Single interface for both gateway and Vercel AI backends
   - Automatically routes to correct implementation based on preference
@@ -35,6 +38,7 @@
   - Zero changes required to existing SessionChat component
 
 ### Phase 4: UI Integration
+
 - ✅ Updated `apps/web/src/routes/agents/$agentId/session/$sessionKey.tsx`
   - Replaced direct gateway calls with `useChatBackend` hook
   - Added backend-aware message loading (gateway vs Vercel AI history)
@@ -53,23 +57,27 @@
 ### Architecture Highlights
 
 **✅ Zero Modifications to Existing Components**
+
 - `SessionChat`, `SessionChatMessage`, `SessionChatInput` unchanged
 - All session components work with both backends
 - Gateway implementation completely intact
 
 **✅ Complete Isolation**
+
 - Separate stores (gateway vs Vercel AI)
 - Separate history management
 - Separate streaming state
 - No shared state or cross-contamination
 
 **✅ Drop-In Replacement Design**
+
 - Single toggle switches entire implementation
 - No rebuild required (runtime feature flag)
 - Existing gateway features continue working
 - Vercel AI runs independently when selected
 
 **✅ Extensibility**
+
 - Easy to add more backends in future
 - Adapter pattern allows any SDK integration
 - Hook abstraction keeps UI decoupled
@@ -77,8 +85,10 @@
 ## ⚠️ Known Issues
 
 ### 1. Vercel AI Agent Package Build Errors
+
 **Status**: Blocking
 **Issue**: The `vercel-ai-agent` package from the fork branch has TypeScript compilation errors:
+
 - API incompatibilities with newer SDK versions (v2/v3 of `@ai-sdk/*`)
 - Type mismatches in agent.ts (LanguageModelV1 vs V2/V3)
 - Tool definition type errors
@@ -87,34 +97,41 @@
 **Impact**: Cannot build the package, preventing runtime testing of Vercel AI backend
 
 **Fix Required**:
+
 1. Update agent.ts to use v4 Vercel AI SDK APIs
 2. Fix tool definition types
 3. Update streaming chunk processing for new SDK format
 4. OR: Rewrite ConversationalAgent using v4 SDK from scratch
 
 ### 2. Tool Execution Bridge Not Implemented
+
 **Status**: TODO
 **Issue**: `executeGatewayTool()` in `vercel-agent-adapter.ts` is a placeholder
 
 **Fix Required**:
+
 - Bridge Vercel AI tool calls to gateway tool executor
 - OR: Implement local tool execution
 - OR: Skip tool support for MVP
 
 ### 3. API Keys Management
+
 **Status**: TODO
 **Issue**: Adapter expects `apiKeys` but doesn't fetch from user settings
 
 **Fix Required**:
+
 - Add API key configuration UI
 - Store keys securely (encrypted preferences)
 - Fetch keys when initializing adapter
 
 ### 4. Session Persistence Not Implemented
+
 **Status**: TODO
 **Issue**: Vercel AI conversations don't persist to gateway database
 
 **Fix Required**:
+
 - Save Vercel AI messages to gateway sessions API
 - OR: Keep fully local (localStorage only)
 
@@ -128,6 +145,7 @@
 ## 📦 Files Created/Modified
 
 ### Created Files
+
 ```
 packages/vercel-ai-agent/                          (from fork)
 apps/web/src/integrations/vercel-ai/vercel-agent-adapter.ts
@@ -138,6 +156,7 @@ apps/web/src/components/domain/session/ChatBackendToggle.tsx
 ```
 
 ### Modified Files
+
 ```
 packages/vercel-ai-agent/package.json              (updated dependencies)
 apps/web/src/routes/agents/$agentId/session/$sessionKey.tsx
@@ -146,6 +165,7 @@ apps/web/src/components/domain/session/index.ts
 ```
 
 ### Unchanged (Original Codebase)
+
 - ✅ All existing `SessionChat*` components
 - ✅ Gateway API clients
 - ✅ Gateway WebSocket handling
@@ -154,6 +174,7 @@ apps/web/src/components/domain/session/index.ts
 ## 🎯 Next Steps to Complete Integration
 
 ### Immediate (Required for MVP)
+
 1. **Fix Vercel AI Agent Package**
    - Update to v4 SDK APIs
    - Fix all TypeScript errors
@@ -166,6 +187,7 @@ apps/web/src/components/domain/session/index.ts
    - Debug any runtime errors
 
 ### Short Term (Full Feature Parity)
+
 3. **Implement Tool Support**
    - Bridge to gateway tool executor
    - Test tool calling end-to-end
@@ -179,6 +201,7 @@ apps/web/src/components/domain/session/index.ts
    - Load history on page refresh
 
 ### Long Term (Polish)
+
 6. **Error Handling**
    - Graceful fallbacks
    - User-friendly error messages
@@ -194,18 +217,21 @@ apps/web/src/components/domain/session/index.ts
 ## 💡 Design Decisions
 
 ### Why Separate Stores?
+
 - Prevents state leakage between backends
 - Each backend has different requirements
 - Easier to debug and maintain
 - Can run side-by-side for comparison
 
 ### Why Runtime Toggle Instead of Build Flag?
+
 - Users can test both without rebuilds
 - Easier to A/B test
 - Simpler deployment (one build)
 - Better developer experience
 
 ### Why Adapter Pattern?
+
 - Isolates SDK-specific code
 - Gateway interface remains stable
 - Easy to swap SDKs in future

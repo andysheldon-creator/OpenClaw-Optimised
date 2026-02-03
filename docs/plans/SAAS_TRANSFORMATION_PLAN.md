@@ -5,6 +5,7 @@
 This document outlines a comprehensive plan to transform Clawdbrain from a single-user personal AI assistant into a multi-tenant Software-as-a-Service (SaaS) platform. The transformation involves fundamental changes to the data model, execution architecture, security posture, and business model.
 
 **Key Transformations:**
+
 - File-based storage → Multi-tenant database architecture
 - Single-user agents → Isolated per-tenant Overseer containers
 - Local execution → Cloud-managed orchestration with sandboxed subagents
@@ -55,18 +56,18 @@ This document outlines a comprehensive plan to transform Clawdbrain from a singl
 
 ### 1.2 Core Limitations for SaaS
 
-| Limitation | Impact | Severity |
-|------------|--------|----------|
-| File-based storage | No horizontal scaling, no shared state | Critical |
-| Single config file | No multi-tenancy | Critical |
-| No user accounts | Cannot identify/bill users | Critical |
-| Local file I/O | Agents can access user's entire filesystem | Critical |
-| No usage metering | Cannot implement usage-based pricing | High |
-| Single gateway process | No load balancing, single point of failure | High |
-| No audit logging | Compliance/debugging impossible | High |
-| OAuth tokens in files | Security risk in multi-tenant | High |
-| No RBAC | All agents have same permissions | Medium |
-| Tight OS coupling | Platform-specific features break in containers | Medium |
+| Limitation             | Impact                                         | Severity |
+| ---------------------- | ---------------------------------------------- | -------- |
+| File-based storage     | No horizontal scaling, no shared state         | Critical |
+| Single config file     | No multi-tenancy                               | Critical |
+| No user accounts       | Cannot identify/bill users                     | Critical |
+| Local file I/O         | Agents can access user's entire filesystem     | Critical |
+| No usage metering      | Cannot implement usage-based pricing           | High     |
+| Single gateway process | No load balancing, single point of failure     | High     |
+| No audit logging       | Compliance/debugging impossible                | High     |
+| OAuth tokens in files  | Security risk in multi-tenant                  | High     |
+| No RBAC                | All agents have same permissions               | Medium   |
+| Tight OS coupling      | Platform-specific features break in containers | Medium   |
 
 ### 1.3 What We Can Preserve
 
@@ -164,12 +165,12 @@ This document outlines a comprehensive plan to transform Clawdbrain from a singl
 
 ### 2.2 Tenancy Models Comparison
 
-| Model | Isolation | Cost | Complexity | Best For |
-|-------|-----------|------|------------|----------|
-| **Shared Database, Shared Schema** | Low | Low | Low | Early MVP |
-| **Shared Database, Tenant Schema** | Medium | Medium | Medium | Growth phase |
-| **Database per Tenant** | High | High | High | Enterprise |
-| **Cluster per Tenant** | Maximum | Very High | Very High | Regulated industries |
+| Model                              | Isolation | Cost      | Complexity | Best For             |
+| ---------------------------------- | --------- | --------- | ---------- | -------------------- |
+| **Shared Database, Shared Schema** | Low       | Low       | Low        | Early MVP            |
+| **Shared Database, Tenant Schema** | Medium    | Medium    | Medium     | Growth phase         |
+| **Database per Tenant**            | High      | High      | High       | Enterprise           |
+| **Cluster per Tenant**             | Maximum   | Very High | Very High  | Regulated industries |
 
 **Recommendation:** Start with **Shared Database, Tenant Schema** (PostgreSQL schemas) for MVP, with clear migration path to **Database per Tenant** for enterprise customers.
 
@@ -1152,7 +1153,7 @@ spec:
             matchLabels:
               role: overseer
       ports:
-        - port: 8080  # Health check / metrics
+        - port: 8080 # Health check / metrics
   egress:
     # Allow DNS
     - to:
@@ -1217,53 +1218,53 @@ spec:
 
 ### 6.1 Infrastructure Stack
 
-| Layer | Recommended | Alternatives | Rationale |
-|-------|-------------|--------------|-----------|
-| **Cloud Provider** | AWS | GCP, Azure | Best K8s support (EKS), mature ecosystem |
-| **Kubernetes** | EKS with Karpenter | GKE Autopilot, AKS | Auto-scaling, spot instances for cost |
-| **Container Runtime** | containerd + gVisor | Firecracker, Kata | gVisor better for mixed workloads |
-| **Service Mesh** | None initially → Istio | Linkerd, Cilium | Add when mTLS/observability needed |
-| **Ingress** | AWS ALB + nginx | Traefik, Kong | Cost-effective, good WebSocket support |
+| Layer                 | Recommended            | Alternatives       | Rationale                                |
+| --------------------- | ---------------------- | ------------------ | ---------------------------------------- |
+| **Cloud Provider**    | AWS                    | GCP, Azure         | Best K8s support (EKS), mature ecosystem |
+| **Kubernetes**        | EKS with Karpenter     | GKE Autopilot, AKS | Auto-scaling, spot instances for cost    |
+| **Container Runtime** | containerd + gVisor    | Firecracker, Kata  | gVisor better for mixed workloads        |
+| **Service Mesh**      | None initially → Istio | Linkerd, Cilium    | Add when mTLS/observability needed       |
+| **Ingress**           | AWS ALB + nginx        | Traefik, Kong      | Cost-effective, good WebSocket support   |
 
 ### 6.2 Data Stack
 
-| Layer | Recommended | Alternatives | Rationale |
-|-------|-------------|--------------|-----------|
-| **Primary Database** | PostgreSQL (RDS) | CockroachDB, PlanetScale | pgvector, RLS, mature |
-| **Vector Search** | pgvector | Pinecone, Qdrant, Weaviate | Simplicity (same DB), good enough to start |
-| **Cache/Queue** | Redis (ElastiCache) | Valkey, KeyDB | Proven, Pub/Sub + caching |
-| **Object Storage** | S3 | R2 (cheaper egress), GCS | Ubiquitous, good tooling |
-| **Secrets** | AWS Secrets Manager | HashiCorp Vault | Managed, less ops burden |
+| Layer                | Recommended         | Alternatives               | Rationale                                  |
+| -------------------- | ------------------- | -------------------------- | ------------------------------------------ |
+| **Primary Database** | PostgreSQL (RDS)    | CockroachDB, PlanetScale   | pgvector, RLS, mature                      |
+| **Vector Search**    | pgvector            | Pinecone, Qdrant, Weaviate | Simplicity (same DB), good enough to start |
+| **Cache/Queue**      | Redis (ElastiCache) | Valkey, KeyDB              | Proven, Pub/Sub + caching                  |
+| **Object Storage**   | S3                  | R2 (cheaper egress), GCS   | Ubiquitous, good tooling                   |
+| **Secrets**          | AWS Secrets Manager | HashiCorp Vault            | Managed, less ops burden                   |
 
 ### 6.3 Application Stack
 
-| Layer | Recommended | Alternatives | Rationale |
-|-------|-------------|--------------|-----------|
-| **API Framework** | Hono (keep existing) | Fastify, tRPC | Already in use, serverless-ready |
-| **Auth** | Clerk | Auth0, WorkOS, Supabase Auth | Developer-friendly, good MFA |
-| **Billing** | Stripe Billing | Paddle, Orb | Best metering support, global |
-| **Email** | Resend | SendGrid, Postmark | Modern API, good deliverability |
-| **Monitoring** | Datadog | Grafana Cloud, New Relic | All-in-one, good K8s support |
-| **Error Tracking** | Sentry | Datadog APM, Rollbar | Best for JS/TS stack |
+| Layer              | Recommended          | Alternatives                 | Rationale                        |
+| ------------------ | -------------------- | ---------------------------- | -------------------------------- |
+| **API Framework**  | Hono (keep existing) | Fastify, tRPC                | Already in use, serverless-ready |
+| **Auth**           | Clerk                | Auth0, WorkOS, Supabase Auth | Developer-friendly, good MFA     |
+| **Billing**        | Stripe Billing       | Paddle, Orb                  | Best metering support, global    |
+| **Email**          | Resend               | SendGrid, Postmark           | Modern API, good deliverability  |
+| **Monitoring**     | Datadog              | Grafana Cloud, New Relic     | All-in-one, good K8s support     |
+| **Error Tracking** | Sentry               | Datadog APM, Rollbar         | Best for JS/TS stack             |
 
 ### 6.4 Development Stack
 
-| Tool | Recommended | Rationale |
-|------|-------------|-----------|
-| **Monorepo** | Turborepo | Already using pnpm workspaces |
-| **Testing** | Vitest (keep) | Fast, good coverage |
-| **CI/CD** | GitHub Actions | Already integrated |
-| **IaC** | Pulumi (TypeScript) | Same language as app |
-| **Local Dev** | Docker Compose + Tilt | Fast iteration |
+| Tool          | Recommended           | Rationale                     |
+| ------------- | --------------------- | ----------------------------- |
+| **Monorepo**  | Turborepo             | Already using pnpm workspaces |
+| **Testing**   | Vitest (keep)         | Fast, good coverage           |
+| **CI/CD**     | GitHub Actions        | Already integrated            |
+| **IaC**       | Pulumi (TypeScript)   | Same language as app          |
+| **Local Dev** | Docker Compose + Tilt | Fast iteration                |
 
 ### 6.5 AI/ML Stack
 
-| Capability | Recommended | Rationale |
-|------------|-------------|-----------|
-| **Primary LLM** | Claude (Anthropic) | Best reasoning, already integrated |
-| **Embeddings** | OpenAI ada-002 → text-embedding-3-small | Cost/quality balance |
-| **Fallback LLM** | GPT-4o, Gemini | Redundancy |
-| **Local Models** | None for SaaS | Complexity, licensing issues |
+| Capability       | Recommended                             | Rationale                          |
+| ---------------- | --------------------------------------- | ---------------------------------- |
+| **Primary LLM**  | Claude (Anthropic)                      | Best reasoning, already integrated |
+| **Embeddings**   | OpenAI ada-002 → text-embedding-3-small | Cost/quality balance               |
+| **Fallback LLM** | GPT-4o, Gemini                          | Redundancy                         |
+| **Local Models** | None for SaaS                           | Complexity, licensing issues       |
 
 ---
 
@@ -1524,16 +1525,17 @@ spec:
 
 ### 8.1 Market Analysis (AI Services Pricing)
 
-| Service | Free Tier | Pro/Individual | Team | Enterprise |
-|---------|-----------|----------------|------|------------|
-| **ChatGPT Plus** | Limited GPT-3.5 | $20/mo (GPT-4) | $25/user/mo | Custom |
-| **Claude Pro** | Limited | $20/mo | $25/user/mo | Custom |
-| **GitHub Copilot** | Students/OSS | $10/mo | $19/user/mo | $39/user/mo |
-| **Cursor** | 2 weeks | $20/mo | Custom | Custom |
-| **Replit** | Limited | $25/mo | Custom | Custom |
-| **v0 (Vercel)** | 200 credits | $20/mo | Custom | Custom |
+| Service            | Free Tier       | Pro/Individual | Team        | Enterprise  |
+| ------------------ | --------------- | -------------- | ----------- | ----------- |
+| **ChatGPT Plus**   | Limited GPT-3.5 | $20/mo (GPT-4) | $25/user/mo | Custom      |
+| **Claude Pro**     | Limited         | $20/mo         | $25/user/mo | Custom      |
+| **GitHub Copilot** | Students/OSS    | $10/mo         | $19/user/mo | $39/user/mo |
+| **Cursor**         | 2 weeks         | $20/mo         | Custom      | Custom      |
+| **Replit**         | Limited         | $25/mo         | Custom      | Custom      |
+| **v0 (Vercel)**    | 200 credits     | $20/mo         | Custom      | Custom      |
 
 **Key Observations:**
+
 - Individual pro plans cluster around $20/mo
 - Team plans add ~$5/user/mo overhead
 - Usage-based pricing increasingly common
@@ -2015,60 +2017,60 @@ spec:
 
 ### 10.1 Technical Risks
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| **Sandbox escape** | Low | Critical | gVisor + Seccomp + network policies; regular security audits; bug bounty program |
-| **Data breach** | Low | Critical | Encryption at rest/transit; RLS policies; audit logging; SOC 2 compliance |
-| **AI API outages** | Medium | High | Multi-provider fallback (Anthropic → OpenAI → Gemini); retry logic; degraded mode |
-| **Cost overruns** | High | High | Usage limits; billing alerts; auto-suspend; reserved capacity |
-| **Performance at scale** | Medium | Medium | Load testing; horizontal scaling; caching; CDN |
-| **Plugin malware** | Medium | Medium | Sandboxed execution; code review; signature verification |
+| Risk                     | Probability | Impact   | Mitigation                                                                        |
+| ------------------------ | ----------- | -------- | --------------------------------------------------------------------------------- |
+| **Sandbox escape**       | Low         | Critical | gVisor + Seccomp + network policies; regular security audits; bug bounty program  |
+| **Data breach**          | Low         | Critical | Encryption at rest/transit; RLS policies; audit logging; SOC 2 compliance         |
+| **AI API outages**       | Medium      | High     | Multi-provider fallback (Anthropic → OpenAI → Gemini); retry logic; degraded mode |
+| **Cost overruns**        | High        | High     | Usage limits; billing alerts; auto-suspend; reserved capacity                     |
+| **Performance at scale** | Medium      | Medium   | Load testing; horizontal scaling; caching; CDN                                    |
+| **Plugin malware**       | Medium      | Medium   | Sandboxed execution; code review; signature verification                          |
 
 ### 10.2 Business Risks
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| **Low conversion** | Medium | High | Strong free tier; clear value proposition; onboarding optimization |
-| **High churn** | Medium | High | Usage tracking; proactive support; feature stickiness |
-| **Competition** | High | Medium | Unique multi-channel focus; agent orchestration; community |
-| **API price increases** | Medium | High | Volume agreements; model diversification; efficiency improvements |
-| **Regulatory changes** | Low | Medium | Privacy-first design; EU data residency; compliance monitoring |
+| Risk                    | Probability | Impact | Mitigation                                                         |
+| ----------------------- | ----------- | ------ | ------------------------------------------------------------------ |
+| **Low conversion**      | Medium      | High   | Strong free tier; clear value proposition; onboarding optimization |
+| **High churn**          | Medium      | High   | Usage tracking; proactive support; feature stickiness              |
+| **Competition**         | High        | Medium | Unique multi-channel focus; agent orchestration; community         |
+| **API price increases** | Medium      | High   | Volume agreements; model diversification; efficiency improvements  |
+| **Regulatory changes**  | Low         | Medium | Privacy-first design; EU data residency; compliance monitoring     |
 
 ### 10.3 Operational Risks
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| **On-call burnout** | Medium | Medium | Automation; runbooks; rotation; managed services |
-| **Key person dependency** | Medium | Medium | Documentation; cross-training; modular design |
-| **Vendor lock-in** | Medium | Low | Abstraction layers; multi-cloud capability; open standards |
+| Risk                      | Probability | Impact | Mitigation                                                 |
+| ------------------------- | ----------- | ------ | ---------------------------------------------------------- |
+| **On-call burnout**       | Medium      | Medium | Automation; runbooks; rotation; managed services           |
+| **Key person dependency** | Medium      | Medium | Documentation; cross-training; modular design              |
+| **Vendor lock-in**        | Medium      | Low    | Abstraction layers; multi-cloud capability; open standards |
 
 ---
 
 ## Appendix A: Glossary
 
-| Term | Definition |
-|------|------------|
-| **Tenant** | An organization or team using Clawdbrain (maps to billing account) |
-| **Agent** | A configured AI assistant with specific identity, tools, and settings |
-| **Overseer** | Long-running agent that manages complex goals and coordinates subagents |
-| **Subagent** | Short-lived worker agent spawned by Overseer for specific tasks |
-| **Session** | A conversation context between a user and an agent |
-| **Channel** | A messaging platform connection (Telegram, Discord, etc.) |
-| **Memory** | RAG-based knowledge storage with semantic search |
-| **Crystallization** | Evidence of work completion (commits, files, test results) |
-| **Workspace** | File storage area for an agent's working files |
+| Term                | Definition                                                              |
+| ------------------- | ----------------------------------------------------------------------- |
+| **Tenant**          | An organization or team using Clawdbrain (maps to billing account)      |
+| **Agent**           | A configured AI assistant with specific identity, tools, and settings   |
+| **Overseer**        | Long-running agent that manages complex goals and coordinates subagents |
+| **Subagent**        | Short-lived worker agent spawned by Overseer for specific tasks         |
+| **Session**         | A conversation context between a user and an agent                      |
+| **Channel**         | A messaging platform connection (Telegram, Discord, etc.)               |
+| **Memory**          | RAG-based knowledge storage with semantic search                        |
+| **Crystallization** | Evidence of work completion (commits, files, test results)              |
+| **Workspace**       | File storage area for an agent's working files                          |
 
 ---
 
 ## Appendix B: Competitive Landscape
 
-| Competitor | Strengths | Weaknesses | Our Differentiation |
-|------------|-----------|------------|---------------------|
-| **ChatGPT/Claude Pro** | Brand, quality, simple | Single-turn, no agents | Multi-agent orchestration |
-| **AutoGPT/AgentGPT** | Agent autonomy | Unreliable, no channels | Controlled execution, channels |
-| **Lindy** | Multi-channel | Expensive, limited | Open core, flexible |
-| **Relevance AI** | Enterprise focus | Complex, pricey | Developer-friendly |
-| **Flowise/Langflow** | Visual builder | No hosting, DIY | Managed platform |
+| Competitor             | Strengths              | Weaknesses              | Our Differentiation            |
+| ---------------------- | ---------------------- | ----------------------- | ------------------------------ |
+| **ChatGPT/Claude Pro** | Brand, quality, simple | Single-turn, no agents  | Multi-agent orchestration      |
+| **AutoGPT/AgentGPT**   | Agent autonomy         | Unreliable, no channels | Controlled execution, channels |
+| **Lindy**              | Multi-channel          | Expensive, limited      | Open core, flexible            |
+| **Relevance AI**       | Enterprise focus       | Complex, pricey         | Developer-friendly             |
+| **Flowise/Langflow**   | Visual builder         | No hosting, DIY         | Managed platform               |
 
 ---
 
@@ -2084,6 +2086,6 @@ spec:
 
 ---
 
-*Document version: 1.0.0*
-*Last updated: 2026-01-25*
-*Author: Claude (SaaS Architecture Agent)*
+_Document version: 1.0.0_
+_Last updated: 2026-01-25_
+_Author: Claude (SaaS Architecture Agent)_

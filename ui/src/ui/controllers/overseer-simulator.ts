@@ -58,10 +58,7 @@ export function setSimulatorSection(
 }
 
 /** Set simulator mode */
-export function setSimulatorMode(
-  state: SimulatorState,
-  mode: SimulatorMode,
-): SimulatorState {
+export function setSimulatorMode(state: SimulatorState, mode: SimulatorMode): SimulatorState {
   return {
     ...state,
     mode,
@@ -127,13 +124,9 @@ export function updateRule(
 ): SimulatorState {
   return {
     ...state,
-    rules: state.rules.map((rule) =>
-      rule.id === ruleId ? { ...rule, ...updates } : rule,
-    ),
+    rules: state.rules.map((rule) => (rule.id === ruleId ? { ...rule, ...updates } : rule)),
     draftRule:
-      state.draftRule?.id === ruleId
-        ? { ...state.draftRule, ...updates }
-        : state.draftRule,
+      state.draftRule?.id === ruleId ? { ...state.draftRule, ...updates } : state.draftRule,
   };
 }
 
@@ -198,9 +191,15 @@ export function saveDraftRule(state: SimulatorState): SimulatorState {
       selectedRuleId: null,
       draftRule: null,
       activityLog: [
-        createActivityEntry("rule", "Rule Updated", `Updated rule: ${state.draftRule.name}`, "success", {
-          ruleId: state.draftRule.id,
-        }),
+        createActivityEntry(
+          "rule",
+          "Rule Updated",
+          `Updated rule: ${state.draftRule.name}`,
+          "success",
+          {
+            ruleId: state.draftRule.id,
+          },
+        ),
         ...state.activityLog,
       ].slice(0, state.settings.maxActivityLogSize),
     };
@@ -213,9 +212,15 @@ export function saveDraftRule(state: SimulatorState): SimulatorState {
     selectedRuleId: null,
     draftRule: null,
     activityLog: [
-      createActivityEntry("rule", "Rule Created", `Created rule: ${state.draftRule.name}`, "success", {
-        ruleId: state.draftRule.id,
-      }),
+      createActivityEntry(
+        "rule",
+        "Rule Created",
+        `Created rule: ${state.draftRule.name}`,
+        "success",
+        {
+          ruleId: state.draftRule.id,
+        },
+      ),
       ...state.activityLog,
     ].slice(0, state.settings.maxActivityLogSize),
   };
@@ -294,9 +299,7 @@ export function updateActionInDraft(
     ...state,
     draftRule: {
       ...state.draftRule,
-      actions: state.draftRule.actions.map((a) =>
-        a.id === actionId ? { ...a, ...updates } : a,
-      ),
+      actions: state.draftRule.actions.map((a) => (a.id === actionId ? { ...a, ...updates } : a)),
     },
   };
 }
@@ -448,7 +451,12 @@ export function addScenario(
     ...state,
     scenarios: [...state.scenarios, newScenario],
     activityLog: [
-      createActivityEntry("info", "Scenario Created", `Created scenario: ${newScenario.name}`, "success"),
+      createActivityEntry(
+        "info",
+        "Scenario Created",
+        `Created scenario: ${newScenario.name}`,
+        "success",
+      ),
       ...state.activityLog,
     ].slice(0, state.settings.maxActivityLogSize),
   };
@@ -511,7 +519,12 @@ export function deleteScenario(state: SimulatorState, scenarioId: string): Simul
     scenarios: state.scenarios.filter((s) => s.id !== scenarioId),
     selectedScenarioId: state.selectedScenarioId === scenarioId ? null : state.selectedScenarioId,
     activityLog: [
-      createActivityEntry("info", "Scenario Deleted", `Deleted scenario: ${scenario?.name ?? scenarioId}`, "info"),
+      createActivityEntry(
+        "info",
+        "Scenario Deleted",
+        `Deleted scenario: ${scenario?.name ?? scenarioId}`,
+        "info",
+      ),
       ...state.activityLog,
     ].slice(0, state.settings.maxActivityLogSize),
   };
@@ -570,10 +583,7 @@ export function saveDraftScenario(state: SimulatorState): SimulatorState {
 // ============================================================================
 
 /** Start a simulation run */
-export function startSimulationRun(
-  state: SimulatorState,
-  scenarioId?: string,
-): SimulatorState {
+export function startSimulationRun(state: SimulatorState, scenarioId?: string): SimulatorState {
   const scenario = scenarioId ? state.scenarios.find((s) => s.id === scenarioId) : null;
 
   const run: SimulationRunState = {
@@ -700,9 +710,7 @@ export function recordTriggeredRule(
 
   // Update rule trigger count
   const updatedRules = state.rules.map((r) =>
-    r.id === ruleId
-      ? { ...r, triggerCount: r.triggerCount + 1, lastTriggeredAt: Date.now() }
-      : r,
+    r.id === ruleId ? { ...r, triggerCount: r.triggerCount + 1, lastTriggeredAt: Date.now() } : r,
   );
 
   return {
@@ -993,8 +1001,7 @@ export function evaluateRule(
     }
   }
 
-  const matches =
-    rule.logic === "and" ? results.every(Boolean) : results.some(Boolean);
+  const matches = rule.logic === "and" ? results.every(Boolean) : results.some(Boolean);
 
   return { matches, matchedConditions };
 }

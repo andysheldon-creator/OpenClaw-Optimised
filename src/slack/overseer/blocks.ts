@@ -7,8 +7,8 @@ import type {
   OverseerAssignmentRecord,
   OverseerGoalRecord,
 } from "../../infra/overseer/store.types.js";
-
-type SlackBlock = { type: string; [key: string]: unknown };
+import type { SlackBlock } from "../blocks/types.js";
+import { section, actions, divider, context, button, mrkdwn } from "../blocks/builders.js";
 
 function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
@@ -83,42 +83,34 @@ export function buildActivityBlocks(params: ActivityMessageParams): SlackBlock[]
   const lastActivity = assignment.lastObservedActivityAt ?? assignment.updatedAt;
 
   const blocks: SlackBlock[] = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text:
-          `${emoji} *${title}*\n` +
-          `Task: \`${assignment.workNodeId}\`\n` +
-          `Status: ${statusChange}`,
-      },
-    },
+    section({
+      text:
+        `${emoji} *${title}*\n` +
+        `Task: \`${assignment.workNodeId}\`\n` +
+        `Status: ${statusChange}`,
+    }),
   ];
 
   if (dashboardUrl) {
-    blocks.push({
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: { type: "plain_text", text: "View Details" },
+    blocks.push(
+      actions([
+        button({
+          text: "View Details",
+          actionId: "overseer_view_details",
           url: dashboardUrl,
-          action_id: "overseer_view_details",
-        },
-      ],
-    });
+        }),
+      ]),
+    );
   }
 
-  blocks.push({ type: "divider" });
-  blocks.push({
-    type: "context",
-    elements: [
-      {
-        type: "mrkdwn",
-        text: `Goal: \`${assignment.goalId}\` | Agent: ${assignment.agentId ?? "main"} | ${formatRelativeTime(lastActivity)}`,
-      },
-    ],
-  });
+  blocks.push(divider());
+  blocks.push(
+    context([
+      mrkdwn(
+        `Goal: \`${assignment.goalId}\` | Agent: ${assignment.agentId ?? "main"} | ${formatRelativeTime(lastActivity)}`,
+      ),
+    ]),
+  );
 
   return blocks;
 }
@@ -141,50 +133,33 @@ export function buildEscalationBlocks(params: EscalationMessageParams): SlackBlo
   const mentionLine = mentions ? `${mentions}\n\n` : "";
 
   const blocks: SlackBlock[] = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text:
-          `:rotating_light: *Escalation Required*\n${mentionLine}` +
-          `*${title}*\n` +
-          `Task \`${assignment.workNodeId}\` stalled after ${retryCount}/${retryCount} retries.`,
-      },
-    },
-    {
-      type: "section",
+    section({
+      text:
+        `:rotating_light: *Escalation Required*\n${mentionLine}` +
+        `*${title}*\n` +
+        `Task \`${assignment.workNodeId}\` stalled after ${retryCount}/${retryCount} retries.`,
+    }),
+    section({
       fields: [
-        {
-          type: "mrkdwn",
-          text: `*Goal ID:*\n\`${assignment.goalId}\``,
-        },
-        {
-          type: "mrkdwn",
-          text: `*Last Activity:*\n${formatRelativeTime(lastActivity)}`,
-        },
+        mrkdwn(`*Goal ID:*\n\`${assignment.goalId}\``),
+        mrkdwn(`*Last Activity:*\n${formatRelativeTime(lastActivity)}`),
       ],
-    },
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `*Blocked:* ${blockedReason}`,
-      },
-    },
+    }),
+    section({
+      text: `*Blocked:* ${blockedReason}`,
+    }),
   ];
 
   if (dashboardUrl) {
-    blocks.push({
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: { type: "plain_text", text: "View in Dashboard" },
+    blocks.push(
+      actions([
+        button({
+          text: "View in Dashboard",
+          actionId: "overseer_view_dashboard",
           url: dashboardUrl,
-          action_id: "overseer_view_dashboard",
-        },
-      ],
-    });
+        }),
+      ]),
+    );
   }
 
   return blocks;
@@ -200,38 +175,22 @@ export function buildGoalCompletedBlocks(params: GoalCompletedMessageParams): Sl
   const duration = goal.updatedAt - goal.createdAt;
 
   const blocks: SlackBlock[] = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text:
-          `:tada: *Goal Completed*\n\n*${goal.title}*\n` +
-          `Completed in ${formatDuration(duration)}`,
-      },
-    },
-    {
-      type: "context",
-      elements: [
-        {
-          type: "mrkdwn",
-          text: `Goal ID: \`${goal.goalId}\` | Status: \`${goal.status}\``,
-        },
-      ],
-    },
+    section({
+      text: `:tada: *Goal Completed*\n\n*${goal.title}*\nCompleted in ${formatDuration(duration)}`,
+    }),
+    context([mrkdwn(`Goal ID: \`${goal.goalId}\` | Status: \`${goal.status}\``)]),
   ];
 
   if (dashboardUrl) {
-    blocks.push({
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: { type: "plain_text", text: "View Details" },
+    blocks.push(
+      actions([
+        button({
+          text: "View Details",
+          actionId: "overseer_goal_details",
           url: dashboardUrl,
-          action_id: "overseer_goal_details",
-        },
-      ],
-    });
+        }),
+      ]),
+    );
   }
 
   return blocks;
@@ -247,59 +206,43 @@ export function buildDecisionBlocks(params: DecisionMessageParams): SlackBlock[]
   const agent = agentId ?? decision.context.agentId ?? "main";
 
   const blocks: SlackBlock[] = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `Agent: *${agent}* is asking for a decision\n\n*${decision.title}*\n\n${decision.question}`,
-      },
-    },
+    section({
+      text: `Agent: *${agent}* is asking for a decision\n\n*${decision.title}*\n\n${decision.question}`,
+    }),
   ];
 
   // Add buttons for binary/choice/confirmation
   if (decision.options && decision.options.length > 0) {
-    const elements = decision.options.map((opt) => ({
-      type: "button",
-      text: { type: "plain_text", text: opt.label },
-      action_id: `decision_${decision.decisionId}_${opt.id}`,
-      value: `${decision.decisionId}|${opt.id}|${opt.value}`,
-      style: opt.style === "primary" ? "primary" : opt.style === "danger" ? "danger" : undefined,
-    }));
+    const buttonElements = decision.options.map((opt) =>
+      button({
+        text: opt.label,
+        actionId: `decision_${decision.decisionId}_${opt.id}`,
+        value: `${decision.decisionId}|${opt.id}|${opt.value}`,
+        style: opt.style === "primary" ? "primary" : opt.style === "danger" ? "danger" : undefined,
+      }),
+    );
 
-    blocks.push({
-      type: "actions",
-      elements,
-    });
+    blocks.push(actions(buttonElements));
   }
 
   // Add text input button for text type
   if (decision.type === "text") {
-    blocks.push({
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: { type: "plain_text", text: "Provide Response" },
-          action_id: `decision_text_${decision.decisionId}`,
+    blocks.push(
+      actions([
+        button({
+          text: "Provide Response",
+          actionId: `decision_text_${decision.decisionId}`,
           value: decision.decisionId,
-        },
-      ],
-    });
+        }),
+      ]),
+    );
   }
 
   // Add expiration notice
   if (decision.expiresAt) {
     const timeLeft = decision.expiresAt - Date.now();
     if (timeLeft > 0) {
-      blocks.push({
-        type: "context",
-        elements: [
-          {
-            type: "mrkdwn",
-            text: `:hourglass: Expires in ${formatDuration(timeLeft)}`,
-          },
-        ],
-      });
+      blocks.push(context([mrkdwn(`:hourglass: Expires in ${formatDuration(timeLeft)}`)]));
     }
   }
 
@@ -321,17 +264,13 @@ export function buildDecisionResolvedBlocks(params: DecisionResolvedMessageParam
   const respondedAt = decision.respondedAt ?? Date.now();
 
   const blocks: SlackBlock[] = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text:
-          `*Decision Resolved*\n\n~${decision.title}~\n\n` +
-          `*Decision:* ${responseText}\n` +
-          `*Resolved by:* ${respondedBy}\n` +
-          `*Time:* <!date^${Math.floor(respondedAt / 1000)}^{date_pretty} at {time}|${new Date(respondedAt).toISOString()}>`,
-      },
-    },
+    section({
+      text:
+        `*Decision Resolved*\n\n~${decision.title}~\n\n` +
+        `*Decision:* ${responseText}\n` +
+        `*Resolved by:* ${respondedBy}\n` +
+        `*Time:* <!date^${Math.floor(respondedAt / 1000)}^{date_pretty} at {time}|${new Date(respondedAt).toISOString()}>`,
+    }),
   ];
 
   return blocks;
@@ -345,13 +284,9 @@ export function buildDecisionExpiredBlocks(params: DecisionExpiredMessageParams)
   const { decision } = params;
 
   const blocks: SlackBlock[] = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `*Decision Expired*\n\n~${decision.title}~\n\n:clock1: This decision timed out without a response.`,
-      },
-    },
+    section({
+      text: `*Decision Expired*\n\n~${decision.title}~\n\n:clock1: This decision timed out without a response.`,
+    }),
   ];
 
   return blocks;

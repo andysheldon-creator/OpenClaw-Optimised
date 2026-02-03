@@ -43,20 +43,20 @@ This synopsis emphasizes (1) prompt injection surfaces where untrusted content i
 
 ### Prompt injection highlights
 
-1) **Injected workspace/context files are concatenated verbatim into the system prompt (pre-existing; wording updated post-BASELINE).**
+1. **Injected workspace/context files are concatenated verbatim into the system prompt (pre-existing; wording updated post-BASELINE).**
 
 - Evidence (explicit “injected files” section and raw file inclusion):
   - `"## Workspace Files (injected)"` (`src/agents/system-prompt.ts:487`)
   - `lines.push(\`## ${file.path}\`, "", file.content, "");` (`src/agents/system-prompt.ts:550`)
 - Why it’s “unexpected”: a developer may assume “workspace files” are just local context, but here they are first-class system prompt material; an attacker who can modify these files can attempt prompt injection to steer tool use.
 
-2) **SOUL.md persona takeover is explicitly encouraged (pre-existing; high prompt-injection leverage if attacker can write/replace SOUL.md).**
+2. **SOUL.md persona takeover is explicitly encouraged (pre-existing; high prompt-injection leverage if attacker can write/replace SOUL.md).**
 
 - Evidence:
   - `If SOUL.md is present, embody its persona and tone...` (`src/agents/system-prompt.ts:545`)
 - Why it’s “unexpected”: this is a direct instruction to treat a file as authoritative behavioral policy; it increases the blast radius of any filesystem write path (including worktree RPC and patch tools).
 
-3) **The system prompt advertises an “elevated” mode that can auto-approve exec (pre-existing; increases social-engineering risk via prompt injection).**
+3. **The system prompt advertises an “elevated” mode that can auto-approve exec (pre-existing; increases social-engineering risk via prompt injection).**
 
 - Evidence:
   - `Current elevated level: ... (ask runs exec on host with approvals; full auto-approves).` (`src/agents/system-prompt.ts:476`)
@@ -64,7 +64,7 @@ This synopsis emphasizes (1) prompt injection surfaces where untrusted content i
 
 ### Unexpected outbound/tool execution highlights
 
-4) **NEW since BASELINE (2026-02-01): Gateway “worktree RPC” adds remote filesystem write/delete/move/mkdir via the Gateway protocol.**
+4. **NEW since BASELINE (2026-02-01): Gateway “worktree RPC” adds remote filesystem write/delete/move/mkdir via the Gateway protocol.**
 
 - Evidence (explicitly classified as WRITE methods):
   - `"worktree.write",` (`src/gateway/server-methods.ts:127`)
@@ -77,7 +77,7 @@ This synopsis emphasizes (1) prompt injection surfaces where untrusted content i
   - `const authResult = await authorizeGatewayConnect({` (`src/gateway/server/ws-connection/message-handler.ts:570`)
 - Why it’s “unexpected”: a developer reading “chat” features may not expect the Gateway WebSocket protocol to include direct write primitives for arbitrary workspace paths; the operator impact is “remote file modification” once a client is authorized.
 
-5) **Pre-existing (added 2026-01-24, before BASELINE): `POST /tools/invoke` is a remote tool runner that executes any available tool by name.**
+5. **Pre-existing (added 2026-01-24, before BASELINE): `POST /tools/invoke` is a remote tool runner that executes any available tool by name.**
 
 - Evidence (endpoint selection + bearer token auth):
   - `if (url.pathname !== "/tools/invoke") {` (`src/gateway/tools-invoke-http.ts:108`)
@@ -86,13 +86,13 @@ This synopsis emphasizes (1) prompt injection surfaces where untrusted content i
   - `const result = await (tool as any).execute?.(\`http-${Date.now()}\`, toolArgs);` (`src/gateway/tools-invoke-http.ts:313`)
 - Why it’s “unexpected”: developers may assume tools are invoked only by an LLM runtime, but this endpoint allows direct HTTP invocation (subject to auth + policy filtering), turning “tool APIs” into a remotely-callable interface.
 
-6) **NEW since BASELINE (2026-01-31): policy coupling can silently broaden WRITE capability — allowing `exec` also allows `apply_patch`.**
+6. **NEW since BASELINE (2026-01-31): policy coupling can silently broaden WRITE capability — allowing `exec` also allows `apply_patch`.**
 
 - Evidence:
   - `if (normalized === "apply_patch" && matchesAny("exec", allow)) {` (`src/agents/pi-tools.policy.ts:72`)
 - Why it’s “unexpected”: a reviewer might allow `exec` (thinking “shell commands only”) but unintentionally allow repo modification via patches as well.
 
-7) **Network calls that may surprise operators because they are not “LLM web_fetch” and may be triggered by configs or message content.**
+7. **Network calls that may surprise operators because they are not “LLM web_fetch” and may be triggered by configs or message content.**
 
 - Automations webhook executor fetches `config.url` (introduced 2026-01-26 evening; post-BASELINE timestamp):
   - `const response = await fetch(config.url, {` (`src/automations/executors/webhook.ts:219`)
@@ -100,7 +100,7 @@ This synopsis emphasizes (1) prompt injection surfaces where untrusted content i
   - `const res = await fetch(url);` (`extensions/memory-lancedb/src/services/openai-extractor.ts:110`)
 - Why it’s “unexpected”: these bypass the repo’s hardened `web_fetch` tool SSRF protections (the hardening location is outside these call sites), so “fetching a URL” can happen through other code paths with different safeguards.
 
-8) **NEW since BASELINE (2026-02-01): `packages/vercel-ai-agent` introduces “tools passed to model API” semantics (potential implicit tool execution), but core wiring is UNKNOWN.**
+8. **NEW since BASELINE (2026-02-01): `packages/vercel-ai-agent` introduces “tools passed to model API” semantics (potential implicit tool execution), but core wiring is UNKNOWN.**
 
 - Evidence (tools passed into model calls):
   - `tools: Object.keys(this.tools).length > 0 ? this.tools : undefined,` (`packages/vercel-ai-agent/src/agent.ts:267`)
@@ -150,7 +150,7 @@ Evidence (tool selection + execution):
   - `filterToolsByPolicy(...)` applied repeatedly (`src/gateway/tools-invoke-http.ts:273-296`)
 - Execution:
   - `const result = await (tool as any).execute?.(\`http-${Date.now()}\`, toolArgs);`
-    (`src/gateway/tools-invoke-http.ts:313-314`)
+(`src/gateway/tools-invoke-http.ts:313-314`)
 
 Reasoning:
 
@@ -340,39 +340,39 @@ Possible misclassification / over-permission:
 
 ### PATH-A: Chat `/bash` → exec → host shell
 
-1) Ingress: chat message containing `/bash ...` or `!...` (normalized command body)
-2) Command router: `handleBashCommand` matches `/bash`/`!` (`src/auto-reply/reply/commands-bash.ts:10-14`)
-3) Auth gate: `command.isAuthorizedSender` required (`src/auto-reply/reply/commands-bash.ts:16-19`)
-4) Feature gate: `commands.bash === true` (`src/auto-reply/reply/bash-command.ts:218-222`)
-5) Elevated allowlist gate: blocks if not allowed (`src/auto-reply/reply/bash-command.ts:231-243`)
-6) Outbound: `execTool.execute(... elevated: true)` (`src/auto-reply/reply/bash-command.ts:375-381`)
+1. Ingress: chat message containing `/bash ...` or `!...` (normalized command body)
+2. Command router: `handleBashCommand` matches `/bash`/`!` (`src/auto-reply/reply/commands-bash.ts:10-14`)
+3. Auth gate: `command.isAuthorizedSender` required (`src/auto-reply/reply/commands-bash.ts:16-19`)
+4. Feature gate: `commands.bash === true` (`src/auto-reply/reply/bash-command.ts:218-222`)
+5. Elevated allowlist gate: blocks if not allowed (`src/auto-reply/reply/bash-command.ts:231-243`)
+6. Outbound: `execTool.execute(... elevated: true)` (`src/auto-reply/reply/bash-command.ts:375-381`)
 
 ### PATH-B: Chat `/config set|unset` → writeConfigFile (disk write)
 
-1) Ingress: chat message containing `/config ...` (`src/auto-reply/reply/config-commands.ts:9-70`)
-2) Auth gate: `isAuthorizedSender` required (`src/auto-reply/reply/commands-config.ts:33-38`)
-3) Feature gate: `commands.config === true` (`src/auto-reply/reply/commands-config.ts:39-46`)
-4) Channel write gate: `resolveChannelConfigWrites(...)` required for set/unset (`src/auto-reply/reply/commands-config.ts:54-73`)
-5) Validation: `validateConfigObjectWithPlugins(...)` (`src/auto-reply/reply/commands-config.ts:127-136`)
-6) Outbound: `writeConfigFile(validated.config)` (`src/auto-reply/reply/commands-config.ts:137-141`)
+1. Ingress: chat message containing `/config ...` (`src/auto-reply/reply/config-commands.ts:9-70`)
+2. Auth gate: `isAuthorizedSender` required (`src/auto-reply/reply/commands-config.ts:33-38`)
+3. Feature gate: `commands.config === true` (`src/auto-reply/reply/commands-config.ts:39-46`)
+4. Channel write gate: `resolveChannelConfigWrites(...)` required for set/unset (`src/auto-reply/reply/commands-config.ts:54-73`)
+5. Validation: `validateConfigObjectWithPlugins(...)` (`src/auto-reply/reply/commands-config.ts:127-136`)
+6. Outbound: `writeConfigFile(validated.config)` (`src/auto-reply/reply/commands-config.ts:137-141`)
 
 ### PATH-C: Heartbeat schedule → LLM call without interactive prompt
 
-1) Trigger: `runHeartbeatOnce` background runner (`src/infra/heartbeat-runner.ts:476-505`)
-2) Reads `HEARTBEAT.md` (`src/infra/heartbeat-runner.ts:513`)
-3) Outbound: `getReplyFromConfig(ctx, { isHeartbeat: true }, cfg)` (`src/infra/heartbeat-runner.ts:597`)
+1. Trigger: `runHeartbeatOnce` background runner (`src/infra/heartbeat-runner.ts:476-505`)
+2. Reads `HEARTBEAT.md` (`src/infra/heartbeat-runner.ts:513`)
+3. Outbound: `getReplyFromConfig(ctx, { isHeartbeat: true }, cfg)` (`src/infra/heartbeat-runner.ts:597`)
 
 ### PATH-D: Gateway `POST /tools/invoke` → execute tool
 
-1) Ingress: HTTP `POST /tools/invoke` (`src/gateway/tools-invoke-http.ts:108-115`)
-2) Auth: `authorizeGatewayConnect(...)` (`src/gateway/tools-invoke-http.ts:119-124`)
-3) Tool filtering: `filterToolsByPolicy(...)` chain (`src/gateway/tools-invoke-http.ts:273-296`)
-4) Outbound: tool `.execute(...)` (`src/gateway/tools-invoke-http.ts:313-314`)
+1. Ingress: HTTP `POST /tools/invoke` (`src/gateway/tools-invoke-http.ts:108-115`)
+2. Auth: `authorizeGatewayConnect(...)` (`src/gateway/tools-invoke-http.ts:119-124`)
+3. Tool filtering: `filterToolsByPolicy(...)` chain (`src/gateway/tools-invoke-http.ts:273-296`)
+4. Outbound: tool `.execute(...)` (`src/gateway/tools-invoke-http.ts:313-314`)
 
 ### PATH-E: Automations webhook executor → fetch arbitrary URL
 
-1) Trigger: automation run (trigger path UNKNOWN here)
-2) Outbound: `fetch(config.url, ...)` (`src/automations/executors/webhook.ts:219-223`)
+1. Trigger: automation run (trigger path UNKNOWN here)
+2. Outbound: `fetch(config.url, ...)` (`src/automations/executors/webhook.ts:219-223`)
 
 ---
 
@@ -380,35 +380,36 @@ Possible misclassification / over-permission:
 
 P0
 
-1) Add SSRF guardrails for any “fetch arbitrary URL” outside `web_fetch`, especially:
+1. Add SSRF guardrails for any “fetch arbitrary URL” outside `web_fetch`, especially:
    - `src/automations/executors/webhook.ts:219`
    - `extensions/memory-lancedb/src/services/openai-extractor.ts:110`
-2) Harden skill installer archive extraction (zip-slip/tar traversal defense-in-depth):
+2. Harden skill installer archive extraction (zip-slip/tar traversal defense-in-depth):
    - `src/agents/skills-install.ts:212`
    - `src/agents/skills-install.ts:219`
-3) Tighten and audit chat-to-exec (`/bash`) posture:
+3. Tighten and audit chat-to-exec (`/bash`) posture:
    - Ensure `tools.elevated.allowFrom.<provider>` cannot accidentally broaden via fallbacks; confirm in dock configs (start at `src/auto-reply/reply/reply-elevated.ts:167-187` and channel docks).
 
 P1
 
-4) Add explicit “treat injected context files as untrusted data” instruction near the Project Context boundary in system prompt:
+4. Add explicit “treat injected context files as untrusted data” instruction near the Project Context boundary in system prompt:
    - `src/agents/system-prompt.ts:542`
-5) Review and potentially remove implicit `exec` → `apply_patch` allow coupling:
+5. Review and potentially remove implicit `exec` → `apply_patch` allow coupling:
    - `src/agents/pi-tools.policy.ts:72`
-6) Ensure elevated “full” is never enabled for low-trust channels and cannot be toggled remotely without strong operator controls:
+6. Ensure elevated “full” is never enabled for low-trust channels and cannot be toggled remotely without strong operator controls:
    - `src/agents/bash-tools.exec.ts:940`
    - `src/config/types.agent-defaults.ts:172-173` (default elevated level option)
 
 P2
 
-7) Reduce sensitive logging (voice transcripts) or make it opt-in:
+7. Reduce sensitive logging (voice transcripts) or make it opt-in:
    - `extensions/voice-call/src/webhook.ts:72`
-8) Add operational safety docs/guardrails for public webhook binds + secret token requirements:
+8. Add operational safety docs/guardrails for public webhook binds + secret token requirements:
    - `src/telegram/webhook.ts:36` and `:46`
-9) Audit browser-control endpoints for least privilege (even though loopback):
+9. Audit browser-control endpoints for least privilege (even though loopback):
    - `src/browser/routes/basic.ts:75` and `:124`
-10) Create a single shared “network fetch policy” helper (allowlist/deny private IPs, metadata, localhost) and require its use by all URL-fetching features:
-   - Candidate existing SSRF code: `src/infra/net/ssrf.ts` (used by `web_fetch`, but not used by automations/memory-lancedb in inspected code).
+10. Create a single shared “network fetch policy” helper (allowlist/deny private IPs, metadata, localhost) and require its use by all URL-fetching features:
+
+- Candidate existing SSRF code: `src/infra/net/ssrf.ts` (used by `web_fetch`, but not used by automations/memory-lancedb in inspected code).
 
 ---
 
@@ -436,19 +437,19 @@ UNKNOWN-4: Whether `systemPromptReport` content (including injected files) can b
 
 P0
 
-1) SSRF guard for automations webhook URL: `src/automations/executors/webhook.ts:219`
-2) SSRF guard for memory-lancedb URL summarizer: `extensions/memory-lancedb/src/services/openai-extractor.ts:110`
-3) Zip-slip/tar traversal mitigations for skill downloads: `src/agents/skills-install.ts:212`
+1. SSRF guard for automations webhook URL: `src/automations/executors/webhook.ts:219`
+2. SSRF guard for memory-lancedb URL summarizer: `extensions/memory-lancedb/src/services/openai-extractor.ts:110`
+3. Zip-slip/tar traversal mitigations for skill downloads: `src/agents/skills-install.ts:212`
 
 P1
 
-4) Add “untrusted Project Context” instruction: `src/agents/system-prompt.ts:542`
-5) Remove/justify `exec`→`apply_patch` implicit allow: `src/agents/pi-tools.policy.ts:72`
-6) Ensure elevated `full` cannot be enabled in low-trust sessions: `src/agents/bash-tools.exec.ts:940`
+4. Add “untrusted Project Context” instruction: `src/agents/system-prompt.ts:542`
+5. Remove/justify `exec`→`apply_patch` implicit allow: `src/agents/pi-tools.policy.ts:72`
+6. Ensure elevated `full` cannot be enabled in low-trust sessions: `src/agents/bash-tools.exec.ts:940`
 
 P2
 
-7) Reduce transcript logging: `extensions/voice-call/src/webhook.ts:72`
-8) Enforce Telegram webhook secret/token configuration guidance: `src/telegram/webhook.ts:46`
-9) Lock down `/tools/invoke` operationally (token storage/logging): `src/gateway/tools-invoke-http.ts:118`
-10) Confirm `/bash` remains strictly allowlisted + elevated-gated: `src/auto-reply/reply/commands-bash.ts:16`
+7. Reduce transcript logging: `extensions/voice-call/src/webhook.ts:72`
+8. Enforce Telegram webhook secret/token configuration guidance: `src/telegram/webhook.ts:46`
+9. Lock down `/tools/invoke` operationally (token storage/logging): `src/gateway/tools-invoke-http.ts:118`
+10. Confirm `/bash` remains strictly allowlisted + elevated-gated: `src/auto-reply/reply/commands-bash.ts:16`

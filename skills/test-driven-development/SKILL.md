@@ -16,12 +16,14 @@ Write the test first. Watch it fail. Write minimal code to pass.
 ## When to Use
 
 **Always:**
+
 - New features
 - Bug fixes
 - Refactoring
 - Behavior changes
 
 **Exceptions (ask the user):**
+
 - Throwaway prototypes
 - Generated code
 - Configuration files
@@ -37,6 +39,7 @@ NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 Write code before the test? Delete it. Start over.
 
 **No exceptions:**
+
 - Don't keep it as "reference"
 - Don't "adapt" it while writing tests
 - Don't look at it
@@ -49,6 +52,7 @@ Write code before the test? Delete it. Start over.
 Write one minimal test showing what should happen.
 
 **Requirements:**
+
 - One behavior
 - Clear name
 - Real code (no mocks unless unavoidable)
@@ -58,6 +62,7 @@ Write one minimal test showing what should happen.
 **MANDATORY. Never skip.**
 
 Run the test. Confirm:
+
 - Test fails (not errors)
 - Failure message is expected
 - Fails because feature missing (not typos)
@@ -75,6 +80,7 @@ Don't add features, refactor other code, or "improve" beyond the test.
 **MANDATORY.**
 
 Confirm:
+
 - Test passes
 - Other tests still pass
 - Output pristine (no errors, warnings)
@@ -84,6 +90,7 @@ Confirm:
 ### REFACTOR - Clean Up
 
 After green only:
+
 - Remove duplication
 - Improve names
 - Extract helpers
@@ -96,17 +103,18 @@ Next failing test for next feature.
 
 ## Good Tests
 
-| Quality | Good | Bad |
-|---------|------|-----|
-| **Minimal** | One thing. "and" in name? Split it. | `test('validates email and domain and whitespace')` |
-| **Clear** | Name describes behavior | `test('test1')` |
-| **Shows intent** | Demonstrates desired API | Obscures what code should do |
+| Quality          | Good                                | Bad                                                 |
+| ---------------- | ----------------------------------- | --------------------------------------------------- |
+| **Minimal**      | One thing. "and" in name? Split it. | `test('validates email and domain and whitespace')` |
+| **Clear**        | Name describes behavior             | `test('test1')`                                     |
+| **Shows intent** | Demonstrates desired API            | Obscures what code should do                        |
 
 ## Why Order Matters
 
 **"I'll write tests after to verify it works"**
 
 Tests written after code pass immediately. Passing immediately proves nothing:
+
 - Might test wrong thing
 - Might test implementation, not behavior
 - Might miss edge cases you forgot
@@ -116,15 +124,15 @@ Test-first forces you to see the test fail, proving it actually tests something.
 
 ## Common Rationalizations
 
-| Excuse | Reality |
-|--------|---------|
-| "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
-| "I'll test after" | Tests passing immediately prove nothing. |
+| Excuse                           | Reality                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| "Too simple to test"             | Simple code breaks. Test takes 30 seconds.                              |
+| "I'll test after"                | Tests passing immediately prove nothing.                                |
 | "Tests after achieve same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
-| "Already manually tested" | Ad-hoc ≠ systematic. No record, can't re-run. |
-| "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
-| "TDD will slow me down" | TDD faster than debugging. |
-| "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
+| "Already manually tested"        | Ad-hoc ≠ systematic. No record, can't re-run.                           |
+| "Deleting X hours is wasteful"   | Sunk cost fallacy. Keeping unverified code is technical debt.           |
+| "TDD will slow me down"          | TDD faster than debugging.                                              |
+| "Manual test faster"             | Manual doesn't prove edge cases. You'll re-test every change.           |
 
 ## Red Flags - STOP and Start Over
 
@@ -143,20 +151,22 @@ Test-first forces you to see the test fail, proving it actually tests something.
 **Bug:** Empty email accepted
 
 **RED**
+
 ```typescript
-test('rejects empty email', async () => {
-  const result = await submitForm({ email: '' });
-  expect(result.error).toBe('Email required');
+test("rejects empty email", async () => {
+  const result = await submitForm({ email: "" });
+  expect(result.error).toBe("Email required");
 });
 ```
 
 **Verify RED** → FAIL: expected 'Email required', got undefined
 
 **GREEN**
+
 ```typescript
 function submitForm(data: FormData) {
   if (!data.email?.trim()) {
-    return { error: 'Email required' };
+    return { error: "Email required" };
   }
   // ...
 }
@@ -182,6 +192,7 @@ Before marking work complete:
 ## Testing Anti-Patterns
 
 When adding mocks or test utilities, see `testing-anti-patterns.md` in this skill directory to avoid:
+
 - Testing mock behavior instead of real behavior
 - Adding test-only methods to production classes
 - Mocking without understanding dependencies

@@ -168,7 +168,9 @@
   font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
   flex-shrink: 0;
 }
 
@@ -632,7 +634,10 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+  transition:
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
 }
 
 .config-changes-badge:hover {
@@ -1453,7 +1458,10 @@
   border-radius: 12px;
   background: var(--surface-1);
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .cfg-toggle-row:hover:not(.disabled) {
@@ -1506,7 +1514,10 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface-1);
-  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .setting-toggle-row:hover:not(.setting-toggle-row--disabled) {
@@ -2634,7 +2645,11 @@ details.cfg-object-flat[open] .cfg-object__icon {
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   cursor: pointer;
-  transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, transform var(--duration-fast) ease;
+  transition:
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
   text-align: left;
 }
 
@@ -2700,7 +2715,9 @@ details.cfg-object-flat[open] .cfg-object__icon {
   flex-shrink: 0;
   background: rgba(245, 159, 74, 0.1);
   border-radius: 10px;
-  transition: opacity var(--duration-fast) ease, background var(--duration-fast) ease;
+  transition:
+    opacity var(--duration-fast) ease,
+    background var(--duration-fast) ease;
 }
 
 .config-status-overview__item:hover .config-status-overview__item-icon {
@@ -2744,7 +2761,9 @@ details.cfg-object-flat[open] .cfg-object__icon {
   justify-content: center;
   flex-shrink: 0;
   opacity: 0.35;
-  transition: opacity var(--duration-fast) ease, transform var(--duration-fast) ease;
+  transition:
+    opacity var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
 }
 
 .config-status-overview__item-chevron svg {
@@ -2789,7 +2808,10 @@ details.cfg-object-flat[open] .cfg-object__icon {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--duration-fast) ease, color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+  transition:
+    background var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
   white-space: nowrap;
 }
 

@@ -7,27 +7,18 @@
  */
 
 import { html, nothing } from "lit";
-
-import { formatAgo } from "../format";
-import { formatSessionTokens } from "../presenter";
-import { icon } from "../icons";
-import { groupSessionsByAgent, type AgentNode } from "../session-grouping";
 import type { GatewaySessionRow } from "../types";
-
-import {
-  deriveSessionStatus,
-  getStatusBadgeClass,
-  type SessionsProps,
-} from "./sessions";
+import { formatAgo } from "../format";
+import { icon } from "../icons";
+import { formatSessionTokens } from "../presenter";
+import { groupSessionsByAgent, type AgentNode } from "../session-grouping";
+import { deriveSessionStatus, getStatusBadgeClass, type SessionsProps } from "./sessions";
 
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
-export function renderGroupedSessions(
-  rows: GatewaySessionRow[],
-  props: SessionsProps,
-) {
+export function renderGroupedSessions(rows: GatewaySessionRow[], props: SessionsProps) {
   const agents = props.agentsList ?? null;
   const nodes = groupSessionsByAgent(rows, agents);
 
@@ -86,7 +77,13 @@ function renderAgentCard(node: AgentNode, props: SessionsProps) {
           <div class="agent-group__header-text">
             <div class="agent-group__name-row">
               <span class="agent-group__name">${node.displayName}</span>
-              ${node.isDefault ? html`<span class="badge badge--muted" style="margin-left: 6px; font-size: 10px;">default</span>` : nothing}
+              ${
+                node.isDefault
+                  ? html`
+                      <span class="badge badge--muted" style="margin-left: 6px; font-size: 10px">default</span>
+                    `
+                  : nothing
+              }
             </div>
             <span class="agent-group__meta">
               ${node.totalSessions} session${node.totalSessions === 1 ? "" : "s"}
@@ -94,8 +91,9 @@ function renderAgentCard(node: AgentNode, props: SessionsProps) {
             </span>
           </div>
         </div>
-        ${hasHistory
-          ? html`
+        ${
+          hasHistory
+            ? html`
             <button
               class="agent-group__toggle ${expanded ? "agent-group__toggle--expanded" : ""}"
               type="button"
@@ -106,16 +104,16 @@ function renderAgentCard(node: AgentNode, props: SessionsProps) {
               <span class="agent-group__toggle-chevron">${icon("chevron-down", { size: 14 })}</span>
             </button>
           `
-          : nothing}
+            : nothing
+        }
       </div>
 
       <div class="agent-group__sessions-pane">
-        ${primarySession
-          ? renderAgentPrimarySession(primarySession, props)
-          : nothing}
+        ${primarySession ? renderAgentPrimarySession(primarySession, props) : nothing}
 
-        ${hasHistory && expanded
-          ? html`
+        ${
+          hasHistory && expanded
+            ? html`
               <div class="agent-group__history">
                 <div class="agent-group__history-header">
                   ${icon("clock", { size: 12 })}
@@ -126,7 +124,8 @@ function renderAgentCard(node: AgentNode, props: SessionsProps) {
                 </div>
               </div>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     </div>
   `;
@@ -144,7 +143,8 @@ function renderAgentPrimarySession(row: GatewaySessionRow, props: SessionsProps)
   const effectiveStatus: string = isAborted ? "aborted" : status;
   const dotClass = `agent-group__session-dot agent-group__session-dot--${effectiveStatus}`;
 
-  const title = row.displayName?.trim() || row.derivedTitle?.trim() || row.subject?.trim() || row.key;
+  const title =
+    row.displayName?.trim() || row.derivedTitle?.trim() || row.subject?.trim() || row.key;
   const truncTitle = title.length > 60 ? title.slice(0, 57) + "..." : title;
 
   const model = row.model ?? null;
@@ -171,18 +171,24 @@ function renderAgentPrimarySession(row: GatewaySessionRow, props: SessionsProps)
             <span class="agent-group__session-title" title=${title}>${truncTitle}</span>
             <span class="agent-group__session-time">${formatAgo(row.updatedAt)}</span>
           </div>
-          ${tasks.length > 0
-            ? html`<div class="agent-group__session-badges">
+          ${
+            tasks.length > 0
+              ? html`<div class="agent-group__session-badges">
                 <span class="badge badge--info">${tasks.length} task${tasks.length === 1 ? "" : "s"}</span>
               </div>`
-            : nothing}
+              : nothing
+          }
           <div class="agent-group__session-meta">
-            ${model
-              ? html`<span class="agent-group__session-meta-item">${icon("brain", { size: 11 })} ${model}</span>`
-              : nothing}
-            ${tokens !== "n/a"
-              ? html`<span class="agent-group__session-meta-item">${icon("activity", { size: 11 })} ${tokens} tokens</span>`
-              : nothing}
+            ${
+              model
+                ? html`<span class="agent-group__session-meta-item">${icon("brain", { size: 11 })} ${model}</span>`
+                : nothing
+            }
+            ${
+              tokens !== "n/a"
+                ? html`<span class="agent-group__session-meta-item">${icon("activity", { size: 11 })} ${tokens} tokens</span>`
+                : nothing
+            }
           </div>
         </div>
       </div>
@@ -202,7 +208,8 @@ function renderHistoryItem(row: GatewaySessionRow, index: number, props: Session
   const dotClass = `agent-group__session-dot agent-group__session-dot--sm agent-group__session-dot--${effectiveStatus}`;
   const statusClass = getStatusBadgeClass(status);
 
-  const title = row.displayName?.trim() || row.derivedTitle?.trim() || row.subject?.trim() || row.key;
+  const title =
+    row.displayName?.trim() || row.derivedTitle?.trim() || row.subject?.trim() || row.key;
   const truncTitle = title.length > 50 ? title.slice(0, 47) + "..." : title;
 
   return html`

@@ -29,20 +29,19 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
   const checkIsAtBottom = useCallback(
     (element: HTMLElement) => {
       const { scrollTop, scrollHeight, clientHeight } = element;
-      const distanceToBottom = Math.abs(
-        scrollHeight - scrollTop - clientHeight
-      );
+      const distanceToBottom = Math.abs(scrollHeight - scrollTop - clientHeight);
       return distanceToBottom <= offset;
     },
-    [offset]
+    [offset],
   );
 
   const scrollToBottom = useCallback(
     (instant?: boolean) => {
-      if (!scrollRef.current) {return;}
+      if (!scrollRef.current) {
+        return;
+      }
 
-      const targetScrollTop =
-        scrollRef.current.scrollHeight - scrollRef.current.clientHeight;
+      const targetScrollTop = scrollRef.current.scrollHeight - scrollRef.current.clientHeight;
 
       if (instant) {
         scrollRef.current.scrollTop = targetScrollTop;
@@ -59,11 +58,13 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
       });
       userHasScrolled.current = false;
     },
-    [smooth]
+    [smooth],
   );
 
   const handleScroll = useCallback(() => {
-    if (!scrollRef.current) {return;}
+    if (!scrollRef.current) {
+      return;
+    }
 
     const atBottom = checkIsAtBottom(scrollRef.current);
 
@@ -76,7 +77,9 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
 
   useEffect(() => {
     const element = scrollRef.current;
-    if (!element) {return;}
+    if (!element) {
+      return;
+    }
 
     element.addEventListener("scroll", handleScroll, { passive: true });
     return () => element.removeEventListener("scroll", handleScroll);
@@ -84,7 +87,9 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
 
   useEffect(() => {
     const scrollElement = scrollRef.current;
-    if (!scrollElement) {return;}
+    if (!scrollElement) {
+      return;
+    }
 
     const currentHeight = scrollElement.scrollHeight;
     const hasNewContent = currentHeight !== lastContentHeight.current;
@@ -101,7 +106,9 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
 
   useEffect(() => {
     const element = scrollRef.current;
-    if (!element) {return;}
+    if (!element) {
+      return;
+    }
 
     const resizeObserver = new ResizeObserver(() => {
       if (scrollState.autoScrollEnabled) {
@@ -114,9 +121,7 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
   }, [scrollState.autoScrollEnabled, scrollToBottom]);
 
   const disableAutoScroll = useCallback(() => {
-    const atBottom = scrollRef.current
-      ? checkIsAtBottom(scrollRef.current)
-      : false;
+    const atBottom = scrollRef.current ? checkIsAtBottom(scrollRef.current) : false;
 
     // Only disable if not at bottom
     if (!atBottom) {

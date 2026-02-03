@@ -1,55 +1,50 @@
-"use client"
+"use client";
 
-import React from "react"
-
-import { useState, useRef } from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Paperclip, Mic, Send, Square } from "lucide-react"
+import { Paperclip, Mic, Send, Square } from "lucide-react";
+import React from "react";
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
-  onSend: (message: string) => void
-  isStreaming?: boolean
-  onStop?: () => void
-  disabled?: boolean
-  className?: string
+  onSend: (message: string) => void;
+  isStreaming?: boolean;
+  onStop?: () => void;
+  disabled?: boolean;
+  className?: string;
 }
 
-export function ChatInput({
-  onSend,
-  isStreaming,
-  onStop,
-  disabled,
-  className,
-}: ChatInputProps) {
-  const [message, setMessage] = useState("")
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+export function ChatInput({ onSend, isStreaming, onStop, disabled, className }: ChatInputProps) {
+  const [message, setMessage] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!message.trim() || disabled) {return}
-    onSend(message)
-    setMessage("")
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto"
+    e.preventDefault();
+    if (!message.trim() || disabled) {
+      return;
     }
-  }
+    onSend(message);
+    setMessage("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit(e)
+      e.preventDefault();
+      handleSubmit(e);
     }
-  }
+  };
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value)
+    setMessage(e.target.value);
     // Auto-resize textarea
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto"
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
-  }
+  };
 
   return (
     <div className={cn("border-t border-border bg-card p-4", className)}>
@@ -115,5 +110,5 @@ export function ChatInput({
         </div>
       </form>
     </div>
-  )
+  );
 }

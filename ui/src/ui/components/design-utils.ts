@@ -17,18 +17,20 @@ export type IconNode = [tag: string, attrs: Record<string, string | number | und
  */
 export function icon(
   iconNode: IconNode,
-  options: { size?: number; class?: string; strokeWidth?: number } = {}
+  options: { size?: number; class?: string; strokeWidth?: number } = {},
 ): TemplateResult {
   const { size = 16, class: className = "", strokeWidth = 2 } = options;
 
   // Build SVG child elements from icon node
-  const children = iconNode.map(([tag, attrs]) => {
-    const attrStr = Object.entries(attrs)
-      .filter(([_, v]) => v !== undefined)
-      .map(([k, v]) => `${k}="${v}"`)
-      .join(" ");
-    return `<${tag} ${attrStr}/>`;
-  }).join("");
+  const children = iconNode
+    .map(([tag, attrs]) => {
+      const attrStr = Object.entries(attrs)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => `${k}="${v}"`)
+        .join(" ");
+      return `<${tag} ${attrStr}/>`;
+    })
+    .join("");
 
   const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" class="${className}">${children}</svg>`;
 
@@ -83,7 +85,7 @@ export const buttonSizes = {
 export function getButtonClasses(
   variant: keyof typeof buttonVariants = "primary",
   size: keyof typeof buttonSizes = "default",
-  className?: string
+  className?: string,
 ): string {
   return cn(buttonVariants[variant], buttonSizes[size], className);
 }
@@ -102,7 +104,7 @@ export const badgeVariants = {
 
 export function getBadgeClasses(
   variant: keyof typeof badgeVariants = "default",
-  className?: string
+  className?: string,
 ): string {
   return cn(badgeVariants[variant], className);
 }
@@ -119,7 +121,7 @@ export function getInputClasses(className?: string): string {
  */
 export function getCardClasses(
   options: { interactive?: boolean } = {},
-  className?: string
+  className?: string,
 ): string {
   return cn("card", options.interactive && "card-interactive", className);
 }
@@ -141,9 +143,7 @@ export function getStatusDotClass(status: StatusType): string {
   return map[status] || map.default;
 }
 
-export function getStatusBadgeVariant(
-  status: StatusType
-): keyof typeof badgeVariants {
+export function getStatusBadgeVariant(status: StatusType): keyof typeof badgeVariants {
   const map: Record<StatusType, keyof typeof badgeVariants> = {
     ok: "success",
     warn: "warning",
@@ -180,13 +180,13 @@ export function emptyState(options: {
 }): TemplateResult {
   return html`
     <div class="empty-state">
-      ${options.icon
-        ? html`<div class="empty-state-icon">${options.icon}</div>`
-        : ""}
+      ${options.icon ? html`<div class="empty-state-icon">${options.icon}</div>` : ""}
       <h3 class="empty-state-title">${options.title}</h3>
-      ${options.description
-        ? html`<p class="empty-state-description">${options.description}</p>`
-        : ""}
+      ${
+        options.description
+          ? html`<p class="empty-state-description">${options.description}</p>`
+          : ""
+      }
       ${options.action || ""}
     </div>
   `;
@@ -218,7 +218,7 @@ export function skeletonList(count: number, itemHeight = "3rem"): TemplateResult
   return html`
     <div class="flex flex-col gap-2">
       ${Array.from({ length: count }, () =>
-        skeleton({ height: itemHeight, className: "rounded-lg" })
+        skeleton({ height: itemHeight, className: "rounded-lg" }),
       )}
     </div>
   `;
@@ -247,14 +247,22 @@ export function formField(options: {
         style="color: var(--text-secondary)"
       >
         ${options.label}
-        ${options.required ? html`<span style="color: var(--danger)">*</span>` : ""}
+        ${
+          options.required
+            ? html`
+                <span style="color: var(--danger)">*</span>
+              `
+            : ""
+        }
       </label>
       ${options.children}
-      ${options.error
-        ? html`<p class="text-sm mt-1" style="color: var(--danger)">${options.error}</p>`
-        : options.hint
-          ? html`<p class="text-sm mt-1" style="color: var(--muted)">${options.hint}</p>`
-          : ""}
+      ${
+        options.error
+          ? html`<p class="text-sm mt-1" style="color: var(--danger)">${options.error}</p>`
+          : options.hint
+            ? html`<p class="text-sm mt-1" style="color: var(--muted)">${options.hint}</p>`
+            : ""
+      }
     </div>
   `;
 }
@@ -271,7 +279,7 @@ export function handleListNavigation(
   currentIndex: number,
   itemCount: number,
   onSelect: (index: number) => void,
-  onConfirm?: () => void
+  onConfirm?: () => void,
 ): void {
   switch (event.key) {
     case "ArrowDown":
@@ -385,9 +393,11 @@ export function toggleRow(opts: ToggleRowOptions): TemplateResult {
       ${icon ? html`<div class="setting-toggle-row__icon">${icon}</div>` : ""}
       <div class="setting-toggle-row__content">
         <span class="setting-toggle-row__label">${label}</span>
-        ${description
-          ? html`<span class="setting-toggle-row__description">${description}</span>`
-          : ""}
+        ${
+          description
+            ? html`<span class="setting-toggle-row__description">${description}</span>`
+            : ""
+        }
       </div>
       <div class="setting-toggle-row__control">
         <label class="cfg-toggle">
@@ -450,8 +460,9 @@ export function inputWithIcon(opts: InputIconOptions): TemplateResult {
         @input=${(e: Event) => onInput((e.target as HTMLInputElement).value)}
       />
       ${iconRight ? html`<span class="input-with-icon__icon">${icon}</span>` : ""}
-      ${hasValue && onClear
-        ? html`
+      ${
+        hasValue && onClear
+          ? html`
             <button
               type="button"
               class="input-with-icon__clear"
@@ -461,7 +472,8 @@ export function inputWithIcon(opts: InputIconOptions): TemplateResult {
               ×
             </button>
           `
-        : ""}
+          : ""
+      }
     </div>
   `;
 }
@@ -492,9 +504,7 @@ export function sectionCard(opts: SectionCardOptions): TemplateResult {
           ${icon ? html`<span class="config-section-card__icon">${icon}</span>` : ""}
           <div class="config-section-card__titles">
             <h3 class="config-section-card__title">${title}</h3>
-            ${description
-              ? html`<p class="config-section-card__desc">${description}</p>`
-              : ""}
+            ${description ? html`<p class="config-section-card__desc">${description}</p>` : ""}
           </div>
         </summary>
         <div class="config-section-card__content">${children}</div>
@@ -508,9 +518,7 @@ export function sectionCard(opts: SectionCardOptions): TemplateResult {
         ${icon ? html`<span class="config-section-card__icon">${icon}</span>` : ""}
         <div class="config-section-card__titles">
           <h3 class="config-section-card__title">${title}</h3>
-          ${description
-            ? html`<p class="config-section-card__desc">${description}</p>`
-            : ""}
+          ${description ? html`<p class="config-section-card__desc">${description}</p>` : ""}
         </div>
       </div>
       <div class="config-section-card__content">${children}</div>

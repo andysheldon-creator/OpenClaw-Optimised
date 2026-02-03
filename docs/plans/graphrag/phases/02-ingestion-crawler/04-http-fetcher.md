@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement HTTP fetcher with:
+
 - Rate limiting per origin
 - Retry with exponential backoff
 - Authentication support (Bearer, Basic, custom headers)
@@ -30,8 +31,8 @@ src/knowledge/crawler/
  * HTTP fetcher with rate limiting and retry logic.
  */
 
-import pRetry from 'p-retry';
-import type { CrawlConfig, CrawlAuth } from './types.js';
+import pRetry from "p-retry";
+import type { CrawlConfig, CrawlAuth } from "./types.js";
 
 export interface FetchOptions {
   auth?: CrawlAuth;
@@ -61,10 +62,10 @@ export class CrawlFetcher {
       },
       {
         retries: this.config.maxRetries,
-        onFailedAttempt: error => {
+        onFailedAttempt: (error) => {
           console.log(`Fetch attempt ${error.attemptNumber} failed for ${url}`);
         },
-      }
+      },
     );
   }
 
@@ -73,18 +74,19 @@ export class CrawlFetcher {
    */
   private async fetchHTTP(url: string, options: FetchOptions): Promise<string> {
     const headers: Record<string, string> = {
-      'User-Agent': this.config.userAgent,
+      "User-Agent": this.config.userAgent,
     };
 
     if (options.auth) {
       switch (options.auth.type) {
-        case 'bearer':
-          headers['Authorization'] = `Bearer ${options.auth.token}`;
+        case "bearer":
+          headers["Authorization"] = `Bearer ${options.auth.token}`;
           break;
-        case 'basic':
-          headers['Authorization'] = `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString('base64')}`;
+        case "basic":
+          headers["Authorization"] =
+            `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString("base64")}`;
           break;
-        case 'custom':
+        case "custom":
           Object.assign(headers, options.auth.headers);
           break;
       }
@@ -106,7 +108,7 @@ export class CrawlFetcher {
    * Fetch with JavaScript rendering (Playwright).
    */
   private async fetchWithPlaywright(url: string, options: FetchOptions): Promise<string> {
-    const { chromium } = await import('playwright');
+    const { chromium } = await import("playwright");
 
     const browser = await chromium.launch();
     const page = await browser.newPage();
@@ -114,24 +116,24 @@ export class CrawlFetcher {
     // Set auth headers
     if (options.auth) {
       switch (options.auth.type) {
-        case 'bearer':
+        case "bearer":
           await page.setExtraHTTPHeaders({
-            'Authorization': `Bearer ${options.auth.token}`,
+            Authorization: `Bearer ${options.auth.token}`,
           });
           break;
-        case 'basic':
+        case "basic":
           await page.setExtraHTTPHeaders({
-            'Authorization': `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString('base64')}`,
+            Authorization: `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString("base64")}`,
           });
           break;
-        case 'custom':
+        case "custom":
           await page.setExtraHTTPHeaders(options.auth.headers);
           break;
       }
     }
 
     await page.goto(url, {
-      waitUntil: 'networkidle',
+      waitUntil: "networkidle",
       timeout: this.config.timeout,
     });
 
@@ -150,14 +152,14 @@ export class CrawlFetcher {
     const requests = this.rateLimiter.get(origin) || [];
 
     // Remove old requests (outside 1-second window)
-    const recent = requests.filter(t => now - t < 1000);
+    const recent = requests.filter((t) => now - t < 1000);
 
     // Check if we've exceeded the rate limit
     if (recent.length >= this.config.requestsPerSecond) {
       const oldestRequest = recent[0];
       const waitTime = 1000 - (now - oldestRequest);
       if (waitTime > 0) {
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
       }
     }
 

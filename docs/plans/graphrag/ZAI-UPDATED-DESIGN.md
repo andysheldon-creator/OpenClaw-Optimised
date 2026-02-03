@@ -11,6 +11,7 @@
 ### 1.1 Pluggable Model Interface
 
 All model interactions MUST go through pluggable interfaces to enable:
+
 - Cloud vs local swapping (OpenAI ↔ Ollama)
 - Cost vs performance trade-offs
 - Model capability differences (structured output support)
@@ -55,7 +56,7 @@ export interface ModelConfig {
 }
 
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
   toolCalls?: ToolCall[];
   toolId?: string;
@@ -98,7 +99,7 @@ export interface LanguageModel {
     messages: ChatMessage[],
     schema: z.Schema<T>,
     examples?: T[],
-    options?: ModelConfig
+    options?: ModelConfig,
   ): Promise<StructuredOutput<T>>;
 
   /**
@@ -112,7 +113,7 @@ export interface LanguageModel {
   streamChat(
     messages: ChatMessage[],
     onChunk: (chunk: string) => void,
-    options?: ModelConfig
+    options?: ModelConfig,
   ): Promise<void>;
 }
 ```
@@ -123,7 +124,7 @@ export interface LanguageModel {
 // models/model-registry.ts
 export interface ModelProvider {
   name: string;
-  type: 'cloud' | 'local';
+  type: "cloud" | "local";
   createModel(config: ModelConfig): LanguageModel;
 }
 
@@ -146,26 +147,26 @@ export class ModelRegistry {
   static readonly MODELS = {
     // Cloud models
     openai: {
-      provider: 'openai',
+      provider: "openai",
       defaultConfig: {
-        model: 'gpt-4o',
-        baseURL: 'https://api.openai.com/v1',
+        model: "gpt-4o",
+        baseURL: "https://api.openai.com/v1",
       },
     },
     gemini: {
-      provider: 'gemini',
+      provider: "gemini",
       defaultConfig: {
-        model: 'gemini-2.0-flash-exp',
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        model: "gemini-2.0-flash-exp",
+        baseURL: "https://generativelanguage.googleapis.com/v1beta",
       },
     },
 
     // Local models
     ollama: {
-      provider: 'ollama',
+      provider: "ollama",
       defaultConfig: {
-        model: 'deepseek-r1:7b',
-        baseURL: 'http://localhost:11434/v1',
+        model: "deepseek-r1:7b",
+        baseURL: "http://localhost:11434/v1",
       },
     },
   };
@@ -176,18 +177,23 @@ export class ModelRegistry {
 
 ```typescript
 // models/providers/openai-provider.ts
-import OpenAI from 'openai';
-import type { LanguageModel, ModelConfig, ChatMessage, StructuredOutput } from '../model.interface.js';
+import OpenAI from "openai";
+import type {
+  LanguageModel,
+  ModelConfig,
+  ChatMessage,
+  StructuredOutput,
+} from "../model.interface.js";
 
 export class OpenAIModel implements LanguageModel {
-  readonly name = 'OpenAI';
+  readonly name = "OpenAI";
   readonly capabilities = {
     structuredOutput: true,
     maxInputTokens: 128000,
     maxOutputTokens: 4096,
     streaming: true,
-    costPerMillionInputTokens: 2.50,
-    costPerMillionOutputTokens: 10.00,
+    costPerMillionInputTokens: 2.5,
+    costPerMillionOutputTokens: 10.0,
   };
 
   private client: OpenAI;
@@ -201,33 +207,33 @@ export class OpenAIModel implements LanguageModel {
 
   async chat(messages: ChatMessage[]): Promise<string> {
     const response = await this.client.chat.completions.create({
-      model: this.config.model || 'gpt-4o',
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      model: this.config.model || "gpt-4o",
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
       temperature: this.config.temperature || 0,
     });
-    return response.choices[0].message.content || '';
+    return response.choices[0].message.content || "";
   }
 
   async structuredChat<T>(
     messages: ChatMessage[],
     schema: z.Schema<T>,
-    examples?: T[]
+    examples?: T[],
   ): Promise<StructuredOutput<T>> {
     // Attempt 1: Structured output
     try {
       const response = await this.client.chat.completions.create({
-        model: this.config.model || 'gpt-4o',
+        model: this.config.model || "gpt-4o",
         messages: this.buildMessagesWithSchema(messages, schema, examples),
         response_format: {
-          type: 'json_schema',
+          type: "json_schema",
           json_schema: {
-            name: 'extraction',
+            name: "extraction",
             schema: this.zodToJSONSchema(schema),
           },
         } as any, // OpenAI types
       });
 
-      const parsed = JSON.parse(response.choices[0].message.content || '{}');
+      const parsed = JSON.parse(response.choices[0].message.content || "{}");
       return {
         success: true,
         data: schema.parse(parsed),
@@ -243,47 +249,50 @@ export class OpenAIModel implements LanguageModel {
     const delimiterMessages = [
       ...messages,
       {
-        role: 'user' as const,
+        role: "user" as const,
         content: this.buildDelimiterPrompt(schema),
       },
     ];
 
-    return this.client.chat.completions.create({
-      model: this.config.model || 'gpt-4o-mini', // Use cheaper model for retry
-      messages: delimiterMessages,
-    }).then(response => {
-      const content = response.choices[0].message.content || '';
-      const parsed = this.parseDelimiterOutput(content, schema);
-      return {
-        success: true,
-        data: parsed,
-        fallbackUsed: true,
-      };
-    }).catch(error => {
-      return {
-        success: false,
-        error: error.message,
-      };
-    });
+    return this.client.chat.completions
+      .create({
+        model: this.config.model || "gpt-4o-mini", // Use cheaper model for retry
+        messages: delimiterMessages,
+      })
+      .then((response) => {
+        const content = response.choices[0].message.content || "";
+        const parsed = this.parseDelimiterOutput(content, schema);
+        return {
+          success: true,
+          data: parsed,
+          fallbackUsed: true,
+        };
+      })
+      .catch((error) => {
+        return {
+          success: false,
+          error: error.message,
+        };
+      });
   }
 
   async embed(text: string | string[]): Promise<number[][]> {
     const response = await this.client.embeddings.create({
-      model: 'text-embedding-3-small',
+      model: "text-embedding-3-small",
       input: text,
     });
-    return response.data.map(d => d.embedding);
+    return response.data.map((d) => d.embedding);
   }
 
   private buildMessagesWithSchema<T>(
     messages: ChatMessage[],
     schema: z.Schema<T>,
-    examples?: T[]
+    examples?: T[],
   ): ChatMessage[] {
     const schemaDef = this.zodToJSONSchema(schema);
     const examplesStr = examples
       ? `\n\nExamples of valid output:\n${JSON.stringify(examples[0], null, 2)}`
-      : '';
+      : "";
 
     return [
       ...messages.slice(0, -1),
@@ -323,11 +332,11 @@ Output format (one per line):
 
 ```typescript
 // models/providers/ollama-provider.ts
-import OpenAI from 'openai';
-import type { LanguageModel, ModelConfig } from '../model.interface.js';
+import OpenAI from "openai";
+import type { LanguageModel, ModelConfig } from "../model.interface.js";
 
 export class OllamaModel implements LanguageModel {
-  readonly name = 'Ollama';
+  readonly name = "Ollama";
   readonly capabilities = {
     structuredOutput: true, // Ollama supports OpenAI-compatible API
     maxInputTokens: 32000,
@@ -341,19 +350,19 @@ export class OllamaModel implements LanguageModel {
 
   constructor(private config: ModelConfig) {
     this.client = new OpenAI({
-      baseURL: config.baseURL || 'http://localhost:11434/v1',
-      apiKey: 'ollama', // Required by OpenAI client but not used by Ollama
+      baseURL: config.baseURL || "http://localhost:11434/v1",
+      apiKey: "ollama", // Required by OpenAI client but not used by Ollama
     });
   }
 
   // Same interface as OpenAI, but uses local models
   async chat(messages: ChatMessage[]): Promise<string> {
     const response = await this.client.chat.completions.create({
-      model: this.config.model || 'deepseek-r1:7b',
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      model: this.config.model || "deepseek-r1:7b",
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
       temperature: this.config.temperature || 0,
     });
-    return response.choices[0].message.content || '';
+    return response.choices[0].message.content || "";
   }
 
   async structuredChat<T>(messages: ChatMessage[], schema: z.Schema<T>, examples?: T[]) {
@@ -367,10 +376,10 @@ export class OllamaModel implements LanguageModel {
   async embed(text: string | string[]): Promise<number[][]> {
     // Use nomic-embed-text or similar local embedding model
     const response = await this.client.embeddings.create({
-      model: 'nomic-embed-text',
+      model: "nomic-embed-text",
       input: text,
     });
-    return response.data.map(d => d.embedding);
+    return response.data.map((d) => d.embedding);
   }
 }
 ```
@@ -383,21 +392,21 @@ export type ModelTypeConfig = {
   models?: {
     /** Default model for chat/extraction */
     chat?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
     };
 
     /** Model for embeddings (often local for throughput) */
     embeddings?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
     };
 
     /** Model for small/fast operations */
     fast?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
     };
@@ -406,6 +415,7 @@ export type ModelTypeConfig = {
 ```
 
 **Example Configuration:**
+
 ```yaml
 # config.yaml
 models:
@@ -435,19 +445,19 @@ models:
 export class HybridExtractor {
   constructor(
     private model: LanguageModel,
-    private fallbackModel?: LanguageModel  // Optional cheaper model for fallback
+    private fallbackModel?: LanguageModel, // Optional cheaper model for fallback
   ) {}
 
   async extractEntities(
     text: string,
     schema: z.Schema<EntityExtraction>,
-    examples?: EntityExtraction[]
+    examples?: EntityExtraction[],
   ): Promise<StructuredOutput<EntityExtraction>> {
     // Stage 1: Try structured output with primary model
     const result = await this.model.structuredChat(
-      [{ role: 'user', content: this.buildPrompt(text) }],
+      [{ role: "user", content: this.buildPrompt(text) }],
       schema,
-      examples
+      examples,
     );
 
     if (result.success) {
@@ -455,12 +465,12 @@ export class HybridExtractor {
     }
 
     // Stage 2: Delimiter fallback
-    this.logger.info('Structured output failed, using delimiter fallback');
+    this.logger.info("Structured output failed, using delimiter fallback");
 
     const fallbackModel = this.fallbackModel || this.model;
     return fallbackModel.structuredChat(
-      [{ role: 'user', content: this.buildDelimiterPrompt(text) }],
-      schema
+      [{ role: "user", content: this.buildDelimiterPrompt(text) }],
+      schema,
     );
   }
 
@@ -495,7 +505,7 @@ export class RetryExtractor {
   async extractWithRetry<T>(
     text: string,
     schema: z.Schema<T>,
-    maxAttempts: number = 3
+    maxAttempts: number = 3,
   ): Promise<StructuredOutput<T>> {
     let lastError: Error | null = null;
 
@@ -510,7 +520,7 @@ export class RetryExtractor {
           return result;
         }
 
-        lastError = new Error(result.error || 'Unknown error');
+        lastError = new Error(result.error || "Unknown error");
       } catch (error) {
         lastError = error as Error;
       }
@@ -523,7 +533,7 @@ export class RetryExtractor {
 
     return {
       success: false,
-      error: lastError?.message || 'Max retries exceeded',
+      error: lastError?.message || "Max retries exceeded",
     };
   }
 }
@@ -555,7 +565,7 @@ export type ExtractionOptions = {
   maxTokens?: number;
   temperature?: number;
   useCache?: boolean;
-  priority?: 'cost' | 'speed' | 'quality';
+  priority?: "cost" | "speed" | "quality";
 };
 ```
 
@@ -564,19 +574,17 @@ export type ExtractionOptions = {
 ```typescript
 // knowledge/strategies/cloud-quality-strategy.ts
 export class CloudQualityStrategy implements ExtractionStrategy {
-  readonly name = 'Cloud Quality';
-  readonly estimatedCostPer1KTokens = 0.002;  // $2/1M tokens
-  readonly estimatedLatency = 500;  // 500ms average
+  readonly name = "Cloud Quality";
+  readonly estimatedCostPer1KTokens = 0.002; // $2/1M tokens
+  readonly estimatedLatency = 500; // 500ms average
 
   constructor(private model: LanguageModel) {}
 
   async extract(text: string, options: ExtractionOptions): Promise<ExtractionResult> {
-    return this.model.structuredChat(
-      [{ role: 'user', content: text }],
-      ENTITY_SCHEMA,
-      EXAMPLES,
-      { model: 'gpt-4o', temperature: 0 }
-    );
+    return this.model.structuredChat([{ role: "user", content: text }], ENTITY_SCHEMA, EXAMPLES, {
+      model: "gpt-4o",
+      temperature: 0,
+    });
   }
 }
 ```
@@ -584,19 +592,17 @@ export class CloudQualityStrategy implements ExtractionStrategy {
 ```typescript
 // knowledge/strategies/local-speed-strategy.ts
 export class LocalSpeedStrategy implements ExtractionStrategy {
-  readonly name = 'Local Speed';
-  readonly estimatedCostPer1KTokens = 0;  // Free
-  readonly estimatedLatency = 200;  // 200ms on local machine
+  readonly name = "Local Speed";
+  readonly estimatedCostPer1KTokens = 0; // Free
+  readonly estimatedLatency = 200; // 200ms on local machine
 
   constructor(private model: LanguageModel) {}
 
   async extract(text: string, options: ExtractionOptions): Promise<ExtractionResult> {
-    return this.model.structuredChat(
-      [{ role: 'user', content: text }],
-      ENTITY_SCHEMA,
-      EXAMPLES,
-      { model: 'deepseek-r1:7b', temperature: 0 }
-    );
+    return this.model.structuredChat([{ role: "user", content: text }], ENTITY_SCHEMA, EXAMPLES, {
+      model: "deepseek-r1:7b",
+      temperature: 0,
+    });
   }
 }
 ```
@@ -604,20 +610,20 @@ export class LocalSpeedStrategy implements ExtractionStrategy {
 ```typescript
 // knowledge/strategies/hybrid-cost-optimized-strategy.ts
 export class HybridCostOptimizedStrategy implements ExtractionStrategy {
-  readonly name = 'Hybrid Cost Optimized';
-  readonly estimatedCostPer1KTokens = 0.0005;  // $0.50/1M tokens
+  readonly name = "Hybrid Cost Optimized";
+  readonly estimatedCostPer1KTokens = 0.0005; // $0.50/1M tokens
   readonly estimatedLatency = 350;
 
   constructor(
     private localModel: LanguageModel,
-    private cloudModel: LanguageModel
+    private cloudModel: LanguageModel,
   ) {}
 
   async extract(text: string, options: ExtractionOptions): Promise<ExtractionResult> {
     // Try local first (free, fast)
     const localResult = await this.localModel.structuredChat(
-      [{ role: 'user', content: text }],
-      ENTITY_SCHEMA
+      [{ role: "user", content: text }],
+      ENTITY_SCHEMA,
     );
 
     if (localResult.success) {
@@ -625,12 +631,12 @@ export class HybridCostOptimizedStrategy implements ExtractionStrategy {
     }
 
     // Fall back to cloud if local fails
-    this.logger.info('Local extraction failed, using cloud fallback');
+    this.logger.info("Local extraction failed, using cloud fallback");
     return this.cloudModel.structuredChat(
-      [{ role: 'user', content: text }],
+      [{ role: "user", content: text }],
       ENTITY_SCHEMA,
       EXAMPLES,
-      { model: 'gpt-4o-mini' }  // Cheaper cloud model
+      { model: "gpt-4o-mini" }, // Cheaper cloud model
     );
   }
 }
@@ -648,24 +654,30 @@ export class StrategySelector {
   }
 
   select(options: ExtractionOptions): ExtractionStrategy {
-    const { priority = 'quality' } = options;
+    const { priority = "quality" } = options;
 
     switch (priority) {
-      case 'cost':
-        return this.strategies.get('local-speed') ||
-               this.strategies.get('hybrid-cost') ||
-               this.strategies.get('cloud-quality')!;
+      case "cost":
+        return (
+          this.strategies.get("local-speed") ||
+          this.strategies.get("hybrid-cost") ||
+          this.strategies.get("cloud-quality")!
+        );
 
-      case 'speed':
-        return this.strategies.get('local-speed') ||
-               this.strategies.get('hybrid-cost') ||
-               this.strategies.get('cloud-quality')!;
+      case "speed":
+        return (
+          this.strategies.get("local-speed") ||
+          this.strategies.get("hybrid-cost") ||
+          this.strategies.get("cloud-quality")!
+        );
 
-      case 'quality':
+      case "quality":
       default:
-        return this.strategies.get('cloud-quality') ||
-               this.strategies.get('hybrid-cost') ||
-               this.strategies.get('local-speed')!;
+        return (
+          this.strategies.get("cloud-quality") ||
+          this.strategies.get("hybrid-cost") ||
+          this.strategies.get("local-speed")!
+        );
     }
   }
 }
@@ -712,6 +724,7 @@ export class StrategySelector {
 **React Flow Capabilities for Knowledge Graphs:**
 
 **Core Features:**
+
 - Force-directed layout algorithm (built-in)
 - Custom node components using React
 - Animated edges for relationships
@@ -719,6 +732,7 @@ export class StrategySelector {
 - Zoom, pan, and fit-to-view
 
 **Advanced Features:**
+
 - Background patterns for visual context
 - Mini-map for large graph navigation
 - Custom edge types with animations
@@ -726,6 +740,7 @@ export class StrategySelector {
 - Event handling (click, hover, drag)
 
 **Performance Characteristics:**
+
 - Handles up to ~500-1000 visible nodes smoothly
 - Rendering degrades gracefully with larger graphs
 - Performance scales with viewport size (nodes visible)
@@ -744,12 +759,14 @@ The existing Clawdbot UI uses Lit (web components). React Flow can be integrated
 **When to Reconsider:**
 
 **React Flow Remains Optimal For:**
+
 - Interactive graph exploration
 - Visual editing workflows
 - Knowledge graphs with <1000 visible entities
 - Force-directed layouts
 
 **Consider Alternative Frameworks If:**
+
 - Graph grows to >2000 visible nodes (AntV G6 for better performance)
 - Need 3D visualization capabilities (AntV G6)
 - Need advanced graph algorithms (centrality, community detection)
@@ -787,6 +804,7 @@ The existing Clawdbot UI uses Lit (web components). React Flow can be integrated
    - Active Discord community
 
 **When to Reconsider:**
+
 - Graph grows to >2000 visible nodes
 - Need 3D visualization
 - Need advanced graph algorithms (centrality, clustering)
@@ -895,7 +913,7 @@ export function EntityNode({ data }: NodeProps) {
 
 ```typescript
 // knowledge/viz/node-types.ts
-import { NodeTypes } from 'reactflow';
+import { NodeTypes } from "reactflow";
 
 const nodeTypes: NodeTypes = {
   custom: EntityNode,
@@ -969,21 +987,21 @@ export type ClawdbotConfig = {
   // Model configuration
   models?: {
     chat?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
       fallback?: {
-        provider: 'openai' | 'gemini' | 'ollama';
+        provider: "openai" | "gemini" | "ollama";
         model: string;
       };
     };
     embeddings?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
     };
     fast?: {
-      provider: 'openai' | 'gemini' | 'ollama';
+      provider: "openai" | "gemini" | "ollama";
       model: string;
       baseURL?: string;
     };
@@ -991,7 +1009,7 @@ export type ClawdbotConfig = {
 
   // Datastore configuration
   datastore?: {
-    type: 'sqlite' | 'postgresql';
+    type: "sqlite" | "postgresql";
     sqlite?: {
       path: string;
       wal?: boolean;
@@ -1011,8 +1029,8 @@ export type ClawdbotConfig = {
   knowledge?: {
     enabled: boolean;
     extraction?: {
-      strategy: 'cloud-quality' | 'local-speed' | 'hybrid-cost';
-      priority?: 'cost' | 'speed' | 'quality';
+      strategy: "cloud-quality" | "local-speed" | "hybrid-cost";
+      priority?: "cost" | "speed" | "quality";
       maxRetries?: number;
       delimiterFallback?: boolean;
     };
@@ -1031,8 +1049,8 @@ export type ClawdbotConfig = {
 
   // Visualization configuration
   visualization?: {
-    framework?: 'react-flow' | 'cytoscape' | 'g6';
-    layout?: 'force' | 'hierarchical' | 'circular';
+    framework?: "react-flow" | "cytoscape" | "g6";
+    layout?: "force" | "hierarchical" | "circular";
     maxNodes?: number;
   };
 };
@@ -1097,6 +1115,7 @@ visualization:
 **Decision:** All model access goes through `LanguageModel` interface
 
 **Benefits:**
+
 - Cloud ↔ Local swapping (OpenAI ↔ Ollama)
 - Cost vs performance optimization
 - Consistent API across providers
@@ -1107,11 +1126,13 @@ visualization:
 **Decision:** Schema-based structured output with delimiter fallback
 
 **Approach:**
+
 1. Try structured output first (most models support it)
 2. Fall back to delimiter parsing if structured output fails
 3. Use cheaper/faster model for fallback if available
 
 **Benefits:**
+
 - Best of both worlds
 - Reliable extraction
 - Token-efficient when needed
@@ -1122,11 +1143,13 @@ visualization:
 **Decision:** Strategy pattern for extraction operations
 
 **Implementation:**
+
 - `CloudQualityStrategy`: GPT-4o, high quality, higher cost
 - `LocalSpeedStrategy`: Ollama, free, fast
 - `HybridCostOptimizedStrategy`: Local first, cloud fallback
 
 **Benefits:**
+
 - Isolated cost/speed decisions
 - Easy to add new strategies
 - Runtime selection based on priority
@@ -1137,6 +1160,7 @@ visualization:
 **Decision:** React Flow for knowledge graph visualization
 
 **Rationale:**
+
 - Native React integration
 - Best-in-class interactive features
 - Great TypeScript support
@@ -1144,10 +1168,12 @@ visualization:
 - Optimized for our use case (<500 visible nodes)
 
 **Alternatives Considered:**
+
 - Cytoscape.js: Better for research, complex algorithms
 - G6: Better for large-scale graphs, 3D visualization
 
 **Re-evaluate if:**
+
 - Graph grows to >2000 visible nodes
 - Need 3D visualization
 - Need advanced graph algorithms
@@ -1157,6 +1183,7 @@ visualization:
 ## Part 8: Implementation Priority
 
 ### Phase 1: Model Abstraction (Week 1)
+
 1. Create `LanguageModel` interface
 2. Implement OpenAI provider
 3. Implement Ollama provider
@@ -1164,6 +1191,7 @@ visualization:
 5. Add configuration schema
 
 ### Phase 2: Hybrid Extraction (Week 2)
+
 1. Implement schema-based extraction
 2. Add delimiter fallback parser
 3. Implement retry logic
@@ -1171,6 +1199,7 @@ visualization:
 5. Write tests for both extraction modes
 
 ### Phase 3: Strategy Pattern (Week 2)
+
 1. Define strategy interfaces
 2. Implement cloud quality strategy
 3. Implement local speed strategy
@@ -1178,6 +1207,7 @@ visualization:
 5. Add strategy selector
 
 ### Phase 4: Visualization (Week 3)
+
 1. Install React Flow
 2. Create basic graph visualization
 3. Implement custom node components
@@ -1196,6 +1226,7 @@ This updated design incorporates:
 4. **React Flow visualization** - Best-in-class for our use case
 
 All decisions prioritize:
+
 - **Flexibility** - Easy to swap implementations
 - **Simplicity** - Minimal code changes to add options
 - **Performance** - Local models where appropriate
@@ -1208,10 +1239,12 @@ The architecture supports evolution from simple (SQLite, local models) to produc
 ## Sources
 
 ### Model Abstraction
+
 - [OpenAI API Documentation](https://platform.openai.com/docs)
 - [Ollama OpenAI Compatibility](https://ollama.com/blog/openai-compatibility)
 
 ### Visualization Frameworks
+
 - [React Flow](https://reactflow.dev/)
 - [Cytoscape.js](http://js.cytoscape.org/)
 - [AntV G6](https://g6.antv.vision/)

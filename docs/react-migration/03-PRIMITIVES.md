@@ -55,30 +55,30 @@ Every component uses the existing CSS custom properties (`--accent`, `--border`,
 
 ### Variants
 
-| Variant | CSS | Use Case |
-|---------|-----|----------|
-| `primary` | `background: var(--accent)`, dark text | Primary actions (Send, Save, Create) |
-| `secondary` | `border: 1px solid var(--border)`, transparent bg | Secondary actions (Cancel, Back) |
-| `ghost` | No border/bg, muted text | Tertiary actions, inline links |
-| `danger` | `background: var(--danger-muted)`, danger text | Destructive actions (Delete, Disconnect) |
-| `outline` | `border: 1px solid var(--border)`, transparent | Alternative secondary |
+| Variant     | CSS                                               | Use Case                                 |
+| ----------- | ------------------------------------------------- | ---------------------------------------- |
+| `primary`   | `background: var(--accent)`, dark text            | Primary actions (Send, Save, Create)     |
+| `secondary` | `border: 1px solid var(--border)`, transparent bg | Secondary actions (Cancel, Back)         |
+| `ghost`     | No border/bg, muted text                          | Tertiary actions, inline links           |
+| `danger`    | `background: var(--danger-muted)`, danger text    | Destructive actions (Delete, Disconnect) |
+| `outline`   | `border: 1px solid var(--border)`, transparent    | Alternative secondary                    |
 
 ### Sizes
 
-| Size | Padding | Font | Height |
-|------|---------|------|--------|
-| `sm` | `6px 12px` | `12px` | `32px` |
-| `md` (default) | `8px 16px` | `13px` | `36px` |
-| `lg` | `10px 20px` | `14px` | `40px` |
+| Size           | Padding     | Font   | Height |
+| -------------- | ----------- | ------ | ------ |
+| `sm`           | `6px 12px`  | `12px` | `32px` |
+| `md` (default) | `8px 16px`  | `13px` | `36px` |
+| `lg`           | `10px 20px` | `14px` | `40px` |
 
 ### Props
 
 ```tsx
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
-  size?: 'sm' | 'md' | 'lg';
-  loading?: boolean;        // Show spinner, disable interaction
-  icon?: React.ReactNode;   // Leading icon
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "outline";
+  size?: "sm" | "md" | "lg";
+  loading?: boolean; // Show spinner, disable interaction
+  icon?: React.ReactNode; // Leading icon
   iconRight?: React.ReactNode;
   fullWidth?: boolean;
 }
@@ -103,22 +103,22 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 ```tsx
 interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: React.ReactNode;
-  variant?: 'default' | 'send' | 'abort' | 'recording' | 'active';
-  size?: 'sm' | 'md' | 'lg';
-  badge?: number | string;  // Overlay badge (e.g., task count)
-  tooltip?: string;         // Wraps in <Tooltip> if provided
+  variant?: "default" | "send" | "abort" | "recording" | "active";
+  size?: "sm" | "md" | "lg";
+  badge?: number | string; // Overlay badge (e.g., task count)
+  tooltip?: string; // Wraps in <Tooltip> if provided
 }
 ```
 
 ### Variant Styles
 
-| Variant | Background | Color | Extra |
-|---------|-----------|-------|-------|
-| `default` | transparent | `var(--muted)` | — |
-| `send` | `linear-gradient(135deg, var(--accent), ...)` | `#000` | Box shadow glow |
-| `abort` | `rgba(255, 107, 107, 0.15)` | `var(--danger)` | — |
-| `recording` | `rgba(255, 107, 107, 0.12)` | `var(--danger)` | Pulse animation |
-| `active` | `rgba(245, 159, 74, 0.15)` | `var(--accent)` | — |
+| Variant     | Background                                    | Color           | Extra           |
+| ----------- | --------------------------------------------- | --------------- | --------------- |
+| `default`   | transparent                                   | `var(--muted)`  | —               |
+| `send`      | `linear-gradient(135deg, var(--accent), ...)` | `#000`          | Box shadow glow |
+| `abort`     | `rgba(255, 107, 107, 0.15)`                   | `var(--danger)` | —               |
+| `recording` | `rgba(255, 107, 107, 0.12)`                   | `var(--danger)` | Pulse animation |
+| `active`    | `rgba(245, 159, 74, 0.15)`                    | `var(--accent)` | —               |
 
 ### Badge
 
@@ -135,9 +135,9 @@ Positioned `absolute` top-right. Shows count or indicator.
 
 ```tsx
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'glass' | 'glass-strong' | 'flat';
-  padding?: 'none' | 'sm' | 'md' | 'lg';
-  hover?: boolean;          // Enable hover elevation
+  variant?: "default" | "glass" | "glass-strong" | "flat";
+  padding?: "none" | "sm" | "md" | "lg";
+  hover?: boolean; // Enable hover elevation
   header?: React.ReactNode; // Optional card header
   footer?: React.ReactNode; // Optional card footer
 }
@@ -166,15 +166,17 @@ Encapsulates the repeated glass morphism pattern:
 background: linear-gradient(135deg, rgba(var(--panel-rgb), 0.6), rgba(var(--panel-rgb), 0.4));
 backdrop-filter: blur(20px);
 border: 1px solid rgba(255, 255, 255, 0.08);
-box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+box-shadow:
+  0 8px 32px rgba(0, 0, 0, 0.3),
+  inset 0 1px 0 rgba(255, 255, 255, 0.05);
 ```
 
 ### Props
 
 ```tsx
 interface GlassPanelProps extends React.HTMLAttributes<HTMLDivElement> {
-  intensity?: 'subtle' | 'medium' | 'strong';  // blur + opacity
-  rounded?: 'sm' | 'md' | 'lg' | 'xl';
+  intensity?: "subtle" | "medium" | "strong"; // blur + opacity
+  rounded?: "sm" | "md" | "lg" | "xl";
 }
 ```
 
@@ -191,10 +193,10 @@ interface GlassPanelProps extends React.HTMLAttributes<HTMLDivElement> {
 interface PopoverProps {
   trigger: React.ReactNode;
   children: React.ReactNode;
-  side?: 'top' | 'bottom' | 'left' | 'right';
-  align?: 'start' | 'center' | 'end';
+  side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
   sideOffset?: number;
-  collisionPadding?: number;  // Viewport edge padding
+  collisionPadding?: number; // Viewport edge padding
   modal?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -228,31 +230,33 @@ interface DialogProps {
   title: string;
   description?: string;
   children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  size?: "sm" | "md" | "lg" | "xl" | "full";
   showClose?: boolean;
 }
 ```
 
 ### Sizes
 
-| Size | Width | Use Case |
-|------|-------|----------|
-| `sm` | `400px` | Simple confirms |
-| `md` | `560px` | Forms, single-step |
-| `lg` | `720px` | Multi-pane (channel wizard) |
-| `xl` | `900px` | Complex layouts |
-| `full` | `calc(100vw - 64px)` | Onboarding, simulator |
+| Size   | Width                | Use Case                    |
+| ------ | -------------------- | --------------------------- |
+| `sm`   | `400px`              | Simple confirms             |
+| `md`   | `560px`              | Forms, single-step          |
+| `lg`   | `720px`              | Multi-pane (channel wizard) |
+| `xl`   | `900px`              | Complex layouts             |
+| `full` | `calc(100vw - 64px)` | Onboarding, simulator       |
 
 ### Subcomponents
 
 ```tsx
 <Dialog open={open} onOpenChange={setOpen} title="Create Cron Job">
-  <Dialog.Body>
-    {/* Form content */}
-  </Dialog.Body>
+  <Dialog.Body>{/* Form content */}</Dialog.Body>
   <Dialog.Footer>
-    <Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
-    <Button variant="primary" onClick={handleSubmit}>Create</Button>
+    <Button variant="secondary" onClick={() => setOpen(false)}>
+      Cancel
+    </Button>
+    <Button variant="primary" onClick={handleSubmit}>
+      Create
+    </Button>
   </Dialog.Footer>
 </Dialog>
 ```
@@ -280,9 +284,9 @@ interface AlertDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
-  confirmLabel?: string;         // Default: "Confirm"
-  cancelLabel?: string;          // Default: "Cancel"
-  variant?: 'default' | 'danger';
+  confirmLabel?: string; // Default: "Confirm"
+  cancelLabel?: string; // Default: "Cancel"
+  variant?: "default" | "danger";
   onConfirm: () => void | Promise<void>;
   loading?: boolean;
 }
@@ -301,15 +305,15 @@ The `danger` variant styles the confirm button with `var(--danger)` and adds a w
 
 ```tsx
 // Singleton API (unchanged from current)
-toast('Message');
-toast.success('Saved successfully');
-toast.error('Failed to save');
-toast.warning('Rate limited');
-toast.info('New version available');
+toast("Message");
+toast.success("Saved successfully");
+toast.error("Failed to save");
+toast.warning("Rate limited");
+toast.info("New version available");
 toast.promise(asyncFn, {
-  loading: 'Saving...',
-  success: 'Saved!',
-  error: 'Failed to save',
+  loading: "Saving...",
+  success: "Saved!",
+  error: "Failed to save",
 });
 ```
 
@@ -345,8 +349,8 @@ Imperative calls go through a shared ref. Radix handles stacking, auto-dismiss, 
 interface TooltipProps {
   content: string;
   children: React.ReactElement;
-  side?: 'top' | 'bottom' | 'left' | 'right';
-  delayDuration?: number;  // Default: 300ms
+  side?: "top" | "bottom" | "left" | "right";
+  delayDuration?: number; // Default: 300ms
   disabled?: boolean;
 }
 ```
@@ -378,7 +382,7 @@ interface SelectProps {
   onValueChange: (value: string) => void;
   options: Array<{ value: string; label: string; disabled?: boolean }>;
   placeholder?: string;
-  size?: 'sm' | 'md';
+  size?: "sm" | "md";
   disabled?: boolean;
   triggerClassName?: string;
 }
@@ -409,19 +413,19 @@ interface TabsProps {
     badge?: string | number;
     disabled?: boolean;
   }>;
-  variant?: 'default' | 'pill' | 'underline';
-  size?: 'sm' | 'md';
-  orientation?: 'horizontal' | 'vertical';
+  variant?: "default" | "pill" | "underline";
+  size?: "sm" | "md";
+  orientation?: "horizontal" | "vertical";
 }
 ```
 
 ### Variants
 
-| Variant | Style | Use Case |
-|---------|-------|----------|
-| `default` | Bordered tabs with active accent | Navigation sidebar |
-| `pill` | Rounded pill with active fill | View mode switcher |
-| `underline` | Bottom border accent | Config form/raw tabs |
+| Variant     | Style                            | Use Case             |
+| ----------- | -------------------------------- | -------------------- |
+| `default`   | Bordered tabs with active accent | Navigation sidebar   |
+| `pill`      | Rounded pill with active fill    | View mode switcher   |
+| `underline` | Bottom border accent             | Config form/raw tabs |
 
 ---
 
@@ -439,7 +443,7 @@ interface CollapsibleProps {
   trigger: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
-  animated?: boolean;  // Smooth height transition
+  animated?: boolean; // Smooth height transition
 }
 ```
 
@@ -456,10 +460,10 @@ interface CollapsibleProps {
 interface ScrollAreaProps {
   children: React.ReactNode;
   className?: string;
-  orientation?: 'vertical' | 'horizontal' | 'both';
-  scrollbarSize?: number;  // Default: 8px
+  orientation?: "vertical" | "horizontal" | "both";
+  scrollbarSize?: number; // Default: 8px
   onScroll?: (e: React.UIEvent) => void;
-  ref?: React.RefObject<HTMLDivElement>;  // For scroll position control
+  ref?: React.RefObject<HTMLDivElement>; // For scroll position control
 }
 ```
 
@@ -481,18 +485,18 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
-  icon?: React.ReactNode;        // Leading icon
-  iconRight?: React.ReactNode;   // Trailing icon/action
-  variant?: 'default' | 'ghost'; // Ghost = no border until focus
-  size?: 'sm' | 'md';
+  icon?: React.ReactNode; // Leading icon
+  iconRight?: React.ReactNode; // Trailing icon/action
+  variant?: "default" | "ghost"; // Ghost = no border until focus
+  size?: "sm" | "md";
 }
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   hint?: string;
-  autoResize?: boolean;  // Grow with content
-  size?: 'sm' | 'md';
+  autoResize?: boolean; // Grow with content
+  size?: "sm" | "md";
 }
 ```
 
@@ -530,7 +534,7 @@ interface SwitchProps {
   label?: string;
   description?: string;
   disabled?: boolean;
-  size?: 'sm' | 'md';
+  size?: "sm" | "md";
 }
 ```
 
@@ -547,7 +551,7 @@ interface RadioGroupProps {
   value: string;
   onValueChange: (value: string) => void;
   options: Array<{ value: string; label: string; description?: string; disabled?: boolean }>;
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: "horizontal" | "vertical";
 }
 ```
 
@@ -583,13 +587,13 @@ interface SliderProps {
 
 ```tsx
 interface ProgressProps {
-  value: number;          // 0-100
-  max?: number;           // Default: 100
-  variant?: 'default' | 'accent' | 'success' | 'danger';
-  size?: 'sm' | 'md';
+  value: number; // 0-100
+  max?: number; // Default: 100
+  variant?: "default" | "accent" | "success" | "danger";
+  size?: "sm" | "md";
   label?: string;
   showValue?: boolean;
-  animated?: boolean;     // Pulse animation during active progress
+  animated?: boolean; // Pulse animation during active progress
 }
 ```
 
@@ -606,30 +610,30 @@ interface ProgressProps {
 interface AvatarProps {
   src?: string | null;
   alt?: string;
-  fallback: string;       // Text fallback (initials or emoji)
-  size?: 'xs' | 'sm' | 'md' | 'lg';
-  variant?: 'circle' | 'rounded';
-  role?: 'user' | 'assistant' | 'tool' | 'system'; // Color scheme
+  fallback: string; // Text fallback (initials or emoji)
+  size?: "xs" | "sm" | "md" | "lg";
+  variant?: "circle" | "rounded";
+  role?: "user" | "assistant" | "tool" | "system"; // Color scheme
 }
 ```
 
 ### Sizes
 
-| Size | Dimensions | Font |
-|------|-----------|------|
-| `xs` | `24px` | `10px` |
-| `sm` | `28px` | `12px` |
-| `md` | `32px` | `14px` |
-| `lg` | `40px` | `16px` |
+| Size | Dimensions | Font   |
+| ---- | ---------- | ------ |
+| `xs` | `24px`     | `10px` |
+| `sm` | `28px`     | `12px` |
+| `md` | `32px`     | `14px` |
+| `lg` | `40px`     | `16px` |
 
 ### Role Colors
 
-| Role | Gradient |
-|------|---------|
-| `user` | `var(--accent)` → warm orange |
-| `assistant` | `var(--accent-2)` → teal |
-| `tool` | `var(--info)` → blue |
-| `system` | `var(--muted)` → gray |
+| Role        | Gradient                      |
+| ----------- | ----------------------------- |
+| `user`      | `var(--accent)` → warm orange |
+| `assistant` | `var(--accent-2)` → teal      |
+| `tool`      | `var(--info)` → blue          |
+| `system`    | `var(--muted)` → gray         |
 
 ---
 
@@ -641,8 +645,8 @@ interface AvatarProps {
 
 ```tsx
 interface BadgeProps {
-  variant?: 'default' | 'accent' | 'success' | 'warning' | 'danger' | 'info' | 'muted';
-  size?: 'sm' | 'md';
+  variant?: "default" | "accent" | "success" | "warning" | "danger" | "info" | "muted";
+  size?: "sm" | "md";
   children: React.ReactNode;
 }
 ```
@@ -657,9 +661,9 @@ interface BadgeProps {
 
 ```tsx
 interface StatusDotProps {
-  status: 'active' | 'idle' | 'historical' | 'error' | 'connecting';
-  size?: 'sm' | 'md';
-  pulse?: boolean;  // Animated pulse for active
+  status: "active" | "idle" | "historical" | "error" | "connecting";
+  size?: "sm" | "md";
+  pulse?: boolean; // Animated pulse for active
 }
 ```
 
@@ -676,12 +680,12 @@ interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  onClear?: () => void;       // Clear button handler
-  onEscape?: () => void;      // Escape key handler
+  onClear?: () => void; // Clear button handler
+  onEscape?: () => void; // Escape key handler
   autoFocus?: boolean;
-  size?: 'sm' | 'md';
-  debounceMs?: number;        // Debounce onChange (default: 0)
-  icon?: React.ReactNode;     // Override search icon
+  size?: "sm" | "md";
+  debounceMs?: number; // Debounce onChange (default: 0)
+  icon?: React.ReactNode; // Override search icon
 }
 ```
 
@@ -696,12 +700,12 @@ interface SearchInputProps {
 ```tsx
 interface SplitPaneProps {
   children: [React.ReactNode, React.ReactNode]; // Exactly 2 children
-  ratio: number;                    // 0-1, default 0.5
+  ratio: number; // 0-1, default 0.5
   onRatioChange: (ratio: number) => void;
-  direction?: 'horizontal' | 'vertical';
-  minRatio?: number;                // Default: 0.2
-  maxRatio?: number;                // Default: 0.8
-  collapsible?: boolean;           // Allow collapsing secondary pane
+  direction?: "horizontal" | "vertical";
+  minRatio?: number; // Default: 0.2
+  maxRatio?: number; // Default: 0.8
+  collapsible?: boolean; // Allow collapsing secondary pane
 }
 ```
 
@@ -715,7 +719,7 @@ interface SplitPaneProps {
 
 ```tsx
 interface SeparatorProps {
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: "horizontal" | "vertical";
   className?: string;
 }
 ```
@@ -730,11 +734,11 @@ interface SeparatorProps {
 
 ```tsx
 interface SkeletonProps {
-  variant?: 'text' | 'circle' | 'rect';
+  variant?: "text" | "circle" | "rect";
   width?: string | number;
   height?: string | number;
-  lines?: number;         // For text variant: render N lines
-  animated?: boolean;     // Shimmer animation (default: true)
+  lines?: number; // For text variant: render N lines
+  animated?: boolean; // Shimmer animation (default: true)
 }
 ```
 
@@ -751,7 +755,7 @@ interface EmptyStateProps {
   icon?: React.ReactNode;
   title: string;
   description?: string;
-  action?: React.ReactNode;  // e.g., <Button>Create first item</Button>
+  action?: React.ReactNode; // e.g., <Button>Create first item</Button>
 }
 ```
 
@@ -767,9 +771,9 @@ interface EmptyStateProps {
 interface StatCardProps {
   label: string;
   value: string | number;
-  status?: 'ok' | 'warn' | 'danger' | 'neutral';
+  status?: "ok" | "warn" | "danger" | "neutral";
   icon?: React.ReactNode;
-  trend?: 'up' | 'down' | 'flat';
+  trend?: "up" | "down" | "flat";
   subtitle?: string;
 }
 ```
@@ -787,9 +791,9 @@ interface CodeBlockProps {
   code: string;
   language?: string;
   showLineNumbers?: boolean;
-  showCopyButton?: boolean;  // Default: true
+  showCopyButton?: boolean; // Default: true
   maxHeight?: string;
-  filename?: string;         // Display filename in header
+  filename?: string; // Display filename in header
   collapsible?: boolean;
   defaultCollapsed?: boolean;
 }
@@ -807,7 +811,7 @@ interface CodeBlockProps {
 interface MarkdownProps {
   content: string;
   className?: string;
-  components?: Record<string, React.ComponentType>;  // Override renderers
+  components?: Record<string, React.ComponentType>; // Override renderers
 }
 ```
 
@@ -826,13 +830,13 @@ Use `react-markdown` with `remark-gfm` (GitHub Flavored Markdown) and `rehype-hi
 ```tsx
 interface SaveButtonProps {
   onClick: () => void | Promise<void>;
-  dirty?: boolean;          // Show unsaved indicator
+  dirty?: boolean; // Show unsaved indicator
   loading?: boolean;
-  saved?: boolean;          // Briefly show check mark
-  error?: string | null;    // Show error state
-  label?: string;           // Default: "Save"
-  savingLabel?: string;     // Default: "Saving..."
-  savedLabel?: string;      // Default: "Saved"
+  saved?: boolean; // Briefly show check mark
+  error?: string | null; // Show error state
+  label?: string; // Default: "Save"
+  savingLabel?: string; // Default: "Saving..."
+  savedLabel?: string; // Default: "Saved"
   disabled?: boolean;
 }
 ```

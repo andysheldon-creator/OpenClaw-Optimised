@@ -4,16 +4,12 @@
 
 "use client";
 
-import { useState, FormEvent } from "react";
 import { Paperclip, Mic, CornerDownLeft } from "lucide-react";
+import { useState, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  ChatBubble,
-  ChatBubbleAvatar,
-  ChatBubbleMessage,
-} from "@/components/ui/chat-bubble";
-import { ChatMessageList } from "@/components/ui/chat-message-list";
+import { ChatBubble, ChatBubbleAvatar, ChatBubbleMessage } from "@/components/ui/chat-bubble";
 import { ChatInput } from "@/components/ui/chat-input";
+import { ChatMessageList } from "@/components/ui/chat-message-list";
 
 export function ChatMessageListDemo() {
   const [messages, setMessages] = useState([
@@ -39,7 +35,9 @@ export function ChatMessageListDemo() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) {return;}
+    if (!input.trim()) {
+      return;
+    }
 
     setMessages((prev) => [
       ...prev,
@@ -78,10 +76,7 @@ export function ChatMessageListDemo() {
       <div className="flex-1 overflow-hidden">
         <ChatMessageList>
           {messages.map((message) => (
-            <ChatBubble
-              key={message.id}
-              variant={message.sender === "user" ? "sent" : "received"}
-            >
+            <ChatBubble key={message.id} variant={message.sender === "user" ? "sent" : "received"}>
               <ChatBubbleAvatar
                 className="h-8 w-8 shrink-0"
                 src={
@@ -91,9 +86,7 @@ export function ChatMessageListDemo() {
                 }
                 fallback={message.sender === "user" ? "US" : "AI"}
               />
-              <ChatBubbleMessage
-                variant={message.sender === "user" ? "sent" : "received"}
-              >
+              <ChatBubbleMessage variant={message.sender === "user" ? "sent" : "received"}>
                 {message.content}
               </ChatBubbleMessage>
             </ChatBubble>
@@ -125,21 +118,11 @@ export function ChatMessageListDemo() {
           />
           <div className="flex items-center p-3 pt-0 justify-between">
             <div className="flex">
-              <Button
-                variant="ghost"
-                size="icon"
-                type="button"
-                onClick={handleAttachFile}
-              >
+              <Button variant="ghost" size="icon" type="button" onClick={handleAttachFile}>
                 <Paperclip className="size-4" />
               </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                type="button"
-                onClick={handleMicrophoneClick}
-              >
+              <Button variant="ghost" size="icon" type="button" onClick={handleMicrophoneClick}>
                 <Mic className="size-4" />
               </Button>
             </div>

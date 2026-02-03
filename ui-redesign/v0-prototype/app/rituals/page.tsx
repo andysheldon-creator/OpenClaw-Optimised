@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { AppShell } from "@/components/navigation/app-shell"
-import { PageHeader } from "@/components/dashboard/page-header"
-import { SectionHeader } from "@/components/dashboard/section-header"
-import { RitualCard } from "@/components/rituals/ritual-card"
-import { CreateRitualDialog } from "@/components/rituals/create-ritual-dialog"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus } from "lucide-react";
+import { useState } from "react";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import { AppShell } from "@/components/navigation/app-shell";
+import { CreateRitualDialog } from "@/components/rituals/create-ritual-dialog";
+import { RitualCard } from "@/components/rituals/ritual-card";
+import { Button } from "@/components/ui/button";
 
 // Mock data
 const todayRituals = [
@@ -29,7 +29,7 @@ const todayRituals = [
     time: "at 6:00 PM",
     status: "upcoming" as const,
   },
-]
+];
 
 const upcomingRituals = [
   {
@@ -50,7 +50,7 @@ const upcomingRituals = [
     time: "Friday 2:00 PM",
     status: "upcoming" as const,
   },
-]
+];
 
 const pausedRituals = [
   {
@@ -62,10 +62,10 @@ const pausedRituals = [
     time: "Last of month",
     status: "paused" as const,
   },
-]
+];
 
 export default function RitualsPage() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   return (
     <AppShell>
@@ -77,9 +77,7 @@ export default function RitualsPage() {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-foreground">Rituals</h1>
-              <p className="mt-1 text-muted-foreground">
-                Scheduled check-ins with your agents
-              </p>
+              <p className="mt-1 text-muted-foreground">Scheduled check-ins with your agents</p>
             </div>
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 size-4" />
@@ -108,12 +106,7 @@ export default function RitualsPage() {
             <SectionHeader title="Upcoming" />
             <div className="space-y-3">
               {upcomingRituals.map((ritual) => (
-                <RitualCard
-                  key={ritual.id}
-                  {...ritual}
-                  onEdit={() => {}}
-                  onPause={() => {}}
-                />
+                <RitualCard key={ritual.id} {...ritual} onEdit={() => {}} onPause={() => {}} />
               ))}
             </div>
           </section>
@@ -124,12 +117,7 @@ export default function RitualsPage() {
               <SectionHeader title="Paused" />
               <div className="space-y-3">
                 {pausedRituals.map((ritual) => (
-                  <RitualCard
-                    key={ritual.id}
-                    {...ritual}
-                    onResume={() => {}}
-                    onEdit={() => {}}
-                  />
+                  <RitualCard key={ritual.id} {...ritual} onResume={() => {}} onEdit={() => {}} />
                 ))}
               </div>
             </section>
@@ -141,10 +129,10 @@ export default function RitualsPage() {
           open={isCreateOpen}
           onOpenChange={setIsCreateOpen}
           onSubmit={(data) => {
-            console.log("New ritual:", data)
+            console.log("New ritual:", data);
           }}
         />
       </div>
     </AppShell>
-  )
+  );
 }

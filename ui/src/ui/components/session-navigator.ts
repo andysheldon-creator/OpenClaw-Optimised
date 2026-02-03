@@ -13,7 +13,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { ref } from "lit/directives/ref.js";
 import { repeat } from "lit/directives/repeat.js";
-
+import type { GatewaySessionRow, AgentsListResult, SessionsListResult } from "../types";
 import { formatAgo, clampText } from "../format";
 import { icon } from "../icons";
 import {
@@ -24,7 +24,6 @@ import {
   type ChannelSection,
   type SessionGroup,
 } from "../session-grouping";
-import type { GatewaySessionRow, AgentsListResult, SessionsListResult } from "../types";
 
 // ---------------------------------------------------------------------------
 // State (managed externally via AppViewState)
@@ -142,9 +141,11 @@ export function renderSessionNavigatorTrigger(props: SessionNavigatorProps): Tem
       title=${`${agentName} - ${label}`}
     >
       <span class="${statusDotClass(status)}" aria-hidden="true"></span>
-      ${agentEmoji
-        ? html`<span class="sn-trigger__emoji" aria-hidden="true">${agentEmoji}</span>`
-        : html`<span class="sn-trigger__agent-badge" aria-hidden="true">${agentName.slice(0, 1).toUpperCase()}</span>`}
+      ${
+        agentEmoji
+          ? html`<span class="sn-trigger__emoji" aria-hidden="true">${agentEmoji}</span>`
+          : html`<span class="sn-trigger__agent-badge" aria-hidden="true">${agentName.slice(0, 1).toUpperCase()}</span>`
+      }
       <span class="sn-trigger__text">
         <span class="sn-trigger__agent">${agentName}</span>
         <span class="sn-trigger__sep" aria-hidden="true">/</span>
@@ -197,7 +198,10 @@ function positionPanel(el: Element | undefined): void {
 // ---------------------------------------------------------------------------
 
 export function renderSessionNavigatorPanel(props: SessionNavigatorProps): TemplateResult {
-  if (!props.navigatorState.open) return html``;
+  if (!props.navigatorState.open)
+    return html`
+      
+    `;
 
   const sessions = props.sessionsResult?.sessions ?? [];
   const agentNodes = groupSessionsByAgent(sessions, props.agentsList);
@@ -210,7 +214,8 @@ export function renderSessionNavigatorPanel(props: SessionNavigatorProps): Templ
   const info = resolveCurrentSessionInfo(props.sessionKey, sessions);
   const activeAgentId =
     props.navigatorState.selectedAgentId ?? info.agentId ?? agentsWithSessions[0]?.agentId ?? null;
-  const activeAgent = agentsWithSessions.find((n) => n.agentId === activeAgentId) ?? agentsWithSessions[0] ?? null;
+  const activeAgent =
+    agentsWithSessions.find((n) => n.agentId === activeAgentId) ?? agentsWithSessions[0] ?? null;
 
   return html`
     <div class="sn-backdrop" @click=${() => props.onClose()}></div>
@@ -228,33 +233,43 @@ export function renderSessionNavigatorPanel(props: SessionNavigatorProps): Templ
             if (e.key === "Escape") props.onClose();
           }}
         />
-        ${props.navigatorState.search
-          ? html`<button
+        ${
+          props.navigatorState.search
+            ? html`<button
               class="sn-panel__search-clear"
               type="button"
               @click=${() => props.onSearchChange("")}
               aria-label="Clear search"
             >${icon("x", { size: 12 })}</button>`
-          : nothing}
+            : nothing
+        }
       </div>
 
       <div class="sn-panel__body">
         <!-- Agent sidebar -->
         <div class="sn-agents">
-          ${agentsWithSessions.length === 0
-            ? html`<div class="sn-empty">No agents match.</div>`
-            : repeat(
-                agentsWithSessions,
-                (n) => n.agentId,
-                (node) => renderAgentPill(node, activeAgentId, props),
-              )}
+          ${
+            agentsWithSessions.length === 0
+              ? html`
+                  <div class="sn-empty">No agents match.</div>
+                `
+              : repeat(
+                  agentsWithSessions,
+                  (n) => n.agentId,
+                  (node) => renderAgentPill(node, activeAgentId, props),
+                )
+          }
         </div>
 
         <!-- Session list for selected agent -->
         <div class="sn-sessions">
-          ${activeAgent
-            ? renderAgentSessions(activeAgent, props)
-            : html`<div class="sn-empty">Select an agent to view sessions.</div>`}
+          ${
+            activeAgent
+              ? renderAgentSessions(activeAgent, props)
+              : html`
+                  <div class="sn-empty">Select an agent to view sessions.</div>
+                `
+          }
         </div>
       </div>
     </div>
@@ -281,13 +296,21 @@ function renderAgentPill(
       title=${`${node.displayName} (${node.totalSessions} sessions)`}
     >
       <span class="sn-agent__avatar" aria-hidden="true">
-        ${node.emoji
-          ? html`<span class="sn-agent__emoji">${node.emoji}</span>`
-          : html`<span class="sn-agent__letter">${node.displayName.slice(0, 1).toUpperCase()}</span>`}
+        ${
+          node.emoji
+            ? html`<span class="sn-agent__emoji">${node.emoji}</span>`
+            : html`<span class="sn-agent__letter">${node.displayName.slice(0, 1).toUpperCase()}</span>`
+        }
       </span>
       <span class="sn-agent__meta">
         <span class="sn-agent__name">${node.displayName}</span>
-        ${node.isDefault ? html`<span class="sn-badge sn-badge--default">Default</span>` : nothing}
+        ${
+          node.isDefault
+            ? html`
+                <span class="sn-badge sn-badge--default">Default</span>
+              `
+            : nothing
+        }
         <span class="sn-agent__stats">
           ${node.totalSessions} session${node.totalSessions !== 1 ? "s" : ""}${when ? ` · ${when}` : ""}
         </span>
@@ -302,18 +325,28 @@ function renderAgentPill(
 
 function renderAgentSessions(node: AgentNode, props: SessionNavigatorProps): TemplateResult {
   if (node.channels.length === 0) {
-    return html`<div class="sn-empty">No sessions for this agent.</div>`;
+    return html`
+      <div class="sn-empty">No sessions for this agent.</div>
+    `;
   }
 
   return html`
     <div class="sn-sessions-wrapper">
       <div class="sn-sessions__header">
         <div class="sn-sessions__agent-info">
-          ${node.emoji
-            ? html`<span class="sn-sessions__agent-icon">${node.emoji}</span>`
-            : html`<span class="sn-sessions__agent-icon">${icon("user", { size: 16 })}</span>`}
+          ${
+            node.emoji
+              ? html`<span class="sn-sessions__agent-icon">${node.emoji}</span>`
+              : html`<span class="sn-sessions__agent-icon">${icon("user", { size: 16 })}</span>`
+          }
           <span class="sn-sessions__agent-name">${node.displayName}</span>
-          ${node.isDefault ? html`<span class="sn-badge sn-badge--default sn-badge--small">Default</span>` : nothing}
+          ${
+            node.isDefault
+              ? html`
+                  <span class="sn-badge sn-badge--default sn-badge--small">Default</span>
+                `
+              : nothing
+          }
         </div>
       </div>
       <div class="sn-channel-list">
@@ -323,10 +356,16 @@ function renderAgentSessions(node: AgentNode, props: SessionNavigatorProps): Tem
   `;
 }
 
-function renderChannelSection(section: ChannelSection, props: SessionNavigatorProps): TemplateResult {
+function renderChannelSection(
+  section: ChannelSection,
+  props: SessionNavigatorProps,
+): TemplateResult {
   const hasGroups = section.groups.length > 0;
   const hasThreads = section.threads.length > 0;
-  if (!hasGroups && !hasThreads) return html``;
+  if (!hasGroups && !hasThreads)
+    return html`
+      
+    `;
 
   return html`
     <div class="sn-channel">
@@ -336,14 +375,17 @@ function renderChannelSection(section: ChannelSection, props: SessionNavigatorPr
         <span class="sn-channel__count">${section.groups.length + section.threads.length}</span>
       </div>
 
-      ${hasGroups
-        ? html`<div class="sn-group-list">
+      ${
+        hasGroups
+          ? html`<div class="sn-group-list">
             ${section.groups.map((g) => renderSessionGroup(g, props))}
           </div>`
-        : nothing}
+          : nothing
+      }
 
-      ${hasThreads
-        ? html`
+      ${
+        hasThreads
+          ? html`
             <div class="sn-threads-section">
               <div class="sn-threads-label">Threads</div>
               <div class="sn-group-list">
@@ -351,7 +393,8 @@ function renderChannelSection(section: ChannelSection, props: SessionNavigatorPr
               </div>
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -388,15 +431,22 @@ function renderSessionGroup(group: SessionGroup, props: SessionNavigatorProps): 
           ${preview ? html`<span class="sn-session__preview">${clampText(preview, 60)}</span>` : nothing}
         </span>
         <span class="sn-session__meta">
-          ${isCurrentSession ? html`<span class="sn-badge sn-badge--current">Current</span>` : nothing}
+          ${
+            isCurrentSession
+              ? html`
+                  <span class="sn-badge sn-badge--current">Current</span>
+                `
+              : nothing
+          }
           ${turns != null && turns > 0 ? html`<span class="sn-session__turns">${turns}t</span>` : nothing}
           ${when ? html`<span class="sn-session__when">${when}</span>` : nothing}
         </span>
       </button>
 
       <!-- Older sessions expander -->
-      ${hasOlder
-        ? html`
+      ${
+        hasOlder
+          ? html`
             <button
               class="sn-expand ${isExpanded ? "sn-expand--open" : ""}"
               type="button"
@@ -406,15 +456,18 @@ function renderSessionGroup(group: SessionGroup, props: SessionNavigatorProps): 
               <span class="sn-expand__icon">${icon(isExpanded ? "chevron-up" : "chevron-down", { size: 12 })}</span>
               <span class="sn-expand__text">+${group.older.length} older</span>
             </button>
-            ${isExpanded
-              ? html`
+            ${
+              isExpanded
+                ? html`
                   <div class="sn-older-list">
                     ${group.older.map((row) => renderOlderSession(row, props))}
                   </div>
                 `
-              : nothing}
+                : nothing
+            }
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -438,12 +491,20 @@ function renderOlderSession(row: GatewaySessionRow, props: SessionNavigatorProps
       <span class="sn-status-dot sn-status-dot--historical" aria-hidden="true"></span>
       <span class="sn-session__content">
         <span class="sn-session__label">${dateStr || when}</span>
-        ${row.lastMessagePreview?.trim()
-          ? html`<span class="sn-session__preview">${clampText(row.lastMessagePreview.trim(), 50)}</span>`
-          : nothing}
+        ${
+          row.lastMessagePreview?.trim()
+            ? html`<span class="sn-session__preview">${clampText(row.lastMessagePreview.trim(), 50)}</span>`
+            : nothing
+        }
       </span>
       <span class="sn-session__meta">
-        ${isCurrentSession ? html`<span class="sn-badge sn-badge--current">Current</span>` : nothing}
+        ${
+          isCurrentSession
+            ? html`
+                <span class="sn-badge sn-badge--current">Current</span>
+              `
+            : nothing
+        }
         ${turns != null && turns > 0 ? html`<span class="sn-session__turns">${turns}t</span>` : nothing}
         ${when ? html`<span class="sn-session__when">${when}</span>` : nothing}
       </span>

@@ -14,6 +14,7 @@
 This document has been translated from React patterns to Lit Web Components following Clawdbrain's conventions.
 
 ### Translation Applied:
+
 - React `useState` → Controller state objects (e.g., `AutomationsState`)
 - React `useMemo` → Computed functions or memoized controller methods
 - React components → Lit render functions (e.g., `renderAutomationCard(props)`)
@@ -37,7 +38,6 @@ npm install framer-motion lucide-react clsx tailwind-merge @radix-ui/react-slot 
 ```
 
 ---
-
 
 ## Main List View Component (Lit Web Components)
 
@@ -75,7 +75,10 @@ export type AutomationsState = {
 };
 
 // Status configuration for rendering
-export const statusConfig: Record<AutomationStatus, { icon: string; class: string; label: string }> = {
+export const statusConfig: Record<
+  AutomationStatus,
+  { icon: string; class: string; label: string }
+> = {
   active: { icon: "check-circle", class: "status-active", label: "Active" },
   suspended: { icon: "pause", class: "status-suspended", label: "Suspended" },
   error: { icon: "alert-circle", class: "status-error", label: "Error" },
@@ -156,7 +159,13 @@ export function setStatusFilter(state: AutomationsState, filter: AutomationsStat
 // ui/src/ui/views/automations.ts
 import { html, nothing } from "lit";
 import { icon } from "../icons";
-import type { Automation, AutomationStatus, LastRunStatus, statusConfig, lastRunStatusConfig } from "../controllers/automations";
+import type {
+  Automation,
+  AutomationStatus,
+  LastRunStatus,
+  statusConfig,
+  lastRunStatusConfig,
+} from "../controllers/automations";
 
 export interface AutomationCardProps {
   automation: Automation;
@@ -173,24 +182,29 @@ export function renderAutomationCard(props: AutomationCardProps) {
   const lastRunInfo = lastRunStatusConfig[automation.lastRun.status];
 
   return html`
-    <div class="automation-card overflow-hidden border border-border bg-card hover:shadow-lg transition-shadow" data-id="${automation.id}">
+    <div
+      class="automation-card overflow-hidden border border-border bg-card hover:shadow-lg transition-shadow"
+      data-id="${automation.id}"
+    >
       <div class="p-6">
         <!-- Header with title, status badge, and kebab menu -->
         <div class="flex items-start justify-between mb-4">
           <div class="flex-1 min-w-0">
-            <h3 class="text-lg font-semibold text-foreground mb-2 truncate">
-              ${automation.name}
-            </h3>
+            <h3 class="text-lg font-semibold text-foreground mb-2 truncate">${automation.name}</h3>
             <div class="flex items-center gap-2 mb-3">
               <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full ${statusInfo.class}">
                 ${icon(statusInfo.icon, { size: 14, class: statusInfo.class })}
                 <span class="text-xs font-medium">${statusInfo.label}</span>
               </div>
-              ${automation.tags.map((tag) => html`
-                <span class="inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium bg-secondary text-secondary-foreground">
-                  ${tag}
-                </span>
-              `)}
+              ${automation.tags.map(
+                (tag) => html`
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium bg-secondary text-secondary-foreground"
+                  >
+                    ${tag}
+                  </span>
+                `,
+              )}
             </div>
           </div>
 
@@ -199,21 +213,24 @@ export function renderAutomationCard(props: AutomationCardProps) {
             <button
               class="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent"
               @click=${(e: Event) => {
-                const menu = (e.target as HTMLElement).closest(".automation-card")?.querySelector(".dropdown-menu") as HTMLElement;
+                const menu = (e.target as HTMLElement)
+                  .closest(".automation-card")
+                  ?.querySelector(".dropdown-menu") as HTMLElement;
                 menu?.classList.toggle("hidden");
               }}
             >
               ${icon("more-vertical", { size: 16 })}
             </button>
-            <div class="dropdown-menu hidden absolute right-0 mt-1 w-48 rounded-md border bg-popover shadow-md z-50">
+            <div
+              class="dropdown-menu hidden absolute right-0 mt-1 w-48 rounded-md border bg-popover shadow-md z-50"
+            >
               <div class="py-1">
                 <button
                   class="block w-full text-left px-4 py-2 text-sm hover:bg-accent"
                   @click=${() => onRun(automation.id)}
                 >
                   <span class="flex items-center gap-2">
-                    ${icon("play", { size: 14 })}
-                    Run Now
+                    ${icon("play", { size: 14 })} Run Now
                   </span>
                 </button>
                 <button
@@ -230,18 +247,14 @@ export function renderAutomationCard(props: AutomationCardProps) {
                   @click=${() => onHistory(automation.id)}
                 >
                   <span class="flex items-center gap-2">
-                    ${icon("history", { size: 14 })}
-                    View History
+                    ${icon("history", { size: 14 })} View History
                   </span>
                 </button>
                 <button
                   class="block w-full text-left px-4 py-2 text-sm hover:bg-accent"
                   @click=${() => onEdit(automation.id)}
                 >
-                  <span class="flex items-center gap-2">
-                    ${icon("edit", { size: 14 })}
-                    Edit
-                  </span>
+                  <span class="flex items-center gap-2"> ${icon("edit", { size: 14 })} Edit </span>
                 </button>
                 <div class="border-t border-border my-1"></div>
                 <button
@@ -249,8 +262,7 @@ export function renderAutomationCard(props: AutomationCardProps) {
                   @click=${() => onDelete(automation.id)}
                 >
                   <span class="flex items-center gap-2">
-                    ${icon("trash", { size: 14 })}
-                    Delete
+                    ${icon("trash", { size: 14 })} Delete
                   </span>
                 </button>
               </div>
@@ -259,9 +271,7 @@ export function renderAutomationCard(props: AutomationCardProps) {
         </div>
 
         <!-- Description -->
-        <p class="text-sm text-muted-foreground mb-4 line-clamp-2">
-          ${automation.description}
-        </p>
+        <p class="text-sm text-muted-foreground mb-4 line-clamp-2">${automation.description}</p>
 
         <!-- Info section -->
         <div class="space-y-3">
@@ -285,7 +295,9 @@ export function renderAutomationCard(props: AutomationCardProps) {
                 <span class="font-medium text-foreground">${automation.lastRun.time}</span>
               </div>
               ${automation.lastRun.duration
-                ? html`<span class="text-xs text-muted-foreground">${automation.lastRun.duration}</span>`
+                ? html`<span class="text-xs text-muted-foreground"
+                    >${automation.lastRun.duration}</span
+                  >`
                 : nothing}
             </div>
           </div>
@@ -297,8 +309,7 @@ export function renderAutomationCard(props: AutomationCardProps) {
             class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
             @click=${() => onRun(automation.id)}
           >
-            ${icon("play", { size: 14 })}
-            Run
+            ${icon("play", { size: 14 })} Run
           </button>
           <button
             class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md border bg-background hover:bg-accent"
@@ -335,7 +346,17 @@ export interface AutomationsListViewProps {
 }
 
 export function renderAutomationsListView(props: AutomationsListViewProps) {
-  const { state, onRun, onSuspend, onHistory, onEdit, onDelete, onSearchChange, onFilterChange, onCreate } = props;
+  const {
+    state,
+    onRun,
+    onSuspend,
+    onHistory,
+    onEdit,
+    onDelete,
+    onSearchChange,
+    onFilterChange,
+    onCreate,
+  } = props;
 
   // Filter automations
   const filteredAutomations = state.automations.filter((automation) => {
@@ -354,23 +375,23 @@ export function renderAutomationsListView(props: AutomationsListViewProps) {
           <div class="flex items-center justify-between mb-6">
             <div>
               <h1 class="text-3xl font-bold text-foreground mb-2">Automations</h1>
-              <p class="text-muted-foreground">
-                Manage and monitor your automated workflows
-              </p>
+              <p class="text-muted-foreground">Manage and monitor your automated workflows</p>
             </div>
             <button
               class="inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
               @click=${onCreate}
             >
-              ${icon("plus", { size: 16 })}
-              Create Automation
+              ${icon("plus", { size: 16 })} Create Automation
             </button>
           </div>
 
           <!-- Search and Filter -->
           <div class="flex flex-col sm:flex-row gap-4">
             <div class="relative flex-1">
-              ${icon("search", { size: 16, class: "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" })}
+              ${icon("search", {
+                size: 16,
+                class: "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground",
+              })}
               <input
                 type="text"
                 placeholder="Search automations..."
@@ -381,7 +402,11 @@ export function renderAutomationsListView(props: AutomationsListViewProps) {
             </div>
             <select
               .value=${state.statusFilter}
-              @change=${(e: Event) => onFilterChange((e.target as HTMLSelectElement).value as AutomationsListViewProps["state"]["statusFilter"])}
+              @change=${(e: Event) =>
+                onFilterChange(
+                  (e.target as HTMLSelectElement)
+                    .value as AutomationsListViewProps["state"]["statusFilter"],
+                )}
               class="flex h-9 w-full sm:w-[180px] items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs"
             >
               <option value="all">All Status</option>
@@ -396,7 +421,7 @@ export function renderAutomationsListView(props: AutomationsListViewProps) {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           ${filteredAutomations.length > 0
             ? filteredAutomations.map((automation) =>
-                renderAutomationCard({ automation, onRun, onSuspend, onHistory, onEdit, onDelete })
+                renderAutomationCard({ automation, onRun, onSuspend, onHistory, onEdit, onDelete }),
               )
             : html`
                 <div class="col-span-full text-center py-12">
@@ -412,6 +437,7 @@ export function renderAutomationsListView(props: AutomationsListViewProps) {
   `;
 }
 ```
+
 ---
 
 ## Styles (index.css)
@@ -588,17 +614,17 @@ export async function loadAutomations(state: AutomationsState) {
 ```typescript
 // Smart-Sync Fork specific automation data structure:
 interface SmartSyncForkAutomationData extends AutomationData {
-  type: "smart-sync-fork"
+  type: "smart-sync-fork";
   config: {
-    forkRepoUrl: string
-    upstreamRepoUrl: string
-    forkBranch: string
-    upstreamBranch: string
-    aiModel: string
-    confidenceThreshold: number
-    uncertaintyAction: "report-at-end" | "pause-and-ask" | "skip-file"
-    autoMerge: boolean
-  }
+    forkRepoUrl: string;
+    upstreamRepoUrl: string;
+    forkBranch: string;
+    upstreamBranch: string;
+    aiModel: string;
+    confidenceThreshold: number;
+    uncertaintyAction: "report-at-end" | "pause-and-ask" | "skip-file";
+    autoMerge: boolean;
+  };
 }
 ```
 

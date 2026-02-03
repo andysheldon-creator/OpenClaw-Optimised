@@ -1,5 +1,4 @@
 import { html, nothing } from "lit";
-import { icon } from "../icons";
 import type {
   Automation,
   AutomationSchedule,
@@ -7,6 +6,7 @@ import type {
   AutomationsState,
 } from "../controllers/automations";
 import { statusConfig } from "../controllers/automations";
+import { icon } from "../icons";
 
 // Re-export automation-related view components
 export { renderAutomationForm } from "./automation-form";
@@ -57,28 +57,51 @@ function formatTimestamp(ms: number): string {
 
 function renderLastRun(automation: Automation) {
   if (!automation.lastRun) {
-    return html`<span class="text-muted-foreground text-sm">Never run</span>`;
+    return html`
+      <span class="text-muted-foreground text-sm">Never run</span>
+    `;
   }
 
   const lastRun = automation.lastRun;
-  const statusClass = lastRun.status === "success" ? "text-ok" : lastRun.status === "failed" ? "text-danger" : "text-accent";
+  const statusClass =
+    lastRun.status === "success"
+      ? "text-ok"
+      : lastRun.status === "failed"
+        ? "text-danger"
+        : "text-accent";
 
   return html`
     <div class="flex items-center gap-2 text-sm">
       ${icon(
-        lastRun.status === "success" ? "check-circle" : lastRun.status === "failed" ? "x-circle" : "loader",
-        { size: 14, class: statusClass }
+        lastRun.status === "success"
+          ? "check-circle"
+          : lastRun.status === "failed"
+            ? "x-circle"
+            : "loader",
+        { size: 14, class: statusClass },
       )}
       <span class="text-foreground">${formatTimestamp(lastRun.at)}</span>
-      ${lastRun.durationMs
-        ? html`<span class="text-muted-foreground">(${lastRun.durationMs}ms)</span>`
-        : nothing}
+      ${
+        lastRun.durationMs
+          ? html`<span class="text-muted-foreground">(${lastRun.durationMs}ms)</span>`
+          : nothing
+      }
     </div>
   `;
 }
 
 export function renderAutomationCard(props: AutomationCardProps) {
-  const { automation, isExpanded, isRunning, onToggleExpand, onRun, onSuspend, onHistory, onEdit, onDelete } = props;
+  const {
+    automation,
+    isExpanded,
+    isRunning,
+    onToggleExpand,
+    onRun,
+    onSuspend,
+    onHistory,
+    onEdit,
+    onDelete,
+  } = props;
   const statusInfo = statusConfig[automation.status];
 
   return html`
@@ -92,9 +115,11 @@ export function renderAutomationCard(props: AutomationCardProps) {
               ${statusInfo.label}
             </span>
           </div>
-          ${automation.description
-            ? html`<p class="automation-card__description">${automation.description}</p>`
-            : nothing}
+          ${
+            automation.description
+              ? html`<p class="automation-card__description">${automation.description}</p>`
+              : nothing
+          }
           <div class="automation-card__meta">
             <span class="text-xs text-muted-foreground">${automation.type}</span>
             <span class="text-xs text-muted-foreground">•</span>
@@ -109,26 +134,30 @@ export function renderAutomationCard(props: AutomationCardProps) {
         >
           ${icon("chevron-down", {
             size: 18,
-            class: isExpanded ? "rotate-180" : ""
+            class: isExpanded ? "rotate-180" : "",
           })}
         </button>
       </div>
 
-      ${isExpanded ? html`
+      ${
+        isExpanded
+          ? html`
         <div class="automation-card__details">
           <div class="automation-card__meta-grid">
             <div class="automation-card__meta-item">
               <span class="meta-label">Last Run</span>
               ${renderLastRun(automation)}
             </div>
-            ${automation.nextRunAt
-              ? html`
+            ${
+              automation.nextRunAt
+                ? html`
                   <div class="automation-card__meta-item">
                     <span class="meta-label">Next Run</span>
                     <span class="text-sm text-foreground">${formatTimestamp(automation.nextRunAt)}</span>
                   </div>
                 `
-              : nothing}
+                : nothing
+            }
           </div>
 
           <div class="automation-card__actions">
@@ -170,13 +199,18 @@ export function renderAutomationCard(props: AutomationCardProps) {
             </button>
           </div>
         </div>
-      ` : nothing}
+      `
+          : nothing
+      }
     </div>
   `;
 }
 
 export interface AutomationsListViewProps {
-  state: Pick<AutomationsState, "automations" | "searchQuery" | "statusFilter" | "loading" | "error">;
+  state: Pick<
+    AutomationsState,
+    "automations" | "searchQuery" | "statusFilter" | "loading" | "error"
+  >;
   filteredAutomations: Automation[];
   onRun: (id: string) => void;
   onSuspend: (id: string) => void;
@@ -259,39 +293,46 @@ export function renderAutomationsListView(props: AutomationsListViewProps) {
       </div>
 
       <!-- Error Display -->
-      ${state.error
-        ? html`
+      ${
+        state.error
+          ? html`
             <div class="alert alert--danger">
               ${icon("alert-circle", { size: 16 })}
               <span>${state.error}</span>
             </div>
           `
-        : nothing}
+          : nothing
+      }
 
       <!-- Loading State -->
-      ${state.loading
-        ? html`
-            <div class="loading-state">
-              <div class="spinner"></div>
-              <span>Loading automations...</span>
-            </div>
-          `
-        : nothing}
+      ${
+        state.loading
+          ? html`
+              <div class="loading-state">
+                <div class="spinner"></div>
+                <span>Loading automations...</span>
+              </div>
+            `
+          : nothing
+      }
 
       <!-- Automation Grid -->
-      ${!state.loading && filteredAutomations.length === 0
-        ? html`
+      ${
+        !state.loading && filteredAutomations.length === 0
+          ? html`
             <div class="empty-state">
               <div class="empty-state__icon">${icon("inbox", { size: 48 })}</div>
               <h3 class="empty-state__title">No automations found</h3>
               <p class="empty-state__desc">
-                ${state.searchQuery || state.statusFilter !== "all"
-                  ? "Try adjusting your search or filters"
-                  : "Create your first automation to get started"}
+                ${
+                  state.searchQuery || state.statusFilter !== "all"
+                    ? "Try adjusting your search or filters"
+                    : "Create your first automation to get started"
+                }
               </p>
             </div>
           `
-        : html`
+          : html`
             <div class="automations-grid">
               ${filteredAutomations.map((automation) =>
                 renderAutomationCard({
@@ -304,10 +345,11 @@ export function renderAutomationsListView(props: AutomationsListViewProps) {
                   onHistory,
                   onEdit,
                   onDelete,
-                })
+                }),
               )}
             </div>
-          `}
+          `
+      }
     </div>
   `;
 }

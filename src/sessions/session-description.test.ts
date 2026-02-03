@@ -1,5 +1,4 @@
 import { describe, expect, test } from "vitest";
-
 import type { SessionEntry } from "../config/sessions.js";
 import { shouldRefreshSessionDescription } from "./session-description.js";
 

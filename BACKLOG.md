@@ -6,6 +6,7 @@ Tech stack: TypeScript, Node.js (pnpm), Lit web components (UI), Clawdbrain gate
 This file tracks work items for autonomous development.
 
 ## Status Key
+
 - `[ ]` — Not started
 - `[~]` — In progress
 - `[x]` — Complete
@@ -36,6 +37,7 @@ Existing code: `src/infra/overseer/`, `src/infra/decisions/`, `ui/src/ui/views/o
 UX audit: `docs/audits/agentic-workflow-ux-audit.md`
 
 ### Goal Lifecycle (Web UI)
+
 - [x] Create goal from Web UI (with guided wizard) — PR #14
 - [x] Pause/resume goals from Web UI — PR #14
 - [x] Mark work done / block work nodes from Web UI — PR #14
@@ -44,6 +46,7 @@ UX audit: `docs/audits/agentic-workflow-ux-audit.md`
 - [ ] Goal templates (common workflow presets)
 
 ### Agent Status Dashboard (Real-time)
+
 - [ ] Real-time view of all running agents and their current task
 - [ ] WebSocket streaming of agent events
 - [ ] Resource usage indicators (tokens, time, cost)
@@ -51,6 +54,7 @@ UX audit: `docs/audits/agentic-workflow-ux-audit.md`
 - [ ] Drill-down from agent → session → task detail
 
 ### Decision Audit Log
+
 - [ ] Timestamped log of every Overseer decision
 - [ ] Capture reasoning chain for each decision
 - [ ] Show dispatched actions and outcomes
@@ -58,6 +62,7 @@ UX audit: `docs/audits/agentic-workflow-ux-audit.md`
 - [ ] Decision replay (step through what happened)
 
 ### Mid-Execution Abort (Safety Controls)
+
 - [ ] Abort background agent tasks from Web UI (not just streaming chat)
 - [ ] Abort Overseer-dispatched work from dashboard
 - [ ] Graceful cancellation with partial-work cleanup
@@ -65,6 +70,7 @@ UX audit: `docs/audits/agentic-workflow-ux-audit.md`
 - [ ] Emergency "stop all" button
 
 ### Goal Progress Tracking & Visualization
+
 - [ ] Progress bars per goal/phase/task (completed/total with dependency awareness)
 - [ ] Plan graph visualization (building on `overseer.graph.ts`)
 - [ ] Estimated time remaining + velocity tracking
@@ -78,6 +84,7 @@ UX audit: `docs/audits/agentic-workflow-ux-audit.md`
 Reference: `dgarson/IMPROVEMENT-IDEAS.md` (198 incomplete items across 14 categories)
 
 ### Command Palette Enhancement
+
 - [x] Implement fuzzy search (replace `string.includes()`)
 - [~] Add command history and recents (persisted to localStorage) — PR #21
 - [~] Add favorites system — PR #26
@@ -88,20 +95,24 @@ Reference: `dgarson/IMPROVEMENT-IDEAS.md` (198 incomplete items across 14 catego
 - [ ] See `dgarson/COMMAND-PALETTE.md` for full design doc
 
 ### Loading States
+
 - [~] Add skeleton screens for views that load data (sessions, agents, nodes, skills, logs, chat already done; overseer + cron added in `autodev-skeleton-screens`)
 - [ ] Add progress indicators for long-running operations
 - [ ] Implement optimistic UI updates
 
 ### Empty States
+
 - [x] Design and implement empty state illustrations/messages for all views — enhanced instances, skills, sessions, nodes, logs, debug
 - [x] Add helpful CTAs in empty states — contextual action buttons (refresh, clear filters, clear search) in all empty states
 
 ### Accessibility
+
 - [ ] ARIA compliance audit across all components
 - [ ] Screen reader testing
 - [ ] Focus management improvements
 
 ### Animations & Transitions
+
 - [ ] View transition animations
 - [ ] Micro-interactions for common actions
 - [ ] Smooth state transitions
@@ -111,16 +122,19 @@ Reference: `dgarson/IMPROVEMENT-IDEAS.md` (198 incomplete items across 14 catego
 ## P4 — Error Handling & Robustness
 
 ### Error Handling UX
+
 - [ ] Implement retry patterns for failed operations
 - [ ] Add error boundary components
 - [ ] User-friendly error messages with recovery suggestions
 
 ### Search & Filtering
+
 - [ ] Global search across sessions, logs, config
 - [ ] Advanced filtering UI
 - [ ] Saved search presets
 
 ### Visual Consistency
+
 - [ ] Design token audit (colors, spacing, typography)
 - [ ] Component style consistency pass
 - [ ] Dark/light theme refinement
@@ -130,11 +144,13 @@ Reference: `dgarson/IMPROVEMENT-IDEAS.md` (198 incomplete items across 14 catego
 ## P5 — Platform & Extensibility
 
 ### Keyboard Navigation
+
 - [ ] Full keyboard navigation across all views
 - [ ] Keyboard shortcut discovery UI
 - [ ] Vim-style navigation option
 
 ### Component Gaps
+
 - [ ] Identify and build missing shared components
 - [ ] Tooltip system improvements
 - [ ] Modal/drawer standardization
@@ -162,6 +178,7 @@ _Items move here when done._
 ## Notes for Autonomous Worker
 
 When picking a task:
+
 1. Start from P1, work down
 2. Pick ONE item per session, then look for isolated next items
 3. If blocked (needs external API, credentials, unclear requirements), mark `[!]` and report

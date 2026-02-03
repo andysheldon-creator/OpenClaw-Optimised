@@ -1,37 +1,5 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useParams } from "next/navigation"
-import { AppShell } from "@/components/navigation/app-shell"
-import { PageHeader } from "@/components/dashboard/page-header"
-import { AgentAvatar } from "@/components/dashboard/agent-avatar"
-import { SectionHeader } from "@/components/dashboard/section-header"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Target,
   ChevronLeft,
@@ -49,9 +17,41 @@ import {
   ChevronRight,
   Link as LinkIcon,
   Sparkles,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import Link from "next/link"
+} from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useState } from "react";
+import { AgentAvatar } from "@/components/dashboard/agent-avatar";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { SectionHeader } from "@/components/dashboard/section-header";
+import { AppShell } from "@/components/navigation/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 // Mock data for the goal
 const goalData = {
@@ -88,7 +88,7 @@ const goalData = {
       taskCount: 4,
     },
   ],
-}
+};
 
 const priorityConfig = {
   high: {
@@ -103,7 +103,7 @@ const priorityConfig = {
     label: "Low",
     className: "bg-muted text-muted-foreground border-border",
   },
-}
+};
 
 const milestoneStatusConfig = {
   completed: {
@@ -121,18 +121,18 @@ const milestoneStatusConfig = {
     className: "bg-muted text-muted-foreground",
     lineClass: "bg-muted",
   },
-}
+};
 
 // Available workstreams to link
 const availableWorkstreams = [
   { id: "ws3", name: "Marketing Strategy", agentName: "Research Assistant" },
   { id: "ws4", name: "Social Media Plan", agentName: "Writing Partner" },
-]
+];
 
 export default function GoalDetailPage() {
-  const params = useParams()
-  const [isLinkWorkstreamOpen, setIsLinkWorkstreamOpen] = useState(false)
-  const [goal] = useState(goalData)
+  const params = useParams();
+  const [isLinkWorkstreamOpen, setIsLinkWorkstreamOpen] = useState(false);
+  const [goal] = useState(goalData);
 
   return (
     <AppShell>
@@ -189,9 +189,7 @@ export default function GoalDetailPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <h1 className="text-2xl font-semibold text-foreground">
-                    {goal.name}
-                  </h1>
+                  <h1 className="text-2xl font-semibold text-foreground">{goal.name}</h1>
                   <Badge
                     variant="outline"
                     className={cn("text-xs font-medium", priorityConfig[goal.priority].className)}
@@ -199,9 +197,7 @@ export default function GoalDetailPage() {
                     {priorityConfig[goal.priority].label}
                   </Badge>
                 </div>
-                <p className="text-muted-foreground leading-relaxed">
-                  "{goal.description}"
-                </p>
+                <p className="text-muted-foreground leading-relaxed">"{goal.description}"</p>
               </div>
             </div>
 
@@ -242,16 +238,17 @@ export default function GoalDetailPage() {
             <SectionHeader title="Milestones" count={goal.milestones.length} className="mb-4" />
             <div className="rounded-xl border border-border bg-card overflow-hidden">
               {goal.milestones.map((milestone, index) => {
-                const config = milestoneStatusConfig[milestone.status as keyof typeof milestoneStatusConfig]
-                const Icon = config.icon
-                const isLast = index === goal.milestones.length - 1
+                const config =
+                  milestoneStatusConfig[milestone.status as keyof typeof milestoneStatusConfig];
+                const Icon = config.icon;
+                const isLast = index === goal.milestones.length - 1;
 
                 return (
                   <div
                     key={milestone.id}
                     className={cn(
                       "relative flex items-start gap-4 p-4",
-                      !isLast && "border-b border-border"
+                      !isLast && "border-b border-border",
                     )}
                   >
                     {/* Timeline connector */}
@@ -259,7 +256,7 @@ export default function GoalDetailPage() {
                       <div
                         className={cn(
                           "absolute left-[1.875rem] top-12 h-[calc(100%-2rem)] w-0.5",
-                          config.lineClass
+                          config.lineClass,
                         )}
                       />
                     )}
@@ -268,10 +265,15 @@ export default function GoalDetailPage() {
                     <div
                       className={cn(
                         "relative z-10 flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0",
-                        config.className
+                        config.className,
                       )}
                     >
-                      <Icon className={cn("h-4 w-4", milestone.status === "in_progress" && "animate-spin")} />
+                      <Icon
+                        className={cn(
+                          "h-4 w-4",
+                          milestone.status === "in_progress" && "animate-spin",
+                        )}
+                      />
                     </div>
 
                     {/* Content */}
@@ -279,7 +281,7 @@ export default function GoalDetailPage() {
                       <p
                         className={cn(
                           "font-medium",
-                          milestone.status === "completed" && "line-through text-muted-foreground"
+                          milestone.status === "completed" && "line-through text-muted-foreground",
                         )}
                       >
                         {milestone.name}
@@ -295,14 +297,18 @@ export default function GoalDetailPage() {
                       )}
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </section>
 
           {/* Linked Workstreams */}
           <section>
-            <SectionHeader title="Linked Workstreams" count={goal.workstreams.length} className="mb-4" />
+            <SectionHeader
+              title="Linked Workstreams"
+              count={goal.workstreams.length}
+              className="mb-4"
+            />
             <div className="space-y-3">
               {goal.workstreams.map((workstream) => (
                 <div
@@ -394,13 +400,11 @@ export default function GoalDetailPage() {
               <Button variant="outline" onClick={() => setIsLinkWorkstreamOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setIsLinkWorkstreamOpen(false)}>
-                Link Workstream
-              </Button>
+              <Button onClick={() => setIsLinkWorkstreamOpen(false)}>Link Workstream</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
     </AppShell>
-  )
+  );
 }

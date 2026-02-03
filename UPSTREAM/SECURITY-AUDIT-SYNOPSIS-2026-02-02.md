@@ -58,4 +58,3 @@ This synopsis is intentionally narrow: it highlights prompt-injection leverage p
 
 - Confirm the ingress/auth/binding for Gateway WS and `/tools/invoke` in the actual runtime deployment configs (loopback vs LAN, proxy exposure, token storage/logging).
 - Confirm whether `packages/vercel-ai-agent` is wired into any runtime path, and if so, which tools it exposes in which channels.
-

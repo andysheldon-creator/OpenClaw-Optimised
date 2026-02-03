@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -8,48 +8,48 @@
   /* Warm cream/off-white background */
   --background: oklch(0.985 0.008 85);
   --foreground: oklch(0.25 0.02 50);
-  
+
   /* Slightly warmer cards */
   --card: oklch(0.995 0.005 85);
   --card-foreground: oklch(0.25 0.02 50);
-  
+
   --popover: oklch(0.995 0.005 85);
   --popover-foreground: oklch(0.25 0.02 50);
-  
+
   /* Warm coral/terracotta primary */
   --primary: oklch(0.62 0.16 30);
   --primary-foreground: oklch(0.99 0 0);
-  
+
   /* Soft sage secondary */
   --secondary: oklch(0.94 0.02 140);
   --secondary-foreground: oklch(0.35 0.04 140);
-  
+
   /* Warm muted tones */
   --muted: oklch(0.95 0.01 80);
   --muted-foreground: oklch(0.5 0.02 50);
-  
+
   /* Accent - warm amber */
   --accent: oklch(0.88 0.08 85);
   --accent-foreground: oklch(0.35 0.06 60);
-  
+
   --destructive: oklch(0.58 0.2 25);
   --destructive-foreground: oklch(0.98 0 0);
-  
+
   /* Soft borders */
   --border: oklch(0.91 0.01 80);
   --input: oklch(0.93 0.01 80);
   --ring: oklch(0.62 0.16 30);
-  
+
   /* Charts - warm, friendly palette */
   --chart-1: oklch(0.62 0.16 30);
   --chart-2: oklch(0.7 0.12 160);
   --chart-3: oklch(0.75 0.12 250);
   --chart-4: oklch(0.8 0.14 85);
   --chart-5: oklch(0.65 0.18 320);
-  
+
   /* Softer, friendlier radius */
   --radius: 0.75rem;
-  
+
   /* Sidebar */
   --sidebar: oklch(0.98 0.006 85);
   --sidebar-foreground: oklch(0.25 0.02 50);
@@ -59,7 +59,7 @@
   --sidebar-accent-foreground: oklch(0.35 0.04 50);
   --sidebar-border: oklch(0.91 0.01 80);
   --sidebar-ring: oklch(0.62 0.16 30);
-  
+
   /* Custom status colors */
   --success: oklch(0.7 0.14 145);
   --success-foreground: oklch(0.98 0 0);
@@ -73,45 +73,45 @@
   /* Deep warm charcoal */
   --background: oklch(0.18 0.015 60);
   --foreground: oklch(0.92 0.01 85);
-  
+
   /* Slightly elevated cards */
   --card: oklch(0.22 0.015 60);
   --card-foreground: oklch(0.92 0.01 85);
-  
+
   --popover: oklch(0.22 0.015 60);
   --popover-foreground: oklch(0.92 0.01 85);
-  
+
   /* Warm coral primary - slightly brighter for dark mode */
   --primary: oklch(0.72 0.16 30);
   --primary-foreground: oklch(0.15 0.02 50);
-  
+
   /* Muted sage secondary */
   --secondary: oklch(0.28 0.02 140);
   --secondary-foreground: oklch(0.88 0.02 140);
-  
+
   /* Deep muted tones */
   --muted: oklch(0.26 0.015 60);
   --muted-foreground: oklch(0.65 0.02 80);
-  
+
   /* Warm accent */
   --accent: oklch(0.32 0.04 60);
   --accent-foreground: oklch(0.9 0.02 85);
-  
+
   --destructive: oklch(0.5 0.18 25);
   --destructive-foreground: oklch(0.95 0 0);
-  
+
   /* Subtle borders */
   --border: oklch(0.3 0.015 60);
   --input: oklch(0.28 0.015 60);
   --ring: oklch(0.72 0.16 30);
-  
+
   /* Charts - vibrant for dark mode */
   --chart-1: oklch(0.72 0.16 30);
   --chart-2: oklch(0.7 0.12 160);
   --chart-3: oklch(0.72 0.12 250);
   --chart-4: oklch(0.78 0.14 85);
   --chart-5: oklch(0.7 0.18 320);
-  
+
   /* Sidebar */
   --sidebar: oklch(0.16 0.015 60);
   --sidebar-foreground: oklch(0.92 0.01 85);
@@ -121,7 +121,7 @@
   --sidebar-accent-foreground: oklch(0.9 0.02 85);
   --sidebar-border: oklch(0.28 0.015 60);
   --sidebar-ring: oklch(0.72 0.16 30);
-  
+
   /* Custom status colors */
   --success: oklch(0.65 0.14 145);
   --success-foreground: oklch(0.15 0.02 145);
@@ -132,8 +132,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -192,30 +192,34 @@
 @layer utilities {
   /* Friendly shadows - soft and warm */
   .shadow-soft {
-    box-shadow: 0 2px 8px -2px oklch(0.3 0.02 50 / 0.08), 
-                0 4px 16px -4px oklch(0.3 0.02 50 / 0.06);
+    box-shadow:
+      0 2px 8px -2px oklch(0.3 0.02 50 / 0.08),
+      0 4px 16px -4px oklch(0.3 0.02 50 / 0.06);
   }
   .shadow-soft-lg {
-    box-shadow: 0 4px 12px -3px oklch(0.3 0.02 50 / 0.1), 
-                0 8px 24px -6px oklch(0.3 0.02 50 / 0.08);
+    box-shadow:
+      0 4px 12px -3px oklch(0.3 0.02 50 / 0.1),
+      0 8px 24px -6px oklch(0.3 0.02 50 / 0.08);
   }
-  
+
   /* Dark mode shadows */
   .dark .shadow-soft {
-    box-shadow: 0 2px 8px -2px oklch(0 0 0 / 0.3), 
-                0 4px 16px -4px oklch(0 0 0 / 0.25);
+    box-shadow:
+      0 2px 8px -2px oklch(0 0 0 / 0.3),
+      0 4px 16px -4px oklch(0 0 0 / 0.25);
   }
   .dark .shadow-soft-lg {
-    box-shadow: 0 4px 12px -3px oklch(0 0 0 / 0.35), 
-                0 8px 24px -6px oklch(0 0 0 / 0.3);
+    box-shadow:
+      0 4px 12px -3px oklch(0 0 0 / 0.35),
+      0 8px 24px -6px oklch(0 0 0 / 0.3);
   }
-  
+
   /* Status indicator pulses */
   .status-active {
     @apply relative;
   }
   .status-active::before {
-    content: '';
+    content: "";
     @apply absolute inset-0 rounded-full bg-success animate-ping opacity-75;
   }
 }

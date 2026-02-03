@@ -19,6 +19,7 @@ You are performing a security audit focused on **unexpected invocation paths** f
 ## Threat Model
 
 Assume an adversary can:
+
 - Send untrusted content into inbound channels (chat messages, webhooks, HTTP endpoints, CLI args, env vars, config files)
 - Attempt prompt injection to cause tool invocation
 - Attempt SSRF / exfiltration via outbound HTTP calls
@@ -33,53 +34,60 @@ Assume an adversary can:
 
 These locations perform `fetch()` on user-influenced URLs WITHOUT the pinned dispatcher used by `web_fetch`:
 
-| Location | Risk | What to Check |
-|----------|------|---------------|
-| `src/automations/executors/webhook.ts:219` | HIGH | `fetch(config.url, ...)` - automation webhook URL |
-| `extensions/memory-lancedb/src/services/openai-extractor.ts:110` | HIGH | `fetch(url)` - URL summarization |
-| `src/agents/skills-install.ts:182` | HIGH | `fetch(url, ...)` - skill archive download |
+| Location                                                         | Risk | What to Check                                     |
+| ---------------------------------------------------------------- | ---- | ------------------------------------------------- |
+| `src/automations/executors/webhook.ts:219`                       | HIGH | `fetch(config.url, ...)` - automation webhook URL |
+| `extensions/memory-lancedb/src/services/openai-extractor.ts:110` | HIGH | `fetch(url)` - URL summarization                  |
+| `src/agents/skills-install.ts:182`                               | HIGH | `fetch(url, ...)` - skill archive download        |
 
 **Compare to safe pattern**: `src/agents/tools/web-fetch.ts:209-217` uses `resolvePinnedHostname()` + `createPinnedDispatcher()` from `src/infra/net/ssrf.ts`
 
 ### RCE Paths (Chat → Shell Execution)
 
-| Path | Key Files | Gating |
-|------|-----------|--------|
-| `/bash` command | `src/auto-reply/reply/commands-bash.ts:10-19`, `src/auto-reply/reply/bash-command.ts:218-243` | `isAuthorizedSender` + `commands.bash === true` + elevated allowlist |
-| `!` prefix | Same as above | Same gating |
-| `exec` tool direct | `src/agents/bash-tools.exec.ts:826-949` | Tool policy + approvals (UNLESS `elevated === "full"`) |
+| Path               | Key Files                                                                                     | Gating                                                               |
+| ------------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `/bash` command    | `src/auto-reply/reply/commands-bash.ts:10-19`, `src/auto-reply/reply/bash-command.ts:218-243` | `isAuthorizedSender` + `commands.bash === true` + elevated allowlist |
+| `!` prefix         | Same as above                                                                                 | Same gating                                                          |
+| `exec` tool direct | `src/agents/bash-tools.exec.ts:826-949`                                                       | Tool policy + approvals (UNLESS `elevated === "full"`)               |
 
 **CRITICAL CHECK**: `src/agents/bash-tools.exec.ts:940-949` - when `elevatedMode === "full"`, approvals are BYPASSED:
+
 ```typescript
-if (elevatedRequested && elevatedMode === "full") { security = "full"; }
+if (elevatedRequested && elevatedMode === "full") {
+  security = "full";
+}
 const bypassApprovals = elevatedRequested && elevatedMode === "full";
-if (bypassApprovals) { ask = "off"; }
+if (bypassApprovals) {
+  ask = "off";
+}
 ```
 
 ### Gateway Universal Tool Runner
 
-| Endpoint | File | Risk |
-|----------|------|------|
+| Endpoint             | File                                       | Risk                                         |
+| -------------------- | ------------------------------------------ | -------------------------------------------- |
 | `POST /tools/invoke` | `src/gateway/tools-invoke-http.ts:108-314` | Bearer token auth → execute ANY allowed tool |
 
 Check: Token extraction at `:118`, auth at `:119-128`, tool execution at `:313-314`
 
 ### Supply Chain / Archive Extraction
 
-| Location | Risk |
-|----------|------|
+| Location                               | Risk                                                                                   |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
 | `src/agents/skills-install.ts:212-223` | Downloads arbitrary URL, extracts via `tar`/`unzip` - zip-slip/path traversal possible |
 
 Check for post-extraction path validation (likely MISSING).
 
 ### Implicit Tool Coupling
 
-| Location | Issue |
-|----------|-------|
+| Location                              | Issue                                           |
+| ------------------------------------- | ----------------------------------------------- |
 | `src/agents/pi-tools.policy.ts:72-75` | Allowing `exec` IMPLICITLY allows `apply_patch` |
 
 ```typescript
-if (normalized === "apply_patch" && matchesAny("exec", allow)) { return true; }
+if (normalized === "apply_patch" && matchesAny("exec", allow)) {
+  return true;
+}
 ```
 
 ---
@@ -101,6 +109,7 @@ rg -n '(spawn|exec|execFile|execSync|spawnSync|child_process|Bun\.\$)' src/ exte
 ```
 
 Key patterns:
+
 - `runCommandWithTimeout(["tar"` / `["unzip"` - archive extraction
 - `spawn("tailscale"` / `spawn("ngrok"` - tunnel creation
 - `execTool.execute(` - tool-based exec
@@ -112,6 +121,7 @@ rg -n '(writeFile|appendFile|createWriteStream|fs\.rename|fs\.rm|fs\.mkdir|fs\.c
 ```
 
 Key sinks:
+
 - `src/media/store.ts:132,207` - media saves
 - `src/hooks/install.ts:172,179-180` - hooks install (rename/rm)
 - `src/config/write.ts` - config writes
@@ -155,6 +165,7 @@ NOTES: <any bypass conditions, missing gates, etc.>
 ## Known Invocation Paths to Verify
 
 ### PATH-1: Telegram webhook → message → auto-reply → agent → tools
+
 ```
 1) Ingress: POST to webhook path at src/telegram/webhook.ts:60-70
 2) Channel listener: bot.on("message") at src/telegram/bot-handlers.ts:477
@@ -164,6 +175,7 @@ NOTES: <any bypass conditions, missing gates, etc.>
 ```
 
 ### PATH-2: Chat `/bash` → exec → host shell (RCE)
+
 ```
 1) Ingress: chat message with /bash or ! prefix
 2) Command router: src/auto-reply/reply/commands-bash.ts:10-14
@@ -174,6 +186,7 @@ NOTES: <any bypass conditions, missing gates, etc.>
 ```
 
 ### PATH-3: Chat `/config set` → disk write
+
 ```
 1) Ingress: chat message with /config
 2) Parser: src/auto-reply/reply/config-commands.ts:9-70
@@ -185,6 +198,7 @@ NOTES: <any bypass conditions, missing gates, etc.>
 ```
 
 ### PATH-4: Heartbeat schedule → automatic LLM call
+
 ```
 1) Trigger: runHeartbeatOnce() at src/infra/heartbeat-runner.ts:476-499
 2) Reads HEARTBEAT.md at :513
@@ -194,6 +208,7 @@ NOTE: Automatic, no interactive human review
 ```
 
 ### PATH-5: Gateway /tools/invoke → tool execution
+
 ```
 1) Ingress: POST /tools/invoke at src/gateway/tools-invoke-http.ts:108-115
 2) Auth: Bearer token + authorizeGatewayConnect at :118-128
@@ -203,6 +218,7 @@ NOTE: If token leaks, RCE possible
 ```
 
 ### PATH-6: Automation webhook → arbitrary URL fetch (SSRF)
+
 ```
 1) Trigger: automation executor (trigger path UNKNOWN)
 2) Outbound: fetch(config.url) at src/automations/executors/webhook.ts:219
@@ -210,6 +226,7 @@ NOTE: NO SSRF guards visible
 ```
 
 ### PATH-7: Inline directives → mode changes
+
 ```
 1) Parser: parseInlineDirectives at src/auto-reply/reply/get-reply-directives.ts:191-194
 2) /elevated directive: can toggle elevated mode

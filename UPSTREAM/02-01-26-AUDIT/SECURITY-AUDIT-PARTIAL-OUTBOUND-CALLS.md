@@ -297,18 +297,17 @@ Assessment:
 
 HIGH (conditional on untrusted input reachability):
 
-1) Arbitrary webhook URL fetch in automations executor: `src/automations/executors/webhook.ts:219`
-2) Arbitrary URL fetch in memory-lancedb summarizer: `extensions/memory-lancedb/src/services/openai-extractor.ts:110`
-3) Download + extract of arbitrary URL in skills installer: `src/agents/skills-install.ts:182`, `:212`, `:219`
+1. Arbitrary webhook URL fetch in automations executor: `src/automations/executors/webhook.ts:219`
+2. Arbitrary URL fetch in memory-lancedb summarizer: `extensions/memory-lancedb/src/services/openai-extractor.ts:110`
+3. Download + extract of arbitrary URL in skills installer: `src/agents/skills-install.ts:182`, `:212`, `:219`
 
 ---
 
 ## 5) Unknowns / needs human review (outbound calls)
 
-1) SSRF policy coverage:
+1. SSRF policy coverage:
    - Whether there is a shared SSRF guard used by automations/webhook or memory-lancedb (none shown in the snippets above).
-2) Archive extraction safety in `skills-install`:
+2. Archive extraction safety in `skills-install`:
    - Whether extracted paths are validated against `targetDir` to prevent path traversal (“zip slip”, tar path traversal). Current code delegates to `tar`/`unzip` directly (`src/agents/skills-install.ts:212-223`).
-3) Media store path safety:
+3. Media store path safety:
    - Whether `saveMediaBuffer` sanitizes filename hints and prevents traversal or collisions (implementation not audited here beyond write calls).
-

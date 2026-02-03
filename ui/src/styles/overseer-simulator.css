@@ -89,7 +89,11 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--accent-muted), rgba(var(--accent-rgb, 99, 102, 241), 0.2));
+  background: linear-gradient(
+    135deg,
+    var(--accent-muted),
+    rgba(var(--accent-rgb, 99, 102, 241), 0.2)
+  );
   border-radius: var(--radius-md);
   color: var(--accent);
 }
@@ -1161,7 +1165,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

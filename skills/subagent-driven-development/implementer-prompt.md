@@ -15,7 +15,7 @@ You are implementing a task from an implementation plan.
 
 ## Context
 
-[Scene-setting: where this fits in the broader plan, what was built before this task, 
+[Scene-setting: where this fits in the broader plan, what was built before this task,
 architectural context, which branch to work on, working directory path]
 
 Working directory: [DIRECTORY_PATH]

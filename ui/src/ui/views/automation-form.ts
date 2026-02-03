@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
-import { icon } from "../icons";
 import type { AutomationFormState } from "../controllers/automations";
 import { AUTOMATION_FORM_STEPS } from "../controllers/automations";
+import { icon } from "../icons";
 
 export interface AutomationFormProps {
   state: AutomationFormState;
@@ -34,16 +34,14 @@ function renderStepIndicator(props: AutomationFormProps) {
                   isCompleted
                     ? "wizard-progress__step-icon--completed"
                     : isCurrent
-                    ? "wizard-progress__step-icon--current"
-                    : ""
+                      ? "wizard-progress__step-icon--current"
+                      : ""
                 }"
               >
-                ${isCompleted
-                  ? icon("check", { size: 16 })
-                  : icon(step.icon, { size: 16 })}
+                ${isCompleted ? icon("check", { size: 16 }) : icon(step.icon, { size: 16 })}
               </div>
               <div class="wizard-progress__step-label ${
-                (isCurrent || isCompleted) ? "wizard-progress__step-label--active" : ""
+                isCurrent || isCompleted ? "wizard-progress__step-label--active" : ""
               }">
                 ${step.title}
               </div>
@@ -74,9 +72,11 @@ function renderBasicInfoStep(props: AutomationFormProps) {
             placeholder="My Automation"
             class="field__input"
           />
-          ${errors.name
-            ? html`<span class="field__error">${icon("alert-circle", { size: 12 })} ${errors.name}</span>`
-            : nothing}
+          ${
+            errors.name
+              ? html`<span class="field__error">${icon("alert-circle", { size: 12 })} ${errors.name}</span>`
+              : nothing
+          }
         </div>
 
         <div class="field">
@@ -130,8 +130,9 @@ function renderScheduleStep(props: AutomationFormProps) {
           </select>
         </div>
 
-        ${formData.scheduleType === "every"
-          ? html`
+        ${
+          formData.scheduleType === "every"
+            ? html`
               <div class="form-grid">
                 <div class="field">
                   <label class="field__label">Interval</label>
@@ -158,10 +159,12 @@ function renderScheduleStep(props: AutomationFormProps) {
                 </div>
               </div>
             `
-          : nothing}
+            : nothing
+        }
 
-        ${formData.scheduleType === "cron"
-          ? html`
+        ${
+          formData.scheduleType === "cron"
+            ? html`
               <div class="field ${errors.scheduleCronExpr ? "field--error" : ""}">
                 <label class="field__label">Cron Expression *</label>
                 <input
@@ -171,9 +174,11 @@ function renderScheduleStep(props: AutomationFormProps) {
                   placeholder="0 0 * * *"
                   class="field__input"
                 />
-                ${errors.scheduleCronExpr
-                  ? html`<span class="field__error">${icon("alert-circle", { size: 12 })} ${errors.scheduleCronExpr}</span>`
-                  : nothing}
+                ${
+                  errors.scheduleCronExpr
+                    ? html`<span class="field__error">${icon("alert-circle", { size: 12 })} ${errors.scheduleCronExpr}</span>`
+                    : nothing
+                }
                 <div class="field__hint">
                   ${icon("info", { size: 12 })}
                   Use standard cron syntax (e.g., "0 0 * * *" for daily at midnight)
@@ -191,10 +196,12 @@ function renderScheduleStep(props: AutomationFormProps) {
                 />
               </div>
             `
-          : nothing}
+            : nothing
+        }
 
-        ${formData.scheduleType === "at"
-          ? html`
+        ${
+          formData.scheduleType === "at"
+            ? html`
               <div class="field ${errors.scheduleAt ? "field--error" : ""}">
                 <label class="field__label">Run At *</label>
                 <input
@@ -203,12 +210,15 @@ function renderScheduleStep(props: AutomationFormProps) {
                   @input=${(e: Event) => onFieldChange("scheduleAt", (e.target as HTMLInputElement).value)}
                   class="field__input"
                 />
-                ${errors.scheduleAt
-                  ? html`<span class="field__error">${icon("alert-circle", { size: 12 })} ${errors.scheduleAt}</span>`
-                  : nothing}
+                ${
+                  errors.scheduleAt
+                    ? html`<span class="field__error">${icon("alert-circle", { size: 12 })} ${errors.scheduleAt}</span>`
+                    : nothing
+                }
               </div>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     </div>
   `;
@@ -295,19 +305,21 @@ export function renderAutomationForm(props: AutomationFormProps) {
             Previous
           </button>
 
-          ${state.currentStep < totalSteps
-            ? html`
+          ${
+            state.currentStep < totalSteps
+              ? html`
                 <button class="btn btn-primary" @click=${onNext}>
                   Next
                   ${icon("chevron-right", { size: 14 })}
                 </button>
               `
-            : html`
+              : html`
                 <button class="btn btn-primary" @click=${onSubmit}>
                   ${icon("check", { size: 14 })}
                   Create Automation
                 </button>
-              `}
+              `
+          }
         </div>
       </div>
     </div>

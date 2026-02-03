@@ -3,11 +3,7 @@
  * Used for testing and demoing the Overseer/continuation hook framework.
  */
 
-import type {
-  OverseerAssignmentDetail,
-  OverseerGoalDetail,
-  OverseerEvent,
-} from "./overseer";
+import type { OverseerAssignmentDetail, OverseerGoalDetail, OverseerEvent } from "./overseer";
 
 // ============================================================================
 // Rule System Types
@@ -493,7 +489,10 @@ export const RULE_TEMPLATES: Record<string, Omit<SimulatorRule, "id">> = {
 };
 
 /** Preset scenario templates */
-export const SCENARIO_TEMPLATES: Record<string, Omit<SimulatorScenario, "id" | "createdAt" | "updatedAt">> = {
+export const SCENARIO_TEMPLATES: Record<
+  string,
+  Omit<SimulatorScenario, "id" | "createdAt" | "updatedAt">
+> = {
   happyPath: {
     name: "Happy Path",
     description: "Simulates a successful goal completion with no errors",
@@ -514,7 +513,11 @@ export const SCENARIO_TEMPLATES: Record<string, Omit<SimulatorScenario, "id" | "
     events: [
       { type: "goal_created", data: { title: "Error Recovery Test" } },
       { type: "turn_completion", delay: 1000 },
-      { type: "tool_error", data: { toolName: "file_write", error: "Permission denied" }, delay: 2000 },
+      {
+        type: "tool_error",
+        data: { toolName: "file_write", error: "Permission denied" },
+        delay: 2000,
+      },
       { type: "assignment_stalled", delay: 3000 },
       { type: "tick_triggered", delay: 4000 },
       { type: "turn_completion", delay: 5000 },

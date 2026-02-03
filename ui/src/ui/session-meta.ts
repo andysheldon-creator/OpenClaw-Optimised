@@ -19,7 +19,9 @@ export function inferSessionType(sessionKey: string | undefined | null): AgentSe
   return parsed.rest.toLowerCase().startsWith("cron:") ? "cron" : "regular";
 }
 
-export function parseAgentSessionMeta(sessionKey: string | undefined | null): AgentSessionMeta | null {
+export function parseAgentSessionMeta(
+  sessionKey: string | undefined | null,
+): AgentSessionMeta | null {
   const raw = (sessionKey ?? "").trim();
   if (!raw) return null;
   const parsed = parseAgentSessionKey(raw);

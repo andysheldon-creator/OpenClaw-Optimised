@@ -51,25 +51,25 @@ This is a **consolidated implementation roadmap** that incorporates fixes from t
 
 ### Files to Create
 
-| File | Purpose | LOC Estimate |
-|------|---------|--------------|
-| `src/knowledge/graph/schema.ts` | SQLite graph tables + extensible types | ~200 |
-| `src/knowledge/graph/types.ts` | Shared types | ~150 |
-| `src/knowledge/graph/query.ts` | GraphQueryEngine (graphology + SQLite) | ~400 |
-| `src/knowledge/extraction/extractor.ts` | LLM extraction pipeline | ~300 |
-| `src/knowledge/extraction/parser.ts` | Delimiter + JSON output parsing | ~150 |
-| `src/knowledge/extraction/prompts.ts` | Extraction prompt templates | ~100 |
-| `src/knowledge/extraction/consolidation.ts` | 3-tier merge algorithm | ~300 |
+| File                                        | Purpose                                | LOC Estimate |
+| ------------------------------------------- | -------------------------------------- | ------------ |
+| `src/knowledge/graph/schema.ts`             | SQLite graph tables + extensible types | ~200         |
+| `src/knowledge/graph/types.ts`              | Shared types                           | ~150         |
+| `src/knowledge/graph/query.ts`              | GraphQueryEngine (graphology + SQLite) | ~400         |
+| `src/knowledge/extraction/extractor.ts`     | LLM extraction pipeline                | ~300         |
+| `src/knowledge/extraction/parser.ts`        | Delimiter + JSON output parsing        | ~150         |
+| `src/knowledge/extraction/prompts.ts`       | Extraction prompt templates            | ~100         |
+| `src/knowledge/extraction/consolidation.ts` | 3-tier merge algorithm                 | ~300         |
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/memory/memory-schema.ts` | Add graph tables to `ensureMemoryIndexSchema()` |
-| `src/memory/manager.ts` | Hook extraction into `syncFiles()` post-embedding |
-| `src/agents/memory-search.ts` | Add knowledge config resolution |
-| `src/config/types.agent-defaults.ts` | Add extensible `KnowledgeConfig` type |
-| `src/config/zod-schema.agent-defaults.ts` | Add Zod validation |
+| File                                      | Change                                            |
+| ----------------------------------------- | ------------------------------------------------- |
+| `src/memory/memory-schema.ts`             | Add graph tables to `ensureMemoryIndexSchema()`   |
+| `src/memory/manager.ts`                   | Hook extraction into `syncFiles()` post-embedding |
+| `src/agents/memory-search.ts`             | Add knowledge config resolution                   |
+| `src/config/types.agent-defaults.ts`      | Add extensible `KnowledgeConfig` type             |
+| `src/config/zod-schema.agent-defaults.ts` | Add Zod validation                                |
 
 ### Dependencies to Add
 
@@ -149,16 +149,16 @@ CREATE TABLE IF NOT EXISTS kg_extraction_progress (
 
 ### Files to Create
 
-| File | Purpose | LOC Estimate |
-|------|---------|--------------|
-| `src/knowledge/ingest.ts` | Ingestion pipeline orchestrator | ~250 |
-| `src/knowledge/crawler.ts` | Web crawl orchestrator | ~300 |
-| `src/knowledge/crawler-discovery.ts` | URL discovery (sitemap, BFS) | ~200 |
-| `src/knowledge/crawler-fetcher.ts` | HTTP fetching with rate limiting | ~150 |
-| `src/knowledge/parsers/pdf.ts` | PDF extraction (use pdfjs-dist) | ~100 |
-| `src/knowledge/parsers/docx.ts` | DOCX to markdown | ~80 |
-| `src/knowledge/parsers/html.ts` | HTML readability extraction | ~100 |
-| `src/commands/knowledge.ts` | CLI commands | ~200 |
+| File                                 | Purpose                          | LOC Estimate |
+| ------------------------------------ | -------------------------------- | ------------ |
+| `src/knowledge/ingest.ts`            | Ingestion pipeline orchestrator  | ~250         |
+| `src/knowledge/crawler.ts`           | Web crawl orchestrator           | ~300         |
+| `src/knowledge/crawler-discovery.ts` | URL discovery (sitemap, BFS)     | ~200         |
+| `src/knowledge/crawler-fetcher.ts`   | HTTP fetching with rate limiting | ~150         |
+| `src/knowledge/parsers/pdf.ts`       | PDF extraction (use pdfjs-dist)  | ~100         |
+| `src/knowledge/parsers/docx.ts`      | DOCX to markdown                 | ~80          |
+| `src/knowledge/parsers/html.ts`      | HTML readability extraction      | ~100         |
+| `src/commands/knowledge.ts`          | CLI commands                     | ~200         |
 
 ### Crawler: Auth Support (NEW)
 
@@ -176,8 +176,8 @@ type CrawlAuth = {
 type CrawlTarget = {
   url: string;
   mode: "single" | "sitemap" | "recursive";
-  auth?: CrawlAuth;  // NEW
-  jsRender?: boolean;  // NEW: opt-in Playwright rendering
+  auth?: CrawlAuth; // NEW
+  jsRender?: boolean; // NEW: opt-in Playwright rendering
   // ... existing fields
 };
 ```
@@ -226,12 +226,12 @@ clawdbot knowledge remove <sourceId>
 
 ### Files to Create
 
-| File | Purpose | LOC Estimate |
-|------|---------|--------------|
-| `src/knowledge/retrieval/graph-rag.ts` | Graph expansion retriever | ~250 |
-| `src/knowledge/retrieval/query-entity-recognizer.ts` | Fast entity mention detection | ~150 |
-| `src/knowledge/retrieval/context-formatter.ts` | Structured context formatting | ~100 |
-| `src/agents/tools/knowledge-tools.ts` | graph_search, graph_inspect tools | ~200 |
+| File                                                 | Purpose                           | LOC Estimate |
+| ---------------------------------------------------- | --------------------------------- | ------------ |
+| `src/knowledge/retrieval/graph-rag.ts`               | Graph expansion retriever         | ~250         |
+| `src/knowledge/retrieval/query-entity-recognizer.ts` | Fast entity mention detection     | ~150         |
+| `src/knowledge/retrieval/context-formatter.ts`       | Structured context formatting     | ~100         |
+| `src/agents/tools/knowledge-tools.ts`                | graph_search, graph_inspect tools | ~200         |
 
 ### Graph Expansion: Noise Mitigation (NEW)
 
@@ -243,8 +243,8 @@ type GraphExpansionConfig = {
   maxHops: number;
   weight: number;
   maxChunks: number;
-  minGraphScore: number;  // NEW: threshold below which graph results ignored
-  minConfidence: number;  // NEW: skip expansion if confidence too low
+  minGraphScore: number; // NEW: threshold below which graph results ignored
+  minConfidence: number; // NEW: skip expansion if confidence too low
 };
 ```
 
@@ -330,17 +330,17 @@ type GraphExpansionConfig = {
 
 ### Files to Create
 
-| File | Purpose | LOC Estimate |
-|------|---------|--------------|
-| `src/knowledge/overseer-bridge.ts` | Goal/task graph node sync | ~200 |
+| File                               | Purpose                   | LOC Estimate |
+| ---------------------------------- | ------------------------- | ------------ |
+| `src/knowledge/overseer-bridge.ts` | Goal/task graph node sync | ~200         |
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/infra/overseer/planner.ts` | Inject graph context into planning prompt |
-| `src/infra/overseer/store.types.ts` | Optional `entityIds` field on records |
-| `src/infra/overseer/runner.ts` | Call bridge on lifecycle events |
+| File                                | Change                                    |
+| ----------------------------------- | ----------------------------------------- |
+| `src/infra/overseer/planner.ts`     | Inject graph context into planning prompt |
+| `src/infra/overseer/store.types.ts` | Optional `entityIds` field on records     |
+| `src/infra/overseer/runner.ts`      | Call bridge on lifecycle events           |
 
 ### Exit Criteria
 
@@ -358,20 +358,20 @@ type GraphExpansionConfig = {
 
 ### Files to Create (UI)
 
-| File | Purpose | LOC Estimate |
-|------|---------|--------------|
-| `ui/src/ui/pages/knowledge-graph.ts` | Graph explorer page | ~400 |
-| `ui/src/ui/pages/knowledge-sources.ts` | Ingestion management | ~300 |
-| `ui/src/ui/components/graph-renderer.ts` | D3-force rendering | ~350 |
-| `ui/src/ui/components/entity-detail-panel.ts` | Entity detail sidebar | ~200 |
-| `ui/src/ui/components/source-upload.ts` | File upload component | ~150 |
-| `ui/src/ui/components/crawl-panel.ts` | Crawl launcher + progress | ~150 |
+| File                                          | Purpose                   | LOC Estimate |
+| --------------------------------------------- | ------------------------- | ------------ |
+| `ui/src/ui/pages/knowledge-graph.ts`          | Graph explorer page       | ~400         |
+| `ui/src/ui/pages/knowledge-sources.ts`        | Ingestion management      | ~300         |
+| `ui/src/ui/components/graph-renderer.ts`      | D3-force rendering        | ~350         |
+| `ui/src/ui/components/entity-detail-panel.ts` | Entity detail sidebar     | ~200         |
+| `ui/src/ui/components/source-upload.ts`       | File upload component     | ~150         |
+| `ui/src/ui/components/crawl-panel.ts`         | Crawl launcher + progress | ~150         |
 
 ### Files to Create (Gateway)
 
-| File | Purpose | LOC Estimate |
-|------|---------|--------------|
-| Gateway route handlers | `/api/knowledge/*` endpoints | ~200 |
+| File                   | Purpose                      | LOC Estimate |
+| ---------------------- | ---------------------------- | ------------ |
+| Gateway route handlers | `/api/knowledge/*` endpoints | ~200         |
 
 ### Dependencies to Add (ui/)
 
@@ -397,7 +397,7 @@ type GraphRenderConfig = {
   mode: GraphRenderMode;
   virtualization: boolean;
   webWorker: boolean;
-  maxNodes: number;  // Switch modes above this threshold
+  maxNodes: number; // Switch modes above this threshold
 };
 ```
 
@@ -437,11 +437,11 @@ GET  /api/knowledge/crawl/:crawlId
 
 ### Files to Create
 
-| File | Purpose | LOC Estimate |
-|------|---------|--------------|
-| `extensions/knowledge-neo4j/package.json` | Extension package | ~30 |
-| `extensions/knowledge-neo4j/src/index.ts` | Neo4j GraphQueryEngine impl | ~200 |
-| `extensions/knowledge-neo4j/src/cypher.ts` | Cypher query builders | ~150 |
+| File                                       | Purpose                     | LOC Estimate |
+| ------------------------------------------ | --------------------------- | ------------ |
+| `extensions/knowledge-neo4j/package.json`  | Extension package           | ~30          |
+| `extensions/knowledge-neo4j/src/index.ts`  | Neo4j GraphQueryEngine impl | ~200         |
+| `extensions/knowledge-neo4j/src/cypher.ts` | Cypher query builders       | ~150         |
 
 ### Optional: GDS/APOC Integration
 
@@ -453,8 +453,8 @@ type Neo4jConfig = {
   username: string;
   password: string;
   database?: string;
-  gdsEnabled?: boolean;  // NEW: Use Graph Data Science library
-  apocEnabled?: boolean;  // NEW: Use APOC procedures
+  gdsEnabled?: boolean; // NEW: Use Graph Data Science library
+  apocEnabled?: boolean; // NEW: Use APOC procedures
 };
 ```
 
@@ -475,11 +475,11 @@ type Neo4jConfig = {
 
 ### Files to Create
 
-| File | Purpose | LOC Estimate |
-|------|---------|--------------|
-| `src/knowledge/graph/integration.test.ts` | E2E graph integrity tests | ~200 |
-| `src/knowledge/benchmark.ts` | Performance benchmarks | ~150 |
-| `src/knowledge/quality-metrics.ts` | Extraction quality validation | ~100 |
+| File                                      | Purpose                       | LOC Estimate |
+| ----------------------------------------- | ----------------------------- | ------------ |
+| `src/knowledge/graph/integration.test.ts` | E2E graph integrity tests     | ~200         |
+| `src/knowledge/benchmark.ts`              | Performance benchmarks        | ~150         |
+| `src/knowledge/quality-metrics.ts`        | Extraction quality validation | ~100         |
 
 ### E2E Test Coverage (NEW)
 
@@ -494,14 +494,14 @@ test("schema survives entity type addition");
 
 ### Benchmark Targets
 
-| Metric | Target |
-|--------|--------|
-| Extraction throughput | >5 chunks/second |
-| 1-hop query (1K entities) | <5ms |
-| 2-hop query (10K entities) | <50ms |
-| 3-hop query (50K entities) | <300ms |
-| D3 render (1K nodes) | 60 FPS |
-| D3 render (10K nodes) | 30 FPS with virtualization |
+| Metric                     | Target                     |
+| -------------------------- | -------------------------- |
+| Extraction throughput      | >5 chunks/second           |
+| 1-hop query (1K entities)  | <5ms                       |
+| 2-hop query (10K entities) | <50ms                      |
+| 3-hop query (50K entities) | <300ms                     |
+| D3 render (1K nodes)       | 60 FPS                     |
+| D3 render (10K nodes)      | 30 FPS with virtualization |
 
 ### Exit Criteria
 
@@ -538,7 +538,7 @@ test("schema survives entity type addition");
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "d3-drag": "^3.0.0",
-    "sigma": "^3.0.0"  // Optional for large graphs
+    "sigma": "^3.0.0" // Optional for large graphs
   }
 }
 ```
@@ -563,7 +563,7 @@ export type KnowledgeConfig = {
     consolidation: {
       aliasMergeThreshold: number;
       maxDescriptionFragments: number;
-      editDistanceThreshold: number;  // NEW: for fast-levenshtein
+      editDistanceThreshold: number; // NEW: for fast-levenshtein
     };
     batchSize: number;
     concurrency: number;
@@ -576,8 +576,8 @@ export type KnowledgeConfig = {
       username: string;
       password: string;
       database?: string;
-      gdsEnabled?: boolean;  // NEW
-      apocEnabled?: boolean;  // NEW
+      gdsEnabled?: boolean; // NEW
+      apocEnabled?: boolean; // NEW
     };
   };
 
@@ -587,8 +587,8 @@ export type KnowledgeConfig = {
       maxHops: number;
       weight: number;
       maxChunks: number;
-      minGraphScore: number;  // NEW
-      minConfidence: number;  // NEW
+      minGraphScore: number; // NEW
+      minConfidence: number; // NEW
     };
   };
 
@@ -602,7 +602,7 @@ export type KnowledgeConfig = {
     requestsPerSecond: number;
     respectRobotsTxt: boolean;
     userAgent: string;
-    auth?: CrawlAuth;  // NEW
+    auth?: CrawlAuth; // NEW
   };
 };
 ```
@@ -620,14 +620,14 @@ export type KnowledgeConfig = {
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|------|------------|
-| Schema bloat from user-defined types | Limit to 100 custom types, add validation |
-| Crawler rate limits | Respect robots.txt + configurable delays |
-| Graph expansion noise | `minGraphScore` threshold + re-ranking |
-| D3 performance at scale | Virtualization + Web Workers + Sigma fallback |
-| Extraction cost | Delta sync only + cheaper model option |
-| Orphaned relationships | E2E tests + cleanup job |
+| Risk                                 | Mitigation                                    |
+| ------------------------------------ | --------------------------------------------- |
+| Schema bloat from user-defined types | Limit to 100 custom types, add validation     |
+| Crawler rate limits                  | Respect robots.txt + configurable delays      |
+| Graph expansion noise                | `minGraphScore` threshold + re-ranking        |
+| D3 performance at scale              | Virtualization + Web Workers + Sigma fallback |
+| Extraction cost                      | Delta sync only + cheaper model option        |
+| Orphaned relationships               | E2E tests + cleanup job                       |
 
 ---
 

@@ -26,22 +26,17 @@ Settings → Advanced → Enable Advanced Features
       <Zap className="h-5 w-5 text-warning" />
       Power User Mode
     </CardTitle>
-    <CardDescription>
-      Unlock advanced features for technical users
-    </CardDescription>
+    <CardDescription>Unlock advanced features for technical users</CardDescription>
   </CardHeader>
   <CardContent>
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm text-muted-foreground">
-          Enables: Debug console, raw config editing, filesystem browser,
-          cron expressions, and more.
+          Enables: Debug console, raw config editing, filesystem browser, cron expressions, and
+          more.
         </p>
       </div>
-      <Switch
-        checked={powerUserMode}
-        onCheckedChange={setPowerUserMode}
-      />
+      <Switch checked={powerUserMode} onCheckedChange={setPowerUserMode} />
     </div>
   </CardContent>
 </Card>
@@ -63,12 +58,14 @@ When enabled, show a subtle indicator:
 
 ```tsx
 // In the topbar or sidebar footer
-{powerUserMode && (
-  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
-    <Zap className="h-3 w-3 mr-1" />
-    Power
-  </Badge>
-)}
+{
+  powerUserMode && (
+    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+      <Zap className="h-3 w-3 mr-1" />
+      Power
+    </Badge>
+  );
+}
 ```
 
 ---
@@ -92,12 +89,14 @@ ADVANCED
 Full debugging toolkit for technical troubleshooting.
 
 #### Health Tab
+
 - System status (gateway connection, memory, CPU)
 - Agent process status (PID, memory per agent)
 - Channel status (message counts, error counts)
 - WebSocket connection info
 
 #### RPC Tab
+
 - Method selector dropdown (all available RPC methods)
 - JSON parameter editor (Monaco or CodeMirror)
 - Execute button
@@ -105,12 +104,14 @@ Full debugging toolkit for technical troubleshooting.
 - Request/response timing
 
 #### Events Tab
+
 - Real-time event stream from gateway
 - Filter by event type
 - Pause/resume stream
 - Export events
 
 #### Logs Tab
+
 - Raw log viewer (virtualized for performance)
 - Filter by level (trace, debug, info, warn, error, fatal)
 - Search within logs
@@ -122,6 +123,7 @@ Full debugging toolkit for technical troubleshooting.
 Browse and edit files in the agent's data directory.
 
 #### Features
+
 - Tree navigation of `~/.clawdbrain/` directory
 - File preview (markdown, YAML, JSON)
 - Inline editing with syntax highlighting
@@ -129,6 +131,7 @@ Browse and edit files in the agent's data directory.
 - File history (if git-tracked)
 
 #### Security
+
 - Sandboxed to agent data directory
 - No system file access
 - Confirmation for deletions
@@ -138,6 +141,7 @@ Browse and edit files in the agent's data directory.
 Full cron job management (technical layer behind Rituals).
 
 #### Features
+
 - Cron expression input (with helper)
 - Next N run times preview
 - Job history with output
@@ -176,6 +180,7 @@ Full cron job management (technical layer behind Rituals).
 Device pairing and remote execution management.
 
 #### Features
+
 - List of paired devices with status
 - Pair new device (QR code or manual token)
 - Device capabilities configuration
@@ -188,11 +193,13 @@ Device pairing and remote execution management.
 Everywhere there's a visual editor, add a "Raw" tab:
 
 #### Agent Soul Editor
+
 ```
 [Visual Editor] [Raw Markdown]
 ```
 
 Clicking "Raw" shows:
+
 ```tsx
 <MonacoEditor
   language="markdown"
@@ -203,11 +210,13 @@ Clicking "Raw" shows:
 ```
 
 #### Agent Tools Editor
+
 ```
 [Visual Checklist] [Raw YAML]
 ```
 
 #### Settings
+
 ```
 [Form View] [Raw JSON]
 ```
@@ -215,12 +224,14 @@ Clicking "Raw" shows:
 ### 7. Enhanced Chat Features
 
 #### Tool Call Inspector
+
 - Default: Collapsed with summary
 - Power mode: Expandable with full input/output JSON
 - Copy buttons for inputs and outputs
 - Timing information
 
 #### Session Management
+
 - View session ID
 - Force end session
 - Export session history (JSON)
@@ -229,12 +240,14 @@ Clicking "Raw" shows:
 ### 8. Workstream Enhancements
 
 #### Task Details
+
 - View task metadata (IDs, timestamps)
 - Manual status override
 - Dependency graph raw data
 - Task history log
 
 #### Bulk Operations
+
 - Select multiple tasks
 - Bulk status change
 - Bulk reassign
@@ -243,12 +256,14 @@ Clicking "Raw" shows:
 ### 9. Memory Enhancements
 
 #### Memory Details
+
 - View memory metadata (source, timestamp, type)
 - Edit memory content directly
 - View memory embedding (vector preview)
 - Memory usage statistics
 
 #### Memory Import/Export
+
 - Export all memories as JSON
 - Import memories from file
 - Bulk edit with validation
@@ -259,15 +274,15 @@ Clicking "Raw" shows:
 
 ### Standard vs Power User Comparison
 
-| Feature | Standard | Power User |
-|---------|----------|------------|
-| Scheduling | "Every day at 9am" picker | + Cron expression field |
-| Soul Editor | Personality sliders | + Raw markdown tab |
-| Tools Config | Toggle checkboxes | + YAML editor |
-| Chat Tools | Collapsed summary | + Full JSON expand |
-| Navigation | 4 sections | + Advanced section (4 items) |
-| Status | Simple badges | + Detailed metrics |
-| Settings | Form only | + Raw JSON tab |
+| Feature      | Standard                  | Power User                   |
+| ------------ | ------------------------- | ---------------------------- |
+| Scheduling   | "Every day at 9am" picker | + Cron expression field      |
+| Soul Editor  | Personality sliders       | + Raw markdown tab           |
+| Tools Config | Toggle checkboxes         | + YAML editor                |
+| Chat Tools   | Collapsed summary         | + Full JSON expand           |
+| Navigation   | 4 sections                | + Advanced section (4 items) |
+| Status       | Simple badges             | + Detailed metrics           |
+| Settings     | Form only                 | + Raw JSON tab               |
 
 ### Visual Distinctions
 
@@ -297,9 +312,7 @@ Power user features include explanatory tooltips:
     </TooltipTrigger>
     <TooltipContent>
       <p>Open RPC Console</p>
-      <p className="text-xs text-muted-foreground">
-        Execute manual gateway commands (Power User)
-      </p>
+      <p className="text-xs text-muted-foreground">Execute manual gateway commands (Power User)</p>
     </TooltipContent>
   </Tooltip>
 </TooltipProvider>
@@ -340,12 +353,14 @@ return (
 // In router configuration
 const routes = [
   // Standard routes...
-  ...(isPowerUser ? [
-    { path: "/debug", element: <DebugView /> },
-    { path: "/filesystem", element: <FilesystemView /> },
-    { path: "/jobs", element: <JobsView /> },
-    { path: "/nodes", element: <NodesView /> },
-  ] : []),
+  ...(isPowerUser
+    ? [
+        { path: "/debug", element: <DebugView /> },
+        { path: "/filesystem", element: <FilesystemView /> },
+        { path: "/jobs", element: <JobsView /> },
+        { path: "/nodes", element: <NodesView /> },
+      ]
+    : []),
 ];
 ```
 
@@ -394,9 +409,7 @@ When a user first enables Power User Mode:
       </p>
     </div>
     <DialogFooter>
-      <Button onClick={() => setShowPowerModeIntro(false)}>
-        Got it
-      </Button>
+      <Button onClick={() => setShowPowerModeIntro(false)}>Got it</Button>
     </DialogFooter>
   </DialogContent>
 </Dialog>
@@ -431,8 +444,7 @@ Actions that could break things require confirmation:
   <AlertTriangle className="h-4 w-4" />
   <AlertTitle>Editing Raw Configuration</AlertTitle>
   <AlertDescription>
-    Invalid configuration may prevent your agents from working.
-    Changes are validated before saving.
+    Invalid configuration may prevent your agents from working. Changes are validated before saving.
   </AlertDescription>
 </Alert>
 ```

@@ -10,6 +10,7 @@ import { loadConfig } from "../../config/config.js";
 import { warn } from "../../globals.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
 import { resolveSlackAccount } from "../accounts.js";
+import { globalHandlerRegistry } from "../blocks/interactive.js";
 import { resolveSlackWebClientOptions } from "../client.js";
 import { normalizeSlackWebhookPath, registerSlackHttpHandler } from "../http/index.js";
 import { resolveSlackChannelAllowlist } from "../resolve-channels.js";
@@ -204,6 +205,14 @@ export async function monitorSlackProvider(opts: MonitorSlackOpts = {}) {
   });
 
   const handleSlackMessage = createSlackMessageHandler({ ctx, account });
+
+  // Register block action handler with Bolt app for interactive Block Kit elements
+  app.action(/.*/, async ({ body, ack }) => {
+    await ack();
+    await globalHandlerRegistry.handleAction(
+      body as import("../blocks/types.js").BlockActionPayload,
+    );
+  });
 
   registerSlackMonitorEvents({ ctx, account, handleSlackMessage });
   registerSlackMonitorSlashCommands({ ctx, account });

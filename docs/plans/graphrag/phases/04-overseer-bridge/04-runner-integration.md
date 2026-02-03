@@ -11,6 +11,7 @@
 ## Task Overview
 
 Integrate entity synchronization with Overseer runner:
+
 - Sync tasks when created
 - Extract related entities from plan
 - Update status on completion
@@ -29,7 +30,7 @@ src/infra/overseer/
  * Overseer runner integration with knowledge graph.
  */
 
-import { OverseerEntitySync } from '../../knowledge/overseer-bridge/entity-sync.js';
+import { OverseerEntitySync } from "../../knowledge/overseer-bridge/entity-sync.js";
 
 export class OverseerRunner {
   private entitySync?: OverseerEntitySync;
@@ -74,7 +75,7 @@ export class OverseerRunner {
    */
   private async extractEntities(text: string): Promise<string[]> {
     const entities = await this.entityRecognizer.recognize(text);
-    return entities.map(e => e.id);
+    return entities.map((e) => e.id);
   }
 }
 ```

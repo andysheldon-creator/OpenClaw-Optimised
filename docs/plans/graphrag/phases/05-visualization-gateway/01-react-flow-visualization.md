@@ -11,6 +11,7 @@
 ## Task Overview
 
 Create an interactive graph visualization using React Flow:
+
 - Force-directed layout
 - Entity type filtering
 - Relationship filtering
@@ -22,6 +23,7 @@ Create an interactive graph visualization using React Flow:
 **Reference:** AD-06 in `docs/plans/graphrag/ZAI-DECISIONS.md`
 
 **Decision:** React Flow for knowledge graph visualization
+
 - Native React integration
 - Optimized for <1000 visible nodes
 - Built-in interactive features (drag, zoom, mini-map)
@@ -354,8 +356,8 @@ function getEntityIcon(type: string): string {
  * Hook for fetching graph data from gateway API.
  */
 
-import { useEffect, useState } from 'react';
-import type { Entity, Relationship } from '../../../knowledge/graph/types.js';
+import { useEffect, useState } from "react";
+import type { Entity, Relationship } from "../../../knowledge/graph/types.js";
 
 export interface GraphData {
   entities: Entity[];
@@ -370,10 +372,7 @@ export interface UseGraphDataOptions {
   limit?: number;
 }
 
-export function useGraphData(
-  gatewayUrl: string,
-  options: UseGraphDataOptions = {}
-) {
+export function useGraphData(gatewayUrl: string, options: UseGraphDataOptions = {}) {
   const [graphData, setGraphData] = useState<GraphData>({
     entities: [],
     relationships: [],
@@ -391,13 +390,13 @@ export function useGraphData(
       const params = new URLSearchParams();
 
       if (filterOptions?.entityTypes) {
-        params.append('types', filterOptions.entityTypes.join(','));
+        params.append("types", filterOptions.entityTypes.join(","));
       }
       if (filterOptions?.relationshipTypes) {
-        params.append('relTypes', filterOptions.relationshipTypes.join(','));
+        params.append("relTypes", filterOptions.relationshipTypes.join(","));
       }
       if (filterOptions?.limit) {
-        params.append('limit', filterOptions.limit.toString());
+        params.append("limit", filterOptions.limit.toString());
       }
 
       const response = await fetch(`${gatewayUrl}/api/knowledge/graph/entities?${params}`);
@@ -671,14 +670,21 @@ function getRelationshipColor(type: string): string {
 
 ```typescript
 // GET /api/knowledge/graph/entities
-app.get('/api/knowledge/graph/entities', async (req, res) => {
+app.get("/api/knowledge/graph/entities", async (req, res) => {
   const { types, relTypes, limit } = req.query;
 
   const entities = await datastore.query(
     `SELECT * FROM kg_entities
-     ${types ? `WHERE type IN (${types.split(',').map(() => '?').join(',')})` : ''}
+     ${
+       types
+         ? `WHERE type IN (${types
+             .split(",")
+             .map(() => "?")
+             .join(",")})`
+         : ""
+     }
      LIMIT ${limit || 1000}`,
-    types ? types.split(',') : []
+    types ? types.split(",") : [],
   );
 
   const relationships = await datastore.query(
@@ -686,25 +692,39 @@ app.get('/api/knowledge/graph/entities', async (req, res) => {
      JOIN kg_entities e1 ON r.source_id = e1.id
      JOIN kg_entities e2 ON r.target_id = e2.id
      WHERE 1=1
-       ${types ? `AND e1.type IN (${types.split(',').map(() => '?').join(',')})` : ''}
-       ${relTypes ? `AND r.type IN (${relTypes.split(',').map(() => '?').join(',')})` : ''}
+       ${
+         types
+           ? `AND e1.type IN (${types
+               .split(",")
+               .map(() => "?")
+               .join(",")})`
+           : ""
+       }
+       ${
+         relTypes
+           ? `AND r.type IN (${relTypes
+               .split(",")
+               .map(() => "?")
+               .join(",")})`
+           : ""
+       }
      LIMIT ${limit ? limit * 3 : 3000}`,
-    [...(types ? types.split(',') : []), ...(relTypes ? relTypes.split(',') : [])]
+    [...(types ? types.split(",") : []), ...(relTypes ? relTypes.split(",") : [])],
   );
 
   const availableEntityTypes = await datastore.query<{ type: string }>(
-    'SELECT DISTINCT type FROM kg_entities ORDER BY type'
+    "SELECT DISTINCT type FROM kg_entities ORDER BY type",
   );
 
   const availableRelTypes = await datastore.query<{ type: string }>(
-    'SELECT DISTINCT type FROM kg_relationships ORDER BY type'
+    "SELECT DISTINCT type FROM kg_relationships ORDER BY type",
   );
 
   res.json({
     entities,
     relationships,
-    availableEntityTypes: availableEntityTypes.map(r => r.type),
-    availableRelationshipTypes: availableRelTypes.map(r => r.type),
+    availableEntityTypes: availableEntityTypes.map((r) => r.type),
+    availableRelationshipTypes: availableRelTypes.map((r) => r.type),
   });
 });
 ```

@@ -31,6 +31,7 @@ Create a diverse test corpus of 10 sample documents that will be used to validat
 Each document should contain realistic entities and relationships:
 
 ### Entity Types to Include:
+
 - **Person:** Alice Chen, Bob Smith, Carol Wu
 - **Organization:** Clawdbot, Acme Corp, Stripe
 - **Repository:** clawdbot/core, acme/payment-lib
@@ -43,6 +44,7 @@ Each document should contain realistic entities and relationships:
 - **File:** AuthService.ts, payment_handler.py
 
 ### Relationship Types to Include:
+
 - `depends_on` - Service dependencies
 - `implements` - Interface implementations
 - `located_in` - Infrastructure placement
@@ -52,6 +54,7 @@ Each document should contain realistic entities and relationships:
 - `calls` - API/service calls
 
 ### Edge Cases to Include:
+
 1. **Aliases:** "Auth Service" vs "AuthService" vs "auth service"
 2. **Typos:** "Paymnet" vs "Payment"
 3. **Acronyms:** "JWT" vs "JSON Web Token"
@@ -62,26 +65,32 @@ Each document should contain realistic entities and relationships:
 ## Content Examples
 
 ### auth-service-spec.pdf
-```markdown
+
+````markdown
 # Authentication Service API Specification
 
 ## Overview
+
 The Auth Service handles JWT authentication for all Clawdbot components.
 
 ## Endpoints
 
 ### POST /api/v1/auth/login
+
 Authenticates users and returns a JWT token.
 
 **Request Body:**
+
 ```json
 {
   "username": "alice@example.com",
   "password": "hashed_password"
 }
 ```
+````
 
 **Response:**
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -90,14 +99,17 @@ Authenticates users and returns a JWT token.
 ```
 
 ## Dependencies
+
 - Redis for token blacklisting
 - PostgreSQL for user data
 - Calls UserService for profile validation
 
 ## Implementation
+
 Implemented by Alice Chen on 2024-01-15.
 Depends on clawdbot/core library v2.1.
-```
+
+````
 
 ### api-client.ts
 ```typescript
@@ -152,9 +164,10 @@ export class StripePaymentHandler {
     // Logs to RabbitMQ
   }
 }
-```
+````
 
 ### meeting-notes.txt
+
 ```
 Meeting Notes: Architecture Review 2024-01-20
 Attendees: Alice Chen, Bob Smith, Carol Wu

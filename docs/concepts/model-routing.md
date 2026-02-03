@@ -5,9 +5,10 @@ read_when:
   - You want a hybrid flow: remote planner writes a spec, local model executes with tools
   - You’re tuning per-intent model selection for conversations vs periodic jobs (heartbeats)
 ---
+
 # Model Routing
 
-Clawdbrain can optionally route between models *by intent* (not per-message classification) so
+Clawdbrain can optionally route between models _by intent_ (not per-message classification) so
 conversations stay stable while still letting you use different local models for different workflows.
 
 This is configured under:
@@ -61,9 +62,9 @@ Each intent can run in one of these modes:
 
 In hybrid mode:
 
-1) The planner model runs with **tools disabled** and returns a compact JSON spec.
-2) That JSON spec is injected into the executor run as **system prompt guidance**.
-3) The executor model runs normally (tools allowed) and follows the spec.
+1. The planner model runs with **tools disabled** and returns a compact JSON spec.
+2. That JSON spec is injected into the executor run as **system prompt guidance**.
+3. The executor model runs normally (tools allowed) and follows the spec.
 
 This is meant for workflows like:
 
@@ -89,7 +90,7 @@ Minimal example (aliases + hybrid heartbeat):
       // Allowlist + aliases
       models: {
         "ollama/llama3:8b": { alias: "local8b" },
-        "ollama/qwen2.5:32b": { alias: "local30b" }
+        "ollama/qwen2.5:32b": { alias: "local30b" },
       },
 
       modelRouting: {
@@ -98,13 +99,13 @@ Minimal example (aliases + hybrid heartbeat):
           localSmall: "local8b",
           localLarge: "local30b",
           remote: "anthropic/claude-sonnet-4-5",
-          planner: "anthropic/claude-opus-4-5"
+          planner: "anthropic/claude-opus-4-5",
         },
 
         // Used when an intent doesn't override anything
         defaultPolicy: {
           mode: "tiered",
-          tier: "remote"
+          tier: "remote",
         },
 
         intents: {
@@ -114,12 +115,12 @@ Minimal example (aliases + hybrid heartbeat):
             stakes: "low",
             verifiability: "high",
             maxToolCalls: 8,
-            allowWriteTools: false
-          }
-        }
-      }
-    }
-  }
+            allowWriteTools: false,
+          },
+        },
+      },
+    },
+  },
 }
 ```
 
@@ -147,4 +148,3 @@ Policy fields you can set per intent:
 - [/concepts/models](/concepts/models)
 - [/concepts/model-failover](/concepts/model-failover)
 - [/concepts/agent-loop](/concepts/agent-loop)
-

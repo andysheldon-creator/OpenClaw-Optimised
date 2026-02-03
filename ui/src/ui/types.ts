@@ -613,7 +613,12 @@ export type HealthChannelSummary = {
   configured?: boolean;
   linked?: boolean;
   authAgeMs?: number | null;
-  probe?: { ok?: boolean; elapsedMs?: number; bot?: { username?: string | null } | null; error?: string | null } | null;
+  probe?: {
+    ok?: boolean;
+    elapsedMs?: number;
+    bot?: { username?: string | null } | null;
+    error?: string | null;
+  } | null;
   lastProbeAt?: number | null;
   accounts?: Record<string, HealthChannelSummary>;
   [key: string]: unknown;

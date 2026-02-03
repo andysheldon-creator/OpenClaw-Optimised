@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import type { ReactNode } from "react"
-import { SidebarNav } from "./sidebar-nav"
-import { MobileNav } from "./mobile-nav"
-import { CommandPalette } from "@/components/command-palette"
+import type { ReactNode } from "react";
+import { CommandPalette } from "@/components/command-palette";
+import { MobileNav } from "./mobile-nav";
+import { SidebarNav } from "./sidebar-nav";
 
 interface AppShellProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
@@ -17,5 +17,5 @@ export function AppShell({ children }: AppShellProps) {
       <MobileNav />
       <CommandPalette />
     </div>
-  )
+  );
 }

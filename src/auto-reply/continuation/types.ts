@@ -1,7 +1,7 @@
-import type { ReplyPayload } from "../types.js";
-import type { FollowupRun } from "../reply/queue/types.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import type { OverseerStructuredUpdate } from "../../infra/overseer/store.types.js";
+import type { FollowupRun } from "../reply/queue/types.js";
+import type { ReplyPayload } from "../types.js";
 
 // ─── Completion Events (Discriminated Union) ────────────────────────────────
 

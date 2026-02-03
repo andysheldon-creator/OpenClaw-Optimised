@@ -2,12 +2,12 @@
 // Component: Dashboard Activities (Recent Activity Feed)
 // Search Query: "activity feed timeline"
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { UserPlus, Settings, FileText, Upload, Trash2, Bell } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Settings, FileText, Upload, Trash2, Bell } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 // Define the icon type.
 type IconType = React.ElementType | React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
@@ -75,16 +75,20 @@ const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
                   className="flex items-start gap-3 p-4 hover:bg-muted/30 transition-colors duration-200"
                 >
                   {/* Icon */}
-                  <div className={cn(
-                    "flex-shrink-0 p-1 rounded-full",
-                    activity.iconColorClass || "text-muted-foreground bg-muted" // Default styling
-                  )}>
+                  <div
+                    className={cn(
+                      "flex-shrink-0 p-1 rounded-full",
+                      activity.iconColorClass || "text-muted-foreground bg-muted", // Default styling
+                    )}
+                  >
                     <activity.icon className="h-4 w-4" aria-hidden="true" />
                   </div>
 
                   {/* Message and Timestamp */}
                   <div className="flex-grow flex flex-col">
-                    <p className="text-sm font-medium text-foreground leading-tight">{activity.message}</p>
+                    <p className="text-sm font-medium text-foreground leading-tight">
+                      {activity.message}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-0.5">{activity.timestamp}</p>
                   </div>
                 </motion.div>
@@ -102,7 +106,11 @@ const initialActivities: ActivityItem[] = [
   {
     id: "1",
     icon: UserPlus,
-    message: <>New user <span className="font-bold text-foreground">John Doe</span> registered.</>,
+    message: (
+      <>
+        New user <span className="font-bold text-foreground">John Doe</span> registered.
+      </>
+    ),
     timestamp: "Just now",
     iconColorClass: "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50",
   },
@@ -116,7 +124,11 @@ const initialActivities: ActivityItem[] = [
   {
     id: "3",
     icon: FileText,
-    message: <>Report <span className="font-bold text-foreground">'Monthly Sales'</span> generated.</>,
+    message: (
+      <>
+        Report <span className="font-bold text-foreground">'Monthly Sales'</span> generated.
+      </>
+    ),
     timestamp: "1 hour ago",
   },
   {
@@ -140,19 +152,20 @@ export function DashboardActivitiesDemo() {
           icon: Bell,
           message: "New support ticket #1234 assigned.",
           timestamp: "Just now",
-          iconColorClass: "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50",
+          iconColorClass:
+            "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50",
         },
         ...prev,
       ]);
     }, 3000); // Add a new activity after 3 seconds
 
     const removeTimer = setTimeout(() => {
-        setActivities((prev) => prev.filter(item => item.id !== "3"));
+      setActivities((prev) => prev.filter((item) => item.id !== "3"));
     }, 6000); // Remove an activity after 6 seconds
 
     return () => {
-        clearTimeout(timer);
-        clearTimeout(removeTimer);
+      clearTimeout(timer);
+      clearTimeout(removeTimer);
     };
   }, []);
 

@@ -7,11 +7,15 @@ import { describe, it, expect } from "vitest";
  * Extract a value at a dot-notation path from an object.
  */
 function getPathValue(obj: unknown, path: string): unknown {
-  if (!obj || typeof obj !== "object") return undefined;
+  if (!obj || typeof obj !== "object") {
+    return undefined;
+  }
   const parts = path.split(".");
   let current: unknown = obj;
   for (const part of parts) {
-    if (!current || typeof current !== "object") return undefined;
+    if (!current || typeof current !== "object") {
+      return undefined;
+    }
     current = (current as Record<string, unknown>)[part];
   }
   return current;
@@ -21,10 +25,14 @@ function getPathValue(obj: unknown, path: string): unknown {
  * Extract a section from a JSON schema by navigating to properties.<section>.
  */
 function getSchemaSection(schema: unknown, section: string): unknown {
-  if (!schema || typeof schema !== "object") return undefined;
+  if (!schema || typeof schema !== "object") {
+    return undefined;
+  }
   const s = schema as Record<string, unknown>;
   const props = s.properties as Record<string, unknown> | undefined;
-  if (!props) return undefined;
+  if (!props) {
+    return undefined;
+  }
   return props[section];
 }
 
@@ -32,14 +40,20 @@ function getSchemaSection(schema: unknown, section: string): unknown {
  * Extract schema at a dot-notation path.
  */
 function getSchemaAtPath(schema: unknown, path: string): unknown {
-  if (!schema || typeof schema !== "object") return undefined;
+  if (!schema || typeof schema !== "object") {
+    return undefined;
+  }
   const parts = path.split(".");
   let current: unknown = schema;
   for (const part of parts) {
-    if (!current || typeof current !== "object") return undefined;
+    if (!current || typeof current !== "object") {
+      return undefined;
+    }
     const c = current as Record<string, unknown>;
     const props = c.properties as Record<string, unknown> | undefined;
-    if (!props) return undefined;
+    if (!props) {
+      return undefined;
+    }
     current = props[part];
   }
   return current;
@@ -226,7 +240,7 @@ describe("config handler helpers", () => {
 
     it("filters hints for top-level section", () => {
       const result = filterUiHints(testHints, "agents");
-      expect(Object.keys(result).sort()).toEqual([
+      expect(Object.keys(result).toSorted()).toEqual([
         "agents",
         "agents.defaults",
         "agents.defaults.model",
@@ -237,7 +251,7 @@ describe("config handler helpers", () => {
 
     it("filters hints for nested path", () => {
       const result = filterUiHints(testHints, "agents.defaults.model");
-      expect(Object.keys(result).sort()).toEqual([
+      expect(Object.keys(result).toSorted()).toEqual([
         "agents.defaults.model",
         "agents.defaults.model.primary",
       ]);

@@ -3,8 +3,8 @@
  * Handles app-wide keyboard shortcuts that work regardless of current view
  */
 
-import { toggleKeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
 import type { Tab } from "./navigation";
+import { toggleKeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
 
 export type GlobalShortcutsConfig = {
   onNavigate: (tab: Tab) => void;
@@ -146,9 +146,7 @@ export function destroyGlobalShortcuts(): void {
 /**
  * Update the shortcuts config
  */
-export function updateGlobalShortcutsConfig(
-  updates: Partial<GlobalShortcutsConfig>
-): void {
+export function updateGlobalShortcutsConfig(updates: Partial<GlobalShortcutsConfig>): void {
   if (config) {
     config = { ...config, ...updates };
   }

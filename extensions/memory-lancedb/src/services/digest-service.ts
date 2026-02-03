@@ -19,7 +19,9 @@ export class DigestService {
     const result = await this.synthesizer.synthesize(allMemories, api);
 
     if (dryRun) {
-      api.logger.info(`[Dry Run] Would archive ${result.archived.length} items and create ${result.merged.length} new ones.`);
+      api.logger.info(
+        `[Dry Run] Would archive ${result.archived.length} items and create ${result.merged.length} new ones.`,
+      );
       return result.summary;
     }
 
@@ -44,7 +46,9 @@ export class DigestService {
       await this.notifier.notify(result.summary);
     }
 
-    api.logger.info(`memory-lancedb: Maintenance complete. Archived ${result.archived.length}, Merged ${result.merged.length}.`);
+    api.logger.info(
+      `memory-lancedb: Maintenance complete. Archived ${result.archived.length}, Merged ${result.merged.length}.`,
+    );
     return result.summary;
   }
 }

@@ -2,25 +2,18 @@
 // Component: Activity Chart Card
 // Search Query: "activity feed timeline"
 
-import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, TrendingUp } from "lucide-react";
-
-import { cn } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Prop definition for individual data points
 interface ActivityDataPoint {
@@ -48,9 +41,7 @@ export const ActivityChartCard = ({
   className,
   dropdownOptions = ["Weekly", "Monthly", "Yearly"],
 }: ActivityChartCardProps) => {
-  const [selectedRange, setSelectedRange] = React.useState(
-    dropdownOptions[0] || ""
-  );
+  const [selectedRange, setSelectedRange] = React.useState(dropdownOptions[0] || "");
 
   // Find the maximum value in the data to normalize bar heights
   const maxValue = React.useMemo(() => {
@@ -82,10 +73,7 @@ export const ActivityChartCard = ({
   };
 
   return (
-    <Card
-      className={cn("w-full max-w-md", className)}
-      aria-labelledby="activity-card-title"
-    >
+    <Card className={cn("w-full max-w-md", className)} aria-labelledby="activity-card-title">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle id="activity-card-title">{title}</CardTitle>
@@ -103,10 +91,7 @@ export const ActivityChartCard = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {dropdownOptions.map((option) => (
-                <DropdownMenuItem
-                  key={option}
-                  onSelect={() => setSelectedRange(option)}
-                >
+                <DropdownMenuItem key={option} onSelect={() => setSelectedRange(option)}>
                   {option}
                 </DropdownMenuItem>
               ))}
@@ -118,9 +103,7 @@ export const ActivityChartCard = ({
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
           {/* Total Value */}
           <div className="flex flex-col">
-            <p className="text-5xl font-bold tracking-tighter text-foreground">
-              {totalValue}
-            </p>
+            <p className="text-5xl font-bold tracking-tighter text-foreground">{totalValue}</p>
             <CardDescription className="flex items-center gap-1">
               <TrendingUp className="h-4 w-4 text-emerald-500" />
               +12% from last week
@@ -150,9 +133,7 @@ export const ActivityChartCard = ({
                   variants={barVariants}
                   aria-label={`${item.day}: ${item.value} hours`}
                 />
-                <span className="text-xs text-muted-foreground">
-                  {item.day}
-                </span>
+                <span className="text-xs text-muted-foreground">{item.day}</span>
               </div>
             ))}
           </motion.div>
@@ -176,11 +157,7 @@ export function ActivityChartCardDemo() {
 
   return (
     <div className="flex min-h-[400px] w-full items-center justify-center bg-background p-4">
-      <ActivityChartCard
-        title="Activity"
-        totalValue="21h"
-        data={weeklyActivityData}
-      />
+      <ActivityChartCard title="Activity" totalValue="21h" data={weeklyActivityData} />
     </div>
   );
 }

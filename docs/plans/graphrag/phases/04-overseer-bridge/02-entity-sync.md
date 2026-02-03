@@ -11,6 +11,7 @@
 ## Task Overview
 
 Implement synchronization logic that:
+
 - Creates/updates goal entities in graph
 - Creates/updates task entities in graph
 - Links goals/tasks to related entities
@@ -30,7 +31,7 @@ src/knowledge/overseer-bridge/
  * Synchronize goals and tasks as graph entities.
  */
 
-import type { RelationalDatastore } from '../datastore/interface.js';
+import type { RelationalDatastore } from "../datastore/interface.js";
 
 export class OverseerEntitySync {
   constructor(private datastore: RelationalDatastore) {}
@@ -45,7 +46,7 @@ export class OverseerEntitySync {
     status: string;
     relatedEntityIds?: string[];
   }): Promise<void> {
-    await this.datastore.transaction(async tx => {
+    await this.datastore.transaction(async (tx) => {
       const goalEntityId = `goal-${goal.id}`;
 
       // Create/update goal entity
@@ -60,11 +61,11 @@ export class OverseerEntitySync {
           goalEntityId,
           goal.title,
           this.hashName(goal.title),
-          'goal',
+          "goal",
           goal.description,
           Date.now(),
           Date.now(),
-        ]
+        ],
       );
 
       // Link to related entities
@@ -79,12 +80,12 @@ export class OverseerEntitySync {
               `goal-${goal.id}-${entityId}`,
               goalEntityId,
               entityId,
-              'references',
+              "references",
               `Goal "${goal.title}" references this entity`,
               7,
               Date.now(),
               Date.now(),
-            ]
+            ],
           );
         }
       }
@@ -96,10 +97,10 @@ export class OverseerEntitySync {
         [
           `history-goal-${goal.id}-${Date.now()}`,
           goalEntityId,
-          'created',
+          "created",
           JSON.stringify({ goalId: goal.id, status: goal.status }),
           Date.now(),
-        ]
+        ],
       );
     });
   }
@@ -115,7 +116,7 @@ export class OverseerEntitySync {
     status: string;
     relatedEntityIds?: string[];
   }): Promise<void> {
-    await this.datastore.transaction(async tx => {
+    await this.datastore.transaction(async (tx) => {
       const taskId = `task-${task.id}`;
 
       // Create/update task entity
@@ -130,11 +131,11 @@ export class OverseerEntitySync {
           taskId,
           task.title,
           this.hashName(task.title),
-          'task',
+          "task",
           task.description,
           Date.now(),
           Date.now(),
-        ]
+        ],
       );
 
       // Link to goal if present
@@ -149,12 +150,12 @@ export class OverseerEntitySync {
             `task-${task.id}-goal`,
             taskId,
             goalEntityId,
-            'part_of',
+            "part_of",
             `Task "${task.title}" is part of goal`,
             10,
             Date.now(),
             Date.now(),
-          ]
+          ],
         );
       }
 
@@ -169,12 +170,12 @@ export class OverseerEntitySync {
               `task-${task.id}-${entityId}`,
               taskId,
               entityId,
-              'references',
+              "references",
               `Task "${task.title}" references this entity`,
               6,
               Date.now(),
               Date.now(),
-            ]
+            ],
           );
         }
       }
@@ -191,7 +192,7 @@ export class OverseerEntitySync {
       `UPDATE kg_entities
        SET last_seen = $1
        WHERE id = $2`,
-      [Date.now(), goalEntityId]
+      [Date.now(), goalEntityId],
     );
 
     await this.datastore.execute(
@@ -200,22 +201,24 @@ export class OverseerEntitySync {
       [
         `history-goal-${goalId}-status-${Date.now()}`,
         goalEntityId,
-        'updated',
+        "updated",
         JSON.stringify({ goalId, status }),
         Date.now(),
-      ]
+      ],
     );
   }
 
   /**
    * Find goals that reference an entity.
    */
-  async findGoalsForEntity(entityId: string): Promise<Array<{
-    id: string;
-    title: string;
-    description?: string;
-    status: string;
-  }>> {
+  async findGoalsForEntity(entityId: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      description?: string;
+      status: string;
+    }>
+  > {
     const results = await this.datastore.query<any>(
       `SELECT
          e.id,
@@ -229,11 +232,11 @@ export class OverseerEntitySync {
          AND e.type = 'goal'
          AND eh.event = 'created'
        ORDER BY eh.timestamp DESC`,
-      [entityId]
+      [entityId],
     );
 
-    return results.map(r => ({
-      id: r.id.replace('goal-', ''),
+    return results.map((r) => ({
+      id: r.id.replace("goal-", ""),
       title: r.title,
       description: r.description,
       status: r.status,
@@ -243,13 +246,15 @@ export class OverseerEntitySync {
   /**
    * Find tasks that reference an entity.
    */
-  async findTasksForEntity(entityId: string): Promise<Array<{
-    id: string;
-    goalId?: string;
-    title: string;
-    description?: string;
-    status: string;
-  }>> {
+  async findTasksForEntity(entityId: string): Promise<
+    Array<{
+      id: string;
+      goalId?: string;
+      title: string;
+      description?: string;
+      status: string;
+    }>
+  > {
     const results = await this.datastore.query<any>(
       `SELECT DISTINCT
          e.id,
@@ -262,15 +267,15 @@ export class OverseerEntitySync {
        WHERE r.target_id = $1
          AND e.type = 'task'
        ORDER BY e.last_seen DESC`,
-      [entityId]
+      [entityId],
     );
 
-    return results.map(r => ({
-      id: r.id.replace('task-', ''),
-      goalId: r.goal_entity_id?.replace('goal-', ''),
+    return results.map((r) => ({
+      id: r.id.replace("task-", ""),
+      goalId: r.goal_entity_id?.replace("goal-", ""),
       title: r.title,
       description: r.description,
-      status: 'active',
+      status: "active",
     }));
   }
 
@@ -278,9 +283,12 @@ export class OverseerEntitySync {
    * Hash entity name for consolidation.
    */
   private hashName(name: string): string {
-    const normalized = name.toLowerCase().trim().replace(/[^\w\s]/g, '');
-    const crypto = await import('crypto');
-    return crypto.createHash('md5').update(normalized).digest('hex');
+    const normalized = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s]/g, "");
+    const crypto = await import("crypto");
+    return crypto.createHash("md5").update(normalized).digest("hex");
   }
 }
 ```

@@ -260,4 +260,3 @@ export const SURFACES: SecuritySurface[] = [
     policyGoal: "Keep memory helpful, not a latent injection vector.",
   },
 ];
-

@@ -1,24 +1,30 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { Canvas } from "@react-three/fiber";
 import { Environment, OrbitControls, Stars } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Crosshair, Layers, Shield, X } from "lucide-react";
 import React, { useMemo, useRef, useState } from "react";
 import type { SecuritySurface, SurfaceCategory } from "./surfaces";
-import { SURFACES } from "./surfaces";
 import { AtlasScene } from "./components/AtlasScene";
 import { clsx } from "./lib/clsx";
+import { SURFACES } from "./surfaces";
 
 type Filter = SurfaceCategory | "All";
 
 function severityBadgeClass(sev: SecuritySurface["severity"]) {
-  if (sev === "High") {return "badge badgeHigh";}
-  if (sev === "Medium") {return "badge badgeMed";}
+  if (sev === "High") {
+    return "badge badgeHigh";
+  }
+  if (sev === "Medium") {
+    return "badge badgeMed";
+  }
   return "badge badgeLow";
 }
 
 function metricFromSurfaces(surfaces: SecuritySurface[]) {
   const counts = { High: 0, Medium: 0, Low: 0 } as Record<SecuritySurface["severity"], number>;
-  for (const s of surfaces) {counts[s.severity] += 1;}
+  for (const s of surfaces) {
+    counts[s.severity] += 1;
+  }
   return counts;
 }
 
@@ -30,12 +36,16 @@ export function App() {
 
   const categories = useMemo(() => {
     const set = new Set<SurfaceCategory>();
-    for (const s of SURFACES) {set.add(s.category);}
+    for (const s of SURFACES) {
+      set.add(s.category);
+    }
     return ["All", ...Array.from(set)] as const;
   }, []);
 
   const filtered = useMemo(() => {
-    if (filter === "All") {return SURFACES;}
+    if (filter === "All") {
+      return SURFACES;
+    }
     return SURFACES.filter((s) => s.category === filter);
   }, [filter]);
 
@@ -115,19 +125,26 @@ export function App() {
                   A cinematic map of <span>threat surfaces</span> — and the moves that tame them.
                 </h1>
                 <div className="heroSub">
-                  Built for “wow factor” and clarity: click a node in the 3D atlas or drill down below
-                  to explore the ways OpenClaw can be attacked, and how we intend to harden it.
+                  Built for “wow factor” and clarity: click a node in the 3D atlas or drill down
+                  below to explore the ways OpenClaw can be attacked, and how we intend to harden
+                  it.
                 </div>
                 <div className="ctaRow">
                   <button className={clsx("btn", "btnPrimary")} onClick={scrollToCards}>
                     Explore surfaces <ArrowRight size={16} />
                   </button>
-                  <button className="btn" onClick={() => open(SURFACES.find((s) => s.id === "prompt-injection") ?? SURFACES[0])}>
+                  <button
+                    className="btn"
+                    onClick={() =>
+                      open(SURFACES.find((s) => s.id === "prompt-injection") ?? SURFACES[0])
+                    }
+                  >
                     Prompt injection playbook <Layers size={16} />
                   </button>
                 </div>
                 <div className="footerNote">
-                  Tip: the background atlas is interactive — hover for labels, click to open a deep dive.
+                  Tip: the background atlas is interactive — hover for labels, click to open a deep
+                  dive.
                 </div>
               </div>
 
@@ -157,8 +174,8 @@ export function App() {
                   </div>
                 </div>
                 <div className="footerNote">
-                  This demo intentionally speaks in operator language: “what it is”, “how it bites”, and “how
-                  we mitigate”.
+                  This demo intentionally speaks in operator language: “what it is”, “how it bites”,
+                  and “how we mitigate”.
                 </div>
               </div>
             </div>
@@ -170,7 +187,9 @@ export function App() {
                 <h2>Threat Surfaces</h2>
                 <p>Filter and drill down. Every card opens a mitigation-focused brief.</p>
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <div
+                style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}
+              >
                 {categories.map((cat) => (
                   <div
                     key={cat}
@@ -238,18 +257,33 @@ export function App() {
                     <h3 className="modalTitle">{selected.title}</h3>
                     <div className="modalSub">{selected.whatItIs}</div>
                   </div>
-                  <button className="modalClose" onClick={() => setSelected(null)} aria-label="Close">
+                  <button
+                    className="modalClose"
+                    onClick={() => setSelected(null)}
+                    aria-label="Close"
+                  >
                     <X size={16} />
                   </button>
                 </div>
                 <div className="modalBody">
                   <div className="panel">
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
                       <div>
                         <div className="panelTitle">How it bites</div>
-                        <div className="footerNote">Attack patterns that feel “plausible” in real ops.</div>
+                        <div className="footerNote">
+                          Attack patterns that feel “plausible” in real ops.
+                        </div>
                       </div>
-                      <div className={severityBadgeClass(selected.severity)}>{selected.severity}</div>
+                      <div className={severityBadgeClass(selected.severity)}>
+                        {selected.severity}
+                      </div>
                     </div>
                     <ul className="panelList">
                       {selected.howItBites.map((x) => (
@@ -259,7 +293,9 @@ export function App() {
                   </div>
                   <div className="panel">
                     <div className="panelTitle">Mitigation moves</div>
-                    <div className="footerNote">Concrete strategies: scope, gates, guardrails, observability.</div>
+                    <div className="footerNote">
+                      Concrete strategies: scope, gates, guardrails, observability.
+                    </div>
                     <ul className="panelList">
                       {selected.mitigationMoves.map((x) => (
                         <li key={x}>{x}</li>
@@ -282,4 +318,3 @@ export function App() {
     </div>
   );
 }
-

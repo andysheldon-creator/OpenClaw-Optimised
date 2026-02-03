@@ -1,33 +1,20 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { AgentAvatar } from "@/components/dashboard/agent-avatar"
-import { ChatMessage } from "@/components/chat/chat-message"
-import { ChatInput } from "@/components/chat/chat-input"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import {
-  ArrowLeft,
-  Settings,
-  ClipboardList,
-  MoreVertical,
-  Check,
-  Loader2,
-} from "lucide-react"
-import Link from "next/link"
+import { ArrowLeft, Settings, ClipboardList, MoreVertical, Check, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useState } from "react";
+import { ChatInput } from "@/components/chat/chat-input";
+import { ChatMessage } from "@/components/chat/chat-message";
+import { AgentAvatar } from "@/components/dashboard/agent-avatar";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const agents: Record<string, { name: string; status: "active" | "ready" }> = {
   research: { name: "Research Assistant", status: "active" },
   writing: { name: "Writing Partner", status: "ready" },
   scheduler: { name: "Scheduler", status: "ready" },
-}
+};
 
 const initialMessages = [
   {
@@ -56,27 +43,27 @@ const initialMessages = [
       },
     ],
   },
-]
+];
 
 const sessionTasks = [
   { id: "1", name: "Competitor Analysis", status: "running" as const, progress: 60 },
   { id: "2", name: "Initial Research", status: "done" as const },
   { id: "3", name: "Data Collection", status: "done" as const },
-]
+];
 
 const toolCalls = [
   { id: "1", name: "Web Search", duration: "1.2s", status: "done" as const },
   { id: "2", name: "Read Document", duration: "0.8s", status: "done" as const },
   { id: "3", name: "Generate Report", status: "running" as const },
-]
+];
 
 export default function ChatPage() {
-  const params = useParams()
-  const agentId = params.agentId as string
-  const agent = agents[agentId] || { name: "Unknown Agent", status: "ready" }
+  const params = useParams();
+  const agentId = params.agentId as string;
+  const agent = agents[agentId] || { name: "Unknown Agent", status: "ready" };
 
-  const [messages, setMessages] = useState(initialMessages)
-  const [isStreaming, setIsStreaming] = useState(false)
+  const [messages, setMessages] = useState(initialMessages);
+  const [isStreaming, setIsStreaming] = useState(false);
 
   const handleSend = (content: string) => {
     const newMessage = {
@@ -84,11 +71,11 @@ export default function ChatPage() {
       role: "user" as const,
       content,
       timestamp: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-    }
-    setMessages((prev) => [...prev, newMessage])
+    };
+    setMessages((prev) => [...prev, newMessage]);
 
     // Simulate AI response
-    setIsStreaming(true)
+    setIsStreaming(true);
     setTimeout(() => {
       const aiMessage = {
         id: (Date.now() + 1).toString(),
@@ -97,27 +84,22 @@ export default function ChatPage() {
         timestamp: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
         agentName: agent.name,
         agentStatus: agent.status,
-      }
-      setMessages((prev) => [...prev, aiMessage])
-      setIsStreaming(false)
-    }, 1500)
-  }
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+      setIsStreaming(false);
+    }, 1500);
+  };
 
   const handleStop = () => {
-    setIsStreaming(false)
-  }
+    setIsStreaming(false);
+  };
 
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="h-9 w-9 rounded-xl"
-          >
+          <Button variant="ghost" size="icon" asChild className="h-9 w-9 rounded-xl">
             <Link href="/chat" aria-label="Back to conversations">
               <ArrowLeft className="h-5 w-5" />
             </Link>
@@ -158,10 +140,7 @@ export default function ChatPage() {
                     {sessionTasks
                       .filter((t) => t.status === "running")
                       .map((task) => (
-                        <div
-                          key={task.id}
-                          className="rounded-lg border border-border bg-card p-3"
-                        >
+                        <div key={task.id} className="rounded-lg border border-border bg-card p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
                             <span className="font-medium text-sm">{task.name}</span>
@@ -219,9 +198,7 @@ export default function ChatPage() {
                           <span className="text-sm">{tool.name}</span>
                         </div>
                         {tool.duration && (
-                          <span className="text-xs text-muted-foreground">
-                            {tool.duration}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{tool.duration}</span>
                         )}
                       </div>
                     ))}
@@ -256,12 +233,7 @@ export default function ChatPage() {
           {/* Streaming indicator */}
           {isStreaming && (
             <div className="flex gap-3">
-              <AgentAvatar
-                name={agent.name}
-                size="sm"
-                status="active"
-                className="mt-1"
-              />
+              <AgentAvatar name={agent.name} size="sm" status="active" className="mt-1" />
               <div className="rounded-2xl border border-border bg-card px-4 py-3 shadow-soft">
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -274,11 +246,7 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <ChatInput
-        onSend={handleSend}
-        isStreaming={isStreaming}
-        onStop={handleStop}
-      />
+      <ChatInput onSend={handleSend} isStreaming={isStreaming} onStop={handleStop} />
     </div>
-  )
+  );
 }

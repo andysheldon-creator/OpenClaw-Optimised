@@ -25,10 +25,11 @@ Guide completion of development work by validating against the original spec, ve
    - Check the commit history for the original scope
 
 2. **Create a requirements checklist** from the original spec:
+
    ```
    Original requirements:
    - [ ] Requirement A
-   - [ ] Requirement B  
+   - [ ] Requirement B
    - [ ] Requirement C
    ```
 
@@ -55,6 +56,7 @@ cargo test
 ```
 
 **If tests fail:**
+
 ```
 Tests failing (N failures). Must fix before completing:
 [Show failures]
@@ -82,15 +84,18 @@ Create a structured summary of what was built:
 
 ```markdown
 ## Summary
+
 - [Bullet 1: What was added/changed]
 - [Bullet 2: ...]
 - [Bullet 3: ...]
 
 ## Test Coverage
+
 - N new tests added
 - All M tests passing
 
 ## Files Changed
+
 - `path/to/file.go` — [what changed]
 - ...
 ```
@@ -117,6 +122,7 @@ git push -u origin <branch-name>
 ```
 
 Then use the `github` skill to create the PR:
+
 ```bash
 gh pr create \
   --title "<descriptive title>" \
@@ -124,6 +130,7 @@ gh pr create \
 ```
 
 **PR body should include:**
+
 - Summary of changes (from Step 4)
 - Link to original task/spec
 - Test plan / verification steps
@@ -147,6 +154,7 @@ Report: "Keeping branch `<name>`. Available for later."
 #### Option 4: Discard
 
 **Confirm first:**
+
 ```
 This will permanently delete:
 - Branch <name>
@@ -164,16 +172,17 @@ git branch -D <feature-branch>
 
 ## Quick Reference
 
-| Option | Push | PR | Keep Branch | Cleanup |
-|--------|------|----|-------------|---------|
-| 1. Create PR | ✓ | ✓ | ✓ | — |
-| 2. Merge locally | — | — | — | ✓ |
-| 3. Keep as-is | — | — | ✓ | — |
-| 4. Discard | — | — | — | ✓ (force) |
+| Option           | Push | PR  | Keep Branch | Cleanup   |
+| ---------------- | ---- | --- | ----------- | --------- |
+| 1. Create PR     | ✓    | ✓   | ✓           | —         |
+| 2. Merge locally | —    | —   | —           | ✓         |
+| 3. Keep as-is    | —    | —   | ✓           | —         |
+| 4. Discard       | —    | —   | —           | ✓ (force) |
 
 ## Red Flags
 
 **Never:**
+
 - Skip landing task validation (Step 1)
 - Proceed with failing tests
 - Merge without verifying tests on the result
@@ -182,6 +191,7 @@ git branch -D <feature-branch>
 - Create PR without structured description
 
 **Always:**
+
 - Validate against original spec FIRST
 - Verify tests before offering options
 - Include original task link in PR body

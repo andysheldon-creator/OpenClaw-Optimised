@@ -36,16 +36,26 @@ interface Entity {
 }
 
 interface EntityType {
-  type: 'person' | 'org' | 'repo' | 'concept' | 'tool' |
-        'location' | 'event' | 'goal' | 'task' | 'file' | 'custom';
-  customType?: string;  // If type === 'custom'
+  type:
+    | "person"
+    | "org"
+    | "repo"
+    | "concept"
+    | "tool"
+    | "location"
+    | "event"
+    | "goal"
+    | "task"
+    | "file"
+    | "custom";
+  customType?: string; // If type === 'custom'
 }
 
 interface TextMention {
   text: string;
   startIndex: number;
   endIndex: number;
-  context: string;  // 50 chars before and after
+  context: string; // 50 chars before and after
 }
 
 interface Relationship {
@@ -55,7 +65,7 @@ interface Relationship {
   type: string;
   description: string;
   keywords: string[];
-  strength: number;  // 1-10
+  strength: number; // 1-10
   mentions: TextMention[];
 }
 ```
@@ -425,12 +435,14 @@ Create the file `src/knowledge/extraction/gold-standard.json`:
 After completing ground truth extraction, verify:
 
 ### Completeness
+
 - [ ] All 10 documents have extractions
 - [ ] All entity types are represented
 - [ ] All relationship types are represented
 - [ ] Edge cases are explicitly marked
 
 ### Consistency
+
 - [ ] Entity IDs are unique across all documents
 - [ ] Relationship IDs are unique
 - [ ] Source/target entity IDs exist
@@ -438,6 +450,7 @@ After completing ground truth extraction, verify:
 - [ ] Mentions have valid indices
 
 ### Accuracy
+
 - [ ] Entity descriptions reflect only document content
 - [ ] Relationship descriptions match text
 - [ ] Keywords are present in text

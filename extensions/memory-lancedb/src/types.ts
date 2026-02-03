@@ -30,15 +30,17 @@ export interface MemoryStore {
 export interface Extractor {
   extract(
     messages: { role: string; content: string }[],
-    api: ClawdbrainPluginApi
-  ): Promise<{
-    text: string;
-    category: MemoryCategory;
-    importance: number;
-    confidence: number;
-    tags: string[];
-  }[]>;
-  
+    api: ClawdbrainPluginApi,
+  ): Promise<
+    {
+      text: string;
+      category: MemoryCategory;
+      importance: number;
+      confidence: number;
+      tags: string[];
+    }[]
+  >;
+
   /**
    * Fetches content from the URL and generates a summary.
    */
@@ -49,18 +51,18 @@ export interface Expander {
   expand(
     history: { role: string; content: string }[],
     currentPrompt: string,
-    api: ClawdbrainPluginApi
+    api: ClawdbrainPluginApi,
   ): Promise<string>;
 }
 
 export interface Synthesizer {
   synthesize(
     memories: MemoryEntry[],
-    api: ClawdbrainPluginApi
+    api: ClawdbrainPluginApi,
   ): Promise<{
     merged: MemoryEntry[];
-    archived: string[]; 
-    summary: string; 
+    archived: string[];
+    summary: string;
   }>;
 }
 

@@ -6,29 +6,31 @@
 ## ⚠️ WORKING DIRECTORY GUIDANCE ⚠️
 
 **For Skill development, Skill changes, or any non-code configuration changes:**
+
 - Always make changes in **`~/clawd/clawdbot`** (the main clawdbot repo)
 - Do NOT make these changes in the agent's base working directory (`~/.openclaw/` or similar)
 
-| Change Type | Correct Location |
-|-------------|------------------|
-| Skill files (`skills/*/SKILL.md`) | `~/clawd/clawdbot/skills/` |
-| Agent configuration | `~/clawd/clawdbot/` or `~/.openclaw/openclaw.json` |
-| Documentation updates | `~/clawd/clawdbot/docs/` |
-| Memory/notes files | `~/clawd/MEMORY.md` |
+| Change Type                       | Correct Location                                   |
+| --------------------------------- | -------------------------------------------------- |
+| Skill files (`skills/*/SKILL.md`) | `~/clawd/clawdbot/skills/`                         |
+| Agent configuration               | `~/clawd/clawdbot/` or `~/.openclaw/openclaw.json` |
+| Documentation updates             | `~/clawd/clawdbot/docs/`                           |
+| Memory/notes files                | `~/clawd/MEMORY.md`                                |
 
 ---
 
 ## Project Structure & Module Organization
 
 ### ⚠️ UI Directory WARNING ⚠️
+
 **DO NOT** work on or maintain `ui/*` — this is the **legacy upstream UI** that is effectively deprecated for our fork.
 
 **DO** work in `apps/web/*` — this is **our revamped UI** (React, TanStack, shadcn). All new UI features, fixes, and improvements go here.
 
-| Directory | Status | Action |
-|-----------|--------|--------|
-| `apps/web/` | ✅ **ACTIVE** — Our UI | Work here for all UI tasks |
-| `ui/` | ❌ **DEPRECATED** — Legacy upstream | Do NOT modify; ignore for our purposes |
+| Directory   | Status                              | Action                                 |
+| ----------- | ----------------------------------- | -------------------------------------- |
+| `apps/web/` | ✅ **ACTIVE** — Our UI              | Work here for all UI tasks             |
+| `ui/`       | ❌ **DEPRECATED** — Legacy upstream | Do NOT modify; ignore for our purposes |
 
 If a task mentions "UI work" or "control UI" or "web interface", it means `apps/web/`, never `ui/`.
 
