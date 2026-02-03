@@ -3,7 +3,6 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
 
 export type ExecHost = "sandbox" | "gateway" | "node";
@@ -586,6 +585,11 @@ export type ExecCommandAnalysis = {
 };
 
 const DISALLOWED_PIPELINE_TOKENS = new Set([">", "<", "`", "\n", "\r", "(", ")"]);
+const DOUBLE_QUOTE_ESCAPES = new Set(["\\", '"', "$", "`", "\n", "\r"]);
+
+function isDoubleQuoteEscape(next: string | undefined): next is string {
+  return Boolean(next && DOUBLE_QUOTE_ESCAPES.has(next));
+}
 
 type IteratorAction = "split" | "skip" | "include" | { reject: string };
 
@@ -638,6 +642,21 @@ function iterateQuoteAware(
       continue;
     }
     if (inDouble) {
+      if (ch === "\\" && isDoubleQuoteEscape(next)) {
+        buf += ch;
+        buf += next;
+        i += 1;
+        continue;
+      }
+      if (ch === "$" && next === "(") {
+        return { ok: false, reason: "unsupported shell token: $()" };
+      }
+      if (ch === "`") {
+        return { ok: false, reason: "unsupported shell token: `" };
+      }
+      if (ch === "\n" || ch === "\r") {
+        return { ok: false, reason: "unsupported shell token: newline" };
+      }
       if (ch === '"') {
         inDouble = false;
       }
@@ -750,6 +769,12 @@ function tokenizeShellSegment(segment: string): string[] | null {
       continue;
     }
     if (inDouble) {
+      const next = segment[i + 1];
+      if (ch === "\\" && isDoubleQuoteEscape(next)) {
+        buf += next;
+        i += 1;
+        continue;
+      }
       if (ch === '"') {
         inDouble = false;
       } else {
@@ -1068,6 +1093,7 @@ function splitCommandChain(command: string): string[] | null {
 
   for (let i = 0; i < command.length; i += 1) {
     const ch = command[i];
+    const next = command[i + 1];
     if (escaped) {
       buf += ch;
       escaped = false;
@@ -1086,6 +1112,12 @@ function splitCommandChain(command: string): string[] | null {
       continue;
     }
     if (inDouble) {
+      if (ch === "\\" && isDoubleQuoteEscape(next)) {
+        buf += ch;
+        buf += next;
+        i += 1;
+        continue;
+      }
       if (ch === '"') {
         inDouble = false;
       }

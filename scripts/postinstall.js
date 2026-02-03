@@ -1,6 +1,6 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { setupGitHooks } from "./setup-git-hooks.js";
 
@@ -293,13 +293,13 @@ function trySetupCompletion(repoRoot) {
   try {
     // Run with OPENCLAW_SKIP_POSTINSTALL to avoid any weird recursion,
     // though distinct from this script.
-    spawnSync(process.execPath, [binPath, "completion", "--install", "--yes"], {
+    spawnSync(process.execPath, [binPath, "completion", "--install", "--yes", "--write-state"], {
       cwd: repoRoot,
       stdio: "inherit",
       env: { ...process.env, OPENCLAW_SKIP_POSTINSTALL: "1" },
     });
   } catch {
-    // Ignore errors to not break install
+    // Ignore errors
   }
 }
 
@@ -307,7 +307,7 @@ function main() {
   const repoRoot = getRepoRoot();
   process.chdir(repoRoot);
 
-  ensureExecutable(path.join(repoRoot, "dist", "/entry.js"));
+  ensureExecutable(path.join(repoRoot, "dist", "entry.js"));
   setupGitHooks({ repoRoot });
   trySetupCompletion(repoRoot);
 

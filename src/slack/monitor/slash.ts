@@ -1,7 +1,9 @@
 import type { SlackActionMiddlewareArgs, SlackCommandMiddlewareArgs } from "@slack/bolt";
 import type { ChatCommandDefinition, CommandArgs } from "../../auto-reply/commands-registry.js";
-import { resolveChunkMode } from "../../auto-reply/chunk.js";
+import type { ResolvedSlackAccount } from "../accounts.js";
+import type { SlackMonitorContext } from "./context.js";
 import { resolveEffectiveMessagesConfig } from "../../agents/identity.js";
+import { resolveChunkMode } from "../../auto-reply/chunk.js";
 import {
   buildCommandTextFromArgs,
   findCommandByNativeName,
@@ -9,9 +11,12 @@ import {
   parseCommandArgs,
   resolveCommandArgMenu,
 } from "../../auto-reply/commands-registry.js";
-import { listSkillCommandsForAgents } from "../../auto-reply/skill-commands.js";
-import { dispatchReplyWithDispatcher } from "../../auto-reply/reply/provider-dispatcher.js";
 import { finalizeInboundContext } from "../../auto-reply/reply/inbound-context.js";
+import { dispatchReplyWithDispatcher } from "../../auto-reply/reply/provider-dispatcher.js";
+import { listSkillCommandsForAgents } from "../../auto-reply/skill-commands.js";
+import { formatAllowlistMatchMeta } from "../../channels/allowlist-match.js";
+import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
+import { resolveConversationLabel } from "../../channels/conversation-label.js";
 import { resolveNativeCommandsEnabled, resolveNativeSkillsEnabled } from "../../config/commands.js";
 import { resolveMarkdownTableMode } from "../../config/markdown-tables.js";
 import { danger, logVerbose } from "../../globals.js";
@@ -21,12 +26,6 @@ import {
   upsertChannelPairingRequest,
 } from "../../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
-import { resolveConversationLabel } from "../../channels/conversation-label.js";
-import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
-import { formatAllowlistMatchMeta } from "../../channels/allowlist-match.js";
-
-import type { ResolvedSlackAccount } from "../accounts.js";
-
 import {
   normalizeAllowList,
   normalizeAllowListLower,
@@ -35,7 +34,7 @@ import {
 } from "./allow-list.js";
 import { resolveSlackChannelConfig, type SlackChannelConfigResolved } from "./channel-config.js";
 import { buildSlackSlashCommandMatcher, resolveSlackSlashCommandConfig } from "./commands.js";
-import type { SlackMonitorContext } from "./context.js";
+import { normalizeSlackChannelType } from "./context.js";
 import { isSlackChannelAllowedByPolicy } from "./policy.js";
 import { deliverSlackSlashReplies } from "./replies.js";
 
@@ -178,8 +177,9 @@ export function registerSlackMonitorSlashCommands(params: {
       }
 
       const channelInfo = await ctx.resolveChannelName(command.channel_id);
-      const channelType =
+      const rawChannelType =
         channelInfo?.type ?? (command.channel_name === "directmessage" ? "im" : undefined);
+      const channelType = normalizeSlackChannelType(rawChannelType, command.channel_id);
       const isDirectMessage = channelType === "im";
       const isGroupDm = channelType === "mpim";
       const isRoom = channelType === "channel" || channelType === "group";
