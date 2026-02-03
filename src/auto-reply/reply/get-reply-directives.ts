@@ -7,6 +7,7 @@ import type { MsgContext, TemplateContext } from "../templating.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import type { TypingController } from "./typing.js";
+import { resolveTieredModel } from "../../agents/model-tiering.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { listChatCommands, shouldHandleTextCommands } from "../commands-registry.js";
 import { listSkillCommandsForWorkspace } from "../skill-commands.js";
@@ -452,6 +453,21 @@ export async function resolveReplyDirectives(params: {
   contextTokens = applyResult.contextTokens;
   const { directiveAck, perMessageQueueMode, perMessageQueueOptions } = applyResult;
   const execOverrides = resolveExecOverrides({ directives, sessionEntry });
+
+  // Apply smart model tiering: use cheaper models for simple queries
+  // Only apply if no explicit model directive was given
+  if (!directives.hasModelDirective) {
+    const tiered = resolveTieredModel({
+      cfg,
+      query: cleanedBody,
+      defaultProvider,
+    });
+    if (tiered) {
+      provider = tiered.ref.provider;
+      model = tiered.ref.model;
+      contextTokens = resolveContextTokens({ agentCfg, model });
+    }
+  }
 
   return {
     kind: "continue",
