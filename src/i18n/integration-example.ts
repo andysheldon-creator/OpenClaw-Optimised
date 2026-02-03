@@ -9,15 +9,8 @@
  * @module i18n/integration-example
  */
 
-import {
-  createI18n,
-  t,
-  setLocale,
-  getLocale,
-  has,
-  type Translator,
-} from "./index.js";
 import { LOCALE_EN, LOCALE_ZH_CN } from "./config.js";
+import { createI18n, t, setLocale, getLocale, has, type Translator } from "./index.js";
 
 // =============================================================================
 // PATTERN 1: Simple Function-Level Usage
@@ -35,6 +28,9 @@ function displayErrorMessage(errorCode: string): void {
   const errorMessage = t("errors.fileNotFound", { file: errorCode });
   console.error(errorMessage);
 }
+
+// 示例函数导出，避免未使用警告
+export { displayErrorMessage };
 
 // =============================================================================
 // PATTERN 2: Class-Based Usage with Dedicated Translator
@@ -55,7 +51,7 @@ class ConfigurationService {
   /**
    * Load configuration with translated status messages
    */
-  async loadConfig(configPath: string): Promise<void> {
+  async loadConfig(_configPath: string): Promise<void> {
     console.log(t("status.loading"));
 
     try {
@@ -84,16 +80,20 @@ class ConfigurationService {
 
     console.log(t("status.saving"));
     // ... save logic ...
+    console.log(`Config saved to: ${configPath}`);
   }
 
   /**
    * Switch language at runtime
    */
   setLanguage(locale: string): void {
-    setLocale(locale as any);
+    setLocale(locale as unknown as Parameters<typeof setLocale>[0]);
     console.log(t("status.languageChanged", { language: locale }));
   }
 }
+
+// 示例类导出，避免未使用警告
+export { ConfigurationService };
 
 // =============================================================================
 // PATTERN 3: CLI Command Integration
@@ -110,7 +110,7 @@ interface StatusCommandOptions {
 function handleStatusCommand(options: StatusCommandOptions): void {
   // Set locale from CLI flag if provided
   if (options.lang) {
-    setLocale(options.lang as any);
+    setLocale(options.lang as unknown as Parameters<typeof setLocale>[0]);
   }
 
   // Use translated messages
@@ -125,6 +125,9 @@ function handleStatusCommand(options: StatusCommandOptions): void {
     console.log(`${t("status.running")}: ${status.uptime}`);
   }
 }
+
+// 示例函数导出，避免未使用警告
+export { handleStatusCommand };
 
 // =============================================================================
 // PATTERN 4: Wizard/Interactive Prompt Integration
@@ -146,11 +149,14 @@ async function setupLanguageStep(): Promise<string> {
   });
 
   if (language) {
-    setLocale(language as any);
+    setLocale(language as unknown as Parameters<typeof setLocale>[0]);
   }
 
   return language as string;
 }
+
+// 示例函数导出，避免未使用警告
+export { setupLanguageStep };
 
 async function setupConfirmationStep(): Promise<boolean> {
   const confirmed = await confirm({
@@ -161,6 +167,9 @@ async function setupConfirmationStep(): Promise<boolean> {
   return confirmed === true;
 }
 
+// 示例函数导出，避免未使用警告
+export { setupConfirmationStep };
+
 // =============================================================================
 // PATTERN 5: Error Handling Integration
 // =============================================================================
@@ -169,10 +178,7 @@ async function setupConfirmationStep(): Promise<boolean> {
  * Example error handling with translated error messages
  */
 class AppError extends Error {
-  constructor(
-    messageKey: string,
-    params?: Record<string, string>
-  ) {
+  constructor(messageKey: string, params?: Record<string, string>) {
     // Translate the error message
     const translatedMessage = t(messageKey, params);
     super(translatedMessage);
@@ -182,7 +188,7 @@ class AppError extends Error {
 
 function handleError(error: unknown): void {
   if (error instanceof AppError) {
-    console.error(`${t("error")}: ${error.message}`);
+    console.error(`${t("common.error")}: ${error.message}`);
   } else if (error instanceof Error) {
     console.error(t("errors.unknown"));
     console.error(error.message);
@@ -190,6 +196,9 @@ function handleError(error: unknown): void {
     console.error(t("errors.unknown"));
   }
 }
+
+// 示例函数导出，避免未使用警告
+export { handleError };
 
 // =============================================================================
 // PATTERN 6: Validation Messages Integration
@@ -224,6 +233,9 @@ function validateForm(data: FormData): string[] {
   return errors;
 }
 
+// 示例函数导出，避免未使用警告
+export { validateForm };
+
 // =============================================================================
 // PATTERN 7: Dynamic Status Updates
 // =============================================================================
@@ -235,6 +247,9 @@ function displaySystemStatus(memoryUsage: string, cpuUsage: string): void {
   console.log(t("status.memoryUsage", { usage: memoryUsage }));
   console.log(t("status.cpuUsage", { usage: cpuUsage }));
 }
+
+// 示例函数导出，避免未使用警告
+export { displaySystemStatus };
 
 // =============================================================================
 // PATTERN 8: Initialization with Language Detection
@@ -259,6 +274,9 @@ async function initializeApp(): Promise<void> {
   // ... rest of initialization ...
 }
 
+// 示例函数导出，避免未使用警告
+export { initializeApp };
+
 // =============================================================================
 // PATTERN 9: Plugin/Extension Integration
 // =============================================================================
@@ -274,7 +292,7 @@ interface PluginInfo {
 
 function registerPlugin(plugin: PluginInfo): void {
   // Use translated description if available
-  const description = has(plugin.descriptionKey)
+  const _description = has(plugin.descriptionKey)
     ? t(plugin.descriptionKey)
     : plugin.descriptionKey; // Fallback to key if not translated
 
@@ -282,6 +300,9 @@ function registerPlugin(plugin: PluginInfo): void {
   // ... registration logic ...
   console.log(t("status.pluginRegistered", { name: plugin.name }));
 }
+
+// 示例函数导出，避免未使用警告
+export { registerPlugin };
 
 // =============================================================================
 // PATTERN 10: Testing with i18n
@@ -307,7 +328,7 @@ describe("Feature with i18n", () => {
     setLocale(LOCALE_ZH_CN);
     expect(t("errors.notFound", { item: "test" })).toBe("未找到test");
   });
-})
+});
 
 // =============================================================================
 // USAGE GUIDE

@@ -37,6 +37,7 @@ OpenClaw uses a JSON-based internationalization (i18n) system with namespace org
 ### Finding Translation Files
 
 Translation files are located at:
+
 ```
 src/i18n/locales/
   en.json        # English (source language)
@@ -50,17 +51,18 @@ src/i18n/locales/
 
 If you're adding a new language, determine the correct locale code:
 
-| Language | Locale Code | Example File |
-|----------|-------------|--------------|
-| English (US) | `en` | `en.json` |
-| Chinese (Simplified) | `zh-CN` | `zh-CN.json` |
-| Chinese (Traditional) | `zh-TW` | `zh-TW.json` |
+| Language              | Locale Code | Example File |
+| --------------------- | ----------- | ------------ |
+| English (US)          | `en`        | `en.json`    |
+| Chinese (Simplified)  | `zh-CN`     | `zh-CN.json` |
+| Chinese (Traditional) | `zh-TW`     | `zh-TW.json` |
 
 For other languages, use standard IETF language tags (e.g., `ja` for Japanese, `ko` for Korean, `de` for German).
 
 ### Step 2: Copy the Source File
 
 Copy `en.json` to your language file:
+
 ```bash
 cp src/i18n/locales/en.json src/i18n/locales/[your-locale].json
 ```
@@ -72,6 +74,7 @@ Edit your locale file and translate each string value. Keys must remain unchange
 ### Step 4: Test Your Translations
 
 Run the i18n tests to verify your translations:
+
 ```bash
 pnpm test src/i18n/i18n.test.ts
 ```
@@ -88,14 +91,14 @@ pnpm test src/i18n/i18n.test.ts
 
 Translations are organized into namespaces based on functionality:
 
-| Namespace | Purpose | Example Keys |
-|-----------|---------|--------------|
-| `cli` | CLI command descriptions | `help`, `version`, `status` |
-| `errors` | Error messages | `notFound`, `permissionDenied` |
-| `wizards` | Setup wizard prompts | `welcomeTitle`, `scanQrCode` |
-| `status` | Status messages | `running`, `connected` |
-| `validation` | Form validation messages | `emailInvalid`, `minLength` |
-| `common` | Common UI strings | `yes`, `no`, `ok`, `cancel` |
+| Namespace    | Purpose                  | Example Keys                   |
+| ------------ | ------------------------ | ------------------------------ |
+| `cli`        | CLI command descriptions | `help`, `version`, `status`    |
+| `errors`     | Error messages           | `notFound`, `permissionDenied` |
+| `wizards`    | Setup wizard prompts     | `welcomeTitle`, `scanQrCode`   |
+| `status`     | Status messages          | `running`, `connected`         |
+| `validation` | Form validation messages | `emailInvalid`, `minLength`    |
+| `common`     | Common UI strings        | `yes`, `no`, `ok`, `cancel`    |
 
 ### Example Structure
 
@@ -167,18 +170,19 @@ Maintain the original sentence structure while making it natural in your languag
 
 Translate technical terms consistently. Create a glossary if needed:
 
-| English | Chinese |
-|---------|---------|
-| CLI | CLI |
-| API key | API密钥 |
-| QR code | 二维码 |
-| authentication | 认证 |
+| English        | Chinese |
+| -------------- | ------- |
+| CLI            | CLI     |
+| API key        | API密钥 |
+| QR code        | 二维码  |
+| authentication | 认证    |
 
 ## Adding a New Language
 
 ### Step 1: Create the Locale File
 
 Copy `en.json` and rename it:
+
 ```bash
 cp src/i18n/locales/en.json src/i18n/locales/[locale].json
 ```
@@ -199,9 +203,9 @@ Edit `src/i18n/detector.ts` to recognize your locale:
 ```typescript
 const localeMappings: Record<string, SupportedLocale> = {
   // ... existing mappings
-  "de": "de",
-  "de_DE": "de",
-  "de_AT": "de",
+  de: "de",
+  de_DE: "de",
+  de_AT: "de",
 };
 ```
 
@@ -212,6 +216,7 @@ Translate all strings in your locale file.
 ### Step 5: Test
 
 Run tests and verify translations work correctly:
+
 ```bash
 pnpm test src/i18n/i18n.test.ts
 ```
@@ -221,6 +226,7 @@ pnpm test src/i18n/i18n.test.ts
 ### Manual Testing
 
 1. Set the locale environment variable:
+
    ```bash
    export OPENCLAW_LOCALE=zh-CN
    pnpm openclaw --help
@@ -234,11 +240,13 @@ pnpm test src/i18n/i18n.test.ts
 ### Automated Testing
 
 Run the i18n unit tests:
+
 ```bash
 pnpm test src/i18n/i18n.test.ts
 ```
 
 These tests verify:
+
 - All translation keys exist
 - Interpolation works correctly
 - Locale switching functions properly
@@ -307,10 +315,10 @@ Test with various inputs:
 
 ```typescript
 // Long values
-t("errors.fileNotFound", { file: "very-long-filename-that-might-cause-issues.json" })
+t("errors.fileNotFound", { file: "very-long-filename-that-might-cause-issues.json" });
 
 // Special characters
-t("errors.networkError", { reason: "ERROR_CONNECTION_REFUSED" })
+t("errors.networkError", { reason: "ERROR_CONNECTION_REFUSED" });
 ```
 
 ### 6. Review Process
@@ -329,6 +337,7 @@ Before submitting:
 ### JSON Validation
 
 Validate your JSON file:
+
 ```bash
 node -e "JSON.parse(require('fs').readFileSync('src/i18n/locales/[locale].json'))"
 ```
@@ -347,6 +356,7 @@ node -e "JSON.parse(require('fs').readFileSync('src/i18n/locales/[locale].json')
 ### Translation Memory
 
 Consider using translation memory tools for consistency:
+
 - [OmegaT](https://omegat.org/)
 - [MemoQ](https://www.memoq.com/)
 - [Transifex](https://www.transifex.com/)
@@ -362,6 +372,7 @@ Consider using translation memory tools for consistency:
 ### Reporting Problems
 
 When reporting translation issues, include:
+
 1. Locale and language
 2. Translation key (e.g., `errors.fileNotFound`)
 3. Current translation

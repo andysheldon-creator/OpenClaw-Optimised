@@ -8,7 +8,13 @@
  * @module i18n/detector
  */
 
-import { LOCALE_ENV_VAR, LOCALE_CLI_FLAG, DEFAULT_LOCALE, type SupportedLocale } from "./config.js";
+import {
+  LOCALE_ENV_VAR,
+  LOCALE_CLI_FLAG,
+  DEFAULT_LOCALE,
+  availableLocales,
+  type SupportedLocale,
+} from "./config.js";
 
 /**
  * Get system locale from environment variables
@@ -71,28 +77,28 @@ function normalizeLocaleCode(code: string): SupportedLocale | null {
   // Map common locale codes to supported locales
   const localeMappings: Record<string, SupportedLocale> = {
     // English
-    "en": "en",
-    "en_US": "en",
-    "en_GB": "en",
-    "en_CA": "en",
-    "en_AU": "en",
+    en: "en",
+    en_US: "en",
+    en_GB: "en",
+    en_CA: "en",
+    en_AU: "en",
     "en_US.UTF-8": "en",
     "en_GB.UTF-8": "en",
 
     // Chinese Simplified (Mainland China)
-    "zh": "zh-CN",
-    "zh_CN": "zh-CN",
+    zh: "zh-CN",
+    zh_CN: "zh-CN",
     "zh_CN.UTF-8": "zh-CN",
-    "zh_Hans": "zh-CN",
-    "zh_Hans_CN": "zh-CN",
+    zh_Hans: "zh-CN",
+    zh_Hans_CN: "zh-CN",
 
     // Chinese Traditional
-    "zh_TW": "zh-TW",
-    "zh_HK": "zh-TW",
+    zh_TW: "zh-TW",
+    zh_HK: "zh-TW",
     "zh_TW.UTF-8": "zh-TW",
     "zh_HK.UTF-8": "zh-TW",
-    "zh_Hant": "zh-TW",
-    "zh_Hant_TW": "zh-TW",
+    zh_Hant: "zh-TW",
+    zh_Hant_TW: "zh-TW",
   };
 
   return localeMappings[baseCode] || null;
@@ -106,9 +112,7 @@ function normalizeLocaleCode(code: string): SupportedLocale | null {
  */
 export function detectLocaleFromArgs(args: string[]): SupportedLocale | null {
   // Look for --lang or --locale flag
-  const langIndex = args.findIndex(
-    (arg) => arg === `--${LOCALE_CLI_FLAG}` || arg === `--locale`
-  );
+  const langIndex = args.findIndex((arg) => arg === `--${LOCALE_CLI_FLAG}` || arg === `--locale`);
 
   if (langIndex !== -1 && args[langIndex + 1]) {
     const detected = normalizeLocaleCode(args[langIndex + 1]);
@@ -180,8 +184,7 @@ export function isLocaleSupported(locale: string): boolean {
     return false;
   }
 
-  const supportedLocales = ["en", "zh-CN", "zh-TW"];
-  return supportedLocales.includes(normalized);
+  return availableLocales.includes(normalized);
 }
 
 /**
@@ -192,7 +195,7 @@ export function isLocaleSupported(locale: string): boolean {
  */
 export function getLocaleDisplayName(locale: SupportedLocale): string {
   const displayNames: Record<SupportedLocale, string> = {
-    "en": "English",
+    en: "English",
     "zh-CN": "简体中文",
     "zh-TW": "繁體中文",
   };

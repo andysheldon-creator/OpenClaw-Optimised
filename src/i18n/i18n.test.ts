@@ -7,7 +7,10 @@
  * @module i18n/i18n.test
  */
 
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { LOCALE_EN, LOCALE_ZH_CN, DEFAULT_LOCALE } from "./config.js";
 import {
   createI18n,
   t,
@@ -15,14 +18,9 @@ import {
   getLocale,
   has,
   resetI18n,
-  reloadTranslations,
   getNamespaces,
   getKeysByNamespace,
 } from "./index.js";
-import { LOCALE_EN, LOCALE_ZH_CN, DEFAULT_LOCALE } from "./config.js";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,7 +47,7 @@ describe("i18n Module", () => {
     });
 
     it("should fall back to default locale for unsupported locales", () => {
-      const translator = createI18n("unsupported-locale" as any);
+      const translator = createI18n("unsupported-locale" as unknown as typeof LOCALE_EN);
       expect(translator.getLocale()).toBe("unsupported-locale");
     });
   });
@@ -259,7 +257,7 @@ describe("Complex Interpolation", () => {
     const result = t("errors.valueOutOfRange", {
       field: "Quantity",
       min: "1",
-      max: "100"
+      max: "100",
     });
     expect(result).toBe("Quantity must be between 1 and 100");
   });

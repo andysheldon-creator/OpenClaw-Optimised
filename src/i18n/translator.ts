@@ -8,20 +8,21 @@
  * @module i18n/translator
  */
 
+import type {
+  TranslationFile,
+  TranslationParams,
+  Translator,
+  I18nConfig,
+  Locale,
+} from "./types.js";
 import {
   DEFAULT_LOCALE,
-  INTERPOLATION_PATTERN,
   FALLBACK_STRING,
   availableLocales,
   type SupportedLocale,
 } from "./config.js";
 import { detectLocale } from "./detector.js";
-import {
-  loadAllTranslationFiles,
-  getTranslationValue,
-  translationKeyExists,
-} from "./loader.js";
-import type { TranslationFile, TranslationParams, Translator, I18nConfig, Locale } from "./types.js";
+import { loadAllTranslationFiles, getTranslationValue, translationKeyExists } from "./loader.js";
 
 // Store for loaded translations (lazy loaded)
 let loadedTranslations: Map<SupportedLocale, TranslationFile> | null = null;
@@ -44,7 +45,7 @@ class I18nInstance implements Translator {
     locale: SupportedLocale,
     fallbackLocale: SupportedLocale,
     translations: Map<SupportedLocale, TranslationFile>,
-    options?: Partial<I18nConfig>
+    options?: Partial<I18nConfig>,
   ) {
     this.currentLocale = locale;
     this.fallbackLocale = fallbackLocale;
@@ -69,7 +70,9 @@ class I18nInstance implements Translator {
     // Use fallback string if still not found
     if (translation === null) {
       if (this.warnOnMissing && this.currentLocale !== DEFAULT_LOCALE) {
-        console.warn(`[i18n] Missing translation for key: "${key}" in locale: ${this.currentLocale}`);
+        console.warn(
+          `[i18n] Missing translation for key: "${key}" in locale: ${this.currentLocale}`,
+        );
       }
       return this.interpolate(FALLBACK_STRING.replace("{{key}}", key), params);
     }
@@ -100,13 +103,14 @@ class I18nInstance implements Translator {
     // Use configurable interpolation pattern
     const pattern = new RegExp(
       `${this.escapeRegex(this.interpolationPrefix)}([^}]+)${this.escapeRegex(this.interpolationSuffix)}`,
-      "g"
+      "g",
     );
 
-    return text.replace(pattern, (_, variableName) => {
+    return text.replace(pattern, (match, variableName) => {
       const trimmedName = variableName.trim();
       const value = params[trimmedName];
-      return value !== undefined ? String(value) : "";
+      // 当参数缺失时保留占位符，便于调试和发现问题
+      return value !== undefined ? String(value) : match;
     });
   }
 
@@ -208,10 +212,7 @@ function getTranslations(): Map<SupportedLocale, TranslationFile> {
  * console.log(t("errors.notFound", { file: "config.json" }));
  * ```
  */
-export function createI18n(
-  locale?: SupportedLocale,
-  options?: Partial<I18nConfig>
-): Translator {
+export function createI18n(locale?: SupportedLocale, options?: Partial<I18nConfig>): Translator {
   const detectedLocale = locale || detectLocale();
   const translations = getTranslations();
 
@@ -219,7 +220,7 @@ export function createI18n(
     detectedLocale,
     (options?.fallbackLocale ?? DEFAULT_LOCALE) as SupportedLocale,
     translations,
-    options
+    options,
   );
 }
 
@@ -229,11 +230,7 @@ export function createI18n(
  */
 function getDefaultTranslator(): Translator {
   if (!currentInstance) {
-    currentInstance = new I18nInstance(
-      detectLocale(),
-      DEFAULT_LOCALE,
-      getTranslations()
-    );
+    currentInstance = new I18nInstance(detectLocale(), DEFAULT_LOCALE, getTranslations());
   }
   return currentInstance;
 }

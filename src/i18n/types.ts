@@ -33,12 +33,12 @@ export type TranslationParams = Record<string, string | number | boolean>;
  * Organizes translations into logical groups for better maintainability
  */
 export type TranslationNamespace =
-  | "cli"           // CLI commands and prompts
-  | "errors"        // Error messages
-  | "wizards"       // Wizard step messages
-  | "status"        // Status and progress messages
-  | "validation"    // Input validation messages
-  | "common";       // Common strings (yes/no, ok/cancel, etc.)
+  | "cli" // CLI commands and prompts
+  | "errors" // Error messages
+  | "wizards" // Wizard step messages
+  | "status" // Status and progress messages
+  | "validation" // Input validation messages
+  | "common"; // Common strings (yes/no, ok/cancel, etc.)
 
 /**
  * Complete translation key format

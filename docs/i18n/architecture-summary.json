@@ -27,17 +27,36 @@
         {
           "name": "config.ts",
           "purpose": "Configuration constants and locale definitions",
-          "content": ["LOCALE_EN", "LOCALE_ZH_CN", "LOCALE_ZH_TW", "DEFAULT_LOCALE", "LOCALE_ENV_VAR"]
+          "content": [
+            "LOCALE_EN",
+            "LOCALE_ZH_CN",
+            "LOCALE_ZH_TW",
+            "DEFAULT_LOCALE",
+            "LOCALE_ENV_VAR"
+          ]
         },
         {
           "name": "types.ts",
           "purpose": "TypeScript type definitions for type safety",
-          "types": ["Locale", "TranslationParams", "TranslationNamespace", "TranslationKey", "TranslationFile", "I18nConfig", "Translator"]
+          "types": [
+            "Locale",
+            "TranslationParams",
+            "TranslationNamespace",
+            "TranslationKey",
+            "TranslationFile",
+            "I18nConfig",
+            "Translator"
+          ]
         },
         {
           "name": "detector.ts",
           "purpose": "Language detection from environment, CLI args, system locale",
-          "detectionOrder": ["OPENCLAW_LOCALE env var", "--lang CLI flag", "system locale (LC_ALL/LANG)", "default (en)"]
+          "detectionOrder": [
+            "OPENCLAW_LOCALE env var",
+            "--lang CLI flag",
+            "system locale (LC_ALL/LANG)",
+            "default (en)"
+          ]
         },
         {
           "name": "loader.ts",
@@ -47,22 +66,48 @@
         {
           "name": "translator.ts",
           "purpose": "Core translation function with interpolation and fallback",
-          "functions": ["t() - translate key with params", "setLocale() - switch language", "getLocale() - get current", "has() - check key exists"]
+          "functions": [
+            "t() - translate key with params",
+            "setLocale() - switch language",
+            "getLocale() - get current",
+            "has() - check key exists"
+          ]
         },
         {
           "name": "ARCHITECTURE.md",
           "purpose": "Comprehensive architecture documentation",
-          "sections": ["Overview", "Module Structure", "Translation Format", "Detection Flow", "Interpolation", "Best Practices"]
+          "sections": [
+            "Overview",
+            "Module Structure",
+            "Translation Format",
+            "Detection Flow",
+            "Interpolation",
+            "Best Practices"
+          ]
         },
         {
           "name": "integration-example.ts",
           "purpose": "Code examples for integrating i18n into application code",
-          "patterns": ["Simple function usage", "Class-based usage", "CLI commands", "Wizard prompts", "Error handling", "Validation"]
+          "patterns": [
+            "Simple function usage",
+            "Class-based usage",
+            "CLI commands",
+            "Wizard prompts",
+            "Error handling",
+            "Validation"
+          ]
         },
         {
           "name": "i18n.test.ts",
           "purpose": "Unit tests covering all i18n functionality",
-          "testCoverage": ["Basic translation", "Interpolation", "Locale switching", "Fallback behavior", "Namespace access", "Chinese translations"]
+          "testCoverage": [
+            "Basic translation",
+            "Interpolation",
+            "Locale switching",
+            "Fallback behavior",
+            "Namespace access",
+            "Chinese translations"
+          ]
         }
       ],
       "locales/": {
@@ -94,11 +139,23 @@
       },
       "errors": {
         "description": "Error messages shown to users",
-        "exampleKeys": ["unknown", "fileNotFound", "permissionDenied", "networkError", "connectionFailed"]
+        "exampleKeys": [
+          "unknown",
+          "fileNotFound",
+          "permissionDenied",
+          "networkError",
+          "connectionFailed"
+        ]
       },
       "wizards": {
         "description": "Setup wizard prompts and messages",
-        "exampleKeys": ["welcomeTitle", "selectLanguage", "scanQrCode", "authSuccess", "setupComplete"]
+        "exampleKeys": [
+          "welcomeTitle",
+          "selectLanguage",
+          "scanQrCode",
+          "authSuccess",
+          "setupComplete"
+        ]
       },
       "status": {
         "description": "System status and progress messages",
@@ -249,23 +306,187 @@
     "en.json": {
       "file": "src/i18n/locales/en.json",
       "strings": {
-        "cli": ["help", "version", "status", "exit", "cancel", "confirm", "back", "next", "done", "loading", "saving", "error", "success", "yes", "no", "ok"],
-        "errors": ["unknown", "notFound", "fileNotFound", "dirNotFound", "configNotFound", "invalidConfig", "permissionDenied", "networkError", "connectionFailed", "serverError", "invalidInput"],
-        "wizards": ["welcomeTitle", "welcomeMessage", "setupComplete", "selectLanguage", "scanQrCode", "authSuccess", "authFailed"],
-        "status": ["starting", "running", "stopped", "online", "offline", "connected", "disconnected", "healthy", "loading", "saving", "success", "failed"],
-        "validation": ["emailInvalid", "urlInvalid", "phoneInvalid", "numberRequired", "minLength", "maxLength", "requiredField"],
-        "common": ["yes", "no", "ok", "cancel", "save", "delete", "edit", "add", "remove", "update", "create", "copy", "paste", "search", "refresh", "close", "open", "start", "stop", "error", "success", "warning", "info"]
+        "cli": [
+          "help",
+          "version",
+          "status",
+          "exit",
+          "cancel",
+          "confirm",
+          "back",
+          "next",
+          "done",
+          "loading",
+          "saving",
+          "error",
+          "success",
+          "yes",
+          "no",
+          "ok"
+        ],
+        "errors": [
+          "unknown",
+          "notFound",
+          "fileNotFound",
+          "dirNotFound",
+          "configNotFound",
+          "invalidConfig",
+          "permissionDenied",
+          "networkError",
+          "connectionFailed",
+          "serverError",
+          "invalidInput"
+        ],
+        "wizards": [
+          "welcomeTitle",
+          "welcomeMessage",
+          "setupComplete",
+          "selectLanguage",
+          "scanQrCode",
+          "authSuccess",
+          "authFailed"
+        ],
+        "status": [
+          "starting",
+          "running",
+          "stopped",
+          "online",
+          "offline",
+          "connected",
+          "disconnected",
+          "healthy",
+          "loading",
+          "saving",
+          "success",
+          "failed"
+        ],
+        "validation": [
+          "emailInvalid",
+          "urlInvalid",
+          "phoneInvalid",
+          "numberRequired",
+          "minLength",
+          "maxLength",
+          "requiredField"
+        ],
+        "common": [
+          "yes",
+          "no",
+          "ok",
+          "cancel",
+          "save",
+          "delete",
+          "edit",
+          "add",
+          "remove",
+          "update",
+          "create",
+          "copy",
+          "paste",
+          "search",
+          "refresh",
+          "close",
+          "open",
+          "start",
+          "stop",
+          "error",
+          "success",
+          "warning",
+          "info"
+        ]
       }
     },
     "zh-CN.json": {
       "file": "src/i18n/locales/zh-CN.json",
       "strings": {
-        "cli": ["帮助", "版本", "状态", "退出", "取消", "确认", "返回", "下一步", "完成", "加载中", "保存中", "错误", "成功", "是", "否", "确定"],
-        "errors": ["发生未知错误", "未找到{{item}}", "文件未找到", "目录未找到", "未找到配置文件", "配置无效", "权限被拒绝", "网络错误", "连接失败", "服务器错误", "输入无效"],
-        "wizards": ["欢迎使用 OpenClaw", "只需几步即可完成设置", "设置完成", "选择语言", "请使用手机扫描此二维码", "认证成功", "认证失败"],
-        "status": ["启动中", "运行中", "已停止", "在线", "离线", "已连接", "已断开", "健康", "加载中", "保存中", "成功", "失败"],
-        "validation": ["请输入有效的电子邮件地址", "请输入有效的URL", "请输入有效的电话号码", "请输入数字", "至少需要{{min}}个字符", "不能超过{{max}}个字符", "{{field}}为必填项"],
-        "common": ["是", "否", "确定", "取消", "保存", "删除", "编辑", "添加", "移除", "更新", "创建", "复制", "粘贴", "搜索", "刷新", "关闭", "打开", "开始", "停止", "错误", "成功", "警告", "信息"]
+        "cli": [
+          "帮助",
+          "版本",
+          "状态",
+          "退出",
+          "取消",
+          "确认",
+          "返回",
+          "下一步",
+          "完成",
+          "加载中",
+          "保存中",
+          "错误",
+          "成功",
+          "是",
+          "否",
+          "确定"
+        ],
+        "errors": [
+          "发生未知错误",
+          "未找到{{item}}",
+          "文件未找到",
+          "目录未找到",
+          "未找到配置文件",
+          "配置无效",
+          "权限被拒绝",
+          "网络错误",
+          "连接失败",
+          "服务器错误",
+          "输入无效"
+        ],
+        "wizards": [
+          "欢迎使用 OpenClaw",
+          "只需几步即可完成设置",
+          "设置完成",
+          "选择语言",
+          "请使用手机扫描此二维码",
+          "认证成功",
+          "认证失败"
+        ],
+        "status": [
+          "启动中",
+          "运行中",
+          "已停止",
+          "在线",
+          "离线",
+          "已连接",
+          "已断开",
+          "健康",
+          "加载中",
+          "保存中",
+          "成功",
+          "失败"
+        ],
+        "validation": [
+          "请输入有效的电子邮件地址",
+          "请输入有效的URL",
+          "请输入有效的电话号码",
+          "请输入数字",
+          "至少需要{{min}}个字符",
+          "不能超过{{max}}个字符",
+          "{{field}}为必填项"
+        ],
+        "common": [
+          "是",
+          "否",
+          "确定",
+          "取消",
+          "保存",
+          "删除",
+          "编辑",
+          "添加",
+          "移除",
+          "更新",
+          "创建",
+          "复制",
+          "粘贴",
+          "搜索",
+          "刷新",
+          "关闭",
+          "打开",
+          "开始",
+          "停止",
+          "错误",
+          "成功",
+          "警告",
+          "信息"
+        ]
       }
     }
   },
@@ -273,12 +494,28 @@
     {
       "file": "CONTRIBUTING_I18N.md",
       "description": "Guide for translators to contribute new translations",
-      "sections": ["Overview", "Getting Started", "Translation Workflow", "File Structure", "Translation Guidelines", "Adding a New Language", "Testing", "Best Practices"]
+      "sections": [
+        "Overview",
+        "Getting Started",
+        "Translation Workflow",
+        "File Structure",
+        "Translation Guidelines",
+        "Adding a New Language",
+        "Testing",
+        "Best Practices"
+      ]
     },
     {
       "file": "src/i18n/ARCHITECTURE.md",
       "description": "Technical architecture documentation",
-      "sections": ["Architecture Overview", "Module Structure", "Translation Format", "Language Detection", "Interpolation", "Extension Points"]
+      "sections": [
+        "Architecture Overview",
+        "Module Structure",
+        "Translation Format",
+        "Language Detection",
+        "Interpolation",
+        "Extension Points"
+      ]
     },
     {
       "file": "src/i18n/integration-example.ts",
@@ -325,10 +562,7 @@
       "src/i18n/loader.ts",
       "src/i18n/translator.ts"
     ],
-    "translations": [
-      "src/i18n/locales/en.json",
-      "src/i18n/locales/zh-CN.json"
-    ],
+    "translations": ["src/i18n/locales/en.json", "src/i18n/locales/zh-CN.json"],
     "documentation": [
       "src/i18n/ARCHITECTURE.md",
       "src/i18n/integration-example.ts",

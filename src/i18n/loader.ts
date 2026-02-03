@@ -11,8 +11,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LOCALE_FILE_PATTERN, type SupportedLocale } from "./config.js";
 import type { TranslationFile } from "./types.js";
+import { LOCALE_FILE_PATTERN, type SupportedLocale } from "./config.js";
 
 // Get the directory where this module is located
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -113,7 +113,9 @@ export function loadTranslationFile(locale: SupportedLocale): TranslationFile | 
     return parsed as TranslationFile;
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new Error(`Failed to parse translation file for locale ${locale}: ${error.message}`);
+      throw new Error(`Failed to parse translation file for locale ${locale}: ${error.message}`, {
+        cause: error,
+      });
     }
     throw error;
   }
@@ -126,7 +128,7 @@ export function loadTranslationFile(locale: SupportedLocale): TranslationFile | 
  * @returns Map of locale to translation file
  */
 export function loadAllTranslationFiles(
-  locales: SupportedLocale[]
+  locales: SupportedLocale[],
 ): Map<SupportedLocale, TranslationFile> {
   const translations = new Map<SupportedLocale, TranslationFile>();
 
@@ -168,10 +170,7 @@ export function translationKeyExists(translations: TranslationFile, key: string)
  * @param key - Key to find (with namespace, e.g., "errors.notFound")
  * @returns Translation string or null if not found
  */
-export function getTranslationValue(
-  translations: TranslationFile,
-  key: string
-): string | null {
+export function getTranslationValue(translations: TranslationFile, key: string): string | null {
   const parts = key.split(".");
   let current: Record<string, unknown> = translations;
 
@@ -194,7 +193,7 @@ export function getTranslationValue(
  */
 export function getNamespace(
   translations: TranslationFile,
-  namespace: string
+  namespace: string,
 ): Record<string, string> | null {
   const nsKey = namespace as keyof TranslationFile;
   const namespaceData = translations[nsKey];
