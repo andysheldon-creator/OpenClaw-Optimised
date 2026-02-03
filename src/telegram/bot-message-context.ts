@@ -499,7 +499,7 @@ export const buildTelegramMessageContext = async ({
         )
       : null;
 
-  const replyTarget = describeReplyTarget(msg);
+  const replyTarget = await describeReplyTarget(msg, chatId);
   const forwardOrigin = normalizeForwardedContext(msg);
   const replySuffix = replyTarget
     ? replyTarget.kind === "quote"
@@ -592,6 +592,8 @@ export const buildTelegramMessageContext = async ({
     ReplyToBody: replyTarget?.body,
     ReplyToSender: replyTarget?.sender,
     ReplyToIsQuote: replyTarget?.kind === "quote" ? true : undefined,
+    ReplyToMediaPath: replyTarget?.mediaPath,
+    ReplyToMediaType: replyTarget?.mediaType,
     ForwardedFrom: forwardOrigin?.from,
     ForwardedFromType: forwardOrigin?.fromType,
     ForwardedFromId: forwardOrigin?.fromId,

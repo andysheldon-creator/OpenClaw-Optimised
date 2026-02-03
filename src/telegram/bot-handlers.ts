@@ -132,7 +132,13 @@ export const registerTelegramHandlers = ({
         stickerMetadata?: { emoji?: string; setName?: string; fileId?: string };
       }> = [];
       for (const { ctx } of entry.messages) {
-        const media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch);
+        const msg = ctx.message;
+        const mediaMeta = {
+          channel: "telegram",
+          chatId: msg.chat.id,
+          messageId: msg.message_id,
+        };
+        const media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch, mediaMeta);
         if (media) {
           allMedia.push({
             path: media.path,
@@ -674,7 +680,12 @@ export const registerTelegramHandlers = ({
 
       let media: Awaited<ReturnType<typeof resolveMedia>> = null;
       try {
-        media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch);
+        const mediaMeta = {
+          channel: "telegram",
+          chatId: msg.chat.id,
+          messageId: msg.message_id,
+        };
+        media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch, mediaMeta);
       } catch (mediaErr) {
         const errMsg = String(mediaErr);
         if (errMsg.includes("exceeds") && errMsg.includes("MB limit")) {
