@@ -1,6 +1,8 @@
 import type { EmbeddingProvider, EmbeddingProviderOptions } from "./embeddings.js";
 import { requireApiKey, resolveApiKeyForProvider } from "../agents/model-auth.js";
 
+const SYNC_FETCH_TIMEOUT_MS = 30_000;
+
 export type OpenAiEmbeddingClient = {
   baseUrl: string;
   headers: Record<string, string>;
@@ -31,11 +33,19 @@ export async function createOpenAiEmbeddingProvider(
     if (input.length === 0) {
       return [];
     }
-    const res = await fetch(url, {
-      method: "POST",
-      headers: client.headers,
-      body: JSON.stringify({ model: client.model, input }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SYNC_FETCH_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: client.headers,
+        body: JSON.stringify({ model: client.model, input }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`openai embeddings failed: ${res.status} ${text}`);

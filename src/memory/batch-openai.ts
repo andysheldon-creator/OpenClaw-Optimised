@@ -2,6 +2,23 @@ import type { OpenAiEmbeddingClient } from "./embeddings-openai.js";
 import { retryAsync } from "../infra/retry.js";
 import { hashText } from "./internal.js";
 
+const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
+const FILE_CONTENT_FETCH_TIMEOUT_MS = 60_000;
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export type OpenAiBatchRequest = {
   custom_id: string;
   method: "POST";
@@ -81,11 +98,15 @@ async function submitOpenAiBatch(params: {
     `memory-embeddings.${hashText(String(Date.now()))}.jsonl`,
   );
 
-  const fileRes = await fetch(`${baseUrl}/files`, {
-    method: "POST",
-    headers: getOpenAiHeaders(params.openAi, { json: false }),
-    body: form,
-  });
+  const fileRes = await fetchWithTimeout(
+    `${baseUrl}/files`,
+    {
+      method: "POST",
+      headers: getOpenAiHeaders(params.openAi, { json: false }),
+      body: form,
+    },
+    DEFAULT_FETCH_TIMEOUT_MS,
+  );
   if (!fileRes.ok) {
     const text = await fileRes.text();
     throw new Error(`openai batch file upload failed: ${fileRes.status} ${text}`);
@@ -97,19 +118,23 @@ async function submitOpenAiBatch(params: {
 
   const batchRes = await retryAsync(
     async () => {
-      const res = await fetch(`${baseUrl}/batches`, {
-        method: "POST",
-        headers: getOpenAiHeaders(params.openAi, { json: true }),
-        body: JSON.stringify({
-          input_file_id: filePayload.id,
-          endpoint: OPENAI_BATCH_ENDPOINT,
-          completion_window: OPENAI_BATCH_COMPLETION_WINDOW,
-          metadata: {
-            source: "openclaw-memory",
-            agent: params.agentId,
-          },
-        }),
-      });
+      const res = await fetchWithTimeout(
+        `${baseUrl}/batches`,
+        {
+          method: "POST",
+          headers: getOpenAiHeaders(params.openAi, { json: true }),
+          body: JSON.stringify({
+            input_file_id: filePayload.id,
+            endpoint: OPENAI_BATCH_ENDPOINT,
+            completion_window: OPENAI_BATCH_COMPLETION_WINDOW,
+            metadata: {
+              source: "openclaw-memory",
+              agent: params.agentId,
+            },
+          }),
+        },
+        DEFAULT_FETCH_TIMEOUT_MS,
+      );
       if (!res.ok) {
         const text = await res.text();
         const err = new Error(`openai batch create failed: ${res.status} ${text}`) as Error & {
@@ -139,9 +164,11 @@ async function fetchOpenAiBatchStatus(params: {
   batchId: string;
 }): Promise<OpenAiBatchStatus> {
   const baseUrl = getOpenAiBaseUrl(params.openAi);
-  const res = await fetch(`${baseUrl}/batches/${params.batchId}`, {
-    headers: getOpenAiHeaders(params.openAi, { json: true }),
-  });
+  const res = await fetchWithTimeout(
+    `${baseUrl}/batches/${params.batchId}`,
+    { headers: getOpenAiHeaders(params.openAi, { json: true }) },
+    DEFAULT_FETCH_TIMEOUT_MS,
+  );
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`openai batch status failed: ${res.status} ${text}`);
@@ -154,9 +181,11 @@ async function fetchOpenAiFileContent(params: {
   fileId: string;
 }): Promise<string> {
   const baseUrl = getOpenAiBaseUrl(params.openAi);
-  const res = await fetch(`${baseUrl}/files/${params.fileId}/content`, {
-    headers: getOpenAiHeaders(params.openAi, { json: true }),
-  });
+  const res = await fetchWithTimeout(
+    `${baseUrl}/files/${params.fileId}/content`,
+    { headers: getOpenAiHeaders(params.openAi, { json: true }) },
+    FILE_CONTENT_FETCH_TIMEOUT_MS,
+  );
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`openai batch file content failed: ${res.status} ${text}`);
