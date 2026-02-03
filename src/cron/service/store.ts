@@ -42,6 +42,11 @@ export async function ensureLoaded(state: CronServiceState) {
         mutated = true;
       }
     }
+
+    if (raw.enabled === undefined || raw.enabled === null) {
+      raw.enabled = true;
+      mutated = true;
+    }
   }
   state.store = { version: 1, jobs: jobs as unknown as CronJob[] };
   storeCache.set(state.deps.storePath, state.store);
