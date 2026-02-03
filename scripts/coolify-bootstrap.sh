@@ -9,14 +9,11 @@ CONFIG_FILE="$OPENCLAW_STATE/openclaw.json"
 WORKSPACE_DIR="/root/openclaw-workspace"
 TOKEN_FILE="$OPENCLAW_STATE/.gateway_token"
 
-# Validate and fix bind value (must be: loopback, lan, tailnet, auto, or custom)
-# Docker/Coolify deployments should use "lan" for all interfaces
+# Validate bind value (must be: loopback, lan, tailnet, auto, or custom)
 case "${OPENCLAW_GATEWAY_BIND:-}" in
   loopback|lan|tailnet|auto|custom)
-    # Valid value, keep it
     ;;
-  0.0.0.0|*)
-    # Invalid or empty, default to "lan"
+  *)
     export OPENCLAW_GATEWAY_BIND="lan"
     ;;
 esac
@@ -25,7 +22,7 @@ esac
 mkdir -p "$OPENCLAW_STATE" "$WORKSPACE_DIR"
 chmod 700 "$OPENCLAW_STATE"
 
-# Create openclaw symlink for CLI access
+# Create CLI symlinks
 if [ ! -f /usr/local/bin/openclaw ]; then
   ln -sf /app/dist/index.js /usr/local/bin/openclaw
   chmod +x /usr/local/bin/openclaw
@@ -35,7 +32,6 @@ fi
 if [ ! -f /usr/local/bin/openclaw-approve ]; then
   cat > /usr/local/bin/openclaw-approve <<'HELPER'
 #!/bin/bash
-# Auto-approve all pending pairing requests
 echo "Approving all pending device requests..."
 openclaw devices list --json 2>/dev/null | node -e "
 const data = require('fs').readFileSync(0, 'utf8');
@@ -73,27 +69,22 @@ fi
 export OPENCLAW_GATEWAY_TOKEN
 
 # ----------------------------
-# Generate/Fix Config with ZAI Provider
+# Generate Config (only if not exists - preserves token)
 # ----------------------------
-# Always regenerate config to ensure valid values
-# (prevents issues with stale/invalid configs)
-echo "[openclaw] Generating openclaw.json..."
-
-# Use node to generate valid JSON (avoids shell heredoc quote issues)
-node -e "
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "[openclaw] Generating openclaw.json..."
+  
+  node -e "
 const fs = require('fs');
 const config = {
-  env: {
-    ZAI_API_KEY: process.env.ZAI_API_KEY || ''
-  },
+  env: { ZAI_API_KEY: process.env.ZAI_API_KEY || '' },
   gateway: {
     mode: 'local',
     port: parseInt(process.env.OPENCLAW_GATEWAY_PORT) || 28471,
     bind: 'lan',
-    auth: {
-      mode: 'token',
-      token: process.env.OPENCLAW_GATEWAY_TOKEN
-    }
+    controlUi: { enabled: true, allowInsecureAuth: false },
+    trustedProxies: ['*'],
+    auth: { mode: 'token', token: process.env.OPENCLAW_GATEWAY_TOKEN }
   },
   models: {
     providers: {
@@ -108,9 +99,8 @@ const config = {
   },
   agents: {
     defaults: {
-      model: {
-        primary: 'zai/glm-4.7'
-      }
+      model: { primary: 'zai/glm-4.7' },
+      workspace: '/root/openclaw-workspace'
     }
   }
 };
@@ -118,25 +108,40 @@ fs.writeFileSync('$CONFIG_FILE', JSON.stringify(config, null, 2) + '\n');
 fs.chmodSync('$CONFIG_FILE', 0o600);
 console.log('[openclaw] Config ready at $CONFIG_FILE');
 "
+else
+  echo "[openclaw] Using existing config at $CONFIG_FILE"
+fi
+
+# Extract token from config for display
+SAVED_TOKEN=$(grep -o '"token": "[^"]*"' "$CONFIG_FILE" | cut -d'"' -f4)
+if [ -n "$SAVED_TOKEN" ]; then
+  TOKEN="$SAVED_TOKEN"
+else
+  TOKEN="$OPENCLAW_GATEWAY_TOKEN"
+fi
 
 # ----------------------------
 # Banner & Access Info
 # ----------------------------
 echo ""
 echo "=================================================================="
-echo "🦞 OpenClaw Gateway is starting..."
+echo "🦞 OpenClaw is ready!"
 echo "=================================================================="
 echo ""
-echo "🔑 Access Token: $OPENCLAW_GATEWAY_TOKEN"
+echo "🔑 Access Token: $TOKEN"
 echo ""
-echo "🌍 Port: ${OPENCLAW_GATEWAY_PORT:-28471}"
-echo "🔗 Bind: ${OPENCLAW_GATEWAY_BIND:-lan}"
+echo "🌍 Local URL: http://localhost:${OPENCLAW_GATEWAY_PORT:-28471}?token=$TOKEN"
+if [ -n "$SERVICE_FQDN_OPENCLAW" ]; then
+  echo "☁️  Public URL: https://${SERVICE_FQDN_OPENCLAW}?token=$TOKEN"
+fi
+echo ""
+echo "👉 To approve devices, run: openclaw-approve"
+echo "👉 To configure: openclaw onboard"
 echo ""
 echo "=================================================================="
 
 # ----------------------------
 # Run OpenClaw Gateway
 # ----------------------------
-# Note: Using node directly since openclaw is built from source
-# Config is generated above with correct bind/port values
+ulimit -n 65535
 exec node dist/index.js gateway

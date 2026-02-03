@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - OPENCLAW_BETA=${OPENCLAW_BETA:-false}
 
     environment:
       # Required settings
@@ -18,29 +20,50 @@ services:
       - OPENCLAW_STATE_DIR=/root/.openclaw
       - OPENCLAW_WORKSPACE=/root/openclaw-workspace
 
+      # Auto-bootstrap and configuration
+      - OPENCLAW_AUTO_BOOTSTRAP=1
+      - OPENCLAW_PRINT_ACCESS=1
+      - GATEWAY_TRUSTED_PROXIES=*
+      
+      # Fix for file watching in Docker
+      - CHOKIDAR_USEPOLLING=true
+      
+      # Command history persistence
+      - HISTFILE=/root/.openclaw/.bash_history
+      - HISTSIZE=50000
+      - HISTSAVE=50000
+      - HISTCONTROL=ignoreboth
+
+      # Node memory limit
+      - NODE_OPTIONS=--max-old-space-size=4096
+
     volumes:
       - openclaw-config:/root/.openclaw
       - openclaw-workspace:/root/openclaw-workspace
 
     # NOTE: Running as root due to Coolify volume permission behavior.
-    # Coolify creates volumes as root, causing EACCES for non-root users.
     # See: https://github.com/coollabsio/coolify/issues/2873
-    # Security trade-off accepted for compatibility.
     user: "0"
 
-    # Security hardening (limited by root requirement)
+    # Security hardening
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
 
-    # Healthcheck using HTTP (more accurate than TCP)
+    # File descriptor limits
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+
+    # Healthcheck using HTTP
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${OPENCLAW_GATEWAY_PORT:-28471}/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 120s
 
     # Resources (8GB RAM / 2 vCPU)
     deploy:
@@ -69,8 +92,29 @@ services:
     init: true
     stop_grace_period: 30s
 
-    # Use external bootstrap script for easier maintenance
+    # Use external bootstrap script
     command: ["bash", "/app/scripts/coolify-bootstrap.sh"]
+
+    depends_on:
+      - docker-proxy
+
+  # Docker Socket Proxy for secure sandboxing
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      LOG_LEVEL: info
+      # Security: Only enable necessary Docker APIs
+      POST: 1       # Create containers
+      CONTAINERS: 1 # List/manage containers
+      IMAGES: 1     # Pull images
+      NETWORKS: 1   # Connect to networks
+      INFO: 1       # Version check
+      VERSION: 1
+      EXEC: 1       # Run commands (exec)
+      EVENTS: 1     # Listen for events
 
 volumes:
   openclaw-config:
