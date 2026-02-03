@@ -6,20 +6,24 @@
 
 | Aspect | State |
 |--------|-------|
-| **Phase** | Compaction validated; ready for next component |
-| **Last completed** | Compaction tests (44 tests passing) |
-| **Next action** | Distill Long-term Memory & Search |
+| **Phase** | Embeddings validated; continuing memory sub-modules |
+| **Last completed** | Embeddings module (47 tests passing) |
+| **Next action** | Distill next memory sub-module (storage or search) |
 | **Blockers** | None |
 
 ### What Exists Now
 - [x] Scouting reports for 4 core areas (~20k LOC analyzed)
 - [x] Distillation principles documented (8 principles)
-- [x] Trial distillation: `src/compaction/` code complete
-- [x] Compaction tests (44 tests passing)
+- [x] Trial distillation: `src/compaction/` (44 tests)
+- [x] Embeddings sub-module: `src/embeddings/` (47 tests)
 - [x] Key architectural decisions (TypeScript+Rust, minimal viable agent, no gateway)
 
-### Current Focus: Next Component Selection
-Compaction is validated with 44 passing tests. The distillation process works. Next: apply it to Long-term Memory & Search (most isolated, different domain).
+### Current Focus: Memory Sub-modules
+Long-term Memory & Search is being distilled as sub-modules rather than monolithically. Embeddings is complete. Remaining sub-modules:
+- Storage/Schema (~128 lines) - SQLite schema, vector extension
+- Hybrid search (~293 lines) - Vector + BM25 merging
+- File sync (~337 lines) - Memory and session file synchronization
+- Manager (~2,232 lines) - Orchestrator (distill last)
 
 ---
 
@@ -128,6 +132,31 @@ Restructured documentation for discoverability:
 - Updated `CLAUDE.md` with document map
 - Preserved lessons from Rust experiment in `docs/rust-porting.md`
 
+### 8. Embeddings Sub-module (Complete)
+
+Distilled embeddings as the first sub-module of Long-term Memory & Search:
+
+| Metric | OpenClaw | Distilled |
+|--------|----------|-----------|
+| Lines of code | ~464 | ~290 |
+| Providers | 3 (OpenAI, Gemini, local) | 1 (OpenAI) |
+| Hidden state | Provider fallback state | None |
+| Caching | Built-in | None (caller's responsibility) |
+| Batch API | Async polling | Synchronous only |
+| Dependencies | Multiple API clients | fetch only |
+
+**Key decisions**:
+- Interface-first design (`EmbeddingProvider` as contract)
+- No provider fallback (orchestration concern)
+- No caching (storage concern)
+- Gemini/local providers deferred (not needed yet)
+- Explicit error types (`EmbeddingAPIError`, `EmbeddingInputError`)
+
+Files created:
+- `src/embeddings/index.ts` - Provider interface + OpenAI implementation + vector utilities
+- `src/embeddings/index.test.ts` - 47 tests
+- `src/embeddings/DECISIONS.md` - Architectural decision record
+
 ---
 
 ## Key Decisions Made
@@ -174,13 +203,15 @@ Traced cross-agent communication in OpenClaw. The gateway is a WebSocket-based J
 
 1. ~~**Write compaction tests**~~ - Done (44 tests passing)
 
-2. **Distill Long-term Memory & Search** (next)
-   - Most isolated component
-   - Different domain than compaction (tests process generalization)
-   - Clear success criteria: can embed and retrieve text
-   - Follow same process: scout -> design -> build -> validate
+2. ~~**Distill embeddings sub-module**~~ - Done (47 tests passing)
 
-3. **Integration checkpoint** - After two components, verify they can compose toward minimal viable agent
+3. **Continue memory sub-modules** (next)
+   - Storage/Schema - SQLite tables for chunks, embeddings, cache
+   - Hybrid search - Vector similarity + BM25 merging
+   - File sync - Memory file watching and indexing
+   - Manager - Final orchestrator (depends on above)
+
+4. **Integration checkpoint** - After memory is complete, verify compaction + embeddings + storage compose toward minimal viable agent
 
 ---
 
@@ -209,9 +240,13 @@ komatachi/
 │   ├── agent-alignment.md
 │   └── session-management.md
 └── src/
-    └── compaction/     # First distilled module (validated)
-        ├── index.ts
-        ├── index.test.ts   # 44 tests
+    ├── compaction/     # First distilled module (validated)
+    │   ├── index.ts
+    │   ├── index.test.ts   # 44 tests
+    │   └── DECISIONS.md
+    └── embeddings/     # Second distilled module (validated)
+        ├── index.ts        # Provider interface + OpenAI + utilities
+        ├── index.test.ts   # 47 tests
         └── DECISIONS.md
 ```
 
