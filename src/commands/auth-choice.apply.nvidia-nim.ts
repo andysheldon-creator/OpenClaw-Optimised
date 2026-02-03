@@ -242,7 +242,9 @@ export async function applyAuthChoiceNvidiaNim(
   }
 
   let key: string | undefined;
-  if (params.opts?.token && params.opts?.tokenProvider === "nvidia-nim") {
+  if (params.opts?.nvidiaNimApiKey) {
+    key = params.opts.nvidiaNimApiKey;
+  } else if (params.opts?.token && params.opts?.tokenProvider === "nvidia-nim") {
     key = params.opts.token;
   } else {
     key = await params.prompter.text({

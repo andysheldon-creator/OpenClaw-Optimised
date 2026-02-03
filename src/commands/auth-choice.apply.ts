@@ -25,6 +25,7 @@ export type ApplyAuthChoiceParams = {
   opts?: {
     tokenProvider?: string;
     token?: string;
+    nvidiaNimApiKey?: string;
   };
 };
 
