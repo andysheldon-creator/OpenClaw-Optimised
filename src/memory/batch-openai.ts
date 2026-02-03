@@ -1,23 +1,9 @@
 import type { OpenAiEmbeddingClient } from "./embeddings-openai.js";
 import { retryAsync } from "../infra/retry.js";
 import { hashText } from "./internal.js";
+import { fetchWithTimeout, DEFAULT_FETCH_TIMEOUT_MS } from "./fetch-utils.js";
 
-const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 const FILE_CONTENT_FETCH_TIMEOUT_MS = 60_000;
-
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
 export type OpenAiBatchRequest = {
   custom_id: string;
