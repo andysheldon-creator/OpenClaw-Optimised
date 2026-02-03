@@ -166,7 +166,7 @@ describe("createModelSelectionState before_model_select hook integration", () =>
     expect(state.model).toBe("gpt-4o");
   });
 
-  it("applies partial hook result (provider only, uses default model)", async () => {
+  it("applies hook result with both provider and model change", async () => {
     const cfg = {
       agents: {
         defaults: {

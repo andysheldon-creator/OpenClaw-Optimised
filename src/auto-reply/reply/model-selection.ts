@@ -369,6 +369,9 @@ export async function createModelSelectionState(params: {
       const candidateProvider = hookResult.provider ?? provider;
       const candidateModel = hookResult.model ?? model;
       if (candidateModel) {
+        // Hook result must be a valid provider/model combination in the allowlist.
+        // Provider-only results inherit the current model, which may not be valid
+        // for the new provider. Hooks should return both provider and model together.
         const key = modelKey(candidateProvider, candidateModel);
         if (allowedModelKeys.size === 0 || allowedModelKeys.has(key)) {
           provider = candidateProvider;

@@ -14,7 +14,7 @@ function makeEvent(
     provider: "openai",
     model: "gpt-4o",
     sessionKey: "test-session",
-    allowedModelKeys: new Set(["openai:gpt-4o", "anthropic:claude-sonnet-4-20250514"]),
+    allowedModelKeys: new Set(["openai/gpt-4o", "anthropic/claude-sonnet-4-20250514"]),
     prompt: "Hello world",
     ...overrides,
   };
