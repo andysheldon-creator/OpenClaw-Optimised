@@ -110,11 +110,13 @@ export function isTransientNetworkError(err: unknown): boolean {
     
     if (errName === "GrammyError" || errName === "HttpError") {
       // 502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout
-      if (/\b(502|503|504)\b/.test(errMessage)) {
+      // Match status codes more precisely to avoid false positives
+      if (/\b(502|503|504):/i.test(errMessage)) {
         return true;
       }
-      // Connection-related Grammy errors
-      if (errMessage.includes("Connection") || errMessage.includes("timeout")) {
+      // Connection-related Grammy errors (case-insensitive)
+      const msg = errMessage.toLowerCase();
+      if (msg.includes("connection") || msg.includes("timeout")) {
         return true;
       }
     }
