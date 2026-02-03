@@ -360,8 +360,15 @@ export async function runSubagentAnnounceFlow(params: {
   endedAt?: number;
   label?: string;
   outcome?: SubagentRunOutcome;
+  announcePolicy?: "model" | "always" | "skip";
 }): Promise<boolean> {
   let didAnnounce = false;
+
+  // Check announce policy and skip if configured to do so
+  if (params.announcePolicy === "skip") {
+    return false;
+  }
+
   try {
     const requesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
     let reply = params.roundOneReply;

@@ -33,6 +33,7 @@ const SessionsSpawnToolSchema = Type.Object({
   // Back-compat alias. Prefer runTimeoutSeconds.
   timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   cleanup: optionalStringEnum(["delete", "keep"] as const),
+  announce: Type.Optional(Type.Boolean()),
 });
 
 function splitModelRef(ref?: string) {
@@ -82,7 +83,7 @@ export function createSessionsSpawnTool(opts?: {
     label: "Sessions",
     name: "sessions_spawn",
     description:
-      "Spawn a background sub-agent run in an isolated session and announce the result back to the requester chat.",
+      "Spawn a background sub-agent run in an isolated session. By default, the result is announced back to the requester chat (announce: true). Set announce: false to suppress the announcement at framework level.",
     parameters: SessionsSpawnToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -93,6 +94,8 @@ export function createSessionsSpawnTool(opts?: {
       const thinkingOverrideRaw = readStringParam(params, "thinking");
       const cleanup =
         params.cleanup === "keep" || params.cleanup === "delete" ? params.cleanup : "keep";
+      const announceOverride =
+        typeof params.announce === "boolean" ? (params.announce ? "always" : "skip") : undefined;
       const requesterOrigin = normalizeDeliveryContext({
         channel: opts?.agentChannel,
         accountId: opts?.agentAccountId,
@@ -176,6 +179,12 @@ export function createSessionsSpawnTool(opts?: {
       const resolvedThinkingDefaultRaw =
         readStringParam(targetAgentConfig?.subagents ?? {}, "thinking") ??
         readStringParam(cfg.agents?.defaults?.subagents ?? {}, "thinking");
+
+      const resolvedAnnouncePolicy =
+        announceOverride ??
+        targetAgentConfig?.subagents?.announcePolicy ??
+        cfg.agents?.defaults?.subagents?.announcePolicy ??
+        "model";
 
       let thinkingOverride: string | undefined;
       const thinkingCandidateRaw = thinkingOverrideRaw || resolvedThinkingDefaultRaw;
@@ -268,6 +277,7 @@ export function createSessionsSpawnTool(opts?: {
         task,
         cleanup,
         label: label || undefined,
+        announcePolicy: resolvedAnnouncePolicy,
         runTimeoutSeconds,
       });
 

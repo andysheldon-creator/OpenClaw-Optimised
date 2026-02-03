@@ -206,6 +206,13 @@ export type AgentDefaultsConfig = {
     model?: string | { primary?: string; fallbacks?: string[] };
     /** Default thinking level for spawned sub-agents (e.g. "off", "low", "medium", "high"). */
     thinking?: string;
+    /**
+     * Announce policy for sub-agent completion.
+     * - "model": let the model decide (default) - model can reply NO_REPLY to skip
+     * - "always": always send announcement to requester
+     * - "skip": never send announcement (suppress at framework level)
+     */
+    announcePolicy?: "model" | "always" | "skip";
   };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: {

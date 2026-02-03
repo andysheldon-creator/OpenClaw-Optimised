@@ -18,6 +18,7 @@ export type SubagentRunRecord = {
   task: string;
   cleanup: "delete" | "keep";
   label?: string;
+  announcePolicy?: "model" | "always" | "skip";
   createdAt: number;
   startedAt?: number;
   endedAt?: number;
@@ -75,6 +76,7 @@ function resumeSubagentRun(runId: string) {
       endedAt: entry.endedAt,
       label: entry.label,
       outcome: entry.outcome,
+      announcePolicy: entry.announcePolicy,
     }).then((didAnnounce) => {
       finalizeSubagentCleanup(runId, entry.cleanup, didAnnounce);
     });
@@ -287,6 +289,7 @@ export function registerSubagentRun(params: {
   task: string;
   cleanup: "delete" | "keep";
   label?: string;
+  announcePolicy?: "model" | "always" | "skip";
   runTimeoutSeconds?: number;
 }) {
   const now = Date.now();
@@ -304,6 +307,7 @@ export function registerSubagentRun(params: {
     task: params.task,
     cleanup: params.cleanup,
     label: params.label,
+    announcePolicy: params.announcePolicy,
     createdAt: now,
     startedAt: now,
     archiveAtMs,
@@ -380,6 +384,7 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
       endedAt: entry.endedAt,
       label: entry.label,
       outcome: entry.outcome,
+      announcePolicy: entry.announcePolicy,
     }).then((didAnnounce) => {
       finalizeSubagentCleanup(runId, entry.cleanup, didAnnounce);
     });
