@@ -21,6 +21,8 @@ import {
   appendAssistantMessageToSessionTranscript,
   resolveMirroredTranscriptText,
 } from "../../config/sessions.js";
+import { logVerbose } from "../../globals.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { markdownToSignalTextChunks, type SignalTextStyleRange } from "../../signal/format.js";
 import { sendMessageSignal } from "../../signal/send.js";
 import { normalizeReplyPayloadsForDelivery } from "./payloads.js";
@@ -318,9 +320,43 @@ export async function deliverOutboundPayloads(params: {
     };
   };
   const normalizedPayloads = normalizeReplyPayloadsForDelivery(payloads);
+  const hookRunner = getGlobalHookRunner();
   for (const payload of normalizedPayloads) {
+    let payloadText = payload.text ?? "";
+
+    // Run message_sending hook to allow plugins to modify or cancel the message
+    if (hookRunner?.hasHooks("message_sending")) {
+      try {
+        const hookResult = await hookRunner.runMessageSending(
+          {
+            to,
+            content: payloadText,
+            metadata: {
+              channel,
+              accountId,
+              mediaUrls: payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []),
+            },
+          },
+          {
+            channelId: channel,
+            accountId,
+            conversationId: to,
+          },
+        );
+        if (hookResult?.cancel) {
+          logVerbose(`deliver: message_sending hook cancelled delivery to ${to}`);
+          continue;
+        }
+        if (hookResult?.content !== undefined) {
+          payloadText = hookResult.content;
+        }
+      } catch (err) {
+        logVerbose(`deliver: message_sending hook failed: ${String(err)}`);
+      }
+    }
+
     const payloadSummary: NormalizedOutboundPayload = {
-      text: payload.text ?? "",
+      text: payloadText,
       mediaUrls: payload.mediaUrls ?? (payload.mediaUrl ? [payload.mediaUrl] : []),
       channelData: payload.channelData,
     };

@@ -357,6 +357,97 @@ describe("deliverOutboundPayloads", () => {
   });
 });
 
+describe("message_sending hook", () => {
+  beforeEach(() => {
+    setActivePluginRegistry(defaultRegistry);
+  });
+
+  afterEach(() => {
+    setActivePluginRegistry(emptyRegistry);
+    vi.restoreAllMocks();
+  });
+
+  it("calls message_sending hook before delivery", async () => {
+    const sendWhatsApp = vi.fn().mockResolvedValue({ messageId: "w1", toJid: "jid" });
+    const cfg: OpenClawConfig = {};
+
+    // Mock the hook runner module
+    const hookRunnerModule = await import("../../plugins/hook-runner-global.js");
+    const mockHookRunner = {
+      hasHooks: vi.fn().mockReturnValue(true),
+      runMessageSending: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.spyOn(hookRunnerModule, "getGlobalHookRunner").mockReturnValue(mockHookRunner as never);
+
+    await deliverOutboundPayloads({
+      cfg,
+      channel: "whatsapp",
+      to: "+1555",
+      payloads: [{ text: "hello" }],
+      deps: { sendWhatsApp },
+    });
+
+    expect(mockHookRunner.hasHooks).toHaveBeenCalledWith("message_sending");
+    expect(mockHookRunner.runMessageSending).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "+1555",
+        content: "hello",
+      }),
+      expect.objectContaining({
+        channelId: "whatsapp",
+        conversationId: "+1555",
+      }),
+    );
+    expect(sendWhatsApp).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels delivery when hook returns cancel: true", async () => {
+    const sendWhatsApp = vi.fn().mockResolvedValue({ messageId: "w1", toJid: "jid" });
+    const cfg: OpenClawConfig = {};
+
+    const hookRunnerModule = await import("../../plugins/hook-runner-global.js");
+    const mockHookRunner = {
+      hasHooks: vi.fn().mockReturnValue(true),
+      runMessageSending: vi.fn().mockResolvedValue({ cancel: true }),
+    };
+    vi.spyOn(hookRunnerModule, "getGlobalHookRunner").mockReturnValue(mockHookRunner as never);
+
+    const results = await deliverOutboundPayloads({
+      cfg,
+      channel: "whatsapp",
+      to: "+1555",
+      payloads: [{ text: "hello" }],
+      deps: { sendWhatsApp },
+    });
+
+    expect(mockHookRunner.runMessageSending).toHaveBeenCalled();
+    expect(sendWhatsApp).not.toHaveBeenCalled();
+    expect(results).toHaveLength(0);
+  });
+
+  it("modifies content when hook returns new content", async () => {
+    const sendWhatsApp = vi.fn().mockResolvedValue({ messageId: "w1", toJid: "jid" });
+    const cfg: OpenClawConfig = {};
+
+    const hookRunnerModule = await import("../../plugins/hook-runner-global.js");
+    const mockHookRunner = {
+      hasHooks: vi.fn().mockReturnValue(true),
+      runMessageSending: vi.fn().mockResolvedValue({ content: "modified message" }),
+    };
+    vi.spyOn(hookRunnerModule, "getGlobalHookRunner").mockReturnValue(mockHookRunner as never);
+
+    await deliverOutboundPayloads({
+      cfg,
+      channel: "whatsapp",
+      to: "+1555",
+      payloads: [{ text: "original message" }],
+      deps: { sendWhatsApp },
+    });
+
+    expect(sendWhatsApp).toHaveBeenCalledWith("+1555", "modified message", expect.anything());
+  });
+});
+
 const emptyRegistry = createTestRegistry([]);
 const defaultRegistry = createTestRegistry([
   {
