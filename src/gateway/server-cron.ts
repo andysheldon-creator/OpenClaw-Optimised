@@ -8,7 +8,7 @@ import { CronService } from "../cron/service.js";
 import { resolveCronStorePath } from "../cron/store.js";
 import { runHeartbeatOnce } from "../infra/heartbeat-runner.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
-import { enqueueSystemEvent } from "../infra/system-events.js";
+import { enqueueSystemEvent, type SystemEventType } from "../infra/system-events.js";
 import { getChildLogger } from "../logging.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
@@ -52,7 +52,10 @@ export function buildGatewayCronService(params: {
         cfg: runtimeConfig,
         agentId,
       });
-      enqueueSystemEvent(text, { sessionKey });
+      enqueueSystemEvent(text, {
+        sessionKey,
+        eventType: opts?.eventType as SystemEventType,
+      });
     },
     requestHeartbeatNow,
     runHeartbeatOnce: async (opts) => {

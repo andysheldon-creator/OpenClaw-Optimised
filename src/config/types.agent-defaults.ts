@@ -1,4 +1,5 @@
 import type { ChannelId } from "../channels/plugins/types.js";
+import type { SystemEventType } from "../infra/system-events.js";
 import type {
   BlockStreamingChunkConfig,
   BlockStreamingCoalesceConfig,
@@ -100,6 +101,11 @@ export type AgentDefaultsConfig = {
   imageModel?: AgentModelListConfig;
   /** Model catalog with optional aliases (full provider/model keys). */
   models?: Record<string, AgentModelEntryConfig>;
+  /** System event filtering configuration. */
+  systemEvents?: {
+    /** System event types to suppress (e.g., ["exec-completion", "heartbeat"]). */
+    suppress?: SystemEventType[];
+  };
   /** Agent working directory (preferred). Used as the default cwd for agent runs. */
   workspace?: string;
   /** Optional repository root for system prompt runtime line (overrides auto-detect). */
