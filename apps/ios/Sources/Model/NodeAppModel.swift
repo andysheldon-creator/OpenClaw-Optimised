@@ -224,7 +224,9 @@ final class NodeAppModel {
         self.gatewayTask = Task {
             var attempt = 0
             while !Task.isCancelled {
+                // Only reset status if not already connected (avoids flicker)
                 await MainActor.run {
+                    guard !self.gatewayConnected else { return }
                     if attempt == 0 {
                         self.gatewayStatusText = "Connecting…"
                     } else {
