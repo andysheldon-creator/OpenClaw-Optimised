@@ -3,6 +3,7 @@ import type { FinalizedMsgContext } from "../templating.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
+import { normalizeChatType } from "../../channels/chat-type.js";
 import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
@@ -116,7 +117,7 @@ export async function dispatchReplyFromConfig(params: {
     typeof rawPolicyChannel === "string" && rawPolicyChannel.trim()
       ? rawPolicyChannel.trim().toLowerCase()
       : undefined;
-  const chatType = ctx.ChatType ?? sessionEntry?.chatType;
+  const chatType = normalizeChatType(ctx.ChatType) ?? sessionEntry?.chatType;
   const sendPolicy = resolveSendPolicy({
     cfg,
     entry: sessionEntry,

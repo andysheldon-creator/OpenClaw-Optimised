@@ -12,6 +12,7 @@ import type { OriginatingChannelType } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveEffectiveMessagesConfig } from "../../agents/identity.js";
+import { normalizeChatType } from "../../channels/chat-type.js";
 import { normalizeChannelId } from "../../channels/plugins/index.js";
 import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
@@ -108,7 +109,7 @@ export async function routeReply(params: RouteReplyParams): Promise<RouteReplyRe
       entry,
       sessionKey: params.sessionKey,
       channel,
-      chatType: params.chatType ?? entry?.chatType,
+      chatType: normalizeChatType(params.chatType) ?? entry?.chatType,
     });
     if (sendPolicy === "deny") {
       return { ok: true };
