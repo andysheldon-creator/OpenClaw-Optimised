@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildNodeInstallCommand } from "./skills-install.js";
 
 /**
  * VULN-211: Skill installation must use --ignore-scripts flag
@@ -11,67 +12,46 @@ import { describe, expect, it } from "vitest";
  * CWE-494: Download of Code Without Integrity Check
  */
 
-// We need to test the buildNodeInstallCommand function indirectly
-// since it's not exported. We'll import the module and verify the behavior
-// through the exported functions.
-
 describe("VULN-211: skill install must use --ignore-scripts", () => {
-  it("buildNodeInstallCommand includes --ignore-scripts for npm", async () => {
-    // The function is internal, so we verify by checking the source code
-    // This test ensures the fix is present and documented
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-
-    const skillsInstallPath = path.resolve(import.meta.dirname, "skills-install.ts");
-    const sourceCode = fs.readFileSync(skillsInstallPath, "utf-8");
-
-    // Verify npm install includes --ignore-scripts
-    expect(sourceCode).toContain('["npm", "install", "-g", "--ignore-scripts"');
+  it("npm install includes --ignore-scripts", () => {
+    const argv = buildNodeInstallCommand("test-package", { nodeManager: "npm" });
+    expect(argv).toContain("--ignore-scripts");
+    expect(argv[0]).toBe("npm");
+    expect(argv).toContain("install");
+    expect(argv).toContain("-g");
+    expect(argv).toContain("test-package");
   });
 
-  it("buildNodeInstallCommand includes --ignore-scripts for pnpm", async () => {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-
-    const skillsInstallPath = path.resolve(import.meta.dirname, "skills-install.ts");
-    const sourceCode = fs.readFileSync(skillsInstallPath, "utf-8");
-
-    // Verify pnpm add includes --ignore-scripts
-    expect(sourceCode).toContain('["pnpm", "add", "-g", "--ignore-scripts"');
+  it("pnpm add includes --ignore-scripts", () => {
+    const argv = buildNodeInstallCommand("test-package", { nodeManager: "pnpm" });
+    expect(argv).toContain("--ignore-scripts");
+    expect(argv[0]).toBe("pnpm");
+    expect(argv).toContain("add");
+    expect(argv).toContain("-g");
+    expect(argv).toContain("test-package");
   });
 
-  it("buildNodeInstallCommand includes --ignore-scripts for yarn", async () => {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-
-    const skillsInstallPath = path.resolve(import.meta.dirname, "skills-install.ts");
-    const sourceCode = fs.readFileSync(skillsInstallPath, "utf-8");
-
-    // Verify yarn global add includes --ignore-scripts
-    expect(sourceCode).toContain('["yarn", "global", "add", "--ignore-scripts"');
+  it("yarn global add includes --ignore-scripts", () => {
+    const argv = buildNodeInstallCommand("test-package", { nodeManager: "yarn" });
+    expect(argv).toContain("--ignore-scripts");
+    expect(argv[0]).toBe("yarn");
+    expect(argv).toContain("global");
+    expect(argv).toContain("add");
+    expect(argv).toContain("test-package");
   });
 
-  it("buildNodeInstallCommand includes --ignore-scripts for bun", async () => {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-
-    const skillsInstallPath = path.resolve(import.meta.dirname, "skills-install.ts");
-    const sourceCode = fs.readFileSync(skillsInstallPath, "utf-8");
-
-    // Verify bun add includes --ignore-scripts
-    expect(sourceCode).toContain('["bun", "add", "-g", "--ignore-scripts"');
+  it("bun add includes --ignore-scripts", () => {
+    const argv = buildNodeInstallCommand("test-package", { nodeManager: "bun" });
+    expect(argv).toContain("--ignore-scripts");
+    expect(argv[0]).toBe("bun");
+    expect(argv).toContain("add");
+    expect(argv).toContain("-g");
+    expect(argv).toContain("test-package");
   });
 
-  it("has CWE comment explaining the security fix", async () => {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-
-    const skillsInstallPath = path.resolve(import.meta.dirname, "skills-install.ts");
-    const sourceCode = fs.readFileSync(skillsInstallPath, "utf-8");
-
-    // Verify the security comment is present
-    expect(sourceCode).toContain("CWE-506");
-    expect(sourceCode).toContain("CWE-494");
-    expect(sourceCode).toContain("--ignore-scripts");
+  it("defaults to npm when nodeManager is unspecified", () => {
+    const argv = buildNodeInstallCommand("test-package", {});
+    expect(argv).toContain("--ignore-scripts");
+    expect(argv[0]).toBe("npm");
   });
 });

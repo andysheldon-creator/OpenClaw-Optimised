@@ -91,7 +91,10 @@ function findInstallSpec(entry: SkillEntry, installId: string): SkillInstallSpec
   return undefined;
 }
 
-function buildNodeInstallCommand(packageName: string, prefs: SkillsInstallPreferences): string[] {
+export function buildNodeInstallCommand(
+  packageName: string,
+  prefs: SkillsInstallPreferences,
+): string[] {
   // --ignore-scripts prevents execution of lifecycle scripts (postinstall, etc.)
   // from untrusted packages during skill installation (CWE-506, CWE-494)
   switch (prefs.nodeManager) {
