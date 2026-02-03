@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="3" />
+    <title>OpenClaw - Starting</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spinner {
+        animation: spin 0.8s linear infinite;
+      }
+    </style>
+  </head>
+  <body class="bg-neutral-100 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans">
+    <div class="flex flex-col items-center justify-center min-h-screen">
+      <picture class="mb-8">
+        <source
+          media="(prefers-color-scheme: light)"
+          srcset="
+            https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/openclaw-logo-text-dark.png
+          "
+        />
+        <img
+          src="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/openclaw-logo-text.png"
+          alt="OpenClaw"
+          class="max-w-[280px] h-auto"
+        />
+      </picture>
+      <div
+        class="w-12 h-12 border-4 border-neutral-300 dark:border-neutral-700 border-t-red-600 rounded-full spinner mb-4"
+      ></div>
+      <h1 class="text-xl font-semibold mb-2">OpenClaw is starting up</h1>
+      <p class="text-neutral-500 text-sm">This page will auto-refresh when the gateway is ready</p>
+    </div>
+  </body>
+</html>
