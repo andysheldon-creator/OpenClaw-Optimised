@@ -71,12 +71,80 @@ function parseRealIp(realIp?: string): string | undefined {
   return normalizeIp(stripOptionalPort(raw));
 }
 
+/**
+ * Parse an IPv4 address into a 32-bit number.
+ * Returns null if invalid.
+ */
+function parseIPv4ToNumber(ip: string): number | null {
+  const parts = ip.split(".");
+  if (parts.length !== 4) {
+    return null;
+  }
+  let result = 0;
+  for (const part of parts) {
+    const n = parseInt(part, 10);
+    if (Number.isNaN(n) || n < 0 || n > 255 || part !== String(n)) {
+      return null;
+    }
+    result = (result << 8) | n;
+  }
+  // Convert to unsigned 32-bit
+  return result >>> 0;
+}
+
+/**
+ * Check if an IPv4 address falls within a CIDR range.
+ * Supports both exact IPs ("192.168.1.1") and CIDR notation ("192.168.0.0/16").
+ */
+function ipMatchesCidr(ip: string, cidr: string): boolean {
+  const ipNum = parseIPv4ToNumber(ip);
+  if (ipNum === null) {
+    return false;
+  }
+
+  const slashIndex = cidr.indexOf("/");
+  if (slashIndex === -1) {
+    // Exact IP match
+    const cidrNum = parseIPv4ToNumber(cidr);
+    return cidrNum !== null && ipNum === cidrNum;
+  }
+
+  const baseIp = cidr.slice(0, slashIndex);
+  const prefixStr = cidr.slice(slashIndex + 1);
+  const prefix = parseInt(prefixStr, 10);
+
+  if (Number.isNaN(prefix) || prefix < 0 || prefix > 32 || prefixStr !== String(prefix)) {
+    return false;
+  }
+
+  const baseNum = parseIPv4ToNumber(baseIp);
+  if (baseNum === null) {
+    return false;
+  }
+
+  if (prefix === 0) {
+    // /0 matches everything
+    return true;
+  }
+
+  // Create mask: prefix bits set to 1, rest to 0
+  const mask = (~0 << (32 - prefix)) >>> 0;
+  return (ipNum & mask) === (baseNum & mask);
+}
+
 export function isTrustedProxyAddress(ip: string | undefined, trustedProxies?: string[]): boolean {
   const normalized = normalizeIp(ip);
   if (!normalized || !trustedProxies || trustedProxies.length === 0) {
     return false;
   }
-  return trustedProxies.some((proxy) => normalizeIp(proxy) === normalized);
+  return trustedProxies.some((proxy) => {
+    const normalizedProxy = proxy.trim();
+    if (!normalizedProxy) {
+      return false;
+    }
+    // Check if it's a CIDR range or exact IP
+    return ipMatchesCidr(normalized, normalizedProxy);
+  });
 }
 
 export function resolveGatewayClientIp(params: {
