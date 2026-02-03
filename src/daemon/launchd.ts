@@ -371,6 +371,11 @@ export async function stopLaunchAgent({
   env?: Record<string, string | undefined>;
 }): Promise<void> {
   const domain = resolveGuiDomain();
+
+  for (const legacyLabel of resolveLegacyGatewayLaunchAgentLabels(env?.OPENCLAW_PROFILE)) {
+    await execLaunchctl(["bootout", `${domain}/${legacyLabel}`]).catch(() => {});
+  }
+
   const label = resolveLaunchAgentLabel({ env });
   const res = await execLaunchctl(["bootout", `${domain}/${label}`]);
   if (res.code !== 0 && !isLaunchctlNotLoaded(res)) {

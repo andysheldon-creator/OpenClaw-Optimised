@@ -37,7 +37,7 @@ export function resolveGatewayLaunchAgentLabel(profile?: string): string {
 
 export function resolveLegacyGatewayLaunchAgentLabels(profile?: string): string[] {
   void profile;
-  return [];
+  return ["ai.clawdbot.gateway", "ai.moltbot.gateway"];
 }
 
 export function resolveGatewaySystemdServiceName(profile?: string): string {
