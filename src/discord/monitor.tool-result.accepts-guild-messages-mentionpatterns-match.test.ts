@@ -425,7 +425,7 @@ describe("discord tool result dispatch", () => {
     expect(capturedCtx?.SessionKey).toBe("agent:main:discord:channel:t1");
     expect(capturedCtx?.ParentSessionKey).toBe("agent:main:discord:channel:p1");
     expect(capturedCtx?.ThreadStarterBody).toContain("starter message");
-    expect(capturedCtx?.ThreadLabel).toContain("Discord thread #general");
+    expect(capturedCtx?.ThreadLabel).toBe("discord:#general:thread:t1");
   });
 
   it("treats forum threads as distinct sessions without channel payloads", async () => {
@@ -529,7 +529,7 @@ describe("discord tool result dispatch", () => {
     expect(capturedCtx?.SessionKey).toBe("agent:main:discord:channel:t1");
     expect(capturedCtx?.ParentSessionKey).toBe("agent:main:discord:channel:forum-1");
     expect(capturedCtx?.ThreadStarterBody).toContain("starter message");
-    expect(capturedCtx?.ThreadLabel).toContain("Discord thread #support");
+    expect(capturedCtx?.ThreadLabel).toBe("discord:#support:thread:t1");
     expect(restGet).toHaveBeenCalledWith(Routes.channelMessage("t1", "t1"));
   });
 

@@ -227,7 +227,7 @@ describe("monitorSlackProvider tool results", () => {
     expect(ctx.SessionKey).toBe("agent:main:slack:channel:c1:thread:111.222");
     expect(ctx.ParentSessionKey).toBeUndefined();
     expect(ctx.ThreadStarterBody).toContain("starter message");
-    expect(ctx.ThreadLabel).toContain("Slack thread #general");
+    expect(ctx.ThreadLabel).toBe("slack:#general:thread:111.222");
   });
 
   it("scopes thread session keys to the routed agent", async () => {

@@ -33,6 +33,15 @@ export async function prependSystemEvents(params: {
     if (lower.includes("heartbeat poll") || lower.includes("heartbeat wake")) {
       return null;
     }
+    // Filter compaction-related system events - these are internal status updates
+    // that should NOT be included in prompts or exposed to external channels
+    if (
+      lower.includes("compact") ||
+      lower.includes("compaction") ||
+      lower.startsWith("auto-compaction")
+    ) {
+      return null;
+    }
     if (trimmed.startsWith("Node:")) {
       return trimmed.replace(/ · last input [^·]+/i, "").trim();
     }

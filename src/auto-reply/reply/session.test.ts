@@ -49,7 +49,7 @@ describe("initSessionState thread forking", () => {
     } as OpenClawConfig;
 
     const threadSessionKey = "agent:main:slack:channel:c1:thread:123";
-    const threadLabel = "Slack thread #general: starter";
+    const threadLabel = "slack:#general:thread:123";
     const result = await initSessionState({
       ctx: {
         Body: "Thread reply",

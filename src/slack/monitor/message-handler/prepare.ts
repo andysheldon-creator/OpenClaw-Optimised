@@ -473,8 +473,8 @@ export async function prepareSlackMessage(params: {
         body: starterWithId,
         envelope: envelopeOptions,
       });
-      const snippet = starter.text.replace(/\s+/g, " ").slice(0, 80);
-      threadLabel = `Slack thread ${roomLabel}${snippet ? `: ${snippet}` : ""}`;
+      // Use structured format: slack:CHANNEL:thread:THREAD_TS
+      threadLabel = `slack:${roomLabel}:thread:${threadTs}`;
       // If current message has no files but thread starter does, fetch starter's files
       if (mediaList.length === 0 && starter.files && starter.files.length > 0) {
         const starterMediaList = await resolveSlackMedia({
@@ -490,7 +490,8 @@ export async function prepareSlackMessage(params: {
         }
       }
     } else {
-      threadLabel = `Slack thread ${roomLabel}`;
+      // Use structured format even without starter text
+      threadLabel = `slack:${roomLabel}:thread:${threadTs}`;
     }
   }
 

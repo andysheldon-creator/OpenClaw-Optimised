@@ -75,7 +75,6 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
     threadParentId,
     threadParentName,
     threadParentType,
-    threadName,
     displayChannelSlug,
     guildInfo,
     guildSlug,
@@ -221,9 +220,8 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
       threadStarterBody = starterEnvelope;
     }
     const parentName = threadParentName ?? "parent";
-    threadLabel = threadName
-      ? `Discord thread #${normalizeDiscordSlug(parentName)} › ${threadName}`
-      : `Discord thread #${normalizeDiscordSlug(parentName)}`;
+    // Use structured format: discord:PARENT_CHANNEL:thread:THREAD_ID
+    threadLabel = `discord:#${normalizeDiscordSlug(parentName)}:thread:${message.channelId}`;
     if (threadParentId) {
       parentSessionKey = buildAgentSessionKey({
         agentId: route.agentId,
