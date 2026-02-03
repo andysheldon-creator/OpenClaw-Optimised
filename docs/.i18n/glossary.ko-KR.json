@@ -1,0 +1,82 @@
+[
+  {
+    "source": "OpenClaw",
+    "target": "OpenClaw"
+  },
+  {
+    "source": "Gateway",
+    "target": "게이트웨이"
+  },
+  {
+    "source": "Pi",
+    "target": "Pi"
+  },
+  {
+    "source": "agent",
+    "target": "에이전트"
+  },
+  {
+    "source": "channel",
+    "target": "채널"
+  },
+  {
+    "source": "session",
+    "target": "세션"
+  },
+  {
+    "source": "provider",
+    "target": "제공자"
+  },
+  {
+    "source": "model",
+    "target": "모델"
+  },
+  {
+    "source": "tool",
+    "target": "도구"
+  },
+  {
+    "source": "CLI",
+    "target": "CLI"
+  },
+  {
+    "source": "install sanity",
+    "target": "설치 상태 확인"
+  },
+  {
+    "source": "get unstuck",
+    "target": "문제 해결"
+  },
+  {
+    "source": "troubleshooting",
+    "target": "문제 해결"
+  },
+  {
+    "source": "FAQ",
+    "target": "자주 묻는 질문"
+  },
+  {
+    "source": "onboarding",
+    "target": "온보딩"
+  },
+  {
+    "source": "wizard",
+    "target": "설정 마법사"
+  },
+  {
+    "source": "environment variables",
+    "target": "환경 변수"
+  },
+  {
+    "source": "environment variable",
+    "target": "환경 변수"
+  },
+  {
+    "source": "env vars",
+    "target": "환경 변수"
+  },
+  {
+    "source": "env var",
+    "target": "환경 변수"
+  }
+]
