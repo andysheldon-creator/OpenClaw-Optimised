@@ -18,6 +18,10 @@ import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 import { createTtsTool } from "./tools/tts-tool.js";
+import {
+  createShengSuanYunGenerationTool,
+  createShengSuanYunStatusTool,
+} from "./tools/shengsuanyun-generation-tool.js";
 
 export function createMoltbotTools(options?: {
   sandboxBrowserBridgeUrl?: string;
@@ -60,6 +64,18 @@ export function createMoltbotTools(options?: {
         agentDir: options.agentDir,
         sandboxRoot: options?.sandboxRoot,
         modelHasVision: options?.modelHasVision,
+      })
+    : null;
+  const shengSuanYunGenerationTool = options?.agentDir?.trim()
+    ? createShengSuanYunGenerationTool({
+        config: options?.config,
+        agentDir: options.agentDir,
+      })
+    : null;
+  const shengSuanYunStatusTool = options?.agentDir?.trim()
+    ? createShengSuanYunStatusTool({
+        config: options?.config,
+        agentDir: options.agentDir,
       })
     : null;
   const webSearchTool = createWebSearchTool({
@@ -137,6 +153,8 @@ export function createMoltbotTools(options?: {
     ...(webSearchTool ? [webSearchTool] : []),
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
+    ...(shengSuanYunGenerationTool ? [shengSuanYunGenerationTool] : []),
+    ...(shengSuanYunStatusTool ? [shengSuanYunStatusTool] : []),
   ];
 
   const pluginTools = resolvePluginTools({

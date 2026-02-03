@@ -91,6 +91,8 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "venice-api-key";
     } else if (params.opts.tokenProvider === "opencode") {
       authChoice = "opencode-zen";
+    } else if (params.opts.tokenProvider === "shengsuanyun") {
+      authChoice = "shengsuanyun-api-key";
     }
   }
 

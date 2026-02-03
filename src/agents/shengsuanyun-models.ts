@@ -1,5 +1,5 @@
+import { it } from "node:test";
 import type { ModelDefinitionConfig } from "../config/types.js";
-
 export const SHENGSUANYUN_BASE_URL = "https://router.shengsuanyun.com/api/v1";
 export const SHENGSUANYUN_MODALITIES_BASE_URL = "https://api.shengsuanyun.com/modelrouter";
 
@@ -101,7 +101,7 @@ function supportsVision(model: ShengSuanYunModel): boolean {
 /**
  * Build a ModelDefinitionConfig from a ShengSuanYun API model.
  */
-function buildShengSuanYunModelDefinition(model: ShengSuanYunModel): ModelDefinitionConfig {
+function buildShengSuanYunModelDefinition(model: any): ModelDefinitionConfig {
   const hasVision = supportsVision(model);
   const reasoning = isReasoningModel(model);
 
@@ -109,6 +109,7 @@ function buildShengSuanYunModelDefinition(model: ShengSuanYunModel): ModelDefini
     id: model.id,
     name: model.name,
     reasoning,
+    api: model.api,
     input: hasVision ? ["text", "image"] : ["text"],
     cost: SHENGSUANYUN_DEFAULT_COST,
     contextWindow: model.context_window || 128000,
@@ -127,18 +128,18 @@ export async function discoverShengSuanYunModels(): Promise<ModelDefinitionConfi
   }
 
   try {
-    const response = await fetch(`${SHENGSUANYUN_BASE_URL}/models`, {
+    const res = await fetch(`${SHENGSUANYUN_BASE_URL}/models`, {
       signal: AbortSignal.timeout(10000), // 10s timeout for large model list
     });
 
-    if (!response.ok) {
+    if (!res.ok) {
       // console.warn(
       //   `[shengsuanyun-models] Failed to discover models: HTTP ${response.status}`,
       // );
       return [];
     }
 
-    const data = (await response.json()) as ShengSuanYunModelsResponse;
+    const data = (await res.json()) as ShengSuanYunModelsResponse;
 
     if (!data.success || !Array.isArray(data.data) || data.data.length === 0) {
       // console.warn("[shengsuanyun-models] No models found from API");
@@ -152,17 +153,17 @@ export async function discoverShengSuanYunModels(): Promise<ModelDefinitionConfi
       if (!Array.isArray(supportApis)) {
         continue;
       }
-
       const hasCompatibleApi = supportApis.some(
-        (api) =>
-          api === "/v1/chat/completions" || api === "/v1/messages" || api === "/v1/responses",
+        (api) => api === "/v1/chat/completions" || api === "/v1/responses",
       );
-
       if (!hasCompatibleApi) {
         continue;
       }
-
-      models.push(buildShengSuanYunModelDefinition(apiModel));
+      let api = "openai-completions";
+      if (supportApis.includes("/v1/chat/completions")) {
+        api = "openai-responses";
+      }
+      models.push(buildShengSuanYunModelDefinition({ ...apiModel, api }));
     }
 
     // console.log(`[shengsuanyun-models] Discovered ${models.length} LLM models`);
@@ -176,40 +177,35 @@ export async function discoverShengSuanYunModels(): Promise<ModelDefinitionConfi
 /**
  * Determine modality input types from class names.
  */
-function getModalityInputTypes(classNames: string[]): Array<"text" | "image"> {
-  if (!Array.isArray(classNames)) return ["text"];
-
-  const hasText = classNames.some((name) => name && (name.includes("text") || name.includes("文")));
-  const hasImage = classNames.some(
-    (name) =>
-      name &&
-      (name.includes("image") ||
-        name.includes("图") ||
-        name.includes("video") ||
-        name.includes("视频")),
-  );
-
-  const inputs: Array<"text" | "image"> = [];
-  if (hasText) inputs.push("text");
-  if (hasImage) inputs.push("image");
-
-  // Default to text if no clear input type
-  return inputs.length > 0 ? inputs : ["text"];
+function getModalityIOTypes(classNames: string[]): string[][] {
+  const kv: { [key: string]: string } = {
+    文本: "text",
+    图像: "image",
+    视频: "video",
+    音频: "audio",
+  };
+  const io = classNames.map((it) => it.split("->").map((k) => kv[k]));
+  return io;
 }
 
-function buildShengSuanYunModalityModelDefinition(
-  model: ShengSuanYunModalityModel,
-): ModelDefinitionConfig {
-  const inputs = getModalityInputTypes(model.class_names);
-
+async function buildModalityModel(model: any): Promise<any | null> {
+  const res = await fetch(`${SHENGSUANYUN_MODALITIES_BASE_URL}/info?model_id=${model.id}`, {
+    signal: AbortSignal.timeout(10000), // 10s timeout
+  });
+  if (!res.ok) {
+    return null;
+  }
+  const data = await res.json();
+  if (data.code !== 0 || !data.data) {
+    return null;
+  }
+  const ios = getModalityIOTypes(data.data.class_names);
   return {
-    id: `modality/${model.id}`,
-    name: `${model.model_name} (${model.company_name})`,
-    reasoning: false, // Multimodal models typically don't do reasoning
-    input: inputs,
-    cost: SHENGSUANYUN_DEFAULT_COST,
-    contextWindow: 128000, // Default context window for multimodal models
-    maxTokens: 8192,
+    id: data.data.api_name,
+    name: data.data.model_name,
+    input: ios.map((it) => it[0]),
+    output: ios.map((it) => it[1]),
+    key: model.id,
   };
 }
 
@@ -218,37 +214,24 @@ export async function discoverShengSuanYunModalityModels(): Promise<ModelDefinit
   if (process.env.NODE_ENV === "test" || process.env.VITEST) {
     return [];
   }
-
   try {
-    const response = await fetch(
+    const res = await fetch(
       `${SHENGSUANYUN_MODALITIES_BASE_URL}/modalities/list?page=1&page_size=200`,
       {
         signal: AbortSignal.timeout(10000), // 10s timeout
       },
     );
-
-    if (!response.ok) {
-      // console.warn(
-      //   `[shengsuanyun-modalities] Failed to discover modality models: HTTP ${response.status}`,
-      // );
+    if (!res.ok) {
       return [];
     }
-
-    const data = (await response.json()) as ShengSuanYunModalitiesResponse;
-
+    const data = (await res.json()) as ShengSuanYunModalitiesResponse;
     if (data.code !== 0 || !Array.isArray(data.data.infos) || data.data.infos.length === 0) {
-      // console.warn("[shengsuanyun-modalities] No modality models found from API");
       return [];
     }
-
-    const models: ModelDefinitionConfig[] = data.data.infos.map(
-      buildShengSuanYunModalityModelDefinition,
-    );
-
-    // console.log(`[shengsuanyun-modalities] Discovered ${models.length} modality models`);
-    return models;
+    const mdps = data.data.infos.map((model) => buildModalityModel(model));
+    const results = await Promise.all(mdps);
+    return results.filter((m) => m !== null);
   } catch {
-    // console.warn(`[shengsuanyun-modalities] Discovery failed: ${String(error)}`);
     return [];
   }
 }
@@ -257,14 +240,5 @@ export async function discoverShengSuanYunModalityModels(): Promise<ModelDefinit
  * Discover all ShengSuanYun models (LLM + multimodal).
  */
 export async function discoverAllShengSuanYunModels(): Promise<ModelDefinitionConfig[]> {
-  const [llmModels, modalityModels] = await Promise.all([
-    discoverShengSuanYunModels(),
-    discoverShengSuanYunModalityModels(),
-  ]);
-
-  const allModels = [...llmModels, ...modalityModels];
-  // console.log(
-  //   `[shengsuanyun] Discovered ${allModels.length} total models (${llmModels.length} LLM, ${modalityModels.length} multimodal)`
-  // );
-  return allModels;
+  return await discoverShengSuanYunModels();
 }

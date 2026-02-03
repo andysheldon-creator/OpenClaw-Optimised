@@ -211,10 +211,7 @@ export async function promptDefaultModel(
     // Skip internal router models that can't be directly called via API.
     if (HIDDEN_ROUTER_MODELS.has(key)) return;
     const hints: string[] = [];
-    // For models with a distinct name, show the name as label and key as hint
-    const hasDistinctName = entry.name && entry.name !== entry.id;
-    const label = hasDistinctName ? (entry.name ?? key) : key;
-    if (hasDistinctName) hints.push(key);
+    if (entry.name && entry.name !== entry.id) hints.push(entry.name);
     if (entry.contextWindow) hints.push(`ctx ${formatTokenK(entry.contextWindow)}`);
     if (entry.reasoning) hints.push("reasoning");
     const aliases = aliasIndex.byKey.get(key);
@@ -222,7 +219,7 @@ export async function promptDefaultModel(
     if (!hasAuth(entry.provider)) hints.push("auth missing");
     options.push({
       value: key,
-      label,
+      label: key,
       hint: hints.length > 0 ? hints.join(" · ") : undefined,
     });
     seen.add(key);
@@ -341,10 +338,7 @@ export async function promptModelAllowlist(params: {
     if (seen.has(key)) return;
     if (HIDDEN_ROUTER_MODELS.has(key)) return;
     const hints: string[] = [];
-    // For models with a distinct name, show the name as label and key as hint
-    const hasDistinctName = entry.name && entry.name !== entry.id;
-    const label = hasDistinctName ? (entry.name ?? key) : key;
-    if (hasDistinctName) hints.push(key);
+    if (entry.name && entry.name !== entry.id) hints.push(entry.name);
     if (entry.contextWindow) hints.push(`ctx ${formatTokenK(entry.contextWindow)}`);
     if (entry.reasoning) hints.push("reasoning");
     const aliases = aliasIndex.byKey.get(key);
@@ -352,7 +346,7 @@ export async function promptModelAllowlist(params: {
     if (!hasAuth(entry.provider)) hints.push("auth missing");
     options.push({
       value: key,
-      label,
+      label: key,
       hint: hints.length > 0 ? hints.join(" · ") : undefined,
     });
     seen.add(key);
