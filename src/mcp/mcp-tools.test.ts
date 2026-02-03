@@ -1593,6 +1593,197 @@ describe("MCP tool execution edge cases", () => {
 // Tool label handling
 // ---------------------------------------------------------------------------
 
+describe("detectAuthRequired", () => {
+  it("detects auth required for HTTP with headers", () => {
+    const config = {
+      transport: "http" as const,
+      headers: { Authorization: "Bearer token" },
+      url: "http://example.com",
+    };
+    expect(__testing.detectAuthRequired(config)).toBe(true);
+  });
+
+  it("detects no auth required for HTTP without headers", () => {
+    const config = {
+      transport: "http" as const,
+      url: "http://example.com",
+    };
+    expect(__testing.detectAuthRequired(config)).toBe(false);
+  });
+
+  it("detects auth required for STDIO with env vars", () => {
+    const config = {
+      transport: "stdio" as const,
+      command: "node",
+      env: { API_KEY: "secret" },
+    };
+    expect(__testing.detectAuthRequired(config)).toBe(true);
+  });
+});
+
+describe("getTransportHint", () => {
+  it("returns [HTTP] for HTTP transport", () => {
+    const config = { transport: "http" as const, url: "http://example.com" };
+    expect(__testing.getTransportHint(config)).toBe("[HTTP]");
+  });
+
+  it("returns [SSE] for SSE transport", () => {
+    const config = { transport: "sse" as const, url: "http://example.com" };
+    expect(__testing.getTransportHint(config)).toBe("[SSE]");
+  });
+
+  it("returns [Local] for STDIO transport", () => {
+    const config = {
+      transport: "stdio" as const,
+      command: "node",
+    };
+    expect(__testing.getTransportHint(config)).toBe("[Local]");
+  });
+});
+
+describe("buildEnhancedDescription", () => {
+  it("adds transport and auth hints to description", () => {
+    const config = {
+      transport: "http" as const,
+      url: "http://github.com",
+      headers: { Authorization: "token" },
+    };
+    const result = __testing.buildEnhancedDescription("Create an issue", config, "GitHub API");
+    expect(result).toContain("[HTTP]");
+    expect(result).toContain("Requires Auth");
+    expect(result).toContain("Create an issue");
+    expect(result).toContain("via GitHub API");
+  });
+
+  it("preserves original description when already present", () => {
+    const config = { transport: "sse" as const, url: "http://example.com" };
+    const result = __testing.buildEnhancedDescription("Fetch data", config, "Server");
+    expect(result).toContain("Fetch data");
+  });
+
+  it("handles missing description gracefully", () => {
+    const config = { transport: "stdio" as const, command: "python3" };
+    const result = __testing.buildEnhancedDescription("", config, "PyServer");
+    expect(result).toContain("[Local]");
+    expect(result).toContain("PyServer");
+  });
+
+  it("omits auth hint when no auth required", () => {
+    const config = { transport: "http" as const, url: "http://example.com" };
+    const result = __testing.buildEnhancedDescription("Open API", config, "OpenWeather");
+    expect(result).not.toContain("Requires Auth");
+    expect(result).toContain("[HTTP]");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// enhanceParameterDescription
+// ---------------------------------------------------------------------------
+
+describe("enhanceParameterDescription", () => {
+  it("preserves existing description", () => {
+    const schema = {
+      type: "string",
+      description: "The issue title",
+    };
+    const result = __testing.enhanceParameterDescription(schema);
+    expect(result).toEqual("The issue title");
+  });
+
+  it("adds type when description missing", () => {
+    const schema = { type: "string" };
+    const result = __testing.enhanceParameterDescription(schema);
+    expect(result).toContain("string");
+  });
+
+  it("includes enum values in description", () => {
+    const schema = {
+      type: "string",
+      enum: ["open", "closed", "draft"],
+    };
+    const result = __testing.enhanceParameterDescription(schema);
+    expect(result).toContain("string");
+    expect(result).toMatch(/open.*closed.*draft/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildMcpPiTool integration
+// ---------------------------------------------------------------------------
+
+describe("buildMcpPiTool integration", () => {
+  const mockConnection = {
+    callTool: vi.fn(),
+  } as any;
+
+  it("enhances tool description with transport and auth info", () => {
+    const serverConfig = {
+      transport: "http" as const,
+      url: "http://github.com",
+      headers: { Authorization: "token" },
+    };
+    const tool = __testing.buildMcpPiTool({
+      agentId: "test-agent",
+      serverId: "github",
+      serverLabel: "GitHub",
+      tool: {
+        name: "create_issue",
+        description: "Create a GitHub issue",
+        inputSchema: { type: "object", properties: {} },
+      },
+      connection: mockConnection,
+      serverConfig,
+    });
+    expect(tool.description).toContain("[HTTP]");
+    expect(tool.description).toContain("Requires Auth");
+    expect(tool.description).toContain("GitHub");
+  });
+
+  it("preserves tool when no serverConfig provided", () => {
+    const tool = __testing.buildMcpPiTool({
+      agentId: "test-agent",
+      serverId: "default",
+      tool: {
+        name: "fetch_data",
+        description: "Fetch data",
+        inputSchema: { type: "object", properties: {} },
+      },
+      connection: mockConnection,
+    });
+    expect(tool.description).toEqual("Fetch data");
+  });
+
+  it("enhances parameter descriptions in schema", () => {
+    const serverConfig = {
+      transport: "stdio" as const,
+      command: "python3",
+    };
+    const tool = __testing.buildMcpPiTool({
+      agentId: "test-agent",
+      serverId: "py-server",
+      tool: {
+        name: "process",
+        description: "Process data",
+        inputSchema: {
+          type: "object",
+          properties: {
+            data: { type: "string" },
+            format: { type: "string", enum: ["json", "csv"] },
+          },
+        },
+      },
+      connection: mockConnection,
+      serverConfig,
+    });
+    // Verify parameters exist
+    expect(tool.parameters).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tool label handling
+// ---------------------------------------------------------------------------
+
 describe("Tool label handling", () => {
   const mockConnection = { callTool: vi.fn() } as any;
 
