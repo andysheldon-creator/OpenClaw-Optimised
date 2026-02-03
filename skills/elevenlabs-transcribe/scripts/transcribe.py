@@ -80,7 +80,6 @@ async def realtime_from_url(
 
     client = get_client()
     stop_event = asyncio.Event()
-    transcripts: list[str] = []
 
     connection = await client.speech_to_text.realtime.connect(
         RealtimeUrlOptions(
@@ -103,7 +102,6 @@ async def realtime_from_url(
     def on_committed_transcript(data):
         text = data.get("text", "")
         if text:
-            transcripts.append(text)
             if json_output:
                 print(json.dumps({"type": "final", "text": text}))
             else:
@@ -142,6 +140,7 @@ async def realtime_from_mic(
     client = get_client()
     stop_event = asyncio.Event()
     audio_queue: asyncio.Queue[bytes] = asyncio.Queue()
+    loop = asyncio.get_running_loop()
 
     SAMPLE_RATE = 16000
     CHUNK_DURATION = 0.1  # 100ms chunks
@@ -160,7 +159,7 @@ async def realtime_from_mic(
     def audio_callback(indata, frames, time_info, status):
         if status:
             print(f"Audio status: {status}", file=sys.stderr)
-        audio_queue.put_nowait(indata.copy().tobytes())
+        loop.call_soon_threadsafe(audio_queue.put_nowait, indata.copy().tobytes())
 
     def on_session_started(data):
         asyncio.create_task(send_audio())
@@ -241,7 +240,8 @@ async def realtime_from_file(
     transcription_complete = asyncio.Event()
 
     SAMPLE_RATE = 16000
-    CHUNK_SIZE = 32000  # 1 second of audio at 16kHz
+    CHUNK_SIZE = 32000  # 1 second of audio at 16kHz (16000 samples * 2 bytes)
+    CHUNK_DURATION = CHUNK_SIZE / (SAMPLE_RATE * 2)  # seconds per chunk
 
     # Load and convert audio to PCM
     def load_audio(path: str) -> bytes:
@@ -303,7 +303,7 @@ async def realtime_from_file(
             await connection.send({"audio_base_64": chunk_base64, "sample_rate": SAMPLE_RATE})
             # Simulate real-time streaming pace
             if i < len(chunks) - 1:
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(CHUNK_DURATION)
         await asyncio.sleep(0.5)
         await connection.commit()
 

@@ -2,7 +2,15 @@
 name: elevenlabs-transcribe
 description: Transcribe audio to text using ElevenLabs Scribe. Supports batch transcription, realtime streaming from URLs, microphone input, and local files.
 homepage: https://elevenlabs.io/speech-to-text
-metadata: {"clawdbot":{"emoji":"🎙️","requires":{"bins":["ffmpeg","python3"],"env":["ELEVENLABS_API_KEY"]},"primaryEnv":"ELEVENLABS_API_KEY"}}
+metadata:
+  {
+    "clawdbot":
+      {
+        "emoji": "🎙️",
+        "requires": { "bins": ["ffmpeg", "python3"], "env": ["ELEVENLABS_API_KEY"] },
+        "primaryEnv": "ELEVENLABS_API_KEY",
+      },
+  }
 ---
 
 # ElevenLabs Speech-to-Text
@@ -77,14 +85,14 @@ Suppress status messages on stderr:
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--diarize` | Identify different speakers in the audio |
-| `--lang CODE` | ISO language hint (e.g., `en`, `pt`, `es`, `fr`) |
-| `--json` | Output full JSON with timestamps and metadata |
-| `--events` | Tag audio events (laughter, music, applause) |
-| `--realtime` | Stream local file instead of batch processing |
-| `--partials` | Show interim transcripts during realtime mode |
+| Option        | Description                                       |
+| ------------- | ------------------------------------------------- |
+| `--diarize`   | Identify different speakers in the audio          |
+| `--lang CODE` | ISO language hint (e.g., `en`, `pt`, `es`, `fr`)  |
+| `--json`      | Output full JSON with timestamps and metadata     |
+| `--events`    | Tag audio events (laughter, music, applause)      |
+| `--realtime`  | Stream local file instead of batch processing     |
+| `--partials`  | Show interim transcripts during realtime mode     |
 | `-q, --quiet` | Suppress status messages (recommended for agents) |
 
 ## Output Format
@@ -104,9 +112,7 @@ The quick brown fox jumps over the lazy dog.
   "text": "The quick brown fox jumps over the lazy dog.",
   "language_code": "eng",
   "language_probability": 0.98,
-  "words": [
-    {"text": "The", "start": 0.0, "end": 0.15, "type": "word", "speaker_id": "speaker_0"}
-  ]
+  "words": [{ "text": "The", "start": 0.0, "end": 0.15, "type": "word", "speaker_id": "speaker_0" }]
 }
 ```
 
@@ -138,10 +144,10 @@ The script exits with non-zero status on errors:
 
 ## When to Use Each Mode
 
-| Scenario | Command |
-|----------|---------|
-| Transcribe a recording | `./transcribe.sh file.mp3` |
+| Scenario                       | Command                                 |
+| ------------------------------ | --------------------------------------- |
+| Transcribe a recording         | `./transcribe.sh file.mp3`              |
 | Meeting with multiple speakers | `./transcribe.sh meeting.mp3 --diarize` |
-| Live radio/podcast stream | `./transcribe.sh --url <url>` |
-| Voice input from user | `./transcribe.sh --mic --quiet` |
-| Need word timestamps | `./transcribe.sh file.mp3 --json` |
+| Live radio/podcast stream      | `./transcribe.sh --url <url>`           |
+| Voice input from user          | `./transcribe.sh --mic --quiet`         |
+| Need word timestamps           | `./transcribe.sh file.mp3 --json`       |
