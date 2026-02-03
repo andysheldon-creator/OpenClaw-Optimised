@@ -10,49 +10,13 @@ services:
       - "18789:18789"
 
     environment:
-      # ===================
-      # Model Provider (choose one)
-      # ===================
-      # - ZHIPU_API_KEY: ${ZHIPU_API_KEY}
-      # - OPENAI_API_KEY: ${OPENAI_API_KEY}
-      # - ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-
-      # ===================
-      # Gateway Configuration
-      # ===================
-      - GATEWAY_MODE=local
-      - GATEWAY_TOKEN=${GATEWAY_TOKEN:-auto}
-      - GATEWAY_BIND=0.0.0.0
-      - GATEWAY_PORT=18789
-
-      # ===================
-      # Default Model
-      # ===================
-      - OPENCLAW_MODEL=zhipu/GLM-4.7
-
-      # ===================
-      # Communication Channels
-      # ===================
-      # Telegram
-      # - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-
-      # WhatsApp
-      # - WHATSAPP_PHONE_ID=${WHATSAPP_PHONE_ID}
-      # - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
-
-      # Slack
-      # - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
-      # - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
-
-      # Discord
-      # - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-
-      # ===================
-      # Advanced Options
-      # ===================
-      # - REASONING=off
-      # - VERBOSE=false
-      # - LOG_LEVEL=info
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      BROWSER: echo
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
 
     volumes:
       # Persist configuration and memory
