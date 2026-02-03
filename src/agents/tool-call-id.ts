@@ -200,12 +200,8 @@ function rewriteToolResultIds(params: {
 
   const nextMessage: ToolResultMessage = { ...params.message };
   if (nextToolCallId) {
-    if (typeof toolCallIdRaw === "string") {
-      nextMessage.tool_call_id = nextToolCallId;
-    }
-    if (typeof params.message.toolCallId === "string") {
-      nextMessage.toolCallId = nextToolCallId;
-    }
+    nextMessage.tool_call_id = nextToolCallId;
+    nextMessage.toolCallId = nextToolCallId;
   }
   if (nextToolUseId) {
     nextMessage.toolUseId = nextToolUseId;
