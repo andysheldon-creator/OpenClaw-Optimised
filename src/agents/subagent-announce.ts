@@ -364,6 +364,16 @@ export type SubagentRunOutcome = {
 
 export type SubagentAnnounceType = "subagent task" | "cron job";
 
+function shouldSuppressAnnounce(params: { silent?: boolean }): boolean {
+  // Per-spawn override takes precedence.
+  if (typeof params.silent === "boolean") {
+    return params.silent;
+  }
+  // Fall back to global config.
+  const cfg = loadConfig();
+  return cfg.agents?.defaults?.subagents?.suppressAnnounce === true;
+}
+
 export async function runSubagentAnnounceFlow(params: {
   childSessionKey: string;
   childRunId: string;
@@ -380,10 +390,16 @@ export async function runSubagentAnnounceFlow(params: {
   label?: string;
   outcome?: SubagentRunOutcome;
   announceType?: SubagentAnnounceType;
+  /** Per-spawn override: when true, skip the announcement entirely. */
+  silent?: boolean;
 }): Promise<boolean> {
   let didAnnounce = false;
   let shouldDeleteChildSession = params.cleanup === "delete";
   try {
+    // Check if announcements are suppressed (per-spawn or global config).
+    if (shouldSuppressAnnounce({ silent: params.silent })) {
+      return false;
+    }
     const requesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
     const childSessionId = (() => {
       const entry = loadSessionEntryByKey(params.childSessionKey);
