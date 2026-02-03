@@ -290,10 +290,7 @@ const grayswanPlugin = createGuardrailPlugin<GrayswanGuardrailConfig>({
     // Build messages for Gray Swan API
     const historyMessages = toGrayswanMessages(ctx.history);
     const role = getGrayswanRole(ctx.stage);
-    const messages: GrayswanMonitorMessage[] = [
-      ...historyMessages,
-      { role, content: ctx.content },
-    ];
+    const messages: GrayswanMonitorMessage[] = [...historyMessages, { role, content: ctx.content }];
 
     if (messages.length === 0) {
       return null;

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import {
   buildSafeguardPrompt,
   parseSafeguardResponse,
@@ -37,7 +36,9 @@ describe("buildSafeguardPrompt", () => {
     );
 
     expect(systemPrompt).toContain("Reasoning effort: low");
-    expect(systemPrompt).toContain('{"violation": 0|1, "policy_category": "category name or null"}');
+    expect(systemPrompt).toContain(
+      '{"violation": 0|1, "policy_category": "category name or null"}',
+    );
     expect(userPrompt).toContain("Test content");
   });
 
@@ -206,7 +207,7 @@ describe("parseSafeguardResponse", () => {
     });
 
     it("detects violation:true pattern", () => {
-      const result = parseSafeguardResponse('The violation: true for this content', "json");
+      const result = parseSafeguardResponse("The violation: true for this content", "json");
 
       expect(result.safe).toBe(false);
       expect(result.violation).toBe(true);

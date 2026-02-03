@@ -77,34 +77,50 @@ If you need full control, you can register raw hook handlers via `api.on()`:
 export default {
   id: "my-guardrail",
   register(api) {
-    api.on("before_request", async (event, ctx) => {
-      // event: { prompt, messages, systemPrompt? }
-      // Return to block or modify:
-      // { block: true, blockResponse: "..." }
-      // { prompt: "modified", messages: [...] }
-    }, { priority: 50 });
+    api.on(
+      "before_request",
+      async (event, ctx) => {
+        // event: { prompt, messages, systemPrompt? }
+        // Return to block or modify:
+        // { block: true, blockResponse: "..." }
+        // { prompt: "modified", messages: [...] }
+      },
+      { priority: 50 },
+    );
 
-    api.on("before_tool_call", async (event, ctx) => {
-      // event: { toolName, toolCallId, params, messages, systemPrompt? }
-      // Return to block or modify:
-      // { block: true, blockReason: "...", toolResult?: {...} }
-      // { params: { modified: true } }
-    }, { priority: 50 });
+    api.on(
+      "before_tool_call",
+      async (event, ctx) => {
+        // event: { toolName, toolCallId, params, messages, systemPrompt? }
+        // Return to block or modify:
+        // { block: true, blockReason: "...", toolResult?: {...} }
+        // { params: { modified: true } }
+      },
+      { priority: 50 },
+    );
 
-    api.on("after_tool_call", async (event, ctx) => {
-      // event: { toolName, toolCallId, params, result, messages, systemPrompt? }
-      // Return to block or modify:
-      // { block: true, result: {...} }
-      // { result: modifiedResult }
-    }, { priority: 50 });
+    api.on(
+      "after_tool_call",
+      async (event, ctx) => {
+        // event: { toolName, toolCallId, params, result, messages, systemPrompt? }
+        // Return to block or modify:
+        // { block: true, result: {...} }
+        // { result: modifiedResult }
+      },
+      { priority: 50 },
+    );
 
-    api.on("after_response", async (event, ctx) => {
-      // event: { assistantTexts, messages, lastAssistant? }
-      // Return to block or modify:
-      // { block: true, blockResponse: "..." }
-      // { assistantTexts: ["modified"] }
-    }, { priority: 50 });
-  }
+    api.on(
+      "after_response",
+      async (event, ctx) => {
+        // event: { assistantTexts, messages, lastAssistant? }
+        // Return to block or modify:
+        // { block: true, blockResponse: "..." }
+        // { assistantTexts: ["modified"] }
+      },
+      { priority: 50 },
+    );
+  },
 };
 ```
 

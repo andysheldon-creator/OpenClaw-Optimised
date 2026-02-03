@@ -59,4 +59,3 @@ including history) and returns a binary or JSON safety decision. It can:
   - `rich`: JSON with `confidence` and `rationale`
 - `maxTokens` defaults to 500 (useful for reasoning outputs).
 - `guardrailPriority` controls execution order when multiple guardrails run.
-

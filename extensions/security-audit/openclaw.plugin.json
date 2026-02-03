@@ -8,7 +8,10 @@
     "allowPaths": { "label": "Allow Paths", "advanced": true },
     "disabledRules": { "label": "Disabled Rules", "advanced": true },
     "failOpen": { "label": "Fail Open", "help": "Allow access through if evaluation fails" },
-    "stages.beforeToolCall.enabled": { "label": "Enabled", "help": "Enable guardrail check before tool calls" },
+    "stages.beforeToolCall.enabled": {
+      "label": "Enabled",
+      "help": "Enable guardrail check before tool calls"
+    },
     "stages.beforeToolCall.mode": { "label": "Mode", "help": "Block violations or monitor only" }
   },
   "configSchema": {

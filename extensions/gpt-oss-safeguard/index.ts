@@ -6,7 +6,6 @@
  */
 
 import path from "node:path";
-
 import {
   emptyPluginConfigSchema,
   type BaseStageConfig,
@@ -178,8 +177,7 @@ async function callSafeguard(params: {
     outputFormat,
   );
 
-  const prompt =
-    systemPromptMode === "append" ? userPrompt : `${systemPrompt}\n\n${userPrompt}`;
+  const prompt = systemPromptMode === "append" ? userPrompt : `${systemPrompt}\n\n${userPrompt}`;
   const extraSystemPrompt = systemPromptMode === "append" ? systemPrompt : undefined;
 
   let tmpDir: string | null = null;
@@ -233,8 +231,7 @@ const safeguardPlugin = createGuardrailPlugin<SafeguardConfig>({
     api: OpenClawPluginApi,
   ): Promise<GuardrailEvaluation | null> {
     // Build history context if available
-    const historyContext =
-      ctx.history.length > 0 ? extractMessagesContent(ctx.history) : undefined;
+    const historyContext = ctx.history.length > 0 ? extractMessagesContent(ctx.history) : undefined;
 
     const result = await callSafeguard({
       cfg: config,
@@ -273,10 +270,12 @@ const safeguardPlugin = createGuardrailPlugin<SafeguardConfig>({
       `Sorry, I can't help with that. The ${location} was flagged as potentially unsafe by the GPT-OSS-Safeguard safety system.`,
     ];
 
-    const details = evaluation.details as {
-      policyCategory?: string;
-      rationale?: string;
-    } | undefined;
+    const details = evaluation.details as
+      | {
+          policyCategory?: string;
+          rationale?: string;
+        }
+      | undefined;
 
     if (details?.policyCategory) {
       parts.push(`Policy category: ${details.policyCategory}.`);

@@ -1,8 +1,8 @@
 {
   "name": "@openclaw/command-safety-guard",
   "version": "0.0.1",
-  "description": "Command Safety Guard guardrails plugin for OpenClaw",
   "private": true,
+  "description": "Command Safety Guard guardrails plugin for OpenClaw",
   "type": "module",
   "main": "index.ts",
   "devDependencies": {

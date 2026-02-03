@@ -1,6 +1,5 @@
 import os from "node:os";
 import { describe, expect, it } from "vitest";
-
 import {
   BUILT_IN_RULES,
   normalizePath,

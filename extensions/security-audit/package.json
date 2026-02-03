@@ -1,8 +1,8 @@
 {
   "name": "@openclaw/security-audit",
   "version": "0.0.1",
-  "description": "Security Audit guardrails plugin for OpenClaw",
   "private": true,
+  "description": "Security Audit guardrails plugin for OpenClaw",
   "type": "module",
   "main": "index.ts",
   "devDependencies": {

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import { BUILT_IN_RULES, extractBashCommand } from "./index.js";
 
 describe("command-safety-guard", () => {

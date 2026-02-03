@@ -154,8 +154,7 @@ const BUILT_IN_RULES: CommandRule[] = [
   {
     id: "curl-upload",
     description: "Uploading files via curl",
-    pattern:
-      /\bcurl\b.*(-F|--form|-d|--data|--data-binary|-T|--upload-file)\b.*(@|<)/,
+    pattern: /\bcurl\b.*(-F|--form|-d|--data|--data-binary|-T|--upload-file)\b.*(@|<)/,
     severity: "warning",
   },
   {
@@ -189,8 +188,7 @@ const BUILT_IN_RULES: CommandRule[] = [
   {
     id: "cat-env-credentials",
     description: "Reading credential files",
-    pattern:
-      /\b(cat|head|tail|less|more)\s+.*\/(\.env|\.netrc|\.aws\/credentials|\.npmrc)/,
+    pattern: /\b(cat|head|tail|less|more)\s+.*\/(\.env|\.netrc|\.aws\/credentials|\.npmrc)/,
     severity: "error",
   },
 
@@ -198,8 +196,7 @@ const BUILT_IN_RULES: CommandRule[] = [
   {
     id: "history-clear",
     description: "Clearing shell history",
-    pattern:
-      /\b(history\s+-c|>\s*~?\/?\.?\.?(bash_|zsh_)?history|unset\s+HISTFILE)\b/,
+    pattern: /\b(history\s+-c|>\s*~?\/?\.?\.?(bash_|zsh_)?history|unset\s+HISTFILE)\b/,
     severity: "warning",
   },
   {

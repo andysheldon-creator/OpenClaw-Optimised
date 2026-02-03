@@ -58,4 +58,3 @@ threshold-based decision. It can:
 - `violationThreshold` can be set globally or per stage.
 - `blockOnMutation` and `blockOnIpi` default to `true` only for `afterToolCall`.
 - `guardrailPriority` controls execution order when multiple guardrails run.
-

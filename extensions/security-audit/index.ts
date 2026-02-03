@@ -6,9 +6,8 @@
  * shell configuration files.
  */
 
-import path from "node:path";
 import os from "node:os";
-
+import path from "node:path";
 import {
   emptyPluginConfigSchema,
   type BaseStageConfig,
@@ -348,10 +347,7 @@ function pathMatchesPatterns(filePath: string, patterns: string[]): boolean {
  * Determine the operation type from tool name.
  * Tool names are lowercase (e.g. "exec", "read", "write").
  */
-function getOperationType(
-  toolName: string,
-  params: unknown,
-): "read" | "write" | "execute" | null {
+function getOperationType(toolName: string, params: unknown): "read" | "write" | "execute" | null {
   switch (toolName) {
     case "read":
       return "read";
@@ -443,8 +439,7 @@ function extractPaths(toolName: string, params: unknown): string[] {
 const securityAuditPlugin = createGuardrailPlugin<SecurityAuditConfig>({
   id: "security-audit",
   name: "Security Audit",
-  description:
-    "Restricts access to sensitive credential and configuration files",
+  description: "Restricts access to sensitive credential and configuration files",
 
   async evaluate(
     ctx: GuardrailEvaluationContext,
@@ -486,10 +481,7 @@ const securityAuditPlugin = createGuardrailPlugin<SecurityAuditConfig>({
       }
 
       // Skip if path is in allow list
-      if (
-        allowPatterns.length > 0 &&
-        pathMatchesPatterns(filePath, allowPatterns)
-      ) {
+      if (allowPatterns.length > 0 && pathMatchesPatterns(filePath, allowPatterns)) {
         continue;
       }
 
