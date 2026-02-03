@@ -6,9 +6,9 @@
  * This allows parallel updates without blocking.
  */
 
+import JSON5 from "json5";
 import fs from "node:fs/promises";
 import path from "node:path";
-import JSON5 from "json5";
 import type { SessionEntry } from "./types.js";
 import { resolveSessionTranscriptsDirForAgent } from "./paths.js";
 

@@ -105,6 +105,7 @@ Stores session summaries in LanceDB via the Gateway API instead of creating file
 ```
 
 **LanceDB target features:**
+
 - Stores session context as searchable memory entries
 - Automatically truncates conversation content to 2000 chars
 - Includes date, time, session key, and LLM-generated slug

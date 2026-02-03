@@ -62,11 +62,9 @@ export class Neo4jMemoryClient {
   }
 
   private async doInitialize(): Promise<void> {
-    this.driver = neo4j.driver(
-      this.uri,
-      neo4j.auth.basic(this.username, this.password),
-      { disableLosslessIntegers: true },
-    );
+    this.driver = neo4j.driver(this.uri, neo4j.auth.basic(this.username, this.password), {
+      disableLosslessIntegers: true,
+    });
 
     // Verify connection
     const session = this.driver.session();
@@ -86,38 +84,74 @@ export class Neo4jMemoryClient {
     const session = this.driver!.session();
     try {
       // Uniqueness constraints (also create indexes implicitly)
-      await this.runSafe(session, "CREATE CONSTRAINT memory_id_unique IF NOT EXISTS FOR (m:Memory) REQUIRE m.id IS UNIQUE");
-      await this.runSafe(session, "CREATE CONSTRAINT entity_id_unique IF NOT EXISTS FOR (e:Entity) REQUIRE e.id IS UNIQUE");
-      await this.runSafe(session, "CREATE CONSTRAINT tag_name_unique IF NOT EXISTS FOR (t:Tag) REQUIRE t.name IS UNIQUE");
+      await this.runSafe(
+        session,
+        "CREATE CONSTRAINT memory_id_unique IF NOT EXISTS FOR (m:Memory) REQUIRE m.id IS UNIQUE",
+      );
+      await this.runSafe(
+        session,
+        "CREATE CONSTRAINT entity_id_unique IF NOT EXISTS FOR (e:Entity) REQUIRE e.id IS UNIQUE",
+      );
+      await this.runSafe(
+        session,
+        "CREATE CONSTRAINT tag_name_unique IF NOT EXISTS FOR (t:Tag) REQUIRE t.name IS UNIQUE",
+      );
 
       // Vector indexes
-      await this.runSafe(session, `
+      await this.runSafe(
+        session,
+        `
         CREATE VECTOR INDEX memory_embedding_index IF NOT EXISTS
         FOR (m:Memory) ON m.embedding
         OPTIONS {indexConfig: {
           \`vector.dimensions\`: ${this.dimensions},
           \`vector.similarity_function\`: 'cosine'
         }}
-      `);
-      await this.runSafe(session, `
+      `,
+      );
+      await this.runSafe(
+        session,
+        `
         CREATE VECTOR INDEX entity_embedding_index IF NOT EXISTS
         FOR (e:Entity) ON e.embedding
         OPTIONS {indexConfig: {
           \`vector.dimensions\`: ${this.dimensions},
           \`vector.similarity_function\`: 'cosine'
         }}
-      `);
+      `,
+      );
 
       // Full-text indexes (Lucene BM25)
-      await this.runSafe(session, "CREATE FULLTEXT INDEX memory_fulltext_index IF NOT EXISTS FOR (m:Memory) ON EACH [m.text]");
-      await this.runSafe(session, "CREATE FULLTEXT INDEX entity_fulltext_index IF NOT EXISTS FOR (e:Entity) ON EACH [e.name]");
+      await this.runSafe(
+        session,
+        "CREATE FULLTEXT INDEX memory_fulltext_index IF NOT EXISTS FOR (m:Memory) ON EACH [m.text]",
+      );
+      await this.runSafe(
+        session,
+        "CREATE FULLTEXT INDEX entity_fulltext_index IF NOT EXISTS FOR (e:Entity) ON EACH [e.name]",
+      );
 
       // Property indexes for filtering
-      await this.runSafe(session, "CREATE INDEX memory_agent_index IF NOT EXISTS FOR (m:Memory) ON (m.agentId)");
-      await this.runSafe(session, "CREATE INDEX memory_category_index IF NOT EXISTS FOR (m:Memory) ON (m.category)");
-      await this.runSafe(session, "CREATE INDEX memory_created_index IF NOT EXISTS FOR (m:Memory) ON (m.createdAt)");
-      await this.runSafe(session, "CREATE INDEX entity_type_index IF NOT EXISTS FOR (e:Entity) ON (e.type)");
-      await this.runSafe(session, "CREATE INDEX entity_name_index IF NOT EXISTS FOR (e:Entity) ON (e.name)");
+      await this.runSafe(
+        session,
+        "CREATE INDEX memory_agent_index IF NOT EXISTS FOR (m:Memory) ON (m.agentId)",
+      );
+      await this.runSafe(
+        session,
+        "CREATE INDEX memory_category_index IF NOT EXISTS FOR (m:Memory) ON (m.category)",
+      );
+      await this.runSafe(
+        session,
+        "CREATE INDEX memory_created_index IF NOT EXISTS FOR (m:Memory) ON (m.createdAt)",
+      );
+      await this.runSafe(
+        session,
+        "CREATE INDEX entity_type_index IF NOT EXISTS FOR (e:Entity) ON (e.type)",
+      );
+      await this.runSafe(
+        session,
+        "CREATE INDEX entity_name_index IF NOT EXISTS FOR (e:Entity) ON (e.name)",
+      );
 
       this.logger.info("memory-neo4j: indexes ensured");
     } finally {
@@ -217,9 +251,8 @@ export class Neo4jMemoryClient {
         { id },
       );
 
-      const deleted = result.records.length > 0
-        ? (result.records[0].get("deleted") as number) > 0
-        : false;
+      const deleted =
+        result.records.length > 0 ? (result.records[0].get("deleted") as number) > 0 : false;
       return deleted;
     } finally {
       await session.close();
@@ -290,11 +323,7 @@ export class Neo4jMemoryClient {
    * Signal 2: Lucene BM25 full-text keyword search.
    * Returns memories ranked by BM25 relevance score.
    */
-  async bm25Search(
-    query: string,
-    limit: number,
-    agentId?: string,
-  ): Promise<SearchSignalResult[]> {
+  async bm25Search(query: string, limit: number, agentId?: string): Promise<SearchSignalResult[]> {
     await this.ensureInitialized();
     const session = this.driver!.session();
     try {
@@ -550,9 +579,7 @@ export class Neo4jMemoryClient {
     confidence: number = 1.0,
   ): Promise<void> {
     if (!validateRelationshipType(relType)) {
-      this.logger.warn(
-        `memory-neo4j: rejected invalid relationship type: ${relType}`,
-      );
+      this.logger.warn(`memory-neo4j: rejected invalid relationship type: ${relType}`);
       return;
     }
 
@@ -651,7 +678,9 @@ export class Neo4jMemoryClient {
           err instanceof Error &&
           (err.message.includes("DeadlockDetected") ||
             err.message.includes("TransientError") ||
-            err.constructor.name === "Neo4jError" && (err as unknown as Record<string, unknown>).code === "Neo.TransientError.Transaction.DeadlockDetected");
+            (err.constructor.name === "Neo4jError" &&
+              (err as unknown as Record<string, unknown>).code ===
+                "Neo.TransientError.Transaction.DeadlockDetected"));
 
         if (!isTransient || attempt >= maxAttempts - 1) {
           throw err;

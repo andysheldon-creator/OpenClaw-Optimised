@@ -41,8 +41,6 @@ export class Embeddings {
     });
 
     // Sort by index to ensure correct order
-    return response.data
-      .sort((a, b) => a.index - b.index)
-      .map((d) => d.embedding);
+    return response.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
   }
 }

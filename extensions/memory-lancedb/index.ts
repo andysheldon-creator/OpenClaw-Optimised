@@ -120,7 +120,12 @@ class MemoryDB {
     return fullEntry;
   }
 
-  async search(vector: number[], limit = 5, minScore = 0.5, agentId?: string): Promise<MemorySearchResult[]> {
+  async search(
+    vector: number[],
+    limit = 5,
+    minScore = 0.5,
+    agentId?: string,
+  ): Promise<MemorySearchResult[]> {
     await this.ensureInitialized();
 
     let query = this.table!.vectorSearch(vector);
@@ -231,10 +236,7 @@ class MemoryDB {
   /** Get the N most recent memories for an agent, sorted newest first */
   async getRecent(limit: number, agentId: string): Promise<MemoryEntry[]> {
     await this.ensureInitialized();
-    const rows = await this.table!
-      .query()
-      .where(`agent_id = '${agentId}'`)
-      .toArray();
+    const rows = await this.table!.query().where(`agent_id = '${agentId}'`).toArray();
     // Sort by createdAt descending and take top N
     return (rows as MemoryEntry[])
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
@@ -331,14 +333,14 @@ class MemoryExtractor {
     const provider = config.provider ?? "openrouter";
     const apiKey = config.apiKey ?? fallbackApiKey;
     if (!apiKey) {
-      throw new Error("autoCapture requires an API key (set autoCapture.apiKey or use OpenRouter provider config)");
+      throw new Error(
+        "autoCapture requires an API key (set autoCapture.apiKey or use OpenRouter provider config)",
+      );
     }
 
     const baseURL =
       config.baseUrl ??
-      (provider === "openrouter"
-        ? "https://openrouter.ai/api/v1"
-        : "https://api.openai.com/v1");
+      (provider === "openrouter" ? "https://openrouter.ai/api/v1" : "https://api.openai.com/v1");
 
     this.model = config.model ?? "google/gemini-2.0-flash-001";
     this.client = new OpenAI({ apiKey, baseURL });
@@ -398,7 +400,8 @@ class MemoryExtractor {
           category: MEMORY_CATEGORIES.includes(m.category as MemoryCategory)
             ? (m.category as MemoryCategory)
             : ("fact" as MemoryCategory),
-          importance: typeof m.importance === "number" ? Math.min(1, Math.max(0, m.importance)) : 0.7,
+          importance:
+            typeof m.importance === "number" ? Math.min(1, Math.max(0, m.importance)) : 0.7,
         }))
         .slice(0, 5); // Max 5 memories per turn
     } catch {
@@ -663,7 +666,13 @@ const memoryPlugin = {
         }
 
         // Importance distribution
-        const importance = { "critical (0.9-1.0)": 0, "high (0.8-0.89)": 0, "medium (0.7-0.79)": 0, "low (0.5-0.69)": 0, "minimal (<0.5)": 0 };
+        const importance = {
+          "critical (0.9-1.0)": 0,
+          "high (0.8-0.89)": 0,
+          "medium (0.7-0.79)": 0,
+          "low (0.5-0.69)": 0,
+          "minimal (<0.5)": 0,
+        };
         for (const m of memories) {
           const imp = m.importance || 0;
           if (imp >= 0.9) importance["critical (0.9-1.0)"]++;
@@ -679,7 +688,7 @@ const memoryPlugin = {
           for (let i = 0; i < memories.length; i++) {
             for (let j = i + 1; j < memories.length; j++) {
               const sim = cosineSimilarity(memories[i].vector, memories[j].vector);
-              if (sim >= 0.80) {
+              if (sim >= 0.8) {
                 nearDupes.push({
                   sim: sim.toFixed(3),
                   a: memories[i].text.slice(0, 80),
@@ -692,14 +701,27 @@ const memoryPlugin = {
         }
 
         // Average text length
-        const avgLen = total > 0 ? Math.round(memories.reduce((s, m) => s + m.text.length, 0) / total) : 0;
+        const avgLen =
+          total > 0 ? Math.round(memories.reduce((s, m) => s + m.text.length, 0) / total) : 0;
 
         // Oldest & newest
         const sorted = [...memories].sort((a, b) => a.createdAt - b.createdAt);
-        const oldest = sorted[0]?.createdAt ? new Date(sorted[0].createdAt).toISOString().slice(0, 10) : "n/a";
-        const newest = sorted.length ? new Date(sorted[sorted.length - 1].createdAt).toISOString().slice(0, 10) : "n/a";
+        const oldest = sorted[0]?.createdAt
+          ? new Date(sorted[0].createdAt).toISOString().slice(0, 10)
+          : "n/a";
+        const newest = sorted.length
+          ? new Date(sorted[sorted.length - 1].createdAt).toISOString().slice(0, 10)
+          : "n/a";
 
-        const agentReport = { total, categories, importance, avgTextLength: avgLen, oldest, newest, nearDupes: nearDupes.length };
+        const agentReport = {
+          total,
+          categories,
+          importance,
+          avgTextLength: avgLen,
+          oldest,
+          newest,
+          nearDupes: nearDupes.length,
+        };
 
         if (opts.json) {
           report[agentId] = { ...agentReport, nearDupeDetails: nearDupes.slice(0, 10) };
@@ -714,8 +736,10 @@ const memoryPlugin = {
           for (const cat of catOrder) {
             if (categories[cat]) {
               const pct = ((categories[cat] / total) * 100).toFixed(0);
-              const bar = "█".repeat(Math.max(1, Math.round(categories[cat] / total * 30)));
-              console.log(`      ${cat.padEnd(12)} ${String(categories[cat]).padStart(3)} (${pct.padStart(2)}%) ${bar}`);
+              const bar = "█".repeat(Math.max(1, Math.round((categories[cat] / total) * 30)));
+              console.log(
+                `      ${cat.padEnd(12)} ${String(categories[cat]).padStart(3)} (${pct.padStart(2)}%) ${bar}`,
+              );
             }
           }
           console.log(`\n   ⚡ Importance:`);
@@ -740,7 +764,13 @@ const memoryPlugin = {
       }
     };
 
-    const fixAction = async (opts: { agent?: string; dryRun?: boolean; verbose?: boolean; minPasses?: string; maxPasses?: string }) => {
+    const fixAction = async (opts: {
+      agent?: string;
+      dryRun?: boolean;
+      verbose?: boolean;
+      minPasses?: string;
+      maxPasses?: string;
+    }) => {
       const { execSync, spawn } = await import("node:child_process");
       const scriptPath = api.resolvePath("../../scripts/memory-consolidate.mjs");
       const workspaceScript = `${process.env.HOME}/.openclaw/workspace/scripts/memory-consolidate.mjs`;
@@ -826,8 +856,12 @@ const memoryPlugin = {
                     .map(([cat, count]) => `${cat}: ${count}`)
                     .join(", ");
                   const sorted = [...memories].sort((a, b) => a.createdAt - b.createdAt);
-                  const oldest = sorted[0]?.createdAt ? new Date(sorted[0].createdAt).toISOString().slice(0, 10) : "n/a";
-                  const newest = sorted.length ? new Date(sorted[sorted.length - 1].createdAt).toISOString().slice(0, 10) : "n/a";
+                  const oldest = sorted[0]?.createdAt
+                    ? new Date(sorted[0].createdAt).toISOString().slice(0, 10)
+                    : "n/a";
+                  const newest = sorted.length
+                    ? new Date(sorted[sorted.length - 1].createdAt).toISOString().slice(0, 10)
+                    : "n/a";
 
                   console.log(`Long-Term Memory (LanceDB) — ${agentId}`);
                   console.log(`${"─".repeat(50)}`);
@@ -865,12 +899,16 @@ const memoryPlugin = {
                     importance: m.importance,
                     createdAt: new Date(m.createdAt).toISOString(),
                   }));
-                  console.log(JSON.stringify({ agentId, total: memories.length, memories: output }, null, 2));
+                  console.log(
+                    JSON.stringify({ agentId, total: memories.length, memories: output }, null, 2),
+                  );
                 } else if (opts.verbose) {
                   console.log(`\n🧠 Memories — agent: ${agentId} (${memories.length} total)`);
                   console.log(`${"─".repeat(60)}`);
                   for (const m of memories) {
-                    console.log(`  [${m.category}] (${m.importance}) ${m.text.slice(0, 120)}${m.text.length > 120 ? "..." : ""}`);
+                    console.log(
+                      `  [${m.category}] (${m.importance}) ${m.text.slice(0, 120)}${m.text.length > 120 ? "..." : ""}`,
+                    );
                   }
                 } else {
                   console.log(`Agent ${agentId}: ${memories.length} memories`);
@@ -924,7 +962,9 @@ const memoryPlugin = {
             .map((r) => `- [${r.entry.category}] ${r.entry.text}`)
             .join("\n");
 
-          api.logger.info?.(`memory-lancedb: injecting ${results.length} memories for agent=${agentId}`);
+          api.logger.info?.(
+            `memory-lancedb: injecting ${results.length} memories for agent=${agentId}`,
+          );
 
           return {
             prependContext: `<relevant-memories>\nThe following memories may be relevant to this conversation:\n${memoryContext}\n</relevant-memories>`,
@@ -937,7 +977,11 @@ const memoryPlugin = {
 
     // Auto-capture: LLM-based memory extraction after agent ends (scoped by agentId)
     if (extractor) {
-      const maxMessages = (autoCaptureConfig && typeof autoCaptureConfig === "object" && autoCaptureConfig.maxMessages) || 10;
+      const maxMessages =
+        (autoCaptureConfig &&
+          typeof autoCaptureConfig === "object" &&
+          autoCaptureConfig.maxMessages) ||
+        10;
 
       api.on("agent_end", async (event, ctx) => {
         if (!event.success || !event.messages || event.messages.length === 0) {

@@ -16,7 +16,7 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { Type } from "@sinclair/typebox";
 import { randomUUID } from "node:crypto";
 import { stringEnum } from "openclaw/plugin-sdk";
-
+import type { MemoryCategory, MemorySource } from "./schema.js";
 import {
   MEMORY_CATEGORIES,
   memoryNeo4jConfigSchema,
@@ -24,14 +24,9 @@ import {
   vectorDimsForModel,
 } from "./config.js";
 import { Embeddings } from "./embeddings.js";
-import {
-  evaluateAutoCapture,
-  extractUserMessages,
-  runBackgroundExtraction,
-} from "./extractor.js";
+import { evaluateAutoCapture, extractUserMessages, runBackgroundExtraction } from "./extractor.js";
 import { Neo4jMemoryClient } from "./neo4j-client.js";
 import { hybridSearch } from "./search.js";
-import type { MemoryCategory, MemorySource } from "./schema.js";
 
 // ============================================================================
 // Plugin Definition
@@ -81,14 +76,9 @@ const memoryNeo4jPlugin = {
             "Search through long-term memories. Use when you need context about user preferences, past decisions, or previously discussed topics.",
           parameters: Type.Object({
             query: Type.String({ description: "Search query" }),
-            limit: Type.Optional(
-              Type.Number({ description: "Max results (default: 5)" }),
-            ),
+            limit: Type.Optional(Type.Number({ description: "Max results (default: 5)" })),
           }),
-          async execute(
-            _toolCallId: string,
-            params: unknown,
-          ) {
+          async execute(_toolCallId: string, params: unknown) {
             const { query, limit = 5 } = params as {
               query: string;
               limit?: number;
@@ -105,18 +95,13 @@ const memoryNeo4jPlugin = {
 
             if (results.length === 0) {
               return {
-                content: [
-                  { type: "text", text: "No relevant memories found." },
-                ],
+                content: [{ type: "text", text: "No relevant memories found." }],
                 details: { count: 0 },
               };
             }
 
             const text = results
-              .map(
-                (r, i) =>
-                  `${i + 1}. [${r.category}] ${r.text} (${(r.score * 100).toFixed(0)}%)`,
-              )
+              .map((r, i) => `${i + 1}. [${r.category}] ${r.text} (${(r.score * 100).toFixed(0)}%)`)
               .join("\n");
 
             const sanitizedResults = results.map((r) => ({
@@ -161,10 +146,7 @@ const memoryNeo4jPlugin = {
             ),
             category: Type.Optional(stringEnum(MEMORY_CATEGORIES)),
           }),
-          async execute(
-            _toolCallId: string,
-            params: unknown,
-          ) {
+          async execute(_toolCallId: string, params: unknown) {
             const {
               text,
               importance = 0.7,
@@ -220,9 +202,7 @@ const memoryNeo4jPlugin = {
                 extractionConfig,
                 api.logger,
               ).catch((err) => {
-                api.logger.warn(
-                  `memory-neo4j: background extraction error: ${String(err)}`,
-                );
+                api.logger.warn(`memory-neo4j: background extraction error: ${String(err)}`);
               });
             }
 
@@ -249,17 +229,10 @@ const memoryNeo4jPlugin = {
           label: "Memory Forget",
           description: "Delete specific memories. GDPR-compliant.",
           parameters: Type.Object({
-            query: Type.Optional(
-              Type.String({ description: "Search to find memory" }),
-            ),
-            memoryId: Type.Optional(
-              Type.String({ description: "Specific memory ID" }),
-            ),
+            query: Type.Optional(Type.String({ description: "Search to find memory" })),
+            memoryId: Type.Optional(Type.String({ description: "Specific memory ID" })),
           }),
-          async execute(
-            _toolCallId: string,
-            params: unknown,
-          ) {
+          async execute(_toolCallId: string, params: unknown) {
             const { query, memoryId } = params as {
               query?: string;
               memoryId?: string;
@@ -297,9 +270,7 @@ const memoryNeo4jPlugin = {
 
               if (results.length === 0) {
                 return {
-                  content: [
-                    { type: "text", text: "No matching memories found." },
-                  ],
+                  content: [{ type: "text", text: "No matching memories found." }],
                   details: { found: 0 },
                 };
               }
@@ -320,10 +291,7 @@ const memoryNeo4jPlugin = {
 
               // Multiple candidates — ask user to specify
               const list = results
-                .map(
-                  (r) =>
-                    `- [${r.id.slice(0, 8)}] ${r.text.slice(0, 60)}...`,
-                )
+                .map((r) => `- [${r.id.slice(0, 8)}] ${r.text.slice(0, 60)}...`)
                 .join("\n");
 
               const sanitizedCandidates = results.map((r) => ({
@@ -348,9 +316,7 @@ const memoryNeo4jPlugin = {
             }
 
             return {
-              content: [
-                { type: "text", text: "Provide query or memoryId." },
-              ],
+              content: [{ type: "text", text: "Provide query or memoryId." }],
               details: { error: "missing_param" },
             };
           },
@@ -365,9 +331,7 @@ const memoryNeo4jPlugin = {
 
     api.registerCli(
       ({ program }) => {
-        const memory = program
-          .command("neo4j-memory")
-          .description("Neo4j memory plugin commands");
+        const memory = program.command("neo4j-memory").description("Neo4j memory plugin commands");
 
         memory
           .command("list")
@@ -411,7 +375,9 @@ const memoryNeo4jPlugin = {
             console.log(`Total memories: ${count}`);
             console.log(`Neo4j URI: ${cfg.neo4j.uri}`);
             console.log(`Embedding model: ${cfg.embedding.model}`);
-            console.log(`Extraction: ${extractionConfig.enabled ? extractionConfig.model : "disabled"}`);
+            console.log(
+              `Extraction: ${extractionConfig.enabled ? extractionConfig.model : "disabled"}`,
+            );
           });
 
         memory
@@ -447,21 +413,15 @@ const memoryNeo4jPlugin = {
 
           if (results.length === 0) return;
 
-          const memoryContext = results
-            .map((r) => `- [${r.category}] ${r.text}`)
-            .join("\n");
+          const memoryContext = results.map((r) => `- [${r.category}] ${r.text}`).join("\n");
 
-          api.logger.info?.(
-            `memory-neo4j: injecting ${results.length} memories into context`,
-          );
+          api.logger.info?.(`memory-neo4j: injecting ${results.length} memories into context`);
 
           return {
             prependContext: `<relevant-memories>\nThe following memories may be relevant to this conversation:\n${memoryContext}\n</relevant-memories>`,
           };
         } catch (err) {
-          api.logger.warn(
-            `memory-neo4j: auto-recall failed: ${String(err)}`,
-          );
+          api.logger.warn(`memory-neo4j: auto-recall failed: ${String(err)}`);
         }
       });
     }
@@ -482,10 +442,7 @@ const memoryNeo4jPlugin = {
             const userMessages = extractUserMessages(event.messages);
             if (userMessages.length === 0) return;
 
-            const items = await evaluateAutoCapture(
-              userMessages,
-              extractionConfig,
-            );
+            const items = await evaluateAutoCapture(userMessages, extractionConfig);
             if (items.length === 0) return;
 
             let stored = 0;
@@ -522,16 +479,12 @@ const memoryNeo4jPlugin = {
 
                 stored++;
               } catch (err) {
-                api.logger.debug?.(
-                  `memory-neo4j: auto-capture item failed: ${String(err)}`,
-                );
+                api.logger.debug?.(`memory-neo4j: auto-capture item failed: ${String(err)}`);
               }
             }
 
             if (stored > 0) {
-              api.logger.info(
-                `memory-neo4j: auto-captured ${stored} memories (LLM-based)`,
-              );
+              api.logger.info(`memory-neo4j: auto-captured ${stored} memories (LLM-based)`);
             }
           } else {
             // Fallback: rule-based capture (no extraction API key)
@@ -566,15 +519,11 @@ const memoryNeo4jPlugin = {
             }
 
             if (stored > 0) {
-              api.logger.info(
-                `memory-neo4j: auto-captured ${stored} memories (rule-based)`,
-              );
+              api.logger.info(`memory-neo4j: auto-captured ${stored} memories (rule-based)`);
             }
           }
         } catch (err) {
-          api.logger.warn(
-            `memory-neo4j: auto-capture failed: ${String(err)}`,
-          );
+          api.logger.warn(`memory-neo4j: auto-capture failed: ${String(err)}`);
         }
       });
     }
@@ -635,8 +584,7 @@ function detectCategory(text: string): MemoryCategory {
   const lower = text.toLowerCase();
   if (/prefer|radši|like|love|hate|want/i.test(lower)) return "preference";
   if (/decided|rozhodli|will use|budeme/i.test(lower)) return "decision";
-  if (/\+\d{10,}|@[\w.-]+\.\w+|is called|jmenuje se/i.test(lower))
-    return "entity";
+  if (/\+\d{10,}|@[\w.-]+\.\w+|is called|jmenuje se/i.test(lower)) return "entity";
   if (/is|are|has|have|je|má|jsou/i.test(lower)) return "fact";
   return "other";
 }

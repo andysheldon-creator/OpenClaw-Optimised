@@ -149,9 +149,7 @@ export const memoryConfigSchema = {
       autoCapture = {
         enabled: ac.enabled !== false,
         provider:
-          ac.provider === "openai" || ac.provider === "openrouter"
-            ? ac.provider
-            : "openrouter",
+          ac.provider === "openai" || ac.provider === "openrouter" ? ac.provider : "openrouter",
         model: typeof ac.model === "string" ? ac.model : undefined,
         apiKey: typeof ac.apiKey === "string" ? resolveEnvVars(ac.apiKey) : undefined,
         baseUrl: typeof ac.baseUrl === "string" ? ac.baseUrl : undefined,

@@ -101,10 +101,7 @@ If nothing is worth remembering, return: {"memories": []}`;
 // OpenRouter API Client
 // ============================================================================
 
-async function callOpenRouter(
-  config: ExtractionConfig,
-  prompt: string,
-): Promise<string | null> {
+async function callOpenRouter(config: ExtractionConfig, prompt: string): Promise<string | null> {
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     try {
       const response = await fetch(`${config.baseUrl}/chat/completions`, {
@@ -135,9 +132,7 @@ async function callOpenRouter(
         throw err;
       }
       // Exponential backoff
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500 * Math.pow(2, attempt)),
-      );
+      await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, attempt)));
     }
   }
   return null;
@@ -173,13 +168,9 @@ export async function extractEntities(
 /**
  * Validate and sanitize LLM extraction output.
  */
-function validateExtractionResult(
-  raw: Record<string, unknown>,
-): ExtractionResult {
+function validateExtractionResult(raw: Record<string, unknown>): ExtractionResult {
   const entities = Array.isArray(raw.entities) ? raw.entities : [];
-  const relationships = Array.isArray(raw.relationships)
-    ? raw.relationships
-    : [];
+  const relationships = Array.isArray(raw.relationships) ? raw.relationships : [];
   const tags = Array.isArray(raw.tags) ? raw.tags : [];
 
   const validEntityTypes = new Set<string>(ENTITY_TYPES);
@@ -195,16 +186,13 @@ function validateExtractionResult(
       )
       .map((e) => ({
         name: String(e.name).trim().toLowerCase(),
-        type: validEntityTypes.has(String(e.type))
-          ? (String(e.type) as EntityType)
-          : "concept",
+        type: validEntityTypes.has(String(e.type)) ? (String(e.type) as EntityType) : "concept",
         aliases: Array.isArray(e.aliases)
           ? (e.aliases as unknown[])
               .filter((a): a is string => typeof a === "string")
               .map((a) => a.trim().toLowerCase())
           : undefined,
-        description:
-          typeof e.description === "string" ? e.description : undefined,
+        description: typeof e.description === "string" ? e.description : undefined,
       }))
       .filter((e) => e.name.length > 0),
 
@@ -216,9 +204,7 @@ function validateExtractionResult(
           typeof (r as Record<string, unknown>).source === "string" &&
           typeof (r as Record<string, unknown>).target === "string" &&
           typeof (r as Record<string, unknown>).type === "string" &&
-          ALLOWED_RELATIONSHIP_TYPES.has(
-            String((r as Record<string, unknown>).type),
-          ),
+          ALLOWED_RELATIONSHIP_TYPES.has(String((r as Record<string, unknown>).type)),
       )
       .map((r) => ({
         source: String(r.source).trim().toLowerCase(),
@@ -297,9 +283,7 @@ export async function runBackgroundExtraction(
         const vectors = await embeddings.embedBatch(names);
         entityEmbeddings = new Map(names.map((n, i) => [n, vectors[i]]));
       } catch (err) {
-        logger.debug?.(
-          `memory-neo4j: entity embedding generation failed: ${String(err)}`,
-        );
+        logger.debug?.(`memory-neo4j: entity embedding generation failed: ${String(err)}`);
       }
     }
 
@@ -318,21 +302,14 @@ export async function runBackgroundExtraction(
         // Create MENTIONS relationship
         await db.createMentions(memoryId, entity.name, "context", 1.0);
       } catch (err) {
-        logger.warn(
-          `memory-neo4j: entity merge failed for "${entity.name}": ${String(err)}`,
-        );
+        logger.warn(`memory-neo4j: entity merge failed for "${entity.name}": ${String(err)}`);
       }
     }
 
     // Create inter-Entity relationships
     for (const rel of result.relationships) {
       try {
-        await db.createEntityRelationship(
-          rel.source,
-          rel.target,
-          rel.type,
-          rel.confidence,
-        );
+        await db.createEntityRelationship(rel.source, rel.target, rel.type, rel.confidence);
       } catch (err) {
         logger.debug?.(
           `memory-neo4j: relationship creation failed: ${rel.source}->${rel.target}: ${String(err)}`,
@@ -345,9 +322,7 @@ export async function runBackgroundExtraction(
       try {
         await db.tagMemory(memoryId, tag.name, tag.category);
       } catch (err) {
-        logger.debug?.(
-          `memory-neo4j: tagging failed for "${tag.name}": ${String(err)}`,
-        );
+        logger.debug?.(`memory-neo4j: tagging failed for "${tag.name}": ${String(err)}`);
       }
     }
 
@@ -357,9 +332,7 @@ export async function runBackgroundExtraction(
         `${result.entities.length} entities, ${result.relationships.length} rels, ${result.tags.length} tags`,
     );
   } catch (err) {
-    logger.warn(
-      `memory-neo4j: extraction failed for ${memoryId.slice(0, 8)}: ${String(err)}`,
-    );
+    logger.warn(`memory-neo4j: extraction failed for ${memoryId.slice(0, 8)}: ${String(err)}`);
     await db.updateExtractionStatus(memoryId, "failed").catch(() => {});
   }
 }
@@ -401,13 +374,7 @@ export async function evaluateAutoCapture(
 function validateCaptureDecision(raw: Record<string, unknown>): CaptureItem[] {
   const memories = Array.isArray(raw.memories) ? raw.memories : [];
 
-  const validCategories = new Set<string>([
-    "preference",
-    "fact",
-    "decision",
-    "entity",
-    "other",
-  ]);
+  const validCategories = new Set<string>(["preference", "fact", "decision", "entity", "other"]);
 
   return memories
     .filter(
@@ -422,10 +389,7 @@ function validateCaptureDecision(raw: Record<string, unknown>): CaptureItem[] {
       category: validCategories.has(String(m.category))
         ? (String(m.category) as MemoryCategory)
         : "other",
-      importance:
-        typeof m.importance === "number"
-          ? Math.min(1, Math.max(0, m.importance))
-          : 0.7,
+      importance: typeof m.importance === "number" ? Math.min(1, Math.max(0, m.importance)) : 0.7,
     }))
     .slice(0, 5); // Max 5 captures per conversation
 }
@@ -472,9 +436,6 @@ export function extractUserMessages(messages: unknown[]): string[] {
 
   // Filter out noise
   return texts.filter(
-    (t) =>
-      t.length >= 10 &&
-      !t.includes("<relevant-memories>") &&
-      !t.includes("<system>"),
+    (t) => t.length >= 10 && !t.includes("<relevant-memories>") && !t.includes("<system>"),
   );
 }

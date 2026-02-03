@@ -138,21 +138,9 @@ export type MergeEntityInput = {
 // Constants
 // ============================================================================
 
-export const MEMORY_CATEGORIES = [
-  "preference",
-  "fact",
-  "decision",
-  "entity",
-  "other",
-] as const;
+export const MEMORY_CATEGORIES = ["preference", "fact", "decision", "entity", "other"] as const;
 
-export const ENTITY_TYPES = [
-  "person",
-  "organization",
-  "location",
-  "event",
-  "concept",
-] as const;
+export const ENTITY_TYPES = ["person", "organization", "location", "event", "concept"] as const;
 
 export const ALLOWED_RELATIONSHIP_TYPES = new Set([
   "WORKS_AT",
