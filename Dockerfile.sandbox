@@ -11,6 +11,12 @@ RUN apt-get update \
     jq \
     python3 \
     ripgrep \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd -m -s /bin/bash sandbox
+
+# Security hardening: Run as non-root user
+# This reduces the attack surface by preventing container escape via root privileges
+USER sandbox
+WORKDIR /home/sandbox
 
 CMD ["sleep", "infinity"]

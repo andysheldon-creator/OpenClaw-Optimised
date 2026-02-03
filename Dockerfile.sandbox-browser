@@ -18,10 +18,16 @@ RUN apt-get update \
     websockify \
     x11vnc \
     xvfb \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd -m -s /bin/bash sandbox
 
 COPY scripts/sandbox-browser-entrypoint.sh /usr/local/bin/openclaw-sandbox-browser
 RUN chmod +x /usr/local/bin/openclaw-sandbox-browser
+
+# Security hardening: Run as non-root user
+# Chromium's --no-sandbox flag is acceptable when the outer container provides isolation
+USER sandbox
+WORKDIR /home/sandbox
 
 EXPOSE 9222 5900 6080
 
