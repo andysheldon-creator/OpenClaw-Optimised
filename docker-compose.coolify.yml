@@ -50,7 +50,6 @@ services:
       restart_policy:
         condition: unless-stopped
         delay: 5s
-        max_attempts: 3
 
     # Logging
     logging:
