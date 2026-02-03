@@ -8,7 +8,7 @@ import { defaultRuntime } from "../../runtime.js";
 import { getFlagValue, getPositiveIntFlagValue, getVerboseFlag, hasFlag } from "../argv.js";
 import { registerBrowserCli } from "../browser-cli.js";
 import { registerConfigCli } from "../config-cli.js";
-import { registerMemoryCli, runMemoryStatus } from "../memory-cli.js";
+import { registerMemoryCli } from "../memory-cli.js";
 import { registerAgentCommands } from "./register.agent.js";
 import { registerConfigureCommand } from "./register.configure.js";
 import { registerMaintenanceCommands } from "./register.maintenance.js";
@@ -96,21 +96,8 @@ const routeAgentsList: RouteSpec = {
   },
 };
 
-const routeMemoryStatus: RouteSpec = {
-  match: (path) => path[0] === "memory" && path[1] === "status",
-  run: async (argv) => {
-    const agent = getFlagValue(argv, "--agent");
-    if (agent === null) {
-      return false;
-    }
-    const json = hasFlag(argv, "--json");
-    const deep = hasFlag(argv, "--deep");
-    const index = hasFlag(argv, "--index");
-    const verbose = hasFlag(argv, "--verbose");
-    await runMemoryStatus({ agent, json, deep, index, verbose });
-    return true;
-  },
-};
+// Note: memory status intentionally has no fast-path route so that plugin
+// postAction hooks (e.g. LanceDB LTM status) fire via Commander.
 
 export const commandRegistry: CommandRegistration[] = [
   {
@@ -140,7 +127,6 @@ export const commandRegistry: CommandRegistration[] = [
   {
     id: "memory",
     register: ({ program }) => registerMemoryCli(program),
-    routes: [routeMemoryStatus],
   },
   {
     id: "agent",

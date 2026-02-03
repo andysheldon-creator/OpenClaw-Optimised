@@ -798,6 +798,55 @@ const memoryPlugin = {
           (cmd: { name: () => string }) => cmd.name() === "memory",
         );
         if (existingMemory) {
+          // Hook into 'status' subcommand to append LanceDB LTM info
+          const statusCmd = existingMemory.commands.find(
+            (cmd: { name: () => string }) => cmd.name() === "status",
+          );
+          if (statusCmd) {
+            statusCmd.hook("postAction", async () => {
+              try {
+                const agentIds = await db.getAgentIds();
+                if (agentIds.length === 0) {
+                  console.log(`Long-Term Memory (LanceDB)\n${"─".repeat(50)}`);
+                  console.log(`  Provider:  memory-lancedb`);
+                  console.log(`  Store:     ${resolvedDbPath}`);
+                  console.log(`  Embedding: ${cfg.embedding.model}`);
+                  console.log(`  Memories:  0 (empty)\n`);
+                  return;
+                }
+                for (const agentId of agentIds) {
+                  const memories = await db.listAll(agentId);
+                  const total = memories.length;
+                  const categories: Record<string, number> = {};
+                  for (const m of memories) {
+                    categories[m.category] = (categories[m.category] || 0) + 1;
+                  }
+                  const catSummary = Object.entries(categories)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([cat, count]) => `${cat}: ${count}`)
+                    .join(", ");
+                  const sorted = [...memories].sort((a, b) => a.createdAt - b.createdAt);
+                  const oldest = sorted[0]?.createdAt ? new Date(sorted[0].createdAt).toISOString().slice(0, 10) : "n/a";
+                  const newest = sorted.length ? new Date(sorted[sorted.length - 1].createdAt).toISOString().slice(0, 10) : "n/a";
+
+                  console.log(`Long-Term Memory (LanceDB) — ${agentId}`);
+                  console.log(`${"─".repeat(50)}`);
+                  console.log(`  Provider:    memory-lancedb`);
+                  console.log(`  Store:       ${resolvedDbPath}`);
+                  console.log(`  Embedding:   ${cfg.embedding.model} (${vectorDim}d)`);
+                  console.log(`  Memories:    ${total}`);
+                  console.log(`  Categories:  ${catSummary}`);
+                  console.log(`  Date range:  ${oldest} → ${newest}`);
+                  if (cfg.autoRecall) console.log(`  Auto-recall: enabled`);
+                  if (cfg.autoCapture) console.log(`  Auto-capture: enabled`);
+                  console.log("");
+                }
+              } catch (err) {
+                console.log(`Long-Term Memory (LanceDB): error — ${String(err)}\n`);
+              }
+            });
+          }
+
           existingMemory
             .command("list")
             .description("List long-term memories (count, or detailed with --verbose)")
