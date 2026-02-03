@@ -106,7 +106,7 @@ describe("listSkillCommandsForAgents", () => {
       const bundledDir = path.join(tempDir, "bundled-skills");
       await fs.mkdir(bundledDir);
       await writeSkill({
-        dir: bundledDir,
+        workspaceDir: bundledDir,
         dirName: "bundled-1",
         name: "bundled-skill",
         description: "A bundled skill",
