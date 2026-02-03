@@ -110,4 +110,31 @@ describe("normalizeCronJobCreate", () => {
     expect(schedule.kind).toBe("at");
     expect(schedule.atMs).toBe(Date.parse("2026-01-12T18:00:00Z"));
   });
+
+  it("defaults enabled to true when not specified", () => {
+    const normalized = normalizeCronJobCreate({
+      name: "no-enabled-field",
+      schedule: { kind: "cron", expr: "* * * * *" },
+      payload: {
+        kind: "agentTurn",
+        message: "hi",
+      },
+    }) as unknown as Record<string, unknown>;
+
+    expect(normalized.enabled).toBe(true);
+  });
+
+  it("respects explicit enabled: false", () => {
+    const normalized = normalizeCronJobCreate({
+      name: "disabled",
+      enabled: false,
+      schedule: { kind: "cron", expr: "* * * * *" },
+      payload: {
+        kind: "agentTurn",
+        message: "hi",
+      },
+    }) as unknown as Record<string, unknown>;
+
+    expect(normalized.enabled).toBe(false);
+  });
 });

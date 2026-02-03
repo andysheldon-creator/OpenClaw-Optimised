@@ -106,9 +106,62 @@ If a task mentions "UI work" or "control UI" or "web interface", it means `apps/
 - Run `pnpm test` (or `pnpm test:coverage`) before pushing when you touch logic.
 - Do not set test workers above 16; tried already.
 - Live tests (real keys): `CLAWDBOT_LIVE_TEST=1 pnpm test:live` (OpenClaw-only) or `LIVE=1 pnpm test:live` (includes provider live tests). Docker: `pnpm test:docker:live-models`, `pnpm test:docker:live-gateway`. Onboarding Docker E2E: `pnpm test:docker:onboard`.
-- Full kit + what’s covered: `docs/testing.md`.
+- Full kit + what's covered: `docs/testing.md`.
 - Pure test additions/fixes generally do **not** need a changelog entry unless they alter user-facing behavior or the user asks for one.
 - Mobile: before using a simulator, check for connected real devices (iOS + Android) and prefer them when available.
+
+## MCP Tool Usage (config.get, config.schema)
+
+⚠️ **WARNING: The `config.schema` response is EXTREMELY LARGE (~955KB, ~200K tokens)!**
+
+Requesting the full schema WILL flood your context window. Always use filtering parameters:
+
+### config.get — Reading Configuration
+
+```typescript
+// ❌ BAD: Fetches entire config (~80KB)
+await client.request("config.get", {});
+
+// ✅ GOOD: Fetch only what you need
+await client.request("config.get", { section: "agents" });
+await client.request("config.get", { path: "agents.defaults.model" });
+
+// ✅ OK: Explicit full request when you truly need everything
+await client.request("config.get", { full: true });
+```
+
+**Parameters:**
+- `path` — dot-notation path to extract (e.g., `"agents.defaults.model"`)
+- `section` — top-level section to return (e.g., `"channels"`, `"agents"`, `"plugins"`)
+- `full` — must be `true` to get entire config (use sparingly)
+
+### config.schema — Reading Configuration Schema
+
+```typescript
+// ❌ BAD: NEVER do this - ~955KB response!
+await client.request("config.schema", {});
+
+// ✅ GOOD: Fetch only the section you need
+await client.request("config.schema", { section: "agents" });
+await client.request("config.schema", { path: "agents.defaults" });
+
+// ✅ GOOD: Use ifNoneMatch for caching (returns notModified if unchanged)
+await client.request("config.schema", { ifNoneMatch: cachedVersion, section: "agents" });
+```
+
+**Parameters:**
+- `section` — only return schema for a top-level section (e.g., `"agents"`, `"channels"`)
+- `path` — only return schema for a specific dot-notation path
+- `full` — must be `true` to get full schema (AVOID unless absolutely necessary)
+- `ifNoneMatch` — client's cached schema version; returns `{ notModified: true }` if unchanged
+
+**When do you need the schema?**
+- Understanding config structure → use `section` filter
+- Validating a specific field → use `path` filter
+- Building a config form → fetch by section as needed
+- Simple config reads/writes → you probably don't need the schema at all!
+
+---
 
 ## Commit & Pull Request Guidelines
 

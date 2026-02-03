@@ -119,6 +119,11 @@ export function normalizeCronJobInput(
   }
 
   if (options.applyDefaults) {
+    // Default new jobs to enabled (as documented in cron tool schema).
+    // This ensures jobs created without explicit `enabled` field will run.
+    if (next.enabled === undefined) {
+      next.enabled = true;
+    }
     if (!next.wakeMode) {
       next.wakeMode = "next-heartbeat";
     }
