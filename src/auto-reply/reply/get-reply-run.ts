@@ -227,11 +227,6 @@ export async function runPreparedReply(
     isNewSession,
     prefixedBodyBase,
   });
-  const threadStarterBody = ctx.ThreadStarterBody?.trim();
-  const threadStarterNote =
-    isNewSession && threadStarterBody
-      ? `[Thread starter - for context]\n${threadStarterBody}`
-      : undefined;
   const skillResult = await ensureSkillSnapshot({
     sessionEntry,
     sessionStore,
@@ -246,6 +241,13 @@ export async function runPreparedReply(
   sessionEntry = skillResult.sessionEntry ?? sessionEntry;
   currentSystemSent = skillResult.systemSent;
   const skillsSnapshot = skillResult.skillsSnapshot;
+  // Use persisted threadStarterBody from session entry (survives across messages),
+  // falling back to ctx for the first message before session is updated.
+  // NOTE: Must read AFTER ensureSkillSnapshot updates sessionEntry.
+  const threadStarterBody = sessionEntry?.threadStarterBody ?? ctx.ThreadStarterBody?.trim();
+  const threadStarterNote = threadStarterBody
+    ? `[Thread starter - for context]\n${threadStarterBody}`
+    : undefined;
   const prefixedBody = [threadStarterNote, prefixedBodyBase].filter(Boolean).join("\n\n");
   const mediaNote = buildInboundMediaNote(ctx);
   const mediaReplyHint = mediaNote
