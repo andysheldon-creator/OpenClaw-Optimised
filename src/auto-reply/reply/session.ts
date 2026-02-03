@@ -81,10 +81,20 @@ function resolveGroupResetConfig(params: {
   }
   // Check multi-account groups
   if (telegramCfg.accounts) {
-    for (const account of Object.values(telegramCfg.accounts)) {
-      const accountGroupCfg = account.groups?.[groupResolution.id];
+    // If we know which account the message came from, use it directly for deterministic lookup
+    if (groupResolution.accountId) {
+      const account = telegramCfg.accounts[groupResolution.accountId];
+      const accountGroupCfg = account?.groups?.[groupResolution.id];
       if (accountGroupCfg?.session?.reset) {
         return accountGroupCfg.session.reset;
+      }
+    } else {
+      // Fallback: no account context, scan all accounts (legacy behavior)
+      for (const account of Object.values(telegramCfg.accounts)) {
+        const accountGroupCfg = account.groups?.[groupResolution.id];
+        if (accountGroupCfg?.session?.reset) {
+          return accountGroupCfg.session.reset;
+        }
       }
     }
   }
