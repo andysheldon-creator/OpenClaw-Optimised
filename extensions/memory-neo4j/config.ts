@@ -32,13 +32,7 @@ export type ExtractionConfig = {
   maxRetries: number;
 };
 
-export const MEMORY_CATEGORIES = [
-  "preference",
-  "fact",
-  "decision",
-  "entity",
-  "other",
-] as const;
+export const MEMORY_CATEGORIES = ["preference", "fact", "decision", "entity", "other"] as const;
 
 export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
 
@@ -50,7 +44,9 @@ const EMBEDDING_DIMENSIONS: Record<string, number> = {
 export function vectorDimsForModel(model: string): number {
   const dims = EMBEDDING_DIMENSIONS[model];
   if (!dims) {
-    throw new Error(`Unsupported embedding model: ${model}. Supported: ${Object.keys(EMBEDDING_DIMENSIONS).join(", ")}`);
+    throw new Error(
+      `Unsupported embedding model: ${model}. Supported: ${Object.keys(EMBEDDING_DIMENSIONS).join(", ")}`,
+    );
   }
   return dims;
 }
@@ -84,11 +80,7 @@ export function resolveExtractionConfig(): ExtractionConfig {
   };
 }
 
-function assertAllowedKeys(
-  value: Record<string, unknown>,
-  allowed: string[],
-  label: string,
-) {
+function assertAllowedKeys(value: Record<string, unknown>, allowed: string[], label: string) {
   const unknown = Object.keys(value).filter((key) => !allowed.includes(key));
   if (unknown.length > 0) {
     throw new Error(`${label} has unknown keys: ${unknown.join(", ")}`);
@@ -124,8 +116,7 @@ export const memoryNeo4jConfigSchema = {
 
     const neo4jPassword =
       typeof neo4jRaw.password === "string" ? resolveEnvVars(neo4jRaw.password) : "";
-    const neo4jUsername =
-      typeof neo4jRaw.username === "string" ? neo4jRaw.username : "neo4j";
+    const neo4jUsername = typeof neo4jRaw.username === "string" ? neo4jRaw.username : "neo4j";
 
     // Parse embedding section
     const embeddingRaw = cfg.embedding as Record<string, unknown> | undefined;

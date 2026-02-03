@@ -44,7 +44,11 @@ export function classifyQuery(query: string): QueryType {
   // Heuristic: if more than half of non-first words are capitalized
   const capitalizedWords = words
     .slice(1) // skip first word (often capitalized anyway)
-    .filter((w) => /^[A-Z]/.test(w) && !/^(I|A|An|The|Is|Are|Was|Were|What|Who|Where|When|How|Why|Do|Does|Did)$/.test(w));
+    .filter(
+      (w) =>
+        /^[A-Z]/.test(w) &&
+        !/^(I|A|An|The|Is|Are|Was|Were|What|Who|Where|When|How|Why|Do|Does|Did)$/.test(w),
+    );
 
   if (capitalizedWords.length > 0) return "entity";
 
@@ -209,11 +213,7 @@ export async function hybridSearch(
     graphFiringThreshold?: number;
   } = {},
 ): Promise<HybridSearchResult[]> {
-  const {
-    rrfK = 60,
-    candidateMultiplier = 4,
-    graphFiringThreshold = 0.3,
-  } = options;
+  const { rrfK = 60, candidateMultiplier = 4, graphFiringThreshold = 0.3 } = options;
 
   const candidateLimit = Math.min(200, Math.max(1, limit * candidateMultiplier));
 
@@ -234,11 +234,7 @@ export async function hybridSearch(
   ]);
 
   // 4. Fuse with confidence-weighted RRF
-  const fused = fuseWithConfidenceRRF(
-    [vectorResults, bm25Results, graphResults],
-    rrfK,
-    weights,
-  );
+  const fused = fuseWithConfidenceRRF([vectorResults, bm25Results, graphResults], rrfK, weights);
 
   // 5. Return top results, normalized to 0-100% display scores
   const maxRrf = fused.length > 0 ? fused[0].rrfScore : 1;
