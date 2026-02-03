@@ -187,12 +187,9 @@ describe("runReplyAgent memory flush", () => {
 
     const stm = await fs.readFile(path.join(tmp, "STM.md"), "utf-8");
     const working = await fs.readFile(path.join(tmp, "WORKING.md"), "utf-8");
-    const ltmIndex = await fs.readFile(path.join(tmp, "ltm", "index.md"), "utf-8");
-    const ltmNodes = await fs.stat(path.join(tmp, "ltm", "nodes"));
     expect(stm.trim()).toBe("# STM");
     expect(working.trim()).toBe("# WORKING");
-    expect(ltmIndex.trim()).toBe("# LTM Index");
-    expect(ltmNodes.isDirectory()).toBe(true);
+    await expect(fs.stat(path.join(tmp, "ltm"))).rejects.toThrow();
   });
   it("skips memory flush when disabled in config", async () => {
     runEmbeddedPiAgentMock.mockReset();

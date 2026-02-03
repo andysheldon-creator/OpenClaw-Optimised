@@ -214,13 +214,19 @@ export async function ensureWmStmLtmLayout(params: {
   );
   created.working = working.created;
 
-  const ltmDir = path.join(workspaceDir, "ltm");
-  const ltmDirResult = await ensureDir(ltmDir, "ltm/");
-  if (ltmDirResult.ok) {
-    const nodes = await ensureDir(path.join(ltmDir, "nodes"), "ltm/nodes/");
-    created.ltmNodes = nodes.created;
-    const index = await ensureFile(path.join(ltmDir, "index.md"), "# LTM Index\n", "ltm/index.md");
-    created.ltmIndex = index.created;
+  if (isLtmOptedInSync(workspaceDir)) {
+    const ltmDir = path.join(workspaceDir, "ltm");
+    const ltmDirResult = await ensureDir(ltmDir, "ltm/");
+    if (ltmDirResult.ok) {
+      const nodes = await ensureDir(path.join(ltmDir, "nodes"), "ltm/nodes/");
+      created.ltmNodes = nodes.created;
+      const index = await ensureFile(
+        path.join(ltmDir, "index.md"),
+        "# LTM Index\n",
+        "ltm/index.md",
+      );
+      created.ltmIndex = index.created;
+    }
   }
 
   return { created };

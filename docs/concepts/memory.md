@@ -42,8 +42,9 @@ If the workspace also contains WM/STM/LTM files, OpenClaw treats them as memory 
 LTM opt-in rule (to avoid indexing unrelated `ltm/` folders): `ltm/` is treated as memory only when
 either `ltm/index.md` exists or `ltm/nodes/` exists.
 
-When the workspace is writable, OpenClaw auto-creates `STM.md`, `WORKING.md`, `ltm/index.md`, and
-`ltm/nodes/` during the pre-compaction memory flush if they are missing.
+When the workspace is writable, OpenClaw auto-creates `STM.md` and `WORKING.md` during the
+pre-compaction memory flush if they are missing. LTM is only created and indexed when it is
+already opted in (when `ltm/index.md` or `ltm/nodes/` exists).
 
 ## When to write memory
 
@@ -367,7 +368,7 @@ Local mode:
 
 - File type: Markdown only (`MEMORY.md`/`memory.md`, `memory/**/*.md`, plus `STM.md` and `ltm/**/*.md` when opted in, plus any `.md` files under `memorySearch.extraPaths`). `WORKING.md` is not indexed by default.
 - Index storage: per-agent SQLite at `~/.openclaw/memory/<agentId>.sqlite` (configurable via `agents.defaults.memorySearch.store.path`, supports `{agentId}` token).
-- Freshness: watcher on `MEMORY.md`/`memory.md`, `STM.md`, `memory/`, `ltm/` (when opted in), and `memorySearch.extraPaths` marks the index dirty (debounce 1.5s). Sync is scheduled on session start, on search, or on an interval and runs asynchronously. Session transcripts use delta thresholds to trigger background sync.
+- Freshness: watcher on `MEMORY.md`/`memory.md`, `STM.md`, `memory/`, `ltm/`, and `memorySearch.extraPaths` marks the index dirty (debounce 1.5s). LTM indexing still requires opt-in. Sync is scheduled on session start, on search, or on an interval and runs asynchronously. Session transcripts use delta thresholds to trigger background sync.
 - Reindex triggers: the index stores the embedding **provider/model + endpoint fingerprint + chunking params**. If any of those change, OpenClaw automatically resets and reindexes the entire store.
 
 ### Hybrid search (BM25 + vector)

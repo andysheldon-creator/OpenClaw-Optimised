@@ -832,10 +832,7 @@ export class MemoryIndexManager implements MemorySearchManager {
       path.join(this.workspaceDir, "memory"),
       ...additionalPaths,
     ]);
-    const ltmDir = path.join(this.workspaceDir, "ltm");
-    if (isLtmOptedInSync(this.workspaceDir)) {
-      watchPaths.add(ltmDir);
-    }
+    watchPaths.add(path.join(this.workspaceDir, "ltm"));
     this.watcher = chokidar.watch(Array.from(watchPaths), {
       ignoreInitial: true,
       awaitWriteFinish: {
