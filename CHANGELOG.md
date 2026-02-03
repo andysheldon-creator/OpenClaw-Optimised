@@ -6,6 +6,7 @@ Docs: https://docs.openclaw.ai
 
 ### Changes
 
+- Ollama: enable auto-discovery for local models (no API key required) + configurable timeouts/base URLs.
 - Web UI: add Agents dashboard for managing agent files, tools, skills, models, channels, and cron jobs.
 - Security: add healthcheck skill and bootstrap audit guidance. (#7641) Thanks @Takhoffman.
 - Docs: seed zh-CN translations. (#6619) Thanks @joshp123.
