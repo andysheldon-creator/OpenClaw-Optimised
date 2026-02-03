@@ -310,6 +310,8 @@ export type PluginHookAgentContext = {
 
 // before_agent_start hook
 export type PluginHookBeforeAgentStartEvent = {
+  /** Original prompt from the user before any plugin overrides. */
+  originalPrompt?: string;
   prompt: string;
   messages?: unknown[];
 };

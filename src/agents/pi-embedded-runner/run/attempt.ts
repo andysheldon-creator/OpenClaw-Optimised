@@ -712,6 +712,7 @@ export async function runEmbeddedAttempt(
           try {
             const hookResult = await hookRunner.runBeforeAgentStart(
               {
+                originalPrompt: params.prompt,
                 prompt: params.prompt,
                 messages: activeSession.messages,
               },
