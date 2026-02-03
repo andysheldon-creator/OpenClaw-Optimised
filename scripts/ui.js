@@ -106,16 +106,15 @@ let script = null
 
 switch(action) {
   case "install":
-    script = "install"
     break;
   case "dev": 
-    script = "dev"
+    script = "dev";
     break;
   case "build":
-    script = "build"
+    script = "build";
     break;
   case "test":
-    script = "test"
+    script = "test";
     break;
   default:
     script = null
