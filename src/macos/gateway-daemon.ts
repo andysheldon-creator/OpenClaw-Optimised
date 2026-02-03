@@ -52,6 +52,8 @@ async function main() {
     { consumeGatewaySigusr1RestartAuthorization, isGatewaySigusr1RestartExternallyAllowed },
     { defaultRuntime },
     { enableConsoleCapture, setConsoleTimestampPrefix },
+    { installUnhandledRejectionHandler },
+    { extractErrorCode, formatUncaughtError },
   ] = await Promise.all([
     import("../config/config.js"),
     import("../gateway/server.js"),
@@ -61,11 +63,56 @@ async function main() {
     import("../infra/restart.js"),
     import("../runtime.js"),
     import("../logging.js"),
+    import("../infra/unhandled-rejections.js"),
+    import("../infra/errors.js"),
   ] as const);
 
   enableConsoleCapture();
   setConsoleTimestampPrefix(true);
   setVerbose(hasFlag(args, "--verbose"));
+
+  // Helper to extract error cause (same pattern as infra/unhandled-rejections.ts)
+  const getErrorCause = (err: unknown): unknown => {
+    if (!err || typeof err !== "object") {
+      return undefined;
+    }
+    return (err as { cause?: unknown }).cause;
+  };
+
+  // Helper to check for broken pipe errors (EPIPE/EIO)
+  // Uses cause chain extraction to handle wrapped errors (e.g., undici-style { cause: { code: "EPIPE" } })
+  const isBrokenPipe = (err: unknown) => {
+    const direct = extractErrorCode(err);
+    if (direct === "EPIPE" || direct === "EIO") {
+      return true;
+    }
+    const causeCode = extractErrorCode(getErrorCause(err));
+    return causeCode === "EPIPE" || causeCode === "EIO";
+  };
+
+  // Handle stream errors - ignore EPIPE/EIO, re-throw others
+  const handleStreamError = (err: Error) => {
+    if (isBrokenPipe(err)) {
+      return; // Ignore broken pipe errors during shutdown
+    }
+    // Re-throw to maintain fail-fast behavior for other stream errors
+    process.nextTick(() => {
+      throw err;
+    });
+  };
+  process.stdout.on("error", handleStreamError);
+  process.stderr.on("error", handleStreamError);
+
+  installUnhandledRejectionHandler();
+
+  process.on("uncaughtException", (error) => {
+    // EPIPE/EIO during shutdown should not crash the daemon
+    if (isBrokenPipe(error)) {
+      return; // Suppress broken pipe - don't trigger launchd throttle
+    }
+    console.error("[openclaw] Uncaught exception:", formatUncaughtError(error));
+    process.exit(1);
+  });
 
   const wsLogRaw = hasFlag(args, "--compact") ? "compact" : argValue(args, "--ws-log");
   const wsLogStyle: GatewayWsLogStyle =

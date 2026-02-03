@@ -16,6 +16,7 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- macOS: add EPIPE/EIO error handling to gateway-daemon to prevent launchd crash loops (CWE-755). (#7117) Thanks @hclsys.
 - Agents: repair malformed tool calls and session transcripts. (#7473) Thanks @justinhuangcode.
 - fix(agents): validate AbortSignal instances before calling AbortSignal.any() (#7277) (thanks @Elarwei001)
 - fix(webchat): respect user scroll position during streaming and refresh (#7226) (thanks @marcomarandiz)
