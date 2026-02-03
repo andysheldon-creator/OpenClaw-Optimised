@@ -11,6 +11,8 @@ export {
   applyMoonshotProviderConfig,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
+  applySambanovaConfig,
+  applySambanovaProviderConfig,
   applySyntheticConfig,
   applySyntheticProviderConfig,
   applyVeniceConfig,
@@ -36,6 +38,7 @@ export {
 } from "./onboard-auth.config-opencode.js";
 export {
   OPENROUTER_DEFAULT_MODEL_REF,
+  SAMBANOVA_DEFAULT_MODEL_REF,
   setAnthropicApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
@@ -43,13 +46,14 @@ export {
   setMoonshotApiKey,
   setOpencodeZenApiKey,
   setOpenrouterApiKey,
+  setSambanovaApiKey,
   setSyntheticApiKey,
   setVeniceApiKey,
   setVercelAiGatewayApiKey,
   setXiaomiApiKey,
   setZaiApiKey,
-  writeOAuthCredentials,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
+  writeOAuthCredentials,
   XIAOMI_DEFAULT_MODEL_REF,
   ZAI_DEFAULT_MODEL_REF,
 } from "./onboard-auth.credentials.js";

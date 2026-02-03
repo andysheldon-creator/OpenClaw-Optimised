@@ -117,6 +117,7 @@ export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
 export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.5";
+export const SAMBANOVA_DEFAULT_MODEL_REF = "sambanova/Meta-Llama-3.1-8B-Instruct";
 
 export async function setZaiApiKey(key: string, agentDir?: string) {
   // Write to resolved agent dir so gateway finds credentials on startup.
@@ -161,6 +162,18 @@ export async function setVercelAiGatewayApiKey(key: string, agentDir?: string) {
     credential: {
       type: "api_key",
       provider: "vercel-ai-gateway",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
+export async function setSambanovaApiKey(key: string, agentDir?: string) {
+  upsertAuthProfile({
+    profileId: "sambanova:default",
+    credential: {
+      type: "api_key",
+      provider: "sambanova",
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),

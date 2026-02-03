@@ -457,6 +457,59 @@ export function applyVeniceConfig(cfg: OpenClawConfig): OpenClawConfig {
   };
 }
 
+export function applySambanovaProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models["sambanova/Llama-4-Maverick-17B-128E-Instruct"] = {
+    ...models["sambanova/Llama-4-Maverick-17B-128E-Instruct"],
+    alias: models["sambanova/Llama-4-Maverick-17B-128E-Instruct"]?.alias ?? "Llama 4 Maverick 17B",
+  };
+  models["sambanova/Meta-Llama-3.1-8B-Instruct`"] = {
+    ...models["sambanova/Meta-Llama-3.1-8B-Instruct"],
+    alias: models["sambanova/Meta-Llama-3.1-8B-Instruct"]?.alias ?? "Llama 3.1 8B",
+  };
+  models["sambanova/DeepSeek-V3.1-Terminus"] = {
+    ...models["sambanova/DeepSeek-V3.1-Terminus"],
+    alias: models["sambanova/DeepSeek-V3.1-Terminus"]?.alias ?? "DeepSeek V3.1 Terminus",
+  };
+  models["sambanova/gpt-oss-120b"] = {
+    ...models["sambanova/gpt-oss-120b"],
+    alias: models["sambanova/gpt-oss-120b"]?.alias ?? "GPT OSS 120B",
+  };
+
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+  };
+}
+
+export function applySambanovaConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const next = applySambanovaProviderConfig(cfg);
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: "sambanova/Meta-Llama-3.1-8B-Instruct",
+        },
+      },
+    },
+  };
+}
+
 export function applyAuthProfileConfig(
   cfg: OpenClawConfig,
   params: {

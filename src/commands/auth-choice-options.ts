@@ -21,6 +21,7 @@ export type AuthChoiceGroupId =
   | "minimax"
   | "synthetic"
   | "venice"
+  | "sambanova"
   | "qwen";
 
 export type AuthChoiceGroup = {
@@ -71,6 +72,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "OpenRouter",
     hint: "API key",
     choices: ["openrouter-api-key"],
+  },
+  {
+    value: "sambanova",
+    label: "SambaNova",
+    hint: "Fast inference (Llama/GPT/Deepseek)",
+    choices: ["sambanova-api-key"],
   },
   {
     value: "qwen",
@@ -145,6 +152,11 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "ai-gateway-api-key",
     label: "Vercel AI Gateway API key",
+  });
+  options.push({
+    value: "sambanova-api-key",
+    label: "SambaNova API key",
+    hint: "Fast inference (Llama/GPT/Deepseek)",
   });
   options.push({ value: "moonshot-api-key", label: "Moonshot AI API key" });
   options.push({ value: "kimi-code-api-key", label: "Kimi Coding API key" });

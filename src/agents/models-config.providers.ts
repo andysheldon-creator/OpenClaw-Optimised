@@ -76,6 +76,16 @@ const OLLAMA_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
+const SAMBANOVA_BASE_URL = "https://cloud.sambanova.ai/";
+const SAMBANOVA_DEFAULT_CONTEXT_WINDOW = 128000;
+const SAMBANOVA_DEFAULT_MAX_TOKENS = 8192;
+const SAMBANOVA_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
 interface OllamaModel {
   name: string;
   modified_at: string;
@@ -394,6 +404,51 @@ async function buildOllamaProvider(): Promise<ProviderConfig> {
   };
 }
 
+function buildSambanovaProvider(): ProviderConfig {
+  return {
+    baseUrl: SAMBANOVA_BASE_URL,
+    api: "openai-completions",
+    models: [
+      {
+        id: "sambanova/Llama-4-Maverick-17B-128E-Instruct",
+        name: "Llama 4 17B",
+        reasoning: false,
+        input: ["text"],
+        cost: SAMBANOVA_DEFAULT_COST,
+        contextWindow: SAMBANOVA_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: SAMBANOVA_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "sambanova/Meta-Llama-3.1-8B-Instruct",
+        name: "Llama 3.1 8B",
+        reasoning: false,
+        input: ["text"],
+        cost: SAMBANOVA_DEFAULT_COST,
+        contextWindow: SAMBANOVA_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: SAMBANOVA_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "ambanova/DeepSeek-V3.1-Terminus",
+        name: "Deepseek V3 Terminus",
+        reasoning: false,
+        input: ["text"],
+        cost: SAMBANOVA_DEFAULT_COST,
+        contextWindow: SAMBANOVA_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: SAMBANOVA_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "gpt-oss-120b",
+        name: "GPT OSS 120B",
+        reasoning: false,
+        input: ["text"],
+        cost: SAMBANOVA_DEFAULT_COST,
+        contextWindow: SAMBANOVA_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: SAMBANOVA_DEFAULT_MAX_TOKENS,
+      },
+    ],
+  };
+}
+
 export async function resolveImplicitProviders(params: {
   agentDir: string;
 }): Promise<ModelsConfig["providers"]> {
@@ -459,6 +514,13 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
   if (ollamaKey) {
     providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
+  }
+
+  const sambanovaKey =
+    resolveEnvApiKeyVarName("sambanova") ??
+    resolveApiKeyFromProfiles({ provider: "sambanova", store: authStore });
+  if (sambanovaKey) {
+    providers.sambanova = { ...buildSambanovaProvider(), apiKey: sambanovaKey };
   }
 
   return providers;

@@ -2665,6 +2665,51 @@ Notes:
 - Available model: `MiniMax-M2.1` (default).
 - Update pricing in `models.json` if you need exact cost tracking.
 
+### SambaNova (GLM 4.6 / 4.7)
+
+SambaNova provides inference with Llama, Gpt and DeepSeek models via their OpenAI-compatible endpoint.
+
+**Quick setup with native llama, gpt and deepseek models:**
+
+```bash
+clawdbot onboard --auth-choice sambanova-api-key
+```
+
+**Config snippet (Llama models):**
+
+```json5
+{
+  env: { SAMBANOVA_API_KEY: "..." },
+  agents: {
+    defaults: {
+      model: { primary: "sambanova/Llama-4-Maverick-17B-128E-Instruct" },
+      models: {
+        "sambanova/Llama-4-Maverick-17B-128E-Instruct": { alias: "Llama 4 17B" },
+        "sambanova/Meta-Llama-3.1-8B-Instruct": { alias: "Llama 3 8B" },
+        "sambanova/DeepSeek-V3.1-Terminus": { alias: "Deepseek V3.1 Terminus" },
+        "sambanova/gpt-oss-120b": { alias: "GPT OSS 120B" },
+      },
+    },
+  },
+  models: {
+    mode: "merge",
+    providers: {
+      cerebras: {
+        baseUrl: "https://api.sambanova.ai/v1",
+        apiKey: "${SAMBANOVA_API_KEY}",
+        api: "openai-completions",
+        models: [
+          { id: "sambanova/Llama-4-Maverick-17B-128E-Instruct", name: "Llama 4 17B (SAMBANOVA)" },
+          { id: "sambanova/Meta-Llama-3.1-8B-Instruct", name: "Llama 3 8B (SAMBANOVA)" },
+          { id: "sambanova/DeepSeek-V3.1-Terminus", name: "Deepseek V3.1 Terminus (SAMBANOVA)" },
+          { id: "sambanova/gpt-oss-120b", name: "Gpt OSS 120B (SAMBANOVA)" },
+        ],
+      },
+    },
+  },
+}
+```
+
 ### Cerebras (GLM 4.6 / 4.7)
 
 Use Cerebras via their OpenAI-compatible endpoint:
