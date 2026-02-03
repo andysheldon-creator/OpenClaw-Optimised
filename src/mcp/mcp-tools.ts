@@ -78,6 +78,24 @@ function mcpPiToolName(serverId: string, toolName: string): string {
   return `mcp__${s}__${t}`;
 }
 
+function detectAuthRequired(server: McpServerConfig): boolean {
+  // HTTP or SSE transports use headers
+  if ("headers" in server && server.headers) {
+    const headerEntries = Object.entries(server.headers).filter(
+      (e): e is [string, string] => typeof e[0] === "string" && typeof e[1] === "string",
+    );
+    if (headerEntries.length > 0) return true;
+  }
+  // STDIO transport uses environment variables
+  if ("env" in server && server.env) {
+    const envEntries = Object.entries(server.env).filter(
+      (e): e is [string, string] => typeof e[0] === "string" && typeof e[1] === "string",
+    );
+    if (envEntries.length > 0) return true;
+  }
+  return false;
+}
+
 function coerceHeaders(headers: Record<string, string> | undefined): HeadersInit | undefined {
   if (!headers) {
     return undefined;
@@ -436,4 +454,5 @@ export const __testing = {
   agentStates,
   ensureAgentState,
   getOrCreateConnection,
+  detectAuthRequired,
 };

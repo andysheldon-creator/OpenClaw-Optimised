@@ -1593,6 +1593,38 @@ describe("MCP tool execution edge cases", () => {
 // Tool label handling
 // ---------------------------------------------------------------------------
 
+describe("detectAuthRequired", () => {
+  it("detects auth required for HTTP with headers", () => {
+    const config = {
+      transport: "http" as const,
+      headers: { Authorization: "Bearer token" },
+      url: "http://example.com",
+    };
+    expect(__testing.detectAuthRequired(config)).toBe(true);
+  });
+
+  it("detects no auth required for HTTP without headers", () => {
+    const config = {
+      transport: "http" as const,
+      url: "http://example.com",
+    };
+    expect(__testing.detectAuthRequired(config)).toBe(false);
+  });
+
+  it("detects auth required for STDIO with env vars", () => {
+    const config = {
+      transport: "stdio" as const,
+      command: "node",
+      env: { API_KEY: "secret" },
+    };
+    expect(__testing.detectAuthRequired(config)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tool label handling
+// ---------------------------------------------------------------------------
+
 describe("Tool label handling", () => {
   const mockConnection = { callTool: vi.fn() } as any;
 
