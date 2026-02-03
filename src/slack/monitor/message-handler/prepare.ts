@@ -500,7 +500,12 @@ export async function prepareSlackMessage(params: {
 
     // Fetch full thread history for new thread sessions
     // This provides context of previous messages (including bot replies) in the thread
-    if (!previousTimestamp) {
+    // Use the thread session key (not base session key) to determine if this is a new session
+    const threadSessionPreviousTimestamp = readSessionUpdatedAt({
+      storePath,
+      sessionKey, // Thread-specific session key
+    });
+    if (!threadSessionPreviousTimestamp) {
       const threadHistory = await resolveSlackThreadHistory({
         channelId: message.channel,
         threadTs,
@@ -510,9 +515,21 @@ export async function prepareSlackMessage(params: {
       });
 
       if (threadHistory.length > 0) {
+        // Batch resolve user names to avoid N sequential API calls
+        const uniqueUserIds = [
+          ...new Set(threadHistory.map((m) => m.userId).filter((id): id is string => Boolean(id))),
+        ];
+        const userMap = new Map<string, { name?: string }>();
+        await Promise.all(
+          uniqueUserIds.map(async (id) => {
+            const user = await ctx.resolveUserName(id);
+            if (user) userMap.set(id, user);
+          }),
+        );
+
         const historyParts: string[] = [];
         for (const historyMsg of threadHistory) {
-          const msgUser = historyMsg.userId ? await ctx.resolveUserName(historyMsg.userId) : null;
+          const msgUser = historyMsg.userId ? userMap.get(historyMsg.userId) : null;
           const msgSenderName =
             msgUser?.name ?? (historyMsg.botId ? `Bot (${historyMsg.botId})` : "Unknown");
           const isBot = Boolean(historyMsg.botId);

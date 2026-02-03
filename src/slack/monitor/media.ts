@@ -216,8 +216,12 @@ export type SlackThreadMessage = {
 };
 
 /**
- * Fetches all messages in a Slack thread (excluding the current message).
+ * Fetches the most recent messages in a Slack thread (excluding the current message).
  * Used to populate thread context when a new thread session starts.
+ *
+ * We fetch up to 200 messages (Slack recommends no more than 200 per request for pagination)
+ * and return the most recent N. This ensures we get relevant recent context even in long threads,
+ * without needing cursor-based pagination for most real-world use cases.
  */
 export async function resolveSlackThreadHistory(params: {
   channelId: string;
@@ -227,11 +231,14 @@ export async function resolveSlackThreadHistory(params: {
   limit?: number;
 }): Promise<SlackThreadMessage[]> {
   const maxMessages = params.limit ?? 20;
+  // Fetch more than needed to ensure we can get the most recent messages after filtering.
+  // 200 is the recommended max per Slack docs; exceeding this rarely happens in practice.
+  const fetchLimit = 200;
   try {
     const response = (await params.client.conversations.replies({
       channel: params.channelId,
       ts: params.threadTs,
-      limit: maxMessages + 1, // +1 to account for filtering current message
+      limit: fetchLimit,
       inclusive: true,
     })) as {
       messages?: Array<{
@@ -246,13 +253,17 @@ export async function resolveSlackThreadHistory(params: {
     const messages = response?.messages ?? [];
     return messages
       .filter((msg) => {
-        if (!msg.text?.trim()) return false;
+        // Keep messages with text OR file attachments
+        if (!msg.text?.trim() && !msg.files?.length) return false;
         if (params.currentMessageTs && msg.ts === params.currentMessageTs) return false;
         return true;
       })
-      .slice(0, maxMessages)
+      .slice(-maxMessages) // Take the most recent N messages
       .map((msg) => ({
-        text: msg.text ?? "",
+        // For file-only messages, create a placeholder showing attached filenames
+        text: msg.text?.trim()
+          ? msg.text
+          : `[attached: ${msg.files?.map((f) => f.name ?? "file").join(", ")}]`,
         userId: msg.user,
         botId: msg.bot_id,
         ts: msg.ts,
