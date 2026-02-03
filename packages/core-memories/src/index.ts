@@ -326,7 +326,9 @@ function deepMerge(
 
 // Initialize configuration with auto-detection
 export async function initializeConfig(): Promise<CoreMemoriesConfig> {
-  if (CONFIG) return CONFIG;
+  if (CONFIG) {
+    return CONFIG;
+  }
 
   const configPath = path.join(".openclaw", "core-memories-config.json");
   let userConfig: Record<string, unknown> = {};
@@ -390,7 +392,9 @@ class RuleBasedCompression {
       ) {
         keyQuotes.push(sentence.trim());
       }
-      if (keyQuotes.length >= 2) break;
+      if (keyQuotes.length >= 2) {
+        break;
+      }
     }
 
     return {
@@ -540,7 +544,9 @@ class MemoryMdIntegration {
   shouldProposeForMemoryMd(
     entry: WarmEntry,
   ): { reason: string; score?: number; tone?: string } | false {
-    if (!CONFIG?.memoryMd?.enabled) return false;
+    if (!CONFIG?.memoryMd?.enabled) {
+      return false;
+    }
 
     const triggers = CONFIG.memoryMd.updateTriggers;
 

@@ -3,7 +3,7 @@
  * Connects CoreMemories with CRON, HEARTBEAT, and reminders
  */
 
-import { getCoreMemories, CoreMemories } from "./index.js";
+import { getCoreMemories } from "./index.js";
 
 export interface SmartReminder {
   text: string;
@@ -72,9 +72,7 @@ export async function heartbeatMaintenance(): Promise<MaintenanceResult> {
  * CRON Integration
  * Creates a reminder with CoreMemories context
  */
-export async function createSmartReminder(
-  params: SmartReminderParams,
-): Promise<SmartReminder> {
+export async function createSmartReminder(params: SmartReminderParams): Promise<SmartReminder> {
   const { text, scheduledTime, keywords = [] } = params;
 
   console.log(`⏰ CRON: Creating smart reminder for ${scheduledTime}`);
@@ -95,17 +93,21 @@ export async function createSmartReminder(
   }
 
   // Deduplicate
-  const uniqueEntries = [
-    ...new Map(contextEntries.map((e) => [e.id, e])).values(),
-  ];
+  const uniqueEntries = [...new Map(contextEntries.map((e) => [e.id, e])).values()];
 
   // Build context summary
   const context = uniqueEntries
     .slice(0, 3)
     .map((e) => {
-      if ("content" in e && e.content) return e.content.substring(0, 100);
-      if ("summary" in e && e.summary) return e.summary;
-      if ("hook" in e && e.hook) return e.hook;
+      if ("content" in e && e.content) {
+        return e.content.substring(0, 100);
+      }
+      if ("summary" in e && e.summary) {
+        return e.summary;
+      }
+      if ("hook" in e && e.hook) {
+        return e.hook;
+      }
       return "";
     })
     .filter(Boolean);
@@ -127,9 +129,7 @@ export async function createSmartReminder(
  * Execute a reminder with CoreMemories context
  * Called by CRON when reminder fires
  */
-export async function executeSmartReminder(
-  reminder: SmartReminder,
-): Promise<string> {
+export async function executeSmartReminder(reminder: SmartReminder): Promise<string> {
   console.log("🔔 Executing smart reminder...");
 
   let message = `⏰ Reminder: ${reminder.text}`;
@@ -166,8 +166,7 @@ export async function storeTaskWithContext(task: string): Promise<TaskEntry> {
     .filter((w) => w.length > 4);
 
   // Find related memories
-  const relatedMemories: Array<{ keyword: string; flash: number; warm: number }> =
-    [];
+  const relatedMemories: Array<{ keyword: string; flash: number; warm: number }> = [];
   for (const keyword of keywords.slice(0, 3)) {
     const results = cm.findByKeyword(keyword);
     if (results.flash.length > 0 || results.warm.length > 0) {
