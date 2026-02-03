@@ -177,12 +177,15 @@ function rewriteToolResultIds(params: {
   message: Extract<AgentMessage, { role: "toolResult" }>;
   resolve: (id: string) => string;
 }): Extract<AgentMessage, { role: "toolResult" }> {
+  type ToolResultMessage = Extract<AgentMessage, { role: "toolResult" }> & {
+    tool_call_id?: string;
+  };
+  const toolCallIdRaw = (params.message as { tool_call_id?: unknown }).tool_call_id;
   const toolCallId =
     typeof params.message.toolCallId === "string" && params.message.toolCallId
       ? params.message.toolCallId
-      : typeof (params.message as { tool_call_id?: unknown }).tool_call_id === "string" &&
-          (params.message as { tool_call_id?: unknown }).tool_call_id
-        ? (params.message as { tool_call_id: string }).tool_call_id
+      : typeof toolCallIdRaw === "string" && toolCallIdRaw
+        ? toolCallIdRaw
         : undefined;
   const toolUseId = (params.message as { toolUseId?: unknown }).toolUseId;
   const toolUseIdStr = typeof toolUseId === "string" && toolUseId ? toolUseId : undefined;
@@ -194,9 +197,9 @@ function rewriteToolResultIds(params: {
     return params.message;
   }
 
-  const nextMessage: Record<string, unknown> = { ...params.message };
+  const nextMessage: ToolResultMessage = { ...params.message };
   if (nextToolCallId) {
-    if (typeof (params.message as { tool_call_id?: unknown }).tool_call_id === "string") {
+    if (typeof toolCallIdRaw === "string") {
       nextMessage.tool_call_id = nextToolCallId;
     }
     if (typeof params.message.toolCallId === "string") {
