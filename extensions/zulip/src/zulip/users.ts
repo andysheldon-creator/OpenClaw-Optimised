@@ -47,9 +47,7 @@ export async function resolveUserIdsForEmails(
     lastSyncAt = now;
   }
 
-  const ids = wanted
-    .map((e) => emailToId.get(e))
-    .filter((v): v is number => typeof v === "number");
+  const ids = wanted.map((e) => emailToId.get(e)).filter((v): v is number => typeof v === "number");
 
   // Ensure we didn't silently drop recipients.
   if (ids.length !== wanted.length) {

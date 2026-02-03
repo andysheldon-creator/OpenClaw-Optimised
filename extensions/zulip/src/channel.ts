@@ -11,15 +11,15 @@ import {
 } from "openclaw/plugin-sdk";
 import type { CoreConfig } from "./types.js";
 import { ZulipConfigSchema } from "./config-schema.js";
+import { looksLikeZulipTargetId, normalizeZulipMessagingTarget } from "./normalize.js";
 import {
   listZulipAccountIds,
   resolveDefaultZulipAccountId,
   resolveZulipAccount,
   type ResolvedZulipAccount,
 } from "./zulip/accounts.js";
-import { looksLikeZulipTargetId, normalizeZulipMessagingTarget } from "./normalize.js";
-import { sendMessageZulip } from "./zulip/send.js";
 import { monitorZulipProvider } from "./zulip/monitor.js";
+import { sendMessageZulip } from "./zulip/send.js";
 
 const meta = {
   id: "zulip",
@@ -85,11 +85,7 @@ export const zulipPlugin: ChannelPlugin<ResolvedZulipAccount> = {
       (resolveZulipAccount({ cfg, accountId }).config.allowFrom ?? []).map((e) => String(e)),
     formatAllowFrom: ({ allowFrom }) =>
       Array.from(
-        new Set(
-          allowFrom
-            .map((e) => normalizeAllowEntry(String(e)))
-            .filter((e) => Boolean(e)),
-        ),
+        new Set(allowFrom.map((e) => normalizeAllowEntry(String(e))).filter((e) => Boolean(e))),
       ),
   },
   security: {

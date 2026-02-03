@@ -44,10 +44,9 @@ describe("sendMessageZulip", () => {
     const result = await sendMessageZulip("pm:delivery@example.com", "hello");
     expect(result.ok).toBe(true);
 
-    expect(mocks.resolveUserIdsForEmails).toHaveBeenCalledWith(
-      expect.any(Object),
-      ["delivery@example.com"],
-    );
+    expect(mocks.resolveUserIdsForEmails).toHaveBeenCalledWith(expect.any(Object), [
+      "delivery@example.com",
+    ]);
 
     expect(mocks.zulipSendMessage).toHaveBeenCalledWith(
       expect.any(Object),

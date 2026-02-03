@@ -37,7 +37,10 @@ export function resolveDefaultZulipAccountId(cfg: OpenClawConfig): string {
   return ids[0] ?? DEFAULT_ACCOUNT_ID;
 }
 
-function resolveAccountConfig(cfg: OpenClawConfig, accountId: string): ZulipAccountConfig | undefined {
+function resolveAccountConfig(
+  cfg: OpenClawConfig,
+  accountId: string,
+): ZulipAccountConfig | undefined {
   const accounts = (cfg.channels?.zulip as any)?.accounts as Record<string, unknown> | undefined;
   if (!accounts || typeof accounts !== "object") {
     return undefined;

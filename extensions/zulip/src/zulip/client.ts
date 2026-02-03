@@ -91,7 +91,8 @@ export async function parseJsonOrThrow(res: Response): Promise<any> {
   // treat it as an auth error so we don't report false positives like “Sent”.
   const contentType = (res.headers.get("content-type") || "").toLowerCase();
   const looksLikeHtml = /^\s*<!doctype html/i.test(text) || /^\s*<html/i.test(text);
-  const expectsJson = contentType.includes("application/json") || contentType.includes("application/");
+  const expectsJson =
+    contentType.includes("application/json") || contentType.includes("application/");
 
   let payload: any;
   try {

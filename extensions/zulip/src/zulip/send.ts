@@ -1,8 +1,8 @@
+import { parseZulipTarget } from "../normalize.js";
 import { getZulipRuntime } from "../runtime.js";
 import { resolveZulipAccount } from "./accounts.js";
 import { zulipSendMessage, type ZulipClient } from "./client.js";
 import { resolveUserIdsForEmails } from "./users.js";
-import { parseZulipTarget } from "../normalize.js";
 
 function resolveClient(accountId?: string | null): ZulipClient {
   const core = getZulipRuntime();
