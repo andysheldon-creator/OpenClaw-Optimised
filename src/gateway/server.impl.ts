@@ -285,6 +285,9 @@ export async function startGatewayServer(
     addChatRun,
     removeChatRun,
     chatAbortControllers,
+    wsConnectionTracker,
+    wsMessageRateLimiters,
+    authRateLimiter,
   } = await createGatewayRuntimeState({
     cfg: cfgAtStart,
     bindHost,
@@ -441,6 +444,9 @@ export async function startGatewayServer(
       ...execApprovalHandlers,
     },
     broadcast,
+    wsConnectionTracker,
+    wsMessageRateLimiters,
+    authRateLimiter,
     context: {
       deps,
       cron,

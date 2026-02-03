@@ -43,7 +43,9 @@ import {
   setSseHeaders,
   writeDone,
 } from "./http-common.js";
+import { checkRateLimit, type HttpRateLimiters } from "./http-rate-limit.js";
 import { getBearerToken, resolveAgentIdForRequest, resolveSessionKey } from "./http-utils.js";
+import { resolveGatewayClientIp } from "./net.js";
 import {
   CreateResponseBodySchema,
   type ContentPart,
@@ -60,6 +62,7 @@ type OpenResponsesHttpOptions = {
   maxBodyBytes?: number;
   config?: GatewayHttpResponsesConfig;
   trustedProxies?: string[];
+  rateLimiters?: HttpRateLimiters;
 };
 
 const DEFAULT_BODY_BYTES = 20 * 1024 * 1024;
@@ -352,6 +355,22 @@ export async function handleOpenResponsesHttpRequest(
   if (!authResult.ok) {
     sendUnauthorized(res);
     return true;
+  }
+
+  // Per-endpoint rate limit (agent-invoking).
+  if (opts.rateLimiters) {
+    const clientIp = resolveGatewayClientIp({
+      remoteAddr: req.socket.remoteAddress,
+      forwardedFor: req.headers["x-forwarded-for"] as string | undefined,
+      realIp: req.headers["x-real-ip"] as string | undefined,
+      trustedProxies: opts.trustedProxies,
+    });
+    if (
+      clientIp &&
+      !checkRateLimit(opts.rateLimiters.agent, `responses:${clientIp}`, res, "openai")
+    ) {
+      return true;
+    }
   }
 
   const limits = resolveResponsesLimits(opts.config);

@@ -1,16 +1,19 @@
 import type { WebSocket, WebSocketServer } from "ws";
 import { randomUUID } from "node:crypto";
 import type { createSubsystemLogger } from "../../logging/subsystem.js";
+import type { AuthRateLimiter } from "../auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "../auth.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "../server-methods/types.js";
+import type { WsConnectionTracker, WsMessageRateLimitState } from "../ws-rate-limit.js";
 import type { GatewayWsClient } from "./ws-types.js";
 import { resolveCanvasHostUrl } from "../../infra/canvas-host-url.js";
 import { listSystemPresence, upsertPresence } from "../../infra/system-presence.js";
 import { isWebchatClient } from "../../utils/message-channel.js";
-import { isLoopbackAddress } from "../net.js";
+import { isLoopbackAddress, resolveGatewayClientIp } from "../net.js";
 import { getHandshakeTimeoutMs } from "../server-constants.js";
 import { formatError } from "../server-utils.js";
 import { logWs } from "../ws-log.js";
+import { checkWsConnection, trackWsConnect, trackWsDisconnect } from "../ws-rate-limit.js";
 import { getHealthVersion, getPresenceVersion, incrementPresenceVersion } from "./health-state.js";
 import { attachGatewayWsMessageHandler } from "./ws-connection/message-handler.js";
 
@@ -39,6 +42,12 @@ export function attachGatewayWsConnectionHandler(params: {
     },
   ) => void;
   buildRequestContext: () => GatewayRequestContext;
+  /** WS connection tracker (null when rate limiting is disabled). */
+  wsConnectionTracker?: WsConnectionTracker | null;
+  /** WS message rate limiters (null when rate limiting is disabled). */
+  wsMessageRateLimiters?: WsMessageRateLimitState | null;
+  /** Auth rate limiter for brute-force protection (null when disabled). */
+  authRateLimiter?: AuthRateLimiter | null;
 }) {
   const {
     wss,
@@ -56,6 +65,9 @@ export function attachGatewayWsConnectionHandler(params: {
     extraHandlers,
     broadcast,
     buildRequestContext,
+    wsConnectionTracker,
+    wsMessageRateLimiters,
+    authRateLimiter,
   } = params;
 
   wss.on("connection", (socket, upgradeReq) => {
@@ -83,6 +95,32 @@ export function attachGatewayWsConnectionHandler(params: {
       forwardedProto: upgradeReq.headers["x-forwarded-proto"],
       localAddress: upgradeReq.socket?.localAddress,
     });
+
+    const connClientIp =
+      resolveGatewayClientIp({
+        remoteAddr: remoteAddr ?? "",
+        forwardedFor,
+        realIp,
+      }) ??
+      remoteAddr ??
+      "unknown";
+
+    // Connection rate limiting.
+    if (wsConnectionTracker) {
+      const connCheck = checkWsConnection(wsConnectionTracker, connClientIp);
+      if (!connCheck.allowed) {
+        logWsControl.warn(
+          `connection rejected (${connCheck.reason}) conn=${connId} ip=${connClientIp}`,
+        );
+        try {
+          socket.close(1008, "Too many connections");
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      trackWsConnect(wsConnectionTracker, connClientIp);
+    }
 
     logWs("in", "open", { connId, remoteAddr });
     let handshakeState: "pending" | "connected" | "failed" = "pending";
@@ -151,6 +189,9 @@ export function attachGatewayWsConnectionHandler(params: {
       );
 
     socket.once("close", (code, reason) => {
+      if (wsConnectionTracker) {
+        trackWsDisconnect(wsConnectionTracker, connClientIp);
+      }
       const durationMs = Date.now() - openedAt;
       const closeContext = {
         cause: closeCause,
@@ -231,6 +272,7 @@ export function attachGatewayWsConnectionHandler(params: {
       socket,
       upgradeReq,
       connId,
+      connClientIp,
       remoteAddr,
       forwardedFor,
       realIp,
@@ -261,6 +303,8 @@ export function attachGatewayWsConnectionHandler(params: {
       logGateway,
       logHealth,
       logWsControl,
+      wsMessageRateLimiters: wsMessageRateLimiters ?? undefined,
+      authRateLimiter: authRateLimiter ?? undefined,
     });
   });
 }

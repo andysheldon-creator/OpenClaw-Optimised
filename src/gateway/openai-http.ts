@@ -14,12 +14,15 @@ import {
   setSseHeaders,
   writeDone,
 } from "./http-common.js";
+import { checkRateLimit, type HttpRateLimiters } from "./http-rate-limit.js";
 import { getBearerToken, resolveAgentIdForRequest, resolveSessionKey } from "./http-utils.js";
+import { resolveGatewayClientIp } from "./net.js";
 
 type OpenAiHttpOptions = {
   auth: ResolvedGatewayAuth;
   maxBodyBytes?: number;
   trustedProxies?: string[];
+  rateLimiters?: HttpRateLimiters;
 };
 
 type OpenAiChatMessage = {
@@ -193,6 +196,19 @@ export async function handleOpenAiHttpRequest(
   if (!authResult.ok) {
     sendUnauthorized(res);
     return true;
+  }
+
+  // Per-endpoint rate limit (agent-invoking).
+  if (opts.rateLimiters) {
+    const clientIp = resolveGatewayClientIp({
+      remoteAddr: req.socket.remoteAddress,
+      forwardedFor: req.headers["x-forwarded-for"] as string | undefined,
+      realIp: req.headers["x-real-ip"] as string | undefined,
+      trustedProxies: opts.trustedProxies,
+    });
+    if (clientIp && !checkRateLimit(opts.rateLimiters.agent, `chat:${clientIp}`, res, "openai")) {
+      return true;
+    }
   }
 
   const body = await readJsonBodyOrError(req, res, opts.maxBodyBytes ?? 1024 * 1024);

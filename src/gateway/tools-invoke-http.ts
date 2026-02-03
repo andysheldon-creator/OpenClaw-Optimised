@@ -29,7 +29,9 @@ import {
   sendMethodNotAllowed,
   sendUnauthorized,
 } from "./http-common.js";
+import { checkRateLimit, type HttpRateLimiters } from "./http-rate-limit.js";
 import { getBearerToken, getHeader } from "./http-utils.js";
+import { resolveGatewayClientIp } from "./net.js";
 
 const DEFAULT_BODY_BYTES = 2 * 1024 * 1024;
 const MEMORY_TOOL_NAMES = new Set(["memory_search", "memory_get"]);
@@ -102,7 +104,12 @@ function mergeActionIntoArgsIfSupported(params: {
 export async function handleToolsInvokeHttpRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  opts: { auth: ResolvedGatewayAuth; maxBodyBytes?: number; trustedProxies?: string[] },
+  opts: {
+    auth: ResolvedGatewayAuth;
+    maxBodyBytes?: number;
+    trustedProxies?: string[];
+    rateLimiters?: HttpRateLimiters;
+  },
 ): Promise<boolean> {
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
   if (url.pathname !== "/tools/invoke") {
@@ -125,6 +132,19 @@ export async function handleToolsInvokeHttpRequest(
   if (!authResult.ok) {
     sendUnauthorized(res);
     return true;
+  }
+
+  // Per-endpoint rate limit (tools).
+  if (opts.rateLimiters) {
+    const clientIp = resolveGatewayClientIp({
+      remoteAddr: req.socket.remoteAddress,
+      forwardedFor: req.headers["x-forwarded-for"] as string | undefined,
+      realIp: req.headers["x-real-ip"] as string | undefined,
+      trustedProxies: opts.trustedProxies ?? cfg.gateway?.trustedProxies,
+    });
+    if (clientIp && !checkRateLimit(opts.rateLimiters.tools, `tools:${clientIp}`, res)) {
+      return true;
+    }
   }
 
   const bodyUnknown = await readJsonBodyOrError(req, res, opts.maxBodyBytes ?? DEFAULT_BODY_BYTES);

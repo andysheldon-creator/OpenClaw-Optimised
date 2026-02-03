@@ -47,6 +47,17 @@ export function writeDone(res: ServerResponse) {
   res.write("data: [DONE]\n\n");
 }
 
+export function sendTooManyRequests(res: ServerResponse, retryAfterMs: number) {
+  res.setHeader("Retry-After", String(Math.ceil(retryAfterMs / 1000)));
+  sendJson(res, 429, {
+    error: {
+      message: "Rate limit exceeded",
+      type: "rate_limit_error",
+      retry_after_ms: retryAfterMs,
+    },
+  });
+}
+
 export function setSseHeaders(res: ServerResponse) {
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");

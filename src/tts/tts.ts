@@ -15,6 +15,7 @@ import path from "node:path";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import type { ChannelId } from "../channels/plugins/types.js";
 import type { OpenClawConfig } from "../config/config.js";
+import type { ResolvedRateLimitsConfig } from "../config/types.gateway.js";
 import type {
   TtsConfig,
   TtsAutoMode,
@@ -32,6 +33,7 @@ import {
 import { resolveModel } from "../agents/pi-embedded-runner/model.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
 import { logVerbose } from "../globals.js";
+import { RateLimiter, type RateLimitResult } from "../infra/rate-limiter.js";
 import { isVoiceCompatibleAudio } from "../media/audio.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
 
@@ -49,6 +51,51 @@ const DEFAULT_OPENAI_VOICE = "alloy";
 const DEFAULT_EDGE_VOICE = "en-US-MichelleNeural";
 const DEFAULT_EDGE_LANG = "en-US";
 const DEFAULT_EDGE_OUTPUT_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
+
+// --- ElevenLabs rate limiter ---
+
+const DEFAULT_TTS_RATE_LIMIT_PER_MINUTE = 10;
+let elevenLabsLimiter: RateLimiter | null = null;
+let elevenLabsLimiterPerMinute = 0;
+
+/**
+ * Get or create the ElevenLabs rate limiter singleton.
+ * Recreated if the configured rate changes.
+ */
+function getElevenLabsLimiter(perMinute: number): RateLimiter {
+  if (!elevenLabsLimiter || elevenLabsLimiterPerMinute !== perMinute) {
+    elevenLabsLimiter?.destroy();
+    elevenLabsLimiter = new RateLimiter({
+      maxTokens: perMinute,
+      refillRate: perMinute,
+      refillIntervalMs: 60_000,
+    });
+    elevenLabsLimiterPerMinute = perMinute;
+  }
+  return elevenLabsLimiter;
+}
+
+/**
+ * Check the ElevenLabs rate limiter. Returns the result.
+ * When rate limiting is disabled or provider is not elevenlabs, returns allowed.
+ */
+export function checkElevenLabsRateLimit(opts?: {
+  rateLimits?: ResolvedRateLimitsConfig;
+}): RateLimitResult {
+  if (!opts?.rateLimits?.enabled) {
+    return { allowed: true, remaining: 0 };
+  }
+  const perMinute = opts.rateLimits.external.ttsPerMinute ?? DEFAULT_TTS_RATE_LIMIT_PER_MINUTE;
+  const limiter = getElevenLabsLimiter(perMinute);
+  return limiter.check("elevenlabs");
+}
+
+/** Destroy the ElevenLabs rate limiter (for testing / shutdown). */
+export function destroyElevenLabsLimiter(): void {
+  elevenLabsLimiter?.destroy();
+  elevenLabsLimiter = null;
+  elevenLabsLimiterPerMinute = 0;
+}
 
 const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
   stability: 0.5,
@@ -1164,6 +1211,7 @@ export async function textToSpeech(params: {
   prefsPath?: string;
   channel?: string;
   overrides?: TtsDirectiveOverrides;
+  rateLimits?: ResolvedRateLimitsConfig;
 }): Promise<TtsResult> {
   const config = resolveTtsConfig(params.cfg);
   const prefsPath = params.prefsPath ?? resolveTtsPrefsPath(config);
@@ -1263,6 +1311,17 @@ export async function textToSpeech(params: {
 
       let audioBuffer: Buffer;
       if (provider === "elevenlabs") {
+        // Check ElevenLabs rate limit before making API call.
+        const rlCheck = checkElevenLabsRateLimit({ rateLimits: params.rateLimits });
+        if (!rlCheck.allowed) {
+          const retryMs = rlCheck.retryAfterMs ?? 60_000;
+          const retrySec = Math.ceil(retryMs / 1000);
+          return {
+            success: false,
+            error: `TTS rate limit — try again in ${retrySec}s`,
+          };
+        }
+
         const voiceIdOverride = params.overrides?.elevenlabs?.voiceId;
         const modelIdOverride = params.overrides?.elevenlabs?.modelId;
         const voiceSettings = {
@@ -1333,6 +1392,7 @@ export async function textToSpeechTelephony(params: {
   text: string;
   cfg: OpenClawConfig;
   prefsPath?: string;
+  rateLimits?: ResolvedRateLimitsConfig;
 }): Promise<TtsTelephonyResult> {
   const config = resolveTtsConfig(params.cfg);
   const prefsPath = params.prefsPath ?? resolveTtsPrefsPath(config);
@@ -1364,6 +1424,17 @@ export async function textToSpeechTelephony(params: {
       }
 
       if (provider === "elevenlabs") {
+        // Check ElevenLabs rate limit before making API call.
+        const rlCheck = checkElevenLabsRateLimit({ rateLimits: params.rateLimits });
+        if (!rlCheck.allowed) {
+          const retryMs = rlCheck.retryAfterMs ?? 60_000;
+          const retrySec = Math.ceil(retryMs / 1000);
+          return {
+            success: false,
+            error: `TTS rate limit — try again in ${retrySec}s`,
+          };
+        }
+
         const output = TELEPHONY_OUTPUT.elevenlabs;
         const audioBuffer = await elevenLabsTTS({
           text: params.text,
@@ -1576,4 +1647,6 @@ export const _test = {
   summarizeText,
   resolveOutputFormat,
   resolveEdgeOutputFormat,
+  checkElevenLabsRateLimit,
+  destroyElevenLabsLimiter,
 };

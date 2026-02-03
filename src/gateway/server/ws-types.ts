@@ -6,4 +6,6 @@ export type GatewayWsClient = {
   connect: ConnectParams;
   connId: string;
   presenceKey?: string;
+  /** Client IP for rate limiting and connection tracking. */
+  clientIp?: string;
 };

@@ -2,8 +2,10 @@ import type { IncomingMessage } from "node:http";
 import type { WebSocket } from "ws";
 import os from "node:os";
 import type { createSubsystemLogger } from "../../../logging/subsystem.js";
+import type { AuthRateLimiter } from "../../auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "../../auth.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "../../server-methods/types.js";
+import type { WsMessageRateLimitState } from "../../ws-rate-limit.js";
 import type { GatewayWsClient } from "../ws-types.js";
 import { loadConfig } from "../../../config/config.js";
 import {
@@ -44,6 +46,7 @@ import { MAX_BUFFERED_BYTES, MAX_PAYLOAD_BYTES, TICK_INTERVAL_MS } from "../../s
 import { handleGatewayRequest } from "../../server-methods.js";
 import { formatError } from "../../server-utils.js";
 import { formatForLog, logWs } from "../../ws-log.js";
+import { checkWsMessageRate, checkWsMethodRate } from "../../ws-rate-limit.js";
 import { truncateCloseReason } from "../close-reason.js";
 import {
   buildGatewaySnapshot,
@@ -96,6 +99,8 @@ function formatGatewayAuthFailureMessage(params: {
       ? "enter the password in Control UI settings"
       : "provide gateway auth password";
   switch (reason) {
+    case "rate_limited":
+      return "rate limit exceeded: too many auth attempts";
     case "token_missing":
       return `unauthorized: gateway token missing (${tokenHint})`;
     case "token_mismatch":
@@ -133,6 +138,7 @@ export function attachGatewayWsMessageHandler(params: {
   socket: WebSocket;
   upgradeReq: IncomingMessage;
   connId: string;
+  connClientIp?: string;
   remoteAddr?: string;
   forwardedFor?: string;
   realIp?: string;
@@ -158,11 +164,16 @@ export function attachGatewayWsMessageHandler(params: {
   logGateway: SubsystemLogger;
   logHealth: SubsystemLogger;
   logWsControl: SubsystemLogger;
+  /** WS message rate limiters (undefined when rate limiting is disabled). */
+  wsMessageRateLimiters?: WsMessageRateLimitState;
+  /** Auth rate limiter for brute-force protection (undefined when disabled). */
+  authRateLimiter?: AuthRateLimiter;
 }) {
   const {
     socket,
     upgradeReq,
     connId,
+    connClientIp,
     remoteAddr,
     forwardedFor,
     realIp,
@@ -188,6 +199,8 @@ export function attachGatewayWsMessageHandler(params: {
     logGateway,
     logHealth,
     logWsControl,
+    wsMessageRateLimiters,
+    authRateLimiter,
   } = params;
 
   const configSnapshot = loadConfig();
@@ -572,6 +585,8 @@ export function attachGatewayWsMessageHandler(params: {
           connectAuth: connectParams.auth,
           req: upgradeReq,
           trustedProxies,
+          authRateLimiter,
+          clientIp: connClientIp,
         });
         let authOk = authResult.ok;
         let authMethod =
@@ -831,6 +846,7 @@ export function attachGatewayWsMessageHandler(params: {
           connect: connectParams,
           connId,
           presenceKey,
+          clientIp: connClientIp,
         };
         setClient(nextClient);
         setHandshakeState("connected");
@@ -914,6 +930,38 @@ export function attachGatewayWsMessageHandler(params: {
       }
       const req = parsed;
       logWs("in", "req", { connId, id: req.id, method: req.method });
+
+      // Per-client message rate limiting.
+      if (wsMessageRateLimiters) {
+        const msgCheck = checkWsMessageRate(wsMessageRateLimiters, connId);
+        if (!msgCheck.allowed) {
+          send({
+            type: "res",
+            id: req.id,
+            ok: false,
+            error: errorShape(ErrorCodes.INVALID_REQUEST, "rate limit exceeded: too many messages"),
+          });
+          close(1008, "rate limit exceeded");
+          return;
+        }
+
+        // Per-method rate limiting for expensive operations.
+        const methodCheck = checkWsMethodRate(wsMessageRateLimiters, connId, req.method);
+        if (!methodCheck.allowed) {
+          send({
+            type: "res",
+            id: req.id,
+            ok: false,
+            error: {
+              ...errorShape(ErrorCodes.INVALID_REQUEST, "rate limit exceeded"),
+              method: methodCheck.method,
+              retryAfterMs: methodCheck.retryAfterMs,
+            },
+          });
+          return;
+        }
+      }
+
       const respond = (
         ok: boolean,
         payload?: unknown,

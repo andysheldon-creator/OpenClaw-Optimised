@@ -3,6 +3,7 @@ import type { CliDeps } from "../../cli/deps.js";
 import type { CronJob } from "../../cron/types.js";
 import type { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { HookMessageChannel, HooksConfigResolved } from "../hooks.js";
+import type { HttpRateLimiters } from "../http-rate-limit.js";
 import { loadConfig } from "../../config/config.js";
 import { resolveMainSessionKeyFromConfig } from "../../config/sessions.js";
 import { runCronIsolatedAgentTurn } from "../../cron/isolated-agent.js";
@@ -18,6 +19,7 @@ export function createGatewayHooksRequestHandler(params: {
   bindHost: string;
   port: number;
   logHooks: SubsystemLogger;
+  rateLimiters?: HttpRateLimiters;
 }) {
   const { deps, getHooksConfig, bindHost, port, logHooks } = params;
 
@@ -111,5 +113,6 @@ export function createGatewayHooksRequestHandler(params: {
     logHooks,
     dispatchAgentHook,
     dispatchWakeHook,
+    rateLimiters: params.rateLimiters,
   });
 }

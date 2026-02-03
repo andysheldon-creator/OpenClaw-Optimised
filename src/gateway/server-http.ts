@@ -27,6 +27,8 @@ import {
   resolveHookChannel,
   resolveHookDeliver,
 } from "./hooks.js";
+import { checkRateLimit, type HttpRateLimiters } from "./http-rate-limit.js";
+import { resolveGatewayClientIp } from "./net.js";
 import { handleOpenAiHttpRequest } from "./openai-http.js";
 import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
 import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
@@ -64,9 +66,18 @@ export function createHooksRequestHandler(
     bindHost: string;
     port: number;
     logHooks: SubsystemLogger;
+    rateLimiters?: HttpRateLimiters;
   } & HookDispatchers,
 ): HooksRequestHandler {
-  const { getHooksConfig, bindHost, port, logHooks, dispatchAgentHook, dispatchWakeHook } = opts;
+  const {
+    getHooksConfig,
+    bindHost,
+    port,
+    logHooks,
+    dispatchAgentHook,
+    dispatchWakeHook,
+    rateLimiters,
+  } = opts;
   return async (req, res) => {
     const hooksConfig = getHooksConfig();
     if (!hooksConfig) {
@@ -107,6 +118,14 @@ export function createHooksRequestHandler(
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.end("Not Found");
       return true;
+    }
+
+    // Per-hook-token rate limit.
+    if (rateLimiters) {
+      const hookKey = `hook:${token}`;
+      if (!checkRateLimit(rateLimiters.hook, hookKey, res)) {
+        return true;
+      }
     }
 
     const body = await readJsonBody(req, hooksConfig.maxBodyBytes);
@@ -213,6 +232,7 @@ export function createGatewayHttpServer(opts: {
   handlePluginRequest?: HooksRequestHandler;
   resolvedAuth: import("./auth.js").ResolvedGatewayAuth;
   tlsOptions?: TlsOptions;
+  rateLimiters?: HttpRateLimiters | null;
 }): HttpServer {
   const {
     canvasHost,
@@ -224,6 +244,7 @@ export function createGatewayHttpServer(opts: {
     handleHooksRequest,
     handlePluginRequest,
     resolvedAuth,
+    rateLimiters,
   } = opts;
   const httpServer: HttpServer = opts.tlsOptions
     ? createHttpsServer(opts.tlsOptions, (req, res) => {
@@ -242,6 +263,20 @@ export function createGatewayHttpServer(opts: {
     try {
       const configSnapshot = loadConfig();
       const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
+
+      // Global per-IP rate limit — applied before any route matching.
+      if (rateLimiters) {
+        const clientIp = resolveGatewayClientIp({
+          remoteAddr: req.socket.remoteAddress,
+          forwardedFor: req.headers["x-forwarded-for"] as string | undefined,
+          realIp: req.headers["x-real-ip"] as string | undefined,
+          trustedProxies,
+        });
+        if (clientIp && !checkRateLimit(rateLimiters.global, clientIp, res)) {
+          return;
+        }
+      }
+
       if (await handleHooksRequest(req, res)) {
         return;
       }
@@ -249,6 +284,7 @@ export function createGatewayHttpServer(opts: {
         await handleToolsInvokeHttpRequest(req, res, {
           auth: resolvedAuth,
           trustedProxies,
+          rateLimiters: rateLimiters ?? undefined,
         })
       ) {
         return;
@@ -265,6 +301,7 @@ export function createGatewayHttpServer(opts: {
             auth: resolvedAuth,
             config: openResponsesConfig,
             trustedProxies,
+            rateLimiters: rateLimiters ?? undefined,
           })
         ) {
           return;
@@ -275,11 +312,25 @@ export function createGatewayHttpServer(opts: {
           await handleOpenAiHttpRequest(req, res, {
             auth: resolvedAuth,
             trustedProxies,
+            rateLimiters: rateLimiters ?? undefined,
           })
         ) {
           return;
         }
       }
+      // Per-IP rate limit for static/canvas/control-UI traffic.
+      if (rateLimiters) {
+        const staticIp = resolveGatewayClientIp({
+          remoteAddr: req.socket.remoteAddress,
+          forwardedFor: req.headers["x-forwarded-for"] as string | undefined,
+          realIp: req.headers["x-real-ip"] as string | undefined,
+          trustedProxies,
+        });
+        if (staticIp && !checkRateLimit(rateLimiters.static, `static:${staticIp}`, res)) {
+          return;
+        }
+      }
+
       if (canvasHost) {
         if (await handleA2uiHttpRequest(req, res)) {
           return;

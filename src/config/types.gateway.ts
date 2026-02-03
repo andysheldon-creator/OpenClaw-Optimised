@@ -1,3 +1,105 @@
+// --- Rate Limits ---
+
+export type RateLimitsHttpConfig = {
+  /** Global per-IP requests/min — default: 100. */
+  globalPerMinute?: number;
+  /** Agent-invoking endpoints per-IP req/min — default: 10. */
+  agentPerMinute?: number;
+  /** Hook endpoints per-token req/min — default: 20. */
+  hookPerMinute?: number;
+  /** Static/control-ui per-IP req/min — default: 200. */
+  staticPerMinute?: number;
+  /** Tool invocation per-IP req/min — default: 20. */
+  toolsPerMinute?: number;
+};
+
+export type RateLimitsWsConfig = {
+  /** Messages per client per minute — default: 60. */
+  messagesPerMinute?: number;
+  /** Agent invocations per client per minute — default: 10. */
+  agentPerMinute?: number;
+  /** TTS conversions per client per minute — default: 20. */
+  ttsPerMinute?: number;
+  /** Max concurrent WS connections — default: 50. */
+  maxConnections?: number;
+  /** Max concurrent WS connections per IP — default: 5. */
+  perIpMaxConnections?: number;
+};
+
+export type RateLimitsAuthConfig = {
+  /** Failed attempts before lockout — default: 10. */
+  maxFailures?: number;
+  /** Lockout window in minutes — default: 15. */
+  windowMinutes?: number;
+};
+
+export type RateLimitsExternalConfig = {
+  /** ElevenLabs TTS requests per minute — default: 10. */
+  ttsPerMinute?: number;
+};
+
+export type RateLimitsConfig = {
+  /** Master switch — default: true. */
+  enabled?: boolean;
+  http?: RateLimitsHttpConfig;
+  ws?: RateLimitsWsConfig;
+  auth?: RateLimitsAuthConfig;
+  external?: RateLimitsExternalConfig;
+};
+
+export type ResolvedRateLimitsHttpConfig = Required<RateLimitsHttpConfig>;
+export type ResolvedRateLimitsWsConfig = Required<RateLimitsWsConfig>;
+export type ResolvedRateLimitsAuthConfig = Required<RateLimitsAuthConfig>;
+
+export type ResolvedRateLimitsExternalConfig = Required<RateLimitsExternalConfig>;
+
+export type ResolvedRateLimitsConfig = {
+  enabled: boolean;
+  http: ResolvedRateLimitsHttpConfig;
+  ws: ResolvedRateLimitsWsConfig;
+  auth: ResolvedRateLimitsAuthConfig;
+  external: ResolvedRateLimitsExternalConfig;
+};
+
+const RATE_LIMITS_HTTP_DEFAULTS: ResolvedRateLimitsHttpConfig = {
+  globalPerMinute: 100,
+  agentPerMinute: 10,
+  hookPerMinute: 20,
+  staticPerMinute: 200,
+  toolsPerMinute: 20,
+};
+
+const RATE_LIMITS_WS_DEFAULTS: ResolvedRateLimitsWsConfig = {
+  messagesPerMinute: 60,
+  agentPerMinute: 10,
+  ttsPerMinute: 20,
+  maxConnections: 50,
+  perIpMaxConnections: 5,
+};
+
+const RATE_LIMITS_AUTH_DEFAULTS: ResolvedRateLimitsAuthConfig = {
+  maxFailures: 10,
+  windowMinutes: 15,
+};
+
+const RATE_LIMITS_EXTERNAL_DEFAULTS: ResolvedRateLimitsExternalConfig = {
+  ttsPerMinute: 10,
+};
+
+/** Merge user-provided rate limit config with sensible defaults. */
+export function resolveRateLimitsConfig(raw?: RateLimitsConfig): ResolvedRateLimitsConfig {
+  const enabled = raw?.enabled !== false;
+  return {
+    enabled,
+    http: { ...RATE_LIMITS_HTTP_DEFAULTS, ...raw?.http },
+    ws: { ...RATE_LIMITS_WS_DEFAULTS, ...raw?.ws },
+    auth: { ...RATE_LIMITS_AUTH_DEFAULTS, ...raw?.auth },
+    external: { ...RATE_LIMITS_EXTERNAL_DEFAULTS, ...raw?.external },
+  };
+}
+
+// --- Gateway ---
+
 export type GatewayBindMode = "auto" | "lan" | "loopback" | "custom" | "tailnet";
 
 export type GatewayTlsConfig = {
@@ -241,4 +343,6 @@ export type GatewayConfig = {
    * `x-real-ip`) to determine the client IP for local pairing and HTTP checks.
    */
   trustedProxies?: string[];
+  /** Rate limiting configuration. Enabled by default with sensible defaults. */
+  rateLimits?: RateLimitsConfig;
 };
