@@ -1,6 +1,7 @@
 import type { CliDeps } from "../cli/deps.js";
 import type { loadConfig } from "../config/config.js";
 import type { loadOpenClawPlugins } from "../plugins/loader.js";
+import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { loadModelCatalog } from "../agents/model-catalog.js";
 import {
@@ -16,6 +17,10 @@ import {
 } from "../hooks/internal-hooks.js";
 import { loadInternalHooks } from "../hooks/loader.js";
 import { isTruthyEnvValue } from "../infra/env.js";
+import {
+  startHierarchicalMemoryTimer,
+  type HierarchicalMemoryTimerHandle,
+} from "../memory/hierarchical/index.js";
 import { type PluginServicesHandle, startPluginServices } from "../plugins/services.js";
 import { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import {
@@ -37,6 +42,11 @@ export async function startGatewaySidecars(params: {
   };
   logChannels: { info: (msg: string) => void; error: (msg: string) => void };
   logBrowser: { error: (msg: string) => void };
+  logMemory: {
+    info: (msg: string) => void;
+    warn: (msg: string) => void;
+    error: (msg: string) => void;
+  };
 }) {
   // Start OpenClaw browser control server (unless disabled via config).
   let browserControl: Awaited<ReturnType<typeof startBrowserControlServerIfEnabled>> = null;
@@ -156,5 +166,18 @@ export async function startGatewaySidecars(params: {
     }, 750);
   }
 
-  return { browserControl, pluginServices };
+  // Start hierarchical memory timer if enabled
+  let memoryTimer: HierarchicalMemoryTimerHandle | null = null;
+  try {
+    const agentId = resolveDefaultAgentId(params.cfg);
+    memoryTimer = startHierarchicalMemoryTimer({
+      agentId,
+      config: params.cfg,
+      log: params.logMemory,
+    });
+  } catch (err) {
+    params.logMemory.error(`hierarchical memory timer failed to start: ${String(err)}`);
+  }
+
+  return { browserControl, pluginServices, memoryTimer };
 }

@@ -708,4 +708,39 @@ export function registerMemoryCli(program: Command) {
         });
       },
     );
+
+  // Hierarchical memory (autobiographical summaries) subcommands
+  const summaries = memory
+    .command("summaries")
+    .description("Hierarchical memory summaries (autobiographical memories)");
+
+  summaries
+    .command("status")
+    .description("Show hierarchical memory status and statistics")
+    .option("--agent <id>", "Agent id (default: default agent)")
+    .option("--json", "Print JSON")
+    .action(async (opts: { agent?: string; json?: boolean }) => {
+      const { memoryStatusCommand } = await import("../commands/memory.js");
+      await memoryStatusCommand({ agentId: opts.agent, json: opts.json }, defaultRuntime);
+    });
+
+  summaries
+    .command("inspect")
+    .description("View hierarchical memory summaries")
+    .option("--agent <id>", "Agent id (default: default agent)")
+    .option("--level <level>", "Filter by level (L1, L2, or L3)")
+    .option("--limit <n>", "Maximum summaries per level", "5")
+    .option("--json", "Print JSON")
+    .action(async (opts: { agent?: string; level?: string; limit?: string; json?: boolean }) => {
+      const { memoryInspectCommand } = await import("../commands/memory.js");
+      await memoryInspectCommand(
+        {
+          agentId: opts.agent,
+          level: opts.level,
+          limit: parseInt(opts.limit ?? "5", 10),
+          json: opts.json,
+        },
+        defaultRuntime,
+      );
+    });
 }

@@ -94,6 +94,7 @@ const logReload = log.child("reload");
 const logHooks = log.child("hooks");
 const logPlugins = log.child("plugins");
 const logWsControl = log.child("ws");
+const logMemory = log.child("memory");
 const gatewayRuntime = runtimeForLogger(log);
 const canvasRuntime = runtimeForLogger(logCanvas);
 
@@ -550,6 +551,7 @@ export async function startGatewayServer(
     logHooks,
     logChannels,
     logBrowser,
+    logMemory,
   }));
 
   const { applyHotReload, requestGatewayRestart } = createGatewayReloadHandlers({

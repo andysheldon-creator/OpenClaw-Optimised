@@ -132,6 +132,8 @@ export type AgentDefaultsConfig = {
   compaction?: AgentCompactionConfig;
   /** Vector memory search configuration (per-agent overrides supported). */
   memorySearch?: MemorySearchConfig;
+  /** Hierarchical memory system (2048-style compression). */
+  hierarchicalMemory?: HierarchicalMemoryConfig;
   /** Default thinking level when no /think directive is present. */
   thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
   /** Default verbose level when no /verbose directive is present. */
@@ -261,4 +263,23 @@ export type AgentCompactionMemoryFlushConfig = {
   prompt?: string;
   /** System prompt appended for the memory flush turn. */
   systemPrompt?: string;
+};
+
+export type HierarchicalMemoryConfig = {
+  /** Enable hierarchical memory system (default: false). */
+  enabled?: boolean;
+  /** How often the background worker runs in milliseconds (default: 300000 = 5 min). */
+  workerIntervalMs?: number;
+  /** Minimum tokens in a chunk before summarization (default: 6000). */
+  chunkTokens?: number;
+  /** Target token count for summaries (default: 1000). */
+  summaryTargetTokens?: number;
+  /** Number of summaries before merging to next level (default: 6). */
+  mergeThreshold?: number;
+  /** Messages must be this many tokens behind current to be eligible (default: 30000). */
+  pruningBoundaryTokens?: number;
+  /** Model to use for summarization (default: session's model). */
+  model?: string;
+  /** Maximum summary levels (default: 3). */
+  maxLevels?: number;
 };
