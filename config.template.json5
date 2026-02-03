@@ -1,0 +1,52 @@
+// OpenClaw Config Template (ldraney fork)
+// Copy to ~/.openclaw/openclaw.json and set env vars in your shell
+// Required env vars: ANTHROPIC_API_KEY
+// Optional env vars: NOTION_API_KEY, TELEGRAM_BOT_TOKEN
+{
+  "models": {
+    "providers": {
+      "anthropic": {
+        "apiKey": "${ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+  "env": {
+    "shellEnv": {
+      "enabled": true
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "agents": {
+    "defaults": {
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      },
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "1h"
+      },
+      "heartbeat": {
+        "every": "30m"
+      },
+      "compaction": {
+        "mode": "safeguard"
+      }
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "port": 18789,
+    "bind": "loopback"
+  },
+  "auth": {
+    "profiles": {
+      "anthropic:default": {
+        "provider": "anthropic",
+        "mode": "api_key"
+      }
+    }
+  }
+}

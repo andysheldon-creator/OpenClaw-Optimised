@@ -1,4 +1,32 @@
-# 🦞 OpenClaw — Personal AI Assistant
+# 🦞 OpenClaw — Personal AI Assistant (ldraney fork)
+
+## Quick Setup (This Fork)
+
+```bash
+# 1. Set your env vars (add to ~/.zshrc)
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+export NOTION_API_KEY="ntn_..."           # optional
+export TELEGRAM_BOT_TOKEN="123456:ABC..." # optional
+
+# 2. Clone and install
+git clone https://github.com/ldraney/openclaw.git
+cd openclaw
+pnpm install && pnpm build
+
+# 3. Run onboard
+pnpm openclaw onboard --non-interactive --accept-risk --auth-choice apiKey \
+  --anthropic-api-key "$ANTHROPIC_API_KEY" --install-daemon --skip-channels --skip-skills --skip-ui
+
+# 4. Use it
+pnpm openclaw tui
+pnpm openclaw agent --message "Hello"
+```
+
+See `.env.example` for all supported environment variables.
+
+---
+
+# Original OpenClaw README
 
 <p align="center">
     <picture>
