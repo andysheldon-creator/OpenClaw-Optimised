@@ -172,7 +172,7 @@ export async function launchOpenClawChrome(
   const exe = resolveBrowserExecutable(resolved);
   if (!exe) {
     throw new Error(
-      "No supported browser found (Chrome/Brave/Edge/Chromium on macOS, Linux, or Windows).",
+      "No supported browser found (Chrome/Brave/Edge/Chromium on macOS, Linux, or Windows; ChatGPT Atlas on macOS).",
     );
   }
 
