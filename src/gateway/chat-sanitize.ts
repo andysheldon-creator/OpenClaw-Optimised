@@ -121,3 +121,72 @@ export function stripEnvelopeFromMessages(messages: unknown[]): unknown[] {
   });
   return changed ? next : messages;
 }
+
+/**
+ * Extracts text content from a message for NO_REPLY detection.
+ */
+function extractMessageText(message: unknown): string | null {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  const entry = message as Record<string, unknown>;
+
+  // Check text property
+  if (typeof entry.text === "string") {
+    return entry.text;
+  }
+
+  // Check content property
+  if (typeof entry.content === "string") {
+    return entry.content;
+  }
+
+  // Check content array for text blocks
+  if (Array.isArray(entry.content)) {
+    for (const item of entry.content) {
+      if (item && typeof item === "object") {
+        const block = item as Record<string, unknown>;
+        if (block.type === "text" && typeof block.text === "string") {
+          return block.text;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Checks if a message contains only the NO_REPLY token and should be filtered out.
+ */
+function isNoReplyMessage(message: unknown): boolean {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+  const entry = message as Record<string, unknown>;
+
+  // Only filter assistant messages
+  const role = typeof entry.role === "string" ? entry.role.toLowerCase() : "";
+  if (role !== "assistant") {
+    return false;
+  }
+
+  const text = extractMessageText(message);
+  if (!text) {
+    return false;
+  }
+
+  // Check if the message is just "NO_REPLY" (with optional whitespace/punctuation)
+  const trimmed = text.trim();
+  return /^NO_REPLY\W*$/i.test(trimmed) || /^\W*NO_REPLY$/i.test(trimmed);
+}
+
+/**
+ * Filters out NO_REPLY messages from the message array.
+ */
+export function filterNoReplyMessages(messages: unknown[]): unknown[] {
+  if (messages.length === 0) {
+    return messages;
+  }
+  return messages.filter((msg) => !isNoReplyMessage(msg));
+}
