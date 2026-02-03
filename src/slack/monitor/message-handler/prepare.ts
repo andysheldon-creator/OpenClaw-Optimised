@@ -192,6 +192,15 @@ export async function prepareSlackMessage(params: {
     },
   });
 
+  // Only main agent should handle Slack channel messages.
+  // Sub-agents should only be invoked explicitly via sessions_spawn/sessions_send.
+  if (route.agentId !== "main") {
+    logVerbose(
+      `slack: skipping message (routed to agent:${route.agentId}, only main agent handles Slack)`,
+    );
+    return null;
+  }
+
   const baseSessionKey = route.sessionKey;
   const threadContext = resolveSlackThreadContext({ message, replyToMode: ctx.replyToMode });
   const threadTs = threadContext.incomingThreadTs;
