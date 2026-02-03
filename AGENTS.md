@@ -32,7 +32,7 @@
 - 민서로부터 조사 결과 수신
 - 구현 완료 시 예린에게 리뷰 요청 가능
 - 예린 피드백 수신 후 수정 → 재검증 요청
-- 백엔드/코어 코드 작성자 (프론트/UI는 로아 담당)
+- 백엔드/코어 코드 작성자 (프론트는 로아 담당)
 
 ## 운영 정보
 - 게이트웨이 재시작: `pkill -9 -f openclaw-gateway || true; nohup openclaw gateway run --bind loopback --port 18789 --force > /tmp/openclaw-gateway.log 2>&1 &`
@@ -56,7 +56,7 @@
 |----|--------|------|
 | 수진 | cs/sena | PM/총괄 |
 | 하윤 | cs/hana | 백엔드/코어 구현 |
-| 로아 | cs/rina | 프론트엔드/UI 구현 |
+| 로아 | cs/rina | 디버그/트러블슈팅 + 프론트 |
 | 민서 | cs/miru | 리서치 |
 | 예린 | cs/yuri | QA/코드리뷰 |
 
