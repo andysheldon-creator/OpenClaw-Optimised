@@ -303,3 +303,73 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
     moved: changedOrMoved,
   };
 }
+
+export type OrphanRemovalReport = {
+  messages: AgentMessage[];
+  orphansRemoved: number;
+};
+
+export function removeOrphanedToolResults(
+  messages: AgentMessage[],
+  logger?: { debug: (msg: string) => void; warn: (msg: string) => void },
+): OrphanRemovalReport {
+  // Remove orphaned tool_result blocks that reference non-existent tool_use IDs.
+  // This can occur after message compaction removes assistant messages containing tool_use blocks.
+
+  // Build set of all tool_use IDs present in assistant messages
+  const validToolUseIds = new Set<string>();
+
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object") {
+      continue;
+    }
+
+    if (msg.role === "assistant") {
+      const toolCalls = extractToolCallsFromAssistant(
+        msg as Extract<AgentMessage, { role: "assistant" }>,
+      );
+      for (const call of toolCalls) {
+        validToolUseIds.add(call.id);
+      }
+    }
+  }
+
+  // Filter out tool_result blocks with IDs not in the valid set
+  let orphansRemoved = 0;
+  const cleanedMessages: AgentMessage[] = [];
+
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object") {
+      cleanedMessages.push(msg);
+      continue;
+    }
+
+    if (msg.role === "toolResult") {
+      const toolResult = msg as Extract<AgentMessage, { role: "toolResult" }>;
+      const id = extractToolResultId(toolResult);
+
+      if (id && !validToolUseIds.has(id)) {
+        orphansRemoved += 1;
+        if (logger) {
+          logger.debug(
+            `[openclaw] Orphaned tool_result detected and removed: tool_use_id=${id}, no matching tool_use found`,
+          );
+        }
+        continue; // Skip this orphaned tool result
+      }
+    }
+
+    cleanedMessages.push(msg);
+  }
+
+  if (orphansRemoved > 0 && logger) {
+    logger.warn(
+      `[openclaw] Removed ${orphansRemoved} orphaned tool_result block(s) during sanitization`,
+    );
+  }
+
+  return {
+    messages: orphansRemoved > 0 ? cleanedMessages : messages,
+    orphansRemoved,
+  };
+}
