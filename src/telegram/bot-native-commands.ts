@@ -52,6 +52,7 @@ import {
   resolveTelegramForumThreadId,
   resolveTelegramThreadSpec,
 } from "./bot/helpers.js";
+import { sendDashboard } from "./dashboard/index.js";
 import { buildInlineKeyboard } from "./send.js";
 
 const EMPTY_RESPONSE_FALLBACK = "No response generated. Please try again.";
@@ -361,6 +362,7 @@ export const registerTelegramNativeCommands = ({
       command: command.name,
       description: command.description,
     })),
+    { command: "dashboard", description: "Show interactive dashboard" },
     ...pluginCommands,
     ...customCommands,
   ];
@@ -600,6 +602,33 @@ export const registerTelegramNativeCommands = ({
           }
         });
       }
+
+      bot.command("dashboard", async (ctx: TelegramNativeCommandContext) => {
+        const msg = ctx.message;
+        if (!msg) return;
+        if (shouldSkipUpdate(ctx)) return;
+        const auth = await resolveTelegramCommandAuth({
+          msg,
+          bot,
+          cfg,
+          telegramCfg,
+          allowFrom,
+          groupAllowFrom,
+          useAccessGroups,
+          resolveGroupPolicy,
+          resolveTelegramGroupConfig,
+          requireAuth: true,
+        });
+        if (!auth) return;
+        const messageThreadId = (msg as { message_thread_id?: number }).message_thread_id;
+        const threadSpec = resolveTelegramThreadSpec({
+          isGroup: auth.isGroup,
+          isForum: auth.isForum,
+          messageThreadId,
+        });
+        const threadParams = buildTelegramThreadParams(threadSpec) ?? {};
+        await sendDashboard(auth.chatId, { bot, cfg, runtime }, threadParams);
+      });
 
       for (const pluginCommand of pluginCommands) {
         bot.command(pluginCommand.command, async (ctx: TelegramNativeCommandContext) => {

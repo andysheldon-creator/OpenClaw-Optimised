@@ -20,6 +20,7 @@ import { RegisterTelegramHandlerParams } from "./bot-native-commands.js";
 import { MEDIA_GROUP_TIMEOUT_MS, type MediaGroupEntry } from "./bot-updates.js";
 import { resolveMedia } from "./bot/delivery.js";
 import { resolveTelegramForumThreadId } from "./bot/helpers.js";
+import { handleDashboardCallback } from "./dashboard/index.js";
 import { migrateTelegramGroupConfig } from "./group-migration.js";
 import { resolveTelegramInlineButtonsScope } from "./inline-buttons.js";
 import { buildInlineKeyboard } from "./send.js";
@@ -402,6 +403,16 @@ export const registerTelegramHandlers = ({
           }
         }
         return;
+      }
+
+      if (data.startsWith("d:")) {
+        const handled = await handleDashboardCallback(
+          data,
+          callbackMessage.chat.id,
+          callbackMessage.message_id,
+          bot.api,
+        );
+        if (handled) return;
       }
 
       const syntheticMessage: TelegramMessage = {
