@@ -9,9 +9,12 @@ import {
 } from "./index.js";
 
 const HOME = os.homedir();
+// Path tests assume Unix-style paths; the plugin only protects Unix paths
+// (e.g., ~/.ssh/, /etc/passwd) and has no Windows support yet
+const describeUnix = process.platform === "win32" ? describe.skip : describe;
 
 describe("security-audit", () => {
-  describe("normalizePath", () => {
+  describeUnix("normalizePath", () => {
     it("expands ~ to home directory", () => {
       expect(normalizePath("~/.ssh/id_rsa")).toBe(`${HOME}/.ssh/id_rsa`);
       expect(normalizePath("~/Documents")).toBe(`${HOME}/Documents`);
@@ -28,7 +31,7 @@ describe("security-audit", () => {
     });
   });
 
-  describe("patternToRegex", () => {
+  describeUnix("patternToRegex", () => {
     it("converts simple patterns", () => {
       const regex = patternToRegex("~/.ssh/id_rsa");
       expect(regex.test(`${HOME}/.ssh/id_rsa`)).toBe(true);
@@ -55,7 +58,7 @@ describe("security-audit", () => {
     });
   });
 
-  describe("pathMatchesPatterns", () => {
+  describeUnix("pathMatchesPatterns", () => {
     it("matches SSH key patterns", () => {
       const patterns = ["~/.ssh/id_*", "~/.ssh/*_key"];
       expect(pathMatchesPatterns("~/.ssh/id_rsa", patterns)).toBe(true);
