@@ -5,7 +5,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppShell } from "@/components/layout/AppShell";
 import { OnboardingGuard } from "@/components/OnboardingGuard";
 import { UnlockGuard } from "@/features/security/components/unlock/UnlockGuard";
+import { GatewayAuthGuard } from "@/components/composed/GatewayAuthGuard";
 import { useGatewayStreamHandler } from "@/hooks";
+import { useUIStore } from "@/stores/useUIStore";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -20,24 +22,33 @@ function RootLayout() {
     location.pathname.startsWith(path)
   );
 
+  // Check if we should enable gateway auth guard
+  // In dev mode, only enable when useLiveGateway is true
+  // In production, always enable
+  const useLiveGateway = useUIStore((state) => state.useLiveGateway);
+  const isDev = import.meta.env?.DEV ?? false;
+  const gatewayEnabled = !isDev || useLiveGateway;
+
   // Enable gateway stream handler to process streaming events
-  useGatewayStreamHandler({ enabled: true });
+  useGatewayStreamHandler({ enabled: gatewayEnabled });
 
   return (
     <ThemeProvider>
       <ShortcutsProvider>
         <ErrorBoundary>
-          <OnboardingGuard>
-            <UnlockGuard>
-              {isFullscreen ? (
-                <Outlet />
-              ) : (
-                <AppShell>
+          <GatewayAuthGuard enabled={gatewayEnabled}>
+            <OnboardingGuard>
+              <UnlockGuard>
+                {isFullscreen ? (
                   <Outlet />
-                </AppShell>
-              )}
-            </UnlockGuard>
-          </OnboardingGuard>
+                ) : (
+                  <AppShell>
+                    <Outlet />
+                  </AppShell>
+                )}
+              </UnlockGuard>
+            </OnboardingGuard>
+          </GatewayAuthGuard>
         </ErrorBoundary>
         <Toaster
           position="bottom-right"
