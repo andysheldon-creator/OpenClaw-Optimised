@@ -65,8 +65,6 @@ const QWEN_PORTAL_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
-const OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1";
-const OLLAMA_API_BASE_URL = "http://127.0.0.1:11434";
 const OLLAMA_DEFAULT_CONTEXT_WINDOW = 128000;
 const OLLAMA_DEFAULT_MAX_TOKENS = 8192;
 const OLLAMA_DEFAULT_COST = {
@@ -96,9 +94,10 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     return [];
   }
+  const OLLAMA_API_BASE_URL = process.env.OLLAMA_HOST || "http://127.0.0.1:11434";
   try {
     const response = await fetch(`${OLLAMA_API_BASE_URL}/api/tags`, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(Number(process.env.OLLAMA_TIMEOUT) || 10000),
     });
     if (!response.ok) {
       console.warn(`Failed to discover Ollama models: ${response.status}`);
@@ -124,7 +123,12 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
       };
     });
   } catch (error) {
-    console.warn(`Failed to discover Ollama models: ${String(error)}`);
+    // Only warn if we expected Ollama to be there (i.e. if we have a key configured)
+    // Otherwise, silent failure is better for auto-discovery to avoid noise
+    const isExplicitlyConfigured = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_HOST;
+    if (isExplicitlyConfigured) {
+      console.warn(`Failed to discover Ollama models: ${String(error)}`);
+    }
     return [];
   }
 }
@@ -385,8 +389,8 @@ async function buildVeniceProvider(): Promise<ProviderConfig> {
   };
 }
 
-async function buildOllamaProvider(): Promise<ProviderConfig> {
-  const models = await discoverOllamaModels();
+async function buildOllamaProvider(models: ModelDefinitionConfig[]): Promise<ProviderConfig> {
+  const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434/v1";
   return {
     baseUrl: OLLAMA_BASE_URL,
     api: "openai-completions",
@@ -453,12 +457,20 @@ export async function resolveImplicitProviders(params: {
     providers.xiaomi = { ...buildXiaomiProvider(), apiKey: xiaomiKey };
   }
 
-  // Ollama provider - only add if explicitly configured
+  // Ollama provider - auto-discover if available, or if explicitly configured
   const ollamaKey =
     resolveEnvApiKeyVarName("ollama") ??
     resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
-  if (ollamaKey) {
-    providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
+
+  const ollamaModels = await discoverOllamaModels();
+
+  // Enable if we have a key OR if we found models (auto-discovery)
+  if (ollamaKey || ollamaModels.length > 0) {
+    // Optimization: avoid double call by constructing the config directly
+    providers.ollama = {
+      ...(await buildOllamaProvider(ollamaModels)),
+      apiKey: ollamaKey ?? "local", // Default to "local" if discovered but no key
+    };
   }
 
   return providers;

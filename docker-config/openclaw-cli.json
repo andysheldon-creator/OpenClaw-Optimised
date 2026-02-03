@@ -1,0 +1,8 @@
+{
+  "gateway": {
+    "mode": "remote",
+    "remote": {
+      "url": "ws://openclaw-gateway:18789"
+    }
+  }
+}
