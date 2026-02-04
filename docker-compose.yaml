@@ -112,6 +112,7 @@ services:
       - traefik.http.routers.openclaw.tls=true
       - traefik.http.routers.openclaw.tls.certresolver=letsencrypt
       - traefik.http.services.openclaw.loadbalancer.server.port=3000
+      - traefik.docker.network=coolify
 
     init: true
     stop_grace_period: 30s
