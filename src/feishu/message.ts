@@ -427,6 +427,8 @@ export async function processFeishuMessage(
     WasMentioned: isGroup ? wasMentioned : undefined,
     // Reply-to support for quote replies
     ReplyToId: message.message_id,
+    // Command authorization - if message reached here, sender passed access control
+    CommandAuthorized: true,
   };
 
   await dispatchReplyWithBufferedBlockDispatcher({
