@@ -56,15 +56,27 @@ function getComplianceSystem(
  * Extract trigger source from session key
  */
 function extractTrigger(sessionKey?: string, messageProvider?: string): string {
-  if (messageProvider && messageProvider !== "unknown") return messageProvider;
-  if (!sessionKey) return "direct";
+  if (messageProvider && messageProvider !== "unknown") {
+    return messageProvider;
+  }
+  if (!sessionKey) {
+    return "direct";
+  }
 
-  if (sessionKey.includes(":cron:")) return "cron";
-  if (sessionKey.includes(":subagent:")) return "spawn";
-  if (sessionKey.includes(":hook:")) return "webhook";
+  if (sessionKey.includes(":cron:")) {
+    return "cron";
+  }
+  if (sessionKey.includes(":subagent:")) {
+    return "spawn";
+  }
+  if (sessionKey.includes(":hook:")) {
+    return "webhook";
+  }
 
   const channelMatch = sessionKey.match(/channel:(\w+)/);
-  if (channelMatch) return channelMatch[1];
+  if (channelMatch) {
+    return channelMatch[1];
+  }
 
   return "direct";
 }
@@ -77,7 +89,9 @@ const complianceHandler: HookHandler = async (event) => {
   const cfg = context.cfg as OpenClawConfig | undefined;
   const system = getComplianceSystem(cfg);
 
-  if (!system) return;
+  if (!system) {
+    return;
+  }
 
   // Handle different event types
   switch (event.type) {

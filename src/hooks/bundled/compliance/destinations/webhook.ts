@@ -20,7 +20,9 @@ export function createWebhookEmitter(
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function sendEvents(events: ComplianceEvent[]): Promise<void> {
-    if (events.length === 0) return;
+    if (events.length === 0) {
+      return;
+    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -51,7 +53,9 @@ export function createWebhookEmitter(
   }
 
   function scheduleFlush(): void {
-    if (flushTimer) return;
+    if (flushTimer) {
+      return;
+    }
     flushTimer = setTimeout(() => {
       flushTimer = null;
       void flush();
@@ -59,7 +63,9 @@ export function createWebhookEmitter(
   }
 
   async function flush(): Promise<void> {
-    if (batch.length === 0) return;
+    if (batch.length === 0) {
+      return;
+    }
     const events = batch;
     batch = [];
     await sendEvents(events);

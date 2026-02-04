@@ -37,7 +37,9 @@ export function createFileEmitter(
   let initialized = false;
 
   async function ensureDir(): Promise<void> {
-    if (initialized) return;
+    if (initialized) {
+      return;
+    }
     try {
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       initialized = true;

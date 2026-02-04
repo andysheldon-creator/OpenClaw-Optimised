@@ -20,7 +20,9 @@ export function createTelemetryEmitter(logger?: {
   let initialized = false;
 
   async function ensureDir(): Promise<void> {
-    if (initialized) return;
+    if (initialized) {
+      return;
+    }
     try {
       await fs.mkdir(path.dirname(DEFAULT_TELEMETRY_PATH), { recursive: true });
       initialized = true;

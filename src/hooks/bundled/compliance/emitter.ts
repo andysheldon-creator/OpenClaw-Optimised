@@ -47,7 +47,9 @@ function createEmitterForDestination(
  * Format agent name for display
  */
 function formatAgentName(agentId: string | undefined): string {
-  if (!agentId || agentId === "main") return "Main";
+  if (!agentId || agentId === "main") {
+    return "Main";
+  }
   return agentId.charAt(0).toUpperCase() + agentId.slice(1);
 }
 
@@ -55,7 +57,9 @@ function formatAgentName(agentId: string | undefined): string {
  * Truncate text to max length
  */
 function truncate(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
+  if (text.length <= maxLen) {
+    return text;
+  }
   return text.slice(0, maxLen - 1) + "…";
 }
 
@@ -100,6 +104,13 @@ export function createComplianceSystem(
 
     const agentId = params.agentId || "main";
     const agentName = formatAgentName(agentId);
+    const meta = params.metadata || {};
+
+    // Helper to safely get string from metadata
+    const metaStr = (key: string, fallback: string): string => {
+      const val = meta[key];
+      return typeof val === "string" ? val : fallback;
+    };
 
     // Generate default message if not provided
     let message = params.message;
@@ -112,27 +123,30 @@ export function createComplianceSystem(
           message = `${agentName} - COMPLETE [${params.trigger || "direct"}]`;
           break;
         case "cron_start":
-          message = `${agentName} - STARTING: ${params.metadata?.jobName || "cron job"}`;
+          message = `${agentName} - STARTING: ${metaStr("jobName", "cron job")}`;
           break;
         case "cron_complete":
-          message = `${agentName} - COMPLETE: ${params.metadata?.jobName || "cron job"}`;
+          message = `${agentName} - COMPLETE: ${metaStr("jobName", "cron job")}`;
           break;
         case "spawn_start":
-          message = `${agentName} - SPAWN: ${truncate(String(params.metadata?.task || "task"), 80)}`;
+          message = `${agentName} - SPAWN: ${truncate(metaStr("task", "task"), 80)}`;
           break;
         case "spawn_complete":
-          message = `${agentName} - SPAWN_COMPLETE: ${truncate(String(params.metadata?.task || "task"), 60)}`;
+          message = `${agentName} - SPAWN_COMPLETE: ${truncate(metaStr("task", "task"), 60)}`;
           break;
         case "dm_sent":
-          message = `${agentName} -> ${formatAgentName(params.metadata?.to as string)}: ${truncate(String(params.metadata?.preview || ""), 50)}`;
+          message = `${agentName} -> ${formatAgentName(metaStr("to", ""))}: ${truncate(metaStr("preview", ""), 50)}`;
           break;
-        case "message_received":
+        case "message_received": {
+          const channel = metaStr("channel", "unknown");
+          const from = metaStr("from", "Unknown");
           if (mergedConfig.redactContent) {
-            message = `[${params.metadata?.channel || "unknown"}] ${params.metadata?.from || "Unknown"}: [redacted]`;
+            message = `[${channel}] ${from}: [redacted]`;
           } else {
-            message = `[${params.metadata?.channel || "unknown"}] ${params.metadata?.from || "Unknown"}: ${truncate(String(params.metadata?.content || ""), 50)}`;
+            message = `[${channel}] ${from}: ${truncate(metaStr("content", ""), 50)}`;
           }
           break;
+        }
       }
     }
 
