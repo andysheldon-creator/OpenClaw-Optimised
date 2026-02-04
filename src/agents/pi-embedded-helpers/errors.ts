@@ -471,6 +471,36 @@ const ERROR_PATTERNS = {
     "messages.1.content.1.tool_use.id",
     "invalid request format",
   ],
+  network: [
+    // Node.js fetch/undici errors
+    /\bfetch failed\b/i,
+    /\bfailed to fetch\b/i,
+    "typeerror: fetch failed",
+    // DNS and connection errors (note: ETIMEDOUT/ESOCKETTIMEDOUT are handled as timeout)
+    /\benotfound\b/i,
+    /\beconnrefused\b/i,
+    /\beconnreset\b/i,
+    /\beconnaborted\b/i,
+    /\benetunreach\b/i,
+    /\behostunreach\b/i,
+    // Socket and network-level errors
+    "socket hang up",
+    "socket closed",
+    "connection reset",
+    "connection refused",
+    "network error",
+    "network request failed",
+    // TLS/SSL errors
+    "unable to get local issuer certificate",
+    "certificate has expired",
+    "self-signed certificate",
+    // HTTP errors that indicate network/infrastructure issues
+    // Note: 504 Gateway Timeout is handled by timeout patterns
+    /\b502\b.*bad gateway/i,
+    /\b503\b.*service unavailable/i,
+    "bad gateway",
+    "service unavailable",
+  ],
 } as const;
 
 const TOOL_CALL_INPUT_MISSING_RE =
@@ -596,6 +626,11 @@ export function isCloudCodeAssistFormatError(raw: string): boolean {
   return !isImageDimensionErrorMessage(raw) && matchesErrorPatterns(raw, ERROR_PATTERNS.format);
 }
 
+/** Detect network-level errors that are transient and should trigger retry/failover. */
+export function isNetworkErrorMessage(raw: string): boolean {
+  return matchesErrorPatterns(raw, ERROR_PATTERNS.network);
+}
+
 export function isAuthAssistantError(msg: AssistantMessage | undefined): boolean {
   if (!msg || msg.stopReason !== "error") {
     return false;
@@ -627,6 +662,10 @@ export function classifyFailoverReason(raw: string): FailoverReason | null {
   }
   if (isAuthErrorMessage(raw)) {
     return "auth";
+  }
+  // Network errors are transient and should trigger failover for retry
+  if (isNetworkErrorMessage(raw)) {
+    return "network";
   }
   return null;
 }

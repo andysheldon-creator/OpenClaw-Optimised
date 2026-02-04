@@ -50,6 +50,8 @@ export function resolveFailoverStatus(reason: FailoverReason): number | undefine
       return 408;
     case "format":
       return 400;
+    case "network":
+      return 503;
     default:
       return undefined;
   }
@@ -162,8 +164,22 @@ export function resolveFailoverReasonFromError(err: unknown): FailoverReason | n
   }
 
   const code = (getErrorCode(err) ?? "").toUpperCase();
-  if (["ETIMEDOUT", "ESOCKETTIMEDOUT", "ECONNRESET", "ECONNABORTED"].includes(code)) {
+  // Timeout-related error codes
+  if (["ETIMEDOUT", "ESOCKETTIMEDOUT"].includes(code)) {
     return "timeout";
+  }
+  // Network-level error codes that indicate transient failures
+  if (
+    [
+      "ECONNRESET",
+      "ECONNABORTED",
+      "ECONNREFUSED",
+      "ENOTFOUND",
+      "ENETUNREACH",
+      "EHOSTUNREACH",
+    ].includes(code)
+  ) {
+    return "network";
   }
   if (isTimeoutError(err)) {
     return "timeout";

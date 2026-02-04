@@ -38,4 +38,32 @@ describe("classifyFailoverReason", () => {
       "rate_limit",
     );
   });
+
+  it("classifies network errors as network for failover with retry", () => {
+    // Node.js fetch/undici errors (the exact error from issue #7185)
+    expect(classifyFailoverReason("TypeError: fetch failed")).toBe("network");
+    expect(classifyFailoverReason("fetch failed")).toBe("network");
+    expect(classifyFailoverReason("Failed to fetch")).toBe("network");
+
+    // DNS and connection errors
+    expect(classifyFailoverReason("ENOTFOUND api.anthropic.com")).toBe("network");
+    expect(classifyFailoverReason("connect ECONNREFUSED 127.0.0.1:443")).toBe("network");
+    expect(classifyFailoverReason("read ECONNRESET")).toBe("network");
+    expect(classifyFailoverReason("socket hang up")).toBe("network");
+    expect(classifyFailoverReason("socket closed unexpectedly")).toBe("network");
+    expect(classifyFailoverReason("network error")).toBe("network");
+    expect(classifyFailoverReason("connection reset by peer")).toBe("network");
+
+    // HTTP gateway errors indicating network/infrastructure issues
+    expect(classifyFailoverReason("502 Bad Gateway")).toBe("network");
+    expect(classifyFailoverReason("503 Service Unavailable")).toBe("network");
+    // Note: 504 Gateway Timeout is correctly classified as "timeout" (it IS a timeout)
+    expect(classifyFailoverReason("504 Gateway Timeout")).toBe("timeout");
+    expect(classifyFailoverReason("bad gateway")).toBe("network");
+    expect(classifyFailoverReason("service unavailable")).toBe("network");
+
+    // Should not match unrelated errors
+    expect(classifyFailoverReason("invalid response from server")).toBeNull();
+    expect(classifyFailoverReason("unexpected response format")).toBeNull();
+  });
 });

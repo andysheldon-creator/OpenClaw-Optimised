@@ -21,9 +21,34 @@ describe("failover-error", () => {
     ).toBe("format");
   });
 
-  it("infers timeout from common node error codes", () => {
+  it("infers timeout from timeout-specific error codes", () => {
     expect(resolveFailoverReasonFromError({ code: "ETIMEDOUT" })).toBe("timeout");
-    expect(resolveFailoverReasonFromError({ code: "ECONNRESET" })).toBe("timeout");
+    expect(resolveFailoverReasonFromError({ code: "ESOCKETTIMEDOUT" })).toBe("timeout");
+  });
+
+  it("infers network errors from connection error codes", () => {
+    // Connection-level errors are network issues, not timeouts
+    expect(resolveFailoverReasonFromError({ code: "ECONNRESET" })).toBe("network");
+    expect(resolveFailoverReasonFromError({ code: "ECONNREFUSED" })).toBe("network");
+    expect(resolveFailoverReasonFromError({ code: "ENOTFOUND" })).toBe("network");
+    expect(resolveFailoverReasonFromError({ code: "ENETUNREACH" })).toBe("network");
+    expect(resolveFailoverReasonFromError({ code: "EHOSTUNREACH" })).toBe("network");
+    expect(resolveFailoverReasonFromError({ code: "ECONNABORTED" })).toBe("network");
+  });
+
+  it("infers network errors from fetch failed messages", () => {
+    expect(resolveFailoverReasonFromError({ message: "TypeError: fetch failed" })).toBe("network");
+    expect(resolveFailoverReasonFromError({ message: "socket hang up" })).toBe("network");
+    expect(resolveFailoverReasonFromError({ message: "network error" })).toBe("network");
+  });
+
+  it("coerces network errors with 503 status", () => {
+    const err = coerceToFailoverError("fetch failed", {
+      provider: "anthropic",
+      model: "claude-opus-4-5",
+    });
+    expect(err?.reason).toBe("network");
+    expect(err?.status).toBe(503);
   });
 
   it("coerces failover-worthy errors into FailoverError with metadata", () => {
