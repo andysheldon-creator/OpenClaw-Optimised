@@ -53,4 +53,30 @@ describe("formatAssistantErrorText", () => {
     );
     expect(formatAssistantErrorText(msg)).toBe("LLM error server_error: Something exploded");
   });
+  it("returns an actionable billing message for 402 errors", () => {
+    const msg = makeAssistantError("402 Payment Required");
+    const result = formatAssistantErrorText(msg);
+    expect(result).toContain("API credits exhausted");
+    expect(result).toContain("billing");
+  });
+  it("returns an actionable billing message for credit balance errors", () => {
+    const msg = makeAssistantError(
+      "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+    );
+    const result = formatAssistantErrorText(msg);
+    expect(result).toContain("API credits exhausted");
+    expect(result).toContain("billing");
+  });
+  it("returns an actionable quota message for quota-exceeded errors", () => {
+    const msg = makeAssistantError("You exceeded your current quota");
+    const result = formatAssistantErrorText(msg);
+    expect(result).toContain("API quota exceeded");
+    expect(result).toContain("spending limits");
+  });
+  it("returns an actionable quota message for resource_exhausted errors", () => {
+    const msg = makeAssistantError("resource_exhausted: quota exceeded");
+    const result = formatAssistantErrorText(msg);
+    expect(result).toContain("API quota exceeded");
+    expect(result).toContain("spending limits");
+  });
 });

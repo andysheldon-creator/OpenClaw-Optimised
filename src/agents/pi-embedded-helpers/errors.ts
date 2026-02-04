@@ -364,6 +364,20 @@ export function formatAssistantErrorText(
     return `LLM request rejected: ${invalidRequest[1]}`;
   }
 
+  if (isBillingErrorMessage(raw)) {
+    return (
+      "API credits exhausted. Add more credits at your provider's billing page " +
+      "(e.g. console.anthropic.com/billing or platform.openai.com/settings/billing)."
+    );
+  }
+
+  if (isQuotaExhaustedErrorMessage(raw)) {
+    return (
+      "API quota exceeded. Check your spending limits and add credits if needed " +
+      "(e.g. console.anthropic.com/billing or platform.openai.com/settings/billing)."
+    );
+  }
+
   if (isOverloadedErrorMessage(raw)) {
     return "The AI service is temporarily overloaded. Please try again in a moment.";
   }
@@ -403,6 +417,20 @@ export function sanitizeUserFacingText(text: string): string {
     );
   }
 
+  if (isBillingErrorMessage(trimmed)) {
+    return (
+      "API credits exhausted. Add more credits at your provider's billing page " +
+      "(e.g. console.anthropic.com/billing or platform.openai.com/settings/billing)."
+    );
+  }
+
+  if (isQuotaExhaustedErrorMessage(trimmed)) {
+    return (
+      "API quota exceeded. Check your spending limits and add credits if needed " +
+      "(e.g. console.anthropic.com/billing or platform.openai.com/settings/billing)."
+    );
+  }
+
   if (isRawApiErrorPayload(trimmed) || isLikelyHttpErrorText(trimmed)) {
     return formatRawAssistantErrorForUi(trimmed);
   }
@@ -438,6 +466,15 @@ const ERROR_PATTERNS = {
     "resource_exhausted",
     "usage limit",
   ],
+  // Subset of rateLimit: quota/spending-limit errors (not transient rate limiting)
+  quotaExhausted: [
+    "exceeded your current quota",
+    "resource has been exhausted",
+    "quota exceeded",
+    "resource_exhausted",
+    "usage limit",
+    "spending limit",
+  ] as ErrorPattern[],
   overloaded: [/overloaded_error|"type"\s*:\s*"overloaded_error"/i, "overloaded"],
   timeout: ["timeout", "timed out", "deadline exceeded", "context deadline exceeded"],
   billing: [
@@ -495,6 +532,11 @@ function matchesErrorPatterns(raw: string, patterns: readonly ErrorPattern[]): b
 
 export function isRateLimitErrorMessage(raw: string): boolean {
   return matchesErrorPatterns(raw, ERROR_PATTERNS.rateLimit);
+}
+
+/** True for quota/spending-limit errors (not transient rate limiting). */
+export function isQuotaExhaustedErrorMessage(raw: string): boolean {
+  return matchesErrorPatterns(raw, ERROR_PATTERNS.quotaExhausted);
 }
 
 export function isTimeoutErrorMessage(raw: string): boolean {
