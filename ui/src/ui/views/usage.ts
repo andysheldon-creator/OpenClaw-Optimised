@@ -82,6 +82,163 @@ const usageStylesString = `
     line-height: 1 !important;
     margin-left: 8px;
   }
+  .usage-query-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .usage-query-input {
+    min-width: 220px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+  }
+  .usage-query-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .usage-query-suggestion {
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    font-size: 11px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .usage-query-suggestion:hover {
+    background: var(--bg-hover);
+  }
+  .usage-query-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .usage-columns-panel {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: var(--bg);
+    font-size: 12px;
+  }
+  .usage-columns-panel summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .usage-columns-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .usage-columns-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .usage-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .usage-summary-card {
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+  }
+  .usage-summary-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .usage-summary-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-strong);
+  }
+  .usage-summary-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .usage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .usage-list-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .usage-list-item .muted {
+    font-size: 11px;
+  }
+  .usage-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .usage-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 11px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .usage-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .usage-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+  }
+  .usage-meta-item span {
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .usage-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .usage-insight-card {
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  .usage-insight-title {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .usage-insight-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
 
   /* ===== CHART TOGGLE ===== */
   .chart-toggle {
@@ -301,6 +458,17 @@ const usageStylesString = `
     flex: 0 0 180px;
     font-size: 13px;
     color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .session-bar-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 400;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -786,6 +954,32 @@ const usageStylesString = `
   .session-detail-content {
     padding: 16px;
   }
+  .session-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .session-summary-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--bg-secondary);
+  }
+  .session-summary-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .session-summary-value {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .session-summary-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
   .session-detail-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -918,6 +1112,23 @@ export type UsageSessionEntry = {
   label?: string;
   sessionId?: string;
   updatedAt?: number;
+  agentId?: string;
+  channel?: string;
+  chatType?: string;
+  origin?: {
+    label?: string;
+    provider?: string;
+    surface?: string;
+    chatType?: string;
+    from?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
+  modelOverride?: string;
+  providerOverride?: string;
+  modelProvider?: string;
+  model?: string;
   usage: {
     input: number;
     output: number;
@@ -930,9 +1141,39 @@ export type UsageSessionEntry = {
     cacheReadCost?: number;
     cacheWriteCost?: number;
     missingCostEntries: number;
+    firstActivity?: number;
     lastActivity?: number;
+    durationMs?: number;
     activityDates?: string[]; // YYYY-MM-DD dates when session had activity
     dailyBreakdown?: Array<{ date: string; tokens: number; cost: number }>; // Per-day breakdown
+    dailyMessageCounts?: Array<{
+      date: string;
+      total: number;
+      user: number;
+      assistant: number;
+      toolCalls: number;
+      toolResults: number;
+      errors: number;
+    }>;
+    messageCounts?: {
+      total: number;
+      user: number;
+      assistant: number;
+      toolCalls: number;
+      toolResults: number;
+      errors: number;
+    };
+    toolUsage?: {
+      totalCalls: number;
+      uniqueTools: number;
+      tools: Array<{ name: string; count: number }>;
+    };
+    modelUsage?: Array<{
+      provider?: string;
+      model?: string;
+      count: number;
+      totals: UsageTotals;
+    }>;
   } | null;
   contextWeight?: {
     systemPrompt: { chars: number; projectContextChars: number; nonProjectContextChars: number };
@@ -968,6 +1209,54 @@ export type UsageTotals = {
 
 export type CostDailyEntry = UsageTotals & { date: string };
 
+export type UsageAggregates = {
+  messages: {
+    total: number;
+    user: number;
+    assistant: number;
+    toolCalls: number;
+    toolResults: number;
+    errors: number;
+  };
+  tools: {
+    totalCalls: number;
+    uniqueTools: number;
+    tools: Array<{ name: string; count: number }>;
+  };
+  byModel: Array<{
+    provider?: string;
+    model?: string;
+    count: number;
+    totals: UsageTotals;
+  }>;
+  byProvider: Array<{
+    provider?: string;
+    model?: string;
+    count: number;
+    totals: UsageTotals;
+  }>;
+  byAgent: Array<{ agentId: string; totals: UsageTotals }>;
+  byChannel: Array<{ channel: string; totals: UsageTotals }>;
+  daily: Array<{
+    date: string;
+    tokens: number;
+    cost: number;
+    messages: number;
+    toolCalls: number;
+    errors: number;
+  }>;
+};
+
+export type UsageColumnId =
+  | "channel"
+  | "agent"
+  | "provider"
+  | "model"
+  | "messages"
+  | "tools"
+  | "errors"
+  | "duration";
+
 export type TimeSeriesPoint = {
   timestamp: number;
   input: number;
@@ -988,6 +1277,7 @@ export type UsageProps = {
   sessions: UsageSessionEntry[];
   sessionsLimitReached: boolean; // True if 1000 session cap was hit
   totals: UsageTotals | null;
+  aggregates: UsageAggregates | null;
   costDaily: CostDailyEntry[];
   selectedSessions: string[]; // Support multiple session selection
   selectedDays: string[]; // Support multiple day selection
@@ -997,6 +1287,8 @@ export type UsageProps = {
   timeSeriesLoading: boolean;
   sessionLogs: SessionLogEntry[] | null;
   sessionLogsLoading: boolean;
+  query: string;
+  visibleColumns: UsageColumnId[];
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
   onRefresh: () => void;
@@ -1007,6 +1299,9 @@ export type UsageProps = {
   onClearDays: () => void;
   onClearSessions: () => void;
   onClearFilters: () => void;
+  onQueryChange: (query: string) => void;
+  onClearQuery: () => void;
+  onToggleColumn: (column: UsageColumnId) => void;
 };
 
 export type SessionLogEntry = {
@@ -1063,6 +1358,556 @@ function formatFullDate(dateStr: string): string {
   }
   return date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
+
+function formatDurationMs(ms?: number): string {
+  if (!ms || ms <= 0) {
+    return "—";
+  }
+  const totalSeconds = Math.round(ms / 1000);
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60) % 60;
+  const hours = Math.floor(totalSeconds / 3600);
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
+
+type UsageQueryTerm = {
+  key?: string;
+  value: string;
+  raw: string;
+};
+
+type UsageQueryResult = {
+  sessions: UsageSessionEntry[];
+  warnings: string[];
+};
+
+const QUERY_KEYS = new Set([
+  "agent",
+  "channel",
+  "chat",
+  "provider",
+  "model",
+  "tool",
+  "label",
+  "session",
+  "id",
+  "has",
+  "mintokens",
+  "maxtokens",
+  "mincost",
+  "maxcost",
+  "minmessages",
+  "maxmessages",
+]);
+
+const normalizeQueryText = (value: string): string => value.trim().toLowerCase();
+
+const parseQueryNumber = (value: string): number | null => {
+  let raw = value.trim().toLowerCase();
+  if (!raw) {
+    return null;
+  }
+  if (raw.startsWith("$")) {
+    raw = raw.slice(1);
+  }
+  let multiplier = 1;
+  if (raw.endsWith("k")) {
+    multiplier = 1_000;
+    raw = raw.slice(0, -1);
+  } else if (raw.endsWith("m")) {
+    multiplier = 1_000_000;
+    raw = raw.slice(0, -1);
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  return parsed * multiplier;
+};
+
+const extractQueryTerms = (query: string): UsageQueryTerm[] => {
+  const rawTokens = query.match(/"[^"]+"|\\S+/g) ?? [];
+  return rawTokens.map((token) => {
+    const cleaned = token.replace(/^"|"$/g, "");
+    const idx = cleaned.indexOf(":");
+    if (idx > 0) {
+      const key = cleaned.slice(0, idx);
+      const value = cleaned.slice(idx + 1);
+      return { key, value, raw: cleaned };
+    }
+    return { value: cleaned, raw: cleaned };
+  });
+};
+
+const getSessionText = (session: UsageSessionEntry): string[] => {
+  const items: Array<string | undefined> = [session.label, session.key, session.sessionId];
+  return items.filter((item): item is string => Boolean(item)).map((item) => item.toLowerCase());
+};
+
+const getSessionProviders = (session: UsageSessionEntry): string[] => {
+  const providers = new Set<string>();
+  if (session.modelProvider) {
+    providers.add(session.modelProvider.toLowerCase());
+  }
+  if (session.providerOverride) {
+    providers.add(session.providerOverride.toLowerCase());
+  }
+  if (session.origin?.provider) {
+    providers.add(session.origin.provider.toLowerCase());
+  }
+  for (const entry of session.usage?.modelUsage ?? []) {
+    if (entry.provider) {
+      providers.add(entry.provider.toLowerCase());
+    }
+  }
+  return Array.from(providers);
+};
+
+const getSessionModels = (session: UsageSessionEntry): string[] => {
+  const models = new Set<string>();
+  if (session.model) {
+    models.add(session.model.toLowerCase());
+  }
+  for (const entry of session.usage?.modelUsage ?? []) {
+    if (entry.model) {
+      models.add(entry.model.toLowerCase());
+    }
+  }
+  return Array.from(models);
+};
+
+const getSessionTools = (session: UsageSessionEntry): string[] =>
+  (session.usage?.toolUsage?.tools ?? []).map((tool) => tool.name.toLowerCase());
+
+const matchesUsageQuery = (session: UsageSessionEntry, term: UsageQueryTerm): boolean => {
+  const value = normalizeQueryText(term.value ?? "");
+  if (!value) {
+    return true;
+  }
+  if (!term.key) {
+    return getSessionText(session).some((text) => text.includes(value));
+  }
+
+  const key = normalizeQueryText(term.key);
+  switch (key) {
+    case "agent":
+      return session.agentId?.toLowerCase().includes(value) ?? false;
+    case "channel":
+      return session.channel?.toLowerCase().includes(value) ?? false;
+    case "chat":
+      return session.chatType?.toLowerCase().includes(value) ?? false;
+    case "provider":
+      return getSessionProviders(session).some((provider) => provider.includes(value));
+    case "model":
+      return getSessionModels(session).some((model) => model.includes(value));
+    case "tool":
+      return getSessionTools(session).some((tool) => tool.includes(value));
+    case "label":
+      return session.label?.toLowerCase().includes(value) ?? false;
+    case "session":
+    case "id":
+      return (
+        session.key.toLowerCase().includes(value) ||
+        (session.sessionId?.toLowerCase().includes(value) ?? false)
+      );
+    case "has":
+      switch (value) {
+        case "tools":
+          return (session.usage?.toolUsage?.totalCalls ?? 0) > 0;
+        case "errors":
+          return (session.usage?.messageCounts?.errors ?? 0) > 0;
+        case "context":
+          return Boolean(session.contextWeight);
+        case "usage":
+          return Boolean(session.usage);
+        case "model":
+          return getSessionModels(session).length > 0;
+        case "provider":
+          return getSessionProviders(session).length > 0;
+        default:
+          return true;
+      }
+    case "mintokens": {
+      const threshold = parseQueryNumber(value);
+      if (threshold === null) {
+        return true;
+      }
+      return (session.usage?.totalTokens ?? 0) >= threshold;
+    }
+    case "maxtokens": {
+      const threshold = parseQueryNumber(value);
+      if (threshold === null) {
+        return true;
+      }
+      return (session.usage?.totalTokens ?? 0) <= threshold;
+    }
+    case "mincost": {
+      const threshold = parseQueryNumber(value);
+      if (threshold === null) {
+        return true;
+      }
+      return (session.usage?.totalCost ?? 0) >= threshold;
+    }
+    case "maxcost": {
+      const threshold = parseQueryNumber(value);
+      if (threshold === null) {
+        return true;
+      }
+      return (session.usage?.totalCost ?? 0) <= threshold;
+    }
+    case "minmessages": {
+      const threshold = parseQueryNumber(value);
+      if (threshold === null) {
+        return true;
+      }
+      return (session.usage?.messageCounts?.total ?? 0) >= threshold;
+    }
+    case "maxmessages": {
+      const threshold = parseQueryNumber(value);
+      if (threshold === null) {
+        return true;
+      }
+      return (session.usage?.messageCounts?.total ?? 0) <= threshold;
+    }
+    default:
+      return true;
+  }
+};
+
+const filterSessionsByQuery = (sessions: UsageSessionEntry[], query: string): UsageQueryResult => {
+  const terms = extractQueryTerms(query);
+  if (terms.length === 0) {
+    return { sessions, warnings: [] };
+  }
+
+  const warnings: string[] = [];
+  for (const term of terms) {
+    if (!term.key) {
+      continue;
+    }
+    const normalizedKey = normalizeQueryText(term.key);
+    if (!QUERY_KEYS.has(normalizedKey)) {
+      warnings.push(`Unknown filter: ${term.key}`);
+      continue;
+    }
+    if (term.value === "") {
+      warnings.push(`Missing value for ${term.key}`);
+    }
+    if (normalizedKey === "has") {
+      const allowed = new Set(["tools", "errors", "context", "usage", "model", "provider"]);
+      if (term.value && !allowed.has(normalizeQueryText(term.value))) {
+        warnings.push(`Unknown has:${term.value}`);
+      }
+    }
+    if (
+      ["mintokens", "maxtokens", "mincost", "maxcost", "minmessages", "maxmessages"].includes(
+        normalizedKey,
+      )
+    ) {
+      if (term.value && parseQueryNumber(term.value) === null) {
+        warnings.push(`Invalid number for ${term.key}`);
+      }
+    }
+  }
+
+  const filtered = sessions.filter((session) =>
+    terms.every((term) => matchesUsageQuery(session, term)),
+  );
+  return { sessions: filtered, warnings };
+};
+
+const emptyUsageTotals = (): UsageTotals => ({
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+  totalTokens: 0,
+  totalCost: 0,
+  inputCost: 0,
+  outputCost: 0,
+  cacheReadCost: 0,
+  cacheWriteCost: 0,
+  missingCostEntries: 0,
+});
+
+const mergeUsageTotals = (target: UsageTotals, source: UsageTotals) => {
+  target.input += source.input;
+  target.output += source.output;
+  target.cacheRead += source.cacheRead;
+  target.cacheWrite += source.cacheWrite;
+  target.totalTokens += source.totalTokens;
+  target.totalCost += source.totalCost;
+  target.inputCost += source.inputCost ?? 0;
+  target.outputCost += source.outputCost ?? 0;
+  target.cacheReadCost += source.cacheReadCost ?? 0;
+  target.cacheWriteCost += source.cacheWriteCost ?? 0;
+  target.missingCostEntries += source.missingCostEntries ?? 0;
+};
+
+const buildAggregatesFromSessions = (
+  sessions: UsageSessionEntry[],
+  fallback?: UsageAggregates | null,
+): UsageAggregates => {
+  if (sessions.length === 0) {
+    return (
+      fallback ?? {
+        messages: { total: 0, user: 0, assistant: 0, toolCalls: 0, toolResults: 0, errors: 0 },
+        tools: { totalCalls: 0, uniqueTools: 0, tools: [] },
+        byModel: [],
+        byProvider: [],
+        byAgent: [],
+        byChannel: [],
+        daily: [],
+      }
+    );
+  }
+
+  const messages = { total: 0, user: 0, assistant: 0, toolCalls: 0, toolResults: 0, errors: 0 };
+  const toolMap = new Map<string, number>();
+  const modelMap = new Map<
+    string,
+    { provider?: string; model?: string; count: number; totals: UsageTotals }
+  >();
+  const providerMap = new Map<
+    string,
+    { provider?: string; model?: string; count: number; totals: UsageTotals }
+  >();
+  const agentMap = new Map<string, UsageTotals>();
+  const channelMap = new Map<string, UsageTotals>();
+  const dailyMap = new Map<
+    string,
+    {
+      date: string;
+      tokens: number;
+      cost: number;
+      messages: number;
+      toolCalls: number;
+      errors: number;
+    }
+  >();
+
+  for (const session of sessions) {
+    const usage = session.usage;
+    if (!usage) {
+      continue;
+    }
+    if (usage.messageCounts) {
+      messages.total += usage.messageCounts.total;
+      messages.user += usage.messageCounts.user;
+      messages.assistant += usage.messageCounts.assistant;
+      messages.toolCalls += usage.messageCounts.toolCalls;
+      messages.toolResults += usage.messageCounts.toolResults;
+      messages.errors += usage.messageCounts.errors;
+    }
+
+    if (usage.toolUsage) {
+      for (const tool of usage.toolUsage.tools) {
+        toolMap.set(tool.name, (toolMap.get(tool.name) ?? 0) + tool.count);
+      }
+    }
+
+    if (usage.modelUsage) {
+      for (const entry of usage.modelUsage) {
+        const modelKey = `${entry.provider ?? "unknown"}::${entry.model ?? "unknown"}`;
+        const modelExisting = modelMap.get(modelKey) ?? {
+          provider: entry.provider,
+          model: entry.model,
+          count: 0,
+          totals: emptyUsageTotals(),
+        };
+        modelExisting.count += entry.count;
+        mergeUsageTotals(modelExisting.totals, entry.totals);
+        modelMap.set(modelKey, modelExisting);
+
+        const providerKey = entry.provider ?? "unknown";
+        const providerExisting = providerMap.get(providerKey) ?? {
+          provider: entry.provider,
+          model: undefined,
+          count: 0,
+          totals: emptyUsageTotals(),
+        };
+        providerExisting.count += entry.count;
+        mergeUsageTotals(providerExisting.totals, entry.totals);
+        providerMap.set(providerKey, providerExisting);
+      }
+    }
+
+    if (session.agentId) {
+      const totals = agentMap.get(session.agentId) ?? emptyUsageTotals();
+      mergeUsageTotals(totals, usage);
+      agentMap.set(session.agentId, totals);
+    }
+    if (session.channel) {
+      const totals = channelMap.get(session.channel) ?? emptyUsageTotals();
+      mergeUsageTotals(totals, usage);
+      channelMap.set(session.channel, totals);
+    }
+
+    for (const day of usage.dailyBreakdown ?? []) {
+      const daily = dailyMap.get(day.date) ?? {
+        date: day.date,
+        tokens: 0,
+        cost: 0,
+        messages: 0,
+        toolCalls: 0,
+        errors: 0,
+      };
+      daily.tokens += day.tokens;
+      daily.cost += day.cost;
+      dailyMap.set(day.date, daily);
+    }
+    for (const day of usage.dailyMessageCounts ?? []) {
+      const daily = dailyMap.get(day.date) ?? {
+        date: day.date,
+        tokens: 0,
+        cost: 0,
+        messages: 0,
+        toolCalls: 0,
+        errors: 0,
+      };
+      daily.messages += day.total;
+      daily.toolCalls += day.toolCalls;
+      daily.errors += day.errors;
+      dailyMap.set(day.date, daily);
+    }
+  }
+
+  return {
+    messages,
+    tools: {
+      totalCalls: Array.from(toolMap.values()).reduce((sum, count) => sum + count, 0),
+      uniqueTools: toolMap.size,
+      tools: Array.from(toolMap.entries())
+        .map(([name, count]) => ({ name, count }))
+        .toSorted((a, b) => b.count - a.count),
+    },
+    byModel: Array.from(modelMap.values()).toSorted(
+      (a, b) => b.totals.totalCost - a.totals.totalCost,
+    ),
+    byProvider: Array.from(providerMap.values()).toSorted(
+      (a, b) => b.totals.totalCost - a.totals.totalCost,
+    ),
+    byAgent: Array.from(agentMap.entries())
+      .map(([agentId, totals]) => ({ agentId, totals }))
+      .toSorted((a, b) => b.totals.totalCost - a.totals.totalCost),
+    byChannel: Array.from(channelMap.entries())
+      .map(([channel, totals]) => ({ channel, totals }))
+      .toSorted((a, b) => b.totals.totalCost - a.totals.totalCost),
+    daily: Array.from(dailyMap.values()).toSorted((a, b) => a.date.localeCompare(b.date)),
+  };
+};
+
+type QuerySuggestion = {
+  label: string;
+  value: string;
+};
+
+const buildQuerySuggestions = (
+  query: string,
+  sessions: UsageSessionEntry[],
+  aggregates?: UsageAggregates | null,
+): QuerySuggestion[] => {
+  const trimmed = query.trim();
+  const tokens = trimmed.length ? trimmed.split(/\s+/) : [];
+  const lastToken = tokens.length ? tokens[tokens.length - 1] : "";
+  const [rawKey, rawValue] = lastToken.includes(":")
+    ? [lastToken.slice(0, lastToken.indexOf(":")), lastToken.slice(lastToken.indexOf(":") + 1)]
+    : ["", ""];
+
+  const key = rawKey.toLowerCase();
+  const value = rawValue.toLowerCase();
+
+  const unique = (items: Array<string | undefined>): string[] => {
+    const set = new Set<string>();
+    for (const item of items) {
+      if (item) {
+        set.add(item);
+      }
+    }
+    return Array.from(set);
+  };
+
+  const agents = unique(sessions.map((s) => s.agentId)).slice(0, 6);
+  const channels = unique(sessions.map((s) => s.channel)).slice(0, 6);
+  const providers = unique([
+    ...sessions.map((s) => s.modelProvider),
+    ...sessions.map((s) => s.providerOverride),
+    ...(aggregates?.byProvider.map((p) => p.provider) ?? []),
+  ]).slice(0, 6);
+  const models = unique([
+    ...sessions.map((s) => s.model),
+    ...(aggregates?.byModel.map((m) => m.model) ?? []),
+  ]).slice(0, 6);
+  const tools = unique(aggregates?.tools.tools.map((t) => t.name) ?? []).slice(0, 6);
+
+  if (!key) {
+    return [
+      { label: "agent:", value: "agent:" },
+      { label: "channel:", value: "channel:" },
+      { label: "provider:", value: "provider:" },
+      { label: "model:", value: "model:" },
+      { label: "tool:", value: "tool:" },
+      { label: "has:errors", value: "has:errors" },
+      { label: "has:tools", value: "has:tools" },
+      { label: "minTokens:", value: "minTokens:" },
+      { label: "maxCost:", value: "maxCost:" },
+    ];
+  }
+
+  const suggestions: QuerySuggestion[] = [];
+  const addValues = (prefix: string, values: string[]) => {
+    for (const val of values) {
+      if (!value || val.toLowerCase().includes(value)) {
+        suggestions.push({ label: `${prefix}:${val}`, value: `${prefix}:${val}` });
+      }
+    }
+  };
+
+  switch (key) {
+    case "agent":
+      addValues("agent", agents);
+      break;
+    case "channel":
+      addValues("channel", channels);
+      break;
+    case "provider":
+      addValues("provider", providers);
+      break;
+    case "model":
+      addValues("model", models);
+      break;
+    case "tool":
+      addValues("tool", tools);
+      break;
+    case "has":
+      ["errors", "tools", "context", "usage", "model", "provider"].forEach((entry) => {
+        if (!value || entry.includes(value)) {
+          suggestions.push({ label: `has:${entry}`, value: `has:${entry}` });
+        }
+      });
+      break;
+    default:
+      break;
+  }
+
+  return suggestions;
+};
+
+const applySuggestionToQuery = (query: string, suggestion: string): string => {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return `${suggestion} `;
+  }
+  const tokens = trimmed.split(/\s+/);
+  tokens[tokens.length - 1] = suggestion;
+  return `${tokens.join(" ")} `;
+};
 
 function pct(part: number, total: number): number {
   if (total === 0) {
@@ -1254,13 +2099,166 @@ function renderCostBreakdownCompact(totals: UsageTotals, mode: "tokens" | "cost"
   `;
 }
 
+function renderInsightList(
+  title: string,
+  items: Array<{ label: string; value: string; sub?: string }>,
+  emptyLabel: string,
+) {
+  return html`
+    <div class="usage-insight-card">
+      <div class="usage-insight-title">${title}</div>
+      ${
+        items.length === 0
+          ? html`<div class="muted">${emptyLabel}</div>`
+          : html`
+              <div class="usage-list">
+                ${items.map(
+                  (item) => html`
+                    <div class="usage-list-item">
+                      <span>${item.label}</span>
+                      <span>
+                        ${item.value}
+                        ${item.sub ? html`<span class="muted"> ${item.sub}</span>` : nothing}
+                      </span>
+                    </div>
+                  `,
+                )}
+              </div>
+            `
+      }
+    </div>
+  `;
+}
+
+function renderUsageInsights(
+  totals: UsageTotals | null,
+  aggregates: UsageAggregates,
+  sessionCount: number,
+  totalSessions: number,
+) {
+  if (!totals) {
+    return nothing;
+  }
+
+  const avgTokens = aggregates.messages.total
+    ? Math.round(totals.totalTokens / aggregates.messages.total)
+    : 0;
+  const avgCost = aggregates.messages.total ? totals.totalCost / aggregates.messages.total : 0;
+
+  const topModels = aggregates.byModel.slice(0, 5).map((entry) => ({
+    label: entry.model ?? "unknown",
+    value: formatCost(entry.totals.totalCost),
+    sub: `${formatTokens(entry.totals.totalTokens)} · ${entry.count} msgs`,
+  }));
+  const topProviders = aggregates.byProvider.slice(0, 5).map((entry) => ({
+    label: entry.provider ?? "unknown",
+    value: formatCost(entry.totals.totalCost),
+    sub: `${formatTokens(entry.totals.totalTokens)} · ${entry.count} msgs`,
+  }));
+  const topTools = aggregates.tools.tools.slice(0, 6).map((tool) => ({
+    label: tool.name,
+    value: `${tool.count}`,
+    sub: "calls",
+  }));
+  const topAgents = aggregates.byAgent.slice(0, 5).map((entry) => ({
+    label: entry.agentId,
+    value: formatCost(entry.totals.totalCost),
+    sub: `${formatTokens(entry.totals.totalTokens)}`,
+  }));
+  const topChannels = aggregates.byChannel.slice(0, 5).map((entry) => ({
+    label: entry.channel,
+    value: formatCost(entry.totals.totalCost),
+    sub: `${formatTokens(entry.totals.totalTokens)}`,
+  }));
+
+  return html`
+    <section class="card" style="margin-top: 16px;">
+      <div class="card-title">Usage Overview</div>
+      <div class="usage-summary-grid">
+        <div class="usage-summary-card">
+          <div class="usage-summary-title">Messages</div>
+          <div class="usage-summary-value">${aggregates.messages.total}</div>
+          <div class="usage-summary-sub">
+            ${aggregates.messages.user} user · ${aggregates.messages.assistant} assistant
+          </div>
+        </div>
+        <div class="usage-summary-card">
+          <div class="usage-summary-title">Tool Calls</div>
+          <div class="usage-summary-value">${aggregates.tools.totalCalls}</div>
+          <div class="usage-summary-sub">${aggregates.tools.uniqueTools} tools used</div>
+        </div>
+        <div class="usage-summary-card">
+          <div class="usage-summary-title">Errors</div>
+          <div class="usage-summary-value">${aggregates.messages.errors}</div>
+          <div class="usage-summary-sub">${aggregates.messages.toolResults} tool results</div>
+        </div>
+        <div class="usage-summary-card">
+          <div class="usage-summary-title">Avg Tokens / Msg</div>
+          <div class="usage-summary-value">${formatTokens(avgTokens)}</div>
+          <div class="usage-summary-sub">Across ${aggregates.messages.total || 0} messages</div>
+        </div>
+        <div class="usage-summary-card">
+          <div class="usage-summary-title">Avg Cost / Msg</div>
+          <div class="usage-summary-value">${formatCost(avgCost, 4)}</div>
+          <div class="usage-summary-sub">${formatCost(totals.totalCost)} total</div>
+        </div>
+        <div class="usage-summary-card">
+          <div class="usage-summary-title">Sessions</div>
+          <div class="usage-summary-value">${sessionCount}</div>
+          <div class="usage-summary-sub">of ${totalSessions} in range</div>
+        </div>
+      </div>
+      <div class="usage-insights-grid">
+        ${renderInsightList("Top Models", topModels, "No model data")}
+        ${renderInsightList("Top Providers", topProviders, "No provider data")}
+        ${renderInsightList("Top Tools", topTools, "No tool calls")}
+        ${renderInsightList("Top Agents", topAgents, "No agent data")}
+        ${renderInsightList("Top Channels", topChannels, "No channel data")}
+      </div>
+    </section>
+  `;
+}
+
 function renderSessionsCard(
   sessions: UsageSessionEntry[],
   selectedSessions: string[],
   selectedDays: string[],
   isTokenMode: boolean,
   onSelectSession: (key: string, shiftKey: boolean) => void,
+  visibleColumns: UsageColumnId[],
+  totalSessions: number,
 ) {
+  const showColumn = (id: UsageColumnId) => visibleColumns.includes(id);
+
+  const buildSessionMeta = (s: UsageSessionEntry): string[] => {
+    const parts: string[] = [];
+    if (showColumn("channel") && s.channel) {
+      parts.push(`channel:${s.channel}`);
+    }
+    if (showColumn("agent") && s.agentId) {
+      parts.push(`agent:${s.agentId}`);
+    }
+    if (showColumn("provider") && (s.modelProvider || s.providerOverride)) {
+      parts.push(`provider:${s.modelProvider ?? s.providerOverride}`);
+    }
+    if (showColumn("model") && s.model) {
+      parts.push(`model:${s.model}`);
+    }
+    if (showColumn("messages") && s.usage?.messageCounts) {
+      parts.push(`msgs:${s.usage.messageCounts.total}`);
+    }
+    if (showColumn("tools") && s.usage?.toolUsage) {
+      parts.push(`tools:${s.usage.toolUsage.totalCalls}`);
+    }
+    if (showColumn("errors") && s.usage?.messageCounts) {
+      parts.push(`errors:${s.usage.messageCounts.errors}`);
+    }
+    if (showColumn("duration") && s.usage?.durationMs) {
+      parts.push(`dur:${formatDurationMs(s.usage.durationMs)}`);
+    }
+    return parts;
+  };
+
   // Helper to get session value (filtered by days if selected)
   const getSessionValue = (s: UsageSessionEntry): number => {
     const usage = s.usage;
@@ -1286,7 +2284,9 @@ function renderSessionsCard(
     <div class="card sessions-card">
       <div class="sessions-card-header">
         <div class="card-title">Sessions</div>
-        <div class="sessions-card-count">${sessions.length} total</div>
+        <div class="sessions-card-count">
+          ${sessions.length} shown${totalSessions !== sessions.length ? ` · ${totalSessions} total` : ""}
+        </div>
       </div>
       ${
         selectedSessions.length === 0
@@ -1308,6 +2308,7 @@ function renderSessionsCard(
               const isSelected = selectedSessions.includes(s.key);
               const label = s.label || s.key;
               const displayLabel = label.length > 30 ? label.slice(0, 30) + "…" : label;
+              const meta = buildSessionMeta(s);
 
               return html`
                 <div
@@ -1315,7 +2316,10 @@ function renderSessionsCard(
                   @click=${(e: MouseEvent) => onSelectSession(s.key, e.shiftKey)}
                   title="${s.key}"
                 >
-                  <div class="session-bar-label">${displayLabel}</div>
+                  <div class="session-bar-label">
+                    <div>${displayLabel}</div>
+                    ${meta.length > 0 ? html`<div class="session-bar-meta">${meta.join(" · ")}</div>` : nothing}
+                  </div>
                   <div class="session-bar-track">
                     <div class="session-bar-fill" style="width: ${widthPct.toFixed(1)}%"></div>
                   </div>
@@ -1361,6 +2365,74 @@ function renderEmptyDetailState() {
   `;
 }
 
+function renderSessionSummary(session: UsageSessionEntry) {
+  const usage = session.usage;
+  if (!usage) {
+    return html`
+      <div class="muted">No usage data for this session.</div>
+    `;
+  }
+
+  const formatTs = (ts?: number): string => (ts ? new Date(ts).toLocaleString() : "—");
+
+  const badges: string[] = [];
+  if (session.channel) {
+    badges.push(`channel:${session.channel}`);
+  }
+  if (session.agentId) {
+    badges.push(`agent:${session.agentId}`);
+  }
+  if (session.modelProvider || session.providerOverride) {
+    badges.push(`provider:${session.modelProvider ?? session.providerOverride}`);
+  }
+  if (session.model) {
+    badges.push(`model:${session.model}`);
+  }
+
+  const toolItems =
+    usage.toolUsage?.tools.slice(0, 6).map((tool) => ({
+      label: tool.name,
+      value: `${tool.count}`,
+      sub: "calls",
+    })) ?? [];
+  const modelItems =
+    usage.modelUsage?.slice(0, 6).map((entry) => ({
+      label: entry.model ?? "unknown",
+      value: formatCost(entry.totals.totalCost),
+      sub: `${formatTokens(entry.totals.totalTokens)}`,
+    })) ?? [];
+
+  return html`
+    ${badges.length > 0 ? html`<div class="usage-badges">${badges.map((b) => html`<span class="usage-badge">${b}</span>`)}</div>` : nothing}
+    <div class="session-summary-grid">
+      <div class="session-summary-card">
+        <div class="session-summary-title">Messages</div>
+        <div class="session-summary-value">${usage.messageCounts?.total ?? 0}</div>
+        <div class="session-summary-meta">${usage.messageCounts?.user ?? 0} user · ${usage.messageCounts?.assistant ?? 0} assistant</div>
+      </div>
+      <div class="session-summary-card">
+        <div class="session-summary-title">Tool Calls</div>
+        <div class="session-summary-value">${usage.toolUsage?.totalCalls ?? 0}</div>
+        <div class="session-summary-meta">${usage.toolUsage?.uniqueTools ?? 0} tools</div>
+      </div>
+      <div class="session-summary-card">
+        <div class="session-summary-title">Errors</div>
+        <div class="session-summary-value">${usage.messageCounts?.errors ?? 0}</div>
+        <div class="session-summary-meta">${usage.messageCounts?.toolResults ?? 0} tool results</div>
+      </div>
+      <div class="session-summary-card">
+        <div class="session-summary-title">Duration</div>
+        <div class="session-summary-value">${formatDurationMs(usage.durationMs)}</div>
+        <div class="session-summary-meta">${formatTs(usage.firstActivity)} → ${formatTs(usage.lastActivity)}</div>
+      </div>
+    </div>
+    <div class="usage-insights-grid" style="margin-top: 12px;">
+      ${renderInsightList("Top Tools", toolItems, "No tool calls")}
+      ${renderInsightList("Model Mix", modelItems, "No model data")}
+    </div>
+  `;
+}
+
 function renderSessionDetailPanel(
   session: UsageSessionEntry,
   timeSeries: { points: TimeSeriesPoint[] } | null,
@@ -1397,6 +2469,7 @@ function renderSessionDetailPanel(
         </div>
       </div>
       <div class="session-detail-content">
+        ${renderSessionSummary(session)}
         <div class="session-detail-row">
           ${renderTimeSeriesCompact(timeSeries, timeSeriesLoading, timeSeriesMode, onTimeSeriesModeChange, startDate, endDate, selectedDays)}
           ${
@@ -1736,6 +2809,7 @@ export function renderUsage(props: UsageProps) {
   }
 
   const isTokenMode = props.chartMode === "tokens";
+  const hasQuery = props.query.trim().length > 0;
 
   // Sort sessions by tokens or cost depending on mode
   const sortedSessions = [...props.sessions].toSorted((a, b) => {
@@ -1760,13 +2834,16 @@ export function renderUsage(props: UsageProps) {
         })
       : sortedSessions;
 
-  // For display, always show all day-filtered sessions (selection just highlights, doesn't filter list)
-  const filteredSessions = dayFilteredSessions;
+  // Filter sessions by query (client-side)
+  const queryResult = filterSessionsByQuery(dayFilteredSessions, props.query);
+  const filteredSessions = queryResult.sessions;
+  const queryWarnings = queryResult.warnings;
+  const querySuggestions = buildQuerySuggestions(props.query, sortedSessions, props.aggregates);
 
   // Get first selected session for detail view (timeseries, logs)
   const primarySelectedEntry =
     props.selectedSessions.length === 1
-      ? sortedSessions.find((s) => s.key === props.selectedSessions[0])
+      ? filteredSessions.find((s) => s.key === props.selectedSessions[0])
       : null;
 
   // Compute totals from sessions
@@ -1784,6 +2861,7 @@ export function renderUsage(props: UsageProps) {
           acc.outputCost += s.usage.outputCost ?? 0;
           acc.cacheReadCost += s.usage.cacheReadCost ?? 0;
           acc.cacheWriteCost += s.usage.cacheWriteCost ?? 0;
+          acc.missingCostEntries += s.usage.missingCostEntries ?? 0;
         }
         return acc;
       },
@@ -1839,10 +2917,11 @@ export function renderUsage(props: UsageProps) {
   // Compute display totals and count based on filters
   let displayTotals: UsageTotals | null;
   let displaySessionCount: number;
+  const totalSessions = sortedSessions.length;
 
   if (props.selectedSessions.length > 0) {
     // Sessions selected - compute totals from selected sessions
-    const selectedSessionEntries = sortedSessions.filter((s) =>
+    const selectedSessionEntries = filteredSessions.filter((s) =>
       props.selectedSessions.includes(s.key),
     );
     displayTotals = computeSessionTotals(selectedSessionEntries);
@@ -1850,18 +2929,42 @@ export function renderUsage(props: UsageProps) {
   } else if (props.selectedDays.length > 0) {
     // Days selected - use daily aggregates for accurate per-day totals
     displayTotals = computeDailyTotals(props.selectedDays);
-    displaySessionCount = dayFilteredSessions.length;
+    displaySessionCount = filteredSessions.length;
+  } else if (hasQuery) {
+    displayTotals = computeSessionTotals(filteredSessions);
+    displaySessionCount = filteredSessions.length;
   } else {
     // No filters - show all
     displayTotals = props.totals;
-    displaySessionCount = sortedSessions.length;
+    displaySessionCount = totalSessions;
   }
+
+  const aggregateSessions =
+    props.selectedSessions.length > 0
+      ? filteredSessions.filter((s) => props.selectedSessions.includes(s.key))
+      : hasQuery
+        ? filteredSessions
+        : props.selectedDays.length > 0
+          ? dayFilteredSessions
+          : sortedSessions;
+  const activeAggregates = buildAggregatesFromSessions(aggregateSessions, props.aggregates);
+
+  const columnOptions: Array<{ id: UsageColumnId; label: string }> = [
+    { id: "channel", label: "Channel" },
+    { id: "agent", label: "Agent" },
+    { id: "provider", label: "Provider" },
+    { id: "model", label: "Model" },
+    { id: "messages", label: "Messages" },
+    { id: "tools", label: "Tools" },
+    { id: "errors", label: "Errors" },
+    { id: "duration", label: "Duration" },
+  ];
 
   // Filter daily chart data if sessions are selected
   const filteredDaily =
     props.selectedSessions.length > 0
       ? (() => {
-          const selectedEntries = sortedSessions.filter((s) =>
+          const selectedEntries = filteredSessions.filter((s) =>
             props.selectedSessions.includes(s.key),
           );
           const allActivityDates = new Set<string>();
@@ -1948,6 +3051,77 @@ export function renderUsage(props: UsageProps) {
         </div>
       </div>
 
+      <div style="margin-top: 12px;">
+        <div class="usage-query-bar">
+          <input
+            class="usage-query-input"
+            type="text"
+            .value=${props.query}
+            placeholder="Filter sessions (e.g. agent:main model:gpt-4o has:errors minTokens:2000)"
+            @input=${(e: Event) => props.onQueryChange((e.target as HTMLInputElement).value)}
+          />
+          ${
+            props.query.trim()
+              ? html`<button class="btn btn-sm" @click=${props.onClearQuery}>Clear</button>`
+              : nothing
+          }
+          <details class="usage-columns-panel">
+            <summary>View</summary>
+            <div class="usage-columns-list">
+              ${columnOptions.map(
+                (opt) => html`
+                  <label class="usage-columns-item">
+                    <input
+                      type="checkbox"
+                      .checked=${props.visibleColumns.includes(opt.id)}
+                      @change=${() => props.onToggleColumn(opt.id)}
+                    />
+                    <span>${opt.label}</span>
+                  </label>
+                `,
+              )}
+            </div>
+          </details>
+          <span class="usage-query-hint">
+            ${
+              hasQuery
+                ? `${filteredSessions.length} of ${totalSessions} sessions match`
+                : `${totalSessions} sessions in range`
+            }
+          </span>
+        </div>
+        ${
+          querySuggestions.length > 0
+            ? html`
+                <div class="usage-query-suggestions">
+                  ${querySuggestions.map(
+                    (suggestion) => html`
+                      <button
+                        class="usage-query-suggestion"
+                        @click=${() =>
+                          props.onQueryChange(
+                            applySuggestionToQuery(props.query, suggestion.value),
+                          )}
+                      >
+                        ${suggestion.label}
+                      </button>
+                    `,
+                  )}
+                </div>
+              `
+            : nothing
+        }
+        ${
+          queryWarnings.length > 0
+            ? html`
+                <div class="callout warning" style="margin-top: 8px;">
+                  ${queryWarnings.join(" · ")}
+                </div>
+              `
+            : nothing
+        }
+      </div>
+
       ${
         props.error
           ? html`<div class="callout danger" style="margin-top: 12px;">${props.error}</div>`
@@ -1964,6 +3138,8 @@ export function renderUsage(props: UsageProps) {
           : nothing
       }
     </section>
+
+    ${renderUsageInsights(displayTotals, activeAggregates, displaySessionCount, totalSessions)}
 
     <!-- Two-column layout: Daily+Breakdown on left, Sessions on right -->
     <div class="usage-grid">
@@ -1985,6 +3161,8 @@ export function renderUsage(props: UsageProps) {
           props.selectedDays,
           isTokenMode,
           props.onSelectSession,
+          props.visibleColumns,
+          totalSessions,
         )}
       </div>
     </div>

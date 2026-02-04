@@ -427,6 +427,23 @@ export type SessionsUsageEntry = {
   label?: string;
   sessionId?: string;
   updatedAt?: number;
+  agentId?: string;
+  channel?: string;
+  chatType?: string;
+  origin?: {
+    label?: string;
+    provider?: string;
+    surface?: string;
+    chatType?: string;
+    from?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
+  modelOverride?: string;
+  providerOverride?: string;
+  modelProvider?: string;
+  model?: string;
   usage: {
     input: number;
     output: number;
@@ -439,8 +456,39 @@ export type SessionsUsageEntry = {
     cacheReadCost?: number;
     cacheWriteCost?: number;
     missingCostEntries: number;
+    firstActivity?: number;
     lastActivity?: number;
+    durationMs?: number;
     activityDates?: string[]; // YYYY-MM-DD dates when session had activity
+    dailyBreakdown?: Array<{ date: string; tokens: number; cost: number }>;
+    dailyMessageCounts?: Array<{
+      date: string;
+      total: number;
+      user: number;
+      assistant: number;
+      toolCalls: number;
+      toolResults: number;
+      errors: number;
+    }>;
+    messageCounts?: {
+      total: number;
+      user: number;
+      assistant: number;
+      toolCalls: number;
+      toolResults: number;
+      errors: number;
+    };
+    toolUsage?: {
+      totalCalls: number;
+      uniqueTools: number;
+      tools: Array<{ name: string; count: number }>;
+    };
+    modelUsage?: Array<{
+      provider?: string;
+      model?: string;
+      count: number;
+      totals: SessionsUsageTotals;
+    }>;
   } | null;
   contextWeight?: {
     systemPrompt: { chars: number; projectContextChars: number; nonProjectContextChars: number };
@@ -480,6 +528,43 @@ export type SessionsUsageResult = {
   endDate: string;
   sessions: SessionsUsageEntry[];
   totals: SessionsUsageTotals;
+  aggregates: {
+    messages: {
+      total: number;
+      user: number;
+      assistant: number;
+      toolCalls: number;
+      toolResults: number;
+      errors: number;
+    };
+    tools: {
+      totalCalls: number;
+      uniqueTools: number;
+      tools: Array<{ name: string; count: number }>;
+    };
+    byModel: Array<{
+      provider?: string;
+      model?: string;
+      count: number;
+      totals: SessionsUsageTotals;
+    }>;
+    byProvider: Array<{
+      provider?: string;
+      model?: string;
+      count: number;
+      totals: SessionsUsageTotals;
+    }>;
+    byAgent: Array<{ agentId: string; totals: SessionsUsageTotals }>;
+    byChannel: Array<{ channel: string; totals: SessionsUsageTotals }>;
+    daily: Array<{
+      date: string;
+      tokens: number;
+      cost: number;
+      messages: number;
+      toolCalls: number;
+      errors: number;
+    }>;
+  };
 };
 
 export type CostUsageDailyEntry = SessionsUsageTotals & { date: string };

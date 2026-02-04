@@ -9,6 +9,7 @@ import {
   resolveSessionFilePath,
   resolveSessionTranscriptsDirForAgent,
 } from "../config/sessions/paths.js";
+import { countToolResults, extractToolCallNames } from "../utils/transcript-tools.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../utils/usage-format.js";
 
 type CostBreakdown = {
@@ -26,6 +27,20 @@ type ParsedUsageEntry = {
   provider?: string;
   model?: string;
   timestamp?: Date;
+};
+
+type ParsedTranscriptEntry = {
+  message: Record<string, unknown>;
+  role?: "user" | "assistant";
+  timestamp?: Date;
+  usage?: NormalizedUsage;
+  costTotal?: number;
+  costBreakdown?: CostBreakdown;
+  provider?: string;
+  model?: string;
+  stopReason?: string;
+  toolNames: string[];
+  toolResultCounts: { total: number; errors: number };
 };
 
 export type CostUsageTotals = {
@@ -60,12 +75,50 @@ export type SessionDailyUsage = {
   cost: number;
 };
 
+export type SessionDailyMessageCounts = {
+  date: string; // YYYY-MM-DD
+  total: number;
+  user: number;
+  assistant: number;
+  toolCalls: number;
+  toolResults: number;
+  errors: number;
+};
+
+export type SessionMessageCounts = {
+  total: number;
+  user: number;
+  assistant: number;
+  toolCalls: number;
+  toolResults: number;
+  errors: number;
+};
+
+export type SessionToolUsage = {
+  totalCalls: number;
+  uniqueTools: number;
+  tools: Array<{ name: string; count: number }>;
+};
+
+export type SessionModelUsage = {
+  provider?: string;
+  model?: string;
+  count: number;
+  totals: CostUsageTotals;
+};
+
 export type SessionCostSummary = CostUsageTotals & {
   sessionId?: string;
   sessionFile?: string;
+  firstActivity?: number;
   lastActivity?: number;
+  durationMs?: number;
   activityDates?: string[]; // YYYY-MM-DD dates when session had activity
   dailyBreakdown?: SessionDailyUsage[]; // Per-day token/cost breakdown
+  dailyMessageCounts?: SessionDailyMessageCounts[];
+  messageCounts?: SessionMessageCounts;
+  toolUsage?: SessionToolUsage;
+  modelUsage?: SessionModelUsage[];
 };
 
 const emptyTotals = (): CostUsageTotals => ({
@@ -135,35 +188,44 @@ const parseTimestamp = (entry: Record<string, unknown>): Date | undefined => {
   return undefined;
 };
 
-const parseUsageEntry = (entry: Record<string, unknown>): ParsedUsageEntry | null => {
+const parseTranscriptEntry = (entry: Record<string, unknown>): ParsedTranscriptEntry | null => {
   const message = entry.message as Record<string, unknown> | undefined;
-  const role = message?.role;
-  if (role !== "assistant") {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+
+  const roleRaw = message.role;
+  const role = roleRaw === "user" || roleRaw === "assistant" ? roleRaw : undefined;
+  if (!role) {
     return null;
   }
 
   const usageRaw =
-    (message?.usage as UsageLike | undefined) ?? (entry.usage as UsageLike | undefined);
-  const usage = normalizeUsage(usageRaw);
-  if (!usage) {
-    return null;
-  }
+    (message.usage as UsageLike | undefined) ?? (entry.usage as UsageLike | undefined);
+  const usage = usageRaw ? (normalizeUsage(usageRaw) ?? undefined) : undefined;
 
   const provider =
-    (typeof message?.provider === "string" ? message?.provider : undefined) ??
+    (typeof message.provider === "string" ? message.provider : undefined) ??
     (typeof entry.provider === "string" ? entry.provider : undefined);
   const model =
-    (typeof message?.model === "string" ? message?.model : undefined) ??
+    (typeof message.model === "string" ? message.model : undefined) ??
     (typeof entry.model === "string" ? entry.model : undefined);
 
   const costBreakdown = extractCostBreakdown(usageRaw);
+  const stopReason = typeof message.stopReason === "string" ? message.stopReason : undefined;
+
   return {
+    message,
+    role,
+    timestamp: parseTimestamp(entry),
     usage,
     costTotal: costBreakdown?.total,
     costBreakdown,
     provider,
     model,
-    timestamp: parseTimestamp(entry),
+    stopReason,
+    toolNames: extractToolCallNames(message),
+    toolResultCounts: countToolResults(message),
   };
 };
 
@@ -201,10 +263,10 @@ const applyCostTotal = (totals: CostUsageTotals, costTotal: number | undefined) 
   totals.totalCost += costTotal;
 };
 
-async function scanUsageFile(params: {
+async function scanTranscriptFile(params: {
   filePath: string;
   config?: OpenClawConfig;
-  onEntry: (entry: ParsedUsageEntry) => void;
+  onEntry: (entry: ParsedTranscriptEntry) => void;
 }): Promise<void> {
   const fileStream = fs.createReadStream(params.filePath, { encoding: "utf-8" });
   const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
@@ -216,12 +278,12 @@ async function scanUsageFile(params: {
     }
     try {
       const parsed = JSON.parse(trimmed) as Record<string, unknown>;
-      const entry = parseUsageEntry(parsed);
+      const entry = parseTranscriptEntry(parsed);
       if (!entry) {
         continue;
       }
 
-      if (entry.costTotal === undefined) {
+      if (entry.usage && entry.costTotal === undefined) {
         const cost = resolveModelCostConfig({
           provider: entry.provider,
           model: entry.model,
@@ -235,6 +297,30 @@ async function scanUsageFile(params: {
       // Ignore malformed lines
     }
   }
+}
+
+async function scanUsageFile(params: {
+  filePath: string;
+  config?: OpenClawConfig;
+  onEntry: (entry: ParsedUsageEntry) => void;
+}): Promise<void> {
+  await scanTranscriptFile({
+    filePath: params.filePath,
+    config: params.config,
+    onEntry: (entry) => {
+      if (!entry.usage) {
+        return;
+      }
+      params.onEntry({
+        usage: entry.usage,
+        costTotal: entry.costTotal,
+        costBreakdown: entry.costBreakdown,
+        provider: entry.provider,
+        model: entry.model,
+        timestamp: entry.timestamp,
+      });
+    },
+  });
 }
 
 export async function loadCostUsageSummary(params?: {
@@ -442,11 +528,24 @@ export async function loadSessionCostSummary(params: {
   }
 
   const totals = emptyTotals();
+  let firstActivity: number | undefined;
   let lastActivity: number | undefined;
   const activityDatesSet = new Set<string>();
   const dailyMap = new Map<string, { tokens: number; cost: number }>();
+  const dailyMessageMap = new Map<string, SessionDailyMessageCounts>();
+  const messageCounts: SessionMessageCounts = {
+    total: 0,
+    user: 0,
+    assistant: 0,
+    toolCalls: 0,
+    toolResults: 0,
+    errors: 0,
+  };
+  const toolUsageMap = new Map<string, number>();
+  const modelUsageMap = new Map<string, SessionModelUsage>();
+  const errorStopReasons = new Set(["error", "aborted", "timeout"]);
 
-  await scanUsageFile({
+  await scanTranscriptFile({
     filePath: sessionFile,
     config: params.config,
     onEntry: (entry) => {
@@ -460,26 +559,85 @@ export async function loadSessionCostSummary(params: {
         return;
       }
 
+      if (ts !== undefined) {
+        if (!firstActivity || ts < firstActivity) {
+          firstActivity = ts;
+        }
+        if (!lastActivity || ts > lastActivity) {
+          lastActivity = ts;
+        }
+      }
+
+      if (entry.role === "user") {
+        messageCounts.user += 1;
+        messageCounts.total += 1;
+      }
+      if (entry.role === "assistant") {
+        messageCounts.assistant += 1;
+        messageCounts.total += 1;
+      }
+
+      if (entry.toolNames.length > 0) {
+        messageCounts.toolCalls += entry.toolNames.length;
+        for (const name of entry.toolNames) {
+          toolUsageMap.set(name, (toolUsageMap.get(name) ?? 0) + 1);
+        }
+      }
+
+      if (entry.toolResultCounts.total > 0) {
+        messageCounts.toolResults += entry.toolResultCounts.total;
+        messageCounts.errors += entry.toolResultCounts.errors;
+      }
+
+      if (entry.stopReason && errorStopReasons.has(entry.stopReason)) {
+        messageCounts.errors += 1;
+      }
+
+      if (entry.timestamp) {
+        const dayKey = formatDayKey(entry.timestamp);
+        activityDatesSet.add(dayKey);
+        const daily = dailyMessageMap.get(dayKey) ?? {
+          date: dayKey,
+          total: 0,
+          user: 0,
+          assistant: 0,
+          toolCalls: 0,
+          toolResults: 0,
+          errors: 0,
+        };
+        daily.total += entry.role === "user" || entry.role === "assistant" ? 1 : 0;
+        if (entry.role === "user") {
+          daily.user += 1;
+        } else if (entry.role === "assistant") {
+          daily.assistant += 1;
+        }
+        daily.toolCalls += entry.toolNames.length;
+        daily.toolResults += entry.toolResultCounts.total;
+        daily.errors += entry.toolResultCounts.errors;
+        if (entry.stopReason && errorStopReasons.has(entry.stopReason)) {
+          daily.errors += 1;
+        }
+        dailyMessageMap.set(dayKey, daily);
+      }
+
+      if (!entry.usage) {
+        return;
+      }
+
       applyUsageTotals(totals, entry.usage);
       if (entry.costBreakdown?.total !== undefined) {
         applyCostBreakdown(totals, entry.costBreakdown);
       } else {
         applyCostTotal(totals, entry.costTotal);
       }
-      if (ts && (!lastActivity || ts > lastActivity)) {
-        lastActivity = ts;
-      }
-      // Track activity dates and per-day breakdown
+
       if (entry.timestamp) {
         const dayKey = formatDayKey(entry.timestamp);
-        activityDatesSet.add(dayKey);
-
-        // Compute tokens and cost for this entry
         const entryTokens =
-          (entry.usage?.input ?? 0) +
-          (entry.usage?.output ?? 0) +
-          (entry.usage?.cacheRead ?? 0) +
-          (entry.usage?.cacheWrite ?? 0);
+          (entry.usage.input ?? 0) +
+          (entry.usage.output ?? 0) +
+          (entry.usage.cacheRead ?? 0) +
+          (entry.usage.cacheWrite ?? 0);
         const entryCost =
           entry.costBreakdown?.total ??
           (entry.costBreakdown
@@ -495,6 +653,26 @@ export async function loadSessionCostSummary(params: {
           cost: existing.cost + entryCost,
         });
       }
+
+      if (entry.provider || entry.model) {
+        const key = `${entry.provider ?? "unknown"}::${entry.model ?? "unknown"}`;
+        const existing =
+          modelUsageMap.get(key) ??
+          ({
+            provider: entry.provider,
+            model: entry.model,
+            count: 0,
+            totals: emptyTotals(),
+          } as SessionModelUsage);
+        existing.count += 1;
+        applyUsageTotals(existing.totals, entry.usage);
+        if (entry.costBreakdown?.total !== undefined) {
+          applyCostBreakdown(existing.totals, entry.costBreakdown);
+        } else {
+          applyCostTotal(existing.totals, entry.costTotal);
+        }
+        modelUsageMap.set(key, existing);
+      }
     },
   });
 
@@ -503,12 +681,45 @@ export async function loadSessionCostSummary(params: {
     .map(([date, data]) => ({ date, tokens: data.tokens, cost: data.cost }))
     .toSorted((a, b) => a.date.localeCompare(b.date));
 
+  const dailyMessageCounts: SessionDailyMessageCounts[] = Array.from(
+    dailyMessageMap.values(),
+  ).toSorted((a, b) => a.date.localeCompare(b.date));
+
+  const toolUsage: SessionToolUsage | undefined = toolUsageMap.size
+    ? {
+        totalCalls: Array.from(toolUsageMap.values()).reduce((sum, count) => sum + count, 0),
+        uniqueTools: toolUsageMap.size,
+        tools: Array.from(toolUsageMap.entries())
+          .map(([name, count]) => ({ name, count }))
+          .toSorted((a, b) => b.count - a.count),
+      }
+    : undefined;
+
+  const modelUsage = modelUsageMap.size
+    ? Array.from(modelUsageMap.values()).toSorted((a, b) => {
+        const costDiff = b.totals.totalCost - a.totals.totalCost;
+        if (costDiff !== 0) {
+          return costDiff;
+        }
+        return b.totals.totalTokens - a.totals.totalTokens;
+      })
+    : undefined;
+
   return {
     sessionId: params.sessionId,
     sessionFile,
+    firstActivity,
     lastActivity,
+    durationMs:
+      firstActivity !== undefined && lastActivity !== undefined
+        ? Math.max(0, lastActivity - firstActivity)
+        : undefined,
     activityDates: Array.from(activityDatesSet).toSorted(),
     dailyBreakdown,
+    dailyMessageCounts,
+    messageCounts,
+    toolUsage,
+    modelUsage,
     ...totals,
   };
 }

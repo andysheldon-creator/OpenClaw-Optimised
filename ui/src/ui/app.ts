@@ -245,6 +245,17 @@ export class OpenClawApp extends LitElement {
   @state() usageTimeSeriesLoading = false;
   @state() usageSessionLogs: import("./views/usage.js").SessionLogEntry[] | null = null;
   @state() usageSessionLogsLoading = false;
+  @state() usageQuery = "";
+  @state() usageVisibleColumns: string[] = [
+    "channel",
+    "agent",
+    "provider",
+    "model",
+    "messages",
+    "tools",
+    "errors",
+    "duration",
+  ];
 
   @state() cronLoading = false;
   @state() cronJobs: CronJob[] = [];

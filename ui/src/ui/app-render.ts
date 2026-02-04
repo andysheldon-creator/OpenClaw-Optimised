@@ -324,6 +324,7 @@ export function renderApp(state: AppViewState) {
                 sessions: state.usageResult?.sessions ?? [],
                 sessionsLimitReached: (state.usageResult?.sessions?.length ?? 0) >= 1000,
                 totals: state.usageResult?.totals ?? null,
+                aggregates: state.usageResult?.aggregates ?? null,
                 costDaily: state.usageCostSummary?.daily ?? [],
                 selectedSessions: state.usageSelectedSessions,
                 selectedDays: state.usageSelectedDays,
@@ -333,6 +334,9 @@ export function renderApp(state: AppViewState) {
                 timeSeriesLoading: state.usageTimeSeriesLoading,
                 sessionLogs: state.usageSessionLogs,
                 sessionLogsLoading: state.usageSessionLogsLoading,
+                query: state.usageQuery,
+                visibleColumns:
+                  state.usageVisibleColumns as import("./views/usage.ts").UsageColumnId[],
                 onStartDateChange: (date) => {
                   state.usageStartDate = date;
                   state.usageSelectedDays = [];
@@ -346,6 +350,21 @@ export function renderApp(state: AppViewState) {
                   debouncedLoadUsage(state);
                 },
                 onRefresh: () => loadUsage(state),
+                onQueryChange: (query) => {
+                  state.usageQuery = query;
+                },
+                onClearQuery: () => {
+                  state.usageQuery = "";
+                },
+                onToggleColumn: (column) => {
+                  if (state.usageVisibleColumns.includes(column)) {
+                    state.usageVisibleColumns = state.usageVisibleColumns.filter(
+                      (entry) => entry !== column,
+                    );
+                  } else {
+                    state.usageVisibleColumns = [...state.usageVisibleColumns, column];
+                  }
+                },
                 onSelectSession: (key, shiftKey) => {
                   state.usageTimeSeries = null;
                   state.usageSessionLogs = null;
