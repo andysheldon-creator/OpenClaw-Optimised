@@ -7,7 +7,7 @@ describe("recomputeNextRuns", () => {
   it("preserves nextRunAtMs when it is still in the future", () => {
     const now = Date.parse("2026-02-04T14:00:00.000Z");
     const futureTime = Date.parse("2026-02-04T20:00:00.000Z");
-    
+
     const job: CronJob = {
       id: "job-1",
       name: "Test Job",
@@ -50,7 +50,7 @@ describe("recomputeNextRuns", () => {
   it("recomputes nextRunAtMs when it is in the past", () => {
     const now = Date.parse("2026-02-04T14:00:00.000Z");
     const pastTime = Date.parse("2026-02-04T12:00:00.000Z");
-    
+
     const job: CronJob = {
       id: "job-2",
       name: "Test Job 2",
@@ -93,7 +93,7 @@ describe("recomputeNextRuns", () => {
 
   it("recomputes nextRunAtMs when it is undefined", () => {
     const now = Date.parse("2026-02-04T14:00:00.000Z");
-    
+
     const job: CronJob = {
       id: "job-3",
       name: "Test Job 3",
