@@ -11,6 +11,7 @@ import { createGatewayTool } from "./tools/gateway-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
 import { createMessageTool } from "./tools/message-tool.js";
 import { createNodesTool } from "./tools/nodes-tool.js";
+import { createSessionCompactTool } from "./tools/session-compact-tool.js";
 import { createSessionStatusTool } from "./tools/session-status-tool.js";
 import { createSessionsHistoryTool } from "./tools/sessions-history-tool.js";
 import { createSessionsListTool } from "./tools/sessions-list-tool.js";
@@ -25,6 +26,8 @@ export function createOpenClawTools(options?: {
   agentSessionKey?: string;
   agentChannel?: GatewayMessageChannel;
   agentAccountId?: string;
+  /** Embedded session id when available (enables tools that operate on the active run). */
+  agentSessionId?: string;
   /** Delivery target (e.g. telegram:group:123:topic:456) for topic/thread routing. */
   agentTo?: string;
   /** Thread/topic identifier for routing replies to the originating thread. */
@@ -141,6 +144,11 @@ export function createOpenClawTools(options?: {
     }),
     createSessionStatusTool({
       agentSessionKey: options?.agentSessionKey,
+      config: options?.config,
+    }),
+    createSessionCompactTool({
+      agentSessionKey: options?.agentSessionKey,
+      agentSessionId: options?.agentSessionId,
       config: options?.config,
     }),
     ...(webSearchTool ? [webSearchTool] : []),
