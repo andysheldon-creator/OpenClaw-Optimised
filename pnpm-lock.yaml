@@ -522,6 +522,15 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  extensions/wecom:
+    dependencies:
+      fast-xml-parser:
+        specifier: 5.3.4
+        version: 5.3.4
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
   extensions/whatsapp:
     devDependencies:
       openclaw:
