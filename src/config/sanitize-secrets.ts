@@ -62,23 +62,15 @@ export function sanitizeConfigSecrets(cfg: OpenClawConfig): OpenClawConfig {
     }
   }
 
-  // Sanitize gateway secrets
-  if (sanitized.gateway) {
-    if (sanitized.gateway.auth) {
-      if (sanitized.gateway.auth.token) {
-        sanitized.gateway.auth.token = "{{CONFIG:gateway.auth.token}}";
-      }
-      if (sanitized.gateway.auth.password) {
-        sanitized.gateway.auth.password = "{{CONFIG:gateway.auth.password}}";
-      }
+  // Sanitize gateway remote credentials (for connecting TO a remote gateway)
+  // NOTE: gateway.auth is NOT sanitized because it's for inbound authentication
+  // The container needs the real token/password to validate incoming connections
+  if (sanitized.gateway?.remote) {
+    if (sanitized.gateway.remote.token) {
+      sanitized.gateway.remote.token = "{{CONFIG:gateway.remote.token}}";
     }
-    if (sanitized.gateway.remote) {
-      if (sanitized.gateway.remote.token) {
-        sanitized.gateway.remote.token = "{{CONFIG:gateway.remote.token}}";
-      }
-      if (sanitized.gateway.remote.password) {
-        sanitized.gateway.remote.password = "{{CONFIG:gateway.remote.password}}";
-      }
+    if (sanitized.gateway.remote.password) {
+      sanitized.gateway.remote.password = "{{CONFIG:gateway.remote.password}}";
     }
   }
 
