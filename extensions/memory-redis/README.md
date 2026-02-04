@@ -68,13 +68,9 @@ cd extensions/memory-redis/docker && docker compose up -d
 
 Access via `redis://localhost:6379` from your host.
 
-### 2. Enable the Plugin
+### 2. Configure
 
-```bash
-openclaw plugins enable memory-redis
-```
-
-### 3. Configure
+Activate the plugin by setting `plugins.slots.memory = "memory-redis"` in your config.
 
 **Option A: Local Embeddings (no API key needed)**
 

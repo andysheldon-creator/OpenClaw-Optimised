@@ -671,35 +671,48 @@ const memoryRedisPlugin = {
     // Lifecycle Hooks
     // ========================================================================
 
+    // System prompt addition to guide the agent to use memory tools
+    const MEMORY_SYSTEM_PROMPT = `You have access to a long-term memory system stored in Redis. Use these tools to remember important information across conversations:
+
+- **memory_store**: Store important facts, preferences, decisions, or entities. Use this when the user shares personal information, preferences, or asks you to remember something.
+- **memory_recall**: Search your memories when you need context about the user or past conversations.
+- **memory_forget**: Delete memories when requested (GDPR compliance).
+
+IMPORTANT: When the user tells you something about themselves (name, preferences, important facts) or explicitly asks you to remember something, use memory_store to save it - don't just write it to a file.`;
+
     // Auto-recall: inject relevant memories before agent starts
-    if (cfg.autoRecall) {
-      api.on("before_agent_start", async (event) => {
-        if (!event.prompt || event.prompt.length < 5) {
-          return;
+    api.on("before_agent_start", async (event) => {
+      if (!event.prompt || event.prompt.length < 5) {
+        // Still return tool instructions even without recall
+        return { prependContext: MEMORY_SYSTEM_PROMPT };
+      }
+
+      try {
+        if (!cfg.autoRecall) {
+          return { prependContext: MEMORY_SYSTEM_PROMPT };
         }
 
-        try {
-          const vector = await embeddings.embed(event.prompt);
-          const results = await db.search(vector, 3, 0.3);
+        const vector = await embeddings.embed(event.prompt);
+        const results = await db.search(vector, 3, 0.3);
 
-          if (results.length === 0) {
-            return;
-          }
-
-          const memoryContext = results
-            .map((r) => `- [${r.entry.category}] ${r.entry.text}`)
-            .join("\n");
-
-          api.logger.info?.(`memory-redis: injecting ${results.length} memories into context`);
-
-          return {
-            prependContext: `<relevant-memories>\nThe following memories may be relevant to this conversation:\n${memoryContext}\n</relevant-memories>`,
-          };
-        } catch (err) {
-          api.logger.warn(`memory-redis: recall failed: ${String(err)}`);
+        if (results.length === 0) {
+          return { prependContext: MEMORY_SYSTEM_PROMPT };
         }
-      });
-    }
+
+        const memoryContext = results
+          .map((r) => `- [${r.entry.category}] ${r.entry.text}`)
+          .join("\n");
+
+        api.logger.info?.(`memory-redis: injecting ${results.length} memories into context`);
+
+        return {
+          prependContext: `${MEMORY_SYSTEM_PROMPT}\n\n<relevant-memories>\nThe following memories may be relevant to this conversation:\n${memoryContext}\n</relevant-memories>`,
+        };
+      } catch (err) {
+        api.logger.warn(`memory-redis: recall failed: ${String(err)}`);
+        return { prependContext: MEMORY_SYSTEM_PROMPT };
+      }
+    });
 
     // Auto-capture: analyze and store important information after agent ends
     if (cfg.autoCapture) {
