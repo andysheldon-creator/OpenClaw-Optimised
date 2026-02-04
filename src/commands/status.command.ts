@@ -1,3 +1,4 @@
+import type { HeartbeatEventPayload } from "../infra/heartbeat-events.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { withProgress } from "../cli/progress.js";
@@ -38,7 +39,6 @@ import {
   formatUpdateOneLiner,
   resolveUpdateAvailability,
 } from "./status.update.js";
-import type { HeartbeatEventPayload } from "../infra/heartbeat-events.js";
 
 export async function statusCommand(
   opts: {

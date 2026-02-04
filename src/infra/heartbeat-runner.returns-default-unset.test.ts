@@ -25,7 +25,10 @@ import {
   resolveHeartbeatPrompt,
   runHeartbeatOnce,
 } from "./heartbeat-runner.js";
-import { resolveHeartbeatDeliveryTarget, resolveHeartbeatSenderContext } from "./outbound/targets.js";
+import {
+  resolveHeartbeatDeliveryTarget,
+  resolveHeartbeatSenderContext,
+} from "./outbound/targets.js";
 
 // Avoid pulling optional runtime deps during isolated runs.
 vi.mock("jiti", () => ({ createJiti: () => () => ({}) }));
