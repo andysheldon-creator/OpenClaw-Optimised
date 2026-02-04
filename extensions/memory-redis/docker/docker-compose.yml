@@ -21,8 +21,15 @@ services:
     volumes:
       - redis-data:/data
     restart: unless-stopped
-    # Enable AOF persistence (RDB-only can lose up to 5+ minutes of data on crash)
-    command: redis-server --appendonly yes --appendfsync everysec
+    # Enable AOF persistence + memory limits
+    # maxmemory: 512MB default, override with REDIS_MAXMEMORY env var
+    # eviction: allkeys-lru removes least-recently-used keys when full
+    command: >
+      redis-server 
+      --appendonly yes 
+      --appendfsync everysec
+      --maxmemory ${REDIS_MAXMEMORY:-512mb}
+      --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
