@@ -8,8 +8,12 @@ export function canonicalize(value: unknown): string {
 }
 
 function serializeValue(value: unknown): string {
-  if (value === null) return "null";
-  if (value === undefined) throw new CanonicalizeError("undefined is not valid JSON");
+  if (value === null) {
+    return "null";
+  }
+  if (value === undefined) {
+    throw new CanonicalizeError("undefined is not valid JSON");
+  }
 
   switch (typeof value) {
     case "boolean":
@@ -31,18 +35,22 @@ function serializeValue(value: unknown): string {
     case "object": {
       if (Array.isArray(value)) {
         const items = value.map((item) => {
-          if (item === undefined) return "null";
+          if (item === undefined) {
+            return "null";
+          }
           return serializeValue(item);
         });
         return `[${items.join(",")}]`;
       }
       const obj = value as Record<string, unknown>;
-      const keys = Object.keys(obj).sort();
+      const keys = Object.keys(obj).toSorted();
       const pairs: string[] = [];
       for (const key of keys) {
         const v = obj[key];
         // Skip undefined values in objects (matches JSON.stringify behavior)
-        if (v === undefined) continue;
+        if (v === undefined) {
+          continue;
+        }
         pairs.push(`${JSON.stringify(key)}:${serializeValue(v)}`);
       }
       return `{${pairs.join(",")}}`;

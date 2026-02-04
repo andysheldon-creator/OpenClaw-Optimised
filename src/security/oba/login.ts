@@ -73,9 +73,13 @@ function waitForCallback(
     let resolved = false;
 
     const finish = (result: ObaLoginResult) => {
-      if (resolved) return;
+      if (resolved) {
+        return;
+      }
       resolved = true;
-      if (timeout) clearTimeout(timeout);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
       server.removeListener("request", handler);
       resolve(result);
     };

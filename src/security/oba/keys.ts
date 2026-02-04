@@ -105,14 +105,18 @@ export function loadObaKey(kid: string): ObaKeyFile {
 
 export function loadMostRecentObaKey(): ObaKeyFile | null {
   const keys = listObaKeys();
-  if (keys.length === 0) return null;
+  if (keys.length === 0) {
+    return null;
+  }
   keys.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return keys[0];
 }
 
 export function listObaKeys(): ObaKeyFile[] {
   const dir = getObaKeysDir();
-  if (!fs.existsSync(dir)) return [];
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
   const entries = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
   const keys: ObaKeyFile[] = [];
   for (const entry of entries) {

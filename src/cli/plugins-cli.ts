@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { PluginRecord } from "../plugins/registry.js";
-import type { ObaVerificationResult } from "../security/oba/types.js";
 import { loadConfig, writeConfigFile } from "../config/config.js";
 import { resolveArchiveKind } from "../infra/archive.js";
 import { installPluginFromNpmSpec, installPluginFromPath } from "../plugins/install.js";

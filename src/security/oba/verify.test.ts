@@ -24,7 +24,9 @@ function makeTestKeyPair() {
 function signContainer(container: Record<string, unknown>, privateKey: crypto.KeyObject): string {
   const clone = structuredClone(container);
   const oba = clone.oba as Record<string, unknown> | undefined;
-  if (oba) delete oba.sig;
+  if (oba) {
+    delete oba.sig;
+  }
   const payload = Buffer.from(canonicalize(clone), "utf-8");
   const sig = crypto.sign(null, payload, privateKey);
   return base64UrlEncode(sig);

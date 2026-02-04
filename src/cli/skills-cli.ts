@@ -1,17 +1,15 @@
 import type { Command } from "commander";
-import JSON5 from "json5";
 import fs from "node:fs";
-import type { ObaVerificationResult } from "../security/oba/types.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import {
   buildWorkspaceSkillStatus,
   type SkillStatusEntry,
   type SkillStatusReport,
 } from "../agents/skills-status.js";
-import { parseFrontmatter } from "../agents/skills/frontmatter.js";
 import { loadConfig } from "../config/config.js";
 import { defaultRuntime } from "../runtime.js";
 import { formatObaBadge } from "../security/oba/format.js";
+import { parseSkillMetadataObject } from "../security/oba/sign.js";
 import { verifyObaContainer, mapLimit } from "../security/oba/verify.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { renderTable } from "../terminal/table.js";
@@ -40,16 +38,8 @@ async function runSkillVerification(skills: SkillStatusEntry[]): Promise<void> {
   await mapLimit(verifiable, 4, async (skill) => {
     try {
       const raw = fs.readFileSync(skill.filePath, "utf-8");
-      const frontmatter = parseFrontmatter(raw);
-      const metadataRaw = frontmatter.metadata;
-      if (!metadataRaw) {
-        return;
-      }
-      const parsed = JSON5.parse(metadataRaw);
-      if (!parsed || typeof parsed !== "object") {
-        return;
-      }
-      skill.obaVerification = await verifyObaContainer(parsed as Record<string, unknown>);
+      const parsed = parseSkillMetadataObject(raw);
+      skill.obaVerification = await verifyObaContainer(parsed);
     } catch {
       skill.obaVerification = { status: "invalid", reason: "failed to read skill metadata" };
     }
