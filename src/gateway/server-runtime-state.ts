@@ -9,6 +9,7 @@ import type { ResolvedGatewayAuth } from "./auth.js";
 import type { ChatAbortControllerEntry } from "./chat-abort.js";
 import type { HooksConfigResolved } from "./hooks.js";
 import { createGatewayHooksRequestHandler } from "./server/hooks.js";
+import { createGatewayGitHubWebhookHandler } from "./server/github-webhook.js";
 import { listenGatewayHttpServer } from "./server/http-listen.js";
 import { resolveGatewayListenHosts } from "./net.js";
 import { createGatewayPluginRequestHandler } from "./server/plugins-http.js";
@@ -42,6 +43,7 @@ export async function createGatewayRuntimeState(params: {
   log: { info: (msg: string) => void; warn: (msg: string) => void };
   logHooks: ReturnType<typeof createSubsystemLogger>;
   logPlugins: ReturnType<typeof createSubsystemLogger>;
+  logGithub: ReturnType<typeof createSubsystemLogger>;
 }): Promise<{
   canvasHost: CanvasHostHandler | null;
   httpServer: HttpServer;
@@ -104,6 +106,11 @@ export async function createGatewayRuntimeState(params: {
     log: params.logPlugins,
   });
 
+  const handleGitHubWebhook = createGatewayGitHubWebhookHandler({
+    deps: params.deps,
+    log: params.logGithub,
+  });
+
   const bindHosts = await resolveGatewayListenHosts(params.bindHost);
   const httpServers: HttpServer[] = [];
   const httpBindHosts: string[] = [];
@@ -117,6 +124,7 @@ export async function createGatewayRuntimeState(params: {
       openResponsesConfig: params.openResponsesConfig,
       handleHooksRequest,
       handlePluginRequest,
+      handleGitHubWebhook,
       resolvedAuth: params.resolvedAuth,
       tlsOptions: params.gatewayTls?.enabled ? params.gatewayTls.tlsOptions : undefined,
     });

@@ -89,6 +89,33 @@ export type OpenClawConfig = {
     autoDeleteBranch?: boolean;
     /** Default repository in owner/repo format (optional). */
     defaultRepo?: string;
+    /** Webhook configuration for GitHub PR events. */
+    webhook?: {
+      /** Enable GitHub webhook listener (default: false). */
+      enabled?: boolean;
+      /** Webhook secret for signature verification (recommended). */
+      secret?: string;
+      /** Webhook endpoint path (default: /github/webhook). */
+      path?: string;
+      /** Agent IDs for webhook notifications. */
+      agents?: {
+        /** Agent ID to notify when PR is opened/updated. */
+        reviewer?: string;
+        /** Agent ID to notify when review is submitted. */
+        author?: string;
+        /** Auto-merge when checks pass and PR is approved (default: false). */
+        autoMerge?: boolean;
+      };
+      /** Events to handle (all enabled by default). */
+      events?: {
+        /** Handle pull_request events (default: true). */
+        pullRequest?: boolean;
+        /** Handle pull_request_review events (default: true). */
+        pullRequestReview?: boolean;
+        /** Handle check_suite events (CI status, default: true). */
+        checkSuite?: boolean;
+      };
+    };
   };
   bindings?: AgentBinding[];
   broadcast?: BroadcastConfig;

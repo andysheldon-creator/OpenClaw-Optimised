@@ -168,7 +168,22 @@ Add GitHub settings to your `~/.openclaw/config.json`:
   "github": {
     "baseBranch": "main",
     "mergeStrategy": "squash",
-    "autoDeleteBranch": true
+    "autoDeleteBranch": true,
+    "webhook": {
+      "enabled": true,
+      "secret": "your-webhook-secret-here",
+      "path": "/github/webhook",
+      "agents": {
+        "reviewer": "agent-b-id",
+        "author": "agent-a-id",
+        "autoMerge": false
+      },
+      "events": {
+        "pullRequest": true,
+        "pullRequestReview": true,
+        "checkSuite": true
+      }
+    }
   }
 }
 ```
@@ -178,6 +193,239 @@ Add GitHub settings to your `~/.openclaw/config.json`:
 - `mergeStrategy`: Default merge strategy ("squash", "merge", or "rebase")
 - `autoDeleteBranch`: Auto-delete feature branches after merge (default: `true`)
 - `defaultRepo`: Default repository in `owner/repo` format (optional)
+- `webhook`: Webhook configuration for automated agent triggering
+  - `enabled`: Enable webhook listener (default: `false`)
+  - `secret`: Webhook secret for signature verification (recommended)
+  - `path`: Webhook endpoint path (default: `/github/webhook`)
+  - `agents.reviewer`: Agent ID to notify when PR is opened/updated
+  - `agents.author`: Agent ID to notify when review is submitted
+  - `agents.autoMerge`: Auto-merge when checks pass and PR approved (default: `false`)
+  - `events.pullRequest`: Handle PR events (default: `true`)
+  - `events.pullRequestReview`: Handle review events (default: `true`)
+  - `events.checkSuite`: Handle CI status events (default: `true`)
+
+---
+
+## GitHub Webhooks (Automated Agent Triggering)
+
+### Overview
+
+Instead of manually triggering PR reviews, you can configure GitHub webhooks to automatically notify agents when events occur. This enables fully automated PR workflows without polling or manual intervention.
+
+### Setup Instructions
+
+#### 1. **Enable Webhook in Config**
+
+Add webhook configuration to `~/.openclaw/config.json`:
+
+```json
+{
+  "github": {
+    "webhook": {
+      "enabled": true,
+      "secret": "generate-a-strong-secret-here",
+      "path": "/github/webhook",
+      "agents": {
+        "reviewer": "agent-b",
+        "author": "agent-a"
+      }
+    }
+  }
+}
+```
+
+#### 2. **Generate Webhook Secret**
+
+Generate a secure random secret:
+```bash
+openssl rand -hex 32
+```
+
+Store this in your config and in GitHub (step 4).
+
+#### 3. **Expose Gateway to Internet**
+
+Your OpenClaw gateway must be accessible from GitHub's servers. Options:
+
+**Option A: Public Server**
+```bash
+# Gateway already exposed on public IP
+openclaw gateway run --bind 0.0.0.0 --port 18789
+```
+
+**Option B: ngrok/Tailscale Funnel**
+```bash
+# Use ngrok to expose local gateway
+ngrok http 18789
+
+# Or use Tailscale Funnel
+tailscale funnel 18789
+```
+
+#### 4. **Configure GitHub Webhook**
+
+1. Go to your repository settings → **Webhooks** → **Add webhook**
+2. **Payload URL**: `https://your-gateway-host.com:18789/github/webhook`
+3. **Content type**: `application/json`
+4. **Secret**: (paste the secret from step 2)
+5. **Events**: Select:
+   - ☑ Pull requests
+   - ☑ Pull request reviews
+   - ☑ Check suites
+6. **Active**: ☑ Enabled
+7. Click **Add webhook**
+
+#### 5. **Test the Webhook**
+
+Create a test PR and check:
+- GitHub shows ✅ next to webhook delivery (Recent Deliveries tab)
+- Agent B receives notification message
+- Check OpenClaw logs: `tail -f ~/.openclaw/logs/gateway.log | grep github`
+
+### Webhook Event Flow
+
+```
+┌─────────────┐         ┌──────────────┐         ┌─────────────┐
+│   Agent A   │         │   GitHub     │         │   Agent B   │
+│  creates PR │────────>│ fires webhook│────────>│ auto-reviews│
+└─────────────┘         └──────────────┘         └─────────────┘
+                              │
+                              ├─> pull_request.opened
+                              ├─> pull_request.synchronize
+                              ├─> pull_request_review.submitted
+                              └─> check_suite.completed
+```
+
+### Supported Events
+
+#### **pull_request**
+- `opened` → Notifies reviewer agent
+- `synchronize` → Notifies reviewer when new commits pushed
+- `reopened` → Notifies reviewer
+- `review_requested` → Notifies specific reviewer
+- `closed` → Notifies author (merged or closed)
+
+#### **pull_request_review**
+- `submitted` → Notifies author with review decision
+  - `approved` ✅
+  - `changes_requested` ⚠️
+  - `commented` 💬
+
+#### **check_suite**
+- `completed` → Notifies reviewer if CI passes
+- `completed` (failure) → Notifies author if CI fails
+
+### Agent Notification Examples
+
+**When PR is opened:**
+```
+Agent B receives:
+"New PR #42 needs review: Add authentication system
+
+https://github.com/owner/repo/pull/42
+
+Author: @agent-a
+Branch: feature-auth → main
+
+Use github_get_pr to fetch details and github_review_pr to approve or request changes."
+```
+
+**When PR is approved:**
+```
+Agent A receives:
+"✅ @agent-b approved your PR #42: Add authentication system
+
+https://github.com/owner/repo/pull/42#pullrequestreview-123
+
+Review:
+LGTM! All tests pass, code quality is good."
+```
+
+**When CI passes:**
+```
+Agent B receives:
+"✅ CI checks passed for PR #42
+
+All checks completed successfully. Ready to merge if approved."
+```
+
+### Troubleshooting Webhooks
+
+#### Webhook Deliveries Fail (GitHub shows ❌)
+
+**Check gateway is accessible:**
+```bash
+curl -X POST https://your-gateway-host.com:18789/github/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"test": true}'
+
+# Should return: {"error":"Missing X-GitHub-Event header"} (401 or 400)
+```
+
+**Check firewall rules:**
+- Allow inbound traffic on port 18789
+- Whitelist GitHub webhook IPs (optional): https://api.github.com/meta
+
+#### Webhook Signature Verification Fails
+
+**Error:** `Invalid signature`
+
+**Solution:** Verify secret matches in both config and GitHub settings
+```bash
+# Check configured secret
+openclaw config get github.webhook.secret
+
+# Must match GitHub webhook secret exactly
+```
+
+#### Agent Not Receiving Notifications
+
+**Check agent IDs:**
+```bash
+# List configured agents
+openclaw agents list
+
+# Verify agent ID matches webhook config
+openclaw config get github.webhook.agents.reviewer
+```
+
+**Check logs:**
+```bash
+tail -f ~/.openclaw/logs/gateway.log | grep -i "github webhook"
+```
+
+#### Webhook Path Not Found (404)
+
+**Error:** GitHub shows 404 on webhook delivery
+
+**Solution:** Verify path matches config
+```json
+{
+  "github": {
+    "webhook": {
+      "path": "/github/webhook"  // Must match GitHub webhook URL path
+    }
+  }
+}
+```
+
+### Security Best Practices
+
+1. **Always use webhook secrets** - Prevents unauthorized webhook spoofing
+2. **Use HTTPS** - Encrypt webhook payloads in transit
+3. **Validate agent permissions** - Ensure reviewer agents have appropriate access
+4. **Monitor webhook logs** - Track unusual activity
+5. **Rotate secrets periodically** - Update webhook secret every 90 days
+
+### Webhook vs Polling Comparison
+
+| Feature | Webhooks | Polling |
+|---------|----------|---------|
+| **Latency** | Instant (< 1s) | Minutes (depends on interval) |
+| **Resource Usage** | Low (event-driven) | Higher (constant API calls) |
+| **Setup Complexity** | Medium (requires public endpoint) | Low (works anywhere) |
+| **Reliability** | High (GitHub retries) | Medium (rate limits) |
+| **Best For** | Production environments | Local development |
 
 ---
 
