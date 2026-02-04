@@ -334,7 +334,7 @@
 }
 
 .state-icon-missing-deps {
-  background: var(--warning, #f59e0b);
+  background: var(--warn);
   color: white;
 }
 

@@ -16,6 +16,11 @@ const SKILL_SOURCE_GROUPS: Array<{ id: string; label: string; sources: string[] 
   { id: "extra", label: "Extra Skills", sources: ["openclaw-extra"] },
 ];
 
+function hasMissingDeps(s: SkillStatusEntry): boolean {
+  const { bins, env, config, os } = s.missing;
+  return bins.length > 0 || env.length > 0 || config.length > 0 || os.length > 0;
+}
+
 const SKILL_STATE_GROUPS: Array<{
   id: string;
   label: string;
@@ -24,7 +29,7 @@ const SKILL_STATE_GROUPS: Array<{
   {
     id: "ready",
     label: "Ready",
-    match: (s) => s.eligible && !s.disabled,
+    match: (s) => s.eligible && !s.disabled && !s.blockedByAllowlist && !hasMissingDeps(s),
   },
   {
     id: "disabled",
@@ -34,12 +39,7 @@ const SKILL_STATE_GROUPS: Array<{
   {
     id: "missing-deps",
     label: "Missing Dependencies",
-    match: (s) =>
-      !s.disabled &&
-      (s.missing.bins.length > 0 ||
-        s.missing.env.length > 0 ||
-        s.missing.config.length > 0 ||
-        s.missing.os.length > 0),
+    match: (s) => !s.disabled && hasMissingDeps(s),
   },
   {
     id: "blocked",
