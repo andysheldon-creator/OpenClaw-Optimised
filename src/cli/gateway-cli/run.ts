@@ -277,10 +277,10 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
       const registry = await createSecretsRegistry();
       gatewayLog.info(`Loaded ${registry.oauthProfiles.size} OAuth profiles, ${registry.apiKeys.size} API keys`);
       
-      // Start secrets proxy first
+      // Start secrets proxy first - bind to 0.0.0.0 so Docker can connect via host.docker.internal
       let proxyServer: Awaited<ReturnType<typeof startSecretsProxy>>;
       try {
-        proxyServer = await startSecretsProxy({ port: proxyPort, registry });
+        proxyServer = await startSecretsProxy({ port: proxyPort, registry, bind: "0.0.0.0" });
         gatewayLog.info(`Secrets proxy started on port ${proxyPort}`);
       } catch (err) {
         gatewayLog.error(`Failed to start secrets proxy: ${String(err)}`);
