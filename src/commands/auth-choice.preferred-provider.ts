@@ -21,6 +21,7 @@ const PREFERRED_PROVIDER_BY_AUTH_CHOICE: Partial<Record<AuthChoice, string>> = {
   "xiaomi-api-key": "xiaomi",
   "synthetic-api-key": "synthetic",
   "venice-api-key": "venice",
+  "eternalai-api-key": "eternalai",
   "github-copilot": "github-copilot",
   "copilot-proxy": "copilot-proxy",
   "minimax-cloud": "minimax",

@@ -1,4 +1,10 @@
 import type { OpenClawConfig } from "../config/config.js";
+import {
+  buildEternalAIModelDefinition,
+  ETERNALAI_BASE_URL,
+  ETERNALAI_DEFAULT_MODEL_REF,
+  ETERNALAI_MODEL_CATALOG,
+} from "../agents/eternalai-models.js";
 import { buildXiaomiProvider, XIAOMI_DEFAULT_MODEL_ID } from "../agents/models-config.providers.js";
 import {
   buildSyntheticModelDefinition,
@@ -451,6 +457,83 @@ export function applyVeniceConfig(cfg: OpenClawConfig): OpenClawConfig {
               }
             : undefined),
           primary: VENICE_DEFAULT_MODEL_REF,
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Apply EternalAI provider configuration without changing the default model.
+ * Registers EternalAI models and sets up the provider, but preserves existing model selection.
+ */
+export function applyEternalAIProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[ETERNALAI_DEFAULT_MODEL_REF] = {
+    ...models[ETERNALAI_DEFAULT_MODEL_REF],
+    alias: models[ETERNALAI_DEFAULT_MODEL_REF]?.alias ?? "Llama 3.3 70B",
+  };
+
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.eternalai;
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  const eternalaiModels = ETERNALAI_MODEL_CATALOG.map(buildEternalAIModelDefinition);
+  const mergedModels = [
+    ...existingModels,
+    ...eternalaiModels.filter(
+      (model) => !existingModels.some((existing) => existing.id === model.id),
+    ),
+  ];
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim();
+  providers.eternalai = {
+    ...existingProviderRest,
+    baseUrl: ETERNALAI_BASE_URL,
+    api: "openai-completions",
+    ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+    models: mergedModels.length > 0 ? mergedModels : eternalaiModels,
+  };
+
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
+    },
+  };
+}
+
+/**
+ * Apply EternalAI provider configuration AND set EternalAI as the default model.
+ * Use this when EternalAI is the primary provider choice during onboarding.
+ */
+export function applyEternalAIConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const next = applyEternalAIProviderConfig(cfg);
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: ETERNALAI_DEFAULT_MODEL_REF,
         },
       },
     },

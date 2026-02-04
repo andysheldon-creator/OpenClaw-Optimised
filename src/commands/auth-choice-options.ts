@@ -21,6 +21,7 @@ export type AuthChoiceGroupId =
   | "minimax"
   | "synthetic"
   | "venice"
+  | "eternalai"
   | "qwen";
 
 export type AuthChoiceGroup = {
@@ -120,6 +121,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     hint: "Privacy-focused (uncensored models)",
     choices: ["venice-api-key"],
   },
+  {
+    value: "eternalai",
+    label: "EternalAI",
+    hint: "Privacy-focused (uncensored models)",
+    choices: ["eternalai-api-key"],
+  },
 ];
 
 export function buildAuthChoiceOptions(params: {
@@ -152,6 +159,11 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "venice-api-key",
     label: "Venice AI API key",
+    hint: "Privacy-focused inference (uncensored models)",
+  });
+  options.push({
+    value: "eternalai-api-key",
+    label: "EternalAI API key",
     hint: "Privacy-focused inference (uncensored models)",
   });
   options.push({

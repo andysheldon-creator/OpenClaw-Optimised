@@ -6,6 +6,7 @@ import {
 } from "../providers/github-copilot-token.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
 import { discoverBedrockModels } from "./bedrock-discovery.js";
+import { discoverEternalAIModels, ETERNALAI_BASE_URL } from "./eternalai-models.js";
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
 import {
   buildSyntheticModelDefinition,
@@ -385,6 +386,15 @@ async function buildVeniceProvider(): Promise<ProviderConfig> {
   };
 }
 
+async function buildEternalAIProvider(): Promise<ProviderConfig> {
+  const models = await discoverEternalAIModels();
+  return {
+    baseUrl: ETERNALAI_BASE_URL,
+    api: "openai-completions",
+    models,
+  };
+}
+
 async function buildOllamaProvider(): Promise<ProviderConfig> {
   const models = await discoverOllamaModels();
   return {
@@ -436,6 +446,13 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "venice", store: authStore });
   if (veniceKey) {
     providers.venice = { ...(await buildVeniceProvider()), apiKey: veniceKey };
+  }
+
+  const eternalaiKey =
+    resolveEnvApiKeyVarName("eternalai") ??
+    resolveApiKeyFromProfiles({ provider: "eternalai", store: authStore });
+  if (eternalaiKey) {
+    providers.eternalai = { ...(await buildEternalAIProvider()), apiKey: eternalaiKey };
   }
 
   const qwenProfiles = listProfilesForProvider(authStore, "qwen-portal");

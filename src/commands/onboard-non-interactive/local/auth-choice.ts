@@ -10,6 +10,7 @@ import { buildTokenProfileId, validateAnthropicSetupToken } from "../../auth-tok
 import { applyGoogleGeminiModelDefault } from "../../google-gemini-model-default.js";
 import {
   applyAuthProfileConfig,
+  applyEternalAIConfig,
   applyKimiCodeConfig,
   applyMinimaxApiConfig,
   applyMinimaxConfig,
@@ -22,6 +23,7 @@ import {
   applyXiaomiConfig,
   applyZaiConfig,
   setAnthropicApiKey,
+  setEternalAIApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
   setMinimaxApiKey,
@@ -370,6 +372,29 @@ export async function applyNonInteractiveAuthChoice(params: {
       mode: "api_key",
     });
     return applyVeniceConfig(nextConfig);
+  }
+
+  if (authChoice === "eternalai-api-key") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "eternalai",
+      cfg: baseConfig,
+      flagValue: opts.eternalaiApiKey,
+      flagName: "--eternalai-api-key",
+      envVar: "ETERNALAI_API_KEY",
+      runtime,
+    });
+    if (!resolved) {
+      return null;
+    }
+    if (resolved.source !== "profile") {
+      await setEternalAIApiKey(resolved.key);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "eternalai:default",
+      provider: "eternalai",
+      mode: "api_key",
+    });
+    return applyEternalAIConfig(nextConfig);
   }
 
   if (
