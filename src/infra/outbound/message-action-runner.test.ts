@@ -1,15 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { ClawdbotConfig } from "../../config/config.js";
-import { setActivePluginRegistry } from "../../plugins/runtime.js";
-import { createIMessageTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
+import type { ChannelPlugin } from "../../channels/plugins/types.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { slackPlugin } from "../../../extensions/slack/src/channel.js";
 import { telegramPlugin } from "../../../extensions/telegram/src/channel.js";
 import { whatsappPlugin } from "../../../extensions/whatsapp/src/channel.js";
+import { jsonResult } from "../../agents/tools/common.js";
+import { setActivePluginRegistry } from "../../plugins/runtime.js";
+import { createIMessageTestPlugin, createTestRegistry } from "../../test-utils/channel-plugins.js";
 import { loadWebMedia } from "../../web/media.js";
 import { runMessageAction } from "./message-action-runner.js";
-import { jsonResult } from "../../agents/tools/common.js";
-import type { ChannelPlugin } from "../../channels/plugins/types.js";
 
 vi.mock("../../web/media.js", async () => {
   const actual = await vi.importActual<typeof import("../../web/media.js")>("../../web/media.js");
@@ -26,7 +25,7 @@ const slackConfig = {
       appToken: "xapp-test",
     },
   },
-} as ClawdbotConfig;
+} as OpenClawConfig;
 
 const whatsappConfig = {
   channels: {
@@ -34,7 +33,7 @@ const whatsappConfig = {
       allowFrom: ["*"],
     },
   },
-} as ClawdbotConfig;
+} as OpenClawConfig;
 
 describe("runMessageAction context isolation", () => {
   beforeEach(async () => {
@@ -263,7 +262,7 @@ describe("runMessageAction context isolation", () => {
           token: "tg-test",
         },
       },
-    } as ClawdbotConfig;
+    } as OpenClawConfig;
 
     const result = await runMessageAction({
       cfg: multiConfig,
@@ -305,7 +304,7 @@ describe("runMessageAction context isolation", () => {
           },
         },
       },
-    } as ClawdbotConfig;
+    } as OpenClawConfig;
 
     await expect(
       runMessageAction({
@@ -423,7 +422,7 @@ describe("runMessageAction sendAttachment hydration", () => {
           password: "test-password",
         },
       },
-    } as ClawdbotConfig;
+    } as OpenClawConfig;
 
     const result = await runMessageAction({
       cfg,
@@ -491,7 +490,7 @@ describe("runMessageAction accountId defaults", () => {
 
   it("propagates defaultAccountId into params", async () => {
     await runMessageAction({
-      cfg: {} as ClawdbotConfig,
+      cfg: {} as OpenClawConfig,
       action: "send",
       params: {
         channel: "discord",

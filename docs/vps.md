@@ -1,9 +1,11 @@
 ---
-summary: "VPS hosting hub for Clawdbot (Oracle/Fly/Hetzner/GCP/exe.dev)"
+summary: "VPS hosting hub for OpenClaw (Oracle/Fly/Hetzner/GCP/exe.dev)"
 read_when:
   - You want to run the Gateway in the cloud
   - You need a quick map of VPS/hosting guides
+title: "VPS Hosting"
 ---
+
 # VPS hosting
 
 This hub links to the supported VPS/hosting guides and explains how cloud
@@ -11,6 +13,8 @@ deployments work at a high level.
 
 ## Pick a provider
 
+- **Railway** (one‑click + browser setup): [Railway](/railway)
+- **Northflank** (one‑click + browser setup): [Northflank](/northflank)
 - **Oracle Cloud (Always Free)**: [Oracle](/platforms/oracle) — $0/month (Always Free, ARM; capacity/signup can be finicky)
 - **Fly.io**: [Fly.io](/platforms/fly)
 - **Hetzner (Docker)**: [Hetzner](/platforms/hetzner)

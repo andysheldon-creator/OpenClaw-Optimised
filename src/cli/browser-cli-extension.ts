@@ -1,14 +1,12 @@
+import type { Command } from "commander";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-import type { Command } from "commander";
-
-import { STATE_DIR_CLAWDBOT } from "../config/paths.js";
+import { movePathToTrash } from "../browser/trash.js";
+import { STATE_DIR } from "../config/paths.js";
 import { danger, info } from "../globals.js";
 import { copyToClipboard } from "../infra/clipboard.js";
 import { defaultRuntime } from "../runtime.js";
-import { movePathToTrash } from "../browser/trash.js";
 import { formatDocsLink } from "../terminal/links.js";
 import { theme } from "../terminal/theme.js";
 import { shortenHomePath } from "../utils.js";
@@ -20,7 +18,7 @@ function bundledExtensionRootDir() {
 }
 
 function installedExtensionRootDir() {
-  return path.join(STATE_DIR_CLAWDBOT, "browser", "chrome-extension");
+  return path.join(STATE_DIR, "browser", "chrome-extension");
 }
 
 function hasManifest(dir: string) {
@@ -33,10 +31,10 @@ export async function installChromeExtension(opts?: {
 }): Promise<{ path: string }> {
   const src = opts?.sourceDir ?? bundledExtensionRootDir();
   if (!hasManifest(src)) {
-    throw new Error("Bundled Chrome extension is missing. Reinstall Clawdbot and try again.");
+    throw new Error("Bundled Chrome extension is missing. Reinstall OpenClaw and try again.");
   }
 
-  const stateDir = opts?.stateDir ?? STATE_DIR_CLAWDBOT;
+  const stateDir = opts?.stateDir ?? STATE_DIR;
   const dest = path.join(stateDir, "browser", "chrome-extension");
   fs.mkdirSync(path.dirname(dest), { recursive: true });
 
@@ -88,9 +86,9 @@ export function registerBrowserExtensionCommands(
             "Next:",
             `- Chrome → chrome://extensions → enable “Developer mode”`,
             `- “Load unpacked” → select: ${displayPath}`,
-            `- Pin “Clawdbot Browser Relay”, then click it on the tab (badge shows ON)`,
+            `- Pin “OpenClaw Browser Relay”, then click it on the tab (badge shows ON)`,
             "",
-            `${theme.muted("Docs:")} ${formatDocsLink("/tools/chrome-extension", "docs.clawd.bot/tools/chrome-extension")}`,
+            `${theme.muted("Docs:")} ${formatDocsLink("/tools/chrome-extension", "docs.openclaw.ai/tools/chrome-extension")}`,
           ].join("\n"),
         ),
       );
@@ -106,8 +104,8 @@ export function registerBrowserExtensionCommands(
         defaultRuntime.error(
           danger(
             [
-              `Chrome extension is not installed. Run: "${formatCliCommand("clawdbot browser extension install")}"`,
-              `Docs: ${formatDocsLink("/tools/chrome-extension", "docs.clawd.bot/tools/chrome-extension")}`,
+              `Chrome extension is not installed. Run: "${formatCliCommand("openclaw browser extension install")}"`,
+              `Docs: ${formatDocsLink("/tools/chrome-extension", "docs.openclaw.ai/tools/chrome-extension")}`,
             ].join("\n"),
           ),
         );
@@ -120,6 +118,8 @@ export function registerBrowserExtensionCommands(
       const displayPath = shortenHomePath(dir);
       defaultRuntime.log(displayPath);
       const copied = await copyToClipboard(dir).catch(() => false);
-      if (copied) defaultRuntime.error(info("Copied to clipboard."));
+      if (copied) {
+        defaultRuntime.error(info("Copied to clipboard."));
+      }
     });
 }
