@@ -470,13 +470,69 @@ export function extractTelegramContact(msg: Message): NormalizedContact | null {
 }
 
 /**
+ * Parse select fields from a vCard string into a readable key-value map.
+ * Handles common vCard 3.0/4.0 properties (email, address, birthday, org, title, url, note).
+ */
+function parseVcardFields(vcard: string): Map<string, string> {
+  const fields = new Map<string, string>();
+  const lines = vcard.split(/\r?\n/);
+
+  for (const line of lines) {
+    const upper = line.toUpperCase();
+
+    if (upper.startsWith("EMAIL")) {
+      const value = line.split(":").slice(1).join(":").trim();
+      if (value) fields.set("Email", value);
+    } else if (upper.startsWith("BDAY")) {
+      const value = line.split(":").slice(1).join(":").trim();
+      if (value) fields.set("Birthday", value);
+    } else if (upper.startsWith("ORG")) {
+      const value = line
+        .split(":")
+        .slice(1)
+        .join(":")
+        .replace(/;/g, ", ")
+        .trim()
+        .replace(/, $/, "");
+      if (value) fields.set("Organization", value);
+    } else if (upper.startsWith("TITLE")) {
+      const value = line.split(":").slice(1).join(":").trim();
+      if (value) fields.set("Title", value);
+    } else if (upper.startsWith("URL")) {
+      const value = line.split(":").slice(1).join(":").trim();
+      if (value) fields.set("URL", value);
+    } else if (upper.startsWith("NOTE")) {
+      const value = line.split(":").slice(1).join(":").trim();
+      if (value) fields.set("Note", value);
+    } else if (upper.startsWith("ADR")) {
+      // ADR fields are semicolon-separated: PO Box;Extended;Street;City;Region;Postal;Country
+      const value = line.split(":").slice(1).join(":");
+      const parts = value
+        .split(";")
+        .map((p) => p.trim())
+        .filter(Boolean);
+      if (parts.length > 0) fields.set("Address", parts.join(", "));
+    }
+  }
+
+  return fields;
+}
+
+/**
  * Format a contact as human-readable text for the agent.
+ * Includes vCard fields (email, address, birthday, etc.) when available.
  */
 export function formatContactText(contact: NormalizedContact): string {
   const name = [contact.firstName, contact.lastName].filter(Boolean).join(" ");
   const parts = [`[Contact: ${name}]`, `Phone: ${contact.phoneNumber}`];
   if (contact.userId) {
     parts.push(`Telegram ID: ${contact.userId}`);
+  }
+  if (contact.vcard) {
+    const vcardFields = parseVcardFields(contact.vcard);
+    for (const [key, value] of vcardFields) {
+      parts.push(`${key}: ${value}`);
+    }
   }
   return parts.join("\n");
 }
