@@ -26,6 +26,7 @@ import {
   upsertChannelPairingRequest,
 } from "../../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
+import { buildUntrustedChannelMetadata } from "../../security/channel-metadata.js";
 import {
   normalizeAllowList,
   normalizeAllowListLower,
@@ -34,6 +35,7 @@ import {
 } from "./allow-list.js";
 import { resolveSlackChannelConfig, type SlackChannelConfigResolved } from "./channel-config.js";
 import { buildSlackSlashCommandMatcher, resolveSlackSlashCommandConfig } from "./commands.js";
+import { normalizeSlackChannelType } from "./context.js";
 import { isSlackChannelAllowedByPolicy } from "./policy.js";
 import { deliverSlackSlashReplies } from "./replies.js";
 
@@ -176,8 +178,9 @@ export function registerSlackMonitorSlashCommands(params: {
       }
 
       const channelInfo = await ctx.resolveChannelName(command.channel_id);
-      const channelType =
+      const rawChannelType =
         channelInfo?.type ?? (command.channel_name === "directmessage" ? "im" : undefined);
+      const channelType = normalizeSlackChannelType(rawChannelType, command.channel_id);
       const isDirectMessage = channelType === "im";
       const isGroupDm = channelType === "mpim";
       const isRoom = channelType === "channel" || channelType === "group";
@@ -375,15 +378,16 @@ export function registerSlackMonitorSlashCommands(params: {
         },
       });
 
-      const channelDescription = [channelInfo?.topic, channelInfo?.purpose]
-        .map((entry) => entry?.trim())
-        .filter((entry): entry is string => Boolean(entry))
-        .filter((entry, index, list) => list.indexOf(entry) === index)
-        .join("\n");
-      const systemPromptParts = [
-        channelDescription ? `Channel description: ${channelDescription}` : null,
-        channelConfig?.systemPrompt?.trim() || null,
-      ].filter((entry): entry is string => Boolean(entry));
+      const untrustedChannelMetadata = isRoomish
+        ? buildUntrustedChannelMetadata({
+            source: "slack",
+            label: "Slack channel description",
+            entries: [channelInfo?.topic, channelInfo?.purpose],
+          })
+        : undefined;
+      const systemPromptParts = [channelConfig?.systemPrompt?.trim() || null].filter(
+        (entry): entry is string => Boolean(entry),
+      );
       const groupSystemPrompt =
         systemPromptParts.length > 0 ? systemPromptParts.join("\n\n") : undefined;
 
@@ -412,6 +416,7 @@ export function registerSlackMonitorSlashCommands(params: {
           }) ?? (isDirectMessage ? senderName : roomLabel),
         GroupSubject: isRoomish ? roomLabel : undefined,
         GroupSystemPrompt: isRoomish ? groupSystemPrompt : undefined,
+        UntrustedContext: untrustedChannelMetadata ? [untrustedChannelMetadata] : undefined,
         SenderName: senderName,
         SenderId: command.user_id,
         Provider: "slack" as const,
