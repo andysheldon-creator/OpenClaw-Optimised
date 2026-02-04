@@ -137,11 +137,19 @@ function convertJsonSchemaPropertyToZod(
     }
 
     case "object": {
+      const additionalProperties = propSchema.additionalProperties;
+      const allowsAdditional =
+        additionalProperties === true ||
+        (typeof additionalProperties === "object" && additionalProperties !== null);
+
       // Nested object - recursively convert properties if available
       const nestedProps = propSchema.properties as
         | Record<string, Record<string, unknown>>
         | undefined;
-      if (nestedProps && typeof nestedProps === "object") {
+      const hasNestedProps =
+        nestedProps && typeof nestedProps === "object" && Object.keys(nestedProps).length > 0;
+
+      if (hasNestedProps) {
         const nestedRequired = new Set(
           Array.isArray(propSchema.required)
             ? (propSchema.required as string[]).filter((k) => typeof k === "string")
@@ -161,13 +169,61 @@ function convertJsonSchemaPropertyToZod(
           }
           shape[nestedKey] = nestedZod;
         }
+
         let schema = z.object(shape);
+        // Preserve additionalProperties semantics so we don't silently strip
+        // payload keys (critical for "any object" tool params like cron.job/patch).
+        if (additionalProperties === true) {
+          schema = schema.passthrough();
+        } else if (typeof additionalProperties === "object" && additionalProperties !== null) {
+          schema = schema.catchall(
+            convertJsonSchemaPropertyToZod(
+              additionalProperties as Record<string, unknown>,
+              `${propName}.*`,
+            ),
+          );
+        }
+
         if (description) {
           schema = schema.describe(description);
         }
         return schema;
       }
-      // Generic object without defined properties
+
+      // No defined properties: honor additionalProperties. If the schema
+      // explicitly forbids additional properties, this represents an empty
+      // object. Otherwise, accept an arbitrary key/value map.
+      if (!allowsAdditional && additionalProperties === false) {
+        let schema = z.object({});
+        if (description) {
+          schema = schema.describe(description);
+        }
+        return schema;
+      }
+
+      if (additionalProperties === true || additionalProperties === undefined) {
+        let schema = z.record(z.string(), z.unknown());
+        if (description) {
+          schema = schema.describe(description);
+        }
+        return schema;
+      }
+
+      if (typeof additionalProperties === "object" && additionalProperties !== null) {
+        let schema = z.record(
+          z.string(),
+          convertJsonSchemaPropertyToZod(
+            additionalProperties as Record<string, unknown>,
+            `${propName}.*`,
+          ),
+        );
+        if (description) {
+          schema = schema.describe(description);
+        }
+        return schema;
+      }
+
+      // Fallback: permissive object.
       let schema = z.record(z.string(), z.unknown());
       if (description) {
         schema = schema.describe(description);

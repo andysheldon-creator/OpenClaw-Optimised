@@ -7,6 +7,7 @@ import type {
   McpToolHandlerExtra,
   McpToolHandlerFn,
 } from "./tool-bridge.types.js";
+import { createCronTool } from "../tools/cron-tool.js";
 import {
   bridgeClawdbrainToolsSync,
   buildMcpAllowedTools,
@@ -339,6 +340,56 @@ describe("buildZodSchemaForTool", () => {
     // Should accept any object
     const result = zodSchema.safeParse({ anything: "value" });
     expect(result.success).toBe(true);
+  });
+
+  it("preserves additionalProperties for empty object schemas (no silent stripping)", () => {
+    const jsonSchema = {
+      type: "object",
+      properties: {
+        payload: {
+          type: "object",
+          properties: {},
+          additionalProperties: true,
+        },
+      },
+      required: ["payload"],
+    };
+
+    const zodSchema = jsonSchemaToZod(jsonSchema);
+    const result = zodSchema.safeParse({ payload: { a: 1, nested: { b: 2 } } });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.payload).toMatchObject({ a: 1, nested: { b: 2 } });
+    }
+  });
+});
+
+describe("buildZodSchemaForTool (real tools)", () => {
+  it("does not strip cron.job/cron.patch payload keys", () => {
+    const tool = createCronTool();
+    const schema = buildZodSchemaForTool(tool);
+
+    const addRes = schema.safeParse({
+      action: "add",
+      job: { name: "x", schedule: { kind: "cron", expr: "* * * * *" } },
+    });
+    expect(addRes.success).toBe(true);
+    if (addRes.success) {
+      expect(addRes.data.job).toMatchObject({
+        name: "x",
+        schedule: { kind: "cron", expr: "* * * * *" },
+      });
+    }
+
+    const updateRes = schema.safeParse({
+      action: "update",
+      jobId: "job-1",
+      patch: { enabled: false, name: "y" },
+    });
+    expect(updateRes.success).toBe(true);
+    if (updateRes.success) {
+      expect(updateRes.data.patch).toMatchObject({ enabled: false, name: "y" });
+    }
   });
 });
 
