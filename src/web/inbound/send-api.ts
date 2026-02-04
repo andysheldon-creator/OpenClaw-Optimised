@@ -21,14 +21,16 @@ export function createWebSendApi(params: {
       const jid = toWhatsappJid(to);
       let payload: AnyMessageContent;
       if (mediaBuffer && mediaType) {
+        const viewOnce = sendOptions?.viewOnce;
         if (mediaType.startsWith("image/")) {
           payload = {
             image: mediaBuffer,
             caption: text || undefined,
             mimetype: mediaType,
+            ...(viewOnce ? { viewOnce: true } : {}),
           };
         } else if (mediaType.startsWith("audio/")) {
-          payload = { audio: mediaBuffer, ptt: true, mimetype: mediaType };
+          payload = { audio: mediaBuffer, ptt: true, mimetype: mediaType, ...(viewOnce ? { viewOnce: true } : {}) };
         } else if (mediaType.startsWith("video/")) {
           const gifPlayback = sendOptions?.gifPlayback;
           payload = {
@@ -36,6 +38,7 @@ export function createWebSendApi(params: {
             caption: text || undefined,
             mimetype: mediaType,
             ...(gifPlayback ? { gifPlayback: true } : {}),
+            ...(viewOnce ? { viewOnce: true } : {}),
           };
         } else {
           payload = {
