@@ -399,6 +399,7 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
     // When persistSession is false, sessions are not saved to ~/.claude/projects/
     // and cannot be compacted (the SDK loses the ability to manage context window).
     persistSession: true,
+    verbose: false,
   };
 
   // MCP server with bridged Clawdbrain tools.

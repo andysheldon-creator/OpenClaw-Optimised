@@ -85,6 +85,8 @@ export type SdkRunnerQueryOptions = {
   hooks?: Record<string, unknown>;
   /** Path to the Claude Code executable to run. */
   pathToClaudeCodeExecutable?: string;
+  /** verbose mode or not **/
+  verbose?: boolean;
   /**
    * Enable session persistence to disk (default: true).
    * Required for auto-compaction to work properly — when false,
