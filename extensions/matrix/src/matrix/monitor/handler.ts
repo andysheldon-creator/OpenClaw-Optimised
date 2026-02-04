@@ -205,7 +205,11 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
         name: roomName,
       });
       if (isDirectMessage && roomConfigInfo?.config) {
-        isDirectMessage = false;
+        // Only override DM classification for explicit room matches (not wildcard)
+        // or if the config explicitly allows the room
+        if (roomConfigInfo.matchSource === "direct" || roomConfigInfo.allowed) {
+          isDirectMessage = false;
+        }
       }
 
       const isRoom = !isDirectMessage;
