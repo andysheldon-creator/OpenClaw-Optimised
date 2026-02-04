@@ -13,10 +13,9 @@ export function isSilentReplyText(
     return false;
   }
   const escaped = escapeRegExp(token);
-  const prefix = new RegExp(`^\\s*${escaped}(?=$|\\W)`);
-  if (prefix.test(text)) {
-    return true;
-  }
-  const suffix = new RegExp(`\\b${escaped}\\b\\W*$`);
-  return suffix.test(text);
+  // Match when the entire message is the token with optional surrounding
+  // whitespace or Unicode punctuation (avoid treating CJK letters as "non-word").
+  // Uses Unicode property escapes, so enable the `u` flag.
+  const pattern = new RegExp(`^[\\s\\p{P}]*${escaped}[\\s\\p{P}]*$`, "u");
+  return pattern.test(text);
 }

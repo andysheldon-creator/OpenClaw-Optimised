@@ -175,6 +175,11 @@ function parseOpenAiBatchOutput(text: string): OpenAiBatchOutputLine[] {
     .map((line) => JSON.parse(line) as OpenAiBatchOutputLine);
 }
 
+export function sanitizeCustomId(id: string): string {
+  // OpenAI batch API expects custom_id to match /^[A-Za-z0-9_-]+$/
+  return id.replace(/[^A-Za-z0-9_-]/g, "_");
+}
+
 async function readOpenAiBatchError(params: {
   openAi: OpenAiEmbeddingClient;
   errorFileId: string;
