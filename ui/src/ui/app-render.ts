@@ -53,7 +53,6 @@ import {
 } from "./controllers/skills.ts";
 import { icons } from "./icons.ts";
 import { TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation.ts";
-import { ConfigUiHints } from "./types.ts";
 import { renderAgents } from "./views/agents.ts";
 import { renderChannels } from "./views/channels.ts";
 import { renderChat } from "./views/chat.ts";
@@ -245,7 +244,7 @@ export function renderApp(state: AppViewState) {
                 configSchema: state.configSchema,
                 configSchemaLoading: state.configSchemaLoading,
                 configForm: state.configForm,
-                configUiHints: state.configUiHints as ConfigUiHints,
+                configUiHints: state.configUiHints,
                 configSaving: state.configSaving,
                 configFormDirty: state.configFormDirty,
                 nostrProfileFormState: state.nostrProfileFormState,
@@ -915,7 +914,7 @@ export function renderApp(state: AppViewState) {
                 connected: state.connected,
                 schema: state.configSchema,
                 schemaLoading: state.configSchemaLoading,
-                uiHints: state.configUiHints as ConfigUiHints,
+                uiHints: state.configUiHints,
                 formMode: state.configFormMode,
                 formValue: state.configForm,
                 originalValue: state.configFormOriginal,

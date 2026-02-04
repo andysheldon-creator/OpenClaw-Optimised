@@ -86,7 +86,7 @@ export type AppViewState = {
   updateRunning: boolean;
   applySessionKey: string;
   configSnapshot: ConfigSnapshot | null;
-  configSchema: unknown | null;
+  configSchema: unknown;
   configSchemaVersion: string | null;
   configSchemaLoading: boolean;
   configUiHints: ConfigUiHints;
