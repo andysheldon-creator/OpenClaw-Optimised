@@ -88,6 +88,30 @@ function buildSendSchema(options: { includeButtons: boolean; includeCards: boole
         },
       ),
     ),
+    embeds: Type.Optional(
+      Type.Array(
+        Type.Object(
+          {},
+          {
+            additionalProperties: true,
+            description:
+              "Provider-specific embed objects (Discord embeds, etc.). Passed through to the channel adapter when supported.",
+          },
+        ),
+      ),
+    ),
+    components: Type.Optional(
+      Type.Array(
+        Type.Object(
+          {},
+          {
+            additionalProperties: true,
+            description:
+              "Provider-specific message components (Discord buttons/selects, etc.). Passed through when supported.",
+          },
+        ),
+      ),
+    ),
   };
   if (!options.includeButtons) {
     delete props.buttons;
@@ -161,6 +185,14 @@ function buildThreadSchema() {
   return {
     threadName: Type.Optional(Type.String()),
     autoArchiveMin: Type.Optional(Type.Number()),
+    appliedTagIds: Type.Optional(
+      Type.Union([Type.String(), Type.Array(Type.String())], {
+        description:
+          "Tag IDs to apply to forum posts. Accepts a JSON array string, comma-separated string, " +
+          "or an array of strings. For forum channels, the 'message' field " +
+          "is used as the initial post content.",
+      }),
+    ),
   };
 }
 

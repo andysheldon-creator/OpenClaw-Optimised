@@ -102,8 +102,35 @@ export async function createThreadDiscord(
 ) {
   const rest = resolveDiscordRest(opts);
   const body: Record<string, unknown> = { name: payload.name };
+
   if (payload.autoArchiveMinutes) {
     body.auto_archive_duration = payload.autoArchiveMinutes;
+  }
+
+  // Forum posts (channel type 15) require an initial message payload.
+  // If content is provided (even empty string), create the thread with an initial post.
+  if (payload.content !== undefined) {
+    body.message = { content: payload.content };
+    if (Array.isArray(payload.appliedTagIds) && payload.appliedTagIds.length) {
+      body.applied_tags = payload.appliedTagIds;
+    }
+    // NOTE: discord-api-types Routes doesn't currently expose a helper for
+    // POST /channels/{channel.id}/threads (it only exposes listing archived threads),
+    // so use the raw route string.
+    const route = `/channels/${channelId}/threads`;
+    return await rest.post(route, { body });
+  }
+
+  // Regular threads: create from an existing message when messageId is provided,
+  // otherwise create a standard thread in the channel.
+  // NOTE: Forum channels (type 15) require content for the initial post; attempting
+  // to create a thread without content or messageId will fail at Discord's API.
+  // Provide a clear error here instead of relying on Discord's generic validation.
+  if (!payload.messageId) {
+    throw new Error(
+      "Forum channel threads require initial post content. Provide 'content' (message field) " +
+        "for forum posts, or 'messageId' to create a thread from an existing message.",
+    );
   }
   const route = Routes.threads(channelId, payload.messageId);
   return await rest.post(route, { body });
