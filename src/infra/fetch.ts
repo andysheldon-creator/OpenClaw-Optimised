@@ -2,6 +2,9 @@ type FetchWithPreconnect = typeof fetch & {
   preconnect: (url: string, init?: { credentials?: RequestCredentials }) => void;
 };
 
+// Base fetch function type without static methods like `preconnect` (Node 22+)
+type FetchFunction = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
 type RequestInitWithDuplex = RequestInit & { duplex?: "half" };
 
 function withDuplex(
@@ -25,7 +28,7 @@ function withDuplex(
     : ({ duplex: "half" as const } as RequestInitWithDuplex);
 }
 
-export function wrapFetchWithAbortSignal(fetchImpl: typeof fetch): typeof fetch {
+export function wrapFetchWithAbortSignal(fetchImpl: FetchFunction): typeof fetch {
   const wrapped = ((input: RequestInfo | URL, init?: RequestInit) => {
     const patchedInit = withDuplex(init, input);
     const signal = patchedInit?.signal;
