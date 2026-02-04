@@ -151,7 +151,7 @@ export class GatewayClient {
       if (this.shouldLogGatewayHealth()) {
         logGatewayHealth({
           event: "connected",
-          metadata: { url, clientName: this.opts.clientName },
+          metadata: { ...this.getGatewayHealthMetadata(), url },
         });
       }
       this.queueConnect();
@@ -163,6 +163,7 @@ export class GatewayClient {
         logGatewayHealth({
           event: "disconnected",
           metadata: {
+            ...this.getGatewayHealthMetadata(),
             code,
             reason: reasonText,
             hint: describeGatewayCloseCode(code),
@@ -377,7 +378,11 @@ export class GatewayClient {
     if (this.shouldLogGatewayHealth()) {
       logGatewayHealth({
         event: "reconnect_attempt",
-        metadata: { delayMs: delay, nextBackoffMs: this.backoffMs },
+        metadata: {
+          ...this.getGatewayHealthMetadata(),
+          delayMs: delay,
+          nextBackoffMs: this.backoffMs,
+        },
       });
     }
     setTimeout(() => this.start(), delay).unref();
@@ -385,6 +390,23 @@ export class GatewayClient {
 
   private shouldLogGatewayHealth() {
     return this.opts.logGatewayHealth !== false;
+  }
+
+  private getGatewayHealthMetadata(): Record<string, unknown> {
+    const metadata: Record<string, unknown> = {};
+    if (this.opts.clientName) {
+      metadata.clientName = this.opts.clientName;
+    }
+    if (this.opts.mode) {
+      metadata.clientMode = this.opts.mode;
+    }
+    if (this.opts.clientDisplayName) {
+      metadata.clientDisplayName = this.opts.clientDisplayName;
+    }
+    if (this.opts.instanceId) {
+      metadata.instanceId = this.opts.instanceId;
+    }
+    return metadata;
   }
 
   private flushPendingErrors(err: Error) {

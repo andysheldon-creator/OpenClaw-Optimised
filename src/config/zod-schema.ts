@@ -194,6 +194,7 @@ export const OpenClawSchema = z
             performanceOutliers: z.boolean().optional(),
             tokenWarnings: z.boolean().optional(),
             gatewayHealth: z.boolean().optional(),
+            gatewayHealthSuppressCliConnectDisconnect: z.boolean().optional(),
             gatewayHealthSuppressMethods: z.array(z.string()).optional(),
           })
           .strict()

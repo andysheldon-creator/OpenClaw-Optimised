@@ -284,8 +284,20 @@ export type GatewayHealthContext = {
  * No-op if CLAWDBRAIN_LOG_GATEWAY_HEALTH=0
  */
 export function logGatewayHealth(ctx: GatewayHealthContext): void {
-  if (!getEnhancedLoggingConfig().gatewayHealth) {
+  const config = getEnhancedLoggingConfig();
+  if (!config.gatewayHealth) {
     return;
+  }
+
+  if (
+    config.gatewayHealthSuppressCliConnectDisconnect &&
+    (ctx.event === "connected" || ctx.event === "disconnected")
+  ) {
+    const clientName = ctx.metadata?.clientName;
+    const clientMode = ctx.metadata?.clientMode;
+    if (clientName === "cli" || clientMode === "cli") {
+      return;
+    }
   }
 
   const level = ctx.event === "rate_limit" || ctx.event === "disconnected" ? "warn" : "info";

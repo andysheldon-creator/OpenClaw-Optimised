@@ -133,6 +133,8 @@ const FIELD_LABELS: Record<string, string> = {
   "gateway.remote.tlsFingerprint": "Remote Gateway TLS Fingerprint",
   "gateway.auth.token": "Gateway Token",
   "gateway.auth.password": "Gateway Password",
+  "logging.enhanced.gatewayHealthSuppressCliConnectDisconnect":
+    "Gateway Health Suppress CLI Connect/Disconnect",
   "logging.enhanced.gatewayHealthSuppressMethods": "Gateway Health Suppressed Methods",
   "tools.media.image.enabled": "Enable Image Understanding",
   "tools.media.image.maxBytes": "Image Understanding Max Bytes",

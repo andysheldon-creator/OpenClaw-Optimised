@@ -12,7 +12,8 @@ import type { HookHandler } from "../../hooks.js";
 import { MERIDIA_DEFAULT_EVALUATION_MODEL } from "../../../meridia/constants.js";
 import { evaluateHeuristic, evaluateWithLlm } from "../../../meridia/evaluate.js";
 import {
-  appendJsonl,
+  appendExperientialRecord,
+  appendTraceEvent,
   dateKeyUtc,
   readJsonIfExists,
   resolveMeridiaDir,
@@ -213,7 +214,7 @@ const experientialCapture: HookHandler = async (event) => {
       error: buffer.lastError.message,
       threshold: minThreshold,
     };
-    await appendJsonl(tracePath, traceEvent);
+    await appendTraceEvent(tracePath, traceEvent, cfg);
     await writeJson(bufferPath, buffer);
     return;
   }
@@ -245,7 +246,7 @@ const experientialCapture: HookHandler = async (event) => {
       data: { args, result },
       evaluation,
     };
-    await appendJsonl(recordPath, record);
+    await appendExperientialRecord(recordPath, record, cfg);
     buffer.captured += 1;
     buffer.lastCapturedAt = now;
     buffer.recentCaptures.push({
@@ -268,7 +269,7 @@ const experientialCapture: HookHandler = async (event) => {
     meta,
     isError,
     decision: shouldCapture ? "capture" : "skip",
-    error: evaluationError,
+    error: undefined,
     score: evaluation.score,
     threshold: minThreshold,
     limited,
@@ -281,7 +282,7 @@ const experientialCapture: HookHandler = async (event) => {
     },
     recordId,
   };
-  await appendJsonl(tracePath, traceEvent);
+  await appendTraceEvent(tracePath, traceEvent, cfg);
   await writeJson(bufferPath, buffer);
 };
 

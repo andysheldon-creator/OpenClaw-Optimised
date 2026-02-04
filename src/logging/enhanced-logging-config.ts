@@ -34,6 +34,8 @@ export type EnhancedLoggingConfig = {
   tokenWarnings: boolean;
   /** Log gateway connection state changes */
   gatewayHealth: boolean;
+  /** Suppress CLI client connect/disconnect gateway health logs */
+  gatewayHealthSuppressCliConnectDisconnect: boolean;
 };
 
 /**
@@ -65,6 +67,7 @@ const DEFAULT_CONFIG: EnhancedLoggingConfig = {
   performanceOutliers: true,
   tokenWarnings: true,
   gatewayHealth: true,
+  gatewayHealthSuppressCliConnectDisconnect: true,
 };
 
 const DEFAULT_PERFORMANCE_THRESHOLDS: PerformanceThresholds = {
@@ -141,6 +144,9 @@ export function getEnhancedLoggingConfig(): EnhancedLoggingConfig {
       "CLAWDBRAIN_LOG_GATEWAY_HEALTH",
       configEnhanced?.gatewayHealth ?? DEFAULT_CONFIG.gatewayHealth,
     ),
+    gatewayHealthSuppressCliConnectDisconnect:
+      configEnhanced?.gatewayHealthSuppressCliConnectDisconnect ??
+      DEFAULT_CONFIG.gatewayHealthSuppressCliConnectDisconnect,
   };
 
   return cachedConfig;

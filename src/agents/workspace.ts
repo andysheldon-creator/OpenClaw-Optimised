@@ -73,6 +73,49 @@ export type WorkspaceBootstrapFile = {
   missing: boolean;
 };
 
+/**
+ * Bootstrap filenames eligible for global loading from ~/.openclaw/.
+ * MEMORY.md is intentionally excluded — memory has its own system.
+ */
+export const GLOBAL_BOOTSTRAP_FILENAMES: readonly WorkspaceBootstrapFileName[] = [
+  DEFAULT_AGENTS_FILENAME,
+  DEFAULT_SOUL_FILENAME,
+  DEFAULT_TOOLS_FILENAME,
+  DEFAULT_IDENTITY_FILENAME,
+  DEFAULT_USER_FILENAME,
+  DEFAULT_HEARTBEAT_FILENAME,
+  DEFAULT_BOOTSTRAP_FILENAME,
+] as const;
+
+/** Separator used when merging global and workspace bootstrap content. */
+export const GLOBAL_MERGE_SEPARATOR = "\n\n---\n\n";
+
+/**
+ * Load global bootstrap files from ~/.openclaw/.
+ * Returns a Map of filename → content for files that exist.
+ * MEMORY.md is intentionally excluded.
+ */
+export async function loadGlobalBootstrapFiles(
+  globalDir?: string,
+): Promise<Map<WorkspaceBootstrapFileName, string>> {
+  const dir = globalDir ?? path.join(os.homedir(), ".openclaw");
+  const result = new Map<WorkspaceBootstrapFileName, string>();
+
+  for (const name of GLOBAL_BOOTSTRAP_FILENAMES) {
+    const filePath = path.join(dir, name);
+    try {
+      const content = await fs.readFile(filePath, "utf-8");
+      if (content.trim()) {
+        result.set(name, content);
+      }
+    } catch {
+      // File doesn't exist — skip
+    }
+  }
+
+  return result;
+}
+
 async function writeFileIfMissing(filePath: string, content: string) {
   try {
     await fs.writeFile(filePath, content, {
@@ -234,8 +277,14 @@ async function resolveMemoryBootstrapEntries(
   return deduped;
 }
 
-export async function loadWorkspaceBootstrapFiles(dir: string): Promise<WorkspaceBootstrapFile[]> {
+export async function loadWorkspaceBootstrapFiles(
+  dir: string,
+  options?: { globalDir?: string },
+): Promise<WorkspaceBootstrapFile[]> {
   const resolvedDir = resolveUserPath(dir);
+
+  // Load global bootstrap files (from ~/.openclaw/ by default)
+  const globalFiles = await loadGlobalBootstrapFiles(options?.globalDir);
 
   const entries: Array<{
     name: WorkspaceBootstrapFileName;
@@ -273,20 +322,62 @@ export async function loadWorkspaceBootstrapFiles(dir: string): Promise<Workspac
 
   entries.push(...(await resolveMemoryBootstrapEntries(resolvedDir)));
 
+  // Track which global files have been merged with a workspace file
+  const mergedGlobalNames = new Set<WorkspaceBootstrapFileName>();
+
   const result: WorkspaceBootstrapFile[] = [];
   for (const entry of entries) {
+    const globalContent = globalFiles.get(entry.name);
     try {
-      const content = await fs.readFile(entry.filePath, "utf-8");
+      const workspaceContent = await fs.readFile(entry.filePath, "utf-8");
+      // Workspace file exists — merge global content (if any) by prepending
+      if (globalContent) {
+        mergedGlobalNames.add(entry.name);
+        result.push({
+          name: entry.name,
+          path: entry.filePath,
+          content: globalContent + GLOBAL_MERGE_SEPARATOR + workspaceContent,
+          missing: false,
+        });
+      } else {
+        result.push({
+          name: entry.name,
+          path: entry.filePath,
+          content: workspaceContent,
+          missing: false,
+        });
+      }
+    } catch {
+      // Workspace file missing — use global content if available
+      if (globalContent) {
+        mergedGlobalNames.add(entry.name);
+        result.push({
+          name: entry.name,
+          path: entry.filePath,
+          content: globalContent,
+          missing: false,
+        });
+      } else {
+        result.push({ name: entry.name, path: entry.filePath, missing: true });
+      }
+    }
+  }
+
+  // Add any global-only files that weren't already merged
+  // (This handles the case where a global file exists for a name
+  //  not in the standard entries list, though currently all are covered.)
+  for (const [name, content] of globalFiles) {
+    if (!mergedGlobalNames.has(name)) {
+      const globalDir = options?.globalDir ?? path.join(os.homedir(), ".openclaw");
       result.push({
-        name: entry.name,
-        path: entry.filePath,
+        name,
+        path: path.join(globalDir, name),
         content,
         missing: false,
       });
-    } catch {
-      result.push({ name: entry.name, path: entry.filePath, missing: true });
     }
   }
+
   return result;
 }
 
