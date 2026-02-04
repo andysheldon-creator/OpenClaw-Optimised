@@ -47,7 +47,7 @@ USER node
 #   - OPENCLAW_GATEWAY_TOKEN: Pre-shared authentication token
 #   - OPENCLAW_GATEWAY_PASSWORD: Password-based authentication
 #
-# For container platforms requiring external health checks:
+# For network access (e.g., container orchestration, remote clients):
 #   1. Set OPENCLAW_GATEWAY_TOKEN or OPENCLAW_GATEWAY_PASSWORD env var
 #   2. Override CMD: ["node","dist/index.js","gateway","--bind","lan"]
 #
