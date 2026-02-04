@@ -12,6 +12,7 @@ import {
   resolveForkThinkingLevelSync,
   resolveForkVerboseLevel,
 } from "../../openclaw/agent-config-overrides.js";
+import { isDeliverableMessageChannel, resolveMessageChannel } from "../../utils/message-channel.js";
 import { listChatCommands, shouldHandleTextCommands } from "../commands-registry.js";
 import { listSkillCommandsForWorkspace } from "../skill-commands.js";
 import { resolveBlockStreamingChunking } from "./block-streaming.js";
@@ -362,10 +363,14 @@ export async function resolveReplyDirectives(params: {
     agentId,
     agentCfg,
   });
-  const resolvedReasoningLevel: ReasoningLevel =
+  let resolvedReasoningLevel: ReasoningLevel =
     directives.reasoningLevel ??
     (sessionEntry?.reasoningLevel as ReasoningLevel | undefined) ??
     "off";
+  const resolvedChannel = resolveMessageChannel(sessionCtx.Surface, sessionCtx.Provider);
+  if (resolvedChannel && isDeliverableMessageChannel(resolvedChannel)) {
+    resolvedReasoningLevel = "off";
+  }
   const resolvedElevatedLevel = elevatedAllowed
     ? (directives.elevatedLevel ??
       (sessionEntry?.elevatedLevel as ElevatedLevel | undefined) ??
