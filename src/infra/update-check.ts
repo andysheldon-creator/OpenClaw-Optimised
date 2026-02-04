@@ -312,6 +312,12 @@ export async function fetchNpmTagVersion(params: {
   tag: string;
   timeoutMs?: number;
 }): Promise<NpmTagStatus> {
+  // TODO: Re-enable when security enhancements merge with official repo
+  // Skip registry checks in secure mode - running custom hardened code
+  if (process.env.OPENCLAW_SECURE_MODE === "1") {
+    return { tag: params.tag, version: null };
+  }
+  
   const timeoutMs = params?.timeoutMs ?? 3500;
   const tag = params.tag;
   try {

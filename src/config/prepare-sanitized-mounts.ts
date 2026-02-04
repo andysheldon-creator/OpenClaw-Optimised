@@ -133,6 +133,8 @@ export async function prepareSanitizedMounts(): Promise<SanitizedMounts> {
                 type: "oauth",
                 provider: credential.provider,
                 email: credential.email,
+                // projectId is not a secret - preserve it for google-gemini-cli
+                projectId: credential.projectId,
                 access: `{{OAUTH:${profileId}}}`,
                 refresh: `{{OAUTH_REFRESH:${profileId}}}`,
                 expires: 0,
