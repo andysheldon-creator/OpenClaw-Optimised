@@ -16,6 +16,7 @@ export interface SpixiAccountConfig {
 export interface ResolvedSpixiAccount {
   accountId: string;
   enabled: boolean;
+  configured: boolean;
   name?: string;
   config: SpixiAccountConfig;
 }

@@ -21,13 +21,22 @@ export function resolveSpixiAccount(params: {
   const accountId = normalizeAccountId(params.accountId);
   const accounts = params.cfg.channels?.spixi?.accounts || {};
   const accountConfig = (accounts[accountId] || {}) as SpixiAccountConfig;
-  
+
   const baseConfig = (params.cfg.channels?.spixi || {}) as SpixiAccountConfig;
   const merged = { ...baseConfig, ...accountConfig };
-  
+
+  // Check if configured (has any meaningful config set)
+  const configured = Boolean(
+    merged.mqttHost?.trim() ||
+    merged.quixiApiUrl?.trim() ||
+    merged.myWalletAddress?.trim() ||
+    typeof merged.mqttPort === "number"
+  );
+
   return {
     accountId,
     enabled: merged.enabled !== false,
+    configured,
     name: merged.name,
     config: merged,
   };

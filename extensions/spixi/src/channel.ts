@@ -25,6 +25,7 @@ export const spixiPlugin: ChannelPlugin<ResolvedSpixiAccount> = {
   config: {
     listAccountIds: (cfg) => listSpixiAccountIds(cfg),
     resolveAccount: (cfg, accountId) => resolveSpixiAccount({ cfg, accountId }),
+    isConfigured: (account) => account.configured,
   },
   agentTools: () => [
     {
