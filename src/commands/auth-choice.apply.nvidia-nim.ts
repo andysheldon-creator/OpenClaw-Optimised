@@ -1,3 +1,4 @@
+import type { OpenClawConfig } from "../config/config.js";
 import type { ApplyAuthChoiceParams, ApplyAuthChoiceResult } from "./auth-choice.apply.js";
 import { resolveEnvApiKey } from "../agents/model-auth.js";
 import { upsertSharedEnvVar } from "../infra/env-file.js";
@@ -135,7 +136,15 @@ const NVIDIA_NIM_MODEL_CATALOG = [
   },
 ] as const;
 
-type NvidiaNimCatalogEntry = (typeof NVIDIA_NIM_MODEL_CATALOG)[number];
+type NvidiaNimCatalogEntry = {
+  id: string;
+  name: string;
+  reasoning: boolean;
+  input: readonly ("text" | "image")[];
+  contextWindow: number;
+  maxTokens: number;
+  compat?: { supportsReasoningEffort?: boolean };
+};
 
 function buildNvidiaNimModelDefinition(entry: NvidiaNimCatalogEntry) {
   const base = {
@@ -147,11 +156,11 @@ function buildNvidiaNimModelDefinition(entry: NvidiaNimCatalogEntry) {
     contextWindow: entry.contextWindow,
     maxTokens: entry.maxTokens,
   };
-  const compat = (entry as { compat?: { supportsReasoningEffort?: boolean } }).compat;
+  const compat = entry.compat;
   return compat ? { ...base, compat } : base;
 }
 
-function applyNvidiaNimProviderConfig(cfg: Parameters<typeof applyNvidiaNimConfig>[0]["config"]) {
+function applyNvidiaNimProviderConfig(cfg: OpenClawConfig) {
   const models = { ...cfg.agents?.defaults?.models };
   models[NVIDIA_NIM_DEFAULT_MODEL_REF] = {
     ...models[NVIDIA_NIM_DEFAULT_MODEL_REF],
