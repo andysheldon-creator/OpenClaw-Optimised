@@ -606,6 +606,12 @@ export class QmdMemoryManager implements MemorySearchManager {
     if (!scope) {
       return true;
     }
+    // CLI/manual searches have no session key - always allow these.
+    // Scope rules are meant to control agent behavior in chat contexts,
+    // not to block explicit user-initiated searches.
+    if (!sessionKey) {
+      return true;
+    }
     const channel = this.deriveChannelFromKey(sessionKey);
     const chatType = this.deriveChatTypeFromKey(sessionKey);
     const normalizedKey = sessionKey ?? "";

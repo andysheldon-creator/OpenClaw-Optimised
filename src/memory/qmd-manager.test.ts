@@ -128,6 +128,46 @@ describe("QmdMemoryManager", () => {
     await manager.close();
   });
 
+  it("allows CLI/manual searches without sessionKey even with restrictive scope", async () => {
+    // This tests the fix for the bug where `openclaw memory search` returned empty
+    // results because CLI searches don't have a sessionKey, and the default scope
+    // denied everything without a matching chatType.
+    cfg = {
+      ...cfg,
+      memory: {
+        backend: "qmd",
+        qmd: {
+          includeDefaultMemory: false,
+          update: { interval: "0s", debounceMs: 60_000, onBoot: false },
+          paths: [{ path: workspaceDir, pattern: "**/*.md", name: "workspace" }],
+          scope: {
+            default: "deny",
+            rules: [{ action: "allow", match: { chatType: "direct" } }],
+          },
+        },
+      },
+    } as OpenClawConfig;
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId });
+    const manager = await QmdMemoryManager.create({ cfg, agentId, resolved });
+    expect(manager).toBeTruthy();
+    if (!manager) {
+      throw new Error("manager missing");
+    }
+
+    const isAllowed = (key?: string) =>
+      (manager as unknown as { isScopeAllowed: (key?: string) => boolean }).isScopeAllowed(key);
+
+    // CLI/manual searches: no sessionKey - should always be allowed
+    expect(isAllowed(undefined)).toBe(true);
+    expect(isAllowed("")).toBe(true);
+
+    // Agent searches with sessionKey: scope rules apply
+    expect(isAllowed("agent:main:telegram:dm:123")).toBe(true); // direct → allowed
+    expect(isAllowed("agent:main:telegram:group:456")).toBe(false); // group → denied
+
+    await manager.close();
+  });
+
   it("blocks non-markdown or symlink reads for qmd paths", async () => {
     const resolved = resolveMemoryBackendConfig({ cfg, agentId });
     const manager = await QmdMemoryManager.create({ cfg, agentId, resolved });
