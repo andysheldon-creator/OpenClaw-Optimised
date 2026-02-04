@@ -3,6 +3,7 @@ import type { TelegramAccountConfig } from "../config/types.telegram.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { TelegramBotOptions } from "./bot.js";
 import type { TelegramContext, TelegramStreamMode } from "./bot/types.js";
+import { createInternalHookEvent, triggerInternalHook } from "../hooks/internal-hooks.js";
 import {
   buildTelegramMessageContext,
   type BuildTelegramMessageContextParams,
@@ -76,6 +77,25 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
     if (!context) {
       return;
     }
+
+    // Trigger message:received hook
+    const { ctxPayload, chatId, isGroup, msg } = context;
+    await triggerInternalHook(
+      createInternalHookEvent("message", "received", ctxPayload.SessionKey ?? "", {
+        ctxPayload,
+        channel: "telegram",
+        messageId: ctxPayload.MessageSid ?? String(msg.message_id),
+        from: ctxPayload.From ?? "",
+        to: ctxPayload.To ?? "",
+        isGroup,
+        chatId: String(chatId),
+        senderId: ctxPayload.SenderId || undefined,
+        hasMedia: Boolean(ctxPayload.MediaPath),
+        mediaCount: ctxPayload.MediaPaths?.length ?? (ctxPayload.MediaPath ? 1 : 0),
+        timestamp: msg.date ? msg.date * 1000 : undefined,
+      }),
+    );
+
     await dispatchTelegramMessage({
       context,
       bot,
