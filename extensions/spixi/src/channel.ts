@@ -159,16 +159,20 @@ export const spixiPlugin: ChannelPlugin<ResolvedSpixiAccount> = {
               return;
             }
 
-            log?.info(`[${account.accountId}] Received Spixi message from ${sender}`);
+            log?.info(`[${account.accountId}] Received Spixi message from ${sender}: ${text}`);
 
             // Inbound relay logic to OpenClaw core
-            ctx.onMessage?.({
-              id: data.id || `spixi-${Date.now()}`,
-              from: sender,
-              text,
-              timestamp: data.timestamp || Date.now(),
-              raw: data,
-            });
+            if (ctx.onMessage) {
+              ctx.onMessage({
+                id: data.id || `spixi-${Date.now()}`,
+                from: sender,
+                text,
+                timestamp: data.timestamp || Date.now(),
+                raw: data,
+              });
+            } else {
+              log?.warn(`[${account.accountId}] ctx.onMessage not available - message dropped`);
+            }
           } catch (e: any) {
             log?.error(`[${account.accountId}] Error processing Spixi chat: ${e.message}`);
           }

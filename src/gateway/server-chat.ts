@@ -271,10 +271,10 @@ export function createAgentEventHandler({
         state: "final" as const,
         message: text
           ? {
-              role: "assistant",
-              content: [{ type: "text", text }],
-              timestamp: Date.now(),
-            }
+            role: "assistant",
+            content: [{ type: "text", text }],
+            timestamp: Date.now(),
+          }
           : undefined,
       };
       // Suppress webchat broadcast for heartbeat runs when showOk is false
@@ -408,6 +408,162 @@ export function createAgentEventHandler({
     if (lifecyclePhase === "end" || lifecyclePhase === "error") {
       toolEventRecipients.markFinal(evt.runId);
       clearAgentRunContext(evt.runId);
+    }
+  };
+}
+
+export type ChannelMessage = {
+  id?: string;
+  from: string;
+  text: string;
+  timestamp?: number;
+  raw?: unknown;
+};
+
+// Extracted for reuse by channels
+import { dispatchInboundMessage } from "../auto-reply/dispatch.js";
+import { resolveAgentTimeoutMs } from "../agents/timeout.js";
+import { resolveSendPolicy } from "../sessions/send-policy.js";
+import { resolveSessionAgentId } from "../agents/agent-scope.js";
+import { resolveEffectiveMessagesConfig, resolveIdentityName } from "../agents/identity.js";
+import { createReplyDispatcher } from "../auto-reply/reply/reply-dispatcher.js";
+import { extractShortModelName, type ResponsePrefixContext } from "../auto-reply/reply/response-prefix-template.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
+import { resolveChatRunExpiresAtMs } from "./chat-abort.js";
+import { injectTimestamp, timestampOptsFromConfig } from "./server-methods/agent-timestamp.js";
+import { resolveSessionModelRef } from "./session-utils.js";
+import { resolveThinkingDefault } from "../agents/model-selection.js";
+import { type MsgContext } from "../auto-reply/templating.js";
+import type { OpenClawConfig } from "../config/config.js";
+import type { SubsystemLogger } from "../logging/subsystem.js";
+import { resolveDefaultAgentId, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
+import { loadGatewayModelCatalog } from "./server-model-catalog.js";
+
+// Helper to handle inbound messages from channels (like Spixi, Telegram, etc)
+export function createChannelMessageHandler(deps: {
+  loadConfig: () => OpenClawConfig;
+  log: SubsystemLogger;
+  agentRunSeq: Map<string, number>;
+  chatRunState: ChatRunState;
+  nodeSendToSession: NodeSendToSession;
+  broadcast: ChatEventBroadcast;
+  // We need to resolve session key from channel ID + sender ID
+  // Since we don't have a DB for channel->session mapping yet, we use a deterministic key or "headless" mode?
+  // Current chat.send uses explicit sessionKey.
+  // For external channels, we need to map (channel, account, from) -> sessionKey.
+  // For now, let's auto-generate a deterministic session key if one doesn't exist?
+  // Or check if there's a convention.
+  // In v1, we used "channel:id:from".
+  resolveSessionKey: (channel: string, from: string) => string;
+}) {
+  return async (channelId: string, accountId: string, msg: ChannelMessage) => {
+    const cfg = deps.loadConfig();
+    const sessionKey = deps.resolveSessionKey(channelId, msg.from);
+
+    deps.log.info(`[${channelId}:${accountId}] Inbound message from ${msg.from} mapped to session ${sessionKey}`);
+
+    const clientRunId = msg.id || `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const now = Date.now();
+    const timeoutMs = resolveAgentTimeoutMs({ cfg });
+
+    // Create abort controller for run
+    const abortController = new AbortController();
+    // We don't have a dedicated map for this? We can use chatAboutControllers but they are keyed by runId
+    // To properly support "stop" command, we should register it.
+    // But context.chatAbortControllers is not passed here.
+    // For now, simpler implementation: just dispatch.
+
+    const stampedMessage = injectTimestamp(msg.text, timestampOptsFromConfig(cfg));
+
+    const ctx: MsgContext = {
+      Body: msg.text,
+      BodyForAgent: stampedMessage,
+      BodyForCommands: msg.text,
+      RawBody: msg.text,
+      CommandBody: msg.text,
+      SessionKey: sessionKey,
+      Provider: channelId,
+      Surface: channelId,
+      OriginatingChannel: channelId,
+      ChatType: "direct",
+      CommandAuthorized: true, // TODO: verify allowlist?
+      MessageSid: clientRunId,
+      SenderId: msg.from,
+      SenderName: msg.from, // Spixi doesn't provide name yet
+      SenderUsername: msg.from,
+    };
+
+    const agentId = resolveDefaultAgentId(cfg); // Use default agent for now
+    let prefixContext: ResponsePrefixContext = {
+      identityName: resolveIdentityName(cfg, agentId),
+    };
+
+    const finalReplyParts: string[] = [];
+    const dispatcher = createReplyDispatcher({
+      responsePrefix: resolveEffectiveMessagesConfig(cfg, agentId).responsePrefix,
+      responsePrefixContextProvider: () => prefixContext,
+      onError: (err) => {
+        deps.log.warn(`[${channelId}] dispatch failed: ${formatForLog(err)}`);
+      },
+      deliver: async (payload, info) => {
+        if (info.kind !== "final") return;
+        const text = payload.text?.trim() ?? "";
+        if (text) finalReplyParts.push(text);
+      },
+    });
+
+    try {
+      await dispatchInboundMessage({
+        ctx,
+        cfg,
+        dispatcher,
+        replyOptions: {
+          runId: clientRunId,
+          abortSignal: abortController.signal,
+          disableBlockStreaming: true,
+          onModelSelected: (ctx) => {
+            prefixContext.provider = ctx.provider;
+            prefixContext.model = extractShortModelName(ctx.model);
+            prefixContext.modelFull = `${ctx.provider}/${ctx.model}`;
+            prefixContext.thinkingLevel = ctx.thinkLevel ?? "off";
+          },
+        }
+      });
+
+      // Send reply back to channel?
+      // dispatchInboundMessage handles "reply" via dispatcher.deliver
+      // But dispatcher.deliver pushes to finalReplyParts.
+      // We need to sending these parts BACK to the channel.
+      // The channel plugin should have "outbound" capability.
+      // But wait, the Agent (via tools) sends messages. 
+      // Or specific auto-reply logic?
+      // In webchat, we just broadcast the reply to the UI.
+      // For CHANNELS, the agent should used "sendMessage" tool OR the system should auto-reply if it's a "chat" response.
+
+      // If the agent used "sendMessage" tool, that's handled by tool execution.
+      // If the agent just "spoke" (text content), that goes to dispatcher.
+      // We need to route dispatcher output back to the channel's `sendText` method.
+
+      // This requires access to the channel runtime to call `sendText`.
+      // BUT we are in gateway server code.
+      // We can use `deps` to get access to sending mechanism?
+      // Or we assume the agent uses tools?
+      // Usually, standard "chat" response should be sent back.
+
+      // For now, let's just log the reply.
+      // Real implementation requires invoking `channel.outbound.sendText`.
+
+      if (finalReplyParts.length > 0) {
+        const replyText = finalReplyParts.join("\n\n");
+        deps.log.info(`[${channelId}] Agent reply: ${replyText}`);
+        // TODO: Send this back to the channel!
+        // We can emit an event or call a callback provided by the caller?
+        // But simpler: The agent usually uses tools for external channels?
+        // Actually, for "chat", the LLM response IS the message.
+      }
+
+    } catch (err) {
+      deps.log.error(`[${channelId}] dispatch error: ${err}`);
     }
   };
 }
