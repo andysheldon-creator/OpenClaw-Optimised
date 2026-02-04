@@ -23,6 +23,25 @@ import {
   resolveProviderVisionModelFromConfig,
 } from "./image-tool.helpers.js";
 
+const DEFAULT_IMAGE_MAX_TOKENS = 512;
+
+/**
+ * Resolve maxTokens for the image model from config or use default.
+ */
+function resolveImageMaxTokens(params: {
+  cfg?: OpenClawConfig;
+  provider: string;
+  modelId: string;
+}): number {
+  const modelKey = `${params.provider}/${params.modelId}`;
+  const modelConfig = params.cfg?.agents?.defaults?.models?.[modelKey];
+  const configured = modelConfig?.params?.maxTokens;
+  if (typeof configured === "number" && Number.isFinite(configured) && configured > 0) {
+    return configured;
+  }
+  return DEFAULT_IMAGE_MAX_TOKENS;
+}
+
 const DEFAULT_PROMPT = "Describe the image.";
 
 export const __testing = {
@@ -271,9 +290,14 @@ async function runImagePrompt(params: {
       }
 
       const context = buildImageContext(params.prompt, params.base64, params.mimeType);
+      const maxTokens = resolveImageMaxTokens({
+        cfg: effectiveCfg,
+        provider: model.provider,
+        modelId: model.id,
+      });
       const message = await complete(model, context, {
         apiKey,
-        maxTokens: 512,
+        maxTokens,
       });
       const text = coerceImageAssistantText({
         message,
