@@ -152,6 +152,13 @@ export function createDailyflowsPairingRoute(api: OpenClawPluginApi) {
     const url = new URL(req.url ?? "/", "http://localhost");
 
     if (req.method === "GET") {
+      const isLocal =
+        req.socket.remoteAddress === "127.0.0.1" || req.socket.remoteAddress === "::1";
+      if (!isLocal) {
+        sendJson(res, 403, { ok: false, error: "pairing generation only allowed from localhost" });
+        return;
+      }
+
       const accountId = url.searchParams.get("accountId")?.trim() || "default";
       const gatewayUrlRaw =
         url.searchParams.get("gatewayUrl")?.trim() || resolveGatewayUrlFromRequest(req) || "";
