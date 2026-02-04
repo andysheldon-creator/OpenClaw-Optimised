@@ -24,6 +24,8 @@ import {
   MOONSHOT_BASE_URL,
   MOONSHOT_DEFAULT_MODEL_ID,
   MOONSHOT_DEFAULT_MODEL_REF,
+  OLLAMA_BASE_URL,
+  OLLAMA_DEFAULT_API_KEY,
 } from "./onboard-auth.models.js";
 
 export function applyZaiConfig(cfg: OpenClawConfig): OpenClawConfig {
@@ -455,6 +457,55 @@ export function applyVeniceConfig(cfg: OpenClawConfig): OpenClawConfig {
       },
     },
   };
+}
+
+/**
+ * Apply Ollama provider configuration without changing the default model.
+ * Sets up the provider with dynamic model discovery; models are populated at runtime.
+ */
+export function applyOllamaProviderConfig(
+  cfg: OpenClawConfig,
+  params?: { baseUrl?: string },
+): OpenClawConfig {
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.ollama;
+  // Preserve existing models if configured; otherwise use empty array for dynamic discovery
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim() || OLLAMA_DEFAULT_API_KEY;
+  const baseUrl = params?.baseUrl ?? OLLAMA_BASE_URL;
+
+  providers.ollama = {
+    ...existingProviderRest,
+    baseUrl,
+    api: "openai-completions",
+    apiKey: normalizedApiKey,
+    // Models are discovered dynamically via Ollama's /api/tags endpoint
+    models: existingModels,
+  };
+
+  return {
+    ...cfg,
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
+    },
+  };
+}
+
+/**
+ * Apply Ollama provider configuration. Since Ollama discovers models dynamically,
+ * this just configures the provider; model selection happens separately.
+ */
+export function applyOllamaConfig(
+  cfg: OpenClawConfig,
+  params?: { baseUrl?: string },
+): OpenClawConfig {
+  return applyOllamaProviderConfig(cfg, params);
 }
 
 export function applyAuthProfileConfig(

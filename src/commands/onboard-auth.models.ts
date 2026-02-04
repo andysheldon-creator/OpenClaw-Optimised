@@ -15,6 +15,9 @@ export const MOONSHOT_DEFAULT_MAX_TOKENS = 8192;
 export const KIMI_CODING_MODEL_ID = "k2p5";
 export const KIMI_CODING_MODEL_REF = `kimi-coding/${KIMI_CODING_MODEL_ID}`;
 
+export const OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1";
+export const OLLAMA_DEFAULT_API_KEY = "ollama";
+
 // Pricing: MiniMax doesn't publish public rates. Override in models.json for accurate costs.
 export const MINIMAX_API_COST = {
   input: 15,
