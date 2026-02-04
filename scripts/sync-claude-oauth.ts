@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { readClaudeCliCredentials } from "../src/agents/cli-credentials.js";
 
 const home = os.homedir();
 if (!home) {
@@ -8,7 +9,6 @@ if (!home) {
   process.exit(1);
 }
 
-const CLAUDE_CREDS = path.join(home, ".claude", ".credentials.json");
 const OPENCLAW_PROFILES = path.join(home, ".openclaw", "auth-profiles.json");
 const AGENT_PROFILES = path.join(
   home,
@@ -34,27 +34,24 @@ type ProfileStore = {
   >;
 };
 
-if (!fs.existsSync(CLAUDE_CREDS)) {
-  console.error(`Error: Claude Code credentials not found at ${CLAUDE_CREDS}`);
+// Read credentials via Keychain (macOS) with file fallback
+const cred = readClaudeCliCredentials();
+if (!cred) {
+  console.error("Error: Could not read Claude Code credentials (tried Keychain and file).");
   console.error("Run Claude Code first to generate OAuth credentials.");
   process.exit(1);
 }
-
-const raw = JSON.parse(fs.readFileSync(CLAUDE_CREDS, "utf8")) as {
-  claudeAiOauth?: { accessToken?: string; refreshToken?: string; expiresAt?: number };
-};
-const oauth = raw.claudeAiOauth;
-if (!oauth?.accessToken || !oauth?.refreshToken) {
-  console.error("Error: Missing accessToken or refreshToken in Claude Code credentials");
+if (cred.type !== "oauth") {
+  console.error("Error: Claude Code credential is a token (no refresh token), cannot sync.");
   process.exit(1);
 }
 
 const profile = {
   type: "oauth" as const,
   provider: "anthropic",
-  access: oauth.accessToken,
-  refresh: oauth.refreshToken,
-  expires: oauth.expiresAt || 0,
+  access: cred.access,
+  refresh: cred.refresh,
+  expires: cred.expires,
 };
 
 function clearCooldown(s: ProfileStore): void {

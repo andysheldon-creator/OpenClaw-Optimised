@@ -10,6 +10,7 @@ import type { AuthProfileStore } from "./types.js";
 import { refreshQwenPortalCredentials } from "../../providers/qwen-portal-oauth.js";
 import { refreshAnthropicTokens } from "../anthropic-oauth.js";
 import { refreshChutesTokens } from "../chutes-oauth.js";
+import { readClaudeCliCredentialsCached, writeClaudeCliCredentials } from "../cli-credentials.js";
 import { AUTH_STORE_LOCK_OPTIONS, log } from "./constants.js";
 import { formatAuthDoctorHint } from "./doctor.js";
 import { ensureAuthStoreFile, resolveAuthStorePath } from "./paths.js";
@@ -67,10 +68,28 @@ async function refreshOAuthTokenWithLock(params: {
     const result =
       String(cred.provider) === "anthropic"
         ? await (async () => {
-            const newCredentials = await refreshAnthropicTokens({
-              credential: cred,
-            });
-            return { apiKey: newCredentials.access, newCredentials };
+            try {
+              const newCredentials = await refreshAnthropicTokens({
+                credential: cred,
+              });
+              // Write refreshed tokens back to Claude Code CLI so both stay in sync
+              writeClaudeCliCredentials(newCredentials);
+              return { apiKey: newCredentials.access, newCredentials };
+            } catch (refreshError) {
+              // Fallback: try reading fresh credentials from Claude Code's Keychain
+              const freshCreds = readClaudeCliCredentialsCached({ ttlMs: 0 });
+              if (
+                freshCreds?.type === "oauth" &&
+                freshCreds.provider === "anthropic" &&
+                freshCreds.expires > Date.now()
+              ) {
+                log.info("anthropic refresh failed, using fresh credentials from Claude Code CLI", {
+                  expires: new Date(freshCreds.expires).toISOString(),
+                });
+                return { apiKey: freshCreds.access, newCredentials: freshCreds };
+              }
+              throw refreshError;
+            }
           })()
         : String(cred.provider) === "chutes"
           ? await (async () => {
