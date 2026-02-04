@@ -89,14 +89,18 @@ export function getEffectiveNextRunAtMs(job: CronJob, nowMs: number): number | u
 export function nextWakeAtMs(state: CronServiceState) {
   const jobs = state.store?.jobs ?? [];
   const now = state.deps.nowMs();
-  const withNext = jobs
-    .filter((j) => j.enabled)
-    .map((j) => getEffectiveNextRunAtMs(j, now))
-    .filter((n): n is number => typeof n === "number");
-  if (withNext.length === 0) {
-    return undefined;
+  let min: number | undefined;
+  for (const j of jobs) {
+    if (!j.enabled) {
+      continue;
+    }
+    const next = getEffectiveNextRunAtMs(j, now);
+    if (typeof next !== "number") {
+      continue;
+    }
+    min = min === undefined ? next : Math.min(min, next);
   }
-  return Math.min(...withNext);
+  return min;
 }
 
 export function createJob(state: CronServiceState, input: CronJobCreate): CronJob {
