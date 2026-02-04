@@ -602,7 +602,10 @@ export async function runEmbeddedPiAgent(
 
             // Don't rotate profiles for format errors — the same broken
             // payload will fail on every profile, cascading all into cooldown.
-            const rotated = cloudCodeAssistFormatError ? false : await advanceAuthProfile();
+            const rotated =
+              assistantFailoverReason === "format" || cloudCodeAssistFormatError
+                ? false
+                : await advanceAuthProfile();
             if (rotated) {
               continue;
             }
