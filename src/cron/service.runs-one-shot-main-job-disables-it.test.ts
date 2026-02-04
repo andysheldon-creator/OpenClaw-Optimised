@@ -461,4 +461,43 @@ describe("CronService", () => {
     cron.stop();
     await store.cleanup();
   });
+
+  it("defaults enabled to true when not specified", async () => {
+    const store = await makeStorePath();
+    const enqueueSystemEvent = vi.fn();
+    const requestHeartbeatNow = vi.fn();
+
+    const cron = new CronService({
+      storePath: store.storePath,
+      cronEnabled: true,
+      log: noopLogger,
+      enqueueSystemEvent,
+      requestHeartbeatNow,
+      runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" })),
+    });
+
+    await cron.start();
+    const atMs = Date.parse("2025-12-13T00:00:02.000Z");
+
+    // Create job WITHOUT enabled field - should default to true
+    const job = await cron.add({
+      name: "no enabled field",
+      schedule: { kind: "at", atMs },
+      sessionTarget: "main",
+      wakeMode: "now",
+      payload: { kind: "systemEvent", text: "hello" },
+    });
+
+    expect(job.enabled).toBe(true);
+    expect(job.state.nextRunAtMs).toBe(atMs);
+
+    // Job should actually fire
+    vi.setSystemTime(new Date("2025-12-13T00:00:02.000Z"));
+    await vi.runOnlyPendingTimersAsync();
+
+    expect(enqueueSystemEvent).toHaveBeenCalledWith("hello", { agentId: undefined });
+
+    cron.stop();
+    await store.cleanup();
+  });
 });
