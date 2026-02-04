@@ -563,7 +563,7 @@ export function createChannelMessageHandler(deps: {
           lastTo: msg.from,
           // FORCE ALLOW to ensure it replies
           sendPolicy: "allow",
-          contextTokens: defaults.contextTokens,
+          contextTokens: defaults.contextTokens ?? undefined,
           model: defaults.model ?? undefined,
           modelProvider: defaults.modelProvider ?? undefined,
         };
@@ -575,7 +575,7 @@ export function createChannelMessageHandler(deps: {
         entry.lastChannel = channelId;
         entry.lastTo = msg.from;
         // Ensure policy is allow if it was auto/missing
-        if (!entry.sendPolicy || entry.sendPolicy === "auto") {
+        if (!entry.sendPolicy || (entry.sendPolicy as any) === "auto") {
           entry.sendPolicy = "allow";
         }
       }

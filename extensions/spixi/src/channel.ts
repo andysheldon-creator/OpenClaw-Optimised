@@ -204,6 +204,7 @@ export const spixiPlugin: ChannelPlugin<ResolvedSpixiAccount> = {
       });
 
       return {
+        ...runtime,
         stop: async () => {
           log?.info(`[${account.accountId}] stopping spixi bridge`);
           client.end();
