@@ -484,11 +484,16 @@ export async function preflightDiscordMessage(
     if (mentionGate.shouldSkip) {
       // Log detailed information to help diagnose mention detection issues
       if (shouldLogVerbose()) {
+        // Pre-compute pattern match result to avoid processing text in log statement
+        const hasPatternMatch =
+          mentionRegexes.length > 0 && baseText
+            ? matchesMentionPatterns(baseText, mentionRegexes)
+            : false;
         logVerbose(
           `discord: drop guild message (mention required) - ` +
             `botId=${botId ? "set" : "unset"}, ` +
             `explicitMention=${explicitlyMentioned}, ` +
-            `patternMatch=${mentionRegexes.length > 0 && matchesMentionPatterns(baseText, mentionRegexes)}, ` +
+            `patternMatch=${hasPatternMatch}, ` +
             `hasAnyMention=${hasAnyMention}, ` +
             `implicitMention=${implicitMention}`,
         );
