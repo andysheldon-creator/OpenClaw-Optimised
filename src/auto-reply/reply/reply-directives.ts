@@ -1,6 +1,19 @@
+import path from "node:path";
 import { splitMediaFromOutput } from "../../media/parse.js";
 import { parseInlineDirectives } from "../../utils/directive-tags.js";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../tokens.js";
+
+/**
+ * Resolve a relative media path (starting with ./) to an absolute path.
+ * This must be called while process.cwd() is the workspace directory,
+ * as delivery happens asynchronously when cwd may have changed.
+ */
+function resolveMediaPath(mediaUrl: string): string {
+  if (mediaUrl.startsWith("./")) {
+    return path.resolve(mediaUrl);
+  }
+  return mediaUrl;
+}
 
 export type ReplyDirectiveParseResult = {
   text: string;
@@ -36,10 +49,15 @@ export function parseReplyDirectives(
     text = "";
   }
 
+  // Resolve relative paths to absolute while cwd is still the workspace.
+  // Delivery happens asynchronously when cwd may have been restored.
+  const resolvedMediaUrls = split.mediaUrls?.map(resolveMediaPath);
+  const resolvedMediaUrl = split.mediaUrl ? resolveMediaPath(split.mediaUrl) : undefined;
+
   return {
     text,
-    mediaUrls: split.mediaUrls,
-    mediaUrl: split.mediaUrl,
+    mediaUrls: resolvedMediaUrls,
+    mediaUrl: resolvedMediaUrl,
     replyToId: replyParsed.replyToId,
     replyToCurrent: replyParsed.replyToCurrent,
     replyToTag: replyParsed.hasReplyTag,
