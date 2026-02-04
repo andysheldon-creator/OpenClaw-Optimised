@@ -9,7 +9,9 @@ const cliDir = path.join(distDir, "cli");
 // Check if daemon-cli has its own entry point output (new tsdown config)
 const directOutput = path.join(cliDir, "daemon-cli.js");
 if (fs.existsSync(directOutput)) {
-  console.log("[write-cli-compat] daemon-cli.js already exists as entry point output, no shim needed");
+  console.log(
+    "[write-cli-compat] daemon-cli.js already exists as entry point output, no shim needed",
+  );
   process.exit(0);
 }
 
