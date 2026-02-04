@@ -65,7 +65,8 @@ export async function runCliAgent(params: {
 
   const extraSystemPrompt = [
     params.extraSystemPrompt?.trim(),
-    "Tools are disabled in this session. Do not call tools.",
+    // Only disable tools if enableNativeTools is not explicitly set to true
+    backend.enableNativeTools ? undefined : "Tools are disabled in this session. Do not call tools.",
   ]
     .filter(Boolean)
     .join("\n");

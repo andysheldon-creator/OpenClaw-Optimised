@@ -89,6 +89,8 @@ export type CliBackendConfig = {
   imageMode?: "repeat" | "list";
   /** Serialize runs for this CLI. */
   serialize?: boolean;
+  /** Enable native CLI tools (file read/write, shell). Default: false (tools disabled via prompt). */
+  enableNativeTools?: boolean;
 };
 
 export type AgentDefaultsConfig = {
