@@ -332,6 +332,12 @@ export function formatAssistantErrorText(
     }
   }
 
+  // Check rate limit BEFORE context overflow, since rate limit errors shouldn't
+  // be misreported as context overflow (both can contain "request" keywords)
+  if (isRateLimitErrorMessage(raw)) {
+    return "Rate limit exceeded. Please wait a moment before trying again.";
+  }
+
   if (isContextOverflowError(raw)) {
     return (
       "Context overflow: prompt too large for the model. " +
