@@ -21,7 +21,7 @@ import {
   writeCache,
 } from "./web-shared.js";
 
-const SEARCH_PROVIDERS = ["brave", "perplexity", "serper"] as const;
+const _SEARCH_PROVIDERS = ["brave", "perplexity", "serper"] as const;
 const DEFAULT_SEARCH_COUNT = 5;
 const MAX_SEARCH_COUNT = 10;
 
@@ -168,7 +168,7 @@ function isValidIsoDate(value: string): boolean {
   );
 }
 
-function missingSearchKeyPayload(provider: SearchProviderType): Record<string, unknown> {
+function _missingSearchKeyPayload(provider: SearchProviderType): Record<string, unknown> {
   if (provider === "perplexity") {
     return {
       error: "missing_perplexity_api_key",
@@ -227,9 +227,15 @@ function wrapSearchResult(result: Record<string, unknown>): Record<string, unkno
             wrapped.description = "";
           }
           // Copy other fields
-          if ("url" in entry) wrapped.url = entry.url;
-          if ("published" in entry) wrapped.published = entry.published;
-          if ("siteName" in entry) wrapped.siteName = entry.siteName;
+          if ("url" in entry) {
+            wrapped.url = entry.url;
+          }
+          if ("published" in entry) {
+            wrapped.published = entry.published;
+          }
+          if ("siteName" in entry) {
+            wrapped.siteName = entry.siteName;
+          }
           return wrapped;
         }
         return entry;
@@ -297,10 +303,10 @@ async function runWebSearchWithFallback(
       writeCache(SEARCH_CACHE, fallbackCacheKey, payload, options.cacheTtlMs);
       return wrapSearchResult(payload);
     } catch (fallbackError) {
-      // Combine both errors
-      throw new Error(
-        `Primary provider (${provider.type}) failed: ${primaryError instanceof Error ? primaryError.message : String(primaryError)}; Fallback provider (${fallbackProvider.type}) also failed: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
-      );
+      // Combine both errors, preserving the fallback error as the cause
+      const errorMessage = `Primary provider (${provider.type}) failed: ${primaryError instanceof Error ? primaryError.message : String(primaryError)}; Fallback provider (${fallbackProvider.type}) also failed: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`;
+      const combinedError = new Error(errorMessage, { cause: fallbackError });
+      throw combinedError;
     }
   }
 }

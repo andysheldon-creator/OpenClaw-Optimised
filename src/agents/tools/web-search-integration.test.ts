@@ -189,7 +189,7 @@ describe("createWebSearchTool integration tests", () => {
 
     try {
       await tool?.execute("test-id", { query: "test query" });
-    } catch (error) {
+    } catch {
       // Expected - mock will fail without proper API key
     }
 

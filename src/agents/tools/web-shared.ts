@@ -99,7 +99,9 @@ export async function readResponseText(res: Response): Promise<string> {
  * Returns undefined if URL is invalid or empty.
  */
 export function resolveSiteName(url: string | undefined): string | undefined {
-  if (!url) return undefined;
+  if (!url) {
+    return undefined;
+  }
   try {
     return new URL(url).hostname;
   } catch {

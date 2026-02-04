@@ -454,6 +454,6 @@ export function createProvider(
     case "mock":
       return new MockProvider();
     default:
-      throw new Error(`Unknown provider type: ${providerType}`);
+      throw new Error(`Unknown provider type: ${providerType as string}`);
   }
 }

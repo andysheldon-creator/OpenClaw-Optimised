@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   BraveProvider,
   PerplexityProvider,
@@ -145,10 +145,10 @@ describe("WebSearchProvider - Fallback Behavior", () => {
 
   it("should succeed with primary provider", async () => {
     const primary = new MockProvider({ delay: 50 });
-    const fallback = new MockProvider({ delay: 50 });
+    const _fallback = new MockProvider({ delay: 50 });
 
     // Mock import the runWebSearchWithFallback function
-    const { createWebSearchTool } = await import("./web-search.js");
+    const { createWebSearchTool: _createWebSearchTool } = await import("./web-search.js");
 
     // Test would go here via integration test
     const result = await primary.search(options);
