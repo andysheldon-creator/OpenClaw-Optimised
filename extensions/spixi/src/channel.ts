@@ -74,6 +74,34 @@ export const spixiPlugin: ChannelPlugin<ResolvedSpixiAccount> = {
         setSpixiBaseUrl(config.quixiApiUrl);
       }
 
+      const runtime = getSpixiRuntime();
+
+      // Auto-friend sync: fetch existing friends, add any from allowFrom that are missing
+      try {
+        const existingFriends = await runtime.channel.spixi.getFriendList();
+        const existingSet = new Set(existingFriends.map(addr => addr.toLowerCase()));
+
+        const allowFrom = config.allowFrom || [];
+        for (const address of allowFrom) {
+          const trimmed = address?.trim();
+          if (!trimmed || trimmed === "*") continue;
+
+          if (!existingSet.has(trimmed.toLowerCase())) {
+            log?.info(`[${account.accountId}] Auto-adding friend: ${trimmed}`);
+            try {
+              await runtime.channel.spixi.addContact(trimmed);
+              log?.info(`[${account.accountId}] Friend request sent to: ${trimmed}`);
+            } catch (e: any) {
+              log?.warn(`[${account.accountId}] Failed to add friend ${trimmed}: ${e.message}`);
+            }
+          }
+        }
+
+        log?.info(`[${account.accountId}] Friend sync complete. ${existingFriends.length} existing friends.`);
+      } catch (e: any) {
+        log?.warn(`[${account.accountId}] Could not sync friends: ${e.message}`);
+      }
+
       const client = mqtt.connect(mqttUrl);
 
       client.on("connect", () => {

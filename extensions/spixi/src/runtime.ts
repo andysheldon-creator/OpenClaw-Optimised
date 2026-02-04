@@ -6,6 +6,7 @@ export interface SpixiRuntime extends ExtensionRuntime {
     spixi: {
       sendMessage: (to: string, text: string, opts?: { baseUrl?: string }) => Promise<any>;
       addContact: (address: string, opts?: { baseUrl?: string }) => Promise<any>;
+      getFriendList: (opts?: { baseUrl?: string }) => Promise<string[]>;
     };
   };
 }
@@ -59,6 +60,21 @@ export const getSpixiRuntime = () => {
               };
             } catch (e: any) {
               throw new Error(`Spixi addContact failed: ${e.message}`);
+            }
+          },
+          getFriendList: async (opts?: { baseUrl?: string }) => {
+            const baseUrl = opts?.baseUrl || defaultBaseUrl;
+            try {
+              // QuIXI uses GET: /getContactList
+              const url = new URL("/getContactList", baseUrl);
+              const res = await axios.get(url.toString());
+              // Response is array of contact objects with address field
+              const contacts = res.data || [];
+              return Array.isArray(contacts)
+                ? contacts.map((c: any) => c.address || c).filter(Boolean)
+                : [];
+            } catch (e: any) {
+              throw new Error(`Spixi getFriendList failed: ${e.message}`);
             }
           }
         }
