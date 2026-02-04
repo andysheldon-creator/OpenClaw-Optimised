@@ -16,6 +16,7 @@ import {
   removeReactionDiscord,
   searchMessagesDiscord,
   sendMessageDiscord,
+  sendMessageWithButtonsDiscord,
   sendPollDiscord,
   sendStickerDiscord,
   unpinMessageDiscord,
@@ -235,6 +236,21 @@ export async function handleDiscordMessagingAction(
       const replyTo = readStringParam(params, "replyTo");
       const embeds =
         Array.isArray(params.embeds) && params.embeds.length > 0 ? params.embeds : undefined;
+      const components =
+        Array.isArray(params.components) && params.components.length > 0
+          ? params.components
+          : undefined;
+
+      // Use sendMessageWithButtonsDiscord if components are provided
+      if (components) {
+        const result = await sendMessageWithButtonsDiscord(to, content, components, {
+          ...(accountId ? { accountId } : {}),
+          replyTo,
+          embeds,
+        });
+        return jsonResult({ ok: true, result });
+      }
+
       const result = await sendMessageDiscord(to, content, {
         ...(accountId ? { accountId } : {}),
         mediaUrl,
