@@ -112,6 +112,40 @@ describe("sanitizeToolUseResultPairing", () => {
     expect(out.some((m) => m.role === "toolResult")).toBe(false);
     expect(out.map((m) => m.role)).toEqual(["user", "assistant"]);
   });
+
+  it("skips tool calls from aborted assistant messages", () => {
+    // When a streaming response is aborted mid-tool-call, the tool call may be incomplete.
+    // Inserting synthetic results for aborted tool calls causes API validation failures
+    // because the original tool_use block may be malformed.
+    const input = [
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "call_aborted", name: "process", arguments: {} }],
+        stopReason: "aborted",
+      },
+      { role: "user", content: "next message" },
+    ] as AgentMessage[];
+
+    const out = sanitizeToolUseResultPairing(input);
+    // Should NOT insert a synthetic tool result for the aborted tool call
+    expect(out.some((m) => m.role === "toolResult")).toBe(false);
+    expect(out.map((m) => m.role)).toEqual(["assistant", "user"]);
+  });
+
+  it("processes tool calls normally when stopReason is not aborted", () => {
+    const input = [
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "call_1", name: "read", arguments: {} }],
+        stopReason: "toolUse",
+      },
+      { role: "user", content: "next" },
+    ] as AgentMessage[];
+
+    const out = sanitizeToolUseResultPairing(input);
+    // Should insert synthetic result for the missing tool result
+    expect(out.filter((m) => m.role === "toolResult")).toHaveLength(1);
+  });
 });
 
 describe("sanitizeToolCallInputs", () => {
