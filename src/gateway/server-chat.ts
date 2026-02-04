@@ -2,7 +2,7 @@ import { normalizeVerboseLevel } from "../auto-reply/thinking.js";
 import { loadConfig } from "../config/config.js";
 import { type AgentEventPayload, getAgentRunContext } from "../infra/agent-events.js";
 import { resolveHeartbeatVisibility } from "../infra/heartbeat-visibility.js";
-import { loadSessionEntry, resolveGatewaySessionStoreTarget } from "./session-utils.js";
+import { loadSessionEntry, resolveGatewaySessionStoreTarget, getSessionDefaults } from "./session-utils.js";
 import { formatForLog } from "./ws-log.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -546,6 +546,7 @@ export function createChannelMessageHandler(deps: {
       let entry = existingKey ? store[existingKey] : undefined;
       if (!entry) {
         // Create new session entry
+        const defaults = getSessionDefaults(cfg);
         entry = {
           sessionId: randomUUID(),
           updatedAt: Date.now(),
@@ -558,6 +559,10 @@ export function createChannelMessageHandler(deps: {
           origin: { type: "user" },
           lastChannel: channelId,
           lastTo: msg.from,
+          sendPolicy: "auto",
+          contextTokens: defaults.contextTokens,
+          model: defaults.model ?? undefined,
+          modelProvider: defaults.modelProvider ?? undefined,
         };
         store[primaryKey] = entry;
         deps.log.info(`[${channelId}] Created new session entry for ${sessionKey} (si=${entry.sessionId})`);
