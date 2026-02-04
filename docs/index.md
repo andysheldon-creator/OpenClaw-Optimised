@@ -186,6 +186,7 @@ Example:
 
 - Start here:
   - [Docs hubs (all pages linked)](/start/hubs)
+  - [Trip Planner Quick Reference](/trip-planner/QUICK-REFERENCE.md)
   - [Help](/help) ← _common fixes + troubleshooting_
   - [Configuration](/gateway/configuration)
   - [Configuration examples](/gateway/configuration-examples)

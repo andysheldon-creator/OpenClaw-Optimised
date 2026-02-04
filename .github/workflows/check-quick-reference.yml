@@ -1,0 +1,26 @@
+name: Check Trip Planner Quick Reference
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-file:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify QUICK-REFERENCE exists
+        run: |
+          FILE=docs/trip-planner/QUICK-REFERENCE.md
+          if [ -f "$FILE" ]; then
+            echo "✅ $FILE found"
+            exit 0
+          fi
+          echo "❌ Missing: $FILE" >&2
+          echo "Please add the quick reference at docs/trip-planner/QUICK-REFERENCE.md" >&2
+          echo "Suggested: copy docs/trip-planner/QUICK-REFERENCE.md from the project template or run 'pnpm docs:add trip-planner' locally." >&2
+          echo "Files in docs/ (for debugging):" >&2
+          ls -la docs || true
+          exit 1

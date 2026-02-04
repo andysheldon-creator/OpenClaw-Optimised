@@ -13,3 +13,4 @@ onlyBuiltDependencies:
   - protobufjs
   - sharp
   - "@napi-rs/canvas"
+
