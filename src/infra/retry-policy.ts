@@ -20,6 +20,16 @@ export const TELEGRAM_RETRY_DEFAULTS = {
 
 const TELEGRAM_RETRY_RE = /429|timeout|connect|reset|closed|unavailable|temporarily/i;
 
+export const LLM_RETRY_DEFAULTS = {
+  attempts: 4,
+  minDelayMs: 1000,
+  maxDelayMs: 60_000,
+  jitter: 0.2,
+};
+
+const LLM_RETRY_RE =
+  /(rate[_ ]limit|too many requests|429|resource has been exhausted|overloaded|service_unavailable|5\d\d|cloudflare)/i;
+
 function getTelegramRetryAfterMs(err: unknown): number | undefined {
   if (!err || typeof err !== "object") {
     return undefined;
@@ -94,6 +104,32 @@ export function createTelegramRetryRunner(params: {
             const maxRetries = Math.max(1, info.maxAttempts - 1);
             console.warn(
               `telegram send retry ${info.attempt}/${maxRetries} for ${info.label ?? label ?? "request"} in ${info.delayMs}ms: ${formatErrorMessage(info.err)}`,
+            );
+          }
+        : undefined,
+    });
+}
+
+export function createLlmRetryRunner(params: {
+  retry?: RetryConfig;
+  configRetry?: RetryConfig;
+  verbose?: boolean;
+}): RetryRunner {
+  const retryConfig = resolveRetryConfig(LLM_RETRY_DEFAULTS, {
+    ...params.configRetry,
+    ...params.retry,
+  });
+  return <T>(fn: () => Promise<T>, label?: string) =>
+    retryAsync(fn, {
+      ...retryConfig,
+      label,
+      shouldRetry: (err) => LLM_RETRY_RE.test(formatErrorMessage(err)),
+      onRetry: params.verbose
+        ? (info) => {
+            const labelText = info.label ?? "LLM call";
+            const maxRetries = Math.max(1, info.maxAttempts - 1);
+            console.warn(
+              `${labelText} failed, retry ${info.attempt}/${maxRetries} in ${info.delayMs}ms: ${formatErrorMessage(info.err)}`,
             );
           }
         : undefined,

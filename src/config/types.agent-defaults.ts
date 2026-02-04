@@ -21,6 +21,7 @@ export type AgentModelEntryConfig = {
 export type AgentModelListConfig = {
   primary?: string;
   fallbacks?: string[];
+  maxRetries?: number;
 };
 
 export type AgentContextPruningConfig = {
