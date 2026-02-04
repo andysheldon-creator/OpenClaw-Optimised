@@ -73,7 +73,7 @@ export class LandingHero extends LitElement {
       overflow: hidden;
       background: var(--landing-bg-dark);
     }
-    
+
     /* Aurora background effect */
     .hero-background {
       position: absolute;
@@ -82,14 +82,14 @@ export class LandingHero extends LitElement {
       background: var(--landing-gradient-aurora);
       opacity: 0.8;
     }
-    
+
     .hero-background::before {
       content: "";
       position: absolute;
       inset: 0;
       background: var(--landing-gradient-hero);
     }
-    
+
     /* Animated mesh gradient */
     .hero-mesh {
       position: absolute;
@@ -102,7 +102,7 @@ export class LandingHero extends LitElement {
         radial-gradient(circle at 40% 40%, rgba(45, 212, 191, 0.08) 0%, transparent 40%);
       animation: meshMove 20s ease-in-out infinite;
     }
-    
+
     @keyframes meshMove {
       0%,
       100% {
@@ -118,7 +118,7 @@ export class LandingHero extends LitElement {
         transform: translate(1%, 2%) scale(1.01);
       }
     }
-    
+
     /* Content container */
     .hero-content {
       position: relative;
@@ -131,7 +131,7 @@ export class LandingHero extends LitElement {
       padding: 2rem var(--landing-padding-x, 2rem);
       text-align: center;
     }
-    
+
     /* Headline */
     .hero-headline {
       font-family: var(--landing-font-display, inherit);
@@ -145,7 +145,7 @@ export class LandingHero extends LitElement {
       animation: fadeInUp 0.8s ease-out 0.2s forwards;
       max-width: 800px;
     }
-    
+
     @keyframes fadeInUp {
       from {
         opacity: 0;
@@ -156,7 +156,7 @@ export class LandingHero extends LitElement {
         transform: translateY(0);
       }
     }
-    
+
     @keyframes fadeIn {
       from {
         opacity: 0;
@@ -165,7 +165,7 @@ export class LandingHero extends LitElement {
         opacity: 1;
       }
     }
-    
+
     @keyframes float {
       0%,
       100% {
@@ -175,7 +175,7 @@ export class LandingHero extends LitElement {
         transform: translateY(-10px);
       }
     }
-    
+
     @keyframes pulse {
       0%,
       100% {
@@ -185,7 +185,7 @@ export class LandingHero extends LitElement {
         opacity: 0.5;
       }
     }
-    
+
     /* Rotating text line */
     .hero-rotating-line {
       font-family: var(--landing-font-display, inherit);
@@ -202,7 +202,7 @@ export class LandingHero extends LitElement {
       overflow: hidden;
       position: relative;
     }
-    
+
     .hero-rotating-text {
       display: inline-block;
       background: linear-gradient(
@@ -217,7 +217,7 @@ export class LandingHero extends LitElement {
       background-size: 200% 100%;
       animation: gradientShift 6s ease-in-out infinite;
     }
-    
+
     @keyframes gradientShift {
       0%,
       100% {
@@ -227,7 +227,7 @@ export class LandingHero extends LitElement {
         background-position: 100% 50%;
       }
     }
-    
+
     /* Subheadline */
     .hero-subheadline {
       font-family: var(--landing-font-body, inherit);
@@ -239,7 +239,7 @@ export class LandingHero extends LitElement {
       opacity: 0;
       animation: fadeInUp 0.8s ease-out 0.5s forwards;
     }
-    
+
     /* CTA buttons */
     .hero-ctas {
       display: flex;
@@ -248,7 +248,7 @@ export class LandingHero extends LitElement {
       opacity: 0;
       animation: fadeInUp 0.8s ease-out 0.65s forwards;
     }
-    
+
     .cta-primary {
       font-family: var(--landing-font-body, inherit);
       padding: 1rem 2rem;
@@ -262,23 +262,23 @@ export class LandingHero extends LitElement {
       transition: all 0.2s ease;
       box-shadow: var(--landing-shadow-md), var(--landing-shadow-glow);
     }
-    
+
     .cta-primary:hover {
       transform: translateY(-2px);
       box-shadow:
         var(--landing-shadow-lg),
         0 0 60px rgba(99, 102, 241, 0.4);
     }
-    
+
     .cta-primary:active {
       transform: translateY(0);
     }
-    
+
     .cta-primary:focus-visible {
       outline: 2px solid var(--landing-primary-light, #818cf8);
       outline-offset: 2px;
     }
-    
+
     .cta-secondary {
       font-family: var(--landing-font-body, inherit);
       padding: 1rem 2rem;
@@ -291,22 +291,22 @@ export class LandingHero extends LitElement {
       cursor: pointer;
       transition: all 0.2s ease;
     }
-    
+
     .cta-secondary:hover {
       background: rgba(255, 255, 255, 0.05);
       border-color: var(--landing-border-hover);
       transform: translateY(-1px);
     }
-    
+
     .cta-secondary:active {
       transform: translateY(0);
     }
-    
+
     .cta-secondary:focus-visible {
       outline: 2px solid var(--landing-primary);
       outline-offset: 2px;
     }
-    
+
     /* Social proof hint */
     .hero-social-hint {
       display: flex;
@@ -316,11 +316,11 @@ export class LandingHero extends LitElement {
       opacity: 0;
       animation: fadeInUp 0.8s ease-out 0.8s forwards;
     }
-    
+
     .hero-avatars {
       display: flex;
     }
-    
+
     .hero-avatar {
       width: 32px;
       height: 32px;
@@ -334,21 +334,21 @@ export class LandingHero extends LitElement {
       color: white;
       font-weight: 600;
     }
-    
+
     .hero-avatar + .hero-avatar {
       margin-left: -8px;
     }
-    
+
     .hero-social-text {
       font-family: var(--landing-font-body, inherit);
       font-size: 0.875rem;
       color: var(--landing-text-muted);
     }
-    
+
     .hero-social-text strong {
       color: var(--landing-text-secondary);
     }
-    
+
     /* Floating cards */
     .floating-card {
       position: absolute;
@@ -368,30 +368,30 @@ export class LandingHero extends LitElement {
       --parallax-y: 0px;
       transform: rotate(var(--card-rotation, 0deg)) translateY(var(--parallax-y, 0px));
     }
-    
+
     .floating-card:hover {
       transform: rotate(var(--card-rotation, 0deg)) translateY(var(--parallax-y, 0px)) scale(1.05);
       box-shadow: var(--landing-shadow-lg);
     }
-    
+
     .floating-card-content {
       display: flex;
       align-items: center;
       gap: 0.625rem;
       white-space: nowrap;
     }
-    
+
     .floating-card-icon {
       font-size: 1.125rem;
     }
-    
+
     .floating-card-label {
       font-family: var(--landing-font-body, inherit);
       font-size: 0.875rem;
       font-weight: 500;
       color: var(--landing-text-secondary);
     }
-    
+
     .floating-card-status {
       width: 6px;
       height: 6px;
@@ -399,16 +399,16 @@ export class LandingHero extends LitElement {
       margin-left: 0.25rem;
       flex-shrink: 0;
     }
-    
+
     .floating-card-status.active {
       background: var(--landing-accent-teal);
       animation: pulse 2s ease-in-out infinite;
     }
-    
+
     .floating-card-status.complete {
       background: var(--landing-accent-warm);
     }
-    
+
     /* Scroll indicator */
     .scroll-indicator {
       position: absolute;
@@ -419,17 +419,17 @@ export class LandingHero extends LitElement {
       animation: fadeIn 0.6s ease-out 1.2s forwards;
       cursor: pointer;
     }
-    
+
     .scroll-indicator:hover .scroll-arrow {
       color: var(--landing-text-secondary);
     }
-    
+
     .scroll-indicator:focus-visible {
       outline: 2px solid var(--landing-primary);
       outline-offset: 4px;
       border-radius: 50%;
     }
-    
+
     .scroll-arrow {
       width: 24px;
       height: 24px;
@@ -437,37 +437,37 @@ export class LandingHero extends LitElement {
       animation: float 2s ease-in-out infinite;
       transition: color 0.2s ease;
     }
-    
+
     /* Responsive */
     @media (max-width: 768px) {
       .floating-card {
         display: none;
       }
-    
+
       .hero-ctas {
         flex-direction: column;
         width: 100%;
         max-width: 300px;
       }
-    
+
       .cta-primary,
       .cta-secondary {
         width: 100%;
         text-align: center;
       }
     }
-    
+
     @media (max-width: 480px) {
       .hero-social-hint {
         margin-top: 2rem;
       }
     }
-    
+
     @media (prefers-reduced-motion: reduce) {
       .hero-mesh {
         animation: none;
       }
-    
+
       .hero-headline,
       .hero-rotating-line,
       .hero-subheadline,
@@ -478,7 +478,7 @@ export class LandingHero extends LitElement {
         animation: none !important;
         opacity: 1;
       }
-    
+
       .scroll-arrow {
         animation: none;
       }
@@ -554,10 +554,10 @@ export class LandingHero extends LitElement {
 
           <div class="hero-ctas">
             <button class="cta-primary" @click=${this.handleGetStarted}>
-              Get Started
+              Join Waitlist
             </button>
-            <button class="cta-secondary" @click=${this.handleLearnMore}>
-              See It In Action
+            <button class="cta-secondary" @click=${this.handleRequestDemo}>
+              Request Demo
             </button>
           </div>
 
@@ -596,6 +596,10 @@ export class LandingHero extends LitElement {
 
   private handleGetStarted(): void {
     this.dispatchEvent(new CustomEvent("get-started", { bubbles: true, composed: true }));
+  }
+
+  private handleRequestDemo(): void {
+    this.dispatchEvent(new CustomEvent("book-demo", { bubbles: true, composed: true }));
   }
 
   private handleLearnMore(): void {

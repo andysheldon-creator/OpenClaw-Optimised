@@ -16,6 +16,9 @@ import "./sections/control-section";
 import "./sections/features-section";
 import "./sections/social-proof-section";
 import "./sections/footer-section";
+// CTA modal components
+import "./components/waitlist-modal";
+import "./components/demo-request-modal";
 // SEO meta management
 import { resetSeoMeta } from "./seo-meta";
 
@@ -29,12 +32,12 @@ export class LandingPage extends LitElement {
       color: var(--landing-text-primary);
       font-family: var(--landing-font-body, var(--font-body, system-ui, sans-serif));
     }
-    
+
     .landing-wrapper {
       display: flex;
       flex-direction: column;
     }
-    
+
     /* Skip-to-content for accessibility */
     .skip-to-content {
       position: absolute;
@@ -50,11 +53,11 @@ export class LandingPage extends LitElement {
       text-decoration: none;
       transition: top 0.2s ease;
     }
-    
+
     .skip-to-content:focus {
       top: 0;
     }
-    
+
     /* Sticky navigation */
     .landing-nav {
       position: fixed;
@@ -68,7 +71,7 @@ export class LandingPage extends LitElement {
       padding: 1rem var(--landing-padding-x, 2rem);
       transition: all 0.3s ease;
     }
-    
+
     .landing-nav.scrolled {
       background: rgba(10, 10, 15, 0.85);
       backdrop-filter: blur(20px);
@@ -76,11 +79,11 @@ export class LandingPage extends LitElement {
       border-bottom: 1px solid var(--landing-border);
       padding: 0.75rem var(--landing-padding-x, 2rem);
     }
-    
+
     :host-context([data-theme="light"]) .landing-nav.scrolled {
       background: rgba(255, 255, 255, 0.85);
     }
-    
+
     .nav-logo {
       font-size: 1.25rem;
       font-weight: 700;
@@ -88,20 +91,20 @@ export class LandingPage extends LitElement {
       text-decoration: none;
       letter-spacing: -0.02em;
     }
-    
+
     .nav-logo span {
       background: linear-gradient(135deg, var(--landing-primary), var(--landing-accent-lavender));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-    
+
     .nav-links {
       display: flex;
       align-items: center;
       gap: 2rem;
     }
-    
+
     .nav-link {
       font-size: 0.875rem;
       font-weight: 500;
@@ -113,23 +116,23 @@ export class LandingPage extends LitElement {
       padding: 0;
       transition: color 0.2s ease;
     }
-    
+
     .nav-link:hover {
       color: var(--landing-text-primary);
     }
-    
+
     .nav-link:focus-visible {
       outline: 2px solid var(--landing-primary);
       outline-offset: 2px;
       border-radius: 4px;
     }
-    
+
     .nav-logo:focus-visible {
       outline: 2px solid var(--landing-primary);
       outline-offset: 4px;
       border-radius: 4px;
     }
-    
+
     .nav-cta {
       padding: 0.5rem 1.25rem;
       font-size: 0.875rem;
@@ -141,17 +144,17 @@ export class LandingPage extends LitElement {
       cursor: pointer;
       transition: all 0.2s ease;
     }
-    
+
     .nav-cta:hover {
       background: var(--landing-primary-light);
       transform: translateY(-1px);
     }
-    
+
     .nav-cta:focus-visible {
       outline: 2px solid var(--landing-primary-light);
       outline-offset: 2px;
     }
-    
+
     /* Hamburger menu button (mobile) */
     .nav-hamburger {
       display: none;
@@ -162,19 +165,19 @@ export class LandingPage extends LitElement {
       color: var(--landing-text-primary);
       z-index: 110;
     }
-    
+
     .nav-hamburger svg {
       width: 24px;
       height: 24px;
       transition: transform 0.3s ease;
     }
-    
+
     .nav-hamburger:focus-visible {
       outline: 2px solid var(--landing-primary);
       outline-offset: 2px;
       border-radius: 4px;
     }
-    
+
     /* Mobile overlay menu */
     .mobile-menu-overlay {
       display: none;
@@ -185,11 +188,11 @@ export class LandingPage extends LitElement {
       opacity: 0;
       transition: opacity 0.3s ease;
     }
-    
+
     .mobile-menu-overlay.open {
       opacity: 1;
     }
-    
+
     .mobile-menu {
       display: none;
       position: fixed;
@@ -209,15 +212,15 @@ export class LandingPage extends LitElement {
       transform: translateX(100%);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
+
     .mobile-menu.open {
       transform: translateX(0);
     }
-    
+
     :host-context([data-theme="light"]) .mobile-menu {
       background: rgba(255, 255, 255, 0.95);
     }
-    
+
     .mobile-menu-link {
       font-size: 1.125rem;
       font-weight: 500;
@@ -231,18 +234,18 @@ export class LandingPage extends LitElement {
       transition: color 0.2s ease;
       border-bottom: 1px solid var(--landing-border);
     }
-    
+
     .mobile-menu-link:hover,
     .mobile-menu-link:focus {
       color: var(--landing-text-primary);
     }
-    
+
     .mobile-menu-link:focus-visible {
       outline: 2px solid var(--landing-primary);
       outline-offset: 2px;
       border-radius: 4px;
     }
-    
+
     .mobile-menu-cta {
       margin-top: 1rem;
       padding: 0.875rem 1.5rem;
@@ -256,16 +259,16 @@ export class LandingPage extends LitElement {
       transition: all 0.2s ease;
       text-align: center;
     }
-    
+
     .mobile-menu-cta:hover {
       background: var(--landing-primary-light);
     }
-    
+
     .mobile-menu-cta:focus-visible {
       outline: 2px solid var(--landing-primary-light);
       outline-offset: 2px;
     }
-    
+
     /* Back-to-top button */
     .back-to-top {
       position: fixed;
@@ -291,79 +294,79 @@ export class LandingPage extends LitElement {
         background 0.2s ease;
       pointer-events: none;
     }
-    
+
     .back-to-top.visible {
       opacity: 1;
       transform: translateY(0);
       pointer-events: auto;
     }
-    
+
     .back-to-top:hover {
       background: var(--landing-primary-light);
       transform: translateY(-2px);
     }
-    
+
     .back-to-top:focus-visible {
       outline: 2px solid var(--landing-primary-light);
       outline-offset: 2px;
     }
-    
+
     .back-to-top svg {
       width: 20px;
       height: 20px;
     }
-    
+
     /* Responsive — Tablet */
     @media (max-width: 1024px) {
       .nav-links {
         gap: 1.5rem;
       }
     }
-    
+
     /* Responsive — Mobile */
     @media (max-width: 768px) {
       .landing-nav {
         padding: 0.75rem var(--landing-padding-x, 1.5rem);
       }
-    
+
       .nav-links {
         gap: 1rem;
       }
-    
+
       .nav-link {
         display: none;
       }
-    
+
       .nav-hamburger {
         display: flex;
         align-items: center;
       }
-    
+
       .mobile-menu-overlay {
         display: block;
         pointer-events: none;
       }
-    
+
       .mobile-menu-overlay.open {
         pointer-events: auto;
       }
-    
+
       .mobile-menu {
         display: flex;
       }
     }
-    
+
     @media (max-width: 480px) {
       .nav-cta {
         padding: 0.5rem 1rem;
       }
-    
+
       .back-to-top {
         bottom: 1.25rem;
         right: 1.25rem;
       }
     }
-    
+
     @media (prefers-reduced-motion: reduce) {
       .mobile-menu,
       .mobile-menu-overlay,
@@ -381,6 +384,12 @@ export class LandingPage extends LitElement {
 
   @state()
   private mobileMenuOpen = false;
+
+  @state()
+  private waitlistOpen = false;
+
+  @state()
+  private demoOpen = false;
 
   private scrollHandler?: () => void;
 
@@ -416,7 +425,7 @@ export class LandingPage extends LitElement {
           <button class="nav-link" @click=${this.scrollToSection.bind(this, "control")}>Safety</button>
           <button class="nav-link" @click=${this.scrollToSection.bind(this, "social-proof")}>Stories</button>
           <button class="nav-cta" @click=${this.handleGetStarted}>
-            Get Started
+            Join Waitlist
           </button>
           <button
             class="nav-hamburger"
@@ -461,13 +470,14 @@ export class LandingPage extends LitElement {
           this.closeMobileMenu();
           this.handleGetStarted();
         }}>
-          Get Started
+          Join Waitlist
         </button>
       </div>
 
       <main class="landing-wrapper" id="main-content" @landing-navigate=${this.handleLandingNavigate}>
         <landing-hero
           @get-started=${this.handleGetStarted}
+          @book-demo=${this.handleBookDemo}
           @learn-more=${() => this.scrollToSection("features")}
         ></landing-hero>
 
@@ -497,6 +507,19 @@ export class LandingPage extends LitElement {
           <path d="M18 15l-6-6-6 6"/>
         </svg>
       </button>
+
+      <!-- CTA Modals -->
+      <waitlist-modal
+        ?open=${this.waitlistOpen}
+        @modal-close=${() => (this.waitlistOpen = false)}
+        @waitlist-submit=${this.handleWaitlistSubmit}
+      ></waitlist-modal>
+
+      <demo-request-modal
+        ?open=${this.demoOpen}
+        @modal-close=${() => (this.demoOpen = false)}
+        @demo-submit=${this.handleDemoSubmit}
+      ></demo-request-modal>
     `;
   }
 
@@ -534,11 +557,35 @@ export class LandingPage extends LitElement {
   }
 
   private handleGetStarted(): void {
+    this.waitlistOpen = true;
     this.dispatchEvent(new CustomEvent("get-started", { bubbles: true, composed: true }));
   }
 
   private handleBookDemo(): void {
+    this.demoOpen = true;
     this.dispatchEvent(new CustomEvent("book-demo", { bubbles: true, composed: true }));
+  }
+
+  private handleWaitlistSubmit(e: CustomEvent<{ email: string }>): void {
+    // Forward the event for any parent handler
+    this.dispatchEvent(
+      new CustomEvent("waitlist-submit", {
+        detail: e.detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private handleDemoSubmit(e: CustomEvent): void {
+    // Forward the event for any parent handler
+    this.dispatchEvent(
+      new CustomEvent("demo-submit", {
+        detail: e.detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   private handleLandingNavigate(event: CustomEvent<{ section: string }>): void {
@@ -566,6 +613,17 @@ export { LandingFeatures } from "./sections/features-section";
 export { LandingSocialProof } from "./sections/social-proof-section";
 export { LandingFooter } from "./sections/footer-section";
 
+// CTA modal components
+export { WaitlistModal } from "./components/waitlist-modal";
+export { DemoRequestModal } from "./components/demo-request-modal";
+export type { DemoRequestData } from "./components/demo-request-modal";
+
 // SEO utilities
-export { updateSeoMeta, resetSeoMeta, injectJsonLd, removeJsonLd, LANDING_SEO_DEFAULTS } from "./seo-meta";
+export {
+  updateSeoMeta,
+  resetSeoMeta,
+  injectJsonLd,
+  removeJsonLd,
+  LANDING_SEO_DEFAULTS,
+} from "./seo-meta";
 export type { SeoMeta } from "./seo-meta";
