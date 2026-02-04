@@ -1,3 +1,6 @@
+import { readFileSync, existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { AgentBinding } from "../config/types.agents.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
@@ -13,8 +16,33 @@ function normalizeBindingChannelId(raw?: string | null): string | null {
   return fallback || null;
 }
 
+let cachedExtraBindings: AgentBinding[] | null = null;
+
+function loadExtraBindings(): AgentBinding[] {
+  if (cachedExtraBindings !== null) {
+    return cachedExtraBindings;
+  }
+  try {
+    const path = join(homedir(), ".openclaw", "routing.json");
+    if (existsSync(path)) {
+      const content = readFileSync(path, "utf-8");
+      const json = JSON.parse(content);
+      if (Array.isArray(json)) {
+        cachedExtraBindings = json as AgentBinding[];
+        return cachedExtraBindings;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  cachedExtraBindings = [];
+  return cachedExtraBindings;
+}
+
 export function listBindings(cfg: OpenClawConfig): AgentBinding[] {
-  return Array.isArray(cfg.bindings) ? cfg.bindings : [];
+  const extra = loadExtraBindings();
+  const configBindings = Array.isArray(cfg.bindings) ? cfg.bindings : [];
+  return [...extra, ...configBindings];
 }
 
 export function listBoundAccountIds(cfg: OpenClawConfig, channelId: string): string[] {

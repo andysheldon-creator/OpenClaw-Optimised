@@ -304,6 +304,7 @@ export async function runEmbeddedPiAgent(
       }
 
       let overflowCompactionAttempted = false;
+      let hasRotated = false;
       try {
         while (true) {
           attemptedThinking.add(thinkLevel);
@@ -365,6 +366,7 @@ export async function runEmbeddedPiAgent(
             streamParams: params.streamParams,
             ownerNumbers: params.ownerNumbers,
             enforceFinalTag: params.enforceFinalTag,
+            limitHistoryTurns: hasRotated ? 5 : undefined,
           });
 
           const { aborted, promptError, timedOut, sessionIdUsed, lastAssistant } = attempt;
@@ -590,6 +592,7 @@ export async function runEmbeddedPiAgent(
 
             const rotated = await advanceAuthProfile();
             if (rotated) {
+              hasRotated = true;
               continue;
             }
 
