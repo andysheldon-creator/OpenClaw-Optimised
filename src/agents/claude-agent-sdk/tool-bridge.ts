@@ -34,6 +34,54 @@ import { truncateForLog } from "../../logging/truncate.js";
 import { normalizeToolName } from "../tool-policy.js";
 
 // ---------------------------------------------------------------------------
+// Utility functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract the first line from a text string for console logging.
+ * Truncates at the first line feed (\n or \r) to prevent multi-line subprocess
+ * output from polluting console logs.
+ *
+ * For exec failures, prioritizes exit code information that typically appears
+ * at the end of the full output, extracting it and prepending it to the first
+ * line of actual output.
+ *
+ * @param text - The text to extract the first line from
+ * @param maxLength - Maximum length of the returned string (default: 240)
+ * @returns The first line, truncated to maxLength if needed
+ */
+function extractFirstLine(text: string, maxLength: number = 240): string {
+  // Check for exit code information at the end of the text
+  // Pattern: "Command exited with code N" or "Command aborted by signal NAME"
+  const exitCodeMatch = text.match(
+    /(?:Command exited with code \d+|Command aborted by signal \w+|Command aborted before exit code was captured)$/,
+  );
+  const exitCodeInfo = exitCodeMatch ? exitCodeMatch[0] : null;
+
+  // Find the first line feed (either \n or \r)
+  const lfIndex = text.indexOf("\n");
+  const crIndex = text.indexOf("\r");
+  const firstLineEnd =
+    lfIndex === -1 ? crIndex : crIndex === -1 ? lfIndex : Math.min(lfIndex, crIndex);
+
+  if (firstLineEnd === -1) {
+    // No line breaks found, just truncate if needed
+    return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+  }
+
+  // Extract the first line of actual output
+  const firstLine = text.slice(0, firstLineEnd);
+
+  // If we found exit code info at the end, prepend it to the first line
+  if (exitCodeInfo) {
+    const combined = `${exitCodeInfo} :: ${firstLine}`;
+    return combined.length > maxLength ? `${combined.slice(0, maxLength)}…` : combined;
+  }
+
+  return firstLine.length > maxLength ? `${firstLine.slice(0, maxLength)}…` : firstLine;
+}
+
+// ---------------------------------------------------------------------------
 // Schema conversion: TypeBox → JSON Schema → Zod
 // ---------------------------------------------------------------------------
 
@@ -482,7 +530,11 @@ export function wrapToolHandler(tool: AnyAgentTool, abortSignal?: AbortSignal): 
         contextParts.push(`cwd=${JSON.stringify(execWorkdirText)}`);
       }
 
-      logError(`[tool-bridge] ${normalizedName} failed: ${message} (${contextParts.join(" ")})`);
+      // Truncate message at first line feed for console logging (keep full message for model)
+      const messageForLog = extractFirstLine(message, 240);
+      logError(
+        `[tool-bridge] ${normalizedName} failed: ${messageForLog} (${contextParts.join(" ")})`,
+      );
 
       // Log debug details if available (e.g., wrapped error content from web_fetch)
       const debugDetail =

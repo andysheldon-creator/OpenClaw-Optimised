@@ -530,6 +530,69 @@ describe("wrapToolHandler", () => {
     });
   });
 
+  it("truncates multi-line error messages at first line feed for logging", async () => {
+    // Simulate a git error with multi-line output
+    const multiLineError = new Error(
+      "Already on 'main'\nM    AGENTS.md\nM    HEARTBEAT.md\nfatal: 'origin' does not appear to be a git repository",
+    );
+    const executeFn = vi.fn().mockRejectedValue(multiLineError);
+    const tool = createStubTool("exec", { execute: executeFn });
+
+    const handler = wrapToolHandler(tool);
+    const result = await handler({ command: "git checkout main" }, createMockExtra());
+
+    // The result returned to the model should still contain the full error
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("Already on 'main'"),
+    });
+    expect(result.content[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("AGENTS.md"),
+    });
+  });
+
+  it("extracts exit code from end and prepends to first line", async () => {
+    // Simulate an exec error where exit code info appears at the end
+    const errorWithExitCode = new Error(
+      "fatal: not a git repository\n/tmp/test\n\nCommand exited with code 128",
+    );
+    const executeFn = vi.fn().mockRejectedValue(errorWithExitCode);
+    const tool = createStubTool("exec", { execute: executeFn });
+
+    const handler = wrapToolHandler(tool);
+    const result = await handler({ command: "git status" }, createMockExtra());
+
+    // The result should still contain the full error message
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("fatal: not a git repository"),
+    });
+    expect(result.content[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("Command exited with code 128"),
+    });
+  });
+
+  it("handles signal termination messages", async () => {
+    const signalError = new Error(
+      "stdout line 1\nstdout line 2\n\nCommand aborted by signal SIGTERM",
+    );
+    const executeFn = vi.fn().mockRejectedValue(signalError);
+    const tool = createStubTool("exec", { execute: executeFn });
+
+    const handler = wrapToolHandler(tool);
+    const result = await handler({ command: "long-running" }, createMockExtra());
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("signal SIGTERM"),
+    });
+  });
+
   it("handles AbortError gracefully", async () => {
     const abortError = new DOMException("aborted", "AbortError");
     const executeFn = vi.fn().mockRejectedValue(abortError);
