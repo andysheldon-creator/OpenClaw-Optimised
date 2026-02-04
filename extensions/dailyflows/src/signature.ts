@@ -12,11 +12,19 @@ export function isDailyflowsSignatureValid(params: {
   signature: string;
   body: string;
 }): boolean {
-  const expected = buildDailyflowsSignature(params.secret, params.timestamp, params.body);
-  const expectedBuf = Buffer.from(expected);
-  const signatureBuf = Buffer.from(params.signature);
-  if (expectedBuf.length !== signatureBuf.length) {
+  const hmac = createHmac("sha256", params.secret);
+  hmac.update(`${params.timestamp}.${params.body}`);
+  const expected = hmac.digest();
+
+  const prefix = "v1=";
+  if (!params.signature.startsWith(prefix)) {
     return false;
   }
-  return timingSafeEqual(expectedBuf, signatureBuf);
+  const provided = Buffer.from(params.signature.slice(prefix.length), "hex");
+
+  if (provided.length !== expected.length) {
+    timingSafeEqual(expected, expected);
+    return false;
+  }
+  return timingSafeEqual(expected, provided);
 }
