@@ -479,6 +479,10 @@ export async function runEmbeddedAttempt(
       // Hook injection: wrap tools to enforce before_tool_call policies
       // Tool execute signature: (toolCallId, args, signal, onUpdate)
       const wrapToolForHooks = (tool: any) => {
+        // Guard: only wrap tools that have a callable execute function
+        if (typeof tool.execute !== "function") {
+          return;
+        }
         const originalExecute = tool.execute;
         tool.execute = async (toolCallId: any, args: any, signal?: any, onUpdate?: any) => {
           if (hookRunner?.hasHooks("before_tool_call")) {

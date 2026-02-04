@@ -212,21 +212,30 @@ export class CedarEvaluator {
   }
 
   /**
+   * Check if a policy ID is a redaction policy by naming convention.
+   * Redaction policies use prefixes: sondera-redact-, owasp-redact-
+   */
+  private isRedactionPolicy(policyId: string): boolean {
+    return policyId.startsWith("sondera-redact-") || policyId.startsWith("owasp-redact-");
+  }
+
+  /**
    * Evaluate a POST_TOOL stage (after tool execution, for result redaction).
-   * Only redacts if a SPECIFIC redaction policy matched.
+   * Only redacts if a SPECIFIC redaction policy matched (identified by naming convention).
    */
   evaluatePostTool(toolName: string, response: unknown): EvaluationResult {
     const result = this.evaluate(`${toolName}_result`, { response });
 
     // Only redact if a specific redaction policy matched
-    // Filter out default policies - we only want explicit redaction rules
+    // Identify redaction policies by naming convention (more robust than special-casing)
     if (result.decision === "DENY") {
-      const specificPolicies = (result.policyIds || []).filter(
-        id => id !== "default-allow"
+      const redactionPolicies = (result.policyIds || []).filter(
+        id => this.isRedactionPolicy(id)
       );
 
-      if (specificPolicies.length === 0) {
-        // No specific redaction policy matched, allow result through
+      if (redactionPolicies.length === 0) {
+        // No redaction policy matched - DENY was from a non-redaction rule
+        // Allow result through (don't redact based on non-redaction policies)
         return {
           decision: "ALLOW",
           reason: "No redaction policy matched",
@@ -236,8 +245,8 @@ export class CedarEvaluator {
       // A specific redaction policy matched, redact the result
       return {
         ...result,
-        policyIds: specificPolicies,
-        reason: specificPolicies.join(", "),
+        policyIds: redactionPolicies,
+        reason: redactionPolicies.join(", "),
       };
     }
 

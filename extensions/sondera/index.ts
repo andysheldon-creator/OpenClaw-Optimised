@@ -98,7 +98,7 @@ permit(principal, action, resource);
         const ruleCount = countPolicyRules(basePolicy);
         api.logger.debug?.(`[Sondera] Loaded bundled default policy pack (${ruleCount} rules)`);
       } catch (err) {
-        api.logger.debug(`[Sondera] No bundled policy-sondera-base.cedar found (this is OK if using UI-only)`);
+        api.logger.debug?.(`[Sondera] No bundled policy-sondera-base.cedar found (this is OK if using UI-only)`);
       }
     } else {
       api.logger.debug?.(`[Sondera] Sondera Policy Pack disabled by config`);
@@ -112,7 +112,7 @@ permit(principal, action, resource);
         const ruleCount = countPolicyRules(openclawSystemPolicy);
         api.logger.debug?.(`[Sondera] Loaded OpenClaw System Protection pack (${ruleCount} rules)`);
       } catch (err) {
-        api.logger.debug(`[Sondera] No policy-openclaw-system.cedar found`);
+        api.logger.debug?.(`[Sondera] No policy-openclaw-system.cedar found`);
       }
     } else {
       api.logger.debug?.(`[Sondera] OpenClaw System Protection Pack disabled by config`);
@@ -126,7 +126,7 @@ permit(principal, action, resource);
         const ruleCount = countPolicyRules(owaspAgenticPolicy);
         api.logger.debug?.(`[Sondera] Loaded OWASP Agentic policy pack (${ruleCount} rules)`);
       } catch (err) {
-        api.logger.debug(`[Sondera] No policy-owasp-agentic.cedar found`);
+        api.logger.debug?.(`[Sondera] No policy-owasp-agentic.cedar found`);
       }
     } else {
       api.logger.debug?.(`[Sondera] OWASP Agentic Pack disabled by config (default)`);
@@ -155,10 +155,10 @@ permit(principal, action, resource);
 
   if (!combinedPolicy.trim()) {
     if (blockByDefault) {
-      // Lockdown mode with no policies: Cedar's default-deny handles everything
-      // Use empty policy set - Cedar denies when no permits match
-      api.logger.info("[Sondera] Lockdown mode enabled with no policy packs - all tools blocked by Cedar default-deny.");
-      combinedPolicy = "// Lockdown mode: Cedar default-deny (no permits)";
+      // Lockdown mode with no policies: rely on Cedar's implicit default-deny
+      // Empty policy set = no permits = all requests denied (Cedar best practice)
+      api.logger.info("[Sondera] Lockdown mode enabled - all tools blocked by Cedar default-deny.");
+      // Keep combinedPolicy empty - this is valid input for Cedar
     } else {
       api.logger.warn("[Sondera] No policy configured. Set policyPath or add customPolicy via config UI.");
       api.logger.debug?.("Sondera extension loaded (inactive - no policy configured).");
@@ -211,7 +211,7 @@ permit(principal, action, resource);
     if (error) {
       api.logger.debug?.(`[Sondera] after_tool_call: toolName=${toolName} error="${error}" duration=${durationMs}ms`);
     } else {
-      api.logger.debug(`[Sondera] after_tool_call: toolName=${toolName} duration=${durationMs}ms`);
+      api.logger.debug?.(`[Sondera] after_tool_call: toolName=${toolName} duration=${durationMs}ms`);
     }
   });
 
@@ -235,7 +235,7 @@ permit(principal, action, resource);
     }
 
     const result = evaluator.evaluatePostTool(toolName ?? "unknown", textContent);
-    api.logger.debug(`[Sondera] POST_TOOL decision for "${toolName}": ${result.decision}`);
+    api.logger.debug?.(`[Sondera] POST_TOOL decision for "${toolName}": ${result.decision}`);
 
     if (result.decision === "DENY") {
       const policyInfo = result.reason ? ` (${result.reason})` : "";
