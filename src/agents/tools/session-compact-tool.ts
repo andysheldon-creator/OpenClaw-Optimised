@@ -74,58 +74,94 @@ export function createSessionCompactTool(opts?: {
       if (!SCHEDULED_COMPACTIONS.has(sessionId)) {
         SCHEDULED_COMPACTIONS.add(sessionId);
         void (async () => {
+          const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+          const isTransient = (reason: string) => {
+            const r = reason.toLowerCase();
+            return (
+              // Common transient transport/provider failures.
+              r.includes("503") ||
+              r.includes("temporarily unavailable") ||
+              r.includes("fetch failed") ||
+              r.includes("econnreset") ||
+              r.includes("etimedout") ||
+              // CN provider/router message seen in the wild.
+              reason.includes("所有供应商暂时不可用")
+            );
+          };
+
+          // Queue compaction behind the current session lane; do not run inside the active attempt.
+          const sessionFile = resolveSessionFilePath(sessionId, entry, { agentId });
+          const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
+
+          // Retry a few times on transient 503/network failures.
+          const retryDelaysMs = [0, 60_000, 180_000];
+
           try {
-            // Queue compaction behind the current session lane; do not run inside the active attempt.
-            const sessionFile = resolveSessionFilePath(sessionId, entry, { agentId });
-            const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
-
-            const result = await compactEmbeddedPiSession({
-              sessionId,
-              sessionKey,
-              messageChannel: entry.lastChannel ?? entry.channel,
-              groupId: entry.groupId,
-              groupChannel: entry.groupChannel,
-              groupSpace: entry.space,
-              spawnedBy: entry.spawnedBy,
-              sessionFile,
-              workspaceDir,
-              config: cfg,
-              skillsSnapshot: entry.skillsSnapshot,
-              provider: entry.providerOverride ?? entry.modelProvider,
-              model: entry.modelOverride ?? entry.model,
-              bashElevated: {
-                enabled: false,
-                allowed: false,
-                defaultLevel: "off",
-              },
-              customInstructions: instructions,
-            });
-
-            if (result.ok && result.compacted) {
-              // Best-effort: bump compactionCount for UI/status; ignore failures.
-              try {
-                await updateSessionStore(storePath, (next) => {
-                  const currentEntry = next[sessionKey];
-                  const nextCount = (currentEntry?.compactionCount ?? 0) + 1;
-                  const updates: Partial<SessionEntry> = {
-                    compactionCount: nextCount,
-                    updatedAt: Date.now(),
-                  };
-                  if (result.result?.tokensAfter && result.result.tokensAfter > 0) {
-                    updates.totalTokens = result.result.tokensAfter;
-                    updates.inputTokens = undefined;
-                    updates.outputTokens = undefined;
-                  }
-                  next[sessionKey] = { ...currentEntry, ...updates };
-                });
-              } catch {
-                // Ignore store update failures.
+            for (let attempt = 0; attempt < retryDelaysMs.length; attempt++) {
+              const delayMs = retryDelaysMs[attempt];
+              if (delayMs > 0) {
+                enqueueSystemEvent(
+                  `Session compaction retry scheduled in ${Math.round(delayMs / 1000)}s.`,
+                  { sessionKey },
+                );
+                await sleep(delayMs);
               }
 
-              enqueueSystemEvent("Session compacted.", { sessionKey });
-            } else {
+              const result = await compactEmbeddedPiSession({
+                sessionId,
+                sessionKey,
+                messageChannel: entry.lastChannel ?? entry.channel,
+                groupId: entry.groupId,
+                groupChannel: entry.groupChannel,
+                groupSpace: entry.space,
+                spawnedBy: entry.spawnedBy,
+                sessionFile,
+                workspaceDir,
+                config: cfg,
+                skillsSnapshot: entry.skillsSnapshot,
+                provider: entry.providerOverride ?? entry.modelProvider,
+                model: entry.modelOverride ?? entry.model,
+                bashElevated: {
+                  enabled: false,
+                  allowed: false,
+                  defaultLevel: "off",
+                },
+                customInstructions: instructions,
+              });
+
+              if (result.ok && result.compacted) {
+                // Best-effort: bump compactionCount for UI/status; ignore failures.
+                try {
+                  await updateSessionStore(storePath, (next) => {
+                    const currentEntry = next[sessionKey];
+                    const nextCount = (currentEntry?.compactionCount ?? 0) + 1;
+                    const updates: Partial<SessionEntry> = {
+                      compactionCount: nextCount,
+                      updatedAt: Date.now(),
+                    };
+                    if (result.result?.tokensAfter && result.result.tokensAfter > 0) {
+                      updates.totalTokens = result.result.tokensAfter;
+                      updates.inputTokens = undefined;
+                      updates.outputTokens = undefined;
+                    }
+                    next[sessionKey] = { ...currentEntry, ...updates };
+                  });
+                } catch {
+                  // Ignore store update failures.
+                }
+
+                enqueueSystemEvent("Session compacted.", { sessionKey });
+                return;
+              }
+
               const reason = result.reason?.trim() || (result.ok ? "not compacted" : "error");
+              if (!result.ok && isTransient(reason) && attempt < retryDelaysMs.length - 1) {
+                // Try again after backoff.
+                continue;
+              }
+
               enqueueSystemEvent(`Session compaction did not run: ${reason}.`, { sessionKey });
+              return;
             }
           } catch (err) {
             const reason = err instanceof Error ? err.message : String(err);
