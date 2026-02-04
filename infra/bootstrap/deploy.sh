@@ -5,7 +5,7 @@ set -euo pipefail
 # Deploys/updates system scripts from the repo to system locations
 # Run manually or via GitHub Actions after merge to main
 
-OPENCLAW_REPO_DIR="${OPENCLAW_REPO_DIR:-/var/lib/openclaw/workspace/openclaw}"
+OPENCLAW_REPO_DIR="${OPENCLAW_REPO_DIR:-/opt/openclaw/runtime}"
 BOOTSTRAP_DIR="$OPENCLAW_REPO_DIR/infra/bootstrap"
 
 echo "Deploying OpenClaw bootstrap scripts..."
