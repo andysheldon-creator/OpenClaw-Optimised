@@ -13,6 +13,7 @@ export type AuthChoiceGroupId =
   | "google"
   | "copilot"
   | "openrouter"
+  | "orq"
   | "ai-gateway"
   | "cloudflare-ai-gateway"
   | "moonshot"
@@ -70,6 +71,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "Google",
     hint: "Gemini API key + OAuth",
     choices: ["gemini-api-key", "google-antigravity", "google-gemini-cli"],
+  },
+  {
+    value: "orq",
+    label: "Orq AI Router",
+    hint: "OpenAI-compatible router",
+    choices: ["orq-api-key"],
   },
   {
     value: "xai",
@@ -176,6 +183,7 @@ export function buildAuthChoiceOptions(params: {
   });
   options.push({ value: "chutes", label: "Chutes (OAuth)" });
   options.push({ value: "openai-api-key", label: "OpenAI API key" });
+  options.push({ value: "orq-api-key", label: "Orq API key" });
   options.push({ value: "xai-api-key", label: "xAI (Grok) API key" });
   options.push({
     value: "qianfan-api-key",

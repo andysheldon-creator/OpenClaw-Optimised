@@ -1035,6 +1035,7 @@
                   "providers/anthropic",
                   "providers/openai",
                   "providers/openrouter",
+                  "providers/orq",
                   "providers/bedrock",
                   "providers/vercel-ai-gateway",
                   "providers/moonshot",

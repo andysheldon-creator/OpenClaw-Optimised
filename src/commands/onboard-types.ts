@@ -11,6 +11,7 @@ export type AuthChoice =
   | "chutes"
   | "openai-codex"
   | "openai-api-key"
+  | "orq-api-key"
   | "openrouter-api-key"
   | "ai-gateway-api-key"
   | "cloudflare-ai-gateway-api-key"
@@ -88,6 +89,7 @@ export type OnboardOptions = {
   tokenExpiresIn?: string;
   anthropicApiKey?: string;
   openaiApiKey?: string;
+  orqApiKey?: string;
   openrouterApiKey?: string;
   aiGatewayApiKey?: string;
   cloudflareAiGatewayAccountId?: string;

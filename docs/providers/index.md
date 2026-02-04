@@ -39,6 +39,7 @@ See [Venice AI](/providers/venice).
 - [Anthropic (API + Claude Code CLI)](/providers/anthropic)
 - [Qwen (OAuth)](/providers/qwen)
 - [OpenRouter](/providers/openrouter)
+- [Orq AI Router](/providers/orq)
 - [Vercel AI Gateway](/providers/vercel-ai-gateway)
 - [Together AI](/providers/together)
 - [Cloudflare AI Gateway](/providers/cloudflare-ai-gateway)

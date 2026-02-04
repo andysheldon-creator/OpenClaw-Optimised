@@ -173,6 +173,12 @@ describe("cli program (smoke)", () => {
         field: "openrouterApiKey",
       },
       {
+        authChoice: "orq-api-key",
+        flag: "--orq-api-key",
+        key: "sk-orq-test",
+        field: "orqApiKey",
+      },
+      {
         authChoice: "moonshot-api-key",
         flag: "--moonshot-api-key",
         key: "sk-moonshot-test",

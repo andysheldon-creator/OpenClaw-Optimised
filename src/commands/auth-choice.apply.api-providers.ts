@@ -27,6 +27,8 @@ import {
   applyOpencodeZenProviderConfig,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
+  applyOrqConfig,
+  applyOrqProviderConfig,
   applySyntheticConfig,
   applySyntheticProviderConfig,
   applyTogetherConfig,
@@ -43,6 +45,7 @@ import {
   KIMI_CODING_MODEL_REF,
   MOONSHOT_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
+  ORQ_DEFAULT_MODEL_REF,
   SYNTHETIC_DEFAULT_MODEL_REF,
   TOGETHER_DEFAULT_MODEL_REF,
   VENICE_DEFAULT_MODEL_REF,
@@ -55,6 +58,7 @@ import {
   setMoonshotApiKey,
   setOpencodeZenApiKey,
   setOpenrouterApiKey,
+  setOrqApiKey,
   setSyntheticApiKey,
   setTogetherApiKey,
   setVeniceApiKey,
@@ -106,6 +110,8 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "zai-api-key";
     } else if (params.opts.tokenProvider === "xiaomi") {
       authChoice = "xiaomi-api-key";
+    } else if (params.opts.tokenProvider === "orq") {
+      authChoice = "orq-api-key";
     } else if (params.opts.tokenProvider === "synthetic") {
       authChoice = "synthetic-api-key";
     } else if (params.opts.tokenProvider === "venice") {
@@ -188,6 +194,56 @@ export async function applyAuthChoiceApiProviders(
         applyDefaultConfig: applyOpenrouterConfig,
         applyProviderConfig: applyOpenrouterProviderConfig,
         noteDefault: OPENROUTER_DEFAULT_MODEL_REF,
+        noteAgentModel,
+        prompter: params.prompter,
+      });
+      nextConfig = applied.config;
+      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
+    }
+    return { config: nextConfig, agentModelOverride };
+  }
+
+  if (authChoice === "orq-api-key") {
+    let hasCredential = false;
+
+    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "orq") {
+      await setOrqApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      hasCredential = true;
+    }
+
+    const envKey = resolveEnvApiKey("orq");
+    if (envKey) {
+      const useExisting = await params.prompter.confirm({
+        message: `Use existing ORQ_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
+        initialValue: true,
+      });
+      if (useExisting) {
+        await setOrqApiKey(envKey.apiKey, params.agentDir);
+        hasCredential = true;
+      }
+    }
+
+    if (!hasCredential) {
+      const key = await params.prompter.text({
+        message: "Enter Orq API key",
+        validate: validateApiKeyInput,
+      });
+      await setOrqApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+    }
+
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "orq:default",
+      provider: "orq",
+      mode: "api_key",
+    });
+    {
+      const applied = await applyDefaultModelChoice({
+        config: nextConfig,
+        setDefaultModel: params.setDefaultModel,
+        defaultModel: ORQ_DEFAULT_MODEL_REF,
+        applyDefaultConfig: applyOrqConfig,
+        applyProviderConfig: applyOrqProviderConfig,
+        noteDefault: ORQ_DEFAULT_MODEL_REF,
         noteAgentModel,
         prompter: params.prompter,
       });
