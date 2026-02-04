@@ -246,21 +246,31 @@ export function registerCompletionCli(program: Command) {
     .action(async (options) => {
       const shell = options.shell ?? "zsh";
 
-      // Fast path: generate completions from metadata only (default)
+      // When caching, always use full mode to preserve nested completions
+      const shouldUseFull = options.full || options.writeState;
+
+      // Fast path: generate completions from metadata only (default for interactive use)
       // This avoids loading all CLI modules and is 20-30x faster
-      if (!options.full) {
+      // NOTE: These stubs are ONLY for completion generation, not for actual command execution
+      if (!shouldUseFull) {
         const entries = getSubCliEntries();
         // Register lightweight stubs for top-level commands
         for (const entry of entries) {
           if (entry.name === "completion") {
             continue;
           }
-          // Register a minimal command with just name and description
-          program.command(entry.name).description(entry.description);
+          // Check if command already exists (for idempotency)
+          const existing = program.commands.find((cmd) => cmd.name() === entry.name);
+          if (!existing) {
+            // Register a minimal command with just name and description
+            // This is sufficient for completion script generation
+            program.command(entry.name).description(entry.description);
+          }
         }
       } else {
         // Slow path: eagerly register all subcommands to build the full tree
         // This provides complete nested subcommand completions but takes ~4-5s
+        // Used when --full is passed or when caching with --write-state
         const entries = getSubCliEntries();
         for (const entry of entries) {
           if (entry.name === "completion") {
