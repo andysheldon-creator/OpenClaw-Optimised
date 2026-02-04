@@ -4,6 +4,7 @@ read_when:
   - Setting up DM access control
   - Pairing a new iOS/Android node
   - Reviewing OpenClaw security posture
+title: "Pairing"
 ---
 
 # Pairing
@@ -79,6 +80,7 @@ Stored under `~/.openclaw/devices/`:
   - Telegram: [Telegram](/channels/telegram)
   - WhatsApp: [WhatsApp](/channels/whatsapp)
   - Signal: [Signal](/channels/signal)
-  - iMessage: [iMessage](/channels/imessage)
+  - BlueBubbles (iMessage): [BlueBubbles](/channels/bluebubbles)
+  - iMessage (legacy): [iMessage](/channels/imessage)
   - Discord: [Discord](/channels/discord)
   - Slack: [Slack](/channels/slack)

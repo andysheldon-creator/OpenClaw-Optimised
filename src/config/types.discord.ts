@@ -1,3 +1,4 @@
+import type { DiscordPluralKitConfig } from "../discord/pluralkit.js";
 import type {
   BlockStreamingCoalesceConfig,
   DmPolicy,
@@ -72,6 +73,8 @@ export type DiscordActionConfig = {
   emojiUploads?: boolean;
   stickerUploads?: boolean;
   channels?: boolean;
+  /** Enable bot presence/activity changes (default: false). */
+  presence?: boolean;
 };
 
 export type DiscordIntentsConfig = {
@@ -150,6 +153,8 @@ export type DiscordAccountConfig = {
   execApprovals?: DiscordExecApprovalConfig;
   /** Privileged Gateway Intents (must also be enabled in Discord Developer Portal). */
   intents?: DiscordIntentsConfig;
+  /** PluralKit identity resolution for proxied messages. */
+  pluralkit?: DiscordPluralKitConfig;
 };
 
 export type DiscordConfig = {

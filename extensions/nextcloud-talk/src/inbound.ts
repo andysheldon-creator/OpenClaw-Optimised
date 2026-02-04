@@ -4,8 +4,8 @@ import {
   type OpenClawConfig,
   type RuntimeEnv,
 } from "openclaw/plugin-sdk";
-
 import type { ResolvedNextcloudTalkAccount } from "./accounts.js";
+import type { CoreConfig, NextcloudTalkInboundMessage } from "./types.js";
 import {
   normalizeNextcloudTalkAllowlist,
   resolveNextcloudTalkAllowlistMatch,
@@ -15,9 +15,8 @@ import {
   resolveNextcloudTalkRoomMatch,
 } from "./policy.js";
 import { resolveNextcloudTalkRoomKind } from "./room-info.js";
-import { sendMessageNextcloudTalk } from "./send.js";
 import { getNextcloudTalkRuntime } from "./runtime.js";
-import type { CoreConfig, NextcloudTalkInboundMessage } from "./types.js";
+import { sendMessageNextcloudTalk } from "./send.js";
 
 const CHANNEL_ID = "nextcloud-talk" as const;
 
@@ -122,7 +121,6 @@ export async function handleNextcloudTalkInbound(params: {
   const senderAllowedForCommands = resolveNextcloudTalkAllowlistMatch({
     allowFrom: isGroup ? effectiveGroupAllowFrom : effectiveAllowFrom,
     senderId,
-    senderName,
   }).allowed;
   const hasControlCommand = core.channel.text.hasControlCommand(rawBody, config as OpenClawConfig);
   const commandGate = resolveControlCommandGate({
@@ -144,7 +142,6 @@ export async function handleNextcloudTalkInbound(params: {
       outerAllowFrom: effectiveGroupAllowFrom,
       innerAllowFrom: roomAllowFrom,
       senderId,
-      senderName,
     });
     if (!groupAllow.allowed) {
       runtime.log?.(`nextcloud-talk: drop group sender ${senderId} (policy=${groupPolicy})`);
@@ -159,7 +156,6 @@ export async function handleNextcloudTalkInbound(params: {
       const dmAllowed = resolveNextcloudTalkAllowlistMatch({
         allowFrom: effectiveAllowFrom,
         senderId,
-        senderName,
       }).allowed;
       if (!dmAllowed) {
         if (dmPolicy === "pairing") {

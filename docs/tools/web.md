@@ -4,6 +4,7 @@ read_when:
   - You want to enable web_search or web_fetch
   - You need Brave Search API key setup
   - You want to use Perplexity Sonar for web search
+title: "Web Tools"
 ---
 
 # Web tools
@@ -220,6 +221,7 @@ Fetch a URL and extract readable content.
       fetch: {
         enabled: true,
         maxChars: 50000,
+        maxCharsCap: 50000,
         timeoutSeconds: 30,
         cacheTtlMinutes: 15,
         maxRedirects: 3,
@@ -251,6 +253,7 @@ Notes:
 - Firecrawl requests use bot-circumvention mode and cache results by default.
 - `web_fetch` sends a Chrome-like User-Agent and `Accept-Language` by default; override `userAgent` if needed.
 - `web_fetch` blocks private/internal hostnames and re-checks redirects (limit with `maxRedirects`).
+- `maxChars` is clamped to `tools.web.fetch.maxCharsCap`.
 - `web_fetch` is best-effort extraction; some sites will need the browser tool.
 - See [Firecrawl](/tools/firecrawl) for key setup and service details.
 - Responses are cached (default 15 minutes) to reduce repeated fetches.

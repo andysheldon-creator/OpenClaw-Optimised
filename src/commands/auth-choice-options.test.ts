@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import type { AuthProfileStore } from "../agents/auth-profiles.js";
 import { buildAuthChoiceOptions } from "./auth-choice-options.js";
 
@@ -62,6 +61,7 @@ describe("buildAuthChoiceOptions", () => {
     });
 
     expect(options.some((opt) => opt.value === "moonshot-api-key")).toBe(true);
+    expect(options.some((opt) => opt.value === "moonshot-api-key-cn")).toBe(true);
     expect(options.some((opt) => opt.value === "kimi-code-api-key")).toBe(true);
   });
 

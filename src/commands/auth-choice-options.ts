@@ -56,9 +56,9 @@ const AUTH_CHOICE_GROUP_DEFS: {
   },
   {
     value: "moonshot",
-    label: "Moonshot AI",
-    hint: "Kimi K2 + Kimi Coding",
-    choices: ["moonshot-api-key", "kimi-code-api-key"],
+    label: "Moonshot AI (Kimi K2.5)",
+    hint: "Kimi K2.5 + Kimi Coding",
+    choices: ["moonshot-api-key", "moonshot-api-key-cn", "kimi-code-api-key"],
   },
   {
     value: "google",
@@ -146,8 +146,15 @@ export function buildAuthChoiceOptions(params: {
     value: "ai-gateway-api-key",
     label: "Vercel AI Gateway API key",
   });
-  options.push({ value: "moonshot-api-key", label: "Moonshot AI API key" });
-  options.push({ value: "kimi-code-api-key", label: "Kimi Coding API key" });
+  options.push({
+    value: "moonshot-api-key",
+    label: "Kimi API key (.ai)",
+  });
+  options.push({
+    value: "moonshot-api-key-cn",
+    label: "Kimi API key (.cn)",
+  });
+  options.push({ value: "kimi-code-api-key", label: "Kimi Code API key (subscription)" });
   options.push({ value: "synthetic-api-key", label: "Synthetic API key" });
   options.push({
     value: "venice-api-key",
@@ -178,7 +185,7 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "minimax-portal",
     label: "MiniMax OAuth",
-    hint: "OAuth new users enjoy a 3-day free trial of the MiniMax Coding Plan!",
+    hint: "Oauth plugin for MiniMax",
   });
   options.push({ value: "qwen-portal", label: "Qwen OAuth" });
   options.push({

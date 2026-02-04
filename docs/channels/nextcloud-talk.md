@@ -2,6 +2,7 @@
 summary: "Nextcloud Talk support status, capabilities, and configuration"
 read_when:
   - Working on Nextcloud Talk channel features
+title: "Nextcloud Talk"
 ---
 
 # Nextcloud Talk (plugin)
@@ -71,6 +72,7 @@ Minimal config:
   - `openclaw pairing list nextcloud-talk`
   - `openclaw pairing approve nextcloud-talk <CODE>`
 - Public DMs: `channels.nextcloud-talk.dmPolicy="open"` plus `channels.nextcloud-talk.allowFrom=["*"]`.
+- `allowFrom` matches Nextcloud user IDs only; display names are ignored.
 
 ## Rooms (groups)
 

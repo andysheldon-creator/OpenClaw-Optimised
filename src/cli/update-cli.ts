@@ -1,32 +1,18 @@
+import type { Command } from "commander";
 import { confirm, isCancel, select, spinner } from "@clack/prompts";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { Command } from "commander";
-
+import {
+  formatUpdateAvailableHint,
+  formatUpdateOneLiner,
+  resolveUpdateAvailability,
+} from "../commands/status.update.js";
 import { readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
 import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
-import {
-  checkUpdateStatus,
-  compareSemverStrings,
-  fetchNpmTagVersion,
-  resolveNpmChannelTag,
-} from "../infra/update-check.js";
+import { trimLogTail } from "../infra/restart-sentinel.js";
 import { parseSemver } from "../infra/runtime-guard.js";
-import {
-  runGatewayUpdate,
-  type UpdateRunResult,
-  type UpdateStepInfo,
-  type UpdateStepResult,
-  type UpdateStepProgress,
-} from "../infra/update-runner.js";
-import {
-  detectGlobalInstallManagerByPresence,
-  detectGlobalInstallManagerForRoot,
-  globalInstallArgs,
-  resolveGlobalPackageRoot,
-  type GlobalInstallManager,
-} from "../infra/update-global.js";
 import {
   channelToNpmTag,
   DEFAULT_GIT_CHANNEL,
@@ -35,22 +21,37 @@ import {
   normalizeUpdateChannel,
   resolveEffectiveUpdateChannel,
 } from "../infra/update-channels.js";
-import { trimLogTail } from "../infra/restart-sentinel.js";
-import { defaultRuntime } from "../runtime.js";
-import { formatDocsLink } from "../terminal/links.js";
-import { formatCliCommand } from "./command-format.js";
-import { replaceCliName, resolveCliName } from "./cli-name.js";
-import { stylePromptHint, stylePromptMessage } from "../terminal/prompt-style.js";
-import { theme } from "../terminal/theme.js";
-import { renderTable } from "../terminal/table.js";
-import { formatHelpExamples } from "./help-format.js";
 import {
-  formatUpdateAvailableHint,
-  formatUpdateOneLiner,
-  resolveUpdateAvailability,
-} from "../commands/status.update.js";
+  checkUpdateStatus,
+  compareSemverStrings,
+  fetchNpmTagVersion,
+  resolveNpmChannelTag,
+} from "../infra/update-check.js";
+import {
+  detectGlobalInstallManagerByPresence,
+  detectGlobalInstallManagerForRoot,
+  cleanupGlobalRenameDirs,
+  globalInstallArgs,
+  resolveGlobalPackageRoot,
+  type GlobalInstallManager,
+} from "../infra/update-global.js";
+import {
+  runGatewayUpdate,
+  type UpdateRunResult,
+  type UpdateStepInfo,
+  type UpdateStepResult,
+  type UpdateStepProgress,
+} from "../infra/update-runner.js";
 import { syncPluginsForUpdateChannel, updateNpmInstalledPlugins } from "../plugins/update.js";
 import { runCommandWithTimeout } from "../process/exec.js";
+import { defaultRuntime } from "../runtime.js";
+import { formatDocsLink } from "../terminal/links.js";
+import { stylePromptHint, stylePromptMessage } from "../terminal/prompt-style.js";
+import { renderTable } from "../terminal/table.js";
+import { theme } from "../terminal/theme.js";
+import { replaceCliName, resolveCliName } from "./cli-name.js";
+import { formatCliCommand } from "./command-format.js";
+import { formatHelpExamples } from "./help-format.js";
 
 export type UpdateCommandOptions = {
   json?: boolean;
@@ -197,6 +198,29 @@ async function pathExists(targetPath: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function tryWriteCompletionCache(root: string, jsonMode: boolean): Promise<void> {
+  const binPath = path.join(root, "openclaw.mjs");
+  if (!(await pathExists(binPath))) {
+    return;
+  }
+  const result = spawnSync(resolveNodeRunner(), [binPath, "completion", "--write-state"], {
+    cwd: root,
+    env: process.env,
+    encoding: "utf-8",
+  });
+  if (result.error) {
+    if (!jsonMode) {
+      defaultRuntime.log(theme.warn(`Completion cache update failed: ${String(result.error)}`));
+    }
+    return;
+  }
+  if (result.status !== 0 && !jsonMode) {
+    const stderr = (result.stderr ?? "").toString().trim();
+    const detail = stderr ? ` (${stderr})` : "";
+    defaultRuntime.log(theme.warn(`Completion cache update failed${detail}.`));
   }
 }
 
@@ -737,6 +761,12 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       (pkgRoot ? await readPackageName(pkgRoot) : await readPackageName(root)) ??
       DEFAULT_PACKAGE_NAME;
     const beforeVersion = pkgRoot ? await readPackageVersion(pkgRoot) : null;
+    if (pkgRoot) {
+      await cleanupGlobalRenameDirs({
+        globalRoot: path.dirname(pkgRoot),
+        packageName,
+      });
+    }
     const updateStep = await runUpdateStep({
       name: "global update",
       argv: globalInstallArgs(manager, `${packageName}@${tag}`),
@@ -952,6 +982,8 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   } else if (!opts.json) {
     defaultRuntime.log(theme.warn("Skipping plugin updates: config is invalid."));
   }
+
+  await tryWriteCompletionCache(root, Boolean(opts.json));
 
   // Restart service if requested
   if (shouldRestart) {

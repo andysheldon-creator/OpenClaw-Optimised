@@ -2,6 +2,7 @@
 summary: "Session management rules, keys, and persistence for chats"
 read_when:
   - Modifying session handling or storage
+title: "Session Management"
 ---
 
 # Session Management
@@ -15,6 +16,26 @@ Use `session.dmScope` to control how **direct messages** are grouped:
 - `per-channel-peer`: isolate by channel + sender (recommended for multi-user inboxes).
 - `per-account-channel-peer`: isolate by account + channel + sender (recommended for multi-account inboxes).
   Use `session.identityLinks` to map provider-prefixed peer ids to a canonical identity so the same person shares a DM session across channels when using `per-peer`, `per-channel-peer`, or `per-account-channel-peer`.
+
+### Secure DM mode (recommended)
+
+If your agent can receive DMs from **multiple people** (pairing approvals for more than one sender, a DM allowlist with multiple entries, or `dmPolicy: "open"`), enable **secure DM mode** to avoid cross-user context leakage:
+
+```json5
+// ~/.openclaw/openclaw.json
+{
+  session: {
+    // Secure DM mode: isolate DM context per channel + sender.
+    dmScope: "per-channel-peer",
+  },
+}
+```
+
+Notes:
+
+- Default is `dmScope: "main"` for continuity (all DMs share the main session).
+- For multi-account inboxes on the same channel, prefer `per-account-channel-peer`.
+- If the same person contacts you on multiple channels, use `session.identityLinks` to collapse their DM sessions into one canonical identity.
 
 ## Gateway is the source of truth
 
