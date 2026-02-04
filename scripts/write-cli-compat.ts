@@ -54,9 +54,7 @@ for (const candidate of candidates) {
       continue;
     }
     const escaped = other.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const match = src.match(
-      new RegExp(`import\\s*(\\{[^}]+\\})\\s*from\\s*"./${escaped}"`, "m"),
-    );
+    const match = src.match(new RegExp(`import\\s*(\\{[^}]+\\})\\s*from\\s*"./${escaped}"`, "m"));
     if (match) {
       barrel = candidate;
       innerChunk = other;
