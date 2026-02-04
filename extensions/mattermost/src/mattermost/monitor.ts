@@ -722,8 +722,6 @@ export async function monitorMattermostProvider(opts: MonitorMattermostOpts = {}
       Timestamp: typeof post.create_at === "number" ? post.create_at : undefined,
       WasMentioned: kind !== "dm" ? effectiveWasMentioned : undefined,
       CommandAuthorized: commandAuthorized,
-      OriginatingChannel: "mattermost" as const,
-      OriginatingTo: to,
       ...mediaPayload,
     });
 
