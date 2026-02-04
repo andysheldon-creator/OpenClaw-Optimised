@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { MessagingToolSend } from "../../agents/pi-embedded-messaging.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { AgentDefaultsConfig } from "../../config/types.js";
@@ -40,6 +42,7 @@ import {
   normalizeVerboseLevel,
   supportsXHighThinking,
 } from "../../auto-reply/thinking.js";
+import { isHeartbeatContentEffectivelyEmpty } from "../../auto-reply/heartbeat.js";
 import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
 import { resolveSessionTranscriptPath, updateSessionStore } from "../../config/sessions.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
@@ -139,6 +142,25 @@ export async function runCronIsolatedAgentTurn(params: {
     ensureBootstrapFiles: !agentCfg?.skipBootstrap,
   });
   const workspaceDir = workspace.dir;
+
+  // Avoid creating "empty" heartbeat sessions when HEARTBEAT.md exists but has no tasks.
+  // A missing file is not skipped (the model may still decide what to do).
+  const isHeartbeatPrompt =
+    typeof params.message === "string" &&
+    params.message.trim().toLowerCase().startsWith("read heartbeat.md");
+  if (isHeartbeatPrompt) {
+    const heartbeatPath = path.join(workspaceDir, "HEARTBEAT.md");
+    if (fs.existsSync(heartbeatPath)) {
+      try {
+        const content = fs.readFileSync(heartbeatPath, "utf-8");
+        if (isHeartbeatContentEffectivelyEmpty(content)) {
+          return { status: "skipped", summary: "Heartbeat skipped (HEARTBEAT.md is empty)." };
+        }
+      } catch (err) {
+        logWarn(`Failed to read HEARTBEAT.md for emptiness check: ${String(err)}`);
+      }
+    }
+  }
 
   const resolvedDefault = resolveConfiguredModelRef({
     cfg: cfgWithAgentDefaults,

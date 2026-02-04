@@ -237,6 +237,45 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   emitEvent("lifecycle", { phase: "start", startedAt, runtime: "claude" });
   emitEvent("sdk", { type: "sdk_runner_start", runId: params.runId });
 
+  const promptTrimmed = params.prompt.trim();
+  if (!promptTrimmed) {
+    // Avoid creating "empty" SDK sessions when upstream accidentally triggers a run with
+    // no user content (e.g., heartbeat-only flows or misrouted followups).
+    log.debug(
+      `sdk runner skipped: empty prompt (runId=${params.runId} sessionId=${params.sessionId} claudeSessionId=${params.claudeSessionId ?? "new"})`,
+    );
+    emitEvent("sdk", {
+      type: "sdk_runner_end",
+      eventCount: 0,
+      extractedChars: 0,
+      truncated: false,
+      aborted: false,
+      durationMs: Date.now() - startedAt,
+    });
+    emitEvent("lifecycle", {
+      phase: "end",
+      startedAt,
+      endedAt: Date.now(),
+      runtime: "claude",
+      aborted: false,
+      truncated: false,
+      turnCount: 0,
+    });
+    return {
+      payloads: [],
+      meta: {
+        durationMs: Date.now() - startedAt,
+        provider: params.provider?.name,
+        eventCount: 0,
+        extractedChars: 0,
+        truncated: false,
+        aborted: false,
+        turnCount: 0,
+        error: { kind: "no_output", message: "Skipped empty prompt" },
+      },
+    };
+  }
+
   // -------------------------------------------------------------------------
   // Step 1: Load the Claude Agent SDK
   // -------------------------------------------------------------------------

@@ -27,6 +27,7 @@ import {
 } from "../infra/shell-env.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { logInfo, logWarn } from "../logger.js";
+import { redactToolDetail } from "../logging/redact.js";
 import { formatSpawnError, spawnWithFallback } from "../process/spawn-utils.js";
 import { parseAgentSessionKey, resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import {
@@ -1591,7 +1592,18 @@ export function createExecTool(
               return;
             }
             if (outcome.status === "failed") {
-              reject(new Error(outcome.reason ?? "Command failed."));
+              const err = new Error(outcome.reason ?? "Command failed.");
+              // Provide low-noise context for diagnosing failures (e.g., when only stderr is shown).
+              // This is consumed by some runtimes (e.g., Claude Agent SDK tool-bridge) and is
+              // always redacted using the configured logging patterns.
+              (err as unknown as Record<string, unknown>)._debugDetail = redactToolDetail(
+                [
+                  `exec failed`,
+                  `cwd: ${workdir}`,
+                  `command: ${truncateMiddle(params.command, 500)}`,
+                ].join("\n"),
+              );
+              reject(err);
               return;
             }
             resolve({
