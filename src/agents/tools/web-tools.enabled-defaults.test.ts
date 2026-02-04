@@ -248,6 +248,30 @@ describe("web_search perplexity baseUrl defaults", () => {
     expect(mockFetch.mock.calls[0]?.[0]).toBe("https://example.com/pplx/chat/completions");
   });
 
+  it("resolves provider at execution time for updated config", async () => {
+    vi.stubEnv("PERPLEXITY_API_KEY", "pplx-test");
+    const mockFetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ choices: [{ message: { content: "ok" } }], citations: [] }),
+      } as Response),
+    );
+    // @ts-expect-error mock fetch
+    global.fetch = mockFetch;
+
+    const config = { tools: { web: { search: { provider: "brave" } } } };
+    const tool = createWebSearchTool({
+      config,
+      sandboxed: true,
+    });
+    config.tools.web.search.provider = "perplexity";
+
+    await tool?.execute?.(1, { query: "test-dynamic-provider" });
+
+    expect(mockFetch).toHaveBeenCalled();
+    expect(mockFetch.mock.calls[0]?.[0]).toBe("https://api.perplexity.ai/chat/completions");
+  });
+
   it("defaults to Perplexity direct when apiKey looks like Perplexity", async () => {
     const mockFetch = vi.fn(() =>
       Promise.resolve({
