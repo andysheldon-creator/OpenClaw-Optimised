@@ -82,6 +82,9 @@ type RawEntry = {
   usagePlan?: string;
   usageError?: string;
   isLocal?: boolean;
+  authModes?: string[];
+  envVars?: string[];
+  configured?: boolean;
 };
 
 function mapEntry(raw: RawEntry, models: ProviderModelEntry[] = []): ProviderHealthEntry {
@@ -112,6 +115,9 @@ function mapEntry(raw: RawEntry, models: ProviderModelEntry[] = []): ProviderHea
     usageError: raw.usageError,
     isLocal: raw.isLocal ?? false,
     models,
+    authModes: raw.authModes,
+    envVars: raw.envVars,
+    configured: raw.configured,
   };
 }
 
