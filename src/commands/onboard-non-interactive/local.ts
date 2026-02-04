@@ -1,6 +1,6 @@
 import type { OpenClawConfig } from "../../config/config.js";
 import type { RuntimeEnv } from "../../runtime.js";
-import type { OnboardOptions } from "../onboard-types.js";
+import type { AuthChoice, OnboardOptions } from "../onboard-types.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import { resolveGatewayPort, writeConfigFile } from "../../config/config.js";
 import { logConfigUpdated } from "../../config/logging.js";
@@ -19,6 +19,28 @@ import { applyNonInteractiveGatewayConfig } from "./local/gateway-config.js";
 import { logNonInteractiveOnboardingJson } from "./local/output.js";
 import { applyNonInteractiveSkillsConfig } from "./local/skills-config.js";
 import { resolveNonInteractiveWorkspaceDir } from "./local/workspace.js";
+
+/**
+ * Infer --auth-choice from provider-specific API key flags when --auth-choice
+ * is not explicitly provided. This avoids silently skipping credential storage
+ * when the user passes e.g. `--anthropic-api-key` without `--auth-choice apiKey`.
+ */
+function inferAuthChoiceFromFlags(opts: OnboardOptions): AuthChoice | undefined {
+  if (opts.anthropicApiKey) return "apiKey";
+  if (opts.geminiApiKey) return "gemini-api-key";
+  if (opts.openaiApiKey) return "openai-api-key";
+  if (opts.openrouterApiKey) return "openrouter-api-key";
+  if (opts.aiGatewayApiKey) return "ai-gateway-api-key";
+  if (opts.moonshotApiKey) return "moonshot-api-key";
+  if (opts.kimiCodeApiKey) return "kimi-code-api-key";
+  if (opts.syntheticApiKey) return "synthetic-api-key";
+  if (opts.veniceApiKey) return "venice-api-key";
+  if (opts.zaiApiKey) return "zai-api-key";
+  if (opts.xiaomiApiKey) return "xiaomi-api-key";
+  if (opts.minimaxApiKey) return "minimax-api";
+  if (opts.opencodeZenApiKey) return "opencode-zen";
+  return undefined;
+}
 
 export async function runNonInteractiveOnboardingLocal(params: {
   opts: OnboardOptions;
@@ -49,7 +71,7 @@ export async function runNonInteractiveOnboardingLocal(params: {
     },
   };
 
-  const authChoice = opts.authChoice ?? "skip";
+  const authChoice = opts.authChoice ?? inferAuthChoiceFromFlags(opts) ?? "skip";
   const nextConfigAfterAuth = await applyNonInteractiveAuthChoice({
     nextConfig,
     authChoice,
