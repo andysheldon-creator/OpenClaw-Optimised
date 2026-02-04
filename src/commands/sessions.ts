@@ -257,21 +257,29 @@ export async function sessionsCommand(
   }
 
   const rich = isRich();
-  const terminalWidth = Math.max(80, (process.stdout.columns ?? 120) - 2);
 
-  // Calculate dynamic column widths based on terminal size
-  // Fixed columns: Kind (7), Age (10), Tokens (20)
-  // Variable columns: Key and Model share remaining space, Flags gets what's left
-  const fixedWidth = 7 + 10 + 20 + 5; // columns + spaces between
-  const remainingWidth = Math.max(40, terminalWidth - fixedWidth);
-
-  // Allocate space: Key gets 30-50% of remaining, Model gets 20-40%, Flags gets rest
-  const keyWidth = Math.max(20, Math.min(50, Math.floor(remainingWidth * 0.35)));
-  const modelWidth = Math.max(18, Math.min(35, Math.floor(remainingWidth * 0.25)));
-
+  // Use dynamic widths for TTY, fixed widths for pipes/CI
+  const isTTY = Boolean(process.stdout.isTTY);
   const KIND_WIDTH = 7;
   const AGE_WIDTH = 10;
   const TOKENS_WIDTH = 20;
+
+  let keyWidth: number;
+  let modelWidth: number;
+
+  if (isTTY) {
+    // Dynamic sizing for interactive terminals
+    const terminalWidth = Math.max(80, (process.stdout.columns ?? 120) - 2);
+    const fixedWidth = KIND_WIDTH + AGE_WIDTH + TOKENS_WIDTH + 5; // columns + spaces
+    const remainingWidth = Math.max(40, terminalWidth - fixedWidth);
+
+    keyWidth = Math.max(20, Math.min(50, Math.floor(remainingWidth * 0.35)));
+    modelWidth = Math.max(18, Math.min(35, Math.floor(remainingWidth * 0.25)));
+  } else {
+    // Fixed widths for pipes/redirects/CI
+    keyWidth = 26;
+    modelWidth = 18;
+  }
 
   const header = [
     padToWidth("Kind", KIND_WIDTH),
