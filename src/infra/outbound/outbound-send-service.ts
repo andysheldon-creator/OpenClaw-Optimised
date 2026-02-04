@@ -22,6 +22,7 @@ export type OutboundSendContext = {
   channel: ChannelId;
   params: Record<string, unknown>;
   accountId?: string | null;
+  agentId?: string;
   gateway?: OutboundGatewayContext;
   toolContext?: ChannelThreadingToolContext;
   deps?: OutboundSendDeps;
@@ -89,6 +90,7 @@ export async function executeSendAction(params: {
       cfg: params.ctx.cfg,
       params: params.ctx.params,
       accountId: params.ctx.accountId ?? undefined,
+      agentId: params.ctx.agentId,
       gateway: params.ctx.gateway,
       toolContext: params.ctx.toolContext,
       dryRun: params.ctx.dryRun,
@@ -160,6 +162,7 @@ export async function executePollAction(params: {
       cfg: params.ctx.cfg,
       params: params.ctx.params,
       accountId: params.ctx.accountId ?? undefined,
+      agentId: params.ctx.agentId,
       gateway: params.ctx.gateway,
       toolContext: params.ctx.toolContext,
       dryRun: params.ctx.dryRun,

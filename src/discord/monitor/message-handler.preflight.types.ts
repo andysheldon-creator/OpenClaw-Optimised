@@ -87,6 +87,8 @@ export type DiscordMessagePreflightParams = {
   token: string;
   runtime: RuntimeEnv;
   botUserId?: string;
+  /** Application/client ID for own-webhook detection (loop prevention). */
+  applicationId?: string;
   guildHistories: Map<string, HistoryEntry[]>;
   historyLimit: number;
   mediaMaxBytes: number;

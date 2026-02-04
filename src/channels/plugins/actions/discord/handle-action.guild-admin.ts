@@ -7,7 +7,7 @@ import {
 } from "../../../../agents/tools/common.js";
 import { handleDiscordAction } from "../../../../agents/tools/discord-actions.js";
 
-type Ctx = Pick<ChannelMessageActionContext, "action" | "params" | "cfg" | "accountId">;
+type Ctx = Pick<ChannelMessageActionContext, "action" | "params" | "cfg" | "accountId" | "agentId">;
 
 export async function tryHandleDiscordMessageActionGuildAdmin(params: {
   ctx: Ctx;
@@ -409,6 +409,7 @@ export async function tryHandleDiscordMessageActionGuildAdmin(params: {
         replyTo: replyTo ?? undefined,
       },
       cfg,
+      { agentId: ctx.agentId },
     );
   }
 

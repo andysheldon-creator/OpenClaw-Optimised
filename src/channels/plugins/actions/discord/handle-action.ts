@@ -22,10 +22,11 @@ function readParentIdParam(params: Record<string, unknown>): string | null | und
 }
 
 export async function handleDiscordMessageAction(
-  ctx: Pick<ChannelMessageActionContext, "action" | "params" | "cfg" | "accountId">,
+  ctx: Pick<ChannelMessageActionContext, "action" | "params" | "cfg" | "accountId" | "agentId">,
 ): Promise<AgentToolResult<unknown>> {
   const { action, params, cfg } = ctx;
   const accountId = ctx.accountId ?? readStringParam(params, "accountId");
+  const agentId = ctx.agentId;
 
   const resolveChannelId = () =>
     resolveDiscordChannelId(
@@ -52,6 +53,7 @@ export async function handleDiscordMessageAction(
         embeds,
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -77,6 +79,7 @@ export async function handleDiscordMessageAction(
         content: readStringParam(params, "message"),
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -94,6 +97,7 @@ export async function handleDiscordMessageAction(
         remove,
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -109,6 +113,7 @@ export async function handleDiscordMessageAction(
         limit,
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -125,6 +130,7 @@ export async function handleDiscordMessageAction(
         around: readStringParam(params, "around"),
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -140,6 +146,7 @@ export async function handleDiscordMessageAction(
         content,
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -153,6 +160,7 @@ export async function handleDiscordMessageAction(
         messageId,
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -167,6 +175,7 @@ export async function handleDiscordMessageAction(
         messageId,
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -178,6 +187,7 @@ export async function handleDiscordMessageAction(
         channelId: resolveChannelId(),
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -197,6 +207,7 @@ export async function handleDiscordMessageAction(
         autoArchiveMinutes,
       },
       cfg,
+      { agentId },
     );
   }
 
@@ -215,6 +226,7 @@ export async function handleDiscordMessageAction(
         content: readStringParam(params, "message"),
       },
       cfg,
+      { agentId },
     );
   }
 

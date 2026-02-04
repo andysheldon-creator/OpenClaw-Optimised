@@ -72,6 +72,17 @@ export async function preflightDiscordMessage(
     return null;
   }
 
+  // Detect webhook messages from our own application (agent-to-agent loop prevention).
+  // Webhooks created by our bot share the same application_id (client ID).
+  // These are filtered later after mention detection — allowed through only when
+  // the receiving agent is explicitly mentioned.
+  const messageApplicationId =
+    (message as { applicationId?: string }).applicationId ??
+    (message as { _rawData?: { application_id?: string } })._rawData?.application_id;
+  const isOwnAppWebhook = Boolean(
+    params.applicationId && messageApplicationId && messageApplicationId === params.applicationId,
+  );
+
   const pluralkitConfig = params.discordConfig?.pluralkit;
   const webhookId = resolveDiscordWebhookId(message);
   const shouldCheckPluralKit = Boolean(pluralkitConfig?.enabled) && !webhookId;
@@ -257,9 +268,16 @@ export async function preflightDiscordMessage(
     message.referencedMessage?.author?.id &&
     message.referencedMessage.author.id === botId,
   );
+  // Drop own-application webhook messages unless the agent is explicitly mentioned.
+  // This prevents agent-to-agent loops while still allowing cross-agent @mentions.
+  if (isOwnAppWebhook && !wasMentioned && !explicitlyMentioned && !implicitMention) {
+    logVerbose(`discord: drop own-app webhook message ${message.id} (no mention, loop prevention)`);
+    return null;
+  }
+
   if (shouldLogVerbose()) {
     logVerbose(
-      `discord: inbound id=${message.id} guild=${message.guild?.id ?? "dm"} channel=${message.channelId} mention=${wasMentioned ? "yes" : "no"} type=${isDirectMessage ? "dm" : isGroupDm ? "group-dm" : "guild"} content=${messageText ? "yes" : "no"}`,
+      `discord: inbound id=${message.id} guild=${message.guild?.id ?? "dm"} channel=${message.channelId} mention=${wasMentioned ? "yes" : "no"} type=${isDirectMessage ? "dm" : isGroupDm ? "group-dm" : "guild"} content=${messageText ? "yes" : "no"} ownAppWebhook=${isOwnAppWebhook}`,
     );
   }
 

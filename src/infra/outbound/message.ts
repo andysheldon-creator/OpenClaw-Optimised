@@ -36,6 +36,8 @@ type MessageSendParams = {
   mediaUrls?: string[];
   gifPlayback?: boolean;
   accountId?: string;
+  /** Agent ID for per-agent outbound routing (e.g., Discord webhooks). */
+  agentId?: string;
   dryRun?: boolean;
   bestEffort?: boolean;
   deps?: OutboundSendDeps;
@@ -164,6 +166,7 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
       channel: outboundChannel,
       to: resolvedTarget.to,
       accountId: params.accountId,
+      agentId: params.agentId ?? params.mirror?.agentId,
       payloads: normalizedPayloads,
       gifPlayback: params.gifPlayback,
       deps: params.deps,
