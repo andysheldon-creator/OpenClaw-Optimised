@@ -767,7 +767,7 @@ export function renderApp(state: AppViewState) {
                     Array.isArray(list) && list[index]
                       ? (list[index] as { model?: unknown })
                       : null;
-                  const existing = entry.model;
+                  const existing = entry?.model;
                   const resolvePrimary = () => {
                     if (typeof existing === "string") {
                       return existing.trim() || null;
