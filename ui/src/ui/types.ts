@@ -492,12 +492,14 @@ export type SkillStatusEntry = {
   eligible: boolean;
   requirements: {
     bins: string[];
+    anyBins: string[];
     env: string[];
     config: string[];
     os: string[];
   };
   missing: {
     bins: string[];
+    anyBins: string[];
     env: string[];
     config: string[];
     os: string[];

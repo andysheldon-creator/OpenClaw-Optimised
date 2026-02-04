@@ -77,9 +77,11 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
   const apiKey = props.edits[skill.skillKey] ?? "";
   const message = props.messages[skill.skillKey] ?? null;
   const canInstall =
-    skill.install.length > 0 && skill.missing.bins.length > 0;
+    skill.install.length > 0 &&
+    (skill.missing.bins.length > 0 || skill.missing.anyBins.length > 0);
   const missing = [
     ...skill.missing.bins.map((b) => `bin:${b}`),
+    ...skill.missing.anyBins.map((b) => `anyBin:${b}`),
     ...skill.missing.env.map((e) => `env:${e}`),
     ...skill.missing.config.map((c) => `config:${c}`),
     ...skill.missing.os.map((o) => `os:${o}`),
