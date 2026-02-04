@@ -37,6 +37,11 @@ async function refreshOAuthTokenWithLock(params: {
   profileId: string;
   agentDir?: string;
 }): Promise<{ apiKey: string; newCredentials: OAuthCredentials } | null> {
+  // SECURE MODE: Don't attempt local refresh - the host proxy handles token management
+  if (process.env.OPENCLAW_SECURE_MODE === "1") {
+    return null;
+  }
+  
   const authPath = resolveAuthStorePath(params.agentDir);
   ensureAuthStoreFile(authPath);
 
@@ -122,6 +127,16 @@ async function tryResolveOAuthProfile(params: {
   }
   if (profileConfig && profileConfig.mode !== cred.type) {
     return null;
+  }
+
+  // SECURE MODE: Return placeholder without checking expiry or refreshing.
+  // The secrets proxy on the host will inject the real token at HTTP time.
+  if (process.env.OPENCLAW_SECURE_MODE === "1") {
+    return {
+      apiKey: `{{OAUTH:${profileId}}}`,
+      provider: cred.provider,
+      email: cred.email,
+    };
   }
 
   if (Date.now() < cred.expires) {

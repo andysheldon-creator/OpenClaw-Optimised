@@ -22,12 +22,13 @@ const REQUEST_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const BODYLESS_METHODS = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
 
 // Placeholder patterns
+// Profile IDs can contain: word chars, hyphens, colons, @, dots (e.g., google-gemini-cli:developer@example.com)
 const PATTERNS = {
-  CONFIG: /\{\{CONFIG:([\w.]+)\}\}/g,      // {{CONFIG:channels.discord.token}}
-  OAUTH: /\{\{OAUTH:([\w-]+)\}\}/g,         // {{OAUTH:google-gemini-cli}}
-  APIKEY: /\{\{APIKEY:([\w-]+)\}\}/g,       // {{APIKEY:anthropic}}
-  TOKEN: /\{\{TOKEN:([\w-]+)\}\}/g,         // {{TOKEN:github-copilot}}
-  ENV: /\{\{([A-Z_][A-Z0-9_]*)\}\}/g,       // {{ANTHROPIC_API_KEY}}
+  CONFIG: /\{\{CONFIG:([\w.]+)\}\}/g,         // {{CONFIG:channels.discord.token}}
+  OAUTH: /\{\{OAUTH:([\w\-:@.]+)\}\}/g,       // {{OAUTH:google-gemini-cli:user@example.com}}
+  APIKEY: /\{\{APIKEY:([\w\-:@.]+)\}\}/g,     // {{APIKEY:anthropic}}
+  TOKEN: /\{\{TOKEN:([\w\-:@.]+)\}\}/g,       // {{TOKEN:github-copilot}}
+  ENV: /\{\{([A-Z_][A-Z0-9_]*)\}\}/g,         // {{ANTHROPIC_API_KEY}}
 };
 
 /**
