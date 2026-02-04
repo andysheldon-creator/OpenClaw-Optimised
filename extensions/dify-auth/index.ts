@@ -40,10 +40,7 @@ const resolveToolCallId = (candidate: unknown) => {
   return "";
 };
 
-const resolveDifyToolCall = (
-  data: Record<string, unknown>,
-  appType: "chat" | "agent",
-) => {
+const resolveDifyToolCall = (data: Record<string, unknown>, appType: "chat" | "agent") => {
   if (appType !== "agent") {
     return null;
   }
