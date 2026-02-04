@@ -181,7 +181,7 @@ export class GatewayClient {
     }
     this.connectSent = true;
     if (this.connectTimer) {
-      clearTimeout(this.connectTimer);
+      clearImmediate(this.connectTimer);
       this.connectTimer = null;
     }
     const role = this.opts.role ?? "operator";
@@ -339,11 +339,15 @@ export class GatewayClient {
     this.connectNonce = null;
     this.connectSent = false;
     if (this.connectTimer) {
-      clearTimeout(this.connectTimer);
+      clearImmediate(this.connectTimer);
     }
-    this.connectTimer = setTimeout(() => {
+    // Use setImmediate instead of setTimeout to avoid timer reliability issues
+    // on certain platforms (macOS/Tailscale) and during sleep/wake cycles.
+    // The connect frame can be sent on the next event loop iteration without
+    // the 750ms delay, as the challenge is handled separately via handleMessage().
+    this.connectTimer = setImmediate(() => {
       this.sendConnect();
-    }, 750);
+    }) as unknown as ReturnType<typeof setTimeout>;
   }
 
   private scheduleReconnect() {
