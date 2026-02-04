@@ -107,14 +107,17 @@ function checkConfigGuardrails(
 
   const existingStr = JSON.stringify(existingConfig);
   const newStr = JSON.stringify(newConfig);
-  const sizeRatio = newStr.length / existingStr.length;
 
-  if (sizeRatio < MIN_SIZE_RATIO) {
-    return {
-      ok: false,
-      error: `New config is ${Math.round(sizeRatio * 100)}% the size of current config. This may indicate accidental data loss. Use force: true to override.`,
-      details: { sizeRatio },
-    };
+  // Skip size ratio check if existing config is empty (avoids Infinity/NaN)
+  if (existingStr.length > 0) {
+    const sizeRatio = newStr.length / existingStr.length;
+    if (sizeRatio < MIN_SIZE_RATIO) {
+      return {
+        ok: false,
+        error: `New config is ${Math.round(sizeRatio * 100)}% the size of current config. This may indicate accidental data loss. Use force: true to override.`,
+        details: { sizeRatio },
+      };
+    }
   }
 
   const existingKeys = new Set(Object.keys(existingConfig));
