@@ -11,6 +11,7 @@ const DEFAULT_PARTS = 2;
 const MERGE_SUMMARIES_INSTRUCTIONS =
   "Merge these partial summaries into a single cohesive summary. Preserve decisions," +
   " TODOs, open questions, and any constraints.";
+const DEFAULT_CHUNK_SIZE_TOKENS = 8000;
 
 export function estimateMessagesTokens(messages: AgentMessage[]): number {
   return messages.reduce((sum, message) => sum + estimateTokens(message), 0);
@@ -136,6 +137,18 @@ export function isOversizedForSummary(msg: AgentMessage, contextWindow: number):
   return tokens > contextWindow * 0.5;
 }
 
+/**
+ * Check if chunk size would exceed context budget.
+ */
+function wouldExceedContextBudget(params: {
+  chunkTokens: number;
+  contextWindow: number;
+  reserveTokens: number;
+}): boolean {
+  const budget = params.contextWindow - params.reserveTokens;
+  return params.chunkTokens * SAFETY_MARGIN > budget;
+}
+
 async function summarizeChunks(params: {
   messages: AgentMessage[];
   model: NonNullable<ExtensionContext["model"]>;
@@ -145,6 +158,7 @@ async function summarizeChunks(params: {
   maxChunkTokens: number;
   customInstructions?: string;
   previousSummary?: string;
+  contextWindow: number;
 }): Promise<string> {
   if (params.messages.length === 0) {
     return params.previousSummary ?? DEFAULT_SUMMARY_FALLBACK;
@@ -154,6 +168,21 @@ async function summarizeChunks(params: {
   let summary = params.previousSummary;
 
   for (const chunk of chunks) {
+    const chunkTokens = estimateMessagesTokens(chunk);
+
+    // Check if this chunk would exceed the context budget
+    if (
+      wouldExceedContextBudget({
+        chunkTokens,
+        contextWindow: params.contextWindow,
+        reserveTokens: params.reserveTokens,
+      })
+    ) {
+      throw new Error(
+        `Chunk exceeds context budget: ${chunkTokens} tokens (budget: ${params.contextWindow - params.reserveTokens})`,
+      );
+    }
+
     summary = await generateSummary(
       chunk,
       params.model,
@@ -170,7 +199,7 @@ async function summarizeChunks(params: {
 
 /**
  * Summarize with progressive fallback for handling oversized messages.
- * If full summarization fails, tries partial summarization excluding oversized messages.
+ * If full summarization fails, tries smaller chunks, then partial summarization excluding oversized messages.
  */
 export async function summarizeWithFallback(params: {
   messages: AgentMessage[];
@@ -194,13 +223,30 @@ export async function summarizeWithFallback(params: {
     return await summarizeChunks(params);
   } catch (fullError) {
     console.warn(
-      `Full summarization failed, trying partial: ${
+      `Full summarization failed, trying smaller chunks: ${
         fullError instanceof Error ? fullError.message : String(fullError)
       }`,
     );
   }
 
-  // Fallback 1: Summarize only small messages, note oversized ones
+  // Fallback 1: Try with smaller chunk size
+  const smallerChunkSize = Math.min(DEFAULT_CHUNK_SIZE_TOKENS, params.maxChunkTokens / 2);
+  if (smallerChunkSize > 1000) {
+    try {
+      return await summarizeChunks({
+        ...params,
+        maxChunkTokens: smallerChunkSize,
+      });
+    } catch (smallerError) {
+      console.warn(
+        `Smaller chunk summarization failed, trying partial: ${
+          smallerError instanceof Error ? smallerError.message : String(smallerError)
+        }`,
+      );
+    }
+  }
+
+  // Fallback 2: Summarize only small messages, note oversized ones
   const smallMessages: AgentMessage[] = [];
   const oversizedNotes: string[] = [];
 
@@ -221,6 +267,7 @@ export async function summarizeWithFallback(params: {
       const partialSummary = await summarizeChunks({
         ...params,
         messages: smallMessages,
+        maxChunkTokens: Math.min(DEFAULT_CHUNK_SIZE_TOKENS, params.maxChunkTokens),
       });
       const notes = oversizedNotes.length > 0 ? `\n\n${oversizedNotes.join("\n")}` : "";
       return partialSummary + notes;
@@ -233,10 +280,18 @@ export async function summarizeWithFallback(params: {
     }
   }
 
-  // Final fallback: Just note what was there
+  // Final fallback: Create a brief summary noting what was there
+  const totalTokens = estimateMessagesTokens(messages);
+  const userMsgCount = messages.filter((m) => (m as { role?: string }).role === "user").length;
+  const assistantMsgCount = messages.filter(
+    (m) => (m as { role?: string }).role === "assistant",
+  ).length;
+
   return (
-    `Context contained ${messages.length} messages (${oversizedNotes.length} oversized). ` +
-    `Summary unavailable due to size limits.`
+    `Session contained ${messages.length} messages (${userMsgCount} user, ${assistantMsgCount} assistant) ` +
+    `totaling ~${Math.round(totalTokens / 1000)}K tokens` +
+    (oversizedNotes.length > 0 ? `, including ${oversizedNotes.length} oversized messages` : "") +
+    `. Full summary unavailable due to context size limits.`
   );
 }
 
@@ -262,13 +317,26 @@ export async function summarizeInStages(params: {
   const parts = normalizeParts(params.parts ?? DEFAULT_PARTS, messages.length);
   const totalTokens = estimateMessagesTokens(messages);
 
-  if (parts <= 1 || messages.length < minMessagesForSplit || totalTokens <= params.maxChunkTokens) {
-    return summarizeWithFallback(params);
+  // Use smaller chunk size for very large sessions
+  const effectiveMaxChunkTokens = Math.min(DEFAULT_CHUNK_SIZE_TOKENS, params.maxChunkTokens);
+
+  if (
+    parts <= 1 ||
+    messages.length < minMessagesForSplit ||
+    totalTokens <= effectiveMaxChunkTokens
+  ) {
+    return summarizeWithFallback({
+      ...params,
+      maxChunkTokens: effectiveMaxChunkTokens,
+    });
   }
 
   const splits = splitMessagesByTokenShare(messages, parts).filter((chunk) => chunk.length > 0);
   if (splits.length <= 1) {
-    return summarizeWithFallback(params);
+    return summarizeWithFallback({
+      ...params,
+      maxChunkTokens: effectiveMaxChunkTokens,
+    });
   }
 
   const partialSummaries: string[] = [];
@@ -278,6 +346,7 @@ export async function summarizeInStages(params: {
         ...params,
         messages: chunk,
         previousSummary: undefined,
+        maxChunkTokens: effectiveMaxChunkTokens,
       }),
     );
   }
@@ -300,6 +369,7 @@ export async function summarizeInStages(params: {
     ...params,
     messages: summaryMessages,
     customInstructions: mergeInstructions,
+    maxChunkTokens: effectiveMaxChunkTokens,
   });
 }
 
