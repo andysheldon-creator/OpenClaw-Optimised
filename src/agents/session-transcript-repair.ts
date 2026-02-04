@@ -36,7 +36,7 @@ function extractToolCallsFromAssistant(
     if (rec.type === "toolCall" || rec.type === "toolUse" || rec.type === "functionCall") {
       toolCalls.push({
         id: rec.id,
-        name: typeof rec.name === "string" ? rec.name : undefined,
+        name: typeof rec.name === "string" ? rec.name.trim().toLowerCase() : undefined,
       });
     }
   }
@@ -116,6 +116,7 @@ export function repairToolCallInputs(messages: AgentMessage[]): ToolCallInputRep
 
     const nextContent = [];
     let droppedInMessage = 0;
+    let messageChanged = false;
 
     for (const block of msg.content) {
       if (isToolCallBlock(block) && !hasToolCallInput(block)) {
@@ -124,10 +125,22 @@ export function repairToolCallInputs(messages: AgentMessage[]): ToolCallInputRep
         changed = true;
         continue;
       }
+      if (isToolCallBlock(block)) {
+        const name = (block as { name?: unknown }).name;
+        if (typeof name === "string") {
+          const sanitized = name.trim().toLowerCase();
+          if (sanitized !== name) {
+            nextContent.push({ ...block, name: sanitized } as any);
+            changed = true;
+            messageChanged = true;
+            continue;
+          }
+        }
+      }
       nextContent.push(block);
     }
 
-    if (droppedInMessage > 0) {
+    if (droppedInMessage > 0 || messageChanged) {
       if (nextContent.length === 0) {
         droppedAssistantMessages += 1;
         changed = true;
