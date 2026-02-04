@@ -33,6 +33,7 @@ import {
 } from "./hooks.js";
 import { handleOpenAiHttpRequest } from "./openai-http.js";
 import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
+import { runWithServerContext } from "./server-context.js";
 import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
@@ -140,7 +141,9 @@ export function createHooksRequestHandler(
         sendJson(res, 400, { ok: false, error: normalized.error });
         return true;
       }
-      const runId = dispatchAgentHook(normalized.value);
+      const runId = runWithServerContext({ orgId: "default", userId: "system" }, () =>
+        dispatchAgentHook(normalized.value),
+      );
       sendJson(res, 202, { ok: true, runId });
       return true;
     }
@@ -163,32 +166,35 @@ export function createHooksRequestHandler(
             res.end();
             return true;
           }
-          if (mapped.action.kind === "wake") {
+          const action = mapped.action;
+          if (action.kind === "wake") {
             dispatchWakeHook({
-              text: mapped.action.text,
-              mode: mapped.action.mode,
+              text: action.text,
+              mode: action.mode,
             });
-            sendJson(res, 200, { ok: true, mode: mapped.action.mode });
+            sendJson(res, 200, { ok: true, mode: action.mode });
             return true;
           }
-          const channel = resolveHookChannel(mapped.action.channel);
+          const channel = resolveHookChannel(action.channel);
           if (!channel) {
             sendJson(res, 400, { ok: false, error: getHookChannelError() });
             return true;
           }
-          const runId = dispatchAgentHook({
-            message: mapped.action.message,
-            name: mapped.action.name ?? "Hook",
-            wakeMode: mapped.action.wakeMode,
-            sessionKey: mapped.action.sessionKey ?? "",
-            deliver: resolveHookDeliver(mapped.action.deliver),
-            channel,
-            to: mapped.action.to,
-            model: mapped.action.model,
-            thinking: mapped.action.thinking,
-            timeoutSeconds: mapped.action.timeoutSeconds,
-            allowUnsafeExternalContent: mapped.action.allowUnsafeExternalContent,
-          });
+          const runId = runWithServerContext({ orgId: "default", userId: "system" }, () =>
+            dispatchAgentHook({
+              message: action.message,
+              name: action.name ?? "Hook",
+              wakeMode: action.wakeMode,
+              sessionKey: action.sessionKey ?? "",
+              deliver: resolveHookDeliver(action.deliver),
+              channel,
+              to: action.to,
+              model: action.model,
+              thinking: action.thinking,
+              timeoutSeconds: action.timeoutSeconds,
+              allowUnsafeExternalContent: action.allowUnsafeExternalContent,
+            }),
+          );
           sendJson(res, 202, { ok: true, runId });
           return true;
         }
