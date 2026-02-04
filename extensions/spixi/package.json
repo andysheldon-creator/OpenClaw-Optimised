@@ -13,19 +13,6 @@
   "openclaw": {
     "extensions": [
       "./index.ts"
-    ],
-    "channel": {
-      "id": "spixi",
-      "label": "Spixi",
-      "selectionLabel": "Spixi (P2P DLT)",
-      "detailLabel": "Spixi P2P",
-      "docsPath": "/channels/spixi",
-      "docsLabel": "spixi",
-      "blurb": "Decentralized P2P messaging via Ixian DLT.",
-      "systemImage": "shield.fill",
-      "order": 80,
-      "showConfigured": true,
-      "quickstartAllowFrom": true
-    }
+    ]
   }
 }
