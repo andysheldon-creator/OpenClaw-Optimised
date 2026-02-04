@@ -24,9 +24,6 @@
       "myWalletAddress": {
         "type": "string"
       },
-      "openclawRecipient": {
-        "type": "string"
-      },
       "allowFrom": {
         "type": "array",
         "items": {

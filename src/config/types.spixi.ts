@@ -7,7 +7,6 @@ export interface SpixiAccountConfig {
   mqttHost?: string;
   mqttPort?: number;
   myWalletAddress?: string;
-  openclawRecipient?: string;
   dmPolicy?: DmPolicy;
   allowFrom?: string[];
   groupPolicy?: GroupPolicy;

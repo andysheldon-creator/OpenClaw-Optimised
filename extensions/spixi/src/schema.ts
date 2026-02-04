@@ -33,10 +33,6 @@ export const SpixiAccountSchemaBase = z
       .string()
       .optional()
       .describe("Your Ixian wallet address. Used to filter out self-messages."),
-    openclawRecipient: z
-      .string()
-      .optional()
-      .describe("Phone number (E.164) of the OpenClaw user for Active Wakeup turns."),
     dmPolicy: DmPolicySchema.optional().default("pairing"),
     allowFrom: z.array(z.string()).optional(),
     groupPolicy: GroupPolicySchema.optional().default("allowlist"),
