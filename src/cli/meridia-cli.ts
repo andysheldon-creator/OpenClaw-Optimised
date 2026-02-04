@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { meridiaStatusCommand } from "../commands/meridia.js";
+import { meridiaDoctorCommand, meridiaStatusCommand } from "../commands/meridia.js";
 import { defaultRuntime } from "../runtime.js";
 import { theme } from "../terminal/theme.js";
 import { runCommandWithRuntime } from "./cli-utils.js";
@@ -26,6 +26,29 @@ export function registerMeridiaCli(program: Command) {
           {
             json: Boolean(opts.json),
             since: opts.since as string | undefined,
+          },
+          defaultRuntime,
+        );
+      });
+    });
+
+  program
+    .command("doctor")
+    .description("Check Meridia capture prerequisites (Google auth, hook config, model id)")
+    .option("--json", "Output JSON instead of text", false)
+    .addHelpText(
+      "after",
+      () =>
+        `\n${theme.heading("Examples:")}\n${formatHelpExamples([
+          ["openclaw meridia doctor", "Check auth + hook config."],
+          ["openclaw meridia doctor --json", "Machine-readable output."],
+        ])}`,
+    )
+    .action(async (opts) => {
+      await runCommandWithRuntime(defaultRuntime, async () => {
+        await meridiaDoctorCommand(
+          {
+            json: Boolean(opts.json),
           },
           defaultRuntime,
         );

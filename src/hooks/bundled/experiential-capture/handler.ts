@@ -9,6 +9,7 @@ import type {
   MeridiaTraceEvent,
 } from "../../../meridia/types.js";
 import type { HookHandler } from "../../hooks.js";
+import { MERIDIA_DEFAULT_EVALUATION_MODEL } from "../../../meridia/constants.js";
 import { evaluateHeuristic, evaluateWithLlm } from "../../../meridia/evaluate.js";
 import {
   appendJsonl,
@@ -267,6 +268,7 @@ const experientialCapture: HookHandler = async (event) => {
     meta,
     isError,
     decision: shouldCapture ? "capture" : "skip",
+    error: evaluationError,
     score: evaluation.score,
     threshold: minThreshold,
     limited,

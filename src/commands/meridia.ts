@@ -2,6 +2,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { MeridiaTraceEvent } from "../meridia/types.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { resolveApiKeyForProvider } from "../agents/model-auth.js";
+import { resolveHookConfig } from "../hooks/config.js";
+import { MERIDIA_DEFAULT_EVALUATION_MODEL } from "../meridia/constants.js";
 import { loadConfig } from "../config/config.js";
 import { dateKeyUtc, resolveMeridiaDir } from "../meridia/storage.js";
 import { theme } from "../terminal/theme.js";
@@ -9,6 +12,10 @@ import { theme } from "../terminal/theme.js";
 export type MeridiaStatusOptions = {
   json?: boolean;
   since?: string;
+};
+
+export type MeridiaDoctorOptions = {
+  json?: boolean;
 };
 
 function parseDurationMs(raw: string): number | null {
@@ -187,5 +194,121 @@ export async function meridiaStatusCommand(opts: MeridiaStatusOptions, runtime: 
         `- ${t.tool}: captured=${t.captured} seen=${t.seen}${t.errors ? ` err=${t.errors}` : ""}`,
     );
     runtime.log(`${theme.muted("Top tools:")}\n${lines.join("\n")}`);
+  }
+}
+
+export async function meridiaDoctorCommand(opts: MeridiaDoctorOptions, runtime: RuntimeEnv) {
+  const cfg = loadConfig();
+  const meridiaDir = resolveMeridiaDir(cfg);
+
+  const internalEnabled = cfg.hooks?.internal?.enabled === true;
+  const experientialCfg = resolveHookConfig(cfg, "experiential-capture");
+  const compactionCfg = resolveHookConfig(cfg, "compaction");
+  const sessionEndCfg = resolveHookConfig(cfg, "session-end");
+
+  const configEvaluationModel =
+    (typeof experientialCfg?.evaluation_model === "string" &&
+    experientialCfg.evaluation_model.trim()
+      ? experientialCfg.evaluation_model.trim()
+      : undefined) ??
+    (typeof experientialCfg?.evaluationModel === "string" && experientialCfg.evaluationModel.trim()
+      ? experientialCfg.evaluationModel.trim()
+      : undefined);
+
+  const evaluationModelRaw = MERIDIA_DEFAULT_EVALUATION_MODEL;
+
+  let googleAuthOk = false;
+  let googleAuthSource = "";
+  let googleAuthMode = "";
+  let googleKeyLength = 0;
+  try {
+    const auth = await resolveApiKeyForProvider({ provider: "google", cfg });
+    googleAuthOk = Boolean(auth.apiKey);
+    googleAuthSource = auth.source;
+    googleAuthMode = auth.mode;
+    googleKeyLength = auth.apiKey ? auth.apiKey.length : 0;
+  } catch (err) {
+    googleAuthOk = false;
+    googleAuthSource = err instanceof Error ? err.message : String(err);
+  }
+
+  const report = {
+    meridiaDir,
+    googleAuth: {
+      ok: googleAuthOk,
+      source: googleAuthSource,
+      mode: googleAuthMode || null,
+      keyLength: googleKeyLength,
+    },
+    hooks: {
+      internalEnabled,
+      experientialCapture: {
+        enabled: experientialCfg?.enabled === true,
+        configEvaluationModel: configEvaluationModel ?? null,
+        evaluationModel: evaluationModelRaw,
+        expectedModel: MERIDIA_DEFAULT_EVALUATION_MODEL,
+        modelMatchesExpected: evaluationModelRaw === MERIDIA_DEFAULT_EVALUATION_MODEL,
+        note: "experiential-capture evaluation model is fixed in code; config overrides are ignored.",
+      },
+      compaction: { enabled: compactionCfg?.enabled === true },
+      sessionEnd: { enabled: sessionEndCfg?.enabled === true },
+    },
+    fix: {
+      enableInternalHooks: "openclaw config set hooks.internal.enabled true --json",
+      enableExperientialCapture:
+        'openclaw config set hooks.internal.entries["experiential-capture"].enabled true --json',
+      setExperientialModel: `openclaw config set hooks.internal.entries[\"experiential-capture\"].evaluation_model ${MERIDIA_DEFAULT_EVALUATION_MODEL}  # optional (ignored by code)`,
+      enableCompaction: "openclaw config set hooks.internal.entries.compaction.enabled true --json",
+      enableSessionEnd:
+        'openclaw config set hooks.internal.entries["session-end"].enabled true --json',
+      configureGoogle: "openclaw configure --section model  # choose Gemini (uses GEMINI_API_KEY)",
+    },
+  };
+
+  if (opts.json) {
+    runtime.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  runtime.log(theme.heading("Meridia Doctor"));
+  runtime.log(`${theme.muted("Dir:")} ${meridiaDir}`);
+  runtime.log(
+    `${theme.muted("Google auth:")} ${googleAuthOk ? theme.success("ok") : theme.error("missing")} ${googleAuthOk ? theme.muted(`(${googleAuthSource}, ${googleAuthMode}, len=${googleKeyLength})`) : theme.muted(`(${googleAuthSource})`)}`,
+  );
+  runtime.log(
+    `${theme.muted("Hooks internal:")} ${internalEnabled ? theme.success("enabled") : theme.warn("disabled")}`,
+  );
+  runtime.log(
+    `${theme.muted("experiential-capture:")} ${experientialCfg?.enabled === true ? theme.success("enabled") : theme.warn("disabled")} ${theme.muted(`model=${evaluationModelRaw}`)}${configEvaluationModel && configEvaluationModel !== MERIDIA_DEFAULT_EVALUATION_MODEL ? theme.warn(` (config override ignored: ${configEvaluationModel})`) : ""}`,
+  );
+  runtime.log(
+    `${theme.muted("compaction:")} ${compactionCfg?.enabled === true ? theme.success("enabled") : theme.warn("disabled")}`,
+  );
+  runtime.log(
+    `${theme.muted("session-end:")} ${sessionEndCfg?.enabled === true ? theme.success("enabled") : theme.warn("disabled")}`,
+  );
+
+  const fixes: string[] = [];
+  if (!internalEnabled) {
+    fixes.push(`- ${report.fix.enableInternalHooks}`);
+  }
+  if (experientialCfg?.enabled !== true) {
+    fixes.push(`- ${report.fix.enableExperientialCapture}`);
+  }
+  if (evaluationModelRaw !== MERIDIA_DEFAULT_EVALUATION_MODEL) {
+    fixes.push(`- ${report.fix.setExperientialModel}`);
+  }
+  if (compactionCfg?.enabled !== true) {
+    fixes.push(`- ${report.fix.enableCompaction}`);
+  }
+  if (sessionEndCfg?.enabled !== true) {
+    fixes.push(`- ${report.fix.enableSessionEnd}`);
+  }
+  if (!googleAuthOk) {
+    fixes.push(`- ${report.fix.configureGoogle}`);
+  }
+  if (fixes.length > 0) {
+    runtime.log(`\n${theme.heading("Fix commands")}\n${fixes.join("\n")}`);
+    runtime.log(theme.muted("\nRestart the gateway after config changes."));
   }
 }

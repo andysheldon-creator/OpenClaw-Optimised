@@ -8,6 +8,7 @@ import {
   resolveDefaultModelForAgent,
   resolveModelRefFromString,
 } from "../agents/model-selection.js";
+import { ensureOpenClawModelsJson } from "../agents/models-config.js";
 import { resolveModel } from "../agents/pi-embedded-runner/model.js";
 
 function clamp01(value: number): number {
@@ -114,6 +115,7 @@ export async function evaluateWithLlm(params: {
   }
 
   const agentDir = resolveOpenClawAgentDir();
+  await ensureOpenClawModelsJson(params.cfg, agentDir);
   const { model, error } = resolveModel(
     resolved.ref.provider,
     resolved.ref.model,
