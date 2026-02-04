@@ -183,27 +183,24 @@ export function createAgentEventHandler({
 
     // Flush any buffered content that wasn't sent due to throttling
     // This ensures the client receives all content before the final event
+    // Flush is unconditional when there's text to avoid losing the tail of the message
     if (text) {
-      const lastSent = chatRunState.deltaSentAt.get(clientRunId) ?? 0;
       const now = Date.now();
-      // If we haven't sent recently, or if there's content, force a flush
-      if (now - lastSent >= 50) {
-        const flushPayload = {
-          runId: clientRunId,
-          sessionKey,
-          seq: seq - 1,
-          state: "delta" as const,
-          message: {
-            role: "assistant",
-            content: [{ type: "text", text }],
-            timestamp: now,
-          },
-        };
-        if (!shouldSuppressHeartbeatBroadcast(clientRunId)) {
-          broadcast("chat", flushPayload, { dropIfSlow: false });
-        }
-        nodeSendToSession(sessionKey, "chat", flushPayload);
+      const flushPayload = {
+        runId: clientRunId,
+        sessionKey,
+        seq: seq - 1,
+        state: "delta" as const,
+        message: {
+          role: "assistant",
+          content: [{ type: "text", text }],
+          timestamp: now,
+        },
+      };
+      if (!shouldSuppressHeartbeatBroadcast(clientRunId)) {
+        broadcast("chat", flushPayload, { dropIfSlow: false });
       }
+      nodeSendToSession(sessionKey, "chat", flushPayload);
     }
 
     chatRunState.buffers.delete(clientRunId);

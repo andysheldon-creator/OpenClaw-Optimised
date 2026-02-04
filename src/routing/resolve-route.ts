@@ -58,13 +58,16 @@ export function buildRoutingIndexes(cfg: OpenClawConfig): RoutingIndexes {
     if (!agentId) continue;
 
     const accountIdRaw = (binding.match?.accountId ?? "").trim();
+    // Normalize accountId: empty means default, "*" means wildcard, otherwise specific
+    const accountKey = accountIdRaw === "*" ? "*" : accountIdRaw || DEFAULT_ACCOUNT_ID;
 
-    // Index: peer binding
+    // Index: peer binding (includes accountId in key to preserve account scoping)
     if (binding.match?.peer?.id && binding.match?.peer?.kind) {
       const peerKind = (binding.match.peer.kind ?? "").trim().toLowerCase();
       const peerId = (binding.match.peer.id ?? "").trim();
       if (peerKind && peerId) {
-        const peerKey = `${peerKind}:${peerId}`;
+        // Key format: "accountId:peerKind:peerId" to preserve account matching semantics
+        const peerKey = `${accountKey}:${peerKind}:${peerId}`;
         if (!indexes.byChannelAndPeer.has(channel)) {
           indexes.byChannelAndPeer.set(channel, new Map());
         }
@@ -72,25 +75,27 @@ export function buildRoutingIndexes(cfg: OpenClawConfig): RoutingIndexes {
       }
     }
 
-    // Index: guild binding
+    // Index: guild binding (includes accountId in key)
     if (binding.match?.guildId) {
       const guildId = (binding.match.guildId ?? "").trim();
       if (guildId) {
+        const guildKey = `${accountKey}:${guildId}`;
         if (!indexes.byChannelAndGuild.has(channel)) {
           indexes.byChannelAndGuild.set(channel, new Map());
         }
-        indexes.byChannelAndGuild.get(channel)!.set(guildId, agentId);
+        indexes.byChannelAndGuild.get(channel)!.set(guildKey, agentId);
       }
     }
 
-    // Index: team binding
+    // Index: team binding (includes accountId in key)
     if (binding.match?.teamId) {
       const teamId = (binding.match.teamId ?? "").trim();
       if (teamId) {
+        const teamKey = `${accountKey}:${teamId}`;
         if (!indexes.byChannelAndTeam.has(channel)) {
           indexes.byChannelAndTeam.set(channel, new Map());
         }
-        indexes.byChannelAndTeam.get(channel)!.set(teamId, agentId);
+        indexes.byChannelAndTeam.get(channel)!.set(teamKey, agentId);
       }
     }
 
@@ -103,7 +108,6 @@ export function buildRoutingIndexes(cfg: OpenClawConfig): RoutingIndexes {
         indexes.byChannelWildcard.set(channel, agentId);
       } else {
         // Account-specific binding (includes empty accountId which means "default account only")
-        const accountKey = accountIdRaw || DEFAULT_ACCOUNT_ID;
         if (!indexes.byChannelAndAccount.has(channel)) {
           indexes.byChannelAndAccount.set(channel, new Map());
         }
@@ -333,42 +337,55 @@ export function resolveAgentRoute(input: ResolveAgentRouteInput): ResolvedAgentR
   // Use optimized O(1) index lookups instead of O(n) linear scans
   const indexes = getRoutingIndexes(input.cfg);
 
-  // 1. Peer binding (O(1) lookup)
+  // Helper to lookup with account scoping: first try specific accountId, then wildcard "*"
+  const lookupWithAccountFallback = (
+    map: Map<string, string> | undefined,
+    baseKey: string,
+  ): string | undefined => {
+    if (!map) return undefined;
+    // Try specific account first
+    const specific = map.get(`${accountId}:${baseKey}`);
+    if (specific) return specific;
+    // Fallback to wildcard account
+    return map.get(`*:${baseKey}`);
+  };
+
+  // 1. Peer binding (O(1) lookup with account scoping)
   if (peer) {
-    const peerKey = `${peer.kind}:${peer.id}`;
+    const peerBaseKey = `${peer.kind}:${peer.id}`;
     const peerByChannel = indexes.byChannelAndPeer.get(channel);
-    const peerAgentId = peerByChannel?.get(peerKey);
+    const peerAgentId = lookupWithAccountFallback(peerByChannel, peerBaseKey);
     if (peerAgentId) {
       return choose(peerAgentId, "binding.peer");
     }
   }
 
-  // 2. Parent peer binding for thread inheritance (O(1) lookup)
+  // 2. Parent peer binding for thread inheritance (O(1) lookup with account scoping)
   const parentPeer = input.parentPeer
     ? { kind: input.parentPeer.kind, id: normalizeId(input.parentPeer.id) }
     : null;
   if (parentPeer && parentPeer.id) {
-    const parentPeerKey = `${parentPeer.kind}:${parentPeer.id}`;
+    const parentPeerBaseKey = `${parentPeer.kind}:${parentPeer.id}`;
     const peerByChannel = indexes.byChannelAndPeer.get(channel);
-    const parentPeerAgentId = peerByChannel?.get(parentPeerKey);
+    const parentPeerAgentId = lookupWithAccountFallback(peerByChannel, parentPeerBaseKey);
     if (parentPeerAgentId) {
       return choose(parentPeerAgentId, "binding.peer.parent");
     }
   }
 
-  // 3. Guild binding (O(1) lookup)
+  // 3. Guild binding (O(1) lookup with account scoping)
   if (guildId) {
     const guildByChannel = indexes.byChannelAndGuild.get(channel);
-    const guildAgentId = guildByChannel?.get(guildId);
+    const guildAgentId = lookupWithAccountFallback(guildByChannel, guildId);
     if (guildAgentId) {
       return choose(guildAgentId, "binding.guild");
     }
   }
 
-  // 4. Team binding (O(1) lookup)
+  // 4. Team binding (O(1) lookup with account scoping)
   if (teamId) {
     const teamByChannel = indexes.byChannelAndTeam.get(channel);
-    const teamAgentId = teamByChannel?.get(teamId);
+    const teamAgentId = lookupWithAccountFallback(teamByChannel, teamId);
     if (teamAgentId) {
       return choose(teamAgentId, "binding.team");
     }

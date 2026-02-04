@@ -19,7 +19,7 @@ export type SandboxPolicy = {
   };
 };
 
-export type RestrictedApiName = "runCommandWithTimeout" | "writeConfigFile" | "filesystemAccess";
+export type RestrictedApiName = "runCommandWithTimeout" | "writeConfigFile";
 
 /**
  * Create a sandbox policy for a plugin.
@@ -53,10 +53,6 @@ export function createSandboxPolicy(
   };
 }
 
-/**
- * Wrap a function to block access for untrusted plugins.
- * Throws an error if the plugin tries to use a restricted API without trusted:true.
- */
 /**
  * Wrap a function to block access if the permission is not granted.
  * Throws an error if the plugin tries to use a restricted API without permission.
