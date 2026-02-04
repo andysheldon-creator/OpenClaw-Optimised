@@ -16,8 +16,9 @@ const handler = (await import("./handler.js")).default;
 describe("boot-md handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset the rate limiter by waiting
-    vi.useFakeTimers();
+    // Use fake timers with a fixed system time to make Date.now() deterministic
+    // Start each test at a fresh time (2024-01-01) to reset rate limiter state
+    vi.useFakeTimers({ now: new Date("2024-01-01T00:00:00Z") });
   });
 
   afterEach(() => {
@@ -95,7 +96,8 @@ describe("boot-md handler", () => {
     await handler(event);
     expect(mockRunBootOnce).toHaveBeenCalledTimes(1); // Still 1
 
-    // Fourth call after 60 seconds should succeed
+    // Fourth call after exactly 60 seconds should succeed
+    // (60000 - 60000 = 0, which is NOT < 60000, so rate limit check passes)
     vi.advanceTimersByTime(30_000); // Total 60 seconds
     await handler(event);
     expect(mockRunBootOnce).toHaveBeenCalledTimes(2); // Now 2
