@@ -223,11 +223,15 @@ export async function resolveApiKeyForProvider(params: {
 
   const authStorePath = resolveAuthStorePathForDisplay(params.agentDir);
   const resolvedAgentDir = path.dirname(authStorePath);
+  const providerConfig = resolveProviderConfig(cfg, provider);
+  const providerConfigHint = providerConfig
+    ? `models.providers.${provider} exists but apiKey is empty`
+    : `models.providers.${provider} not found in config`;
   throw new Error(
     [
       `No API key found for provider "${provider}".`,
-      `Auth store: ${authStorePath} (agentDir: ${resolvedAgentDir}).`,
-      `Configure auth for this agent (${formatCliCommand("openclaw agents add <id>")}) or copy auth-profiles.json from the main agentDir.`,
+      `Checked: auth-profiles (${authStorePath}), env, config (${providerConfigHint}).`,
+      `Fix: add apiKey to models.providers.${provider} in openclaw.json, or ${formatCliCommand("openclaw agents add <id>")}.`,
     ].join(" "),
   );
 }
