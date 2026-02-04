@@ -16,6 +16,7 @@ import { requireActivePluginRegistry } from "../plugins/runtime.js";
 import { normalizeAccountId } from "../routing/session-key.js";
 import { resolveSignalAccount } from "../signal/accounts.js";
 import { resolveSlackAccount, resolveSlackReplyToMode } from "../slack/accounts.js";
+import { resolveSpixiAccount } from "../spixi/accounts.js";
 import { buildSlackThreadingToolContext } from "../slack/threading-tool-context.js";
 import { resolveTelegramAccount } from "../telegram/accounts.js";
 import { normalizeE164 } from "../utils.js";
@@ -78,16 +79,6 @@ const formatLower = (allowFrom: Array<string | number>) =>
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// Channel docks: lightweight channel metadata/behavior for shared code paths.
-//
-// Rules:
-// - keep this module *light* (no monitors, probes, puppeteer/web login, etc)
-// - OK: config readers, allowFrom formatting, mention stripping patterns, threading defaults
-// - shared code should import from here (and from `src/channels/registry.ts`), not from the plugins registry
-//
-// Adding a channel:
-// - add a new entry to `DOCKS`
-// - keep it cheap; push heavy logic into `src/channels/plugins/<id>.ts` or channel modules
 const DOCKS: Record<ChatChannelId, ChannelDock> = {
   telegram: {
     id: "telegram",
@@ -360,6 +351,32 @@ const DOCKS: Record<ChatChannelId, ChannelDock> = {
     groups: {
       resolveRequireMention: resolveIMessageGroupRequireMention,
       resolveToolPolicy: resolveIMessageGroupToolPolicy,
+    },
+    threading: {
+      buildToolContext: ({ context, hasRepliedRef }) => {
+        const isDirect = context.ChatType?.toLowerCase() === "direct";
+        const channelId =
+          (isDirect ? (context.From ?? context.To) : context.To)?.trim() || undefined;
+        return {
+          currentChannelId: channelId,
+          currentThreadTs: context.ReplyToId,
+          hasRepliedRef,
+        };
+      },
+    },
+  },
+  spixi: {
+    id: "spixi",
+    capabilities: {
+      chatTypes: ["direct"],
+      media: true,
+    },
+    config: {
+      resolveAllowFrom: ({ cfg, accountId }) =>
+        (resolveSpixiAccount({ cfg, accountId }).config.allowFrom ?? []).map((entry) =>
+          String(entry),
+        ),
+      formatAllowFrom: ({ allowFrom }) => formatLower(allowFrom),
     },
     threading: {
       buildToolContext: ({ context, hasRepliedRef }) => {
