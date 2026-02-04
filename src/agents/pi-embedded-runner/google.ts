@@ -13,13 +13,14 @@ import {
 } from "../pi-embedded-helpers.js";
 import { cleanToolSchemaForGemini } from "../pi-tools.schema.js";
 import {
+  repairToolUseResultPairing,
   sanitizeToolCallInputs,
-  sanitizeToolUseResultPairing,
 } from "../session-transcript-repair.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import { log } from "./logger.js";
 import { describeUnknownError } from "./utils.js";
 
+const TOOL_RESULT_REPAIR_CUSTOM_TYPE = "tool-result-repair";
 const GOOGLE_TURN_ORDERING_CUSTOM_TYPE = "google-turn-ordering-bootstrap";
 const GOOGLE_SCHEMA_UNSUPPORTED_KEYWORDS = new Set([
   "patternProperties",
@@ -322,6 +323,34 @@ export function applyGoogleTurnOrderingFix(params: {
   return { messages: sanitized, didPrepend };
 }
 
+function hasToolResultRepairMarker(sessionManager: SessionManager): boolean {
+  try {
+    return sessionManager
+      .getEntries()
+      .some(
+        (entry) =>
+          (entry as CustomEntryLike)?.type === "custom" &&
+          (entry as CustomEntryLike)?.customType === TOOL_RESULT_REPAIR_CUSTOM_TYPE,
+      );
+  } catch {
+    return false;
+  }
+}
+
+function markToolResultRepair(
+  sessionManager: SessionManager,
+  stats: { added: number; droppedOrphan: number; droppedDuplicate: number },
+): void {
+  try {
+    sessionManager.appendCustomEntry(TOOL_RESULT_REPAIR_CUSTOM_TYPE, {
+      timestamp: Date.now(),
+      ...stats,
+    });
+  } catch {
+    // ignore marker persistence failures
+  }
+}
+
 export async function sanitizeSessionHistory(params: {
   messages: AgentMessage[];
   modelApi?: string | null;
@@ -350,9 +379,39 @@ export async function sanitizeSessionHistory(params: {
     ? sanitizeAntigravityThinkingBlocks(sanitizedImages)
     : sanitizedImages;
   const sanitizedToolCalls = sanitizeToolCallInputs(sanitizedThinking);
-  const repairedTools = policy.repairToolUseResultPairing
-    ? sanitizeToolUseResultPairing(sanitizedToolCalls)
-    : sanitizedToolCalls;
+
+  let repairedTools: AgentMessage[];
+  if (policy.repairToolUseResultPairing) {
+    const repairReport = repairToolUseResultPairing(sanitizedToolCalls);
+    repairedTools = repairReport.messages;
+
+    // Log and mark significant repairs for diagnosis (only once per session)
+    const hadRepairs =
+      repairReport.added.length > 0 ||
+      repairReport.droppedOrphanCount > 0 ||
+      repairReport.droppedDuplicateCount > 0;
+    const alreadyMarked = hasToolResultRepairMarker(params.sessionManager);
+    if (hadRepairs && !alreadyMarked) {
+      log.warn("session transcript repair applied", {
+        sessionId: params.sessionId,
+        addedSyntheticResults: repairReport.added.length,
+        droppedOrphans: repairReport.droppedOrphanCount,
+        droppedDuplicates: repairReport.droppedDuplicateCount,
+        moved: repairReport.moved,
+        provider: params.provider,
+        modelApi: params.modelApi,
+      });
+
+      // Mark the repair in the session to avoid repeated warnings
+      markToolResultRepair(params.sessionManager, {
+        added: repairReport.added.length,
+        droppedOrphan: repairReport.droppedOrphanCount,
+        droppedDuplicate: repairReport.droppedDuplicateCount,
+      });
+    }
+  } else {
+    repairedTools = sanitizedToolCalls;
+  }
 
   const isOpenAIResponsesApi =
     params.modelApi === "openai-responses" || params.modelApi === "openai-codex-responses";
