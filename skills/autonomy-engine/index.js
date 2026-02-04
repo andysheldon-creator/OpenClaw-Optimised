@@ -1,9 +1,9 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-module.exports = {
+export default {
   id: "autonomy-engine",
   name: "Autonomy Engine",
-  description: "Provides autonomous goal evaluation and self-correction capabilities.",
+  description: "Meta-cognitive tools for goal assessment and planning.",
   register(api) {
     api.registerTool({
       name: "assess_goal_progress",
@@ -17,14 +17,6 @@ module.exports = {
           .describe("List of specific criteria that define success."),
       }),
       func: async (args) => {
-        // In a real autonomous engine, this might call an LLM (self-reflection)
-        // or check structured state. For now, we provide a structured output
-        // that encourages the *calling* agent (the LLM) to think structurally.
-        // The act of calling this tool forces the LLM to structure its thinking.
-
-        // We can add simple heuristics here, but the main value is the structured schema
-        // and loop opportunity.
-
         return {
           status: "evaluated",
           meta: {

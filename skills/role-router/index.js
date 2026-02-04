@@ -1,21 +1,18 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-// Lazy load internal modules if needed (none strictly needed for this mock logic)
-// In a real app, this would likely fetch roles from a database via a service
+// Mock Permission Matrix
+const PERMISSIONS = {
+  admin: ["*"],
+  manager: ["view_analytics", "manage_users", "approve_deals"],
+  sales_rep: ["view_analytics", "manage_deals"],
+  viewer: ["view_analytics"],
+};
 
-module.exports = {
+export default {
   id: "role-router",
   name: "Role Router",
   description: "Utilities for routing requests and validating permissions based on user roles.",
   register(api) {
-    // Mock Permission Matrix
-    const PERMISSIONS = {
-      admin: ["*"],
-      manager: ["view_analytics", "manage_users", "approve_deals"],
-      sales_rep: ["view_analytics", "manage_deals"],
-      viewer: ["view_analytics"],
-    };
-
     api.registerTool({
       name: "check_permission",
       description:

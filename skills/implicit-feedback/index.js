@@ -1,19 +1,21 @@
-const { z } = require("zod");
+import { z } from "zod";
 
 function cosineSimilarity(vecA, vecB) {
   if (vecA.length !== vecB.length) {
     throw new Error("Vectors must have same dimensions");
   }
   let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
   for (let i = 0; i < vecA.length; i++) {
     dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
   }
-  // Vectors from createEmbeddingProvider are already normalized to magnitude 1,
-  // so dot product is the cosine similarity.
-  return dotProduct;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-module.exports = {
+export default {
   id: "implicit-feedback",
   name: "Implicit Feedback",
   description:
@@ -23,23 +25,22 @@ module.exports = {
     let loadConfig;
 
     try {
-      // Try importing from source (for dev/test)
-      const embeddingsModule = await import("../../src/memory/embeddings.ts");
-      const configModule = await import("../../src/config/config.ts");
-      createEmbeddingProvider = embeddingsModule.createEmbeddingProvider;
-      loadConfig = configModule.loadConfig;
+      // Dynamic imports for ESM
+      // src path (development)
+      const embeddingsModule = await import("../../src/memory/embeddings.ts").catch(
+        () =>
+          // fallback to dist (production)
+          import("../../dist/memory/embeddings.js"),
+      );
+
+      const configModule = await import("../../src/config/config.ts").catch(
+        () => import("../../dist/config/config.js"),
+      );
+
+      createEmbeddingProvider = embeddingsModule?.createEmbeddingProvider;
+      loadConfig = configModule?.loadConfig;
     } catch (e) {
-      try {
-        // Try importing from dist (for prod)
-        // Note: Using absolute path resolution or checking relative to this file
-        const embeddingsModule = await import("../../dist/memory/embeddings.js");
-        const configModule = await import("../../dist/config/config.js");
-        createEmbeddingProvider = embeddingsModule.createEmbeddingProvider;
-        loadConfig = configModule.loadConfig;
-      } catch (e2) {
-        api.logger.warn("Implicit Feedback skill disabled: Internal modules not found.", e2);
-        return;
-      }
+      console.warn("Failed to load internal modules:", e);
     }
 
     if (!createEmbeddingProvider || !loadConfig) {
@@ -62,12 +63,13 @@ module.exports = {
       }),
       func: async (args) => {
         try {
-          const config = loadConfig();
-          // Use 'auto' or configured provider from config
+          // Mock config for now since we don't have full server options here
+          const config = loadConfig ? await loadConfig() : {};
+
           const providerResult = await createEmbeddingProvider({
             config,
             provider: "auto",
-            model: "text-embedding-3-small", // Default fallback
+            model: "text-embedding-3-small",
             fallback: "none",
           });
 
@@ -84,7 +86,7 @@ module.exports = {
           };
         } catch (error) {
           api.logger.error(`Semantic compare failed: ${error.message}`);
-          return { error: String(error) };
+          return { error: error.message };
         }
       },
     });

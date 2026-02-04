@@ -1,6 +1,6 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-module.exports = {
+export default {
   id: "proactive-intelligence",
   name: "Proactive Intelligence",
   description:
@@ -22,8 +22,6 @@ module.exports = {
       }),
       func: async (args) => {
         const count = args.activities.length;
-        // In a real implementation, this would likely use an LLM or statistical analysis
-        // to process the text. For the foundation, we provide the structure.
 
         let result = {
           analyzed_count: count,

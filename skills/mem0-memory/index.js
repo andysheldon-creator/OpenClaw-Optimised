@@ -1,20 +1,15 @@
-const { MemoryClient } = require("mem0ai");
-const { z } = require("zod");
+import { MemoryClient } from "mem0ai";
+import { z } from "zod";
 
 let getServerContext;
 try {
-  // Attempt to load from relative path (dev/test environment)
-  // This assumes the skill is running in context of the openclaw project structure
-  const contextModule = require("../../src/gateway/server-context.ts");
-  getServerContext = contextModule.getServerContext;
+  // Lazy load server context
+  const contextModule = await import("../../src/gateway/server-context.ts").catch(
+    () => import("../../dist/gateway/server-context.js"),
+  );
+  getServerContext = contextModule?.getServerContext;
 } catch (e) {
-  try {
-    // Try JS path for built usage
-    const contextModule = require("../../dist/gateway/server-context.js");
-    getServerContext = contextModule.getServerContext;
-  } catch (e2) {
-    console.warn("Could not load server-context, defaulting to stub.");
-  }
+  console.warn("Could not load server-context, defaulting to stub.");
 }
 
 function getOrgContext() {
@@ -25,7 +20,7 @@ function getOrgContext() {
         org_id: ctx.orgId,
         user_id: ctx.userId,
         agent_id: ctx.agentId || "default_agent",
-        customer_id: "unknown_customer", // Needs context expansion
+        customer_id: "unknown_customer",
         team_id: "default_team",
       };
     }
@@ -38,7 +33,7 @@ function getOrgContext() {
   };
 }
 
-class OmnisMemory {
+class Mem0Integration {
   constructor() {
     if (!process.env.MEM0_API_KEY) {
       console.warn("MEM0_API_KEY not set. Mem0 memory disabled.");
@@ -51,38 +46,43 @@ class OmnisMemory {
   }
 
   async addMemory(content, scope, metadata = {}) {
-    if (!this.client) return { ok: false, error: "Mem0 client not initialized" };
+    if (!this.client) {
+      return { ok: false, error: "Mem0 not configured" };
+    }
 
     const ctx = getOrgContext();
-    const memoryParams = {
-      messages: [{ role: "user", content }],
-      metadata: {
-        org_id: ctx.org_id,
-        scope: scope,
-        ...metadata,
-      },
-    };
+    let user_id;
 
     // Scope-specific user_id for isolation
     switch (scope) {
       case "customer":
-        memoryParams.user_id = `${ctx.org_id}:customer:${metadata.customer_id || ctx.customer_id}`;
+        user_id = `${ctx.org_id}:customer:${metadata.customer_id || ctx.customer_id}`;
         break;
       case "agent":
-        memoryParams.user_id = `${ctx.org_id}:agent:${metadata.agent_id || ctx.agent_id}`;
+        user_id = `${ctx.org_id}:agent:${metadata.agent_id || ctx.agent_id}`;
         break;
       case "team":
-        memoryParams.user_id = `${ctx.org_id}:team:${metadata.team_id || ctx.team_id}`;
+        user_id = `${ctx.org_id}:team:${metadata.team_id || ctx.team_id}`;
         break;
       case "organization":
-        memoryParams.user_id = `${ctx.org_id}:org`;
+        user_id = `${ctx.org_id}:org`;
         break;
       default:
-        memoryParams.user_id = `${ctx.org_id}:general`;
+        user_id = `${ctx.org_id}:agent:${ctx.agent_id}`;
     }
 
+    const messages = [{ role: "user", content }];
+
     try {
-      const result = await this.client.add(memoryParams);
+      // Pass messages as first arg, and options (user_id, metadata) as second
+      const result = await this.client.add(messages, {
+        user_id: user_id,
+        metadata: {
+          org_id: ctx.org_id,
+          scope: scope,
+          ...metadata,
+        },
+      });
       return { ok: true, result };
     } catch (error) {
       console.error("Mem0 Add Error:", error);
@@ -138,13 +138,13 @@ class OmnisMemory {
   }
 }
 
-module.exports = {
+const memory = new Mem0Integration();
+
+export default {
   id: "mem0-memory",
   name: "Mem0 Memory",
-  description: "Memory system for agents using Mem0",
+  description: "Long-term memory storage and retrieval using Mem0.",
   register(api) {
-    const memory = new OmnisMemory();
-
     api.registerTool({
       name: "mem0_add",
       description:

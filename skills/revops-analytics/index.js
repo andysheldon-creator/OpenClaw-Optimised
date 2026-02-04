@@ -1,6 +1,6 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-module.exports = {
+export default {
   id: "revops-analytics",
   name: "RevOps Analytics",
   description: "Tools for tracking business events and retrieving Revenue Operations metrics.",
