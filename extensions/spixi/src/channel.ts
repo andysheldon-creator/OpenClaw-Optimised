@@ -203,13 +203,25 @@ export const spixiPlugin: ChannelPlugin<ResolvedSpixiAccount> = {
         }
       });
 
-      return {
-        ...runtime,
-        stop: async () => {
+      // Attach capabilities to the shared runtime object so server.impl.ts can see them
+      Object.assign(ctx.runtime, getSpixiRuntime());
+
+      return new Promise<void>((resolve) => {
+        const onAbort = () => {
           log?.info(`[${account.accountId}] stopping spixi bridge`);
           client.end();
+          resolve();
+        };
+
+        if (ctx.abortSignal.aborted) {
+          onAbort();
+          return;
         }
-      };
+
+        ctx.abortSignal.addEventListener("abort", () => {
+          onAbort();
+        });
+      });
     },
   },
 };
