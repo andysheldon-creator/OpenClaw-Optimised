@@ -197,6 +197,13 @@ export async function prepareSanitizedMounts(): Promise<SanitizedMounts> {
   binds.push(`${devicesDir}:/home/node/.openclaw/devices:rw`);
   
   // =========================================================================
+  // 6. CRON DIRECTORY (read-write) - for scheduled tasks
+  // =========================================================================
+  const cronDir = path.join(openclawDir, "cron");
+  await fs.promises.mkdir(cronDir, { recursive: true });
+  binds.push(`${cronDir}:/home/node/.openclaw/cron:rw`);
+  
+  // =========================================================================
   // 4. DO NOT MOUNT CREDENTIALS (stay on host only)
   // =========================================================================
   // ~/.openclaw/credentials/ contains real OAuth tokens
