@@ -460,6 +460,18 @@ export async function snapshotHybridViaPlaywright(opts: {
   const mergedRefs = { ...built.refs };
   let mergedLines = built.snapshot.split("\n");
 
+  // Find the maximum numeric value from existing e{n} refs to avoid collisions
+  const findNextRef = (): string => {
+    const existingENums = Object.keys(mergedRefs)
+      .map((ref) => {
+        const match = ref.match(/^e(\d+)$/);
+        return match ? Number.parseInt(match[1], 10) : 0;
+      })
+      .filter((n) => n > 0);
+    const maxNum = existingENums.length > 0 ? Math.max(...existingENums) : 0;
+    return `e${maxNum + 1}`;
+  };
+
   // Find elements in enhanced regions that aren't in Playwright's snapshot
   const existingRefs = new Set(Object.keys(built.refs));
   for (const [elementId, region] of Object.entries(enhancedRegions)) {
@@ -473,9 +485,8 @@ export async function snapshotHybridViaPlaywright(opts: {
     });
 
     if (!alreadyExists && region.rects.length > 0) {
-      // Add missing element
-      const refCounter = Object.keys(mergedRefs).length + 1;
-      const ref = `e${refCounter}`;
+      // Add missing element with collision-safe ref
+      const ref = findNextRef();
       mergedRefs[ref] = {
         role,
         ...(name ? { name } : {}),
