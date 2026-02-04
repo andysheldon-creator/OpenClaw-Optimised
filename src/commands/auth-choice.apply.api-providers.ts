@@ -800,56 +800,156 @@ export async function applyAuthChoiceApiProviders(
   }
 
   if (authChoice === "azure-openai") {
-    const endpoint = await params.prompter.text({
-      message: "Enter Azure OpenAI endpoint (e.g., https://YOUR-RESOURCE.openai.azure.com)",
-      validate: (input) => {
-        const value = String(input).trim();
-        if (!value) {
-          return "Azure endpoint is required";
-        }
-        if (!value.startsWith("https://")) {
-          return "Endpoint must start with https://";
-        }
-        if (!value.includes("azure.com")) {
-          return "Must be an Azure endpoint (*.azure.com)";
-        }
-        return undefined;
-      },
+    // Ask which Azure service
+    const serviceType = await params.prompter.select({
+      message: "Which Azure AI service?",
+      options: [
+        {
+          value: "openai",
+          label: "Azure OpenAI",
+          hint: "GPT-4, text-embedding-3-large, etc.",
+        },
+        {
+          value: "foundry",
+          label: "Azure AI Foundry (Model-as-a-Service)",
+          hint: "Claude, Llama, Mistral, etc.",
+        },
+      ],
     });
 
-    const endpointStr = String(endpoint).trim();
+    if (serviceType === "foundry") {
+      // Azure Foundry - manual setup
+      const endpoint = await params.prompter.text({
+        message: "Enter Azure AI Foundry endpoint",
+        placeholder: "https://YOUR-PROJECT.services.ai.azure.com",
+        validate: (input) => {
+          const value = String(input).trim();
+          if (!value) {
+            return "Endpoint is required";
+          }
+          if (!value.startsWith("https://")) {
+            return "Endpoint must start with https://";
+          }
+          if (!value.includes("services.ai.azure.com")) {
+            return "Must be an Azure AI Foundry endpoint (*.services.ai.azure.com)";
+          }
+          return undefined;
+        },
+      });
 
-    await params.prompter.note(
-      [
-        "Azure discovery will automatically list all deployed models.",
-        "Authentication options (in priority order):",
-        "  1. Azure CLI: run `az login` (recommended)",
-        "  2. API key: set AZURE_OPENAI_API_KEY environment variable",
-        "",
-        "To verify discovery: openclaw models list",
-      ].join("\n"),
-      "Azure OpenAI Setup",
-    );
+      const apiType = await params.prompter.select({
+        message: "Which model API type?",
+        options: [
+          { value: "anthropic-messages", label: "Anthropic (Claude)" },
+          { value: "openai-completions", label: "OpenAI-compatible (Llama, Mistral, etc.)" },
+        ],
+      });
 
-    nextConfig = applyAzureOpenAiProviderConfig(nextConfig, endpointStr);
-    nextConfig = applyAuthProfileConfig(nextConfig, {
-      profileId: "azure-openai:default",
-      provider: "azure-openai",
-      mode: "api_key",
-    });
+      const modelId = await params.prompter.text({
+        message: "Enter model deployment name",
+        placeholder: "claude-opus-4-5",
+      });
 
-    const firstModel = "azure-openai/gpt-4";
-    if (params.setDefaultModel) {
+      const endpointStr = String(endpoint).trim();
+      const modelIdStr = String(modelId).trim();
+      const apiTypeStr = String(apiType);
+
+      // Create provider config
+      const providerName = "azure-foundry";
+      nextConfig = {
+        ...nextConfig,
+        models: {
+          ...nextConfig.models,
+          providers: {
+            ...nextConfig.models?.providers,
+            [providerName]: {
+              baseUrl: endpointStr,
+              api: apiTypeStr as any,
+              models: [],
+            },
+          },
+        },
+      };
+
+      nextConfig = applyAuthProfileConfig(nextConfig, {
+        profileId: `${providerName}:default`,
+        provider: providerName,
+        mode: "api_key",
+      });
+
+      const modelRef = `${providerName}/${modelIdStr}`;
+      if (params.setDefaultModel) {
+        await params.prompter.note(`Set default model to ${modelRef}`, "Model configured");
+        nextConfig = {
+          ...nextConfig,
+          agents: {
+            ...nextConfig.agents,
+            defaults: {
+              ...nextConfig.agents?.defaults,
+              model: modelRef,
+            },
+          },
+        };
+      } else if (params.agentId) {
+        await noteAgentModel(modelRef);
+        agentModelOverride = modelRef;
+      }
+    } else {
+      // Azure OpenAI - discovery setup
+      const endpoint = await params.prompter.text({
+        message: "Enter Azure OpenAI endpoint",
+        placeholder: "https://YOUR-RESOURCE.openai.azure.com",
+        validate: (input) => {
+          const value = String(input).trim();
+          if (!value) {
+            return "Azure endpoint is required";
+          }
+          if (!value.startsWith("https://")) {
+            return "Endpoint must start with https://";
+          }
+          if (
+            !value.includes("openai.azure.com") &&
+            !value.includes("cognitiveservices.azure.com")
+          ) {
+            return "Must be an Azure OpenAI endpoint (*.openai.azure.com or *.cognitiveservices.azure.com)";
+          }
+          return undefined;
+        },
+      });
+
+      const endpointStr = String(endpoint).trim();
+
       await params.prompter.note(
-        `Set default model to ${firstModel} (update after discovery completes)`,
-        "Model configured",
+        [
+          "Azure discovery will automatically list all deployed models.",
+          "Authentication options (in priority order):",
+          "  1. Azure CLI: run `az login` (recommended)",
+          "  2. API key: set AZURE_OPENAI_API_KEY environment variable",
+          "",
+          "To verify discovery: openclaw models list",
+        ].join("\n"),
+        "Azure OpenAI Setup",
       );
-      nextConfig = applyAzureOpenAiConfig(nextConfig, endpointStr, firstModel);
-    } else if (params.agentId) {
-      await noteAgentModel(firstModel);
-      agentModelOverride = firstModel;
-    }
 
+      nextConfig = applyAzureOpenAiProviderConfig(nextConfig, endpointStr);
+      nextConfig = applyAuthProfileConfig(nextConfig, {
+        profileId: "azure-openai:default",
+        provider: "azure-openai",
+        mode: "api_key",
+      });
+
+      const firstModel = "azure-openai/gpt-4";
+      if (params.setDefaultModel) {
+        await params.prompter.note(
+          `Set default model to ${firstModel} (update after discovery completes)`,
+          "Model configured",
+        );
+        nextConfig = applyAzureOpenAiConfig(nextConfig, endpointStr, firstModel);
+      } else if (params.agentId) {
+        await noteAgentModel(firstModel);
+        agentModelOverride = firstModel;
+      }
+    }
     return { config: nextConfig, agentModelOverride };
   }
 
