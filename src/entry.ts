@@ -16,13 +16,13 @@ if (process.argv.includes("--no-color")) {
   process.env.FORCE_COLOR = "0";
 }
 
-const EXPERIMENTAL_WARNING_FLAG = "--disable-warning=ExperimentalWarning";
+const WARNING_FLAGS = "--disable-warning=ExperimentalWarning --disable-warning=DEP0040";
 
 function hasExperimentalWarningSuppressed(nodeOptions: string): boolean {
   if (!nodeOptions) {
     return false;
   }
-  return nodeOptions.includes(EXPERIMENTAL_WARNING_FLAG) || nodeOptions.includes("--no-warnings");
+  return nodeOptions.includes("--disable-warning=ExperimentalWarning") || nodeOptions.includes("--no-warnings");
 }
 
 function ensureExperimentalWarningSuppressed(): boolean {
@@ -38,7 +38,7 @@ function ensureExperimentalWarningSuppressed(): boolean {
   }
 
   process.env.OPENCLAW_NODE_OPTIONS_READY = "1";
-  process.env.NODE_OPTIONS = `${nodeOptions} ${EXPERIMENTAL_WARNING_FLAG}`.trim();
+  process.env.NODE_OPTIONS = `${nodeOptions} ${WARNING_FLAGS}`.trim();
 
   const child = spawn(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
     stdio: "inherit",
