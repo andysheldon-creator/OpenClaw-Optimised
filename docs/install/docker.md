@@ -276,6 +276,35 @@ docker compose run --rm openclaw-cli channels add --channel discord --token "<to
 
 Docs: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram), [Discord](/channels/discord)
 
+### Browser configuration (Docker)
+
+When running in Docker, browser automation requires headless mode since containers have no display. Configure this via the CLI or config file.
+
+Via CLI:
+
+```bash
+docker compose run --rm openclaw-cli config set browser.headless true
+```
+
+Or add to `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "browser": {
+    "headless": true,
+    "noSandbox": true
+  }
+}
+```
+
+Notes:
+
+- `headless: true` is required for Docker environments without a display
+- `noSandbox: true` is recommended for containerized Chrome
+- Restart the gateway after changing configuration
+
+For Playwright browser installation in custom Docker images, see [Browser Tool](/tools/browser)
+
 ### OpenAI Codex OAuth (headless Docker)
 
 If you pick OpenAI Codex OAuth in the wizard, it opens a browser URL and tries

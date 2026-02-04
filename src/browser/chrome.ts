@@ -1,4 +1,4 @@
-import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -52,7 +52,7 @@ export type RunningChrome = {
   userDataDir: string;
   cdpPort: number;
   startedAt: number;
-  proc: ChildProcessWithoutNullStreams;
+  proc: ChildProcess;
 };
 
 function resolveBrowserExecutable(resolved: ResolvedBrowserConfig): BrowserExecutable | null {
@@ -217,14 +217,15 @@ export async function launchOpenClawChrome(
     // Always open a blank tab to ensure a target exists.
     args.push("about:blank");
 
-    return spawn(exe.path, args, {
-      stdio: "pipe",
+    const proc = spawn(exe.path, args, {
+      stdio: ["ignore", "ignore", "ignore"],
       env: {
         ...process.env,
         // Reduce accidental sharing with the user's env.
         HOME: os.homedir(),
       },
     });
+    return proc as unknown as ChildProcess;
   };
 
   const startedAt = Date.now();
