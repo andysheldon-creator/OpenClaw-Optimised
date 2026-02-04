@@ -14,16 +14,23 @@ describe("VULN-015: browser file path validation", () => {
   const cwd = process.cwd();
 
   describe("validateBrowserFilePath", () => {
-    it("allows paths within home directory", () => {
+    it("allows absolute paths within home directory", () => {
       expect(validateBrowserFilePath(path.join(home, "file.txt"))).toBeNull();
       expect(validateBrowserFilePath(path.join(home, "Documents", "file.pdf"))).toBeNull();
       expect(validateBrowserFilePath(home)).toBeNull();
     });
 
-    it("allows paths within current working directory", () => {
+    it("allows absolute paths within current working directory", () => {
       expect(validateBrowserFilePath(path.join(cwd, "file.txt"))).toBeNull();
       expect(validateBrowserFilePath(path.join(cwd, "subdir", "file.pdf"))).toBeNull();
       expect(validateBrowserFilePath(cwd)).toBeNull();
+    });
+
+    it("allows paths with double dots in directory/file names (not traversal)", () => {
+      // These contain ".." as part of the name, not as traversal segments
+      expect(validateBrowserFilePath(path.join(home, "project..backup", "file.txt"))).toBeNull();
+      expect(validateBrowserFilePath(path.join(home, "..config", "settings.json"))).toBeNull();
+      expect(validateBrowserFilePath(path.join(home, "file..ext"))).toBeNull();
     });
 
     it("rejects paths outside home and cwd", () => {
@@ -34,8 +41,14 @@ describe("VULN-015: browser file path validation", () => {
 
     it("rejects path traversal attempts", () => {
       expect(validateBrowserFilePath(path.join(home, "..", "etc", "passwd"))).not.toBeNull();
-      expect(validateBrowserFilePath("../../../etc/passwd")).not.toBeNull();
       expect(validateBrowserFilePath(path.join(cwd, "..", "..", "etc", "passwd"))).not.toBeNull();
+    });
+
+    it("rejects relative paths", () => {
+      expect(validateBrowserFilePath("file.txt")).toEqual("path must be absolute");
+      expect(validateBrowserFilePath("../../../etc/passwd")).toEqual("path must be absolute");
+      expect(validateBrowserFilePath("./downloads/file.txt")).toEqual("path must be absolute");
+      expect(validateBrowserFilePath("subdir/file.txt")).toEqual("path must be absolute");
     });
 
     it("rejects empty paths", () => {

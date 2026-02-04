@@ -79,11 +79,18 @@ export function toStringArray(value: unknown): string[] | undefined {
  * Prevents path traversal attacks (CWE-22) by ensuring paths
  * cannot escape the user's home directory or current working directory.
  *
+ * Requires absolute paths to avoid ambiguity about the base directory.
+ *
  * @returns null if valid, error message if invalid
  */
 export function validateBrowserFilePath(filePath: string): string | null {
   if (!filePath) {
     return "path is required";
+  }
+
+  // Require absolute paths to avoid ambiguity about base directory
+  if (!path.isAbsolute(filePath)) {
+    return "path must be absolute";
   }
 
   const resolved = path.resolve(filePath);
@@ -101,9 +108,11 @@ export function validateBrowserFilePath(filePath: string): string | null {
     return "path must be within home directory or current working directory";
   }
 
-  // Block paths that contain traversal patterns even if resolved
+  // Block paths with ".." as a segment (actual traversal), not substring
+  // This allows legitimate paths like "project..backup" or "..config"
   const normalized = path.normalize(filePath);
-  if (normalized.includes("..")) {
+  const segments = normalized.split(path.sep);
+  if (segments.includes("..")) {
     return "path traversal not allowed";
   }
 
