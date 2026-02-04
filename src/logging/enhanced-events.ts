@@ -82,6 +82,60 @@ export type PerformanceOutlierContext = {
   metadata?: Record<string, unknown>;
 };
 
+function performanceOutlierSourceHint(operation: PerformanceOutlierType): string {
+  // Keep this a stable, high-signal hint for tracing where the warning originates.
+  // (Not a file path; those drift. This is meant for scanning logs.)
+  switch (operation) {
+    case "agent_turn":
+      return "agent-runner";
+    case "tool":
+      return "tool-exec";
+    case "gateway_request":
+      return "gateway";
+    case "database":
+      return "db";
+  }
+}
+
+function formatOptionalField(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return null;
+}
+
+function buildPerformanceConsoleMessage(ctx: PerformanceOutlierContext): string {
+  const overageMs = ctx.durationMs - ctx.threshold;
+  const overagePct = Math.round(((ctx.durationMs - ctx.threshold) / ctx.threshold) * 100);
+  const meta = ctx.metadata ?? {};
+
+  const agentId = formatOptionalField(meta.agentId);
+  const sessionKey = formatOptionalField(meta.sessionKey);
+  const toolCallId = formatOptionalField(meta.toolCallId);
+  const provider = formatOptionalField(meta.provider);
+  const model = formatOptionalField(meta.model);
+
+  const fields = [
+    `src=${performanceOutlierSourceHint(ctx.operation)}`,
+    `op=${ctx.operation}`,
+    `name=${ctx.name}`,
+    `durationMs=${ctx.durationMs}`,
+    `thresholdMs=${ctx.threshold}`,
+    `overageMs=${overageMs}`,
+    `overagePct=${overagePct}`,
+    agentId ? `agentId=${agentId}` : null,
+    sessionKey ? `sessionKey=${sessionKey}` : null,
+    toolCallId ? `toolCallId=${toolCallId}` : null,
+    provider ? `provider=${provider}` : null,
+    model ? `model=${model}` : null,
+  ].filter(Boolean);
+
+  return `Slow operation detected: ${fields.join(" ")}`;
+}
+
 /**
  * Log when an operation exceeds performance threshold.
  * No-op if CLAWDBRAIN_LOG_PERFORMANCE=0
@@ -92,6 +146,8 @@ export function logPerformanceOutlier(ctx: PerformanceOutlierContext): void {
   }
 
   perfLogger.warn("Slow operation detected", {
+    // Human-readable summary for compact/pretty console logs.
+    consoleMessage: buildPerformanceConsoleMessage(ctx),
     operation: ctx.operation,
     name: ctx.name,
     durationMs: ctx.durationMs,

@@ -1,4 +1,5 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import { normalizeToolCallArguments } from "./tool-call-id.js";
 
 type ToolCallLike = {
   id: string;
@@ -148,7 +149,8 @@ export function repairToolCallInputs(messages: AgentMessage[]): ToolCallInputRep
 }
 
 export function sanitizeToolCallInputs(messages: AgentMessage[]): AgentMessage[] {
-  return repairToolCallInputs(messages).messages;
+  const normalized = normalizeToolCallArguments(messages);
+  return repairToolCallInputs(normalized).messages;
 }
 
 export function sanitizeToolUseResultPairing(messages: AgentMessage[]): AgentMessage[] {

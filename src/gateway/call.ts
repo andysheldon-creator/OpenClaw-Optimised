@@ -146,7 +146,13 @@ export function buildGatewayConnectionDetails(
 export async function callGateway<T = Record<string, unknown>>(
   opts: CallGatewayOptions,
 ): Promise<T> {
-  const timeoutMs = opts.timeoutMs ?? 10_000;
+  const MAX_SET_TIMEOUT_MS = 2_147_483_647;
+  const timeoutMsRaw =
+    typeof opts.timeoutMs === "number" && Number.isFinite(opts.timeoutMs)
+      ? Math.max(0, Math.floor(opts.timeoutMs))
+      : undefined;
+  const timeoutMs = timeoutMsRaw ?? 10_000;
+  const shouldTimeout = timeoutMs > 0 && timeoutMs <= MAX_SET_TIMEOUT_MS;
   const config = opts.config ?? loadConfig();
   const suppressGatewayHealth =
     opts.suppressGatewayHealth ??
@@ -228,12 +234,16 @@ export async function callGateway<T = Record<string, unknown>>(
   return await new Promise<T>((resolve, reject) => {
     let settled = false;
     let ignoreClose = false;
+    let timer: NodeJS.Timeout | null = null;
     const stop = (err?: Error, value?: T) => {
       if (settled) {
         return;
       }
       settled = true;
-      clearTimeout(timer);
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
       if (err) {
         reject(err);
       } else {
@@ -282,11 +292,13 @@ export async function callGateway<T = Record<string, unknown>>(
       },
     });
 
-    const timer = setTimeout(() => {
-      ignoreClose = true;
-      client.stop();
-      stop(new Error(formatTimeoutError()));
-    }, timeoutMs);
+    if (shouldTimeout) {
+      timer = setTimeout(() => {
+        ignoreClose = true;
+        client.stop();
+        stop(new Error(formatTimeoutError()));
+      }, timeoutMs);
+    }
 
     client.start();
   });

@@ -128,6 +128,25 @@ describe("sanitizeToolCallInputs", () => {
     expect(out.map((m) => m.role)).toEqual(["user"]);
   });
 
+  it("keeps tool calls with explicit null arguments (normalizes to empty object)", () => {
+    const input: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: [{ type: "toolCall", id: "call_1", name: "read", arguments: null }],
+      },
+    ];
+
+    const out = sanitizeToolCallInputs(input);
+    expect(out.map((m) => m.role)).toEqual(["assistant"]);
+    const assistant = out[0] as Extract<AgentMessage, { role: "assistant" }>;
+    expect(Array.isArray(assistant.content)).toBe(true);
+    const toolCall = (assistant.content as Array<Record<string, unknown>>).find(
+      (b) => b.type === "toolCall",
+    );
+    expect(toolCall).toBeTruthy();
+    expect(toolCall?.arguments).toEqual({});
+  });
+
   it("keeps valid tool calls and preserves text blocks", () => {
     const input: AgentMessage[] = [
       {

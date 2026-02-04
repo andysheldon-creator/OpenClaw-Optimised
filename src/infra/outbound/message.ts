@@ -93,13 +93,14 @@ export type MessagePollResult = {
 };
 
 function resolveGatewayOptions(opts?: MessageGatewayOptions) {
+  const timeoutMs =
+    typeof opts?.timeoutMs === "number" && Number.isFinite(opts.timeoutMs)
+      ? Math.max(0, Math.floor(opts.timeoutMs))
+      : undefined;
   return {
     url: opts?.url,
     token: opts?.token,
-    timeoutMs:
-      typeof opts?.timeoutMs === "number" && Number.isFinite(opts.timeoutMs)
-        ? Math.max(1, Math.floor(opts.timeoutMs))
-        : 10_000,
+    timeoutMs: timeoutMs ?? 10_000,
     clientName: opts?.clientName ?? GATEWAY_CLIENT_NAMES.CLI,
     clientDisplayName: opts?.clientDisplayName,
     mode: opts?.mode ?? GATEWAY_CLIENT_MODES.CLI,

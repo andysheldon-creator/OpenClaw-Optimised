@@ -2,6 +2,7 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
 import {
   isValidCloudCodeAssistToolId,
+  normalizeToolCallArguments,
   sanitizeToolCallIdsForCloudCodeAssist,
 } from "./tool-call-id.js";
 
@@ -263,5 +264,36 @@ describe("sanitizeToolCallIdsForCloudCodeAssist", () => {
       expect(r1.toolCallId).toBe(a.id);
       expect(r2.toolCallId).toBe(b.id);
     });
+  });
+});
+
+describe("normalizeToolCallArguments", () => {
+  it("replaces null arguments with {} and removes null-valued properties", () => {
+    const input = [
+      {
+        role: "assistant",
+        content: [
+          {
+            type: "toolCall",
+            id: "call_1",
+            name: "read",
+            arguments: {
+              path: "a",
+              optional: null,
+              nested: { keep: 1, drop: null },
+            },
+          },
+          { type: "toolCall", id: "call_2", name: "exec", arguments: null },
+        ],
+      },
+    ] satisfies AgentMessage[];
+
+    const out = normalizeToolCallArguments(input);
+    expect(out).not.toBe(input);
+
+    const assistant = out[0] as Extract<AgentMessage, { role: "assistant" }>;
+    const blocks = assistant.content as Array<Record<string, unknown>>;
+    expect(blocks[0]?.arguments).toEqual({ path: "a", nested: { keep: 1 } });
+    expect(blocks[1]?.arguments).toEqual({});
   });
 });

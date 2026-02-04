@@ -7,6 +7,7 @@ import {
   supportsChannelMessageButtons,
   supportsChannelMessageCards,
 } from "../../channels/plugins/message-actions.js";
+import { looksLikeSlackTargetId } from "../../channels/plugins/normalize/slack.js";
 import {
   CHANNEL_MESSAGE_ACTION_NAMES,
   type ChannelMessageActionName,
@@ -16,12 +17,51 @@ import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES } from "../../gateway/protocol
 import { getToolResult, runMessageAction } from "../../infra/outbound/message-action-runner.js";
 import { normalizeTargetForProvider } from "../../infra/outbound/target-normalization.js";
 import { normalizeAccountId } from "../../routing/session-key.js";
-import { normalizeMessageChannel } from "../../utils/message-channel.js";
+import {
+  isDeliverableMessageChannel,
+  normalizeMessageChannel,
+} from "../../utils/message-channel.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { listChannelSupportedActions } from "../channel-tools.js";
 import { assertSandboxPath } from "../sandbox-paths.js";
 import { channelTargetSchema, channelTargetsSchema, stringEnum } from "../schema/typebox.js";
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";
+
+function applyMessageToolRoutingFallbacks(
+  params: Record<string, unknown>,
+  opts?: MessageToolOptions,
+) {
+  const rawChannel = readStringParam(params, "channel");
+  const rawTarget = readStringParam(params, "target");
+  if (!rawChannel || rawTarget) {
+    return;
+  }
+
+  const normalizedChannel = normalizeMessageChannel(rawChannel);
+  if (normalizedChannel && isDeliverableMessageChannel(normalizedChannel)) {
+    return;
+  }
+
+  const currentProvider = opts?.currentChannelProvider
+    ? normalizeMessageChannel(opts.currentChannelProvider)
+    : undefined;
+  const inferredProvider =
+    currentProvider && isDeliverableMessageChannel(currentProvider)
+      ? currentProvider
+      : looksLikeSlackTargetId(rawChannel)
+        ? "slack"
+        : undefined;
+
+  // Tool-layer compatibility shim:
+  // If `channel` isn't a recognized provider id/alias, assume the caller meant `target`.
+  // Keep `channel` from context when available so the action doesn't prompt for channel selection.
+  params.target = rawChannel;
+  if (inferredProvider) {
+    params.channel = inferredProvider;
+  } else {
+    delete params.channel;
+  }
+}
 
 const AllMessageActions = CHANNEL_MESSAGE_ACTION_NAMES;
 function buildRoutingSchema() {
@@ -363,6 +403,8 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
       const action = readStringParam(params, "action", {
         required: true,
       }) as ChannelMessageActionName;
+
+      applyMessageToolRoutingFallbacks(params, options);
 
       // Validate file paths against sandbox root to prevent host file access.
       const sandboxRoot = options?.sandboxRoot;

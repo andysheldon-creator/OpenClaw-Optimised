@@ -430,6 +430,56 @@ export type RunSdkAgentAdaptedParams = {
 export async function runSdkAgentAdapted(
   params: RunSdkAgentAdaptedParams,
 ): Promise<EmbeddedPiRunResult> {
+  const promptTrimmed = params.prompt.trim();
+  if (!promptTrimmed) {
+    const startedAt = Date.now();
+    log.debug(
+      `Skipping SDK agent run: empty prompt (runId=${params.runId} sessionId=${params.sessionId} sessionKey=${params.sessionKey ?? "n/a"})`,
+    );
+    try {
+      void Promise.resolve(
+        params.onAgentEvent?.({
+          stream: "lifecycle",
+          data: { phase: "start", startedAt, runtime: "claude", skipped: true },
+        }),
+      ).catch(() => {
+        // ignore
+      });
+      void Promise.resolve(
+        params.onAgentEvent?.({
+          stream: "lifecycle",
+          data: {
+            phase: "end",
+            startedAt,
+            endedAt: Date.now(),
+            runtime: "claude",
+            skipped: true,
+            turnCount: 0,
+          },
+        }),
+      ).catch(() => {
+        // ignore
+      });
+    } catch {
+      // ignore
+    }
+    return {
+      payloads: [],
+      meta: {
+        durationMs: 0,
+        aborted: false,
+        agentMeta: {
+          sessionId: params.sessionId,
+          provider: "sdk",
+          model: params.model ?? "default",
+          claudeSessionId: params.claudeSessionId,
+          usage: undefined,
+        },
+        error: undefined,
+      },
+    };
+  }
+
   // Resolve the SDK provider from config + auth profiles.
   let authStore;
   try {

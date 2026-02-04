@@ -6,6 +6,66 @@ export type ToolCallIdMode = "strict" | "strict9";
 const STRICT9_LEN = 9;
 
 /**
+ * Check if a value is a plain object (not a class instance like Date, Map, etc.).
+ * Tool call arguments are JSON-serialized, so we only expect plain objects.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * Recursively removes properties with null or undefined values from an object.
+ * Returns both the cleaned value and whether any changes were made.
+ *
+ * This is needed because some LLMs send explicit null values for optional parameters,
+ * but our tool JSON Schemas typically model those as "optional" (omitted) rather than null.
+ *
+ * Note: Only recurses into plain objects (not class instances like Date, Map, etc.)
+ * since tool call arguments are JSON-only by design.
+ */
+function removeNullProperties<T>(obj: T): { value: T; changed: boolean } {
+  if (obj === null || obj === undefined) {
+    return { value: obj, changed: false };
+  }
+
+  if (Array.isArray(obj)) {
+    let arrayChanged = false;
+    const mapped = obj.map((item) => {
+      const result = removeNullProperties(item);
+      if (result.changed) {
+        arrayChanged = true;
+      }
+      return result.value;
+    });
+    return { value: (arrayChanged ? mapped : obj) as T, changed: arrayChanged };
+  }
+
+  if (isPlainObject(obj)) {
+    let objectChanged = false;
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value === null || value === undefined) {
+        objectChanged = true;
+        continue;
+      }
+      const cleaned = removeNullProperties(value);
+      if (cleaned.changed) {
+        objectChanged = true;
+      }
+      result[key] = cleaned.value;
+    }
+    return { value: (objectChanged ? result : obj) as T, changed: objectChanged };
+  }
+
+  // Non-plain objects (Date, Map, etc.) and primitives pass through unchanged.
+  return { value: obj, changed: false };
+}
+
+/**
  * Sanitize a tool call ID to be compatible with various providers.
  *
  * - "strict" mode: only [a-zA-Z0-9]
@@ -215,6 +275,82 @@ export function sanitizeToolCallIdsForCloudCodeAssist(
       return next;
     }
     return msg;
+  });
+
+  return changed ? out : messages;
+}
+
+/**
+ * Normalize tool call arguments in assistant messages.
+ *
+ * - Missing arguments fields are left as-is (not synthesized).
+ * - If an arguments field exists but is null/undefined, it is replaced with `{}`.
+ * - If an arguments field is an object, null/undefined-valued properties are removed recursively.
+ *
+ * This prevents strict schema validation (and some provider request validators) from rejecting
+ * transcripts due to explicit nulls for optional parameters.
+ *
+ * @param messages - The messages to normalize.
+ * @returns The normalized messages (same reference if no changes were needed).
+ */
+export function normalizeToolCallArguments(messages: AgentMessage[]): AgentMessage[] {
+  let changed = false;
+
+  const out = messages.map((msg) => {
+    if (!msg || typeof msg !== "object") {
+      return msg;
+    }
+    const role = (msg as { role?: unknown }).role;
+    if (role !== "assistant") {
+      return msg;
+    }
+
+    const content = (msg as { content?: unknown }).content;
+    if (!Array.isArray(content)) {
+      return msg;
+    }
+
+    let contentChanged = false;
+    const nextContent = content.map((block) => {
+      if (!block || typeof block !== "object") {
+        return block;
+      }
+      const rec = block as { type?: unknown; arguments?: unknown; args?: unknown };
+      const type = rec.type;
+
+      if (type !== "functionCall" && type !== "toolUse" && type !== "toolCall") {
+        return block;
+      }
+
+      // Only process if the field exists - don't add it if missing.
+      const argsKey = "arguments" in rec ? "arguments" : "args" in rec ? "args" : null;
+      if (!argsKey) {
+        return block;
+      }
+
+      const args = rec[argsKey as keyof typeof rec];
+
+      if (args === null || args === undefined) {
+        contentChanged = true;
+        return { ...(block as Record<string, unknown>), [argsKey]: {} };
+      }
+
+      if (typeof args === "object" && !Array.isArray(args)) {
+        const { value: cleaned, changed: argsChanged } = removeNullProperties(args);
+        if (argsChanged) {
+          contentChanged = true;
+          return { ...(block as Record<string, unknown>), [argsKey]: cleaned };
+        }
+      }
+
+      return block;
+    });
+
+    if (!contentChanged) {
+      return msg;
+    }
+    changed = true;
+    return { ...msg, content: nextContent } as AgentMessage;
   });
 
   return changed ? out : messages;

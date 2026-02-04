@@ -29,6 +29,7 @@ import type {
   McpToolHandlerExtra,
 } from "./tool-bridge.types.js";
 import { logDebug, logError } from "../../logger.js";
+import { redactSensitiveText } from "../../logging/redact.js";
 import { normalizeToolName } from "../tool-policy.js";
 
 // ---------------------------------------------------------------------------
@@ -394,7 +395,31 @@ export function wrapToolHandler(tool: AnyAgentTool, abortSignal?: AbortSignal): 
       }
 
       const message = err instanceof Error ? err.message : String(err);
-      logError(`[tool-bridge] ${normalizedName} failed: ${message}`);
+      const sessionId = typeof extra?.sessionId === "string" ? extra.sessionId : undefined;
+      const execCommand = normalizedName === "exec" ? rawArgs.command : undefined;
+      const execWorkdir = normalizedName === "exec" ? rawArgs.workdir : undefined;
+      const execCommandText = typeof execCommand === "string" ? execCommand : undefined;
+      const execWorkdirText = typeof execWorkdir === "string" ? execWorkdir : undefined;
+      const execCommandRedacted = execCommandText
+        ? redactSensitiveText(execCommandText).trim()
+        : undefined;
+      const execCommandPreview =
+        execCommandRedacted && execCommandRedacted.length > 240
+          ? `${execCommandRedacted.slice(0, 240)}…`
+          : execCommandRedacted;
+
+      const contextParts: string[] = [`toolCallId=${toolCallId}`];
+      if (sessionId) {
+        contextParts.push(`sessionId=${sessionId}`);
+      }
+      if (execCommandPreview) {
+        contextParts.push(`cmd=${JSON.stringify(execCommandPreview)}`);
+      }
+      if (execWorkdirText) {
+        contextParts.push(`cwd=${JSON.stringify(execWorkdirText)}`);
+      }
+
+      logError(`[tool-bridge] ${normalizedName} failed: ${message} (${contextParts.join(" ")})`);
 
       // Log debug details if available (e.g., wrapped error content from web_fetch)
       const debugDetail =

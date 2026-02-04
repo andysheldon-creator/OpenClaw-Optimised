@@ -19,6 +19,13 @@ export async function ensureLoaded(state: CronServiceState) {
   const jobs = (loaded.jobs ?? []) as unknown as Array<Record<string, unknown>>;
   let mutated = false;
   for (const raw of jobs) {
+    // Migrate legacy jobId → id
+    if (!raw.id && typeof raw.jobId === "string") {
+      raw.id = raw.jobId;
+      delete raw.jobId;
+      mutated = true;
+    }
+
     const nameRaw = raw.name;
     if (typeof nameRaw !== "string" || nameRaw.trim().length === 0) {
       raw.name = inferLegacyName({
