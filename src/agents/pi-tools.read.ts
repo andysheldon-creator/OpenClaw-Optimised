@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import { createEditTool, createReadTool, createWriteTool } from "@mariozechner/pi-coding-agent";
 import type { AnyAgentTool } from "./pi-tools.types.js";
@@ -274,7 +275,7 @@ export function createSandboxedReadTool(root: string) {
   return wrapSandboxPathGuard(createOpenClawReadTool(base), root);
 }
 
-function wrapJsonValidation(tool: AnyAgentTool): AnyAgentTool {
+function wrapJsonValidation(tool: AnyAgentTool, root: string): AnyAgentTool {
   return {
     ...tool,
     execute: async (toolCallId, args, signal, onUpdate) => {
@@ -282,7 +283,11 @@ function wrapJsonValidation(tool: AnyAgentTool): AnyAgentTool {
       const record = args && typeof args === "object" ? (args as Record<string, unknown>) : undefined;
       const filePath = record?.path ?? record?.file_path;
       if (typeof filePath === "string" && filePath.endsWith(".json")) {
-        const content = fs.readFileSync(filePath, "utf-8");
+        // Resolve relative paths against root (same as write tool)
+        const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(root, filePath);
+        // Verify path is within sandbox before reading
+        await assertSandboxPath({ filePath: resolvedPath, cwd: root, root });
+        const content = fs.readFileSync(resolvedPath, "utf-8");
         JSON.parse(content); // throws if invalid
       }
       return result;
@@ -292,7 +297,7 @@ function wrapJsonValidation(tool: AnyAgentTool): AnyAgentTool {
 
 export function createSandboxedWriteTool(root: string) {
   const base = createWriteTool(root) as unknown as AnyAgentTool;
-  return wrapSandboxPathGuard(wrapJsonValidation(wrapToolParamNormalization(base, CLAUDE_PARAM_GROUPS.write)), root);
+  return wrapSandboxPathGuard(wrapJsonValidation(wrapToolParamNormalization(base, CLAUDE_PARAM_GROUPS.write), root), root);
 }
 
 export function createSandboxedEditTool(root: string) {
