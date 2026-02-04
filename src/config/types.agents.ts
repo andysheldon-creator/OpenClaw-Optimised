@@ -36,6 +36,16 @@ export type AgentConfig = {
     allowAgents?: string[];
     /** Per-agent default model for spawned sub-agents (string or {primary,fallbacks}). */
     model?: string | { primary?: string; fallbacks?: string[] };
+    /**
+     * Max spawn depth (recursion limit) for this agent.
+     * Overrides agents.defaults.subagents.maxSpawnDepth.
+     */
+    maxSpawnDepth?: number;
+    /**
+     * Depth-based model overrides for this agent.
+     * Overrides agents.defaults.subagents.depthModelOverrides.
+     */
+    depthModelOverrides?: Record<string, string>;
   };
   sandbox?: {
     mode?: "off" | "non-main" | "all";

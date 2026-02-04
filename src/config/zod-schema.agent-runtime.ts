@@ -446,6 +446,17 @@ export const AgentEntrySchema = z
               .strict(),
           ])
           .optional(),
+        maxSpawnDepth: z
+          .number()
+          .int()
+          .min(0)
+          .max(5)
+          .optional()
+          .describe("Per-agent max spawn depth override"),
+        depthModelOverrides: z
+          .record(z.string(), z.string())
+          .optional()
+          .describe("Per-agent depth-based model overrides"),
       })
       .strict()
       .optional(),

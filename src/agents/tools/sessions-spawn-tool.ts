@@ -4,6 +4,7 @@ import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import type { AnyAgentTool } from "./common.js";
 import { formatThinkingLevels, normalizeThinkLevel } from "../../auto-reply/thinking.js";
 import { loadConfig } from "../../config/config.js";
+import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import { callGateway } from "../../gateway/call.js";
 import {
   isSubagentSessionKey,
@@ -11,7 +12,7 @@ import {
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
-import { resolveAgentConfig } from "../agent-scope.js";
+import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
@@ -62,6 +63,74 @@ function normalizeModelSelection(value: unknown): string | undefined {
   if (typeof primary === "string" && primary.trim()) {
     return primary.trim();
   }
+  return undefined;
+}
+
+/**
+ * Resolve the effective maxSpawnDepth for an agent.
+ * Returns min(requester limit, target limit) - most restrictive wins.
+ */
+function resolveMaxSpawnDepth(params: {
+  cfg: ReturnType<typeof loadConfig>;
+  requesterAgentId: string;
+  targetAgentId: string;
+}): number {
+  const requesterConfig = resolveAgentConfig(params.cfg, params.requesterAgentId);
+  const targetConfig = resolveAgentConfig(params.cfg, params.targetAgentId);
+
+  const requesterLimit =
+    requesterConfig?.subagents?.maxSpawnDepth ??
+    params.cfg.agents?.defaults?.subagents?.maxSpawnDepth ??
+    1;
+
+  const targetLimit =
+    targetConfig?.subagents?.maxSpawnDepth ??
+    params.cfg.agents?.defaults?.subagents?.maxSpawnDepth ??
+    1;
+
+  // Most restrictive limit wins
+  return Math.min(requesterLimit, targetLimit);
+}
+
+/**
+ * Load parent session's spawn depth from session store.
+ * Returns 0 for main/root sessions, or the stored depth value.
+ */
+function loadParentSpawnDepth(params: {
+  cfg: ReturnType<typeof loadConfig>;
+  sessionKey: string;
+}): number {
+  const agentId = resolveAgentIdFromSessionKey(params.sessionKey);
+  const storePath = resolveStorePath(params.cfg.session?.store, { agentId });
+  const store = loadSessionStore(storePath);
+  const entry = store[params.sessionKey];
+  return entry?.spawnDepth ?? 0;
+}
+
+/**
+ * Resolve depth-based model override.
+ * Returns the model for the given depth, or undefined if no override configured.
+ */
+function resolveDepthModelOverride(params: {
+  cfg: ReturnType<typeof loadConfig>;
+  agentId: string;
+  depth: number;
+}): string | undefined {
+  const agentConfig = resolveAgentConfig(params.cfg, params.agentId);
+  const overrides =
+    agentConfig?.subagents?.depthModelOverrides ??
+    params.cfg.agents?.defaults?.subagents?.depthModelOverrides;
+
+  if (!overrides || typeof overrides !== "object") {
+    return undefined;
+  }
+
+  // Try exact depth match
+  const exactMatch = overrides[String(params.depth)];
+  if (typeof exactMatch === "string" && exactMatch.trim()) {
+    return exactMatch.trim();
+  }
+
   return undefined;
 }
 
@@ -165,11 +234,36 @@ export function createSessionsSpawnTool(opts?: {
           });
         }
       }
+
+      // Depth check (Phase 1 MVP: hard guard against recursive spawning beyond limit)
+      const parentDepth = loadParentSpawnDepth({ cfg, sessionKey: requesterInternalKey });
+      const childDepth = parentDepth + 1;
+      const maxDepth = resolveMaxSpawnDepth({
+        cfg,
+        requesterAgentId,
+        targetAgentId,
+      });
+
+      if (childDepth > maxDepth) {
+        return jsonResult({
+          status: "forbidden",
+          error: `Max spawn depth reached (current: ${parentDepth}, limit: ${maxDepth}). Cannot spawn sub-agent.`,
+        });
+      }
       const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
       const spawnedByKey = requesterInternalKey;
       const targetAgentConfig = resolveAgentConfig(cfg, targetAgentId);
+
+      // Depth-based model fallback (Phase 1 MVP: automatic cost control)
+      const depthModelOverride = resolveDepthModelOverride({
+        cfg,
+        agentId: targetAgentId,
+        depth: childDepth,
+      });
+
       const resolvedModel =
         normalizeModelSelection(modelOverride) ??
+        depthModelOverride ??
         normalizeModelSelection(targetAgentConfig?.subagents?.model) ??
         normalizeModelSelection(cfg.agents?.defaults?.subagents?.model);
       let thinkingOverride: string | undefined;
@@ -185,28 +279,36 @@ export function createSessionsSpawnTool(opts?: {
         }
         thinkingOverride = normalized;
       }
-      if (resolvedModel) {
-        try {
-          await callGateway({
-            method: "sessions.patch",
-            params: { key: childSessionKey, model: resolvedModel },
-            timeoutMs: 10_000,
-          });
-          modelApplied = true;
-        } catch (err) {
-          const messageText =
-            err instanceof Error ? err.message : typeof err === "string" ? err : "error";
-          const recoverable =
-            messageText.includes("invalid model") || messageText.includes("model not allowed");
-          if (!recoverable) {
-            return jsonResult({
-              status: "error",
-              error: messageText,
-              childSessionKey,
-            });
-          }
-          modelWarning = messageText;
+      // Set spawn metadata (depth + model) via sessions.patch
+      try {
+        const patchParams: Record<string, unknown> = {
+          key: childSessionKey,
+          spawnDepth: childDepth,
+        };
+        if (resolvedModel) {
+          patchParams.model = resolvedModel;
         }
+        await callGateway({
+          method: "sessions.patch",
+          params: patchParams,
+          timeoutMs: 10_000,
+        });
+        if (resolvedModel) {
+          modelApplied = true;
+        }
+      } catch (err) {
+        const messageText =
+          err instanceof Error ? err.message : typeof err === "string" ? err : "error";
+        const recoverable =
+          messageText.includes("invalid model") || messageText.includes("model not allowed");
+        if (!recoverable) {
+          return jsonResult({
+            status: "error",
+            error: messageText,
+            childSessionKey,
+          });
+        }
+        modelWarning = messageText;
       }
       const childSystemPrompt = buildSubagentSystemPrompt({
         requesterSessionKey,

@@ -434,7 +434,7 @@ export async function runSubagentAnnounceFlow(params: {
 
     // Build instructional message for main agent
     const taskLabel = params.label || params.task || "background task";
-    const triggerMessage = [
+    let triggerMessage = [
       `A background task "${taskLabel}" just ${statusLabel}.`,
       "",
       "Findings:",
@@ -463,15 +463,33 @@ export async function runSubagentAnnounceFlow(params: {
     }
 
     // Send to main agent - it will respond in its own voice
+    // Phase 1 MVP: Orphan fallback - if requester session not found, announce to root
+    const { cfg, entry: requesterEntry } = loadRequesterSessionEntry(params.requesterSessionKey);
+    let targetSessionKey = params.requesterSessionKey;
     let directOrigin = requesterOrigin;
-    if (!directOrigin) {
-      const { entry } = loadRequesterSessionEntry(params.requesterSessionKey);
-      directOrigin = deliveryContextFromSession(entry);
+
+    if (!requesterEntry) {
+      // Requester session not found (deleted or never existed) - fallback to root/main
+      const mainKey = resolveMainSessionKey(cfg);
+      targetSessionKey = mainKey;
+      // Try to load main session entry for routing
+      const mainAgentId = resolveAgentIdFromSessionKey(mainKey);
+      const mainStorePath = resolveStorePath(cfg.session?.store, { agentId: mainAgentId });
+      const mainStore = loadSessionStore(mainStorePath);
+      const mainEntry = mainStore[mainKey];
+      directOrigin = deliveryContextFromSession(mainEntry);
+
+      // Prepend orphan notice to message
+      const orphanNotice = `⚠️ Orphaned sub-task result (parent session deleted):\n\n`;
+      triggerMessage = orphanNotice + triggerMessage;
+    } else if (!directOrigin) {
+      directOrigin = deliveryContextFromSession(requesterEntry);
     }
+
     await callGateway({
       method: "agent",
       params: {
-        sessionKey: params.requesterSessionKey,
+        sessionKey: targetSessionKey,
         message: triggerMessage,
         deliver: true,
         channel: directOrigin?.channel,

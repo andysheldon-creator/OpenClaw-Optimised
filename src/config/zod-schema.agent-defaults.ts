@@ -150,6 +150,17 @@ export const AgentDefaultsSchema = z
               .strict(),
           ])
           .optional(),
+        maxSpawnDepth: z
+          .number()
+          .int()
+          .min(0)
+          .max(5)
+          .optional()
+          .describe("Max spawn depth (0=disable, 1=flat/no recursion, 2+=recursive). Hard cap: 5."),
+        depthModelOverrides: z
+          .record(z.string(), z.string())
+          .optional()
+          .describe("Depth-based model overrides (keys: depth level, values: provider/model)"),
       })
       .strict()
       .optional(),

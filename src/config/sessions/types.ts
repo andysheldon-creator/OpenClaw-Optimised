@@ -35,6 +35,11 @@ export type SessionEntry = {
   sessionFile?: string;
   /** Parent session key that spawned this session (used for sandbox session-tool scoping). */
   spawnedBy?: string;
+  /**
+   * Spawn depth level (0 = main/root, 1 = first-level subagent, 2+ = nested subagents).
+   * Used for recursive spawning depth tracking and maxSpawnDepth enforcement.
+   */
+  spawnDepth?: number;
   systemSent?: boolean;
   abortedLastRun?: boolean;
   chatType?: SessionChatType;

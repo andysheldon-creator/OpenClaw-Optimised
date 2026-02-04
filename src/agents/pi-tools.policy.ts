@@ -3,6 +3,7 @@ import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { SandboxToolPolicy } from "./sandbox.js";
 import { getChannelDock } from "../channels/dock.js";
 import { resolveChannelGroupToolsPolicy } from "../config/group-policy.js";
+import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
@@ -81,7 +82,7 @@ const DEFAULT_SUBAGENT_TOOL_DENY = [
   "sessions_list",
   "sessions_history",
   "sessions_send",
-  "sessions_spawn",
+  // sessions_spawn is conditionally denied based on depth (see resolveSubagentToolPolicy)
   // System admin - dangerous from subagent
   "gateway",
   "agents_list",
@@ -95,10 +96,49 @@ const DEFAULT_SUBAGENT_TOOL_DENY = [
   "memory_get",
 ];
 
-export function resolveSubagentToolPolicy(cfg?: OpenClawConfig): SandboxToolPolicy {
-  const configured = cfg?.tools?.subagents?.tools;
+/**
+ * Resolve tool policy for subagent sessions.
+ * Phase 1 MVP: conditionally deny sessions_spawn based on spawn depth.
+ */
+export function resolveSubagentToolPolicy(params: {
+  cfg?: OpenClawConfig;
+  sessionKey?: string;
+}): SandboxToolPolicy {
+  const configured = params.cfg?.tools?.subagents?.tools;
+
+  // Determine if sessions_spawn should be denied based on depth
+  let denySessionsSpawn = true; // Default: deny (current behavior)
+
+  if (params.sessionKey && params.cfg) {
+    // Load session depth to check if recursive spawning is allowed
+    try {
+      const agentId = resolveAgentIdFromSessionKey(params.sessionKey);
+      const storePath = resolveStorePath(params.cfg.session?.store, { agentId });
+      const store = loadSessionStore(storePath);
+      const entry = store[params.sessionKey];
+      const currentDepth = entry?.spawnDepth ?? 0;
+
+      // Resolve maxSpawnDepth for this agent
+      const agentConfig = resolveAgentConfig(params.cfg, agentId);
+      const maxDepth =
+        agentConfig?.subagents?.maxSpawnDepth ??
+        params.cfg.agents?.defaults?.subagents?.maxSpawnDepth ??
+        1;
+
+      // Allow sessions_spawn if current depth < maxDepth
+      // (depth + 1 would be the child's depth, so check if that's within limit)
+      if (currentDepth + 1 <= maxDepth) {
+        denySessionsSpawn = false;
+      }
+    } catch (err) {
+      // On error, default to denying (safe fallback)
+      denySessionsSpawn = true;
+    }
+  }
+
   const deny = [
     ...DEFAULT_SUBAGENT_TOOL_DENY,
+    ...(denySessionsSpawn ? ["sessions_spawn"] : []),
     ...(Array.isArray(configured?.deny) ? configured.deny : []),
   ];
   const allow = Array.isArray(configured?.allow) ? configured.allow : undefined;

@@ -204,6 +204,21 @@ export type AgentDefaultsConfig = {
     archiveAfterMinutes?: number;
     /** Default model selection for spawned sub-agents (string or {primary,fallbacks}). */
     model?: string | { primary?: string; fallbacks?: string[] };
+    /**
+     * Max spawn depth (recursion limit). Default: 1 (flat hierarchy, no recursion).
+     * - 0 = disable subagent spawning entirely
+     * - 1 = flat (subagents cannot spawn, current behavior)
+     * - 2+ = enable recursive spawning
+     * Hard cap: 5 levels maximum.
+     */
+    maxSpawnDepth?: number;
+    /**
+     * Depth-based model overrides for automatic cost control.
+     * Keys are depth levels (0 = main, 1 = first subagent, 2+ = nested).
+     * Values are model strings (provider/model).
+     * Example: { "0": "anthropic/claude-opus-4", "1": "anthropic/claude-sonnet-4", "2": "anthropic/claude-haiku-4" }
+     */
+    depthModelOverrides?: Record<string, string>;
   };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: {
