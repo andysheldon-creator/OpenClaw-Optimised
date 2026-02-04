@@ -24,21 +24,21 @@ function signContainer(
   key: ObaKeyFile,
   ownerOverride?: string,
 ): { container: Record<string, unknown>; kid: string; sig: string } {
-  // Deep-clone to avoid mutating the caller's object.
-  const clone = structuredClone(container);
   const obaPartial = buildObaBlock(key, ownerOverride);
 
   // Inject oba block without sig for payload preparation.
-  clone.oba = { ...obaPartial };
+  // preparePayloadForSigning deep-clones internally, so we work on the original
+  // here and only clone once for the final signed output.
+  const withOba = { ...container, oba: { ...obaPartial } };
 
-  const payload = preparePayloadForSigning(clone);
+  const payload = preparePayloadForSigning(withOba);
   const sigBytes = signPayload(payload, key.privateKeyPem);
   const sig = base64UrlEncode(sigBytes);
 
-  // Inject final oba block with sig.
-  clone.oba = { ...obaPartial, sig };
+  // Build final container with the signed oba block.
+  const signed = { ...container, oba: { ...obaPartial, sig } };
 
-  return { container: clone, kid: key.kid, sig };
+  return { container: signed, kid: key.kid, sig };
 }
 
 export function signPluginManifest(params: {
@@ -64,8 +64,6 @@ const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
  */
 export function extractSkillMetadata(content: string): {
   metadataRaw: string;
-  fmStart: number;
-  fmEnd: number;
   metaStart: number;
   metaEnd: number;
 } {
@@ -109,8 +107,6 @@ export function extractSkillMetadata(content: string): {
 
   return {
     metadataRaw,
-    fmStart: fmBlockStart,
-    fmEnd: fmBlockStart + fmBlock.length,
     metaStart: metaAbsStart,
     metaEnd: metaAbsEnd,
   };
@@ -138,9 +134,10 @@ export function signSkillMetadata(params: {
   key: ObaKeyFile;
   ownerOverride?: string;
 }): { kid: string; sig: string } {
-  const content = fs.readFileSync(params.skillPath, "utf-8");
-  // Normalize CRLF for consistent handling.
-  const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const raw = fs.readFileSync(params.skillPath, "utf-8");
+  // extractSkillMetadata normalizes CRLF internally and returns offsets into
+  // the normalized string, so we normalize once here to keep splice offsets valid.
+  const normalized = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
   const { metadataRaw, metaStart, metaEnd } = extractSkillMetadata(normalized);
 

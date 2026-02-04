@@ -64,8 +64,8 @@ export function isPrivateHost(hostname: string): boolean {
   if (h === "::1" || h === "::" || h === "::0") {
     return true;
   }
-  // IPv6 link-local (fe80::).
-  if (h.startsWith("fe80:")) {
+  // IPv6 link-local (fe80::). Require colon to avoid matching hostnames like "fe80example.com".
+  if (h.startsWith("fe80") && h.includes(":")) {
     return true;
   }
   // IPv6 unique local address (fc00::/7 → fc00:: through fdff::).

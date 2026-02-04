@@ -43,8 +43,12 @@ export function resolveJwks(ownerUrl: string): Promise<{ keys: JwkEntry[] }> {
   jwksCache.set(ownerUrl, { promise, expiresAt: Date.now() + JWKS_CACHE_TTL_MS });
 
   // Evict failed fetches so retries can try again.
+  // Only delete if the cache entry is still ours (a new fetch may have replaced it).
   promise.catch(() => {
-    jwksCache.delete(ownerUrl);
+    const current = jwksCache.get(ownerUrl);
+    if (current && current.promise === promise) {
+      jwksCache.delete(ownerUrl);
+    }
   });
 
   return promise;

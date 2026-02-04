@@ -138,11 +138,12 @@ describe("verifyObaContainer", () => {
 
   function mockFetch(jwk: Record<string, unknown>) {
     const body = JSON.stringify({ keys: [jwk] });
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Map([["content-length", String(body.length)]]),
-      text: async () => body,
-    }) as unknown as typeof fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(body, {
+        status: 200,
+        headers: { "content-type": "application/json", "content-length": String(body.length) },
+      }),
+    ) as unknown as typeof fetch;
   }
 
   it("returns unsigned when no oba block", async () => {
