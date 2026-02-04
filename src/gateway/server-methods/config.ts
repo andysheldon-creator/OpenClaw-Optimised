@@ -1,6 +1,8 @@
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { listChannelPlugins } from "../../channels/plugins/index.js";
+import { validateConfigModels } from "./config-model-validation.js";
+import { loadGatewayModelCatalog } from "../server-model-catalog.js";
 import {
   CONFIG_PATH,
   loadConfig,
@@ -185,6 +187,32 @@ export const configHandlers: GatewayRequestHandlers = {
       );
       return;
     }
+
+    // Validate model references against the catalog
+    try {
+      const catalog = await loadGatewayModelCatalog();
+      const modelIssues = validateConfigModels(validated.config, catalog);
+      if (modelIssues.length > 0) {
+        const details = modelIssues.map((issue) => {
+          let msg = `${issue.path}: ${issue.message}`;
+          if (issue.suggestions && issue.suggestions.length > 0) {
+            msg += ` (did you mean: ${issue.suggestions.join(", ")}?)`;
+          }
+          return msg;
+        });
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, "invalid model reference", {
+            details: { issues: modelIssues, formatted: details },
+          }),
+        );
+        return;
+      }
+    } catch {
+      // Model catalog load failed; skip validation rather than blocking config changes
+    }
+
     await writeConfigFile(validated.config);
     respond(
       true,
@@ -263,6 +291,32 @@ export const configHandlers: GatewayRequestHandlers = {
       );
       return;
     }
+
+    // Validate model references against the catalog
+    try {
+      const catalog = await loadGatewayModelCatalog();
+      const modelIssues = validateConfigModels(validated.config, catalog);
+      if (modelIssues.length > 0) {
+        const details = modelIssues.map((issue) => {
+          let msg = `${issue.path}: ${issue.message}`;
+          if (issue.suggestions && issue.suggestions.length > 0) {
+            msg += ` (did you mean: ${issue.suggestions.join(", ")}?)`;
+          }
+          return msg;
+        });
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, "invalid model reference", {
+            details: { issues: modelIssues, formatted: details },
+          }),
+        );
+        return;
+      }
+    } catch {
+      // Model catalog load failed; skip validation rather than blocking config changes
+    }
+
     await writeConfigFile(validated.config);
 
     const sessionKey =
@@ -360,6 +414,32 @@ export const configHandlers: GatewayRequestHandlers = {
       );
       return;
     }
+
+    // Validate model references against the catalog
+    try {
+      const catalog = await loadGatewayModelCatalog();
+      const modelIssues = validateConfigModels(validated.config, catalog);
+      if (modelIssues.length > 0) {
+        const details = modelIssues.map((issue) => {
+          let msg = `${issue.path}: ${issue.message}`;
+          if (issue.suggestions && issue.suggestions.length > 0) {
+            msg += ` (did you mean: ${issue.suggestions.join(", ")}?)`;
+          }
+          return msg;
+        });
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, "invalid model reference", {
+            details: { issues: modelIssues, formatted: details },
+          }),
+        );
+        return;
+      }
+    } catch {
+      // Model catalog load failed; skip validation rather than blocking config changes
+    }
+
     await writeConfigFile(validated.config);
 
     const sessionKey =
