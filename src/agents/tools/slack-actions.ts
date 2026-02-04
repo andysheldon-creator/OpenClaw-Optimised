@@ -1,5 +1,6 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { SlackBlock } from "../../slack/blocks/types.js";
 import { resolveSlackAccount } from "../../slack/accounts.js";
 import {
   deleteSlackMessage,
@@ -16,6 +17,7 @@ import {
   sendSlackMessage,
   unpinSlackMessage,
 } from "../../slack/actions.js";
+import { blocksToPlainText } from "../../slack/blocks/fallback.js";
 import { parseSlackTarget, resolveSlackChannelId } from "../../slack/targets.js";
 import { withNormalizedTimestamp } from "../date-time.js";
 import { createActionGate, jsonResult, readReactionParams, readStringParam } from "./common.js";
@@ -166,18 +168,47 @@ export async function handleSlackAction(
     switch (action) {
       case "sendMessage": {
         const to = readStringParam(params, "to", { required: true });
-        const content = readStringParam(params, "content", { required: true });
+        const rawBlocks = params.blocks;
+        const blocks = Array.isArray(rawBlocks) ? (rawBlocks as SlackBlock[]) : undefined;
+        const content = readStringParam(params, "content", {
+          required: !blocks?.length,
+          allowEmpty: true,
+        });
         const mediaUrl = readStringParam(params, "mediaUrl");
         const threadTs = resolveThreadTsFromContext(
           readStringParam(params, "threadTs"),
           to,
           context,
         );
-        const result = await sendSlackMessage(to, content, {
+        const fallbackText =
+          content?.trim() ||
+          (blocks ? blocksToPlainText(blocks).trim() : "") ||
+          (content ?? "").trim() ||
+          "Message";
+        const contentToSend = content?.trim() ? content : fallbackText;
+        const result = await sendSlackMessage(to, contentToSend, {
           ...writeOpts,
           mediaUrl: mediaUrl ?? undefined,
           threadTs: threadTs ?? undefined,
+          blocks,
         });
+
+        const rawReactions = params.reactions;
+        const reactions = Array.isArray(rawReactions)
+          ? rawReactions.filter((reaction): reaction is string => typeof reaction === "string")
+          : [];
+        if (reactions.length > 0) {
+          if (!isActionEnabled("reactions")) {
+            throw new Error("Slack reactions are disabled.");
+          }
+          for (const reaction of reactions) {
+            const emoji = reaction.trim();
+            if (!emoji) {
+              continue;
+            }
+            await reactSlackMessage(result.channelId, result.messageId, emoji, writeOpts);
+          }
+        }
 
         // Keep "first" mode consistent even when the agent explicitly provided
         // threadTs: once we send a message to the current channel, consider the
@@ -189,7 +220,11 @@ export async function handleSlackAction(
           }
         }
 
-        return jsonResult({ ok: true, result });
+        return jsonResult({
+          ok: true,
+          result,
+          fallbackText: content?.trim() ? undefined : fallbackText,
+        });
       }
       case "editMessage": {
         const channelId = resolveChannelId();

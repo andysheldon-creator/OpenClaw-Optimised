@@ -373,6 +373,34 @@ ack reaction after the bot replies.
 - Optional newline chunking: set `channels.slack.chunkMode="newline"` to split on blank lines (paragraph boundaries) before length chunking.
 - Media uploads are capped by `channels.slack.mediaMaxMb` (default 20).
 
+## Channel data (rich messages)
+
+Use `channelData.slack` to send Block Kit messages and optional reactions.
+
+```json5
+{
+  text: "Fallback text",
+  channelData: {
+    slack: {
+      blocks: [
+        {
+          type: "section",
+          text: { type: "mrkdwn", text: "*Hello* from Block Kit" },
+        },
+        {
+          type: "actions",
+          elements: [
+            { type: "button", text: { type: "plain_text", text: "Acknowledge" }, action_id: "ack" },
+          ],
+        },
+      ],
+      fallbackText: "Fallback text if blocks are present",
+      reactions: ["+1", "heart"],
+    },
+  },
+}
+```
+
 ## Reply threading
 
 By default, OpenClaw replies in the main channel. Use `channels.slack.replyToMode` to control automatic threading:

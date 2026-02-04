@@ -7,6 +7,7 @@ import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "../../agents/tools/common.js";
 import type { SlackBlock } from "../blocks/types.js";
 import { jsonResult } from "../../agents/tools/common.js";
+import { reactSlackMessage } from "../actions.js";
 import { blocksToPlainText } from "../blocks/fallback.js";
 import {
   multipleChoiceQuestion,
@@ -18,6 +19,7 @@ import {
   progressUpdate,
   informationGrid,
 } from "../blocks/patterns.js";
+import { validateAll } from "../blocks/validation.js";
 import { sendMessageSlack } from "../send.js";
 
 const PatternType = Type.Unsafe<string>({
@@ -31,6 +33,7 @@ const PatternType = Type.Unsafe<string>({
     "status",
     "progress",
     "info_grid",
+    "raw",
   ],
 });
 
@@ -43,6 +46,11 @@ const RichMessageInput = Type.Object({
   params: Type.Any({
     description: "Pattern-specific parameters (structure varies by pattern type)",
   }),
+  reactions: Type.Optional(
+    Type.Array(Type.String(), {
+      description: "Optional reactions to add after sending (emoji names).",
+    }),
+  ),
   threadTs: Type.Optional(
     Type.String({
       description: "Optional thread timestamp to send message in a thread",
@@ -89,9 +97,14 @@ Available patterns:
 **info_grid**: Information in two-column grid format
 - params: { title: string, items: Array<{ label, value }> }
 
+**raw**: Send raw Slack Block Kit payload
+- params: { blocks: SlackBlock[], fallbackText?: string }
+
+Optional: provide \`reactions\` (emoji names) to add after sending.
+
 Note: On non-Slack channels, messages automatically convert to readable plain text.`,
     execute: async (_toolCallId, args) => {
-      const { to, pattern, params, threadTs } = args;
+      const { to, pattern, params, threadTs, reactions } = args;
 
       // Build blocks based on pattern
       let blocks: SlackBlock[];
@@ -139,11 +152,39 @@ Note: On non-Slack channels, messages automatically convert to readable plain te
             fallbackText = `**${params.title}**\n\n${params.items.map((item: { label: string; value: string }) => `${item.label}: ${item.value}`).join("\n")}`;
             break;
 
+          case "raw": {
+            const rawBlocks = (params as { blocks?: unknown }).blocks;
+            if (!Array.isArray(rawBlocks)) {
+              return jsonResult({
+                success: false,
+                error: "raw pattern requires params.blocks (array of Slack Block Kit blocks)",
+              });
+            }
+            blocks = rawBlocks as SlackBlock[];
+            const rawFallback =
+              typeof (params as { fallbackText?: unknown }).fallbackText === "string"
+                ? (params as { fallbackText?: string }).fallbackText?.trim()
+                : "";
+            fallbackText = rawFallback || blocksToPlainText(blocks);
+            break;
+          }
+
           default:
             return jsonResult({
               success: false,
               error: `Unknown pattern: ${pattern}`,
             });
+        }
+
+        const validation = validateAll(blocks);
+        if (!validation.valid) {
+          return jsonResult({
+            success: false,
+            error: `Invalid Slack blocks: ${validation.errors.join("; ")}`,
+          });
+        }
+        if (!fallbackText.trim()) {
+          fallbackText = "Message";
         }
 
         // Detect if this is actually a Slack channel
@@ -156,6 +197,18 @@ Note: On non-Slack channels, messages automatically convert to readable plain te
             threadTs: threadTs ?? opts.currentThreadTs,
             accountId: opts.accountId,
           });
+
+          if (Array.isArray(reactions) && reactions.length > 0) {
+            for (const reaction of reactions) {
+              const emoji = typeof reaction === "string" ? reaction.trim() : "";
+              if (!emoji) {
+                continue;
+              }
+              await reactSlackMessage(result.channelId, result.messageId, emoji, {
+                accountId: opts.accountId,
+              });
+            }
+          }
 
           return jsonResult({
             success: true,

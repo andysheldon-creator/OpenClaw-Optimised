@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import os from "node:os";
 
 const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const cliArgs = process.argv.slice(2);
 
 const runs = [
   {
@@ -73,13 +74,13 @@ const runOnce = (entry, extraArgs = []) =>
     });
   });
 
-const run = async (entry) => {
+const run = async (entry, extraArgs = []) => {
   if (shardCount <= 1) {
-    return runOnce(entry);
+    return runOnce(entry, extraArgs);
   }
   for (let shardIndex = 1; shardIndex <= shardCount; shardIndex += 1) {
     // eslint-disable-next-line no-await-in-loop
-    const code = await runOnce(entry, ["--shard", `${shardIndex}/${shardCount}`]);
+    const code = await runOnce(entry, [...extraArgs, "--shard", `${shardIndex}/${shardCount}`]);
     if (code !== 0) {
       return code;
     }
@@ -96,7 +97,102 @@ const shutdown = (signal) => {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-const parallelCodes = await Promise.all(parallelRuns.map(run));
+const normalizePathHint = (value) => value.replaceAll("\\", "/");
+const inferTargetRuns = () => {
+  if (cliArgs.length === 0) {
+    return null;
+  }
+
+  const normalizedArgs = cliArgs.map(normalizePathHint);
+  const hasHelpFlag =
+    normalizedArgs.includes("--help") ||
+    normalizedArgs.includes("-h") ||
+    normalizedArgs.includes("--version") ||
+    normalizedArgs.includes("-V");
+  const hasConfigOverride = normalizedArgs.includes("--config") || normalizedArgs.includes("-c");
+  if (hasConfigOverride || hasHelpFlag) {
+    return [{ name: "custom", args: ["vitest", "run"] }];
+  }
+
+  const positionalArgs = normalizedArgs.filter((arg) => !arg.startsWith("-"));
+  const matchesExtensions = positionalArgs.some(
+    (arg) =>
+      arg === "extensions" ||
+      arg.includes("extensions/") ||
+      arg.includes("/extensions/") ||
+      arg.endsWith("/extensions"),
+  );
+  const matchesGateway = positionalArgs.some(
+    (arg) =>
+      arg === "src/gateway" ||
+      arg.includes("src/gateway/") ||
+      arg.includes("/src/gateway/") ||
+      arg.endsWith("/src/gateway"),
+  );
+  const matchesUnit = positionalArgs.some((arg) => {
+    if (
+      arg === "extensions" ||
+      arg.includes("extensions/") ||
+      arg.includes("/extensions/") ||
+      arg.endsWith("/extensions")
+    ) {
+      return false;
+    }
+    if (
+      arg === "src/gateway" ||
+      arg.includes("src/gateway/") ||
+      arg.includes("/src/gateway/") ||
+      arg.endsWith("/src/gateway")
+    ) {
+      return false;
+    }
+    return (
+      arg === "src" ||
+      arg.includes("src/") ||
+      arg.includes("/src/") ||
+      arg === "test" ||
+      arg.includes("test/") ||
+      arg.includes("/test/") ||
+      arg.endsWith(".test.ts")
+    );
+  });
+
+  const selected = [];
+  if (matchesUnit) {
+    selected.push(runs.find((entry) => entry.name === "unit"));
+  }
+  if (matchesExtensions) {
+    selected.push(runs.find((entry) => entry.name === "extensions"));
+  }
+  if (matchesGateway) {
+    selected.push(runs.find((entry) => entry.name === "gateway"));
+  }
+
+  if (selected.length > 0) {
+    return selected.filter(Boolean);
+  }
+
+  if (positionalArgs.length > 0) {
+    return [runs.find((entry) => entry.name === "unit")].filter(Boolean);
+  }
+
+  // Flag-only runs like `pnpm test -- -t foo` should still cover everything.
+  return runs;
+};
+
+const targetRuns = inferTargetRuns();
+if (targetRuns) {
+  for (const entry of targetRuns) {
+    // eslint-disable-next-line no-await-in-loop
+    const code = await run(entry, cliArgs);
+    if (code !== 0) {
+      process.exit(code);
+    }
+  }
+  process.exit(0);
+}
+
+const parallelCodes = await Promise.all(parallelRuns.map((entry) => run(entry)));
 const failedParallel = parallelCodes.find((code) => code !== 0);
 if (failedParallel !== undefined) {
   process.exit(failedParallel);

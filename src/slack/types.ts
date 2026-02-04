@@ -1,3 +1,5 @@
+import type { SlackBlock } from "./blocks/types.js";
+
 export type SlackFile = {
   id?: string;
   name?: string;
@@ -35,4 +37,10 @@ export type SlackAppMentionEvent = {
   parent_user_id?: string;
   channel: string;
   channel_type?: "im" | "mpim" | "channel" | "group";
+};
+
+export type SlackChannelData = {
+  blocks?: SlackBlock[];
+  fallbackText?: string;
+  reactions?: string[];
 };

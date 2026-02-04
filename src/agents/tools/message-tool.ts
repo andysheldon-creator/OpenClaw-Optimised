@@ -128,6 +128,16 @@ function buildSendSchema(options: { includeButtons: boolean; includeCards: boole
         },
       ),
     ),
+    blocks: Type.Optional(
+      Type.Array(Type.Object({}, { additionalProperties: true }), {
+        description: "Slack Block Kit blocks (Slack only).",
+      }),
+    ),
+    reactions: Type.Optional(
+      Type.Array(Type.String(), {
+        description: "Slack reactions to add after sending (emoji names).",
+      }),
+    ),
   };
   if (!options.includeButtons) {
     delete props.buttons;

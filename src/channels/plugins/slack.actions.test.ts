@@ -30,4 +30,35 @@ describe("slack actions adapter", () => {
       threadId: "171234.567",
     });
   });
+
+  it("forwards blocks and reactions for send", async () => {
+    handleSlackAction.mockClear();
+    const cfg = { channels: { slack: { botToken: "tok" } } } as OpenClawConfig;
+    const actions = createSlackActions("slack");
+
+    await actions.handleAction?.({
+      channel: "slack",
+      action: "send",
+      cfg,
+      params: {
+        to: "C1",
+        message: "",
+        blocks: [
+          {
+            type: "section",
+            text: { type: "mrkdwn", text: "Hello" },
+          },
+        ],
+        reactions: ["+1"],
+      },
+    });
+
+    const [params] = handleSlackAction.mock.calls[0] ?? [];
+    expect(params).toMatchObject({
+      action: "sendMessage",
+      to: "C1",
+      blocks: expect.any(Array),
+      reactions: ["+1"],
+    });
+  });
 });

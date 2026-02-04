@@ -229,6 +229,10 @@ export async function callGateway<T = Record<string, unknown>>(
     const suffix = hint ? ` ${hint}` : "";
     return `gateway closed (${code}${suffix}): ${reasonText}\n${connectionDetails.message}`;
   };
+  const formatConnectError = (err: Error) => {
+    const message = err?.message?.trim() || String(err);
+    return `gateway connect error: ${message}\n${connectionDetails.message}`;
+  };
   const formatTimeoutError = () =>
     `gateway timeout after ${timeoutMs}ms\n${connectionDetails.message}`;
   return await new Promise<T>((resolve, reject) => {
@@ -281,6 +285,14 @@ export async function callGateway<T = Record<string, unknown>>(
           client.stop();
           stop(err as Error);
         }
+      },
+      onConnectError: (err) => {
+        if (settled) {
+          return;
+        }
+        ignoreClose = true;
+        client.stop();
+        stop(new Error(formatConnectError(err)));
       },
       onClose: (code, reason) => {
         if (settled || ignoreClose) {

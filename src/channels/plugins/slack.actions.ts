@@ -86,6 +86,8 @@ export function createSlackActions(providerId: string): ChannelMessageActionAdap
         const mediaUrl = readStringParam(params, "media", { trim: false });
         const threadId = readStringParam(params, "threadId");
         const replyTo = readStringParam(params, "replyTo");
+        const blocks = params.blocks;
+        const reactions = params.reactions;
         return await handleSlackAction(
           {
             action: "sendMessage",
@@ -94,6 +96,8 @@ export function createSlackActions(providerId: string): ChannelMessageActionAdap
             mediaUrl: mediaUrl ?? undefined,
             accountId: accountId ?? undefined,
             threadTs: threadId ?? replyTo ?? undefined,
+            blocks,
+            reactions,
           },
           cfg,
           toolContext,

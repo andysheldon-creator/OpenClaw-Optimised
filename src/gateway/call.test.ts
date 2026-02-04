@@ -10,12 +10,14 @@ let lastClientOptions: {
   password?: string;
   logGatewayHealth?: boolean;
   onHelloOk?: () => void | Promise<void>;
+  onConnectError?: (err: Error) => void;
   onClose?: (code: number, reason: string) => void;
 } | null = null;
-type StartMode = "hello" | "close" | "silent";
+type StartMode = "hello" | "close" | "silent" | "connectError";
 let startMode: StartMode = "hello";
 let closeCode = 1006;
 let closeReason = "";
+let connectError: Error = new Error("connect failed");
 
 vi.mock("../config/config.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config/config.js")>();
@@ -47,6 +49,7 @@ vi.mock("./client.js", () => ({
       password?: string;
       logGatewayHealth?: boolean;
       onHelloOk?: () => void | Promise<void>;
+      onConnectError?: (err: Error) => void;
       onClose?: (code: number, reason: string) => void;
     }) {
       lastClientOptions = opts;
@@ -57,6 +60,8 @@ vi.mock("./client.js", () => ({
     start() {
       if (startMode === "hello") {
         void lastClientOptions?.onHelloOk?.();
+      } else if (startMode === "connectError") {
+        lastClientOptions?.onConnectError?.(connectError);
       } else if (startMode === "close") {
         lastClientOptions?.onClose?.(closeCode, closeReason);
       }
@@ -76,6 +81,7 @@ describe("callGateway url resolution", () => {
     startMode = "hello";
     closeCode = 1006;
     closeReason = "";
+    connectError = new Error("connect failed");
   });
 
   it("keeps loopback when local bind is auto even if tailnet is present", async () => {
@@ -264,6 +270,29 @@ describe("callGateway error details", () => {
     await promise;
 
     expect(err?.message).toContain("gateway timeout after 5ms");
+    expect(err?.message).toContain("Gateway target: ws://127.0.0.1:18789");
+    expect(err?.message).toContain("Source: local loopback");
+    expect(err?.message).toContain("Bind: loopback");
+  });
+
+  it("fails fast on connect errors with connection details", async () => {
+    startMode = "connectError";
+    connectError = new Error("connect EPERM 127.0.0.1:18789");
+    loadConfig.mockReturnValue({
+      gateway: { mode: "local", bind: "loopback" },
+    });
+    resolveGatewayPort.mockReturnValue(18789);
+    pickPrimaryTailnetIPv4.mockReturnValue(undefined);
+
+    let err: Error | null = null;
+    try {
+      await callGateway({ method: "health" });
+    } catch (caught) {
+      err = caught as Error;
+    }
+
+    expect(err?.message).toContain("gateway connect error:");
+    expect(err?.message).toContain("connect EPERM 127.0.0.1:18789");
     expect(err?.message).toContain("Gateway target: ws://127.0.0.1:18789");
     expect(err?.message).toContain("Source: local loopback");
     expect(err?.message).toContain("Bind: loopback");

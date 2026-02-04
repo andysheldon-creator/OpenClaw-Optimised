@@ -137,6 +137,27 @@ describe("runMessageAction context isolation", () => {
     expect(result.kind).toBe("send");
   });
 
+  it("allows blocks without message", async () => {
+    const result = await runMessageAction({
+      cfg: slackConfig,
+      action: "send",
+      params: {
+        channel: "slack",
+        target: "#C12345678",
+        blocks: [
+          {
+            type: "section",
+            text: { type: "mrkdwn", text: "Hello" },
+          },
+        ],
+      },
+      toolContext: { currentChannelId: "C12345678" },
+      dryRun: true,
+    });
+
+    expect(result.kind).toBe("send");
+  });
+
   it("requires message when no media hint is provided", async () => {
     await expect(
       runMessageAction({
