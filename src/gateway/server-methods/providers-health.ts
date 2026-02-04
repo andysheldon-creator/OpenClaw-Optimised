@@ -121,6 +121,14 @@ export const providersHealthHandlers: GatewayRequestHandlers = {
         // Non-fatal: plugin loading may fail
       }
 
+      // 4c. Build alias→pluginId map so registry entries can find plugin credentials
+      const pluginIdByAlias = new Map<string, string>();
+      for (const plugin of resolvedPlugins) {
+        for (const alias of plugin.aliases ?? []) {
+          pluginIdByAlias.set(normalizeProviderId(alias), plugin.id);
+        }
+      }
+
       // 5. Compose final entries
       const now = Date.now();
       const providers: ProviderHealthEntry[] = detected.map((provider) => {
@@ -128,7 +136,18 @@ export const providersHealthHandlers: GatewayRequestHandlers = {
         const authProvider = authByProvider.get(provider.id);
 
         // Get profile health status (cooldown, errors)
-        const profileIds = listProfilesForProvider(authStore, provider.id);
+        // Also check plugin aliases for stored credentials (e.g. openai-codex for openai)
+        let profileIds = listProfilesForProvider(authStore, provider.id);
+        let pluginProfileMatch: string | undefined;
+        if (profileIds.length === 0) {
+          const aliasedPluginId = pluginIdByAlias.get(normalizeProviderId(provider.id));
+          if (aliasedPluginId) {
+            profileIds = listProfilesForProvider(authStore, aliasedPluginId);
+            if (profileIds.length > 0) {
+              pluginProfileMatch = aliasedPluginId;
+            }
+          }
+        }
         let profileHealth: {
           status: string;
           errorCount: number;
@@ -140,20 +159,56 @@ export const providersHealthHandlers: GatewayRequestHandlers = {
           profileHealth = getProfileHealthStatus(authStore, profileIds[0]);
         }
 
+        // Derive plugin credential metadata when matched via alias
+        let pluginAuthSource: string | undefined;
+        let pluginAuthMode: string | undefined;
+        let pluginTokenExpiresAt: number | undefined;
+        let pluginTokenRemainingMs: number | undefined;
+        let pluginTokenValidity: string | undefined;
+        const detectedViaPlugin = Boolean(pluginProfileMatch && profileIds.length > 0);
+        if (detectedViaPlugin) {
+          const cred = authStore.profiles[profileIds[0]];
+          if (cred) {
+            pluginAuthSource = "auth-profile";
+            pluginAuthMode = cred.type;
+            if (cred.type === "oauth" && "expires" in cred) {
+              const expiresAt = cred.expires;
+              if (expiresAt) {
+                pluginTokenExpiresAt = expiresAt;
+                pluginTokenRemainingMs = Math.max(0, expiresAt - now);
+                if (pluginTokenRemainingMs <= 0) {
+                  pluginTokenValidity = "expired";
+                } else if (pluginTokenRemainingMs < 10 * 60 * 1000) {
+                  pluginTokenValidity = "expiring";
+                } else {
+                  pluginTokenValidity = "valid";
+                }
+              }
+            }
+          }
+        }
+
+        const isDetected = provider.detected || detectedViaPlugin;
+
         // Determine overall health status
         let healthStatus = "healthy";
-        if (!provider.detected) {
+        if (!isDetected) {
           healthStatus = "missing";
         } else if (profileHealth.status === "disabled") {
           healthStatus = "disabled";
         } else if (profileHealth.status === "cooldown") {
           healthStatus = "cooldown";
-        } else if (provider.tokenValidity === "expired" || authProvider?.status === "expired") {
+        } else if (
+          provider.tokenValidity === "expired" ||
+          authProvider?.status === "expired" ||
+          pluginTokenValidity === "expired"
+        ) {
           healthStatus = "expired";
         } else if (
           profileHealth.status === "warning" ||
           provider.tokenValidity === "expiring" ||
-          authProvider?.status === "expiring"
+          authProvider?.status === "expiring" ||
+          pluginTokenValidity === "expiring"
         ) {
           healthStatus = "warning";
         }
@@ -184,16 +239,28 @@ export const providersHealthHandlers: GatewayRequestHandlers = {
         // Usage data
         const usage = usageByProvider.get(provider.id);
 
+        // Resolve auth source and token info (prefer direct provider, fallback to plugin)
+        const effectiveAuthSource = provider.authSource
+          ? String(provider.authSource)
+          : pluginAuthSource;
+        const effectiveAuthMode = provider.authMode ?? pluginAuthMode;
+        const effectiveTokenValidity = provider.tokenValidity ?? pluginTokenValidity;
+        const effectiveTokenExpiresAt = tokenExpiresAtMs ?? pluginTokenExpiresAt;
+        const effectiveTokenRemainingMs =
+          tokenRemainingMs !== undefined ? tokenRemainingMs : pluginTokenRemainingMs;
+
         const entry: ProviderHealthEntry = {
           id: provider.id,
           name: provider.name,
-          detected: provider.detected,
+          detected: isDetected,
           healthStatus,
-          ...(provider.authSource ? { authSource: String(provider.authSource) } : {}),
-          ...(provider.authMode ? { authMode: provider.authMode } : {}),
-          ...(provider.tokenValidity ? { tokenValidity: provider.tokenValidity } : {}),
-          ...(tokenExpiresAtMs ? { tokenExpiresAt: tokenExpiresAtMs } : {}),
-          ...(tokenRemainingMs !== undefined ? { tokenRemainingMs } : {}),
+          ...(effectiveAuthSource ? { authSource: effectiveAuthSource } : {}),
+          ...(effectiveAuthMode ? { authMode: effectiveAuthMode } : {}),
+          ...(effectiveTokenValidity ? { tokenValidity: effectiveTokenValidity } : {}),
+          ...(effectiveTokenExpiresAt ? { tokenExpiresAt: effectiveTokenExpiresAt } : {}),
+          ...(effectiveTokenRemainingMs !== undefined
+            ? { tokenRemainingMs: effectiveTokenRemainingMs }
+            : {}),
           ...(provider.inCooldown ? { inCooldown: true } : {}),
           ...(profileHealth.cooldownRemainingMs > 0
             ? { cooldownRemainingMs: profileHealth.cooldownRemainingMs }
@@ -210,7 +277,7 @@ export const providersHealthHandlers: GatewayRequestHandlers = {
           ...(definition?.envVars && definition.envVars.length > 0
             ? { envVars: definition.envVars }
             : {}),
-          configured: provider.detected,
+          configured: isDetected,
           ...(pluginOAuthProviders.has(normalizeProviderId(provider.id))
             ? { oauthAvailable: true }
             : {}),
