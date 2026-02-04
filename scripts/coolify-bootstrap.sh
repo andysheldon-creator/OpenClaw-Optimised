@@ -137,10 +137,9 @@ else
 fi
 
 # ----------------------------
-# Sync gateway token into config (avoid config/env drift)
+# Sync gateway auth/trust into config (avoid config/env drift)
 # ----------------------------
-if [ -n "$OPENCLAW_GATEWAY_TOKEN" ]; then
-  node -e "
+node -e "
 const fs = require('fs');
 const json5 = require('json5');
 const path = '$CONFIG_FILE';
@@ -149,23 +148,44 @@ try {
   const cfg = json5.parse(raw);
   const gateway = typeof cfg.gateway === 'object' && cfg.gateway ? cfg.gateway : {};
   const auth = typeof gateway.auth === 'object' && gateway.auth ? gateway.auth : {};
-  const next = process.env.OPENCLAW_GATEWAY_TOKEN;
-  const current = auth.token;
-  if (next && current !== next) {
-    auth.token = next;
+  let updated = false;
+
+  const nextToken = process.env.OPENCLAW_GATEWAY_TOKEN;
+  if (nextToken && auth.token !== nextToken) {
+    auth.token = nextToken;
     if (!auth.mode) {
       auth.mode = 'token';
     }
+    updated = true;
+  }
+
+  if (auth.skipDevicePairingForTrustedProxy !== true) {
+    auth.skipDevicePairingForTrustedProxy = true;
+    updated = true;
+  }
+
+  const proxiesEnv = process.env.GATEWAY_TRUSTED_PROXIES;
+  if (proxiesEnv) {
+    const next = proxiesEnv.split(',').map(s => s.trim()).filter(Boolean);
+    if (next.length > 0) {
+      const current = Array.isArray(gateway.trustedProxies) ? gateway.trustedProxies : [];
+      if (JSON.stringify(current) !== JSON.stringify(next)) {
+        gateway.trustedProxies = next;
+        updated = true;
+      }
+    }
+  }
+
+  if (updated) {
     gateway.auth = auth;
     cfg.gateway = gateway;
     fs.writeFileSync(path, JSON.stringify(cfg, null, 2) + '\\n');
-    console.log('[openclaw] Synced gateway.auth.token from env');
+    console.log('[openclaw] Synced gateway.auth + trusted proxies from env');
   }
 } catch (err) {
-  console.error('[openclaw] Failed to sync gateway.auth.token:', err && err.message ? err.message : String(err));
+  console.error('[openclaw] Failed to sync gateway auth config:', err && err.message ? err.message : String(err));
 }
 "
-fi
 
 # ----------------------------
 # Display Access Info
