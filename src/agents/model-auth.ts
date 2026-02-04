@@ -122,11 +122,15 @@ function resolveAwsSdkAuthInfo(): { mode: "aws-sdk"; source: string } {
   return { mode: "aws-sdk", source: "aws-sdk default chain" };
 }
 
+function resolveAzureCliAuthInfo(): { mode: "azure-cli"; source: string } {
+  return { mode: "azure-cli", source: "azure-cli (az account get-access-token)" };
+}
+
 export type ResolvedProviderAuth = {
   apiKey?: string;
   profileId?: string;
   source: string;
-  mode: "api-key" | "oauth" | "token" | "aws-sdk";
+  mode: "api-key" | "oauth" | "token" | "aws-sdk" | "azure-cli";
 };
 
 export async function resolveApiKeyForProvider(params: {
@@ -162,6 +166,9 @@ export async function resolveApiKeyForProvider(params: {
   const authOverride = resolveProviderAuthOverride(cfg, provider);
   if (authOverride === "aws-sdk") {
     return resolveAwsSdkAuthInfo();
+  }
+  if (authOverride === "azure-cli") {
+    return resolveAzureCliAuthInfo();
   }
 
   const order = resolveAuthProfileOrder({
@@ -223,7 +230,14 @@ export async function resolveApiKeyForProvider(params: {
   throw new Error(
     [
       `No API key found for provider "${provider}".`,
-      `Auth store: ${authStorePath} (agentDir: ${resolvedAgentDir}).`,
+      `Auth store: ${authSt
+  | "api-key"
+  | "oauth"
+  | "token"
+  | "mixed"
+  | "aws-sdk"
+  | "azure-cli"
+ 
       `Configure auth for this agent (${formatCliCommand("openclaw agents add <id>")}) or copy auth-profiles.json from the main agentDir.`,
     ].join(" "),
   );

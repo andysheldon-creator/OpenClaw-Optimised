@@ -584,3 +584,40 @@ export async function resolveImplicitBedrockProvider(params: {
     models,
   } satisfies ProviderConfig;
 }
+
+export async function resolveImplicitAzureProvider(params: {
+  agentDir: string;
+  config?: OpenClawConfig;
+  env?: NodeJS.ProcessEnv;
+}): Promise<ProviderConfig | null> {
+  const env = params.env ?? process.env;
+  const discoveryConfig = params.config?.models?.azureDiscovery;
+  const enabled = discoveryConfig?.enabled;
+  const endpoint = discoveryConfig?.endpoint?.trim() || env.AZURE_OPENAI_ENDPOINT?.trim();
+  const apiKey = env.AZURE_OPENAI_API_KEY?.trim();
+
+  if (enabled === false) {
+    return null;
+  }
+  if (!endpoint) {
+    return null;
+  }
+
+  const { discoverAzureModels } = await import("./azure-discovery.js");
+  const models = await discoverAzureModels({
+    endpoint,
+    apiKey,
+    config: discoveryConfig,
+  });
+  if (models.length === 0) {
+    return null;
+  }
+
+  return {
+    baseUrl: endpoint,
+    api: "openai-completions",
+    auth: apiKey ? "api-key" : "azure-cli",
+    ...(apiKey ? { apiKey } : {}),
+    models,
+  } satisfies ProviderConfig;
+}

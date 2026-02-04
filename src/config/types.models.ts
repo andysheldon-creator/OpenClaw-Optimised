@@ -13,7 +13,7 @@ export type ModelCompatConfig = {
   maxTokensField?: "max_completion_tokens" | "max_tokens";
 };
 
-export type ModelProviderAuthMode = "api-key" | "aws-sdk" | "oauth" | "token";
+export type ModelProviderAuthMode = "api-key" | "aws-sdk" | "azure-cli" | "oauth" | "token";
 
 export type ModelDefinitionConfig = {
   id: string;
@@ -52,8 +52,17 @@ export type BedrockDiscoveryConfig = {
   defaultMaxTokens?: number;
 };
 
+export type AzureDiscoveryConfig = {
+  enabled?: boolean;
+  endpoint?: string;
+  refreshInterval?: number;
+  defaultContextWindow?: number;
+  defaultMaxTokens?: number;
+};
+
 export type ModelsConfig = {
   mode?: "merge" | "replace";
   providers?: Record<string, ModelProviderConfig>;
   bedrockDiscovery?: BedrockDiscoveryConfig;
+  azureDiscovery?: AzureDiscoveryConfig;
 };
