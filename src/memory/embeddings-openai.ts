@@ -1,5 +1,7 @@
 import type { EmbeddingProvider, EmbeddingProviderOptions } from "./embeddings.js";
 import { requireApiKey, resolveApiKeyForProvider } from "../agents/model-auth.js";
+import { getEmbeddingRateLimiter } from "./embedding-rate-limit.js";
+import { computeEmbeddingProviderKey } from "./provider-key.js";
 
 export type OpenAiEmbeddingClient = {
   baseUrl: string;
@@ -26,25 +28,38 @@ export async function createOpenAiEmbeddingProvider(
 ): Promise<{ provider: EmbeddingProvider; client: OpenAiEmbeddingClient }> {
   const client = await resolveOpenAiEmbeddingClient(options);
   const url = `${client.baseUrl.replace(/\/$/, "")}/embeddings`;
+  const limiterKey = computeEmbeddingProviderKey({
+    providerId: "openai",
+    providerModel: client.model,
+    openAi: { baseUrl: client.baseUrl, model: client.model, headers: client.headers },
+  });
+  const limiter = getEmbeddingRateLimiter(limiterKey);
 
   const embed = async (input: string[]): Promise<number[][]> => {
     if (input.length === 0) {
       return [];
     }
-    const res = await fetch(url, {
-      method: "POST",
-      headers: client.headers,
-      body: JSON.stringify({ model: client.model, input }),
+    return await limiter.run(async () => {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: client.headers,
+        body: JSON.stringify({ model: client.model, input }),
+      });
+      if (!res.ok) {
+        const retryAfterMs = parseRetryAfterMs(res.headers.get("retry-after"));
+        if (res.status === 429) {
+          limiter.noteRateLimit(retryAfterMs);
+        }
+        const text = await res.text();
+        throw new Error(`openai embeddings failed: ${res.status} ${text}`);
+      }
+      limiter.noteSuccess();
+      const payload = (await res.json()) as {
+        data?: Array<{ embedding?: number[] }>;
+      };
+      const data = payload.data ?? [];
+      return data.map((entry) => entry.embedding ?? []);
     });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`openai embeddings failed: ${res.status} ${text}`);
-    }
-    const payload = (await res.json()) as {
-      data?: Array<{ embedding?: number[] }>;
-    };
-    const data = payload.data ?? [];
-    return data.map((entry) => entry.embedding ?? []);
   };
 
   return {
@@ -59,6 +74,21 @@ export async function createOpenAiEmbeddingProvider(
     },
     client,
   };
+}
+
+function parseRetryAfterMs(value: string | null): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(trimmed, 10);
+  if (Number.isFinite(parsed)) {
+    return parsed * 1000;
+  }
+  return undefined;
 }
 
 export async function resolveOpenAiEmbeddingClient(
