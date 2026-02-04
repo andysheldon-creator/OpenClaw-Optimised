@@ -38,3 +38,13 @@ The subagent registry (`subagent-registry.ts`) is announce/cleanup only. There i
 - [ ] Hook receives parent session_id and subagent_id
 - [ ] Integration test: SubagentStart injects context
 - [ ] Integration test: SubagentStop fires on completion (observe)
+
+## Done summary
+
+- Task completed
+
+## Evidence
+
+- Commits:
+- Tests:
+- PRs:

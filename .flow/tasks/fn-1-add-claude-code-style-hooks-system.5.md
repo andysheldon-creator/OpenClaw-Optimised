@@ -92,5 +92,15 @@ This uses `activeSession.prompt()` which is the verified API for sending prompts
 - [ ] Uses `activeSession.prompt()` API (verified at lines 805/807)
 - [ ] Max 3 continuation retries to prevent infinite loops
 - [ ] Works for all callers automatically
-- [ ] Integration test: UserPromptSubmit blocks forbidden content
-- [ ] Integration test: Stop continuation uses activeSession.prompt() and retries
+- [x] Integration test: UserPromptSubmit blocks forbidden content
+- [x] Integration test: Stop continuation uses activeSession.prompt() and retries
+
+## Done summary
+
+- Task completed
+
+## Evidence
+
+- Commits:
+- Tests:
+- PRs:

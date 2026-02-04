@@ -1,6 +1,6 @@
 Goal (incl. success criteria):
 
-- Re-review updated Stop + UserPromptSubmit hook integration changes and deliver Carmack-level verdict.
+- Re-review updated SubagentStart/SubagentStop hook integration changes and deliver Carmack-level verdict.
 
 Constraints/Assumptions:
 
@@ -19,8 +19,8 @@ State:
 Done:
 
 - Read continuity ledger at start of turn.
-- Re-read updated stop/user-prompt hook files.
-- Identified issues: Stop hook returns allow early; empty-string prompt modifications ignored.
+- Updated ledger for subagent hook re-review.
+- Re-read updated subagent hook files from disk.
 
 Now:
 
@@ -37,11 +37,8 @@ Open questions (UNCONFIRMED if needed):
 Working set (files/ids/commands):
 
 - `CONTINUITY.md`
-- `.flow/tasks/fn-1-add-claude-code-style-hooks-system.4.md`
-- `src/agents/pi-embedded-runner/run/attempt.ts`
-- `src/auto-reply/reply/dispatch-from-config.ts`
-- `src/hooks/claude-style/hooks/stop.ts`
-- `src/hooks/claude-style/hooks/stop.test.ts`
-- `src/hooks/claude-style/hooks/user-prompt.ts`
-- `src/hooks/claude-style/hooks/user-prompt.test.ts`
+- `src/agents/subagent-registry.ts`
+- `src/agents/tools/sessions-spawn-tool.ts`
+- `src/hooks/claude-style/hooks/subagent.ts`
+- `src/hooks/claude-style/hooks/subagent.test.ts`
 - `src/hooks/claude-style/index.ts`

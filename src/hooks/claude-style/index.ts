@@ -105,3 +105,9 @@ export {
   type SubagentStartHookResult,
   type SubagentStopHookInput,
 } from "./hooks/subagent.js";
+
+export {
+  runPreCompactHooks,
+  hasPreCompactHooks,
+  type PreCompactHookInput,
+} from "./hooks/pre-compact.js";

@@ -12,6 +12,7 @@ import type { ExecElevatedDefaults } from "../bash-tools.js";
 import type { EmbeddedPiCompactResult } from "./types.js";
 import { resolveHeartbeatPrompt } from "../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../config/channel-capabilities.js";
+import { runPreCompactHooks } from "../../hooks/claude-style/hooks/pre-compact.js";
 import { getMachineDisplayName } from "../../infra/machine-name.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isSubagentSessionKey } from "../../routing/session-key.js";
@@ -431,6 +432,27 @@ export async function compactEmbeddedPiSessionDirect(
         if (limited.length > 0) {
           session.agent.replaceMessages(limited);
         }
+
+        // Fire PreCompact hook (fire-and-forget, doesn't block compaction)
+        // Estimate tokens before compaction
+        let tokenEstimate: number | undefined;
+        try {
+          tokenEstimate = 0;
+          for (const message of session.messages) {
+            tokenEstimate += estimateTokens(message);
+          }
+        } catch {
+          tokenEstimate = undefined;
+        }
+        runPreCompactHooks({
+          session_id: sandboxSessionKey,
+          message_count: session.messages.length,
+          token_estimate: tokenEstimate,
+          cwd: effectiveWorkspace,
+        }).catch((err) => {
+          log.warn(`PreCompact hook error: ${String(err)}`);
+        });
+
         const result = await session.compact(params.customInstructions);
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;
