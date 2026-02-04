@@ -1,7 +1,7 @@
 import type { TUI } from "@mariozechner/pi-tui";
 import type { ChatLog } from "./components/chat-log.js";
 import type { GatewayAgentsList, GatewayChatClient } from "./gateway-chat.js";
-import type { TuiOptions, TuiStateAccess } from "./tui-types.js";
+import type { SessionInfo, TuiOptions, TuiStateAccess } from "./tui-types.js";
 import {
   normalizeAgentId,
   normalizeMainKey,
@@ -99,9 +99,16 @@ export function createSessionActions(context: SessionActionContext) {
     }
   };
 
-  const refreshSessionInfo = async () => {
+  const refreshSessionInfo = async (overrides?: Partial<SessionInfo>) => {
     if (refreshSessionInfoPromise) {
-      return refreshSessionInfoPromise;
+      await refreshSessionInfoPromise;
+      if (overrides) {
+        state.sessionInfo = { ...state.sessionInfo, ...overrides };
+        updateAutocompleteProvider();
+        updateFooter();
+        tui.requestRender();
+      }
+      return;
     }
     refreshSessionInfoPromise = (async () => {
       try {
@@ -139,6 +146,9 @@ export function createSessionActions(context: SessionActionContext) {
         };
       } catch (err) {
         chatLog.addSystem(`sessions list failed: ${String(err)}`);
+      }
+      if (overrides) {
+        state.sessionInfo = { ...state.sessionInfo, ...overrides };
       }
       updateAutocompleteProvider();
       updateFooter();

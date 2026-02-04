@@ -1,6 +1,6 @@
 import type { TUI } from "@mariozechner/pi-tui";
 import type { ChatLog } from "./components/chat-log.js";
-import type { AgentEvent, ChatEvent, TuiStateAccess } from "./tui-types.js";
+import type { AgentEvent, ChatEvent, SessionInfo, TuiStateAccess } from "./tui-types.js";
 import { asString, extractTextFromMessage, isCommandMessage } from "./tui-formatters.js";
 import { TuiStreamAssembler } from "./tui-stream-assembler.js";
 
@@ -9,7 +9,7 @@ type EventHandlerContext = {
   tui: TUI;
   state: TuiStateAccess;
   setActivityStatus: (text: string) => void;
-  refreshSessionInfo?: () => Promise<void>;
+  refreshSessionInfo?: (overrides?: Partial<SessionInfo>) => Promise<void>;
 };
 
 export function createEventHandlers(context: EventHandlerContext) {

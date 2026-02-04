@@ -4,6 +4,7 @@ import type { GatewayChatClient } from "./gateway-chat.js";
 import type {
   AgentSummary,
   GatewayStatusSummary,
+  SessionInfo,
   TuiOptions,
   TuiStateAccess,
 } from "./tui-types.js";
@@ -22,6 +23,17 @@ import {
 } from "./components/selectors.js";
 import { formatStatusSummary } from "./tui-status-summary.js";
 
+function parseModelString(
+  value: string,
+  fallbackProvider?: string,
+): { model: string; modelProvider?: string } {
+  if (value.includes("/")) {
+    const [provider, model] = value.split("/");
+    return { model: model ?? value, modelProvider: provider };
+  }
+  return { model: value, modelProvider: fallbackProvider };
+}
+
 type CommandHandlerContext = {
   client: GatewayChatClient;
   chatLog: ChatLog;
@@ -31,7 +43,7 @@ type CommandHandlerContext = {
   deliverDefault: boolean;
   openOverlay: (component: Component) => void;
   closeOverlay: () => void;
-  refreshSessionInfo: () => Promise<void>;
+  refreshSessionInfo: (overrides?: Partial<SessionInfo>) => Promise<void>;
   loadHistory: () => Promise<void>;
   setSession: (key: string) => Promise<void>;
   refreshAgents: () => Promise<void>;
@@ -86,7 +98,8 @@ export function createCommandHandlers(context: CommandHandlerContext) {
               model: item.value,
             });
             chatLog.addSystem(`model set to ${item.value}`);
-            await refreshSessionInfo();
+            const parsed = parseModelString(item.value, state.sessionInfo.modelProvider);
+            await refreshSessionInfo(parsed);
           } catch (err) {
             chatLog.addSystem(`model set failed: ${String(err)}`);
           }
@@ -289,7 +302,8 @@ export function createCommandHandlers(context: CommandHandlerContext) {
               model: args,
             });
             chatLog.addSystem(`model set to ${args}`);
-            await refreshSessionInfo();
+            const parsed = parseModelString(args, state.sessionInfo.modelProvider);
+            await refreshSessionInfo(parsed);
           } catch (err) {
             chatLog.addSystem(`model set failed: ${String(err)}`);
           }
