@@ -31,4 +31,19 @@ export default defineConfig([
     fixedExtension: false,
     platform: "node",
   },
+  // Memory modules - dynamically imported by search-manager.ts
+  {
+    entry: "src/memory/manager.ts",
+    outDir: "dist/memory",
+    env,
+    fixedExtension: false,
+    platform: "node",
+  },
+  {
+    entry: "src/memory/qmd-manager.ts",
+    outDir: "dist/memory",
+    env,
+    fixedExtension: false,
+    platform: "node",
+  },
 ]);
