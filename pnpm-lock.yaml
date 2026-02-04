@@ -244,6 +244,16 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.2.0)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+    optionalDependencies:
+      '@oxfmt/win32-x64':
+        specifier: 0.28.0
+        version: 0.28.0
+      '@oxlint/win32-x64':
+        specifier: 1.43.0
+        version: 1.43.0
+      '@typescript/native-preview-win32-x64':
+        specifier: 7.0.0-dev.20260203.1
+        version: 7.0.0-dev.20260203.1
 
   extensions/bluebubbles:
     devDependencies:
@@ -2883,6 +2893,11 @@ packages:
 
   '@typescript/native-preview-win32-x64@7.0.0-dev.20260202.1':
     resolution: {integrity: sha512-IH40xp560GZ0Ko46Pz/G9aCCVNsAn/KnYLusZRH+iQSs4E641Oh5rKG0q7iIFDpIcw5m5SWKEYC2YZxOULBntg==}
+    cpu: [x64]
+    os: [win32]
+
+  '@typescript/native-preview-win32-x64@7.0.0-dev.20260203.1':
+    resolution: {integrity: sha512-O+OsC8DOEnoKWWlWrPOnULh0kSvQ8DiWWfFMVIDmoWfCIi2cDLZKKE1WfCXSLi6L76H9f1zXJEvNqW58tEG/vQ==}
     cpu: [x64]
     os: [win32]
 
@@ -8333,6 +8348,9 @@ snapshots:
     optional: true
 
   '@typescript/native-preview-win32-x64@7.0.0-dev.20260202.1':
+    optional: true
+
+  '@typescript/native-preview-win32-x64@7.0.0-dev.20260203.1':
     optional: true
 
   '@typescript/native-preview@7.0.0-dev.20260202.1':

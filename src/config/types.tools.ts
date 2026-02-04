@@ -59,6 +59,15 @@ export type MediaUnderstandingModelConfig = {
     punctuate?: boolean;
     smartFormat?: boolean;
   };
+  /** Sarvam-specific options. */
+  sarvam?: {
+    language_code?: string;
+    with_timestamps?: boolean;
+    with_diarization?: boolean;
+    num_speakers?: number;
+    input_audio_codec?: string;
+    mode?: "transcribe" | "translate" | "verbatim" | "translit" | "codemix";
+  };
   /** Optional base URL override for provider requests. */
   baseUrl?: string;
   /** Optional headers merged into provider requests. */
@@ -91,6 +100,15 @@ export type MediaUnderstandingConfig = {
     detectLanguage?: boolean;
     punctuate?: boolean;
     smartFormat?: boolean;
+  };
+  /** Sarvam-specific options. */
+  sarvam?: {
+    language_code?: string;
+    with_timestamps?: boolean;
+    with_diarization?: boolean;
+    num_speakers?: number;
+    input_audio_codec?: string;
+    mode?: "transcribe" | "translate" | "verbatim" | "translit" | "codemix";
   };
   /** Optional base URL override for provider requests. */
   baseUrl?: string;

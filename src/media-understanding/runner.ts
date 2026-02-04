@@ -736,6 +736,39 @@ function normalizeDeepgramQueryKeys(query: ProviderQuery): ProviderQuery {
   return normalized;
 }
 
+function buildSarvamCompatQuery(options?: {
+  language_code?: string;
+  with_timestamps?: boolean;
+  with_diarization?: boolean;
+  num_speakers?: number;
+  input_audio_codec?: string;
+  mode?: "transcribe" | "translate" | "verbatim" | "translit" | "codemix";
+}): ProviderQuery | undefined {
+  if (!options) {
+    return undefined;
+  }
+  const query: ProviderQuery = {};
+  if (options.language_code !== undefined) {
+    query.language_code = options.language_code;
+  }
+  if (typeof options.with_timestamps === "boolean") {
+    query.with_timestamps = options.with_timestamps;
+  }
+  if (typeof options.with_diarization === "boolean") {
+    query.with_diarization = options.with_diarization;
+  }
+  if (typeof options.num_speakers === "number") {
+    query.num_speakers = options.num_speakers;
+  }
+  if (options.input_audio_codec !== undefined) {
+    query.input_audio_codec = options.input_audio_codec;
+  }
+  if (options.mode !== undefined) {
+    query.mode = options.mode;
+  }
+  return Object.keys(query).length > 0 ? query : undefined;
+}
+
 function resolveProviderQuery(params: {
   providerId: string;
   config?: MediaUnderstandingConfig;
@@ -746,6 +779,13 @@ function resolveProviderQuery(params: {
     ...config?.providerOptions?.[providerId],
     ...entry.providerOptions?.[providerId],
   });
+  if (providerId === "sarvam") {
+    const sarvamOptions = buildSarvamCompatQuery({
+      ...config?.sarvam,
+      ...entry.sarvam,
+    });
+    return { ...mergedOptions, ...sarvamOptions };
+  }
   if (providerId !== "deepgram") {
     return mergedOptions;
   }

@@ -416,6 +416,26 @@ const DeepgramAudioSchema = z
   .strict()
   .optional();
 
+const SarvamAudioSchema = z
+  .object({
+    language_code: z.string().optional(),
+    with_timestamps: z.boolean().optional(),
+    with_diarization: z.boolean().optional(),
+    num_speakers: z.number().int().positive().optional(),
+    input_audio_codec: z.string().optional(),
+    mode: z
+      .union([
+        z.literal("transcribe"),
+        z.literal("translate"),
+        z.literal("verbatim"),
+        z.literal("translit"),
+        z.literal("codemix"),
+      ])
+      .optional(),
+  })
+  .strict()
+  .optional();
+
 const ProviderOptionValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 const ProviderOptionsSchema = z
   .record(z.string(), z.record(z.string(), ProviderOptionValueSchema))
@@ -436,6 +456,7 @@ export const MediaUnderstandingModelSchema = z
     language: z.string().optional(),
     providerOptions: ProviderOptionsSchema,
     deepgram: DeepgramAudioSchema,
+    sarvam: SarvamAudioSchema,
     baseUrl: z.string().optional(),
     headers: z.record(z.string(), z.string()).optional(),
     profile: z.string().optional(),
@@ -455,6 +476,7 @@ export const ToolsMediaUnderstandingSchema = z
     language: z.string().optional(),
     providerOptions: ProviderOptionsSchema,
     deepgram: DeepgramAudioSchema,
+    sarvam: SarvamAudioSchema,
     baseUrl: z.string().optional(),
     headers: z.record(z.string(), z.string()).optional(),
     attachments: MediaUnderstandingAttachmentsSchema,
