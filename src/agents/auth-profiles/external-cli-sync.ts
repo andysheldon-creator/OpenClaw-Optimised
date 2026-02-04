@@ -33,10 +33,7 @@ function shallowEqualOAuthCredentials(a: OAuthCredential | undefined, b: OAuthCr
 }
 
 function isExternalProfileFresh(cred: AuthProfileCredential | undefined, now: number): boolean {
-  if (!cred) {
-    return false;
-  }
-  if (cred.type !== "oauth" && cred.type !== "token") {
+  if (!cred || cred.type !== "oauth") {
     return false;
   }
   if (
@@ -47,7 +44,7 @@ function isExternalProfileFresh(cred: AuthProfileCredential | undefined, now: nu
     return false;
   }
   if (typeof cred.expires !== "number") {
-    return true;
+    return false;
   }
   return cred.expires > now + EXTERNAL_CLI_NEAR_EXPIRY_MS;
 }
