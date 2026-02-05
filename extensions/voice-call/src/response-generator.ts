@@ -89,7 +89,10 @@ export async function generateVoiceResponse(
   });
 
   // Resolve model from config
-  const modelRef = voiceConfig.responseModel || `${deps.DEFAULT_PROVIDER}/${deps.DEFAULT_MODEL}`;
+  // Use configured responseModel, then agent primary model, then built-in default
+  const agentPrimary = coreConfig?.agents?.defaults?.model?.primary;
+  const modelRef =
+    voiceConfig.responseModel || agentPrimary || `${deps.DEFAULT_PROVIDER}/${deps.DEFAULT_MODEL}`;
   const slashIndex = modelRef.indexOf("/");
   const provider = slashIndex === -1 ? deps.DEFAULT_PROVIDER : modelRef.slice(0, slashIndex);
   const model = slashIndex === -1 ? modelRef : modelRef.slice(slashIndex + 1);
