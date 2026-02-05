@@ -48,7 +48,7 @@ export type HookTokenResult = {
   fromQuery: boolean;
 };
 
-export function extractHookToken(req: IncomingMessage, url: URL): HookTokenResult {
+export function extractHookToken(req: IncomingMessage, _url: URL): HookTokenResult {
   const auth =
     typeof req.headers.authorization === "string" ? req.headers.authorization.trim() : "";
   if (auth.toLowerCase().startsWith("bearer ")) {
