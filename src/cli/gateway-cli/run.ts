@@ -279,7 +279,6 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
       // Only the Docker container should have OPENCLAW_SECURE_MODE=1 (set in gateway-container.ts).
 
       const proxyPort = 8080;
-      const proxyUrl = `http://host.docker.internal:${proxyPort}`;
 
       // Initialize secrets registry (loads all credentials from host)
       gatewayLog.info("Loading secrets registry...");
@@ -290,8 +289,7 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
 
       // Start secrets proxy first
       // Detect Docker bridge gateway IP dynamically - only reachable from Docker containers
-      // This is more secure than 0.0.0.0 (all interfaces) while still allowing
-      // container access via host.docker.internal
+      // This is more secure than 0.0.0.0 (all interfaces) while still allowing container access
       let dockerBridgeIp = "172.17.0.1"; // fallback default
       try {
         const { execSync } = await import("child_process");
@@ -309,6 +307,9 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
         gatewayLog.warn(`Could not detect Docker bridge IP, using default ${dockerBridgeIp}`);
       }
 
+      // Use detected IP in proxy URL (must match bind address)
+      const proxyUrl = `http://${dockerBridgeIp}:${proxyPort}`;
+
       let proxyServer: Awaited<ReturnType<typeof startSecretsProxy>>;
       try {
         proxyServer = await startSecretsProxy({ port: proxyPort, registry, bind: dockerBridgeIp });
@@ -323,7 +324,7 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
       gatewayLog.info("Preparing sanitized config mounts...");
       let sanitizedMounts;
       try {
-        sanitizedMounts = await prepareSanitizedMounts();
+        sanitizedMounts = await prepareSanitizedMounts({ dockerBridgeIp });
         gatewayLog.info(`Prepared ${sanitizedMounts.binds.length} bind mounts`);
       } catch (err) {
         gatewayLog.error(`Failed to prepare sanitized mounts: ${String(err)}`);

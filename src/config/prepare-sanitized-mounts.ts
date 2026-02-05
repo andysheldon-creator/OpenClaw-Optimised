@@ -31,7 +31,10 @@ export interface SanitizedMounts {
  * - Original config with real channel tokens
  * - Original auth-profiles.json with real API keys
  */
-export async function prepareSanitizedMounts(): Promise<SanitizedMounts> {
+export async function prepareSanitizedMounts(opts?: {
+  dockerBridgeIp?: string;
+}): Promise<SanitizedMounts> {
+  const dockerBridgeIp = opts?.dockerBridgeIp ?? "172.17.0.1"; // fallback default
   const homeDir = os.homedir();
   const openclawDir = path.join(homeDir, ".openclaw");
   const sanitizedDir = path.join(openclawDir, ".sanitized");
@@ -66,17 +69,18 @@ export async function prepareSanitizedMounts(): Promise<SanitizedMounts> {
       // Load config (sanitizeConfigSecrets is applied automatically)
       const config = loadConfig();
 
-      // Disable device auth for Control UI in container mode.
-      // Docker connections come from 172.17.0.1, not localhost, so
-      // auto-pairing for local connections doesn't work.
-      // Token auth is still enforced, so this is safe.
+      // In secure mode, Docker connections appear from bridge IP (e.g., 172.17.0.1), not localhost.
+      // Add the detected Docker bridge IP to trustedProxies so the gateway treats these as local.
+      // This keeps device auth working while allowing Docker-based connections.
       if (!config.gateway) {
         (config as any).gateway = {};
       }
-      if (!config.gateway!.controlUi) {
-        (config.gateway as any).controlUi = {};
+      const existingProxies = Array.isArray(config.gateway!.trustedProxies)
+        ? config.gateway!.trustedProxies
+        : [];
+      if (!existingProxies.includes(dockerBridgeIp)) {
+        (config.gateway as any).trustedProxies = [...existingProxies, dockerBridgeIp];
       }
-      (config.gateway!.controlUi as any).dangerouslyDisableDeviceAuth = true;
 
       const ext = path.extname(configPath);
       const sanitizedConfigPath = path.join(sanitizedDir, `openclaw${ext}`);
@@ -165,9 +169,9 @@ export async function prepareSanitizedMounts(): Promise<SanitizedMounts> {
             "utf8",
           );
 
-          // Mount sanitized auth file (read-write for OAuth token refresh)
+          // Mount sanitized auth file (read-only - OAuth refresh happens on host proxy)
           binds.push(
-            `${sanitizedAuthPath}:/home/node/.openclaw/agents/${agentId}/agent/auth-profiles.json:rw`,
+            `${sanitizedAuthPath}:/home/node/.openclaw/agents/${agentId}/agent/auth-profiles.json:ro`,
           );
         } catch (err) {
           console.warn(`Skipping auth profiles for agent ${agentId}: ${err}`);
