@@ -100,8 +100,13 @@ export type QueryRequest = {
   limit?: number;
 };
 
+export type QueryResult = MemoryContentObject & {
+  score?: number;
+  source?: "graph" | "vector" | "hybrid" | (string & {});
+};
+
 export type QueryResponse = {
-  content: MemoryContentObject[];
+  results: QueryResult[];
   latencyMs?: number;
 };
 
