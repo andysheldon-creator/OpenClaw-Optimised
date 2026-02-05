@@ -170,9 +170,11 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
   // - moving matching toolResult messages directly after their assistant toolCall turn
   // - inserting synthetic error toolResults for missing ids
   // - dropping duplicate toolResults for the same id (anywhere in the transcript)
+  // - deduplicating tool_use IDs in assistant messages (Anthropic requires unique IDs)
   const out: AgentMessage[] = [];
   const added: Array<Extract<AgentMessage, { role: "toolResult" }>> = [];
   const seenToolResultIds = new Set<string>();
+  const seenToolUseIds = new Set<string>();
   let droppedDuplicateCount = 0;
   let droppedOrphanCount = 0;
   let moved = false;
@@ -189,6 +191,23 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       seenToolResultIds.add(id);
     }
     out.push(msg);
+  };
+
+  // Deduplicate tool_use IDs in assistant messages by generating unique IDs for collisions
+  const deduplicateToolUseId = (id: string): string => {
+    if (!seenToolUseIds.has(id)) {
+      seenToolUseIds.add(id);
+      return id;
+    }
+    // Generate a unique ID by appending a counter
+    let counter = 2;
+    let newId = `${id}_${counter}`;
+    while (seenToolUseIds.has(newId)) {
+      counter += 1;
+      newId = `${id}_${counter}`;
+    }
+    seenToolUseIds.add(newId);
+    return newId;
   };
 
   for (let i = 0; i < messages.length; i += 1) {
@@ -219,9 +238,75 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       continue;
     }
 
-    const toolCallIds = new Set(toolCalls.map((t) => t.id));
+    // Check for duplicate tool_use IDs and remap them if necessary.
+    // IMPORTANT: We track remappings by block index (not just by ID) to handle
+    // the case where the same ID appears multiple times within a single message.
+    // Using a Map<originalId, newId> would cause all occurrences to map to the
+    // last generated newId, losing tool results for earlier occurrences.
+    const blockIndexToNewId = new Map<number, string>();
+    let assistantNeedsRewrite = false;
 
-    const spanResultsById = new Map<string, Extract<AgentMessage, { role: "toolResult" }>>();
+    // Find block indices of tool calls in assistant.content
+    const toolCallBlockIndices: number[] = [];
+    if (Array.isArray(assistant.content)) {
+      for (let idx = 0; idx < assistant.content.length; idx++) {
+        const block = assistant.content[idx];
+        if (!block || typeof block !== "object") {
+          continue;
+        }
+        const rec = block as { type?: unknown; id?: unknown };
+        if (
+          (rec.type === "toolCall" || rec.type === "toolUse" || rec.type === "functionCall") &&
+          typeof rec.id === "string" &&
+          rec.id
+        ) {
+          toolCallBlockIndices.push(idx);
+        }
+      }
+    }
+
+    // Build per-block remapping
+    for (let i = 0; i < toolCalls.length; i++) {
+      const call = toolCalls[i];
+      const blockIndex = toolCallBlockIndices[i];
+      const newId = deduplicateToolUseId(call.id);
+      if (newId !== call.id) {
+        blockIndexToNewId.set(blockIndex, newId);
+        assistantNeedsRewrite = true;
+        changed = true;
+      }
+    }
+
+    // Rewrite assistant message if any tool_use IDs were deduplicated
+    let processedAssistant = assistant;
+    if (assistantNeedsRewrite && Array.isArray(assistant.content)) {
+      const newContent = assistant.content.map((block, idx) => {
+        if (blockIndexToNewId.has(idx)) {
+          return {
+            ...(block as unknown as Record<string, unknown>),
+            id: blockIndexToNewId.get(idx),
+          };
+        }
+        return block;
+      });
+      processedAssistant = { ...assistant, content: newContent as typeof assistant.content };
+    }
+
+    // Update toolCalls with remapped IDs for matching - each call gets its own newId
+    const effectiveToolCalls = toolCalls.map((call, i) => {
+      const blockIndex = toolCallBlockIndices[i];
+      const newId = blockIndexToNewId.get(blockIndex);
+      return {
+        ...call,
+        id: newId ?? call.id,
+        originalId: call.id,
+        blockIndex,
+      };
+    });
+    const toolCallIds = new Set(effectiveToolCalls.map((t) => t.originalId));
+
+    // Collect toolResults by ID - use array to handle multiple results with same ID
+    const spanResultsById = new Map<string, Array<Extract<AgentMessage, { role: "toolResult" }>>>();
     const remainder: AgentMessage[] = [];
 
     let j = i + 1;
@@ -241,14 +326,10 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
         const toolResult = next as Extract<AgentMessage, { role: "toolResult" }>;
         const id = extractToolResultId(toolResult);
         if (id && toolCallIds.has(id)) {
-          if (seenToolResultIds.has(id)) {
-            droppedDuplicateCount += 1;
-            changed = true;
-            continue;
-          }
-          if (!spanResultsById.has(id)) {
-            spanResultsById.set(id, toolResult);
-          }
+          // Collect all results for this ID (don't drop duplicates here - we'll match them by order)
+          const existing = spanResultsById.get(id) ?? [];
+          existing.push(toolResult);
+          spanResultsById.set(id, existing);
           continue;
         }
       }
@@ -262,17 +343,33 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       }
     }
 
-    out.push(msg);
+    out.push(processedAssistant);
 
     if (spanResultsById.size > 0 && remainder.length > 0) {
       moved = true;
       changed = true;
     }
 
-    for (const call of toolCalls) {
-      const existing = spanResultsById.get(call.id);
+    // Track how many results we've consumed for each originalId
+    const consumedCountById = new Map<string, number>();
+
+    for (const call of effectiveToolCalls) {
+      const resultsForId = spanResultsById.get(call.originalId);
+      const consumedCount = consumedCountById.get(call.originalId) ?? 0;
+      const existing = resultsForId?.[consumedCount];
+
       if (existing) {
-        pushToolResult(existing);
+        consumedCountById.set(call.originalId, consumedCount + 1);
+        // Remap toolResult ID if the tool_use ID was deduplicated
+        if (call.id !== call.originalId) {
+          const remappedResult = {
+            ...existing,
+            toolCallId: call.id,
+          } as Extract<AgentMessage, { role: "toolResult" }>;
+          pushToolResult(remappedResult);
+        } else {
+          pushToolResult(existing);
+        }
       } else {
         const missing = makeMissingToolResult({
           toolCallId: call.id,
