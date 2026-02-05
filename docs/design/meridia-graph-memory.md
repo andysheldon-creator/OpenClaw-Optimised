@@ -212,6 +212,52 @@ export interface MemoryIngestTool {
 - **Plugin tool**: Exposes `memory.ingest` and `memory.query` to the agent.
 - **Gateway RPC**: Receives ingestion events from external services.
 
+# <<<<<<< ours
+
+## Graphiti evaluation
+
+Graphiti is an open-source framework for building temporally-aware knowledge graphs geared toward agent memory. It
+emphasizes incremental updates, bi-temporal data handling, and hybrid retrieval (semantic embeddings, keyword search,
+and graph traversal) with optional reranking. It also supports multiple graph backends (Neo4j, FalkorDB, Kuzu, and
+Amazon Neptune) and ships with a FastAPI server and an MCP server for external tool access. These capabilities map well
+to our desired capture pipeline and query orchestration needs, especially where we want temporal reasoning and hybrid
+retrieval without building the entire stack from scratch.
+
+### How Graphiti lines up with Meridia needs
+
+- **Capture pipeline alignment**: Graphiti already ingests episodes (text or structured JSON) and builds a knowledge
+  graph incrementally. This is close to our normalize/extract/enrich stages, but we still need to front-load multi-modal
+  extraction (OCR, ASR, captioning) before we pass the resulting text to Graphiti for episode ingestion.
+- **Temporal reasoning**: Graphiti’s bi-temporal model and temporal edge invalidation provide the historical accuracy we
+  want for “what was true at time T” queries without recomputation, which is a direct match for Meridia’s memory goals.
+- **Hybrid retrieval**: Graphiti’s hybrid search (semantic + keyword + graph traversal) mirrors our planned blend stage,
+  meaning we can reuse its retrieval primitives and focus on context-pack assembly and token budgeting.
+- **Tooling**: The existing REST server and MCP server can reduce the surface area of new tooling we must build, though
+  we still need an ingestion API that accepts multi-modal content objects and metadata.
+
+### Gaps or risks
+
+- **Multi-modal ingestion**: Graphiti centers on text and structured episodes. We would still need our own pipeline to
+  convert images, audio, and video into transcripts, OCR, or captions before ingestion.
+- **Control over schema and provenance**: Graphiti supports custom entity definitions, but we must validate it can
+  express our provenance fields (`source_id`, `observed_at`, confidence, etc.) without forcing schema compromises.
+- **Dependency footprint**: Graphiti is a Python framework. Adopting it implies running and orchestrating a Python
+  service alongside the Node-based gateway, which could increase operational complexity unless we isolate it behind a
+  small API boundary.
+- **LLM provider requirements**: Graphiti assumes structured-output capable models and defaults to OpenAI. We need to
+  confirm compatibility with our target providers and ensure we can supply our own embedding models.
+
+### Recommendation
+
+Graphiti is a strong candidate as the graph and retrieval core for Meridia because it already solves temporal knowledge
+graph updates and hybrid retrieval. The best path is to keep our ingestion and multi-modal extraction pipeline, then
+hand off normalized text episodes to Graphiti. We should prototype a thin “Meridia Graphiti adapter” service that
+exposes `memory.ingest` and `memory.query` endpoints while retaining our context-pack assembly and policy controls. If
+the schema/provenance model can map cleanly, this reduces implementation cost significantly while preserving our desired
+pipeline behavior.
+
+> > > > > > > theirs
+
 ## Implementation plan
 
 ### Phase 1
