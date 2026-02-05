@@ -383,9 +383,14 @@ export async function installSkill(params: SkillInstallRequest): Promise<SkillIn
 
   const brewExe = hasBinary("brew") ? "brew" : resolveBrewExecutable();
   if (spec.kind === "brew" && !brewExe) {
+    // Homebrew is macOS/Linux only - provide platform-specific error message
+    const isWindows = process.platform === "win32";
+    const message = isWindows
+      ? "brew not available on Windows (use CLI: clawhub install <skill-name>)"
+      : "brew not installed";
     return {
       ok: false,
-      message: "brew not installed",
+      message,
       stdout: "",
       stderr: "",
       code: null,

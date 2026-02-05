@@ -98,13 +98,23 @@ function selectPreferredInstallSpec(
   if (nodeSpec) {
     return nodeSpec;
   }
-  if (brewSpec) {
+  // On Windows, skip brew entirely (it doesn't exist on Windows)
+  // On macOS/Linux, offer brew even if not installed (user can install it)
+  const isWindows = process.platform === "win32";
+  if (brewSpec && !isWindows) {
     return brewSpec;
   }
   if (goSpec) {
     return goSpec;
   }
-  return indexed[0];
+  // Fallback: on Windows, skip brew specs; on other platforms, include them
+  const fallback = indexed.find((item) => {
+    if (isWindows && item.spec.kind === "brew") {
+      return false; // Skip brew on Windows
+    }
+    return true;
+  });
+  return fallback;
 }
 
 function normalizeInstallOptions(
