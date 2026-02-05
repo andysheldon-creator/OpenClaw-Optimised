@@ -4,6 +4,7 @@ import type { CronEvent, CronServiceState } from "./state.js";
 import { computeJobNextRunAtMs, nextWakeAtMs, resolveJobPayloadTextForMain } from "./jobs.js";
 import { locked } from "./locked.js";
 import { ensureLoaded, persist } from "./store.js";
+import { recomputeNextRuns } from "./jobs.js";
 
 const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
@@ -36,8 +37,12 @@ export async function onTimer(state: CronServiceState) {
   state.running = true;
   try {
     await locked(state, async () => {
-      await ensureLoaded(state, { forceReload: true });
+      // Load without recomputing to preserve stored nextRunAtMs values
+      await ensureLoaded(state, { forceReload: true, skipRecompute: true });
+      // Check and run due jobs using stored nextRunAtMs
       await runDueJobs(state);
+      // Then recompute next runs for subsequent executions
+      recomputeNextRuns(state);
       await persist(state);
       armTimer(state);
     });
