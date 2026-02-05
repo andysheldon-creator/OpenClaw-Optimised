@@ -519,6 +519,55 @@ Use these with cron/CLI sends:
 - `user:<id>` for DMs
 - `channel:<id>` for channels
 
+## AI Assistant (Agents & AI Apps)
+
+When "Agents & AI Apps" is enabled in your Slack app settings, users can open an AI assistant side panel while viewing any channel. OpenClaw supports this with:
+
+- **Loading states** — shows "is thinking..." while processing
+- **Suggested prompts** — offers starter prompts when the panel opens
+- **Thread titles** — auto-titles assistant threads in the History tab
+- **Channel context injection** — fetches recent messages from the channel the user is viewing and injects them into the conversation, enabling commands like "summarize this channel" or "what's the team discussing?"
+
+### Config
+
+```json
+{
+  "slack": {
+    "assistant": {
+      "enabled": true,
+      "statusMessage": "is thinking...",
+      "channelContext": true,
+      "channelContextMessageLimit": 20
+    }
+  }
+}
+```
+
+| Option                       | Type    | Default            | Description                                                  |
+| ---------------------------- | ------- | ------------------ | ------------------------------------------------------------ |
+| `enabled`                    | boolean | `false`            | Enable AI Assistant features                                 |
+| `statusMessage`              | string  | `"is thinking..."` | Loading status shown while processing                        |
+| `channelContext`             | boolean | `true`             | Inject recent channel messages into assistant thread context |
+| `channelContextMessageLimit` | number  | `20`               | Maximum recent messages to include as context                |
+
+### Requirements
+
+- "Agents & AI Apps" enabled in Slack app settings
+- `assistant:write` bot scope
+- `assistant_thread_started` and `assistant_thread_context_changed` event subscriptions
+- Bot must have access to the channels it needs to read context from
+
+### How channel context works
+
+When a user opens the assistant panel while viewing `#general`, Slack fires an `assistant_thread_started` event with `context.channel_id` pointing to `#general`. OpenClaw stores this context. When the user sends a message in that thread, OpenClaw:
+
+1. Checks if the thread has stored channel context
+2. Fetches recent messages from the viewed channel (with a configurable limit and 8s timeout)
+3. Injects them as untrusted context so the agent can reference them
+4. The agent can then answer questions about the channel's recent activity
+
+The channel message fetch is best-effort — if it fails or times out, the message is still processed normally without channel context.
+
 ## Tool actions
 
 Slack tool actions can be gated with `channels.slack.actions.*`:

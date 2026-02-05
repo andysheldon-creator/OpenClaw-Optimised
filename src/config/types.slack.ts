@@ -80,6 +80,17 @@ export type SlackAssistantConfig = {
   enabled?: boolean;
   /** Loading status message shown while processing. Default: "is thinking...". */
   statusMessage?: string;
+  /**
+   * Inject recent messages from the channel the user is viewing into assistant
+   * thread context. Enables channel-aware responses ("summarize this channel").
+   * Default: true (when assistant is enabled).
+   */
+  channelContext?: boolean;
+  /**
+   * Maximum number of recent channel messages to include as context.
+   * Default: 20.
+   */
+  channelContextMessageLimit?: number;
 };
 
 export type SlackAccountConfig = {
