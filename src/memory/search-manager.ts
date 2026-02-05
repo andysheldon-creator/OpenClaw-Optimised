@@ -77,12 +77,13 @@ export async function getMemorySearchManager(params: {
 
   // 3. Graphiti backend (if configured)
   const graphitiCfg = params.cfg.memory?.graphiti;
-  if (graphitiCfg?.enabled && graphitiCfg?.baseUrl) {
+  if (graphitiCfg?.enabled) {
     try {
       const { GraphitiClient } = await import("./graphiti/client.js");
       const { GraphitiSearchAdapter } = await import("./graphiti/graphiti-search-adapter.js");
       const client = new GraphitiClient({
-        baseUrl: graphitiCfg.baseUrl,
+        serverHost: graphitiCfg.serverHost,
+        servicePort: graphitiCfg.servicePort,
         apiKey: graphitiCfg.apiKey,
         timeoutMs: graphitiCfg.timeoutMs,
       });

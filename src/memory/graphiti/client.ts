@@ -30,7 +30,8 @@ export type GraphitiQueryHybridResponse = GraphitiQueryResponse & {
 };
 
 export type GraphitiClientOptions = {
-  baseUrl: string;
+  serverHost?: string; // default: localhost
+  servicePort?: number; // default: 8001
   apiKey?: string;
   fetchFn?: typeof fetch;
   now?: () => Date;
@@ -98,18 +99,20 @@ export class GraphitiClient {
   private readonly timeoutMs: number;
 
   constructor(options: GraphitiClientOptions) {
-    this.baseUrl = options.baseUrl.replace(/\/$/, "");
+    const host = options.serverHost ?? "localhost";
+    const port = options.servicePort ?? 8001;
+    this.baseUrl = `http://${host}:${port}`;
     this.apiKey = options.apiKey;
     this.fetchFn = options.fetchFn ?? fetch;
     this.now = options.now ?? (() => new Date());
     this.timeoutMs = options.timeoutMs ?? 10_000;
   }
 
-  /** GET /health — lightweight liveness check. */
+  /** GET /healthcheck — lightweight liveness check. */
   async health(): Promise<{ ok: boolean; message?: string }> {
     memLog.debug("graphiti health check", { baseUrl: this.baseUrl });
     try {
-      const response = await this.fetchFn(`${this.baseUrl}/health`, {
+      const response = await this.fetchFn(`${this.baseUrl}/healthcheck`, {
         method: "GET",
         headers: {
           ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
@@ -121,9 +124,9 @@ export class GraphitiClient {
         memLog.debug("graphiti health failed", { status: response.status });
         return { ok: false, message: msg };
       }
-      const body = (await response.json()) as { ok?: boolean; message?: string };
+      const body = (await response.json()) as { status?: string };
       memLog.debug("graphiti health ok", { body });
-      return { ok: body.ok !== false, message: body.message };
+      return { ok: body.status === "healthy", message: body.status };
     } catch (err) {
       const msg = `Graphiti health check error: ${String(err)}`;
       memLog.debug("graphiti health error", { error: String(err) });
@@ -173,18 +176,25 @@ export class GraphitiClient {
   async queryHybrid(request: GraphitiQueryHybridRequest): Promise<GraphitiQueryHybridResponse> {
     memLog.debug("graphiti queryHybrid", { query: request.query, limit: request.limit });
 
-    const response = await this.fetchFn(`${this.baseUrl}/queryHybrid`, {
+    // Map to graph_service /search endpoint format
+    const searchRequest = {
+      query: request.query,
+      max_facts: request.limit ?? 10,
+      group_ids: request.filters?.group_ids as string[] | undefined,
+    };
+
+    const response = await this.fetchFn(`${this.baseUrl}/search`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
         ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(searchRequest),
       signal: AbortSignal.timeout(this.timeoutMs),
     });
 
     if (!response.ok) {
-      memLog.debug("graphiti queryHybrid failed", { status: response.status });
+      memLog.debug("graphiti search failed", { status: response.status });
       return {
         nodes: [],
         edges: [],
@@ -192,12 +202,25 @@ export class GraphitiClient {
       };
     }
 
-    const result = (await response.json()) as GraphitiQueryHybridResponse;
-    memLog.debug("graphiti queryHybrid ok", {
-      nodes: result.nodes.length,
-      episodes: result.episodes?.length ?? 0,
+    // Map graph_service response to expected format
+    const result = (await response.json()) as {
+      facts: Array<{ uuid: string; name: string; fact: string }>;
+    };
+    memLog.debug("graphiti search ok", {
+      facts: result.facts.length,
     });
-    return result;
+
+    // Convert facts to nodes format for compatibility
+    const nodes = result.facts.map((fact) => ({
+      id: fact.uuid,
+      label: fact.name,
+      properties: { text: fact.fact },
+    }));
+
+    return {
+      nodes,
+      edges: [],
+    };
   }
 
   /** No-op for now; satisfies MemorySearchManager.close(). */

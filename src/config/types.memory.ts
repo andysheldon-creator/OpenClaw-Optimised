@@ -9,9 +9,11 @@ export type MemoryProgressiveConfig = {
 
 export type MemoryGraphitiConfig = {
   enabled?: boolean;
-  baseUrl?: string;
+  serverHost?: string; // default: localhost
+  mcpPort?: number; // default: 8000
+  servicePort?: number; // default: 8001
   apiKey?: string;
-  timeoutMs?: number; // default 10000
+  timeoutMs?: number; // default: 10000
 };
 
 export type MemoryConfig = {
