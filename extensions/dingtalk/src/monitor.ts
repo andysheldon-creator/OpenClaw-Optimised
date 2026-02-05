@@ -2,24 +2,32 @@
  * DingTalk monitor - starts the stream client and dispatches messages to Clawdbot.
  */
 
-import { loadWebMedia, type OpenClawConfig } from "openclaw/plugin-sdk";
+import { loadWebMedia, type OpenClawConfig, type PluginRuntime } from "openclaw/plugin-sdk";
 import type { ResolvedDingTalkAccount } from "./accounts.js";
-import { getDingTalkRuntime, getOrCreateTokenManager } from "./runtime.js";
-import { startDingTalkStreamClient } from "./stream/client.js";
 import type { ChatbotMessage, StreamClientHandle, StreamLogger } from "./stream/types.js";
-import { buildSessionKey, startsWithPrefix } from "./stream/message-parser.js";
-import { sendReplyViaSessionWebhook, sendImageViaSessionWebhook, sendImageWithMediaIdViaSessionWebhook } from "./send/reply.js";
+import { uploadMediaToOAPI } from "./api/media-upload.js";
+import { downloadMedia, uploadMedia } from "./api/media.js";
+import { sendFileMessage } from "./api/send-message.js";
+import { DINGTALK_CHANNEL_ID, DINGTALK_LEGACY_CHANNEL_ID } from "./config-schema.js";
+import { parseMediaProtocol, hasMediaTags, replaceMediaTags } from "./media-protocol.js";
+import { getDingTalkRuntime, getOrCreateTokenManager } from "./runtime.js";
 import { convertMarkdownForDingTalk } from "./send/markdown.js";
+import { processMediaItems, uploadMediaItem } from "./send/media-sender.js";
+import {
+  sendReplyViaSessionWebhook,
+  sendImageViaSessionWebhook,
+  sendImageWithMediaIdViaSessionWebhook,
+} from "./send/reply.js";
+import { startDingTalkStreamClient } from "./stream/client.js";
+import { buildSessionKey, startsWithPrefix } from "./stream/message-parser.js";
+import { DEFAULT_DINGTALK_SYSTEM_PROMPT, buildSenderContext } from "./system-prompt.js";
 import { stripDirectiveTags, isOnlyDirectiveTags } from "./util/directive-tags.js";
 import { applyResponsePrefix, isGroupChatType, shouldEnforcePrefix } from "./util/prefix.js";
-import { DINGTALK_CHANNEL_ID, DINGTALK_LEGACY_CHANNEL_ID } from "./config-schema.js";
-import { downloadMedia, uploadMedia } from "./api/media.js";
-import { uploadMediaToOAPI } from "./api/media-upload.js";
-import { sendFileMessage } from "./api/send-message.js";
-import { extractThinkDirective, extractThinkOnceDirective, type ThinkLevel } from "./util/think-directive.js";
-import { parseMediaProtocol, hasMediaTags, replaceMediaTags } from "./media-protocol.js";
-import { processMediaItems, uploadMediaItem } from "./send/media-sender.js";
-import { DEFAULT_DINGTALK_SYSTEM_PROMPT, buildSenderContext } from "./system-prompt.js";
+import {
+  extractThinkDirective,
+  extractThinkOnceDirective,
+  type ThinkLevel,
+} from "./util/think-directive.js";
 
 export interface MonitorDingTalkOpts {
   account: ResolvedDingTalkAccount;
@@ -28,9 +36,17 @@ export interface MonitorDingTalkOpts {
   log?: StreamLogger;
 }
 
+type ReplyDispatchParams = Parameters<
+  PluginRuntime["channel"]["reply"]["dispatchReplyWithBufferedBlockDispatcher"]
+>[0];
+
+type ReplyDispatchContext = ReplyDispatchParams["ctx"];
+type ReplyDispatchOptions = ReplyDispatchParams["dispatcherOptions"];
+
 type VerboseOverride = "off" | "on" | "full";
 
-const ALLOWED_COMMAND_RE = /(?:^|\s)\/(new|think|thinking|reasoning|reason|model|models|verbose|v)(?=$|\s|:)/i;
+const ALLOWED_COMMAND_RE =
+  /(?:^|\s)\/(new|think|thinking|reasoning|reason|model|models|verbose|v)(?=$|\s|:)/i;
 const VERBOSE_COMMAND_RE = /(?:^|\s)\/(verbose|v)(?=$|\s|:)/i;
 const RESET_COMMAND_RE = /(?:^|\s)\/new(?=$|\s|:)/i;
 
@@ -121,9 +137,7 @@ function parseVerboseOverride(text?: string): VerboseOverride | undefined {
 function ensureDingTalkStreamingConfig(cfg: OpenClawConfig): OpenClawConfig {
   const channelsRaw = (cfg as { channels?: unknown } | undefined)?.channels;
   const channels =
-    channelsRaw && typeof channelsRaw === "object"
-      ? (channelsRaw as Record<string, unknown>)
-      : {};
+    channelsRaw && typeof channelsRaw === "object" ? (channelsRaw as Record<string, unknown>) : {};
 
   const canonicalRaw = channels[DINGTALK_CHANNEL_ID];
   const legacyRaw = channels[DINGTALK_LEGACY_CHANNEL_ID];
@@ -159,7 +173,7 @@ function ensureDingTalkStreamingConfig(cfg: OpenClawConfig): OpenClawConfig {
  * Start monitoring DingTalk for incoming messages.
  */
 export async function monitorDingTalkProvider(
-  opts: MonitorDingTalkOpts
+  opts: MonitorDingTalkOpts,
 ): Promise<StreamClientHandle> {
   const { account, config, abortSignal, log } = opts;
   const runtime = getDingTalkRuntime();
@@ -175,12 +189,11 @@ export async function monitorDingTalkProvider(
     }
   }
 
-  const openBody =
-    subscriptionsBody ?? {
-      clientId: account.clientId,
-      clientSecret: account.clientSecret,
-      subscriptions: [{ type: "CALLBACK", topic: "/v1.0/im/bot/messages/get" }],
-    };
+  const openBody = subscriptionsBody ?? {
+    clientId: account.clientId,
+    clientSecret: account.clientSecret,
+    subscriptions: [{ type: "CALLBACK", topic: "/v1.0/im/bot/messages/get" }],
+  };
 
   // Track response prefix per session (only apply once per conversation)
   const prefixApplied = new Set<string>();
@@ -200,19 +213,19 @@ export async function monitorDingTalkProvider(
         if (oneshotChain.get(sessionKey) === next) {
           oneshotChain.delete(sessionKey);
         }
-      })
+      }),
     );
     return next;
   }
 
   async function dispatchReply(opts: {
-    ctx: Record<string, unknown>;
-    dispatcherOptions: { deliver: (...args: any[]) => Promise<void> | void; onError?: (...args: any[]) => void };
+    ctx: ReplyDispatchContext;
+    dispatcherOptions: ReplyDispatchOptions;
   }): Promise<void> {
     await runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher({
       ctx: opts.ctx,
       cfg: dispatchConfig,
-      dispatcherOptions: opts.dispatcherOptions as any,
+      dispatcherOptions: opts.dispatcherOptions,
       replyOptions: {
         onReasoningStream: async (payload) => {
           if (!payload?.text && (!payload?.mediaUrls || payload.mediaUrls.length === 0)) {
@@ -248,7 +261,7 @@ export async function monitorDingTalkProvider(
         log?.info?.("Abort signal received, stopping DingTalk stream");
         client.stop();
       },
-      { once: true }
+      { once: true },
     );
   }
 
@@ -269,18 +282,24 @@ export async function monitorDingTalkProvider(
     }
 
     // Filter: require prefix (for group chats)
-    if (shouldEnforcePrefix(account.requirePrefix, chat.chatType) && !startsWithPrefix(chat.text, account.requirePrefix)) {
+    if (
+      shouldEnforcePrefix(account.requirePrefix, chat.chatType) &&
+      !startsWithPrefix(chat.text, account.requirePrefix)
+    ) {
       return;
     }
 
     // Filter: require @mention in group chats (if requireMention is enabled and no requirePrefix)
     if (isGroup && account.requireMention && !account.requirePrefix) {
       // Check if sender is in bypass list
-      const isBypassUser = account.mentionBypassUsers.length > 0 &&
-        account.mentionBypassUsers.includes(chat.senderId);
+      const isBypassUser =
+        account.mentionBypassUsers.length > 0 && account.mentionBypassUsers.includes(chat.senderId);
 
       if (!isBypassUser && !chat.isInAtList) {
-        log?.debug?.({ senderId: chat.senderId, conversationId: chat.conversationId }, "Skipping (not mentioned in group)");
+        log?.debug?.(
+          { senderId: chat.senderId, conversationId: chat.conversationId },
+          "Skipping (not mentioned in group)",
+        );
         return;
       }
     }
@@ -314,7 +333,7 @@ export async function monitorDingTalkProvider(
         chatType: chat.chatType,
         sessionKey,
       },
-      "Inbound DingTalk message"
+      "Inbound DingTalk message",
     );
 
     // Build inbound context for Clawdbot
@@ -342,7 +361,10 @@ export async function monitorDingTalkProvider(
     // Handle file messages - download and include file URL in context
     let fileContext = "";
     if (chat.downloadCode) {
-      log?.info?.({ downloadCode: chat.downloadCode?.slice(0, 20), fileName: chat.fileName }, "Processing file message");
+      log?.info?.(
+        { downloadCode: chat.downloadCode?.slice(0, 20), fileName: chat.fileName },
+        "Processing file message",
+      );
       try {
         const tokenManager = getOrCreateTokenManager(account);
         const downloadResult = await downloadMedia({
@@ -353,13 +375,19 @@ export async function monitorDingTalkProvider(
         });
         if (downloadResult.ok && downloadResult.url) {
           fileContext = `\n[文件: ${chat.fileName ?? "附件"}]\n下载链接: ${downloadResult.url}\n`;
-          log?.debug?.({ fileName: chat.fileName, url: downloadResult.url?.slice(0, 50) }, "File download URL obtained");
+          log?.debug?.(
+            { fileName: chat.fileName, url: downloadResult.url?.slice(0, 50) },
+            "File download URL obtained",
+          );
         } else {
           fileContext = `\n[文件: ${chat.fileName ?? "附件"}] (下载失败)\n`;
           log?.warn?.({ err: downloadResult.error?.message }, "Failed to get file download URL");
         }
       } catch (err) {
-        log?.error?.({ err: { message: (err as Error)?.message } }, "Error processing file message");
+        log?.error?.(
+          { err: { message: (err as Error)?.message } },
+          "Error processing file message",
+        );
         fileContext = `\n[文件: ${chat.fileName ?? "附件"}] (处理失败)\n`;
       }
     }
@@ -389,7 +417,10 @@ export async function monitorDingTalkProvider(
             log?.warn?.({ err: downloadResult.error?.message }, "Failed to get image download URL");
           }
         } catch (err) {
-          log?.error?.({ err: { message: (err as Error)?.message } }, "Error processing image message");
+          log?.error?.(
+            { err: { message: (err as Error)?.message } },
+            "Error processing image message",
+          );
           imageContext = `\n[图片] (处理失败)\n`;
         }
       }
@@ -429,9 +460,12 @@ export async function monitorDingTalkProvider(
     const dispatcherOptions = {
       deliver: async (
         payload: { text?: string; mediaUrls?: string[]; mediaUrl?: string; replyToId?: string },
-        info: { kind: string }
+        info: { kind: string },
       ) => {
-        log?.info?.({ kind: info.kind, hasText: !!payload.text, textLength: payload.text?.length ?? 0 }, "deliver called");
+        log?.info?.(
+          { kind: info.kind, hasText: !!payload.text, textLength: payload.text?.length ?? 0 },
+          "deliver called",
+        );
 
         // Allow "block" kind messages if they have text, as they often contain the main response
         const isBlockWithText = info.kind === "block" && !!payload.text?.trim();
@@ -441,8 +475,8 @@ export async function monitorDingTalkProvider(
         const trimmedText = payload.text?.trim();
         const derivedMediaUrl =
           !explicitMediaUrl &&
-            trimmedText &&
-            /^(?:\.{1,2}\/|\/|~\/|file:\/\/|MEDIA:|attachment:\/\/)/.test(trimmedText)
+          trimmedText &&
+          /^(?:\.{1,2}\/|\/|~\/|file:\/\/|MEDIA:|attachment:\/\/)/.test(trimmedText)
             ? trimmedText
             : undefined;
         const mediaUrl = explicitMediaUrl || derivedMediaUrl;
@@ -472,13 +506,15 @@ export async function monitorDingTalkProvider(
             try {
               // Load the local file
               const media = await loadWebMedia(mediaUrl);
-              const isImage =
-                media.kind === "image" || /^image\//i.test(media.contentType ?? "");
-              log?.debug?.({
-                contentType: media.contentType,
-                size: media.buffer.length,
-                fileName: media.fileName
-              }, "Local media loaded");
+              const isImage = media.kind === "image" || /^image\//i.test(media.contentType ?? "");
+              log?.debug?.(
+                {
+                  contentType: media.contentType,
+                  size: media.buffer.length,
+                  fileName: media.fileName,
+                },
+                "Local media loaded",
+              );
 
               const tokenManager = getOrCreateTokenManager(account);
 
@@ -494,14 +530,20 @@ export async function monitorDingTalkProvider(
                 });
 
                 if (uploadResult.ok && uploadResult.mediaId) {
-                  log?.info?.({ mediaId: uploadResult.mediaId }, "Media uploaded (OAPI), sending image");
+                  log?.info?.(
+                    { mediaId: uploadResult.mediaId },
+                    "Media uploaded (OAPI), sending image",
+                  );
                   await sendImageWithMediaIdViaSessionWebhook(
                     chat.sessionWebhook,
                     uploadResult.mediaId,
-                    { logger: log }
+                    { logger: log },
                   );
                 } else {
-                  log?.error?.({ err: uploadResult.error?.message }, "Failed to upload image via OAPI");
+                  log?.error?.(
+                    { err: uploadResult.error?.message },
+                    "Failed to upload image via OAPI",
+                  );
                 }
               } else {
                 // For non-image media, upload via robot API and send as a file message.
@@ -519,7 +561,10 @@ export async function monitorDingTalkProvider(
                   if (!to) {
                     log?.error?.({ fileName }, "Missing target for file message delivery");
                   } else {
-                    log?.info?.({ mediaId: uploadResult.mediaId, fileName }, "Media uploaded, sending file message");
+                    log?.info?.(
+                      { mediaId: uploadResult.mediaId, fileName },
+                      "Media uploaded, sending file message",
+                    );
                     await sendFileMessage({
                       account,
                       to,
@@ -530,11 +575,17 @@ export async function monitorDingTalkProvider(
                     });
                   }
                 } else {
-                  log?.error?.({ err: uploadResult.error?.message }, "Failed to upload media to DingTalk");
+                  log?.error?.(
+                    { err: uploadResult.error?.message },
+                    "Failed to upload media to DingTalk",
+                  );
                 }
               }
             } catch (err) {
-              log?.error?.({ err: { message: (err as Error)?.message }, mediaUrl: mediaUrl.slice(0, 50) }, "Failed to load/upload local media");
+              log?.error?.(
+                { err: { message: (err as Error)?.message }, mediaUrl: mediaUrl.slice(0, 50) },
+                "Failed to load/upload local media",
+              );
             }
           }
         }
@@ -556,7 +607,10 @@ export async function monitorDingTalkProvider(
 
         // Check if text is only directive tags (no actual content)
         if (isOnlyDirectiveTags(text)) {
-          log?.warn?.({ originalText: text.slice(0, 100), kind: info.kind }, "Filtering directive-only text (no actual content in AI response)");
+          log?.warn?.(
+            { originalText: text.slice(0, 100), kind: info.kind },
+            "Filtering directive-only text (no actual content in AI response)",
+          );
           return;
         }
 
@@ -577,10 +631,13 @@ export async function monitorDingTalkProvider(
         const tokenManager = getOrCreateTokenManager(account);
 
         // Log the text we're checking for media tags
-        log?.info?.({
-          textSample: processedText.slice(0, 200),
-          hasTagPattern: /\[DING:/i.test(processedText)
-        }, "Checking for media protocol tags");
+        log?.info?.(
+          {
+            textSample: processedText.slice(0, 200),
+            hasTagPattern: /\[DING:/i.test(processedText),
+          },
+          "Checking for media protocol tags",
+        );
 
         // Helper for uploading media
         const uploadOptions = {
@@ -613,7 +670,11 @@ export async function monitorDingTalkProvider(
 
         // 2. Process Remaining Media (File, Video, Audio)
         // These will be extracted and sent as separate messages
-        let mediaItems: { type: "image" | "file" | "video" | "audio"; path: string; name?: string }[] = [];
+        let mediaItems: {
+          type: "image" | "file" | "video" | "audio";
+          path: string;
+          name?: string;
+        }[] = [];
         if (hasMediaTags(processedText)) {
           log?.info?.("Processing remaining media tags (File/Video/Audio)...");
           const parsed = parseMediaProtocol(processedText);
@@ -623,16 +684,17 @@ export async function monitorDingTalkProvider(
           log?.info?.(
             {
               mediaCount: mediaItems.length,
-              types: mediaItems.map(i => i.type).join(","),
-              paths: mediaItems.map(i => i.path).join(", ")
+              types: mediaItems.map((i) => i.type).join(","),
+              paths: mediaItems.map((i) => i.path).join(", "),
             },
-            "Extracted remaining media items"
+            "Extracted remaining media items",
           );
         } else {
           log?.debug?.({}, "No remaining media tags found");
         }
         // Apply response prefix to first message only
-        const shouldApplyPrefix = firstReply && account.responsePrefix && !prefixApplied.has(sessionKey);
+        const shouldApplyPrefix =
+          firstReply && account.responsePrefix && !prefixApplied.has(sessionKey);
         if (shouldApplyPrefix) {
           processedText = applyResponsePrefix({
             originalText: text,
@@ -688,19 +750,25 @@ export async function monitorDingTalkProvider(
 
           log?.info?.(
             { success: mediaResult.successCount, failed: mediaResult.failureCount },
-            "Media items processing complete"
+            "Media items processing complete",
           );
         }
       },
       onError: (err: unknown, info: { kind: string }) => {
-        log?.error?.({ err: { message: (err as Error)?.message }, kind: info.kind }, "Dispatcher delivery error");
+        log?.error?.(
+          { err: { message: (err as Error)?.message }, kind: info.kind },
+          "Dispatcher delivery error",
+        );
       },
     };
 
     const silentDispatcherOptions = {
-      deliver: async () => { },
+      deliver: async () => {},
       onError: (err: unknown, info: { kind: string }) => {
-        log?.error?.({ err: { message: (err as Error)?.message }, kind: info.kind }, "Silent dispatcher error");
+        log?.error?.(
+          { err: { message: (err as Error)?.message }, kind: info.kind },
+          "Silent dispatcher error",
+        );
       },
     };
 
@@ -729,7 +797,10 @@ export async function monitorDingTalkProvider(
               dispatcherOptions: silentDispatcherOptions,
             });
           } catch (err) {
-            log?.warn?.({ err: { message: (err as Error)?.message }, sessionKey }, "Failed to set one-shot think level");
+            log?.warn?.(
+              { err: { message: (err as Error)?.message }, sessionKey },
+              "Failed to set one-shot think level",
+            );
           }
 
           try {
@@ -741,7 +812,10 @@ export async function monitorDingTalkProvider(
                 dispatcherOptions: silentDispatcherOptions,
               });
             } catch (err) {
-              log?.error?.({ err: { message: (err as Error)?.message }, sessionKey }, "Failed to restore think level");
+              log?.error?.(
+                { err: { message: (err as Error)?.message }, sessionKey },
+                "Failed to restore think level",
+              );
             }
           }
         });
@@ -758,7 +832,7 @@ export async function monitorDingTalkProvider(
           replyMode: account.replyMode,
           maxChars: account.maxChars,
           logger: log,
-        }
+        },
       );
     }
   }

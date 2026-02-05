@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ChatbotMessage } from "./types.js";
 
-let registeredCallbacks: Map<string, (res: any) => Promise<void> | void> = new Map();
+let registeredCallbacks: Map<string, (res: unknown) => Promise<void> | void> = new Map();
 let shouldConnectFail = false;
 
 // Mock dingtalk-stream before importing client
@@ -32,12 +32,15 @@ vi.mock("dingtalk-stream", () => {
     });
     disconnect = vi.fn();
 
-    constructor(public options: any) {
+    constructor(public options: Record<string, unknown>) {
       DWClient.lastInstance = this;
       registeredCallbacks = new Map();
     }
 
-    registerCallbackListener(topic: string, callback: (res: any) => Promise<void> | void): void {
+    registerCallbackListener(
+      topic: string,
+      callback: (res: unknown) => Promise<void> | void,
+    ): void {
       registeredCallbacks.set(topic, callback);
     }
 
@@ -47,8 +50,8 @@ vi.mock("dingtalk-stream", () => {
   return { DWClient, EventAck, TOPIC_ROBOT, TOPIC_AI_GRAPH_API };
 });
 
-import { startDingTalkStreamClient } from "./client.js";
 import { DWClient, TOPIC_ROBOT } from "dingtalk-stream";
+import { startDingTalkStreamClient } from "./client.js";
 
 describe("startDingTalkStreamClient", () => {
   beforeEach(() => {
@@ -151,10 +154,9 @@ describe("startDingTalkStreamClient", () => {
 
     await robotCallback!(mockMessage);
 
-    expect(DWClient.lastInstance?.socketCallBackResponse).toHaveBeenCalledWith(
-      "msg-ack-test",
-      { status: "received" }
-    );
+    expect(DWClient.lastInstance?.socketCallBackResponse).toHaveBeenCalledWith("msg-ack-test", {
+      status: "received",
+    });
   });
 
   it("ignores non-chatbot messages", async () => {
@@ -215,24 +217,24 @@ describe("startDingTalkStreamClient", () => {
     expect(onChatMessage).not.toHaveBeenCalled();
   });
 
-	  it("stop method disconnects client", async () => {
-	    const onChatMessage = vi.fn();
+  it("stop method disconnects client", async () => {
+    const onChatMessage = vi.fn();
 
-	    const handle = await startDingTalkStreamClient({
-	      clientId: "test-client-id",
-	      clientSecret: "test-client-secret",
-	      onChatMessage,
-	    });
+    const handle = await startDingTalkStreamClient({
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      onChatMessage,
+    });
 
-	    handle.stop();
+    handle.stop();
 
-	    const instance = DWClient.lastInstance;
-	    expect(instance).not.toBeNull();
-	    if (!instance) {
-	      throw new Error("Expected DWClient instance to exist");
-	    }
-	    expect(instance.disconnect).toHaveBeenCalled();
-	  });
+    const instance = DWClient.lastInstance;
+    expect(instance).not.toBeNull();
+    if (!instance) {
+      throw new Error("Expected DWClient instance to exist");
+    }
+    expect(instance.disconnect).toHaveBeenCalled();
+  });
 
   it("logs connection on success", async () => {
     const mockLogger = { debug: vi.fn(), info: vi.fn(), error: vi.fn(), warn: vi.fn() };
@@ -257,7 +259,7 @@ describe("startDingTalkStreamClient", () => {
         clientId: "test-client-id",
         clientSecret: "test-client-secret",
         onChatMessage,
-      })
+      }),
     ).rejects.toThrow("Connection failed");
   });
 });

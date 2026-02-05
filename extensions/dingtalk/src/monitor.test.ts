@@ -14,19 +14,22 @@ vi.mock("dingtalk-stream", () => {
   const TOPIC_AI_GRAPH_API = "/v1.0/graph/api/invoke";
 
   class DWClient {
-    private callbacks = new Map<string, (res: any) => Promise<void>>();
+    private callbacks = new Map<string, (res: unknown) => Promise<void> | void>();
     socketCallBackResponse = vi.fn();
     sendGraphAPIResponse = vi.fn();
     connect = vi.fn().mockResolvedValue(undefined);
     disconnect = vi.fn();
 
-    registerCallbackListener(topic: string, callback: any): void {
+    registerCallbackListener(
+      topic: string,
+      callback: (res: unknown) => Promise<void> | void,
+    ): void {
       this.callbacks.set(topic, callback);
     }
     registerAllEventListener(): void {}
 
     // Test helper
-    __simulateMessage(topic: string, message: any): Promise<void> | undefined {
+    __simulateMessage(topic: string, message: unknown): Promise<void> | void | undefined {
       const callback = this.callbacks.get(topic);
       if (callback) {
         return callback(message);
@@ -62,7 +65,8 @@ vi.mock("./api/media.js", () => ({
 }));
 
 vi.mock("./api/send-message.js", async () => {
-  const actual = await vi.importActual<typeof import("./api/send-message.js")>("./api/send-message.js");
+  const actual =
+    await vi.importActual<typeof import("./api/send-message.js")>("./api/send-message.js");
   return {
     ...actual,
     sendFileMessage: vi.fn().mockResolvedValue({ ok: true }),
@@ -70,21 +74,22 @@ vi.mock("./api/send-message.js", async () => {
 });
 
 vi.mock("./api/media-upload.js", async () => {
-  const actual = await vi.importActual<typeof import("./api/media-upload.js")>("./api/media-upload.js");
+  const actual =
+    await vi.importActual<typeof import("./api/media-upload.js")>("./api/media-upload.js");
   return {
     ...actual,
     uploadMediaToOAPI: vi.fn(),
   };
 });
 
+import { BASIC_ACCOUNT, FILTERED_ACCOUNT, PREFIX_ACCOUNT } from "../test/fixtures/configs.js";
+import { DINGTALK_CHANNEL_ID } from "./config-schema.js";
 import { monitorDingTalkProvider } from "./monitor.js";
 import { getDingTalkRuntime } from "./runtime.js";
-import { DINGTALK_CHANNEL_ID } from "./config-schema.js";
-import { BASIC_ACCOUNT, FILTERED_ACCOUNT, PREFIX_ACCOUNT } from "../test/fixtures/configs.js";
 
 describe("monitorDingTalkProvider", () => {
   let mockFetch: ReturnType<typeof vi.fn>;
-  let capturedCallback: ((message: any) => Promise<void>) | undefined;
+  let capturedCallback: ((message: unknown) => Promise<void> | void) | undefined;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -100,11 +105,11 @@ describe("monitorDingTalkProvider", () => {
     // Capture the robot callback when client is created
     const { DWClient, TOPIC_ROBOT } = await import("dingtalk-stream");
     vi.spyOn(DWClient.prototype, "registerCallbackListener").mockImplementation(
-      (topic: string, callback: any) => {
+      (topic: string, callback: (res: unknown) => Promise<void> | void) => {
         if (topic === TOPIC_ROBOT) {
           capturedCallback = callback;
         }
-      }
+      },
     );
   });
 
@@ -118,12 +123,14 @@ describe("monitorDingTalkProvider", () => {
     },
   };
 
-  const createMockMessage = (overrides: Partial<{
-    text: string;
-    senderId: string;
-    conversationType: string;
-    conversationId: string;
-  }> = {}) => ({
+  const createMockMessage = (
+    overrides: Partial<{
+      text: string;
+      senderId: string;
+      conversationType: string;
+      conversationId: string;
+    }> = {},
+  ) => ({
     type: "CALLBACK",
     headers: {
       topic: "/v1.0/im/bot/messages/get",
@@ -181,7 +188,9 @@ describe("monitorDingTalkProvider", () => {
       await capturedCallback(createMockMessage({ text: "Test message" }));
       await new Promise((r) => setTimeout(r, 50));
 
-      const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+      const call = (
+        runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
       const ctx = call[0].ctx;
 
       expect(ctx.Body).toBe("Test message");
@@ -212,11 +221,13 @@ describe("monitorDingTalkProvider", () => {
           conversationType: "2",
           conversationId: "cid123",
           senderId: "user001",
-        })
+        }),
       );
       await new Promise((r) => setTimeout(r, 50));
 
-      const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+      const call = (
+        runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
       const ctx = call[0].ctx;
 
       expect(ctx.SessionKey).toBe("agent:main:dingtalk:group:cid123:user:user001");
@@ -355,8 +366,9 @@ describe("monitorDingTalkProvider", () => {
       error: vi.fn(),
     };
 
-    (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>)
-      .mockRejectedValueOnce(new Error("Dispatch failed"));
+    (
+      runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(new Error("Dispatch failed"));
 
     await monitorDingTalkProvider({
       account: BASIC_ACCOUNT,
@@ -384,7 +396,9 @@ describe("monitorDingTalkProvider", () => {
       await capturedCallback(createMockMessage({ text: "/new Start fresh" }));
       await new Promise((r) => setTimeout(r, 50));
 
-      const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+      const call = (
+        runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
       expect(call[0].ctx.CommandAuthorized).toBe(true);
     }
   });
@@ -417,7 +431,9 @@ describe("monitorDingTalkProvider", () => {
       await capturedCallback(createMockMessage({ text: "/reasoning on Hello" }));
       await new Promise((r) => setTimeout(r, 50));
 
-      const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+      const call = (
+        runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
       expect(call[0].ctx.CommandAuthorized).toBe(true);
     }
   });
@@ -434,7 +450,9 @@ describe("monitorDingTalkProvider", () => {
       await capturedCallback(createMockMessage({ senderId: "staff123" }));
       await new Promise((r) => setTimeout(r, 50));
 
-      const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+      const call = (
+        runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
       expect(call[0].ctx.BodyForAgent).toContain("senderStaffId: staff123");
     }
   });
@@ -451,7 +469,9 @@ describe("monitorDingTalkProvider", () => {
       await capturedCallback(createMockMessage({ text: "/t! on Hello" }));
       await new Promise((r) => setTimeout(r, 50));
 
-      const calls = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls;
+      const calls = (
+        runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+      ).mock.calls;
       expect(calls.length).toBe(3);
       expect(calls[0]?.[0]?.ctx?.CommandBody).toBe("/think high");
       expect(calls[1]?.[0]?.ctx?.CommandBody).toBe("Hello");
@@ -471,14 +491,13 @@ describe("monitorDingTalkProvider", () => {
     await capturedCallback?.(createMockMessage({ conversationType: "1" }));
     await new Promise((r) => setTimeout(r, 50));
 
-    const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+    const call = (
+      runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+    ).mock.calls[0];
     const dispatcherOptions = call?.[0]?.dispatcherOptions;
     expect(dispatcherOptions?.deliver).toBeTypeOf("function");
 
-    await dispatcherOptions.deliver(
-      { mediaUrl: "https://example.com/a.png" },
-      { kind: "tool" }
-    );
+    await dispatcherOptions.deliver({ mediaUrl: "https://example.com/a.png" }, { kind: "tool" });
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, init] = mockFetch.mock.calls[0];
@@ -515,13 +534,12 @@ describe("monitorDingTalkProvider", () => {
     await capturedCallback?.(createMockMessage({ conversationType: "1" }));
     await new Promise((r) => setTimeout(r, 50));
 
-    const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+    const call = (
+      runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+    ).mock.calls[0];
     const dispatcherOptions = call?.[0]?.dispatcherOptions;
 
-    await dispatcherOptions.deliver(
-      { mediaUrl: "./image.png" },
-      { kind: "final" }
-    );
+    await dispatcherOptions.deliver({ mediaUrl: "./image.png" }, { kind: "final" });
 
     expect(mediaUploadApi.uploadMediaToOAPI).toHaveBeenCalled();
     expect(mediaApi.uploadMedia).not.toHaveBeenCalled();
@@ -558,13 +576,12 @@ describe("monitorDingTalkProvider", () => {
     await capturedCallback?.(createMockMessage({ conversationType: "1" }));
     await new Promise((r) => setTimeout(r, 50));
 
-    const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+    const call = (
+      runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+    ).mock.calls[0];
     const dispatcherOptions = call?.[0]?.dispatcherOptions;
 
-    await dispatcherOptions.deliver(
-      { mediaUrl: "./report.pdf" },
-      { kind: "final" }
-    );
+    await dispatcherOptions.deliver({ mediaUrl: "./report.pdf" }, { kind: "final" });
 
     expect(sendMessageApi.sendFileMessage).toHaveBeenCalledTimes(1);
     const args = (sendMessageApi.sendFileMessage as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
@@ -603,13 +620,12 @@ describe("monitorDingTalkProvider", () => {
     await capturedCallback?.(createMockMessage({ conversationType: "1" }));
     await new Promise((r) => setTimeout(r, 50));
 
-    const call = (runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>).mock.calls[0];
+    const call = (
+      runtime.channel.reply.dispatchReplyWithBufferedBlockDispatcher as ReturnType<typeof vi.fn>
+    ).mock.calls[0];
     const dispatcherOptions = call?.[0]?.dispatcherOptions;
 
-    await dispatcherOptions.deliver(
-      { text: "./image.png" },
-      { kind: "final" }
-    );
+    await dispatcherOptions.deliver({ text: "./image.png" }, { kind: "final" });
 
     expect(mediaUploadApi.uploadMediaToOAPI).toHaveBeenCalled();
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);

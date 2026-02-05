@@ -2,7 +2,6 @@
  * Tests for message parser utilities.
  */
 import { describe, it, expect } from "vitest";
-import { extractChatbotMessage, buildSessionKey, startsWithPrefix } from "./message-parser.js";
 import {
   BASIC_CHATBOT_MESSAGE,
   DM_MESSAGE,
@@ -16,6 +15,7 @@ import {
   IMAGE_MESSAGE,
   IMAGE_MESSAGE_DOWNLOAD_CODE,
 } from "../../test/fixtures/messages.js";
+import { extractChatbotMessage, buildSessionKey, startsWithPrefix } from "./message-parser.js";
 
 describe("extractChatbotMessage", () => {
   it("extracts standard chatbot message", () => {
@@ -86,7 +86,10 @@ describe("extractChatbotMessage", () => {
       ...BASIC_CHATBOT_MESSAGE,
       headers: { ...BASIC_CHATBOT_MESSAGE.headers, messageId: undefined, message_id: "snake-id" },
     };
-    expect(extractChatbotMessage(snakeCase as any)?.messageId).toBe("snake-id");
+    expect(
+      extractChatbotMessage(snakeCase as unknown as Parameters<typeof extractChatbotMessage>[0])
+        ?.messageId,
+    ).toBe("snake-id");
   });
 
   it("extracts conversation ID from various paths", () => {
