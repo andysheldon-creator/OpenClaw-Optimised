@@ -25,7 +25,19 @@ services:
     ports:
       - "${PORT:-18789}:18789"
     # Force the host and allow the initial setup
-    command: ["node", "dist/index.js", "gateway", "--allow-unconfigured", "--bind", "lan"]
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /home/node/.openclaw
+        cat > /home/node/.openclaw/config.yaml <<'EOF'
+        gateway:
+          http:
+            endpoints:
+              chatCompletions:
+                enabled: true
+        EOF
+        exec node dist/index.js gateway --allow-unconfigured --bind lan
     environment:
       - NODE_ENV=production
       - HOME=/home/node
