@@ -4,6 +4,12 @@ import path from "node:path";
 export type NeuronWavesState = {
   /** Next time the runner should attempt a wave. */
   nextRunAtMs: number;
+
+  /** Single-flight lock so a wave can't overlap another wave. */
+  running?: {
+    startedAtMs: number;
+    id: string;
+  };
 };
 
 export const DEFAULT_STATE: NeuronWavesState = {
@@ -27,9 +33,19 @@ export async function loadNeuronWavesState(workspaceDir: string): Promise<Neuron
   try {
     const raw = await fs.readFile(statePath, "utf-8");
     const parsed = JSON.parse(raw) as Partial<NeuronWavesState>;
-    if (typeof parsed.nextRunAtMs === "number" && Number.isFinite(parsed.nextRunAtMs)) {
-      return { nextRunAtMs: parsed.nextRunAtMs };
-    }
+    const nextRunAtMs =
+      typeof parsed.nextRunAtMs === "number" && Number.isFinite(parsed.nextRunAtMs)
+        ? parsed.nextRunAtMs
+        : 0;
+    const running =
+      parsed.running &&
+      typeof parsed.running.startedAtMs === "number" &&
+      Number.isFinite(parsed.running.startedAtMs) &&
+      typeof parsed.running.id === "string" &&
+      parsed.running.id.trim()
+        ? { startedAtMs: parsed.running.startedAtMs, id: parsed.running.id.trim() }
+        : undefined;
+    return { nextRunAtMs, running };
   } catch {
     // ignore
   }

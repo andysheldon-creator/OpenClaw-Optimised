@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { NeuronWaveTraceEntry, NeuronWavesConfig } from "./types.js";
@@ -9,6 +10,7 @@ import {
   resolveStorePath,
 } from "../config/sessions.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
+import { upsertBacklogItem } from "./backlog.js";
 import { resolveNeuronWavesConfigFromEnv } from "./config.js";
 import { tryPostGhPrComment } from "./reporters/github-gh.js";
 import { appendNeuronWaveTrace, loadNeuronWavesState, saveNeuronWavesState } from "./state.js";
@@ -70,6 +72,15 @@ export function startNeuronWavesRunner(opts: { cfg: OpenClawConfig }): NeuronWav
     const persisted = await loadNeuronWavesState(workspaceDir);
     const due = persisted.nextRunAtMs <= 0 || nowMs >= persisted.nextRunAtMs;
 
+    // single-flight guard
+    if (
+      persisted.running &&
+      nowMs - persisted.running.startedAtMs < Math.max(30_000, nwCfg.maxWaveMs)
+    ) {
+      schedule(30_000);
+      return;
+    }
+
     if (inactivityMs < nwCfg.inactivityMs) {
       // user active recently; check again later
       const nextDelay = Math.min(5 * 60_000, nwCfg.baseIntervalMs);
@@ -90,10 +101,27 @@ export function startNeuronWavesRunner(opts: { cfg: OpenClawConfig }): NeuronWav
       return;
     }
 
+    const runId = crypto.randomUUID();
     const nextRunAtMs = computeNextRunAt(nowMs, nwCfg);
-    await saveNeuronWavesState(workspaceDir, { nextRunAtMs });
+    await saveNeuronWavesState(workspaceDir, {
+      nextRunAtMs,
+      running: { startedAtMs: nowMs, id: runId },
+    });
 
     // MVP wave: record a trace + optionally post a PR comment.
+    // Also enqueue a backlog item and schedule an immediate nudge (via next tick)
+    // when the user is inactive.
+    const backlogItem = await upsertBacklogItem(workspaceDir, {
+      id: `nw:${runId}`,
+      createdAtMs: nowMs,
+      title: "NeuronWaves: implement planner/actions (next)",
+      nextStep: "Add backlog execution + safe action runner; ingest outcomes into CoreMemories.",
+      status: "open",
+      priority: "medium",
+      context: nwCfg.pr ? { pr: nwCfg.pr } : undefined,
+      lastNudgedAtMs: nowMs,
+    });
+
     const trace: NeuronWaveTraceEntry = {
       atMs: nowMs,
       agentId,
@@ -102,13 +130,13 @@ export function startNeuronWavesRunner(opts: { cfg: OpenClawConfig }): NeuronWav
       inactivityMs,
       nextRunAtMs,
       notes:
-        "NeuronWave tick ran (MVP). This version records traces and can post PR comments; future versions will add task planning + safe execution.",
+        "NeuronWave tick ran (MVP). Recorded trace + backlog. Future versions will add planner + safe execution; no preemption.",
       decisions: [
         {
           title: "MVP tick",
           why: "NeuronWaves enabled, user inactive, and nextRunAt reached.",
           risk: "low",
-          action: { kind: "noop", reason: "MVP wave does not execute tasks yet." },
+          action: { kind: "noop", reason: `Backlog item created: ${backlogItem.id}` },
         },
       ],
     };
@@ -133,7 +161,11 @@ export function startNeuronWavesRunner(opts: { cfg: OpenClawConfig }): NeuronWav
       }
     }
 
-    schedule(nwCfg.baseIntervalMs);
+    // release lock
+    await saveNeuronWavesState(workspaceDir, { nextRunAtMs });
+
+    // immediate nudge: schedule an extra near-immediate tick
+    schedule(2_000);
   };
 
   const updateConfig = (cfg: OpenClawConfig) => {
