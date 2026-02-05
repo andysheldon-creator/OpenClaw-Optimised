@@ -1,4 +1,17 @@
 services:
+  # Init container to fix volume permissions before main app starts
+  openclaw-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openclaw_init
+    user: root # Run as root to change permissions
+    command:
+      ["sh", "-c", "chown -R node:node /home/node/.openclaw && chmod -R 755 /home/node/.openclaw"]
+    volumes:
+      - openclaw_config:/home/node/.openclaw
+      - openclaw_workspace:/home/node/.openclaw/workspace
+
   openclaw:
     build:
       context: .
@@ -10,10 +23,14 @@ services:
     command: ["node", "dist/index.js", "gateway", "--allow-unconfigured", "--bind", "lan"]
     environment:
       - NODE_ENV=production
+      - HOME=/home/node
       - OPENCLAW_GATEWAY_BIND=lan
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN} # REQUIRED: Set in Coolify Env Vars
       - OPENCLAW_GATEWAY_CONTROLUI_ALLOWINSECUREAUTH=${OPENCLAW_GATEWAY_CONTROLUI_ALLOWINSECUREAUTH:-false}
       - REDIS_URL=redis://openclaw_redis:6379
+
+      # Default Model Configuration (uses OpenAI by default)
+      - OPENCLAW_MODEL=${OPENCLAW_MODEL:-openai/gpt-4o}
 
       # Mem0 / Memory Configuration
       - MEM0_API_KEY=${MEM0_API_KEY}
@@ -28,9 +45,11 @@ services:
       - BIGQUERY_PROJECT_ID=${BIGQUERY_PROJECT_ID}
     volumes:
       # We use names instead of paths for better Coolify compatibility
-      - openclaw_workspace:/root/openclaw/workspace
-      - openclaw_config:/root/.openclaw
+      - openclaw_config:/home/node/.openclaw
+      - openclaw_workspace:/home/node/.openclaw/workspace
     depends_on:
+      openclaw-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     restart: always

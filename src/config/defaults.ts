@@ -298,12 +298,10 @@ export function applyAgentDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const hasSubMax =
     typeof defaults?.subagents?.maxConcurrent === "number" &&
     Number.isFinite(defaults.subagents.maxConcurrent);
-  if (hasMax && hasSubMax) {
-    return cfg;
-  }
 
   let mutated = false;
   const nextDefaults = defaults ? { ...defaults } : {};
+
   if (!hasMax) {
     nextDefaults.maxConcurrent = DEFAULT_AGENT_MAX_CONCURRENT;
     mutated = true;
@@ -312,6 +310,21 @@ export function applyAgentDefaults(cfg: OpenClawConfig): OpenClawConfig {
   const nextSubagents = defaults?.subagents ? { ...defaults.subagents } : {};
   if (!hasSubMax) {
     nextSubagents.maxConcurrent = DEFAULT_SUBAGENT_MAX_CONCURRENT;
+    mutated = true;
+  }
+
+  // OPENCLAW_MODEL env var override: allows setting default model via environment
+  const envModel = process.env.OPENCLAW_MODEL?.trim();
+  const existingModel = defaults?.model;
+  const existingPrimary =
+    typeof existingModel === "string"
+      ? existingModel.trim()
+      : typeof existingModel === "object" && existingModel !== null
+        ? (existingModel as { primary?: string }).primary?.trim()
+        : undefined;
+
+  if (envModel && !existingPrimary) {
+    nextDefaults.model = { primary: envModel };
     mutated = true;
   }
 
@@ -466,4 +479,129 @@ export function applyCompactionDefaults(cfg: OpenClawConfig): OpenClawConfig {
 
 export function resetSessionDefaultsWarningForTests() {
   defaultWarnState = { warned: false };
+}
+
+export function applyMCPDefaults(cfg: OpenClawConfig): OpenClawConfig {
+  const mcp = cfg.mcp;
+  if (!mcp) {
+    return cfg;
+  }
+
+  let mutated = false;
+  const nextMcp = { ...mcp };
+
+  // Apply default isolation level
+  if (!nextMcp.isolationLevel) {
+    nextMcp.isolationLevel = "workspace";
+    mutated = true;
+  }
+
+  // Apply default tool timeout
+  if (!nextMcp.toolTimeoutMs) {
+    nextMcp.toolTimeoutMs = 30000;
+    mutated = true;
+  }
+
+  // Apply default auto-refresh
+  if (nextMcp.autoRefresh === undefined) {
+    nextMcp.autoRefresh = true;
+    mutated = true;
+  }
+
+  // Apply intelligent discovery defaults
+  if (!nextMcp.intelligentDiscovery) {
+    nextMcp.intelligentDiscovery = {
+      enabled: true,
+      maxTools: 5,
+    };
+    mutated = true;
+  } else if (nextMcp.intelligentDiscovery.enabled === undefined) {
+    nextMcp.intelligentDiscovery = {
+      ...nextMcp.intelligentDiscovery,
+      enabled: true,
+    };
+    mutated = true;
+  } else if (nextMcp.intelligentDiscovery.maxTools === undefined) {
+    nextMcp.intelligentDiscovery = {
+      ...nextMcp.intelligentDiscovery,
+      maxTools: 5,
+    };
+    mutated = true;
+  }
+
+  // Apply credential defaults
+  if (!nextMcp.credentials) {
+    const mongoUrl = process.env.MONGODB_URL?.trim();
+    if (mongoUrl) {
+      nextMcp.credentials = {
+        mongoUrl,
+        database: "openclaw_mcp",
+        collection: "tenant_credentials",
+      };
+      mutated = true;
+    }
+  } else {
+    if (!nextMcp.credentials.database) {
+      nextMcp.credentials = {
+        ...nextMcp.credentials,
+        database: "openclaw_mcp",
+      };
+      mutated = true;
+    }
+    if (!nextMcp.credentials.collection) {
+      nextMcp.credentials = {
+        ...nextMcp.credentials,
+        collection: "tenant_credentials",
+      };
+      mutated = true;
+    }
+  }
+
+  // Apply server defaults from environment variables
+  if (!nextMcp.servers) {
+    nextMcp.servers = {};
+    mutated = true;
+  }
+
+  const nextServers = { ...nextMcp.servers };
+  let serversMutated = false;
+
+  // HubSpot defaults
+  const hubspotClientId = process.env.HUBSPOT_CLIENT_ID?.trim();
+  const hubspotClientSecret = process.env.HUBSPOT_CLIENT_SECRET?.trim();
+  if (!nextServers.hubspot && hubspotClientId && hubspotClientSecret) {
+    nextServers.hubspot = {
+      clientId: hubspotClientId,
+      clientSecret: hubspotClientSecret,
+    };
+    serversMutated = true;
+  }
+
+  // BigQuery defaults
+  const bigqueryUrl = process.env.BIGQUERY_MCP_URL?.trim();
+  if (!nextServers.bigquery && bigqueryUrl) {
+    nextServers.bigquery = { url: bigqueryUrl };
+    serversMutated = true;
+  }
+
+  // Qdrant defaults
+  const qdrantUrl = process.env.QDRANT_MCP_URL?.trim();
+  if (!nextServers.qdrant && qdrantUrl) {
+    nextServers.qdrant = { url: qdrantUrl };
+    serversMutated = true;
+  }
+
+  if (serversMutated) {
+    nextMcp.servers = nextServers;
+    mutated = true;
+  }
+
+  if (!mutated) {
+    return cfg;
+  }
+
+  return {
+    ...cfg,
+    mcp: nextMcp,
+  };
 }

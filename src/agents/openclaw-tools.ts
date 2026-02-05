@@ -9,6 +9,7 @@ import { createCanvasTool } from "./tools/canvas-tool.js";
 import { createCronTool } from "./tools/cron-tool.js";
 import { createGatewayTool } from "./tools/gateway-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
+import { createMCPListToolsTool, createMCPTool } from "../mcp-integration/mcp-tool.js";
 import { createMessageTool } from "./tools/message-tool.js";
 import { createNodesTool } from "./tools/nodes-tool.js";
 import { createSessionStatusTool } from "./tools/session-status-tool.js";
@@ -69,6 +70,14 @@ export function createOpenClawTools(options?: {
   const webFetchTool = createWebFetchTool({
     config: options?.config,
     sandboxed: options?.sandboxed,
+  });
+  const mcpTool = createMCPTool({
+    config: options?.config,
+    agentSessionKey: options?.agentSessionKey,
+  });
+  const mcpListToolsTool = createMCPListToolsTool({
+    config: options?.config,
+    agentSessionKey: options?.agentSessionKey,
   });
   const tools: AnyAgentTool[] = [
     createBrowserTool({
@@ -138,6 +147,8 @@ export function createOpenClawTools(options?: {
     ...(webSearchTool ? [webSearchTool] : []),
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
+    ...(mcpTool ? [mcpTool] : []),
+    ...(mcpListToolsTool ? [mcpListToolsTool] : []),
   ];
 
   const pluginTools = resolvePluginTools({
