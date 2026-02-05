@@ -8,24 +8,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { CURRENT_SESSION_VERSION } from "@mariozechner/pi-coding-agent";
-import { resolveStorePath, updateSessionStore } from "../config/sessions.js";
+import { updateSessionStore } from "../config/sessions.js";
 import { dispatchInboundMessage } from "../auto-reply/dispatch.js";
-import { resolveAgentTimeoutMs } from "../agents/timeout.js";
-import { resolveSendPolicy } from "../sessions/send-policy.js";
-import { resolveSessionAgentId } from "../agents/agent-scope.js";
 import { resolveEffectiveMessagesConfig, resolveIdentityName } from "../agents/identity.js";
 import { createReplyDispatcher } from "../auto-reply/reply/reply-dispatcher.js";
 import { extractShortModelName, type ResponsePrefixContext } from "../auto-reply/reply/response-prefix-template.js";
-import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
-import { resolveChatRunExpiresAtMs } from "./chat-abort.js";
 import { injectTimestamp, timestampOptsFromConfig } from "./server-methods/agent-timestamp.js";
-import { resolveSessionModelRef } from "./session-utils.js";
-import { resolveThinkingDefault } from "../agents/model-selection.js";
 import { type MsgContext } from "../auto-reply/templating.js";
 import type { OpenClawConfig } from "../config/config.js";
 import type { SubsystemLogger } from "../logging/subsystem.js";
-import { resolveDefaultAgentId, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
-import { loadGatewayModelCatalog } from "./server-model-catalog.js";
+import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { ChannelMessage } from "./server-channels.js";
 
 /**
@@ -528,60 +520,68 @@ export function createChannelMessageHandler(deps: {
 
     // EXPLICITLY ENSURE SESSION EXISTS
     const target = resolveGatewaySessionStoreTarget({ cfg, key: sessionKey });
-    let sessionId: string | undefined;
-    let storePath = target.storePath;
-    let sessionFile: string | undefined;
 
-    await updateSessionStore(target.storePath, (store) => {
-      const primaryKey = target.storeKeys[0] ?? sessionKey;
-      const existingKey = target.storeKeys.find((candidate) => store[candidate]);
+      let sessionId: string | undefined;
+      let storePath = target.storePath;
+      let sessionFile: string | undefined;
 
-      let entry = existingKey ? store[existingKey] : undefined;
-      if (!entry) {
-        // Create new session entry
-        const defaults = getSessionDefaults(cfg);
-        deps.log.info(`[${channelId}] Initializing new session ${sessionKey} with defaults: model=${defaults.model}, provider=${defaults.modelProvider}`);
-
-        entry = {
-          sessionId: randomUUID(),
-          updatedAt: Date.now(),
-          systemSent: false,
-          abortedLastRun: false,
-          inputTokens: 0,
-          outputTokens: 0,
-          totalTokens: 0,
-          label: `Channel ${msg.from}`,
-          origin: { type: "user" },
-          lastChannel: channelId,
-          lastTo: msg.from,
-          // FORCE ALLOW to ensure it replies
-          sendPolicy: "allow",
-          contextTokens: defaults.contextTokens ?? undefined,
-          model: defaults.model ?? undefined,
-          modelProvider: defaults.modelProvider ?? undefined,
-        };
-        store[primaryKey] = entry;
-        deps.log.info(`[${channelId}] Created new session entry for ${sessionKey} (si=${entry.sessionId})`);
-      } else {
-        // Update entry
-        entry.updatedAt = Date.now();
-        entry.lastChannel = channelId;
-        entry.lastTo = msg.from;
-        // Ensure policy is allow if it was auto/missing
-        if (!entry.sendPolicy || (entry.sendPolicy as any) === "auto") {
-          entry.sendPolicy = "allow";
-        }
+      if (!storePath) {
+        deps.log.error(`[${channelId}] Cannot resolve storePath for sessionKey: ${sessionKey}`);
+        return;
       }
-      sessionId = entry.sessionId;
-      sessionFile = entry.sessionFile;
-      // Don't return anything to imply "no structural change" other than in-place mutation which updateSessionStore handles
-      return undefined;
-    });
 
-    if (!sessionId) {
-      deps.log.error(`[${channelId}] Failed to resolve sessionId for ${sessionKey}`);
-      return;
-    }
+
+      await updateSessionStore(storePath, (store) => {
+        const primaryKey = target.storeKeys[0] ?? sessionKey;
+        const existingKey = target.storeKeys.find((candidate) => store[candidate]);
+
+        let entry = existingKey ? store[existingKey] : undefined;
+        const forceAllow = cfg.channels?.forceAllowSendPolicy === true;
+        if (!entry) {
+          // Create new session entry
+          const defaults = getSessionDefaults(cfg);
+          deps.log.info(`[${channelId}] Initializing new session ${sessionKey} with defaults: model=${defaults.model}, provider=${defaults.modelProvider}`);
+
+          entry = {
+            sessionId: randomUUID(),
+            updatedAt: Date.now(),
+            systemSent: false,
+            abortedLastRun: false,
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            label: `Channel ${msg.from}`,
+            origin: { type: "user" },
+            lastChannel: channelId,
+            lastTo: msg.from,
+            // Only force allow if config option is set
+            ...(forceAllow ? { sendPolicy: "allow" } : {}),
+            contextTokens: defaults.contextTokens ?? undefined,
+            model: defaults.model ?? undefined,
+            modelProvider: defaults.modelProvider ?? undefined,
+          };
+          store[primaryKey] = entry;
+          deps.log.info(`[${channelId}] Created new session entry for ${sessionKey} (si=${entry.sessionId})`);
+        } else {
+          // Update entry
+          entry.updatedAt = Date.now();
+          entry.lastChannel = channelId;
+          entry.lastTo = msg.from;
+          // Only force allow if config option is set
+          if (forceAllow && (!entry.sendPolicy || (entry.sendPolicy as any) === "auto")) {
+            entry.sendPolicy = "allow";
+          }
+        }
+        sessionId = entry.sessionId;
+        sessionFile = entry.sessionFile;
+        // Don't return anything to imply "no structural change" other than in-place mutation which updateSessionStore handles
+        return undefined;
+      });
+
+      if (!sessionId) {
+        deps.log.error(`[${channelId}] Failed to resolve sessionId for ${sessionKey}`);
+        return;
+      }
 
     // APPEND USER MESSAGE TO TRANSCRIPT
     appendTranscriptMessage({
@@ -593,8 +593,6 @@ export function createChannelMessageHandler(deps: {
     });
 
     const clientRunId = msg.id || `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const now = Date.now();
-    const timeoutMs = resolveAgentTimeoutMs({ cfg });
 
     // Create abort controller for run
     const abortController = new AbortController();

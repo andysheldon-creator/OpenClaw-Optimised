@@ -7,6 +7,7 @@ export interface SpixiRuntime extends ExtensionRuntime {
       sendMessage: (to: string, text: string, opts?: { baseUrl?: string }) => Promise<any>;
       addContact: (address: string, opts?: { baseUrl?: string }) => Promise<any>;
       getFriendList: (opts?: { baseUrl?: string }) => Promise<string[]>;
+      acceptContact: (address: string, opts?: { baseUrl?: string }) => Promise<any>;
     };
   };
 }

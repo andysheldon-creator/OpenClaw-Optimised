@@ -369,7 +369,7 @@ const DOCKS: Record<ChatChannelId, ChannelDock> = {
     id: "spixi",
     capabilities: {
       chatTypes: ["direct"],
-      media: true,
+      media: false,
     },
     config: {
       resolveAllowFrom: ({ cfg, accountId }) =>
