@@ -107,11 +107,11 @@ Example `package.json`:
 
 ```json
 {
-  "name": "@acme/my-hooks",
-  "version": "0.1.0",
-  "openclaw": {
-    "hooks": ["./hooks/my-hook", "./hooks/other-hook"]
-  }
+	"name": "@acme/my-hooks",
+	"version": "0.1.0",
+	"openclaw": {
+		"hooks": ["./hooks/my-hook", "./hooks/other-hook"]
+	}
 }
 ```
 
@@ -177,19 +177,19 @@ The `handler.ts` file exports a `HookHandler` function:
 import type { HookHandler } from "../../src/hooks/hooks.js";
 
 const myHandler: HookHandler = async (event) => {
-  // Only trigger on 'new' command
-  if (event.type !== "command" || event.action !== "new") {
-    return;
-  }
+	// Only trigger on 'new' command
+	if (event.type !== "command" || event.action !== "new") {
+		return;
+	}
 
-  console.log(`[my-hook] New command triggered`);
-  console.log(`  Session: ${event.sessionKey}`);
-  console.log(`  Timestamp: ${event.timestamp.toISOString()}`);
+	console.log(`[my-hook] New command triggered`);
+	console.log(`  Session: ${event.sessionKey}`);
+	console.log(`  Timestamp: ${event.timestamp.toISOString()}`);
 
-  // Your custom logic here
+	// Your custom logic here
 
-  // Optionally send message to user
-  event.messages.push("✨ My hook executed!");
+	// Optionally send message to user
+	event.messages.push("✨ My hook executed!");
 };
 
 export default myHandler;
@@ -230,9 +230,44 @@ Triggered when agent commands are issued:
 - **`command:reset`**: When `/reset` command is issued
 - **`command:stop`**: When `/stop` command is issued
 
+### Session Events
+
+Triggered during session lifecycle when session persistence is enabled and a valid `sessionKey` exists:
+
+- **`session:start`**: When a new persisted session begins (user-initiated or auto-recovery; non-persisted flows do not fire this hook)
+- **`session:end`**: When a persisted session is terminated (auto-recovery resets only; requires persisted session entry)
+- **`session:reset`**: Emitted after `session:end` during resets to provide transition context (auto-recovery resets only; requires persisted session entry)
+
+Context includes:
+
+- `sessionId`: The session ID (present in current implementation; for `session:reset`, equals `newSessionId`)
+- `oldSessionId` and `newSessionId`: For `session:reset` only
+
+Lifecycle patterns:
+
+- **User-initiated reset** (`/new` or `/reset`): `command:new` or `command:reset` fires immediately; `session:start` fires during the agent turn if a session key exists. `session:end` and `session:reset` do not fire for user-initiated resets.
+- **Auto-recovery reset** (compaction failure, role ordering conflict): `session:end` then `session:reset` fire during the reset if a persisted session entry exists; `session:start` fires when the agent turn runs.
+
 ### Agent Events
 
 - **`agent:bootstrap`**: Before workspace bootstrap files are injected (hooks may mutate `context.bootstrapFiles`)
+- **`agent:reply`**: After each agent turn completes with user input or assistant output
+- **`agent:flush`**: When memory flush starts (before the flush operation runs)
+
+Context for `agent:reply` includes:
+
+- `sessionId`: Current session ID
+- `input`: User input message (may be empty string when only output is present)
+- `output`: Assistant response (may be empty string when only input is present)
+- `turnId`: Unique turn identifier
+- `senderId`: Sender ID
+
+Context for `agent:flush` includes:
+
+- `sessionId`: Current session ID
+- `phase`: `start`
+- `contextTokensUsed`: Optional token count when flush was triggered
+- `reason`: Reason for flush (example: `context_limit`)
 
 ### Gateway Events
 
@@ -246,15 +281,22 @@ These hooks are not event-stream listeners; they let plugins synchronously adjus
 
 - **`tool_result_persist`**: transform tool results before they are written to the session transcript. Must be synchronous; return the updated tool result payload or `undefined` to keep it as-is. See [Agent Loop](/concepts/agent-loop).
 
-### Future Events
+### Plugin Hook Events
+
+These hooks are registered via the plugin API and run inside core workflows:
+
+- **`before_agent_start`** and **`agent_end`**
+- **`before_tool_call`** and **`after_tool_call`**
+- **`message_received`**, **`message_sending`**, **`message_sent`**
+- **`before_compaction`**, **`after_compaction`**
+- **`session_start`**, **`session_end`**
+- **`gateway_start`**, **`gateway_stop`**
+
+### Planned Events
 
 Planned event types:
 
-- **`session:start`**: When a new session begins
-- **`session:end`**: When a session ends
 - **`agent:error`**: When an agent encounters an error
-- **`message:sent`**: When a message is sent
-- **`message:received`**: When a message is received
 
 ## Creating Custom Hooks
 
@@ -290,12 +332,12 @@ This hook does something useful when you issue `/new`.
 import type { HookHandler } from "../../src/hooks/hooks.js";
 
 const handler: HookHandler = async (event) => {
-  if (event.type !== "command" || event.action !== "new") {
-    return;
-  }
+	if (event.type !== "command" || event.action !== "new") {
+		return;
+	}
 
-  console.log("[my-hook] Running!");
-  // Your logic here
+	console.log("[my-hook] Running!");
+	// Your logic here
 };
 
 export default handler;
@@ -322,15 +364,15 @@ openclaw hooks enable my-hook
 
 ```json
 {
-  "hooks": {
-    "internal": {
-      "enabled": true,
-      "entries": {
-        "session-memory": { "enabled": true },
-        "command-logger": { "enabled": false }
-      }
-    }
-  }
+	"hooks": {
+		"internal": {
+			"enabled": true,
+			"entries": {
+				"session-memory": { "enabled": true },
+				"command-logger": { "enabled": false }
+			}
+		}
+	}
 }
 ```
 
@@ -340,19 +382,19 @@ Hooks can have custom configuration:
 
 ```json
 {
-  "hooks": {
-    "internal": {
-      "enabled": true,
-      "entries": {
-        "my-hook": {
-          "enabled": true,
-          "env": {
-            "MY_CUSTOM_VAR": "value"
-          }
-        }
-      }
-    }
-  }
+	"hooks": {
+		"internal": {
+			"enabled": true,
+			"entries": {
+				"my-hook": {
+					"enabled": true,
+					"env": {
+						"MY_CUSTOM_VAR": "value"
+					}
+				}
+			}
+		}
+	}
 }
 ```
 
@@ -362,14 +404,14 @@ Load hooks from additional directories:
 
 ```json
 {
-  "hooks": {
-    "internal": {
-      "enabled": true,
-      "load": {
-        "extraDirs": ["/path/to/more/hooks"]
-      }
-    }
-  }
+	"hooks": {
+		"internal": {
+			"enabled": true,
+			"load": {
+				"extraDirs": ["/path/to/more/hooks"]
+			}
+		}
+	}
 }
 ```
 
@@ -379,18 +421,18 @@ The old config format still works for backwards compatibility:
 
 ```json
 {
-  "hooks": {
-    "internal": {
-      "enabled": true,
-      "handlers": [
-        {
-          "event": "command:new",
-          "module": "./hooks/handlers/my-handler.ts",
-          "export": "default"
-        }
-      ]
-    }
-  }
+	"hooks": {
+		"internal": {
+			"enabled": true,
+			"handlers": [
+				{
+					"event": "command:new",
+					"module": "./hooks/handlers/my-handler.ts",
+					"export": "default"
+				}
+			]
+		}
+	}
 }
 ```
 
@@ -547,19 +589,19 @@ openclaw hooks enable soul-evil
 
 ```json
 {
-  "hooks": {
-    "internal": {
-      "enabled": true,
-      "entries": {
-        "soul-evil": {
-          "enabled": true,
-          "file": "SOUL_EVIL.md",
-          "chance": 0.1,
-          "purge": { "at": "21:00", "duration": "15m" }
-        }
-      }
-    }
-  }
+	"hooks": {
+		"internal": {
+			"enabled": true,
+			"entries": {
+				"soul-evil": {
+					"enabled": true,
+					"file": "SOUL_EVIL.md",
+					"chance": 0.1,
+					"purge": { "at": "21:00", "duration": "15m" }
+				}
+			}
+		}
+	}
 }
 ```
 
@@ -593,13 +635,13 @@ Hooks run during command processing. Keep them lightweight:
 ```typescript
 // ✓ Good - async work, returns immediately
 const handler: HookHandler = async (event) => {
-  void processInBackground(event); // Fire and forget
+	void processInBackground(event); // Fire and forget
 };
 
 // ✗ Bad - blocks command processing
 const handler: HookHandler = async (event) => {
-  await slowDatabaseQuery(event);
-  await evenSlowerAPICall(event);
+	await slowDatabaseQuery(event);
+	await evenSlowerAPICall(event);
 };
 ```
 
@@ -609,12 +651,12 @@ Always wrap risky operations:
 
 ```typescript
 const handler: HookHandler = async (event) => {
-  try {
-    await riskyOperation(event);
-  } catch (err) {
-    console.error("[my-handler] Failed:", err instanceof Error ? err.message : String(err));
-    // Don't throw - let other handlers run
-  }
+	try {
+		await riskyOperation(event);
+	} catch (err) {
+		console.error("[my-handler] Failed:", err instanceof Error ? err.message : String(err));
+		// Don't throw - let other handlers run
+	}
 };
 ```
 
@@ -624,12 +666,12 @@ Return early if the event isn't relevant:
 
 ```typescript
 const handler: HookHandler = async (event) => {
-  // Only handle 'new' commands
-  if (event.type !== "command" || event.action !== "new") {
-    return;
-  }
+	// Only handle 'new' commands
+	if (event.type !== "command" || event.action !== "new") {
+		return;
+	}
 
-  // Your logic here
+	// Your logic here
 };
 ```
 
@@ -673,8 +715,8 @@ In your handler, log when it's called:
 
 ```typescript
 const handler: HookHandler = async (event) => {
-  console.log("[my-handler] Triggered:", event.type, event.action);
-  // Your logic
+	console.log("[my-handler] Triggered:", event.type, event.action);
+	// Your logic
 };
 ```
 
@@ -712,13 +754,13 @@ import { createHookEvent } from "./src/hooks/hooks.js";
 import myHandler from "./hooks/my-hook/handler.js";
 
 test("my handler works", async () => {
-  const event = createHookEvent("command", "new", "test-session", {
-    foo: "bar",
-  });
+	const event = createHookEvent("command", "new", "test-session", {
+		foo: "bar",
+	});
 
-  await myHandler(event);
+	await myHandler(event);
 
-  // Assert side effects
+	// Assert side effects
 });
 ```
 
@@ -839,17 +881,17 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 
 ```json
 {
-  "hooks": {
-    "internal": {
-      "enabled": true,
-      "handlers": [
-        {
-          "event": "command:new",
-          "module": "./hooks/handlers/my-handler.ts"
-        }
-      ]
-    }
-  }
+	"hooks": {
+		"internal": {
+			"enabled": true,
+			"handlers": [
+				{
+					"event": "command:new",
+					"module": "./hooks/handlers/my-handler.ts"
+				}
+			]
+		}
+	}
 }
 ```
 
@@ -880,14 +922,14 @@ node -e "import('./path/to/handler.ts').then(console.log)"
 
    ```json
    {
-     "hooks": {
-       "internal": {
-         "enabled": true,
-         "entries": {
-           "my-hook": { "enabled": true }
-         }
-       }
-     }
+   	"hooks": {
+   		"internal": {
+   			"enabled": true,
+   			"entries": {
+   				"my-hook": { "enabled": true }
+   			}
+   		}
+   	}
    }
    ```
 
