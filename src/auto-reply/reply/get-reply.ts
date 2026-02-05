@@ -79,14 +79,7 @@ export async function getReplyFromConfig(
   let provider = defaultProvider;
   let model = defaultModel;
   if (opts?.isHeartbeat) {
-    const heartbeatModel = agentCfg?.heartbeat?.model;
-    let heartbeatRaw = "";
-    if (typeof heartbeatModel === "string") {
-      heartbeatRaw = heartbeatModel.trim();
-    } else if (heartbeatModel && typeof heartbeatModel === "object") {
-      heartbeatRaw = heartbeatModel.primary?.trim() ?? "";
-    }
-
+    const heartbeatRaw = agentCfg?.heartbeat?.model?.trim() ?? "";
     const heartbeatRef = heartbeatRaw
       ? resolveModelRefFromString({
           raw: heartbeatRaw,
