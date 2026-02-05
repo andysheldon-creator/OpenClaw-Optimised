@@ -605,7 +605,7 @@ export class QmdMemoryManager implements MemorySearchManager {
       return true;
     }
     // Allow CLI invocations (no sessionKey provided)
-    if (!sessionKey?.trim()) {
+    if (sessionKey === undefined) {
       return true;
     }
     const channel = this.deriveChannelFromKey(sessionKey);

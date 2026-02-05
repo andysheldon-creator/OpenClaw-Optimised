@@ -155,8 +155,9 @@ describe("QmdMemoryManager", () => {
       (manager as unknown as { isScopeAllowed: (key?: string) => boolean }).isScopeAllowed(key);
     // CLI invocations (no sessionKey) should always be allowed
     expect(isAllowed(undefined)).toBe(true);
-    expect(isAllowed("")).toBe(true);
-    expect(isAllowed("  ")).toBe(true);
+    // Empty strings should NOT bypass scope checks (only undefined)
+    expect(isAllowed("")).toBe(false);
+    expect(isAllowed("  ")).toBe(false);
 
     await manager.close();
   });
