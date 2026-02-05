@@ -1,8 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { OpenClawConfig } from "../config/config.js";
+import { resolveControlUiRepoRoot } from "../infra/control-ui-assets.js";
 import { DEFAULT_ASSISTANT_IDENTITY, resolveAssistantIdentity } from "./assistant-identity.js";
 import {
   buildControlUiAvatarUrl,
@@ -12,6 +14,13 @@ import {
 } from "./control-ui-shared.js";
 
 const ROOT_PREFIX = "/";
+const AUTO_BUILD_ENV = process.env.OPENCLAW_CONTROL_UI_AUTO_BUILD;
+const AUTO_BUILD_ENABLED =
+  AUTO_BUILD_ENV == null ||
+  AUTO_BUILD_ENV === "" ||
+  AUTO_BUILD_ENV === "1" ||
+  AUTO_BUILD_ENV === "true";
+let autoBuildAttempted = false;
 
 export type ControlUiRequestOptions = {
   basePath?: string;
@@ -44,6 +53,30 @@ function resolveControlUiRoot(): string | null {
     }
   }
   return null;
+}
+
+function tryAutoBuildControlUi() {
+  if (!AUTO_BUILD_ENABLED || autoBuildAttempted) {
+    return;
+  }
+  autoBuildAttempted = true;
+  const repoRoot = resolveControlUiRepoRoot(process.argv[1]);
+  if (!repoRoot) {
+    return;
+  }
+  const uiScript = path.join(repoRoot, "scripts", "ui.js");
+  if (!fs.existsSync(uiScript)) {
+    return;
+  }
+  const result = spawnSync(process.execPath, [uiScript, "build"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    timeout: 10 * 60_000,
+    env: process.env,
+  });
+  if (result.error) {
+    return;
+  }
 }
 
 function contentTypeForExt(ext: string): string {
@@ -288,12 +321,16 @@ export function handleControlUiHttpRequest(
     }
   }
 
-  const root = resolveControlUiRoot();
+  let root = resolveControlUiRoot();
+  if (!root) {
+    tryAutoBuildControlUi();
+    root = resolveControlUiRoot();
+  }
   if (!root) {
     res.statusCode = 503;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.end(
-      "Control UI assets not found. Build them with `pnpm ui:build` (auto-installs UI deps), or run `pnpm ui:dev` during development.",
+      "Control UI assets not found. Auto-build was attempted. Build them with `pnpm ui:build` (auto-installs UI deps), or run `pnpm ui:dev` during development.",
     );
     return true;
   }
