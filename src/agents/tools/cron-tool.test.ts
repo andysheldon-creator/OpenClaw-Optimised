@@ -233,4 +233,68 @@ describe("cron tool", () => {
     expect(call.method).toBe("cron.add");
     expect(call.params?.agentId).toBeNull();
   });
+
+  it("accepts job fields at top level (flattened schema)", async () => {
+    callGatewayMock.mockResolvedValueOnce({ ok: true });
+
+    const tool = createCronTool();
+    await tool.execute("call-flat", {
+      action: "add",
+      name: "flat-job",
+      schedule: { kind: "cron", expr: "0 9 * * *" },
+      sessionTarget: "main",
+      payload: { kind: "systemEvent", text: "Hello from flat schema" },
+    });
+
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      method?: string;
+      params?: { name?: string; schedule?: unknown; payload?: unknown };
+    };
+    expect(call.method).toBe("cron.add");
+    expect(call.params?.name).toBe("flat-job");
+    expect(call.params?.schedule).toEqual({ kind: "cron", expr: "0 9 * * *" });
+    expect(call.params?.payload).toEqual({ kind: "systemEvent", text: "Hello from flat schema" });
+  });
+
+  it("top-level fields override nested job fields", async () => {
+    callGatewayMock.mockResolvedValueOnce({ ok: true });
+
+    const tool = createCronTool();
+    await tool.execute("call-override", {
+      action: "add",
+      name: "top-level-name",
+      job: {
+        name: "nested-name",
+        schedule: { kind: "at", at: new Date(456).toISOString() },
+        payload: { kind: "systemEvent", text: "nested text" },
+      },
+      payload: { kind: "systemEvent", text: "top-level text" },
+    });
+
+    const call = callGatewayMock.mock.calls[0]?.[0] as {
+      params?: { name?: string; payload?: { text?: string } };
+    };
+    expect(call.params?.name).toBe("top-level-name");
+    expect(call.params?.payload?.text).toBe("top-level text");
+  });
+
+  it("throws helpful error when no job fields provided", async () => {
+    const tool = createCronTool();
+    await expect(
+      tool.execute("call-empty", {
+        action: "add",
+      }),
+    ).rejects.toThrow("job required: pass name, schedule, sessionTarget, and payload");
+  });
+
+  it("throws helpful error when only empty job object provided", async () => {
+    const tool = createCronTool();
+    await expect(
+      tool.execute("call-empty-job", {
+        action: "add",
+        job: {},
+      }),
+    ).rejects.toThrow("job required: pass name, schedule, sessionTarget, and payload");
+  });
 });

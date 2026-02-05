@@ -8,28 +8,90 @@ import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool, type GatewayCallOptions } from "./gateway.js";
 import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
 
-// NOTE: We use Type.Object({}, { additionalProperties: true }) for job/patch
-// instead of CronAddParamsSchema/CronJobPatchSchema because the gateway schemas
-// contain nested unions. Tool schemas need to stay provider-friendly, so we
-// accept "any object" here and validate at runtime.
+// NOTE: Job fields are now flattened to top-level for better LLM compatibility.
+// The nested `job` property is kept for backward compatibility.
+// When both are provided, top-level fields take precedence.
 
 const CRON_ACTIONS = ["status", "list", "add", "update", "remove", "run", "runs", "wake"] as const;
 
 const CRON_WAKE_MODES = ["now", "next-heartbeat"] as const;
+
+const SESSION_TARGETS = ["main", "isolated"] as const;
+
+const SCHEDULE_KINDS = ["at", "every", "cron"] as const;
+
+const PAYLOAD_KINDS = ["systemEvent", "agentTurn"] as const;
+
+const DELIVERY_MODES = ["none", "announce"] as const;
 
 const REMINDER_CONTEXT_MESSAGES_MAX = 10;
 const REMINDER_CONTEXT_PER_MESSAGE_MAX = 220;
 const REMINDER_CONTEXT_TOTAL_MAX = 700;
 const REMINDER_CONTEXT_MARKER = "\n\nRecent context:\n";
 
-// Flattened schema: runtime validates per-action requirements.
+// Flattened schema with explicit job fields for better LLM guidance.
+// Nested `job` kept for backward compatibility; top-level fields take precedence.
 const CronToolSchema = Type.Object({
   action: stringEnum(CRON_ACTIONS),
   gatewayUrl: Type.Optional(Type.String()),
   gatewayToken: Type.Optional(Type.String()),
   timeoutMs: Type.Optional(Type.Number()),
   includeDisabled: Type.Optional(Type.Boolean()),
+
+  // === Job fields (for action: "add") - flattened for LLM compatibility ===
+  // These can also be nested inside `job` for backward compatibility.
+  name: Type.Optional(Type.String({ description: "Job name (required for add)" })),
+  schedule: Type.Optional(
+    Type.Object(
+      {
+        kind: optionalStringEnum(SCHEDULE_KINDS),
+        at: Type.Optional(Type.String({ description: "ISO-8601 timestamp (for kind: at)" })),
+        everyMs: Type.Optional(Type.Number({ description: "Interval in ms (for kind: every)" })),
+        anchorMs: Type.Optional(
+          Type.Number({ description: "Anchor time in ms (for kind: every)" }),
+        ),
+        expr: Type.Optional(Type.String({ description: "Cron expression (for kind: cron)" })),
+        tz: Type.Optional(Type.String({ description: "Timezone (for kind: cron)" })),
+      },
+      { additionalProperties: true },
+    ),
+  ),
+  sessionTarget: optionalStringEnum(SESSION_TARGETS),
+  payload: Type.Optional(
+    Type.Object(
+      {
+        kind: optionalStringEnum(PAYLOAD_KINDS),
+        text: Type.Optional(Type.String({ description: "Event text (for kind: systemEvent)" })),
+        message: Type.Optional(Type.String({ description: "Agent prompt (for kind: agentTurn)" })),
+        model: Type.Optional(Type.String()),
+        thinking: Type.Optional(Type.String()),
+        timeoutSeconds: Type.Optional(Type.Number()),
+      },
+      { additionalProperties: true },
+    ),
+  ),
+  delivery: Type.Optional(
+    Type.Object(
+      {
+        mode: optionalStringEnum(DELIVERY_MODES),
+        channel: Type.Optional(Type.String()),
+        to: Type.Optional(Type.String()),
+        bestEffort: Type.Optional(Type.Boolean()),
+      },
+      { additionalProperties: true },
+    ),
+  ),
+  enabled: Type.Optional(Type.Boolean()),
+  deleteAfterRun: Type.Optional(Type.Boolean()),
+  wakeMode: optionalStringEnum(CRON_WAKE_MODES),
+  agentId: Type.Optional(Type.String()),
+  description: Type.Optional(Type.String()),
+
+  // === Backward compatibility: nested job object ===
+  // If provided, fields are merged with top-level (top-level takes precedence)
   job: Type.Optional(Type.Object({}, { additionalProperties: true })),
+
+  // === Other action params ===
   jobId: Type.Optional(Type.String()),
   id: Type.Optional(Type.String()),
   patch: Type.Optional(Type.Object({}, { additionalProperties: true })),
@@ -153,6 +215,48 @@ async function buildReminderContextLines(params: {
   }
 }
 
+/**
+ * Assembles a job object from params, merging top-level fields with nested `job`.
+ * Top-level fields take precedence over nested job fields.
+ */
+function assembleJobFromParams(params: Record<string, unknown>): Record<string, unknown> | null {
+  const nestedJob =
+    params.job && typeof params.job === "object" && !Array.isArray(params.job)
+      ? (params.job as Record<string, unknown>)
+      : {};
+
+  // Job field names to extract from top-level
+  const jobFieldNames = [
+    "name",
+    "schedule",
+    "sessionTarget",
+    "payload",
+    "delivery",
+    "enabled",
+    "deleteAfterRun",
+    "wakeMode",
+    "agentId",
+    "description",
+  ];
+
+  // Start with nested job, then overlay top-level fields
+  const assembled: Record<string, unknown> = { ...nestedJob };
+
+  for (const field of jobFieldNames) {
+    if (field in params && params[field] !== undefined) {
+      assembled[field] = params[field];
+    }
+  }
+
+  // Return null if no job fields were provided at all
+  const hasAnyField = jobFieldNames.some((f) => f in assembled && assembled[f] !== undefined);
+  if (!hasAnyField && Object.keys(nestedJob).length === 0) {
+    return null;
+  }
+
+  return assembled;
+}
+
 export function createCronTool(opts?: CronToolOptions): AnyAgentTool {
   return {
     label: "Cron",
@@ -162,22 +266,18 @@ export function createCronTool(opts?: CronToolOptions): AnyAgentTool {
 ACTIONS:
 - status: Check cron scheduler status
 - list: List jobs (use includeDisabled:true to include disabled)
-- add: Create job (requires job object, see schema below)
+- add: Create job (pass job fields at top level OR nested in job object)
 - update: Modify job (requires jobId + patch object)
 - remove: Delete job (requires jobId)
 - run: Trigger job immediately (requires jobId)
 - runs: Get job run history (requires jobId)
 - wake: Send wake event (requires text, optional mode)
 
-JOB SCHEMA (for add action):
-{
-  "name": "string (optional)",
-  "schedule": { ... },      // Required: when to run
-  "payload": { ... },       // Required: what to execute
-  "delivery": { ... },      // Optional: announce summary (isolated only)
-  "sessionTarget": "main" | "isolated",  // Required
-  "enabled": true | false   // Optional, default true
-}
+ADD ACTION - REQUIRED FIELDS (pass at top level, not nested):
+- name: string - Job name
+- schedule: object - When to run (see schedule types below)
+- sessionTarget: "main" | "isolated" - Where to run
+- payload: object - What to execute (see payload types below)
 
 SCHEDULE TYPES (schedule.kind):
 - "at": One-shot at absolute time
@@ -195,15 +295,23 @@ PAYLOAD TYPES (payload.kind):
 - "agentTurn": Runs agent with message (isolated sessions only)
   { "kind": "agentTurn", "message": "<prompt>", "model": "<optional>", "thinking": "<optional>", "timeoutSeconds": <optional> }
 
-DELIVERY (isolated-only, top-level):
-  { "mode": "none|announce", "channel": "<optional>", "to": "<optional>", "bestEffort": <optional-bool> }
-  - Default for isolated agentTurn jobs (when delivery omitted): "announce"
-  - If the task needs to send to a specific chat/recipient, set delivery.channel/to here; do not call messaging tools inside the run.
+DELIVERY (isolated-only, optional):
+  { "mode": "none" | "announce", "channel": "<optional>", "to": "<optional>", "bestEffort": <optional-bool> }
+  - Default for isolated agentTurn jobs: "announce"
 
 CRITICAL CONSTRAINTS:
 - sessionTarget="main" REQUIRES payload.kind="systemEvent"
 - sessionTarget="isolated" REQUIRES payload.kind="agentTurn"
 Default: prefer isolated agentTurn jobs unless the user explicitly wants a main-session system event.
+
+EXAMPLE (add a cron job):
+{
+  "action": "add",
+  "name": "daily-reminder",
+  "schedule": { "kind": "cron", "expr": "0 9 * * *", "tz": "America/New_York" },
+  "sessionTarget": "main",
+  "payload": { "kind": "systemEvent", "text": "Good morning! Time to review tasks." }
+}
 
 WAKE MODES (for wake action):
 - "next-heartbeat" (default): Wake on next heartbeat
@@ -230,10 +338,14 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
             }),
           );
         case "add": {
-          if (!params.job || typeof params.job !== "object") {
-            throw new Error("job required");
+          // Assemble job from top-level fields and/or nested job object
+          const assembledJob = assembleJobFromParams(params);
+          if (!assembledJob) {
+            throw new Error(
+              "job required: pass name, schedule, sessionTarget, and payload at top level or in job object",
+            );
           }
-          const job = normalizeCronJobCreate(params.job) ?? params.job;
+          const job = normalizeCronJobCreate(assembledJob) ?? assembledJob;
           if (job && typeof job === "object" && !("agentId" in job)) {
             const cfg = loadConfig();
             const agentId = opts?.agentSessionKey
