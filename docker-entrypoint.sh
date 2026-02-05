@@ -96,8 +96,8 @@ echo "[entrypoint] Port: $OPENCLAW_GATEWAY_PORT"
 if [ "${1:-}" = "gateway" ] || [ "${1:-}" = "node" ]; then
     echo "[entrypoint] Running gateway with explicit bind=lan and token"
 
-    # Force bind mode in config and set up browser profiles
-    echo "[entrypoint] Writing config with gateway.bind=lan and browser profiles..."
+    # Force bind mode in config and set browser defaults
+    echo "[entrypoint] Writing config with gateway.bind=lan and browser settings..."
     node - <<'NODE'
 const fs = require('fs');
 const path = require('path');
@@ -124,6 +124,11 @@ cfg.gateway.auth = cfg.gateway.auth || {};
 cfg.gateway.auth.token = gatewayToken;
 // Remove invalid key from previous deployment
 delete cfg.gateway.customBindHost;
+
+// Browser defaults for Railway
+cfg.browser = cfg.browser || {};
+cfg.browser.headless = true;
+cfg.browser.noSandbox = true;
 
 // Clean up legacy browser profile keys that are no longer valid.
 if (cfg.browser && cfg.browser.profiles) {
