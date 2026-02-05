@@ -86,3 +86,12 @@ export {
   type StateServiceLogger,
   type StateServiceOptions,
 } from "./state.js";
+
+// Runtime Resolver
+export {
+  DefaultRuntimeResolver,
+  createRuntimeResolver,
+  type RuntimeResolver,
+  type RuntimeResolverLogger,
+  type RuntimeResolverOptions,
+} from "./resolver.js";

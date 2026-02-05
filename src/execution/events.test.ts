@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { ExecutionEvent } from "../types.js";
+import type { ExecutionEvent } from "./types.js";
 import {
   EventRouter,
   createEventRouter,
@@ -17,7 +17,7 @@ import {
   createHookTriggeredEvent,
   getHookForEventKind,
   EVENT_TO_HOOK_MAP,
-} from "../events.js";
+} from "./events.js";
 
 describe("EventRouter", () => {
   let router: EventRouter;

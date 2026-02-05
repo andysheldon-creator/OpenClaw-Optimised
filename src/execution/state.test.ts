@@ -3,17 +3,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SessionEntry, SessionSystemPromptReport } from "../../config/sessions.js";
-import type { ExecutionRequest, RuntimeContext, TurnOutcome } from "../types.js";
+import type { SessionEntry, SessionSystemPromptReport } from "../config/sessions.js";
+import type { ExecutionRequest, RuntimeContext, TurnOutcome } from "./types.js";
 import {
   createStateService,
   DefaultStateService,
   hasNonzeroUsageMetrics,
   type StateService,
-} from "../state.js";
+} from "./state.js";
 
 // Mock the session description refresh to prevent async background work
-vi.mock("../../sessions/session-description.js", () => ({
+vi.mock("../sessions/session-description.js", () => ({
   queueSessionDescriptionRefresh: vi.fn(),
 }));
 
