@@ -36,7 +36,9 @@ export async function getProgressiveStore(params: {
   const dbPath = path.join(stateDir, "memory", "progressive.db");
 
   const cached = storeCache.get(dbPath);
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
 
   const store = new ProgressiveMemoryStore({ dbPath });
 
@@ -44,7 +46,7 @@ export async function getProgressiveStore(params: {
   try {
     await store.initVector();
   } catch (err) {
-    log.warn?.(`Vector init failed (FTS-only mode): ${err}`);
+    log.warn?.(`Vector init failed (FTS-only mode): ${String(err)}`);
   }
 
   // Try to create an embed function from the existing memory search config
@@ -69,7 +71,7 @@ export async function getProgressiveStore(params: {
       }
     }
   } catch (err) {
-    log.warn?.(`Embedding provider setup failed (dedup/vector disabled): ${err}`);
+    log.warn?.(`Embedding provider setup failed (dedup/vector disabled): ${String(err)}`);
   }
 
   const access: ProgressiveStoreAccess = { store, embedFn };
@@ -81,7 +83,7 @@ export async function getProgressiveStore(params: {
  * Close and remove all cached stores. Called during shutdown.
  */
 export function closeAllProgressiveStores(): void {
-  for (const [key, access] of storeCache) {
+  for (const [_key, access] of storeCache) {
     try {
       access.store.close();
     } catch {

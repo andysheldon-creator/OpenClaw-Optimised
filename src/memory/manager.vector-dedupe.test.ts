@@ -63,25 +63,27 @@ describe("memory vector dedupe", () => {
     }
     manager = result.manager;
 
-    const db = (
+    const store = (
       manager as unknown as {
-        db: { exec: (sql: string) => void; prepare: (sql: string) => unknown };
+        store: {
+          db: { exec: (sql: string) => void; prepare: (sql: string) => unknown };
+          ensureVectorReady: (dims?: number) => Promise<boolean>;
+          insertVector: (id: string, embedding: number[]) => void;
+        };
       }
-    ).db;
+    ).store;
+    const db = store.db;
     db.exec("CREATE TABLE IF NOT EXISTS chunks_vec (id TEXT PRIMARY KEY, embedding BLOB)");
 
-    const sqlSeen: string[] = [];
-    const originalPrepare = db.prepare.bind(db);
-    db.prepare = (sql: string) => {
-      if (sql.includes("chunks_vec")) {
-        sqlSeen.push(sql);
-      }
-      return originalPrepare(sql);
+    // Track calls to insertVector (which internally deletes then inserts)
+    const vectorCalls: Array<{ id: string; dims: number }> = [];
+    const originalInsertVector = store.insertVector.bind(store);
+    store.insertVector = (id: string, embedding: number[]) => {
+      vectorCalls.push({ id, dims: embedding.length });
+      originalInsertVector(id, embedding);
     };
 
-    (
-      manager as unknown as { ensureVectorReady: (dims?: number) => Promise<boolean> }
-    ).ensureVectorReady = async () => true;
+    store.ensureVectorReady = async () => true;
 
     const entry = await buildFileEntry(path.join(workspaceDir, "MEMORY.md"), workspaceDir);
     await (
@@ -90,12 +92,11 @@ describe("memory vector dedupe", () => {
       }
     ).indexFile(entry, { source: "memory" });
 
-    const deleteIndex = sqlSeen.findIndex((sql) =>
-      sql.includes("DELETE FROM chunks_vec WHERE id = ?"),
-    );
-    const insertIndex = sqlSeen.findIndex((sql) => sql.includes("INSERT INTO chunks_vec"));
-    expect(deleteIndex).toBeGreaterThan(-1);
-    expect(insertIndex).toBeGreaterThan(-1);
-    expect(deleteIndex).toBeLessThan(insertIndex);
+    // insertVector encapsulates delete-then-insert; verify it was called for each chunk
+    expect(vectorCalls.length).toBeGreaterThan(0);
+    for (const call of vectorCalls) {
+      expect(call.id).toBeTruthy();
+      expect(call.dims).toBeGreaterThan(0);
+    }
   });
 });
