@@ -135,17 +135,22 @@ All commands support JSON output for programmatic use:
 
 Credentials are fetched in this order:
 1. **Saved tokens** in `~/.garminconnect/` (valid ~1 year)
-2. **Bitwarden CLI** - searches for "garmin" entry (must be unlocked)
+2. **Password manager** - Bitwarden or 1Password CLI (if available and unlocked)
 3. **Interactive prompt** (last resort)
 
 ### Using Bitwarden
 
-If you have Bitwarden CLI installed and unlocked, credentials are automatic:
-
 ```bash
 bw unlock                    # Unlock vault first
 export BW_SESSION="..."      # Set session from unlock output
-{baseDir}/scripts/garmin.py status   # Auto-fetches from Bitwarden
+{baseDir}/scripts/garmin.py status   # Auto-fetches "garmin" entry
+```
+
+### Using 1Password
+
+```bash
+op signin                    # Sign in (or use desktop app integration)
+{baseDir}/scripts/garmin.py status   # Auto-fetches "Garmin" item
 ```
 
 ### Re-authenticate

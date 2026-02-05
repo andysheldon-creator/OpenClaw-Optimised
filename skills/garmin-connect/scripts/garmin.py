@@ -27,16 +27,14 @@ def get_bitwarden_creds(search_term: str = "garmin") -> tuple[str, str] | None:
     """Try to get credentials from Bitwarden CLI."""
     import subprocess
     
-    # Check if bw is available and unlocked
     try:
         result = subprocess.run(
             ["bw", "status"],
             capture_output=True, text=True, timeout=10
         )
         if '"status":"locked"' in result.stdout or '"status":"unauthenticated"' in result.stdout:
-            return None  # Vault locked, fall back to other methods
+            return None
         
-        # Search for Garmin entry
         result = subprocess.run(
             ["bw", "list", "items", "--search", search_term],
             capture_output=True, text=True, timeout=30
@@ -45,20 +43,71 @@ def get_bitwarden_creds(search_term: str = "garmin") -> tuple[str, str] | None:
             return None
         
         items = json.loads(result.stdout)
-        if not items:
-            return None
-        
-        # Find first item with login credentials
         for item in items:
             login = item.get("login", {})
             username = login.get("username")
             password = login.get("password")
             if username and password:
                 return (username, password)
-        
         return None
     except Exception:
         return None
+
+
+def get_1password_creds(search_term: str = "Garmin") -> tuple[str, str] | None:
+    """Try to get credentials from 1Password CLI."""
+    import subprocess
+    
+    try:
+        # Check if op is available and signed in
+        result = subprocess.run(
+            ["op", "whoami"],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode != 0:
+            return None
+        
+        # Get item with username and password fields
+        result = subprocess.run(
+            ["op", "item", "get", search_term, "--fields", "username,password", "--format", "json"],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode != 0:
+            return None
+        
+        fields = json.loads(result.stdout)
+        username = None
+        password = None
+        
+        for field in fields:
+            if field.get("id") == "username" or field.get("label", "").lower() == "username":
+                username = field.get("value")
+            elif field.get("id") == "password" or field.get("label", "").lower() == "password":
+                password = field.get("value")
+        
+        if username and password:
+            return (username, password)
+        return None
+    except Exception:
+        return None
+
+
+def get_password_manager_creds(search_term: str = "garmin") -> tuple[str, str, str] | None:
+    """Try to get credentials from available password managers.
+    
+    Returns (username, password, source) or None.
+    """
+    # Try Bitwarden first
+    creds = get_bitwarden_creds(search_term)
+    if creds:
+        return (creds[0], creds[1], "Bitwarden")
+    
+    # Try 1Password
+    creds = get_1password_creds(search_term.title())  # 1Password often uses title case
+    if creds:
+        return (creds[0], creds[1], "1Password")
+    
+    return None
 
 
 def get_client(email: str = None, password: str = None) -> Garmin:
@@ -74,12 +123,12 @@ def get_client(email: str = None, password: str = None) -> Garmin:
     
     # Fresh login required - try sources in order
     if not email or not password:
-        # 1. Bitwarden CLI
-        bw_creds = get_bitwarden_creds("garmin")
-        if bw_creds:
-            email = email or bw_creds[0]
-            password = password or bw_creds[1]
-            print("✓ Using credentials from Bitwarden", file=sys.stderr)
+        # 1. Password manager (Bitwarden or 1Password)
+        pm_creds = get_password_manager_creds("garmin")
+        if pm_creds:
+            email = email or pm_creds[0]
+            password = password or pm_creds[1]
+            print(f"✓ Using credentials from {pm_creds[2]}", file=sys.stderr)
         
         # 2. Interactive prompt (last resort)
         if not email:
@@ -125,13 +174,13 @@ def cmd_login(args):
     email = args.email
     password = None
     
-    # Try Bitwarden first
+    # Try password manager first
     if not email or not password:
-        bw_creds = get_bitwarden_creds("garmin")
-        if bw_creds:
-            email = email or bw_creds[0]
-            password = bw_creds[1]
-            print("✓ Using credentials from Bitwarden")
+        pm_creds = get_password_manager_creds("garmin")
+        if pm_creds:
+            email = email or pm_creds[0]
+            password = pm_creds[1]
+            print(f"✓ Using credentials from {pm_creds[2]}")
     
     # Fall back to interactive
     if not email:
