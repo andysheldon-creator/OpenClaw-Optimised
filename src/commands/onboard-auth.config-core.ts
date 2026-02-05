@@ -17,6 +17,12 @@ import {
   VENICE_MODEL_CATALOG,
 } from "../agents/venice-models.js";
 import {
+  buildAskSageModelDefinition,
+  ASKSAGE_BASE_URL,
+  ASKSAGE_DEFAULT_MODEL_REF,
+  ASKSAGE_MODEL_CATALOG,
+} from "../agents/asksage-models.js";
+import {
   CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
@@ -617,6 +623,56 @@ export function applyXaiProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
     api: "openai-completions",
     ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
     models: mergedModels.length > 0 ? mergedModels : [defaultModel],
+  }
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
+    },
+  };
+}
+/**
+ * Apply Ask Sage provider configuration without changing the default model.
+ * Registers Ask Sage models and sets up the provider, but preserves existing model selection.
+ */
+export function applyAskSageProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[ASKSAGE_DEFAULT_MODEL_REF] = {
+    ...models[ASKSAGE_DEFAULT_MODEL_REF],
+    alias: models[ASKSAGE_DEFAULT_MODEL_REF]?.alias ?? "Claude 4 Sonnet",
+  };
+
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.asksage;
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  const asksageModels = ASKSAGE_MODEL_CATALOG.map(buildAskSageModelDefinition);
+  const mergedModels = [
+    ...existingModels,
+    ...asksageModels.filter(
+      (model) => !existingModels.some((existing) => existing.id === model.id),
+    ),
+  ];
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim();
+  
+  providers.asksage = {
+    ...existingProviderRest,
+    baseUrl: ASKSAGE_BASE_URL,
+    api: "anthropic-messages",
+    ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+    models: mergedModels.length > 0 ? mergedModels : asksageModels,
   };
 
   return {
@@ -651,6 +707,31 @@ export function applyXaiConfig(cfg: OpenClawConfig): OpenClawConfig {
               }
             : undefined),
           primary: XAI_DEFAULT_MODEL_REF,
+            },
+      },
+    },
+  };
+}
+/**
+ * Apply Ask Sage provider configuration AND set Ask Sage as the default model.
+ * Use this when Ask Sage is the primary provider choice during onboarding.
+ */
+export function applyAskSageConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const next = applyAskSageProviderConfig(cfg);
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: ASKSAGE_DEFAULT_MODEL_REF,
         },
       },
     },
