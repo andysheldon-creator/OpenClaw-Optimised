@@ -1905,9 +1905,14 @@ export class MemoryIndexManager implements MemorySearchManager {
       const customId = hashText(
         `${source}:${entry.path}:${chunk.startLine}:${chunk.endLine}:${chunk.hash}:${item.index}`,
       );
-      mapping.set(customId, { index: item.index, hash: chunk.hash });
+      // Ensure the external batch `custom_id` conforms to provider restrictions.
+      // sanitizeCustomId is exported from batch-openai.
+      // Lazy import to avoid cycles at module load time.
+      const { sanitizeCustomId } = await import("./batch-openai.js");
+      const safeId = sanitizeCustomId(customId);
+      mapping.set(safeId, { index: item.index, hash: chunk.hash });
       requests.push({
-        custom_id: customId,
+        custom_id: safeId,
         method: "POST",
         url: OPENAI_BATCH_ENDPOINT,
         body: {

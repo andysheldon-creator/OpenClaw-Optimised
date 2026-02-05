@@ -49,7 +49,24 @@ export async function runNonInteractiveOnboardingLocal(params: {
     },
   };
 
-  const authChoice = opts.authChoice ?? "skip";
+  function inferAuthChoiceFromFlags(o: OnboardOptions): OnboardOptions["authChoice"] | undefined {
+    if (o.openaiApiKey) return "openai-api-key" as const;
+    if (o.openrouterApiKey) return "openrouter-api-key" as const;
+    if (o.aiGatewayApiKey) return "ai-gateway-api-key" as const;
+    if (o.moonshotApiKey) return "moonshot-api-key" as const;
+    if (o.kimiCodeApiKey) return "kimi-code-api-key" as const;
+    if (o.geminiApiKey) return "gemini-api-key" as const;
+    if (o.zaiApiKey) return "zai-api-key" as const;
+    if (o.xiaomiApiKey) return "xiaomi-api-key" as const;
+    if (o.minimaxApiKey) return "minimax-api-key" as const;
+    if (o.syntheticApiKey) return "synthetic-api-key" as const;
+    if (o.veniceApiKey) return "venice-api-key" as const;
+    if (o.opencodeZenApiKey) return "opencode-zen" as const;
+    if (o.anthropicApiKey) return "apiKey" as const;
+    return undefined;
+  }
+
+  const authChoice = opts.authChoice ?? inferAuthChoiceFromFlags(opts) ?? "skip";
   const nextConfigAfterAuth = await applyNonInteractiveAuthChoice({
     nextConfig,
     authChoice,

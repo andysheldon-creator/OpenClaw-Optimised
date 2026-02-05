@@ -1,0 +1,86 @@
+name: Provider Secrets Setup and Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "OpenClaw command to run after secrets are installed"
+        required: false
+        default: "node openclaw.mjs models discover --providers windsurf --json"
+
+permissions: read-all
+
+jobs:
+  setup-windsurf:
+    name: Setup Windsurf secret and run OpenClaw
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable pnpm (via Corepack)
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create secure provider configs from secrets
+        env:
+          WINDSURF_API_KEY: ${{ secrets.WINDSURF_API_KEY }}
+          WINDSURF_ENDPOINT: ${{ secrets.WINDSURF_ENDPOINT }}
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CURSOR_ENDPOINT: ${{ secrets.CURSOR_ENDPOINT }}
+          ANTIGRAVITY_API_KEY: ${{ secrets.ANTIGRAVITY_API_KEY }}
+          ANTIGRAVITY_ENDPOINT: ${{ secrets.ANTIGRAVITY_ENDPOINT }}
+          GITHUB_API_TOKEN: ${{ secrets.GITHUB_API_TOKEN }}
+        run: |
+          # Write runner-only provider configs so secrets never land in repo
+          mkdir -p "$HOME/.openclaw"
+
+          if [ -n "${WINDSURF_API_KEY}" ] || [ -n "${WINDSURF_ENDPOINT}" ]; then
+            cat > "$HOME/.openclaw/windsurf.json" <<EOF
+{"windsurf": {"apiKey": "${WINDSURF_API_KEY}", "endpoint": "${WINDSURF_ENDPOINT}"}}
+EOF
+            chmod 600 "$HOME/.openclaw/windsurf.json"
+          fi
+
+          if [ -n "${CURSOR_API_KEY}" ] || [ -n "${CURSOR_ENDPOINT}" ]; then
+            cat > "$HOME/.openclaw/cursor.json" <<EOF
+{"cursor": {"apiKey": "${CURSOR_API_KEY}", "endpoint": "${CURSOR_ENDPOINT}"}}
+EOF
+            chmod 600 "$HOME/.openclaw/cursor.json"
+          fi
+
+          if [ -n "${ANTIGRAVITY_API_KEY}" ] || [ -n "${ANTIGRAVITY_ENDPOINT}" ]; then
+            cat > "$HOME/.openclaw/antigravity.json" <<EOF
+{"antigravity": {"apiKey": "${ANTIGRAVITY_API_KEY}", "endpoint": "${ANTIGRAVITY_ENDPOINT}"}}
+EOF
+            chmod 600 "$HOME/.openclaw/antigravity.json"
+          fi
+
+          if [ -n "${GITHUB_API_TOKEN}" ]; then
+            cat > "$HOME/.openclaw/github.json" <<EOF
+{"github": {"apiToken": "${GITHUB_API_TOKEN}"}}
+EOF
+            chmod 600 "$HOME/.openclaw/github.json"
+          fi
+
+      - name: Run provided OpenClaw command
+        shell: bash
+        run: |
+          echo "Running OpenClaw command: ${{ github.event.inputs.command }}"
+          ${{ github.event.inputs.command }}
+
+      - name: List created secure files (for debugging)
+        if: ${{ always() }}
+        run: ls -l "$HOME/.openclaw" || true
+
+# Note: Add WINDSURF_API_KEY and WINDSURF_ENDPOINT to your repository's
+# Secrets (Settings → Secrets & variables → Actions) before running this workflow.

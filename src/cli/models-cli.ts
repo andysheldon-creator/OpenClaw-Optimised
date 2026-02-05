@@ -21,6 +21,7 @@ import {
   modelsImageFallbacksRemoveCommand,
   modelsListCommand,
   modelsScanCommand,
+  modelsDiscoverCommand,
   modelsSetCommand,
   modelsSetImageCommand,
   modelsStatusCommand,
@@ -272,6 +273,71 @@ export function registerModelsCli(program: Command) {
     .action(async (opts) => {
       await runModelsCommand(async () => {
         await modelsScanCommand(opts, defaultRuntime);
+      });
+    });
+
+  models
+    .command("discover")
+    .description(
+      "Discover local/catalog models (Windsurf, Cursor, Antigravity) and optionally set as fallbacks",
+    )
+    .option("--providers <name>", "Filter providers by substring")
+    .option("--json", "Output JSON", false)
+    .option("--set-default", "Set agents.defaults.model to first discovered model", false)
+    .action(async (opts) => {
+      await runModelsCommand(async () => {
+        await modelsDiscoverCommand(
+          {
+            providers: opts.providers as string | undefined,
+            json: Boolean(opts.json),
+            setDefault: Boolean(opts.setDefault),
+          },
+          defaultRuntime,
+        );
+      });
+    });
+
+  models
+    .command("rotate")
+    .description("Compute daily free-model rotation and optionally set as fallbacks")
+    .option("--date <iso>", "ISO date to use for rotation (default: today)")
+    .option("--max <n>", "Max candidates", "6")
+    .option("--include-openrouter", "Include OpenRouter free models (may require API key)", false)
+    .option("--probe", "Probe OpenRouter models live (requires OPENROUTER_API_KEY)", false)
+    .option("--set-default", "Set agents.defaults.model.primary to first selected", false)
+    .option("--json", "Output JSON", false)
+    .action(async (opts) => {
+      await runModelsCommand(async () => {
+        const date = opts.date ? new Date(String(opts.date)) : undefined;
+        const maxCandidates = Number(opts.max ?? 6);
+        const list = await modelsDiscoverCommand(
+          /* placeholder */ /* noop */ {} as any,
+          defaultRuntime,
+        );
+        // call rotation helper directly via import to avoid circular
+        const { computeDailyRotation, applyRotationToConfig } =
+          await import("../agents/model-rotation.js");
+        const result = await computeDailyRotation({
+          date,
+          maxCandidates,
+          includeOpenRouter: Boolean(opts.includeOpenrouter),
+          probe: Boolean(opts.probe),
+        });
+        if (opts.json) {
+          defaultRuntime.log(JSON.stringify({ rotation: result }, null, 2));
+        } else {
+          defaultRuntime.log(`Rotation: ${result.join(", ")}`);
+        }
+        if (opts.setDefault && result.length > 0) {
+          await applyRotationToConfig({
+            date,
+            maxCandidates,
+            includeOpenRouter: Boolean(opts.includeOpenrouter),
+            probe: Boolean(opts.probe),
+            setPrimary: true,
+          });
+          defaultRuntime.log("Rotation applied to config.");
+        }
       });
     });
 

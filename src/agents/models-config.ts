@@ -76,8 +76,14 @@ async function readJson(pathname: string): Promise<unknown> {
   try {
     const raw = await fs.readFile(pathname, "utf8");
     return JSON.parse(raw) as unknown;
-  } catch {
-    return null;
+  } catch (err) {
+    // If file doesn't exist, treat as no config present.
+    // For other errors (parse, permissions) surface a helpful error.
+    const e = err as { code?: string; message?: string };
+    if (e?.code === "ENOENT") {
+      return null;
+    }
+    throw new Error(`readJson(${pathname}) failed: ${e?.message ?? String(err)}`);
   }
 }
 
