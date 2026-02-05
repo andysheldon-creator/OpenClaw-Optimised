@@ -144,6 +144,7 @@ async function uploadToOneDriveResumable(params: {
           headers: {
             "Content-Length": String(chunk.length),
             "Content-Range": `bytes ${start}-${end - 1}/${fileSize}`,
+            "Content-Type": params.contentType ?? "application/octet-stream",
           },
           body: new Uint8Array(chunk),
         });
@@ -414,6 +415,7 @@ async function uploadToSharePointResumable(params: {
           headers: {
             "Content-Length": String(chunk.length),
             "Content-Range": `bytes ${start}-${end - 1}/${fileSize}`,
+            "Content-Type": params.contentType ?? "application/octet-stream",
           },
           body: new Uint8Array(chunk),
         });
