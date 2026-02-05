@@ -112,6 +112,49 @@ describe("sanitizeToolUseResultPairing", () => {
     expect(out.some((m) => m.role === "toolResult")).toBe(false);
     expect(out.map((m) => m.role)).toEqual(["user", "assistant"]);
   });
+
+  it("does not create synthetic result for malformed tool_use block (issue #8264)", () => {
+    // This test covers a session corruption scenario where a tool call ID is
+    // extracted but the block itself is malformed (wrong type or missing).
+    // Creating a synthetic result for such IDs would permanently corrupt the
+    // session because the API would reject the mismatched tool_use_id.
+    const input = [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "thinking..." },
+          // Malformed: has id but wrong type (should be toolCall/toolUse/functionCall)
+          { type: "text", id: "call_malformed", text: "this is not a tool call" },
+          // Valid tool call
+          { type: "toolCall", id: "call_valid", name: "read", arguments: {} },
+        ],
+      },
+    ] satisfies AgentMessage[];
+
+    const out = sanitizeToolUseResultPairing(input);
+    // Should only create synthetic result for the valid tool call
+    const results = out.filter((m) => m.role === "toolResult") as Array<{
+      toolCallId?: string;
+    }>;
+    expect(results).toHaveLength(1);
+    expect(results[0]?.toolCallId).toBe("call_valid");
+  });
+
+  it("handles assistant message with no valid tool_use blocks gracefully", () => {
+    // Edge case: content array exists but contains no valid tool call blocks
+    const input = [
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "just text" }],
+      },
+      { role: "user", content: "hello" },
+    ] satisfies AgentMessage[];
+
+    const out = sanitizeToolUseResultPairing(input);
+    // No synthetic results should be created
+    expect(out.filter((m) => m.role === "toolResult")).toHaveLength(0);
+    expect(out.map((m) => m.role)).toEqual(["assistant", "user"]);
+  });
 });
 
 describe("sanitizeToolCallInputs", () => {

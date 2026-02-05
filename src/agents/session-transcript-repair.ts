@@ -70,6 +70,37 @@ function extractToolResultId(msg: Extract<AgentMessage, { role: "toolResult" }>)
   return null;
 }
 
+/**
+ * Validates that a tool call ID exists as a properly-formed tool_use/toolCall block
+ * in the assistant message content. This prevents creating synthetic tool_result
+ * entries for tool_use_ids that don't actually exist in the message structure
+ * that will be sent to the API.
+ */
+function validateToolCallExistsInContent(
+  msg: Extract<AgentMessage, { role: "assistant" }>,
+  toolCallId: string,
+): boolean {
+  const content = msg.content;
+  if (!Array.isArray(content)) {
+    return false;
+  }
+
+  for (const block of content) {
+    if (!block || typeof block !== "object") {
+      continue;
+    }
+    const rec = block as { type?: unknown; id?: unknown };
+    if (rec.id !== toolCallId) {
+      continue;
+    }
+    // Verify it's actually a tool call block type
+    if (rec.type === "toolCall" || rec.type === "toolUse" || rec.type === "functionCall") {
+      return true;
+    }
+  }
+  return false;
+}
+
 function makeMissingToolResult(params: {
   toolCallId: string;
   toolName?: string;
@@ -274,6 +305,16 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       if (existing) {
         pushToolResult(existing);
       } else {
+        // Validate that the tool_use block actually exists in the assistant message
+        // before creating a synthetic result. This prevents creating tool_result entries
+        // that reference non-existent tool_use_ids, which would permanently corrupt
+        // the session (API rejects mismatched tool_use_id references).
+        // See: https://github.com/clawdbot/clawdbot/issues/8264
+        if (!validateToolCallExistsInContent(assistant, call.id)) {
+          // Skip creating synthetic result - the tool_use block is missing or malformed.
+          // This is safer than creating a result that would corrupt the transcript.
+          continue;
+        }
         const missing = makeMissingToolResult({
           toolCallId: call.id,
           toolName: call.name,
