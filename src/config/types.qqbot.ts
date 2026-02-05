@@ -3,4 +3,4 @@ export type QQBotConfig = {
   appId?: string;
   /** QQ Bot app secret. */
   appSecret?: string;
-}
+};
