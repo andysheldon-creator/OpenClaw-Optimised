@@ -123,6 +123,10 @@ export async function handleToolsInvokeHttpRequest(
     trustedProxies: opts.trustedProxies ?? cfg.gateway?.trustedProxies,
   });
   if (!authResult.ok) {
+    if (authResult.reason === "rate_limited") {
+      sendJson(res, 429, { error: { message: "Too many requests", type: "rate_limited" } });
+      return true;
+    }
     sendUnauthorized(res);
     return true;
   }

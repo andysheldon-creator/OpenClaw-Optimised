@@ -1,0 +1,103 @@
+# OpenClaw Pre-commit Configuration
+# Install: pre-commit install
+# Run all: pre-commit run --all-files
+# Update: pre-commit autoupdate
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  # Gitleaks - Secret Detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.1
+    hooks:
+      - id: gitleaks
+        name: Detect secrets with gitleaks
+        args:
+          - --config=security/gitleaks/.gitleaks.toml
+          - --verbose
+
+  # Block service_role keys
+  - repo: local
+    hooks:
+      - id: no-service-role
+        name: Block service_role keys
+        entry: >-
+          bash -c 'if git diff --cached --name-only | xargs grep -l "service_role" 2>/dev/null; then echo "ERROR: service_role key detected in staged files"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+      - id: no-curl-pipe-sh
+        name: Block curl|sh patterns
+        entry: >-
+          bash -c 'if git diff --cached | grep -E "curl.*\|\s*(ba)?sh|wget.*\|\s*(ba)?sh|bash\s*<\(curl" 2>/dev/null; then echo "ERROR: Dangerous curl|sh pattern detected"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+      - id: no-hardcoded-secrets
+        name: Check for hardcoded secrets
+        entry: bash security/scripts/check_no_secrets.sh
+        language: system
+        pass_filenames: false
+
+  # TruffleHog - Additional secret scanning
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.63.2
+    hooks:
+      - id: trufflehog
+        name: Detect secrets with TruffleHog
+        entry: trufflehog git file://. --since-commit HEAD --only-verified --fail
+        language: system
+        pass_filenames: false
+        stages: [commit]
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-json
+      - id: check-yaml
+        args: ["--allow-multiple-documents"]
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  # Detect AWS credentials
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: detect-aws-credentials
+        args: ["--allow-missing-credentials"]
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        args: ["--severity=warning"]
+        files: \.(sh|bash)$
+
+  # Commit message format
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.13.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+# CI-only hooks (run these in CI but not on every commit)
+ci:
+  autofix_commit_msg: "[pre-commit.ci] auto fixes"
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

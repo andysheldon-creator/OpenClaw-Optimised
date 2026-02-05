@@ -48,7 +48,11 @@ export type HookTokenResult = {
   fromQuery: boolean;
 };
 
-export function extractHookToken(req: IncomingMessage, url: URL): HookTokenResult {
+export function extractHookToken(
+  req: IncomingMessage,
+  url: URL,
+  opts?: { allowQueryToken?: boolean },
+): HookTokenResult {
   const auth =
     typeof req.headers.authorization === "string" ? req.headers.authorization.trim() : "";
   if (auth.toLowerCase().startsWith("bearer ")) {
@@ -66,7 +70,10 @@ export function extractHookToken(req: IncomingMessage, url: URL): HookTokenResul
   }
   const queryToken = url.searchParams.get("token");
   if (queryToken) {
-    return { token: queryToken.trim(), fromQuery: true };
+    if (opts?.allowQueryToken === true) {
+      return { token: queryToken.trim(), fromQuery: true };
+    }
+    return { token: undefined, fromQuery: true };
   }
   return { token: undefined, fromQuery: false };
 }

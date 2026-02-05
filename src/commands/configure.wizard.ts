@@ -373,6 +373,7 @@ export async function runConfigureWizard(
           port: gatewayPort,
           customBindHost: nextConfig.gateway?.customBindHost,
           basePath: undefined,
+          tlsEnabled: nextConfig.gateway?.tls?.enabled === true,
         });
         const remoteUrl = nextConfig.gateway?.remote?.url?.trim();
         const wsUrl =
@@ -500,6 +501,7 @@ export async function runConfigureWizard(
             port: gatewayPort,
             customBindHost: nextConfig.gateway?.customBindHost,
             basePath: undefined,
+            tlsEnabled: nextConfig.gateway?.tls?.enabled === true,
           });
           const remoteUrl = nextConfig.gateway?.remote?.url?.trim();
           const wsUrl =
@@ -551,6 +553,7 @@ export async function runConfigureWizard(
       port: gatewayPort,
       customBindHost: nextConfig.gateway?.customBindHost,
       basePath: nextConfig.gateway?.controlUi?.basePath,
+      tlsEnabled: nextConfig.gateway?.tls?.enabled === true,
     });
     // Try both new and old passwords since gateway may still have old config.
     const newPassword = nextConfig.gateway?.auth?.password ?? process.env.OPENCLAW_GATEWAY_PASSWORD;

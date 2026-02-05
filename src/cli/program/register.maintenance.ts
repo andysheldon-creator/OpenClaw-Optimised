@@ -41,7 +41,7 @@ export function registerMaintenanceCommands(program: Command) {
 
   program
     .command("dashboard")
-    .description("Open the Control UI with your current token")
+    .description("Open the Control UI (token is entered in the UI)")
     .addHelpText(
       "after",
       () =>

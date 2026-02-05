@@ -1,0 +1,184 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://openclaw.ai/schemas/skill-policy.json",
+  "title": "OpenClaw Skill Policy",
+  "description": "Schema for skill sandbox and security policies",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1",
+      "description": "Policy schema version"
+    },
+    "defaults": {
+      "type": "object",
+      "description": "Default policy for all skills",
+      "properties": {
+        "filesystem": {
+          "$ref": "#/definitions/filesystemPolicy"
+        },
+        "network": {
+          "$ref": "#/definitions/networkPolicy"
+        },
+        "subprocess": {
+          "$ref": "#/definitions/subprocessPolicy"
+        },
+        "runtime": {
+          "$ref": "#/definitions/runtimePolicy"
+        }
+      },
+      "additionalProperties": false
+    },
+    "overrides": {
+      "type": "object",
+      "description": "Per-skill policy overrides keyed by skill ID",
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9-]*[a-z0-9]$": {
+          "type": "object",
+          "properties": {
+            "filesystem": {
+              "$ref": "#/definitions/filesystemPolicy"
+            },
+            "network": {
+              "$ref": "#/definitions/networkPolicy"
+            },
+            "subprocess": {
+              "$ref": "#/definitions/subprocessPolicy"
+            },
+            "runtime": {
+              "$ref": "#/definitions/runtimePolicy"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "blocklist": {
+      "type": "object",
+      "description": "Global blocklists",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Shell commands that are never allowed"
+        },
+        "patterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Regex patterns for blocked content"
+        },
+        "hosts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Hostnames that are never allowed"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "filesystemPolicy": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["deny", "read-only", "sandbox-only", "workspace-only", "unrestricted"],
+          "default": "read-only",
+          "description": "Filesystem access mode"
+        },
+        "sandboxPath": {
+          "type": "string",
+          "description": "Path to skill-specific sandbox directory"
+        },
+        "allowedPaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Additional paths allowed for read/write"
+        },
+        "deniedPaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Paths explicitly denied (takes precedence)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "egress": {
+          "type": "string",
+          "enum": ["deny", "allowlist", "unrestricted"],
+          "default": "deny",
+          "description": "Outbound network policy"
+        },
+        "egressAllowlist": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed egress hostnames when egress=allowlist"
+        },
+        "listen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether skill can listen on ports"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subprocessPolicy": {
+      "type": "object",
+      "properties": {
+        "allowed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether subprocesses are allowed at all"
+        },
+        "allowedCommands": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Specific commands allowed (if subprocess allowed)"
+        },
+        "deniedCommands": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands explicitly denied (takes precedence)"
+        },
+        "shellAccess": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether shell access (sh, bash, cmd) is allowed"
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimePolicy": {
+      "type": "object",
+      "properties": {
+        "maxTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30,
+          "description": "Maximum execution time"
+        },
+        "maxMemoryMb": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 1024,
+          "default": 128,
+          "description": "Maximum memory usage"
+        },
+        "maxCpuPercent": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50,
+          "description": "Maximum CPU usage percentage"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

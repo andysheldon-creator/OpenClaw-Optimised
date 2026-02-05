@@ -83,15 +83,25 @@ describe("gateway server hooks", () => {
       expect(call?.job?.payload?.model).toBe("openai/gpt-4.1-mini");
       drainSystemEvents(resolveMainKey());
 
-      const resQuery = await fetch(`http://127.0.0.1:${port}/hooks/wake?token=hook-secret`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: "Query auth" }),
-      });
-      expect(resQuery.status).toBe(200);
-      const queryEvents = await waitForSystemEvent();
-      expect(queryEvents.some((e) => e.includes("Query auth"))).toBe(true);
-      drainSystemEvents(resolveMainKey());
+      const prevAllowQuery = process.env.OPENCLAW_HOOKS_ALLOW_QUERY_TOKEN;
+      process.env.OPENCLAW_HOOKS_ALLOW_QUERY_TOKEN = "true";
+      try {
+        const resQuery = await fetch(`http://127.0.0.1:${port}/hooks/wake?token=hook-secret`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: "Query auth" }),
+        });
+        expect(resQuery.status).toBe(200);
+        const queryEvents = await waitForSystemEvent();
+        expect(queryEvents.some((e) => e.includes("Query auth"))).toBe(true);
+        drainSystemEvents(resolveMainKey());
+      } finally {
+        if (prevAllowQuery === undefined) {
+          delete process.env.OPENCLAW_HOOKS_ALLOW_QUERY_TOKEN;
+        } else {
+          process.env.OPENCLAW_HOOKS_ALLOW_QUERY_TOKEN = prevAllowQuery;
+        }
+      }
 
       const resBadChannel = await fetch(`http://127.0.0.1:${port}/hooks/agent`, {
         method: "POST",

@@ -1,0 +1,220 @@
+# OpenClaw Gitleaks Configuration
+# Detects secrets and sensitive data in git repositories
+#
+# Run: gitleaks detect --config security/gitleaks/.gitleaks.toml
+# CI:  gitleaks detect --config security/gitleaks/.gitleaks.toml --baseline-path .gitleaks-baseline.json
+
+title = "OpenClaw Secret Detection"
+
+[extend]
+# Extend the default gitleaks configuration
+# useDefault = true
+
+[[rules]]
+id = "supabase-service-role"
+description = "Supabase service_role key (CRITICAL - bypasses RLS)"
+regex = '''(?i)(service[_-]?role|supabase[_-]?service)[_-]?(key|token)?['":\s=]+['"]?([a-zA-Z0-9._-]{20,})['"]?'''
+secretGroup = 3
+tags = ["supabase", "critical"]
+
+[[rules]]
+id = "supabase-anon-key"
+description = "Supabase anon key"
+regex = '''(?i)supabase[_-]?(anon|public)[_-]?(key|token)?['":\s=]+['"]?([a-zA-Z0-9._-]{20,})['"]?'''
+secretGroup = 3
+tags = ["supabase"]
+
+[[rules]]
+id = "supabase-jwt"
+description = "Supabase JWT secret"
+regex = '''(?i)supabase[_-]?jwt[_-]?secret['":\s=]+['"]?([a-zA-Z0-9._-]{20,})['"]?'''
+secretGroup = 1
+tags = ["supabase", "jwt"]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-[a-zA-Z0-9]{20,}'''
+tags = ["openai", "api-key"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API Key"
+regex = '''sk-ant-[a-zA-Z0-9-]{20,}'''
+tags = ["anthropic", "api-key"]
+
+[[rules]]
+id = "github-pat"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[a-zA-Z0-9]{36,}'''
+tags = ["github", "pat"]
+
+[[rules]]
+id = "github-pat-fine-grained"
+description = "GitHub Fine-Grained Personal Access Token"
+regex = '''github_pat_[a-zA-Z0-9_]{22,}'''
+tags = ["github", "pat"]
+
+[[rules]]
+id = "github-oauth"
+description = "GitHub OAuth Token"
+regex = '''gho_[a-zA-Z0-9]{36,}'''
+tags = ["github", "oauth"]
+
+[[rules]]
+id = "github-app-token"
+description = "GitHub App Token"
+regex = '''ghu_[a-zA-Z0-9]{36,}'''
+tags = ["github", "app"]
+
+[[rules]]
+id = "github-refresh-token"
+description = "GitHub Refresh Token"
+regex = '''ghr_[a-zA-Z0-9]{36,}'''
+tags = ["github", "refresh"]
+
+[[rules]]
+id = "slack-token"
+description = "Slack Token"
+regex = '''xox[baprs]-[a-zA-Z0-9-]{10,}'''
+tags = ["slack"]
+
+[[rules]]
+id = "slack-app-token"
+description = "Slack App Token"
+regex = '''xapp-[a-zA-Z0-9-]{10,}'''
+tags = ["slack"]
+
+[[rules]]
+id = "slack-webhook"
+description = "Slack Webhook URL"
+regex = '''https://hooks\.slack\.com/services/[A-Z0-9]+/[A-Z0-9]+/[a-zA-Z0-9]+'''
+tags = ["slack", "webhook"]
+
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram Bot Token"
+regex = '''\d{8,12}:[A-Za-z0-9_-]{35,}'''
+tags = ["telegram", "bot"]
+
+[[rules]]
+id = "discord-bot-token"
+description = "Discord Bot Token"
+regex = '''[MN][A-Za-z\d]{23,}\.[\w-]{6}\.[\w-]{27,}'''
+tags = ["discord", "bot"]
+
+[[rules]]
+id = "discord-webhook"
+description = "Discord Webhook URL"
+regex = '''https://discord(?:app)?\.com/api/webhooks/\d+/[A-Za-z0-9_-]+'''
+tags = ["discord", "webhook"]
+
+[[rules]]
+id = "google-api-key"
+description = "Google API Key"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+tags = ["google", "api-key"]
+
+[[rules]]
+id = "google-oauth-client-secret"
+description = "Google OAuth Client Secret"
+regex = '''GOCSPX-[a-zA-Z0-9_-]{28}'''
+tags = ["google", "oauth"]
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key ID"
+regex = '''(?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+tags = ["aws", "access-key"]
+
+[[rules]]
+id = "aws-secret-key"
+description = "AWS Secret Access Key"
+regex = '''(?i)aws[_-]?secret[_-]?access[_-]?key['":\s=]+['"]?([A-Za-z0-9/+=]{40})['"]?'''
+secretGroup = 1
+tags = ["aws", "secret-key"]
+
+[[rules]]
+id = "npm-token"
+description = "NPM Access Token"
+regex = '''npm_[a-zA-Z0-9]{36,}'''
+tags = ["npm"]
+
+[[rules]]
+id = "private-key-pem"
+description = "Private Key (PEM format)"
+regex = '''-----BEGIN[A-Z\s]*PRIVATE KEY-----'''
+tags = ["private-key", "pem"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key pattern"
+regex = '''(?i)(api[_-]?key|apikey)['":\s=]+['"]?([a-zA-Z0-9._-]{20,})['"]?'''
+secretGroup = 2
+tags = ["generic", "api-key"]
+
+[[rules]]
+id = "generic-secret"
+description = "Generic Secret pattern"
+regex = '''(?i)(secret|password|passwd|token)['":\s=]+['"]?([a-zA-Z0-9._!@#$%^&*()-]{12,})['"]?'''
+secretGroup = 2
+tags = ["generic", "secret"]
+entropy = 3.5
+
+[[rules]]
+id = "bearer-token"
+description = "Bearer Token in Authorization header"
+regex = '''(?i)authorization['":\s=]+['"]?bearer\s+([a-zA-Z0-9._-]{20,})['"]?'''
+secretGroup = 1
+tags = ["auth", "bearer"]
+
+[[rules]]
+id = "basic-auth"
+description = "Basic Auth credentials"
+regex = '''(?i)authorization['":\s=]+['"]?basic\s+([a-zA-Z0-9+/=]{20,})['"]?'''
+secretGroup = 1
+tags = ["auth", "basic"]
+
+[[rules]]
+id = "jwt-token"
+description = "JWT Token"
+regex = '''eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*'''
+tags = ["jwt"]
+
+[[rules]]
+id = "perplexity-api-key"
+description = "Perplexity API Key"
+regex = '''pplx-[a-zA-Z0-9_-]{10,}'''
+tags = ["perplexity", "api-key"]
+
+[[rules]]
+id = "groq-api-key"
+description = "Groq API Key"
+regex = '''gsk_[a-zA-Z0-9_-]{10,}'''
+tags = ["groq", "api-key"]
+
+# Allowlist for false positives
+[allowlist]
+description = "Global allowlist"
+
+# Exclude test fixtures and examples
+paths = [
+  '''test/fixtures/.*''',
+  '''.*\.test\.ts$''',
+  '''.*\.spec\.ts$''',
+  '''docs/.*\.md$''',
+  '''.env\.example$''',
+  '''security/.*''',
+]
+
+# Exclude known safe patterns
+regexes = [
+  '''sk-[a-z]+$''', # Placeholder like sk-test
+  '''YOUR[-_]API[-_]KEY''',
+  '''<[A-Z_]+>''', # Placeholder like <API_KEY>
+  '''EXAMPLE[-_]''',
+  '''PLACEHOLDER''',
+]
+
+# Specific commits to ignore (add hashes of known-safe commits)
+# commits = []

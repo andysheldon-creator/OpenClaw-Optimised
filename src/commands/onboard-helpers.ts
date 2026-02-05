@@ -179,23 +179,16 @@ export async function detectBrowserOpenSupport(): Promise<BrowserOpenSupport> {
   return { ok: true, command: resolved.command };
 }
 
-export function formatControlUiSshHint(params: {
-  port: number;
-  basePath?: string;
-  token?: string;
-}): string {
+export function formatControlUiSshHint(params: { port: number; basePath?: string }): string {
   const basePath = normalizeControlUiBasePath(params.basePath);
   const uiPath = basePath ? `${basePath}/` : "/";
   const localUrl = `http://localhost:${params.port}${uiPath}`;
-  const tokenParam = params.token ? `?token=${encodeURIComponent(params.token)}` : "";
-  const authedUrl = params.token ? `${localUrl}${tokenParam}` : undefined;
   const sshTarget = resolveSshTargetHint();
   return [
     "No GUI detected. Open from your computer:",
     `ssh -N -L ${params.port}:127.0.0.1:${params.port} ${sshTarget}`,
     "Then open:",
     localUrl,
-    authedUrl,
     "Docs:",
     "https://docs.openclaw.ai/gateway/remote",
     "https://docs.openclaw.ai/web/control-ui",
@@ -437,6 +430,8 @@ export function resolveControlUiLinks(params: {
   bind?: "auto" | "lan" | "loopback" | "custom" | "tailnet";
   customBindHost?: string;
   basePath?: string;
+  /** When true, return https:// and wss:// links. */
+  tlsEnabled?: boolean;
 }): { httpUrl: string; wsUrl: string } {
   const port = params.port;
   const bind = params.bind ?? "loopback";
@@ -454,9 +449,11 @@ export function resolveControlUiLinks(params: {
   const basePath = normalizeControlUiBasePath(params.basePath);
   const uiPath = basePath ? `${basePath}/` : "/";
   const wsPath = basePath ? basePath : "";
+  const scheme = params.tlsEnabled === true ? "https" : "http";
+  const wsScheme = params.tlsEnabled === true ? "wss" : "ws";
   return {
-    httpUrl: `http://${host}:${port}${uiPath}`,
-    wsUrl: `ws://${host}:${port}${wsPath}`,
+    httpUrl: `${scheme}://${host}:${port}${uiPath}`,
+    wsUrl: `${wsScheme}://${host}:${port}${wsPath}`,
   };
 }
 

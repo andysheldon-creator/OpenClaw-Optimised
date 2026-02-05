@@ -12,6 +12,7 @@ import type { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveAgentAvatar } from "../agents/identity-avatar.js";
 import { handleA2uiHttpRequest } from "../canvas-host/a2ui.js";
 import { loadConfig } from "../config/config.js";
+import { isIpAllowed, parseIpAllowlist } from "../security/ip-allowlist.js";
 import { handleSlackHttpRequest } from "../slack/http/index.js";
 import {
   handleControlUiAvatarRequest,
@@ -31,6 +32,7 @@ import {
   resolveHookChannel,
   resolveHookDeliver,
 } from "./hooks.js";
+import { isLoopbackAddress, isTrustedProxyAddress, resolveGatewayClientIp } from "./net.js";
 import { handleOpenAiHttpRequest } from "./openai-http.js";
 import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
 import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
@@ -82,7 +84,17 @@ export function createHooksRequestHandler(
       return false;
     }
 
-    const { token, fromQuery } = extractHookToken(req, url);
+    const allowQueryToken = process.env.OPENCLAW_HOOKS_ALLOW_QUERY_TOKEN === "true";
+    const { token, fromQuery } = extractHookToken(req, url, { allowQueryToken });
+    if (fromQuery && !token) {
+      res.statusCode = 400;
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.end(
+        "Hook tokens in query parameters are disabled. " +
+          "Use Authorization: Bearer <token> or X-OpenClaw-Token header instead.",
+      );
+      return true;
+    }
     if (!token || token !== hooksConfig.token) {
       res.statusCode = 401;
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -248,6 +260,53 @@ export function createGatewayHttpServer(opts: {
     try {
       const configSnapshot = loadConfig();
       const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
+      const allowlistRaw = (process.env.OPENCLAW_PUBLIC_BIND_IP_ALLOWLIST ?? "").trim();
+      if (allowlistRaw) {
+        const headerValue = (value: string | string[] | undefined) =>
+          Array.isArray(value) ? value[0] : value;
+        const remoteAddr = req.socket?.remoteAddress ?? "";
+        const forwardedFor = headerValue(req.headers?.["x-forwarded-for"]);
+        const realIp = headerValue(req.headers?.["x-real-ip"]);
+        const hasProxyHeaders = Boolean(forwardedFor || realIp);
+        const remoteIsTrustedProxy = isTrustedProxyAddress(remoteAddr, trustedProxies);
+        const parsed = parseIpAllowlist(allowlistRaw);
+        if (!parsed.ok) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.end("Gateway security configuration error (invalid IP allowlist)");
+          return;
+        }
+        const tailscaleLogin = req.headers?.["tailscale-user-login"];
+        const hasTailscaleIdentity =
+          typeof tailscaleLogin === "string" && tailscaleLogin.trim().length > 0;
+        // Fail closed if we appear to be behind a reverse proxy but it's not configured as trusted.
+        // Allow Tailscale Serve proxying (identity headers verified during auth).
+        if (
+          hasProxyHeaders &&
+          isLoopbackAddress(remoteAddr) &&
+          !remoteIsTrustedProxy &&
+          !hasTailscaleIdentity
+        ) {
+          res.statusCode = 403;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.end("Forbidden (proxy not trusted)");
+          return;
+        }
+        const clientIp =
+          resolveGatewayClientIp({ remoteAddr, forwardedFor, realIp, trustedProxies }) ?? "";
+        if (!clientIp) {
+          res.statusCode = 403;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.end("Forbidden");
+          return;
+        }
+        if (!isLoopbackAddress(clientIp) && !isIpAllowed(clientIp, parsed.entries)) {
+          res.statusCode = 403;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.end("Forbidden");
+          return;
+        }
+      }
       if (await handleHooksRequest(req, res)) {
         return;
       }

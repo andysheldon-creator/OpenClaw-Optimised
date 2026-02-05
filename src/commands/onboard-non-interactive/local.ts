@@ -112,6 +112,7 @@ export async function runNonInteractiveOnboardingLocal(params: {
       port: gatewayResult.port,
       customBindHost: nextConfig.gateway?.customBindHost,
       basePath: undefined,
+      tlsEnabled: nextConfig.gateway?.tls?.enabled === true,
     });
     await waitForGatewayReachable({
       url: links.wsUrl,

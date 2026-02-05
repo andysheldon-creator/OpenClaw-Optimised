@@ -82,9 +82,10 @@ describe("dashboardCommand", () => {
       bind: "loopback",
       customBindHost: undefined,
       basePath: undefined,
+      tlsEnabled: false,
     });
-    expect(mocks.copyToClipboard).toHaveBeenCalledWith("http://127.0.0.1:18789/?token=abc123");
-    expect(mocks.openUrl).toHaveBeenCalledWith("http://127.0.0.1:18789/?token=abc123");
+    expect(mocks.copyToClipboard).toHaveBeenCalledWith("http://127.0.0.1:18789/");
+    expect(mocks.openUrl).toHaveBeenCalledWith("http://127.0.0.1:18789/");
     expect(runtime.log).toHaveBeenCalledWith(
       "Opened in your browser. Keep that tab to control OpenClaw.",
     );

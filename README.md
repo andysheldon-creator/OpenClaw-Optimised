@@ -117,6 +117,121 @@ Default behavior on Telegram/WhatsApp/Signal/iMessage/Microsoft Teams/Discord/Go
 
 Run `openclaw doctor` to surface risky/misconfigured DM policies.
 
+## Security hardening
+
+OpenClaw includes built-in protections against common attack vectors. Run the security audit anytime:
+
+```bash
+openclaw security audit          # Quick audit
+openclaw security audit --deep   # Probe live gateway
+openclaw security audit --fix    # Auto-fix safe issues
+```
+
+### Gateway bind protection
+
+The gateway binds to **loopback only** (`127.0.0.1`) by default. Binding to a non-loopback address is **fail-closed** unless you explicitly opt in and meet the public-bind guard requirements.
+
+```bash
+# Public bind opt-in (required)
+export OPENCLAW_ALLOW_PUBLIC_BIND=true
+
+# Client IP allowlist (required; comma-separated IPs/CIDRs; enforced for HTTP + WS)
+export OPENCLAW_PUBLIC_BIND_IP_ALLOWLIST="203.0.113.10,198.51.100.0/24"
+
+# Gateway auth (required)
+export OPENCLAW_GATEWAY_TOKEN="<strong-random-token>"
+```
+
+Also required: enable HTTPS/WSS on the gateway:
+
+```json5
+{
+  gateway: {
+    tls: { enabled: true },
+  },
+}
+```
+
+Notes:
+
+- If you run behind a reverse proxy, set `gateway.trustedProxies` so client IP allowlisting uses `X-Forwarded-For`.
+- Auth failures are rate-limited per IP (`OPENCLAW_AUTH_RATE_LIMIT_THRESHOLD`, `OPENCLAW_AUTH_RATE_LIMIT_WINDOW_MS`, `OPENCLAW_AUTH_RATE_LIMIT_BLOCK_MS`).
+
+**Preferred remote access** (instead of public bind):
+
+- SSH tunnel: `ssh -L 18789:localhost:18789 user@host`
+- Tailscale: `gateway.tailscale.mode: serve`
+
+### Hooks (token safety)
+
+Hook tokens in query strings are **disabled by default** (to avoid leakage via logs/history/referrers).
+
+- Use `Authorization: Bearer <token>` or `X-OpenClaw-Token: <token>`.
+- If you must use `?token=...` (some webhook providers), set `OPENCLAW_HOOKS_ALLOW_QUERY_TOKEN=true` and only expose hooks over HTTPS/WSS + an IP allowlist.
+
+### Secret scanning
+
+Pre-commit hooks and CI scan for leaked secrets. Run manually:
+
+```bash
+# Check staged files for secrets
+./security/scripts/check_no_secrets.sh
+
+# Scan entire git history
+./security/scripts/scan_git_history_for_secrets.sh
+
+# Full security smoketest
+./security/scripts/local_security_smoketest.sh
+```
+
+Install pre-commit hooks:
+
+```bash
+pre-commit install -c security/precommit/.pre-commit-config.yaml
+```
+
+### Log redaction
+
+Sensitive data is automatically redacted from logs:
+
+- **Headers**: `Authorization`, `Cookie`, `x-api-key`, `supabase-api-key`
+- **Fields**: `token`, `secret`, `password`, `api_key`, `service_role`
+- **Patterns**: API keys (OpenAI `sk-*`, GitHub `ghp_*`, Slack `xox*`, etc.)
+
+Never log `process.env` directly. Use `safeEnvSnapshot()` from `src/logging/redact.ts`.
+
+### Skills safety
+
+Remote skill installation is disabled by default. Local skills run in a restricted sandbox:
+
+- **Filesystem**: read-only (writes only to sandbox directory)
+- **Network**: egress denied by default
+- **Subprocess**: disabled (no shell access)
+
+Dangerous one-liner patterns are blocked and cannot be bypassed:
+
+- `curl | sh`, `wget | bash`, `bash <(curl ...)`
+- PowerShell `iwr | iex`
+- Python `urllib` + `exec`
+
+Verify skills:
+
+```bash
+./security/scripts/check_skills_allowlist.sh
+```
+
+### Security documentation
+
+Full security docs live in the `security/` directory:
+
+| File                                     | Purpose                         |
+| ---------------------------------------- | ------------------------------- |
+| `security/OPENCLAW_SECURITY_PATCH.md`    | Risk matrix and fix checklist   |
+| `security/OPENCLAW_RUNBOOK.md`           | Incident response procedures    |
+| `security/threat-model.md`               | Asset/threat/mitigation mapping |
+| `security/rls/SUPABASE_RLS_TEMPLATE.sql` | Database RLS baseline           |
+| `security/gitleaks/.gitleaks.toml`       | Secret detection patterns       |
+
 ## Highlights
 
 - **[Local-first Gateway](https://docs.openclaw.ai/gateway)** — single control plane for sessions, channels, tools, and events.
@@ -168,6 +283,7 @@ Run `openclaw doctor` to surface risky/misconfigured DM policies.
 - [Presence](https://docs.openclaw.ai/concepts/presence), [typing indicators](https://docs.openclaw.ai/concepts/typing-indicators), and [usage tracking](https://docs.openclaw.ai/concepts/usage-tracking).
 - [Models](https://docs.openclaw.ai/concepts/models), [model failover](https://docs.openclaw.ai/concepts/model-failover), and [session pruning](https://docs.openclaw.ai/concepts/session-pruning).
 - [Security](https://docs.openclaw.ai/gateway/security) and [troubleshooting](https://docs.openclaw.ai/channels/troubleshooting).
+- Security hardening: public-bind guard, log redaction, secret scanning, skill sandbox, anomaly detection.
 
 ### Ops + packaging
 
@@ -325,9 +441,27 @@ Minimal `~/.openclaw/openclaw.json` (model + defaults):
 
 ## Security model (important)
 
-- **Default:** tools run on the host for the **main** session, so the agent has full access when it’s just you.
-- **Group/channel safety:** set `agents.defaults.sandbox.mode: "non-main"` to run **non‑main sessions** (groups/channels) inside per‑session Docker sandboxes; bash then runs in Docker for those sessions.
+OpenClaw follows a **defense-in-depth** approach with multiple security layers:
+
+| Layer           | Default                | Purpose                   |
+| --------------- | ---------------------- | ------------------------- |
+| Gateway bind    | `127.0.0.1` (loopback) | Prevents network exposure |
+| DM policy       | `pairing`              | Unknown senders blocked   |
+| Tool sandbox    | `main` session trusted | Groups/channels sandboxed |
+| Log redaction   | Enabled                | Sensitive data masked     |
+| Secret scanning | Pre-commit hooks       | Prevents key leaks        |
+| Skills          | Local-only             | Remote install blocked    |
+
+**Session isolation:**
+
+- **Default:** tools run on the host for the **main** session, so the agent has full access when it's just you.
+- **Group/channel safety:** set `agents.defaults.sandbox.mode: "non-main"` to run **non-main sessions** (groups/channels) inside per-session Docker sandboxes; bash then runs in Docker for those sessions.
 - **Sandbox defaults:** allowlist `bash`, `process`, `read`, `write`, `edit`, `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`; denylist `browser`, `canvas`, `nodes`, `cron`, `discord`, `gateway`.
+
+**Identity protection:**
+
+- User-provided identity fields (`impersonate`, `post_as`, `actor`) are stripped from inbound requests.
+- Agent identity comes from the server only.
 
 Details: [Security guide](https://docs.openclaw.ai/gateway/security) · [Docker + sandboxing](https://docs.openclaw.ai/install/docker) · [Sandbox config](https://docs.openclaw.ai/gateway/configuration)
 

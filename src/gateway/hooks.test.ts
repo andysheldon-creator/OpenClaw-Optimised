@@ -60,8 +60,12 @@ describe("gateway hooks helpers", () => {
 
     const req3 = { headers: {} } as unknown as IncomingMessage;
     const result3 = extractHookToken(req3, url);
-    expect(result3.token).toBe("query");
+    expect(result3.token).toBeUndefined();
     expect(result3.fromQuery).toBe(true);
+
+    const result4 = extractHookToken(req3, url, { allowQueryToken: true });
+    expect(result4.token).toBe("query");
+    expect(result4.fromQuery).toBe(true);
   });
 
   test("normalizeWakePayload trims + validates", () => {

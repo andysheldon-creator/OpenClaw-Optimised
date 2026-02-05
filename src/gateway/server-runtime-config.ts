@@ -4,6 +4,7 @@ import type {
   GatewayTailscaleConfig,
   loadConfig,
 } from "../config/config.js";
+import { enforcePublicBindGuard } from "../security/public-bind-guard.js";
 import {
   assertGatewayAuthConfigured,
   type ResolvedGatewayAuth,
@@ -99,6 +100,15 @@ export async function resolveGatewayRuntimeConfig(params: {
       `refusing to bind gateway to ${bindHost}:${params.port} without auth (set gateway.auth.token/password, or set OPENCLAW_GATEWAY_TOKEN/OPENCLAW_GATEWAY_PASSWORD)`,
     );
   }
+
+  // Security: Enforce public bind guard for non-loopback addresses
+  enforcePublicBindGuard({
+    bindHost,
+    hasToken,
+    hasPassword,
+    hasTailscaleAuth: resolvedAuth.allowTailscale && tailscaleMode === "serve",
+    tlsEnabled: params.cfg.gateway?.tls?.enabled === true,
+  });
 
   return {
     bindHost,

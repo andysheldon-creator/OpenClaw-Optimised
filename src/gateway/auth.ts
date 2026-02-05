@@ -19,6 +19,82 @@ export type GatewayAuthResult = {
   reason?: string;
 };
 
+type AuthRateLimitConfig = {
+  enabled: boolean;
+  threshold: number;
+  windowMs: number;
+  blockMs: number;
+};
+
+function resolveAuthRateLimitConfig(env: NodeJS.ProcessEnv): AuthRateLimitConfig {
+  const enabled = env.OPENCLAW_AUTH_RATE_LIMIT !== "0";
+  const thresholdRaw = env.OPENCLAW_AUTH_RATE_LIMIT_THRESHOLD;
+  const windowRaw = env.OPENCLAW_AUTH_RATE_LIMIT_WINDOW_MS;
+  const blockRaw = env.OPENCLAW_AUTH_RATE_LIMIT_BLOCK_MS;
+  const threshold = thresholdRaw ? Number(thresholdRaw) : 20;
+  const windowMs = windowRaw ? Number(windowRaw) : 60_000;
+  const blockMs = blockRaw ? Number(blockRaw) : 5 * 60_000;
+  return {
+    enabled,
+    threshold: Number.isFinite(threshold) && threshold > 0 ? Math.floor(threshold) : 20,
+    windowMs: Number.isFinite(windowMs) && windowMs > 0 ? Math.floor(windowMs) : 60_000,
+    blockMs: Number.isFinite(blockMs) && blockMs > 0 ? Math.floor(blockMs) : 5 * 60_000,
+  };
+}
+
+type AuthRateLimitState = {
+  failures: number[];
+  blockedUntilMs: number;
+};
+
+const authRateLimitByIp = new Map<string, AuthRateLimitState>();
+
+function pruneAuthRateState(nowMs: number) {
+  // Prevent unbounded growth on long-running gateways under scan traffic.
+  // Keep it simple: opportunistic pruning on calls.
+  if (authRateLimitByIp.size < 2048) {
+    return;
+  }
+  for (const [ip, state] of authRateLimitByIp) {
+    const activeFailures = state.failures.filter((ts) => ts > nowMs - 10 * 60_000);
+    const stillBlocked = state.blockedUntilMs > nowMs;
+    if (!stillBlocked && activeFailures.length === 0) {
+      authRateLimitByIp.delete(ip);
+      continue;
+    }
+    if (activeFailures.length !== state.failures.length) {
+      authRateLimitByIp.set(ip, { ...state, failures: activeFailures });
+    }
+  }
+}
+
+function isAuthRateLimited(ip: string, nowMs: number): boolean {
+  const state = authRateLimitByIp.get(ip);
+  if (!state) {
+    return false;
+  }
+  if (state.blockedUntilMs <= nowMs) {
+    authRateLimitByIp.delete(ip);
+    return false;
+  }
+  return true;
+}
+
+function recordAuthFailure(ip: string, cfg: AuthRateLimitConfig, nowMs: number): boolean {
+  const existing = authRateLimitByIp.get(ip);
+  const windowStart = nowMs - cfg.windowMs;
+  const failures = (existing?.failures ?? []).filter((ts) => ts > windowStart);
+  failures.push(nowMs);
+  const shouldBlock = failures.length >= cfg.threshold;
+  const blockedUntilMs = shouldBlock ? nowMs + cfg.blockMs : (existing?.blockedUntilMs ?? 0);
+  authRateLimitByIp.set(ip, { failures, blockedUntilMs });
+  return shouldBlock;
+}
+
+function clearAuthFailures(ip: string) {
+  authRateLimitByIp.delete(ip);
+}
+
 type ConnectAuth = {
   token?: string;
   password?: string;
@@ -245,6 +321,16 @@ export async function authorizeGatewayConnect(params: {
   const { auth, connectAuth, req, trustedProxies } = params;
   const tailscaleWhois = params.tailscaleWhois ?? readTailscaleWhoisIdentity;
   const localDirect = isLocalDirectRequest(req, trustedProxies);
+  const nowMs = Date.now();
+  const env = process.env;
+  const rateCfg = resolveAuthRateLimitConfig(env);
+  const sourceIp = resolveRequestClientIp(req, trustedProxies);
+  if (rateCfg.enabled && sourceIp && !isLoopbackAddress(sourceIp)) {
+    pruneAuthRateState(nowMs);
+    if (isAuthRateLimited(sourceIp, nowMs)) {
+      return { ok: false, reason: "rate_limited" };
+    }
+  }
 
   if (auth.allowTailscale && !localDirect) {
     const tailscaleCheck = await resolveVerifiedTailscaleUser({
@@ -252,6 +338,9 @@ export async function authorizeGatewayConnect(params: {
       tailscaleWhois,
     });
     if (tailscaleCheck.ok) {
+      if (sourceIp) {
+        clearAuthFailures(sourceIp);
+      }
       return {
         ok: true,
         method: "tailscale",
@@ -265,10 +354,21 @@ export async function authorizeGatewayConnect(params: {
       return { ok: false, reason: "token_missing_config" };
     }
     if (!connectAuth?.token) {
-      return { ok: false, reason: "token_missing" };
+      const blocked =
+        rateCfg.enabled && sourceIp && !isLoopbackAddress(sourceIp)
+          ? recordAuthFailure(sourceIp, rateCfg, nowMs)
+          : false;
+      return { ok: false, reason: blocked ? "rate_limited" : "token_missing" };
     }
     if (!safeEqual(connectAuth.token, auth.token)) {
-      return { ok: false, reason: "token_mismatch" };
+      const blocked =
+        rateCfg.enabled && sourceIp && !isLoopbackAddress(sourceIp)
+          ? recordAuthFailure(sourceIp, rateCfg, nowMs)
+          : false;
+      return { ok: false, reason: blocked ? "rate_limited" : "token_mismatch" };
+    }
+    if (sourceIp) {
+      clearAuthFailures(sourceIp);
     }
     return { ok: true, method: "token" };
   }
@@ -279,10 +379,21 @@ export async function authorizeGatewayConnect(params: {
       return { ok: false, reason: "password_missing_config" };
     }
     if (!password) {
-      return { ok: false, reason: "password_missing" };
+      const blocked =
+        rateCfg.enabled && sourceIp && !isLoopbackAddress(sourceIp)
+          ? recordAuthFailure(sourceIp, rateCfg, nowMs)
+          : false;
+      return { ok: false, reason: blocked ? "rate_limited" : "password_missing" };
     }
     if (!safeEqual(password, auth.password)) {
-      return { ok: false, reason: "password_mismatch" };
+      const blocked =
+        rateCfg.enabled && sourceIp && !isLoopbackAddress(sourceIp)
+          ? recordAuthFailure(sourceIp, rateCfg, nowMs)
+          : false;
+      return { ok: false, reason: blocked ? "rate_limited" : "password_mismatch" };
+    }
+    if (sourceIp) {
+      clearAuthFailures(sourceIp);
     }
     return { ok: true, method: "password" };
   }

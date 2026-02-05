@@ -30,12 +30,18 @@ export async function dashboardCommand(
     bind,
     customBindHost,
     basePath,
+    tlsEnabled: cfg.gateway?.tls?.enabled === true,
   });
-  const authedUrl = token ? `${links.httpUrl}?token=${encodeURIComponent(token)}` : links.httpUrl;
+  const dashboardUrl = links.httpUrl;
 
-  runtime.log(`Dashboard URL: ${authedUrl}`);
+  runtime.log(`Dashboard URL: ${dashboardUrl}`);
+  if (token) {
+    runtime.log(
+      "Gateway token is configured. Open the dashboard URL and paste the token in Control UI settings when prompted.",
+    );
+  }
 
-  const copied = await copyToClipboard(authedUrl).catch(() => false);
+  const copied = await copyToClipboard(dashboardUrl).catch(() => false);
   runtime.log(copied ? "Copied to clipboard." : "Copy to clipboard unavailable.");
 
   let opened = false;
@@ -43,13 +49,12 @@ export async function dashboardCommand(
   if (!options.noOpen) {
     const browserSupport = await detectBrowserOpenSupport();
     if (browserSupport.ok) {
-      opened = await openUrl(authedUrl);
+      opened = await openUrl(dashboardUrl);
     }
     if (!opened) {
       hint = formatControlUiSshHint({
         port,
         basePath,
-        token: token || undefined,
       });
     }
   } else {

@@ -71,3 +71,38 @@ USER.md
 
 # local tooling
 .serena/
+
+# Security-sensitive files (NEVER commit)
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json
+**/secrets/
+**/.secrets/
+*.secret
+*.secrets
+
+# Logs that may contain sensitive data
+*.log
+**/logs/
+/tmp/
+
+# Local configuration that may contain secrets
+config.local.*
+*.local.yaml
+*.local.yml
+*.local.json
+*.local.toml
+
+# Gitleaks baseline (may contain false positive findings)
+.gitleaks-baseline.json
+
+# Session data
+~/.openclaw/
+**/sessions/
+**/.sessions/

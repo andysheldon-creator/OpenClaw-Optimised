@@ -272,6 +272,7 @@ export async function statusAllCommand(
           bind: cfg.gateway?.bind,
           customBindHost: cfg.gateway?.customBindHost,
           basePath: cfg.gateway?.controlUi?.basePath,
+          tlsEnabled: cfg.gateway?.tls?.enabled === true,
         }).httpUrl
       : null;
 
