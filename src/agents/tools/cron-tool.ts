@@ -1,6 +1,8 @@
 import { Type } from "@sinclair/typebox";
+import { type ChannelId } from "../../channels/plugins/types.js";
 import { loadConfig } from "../../config/config.js";
 import { normalizeCronJobCreate, normalizeCronJobPatch } from "../../cron/normalize.js";
+import { parseAgentSessionKey } from "../../sessions/session-key-utils.js";
 import { truncateUtf16Safe } from "../../utils.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { optionalStringEnum, stringEnum } from "../schema/typebox.js";
@@ -153,6 +155,62 @@ async function buildReminderContextLines(params: {
   }
 }
 
+function inferDeliveryFromSessionKey(
+  agentSessionKey?: string,
+): { mode: "announce"; channel: ChannelId; to?: string } | null {
+  const parsed = parseAgentSessionKey(agentSessionKey);
+  if (!parsed || !parsed.rest) {
+    return null;
+  }
+  // Format: "agent:<agentId>:<channel>:<rest...>" or "agent:<agentId>:main"
+  // parsed.rest is "<channel>:<rest...>"
+  const parts = parsed.rest.split(":").filter(Boolean);
+  if (parts.length === 0) {
+    return null; // "main" or empty
+  }
+  if (parts[0] === "main") {
+    return null;
+  }
+  const channel = parts[0] as ChannelId;
+
+  // Handle various formats:
+  // channel:dm:<peerId>
+  // channel:group:<groupId>
+  // channel:channel:<channelId>
+  // channel:<accountId>:...
+
+  // Heuristic: If we can parse a peerId, use it.
+  // Note: This logic duplicates session key parsing in buildAgentPeerSessionKey, which is tricky.
+  // We opt for a safe subset: if we see "dm", "group", or "channel" token, extract the ID.
+
+  // Check for accountId scenarios
+  // agent:main:telegram:default:dm:123 -> parts=[telegram, default, dm, 123]
+  // agent:main:telegram:dm:123 -> parts=[telegram, dm, 123]
+
+  let to: string | undefined;
+
+  // Try to find peer marker
+  const markerIndex = parts.findIndex(
+    (p) => p === "dm" || p === "group" || p === "channel" || p === "thread",
+  );
+  if (markerIndex !== -1 && markerIndex + 1 < parts.length) {
+    // Reconstruct the ID from remaining parts allow for colons in IDs
+    to = parts.slice(markerIndex + 1).join(":");
+  }
+
+  // If we can't find a peer marker, we might be in channel:<channelId> implicit form?
+  // Let's stick to explicit marker for safety.
+
+  if (!to) {
+    // Can't infer 'to', so we can't fully construct delivery.
+    // However, if the user just wants the channel, maybe that's enough?
+    // ResolvedDeliveryTarget logic handles missing 'to' by failing or warning.
+    return null;
+  }
+
+  return { mode: "announce", channel, to };
+}
+
 export function createCronTool(opts?: CronToolOptions): AnyAgentTool {
   return {
     label: "Cron",
@@ -243,6 +301,22 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
               (job as { agentId?: string }).agentId = agentId;
             }
           }
+
+          // [Fix Issue 3] Infer delivery target from session key for isolated jobs if not provided
+          if (
+            opts?.agentSessionKey &&
+            job &&
+            typeof job === "object" &&
+            !("delivery" in job) &&
+            "payload" in job &&
+            (job as { payload?: { kind?: string } }).payload?.kind === "agentTurn"
+          ) {
+            const inferred = inferDeliveryFromSessionKey(opts.agentSessionKey);
+            if (inferred) {
+              (job as { delivery?: unknown }).delivery = inferred;
+            }
+          }
+
           const contextMessages =
             typeof params.contextMessages === "number" && Number.isFinite(params.contextMessages)
               ? params.contextMessages
