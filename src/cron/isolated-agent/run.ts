@@ -476,11 +476,12 @@ export async function runCronIsolatedAgentTurn(params: {
       logWarn(`[cron:${params.job.id}] ${message}`);
       return { status: "ok", summary, outputText };
     }
+    const to = resolvedDelivery.to;
     try {
       await deliverOutboundPayloads({
         cfg: cfgWithAgentDefaults,
         channel: resolvedDelivery.channel,
-        to: resolvedDelivery.to,
+        to,
         accountId: resolvedDelivery.accountId,
         threadId: resolvedDelivery.threadId,
         payloads,

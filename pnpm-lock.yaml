@@ -552,6 +552,22 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  packages/core-memories:
+    dependencies:
+      openclaw:
+        specifier: '>=2026.2.0'
+        version: 2026.2.2(@napi-rs/canvas@0.1.89)(@types/express@5.0.6)(audio-decode@2.2.3)(node-llama-cpp@3.15.1(typescript@5.9.3))(signal-polyfill@0.2.2)
+    devDependencies:
+      '@types/node':
+        specifier: ^25.2.0
+        version: 25.2.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.2.0)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+
   packages/moltbot:
     dependencies:
       openclaw:
@@ -1457,12 +1473,26 @@ packages:
     resolution: {integrity: sha512-faGUlTcXka5l7rv0lP3K3vGW/ejRuOS24RR2aSFWREUQqzjgdsuWNo/IiPqL3kWRGt6Ahl2+qcDAwtdeWeuGUw==}
     hasBin: true
 
+  '@mariozechner/pi-agent-core@0.51.1':
+    resolution: {integrity: sha512-Ssy7ipyYl2mg99T3W5maA1DKrFCYrWeM6kq5awyd+e34Bd6njK5bsi1keqtlbCIsTCtF9NngUwUJ2lWEi9kHhA==}
+    engines: {node: '>=20.0.0'}
+
   '@mariozechner/pi-agent-core@0.51.3':
     resolution: {integrity: sha512-pO5ScRuf7F5GCqS02vuB3gIV/MHR2cskEEUnbVbkSf0RHJb3vTICy/ACQyeI+UYk7yjFmdvQgbSUtVrYJ3q8Ag==}
     engines: {node: '>=20.0.0'}
 
+  '@mariozechner/pi-ai@0.51.1':
+    resolution: {integrity: sha512-QJgiVwxvUJx6QECSqOQi1NNhOdzzFYDoX3C21aPgYH9DQQpvg4thzhSK9eZoxD+HsQGfcq8u/DkPdPyl0tl8Bg==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
+
   '@mariozechner/pi-ai@0.51.3':
     resolution: {integrity: sha512-NocfuwUPCGeNhWyfzSGKbsTqUvFmP+VihU8+xtzX9FoHvQQVJHQ49Sz8sfLK04BbEWYI9s/gZ7a9xnJ0O4cz8g==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
+
+  '@mariozechner/pi-coding-agent@0.51.1':
+    resolution: {integrity: sha512-vZCQ1gOQKC5kJOUQLMZb55OySIG27NxcMTKbJUQ0f1Ncn5uvV/Z4I/U5Ok217tm60EDC4JRv5GC1YMwpVRQFyg==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -1470,6 +1500,10 @@ packages:
     resolution: {integrity: sha512-pu/4IxeMZMapYiSO3LWvNRztOXXKLlLNL+drjMvtgWbp9MJ8azP+5Zwsp3/vzrPvM54wCkaSa0voUEThm4Ba/Q==}
     engines: {node: '>=20.0.0'}
     hasBin: true
+
+  '@mariozechner/pi-tui@0.51.1':
+    resolution: {integrity: sha512-1g6Z4WBvWcQf3bMM85fsHyQHv4mOcqKoH1AB8+G2lBHO49707gqHc3y6LbXuBSNn8uINGoAk2LpUoAUFnxLExg==}
+    engines: {node: '>=20.0.0'}
 
   '@mariozechner/pi-tui@0.51.3':
     resolution: {integrity: sha512-1B9C3oVsAcBSO0rvk4qC3Iq655LveLQDSnlseypCo/KiR5eY39Hw1XRtvq5N05mtxNuo3mRw8FMcYCwIl1BbDg==}
@@ -4562,6 +4596,14 @@ packages:
       zod:
         optional: true
 
+  openclaw@2026.2.2:
+    resolution: {integrity: sha512-a+APDrAbwTXbVQG250hkLSb7Y/HckaAljhYPZu4GrVspiO65/Fhoe9COIYMKzCvL/LLKVUEvCUeB8dzKroZMhA==}
+    engines: {node: '>=22.12.0'}
+    hasBin: true
+    peerDependencies:
+      '@napi-rs/canvas': ^0.1.89
+      node-llama-cpp: 3.15.1
+
   opus-decoder@0.7.11:
     resolution: {integrity: sha512-+e+Jz3vGQLxRTBHs8YJQPRPc1Tr+/aC6coV/DlZylriA29BdHQAYXhvNRKtjftof17OFng0+P4wsFIqQu3a48A==}
 
@@ -6784,9 +6826,46 @@ snapshots:
       std-env: 3.10.0
       yoctocolors: 2.1.2
 
+  '@mariozechner/pi-agent-core@0.51.1(ws@8.19.0)(zod@4.3.6)':
+    dependencies:
+      '@mariozechner/pi-ai': 0.51.3(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-tui': 0.51.3
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - aws-crt
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
+
   '@mariozechner/pi-agent-core@0.51.3(ws@8.19.0)(zod@4.3.6)':
     dependencies:
       '@mariozechner/pi-ai': 0.51.3(ws@8.19.0)(zod@4.3.6)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - aws-crt
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
+
+  '@mariozechner/pi-ai@0.51.1(ws@8.19.0)(zod@4.3.6)':
+    dependencies:
+      '@anthropic-ai/sdk': 0.71.2(zod@4.3.6)
+      '@aws-sdk/client-bedrock-runtime': 3.981.0
+      '@google/genai': 1.34.0
+      '@mistralai/mistralai': 1.10.0
+      '@sinclair/typebox': 0.34.47
+      ajv: 8.17.1
+      ajv-formats: 3.0.1(ajv@8.17.1)
+      chalk: 5.6.2
+      openai: 6.10.0(ws@8.19.0)(zod@4.3.6)
+      partial-json: 0.1.7
+      proxy-agent: 6.5.0
+      undici: 7.20.0
+      zod-to-json-schema: 3.25.1(zod@4.3.6)
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - aws-crt
@@ -6811,6 +6890,34 @@ snapshots:
       proxy-agent: 6.5.0
       undici: 7.20.0
       zod-to-json-schema: 3.25.1(zod@4.3.6)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - aws-crt
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
+
+  '@mariozechner/pi-coding-agent@0.51.1(ws@8.19.0)(zod@4.3.6)':
+    dependencies:
+      '@mariozechner/jiti': 2.6.5
+      '@mariozechner/pi-agent-core': 0.51.3(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-ai': 0.51.3(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-tui': 0.51.3
+      '@silvia-odwyer/photon-node': 0.3.4
+      chalk: 5.6.2
+      cli-highlight: 2.1.11
+      diff: 8.0.3
+      file-type: 21.3.0
+      glob: 11.1.0
+      ignore: 7.0.5
+      marked: 15.0.12
+      minimatch: 10.1.1
+      proper-lockfile: 4.1.2
+      yaml: 2.8.2
+    optionalDependencies:
+      '@mariozechner/clipboard': 0.3.2
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - aws-crt
@@ -6847,6 +6954,14 @@ snapshots:
       - utf-8-validate
       - ws
       - zod
+
+  '@mariozechner/pi-tui@0.51.1':
+    dependencies:
+      '@types/mime-types': 2.1.4
+      chalk: 5.6.2
+      get-east-asian-width: 1.4.0
+      marked: 15.0.12
+      mime-types: 3.0.2
 
   '@mariozechner/pi-tui@0.51.3':
     dependencies:
@@ -10180,6 +10295,81 @@ snapshots:
     optionalDependencies:
       ws: 8.19.0
       zod: 4.3.6
+
+  openclaw@2026.2.2(@napi-rs/canvas@0.1.89)(@types/express@5.0.6)(audio-decode@2.2.3)(node-llama-cpp@3.15.1(typescript@5.9.3))(signal-polyfill@0.2.2):
+    dependencies:
+      '@agentclientprotocol/sdk': 0.13.1(zod@4.3.6)
+      '@aws-sdk/client-bedrock': 3.981.0
+      '@buape/carbon': 0.14.0(hono@4.11.7)
+      '@clack/prompts': 1.0.0
+      '@grammyjs/runner': 2.0.3(grammy@1.39.3)
+      '@grammyjs/transformer-throttler': 1.2.1(grammy@1.39.3)
+      '@homebridge/ciao': 1.3.4
+      '@larksuiteoapi/node-sdk': 1.58.0
+      '@line/bot-sdk': 10.6.0
+      '@lydell/node-pty': 1.2.0-beta.3
+      '@mariozechner/pi-agent-core': 0.51.1(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-ai': 0.51.1(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-coding-agent': 0.51.1(ws@8.19.0)(zod@4.3.6)
+      '@mariozechner/pi-tui': 0.51.1
+      '@mozilla/readability': 0.6.0
+      '@napi-rs/canvas': 0.1.89
+      '@sinclair/typebox': 0.34.47
+      '@slack/bolt': 4.6.0(@types/express@5.0.6)
+      '@slack/web-api': 7.13.0
+      '@whiskeysockets/baileys': 7.0.0-rc.9(audio-decode@2.2.3)(sharp@0.34.5)
+      ajv: 8.17.1
+      chalk: 5.6.2
+      chokidar: 5.0.0
+      cli-highlight: 2.1.11
+      commander: 14.0.3
+      croner: 10.0.1
+      discord-api-types: 0.38.38
+      dotenv: 17.2.3
+      express: 5.2.1
+      file-type: 21.3.0
+      grammy: 1.39.3
+      hono: 4.11.7
+      jiti: 2.6.1
+      json5: 2.2.3
+      jszip: 3.10.1
+      linkedom: 0.18.12
+      long: 5.3.2
+      markdown-it: 14.1.0
+      node-edge-tts: 1.2.9
+      node-llama-cpp: 3.15.1(typescript@5.9.3)
+      osc-progress: 0.3.0
+      pdfjs-dist: 5.4.624
+      playwright-core: 1.58.1
+      proper-lockfile: 4.1.2
+      qrcode-terminal: 0.12.0
+      sharp: 0.34.5
+      signal-utils: 0.21.1(signal-polyfill@0.2.2)
+      sqlite-vec: 0.1.7-alpha.2
+      tar: 7.5.7
+      tslog: 4.10.2
+      undici: 7.20.0
+      ws: 8.19.0
+      yaml: 2.8.2
+      zod: 4.3.6
+    transitivePeerDependencies:
+      - '@discordjs/opus'
+      - '@modelcontextprotocol/sdk'
+      - '@types/express'
+      - audio-decode
+      - aws-crt
+      - bufferutil
+      - canvas
+      - debug
+      - encoding
+      - ffmpeg-static
+      - jimp
+      - link-preview-js
+      - node-opus
+      - opusscript
+      - signal-polyfill
+      - supports-color
+      - utf-8-validate
 
   opus-decoder@0.7.11:
     dependencies:
