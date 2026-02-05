@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import chalk from "chalk";
 import type { OnboardOptions } from "../commands/onboard-types.js";
 import type { OpenClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -292,7 +291,7 @@ export async function finalizeOnboardingWizard(
   );
   if (tokenParam) {
     await prompter.note(
-      chalk.yellow("⚠️ The URL above contains your gateway token. Avoid sharing it."),
+      "⚠️ The URL above contains your gateway token. Avoid sharing it.",
       "Security",
     );
   }

@@ -36,8 +36,9 @@ export async function dashboardCommand(
 
   runtime.log(`Dashboard URL: ${authedUrl}`);
   if (token) {
-    runtime.log(chalk.yellow("⚠️ This URL contains your gateway token. Avoid sharing it."));
-    runtime.log(chalk.dim("The token will be stripped from the URL after loading in the browser."));
+    const isTTY = process.stdout.isTTY;
+    runtime.log(isTTY ? chalk.yellow("⚠️ This URL contains your gateway token. Avoid sharing it.") : "⚠️ This URL contains your gateway token. Avoid sharing it.");
+    runtime.log(isTTY ? chalk.dim("The token will be stripped from the URL after loading in the browser.") : "The token will be stripped from the URL after loading in the browser.");
   }
 
   const copied = await copyToClipboard(authedUrl).catch(() => false);

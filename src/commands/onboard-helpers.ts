@@ -2,7 +2,6 @@ import { cancel, isCancel } from "@clack/prompts";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import chalk from "chalk";
 import { inspect } from "node:util";
 import type { OpenClawConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -203,7 +202,7 @@ export function formatControlUiSshHint(params: {
   ];
   if (params.token) {
     lines.push("");
-    lines.push(chalk.yellow("⚠️ The URL above contains your gateway token. Avoid sharing it."));
+    lines.push("⚠️ The URL above contains your gateway token. Avoid sharing it.");
   }
   return lines.filter(Boolean).join("\n");
 }
