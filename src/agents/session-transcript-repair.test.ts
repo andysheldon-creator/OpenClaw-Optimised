@@ -112,6 +112,52 @@ describe("sanitizeToolUseResultPairing", () => {
     expect(out.some((m) => m.role === "toolResult")).toBe(false);
     expect(out.map((m) => m.role)).toEqual(["user", "assistant"]);
   });
+
+  it("does not create synthetic results for tool calls without input (issue #8264)", () => {
+    // Simulates the scenario where a tool call has no input/arguments.
+    // sanitizeToolCallInputs() would drop this tool call, but if
+    // sanitizeToolUseResultPairing() runs after and tries to create a synthetic
+    // result for it, Anthropic will reject with "unexpected tool_use_id" error
+    // because the tool_use block was already removed.
+    const input = [
+      {
+        role: "assistant",
+        content: [
+          // Tool call WITH input - should get synthetic result
+          { type: "toolUse", id: "call_valid", name: "read", input: { path: "file.txt" } },
+          // Tool call WITHOUT input - should be skipped entirely
+          { type: "toolUse", id: "call_no_input", name: "exec" },
+        ],
+      },
+      { role: "user", content: "next turn" },
+    ] satisfies AgentMessage[];
+
+    // Run the full repair pipeline as it would in production
+    const afterInputRepair = sanitizeToolCallInputs(input);
+    const afterPairingRepair = sanitizeToolUseResultPairing(afterInputRepair);
+
+    // Verify the assistant message only has one tool call (the valid one)
+    const assistant = afterPairingRepair[0] as Extract<AgentMessage, { role: "assistant" }>;
+    const toolCalls = Array.isArray(assistant.content)
+      ? assistant.content.filter((block) => {
+          const type = (block as { type?: unknown }).type;
+          return type === "toolUse" || type === "toolCall";
+        })
+      : [];
+    expect(toolCalls).toHaveLength(1);
+    expect((toolCalls[0] as { id?: string }).id).toBe("call_valid");
+
+    // Verify only ONE synthetic result was created (for call_valid)
+    const results = afterPairingRepair.filter((m) => m.role === "toolResult");
+    expect(results).toHaveLength(1);
+    expect((results[0] as { toolCallId?: string }).toolCallId).toBe("call_valid");
+
+    // Verify no synthetic result for call_no_input (which would cause Anthropic error)
+    const hasNoInputResult = results.some(
+      (r) => (r as { toolCallId?: string }).toolCallId === "call_no_input",
+    );
+    expect(hasNoInputResult).toBe(false);
+  });
 });
 
 describe("sanitizeToolCallInputs", () => {

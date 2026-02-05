@@ -34,6 +34,12 @@ function extractToolCallsFromAssistant(
     }
 
     if (rec.type === "toolCall" || rec.type === "toolUse" || rec.type === "functionCall") {
+      // Skip tool calls that don't have input/arguments, as they would be dropped by
+      // repairToolCallInputs() and creating synthetic results for them would cause
+      // tool_use/tool_result ID mismatch errors (see #8264)
+      if (isToolCallBlock(rec) && !hasToolCallInput(rec as ToolCallBlock)) {
+        continue;
+      }
       toolCalls.push({
         id: rec.id,
         name: typeof rec.name === "string" ? rec.name : undefined,
