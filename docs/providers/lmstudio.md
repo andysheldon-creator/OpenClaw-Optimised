@@ -32,6 +32,31 @@ openclaw config set models.providers.lmstudio.apiKey "lm-studio"
 
 Once enabled, OpenClaw will query `http://127.0.0.1:1234/v1/models` to verify connectivity, and register all available models.
 
+### Configuring Inference Timeout
+
+Large models (70B+ parameters) may require more time to load and generate responses, especially on consumer hardware (M1/M2 Max, etc.). If you experience timeout errors with large models, increase the agent timeout in your config:
+
+**CLI**
+
+```bash
+# Set timeout to 20 minutes (1200 seconds) for large models
+openclaw config set agents.defaults.timeoutSeconds 1200
+```
+
+**Config File** (`~/.openclaw/openclaw.json`)
+
+```json5
+{
+  agents: {
+    defaults: {
+      timeoutSeconds: 1200, // 20 minutes
+    },
+  },
+}
+```
+
+The default timeout is 600 seconds (10 minutes). This timeout covers the entire inference cycle, including model loading and token generation.
+
 ### Usage
 
 After enabling, list the available models:
