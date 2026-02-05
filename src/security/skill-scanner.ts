@@ -131,7 +131,9 @@ const SOURCE_RULES: SourceRule[] = [
 // ---------------------------------------------------------------------------
 
 function truncateEvidence(evidence: string, maxLen = 120): string {
-  if (evidence.length <= maxLen) return evidence;
+  if (evidence.length <= maxLen) {
+    return evidence;
+  }
   return evidence.slice(0, maxLen);
 }
 
@@ -142,20 +144,28 @@ export function scanSource(source: string, filePath: string): SkillScanFinding[]
 
   // --- Line rules ---
   for (const rule of LINE_RULES) {
-    if (matchedLineRules.has(rule.ruleId)) continue;
+    if (matchedLineRules.has(rule.ruleId)) {
+      continue;
+    }
 
     // Skip rule entirely if context requirement not met
-    if (rule.requiresContext && !rule.requiresContext.test(source)) continue;
+    if (rule.requiresContext && !rule.requiresContext.test(source)) {
+      continue;
+    }
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const match = rule.pattern.exec(line);
-      if (!match) continue;
+      if (!match) {
+        continue;
+      }
 
       // Special handling for suspicious-network: check port
       if (rule.ruleId === "suspicious-network") {
         const port = parseInt(match[1], 10);
-        if (STANDARD_PORTS.has(port)) continue;
+        if (STANDARD_PORTS.has(port)) {
+          continue;
+        }
       }
 
       findings.push({
@@ -177,10 +187,16 @@ export function scanSource(source: string, filePath: string): SkillScanFinding[]
     // Allow multiple findings for different messages with the same ruleId
     // but deduplicate exact (ruleId+message) combos
     const ruleKey = `${rule.ruleId}::${rule.message}`;
-    if (matchedSourceRules.has(ruleKey)) continue;
+    if (matchedSourceRules.has(ruleKey)) {
+      continue;
+    }
 
-    if (!rule.pattern.test(source)) continue;
-    if (rule.requiresContext && !rule.requiresContext.test(source)) continue;
+    if (!rule.pattern.test(source)) {
+      continue;
+    }
+    if (rule.requiresContext && !rule.requiresContext.test(source)) {
+      continue;
+    }
 
     // Find the first matching line for evidence + line number
     let matchLine = 0;
@@ -224,7 +240,9 @@ async function walkDir(dirPath: string): Promise<string[]> {
 
   for (const entry of entries) {
     // Skip hidden dirs and node_modules
-    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+    if (entry.name.startsWith(".") || entry.name === "node_modules") {
+      continue;
+    }
 
     const fullPath = path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
