@@ -8,19 +8,20 @@
     "properties": {
       "walletKey": {
         "type": "string",
-        "description": "EVM wallet private key (0x...). Auto-generated if not set."
+        "description": "EVM wallet private key (0x...). Falls back to BLOCKRUN_WALLET_KEY env var. Auto-generated if neither is set."
       },
       "routing": {
         "type": "object",
         "description": "Override default routing configuration"
       }
-    }
+    },
+    "additionalProperties": false
   },
   "uiHints": {
     "walletKey": {
       "label": "Wallet Private Key",
       "sensitive": true,
-      "placeholder": "0x... (optional — auto-generated)"
+      "placeholder": "0x... (optional — falls back to BLOCKRUN_WALLET_KEY env var, or auto-generated)"
     }
   }
 }

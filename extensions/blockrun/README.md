@@ -5,12 +5,14 @@ Smart LLM router that saves 63% on inference costs. Routes every request to the 
 ## Setup
 
 ```bash
-# Set wallet key (or let the plugin auto-generate one)
-export BLOCKRUN_WALLET_KEY=0x...
-
 # Enable smart routing
 openclaw config set model blockrun/auto
 ```
+
+**Wallet key** (optional — auto-generated if not set):
+
+- **UI config**: set `walletKey` in the BlockRun extension settings (takes priority)
+- **Env var**: `export BLOCKRUN_WALLET_KEY=0x...` (fallback)
 
 ## How It Works
 
