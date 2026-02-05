@@ -42,6 +42,46 @@ describe("resolveMemoryBackendConfig", () => {
     expect(resolved.qmd?.command).toBe("/Applications/QMD Tools/qmd");
   });
 
+  it("default qmd mode is correct", () => {
+    const cfg = {
+      agents: { defaults: { workspace: "/tmp/memory-test" } },
+      memory: {
+        backend: "qmd",
+        qmd: {},
+      },
+    } as OpenClawConfig;
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    expect(resolved.qmd?.mode).toBe("query");
+  });
+
+  it("parses qmd mode", () => {
+    const cfg = {
+      agents: { defaults: { workspace: "/tmp/memory-test" } },
+      memory: {
+        backend: "qmd",
+        qmd: {
+          mode: "search",
+        },
+      },
+    } as OpenClawConfig;
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    expect(resolved.qmd?.mode).toBe("search");
+  });
+
+  it("parses invalid qmd mode", () => {
+    const cfg = {
+      agents: { defaults: { workspace: "/tmp/memory-test" } },
+      memory: {
+        backend: "qmd",
+        qmd: {
+          mode: "rm -rf /dev/humanity",
+        },
+      },
+    } as OpenClawConfig;
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    expect(resolved.qmd?.mode).toBe("query");
+  });
+
   it("resolves custom paths relative to workspace", () => {
     const cfg = {
       agents: {

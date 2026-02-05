@@ -20,7 +20,7 @@ vi.mock("node:child_process", () => {
       child.emit("close", 0);
     };
     setImmediate(() => {
-      stdout.emit("data", "");
+      stdout.emit("data", "[]");
       stderr.emit("data", "");
       child.emit("close", 0);
     });
@@ -151,5 +151,44 @@ describe("QmdMemoryManager", () => {
     );
 
     await manager.close();
+  });
+
+  it("calls spawn with configured value as first parameter when search is called", async () => {
+    for (var mode of [null, "query", "search", "vsearch"]) {
+      if (mode) {
+        cfg = {
+          ...cfg,
+          memory: {
+            backend: "qmd",
+            qmd: {
+              mode: mode,
+            },
+          },
+        } as OpenClawConfig;
+      }
+      const resolved = resolveMemoryBackendConfig({ cfg, agentId });
+      const manager = await QmdMemoryManager.create({ cfg, agentId, resolved });
+      expect(manager).toBeTruthy();
+      if (!manager) {
+        throw new Error("manager missing");
+      }
+
+      spawnMock.mockClear();
+
+      // Call search method with a query
+      await manager.search("test query", { sessionKey: "agent:a:b" });
+
+      // Verify spawn was called with correct parameters
+      expect(spawnMock.mock.calls.length).toBeGreaterThan(0);
+
+      // The spawn call should be for the qmd command
+      const spawnCall = spawnMock.mock.calls[0];
+      expect(spawnCall[0]).toBe("qmd"); // qmd command
+
+      // The first argument after the command should be "query"
+      expect(spawnCall[1][0]).toBe(mode ?? "query");
+
+      await manager.close();
+    }
   });
 });

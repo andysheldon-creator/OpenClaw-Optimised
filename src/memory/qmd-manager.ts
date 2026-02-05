@@ -234,7 +234,7 @@ export class QmdMemoryManager implements MemorySearchManager {
       this.qmd.limits.maxResults,
       opts?.maxResults ?? this.qmd.limits.maxResults,
     );
-    const args = ["query", trimmed, "--json", "-n", String(limit)];
+    const args = [this.qmd.mode, trimmed, "--json", "-n", String(limit)];
     let stdout: string;
     try {
       const result = await this.runQmd(args, { timeoutMs: this.qmd.limits.timeoutMs });

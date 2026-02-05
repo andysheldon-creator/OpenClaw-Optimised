@@ -47,6 +47,7 @@ export type ResolvedQmdSessionConfig = {
 
 export type ResolvedQmdConfig = {
   command: string;
+  mode: string;
   collections: ResolvedQmdCollection[];
   sessions: ResolvedQmdSessionConfig;
   update: ResolvedQmdUpdateConfig;
@@ -57,6 +58,7 @@ export type ResolvedQmdConfig = {
 
 const DEFAULT_BACKEND: MemoryBackend = "builtin";
 const DEFAULT_CITATIONS: MemoryCitationsMode = "auto";
+const DEFAULT_QMD_MODE = "query";
 const DEFAULT_QMD_INTERVAL = "5m";
 const DEFAULT_QMD_DEBOUNCE_MS = 15_000;
 const DEFAULT_QMD_TIMEOUT_MS = 4_000;
@@ -227,6 +229,13 @@ function resolveDefaultCollections(
   }));
 }
 
+function resolveMode(mode?: string) {
+  if (["query", "vsearch", "search"].includes(mode)) {
+    return mode;
+  }
+  return DEFAULT_QMD_MODE;
+}
+
 export function resolveMemoryBackendConfig(params: {
   cfg: OpenClawConfig;
   agentId: string;
@@ -249,8 +258,10 @@ export function resolveMemoryBackendConfig(params: {
   const rawCommand = qmdCfg?.command?.trim() || "qmd";
   const parsedCommand = splitShellArgs(rawCommand);
   const command = parsedCommand?.[0] || rawCommand.split(/\s+/)[0] || "qmd";
+  const mode = resolveMode(qmdCfg?.mode);
   const resolved: ResolvedQmdConfig = {
     command,
+    mode,
     collections,
     includeDefaultMemory,
     sessions: resolveSessionConfig(qmdCfg?.sessions, workspaceDir),
