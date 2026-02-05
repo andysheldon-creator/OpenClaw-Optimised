@@ -311,6 +311,7 @@ CLAUDE_CODE_GIT_BASH_PATH='C:\Users\<username>\Documents\Git\bin\bash.exe' node 
 
 | Error | Cause | Fix |
 |-------|-------|-----|
+| `Unknown model: anthropic/claude-opus-4.5` | Model version uses dots instead of dashes | Change `4.5` to `4-5` (use dashes not dots) |
 | `Claude Code was unable to find CLAUDE_CODE_GIT_BASH_PATH` | Path escaping issue or wrong path | Set via shell env var with single quotes and backslashes |
 | `No conversation found with session ID` | CLI trying to resume non-existent session | Add `"sessionMode": "none"` to config |
 | Response is raw JSON/gibberish | Wrong output format parsing | Use `"output": "json"` with `"--output-format", "json"` (not `stream-json`/`jsonl`) |
@@ -321,6 +322,74 @@ CLAUDE_CODE_GIT_BASH_PATH='C:\Users\<username>\Documents\Git\bin\bash.exe' node 
 - **Use `json` format** (single JSON object with `result` field) - parser extracts text correctly
 - **Avoid `stream-json`/`jsonl`** - the JSONL parser expects `item.text` structure which doesn't match Claude CLI's format
 - Parser code: `src/agents/cli-runner/helpers.ts` (`parseCliJson`, `parseCliJsonl`)
+
+### Critical: Model Naming Convention
+
+**IMPORTANT**: OpenClaw model versions use **dashes not dots**.
+
+| ❌ Wrong | ✅ Correct |
+|---------|-----------|
+| `claude-opus-4.5` | `claude-opus-4-5` |
+| `anthropic/claude-sonnet-4.5` | `anthropic/claude-sonnet-4-5` |
+
+**Error symptom**: `Unknown model: anthropic/claude-opus-4.5`
+
+**Fix**: Change dots to dashes in model version numbers.
+
+**Reference**: See `src/config/defaults.ts` for canonical model names:
+```typescript
+opus: "anthropic/claude-opus-4-5",
+sonnet: "anthropic/claude-sonnet-4-5",
+```
+
+### Testing Best Practices
+
+**Before configuring CLI backend**, test with direct Anthropic API first:
+
+1. **Start with Anthropic API** to verify Telegram/channel setup:
+   ```json
+   {
+     "agents": {
+       "defaults": {
+         "model": {
+           "primary": "anthropic/claude-opus-4-5"
+         }
+       }
+     }
+   }
+   ```
+
+2. **Test bot connectivity** - send a message and verify response
+
+3. **Then switch to CLI backend**:
+   ```json
+   {
+     "agents": {
+       "defaults": {
+         "model": {
+           "primary": "claude-cli/opus"
+         },
+         "cliBackends": {
+           "claude-cli": {
+             "command": "claude",
+             "args": ["-p", "--output-format", "json"],
+             "output": "json",
+             "input": "arg",
+             "modelArg": "--model",
+             "sessionMode": "none"
+           }
+         }
+       }
+     }
+   }
+   ```
+
+4. **Windows**: Kill gateway and restart with `CLAUDE_CODE_GIT_BASH_PATH` env var:
+   ```bash
+   cmd.exe /c "set ANTHROPIC_API_KEY=your-key && set OPENCLAW_GATEWAY_TOKEN=local-dev-token && set CLAUDE_CODE_GIT_BASH_PATH=C:\Users\<username>\Documents\Git\bin\bash.exe && node openclaw.mjs gateway run --port 18789 --verbose"
+   ```
+
+This isolates issues: first verify channels work, then add CLI backend complexity.
 
 ### Debugging
 
