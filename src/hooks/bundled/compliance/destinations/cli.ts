@@ -58,9 +58,12 @@ export function createCliEmitter(
       const activityType = getActivityType(event.kind);
       const sessionKey = event.sessionKey || `agent:${event.agentId}:main`;
 
+      // Normalize subagent sessionKeys: agent:X:subagent:Y → agent:X:main
+      const normalizedKey = sessionKey.replace(/:subagent:[^:]+$/, ":main");
+
       // Build arguments for the CLI
       // Expected format: <command> <subcommand> <message> <sessionKey> <type>
-      const args = [subcommand, event.message, sessionKey, activityType];
+      const args = [subcommand, event.message, normalizedKey, activityType];
 
       const child = spawn(command, args, {
         stdio: "ignore",
