@@ -522,23 +522,5 @@ export function shouldHandleTextCommands(params: ShouldHandleTextCommandsParams)
   if (params.cfg.commands?.text !== false) {
     return true;
   }
-import type { SkillCommandSpec } from "../agents/skills.js";
-import type { OpenClawConfig } from "../config/types.js";
-import type {
-  ChatCommandDefinition,
-  CommandArgChoiceContext,
-  CommandArgDefinition,
-  CommandArgMenuSpec,
-  CommandArgValues,
-  CommandArgs,
-  CommandDetection,
-  CommandNormalizeOptions,
-  NativeCommandSpec,
-  ShouldHandleTextCommandsParams,
-} from "./commands-registry.types.js";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
-import { resolveConfiguredModelRef } from "../agents/model-selection.js";
-import { getChatCommands, getNativeCommandSurfaces } from "./commands-registry.data.js";
-import type { Locale } from "../i18n/commands.js";
   return !isNativeCommandSurface(params.surface);
 }
