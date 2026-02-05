@@ -43,6 +43,7 @@ import {
 } from "../pi-settings.js";
 import { createOpenClawCodingTools } from "../pi-tools.js";
 import { resolveSandboxContext } from "../sandbox.js";
+import { migrateSessionFileArtifactsIfNeeded } from "../session-artifact-migration.js";
 import { repairSessionFileIfNeeded } from "../session-file-repair.js";
 import { guardSessionManager } from "../session-tool-result-guard-wrapper.js";
 import { acquireSessionWriteLock } from "../session-write-lock.js";
@@ -371,6 +372,12 @@ export async function compactEmbeddedPiSessionDirect(
     try {
       await repairSessionFileIfNeeded({
         sessionFile: params.sessionFile,
+        warn: (message) => log.warn(message),
+      });
+      await migrateSessionFileArtifactsIfNeeded({
+        sessionFile: params.sessionFile,
+        sessionKey: params.sessionKey,
+        sessionId: params.sessionId,
         warn: (message) => log.warn(message),
       });
       await prewarmSessionFile(params.sessionFile);
