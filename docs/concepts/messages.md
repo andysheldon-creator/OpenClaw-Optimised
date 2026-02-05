@@ -4,6 +4,7 @@ read_when:
   - Explaining how inbound messages become replies
   - Clarifying sessions, queueing modes, or streaming behavior
   - Documenting reasoning visibility and usage implications
+title: "Messages"
 ---
 
 # Messages
@@ -147,7 +148,7 @@ Details: [Thinking + reasoning directives](/tools/thinking) and [Token use](/tok
 
 Outbound message formatting is centralized in `messages`:
 
-- `messages.responsePrefix` (outbound prefix) and `channels.whatsapp.messagePrefix` (WhatsApp inbound prefix)
+- `messages.responsePrefix`, `channels.<channel>.responsePrefix`, and `channels.<channel>.accounts.<id>.responsePrefix` (outbound prefix cascade), plus `channels.whatsapp.messagePrefix` (WhatsApp inbound prefix)
 - Reply threading via `replyToMode` and per-channel defaults
 
 Details: [Configuration](/gateway/configuration#messages) and channel docs.

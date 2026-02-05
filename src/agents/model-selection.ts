@@ -1,8 +1,8 @@
 import type { OpenClawConfig } from "../config/config.js";
 import type { ModelCatalogEntry } from "./model-catalog.js";
-import { normalizeGoogleModelId } from "./models-config.providers.js";
 import { resolveAgentModelPrimary } from "./agent-scope.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
+import { normalizeGoogleModelId } from "./models-config.providers.js";
 
 export type ModelRef = {
   provider: string;
@@ -59,8 +59,14 @@ function normalizeAnthropicModelId(model: string): string {
     return trimmed;
   }
   const lower = trimmed.toLowerCase();
+  if (lower === "opus-4.6") {
+    return "claude-opus-4-6";
+  }
   if (lower === "opus-4.5") {
     return "claude-opus-4-5";
+  }
+  if (lower === "opus-4.6") {
+    return "claude-opus-4-6";
   }
   if (lower === "sonnet-4.5") {
     return "claude-sonnet-4-5";

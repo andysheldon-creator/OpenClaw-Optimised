@@ -1,11 +1,9 @@
+import { type Api, type Context, complete, type Model } from "@mariozechner/pi-ai";
+import { Type } from "@sinclair/typebox";
 import fs from "node:fs/promises";
 import path from "node:path";
-
-import { type Api, type Context, complete, type Model } from "@mariozechner/pi-ai";
-import { discoverAuthStorage, discoverModels } from "../pi-model-discovery.js";
-import { Type } from "@sinclair/typebox";
-
 import type { OpenClawConfig } from "../../config/config.js";
+import type { AnyAgentTool } from "./common.js";
 import { resolveUserPath } from "../../utils.js";
 import { loadWebMedia } from "../../web/media.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "../auth-profiles.js";
@@ -15,8 +13,8 @@ import { getApiKeyForModel, requireApiKey, resolveEnvApiKey } from "../model-aut
 import { runWithImageModelFallback } from "../model-fallback.js";
 import { resolveConfiguredModelRef } from "../model-selection.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
+import { discoverAuthStorage, discoverModels } from "../pi-model-discovery.js";
 import { assertSandboxPath } from "../sandbox-paths.js";
-import type { AnyAgentTool } from "./common.js";
 import {
   coerceImageAssistantText,
   coerceImageModelConfig,
@@ -119,7 +117,7 @@ export function resolveImageModelConfigForTool(params: {
   } else if (primary.provider === "openai" && openaiOk) {
     preferred = "openai/gpt-5-mini";
   } else if (primary.provider === "anthropic" && anthropicOk) {
-    preferred = "anthropic/claude-opus-4-5";
+    preferred = "anthropic/claude-opus-4-6";
   }
 
   if (preferred?.trim()) {
@@ -127,7 +125,7 @@ export function resolveImageModelConfigForTool(params: {
       addFallback("openai/gpt-5-mini");
     }
     if (anthropicOk) {
-      addFallback("anthropic/claude-opus-4-5");
+      addFallback("anthropic/claude-opus-4-6");
     }
     // Don't duplicate primary in fallbacks.
     const pruned = fallbacks.filter((ref) => ref !== preferred);
@@ -140,7 +138,7 @@ export function resolveImageModelConfigForTool(params: {
   // Cross-provider fallback when we can't pair with the primary provider.
   if (openaiOk) {
     if (anthropicOk) {
-      addFallback("anthropic/claude-opus-4-5");
+      addFallback("anthropic/claude-opus-4-6");
     }
     return {
       primary: "openai/gpt-5-mini",
@@ -148,7 +146,7 @@ export function resolveImageModelConfigForTool(params: {
     };
   }
   if (anthropicOk) {
-    return { primary: "anthropic/claude-opus-4-5" };
+    return { primary: "anthropic/claude-opus-4-6" };
   }
 
   return null;

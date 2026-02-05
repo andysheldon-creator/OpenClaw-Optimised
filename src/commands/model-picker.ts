@@ -1,3 +1,5 @@
+import type { OpenClawConfig } from "../config/config.js";
+import type { WizardPrompter, WizardSelectOption } from "../wizard/prompts.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "../agents/auth-profiles.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { getCustomProviderApiKey, resolveEnvApiKey } from "../agents/model-auth.js";
@@ -9,8 +11,6 @@ import {
   normalizeProviderId,
   resolveConfiguredModelRef,
 } from "../agents/model-selection.js";
-import type { OpenClawConfig } from "../config/config.js";
-import type { WizardPrompter, WizardSelectOption } from "../wizard/prompts.js";
 import { formatTokenK } from "./models/shared.js";
 
 const KEEP_VALUE = "__keep__";
@@ -331,7 +331,7 @@ export async function promptModelAllowlist(params: {
         params.message ??
         "Allowlist models (comma-separated provider/model; blank to keep current)",
       initialValue: existingKeys.join(", "),
-      placeholder: "openai-codex/gpt-5.2, anthropic/claude-opus-4-5",
+      placeholder: "openai-codex/gpt-5.2, anthropic/claude-opus-4-6",
     });
     const parsed = String(raw ?? "")
       .split(",")

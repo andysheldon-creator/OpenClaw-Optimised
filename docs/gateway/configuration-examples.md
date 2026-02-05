@@ -4,6 +4,7 @@ read_when:
   - Learning how to configure OpenClaw
   - Looking for configuration examples
   - Setting up OpenClaw for the first time
+title: "Configuration Examples"
 ---
 
 # Configuration Examples
@@ -440,6 +441,32 @@ Save to `~/.openclaw/openclaw.json` and you can DM the bot from that number.
       enabled: true,
       token: "YOUR_TOKEN",
       dm: { allowFrom: ["yourname"] },
+    },
+  },
+}
+```
+
+### Secure DM mode (shared inbox / multi-user DMs)
+
+If more than one person can DM your bot (multiple entries in `allowFrom`, pairing approvals for multiple people, or `dmPolicy: "open"`), enable **secure DM mode** so DMs from different senders don’t share one context by default:
+
+```json5
+{
+  // Secure DM mode (recommended for multi-user or sensitive DM agents)
+  session: { dmScope: "per-channel-peer" },
+
+  channels: {
+    // Example: WhatsApp multi-user inbox
+    whatsapp: {
+      dmPolicy: "allowlist",
+      allowFrom: ["+15555550123", "+15555550124"],
+    },
+
+    // Example: Discord multi-user inbox
+    discord: {
+      enabled: true,
+      token: "YOUR_DISCORD_BOT_TOKEN",
+      dm: { enabled: true, allowFrom: ["alice", "bob"] },
     },
   },
 }

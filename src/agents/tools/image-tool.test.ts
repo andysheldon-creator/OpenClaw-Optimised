@@ -1,9 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { OpenClawConfig } from "../../config/config.js";
 import { __testing, createImageTool, resolveImageModelConfigForTool } from "./image-tool.js";
 
@@ -55,7 +53,7 @@ describe("image tool implicit imageModel config", () => {
     };
     expect(resolveImageModelConfigForTool({ cfg, agentDir })).toEqual({
       primary: "minimax/MiniMax-VL-01",
-      fallbacks: ["openai/gpt-5-mini", "anthropic/claude-opus-4-5"],
+      fallbacks: ["openai/gpt-5-mini", "anthropic/claude-opus-4-6"],
     });
     expect(createImageTool({ config: cfg, agentDir })).not.toBeNull();
   });
