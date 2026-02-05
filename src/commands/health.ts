@@ -11,10 +11,8 @@ import { buildGatewayConnectionDetails, callGateway } from "../gateway/call.js";
 import { info } from "../globals.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { formatErrorMessage } from "../infra/errors.js";
-import {
-  type HeartbeatSummary,
-  resolveHeartbeatSummaryForAgent,
-} from "../infra/heartbeat-runner.js";
+import { resolveHeartbeatSummaryForAgent } from "../infra/heartbeat-runner.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import { buildChannelAccountBindings, resolvePreferredAccountId } from "../routing/bindings.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { theme } from "../terminal/theme.js";
@@ -72,9 +70,15 @@ export type HealthSummary = {
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
+const log = createSubsystemLogger("commands/health");
+
 const debugHealth = (...args: unknown[]) => {
   if (isTruthyEnvValue(process.env.OPENCLAW_DEBUG_HEALTH)) {
-    console.warn("[health:debug]", ...args);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    log.warn(
+      "[health:debug] " +
+        args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "),
+    );
   }
 };
 
