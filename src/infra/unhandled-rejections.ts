@@ -104,7 +104,7 @@ export function isTransientNetworkError(err: unknown): boolean {
   }
 
   // Check error messages for common transient network phrases
-  const message = "message" in err && typeof err.message === "string" ? err.message.toLowerCase() : "";
+  const message = typeof err === "object" && "message" in err && typeof err.message === "string" ? err.message.toLowerCase() : "";
   if (message) {
     const transientPhrases = [
       "socket hang up",
