@@ -327,7 +327,8 @@ describe("scanDirectoryWithSummary", () => {
 
     const realReadFile = fs.readFile;
     const spy = vi.spyOn(fs, "readFile").mockImplementation(async (...args) => {
-      if (String(args[0]) === filePath) {
+      const pathArg = args[0];
+      if (typeof pathArg === "string" && pathArg === filePath) {
         const err = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
         err.code = "EACCES";
         throw err;
