@@ -17,6 +17,7 @@ import {
 import { ConvosSDKClient, type InboundMessage } from "./sdk-client.js";
 import { convosChannelConfigSchema } from "./config-schema.js";
 import { convosOnboardingAdapter } from "./onboarding.js";
+import { convosMessageActions } from "./actions.js";
 import { convosOutbound, setClientForAccount } from "./outbound.js";
 import { getConvosRuntime } from "./runtime.js";
 
@@ -64,6 +65,13 @@ export const convosPlugin: ChannelPlugin<ResolvedConvosAccount> = {
   reload: { configPrefixes: ["channels.convos"] },
   configSchema: convosChannelConfigSchema,
   onboarding: convosOnboardingAdapter,
+  actions: convosMessageActions,
+  agentPrompt: {
+    messageToolHints: () => [
+      "- Convos targets are conversation IDs (UUIDs). Use `to=<conversationId>` for `action=send`.",
+      "- For reactions, use `action=react` with `conversationId`, `messageId`, and `emoji`.",
+    ],
+  },
   config: {
     listAccountIds: (cfg) => listConvosAccountIds(cfg as CoreConfig),
     resolveAccount: (cfg, accountId) => resolveConvosAccount({ cfg: cfg as CoreConfig, accountId }),
