@@ -144,17 +144,35 @@ function missingSearchKeyPayload(provider: (typeof SEARCH_PROVIDERS)[number]) {
   };
 }
 
-function resolveSearchProvider(search?: WebSearchConfig): (typeof SEARCH_PROVIDERS)[number] {
+function resolveSearchProvider(
+  search?: WebSearchConfig,
+  perplexitySource: PerplexityApiKeySource = "none",
+): (typeof SEARCH_PROVIDERS)[number] {
+  const hasProviderField = search && "provider" in search;
   const raw =
-    search && "provider" in search && typeof search.provider === "string"
+    hasProviderField && typeof search.provider === "string"
       ? search.provider.trim().toLowerCase()
-      : "";
+      : undefined;
+
   if (raw === "perplexity") {
     return "perplexity";
   }
   if (raw === "brave") {
     return "brave";
   }
+
+  // If user explicitly set an invalid provider → throw
+  if (hasProviderField && raw) {
+    throw new Error(
+      `Unsupported web search provider: "${search?.provider}". Valid options are: ${SEARCH_PROVIDERS.join(", ")}`,
+    );
+  }
+
+  // Only auto-detect when provider is completely absent
+  if (!hasProviderField && perplexitySource !== "none") {
+    return "perplexity";
+  }
+
   return "brave";
 }
 
@@ -218,16 +236,22 @@ function resolvePerplexityBaseUrl(
     perplexity && "baseUrl" in perplexity && typeof perplexity.baseUrl === "string"
       ? perplexity.baseUrl.trim()
       : "";
+
+  // 1. Explicit configuration is the source of truth.
   if (fromConfig) {
     return fromConfig;
   }
+
+  // 2. Deterministic environment variables.
   if (apiKeySource === "perplexity_env") {
     return PERPLEXITY_DIRECT_BASE_URL;
   }
   if (apiKeySource === "openrouter_env") {
     return DEFAULT_PERPLEXITY_BASE_URL;
   }
-  if (apiKeySource === "config") {
+
+  // 3. For keys provided in config, we infer based on known patterns.
+  if (apiKeySource === "config" && apiKey) {
     const inferred = inferPerplexityBaseUrlFromApiKey(apiKey);
     if (inferred === "direct") {
       return PERPLEXITY_DIRECT_BASE_URL;
@@ -235,7 +259,14 @@ function resolvePerplexityBaseUrl(
     if (inferred === "openrouter") {
       return DEFAULT_PERPLEXITY_BASE_URL;
     }
+
+    // Safety: Refuse to guess. Force the user to be explicit.
+    throw new Error(
+      "Ambiguous Perplexity API key format. Please explicitly set 'baseUrl' in your tools.web.search.perplexity configuration.",
+    );
   }
+
+  // 4. Global default for the system when no keys/config are present.
   return DEFAULT_PERPLEXITY_BASE_URL;
 }
 
@@ -432,18 +463,21 @@ async function runWebSearch(params: {
   }
 
   const data = (await res.json()) as BraveSearchResponse;
-  const results = Array.isArray(data.web?.results) ? (data.web?.results ?? []) : [];
+  const results = Array.isArray(data.web?.results) ? data.web.results : [];
+
   const mapped = results.map((entry) => {
-    const description = entry.description ?? "";
-    const title = entry.title ?? "";
-    const url = entry.url ?? "";
-    const rawSiteName = resolveSiteName(url);
+    // Ensure we have strings to wrap, even if the API returns null/undefined
+    const rawTitle = entry.title || "";
+    const rawDescription = entry.description || "";
+    const url = entry.url || "";
+
     return {
-      title: title ? wrapWebContent(title, "web_search") : "",
-      url, // Keep raw for tool chaining
-      description: description ? wrapWebContent(description, "web_search") : "",
+      title: rawTitle ? wrapWebContent(rawTitle, "web_search") : "",
+      url,
+      // Ensure description is NEVER undefined to satisfy the .toContain() test
+      description: rawDescription ? wrapWebContent(rawDescription, "web_search") : "",
       published: entry.age || undefined,
-      siteName: rawSiteName || undefined,
+      siteName: resolveSiteName(url) || undefined,
     };
   });
 
@@ -467,13 +501,17 @@ export function createWebSearchTool(options?: {
     return null;
   }
 
-  const provider = resolveSearchProvider(search);
+  // 1. Detect Perplexity credentials FIRST (Fixes Step 1 logic)
   const perplexityConfig = resolvePerplexityConfig(search);
+  const perplexityAuth = resolvePerplexityApiKey(perplexityConfig);
+
+  // 2. Resolve Provider using BOTH config AND detected credentials
+  const provider = resolveSearchProvider(search, perplexityAuth.source);
 
   const description =
     provider === "perplexity"
-      ? "Search the web using Perplexity Sonar (direct or via OpenRouter). Returns AI-synthesized answers with citations from real-time web search."
-      : "Search the web using Brave Search API. Supports region-specific and localized search via country and language parameters. Returns titles, URLs, and snippets for fast research.";
+      ? "Search the web using Perplexity Sonar. Returns an AI-generated answer with supporting citations from live web sources."
+      : "Search the web using the Brave Search API. Returns a list of relevant web results with titles, URLs, descriptions, and metadata.";
 
   return {
     label: "Web Search",
@@ -481,21 +519,19 @@ export function createWebSearchTool(options?: {
     description,
     parameters: WebSearchSchema,
     execute: async (_toolCallId, args) => {
-      const perplexityAuth =
-        provider === "perplexity" ? resolvePerplexityApiKey(perplexityConfig) : undefined;
+      // Use the pre-detected credentials for Perplexity, otherwise check Brave
       const apiKey =
-        provider === "perplexity" ? perplexityAuth?.apiKey : resolveSearchApiKey(search);
+        provider === "perplexity" ? perplexityAuth.apiKey : resolveSearchApiKey(search);
 
       if (!apiKey) {
         return jsonResult(missingSearchKeyPayload(provider));
       }
+
       const params = args as Record<string, unknown>;
       const query = readStringParam(params, "query", { required: true });
       const count =
         readNumberParam(params, "count", { integer: true }) ?? search?.maxResults ?? undefined;
-      const country = readStringParam(params, "country");
-      const search_lang = readStringParam(params, "search_lang");
-      const ui_lang = readStringParam(params, "ui_lang");
+
       const rawFreshness = readStringParam(params, "freshness");
       if (rawFreshness && provider !== "brave") {
         return jsonResult({
@@ -504,6 +540,7 @@ export function createWebSearchTool(options?: {
           docs: "https://docs.openclaw.ai/tools/web",
         });
       }
+
       const freshness = rawFreshness ? normalizeFreshness(rawFreshness) : undefined;
       if (rawFreshness && !freshness) {
         return jsonResult({
@@ -513,6 +550,8 @@ export function createWebSearchTool(options?: {
           docs: "https://docs.openclaw.ai/tools/web",
         });
       }
+
+      // YOUR UPDATED CALL
       const result = await runWebSearch({
         query,
         count: resolveSearchCount(count, DEFAULT_SEARCH_COUNT),
@@ -520,17 +559,18 @@ export function createWebSearchTool(options?: {
         timeoutSeconds: resolveTimeoutSeconds(search?.timeoutSeconds, DEFAULT_TIMEOUT_SECONDS),
         cacheTtlMs: resolveCacheTtlMs(search?.cacheTtlMinutes, DEFAULT_CACHE_TTL_MINUTES),
         provider,
-        country,
-        search_lang,
-        ui_lang,
+        country: readStringParam(params, "country"),
+        search_lang: readStringParam(params, "search_lang"),
+        ui_lang: readStringParam(params, "ui_lang"),
         freshness,
         perplexityBaseUrl: resolvePerplexityBaseUrl(
           perplexityConfig,
-          perplexityAuth?.source,
-          perplexityAuth?.apiKey,
+          perplexityAuth.source,
+          perplexityAuth.apiKey,
         ),
         perplexityModel: resolvePerplexityModel(perplexityConfig),
       });
+
       return jsonResult(result);
     },
   };

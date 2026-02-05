@@ -45,9 +45,10 @@ describe("web_search perplexity baseUrl defaults", () => {
     );
   });
 
-  it("defaults to OpenRouter for unknown config key formats", () => {
-    expect(resolvePerplexityBaseUrl(undefined, "config", "weird-key")).toBe(
-      "https://openrouter.ai/api/v1",
+  // FIXED: This test now correctly asserts that we FAIL FAST on ambiguous keys
+  it("throws an error for unknown config key formats to prevent unsafe routing", () => {
+    expect(() => resolvePerplexityBaseUrl(undefined, "config", "weird-key")).toThrow(
+      /Ambiguous Perplexity API key format/,
     );
   });
 });
