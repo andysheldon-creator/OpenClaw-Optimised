@@ -178,6 +178,7 @@ export async function deliverAgentCommandResult(params: {
   }
   if (deliver && deliveryChannel && !isInternalMessageChannel(deliveryChannel)) {
     if (deliveryTarget) {
+      const payloadLogger = opts.enablePayloadLogging ? logPayload : undefined;
       await deliverOutboundPayloads({
         cfg,
         channel: deliveryChannel,
@@ -188,7 +189,7 @@ export async function deliverAgentCommandResult(params: {
         threadId: resolvedThreadTarget ?? null,
         bestEffort: bestEffortDeliver,
         onError: (err) => logDeliveryError(err),
-        onPayload: logPayload,
+        onPayload: payloadLogger,
         deps: createOutboundSendDeps(deps),
       });
     }
