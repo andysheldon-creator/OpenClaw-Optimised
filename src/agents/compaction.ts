@@ -1,7 +1,10 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { estimateTokens, generateSummary } from "@mariozechner/pi-coding-agent";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import { DEFAULT_CONTEXT_TOKENS } from "./defaults.js";
+
+const log = createSubsystemLogger("compaction");
 
 export const BASE_CHUNK_RATIO = 0.4;
 export const MIN_CHUNK_RATIO = 0.15;
@@ -193,7 +196,7 @@ export async function summarizeWithFallback(params: {
   try {
     return await summarizeChunks(params);
   } catch (fullError) {
-    console.warn(
+    log.warn(
       `Full summarization failed, trying partial: ${
         fullError instanceof Error ? fullError.message : String(fullError)
       }`,
@@ -225,7 +228,7 @@ export async function summarizeWithFallback(params: {
       const notes = oversizedNotes.length > 0 ? `\n\n${oversizedNotes.join("\n")}` : "";
       return partialSummary + notes;
     } catch (partialError) {
-      console.warn(
+      log.warn(
         `Partial summarization also failed: ${
           partialError instanceof Error ? partialError.message : String(partialError)
         }`,

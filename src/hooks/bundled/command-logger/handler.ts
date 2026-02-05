@@ -27,6 +27,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { HookHandler } from "../../hooks.js";
+import { createSubsystemLogger } from "../../../logging/subsystem.js";
+
+const log = createSubsystemLogger("command-logger");
 
 /**
  * Log all command events to a file
@@ -56,10 +59,7 @@ const logCommand: HookHandler = async (event) => {
 
     await fs.appendFile(logFile, logLine, "utf-8");
   } catch (err) {
-    console.error(
-      "[command-logger] Failed to log command:",
-      err instanceof Error ? err.message : String(err),
-    );
+    log.error(`Failed to log command: ${err instanceof Error ? err.message : String(err)}`);
   }
 };
 

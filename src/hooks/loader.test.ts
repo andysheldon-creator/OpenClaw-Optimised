@@ -169,9 +169,13 @@ describe("loader", () => {
 
       const count = await loadInternalHooks(cfg, tmpDir);
       expect(count).toBe(0);
-      expect(consoleError).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to load hook handler"),
-        expect.any(String),
+      expect(consoleError).toHaveBeenCalled();
+      const firstCall = consoleError.mock.calls[0];
+      // Strip ANSI color codes
+      // eslint-disable-next-line no-control-regex
+      const stripped = firstCall[0].replace(/\u001b\[\d+m/g, "");
+      expect(stripped).toMatch(
+        /^\[hooks\/loader\] Failed to load hook handler from \/nonexistent\/path\/handler\.js:/,
       );
 
       consoleError.mockRestore();

@@ -20,6 +20,9 @@ import type {
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import type { OpenClawConfig, loadConfig } from "../../config/config.js";
 import { resolveHumanDelayConfig } from "../../agents/identity.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
+
+const log = createSubsystemLogger("discord/native-command");
 import { resolveChunkMode, resolveTextChunkLimit } from "../../auto-reply/chunk.js";
 import {
   buildCommandTextFromArgs,
@@ -204,7 +207,7 @@ async function safeDiscordInteractionCall<T>(
     return await fn();
   } catch (error) {
     if (isDiscordUnknownInteraction(error)) {
-      console.warn(`discord: ${label} skipped (interaction expired)`);
+      log.warn(`${label} skipped (interaction expired)`);
       return null;
     }
     throw error;
@@ -819,7 +822,7 @@ async function dispatchDiscordCommandInteraction(params: {
           });
         } catch (error) {
           if (isDiscordUnknownInteraction(error)) {
-            console.warn("discord: interaction reply skipped (interaction expired)");
+            log.warn("interaction reply skipped (interaction expired)");
             return;
           }
           throw error;
@@ -827,7 +830,9 @@ async function dispatchDiscordCommandInteraction(params: {
         didReply = true;
       },
       onError: (err, info) => {
-        console.error(`discord slash ${info.kind} reply failed`, err);
+        log.error(
+          `slash ${info.kind} reply failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       },
     },
     replyOptions: {
