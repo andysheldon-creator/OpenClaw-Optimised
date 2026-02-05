@@ -187,6 +187,51 @@ out to QMD for retrieval. Key points:
   `memory_get`, but the snippet text omits the footer and the system prompt
   warns the agent not to cite it).
 
+**MCP server mode (default)**
+
+By default, OpenClaw runs QMD as a long-lived **MCP (Model Context Protocol)
+server** instead of spawning a new subprocess for each search. This dramatically
+improves search latency because the embedding models stay loaded in memory.
+
+Benefits:
+
+- **Faster searches**: ~100ms typical vs ~3-5s cold start per query.
+- **Lower resource churn**: no repeated model loading/unloading.
+- **Automatic fallback**: if MCP fails, OpenClaw falls back to subprocess mode.
+
+MCP mode is enabled by default when `memory.backend = "qmd"`. Configure it via
+`memory.qmd.mcp`:
+
+- `enabled` (default `true`): set to `false` to force subprocess mode.
+- `startupTimeout` (default `"10s"`): how long to wait for the MCP server to
+  initialize on first boot. Increase if model downloads are slow.
+- `requestTimeout` (default `"30s"`): per-request timeout. The first query
+  after boot may take longer while models load; subsequent queries are fast.
+- `maxRetries` (default `3`): restart attempts before falling back to subprocess
+  mode for the remainder of the session.
+- `retryDelay` (default `"1s"`): delay between restart attempts.
+
+**MCP example**
+
+```json5
+memory: {
+  backend: "qmd",
+  qmd: {
+    mcp: {
+      enabled: true,              // default
+      startupTimeout: "15s",      // 15s for slow networks
+      requestTimeout: "45s",      // allow first-query model load
+      maxRetries: 5,
+      retryDelay: "2s"
+    }
+  }
+}
+```
+
+If MCP fails (server crash, timeout, repeated errors), OpenClaw logs a warning
+and transparently falls back to subprocess mode (`qmd query --json`) so memory
+search keeps working. The next gateway restart will attempt MCP mode again.
+
 **Example**
 
 ```json5

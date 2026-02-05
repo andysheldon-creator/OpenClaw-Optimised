@@ -15,6 +15,7 @@ import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolveStateDir } from "../config/paths.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { parseAgentSessionKey } from "../sessions/session-key-utils.js";
+import { QmdMcpClient } from "./qmd-mcp-client.js";
 import {
   listSessionFilesForAgent,
   buildSessionEntry,
@@ -73,7 +74,6 @@ export class QmdMemoryManager implements MemorySearchManager {
   private readonly xdgConfigHome: string;
   private readonly xdgCacheHome: string;
   private readonly indexPath: string;
-  private readonly env: NodeJS.ProcessEnv;
   private readonly collectionRoots = new Map<string, CollectionRoot>();
   private readonly sources = new Set<MemorySource>();
   private readonly docPathCache = new Map<
@@ -81,12 +81,15 @@ export class QmdMemoryManager implements MemorySearchManager {
     { rel: string; abs: string; source: MemorySource }
   >();
   private readonly sessionExporter: SessionExporterConfig | null;
+  private readonly env: Record<string, string>;
   private updateTimer: NodeJS.Timeout | null = null;
   private pendingUpdate: Promise<void> | null = null;
   private closed = false;
   private db: SqliteDatabase | null = null;
   private lastUpdateAt: number | null = null;
   private lastEmbedAt: number | null = null;
+  private mcpClient: QmdMcpClient | null = null;
+  private mcpFailed = false; // True if MCP failed permanently, use subprocess fallback
 
   private constructor(params: {
     cfg: OpenClawConfig;
@@ -108,8 +111,15 @@ export class QmdMemoryManager implements MemorySearchManager {
     this.xdgCacheHome = path.join(this.qmdDir, "xdg-cache");
     this.indexPath = path.join(this.xdgCacheHome, "qmd", "index.sqlite");
 
+    // Filter undefined values from process.env to satisfy Record<string, string>
+    const filteredEnv: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value !== undefined) {
+        filteredEnv[key] = value;
+      }
+    }
     this.env = {
-      ...process.env,
+      ...filteredEnv,
       XDG_CONFIG_HOME: this.xdgConfigHome,
       XDG_CACHE_HOME: this.xdgCacheHome,
       NO_COLOR: "1",
@@ -234,7 +244,69 @@ export class QmdMemoryManager implements MemorySearchManager {
       this.qmd.limits.maxResults,
       opts?.maxResults ?? this.qmd.limits.maxResults,
     );
-    const args = ["query", trimmed, "--json", "-n", String(limit)];
+
+    // Use MCP client if enabled and not permanently failed
+    if (this.qmd.mcp.enabled && !this.mcpFailed) {
+      try {
+        return await this.searchViaMcp(trimmed, limit, opts?.minScore);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        // Check if this is a permanent failure
+        if (message.includes("failed after") && message.includes("retries")) {
+          log.warn(`MCP mode failed permanently, falling back to subprocess: ${message}`);
+          this.mcpFailed = true;
+        } else {
+          log.warn(`MCP query failed, falling back to subprocess: ${message}`);
+        }
+        // Fall through to subprocess mode
+      }
+    }
+
+    // Subprocess mode (legacy or fallback)
+    return await this.searchViaSubprocess(trimmed, limit, opts?.minScore);
+  }
+
+  private async searchViaMcp(
+    query: string,
+    limit: number,
+    minScore?: number,
+  ): Promise<MemorySearchResult[]> {
+    const client = await this.getOrCreateMcpClient();
+    const mcpResults = await client.query(query, {
+      limit,
+      minScore: minScore ?? 0,
+    });
+
+    const results: MemorySearchResult[] = [];
+    for (const entry of mcpResults) {
+      const doc = await this.resolveDocLocation(entry.docid);
+      if (!doc) {
+        continue;
+      }
+      const snippet = (entry.snippet ?? entry.body ?? "").slice(0, this.qmd.limits.maxSnippetChars);
+      const lines = this.extractSnippetLines(snippet);
+      const score = typeof entry.score === "number" ? entry.score : 0;
+      if (minScore !== undefined && score < minScore) {
+        continue;
+      }
+      results.push({
+        path: doc.rel,
+        startLine: lines.startLine,
+        endLine: lines.endLine,
+        score,
+        snippet,
+        source: doc.source,
+      });
+    }
+    return this.clampResultsByInjectedChars(results.slice(0, limit));
+  }
+
+  private async searchViaSubprocess(
+    query: string,
+    limit: number,
+    minScore?: number,
+  ): Promise<MemorySearchResult[]> {
+    const args = ["query", query, "--json", "-n", String(limit)];
     let stdout: string;
     try {
       const result = await this.runQmd(args, { timeoutMs: this.qmd.limits.timeoutMs });
@@ -260,8 +332,7 @@ export class QmdMemoryManager implements MemorySearchManager {
       const snippet = entry.snippet?.slice(0, this.qmd.limits.maxSnippetChars) ?? "";
       const lines = this.extractSnippetLines(snippet);
       const score = typeof entry.score === "number" ? entry.score : 0;
-      const minScore = opts?.minScore ?? 0;
-      if (score < minScore) {
+      if (minScore !== undefined && score < minScore) {
         continue;
       }
       results.push({
@@ -274,6 +345,24 @@ export class QmdMemoryManager implements MemorySearchManager {
       });
     }
     return this.clampResultsByInjectedChars(results.slice(0, limit));
+  }
+
+  private async getOrCreateMcpClient(): Promise<QmdMcpClient> {
+    if (!this.mcpClient) {
+      this.mcpClient = new QmdMcpClient({
+        command: this.qmd.command,
+        env: this.env,
+        cwd: this.workspaceDir,
+        startupTimeoutMs: this.qmd.mcp.startupTimeoutMs,
+        requestTimeoutMs: this.qmd.mcp.requestTimeoutMs,
+        maxRetries: this.qmd.mcp.maxRetries,
+        retryDelayMs: this.qmd.mcp.retryDelayMs,
+      });
+    }
+    if (!this.mcpClient.isRunning()) {
+      await this.mcpClient.start();
+    }
+    return this.mcpClient;
   }
 
   async sync(params?: {
@@ -346,6 +435,11 @@ export class QmdMemoryManager implements MemorySearchManager {
         qmd: {
           collections: this.qmd.collections.length,
           lastUpdateAt: this.lastUpdateAt,
+          mcp: {
+            enabled: this.qmd.mcp.enabled,
+            running: this.mcpClient?.isRunning() ?? false,
+            failed: this.mcpFailed,
+          },
         },
       },
     };
@@ -369,6 +463,13 @@ export class QmdMemoryManager implements MemorySearchManager {
       this.updateTimer = null;
     }
     await this.pendingUpdate?.catch(() => undefined);
+    // Close MCP client if running
+    if (this.mcpClient) {
+      await this.mcpClient.close().catch((err) => {
+        log.debug(`Error closing MCP client: ${err instanceof Error ? err.message : String(err)}`);
+      });
+      this.mcpClient = null;
+    }
     if (this.db) {
       this.db.close();
       this.db = null;

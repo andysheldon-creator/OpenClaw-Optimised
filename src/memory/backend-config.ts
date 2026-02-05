@@ -6,6 +6,7 @@ import type {
   MemoryCitationsMode,
   MemoryQmdConfig,
   MemoryQmdIndexPath,
+  MemoryQmdMcpConfig,
 } from "../config/types.memory.js";
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
@@ -45,6 +46,19 @@ export type ResolvedQmdSessionConfig = {
   retentionDays?: number;
 };
 
+export type ResolvedQmdMcpConfig = {
+  /** Enable MCP server mode */
+  enabled: boolean;
+  /** Maximum time to wait for MCP server initialization (ms) */
+  startupTimeoutMs: number;
+  /** Per-request timeout - allows for model loading on first query (ms) */
+  requestTimeoutMs: number;
+  /** Maximum restart attempts before giving up */
+  maxRetries: number;
+  /** Delay between restart attempts (ms) */
+  retryDelayMs: number;
+};
+
 export type ResolvedQmdConfig = {
   command: string;
   collections: ResolvedQmdCollection[];
@@ -53,6 +67,8 @@ export type ResolvedQmdConfig = {
   limits: ResolvedQmdLimitsConfig;
   includeDefaultMemory: boolean;
   scope?: SessionSendPolicyConfig;
+  /** MCP server mode configuration */
+  mcp: ResolvedQmdMcpConfig;
 };
 
 const DEFAULT_BACKEND: MemoryBackend = "builtin";
@@ -75,6 +91,14 @@ const DEFAULT_QMD_SCOPE: SessionSendPolicyConfig = {
       match: { chatType: "direct" },
     },
   ],
+};
+
+const DEFAULT_QMD_MCP: ResolvedQmdMcpConfig = {
+  enabled: true,
+  startupTimeoutMs: 10_000,
+  requestTimeoutMs: 30_000,
+  maxRetries: 3,
+  retryDelayMs: 1_000,
 };
 
 function sanitizeName(input: string): string {
@@ -133,6 +157,30 @@ function resolveEmbedIntervalMs(raw: string | undefined): number {
   }
 }
 
+/**
+ * Resolves a timeout value that can be either a string duration (e.g., "10s") or a legacy number (ms).
+ * Supports backward compatibility with existing configs using numeric values.
+ */
+function resolveMcpTimeout(value: string | number | undefined, defaultMs: number): number {
+  if (value === undefined) {
+    return defaultMs;
+  }
+  // Support legacy numeric values (already in ms)
+  if (typeof value === "number") {
+    return value > 0 ? Math.floor(value) : defaultMs;
+  }
+  // Parse string duration
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return defaultMs;
+  }
+  try {
+    return parseDurationMs(trimmed, { defaultUnit: "s" });
+  } catch {
+    return defaultMs;
+  }
+}
+
 function resolveDebounceMs(raw: number | undefined): number {
   if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) {
     return Math.floor(raw);
@@ -170,6 +218,39 @@ function resolveSessionConfig(
     enabled,
     exportDir,
     retentionDays,
+  };
+}
+
+function resolveMcpConfig(cfg: MemoryQmdMcpConfig | undefined): ResolvedQmdMcpConfig {
+  const enabled = cfg?.enabled !== false; // Default to true
+
+  // Support both new string format (startupTimeout) and legacy number format (startupTimeoutMs)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cfgAny = cfg as any;
+  const startupTimeoutMs = resolveMcpTimeout(
+    cfg?.startupTimeout ?? cfgAny?.startupTimeoutMs,
+    DEFAULT_QMD_MCP.startupTimeoutMs,
+  );
+  const requestTimeoutMs = resolveMcpTimeout(
+    cfg?.requestTimeout ?? cfgAny?.requestTimeoutMs,
+    DEFAULT_QMD_MCP.requestTimeoutMs,
+  );
+  const retryDelayMs = resolveMcpTimeout(
+    cfg?.retryDelay ?? cfgAny?.retryDelayMs,
+    DEFAULT_QMD_MCP.retryDelayMs,
+  );
+
+  const maxRetries =
+    cfg?.maxRetries !== undefined && cfg.maxRetries >= 0
+      ? Math.floor(cfg.maxRetries)
+      : DEFAULT_QMD_MCP.maxRetries;
+
+  return {
+    enabled,
+    startupTimeoutMs,
+    requestTimeoutMs,
+    maxRetries,
+    retryDelayMs,
   };
 }
 
@@ -262,6 +343,7 @@ export function resolveMemoryBackendConfig(params: {
     },
     limits: resolveLimits(qmdCfg?.limits),
     scope: qmdCfg?.scope ?? DEFAULT_QMD_SCOPE,
+    mcp: resolveMcpConfig(qmdCfg?.mcp),
   };
 
   return {
