@@ -17,6 +17,21 @@ export type MemoryQmdConfig = {
   update?: MemoryQmdUpdateConfig;
   limits?: MemoryQmdLimitsConfig;
   scope?: SessionSendPolicyConfig;
+  /** MCP server mode configuration */
+  mcp?: MemoryQmdMcpConfig;
+};
+
+export type MemoryQmdMcpConfig = {
+  /** Enable MCP server mode (default: true) */
+  enabled?: boolean;
+  /** Maximum time to wait for MCP server initialization (ms) */
+  startupTimeoutMs?: number;
+  /** Per-request timeout - allows for model loading on first query (ms) */
+  requestTimeoutMs?: number;
+  /** Maximum restart attempts before giving up */
+  maxRetries?: number;
+  /** Delay between restart attempts (ms) */
+  retryDelayMs?: number;
 };
 
 export type MemoryQmdIndexPath = {
