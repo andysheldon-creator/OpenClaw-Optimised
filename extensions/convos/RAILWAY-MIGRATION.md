@@ -1,26 +1,33 @@
-# Railway Template Migration: Convos Setup via RPCs
+# Railway Template Migration: Convos Setup via HTTP API
 
 This document is for the agent updating the `clawdbot-railway-template` repo.
-The OpenClaw Convos extension now exposes gateway RPCs for setup, eliminating
+The OpenClaw Convos extension now exposes HTTP endpoints for setup, eliminating
 the need for the template to bundle its own XMTP agent logic.
 
-## RPC API
+## HTTP API
 
-All RPCs are called via the gateway WebSocket (or HTTP JSON-RPC) at
-`ws://127.0.0.1:18789/ws` (or `http://127.0.0.1:18789/rpc`).
+The Convos plugin registers HTTP routes on the gateway server. All endpoints
+accept and return JSON. The gateway listens on `http://127.0.0.1:18789` by
+default.
 
-| Method | Params | Returns | Notes |
-|--------|--------|---------|-------|
-| `convos.setup` | `{ env?, name?, accountId? }` | `{ inviteUrl, conversationId, qrDataUrl }` | Creates XMTP identity + conversation in memory. `qrDataUrl` is a `data:image/png;base64,...` string ready for an `<img src>`. |
-| `convos.setup.status` | none | `{ active, joined, joinerInboxId }` | Poll every 3 seconds. `joined` becomes `true` when a user scans the invite and joins. |
-| `convos.setup.complete` | none | `{ saved: true, conversationId }` | Persists the identity + conversation to config. Triggers a single gateway restart. Call this only after `joined === true`. |
+| Endpoint | Method | Body | Returns | Notes |
+|----------|--------|------|---------|-------|
+| `/convos/setup` | POST | `{ env?, name?, accountId? }` | `{ inviteUrl, conversationId, qrDataUrl }` | Creates XMTP identity + conversation in memory. `qrDataUrl` is a `data:image/png;base64,...` string ready for `<img src>`. |
+| `/convos/setup/status` | GET | none | `{ active, joined, joinerInboxId }` | Poll every 3 seconds. `joined` becomes `true` when a user scans the invite and joins. |
+| `/convos/setup/complete` | POST | none | `{ saved: true, conversationId }` | Persists the identity + conversation to config. Triggers a single gateway restart. Call only after `joined === true`. |
+
+Errors return HTTP 4xx/5xx with `{ error: "message" }`.
+
+The same methods are also available via WebSocket (`ws://127.0.0.1:18789`)
+as gateway methods `convos.setup`, `convos.setup.status`, and
+`convos.setup.complete` for use by the Control UI.
 
 ## New Template Flow
 
 1. **Start the gateway** with minimal config (`gateway.mode=local` pre-set).
    No Convos config needed yet -- the gateway starts without the channel.
 
-2. **Call `convos.setup`** via the gateway RPC endpoint.
+2. **Call `POST /convos/setup`** with optional `{ env, name }`.
    - Returns `inviteUrl`, `conversationId`, and `qrDataUrl`.
    - The setup agent stays running in memory to accept join requests.
    - No config is written at this point, so there are no gateway restarts.
@@ -30,10 +37,10 @@ All RPCs are called via the gateway WebSocket (or HTTP JSON-RPC) at
    - No client-side QR library needed.
    - Also display `inviteUrl` as a clickable/copyable link.
 
-4. **Poll `convos.setup.status`** every 3 seconds.
+4. **Poll `GET /convos/setup/status`** every 3 seconds.
    - When `joined === true`, the user has scanned the QR and joined.
 
-5. **Call `convos.setup.complete`** after join is confirmed.
+5. **Call `POST /convos/setup/complete`** after join is confirmed.
    - This writes the XMTP private key, conversation ID, and environment to config.
    - The gateway restarts once with the complete Convos config.
    - The normal Convos channel picks up the config and starts.
@@ -46,42 +53,32 @@ All RPCs are called via the gateway WebSocket (or HTTP JSON-RPC) at
 - **`convos-setup.js`** (or equivalent) -- all XMTP agent creation logic.
 - **`@xmtp/agent-sdk`** and **`convos-node-sdk`** from `package.json` dependencies.
 - Any code that calls `openclaw config set channels.convos.privateKey ...` directly.
-  Config writes are now handled by `convos.setup.complete`.
+  Config writes are now handled by `/convos/setup/complete`.
 
-## Example: Calling RPCs from the Template Server
+## Example: Calling from the Template Server
 
 ```javascript
-// Using WebSocket (ws library)
-const ws = new WebSocket("ws://127.0.0.1:18789/ws");
-
-function rpc(method, params = {}) {
-  return new Promise((resolve, reject) => {
-    const id = Math.random().toString(36).slice(2);
-    const handler = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.id !== id) return;
-      ws.removeEventListener("message", handler);
-      if (msg.error) reject(new Error(msg.error.message));
-      else resolve(msg.result);
-    };
-    ws.addEventListener("message", handler);
-    ws.send(JSON.stringify({ jsonrpc: "2.0", id, method, params }));
-  });
-}
+const GATEWAY = "http://127.0.0.1:18789";
 
 // 1. Start setup
-const setup = await rpc("convos.setup", { env: "production", name: "My Bot" });
-// setup.inviteUrl   -- invite link
-// setup.qrDataUrl   -- data:image/png;base64,... for <img src>
+const setupRes = await fetch(`${GATEWAY}/convos/setup`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ env: "production", name: "My Bot" }),
+});
+const setup = await setupRes.json();
+// setup.inviteUrl      -- invite link
+// setup.qrDataUrl      -- data:image/png;base64,... for <img src>
 // setup.conversationId
 
 // 2. Poll for join
 const poll = setInterval(async () => {
-  const status = await rpc("convos.setup.status");
+  const statusRes = await fetch(`${GATEWAY}/convos/setup/status`);
+  const status = await statusRes.json();
   if (status.joined) {
     clearInterval(poll);
     // 3. Save config
-    await rpc("convos.setup.complete");
+    await fetch(`${GATEWAY}/convos/setup/complete`, { method: "POST" });
     console.log("Convos configured and running!");
   }
 }, 3000);
@@ -97,10 +94,22 @@ const poll = setInterval(async () => {
 
 **After:**
 1. Template starts gateway (minimal config)
-2. Template calls gateway RPCs for Convos setup
+2. Template calls HTTP endpoints for Convos setup
 3. Single config write after join confirmed
 4. One clean restart
 
 All Convos SDK logic lives in the OpenClaw extension. The template just calls
-RPCs. Template updates automatically benefit from new Convos features without
-code changes.
+HTTP endpoints. Template updates automatically benefit from new Convos features
+without code changes.
+
+## Avoiding Restart Cascades
+
+**Do not run `openclaw config set` multiple times in sequence after the gateway
+is running.** Each `config set` writes the config file and triggers a gateway
+restart via SIGUSR1. Multiple writes in quick succession cause a cascade of
+restarts.
+
+Instead, batch all config into a single write:
+- Use `openclaw config set key1=val1 key2=val2 ...` (single command)
+- Or write the config file once before starting the gateway
+- Or use the `config.update` gateway method to batch changes
