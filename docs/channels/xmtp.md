@@ -75,14 +75,14 @@ Configure the XMTP channel under `channels.xmtp`:
 }
 ```
 
-| Key                 | Type   | Default       | Description                                    |
-| ------------------- | ------ | ------------- | ---------------------------------------------- |
-| `enabled`           | boolean| `true`        | Enable/disable the channel                     |
-| `accounts`          | object | required      | Map of account id → config                     |
-| `accounts.<id>.walletKey` | string | required | Ethereum private key for the XMTP agent wallet |
-| `accounts.<id>.dbEncryptionKey` | string | required | Key for encrypting the local XMTP database     |
-| `accounts.<id>.env` | string | `"production"` | `dev` or `production`                         |
-| `dmPolicy`          | string | `pairing`     | DM access policy                               |
+| Key                             | Type    | Default        | Description                                    |
+| ------------------------------- | ------- | -------------- | ---------------------------------------------- |
+| `enabled`                       | boolean | `true`         | Enable/disable the channel                     |
+| `accounts`                      | object  | required       | Map of account id → config                     |
+| `accounts.<id>.walletKey`       | string  | required       | Ethereum private key for the XMTP agent wallet |
+| `accounts.<id>.dbEncryptionKey` | string  | required       | Key for encrypting the local XMTP database     |
+| `accounts.<id>.env`             | string  | `"production"` | `dev` or `production`                          |
+| `dmPolicy`                      | string  | `pairing`      | DM access policy                               |
 
 Use environment variables for secrets (e.g. `"walletKey": "${XMTP_WALLET_KEY}"`).
 
