@@ -1,5 +1,5 @@
 import {
-  loadModelCatalog,
+  loadAvailableModels,
   type ModelCatalogEntry,
   resetModelCatalogCacheForTest,
 } from "../agents/model-catalog.js";
@@ -15,5 +15,7 @@ export function __resetModelCatalogCacheForTest() {
 }
 
 export async function loadGatewayModelCatalog(): Promise<GatewayModelChoice[]> {
-  return await loadModelCatalog({ config: loadConfig() });
+  // Use loadAvailableModels to filter by detected providers only.
+  // This ensures users only see models they can actually use.
+  return await loadAvailableModels({ config: loadConfig() });
 }
