@@ -12,6 +12,8 @@ import {
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { upsertBacklogItem } from "./backlog.js";
 import { resolveNeuronWavesConfigFromEnv } from "./config.js";
+import { appendLedgerEvent, appendPolicyHistory, writeSnapshot } from "./learning/index.js";
+import { loadNeuronWavesPolicy, saveNeuronWavesPolicy } from "./policy/index.js";
 import { tryPostGhPrComment } from "./reporters/github-gh.js";
 import { appendNeuronWaveTrace, loadNeuronWavesState, saveNeuronWavesState } from "./state.js";
 
@@ -108,6 +110,17 @@ export function startNeuronWavesRunner(opts: { cfg: OpenClawConfig }): NeuronWav
       running: { startedAtMs: nowMs, id: runId },
     });
 
+    await appendLedgerEvent({
+      workspaceDir,
+      kind: "wave.started",
+      payload: {
+        runId,
+        inactivityMs,
+        nextRunAtMs,
+      },
+      nowMs,
+    });
+
     // MVP wave: record a trace + optionally post a PR comment.
     // Also enqueue a backlog item and schedule an immediate nudge (via next tick)
     // when the user is inactive.
@@ -120,6 +133,16 @@ export function startNeuronWavesRunner(opts: { cfg: OpenClawConfig }): NeuronWav
       priority: "medium",
       context: nwCfg.pr ? { pr: nwCfg.pr } : undefined,
       lastNudgedAtMs: nowMs,
+    });
+
+    await appendLedgerEvent({
+      workspaceDir,
+      kind: "action.planned",
+      payload: {
+        runId,
+        action: { kind: "noop", summary: `Backlog item created: ${backlogItem.id}` },
+      },
+      nowMs,
     });
 
     const trace: NeuronWaveTraceEntry = {
@@ -142,6 +165,45 @@ export function startNeuronWavesRunner(opts: { cfg: OpenClawConfig }): NeuronWav
     };
 
     await appendNeuronWaveTrace(workspaceDir, trace);
+
+    await appendLedgerEvent({
+      workspaceDir,
+      kind: "action.result",
+      payload: { runId, ok: true, summary: "MVP tick completed" },
+      nowMs,
+    });
+
+    // Auto-policy learning hook (minimal v1): if devLevel=3 and user chose unlimited,
+    // allow the system to widen caps based on its own experience. This is intentionally
+    // conservative for now: it only records snapshots and history when changes happen.
+    const policy = await loadNeuronWavesPolicy(workspaceDir);
+    if (policy.mode === "dev" && (policy.devLevel ?? 1) === 3) {
+      // Example: if limits are undefined-like (shouldn't happen), normalize them.
+      const normalized = {
+        ...policy,
+        limits: {
+          outboundPerHour: policy.limits.outboundPerHour ?? null,
+          spendUsdPerDay: policy.limits.spendUsdPerDay ?? null,
+        },
+      };
+      if (JSON.stringify(normalized) !== JSON.stringify(policy)) {
+        const evt = await appendLedgerEvent({
+          workspaceDir,
+          kind: "policy.updated",
+          payload: { runId, reason: "normalize-limits" },
+          nowMs,
+        });
+        await appendPolicyHistory(workspaceDir, {
+          atMs: nowMs,
+          reason: "auto:normalize-limits",
+          ledgerEventId: evt.id,
+          from: policy,
+          to: normalized,
+        });
+        await writeSnapshot(workspaceDir, { atMs: nowMs, kind: "policy", data: normalized });
+        await saveNeuronWavesPolicy(workspaceDir, normalized);
+      }
+    }
 
     if (nwCfg.postPrComments && nwCfg.pr) {
       const body =
