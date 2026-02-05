@@ -21,6 +21,7 @@ import {
   applyVercelAiGatewayConfig,
   applyXiaomiConfig,
   applyZaiConfig,
+  applyAliyunBailianConfig,
   setAnthropicApiKey,
   setGeminiApiKey,
   setKimiCodingApiKey,
@@ -33,6 +34,7 @@ import {
   setVercelAiGatewayApiKey,
   setXiaomiApiKey,
   setZaiApiKey,
+  setAliyunBailianApiKey,
 } from "../../onboard-auth.js";
 import { resolveNonInteractiveApiKey } from "../api-keys.js";
 
@@ -426,6 +428,29 @@ export async function applyNonInteractiveAuthChoice(params: {
       mode: "api_key",
     });
     return applyOpencodeZenConfig(nextConfig);
+  }
+
+  if (authChoice === "aliyun-bailian-api-key") {
+    const resolved = await resolveNonInteractiveApiKey({
+      provider: "aliyun-bailian",
+      cfg: baseConfig,
+      flagValue: opts.aliyunBailianApiKey,
+      flagName: "--aliyun-bailian-api-key",
+      envVar: "ALIYUN_BAILIAN_API_KEY",
+      runtime,
+    });
+    if (!resolved) {
+      return null;
+    }
+    if (resolved.source !== "profile") {
+      await setAliyunBailianApiKey(resolved.key);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "aliyun-bailian:default",
+      provider: "aliyun-bailian",
+      mode: "api_key",
+    });
+    return applyAliyunBailianConfig(nextConfig);
   }
 
   if (

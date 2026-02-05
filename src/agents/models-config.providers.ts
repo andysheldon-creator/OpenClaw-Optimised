@@ -76,6 +76,24 @@ const OLLAMA_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
+const BAILIAN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+const BAILIAN_DEFAULT_CONTEXT_WINDOW = 128000;
+const BAILIAN_DEFAULT_MAX_TOKENS = 8192;
+const BAILIAN_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+interface AliyunBailianModel {
+  id: string;
+}
+
+interface AliyunBailianModelsResponse {
+  data: AliyunBailianModel[];
+}
+
 interface OllamaModel {
   name: string;
   modified_at: string;
@@ -92,10 +110,6 @@ interface OllamaTagsResponse {
 }
 
 async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
-  // Skip Ollama discovery in test environments
-  if (process.env.VITEST || process.env.NODE_ENV === "test") {
-    return [];
-  }
   try {
     const response = await fetch(`${OLLAMA_API_BASE_URL}/api/tags`, {
       signal: AbortSignal.timeout(5000),
@@ -129,6 +143,48 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
   }
 }
 
+async function discoverBailianModels(apiKey: string): Promise<ModelDefinitionConfig[]> {
+  try {
+    const response = await fetch(`${BAILIAN_BASE_URL}/models`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) {
+      console.warn(`Failed to discover Aliyun Bailian models: ${response.status}`);
+      return [];
+    }
+    const data = (await response.json()) as AliyunBailianModelsResponse;
+    if (!data.data || data.data.length === 0) {
+      return [];
+    }
+
+    return data.data.map((model) => {
+      const modelId = model.id;
+      const isReasoning =
+        modelId.toLowerCase().includes("qwq") ||
+        modelId.toLowerCase().includes("reasoning") ||
+        modelId.toLowerCase().includes("-r1");
+      const hasVision =
+        modelId.toLowerCase().includes("vl") || modelId.toLowerCase().includes("vision");
+
+      return {
+        id: modelId,
+        name: modelId,
+        reasoning: isReasoning,
+        input: hasVision ? ["text", "image"] : ["text"],
+        cost: BAILIAN_DEFAULT_COST,
+        contextWindow: BAILIAN_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: BAILIAN_DEFAULT_MAX_TOKENS,
+      };
+    });
+  } catch (error) {
+    console.warn(`Failed to discover Aliyun Bailian models: ${String(error)}`);
+    return [];
+  }
+}
+
 function normalizeApiKeyConfig(value: string): string {
   const trimmed = value.trim();
   const match = /^\$\{([A-Z0-9_]+)\}$/.exec(trimmed);
@@ -140,8 +196,7 @@ function resolveEnvApiKeyVarName(provider: string): string | undefined {
   if (!resolved) {
     return undefined;
   }
-  const match = /^(?:env: |shell env: )([A-Z0-9_]+)$/.exec(resolved.source);
-  return match ? match[1] : undefined;
+  return resolved.apiKey;
 }
 
 function resolveAwsSdkApiKeyVarName(): string {
@@ -394,6 +449,15 @@ async function buildOllamaProvider(): Promise<ProviderConfig> {
   };
 }
 
+async function buildBailianProvider(apiKey: string): Promise<ProviderConfig> {
+  const models = await discoverBailianModels(apiKey);
+  return {
+    baseUrl: BAILIAN_BASE_URL,
+    api: "openai-completions",
+    models,
+  };
+}
+
 export async function resolveImplicitProviders(params: {
   agentDir: string;
 }): Promise<ModelsConfig["providers"]> {
@@ -459,6 +523,14 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
   if (ollamaKey) {
     providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
+  }
+
+  const bailianKey =
+    resolveEnvApiKeyVarName("aliyun-bailian") ??
+    resolveApiKeyFromProfiles({ provider: "aliyun-bailian", store: authStore });
+  if (bailianKey) {
+    providers["aliyun-bailian"] = await buildBailianProvider(bailianKey);
+    providers["aliyun-bailian"].apiKey = bailianKey;
   }
 
   return providers;
