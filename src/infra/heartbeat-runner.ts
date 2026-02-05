@@ -224,7 +224,7 @@ function resolveHeartbeatConfig(
 ): HeartbeatConfig | undefined {
   const defaults = cfg.agents?.defaults?.heartbeat;
   if (!agentId) {
-    return defaults;
+    return defaults ?? undefined;
   }
   const overrides = resolveAgentConfig(cfg, agentId)?.heartbeat;
   if (!defaults && !overrides) {
@@ -301,6 +301,11 @@ export function resolveHeartbeatIntervalMs(
   overrideEvery?: string,
   heartbeat?: HeartbeatConfig,
 ) {
+  // If defaults.heartbeat is explicitly null, treat as disabled (user set heartbeat: null)
+  // This check must happen before the fallback chain since null?.every returns undefined
+  if (cfg.agents?.defaults?.heartbeat === null && heartbeat === undefined) {
+    return null;
+  }
   const raw =
     overrideEvery ??
     heartbeat?.every ??

@@ -47,6 +47,16 @@ describe("resolveHeartbeatIntervalMs", () => {
     expect(resolveHeartbeatIntervalMs({})).toBe(30 * 60_000);
   });
 
+  it("returns null when heartbeat is explicitly null (disabled)", () => {
+    // When user sets `heartbeat: null` in config, it should disable heartbeat
+    // instead of falling back to DEFAULT_HEARTBEAT_EVERY
+    expect(
+      resolveHeartbeatIntervalMs({
+        agents: { defaults: { heartbeat: null } },
+      } as OpenClawConfig),
+    ).toBeNull();
+  });
+
   it("returns null when invalid or zero", () => {
     expect(
       resolveHeartbeatIntervalMs({
