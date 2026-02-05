@@ -80,6 +80,27 @@ const OLLAMA_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
+const LMSTUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
+const LMSTUDIO_DEFAULT_CONTEXT_WINDOW = 32000;
+const LMSTUDIO_DEFAULT_MAX_TOKENS = 8192;
+const LMSTUDIO_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+interface LMStudioModelData {
+  id: string;
+  object: string;
+  owned_by: string;
+}
+
+interface LMStudioModelsResponse {
+  object: "list";
+  data: LMStudioModelData[];
+}
+
 interface OllamaModel {
   name: string;
   modified_at: string;
@@ -130,6 +151,32 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
   } catch (error) {
     console.warn(`Failed to discover Ollama models: ${String(error)}`);
     return [];
+  }
+}
+
+async function discoverLMStudioModels(): Promise<ModelDefinitionConfig[]> {
+  try {
+    const response = await fetch(`${LMSTUDIO_BASE_URL}/models`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (!response.ok) {
+      return []; // Silently fail if not running
+    }
+    const data = (await response.json()) as LMStudioModelsResponse;
+    if (!data.data || data.data.length === 0) {
+      return [];
+    }
+    return data.data.map((model) => ({
+      id: model.id,
+      name: model.id.split("/").pop() ?? model.id,
+      reasoning: false,
+      input: ["text"],
+      cost: LMSTUDIO_DEFAULT_COST,
+      contextWindow: LMSTUDIO_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: LMSTUDIO_DEFAULT_MAX_TOKENS,
+    }));
+  } catch {
+    return []; // Silently fail on connection error
   }
 }
 
@@ -398,6 +445,15 @@ async function buildOllamaProvider(): Promise<ProviderConfig> {
   };
 }
 
+async function buildLMStudioProvider(): Promise<ProviderConfig> {
+  const models = await discoverLMStudioModels();
+  return {
+    baseUrl: LMSTUDIO_BASE_URL,
+    api: "openai-completions",
+    models,
+  };
+}
+
 export async function resolveImplicitProviders(params: {
   agentDir: string;
 }): Promise<ModelsConfig["providers"]> {
@@ -491,6 +547,14 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
   if (ollamaKey) {
     providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
+  }
+
+  // LM Studio provider - only add if explicitly configured
+  const lmstudioKey =
+    resolveEnvApiKeyVarName("lmstudio") ??
+    resolveApiKeyFromProfiles({ provider: "lmstudio", store: authStore });
+  if (lmstudioKey) {
+    providers.lmstudio = { ...(await buildLMStudioProvider()), apiKey: lmstudioKey };
   }
 
   return providers;
