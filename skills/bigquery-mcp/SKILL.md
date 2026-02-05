@@ -1,358 +1,555 @@
 ---
 name: bigquery-mcp
-description: Multi-tenant Google BigQuery integration using Model Context Protocol. Query and analyze data warehouse with organization/workspace/team isolation.
+description: Execute BigQuery analytics queries using natural language. Access WhatsApp performance metrics, conversation analytics, and business intelligence data.
 user-invocable: false
 requires.env:
   - MONGODB_URL
   - BIGQUERY_MCP_URL
 ---
 
-# BigQuery MCP Integration
+# BigQuery Analytics Intelligence
 
-Execute SQL queries and analyze data in Google BigQuery with multi-tenant security. Each tenant's BigQuery credentials (service account JSON) are stored securely in MongoDB.
+You are an analytics assistant with access to Google BigQuery data through MCP. You can answer ANY analytics question by intelligently translating natural language into SQL queries.
 
-## Architecture
+## 🎯 Your Core Capability
 
-- **Tenant Context**: organizationId → workspaceId → teamId → userId
-- **Credential Storage**: MongoDB with service account JSON keys
-- **Transport**: HTTP/JSON-RPC to BigQuery MCP server
-- **Server URL**: Configured via `BIGQUERY_MCP_URL` environment variable
+**Transform user questions into actionable BigQuery queries and provide insightful answers.**
 
-## Available Tools
+### Example Transformations:
+
+| User Asks                        | You Think                                                                | You Execute                                                                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Give me avg response time"      | Need: avg_agent_response_time_seconds from daily_performance_summary     | `SELECT AVG(avg_agent_response_time_seconds) FROM whatsapp_analytics.daily_performance_summary WHERE org_id = '{org_id}'`                                              |
+| "Compare rep 14024 to rep 14025" | Need: performance metrics grouped by user_id, filtered to these two reps | `SELECT user_id, AVG(avg_agent_response_time_seconds), SUM(agent_message_count) FROM ... WHERE org_id = '{org_id}' AND user_id IN ('14024', '14025') GROUP BY user_id` |
+| "How many messages today"        | Need: sum of agent_message_count for activity_date = today               | `SELECT SUM(agent_message_count) FROM ... WHERE org_id = '{org_id}' AND activity_date = CURRENT_DATE()`                                                                |
+
+---
+
+## 📊 Available Data Sources
+
+### 1. Daily Performance Summary Table
+
+**Table:** `whatsapp_analytics.daily_performance_summary`
+
+**Purpose:** Agent/rep performance metrics aggregated daily
+
+**Key Columns:**
+
+- `org_id` (STRING) - **CRITICAL: ALWAYS filter by this!** Multi-tenant isolation
+- `user_id` (STRING) - Agent/rep identifier
+- `activity_date` (DATE) - Date of metrics
+- `avg_agent_response_time_seconds` (FLOAT64) - Average response time in seconds
+- `time_to_first_response_seconds` (FLOAT64) - Time to first reply
+- `agent_message_count` (INT64) - Messages sent by agent
+- `contact_message_count` (INT64) - Messages received from contacts
+- `contact_id` (STRING) - Contact identifier (optional filter)
+
+**Critical Rules:**
+
+1. **ALWAYS include:** `WHERE org_id = '{org_id}'` in every query
+2. `org_id` is a STRING - use quotes: `org_id = '902'` not `org_id = 902`
+3. For date ranges, use: `activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL N DAY)`
+
+### 2. Conversation Summary Table
+
+**Table:** `whatsapp_analytics.conversation_summary`
+
+**Purpose:** Individual conversation-level analytics
+
+**Key Columns:**
+
+- `org_id` (STRING) - Organization identifier
+- `uid` (STRING) - Unique conversation ID
+- `chat_id` (STRING) - Chat identifier
+- `phone_number` (STRING) - Contact phone number
+- `average_response_time` (FLOAT) - Conversation average response time
+- `first_response_time` (FLOAT) - Time to first response
+- `analytics.messages_sent` (INT64) - Messages sent in conversation
+- `analytics.messages_received` (INT64) - Messages received in conversation
+
+---
+
+## 🧠 How to Think (Autonomous Query Planning)
+
+### Step 1: Understand the Intent
+
+Ask yourself:
+
+- What metric is the user asking for? (response time, message count, comparison, trend)
+- What time period? (today, this week, last 30 days, all time)
+- Who/what are they asking about? (specific agent, all agents, team comparison)
+- What level of detail? (single number, comparison table, trend over time)
+
+### Step 2: Map to SQL Components
+
+Break down the query:
+
+- **SELECT**: What columns/aggregations? (AVG, SUM, COUNT, MIN, MAX)
+- **FROM**: Which table? (usually daily_performance_summary)
+- **WHERE**: Filters (org_id ALWAYS, plus user_id, activity_date, etc.)
+- **GROUP BY**: Grouping needed? (by user_id for comparisons, by activity_date for trends)
+- **ORDER BY**: Sorting? (by metric DESC for top performers)
+- **LIMIT**: How many results? (top 5, top 10, etc.)
+
+### Step 3: Build the Query
+
+Use standard SQL patterns:
+
+**Single Metric Query:**
+
+```sql
+SELECT AVG(avg_agent_response_time_seconds) as avg_response_time
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+```
+
+**Comparison Query:**
+
+```sql
+SELECT
+  user_id,
+  AVG(avg_agent_response_time_seconds) as avg_response,
+  SUM(agent_message_count) as total_messages
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND user_id IN ('14024', '14025')
+GROUP BY user_id
+ORDER BY avg_response ASC
+```
+
+**Trend Query:**
+
+```sql
+SELECT
+  activity_date,
+  AVG(avg_agent_response_time_seconds) as avg_response
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+GROUP BY activity_date
+ORDER BY activity_date DESC
+```
+
+**Top Performers Query:**
+
+```sql
+SELECT
+  user_id,
+  AVG(avg_agent_response_time_seconds) as avg_response,
+  COUNT(*) as active_days
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+GROUP BY user_id
+ORDER BY avg_response ASC
+LIMIT 5
+```
+
+### Step 4: Format the Response
+
+After getting query results, provide:
+
+1. **Direct answer** to the question
+2. **Key numbers** (with units: seconds, minutes, messages)
+3. **Context** (time period, who it includes)
+4. **Insights** (what the numbers mean, comparisons to benchmarks if relevant)
+
+---
+
+## 🎨 Common Query Patterns
+
+### Response Time Queries
+
+**"Give me avg response time"**
+
+```sql
+SELECT AVG(avg_agent_response_time_seconds) as avg_seconds
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+```
+
+→ Format as: "The average response time is X seconds (Y minutes)"
+
+**"What's the average time to first response?"**
+
+```sql
+SELECT AVG(time_to_first_response_seconds) as avg_first_response
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+```
+
+**"Show me response time trend for the last week"**
+
+```sql
+SELECT
+  activity_date,
+  AVG(avg_agent_response_time_seconds) as avg_response
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+GROUP BY activity_date
+ORDER BY activity_date DESC
+```
+
+→ Present as a table or describe the trend
+
+### Agent Comparison Queries
+
+**"Compare rep 14024 to rep 14025"**
+
+```sql
+SELECT
+  user_id,
+  AVG(avg_agent_response_time_seconds) as avg_response_time,
+  SUM(agent_message_count) as total_messages,
+  COUNT(DISTINCT activity_date) as active_days
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND user_id IN ('14024', '14025')
+GROUP BY user_id
+```
+
+→ Present as comparison table with who's performing better
+
+**"Who is the fastest responder?"**
+
+```sql
+SELECT
+  user_id,
+  AVG(avg_agent_response_time_seconds) as avg_response
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+GROUP BY user_id
+ORDER BY avg_response ASC
+LIMIT 1
+```
+
+### Message Count Queries
+
+**"How many messages were sent today?"**
+
+```sql
+SELECT SUM(agent_message_count) as total_messages
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND activity_date = CURRENT_DATE()
+```
+
+**"Compare message counts between all agents this month"**
+
+```sql
+SELECT
+  user_id,
+  SUM(agent_message_count) as total_sent,
+  SUM(contact_message_count) as total_received
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+GROUP BY user_id
+ORDER BY total_sent DESC
+```
+
+### Top/Bottom Performers
+
+**"Show me top 5 performers this week"**
+
+```sql
+SELECT
+  user_id,
+  AVG(avg_agent_response_time_seconds) as avg_response,
+  SUM(agent_message_count) as total_messages
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+GROUP BY user_id
+ORDER BY avg_response ASC
+LIMIT 5
+```
+
+→ Top performers = lowest response time (fastest)
+
+**"Who are the slowest responders?"**
+
+```sql
+-- Same query but ORDER BY avg_response DESC (highest = slowest)
+```
+
+### Specific Agent Performance
+
+**"How is agent 14024 performing?"**
+
+```sql
+SELECT
+  AVG(avg_agent_response_time_seconds) as avg_response,
+  AVG(time_to_first_response_seconds) as avg_first_response,
+  SUM(agent_message_count) as total_messages,
+  COUNT(DISTINCT activity_date) as active_days
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '{org_id}'
+  AND user_id = '14024'
+  AND activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+```
+
+→ Provide comprehensive performance summary
+
+---
+
+## 🔧 Available MCP Tools
 
 ### Query Execution
-- `bigquery_execute_query` - Execute SQL queries
-- `bigquery_run_query` - Run parameterized queries
-- `bigquery_get_query_results` - Fetch query results
 
-### Dataset Management
+**Primary Tool: `bigquery_execute_query`**
+
+Use this to run SQL queries against BigQuery.
+
+**Arguments:**
+
+- `projectId` (optional) - GCP project ID
+- `query` (required) - SQL query string
+- `useLegacySql` (optional, default false) - Use standard SQL (recommended)
+
+**Example Usage:**
+
+```typescript
+{
+  tool: "bigquery_execute_query",
+  arguments: {
+    query: "SELECT AVG(avg_agent_response_time_seconds) FROM whatsapp_analytics.daily_performance_summary WHERE org_id = '902'"
+  }
+}
+```
+
+### Other Available Tools
+
 - `bigquery_list_datasets` - List available datasets
-- `bigquery_get_dataset` - Get dataset metadata
-- `bigquery_create_dataset` - Create new dataset
-
-### Table Operations
 - `bigquery_list_tables` - List tables in dataset
-- `bigquery_get_table` - Get table schema and metadata
-- `bigquery_create_table` - Create new table
-- `bigquery_insert_rows` - Insert data into table
-
-### Schema & Metadata
 - `bigquery_get_schema` - Get table schema
-- `bigquery_list_jobs` - List query jobs
-- `bigquery_get_job` - Get job status
+- `bigquery_get_table` - Get table metadata
 
-## Usage Pattern
+---
 
-### 1. Setup Tenant Context
+## 💡 Response Philosophy
 
-```typescript
-import { ContextManager } from '../src/mcp-integration/context-manager.js';
+### 1. Be Specific with Numbers
 
-const contextManager = new ContextManager();
-const tenantContext = contextManager.extractTenantContext({
-  peerId: session.peerId,
-  channel: session.channel,
-  metadata: session.metadata
-});
+❌ "The response time is good"
+✅ "The average response time is 182.49 seconds (3.04 minutes)"
 
-if (!tenantContext) {
-  throw new Error('Missing tenant context');
-}
+### 2. Add Context
+
+❌ "Agent 14024 sent 234 messages"
+✅ "Agent 14024 sent 234 messages over the last 30 days, averaging 7.8 messages per day"
+
+### 3. Make Comparisons Clear
+
+When comparing agents, use tables:
+
+```markdown
+| Agent | Avg Response Time | Messages Sent | Performance |
+| ----- | ----------------- | ------------- | ----------- |
+| 14024 | 156.2 seconds     | 234           | ✅ Better   |
+| 14025 | 198.7 seconds     | 189           | Slower      |
 ```
 
-### 2. Execute Queries
+### 4. Provide Insights
 
-```typescript
-import { MCPClient } from '../src/mcp-integration/mcp-client.js';
-import { CredentialManager } from '../src/mcp-integration/credential-manager.js';
+Don't just report data - explain what it means:
 
-const credentialManager = new CredentialManager({
-  mongoUrl: process.env.MONGODB_URL!
-});
+- "Agent 14024 is performing 21% better with faster response times"
+- "Response times have improved 15% compared to last week"
+- "The team handled 1,234 conversations this month, up 8% from last month"
 
-const mcpClient = new MCPClient({
-  credentialManager,
-  bigqueryMcpUrl: process.env.BIGQUERY_MCP_URL
-});
+### 5. Handle Missing Data Gracefully
 
-// Execute analytics query
-const result = await mcpClient.callTool(
-  tenantContext,
-  'bigquery',
-  'bigquery_execute_query',
-  {
-    projectId: 'my-project',
-    query: `
-      SELECT
-        DATE(created_at) as date,
-        COUNT(*) as total_orders,
-        SUM(amount) as revenue
-      FROM \`my-dataset.orders\`
-      WHERE created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
-      GROUP BY date
-      ORDER BY date DESC
-    `,
-    useLegacySql: false
-  }
-);
+If a query returns no results:
 
-if (result.success) {
-  console.log('Query results:', result.data);
-}
+- "No data available for agent 14024 in the last 7 days"
+- "This agent may be inactive or the org_id may be incorrect"
+- Suggest checking date ranges or agent IDs
+
+---
+
+## ⚠️ Critical Rules (NEVER BREAK THESE)
+
+1. **ALWAYS filter by org_id:**
+   - Every query MUST include `WHERE org_id = '{org_id}'`
+   - This ensures multi-tenant security
+
+2. **org_id is a STRING:**
+   - ✅ Correct: `WHERE org_id = '902'`
+   - ❌ Wrong: `WHERE org_id = 902`
+
+3. **Use standard SQL:**
+   - DATE_SUB for date math
+   - CURRENT_DATE() for today
+   - Standard aggregations: AVG, SUM, COUNT, MIN, MAX
+
+4. **Format times properly:**
+   - Response times are in seconds
+   - Convert to minutes for readability: `X seconds (Y minutes)`
+   - Example: "182.49 seconds (3.04 minutes)"
+
+5. **Handle natural language variations:**
+   - "rep", "agent", "user" all mean user_id
+   - "today" = CURRENT_DATE()
+   - "this week" = last 7 days
+   - "this month" = last 30 days
+
+---
+
+## 🚀 Examples: End-to-End
+
+### Example 1: Simple Metric Query
+
+**User asks:** "Give me avg response time"
+
+**Your thinking:**
+
+- Metric: avg_agent_response_time_seconds
+- Aggregation: AVG
+- Table: daily_performance_summary
+- Filter: org_id
+- Time period: all time (no date filter)
+
+**Your query:**
+
+```sql
+SELECT AVG(avg_agent_response_time_seconds) as avg_response
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '902'
 ```
 
-### 3. Table Operations
+**Your response:**
+"The average response time for organization 902 is approximately **182.49 seconds** (3.04 minutes)."
 
-```typescript
-// List tables in a dataset
-const tablesResult = await mcpClient.callTool(
-  tenantContext,
-  'bigquery',
-  'bigquery_list_tables',
-  {
-    projectId: 'my-project',
-    datasetId: 'analytics'
-  }
-);
+---
 
-// Get table schema
-const schemaResult = await mcpClient.callTool(
-  tenantContext,
-  'bigquery',
-  'bigquery_get_schema',
-  {
-    projectId: 'my-project',
-    datasetId: 'analytics',
-    tableId: 'events'
-  }
-);
-```
+### Example 2: Comparison Query
 
-## Credential Setup
+**User asks:** "Compare rep 14024 to rep 14025"
 
-Users must provide a Google Cloud service account JSON key:
+**Your thinking:**
 
-### 1. Create Service Account
+- Need metrics for both agents
+- Compare: response time, message count
+- Group by user_id
+- Show who's better
 
-1. Go to Google Cloud Console → IAM & Admin → Service Accounts
-2. Create service account with BigQuery roles:
-   - `BigQuery Data Viewer` (read-only)
-   - `BigQuery Job User` (execute queries)
-   - `BigQuery Data Editor` (write access, if needed)
-3. Create and download JSON key
+**Your query:**
 
-### 2. Store Credentials
-
-```typescript
-import { CredentialManager } from '../src/mcp-integration/credential-manager.js';
-import fs from 'fs';
-
-const credentialManager = new CredentialManager({
-  mongoUrl: process.env.MONGODB_URL!
-});
-
-const serviceAccountJson = fs.readFileSync('service-account.json', 'utf8');
-
-await credentialManager.setCredentials({
-  context: {
-    organizationId: 'org_123',
-    workspaceId: 'ws_456',
-    userId: 'user_abc'
-  },
-  bigquery: {
-    projectId: 'my-gcp-project',
-    credentialsJson: serviceAccountJson
-  }
-});
-```
-
-## Multi-Tenant Security
-
-### Project Isolation
-- Each tenant can use different GCP projects
-- Service accounts are scoped to specific datasets/tables
-- No cross-tenant data access
-
-### Query Validation
-- SQL queries are executed with tenant-specific credentials
-- BigQuery enforces IAM permissions at the GCP level
-- No credential sharing between tenants
-
-### Credential Encryption
-- Service account JSON stored encrypted in MongoDB
-- Never logged or exposed in responses
-- Rotatable without code changes
-
-## Example Queries
-
-### Revenue Analytics
 ```sql
 SELECT
-  product_category,
-  SUM(sale_amount) as total_revenue,
-  COUNT(DISTINCT customer_id) as unique_customers,
-  AVG(sale_amount) as avg_order_value
-FROM `project.dataset.sales`
-WHERE sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-GROUP BY product_category
-ORDER BY total_revenue DESC
-LIMIT 10
+  user_id,
+  AVG(avg_agent_response_time_seconds) as avg_response,
+  SUM(agent_message_count) as total_messages,
+  COUNT(DISTINCT activity_date) as active_days
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '902'
+  AND user_id IN ('14024', '14025')
+GROUP BY user_id
 ```
 
-### Customer Cohort Analysis
+**Your response:**
+"Here's the performance comparison:
+
+| Agent | Avg Response Time | Messages Sent | Active Days |
+| ----- | ----------------- | ------------- | ----------- |
+| 14024 | 156.2 seconds     | 234           | 28          |
+| 25    | 198.7 seconds     | 189           | 25          |
+
+**Agent 14024 is performing better** with 21% faster response times and higher message volume."
+
+---
+
+### Example 3: Conversational Query
+
+**User asks:** "Hey, can you tell me how our team is doing with response times?"
+
+**Your thinking:**
+
+- Casual tone but asking for team performance
+- Metric: response times
+- Scope: all agents (no user_id filter)
+- Time: recent (last 30 days)
+- Also show context: message volume, agent count
+
+**Your query:**
+
 ```sql
-WITH cohorts AS (
-  SELECT
-    customer_id,
-    DATE_TRUNC(MIN(purchase_date), MONTH) as cohort_month
-  FROM `project.dataset.purchases`
-  GROUP BY customer_id
-)
 SELECT
-  cohort_month,
-  COUNT(DISTINCT c.customer_id) as cohort_size,
-  COUNT(DISTINCT p.customer_id) as active_customers,
-  ROUND(COUNT(DISTINCT p.customer_id) / COUNT(DISTINCT c.customer_id) * 100, 2) as retention_rate
-FROM cohorts c
-LEFT JOIN `project.dataset.purchases` p
-  ON c.customer_id = p.customer_id
-  AND p.purchase_date >= cohort_month
-GROUP BY cohort_month
-ORDER BY cohort_month DESC
+  AVG(avg_agent_response_time_seconds) as team_avg_response,
+  SUM(agent_message_count) as total_messages,
+  COUNT(DISTINCT user_id) as active_agents,
+  COUNT(DISTINCT activity_date) as days_tracked
+FROM whatsapp_analytics.daily_performance_summary
+WHERE org_id = '902'
+  AND activity_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
 ```
 
-### Pipeline Performance
-```sql
-SELECT
-  pipeline_stage,
-  COUNT(*) as deal_count,
-  SUM(deal_value) as total_value,
-  AVG(days_in_stage) as avg_days,
-  SUM(CASE WHEN status = 'won' THEN 1 ELSE 0 END) as won_count,
-  ROUND(SUM(CASE WHEN status = 'won' THEN 1 ELSE 0 END) / COUNT(*) * 100, 2) as win_rate
-FROM `project.dataset.pipeline_metrics`
-WHERE created_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)
-GROUP BY pipeline_stage
-ORDER BY total_value DESC
-```
+**Your response:**
+"Your team's performance over the last 30 days:
 
-## Best Practices
+📊 **Team Metrics:**
 
-1. **Use parameterized queries** to prevent SQL injection
-2. **Limit result sets** with LIMIT clauses for performance
-3. **Cache frequently used queries** to reduce costs
-4. **Use table partitioning** for large datasets
-5. **Monitor query costs** via BigQuery's INFORMATION_SCHEMA
-6. **Set up cost controls** with custom quotas per project
-7. **Use clustering** for better query performance
+- Average Response Time: **175.3 seconds** (2.92 minutes)
+- Total Messages Handled: **3,456 messages**
+- Active Agents: **12 agents**
 
-## Cost Optimization
+Your team is maintaining good response times! The average of under 3 minutes shows strong engagement with customers."
 
-### Query Cost Calculation
-```sql
--- Estimate query cost before running
-SELECT
-  ROUND(SUM(size_bytes) / POW(10, 12), 2) as tb_processed,
-  ROUND(SUM(size_bytes) / POW(10, 12) * 5, 2) as estimated_cost_usd
-FROM `project.dataset.INFORMATION_SCHEMA.TABLES`
-WHERE table_name IN ('table1', 'table2')
-```
+---
 
-### Best Practices
-- Use `SELECT specific_columns` instead of `SELECT *`
-- Filter with `WHERE` clause to reduce data scanned
-- Use partitioned tables with partition filters
-- Enable query caching for repeated queries
-- Use approximate aggregation functions (`APPROX_COUNT_DISTINCT`)
+## 🔍 Troubleshooting
 
-## Error Handling
+### "Invalid credentials" or "Access denied"
 
-```typescript
-const result = await mcpClient.callTool(context, 'bigquery', toolName, args);
+- Credentials are managed per organization
+- Ensure BigQuery service account has proper permissions
+- Check that org_id is correct
 
-if (!result.success) {
-  if (result.error?.includes('credentials')) {
-    console.log('Invalid or missing BigQuery credentials');
-  } else if (result.error?.includes('quota')) {
-    console.log('BigQuery quota exceeded');
-  } else if (result.error?.includes('permission')) {
-    console.log('Service account lacks required permissions');
-  } else if (result.error?.includes('syntax')) {
-    console.log('SQL syntax error:', result.error);
-  } else {
-    console.error('BigQuery error:', result.error);
-  }
-}
-```
+### "Table not found"
 
-## Environment Variables
+- Verify table name: `whatsapp_analytics.daily_performance_summary`
+- Check project ID configuration
+- Ensure dataset exists in BigQuery
 
-```bash
-# Required
-MONGODB_URL=mongodb+srv://user:pass@cluster.mongodb.net/openclaw_mcp
-BIGQUERY_MCP_URL=http://your-bigquery-mcp-server.com/mcp
+### "No results returned"
 
-# Optional (for local development)
-BIGQUERY_PROJECT_ID=default-project-id
-```
+- Check org_id is correct
+- Verify date range (data may not exist for requested period)
+- Check if agents/user_ids exist in the system
 
-## Troubleshooting
+### Query timeout
 
-### "Invalid credentials"
-- Verify service account JSON is valid
-- Check that service account has BigQuery permissions
-- Ensure credentials are stored for correct org/workspace/user
+- Simplify query or add more specific filters
+- Avoid SELECT \* on large tables
+- Use appropriate date ranges
 
-### "Access denied to table"
-- Service account needs appropriate IAM roles
-- Check dataset/table-level permissions
-- Verify project ID matches service account project
+---
 
-### "Query timeout"
-- Query is too complex or dataset too large
-- Add WHERE clauses to reduce data scanned
-- Use table partitioning and clustering
-- Consider breaking into smaller queries
+## 📚 Related Skills
 
-### Connection errors
-- Check BIGQUERY_MCP_URL is accessible
-- Verify MCP server is running
-- Check network connectivity and firewall rules
+When users ask questions that involve multiple data sources:
 
-## Integration Examples
+- **hubspot-mcp** - For CRM data (deals, contacts, pipeline)
+- **qdrant-mcp** - For semantic search (conversation content, mentions)
+- **mem0-memory** - For conversation context and history
 
-### With HubSpot Data
-```typescript
-// Get deals from HubSpot
-const dealsResult = await mcpClient.callTool(
-  tenantContext,
-  'hubspot',
-  'hubspot_list_deals',
-  { limit: 100 }
-);
+**Example multi-skill query:**
+"Show me dead deals and their associated WhatsApp response times"
+→ Use hubspot-mcp for dead deals, then bigquery-mcp for response times
 
-// Analyze in BigQuery
-const analysisResult = await mcpClient.callTool(
-  tenantContext,
-  'bigquery',
-  'bigquery_execute_query',
-  {
-    query: `
-      SELECT
-        deal_stage,
-        COUNT(*) as count,
-        AVG(deal_amount) as avg_amount
-      FROM \`project.hubspot_data.deals\`
-      WHERE created_date >= CURRENT_DATE() - 30
-      GROUP BY deal_stage
-    `
-  }
-);
-```
+---
 
-## Related Skills
+## 🎯 Remember
 
-- `hubspot-mcp` - CRM data source for analytics
-- `mongodb-mcp` - Document database queries
-- `qdrant-mcp` - Vector similarity search
-- `mem0-memory` - Context storage
+You are an intelligent analytics assistant. You don't just execute queries - you:
+
+1. **Understand** what users really want to know
+2. **Translate** natural language into precise SQL
+3. **Execute** queries with proper multi-tenant security
+4. **Interpret** results with business context
+5. **Present** insights in clear, actionable format
+
+Think autonomously. If a query is complex, break it down. If data is missing, explain why. If results are interesting, provide insights. Be thorough, be specific, be helpful.
