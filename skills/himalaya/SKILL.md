@@ -1,6 +1,6 @@
 ---
 name: himalaya
-description: "CLI to manage emails via IMAP/SMTP. Use `himalaya` to list, read, write, reply, forward, search, and organize emails from the terminal. Supports multiple accounts and message composition with MML (MIME Meta Language)."
+description: "CLI to manage emails via IMAP/SMTP. Run `himalaya --help` to get started and discover available commands and their correct flags."
 homepage: https://github.com/pimalaya/himalaya
 metadata:
   {
@@ -30,6 +30,24 @@ Himalaya is a CLI email client that lets you manage emails from the terminal usi
 
 - `references/configuration.md` (config file setup + IMAP/SMTP authentication)
 - `references/message-composition.md` (MML syntax for composing emails)
+- `references/html-email.md` (HTML styling for formatted emails - use sparingly)
+
+## Email Philosophy
+
+**Simplicity and clarity over complexity.** Emails should be clean, well-aligned, and easy to read.
+
+| User Request                                 | Format                                           |
+| -------------------------------------------- | ------------------------------------------------ |
+| "Send an email" / "Write an email"           | Plain text only                                  |
+| "Styled email" / "nicer" / "polished"        | Editorial style (black/white, clean like Medium) |
+| "Marketing email" / specific colors/branding | Full styled HTML                                 |
+
+**Guidelines:**
+
+- Default to plain text for all emails
+- Use ASCII characters (`-`, `*`, `>`) over Unicode equivalents
+- When styling is requested without specifics, use editorial style (black/white, Medium-like)
+- Only use colors/branding when explicitly requested
 
 ## Prerequisites
 
@@ -70,6 +88,8 @@ message.send.backend.auth.type = "password"
 message.send.backend.auth.cmd = "pass show email/smtp"
 ```
 
+> **Note:** `message.send.save-copy = true` saves sent emails to Sent folder, but may fail with some IMAP servers due to BINARY extension issues ([himalaya#619](https://github.com/pimalaya/himalaya/issues/619)). If you see "Mailbox does not exist" errors, set it to `false`.
+
 ## Common Operations
 
 ### List Folders
@@ -100,8 +120,34 @@ himalaya envelope list --page 1 --page-size 20
 
 ### Search Emails
 
+Basic search:
+
 ```bash
 himalaya envelope list from john@example.com subject meeting
+```
+
+**Search Query Syntax:**
+
+| Query                 | Description                          |
+| --------------------- | ------------------------------------ |
+| `subject <pattern>`   | Search by subject                    |
+| `from <pattern>`      | Search by sender                     |
+| `to <pattern>`        | Search by recipient                  |
+| `body <pattern>`      | Search in message body               |
+| `flag <flag>`         | Filter by flag (seen, flagged, etc.) |
+| `before <yyyy-mm-dd>` | Messages before date                 |
+| `after <yyyy-mm-dd>`  | Messages after date                  |
+
+**Operators:** `and`, `or`, `not`
+
+Examples:
+
+```bash
+# Find unread emails from a specific sender
+himalaya envelope list from boss@company.com not flag seen
+
+# Find emails about "project" in the last week
+himalaya envelope list subject project after 2025-01-27
 ```
 
 ### Read an Email
@@ -146,10 +192,10 @@ Interactive compose (opens $EDITOR):
 himalaya message write
 ```
 
-Send directly using template:
+**For non-interactive/programmatic sending, use `template send`:**
 
 ```bash
-cat << 'EOF' | himalaya template send
+himalaya template send <<EOF
 From: you@example.com
 To: recipient@example.com
 Subject: Test Message
@@ -158,24 +204,73 @@ Hello from Himalaya!
 EOF
 ```
 
-Or with headers flag:
+> ⚠️ **Note:** `himalaya message write` always opens an interactive editor. Use `himalaya template send` with a heredoc or piped input for automated/scripted email sending.
+
+### HTML Emails
+
+**Plain text is the default.** Only use styled formats when explicitly requested.
+
+**Format tiers:**
+
+- "Send an email" → Plain text (no formatting)
+- "Styled email" / "nicer" / "polished" → Editorial style (black/white, clean like Medium)
+- Specific styles mentioned (colors, branding, buttons) → Full styled HTML
+
+For any HTML email, you **MUST** use MML multipart syntax. Raw HTML sent as the body will appear as literal text:
 
 ```bash
-himalaya message write -H "To:recipient@example.com" -H "Subject:Test" "Message body here"
+# ❌ WRONG - HTML appears as raw text
+himalaya template send <<'EOF'
+From: you@example.com
+To: recipient@example.com
+Subject: Test
+
+<html><body><h1>Hello</h1></body></html>
+EOF
+
+# ✅ CORRECT - Use MML multipart with text/html part
+himalaya template send <<'EOF'
+From: you@example.com
+To: recipient@example.com
+Subject: Test
+
+<#multipart type=alternative>
+Hello (plain text fallback)
+<#part type=text/html>
+<html><body><h1>Hello</h1></body></html>
+<#/multipart>
+EOF
 ```
+
+See `references/html-email.md` for complete HTML email guidance.
+
+### Plain Text Email Guidelines
+
+**DO NOT use markdown syntax in plain text emails.** Email clients don't render markdown - it appears as literal characters.
+
+**Prefer ASCII characters over Unicode** for maximum compatibility:
+
+| ❌ Markdown (literal) | ✅ Plain text |
+| --------------------- | ------------- |
+| `**important**`       | IMPORTANT     |
+| `- item`              | - item        |
+| `## Heading`          | HEADING       |
+| `[text](url)`         | text: url     |
+
+For emphasis, use CAPS, blank lines, or simple punctuation. For lists, use ASCII `-` or `*` (not Unicode bullets like `•`).
 
 ### Move/Copy Emails
 
 Move to folder:
 
 ```bash
-himalaya message move 42 "Archive"
+himalaya message move "Archive" 42
 ```
 
 Copy to folder:
 
 ```bash
-himalaya message copy 42 "Important"
+himalaya message copy "Important" 42
 ```
 
 ### Delete an Email
@@ -186,17 +281,21 @@ himalaya message delete 42
 
 ### Manage Flags
 
-Add flag:
+Add flag (flags are positional arguments, not options):
 
 ```bash
-himalaya flag add 42 --flag seen
+himalaya flag add 42 seen
+himalaya flag add 42 flagged
 ```
 
 Remove flag:
 
 ```bash
-himalaya flag remove 42 --flag seen
+himalaya flag remove 42 seen
+himalaya flag remove 42 flagged
 ```
+
+Common flags: `seen`, `answered`, `flagged`, `deleted`, `draft`
 
 ## Multiple Accounts
 
@@ -214,16 +313,10 @@ himalaya --account work envelope list
 
 ## Attachments
 
-Save attachments from a message:
+Save attachments from a message (downloads to system downloads directory):
 
 ```bash
 himalaya attachment download 42
-```
-
-Save to specific directory:
-
-```bash
-himalaya attachment download 42 --dir ~/Downloads
 ```
 
 ## Output Formats
@@ -249,9 +342,42 @@ Full trace with backtrace:
 RUST_LOG=trace RUST_BACKTRACE=1 himalaya envelope list
 ```
 
+## Common Short Flags
+
+| Short | Long          | Description                 |
+| ----- | ------------- | --------------------------- |
+| `-s`  | `--page-size` | Number of results per page  |
+| `-p`  | `--page`      | Page number                 |
+| `-f`  | `--folder`    | Target folder               |
+| `-a`  | `--account`   | Account to use              |
+| `-o`  | `--output`    | Output format (json, plain) |
+
+Example using short flags:
+
+```bash
+himalaya envelope list -f Sent -s 10 -o json
+```
+
+## ⚠️ Common Mistakes (DO NOT USE)
+
+These flags/options do NOT exist:
+
+| ❌ Wrong                     | ✅ Correct                                        |
+| ---------------------------- | ------------------------------------------------- |
+| `--limit 10`                 | `--page-size 10` or `-s 10`                       |
+| `--flag seen`                | `seen` (positional argument)                      |
+| `attachment download --dir`  | `attachment download` (no dir option)             |
+| `message write "body"`       | `template send <<EOF...EOF` (for non-interactive) |
+| `message move 42 "Folder"`   | `message move "Folder" 42` (folder first)         |
+| `message copy 42 "Folder"`   | `message copy "Folder" 42` (folder first)         |
+| Raw `<html>` in body         | Use `<#multipart>` + `<#part type=text/html>`     |
+| `**markdown**` in plain text | Use plain text formatting (CAPS, `-` for bullets) |
+| Sent folder empty            | Known bug with `save-copy=true` (see #619)        |
+
 ## Tips
 
 - Use `himalaya --help` or `himalaya <command> --help` for detailed usage.
 - Message IDs are relative to the current folder; re-list after folder changes.
 - For composing rich emails with attachments, use MML syntax (see `references/message-composition.md`).
 - Store passwords securely using `pass`, system keyring, or a command that outputs the password.
+- **For scripted/automated email sending, always use `template send` with heredoc input, not `message write`.**
