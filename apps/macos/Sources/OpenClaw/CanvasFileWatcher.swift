@@ -27,7 +27,7 @@ final class CanvasFileWatcher: @unchecked Sendable {
             info: retainedSelf.toOpaque(),
             retain: nil,
             release: { pointer in
-                guard let pointer else { return }
+                guard let pointer = pointer else { return }
                 Unmanaged<CanvasFileWatcher>.fromOpaque(pointer).release()
             },
             copyDescription: nil)
@@ -54,7 +54,6 @@ final class CanvasFileWatcher: @unchecked Sendable {
         self.stream = stream
         FSEventStreamSetDispatchQueue(stream, self.queue)
         if FSEventStreamStart(stream) == false {
-            self.stream = nil
             FSEventStreamSetDispatchQueue(stream, nil)
             FSEventStreamInvalidate(stream)
             FSEventStreamRelease(stream)
@@ -69,26 +68,23 @@ final class CanvasFileWatcher: @unchecked Sendable {
         FSEventStreamInvalidate(stream)
         FSEventStreamRelease(stream)
     }
-}
 
-extension CanvasFileWatcher {
-    private static let callback: FSEventStreamCallback = { _, info, numEvents, _, eventFlags, _ in
-        guard let info else { return }
-        let watcher = Unmanaged<CanvasFileWatcher>.fromOpaque(info).takeUnretainedValue()
-        watcher.handleEvents(numEvents: numEvents, eventFlags: eventFlags)
-    }
+    private static func callback(
+        streamRef: ConstFSEventStreamRef,
+        clientCallBackInfo: UnsafeMutableRawPointer?,
+        numEvents: Int,
+        eventPaths: UnsafeMutableRawPointer,
+        eventFlags: UnsafePointer<FSEventStreamEventFlags>,
+        eventIds: UnsafePointer<FSEventStreamEventId>
+    ) {
+        guard let watcher = clientCallBackInfo.map({ Unmanaged<CanvasFileWatcher>.fromOpaque($0).takeUnretainedValue() }) else { return }
+        let paths = Unmanaged<CFArray>.fromOpaque(eventPaths).takeUnretainedValue() as NSArray as! [String]
+        var events = [String: FSEventStreamEventFlags]()
 
-    private func handleEvents(numEvents: Int, eventFlags: UnsafePointer<FSEventStreamEventFlags>?) {
-        guard numEvents > 0 else { return }
-        guard eventFlags != nil else { return }
-
-        // Coalesce rapid changes (common during builds/atomic saves).
-        if self.pending { return }
-        self.pending = true
-        self.queue.asyncAfter(deadline: .now() + 0.12) { [weak self] in
-            guard let self else { return }
-            self.pending = false
-            self.onChange()
+        for index in 0..<numEvents {
+            events[paths[index]] = eventFlags[index]
         }
+
+        watcher.onChange()
     }
 }
