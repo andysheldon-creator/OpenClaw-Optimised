@@ -89,8 +89,8 @@ describe("resolveMemoryBackendConfig", () => {
         qmd: {
           update: {
             embedTimeout: "1",
-            updateTimeout: "1s"
-          }
+            updateTimeout: "1s",
+          },
         },
       },
     } as OpenClawConfig;
@@ -98,5 +98,4 @@ describe("resolveMemoryBackendConfig", () => {
     expect(resolved.qmd?.update?.embedTimeoutMs).toBe(60_000);
     expect(resolved.qmd?.update?.updateTimeoutMs).toBe(1_000);
   });
-
 });
