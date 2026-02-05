@@ -14,12 +14,17 @@ import { imageResultFromFile, jsonResult, type AnyAgentTool, readStringParam } f
 const COMPUTER_TOOL_ACTIONS = [
   "snapshot",
   "wait",
+  "hover",
   "move",
   "click",
   "dblclick",
   "right_click",
+  "mouse_down",
+  "mouse_up",
   "scroll",
   "type",
+  "key_down",
+  "key_up",
   "hotkey",
   "press",
   "drag",
@@ -56,7 +61,7 @@ const ComputerToolSchema = Type.Object({
   // snapshot
   overlay: Type.Optional(stringEnum(["none", "grid", "dual"] as const)),
 
-  // wait
+  // wait / hover
   durationMs: Type.Optional(Type.Number()),
 
   // Common action params
@@ -480,7 +485,14 @@ if (-not $obj) {
 }
 
 function isDangerousAction(action: ComputerToolAction, params: Record<string, unknown>): boolean {
-  if (action === "hotkey" || action === "press") {
+  if (
+    action === "hotkey" ||
+    action === "press" ||
+    action === "key_down" ||
+    action === "key_up" ||
+    action === "mouse_down" ||
+    action === "mouse_up"
+  ) {
     return true;
   }
   if (action === "type") {
@@ -545,6 +557,7 @@ function formatApprovalCommand(action: string, params: Record<string, unknown>):
     "shift",
     "meta",
     "delayMs",
+    "durationMs",
     "steps",
     "stepDelayMs",
     "jitterPx",
@@ -1141,6 +1154,28 @@ function Smooth-MoveTo([int]$x2, [int]$y2, [int]$steps, [int]$stepDelay, [int]$j
 }
 
 switch ('${action}') {
+  'hover' {
+    $x = [int]$args.x
+    $y = [int]$args.y
+
+    $duration = 250
+    if ($args.PSObject.Properties.Name -contains 'durationMs') { $duration = [int]$args.durationMs }
+    if ($duration -lt 0) { $duration = 0 }
+    if ($duration -gt 10000) { $duration = 10000 }
+
+    $steps = 12
+    if ($args.PSObject.Properties.Name -contains 'steps') { $steps = [int]$args.steps }
+
+    $stepDelay = 6
+    if ($args.PSObject.Properties.Name -contains 'stepDelayMs') { $stepDelay = [int]$args.stepDelayMs }
+
+    $jitter = 1
+    if ($args.PSObject.Properties.Name -contains 'jitterPx') { $jitter = [int]$args.jitterPx }
+
+    Smooth-MoveTo $x $y $steps $stepDelay $jitter
+    if ($duration -gt 0) { Start-Sleep -Milliseconds $duration }
+    Sleep-IfNeeded
+  }
   'move' {
     $x2 = [int]$args.x
     $y2 = [int]$args.y
@@ -1181,6 +1216,52 @@ switch ('${action}') {
     [MouseInput]::Click($button, $clicks)
     Sleep-IfNeeded
   }
+  'mouse_down' {
+    $button = 'left'
+    if ($args.PSObject.Properties.Name -contains 'button') { $button = [string]$args.button }
+
+    if ($args.PSObject.Properties.Name -contains 'x' -and $args.PSObject.Properties.Name -contains 'y') {
+      $x = [int]$args.x
+      $y = [int]$args.y
+
+      $steps = 10
+      if ($args.PSObject.Properties.Name -contains 'steps') { $steps = [int]$args.steps }
+
+      $stepDelay = 6
+      if ($args.PSObject.Properties.Name -contains 'stepDelayMs') { $stepDelay = [int]$args.stepDelayMs }
+
+      $jitter = 1
+      if ($args.PSObject.Properties.Name -contains 'jitterPx') { $jitter = [int]$args.jitterPx }
+
+      Smooth-MoveTo $x $y $steps $stepDelay $jitter
+    }
+
+    [MouseInput]::ButtonDown($button)
+    Sleep-IfNeeded
+  }
+  'mouse_up' {
+    $button = 'left'
+    if ($args.PSObject.Properties.Name -contains 'button') { $button = [string]$args.button }
+
+    if ($args.PSObject.Properties.Name -contains 'x' -and $args.PSObject.Properties.Name -contains 'y') {
+      $x = [int]$args.x
+      $y = [int]$args.y
+
+      $steps = 10
+      if ($args.PSObject.Properties.Name -contains 'steps') { $steps = [int]$args.steps }
+
+      $stepDelay = 6
+      if ($args.PSObject.Properties.Name -contains 'stepDelayMs') { $stepDelay = [int]$args.stepDelayMs }
+
+      $jitter = 1
+      if ($args.PSObject.Properties.Name -contains 'jitterPx') { $jitter = [int]$args.jitterPx }
+
+      Smooth-MoveTo $x $y $steps $stepDelay $jitter
+    }
+
+    [MouseInput]::ButtonUp($button)
+    Sleep-IfNeeded
+  }
   'scroll' {
     if ($args.PSObject.Properties.Name -contains 'x' -and $args.PSObject.Properties.Name -contains 'y') {
       $x = [int]$args.x
@@ -1192,10 +1273,10 @@ switch ('${action}') {
       $stepDelay = 5
       if ($args.PSObject.Properties.Name -contains 'stepDelayMs') { $stepDelay = [int]$args.stepDelayMs }
 
-    $jitter = 1
-    if ($args.PSObject.Properties.Name -contains 'jitterPx') { $jitter = [int]$args.jitterPx }
+     $jitter = 1
+     if ($args.PSObject.Properties.Name -contains 'jitterPx') { $jitter = [int]$args.jitterPx }
 
-    Smooth-MoveTo $x $y $steps $stepDelay $jitter
+     Smooth-MoveTo $x $y $steps $stepDelay $jitter
     }
     $delta = [int]$args.deltaY
     [MouseInput]::Wheel($delta)
@@ -1265,6 +1346,20 @@ switch ('${action}') {
     if (-not ($args.PSObject.Properties.Name -contains 'text')) { throw 'text required' }
     $text = [string]$args.text
     [Keyboard]::TypeUnicode($text)
+    Sleep-IfNeeded
+  }
+  'key_down' {
+    $keyToken = [string]$args.key
+    if (-not $keyToken) { throw 'key required' }
+    $resolved = Resolve-Key $keyToken
+    [Keyboard]::KeyDown([UInt16]$resolved.vk, [bool]$resolved.extended)
+    Sleep-IfNeeded
+  }
+  'key_up' {
+    $keyToken = [string]$args.key
+    if (-not $keyToken) { throw 'key required' }
+    $resolved = Resolve-Key $keyToken
+    [Keyboard]::KeyUp([UInt16]$resolved.vk, [bool]$resolved.extended)
     Sleep-IfNeeded
   }
   'hotkey' {
@@ -1405,6 +1500,28 @@ export function createComputerTool(options?: {
           });
         }
         return jsonResult({ ok: true, waitedMs: durationMs });
+      }
+
+      if (action === "hover") {
+        const x = requireNumber(params, "x");
+        const y = requireNumber(params, "y");
+        const durationMs = readPositiveInt(params, "durationMs", 250);
+        const steps = readPositiveInt(params, "steps", 12);
+        const stepDelayMs = readPositiveInt(params, "stepDelayMs", 6);
+        const jitterPx = readNonNegativeInt(params, "jitterPx", 1);
+        await runInputAction({
+          action: "hover",
+          args: { x, y, durationMs, steps, stepDelayMs, jitterPx },
+        });
+        if (agentDir) {
+          await recordTeachStep({
+            agentDir,
+            sessionKey,
+            action: "hover",
+            stepParams: { x, y, durationMs, steps, stepDelayMs, jitterPx },
+          });
+        }
+        return jsonResult({ ok: true });
       }
 
       if (action === "teach_start") {
@@ -1565,6 +1682,80 @@ export function createComputerTool(options?: {
             action: "right_click",
             stepParams: { x, y, delayMs },
           });
+        }
+        return jsonResult({ ok: true });
+      }
+
+      if (action === "mouse_down") {
+        const buttonRaw = readStringParam(params, "button", { required: false });
+        const button = buttonRaw === "right" || buttonRaw === "middle" ? buttonRaw : "left";
+        const x = typeof params.x === "number" ? params.x : undefined;
+        const y = typeof params.y === "number" ? params.y : undefined;
+        const steps = readPositiveInt(params, "steps", 10);
+        const stepDelayMs = readPositiveInt(params, "stepDelayMs", 6);
+        const jitterPx = readNonNegativeInt(params, "jitterPx", 1);
+        await runInputAction({
+          action: "mouse_down",
+          args: { ...(x !== undefined && y !== undefined ? { x, y, steps, stepDelayMs, jitterPx } : {}), button, delayMs },
+        });
+        if (agentDir) {
+          await recordTeachStep({
+            agentDir,
+            sessionKey,
+            action: "mouse_down",
+            stepParams: {
+              ...(x !== undefined && y !== undefined ? { x, y, steps, stepDelayMs, jitterPx } : {}),
+              button,
+              delayMs,
+            },
+          });
+        }
+        return jsonResult({ ok: true });
+      }
+
+      if (action === "mouse_up") {
+        const buttonRaw = readStringParam(params, "button", { required: false });
+        const button = buttonRaw === "right" || buttonRaw === "middle" ? buttonRaw : "left";
+        const x = typeof params.x === "number" ? params.x : undefined;
+        const y = typeof params.y === "number" ? params.y : undefined;
+        const steps = readPositiveInt(params, "steps", 10);
+        const stepDelayMs = readPositiveInt(params, "stepDelayMs", 6);
+        const jitterPx = readNonNegativeInt(params, "jitterPx", 1);
+        await runInputAction({
+          action: "mouse_up",
+          args: { ...(x !== undefined && y !== undefined ? { x, y, steps, stepDelayMs, jitterPx } : {}), button, delayMs },
+        });
+        if (agentDir) {
+          await recordTeachStep({
+            agentDir,
+            sessionKey,
+            action: "mouse_up",
+            stepParams: {
+              ...(x !== undefined && y !== undefined ? { x, y, steps, stepDelayMs, jitterPx } : {}),
+              button,
+              delayMs,
+            },
+          });
+        }
+        return jsonResult({ ok: true });
+      }
+
+      if (action === "key_down") {
+        const keyRaw = readStringParam(params, "key", { required: true });
+        const key = normalizeKeyToken(keyRaw);
+        await runInputAction({ action: "key_down", args: { key, delayMs } });
+        if (agentDir) {
+          await recordTeachStep({ agentDir, sessionKey, action: "key_down", stepParams: { key, delayMs } });
+        }
+        return jsonResult({ ok: true });
+      }
+
+      if (action === "key_up") {
+        const keyRaw = readStringParam(params, "key", { required: true });
+        const key = normalizeKeyToken(keyRaw);
+        await runInputAction({ action: "key_up", args: { key, delayMs } });
+        if (agentDir) {
+          await recordTeachStep({ agentDir, sessionKey, action: "key_up", stepParams: { key, delayMs } });
         }
         return jsonResult({ ok: true });
       }
