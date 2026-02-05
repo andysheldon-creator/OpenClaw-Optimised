@@ -6,6 +6,7 @@ import { resolveSessionAgentId } from "./agent-scope.js";
 import { createAgentsListTool } from "./tools/agents-list-tool.js";
 import { createBrowserTool } from "./tools/browser-tool.js";
 import { createCanvasTool } from "./tools/canvas-tool.js";
+import { createComputerTool } from "./tools/computer-tool.js";
 import { createCronTool } from "./tools/cron-tool.js";
 import { createGatewayTool } from "./tools/gateway-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
@@ -94,6 +95,12 @@ export function createOpenClawTools(options?: {
       allowHostControl: options?.allowHostBrowserControl,
     }),
     createCanvasTool(),
+    createComputerTool({
+      agentSessionKey: options?.agentSessionKey,
+      agentDir: options?.agentDir,
+      workspaceDir: options?.workspaceDir,
+      config: options?.config,
+    }),
     createNodesTool({
       agentSessionKey: options?.agentSessionKey,
       config: options?.config,

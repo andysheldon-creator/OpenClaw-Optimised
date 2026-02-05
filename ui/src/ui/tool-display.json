@@ -113,6 +113,25 @@
         "a2ui_reset": { "label": "A2UI reset", "detailKeys": ["node", "nodeId"] }
       }
     },
+    "computer": {
+      "icon": "monitor",
+      "title": "Computer",
+      "actions": {
+        "snapshot": { "label": "snapshot" },
+        "move": { "label": "move", "detailKeys": ["x", "y"] },
+        "click": { "label": "click", "detailKeys": ["x", "y"] },
+        "dblclick": { "label": "dblclick", "detailKeys": ["x", "y"] },
+        "right_click": { "label": "right click", "detailKeys": ["x", "y"] },
+        "scroll": { "label": "scroll", "detailKeys": ["deltaY", "x", "y"] },
+        "drag": { "label": "drag", "detailKeys": ["x", "y", "x2", "y2"] },
+        "type": { "label": "type", "detailKeys": ["text"] },
+        "hotkey": { "label": "hotkey", "detailKeys": ["key", "ctrl", "alt", "shift", "meta"] },
+        "press": { "label": "press", "detailKeys": ["key"] },
+        "teach_start": { "label": "teach start" },
+        "teach_finish": { "label": "teach finish" },
+        "teach_rename": { "label": "teach rename", "detailKeys": ["name"] }
+      }
+    },
     "nodes": {
       "icon": "smartphone",
       "title": "Nodes",
