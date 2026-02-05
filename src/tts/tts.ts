@@ -23,13 +23,13 @@ import type {
   TtsModelOverrideConfig,
 } from "../config/types.tts.js";
 import { getApiKeyForModel, requireApiKey } from "../agents/model-auth.js";
+import { resolveModel } from "../agents/model-resolution.js";
 import {
   buildModelAliasIndex,
   resolveDefaultModelForAgent,
   resolveModelRefFromString,
   type ModelRef,
 } from "../agents/model-selection.js";
-import { resolveModel } from "../agents/pi-embedded-runner/model.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
 import { logVerbose } from "../globals.js";
 import { isVoiceCompatibleAudio } from "../media/audio.js";

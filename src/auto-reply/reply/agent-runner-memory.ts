@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { ExecutionRequest, ExecutionResult } from "../../execution/types.js";
 import type { TemplateContext } from "../templating.js";
 import type { VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions } from "../types.js";
@@ -7,13 +8,13 @@ import type { FollowupRun } from "./queue.js";
 import { resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
 import { hasConfiguredModelFallback, runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
-import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import { resolveSandboxConfigForAgent, resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import {
   resolveAgentIdFromSessionKey,
   type SessionEntry,
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
+import { createDefaultExecutionKernel } from "../../execution/kernel.js";
 import { logVerbose } from "../../globals.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
 import { memLog } from "../../memory/memory-log.js";
@@ -128,7 +129,7 @@ export async function runMemoryFlushIfNeeded(params: {
     params.followupRun.run.config,
     resolveAgentIdFromSessionKey(params.followupRun.run.sessionKey),
   );
-  const flushRuntimeKind: "pi" = "pi";
+  const flushRuntimeKind = "pi" as const;
   if (
     !hasConfiguredModelFallback({
       cfg: params.followupRun.run.config,
@@ -147,6 +148,17 @@ export async function runMemoryFlushIfNeeded(params: {
     });
     return params.sessionEntry;
   }
+
+  // Create kernel once (reused across fallback attempts)
+  const kernel = createDefaultExecutionKernel();
+
+  // Resolve threading context once
+  const threadingCtx = buildThreadingToolContext({
+    sessionCtx: params.sessionCtx,
+    config: params.followupRun.run.config,
+    hasRepliedRef: params.opts?.hasRepliedRef,
+  });
+
   try {
     const flushResult = await runWithModelFallback({
       cfg: params.followupRun.run.config,
@@ -155,50 +167,65 @@ export async function runMemoryFlushIfNeeded(params: {
       agentDir: params.followupRun.run.agentDir,
       fallbacksOverride: flushFallbacksOverride,
       runtimeKind: flushRuntimeKind,
-      run: (provider, model) => {
+      run: async (provider, model) => {
         const authProfileId =
           provider === params.followupRun.run.provider
             ? params.followupRun.run.authProfileId
             : undefined;
-        return runEmbeddedPiAgent({
+
+        // Build ExecutionRequest — embeddedOnly forces Pi runtime + skips state persist
+        const request: ExecutionRequest = {
+          agentId: params.followupRun.run.agentId ?? "main",
           sessionId: params.followupRun.run.sessionId,
           sessionKey: params.sessionKey,
-          messageProvider: params.sessionCtx.Provider?.trim().toLowerCase() || undefined,
-          agentAccountId: params.sessionCtx.AccountId,
-          messageTo: params.sessionCtx.OriginatingTo ?? params.sessionCtx.To,
-          messageThreadId: params.sessionCtx.MessageThreadId ?? undefined,
-          // Provider threading context for tool auto-injection
-          ...buildThreadingToolContext({
-            sessionCtx: params.sessionCtx,
-            config: params.followupRun.run.config,
-            hasRepliedRef: params.opts?.hasRepliedRef,
-          }),
-          senderId: params.sessionCtx.SenderId?.trim() || undefined,
-          senderName: params.sessionCtx.SenderName?.trim() || undefined,
-          senderUsername: params.sessionCtx.SenderUsername?.trim() || undefined,
-          senderE164: params.sessionCtx.SenderE164?.trim() || undefined,
-          sessionFile: params.followupRun.run.sessionFile,
+          runId: flushRunId,
           workspaceDir: params.followupRun.run.workspaceDir,
           agentDir: params.followupRun.run.agentDir,
           config: params.followupRun.run.config,
-          skillsSnapshot: params.followupRun.run.skillsSnapshot,
           prompt: memoryFlushSettings.prompt,
           extraSystemPrompt: flushSystemPrompt,
-          ownerNumbers: params.followupRun.run.ownerNumbers,
-          enforceFinalTag: resolveEnforceFinalTag(params.followupRun.run, provider),
-          provider,
-          model,
-          authProfileId,
-          authProfileIdSource: authProfileId
-            ? params.followupRun.run.authProfileIdSource
-            : undefined,
-          thinkLevel: params.followupRun.run.thinkLevel,
-          verboseLevel: params.followupRun.run.verboseLevel,
-          reasoningLevel: params.followupRun.run.reasoningLevel,
-          execOverrides: params.followupRun.run.execOverrides,
-          bashElevated: params.followupRun.run.bashElevated,
           timeoutMs: params.followupRun.run.timeoutMs,
-          runId: flushRunId,
+          sessionFile: params.followupRun.run.sessionFile,
+
+          // Embedded-only: forces Pi runtime, skips state persistence
+          embeddedOnly: true,
+          providerOverride: provider,
+          modelOverride: model,
+
+          // Message context
+          messageContext: {
+            provider: params.sessionCtx.Provider?.trim().toLowerCase() || undefined,
+            senderId: params.sessionCtx.SenderId?.trim() || undefined,
+            senderName: params.sessionCtx.SenderName?.trim() || undefined,
+            senderUsername: params.sessionCtx.SenderUsername?.trim() || undefined,
+            senderE164: params.sessionCtx.SenderE164?.trim() || undefined,
+            threadId: params.sessionCtx.MessageThreadId ?? undefined,
+            accountId: params.sessionCtx.AccountId,
+          },
+
+          // Runtime hints (Pi-specific params)
+          runtimeHints: {
+            thinkLevel: params.followupRun.run.thinkLevel,
+            verboseLevel: params.followupRun.run.verboseLevel,
+            reasoningLevel: params.followupRun.run.reasoningLevel,
+            authProfileId,
+            authProfileIdSource: authProfileId
+              ? params.followupRun.run.authProfileIdSource
+              : undefined,
+            enforceFinalTag: resolveEnforceFinalTag(params.followupRun.run, provider),
+            ownerNumbers: params.followupRun.run.ownerNumbers,
+            skillsSnapshot: params.followupRun.run.skillsSnapshot,
+            execOverrides: params.followupRun.run.execOverrides,
+            bashElevated: params.followupRun.run.bashElevated,
+            messageTo: params.sessionCtx.OriginatingTo ?? params.sessionCtx.To,
+            messageProvider: params.sessionCtx.Provider?.trim().toLowerCase() || undefined,
+            hasRepliedRef: threadingCtx.hasRepliedRef ?? params.opts?.hasRepliedRef,
+            currentChannelId: threadingCtx.currentChannelId,
+            currentThreadTs: threadingCtx.currentThreadTs,
+            replyToMode: threadingCtx.replyToMode,
+          },
+
+          // Agent event callback for compaction + tool tracking
           onAgentEvent: (evt) => {
             if (evt.stream === "compaction") {
               const phase = typeof evt.data.phase === "string" ? evt.data.phase : "";
@@ -208,8 +235,8 @@ export async function runMemoryFlushIfNeeded(params: {
               }
             }
             if (evt.stream === "tool" && evt.data) {
-              const toolName = String(evt.data.name ?? "unknown");
-              const phase = String(evt.data.phase ?? "");
+              const toolName = typeof evt.data.name === "string" ? evt.data.name : "unknown";
+              const phase = typeof evt.data.phase === "string" ? evt.data.phase : "";
               if (phase === "start") {
                 toolCounts.set(toolName, (toolCounts.get(toolName) ?? 0) + 1);
                 // Track file paths written to (memory file captures)
@@ -226,7 +253,10 @@ export async function runMemoryFlushIfNeeded(params: {
               }
             }
           },
-        });
+        };
+
+        const result = await kernel.execute(request);
+        return mapMemoryFlushResultToLegacy(result);
       },
     });
     // Extract metrics from the flush agent run
@@ -253,7 +283,7 @@ export async function runMemoryFlushIfNeeded(params: {
       memoryPaths: memoryFilesWritten,
       allWrittenPaths: writtenPaths,
       usage: flushMeta.agentMeta?.usage,
-      pendingToolCalls: flushMeta.pendingToolCalls?.map((tc) => tc.name),
+      pendingToolCalls: flushMeta.pendingToolCalls?.map((tc: { name: string }) => tc.name),
       provider: flushResult.provider,
       model: flushResult.model,
       fallbackAttempts: flushResult.attempts?.length ?? 0,
@@ -329,8 +359,75 @@ export async function runMemoryFlushIfNeeded(params: {
     sessionKey: params.sessionKey,
     compactionCompleted: memoryCompactionCompleted,
     elapsedMs,
-    ...(flushMetrics ?? {}),
+    ...flushMetrics,
   });
 
   return activeSessionEntry;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy Result Mapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Map ExecutionResult to the legacy EmbeddedPiRunResult shape.
+ * Same pattern as agent-runner-execution.ts:mapExecutionResultToLegacy.
+ * Keeps post-processing code (metrics extraction, session updates) unchanged.
+ */
+function mapMemoryFlushResultToLegacy(result: ExecutionResult): {
+  payloads: Array<{
+    text?: string;
+    mediaUrl?: string;
+    mediaUrls?: string[];
+    replyToId?: string;
+    isError?: boolean;
+  }>;
+  meta: {
+    durationMs?: number;
+    aborted?: boolean;
+    stopReason?: string;
+    pendingToolCalls?: Array<{ name: string }>;
+    agentMeta?: {
+      sessionId: string;
+      provider: string;
+      model: string;
+      usage?: {
+        input: number;
+        output: number;
+        cacheRead?: number;
+        cacheWrite?: number;
+        total: number;
+      };
+    };
+  };
+} {
+  return {
+    payloads: result.payloads.map((p) => ({
+      text: p.text,
+      mediaUrl: p.mediaUrl,
+      mediaUrls: p.mediaUrls,
+      replyToId: p.replyToId,
+      isError: p.isError,
+    })),
+    meta: {
+      durationMs: result.usage.durationMs,
+      aborted: result.aborted,
+      // stopReason and pendingToolCalls are not available in ExecutionResult —
+      // acceptable since they're only used in trace logging
+      stopReason: undefined,
+      pendingToolCalls: undefined,
+      agentMeta: {
+        sessionId: "",
+        provider: result.runtime.provider ?? "",
+        model: result.runtime.model ?? "",
+        usage: {
+          input: result.usage.inputTokens,
+          output: result.usage.outputTokens,
+          cacheRead: result.usage.cacheReadTokens,
+          cacheWrite: result.usage.cacheWriteTokens,
+          total: result.usage.inputTokens + result.usage.outputTokens,
+        },
+      },
+    },
+  };
 }

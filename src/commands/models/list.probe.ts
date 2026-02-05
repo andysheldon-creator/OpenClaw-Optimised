@@ -1,8 +1,4 @@
-import crypto from "node:crypto";
-import fs from "node:fs/promises";
 import type { OpenClawConfig } from "../../config/config.js";
-import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
-import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import {
   ensureAuthProfileStore,
   listProfilesForProvider,
@@ -13,12 +9,7 @@ import { describeFailoverError } from "../../agents/failover-error.js";
 import { getCustomProviderApiKey, resolveEnvApiKey } from "../../agents/model-auth.js";
 import { loadModelCatalog } from "../../agents/model-catalog.js";
 import { normalizeProviderId, parseModelRef } from "../../agents/model-selection.js";
-import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
-import { resolveDefaultAgentWorkspaceDir } from "../../agents/workspace.js";
-import {
-  resolveSessionTranscriptPath,
-  resolveSessionTranscriptsDirForAgent,
-} from "../../config/sessions/paths.js";
+import { completeText } from "../../plugin-sdk/llm.js";
 import { redactSecrets } from "../status-all/format.js";
 import { DEFAULT_PROVIDER, formatMs } from "./shared.js";
 
@@ -288,15 +279,11 @@ function buildProbeTargets(params: {
 
 async function probeTarget(params: {
   cfg: OpenClawConfig;
-  agentId: string;
-  agentDir: string;
-  workspaceDir: string;
-  sessionDir: string;
   target: AuthProbeTarget;
   timeoutMs: number;
   maxTokens: number;
 }): Promise<AuthProbeResult> {
-  const { cfg, agentId, agentDir, workspaceDir, sessionDir, target, timeoutMs, maxTokens } = params;
+  const { cfg, target, timeoutMs, maxTokens } = params;
   if (!target.model) {
     return {
       provider: target.provider,
@@ -310,30 +297,16 @@ async function probeTarget(params: {
     };
   }
 
-  const sessionId = `probe-${target.provider}-${crypto.randomUUID()}`;
-  const sessionFile = resolveSessionTranscriptPath(sessionId, agentId);
-  await fs.mkdir(sessionDir, { recursive: true });
-
   const start = Date.now();
   try {
-    await runEmbeddedPiAgent({
-      sessionId,
-      sessionFile,
-      workspaceDir,
-      agentDir,
-      config: cfg,
-      prompt: PROBE_PROMPT,
+    await completeText({
+      cfg,
       provider: target.model.provider,
       model: target.model.model,
+      prompt: PROBE_PROMPT,
       authProfileId: target.profileId,
-      authProfileIdSource: target.profileId ? "user" : undefined,
       timeoutMs,
-      runId: `probe-${crypto.randomUUID()}`,
-      lane: `auth-probe:${target.provider}:${target.profileId ?? target.source}`,
-      thinkLevel: "off",
-      reasoningLevel: "off",
-      verboseLevel: "off",
-      streamParams: { maxTokens },
+      maxTokens,
     });
     return {
       provider: target.provider,
@@ -372,13 +345,6 @@ async function runTargetsWithConcurrency(params: {
   const { cfg, targets, timeoutMs, maxTokens, onProgress } = params;
   const concurrency = Math.max(1, Math.min(targets.length || 1, params.concurrency));
 
-  const agentId = resolveDefaultAgentId(cfg);
-  const agentDir = resolveOpenClawAgentDir();
-  const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId) ?? resolveDefaultAgentWorkspaceDir();
-  const sessionDir = resolveSessionTranscriptsDirForAgent(agentId);
-
-  await fs.mkdir(workspaceDir, { recursive: true });
-
   let completed = 0;
   const results: Array<AuthProbeResult | undefined> = Array.from({ length: targets.length });
   let cursor = 0;
@@ -398,10 +364,6 @@ async function runTargetsWithConcurrency(params: {
       });
       const result = await probeTarget({
         cfg,
-        agentId,
-        agentDir,
-        workspaceDir,
-        sessionDir,
         target,
         timeoutMs,
         maxTokens,

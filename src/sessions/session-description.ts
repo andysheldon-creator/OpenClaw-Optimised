@@ -2,17 +2,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
-import { resolveAgentDir, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
-import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
-import { isProviderConfigured } from "../agents/model-auth.js";
-import { loadModelCatalog } from "../agents/model-catalog.js";
-import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
+import { resolveUtilityModelRef } from "../agents/micro-model.js";
 import { loadConfig } from "../config/config.js";
 import {
   resolveSessionTranscriptPath,
   updateSessionStoreEntry,
   type SessionEntry,
 } from "../config/sessions.js";
+import { completeText } from "../plugin-sdk/llm.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 
 const DESCRIPTION_MAX_CHARS = 180;
@@ -211,86 +208,18 @@ function readConversationExcerptFromTranscript(params: {
   }
 }
 
-function scoreMicroModelId(id: string): number {
-  const lower = id.toLowerCase();
-  let score = 0;
-  if (lower.includes("gpt-4.1-nano")) {
-    score += 250;
-  }
-  if (lower.includes("nano")) {
-    score += 180;
-  }
-  if (lower.includes("mini")) {
-    score += 120;
-  }
-  if (lower.includes("haiku")) {
-    score += 110;
-  }
-  if (lower.includes("small")) {
-    score += 70;
-  }
-  if (lower.includes("fast") || lower.includes("lite") || lower.includes("turbo")) {
-    score += 40;
-  }
-  if (lower.includes("o1") || lower.includes("opus") || lower.includes("sonnet")) {
-    score -= 80;
-  }
-  if (lower.includes("pro")) {
-    score -= 20;
-  }
-  return score;
-}
-
-async function resolveMicroModelRef(
-  cfg: OpenClawConfig,
-  agentId: string,
-): Promise<{ provider: string; model: string } | null> {
-  try {
-    const catalog = await loadModelCatalog({ config: cfg });
-    if (catalog.length === 0) {
-      return null;
-    }
-
-    // Filter to only providers with available auth
-    const agentDir = resolveAgentDir(cfg, agentId);
-    const store = ensureAuthProfileStore(agentDir);
-    const availableModels = catalog.filter((m) =>
-      isProviderConfigured({ provider: m.provider, cfg, store, agentDir }),
-    );
-
-    if (availableModels.length === 0) {
-      return null;
-    }
-
-    const best = availableModels
-      .map((m) => ({ m, score: scoreMicroModelId(m.id) }))
-      .filter((x) => x.score > 0)
-      .toSorted((a, b) => b.score - a.score)[0]?.m;
-    if (!best) {
-      return null;
-    }
-    return { provider: best.provider, model: best.id };
-  } catch {
-    return null;
-  }
-}
-
 async function generateDescriptionViaLLM(params: {
   cfg: OpenClawConfig;
   agentId: string;
   conversation: string;
 }): Promise<{ description: string; provider: string; model: string } | null> {
-  const modelRef = (await resolveMicroModelRef(params.cfg, params.agentId)) ?? null;
-  if (!modelRef) {
-    return null;
-  }
+  const modelRef = await resolveUtilityModelRef({
+    cfg: params.cfg,
+    feature: "sessionDescription",
+    agentId: params.agentId,
+  });
 
-  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "clawdbrain-desc-"));
-  const tempSessionFile = path.join(tempDir, "session.jsonl");
   try {
-    const workspaceDir = resolveAgentWorkspaceDir(params.cfg, params.agentId);
-    const agentDir = resolveAgentDir(params.cfg, params.agentId);
-
     const prompt = [
       "Write a short, UI-friendly description (max 1-2 sentences) of what this conversation is about.",
       "Rules: plain text only, no markdown, no quotes, no usernames/phone numbers, no secrets, be specific but concise.",
@@ -301,37 +230,22 @@ async function generateDescriptionViaLLM(params: {
       "Reply with ONLY the description.",
     ].join("\n");
 
-    const res = await runEmbeddedPiAgent({
-      sessionId: `session-description-${Date.now()}`,
-      sessionKey: "temp:session-description",
-      sessionFile: tempSessionFile,
-      workspaceDir,
-      agentDir,
-      config: params.cfg,
-      prompt,
-      disableTools: true,
+    const result = await completeText({
+      cfg: params.cfg,
       provider: modelRef.provider,
       model: modelRef.model,
-      thinkLevel: "off",
-      verboseLevel: "off",
-      reasoningLevel: "off",
+      prompt,
       timeoutMs: 12_000,
-      runId: `session-description-${Date.now()}`,
+      maxTokens: 256,
     });
 
-    const text = res.payloads?.find((p) => typeof p?.text === "string" && p.text.trim())?.text;
-    if (!text) {
-      return null;
-    }
-    const sanitized = sanitizeDescriptionText(text);
+    const sanitized = sanitizeDescriptionText(result.text);
     if (!sanitized) {
       return null;
     }
     return { description: sanitized, provider: modelRef.provider, model: modelRef.model };
   } catch {
     return null;
-  } finally {
-    await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 

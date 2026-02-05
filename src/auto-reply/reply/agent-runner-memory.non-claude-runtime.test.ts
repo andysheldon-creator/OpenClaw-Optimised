@@ -1,24 +1,37 @@
 import { describe, expect, it, vi } from "vitest";
 import type { TemplateContext } from "../templating.js";
 import type { FollowupRun } from "./queue.js";
-import { runMemoryFlushIfNeeded } from "./agent-runner-memory.js";
 
-const runWithModelFallbackMock = vi.fn();
-const hasConfiguredModelFallbackMock = vi.fn().mockReturnValue(false);
-const runEmbeddedPiAgentMock = vi.fn();
+// Use vi.hoisted to avoid "Cannot access before initialization" with vi.mock factories
+const { runWithModelFallbackMock, hasConfiguredModelFallbackMock } = vi.hoisted(() => ({
+  runWithModelFallbackMock: vi.fn(),
+  hasConfiguredModelFallbackMock: vi.fn().mockReturnValue(false),
+}));
 
 vi.mock("../../agents/model-fallback.js", () => ({
   hasConfiguredModelFallback: hasConfiguredModelFallbackMock,
   runWithModelFallback: runWithModelFallbackMock,
 }));
 
-vi.mock("../../agents/pi-embedded.js", () => ({
-  runEmbeddedPiAgent: (params: unknown) => runEmbeddedPiAgentMock(params),
+vi.mock("../../agents/agent-scope.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../agents/agent-scope.js")>();
+  return {
+    ...actual,
+    resolveAgentModelFallbacksOverride: vi.fn().mockReturnValue([]),
+  };
+});
+
+// Mock the execution kernel (no longer calling runEmbeddedPiAgent directly)
+vi.mock("../../execution/kernel.js", () => ({
+  createDefaultExecutionKernel: vi.fn().mockReturnValue({
+    execute: vi.fn(),
+    abort: vi.fn(),
+    getActiveRunCount: vi.fn().mockReturnValue(0),
+  }),
 }));
 
-vi.mock("../../agents/agent-scope.js", () => ({
-  resolveAgentModelFallbacksOverride: vi.fn().mockReturnValue([]),
-}));
+// Lazy import after mocks are set up
+const { runMemoryFlushIfNeeded } = await import("./agent-runner-memory.js");
 
 function createFollowupRun(params: { config?: Record<string, unknown> }): FollowupRun {
   return {
@@ -54,13 +67,14 @@ function createFollowupRun(params: { config?: Record<string, unknown> }): Follow
 describe("runMemoryFlushIfNeeded", () => {
   it("skips memory flush when no non-claude runtime providers are configured", async () => {
     runWithModelFallbackMock.mockReset();
-    runEmbeddedPiAgentMock.mockReset();
     hasConfiguredModelFallbackMock.mockReturnValue(false);
 
     const sessionEntry = {
       sessionId: "session",
       updatedAt: Date.now(),
-      totalTokens: 120_000,
+      // Token count must exceed the flush threshold (contextWindow - reserve - soft)
+      // so the flush pre-check logic reaches hasConfiguredModelFallback
+      totalTokens: 500_000,
       compactionCount: 1,
     };
 
@@ -104,6 +118,5 @@ describe("runMemoryFlushIfNeeded", () => {
       expect.objectContaining({ runtimeKind: "pi" }),
     );
     expect(runWithModelFallbackMock).not.toHaveBeenCalled();
-    expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
   });
 });

@@ -33,6 +33,7 @@ import {
 import { resolveOpenClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
+import { buildModelAliasLines } from "../../model-resolution.js";
 import { resolveDefaultModelForAgent } from "../../model-selection.js";
 import {
   isCloudCodeAssistFormatError,
@@ -73,7 +74,6 @@ import {
 } from "../google.js";
 import { getDmHistoryLimitFromSessionKey, limitHistoryTurns } from "../history.js";
 import { log } from "../logger.js";
-import { buildModelAliasLines } from "../model.js";
 import {
   clearActiveEmbeddedRun,
   type EmbeddedPiQueueHandle,

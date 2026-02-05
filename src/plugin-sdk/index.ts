@@ -393,7 +393,7 @@ export { loadWebMedia, type WebMediaResult } from "../web/media.js";
 
 // Plugin utilities
 export { registerPluginHooksFromDir } from "../hooks/plugin-hooks.js";
-export { completeTextWithModelRef, probeModelRefAuth } from "./llm.js";
+export { completeText, completeTextWithModelRef, probeModelRefAuth } from "./llm.js";
 
 // Types
 export type { AnyAgentTool } from "../agents/tools/common.js";

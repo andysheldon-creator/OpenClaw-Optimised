@@ -31,6 +31,7 @@ import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../d
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import { resolveOpenClawDocsPath } from "../docs-path.js";
 import { getApiKeyForModel, resolveModelAuthMode } from "../model-auth.js";
+import { buildModelAliasLines, resolveModel } from "../model-resolution.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
 import {
   ensureSessionHeader,
@@ -63,7 +64,6 @@ import {
 import { getDmHistoryLimitFromSessionKey, limitHistoryTurns } from "./history.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
-import { buildModelAliasLines, resolveModel } from "./model.js";
 import { buildEmbeddedSandboxInfo } from "./sandbox-info.js";
 import { prewarmSessionFile, trackSessionManagerAccess } from "./session-manager-cache.js";
 import {

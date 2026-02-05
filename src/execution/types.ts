@@ -177,6 +177,12 @@ export interface ExecutionRequest {
 
   /** Explicit runtime kind override ("pi" | "claude" | "cli"). */
   runtimeKind?: "pi" | "claude" | "cli";
+  /**
+   * Embedded-only mode for background/utility runs (e.g. memory flush).
+   * When true: forces runtimeKind to "pi" and skips state persistence.
+   * The caller manages its own session store updates.
+   */
+  embeddedOnly?: boolean;
   /** Parent session key for subagent runtime inheritance. */
   spawnedBy?: string | null;
 

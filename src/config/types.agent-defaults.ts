@@ -107,6 +107,18 @@ export type ClaudeSdkOptions = {
   };
 };
 
+export type UtilityModelFeatureConfig = {
+  /** Model override for this utility feature (provider/model or alias). */
+  model?: string;
+};
+
+export type UtilityModelConfig = {
+  /** Per-feature override for slug generation. */
+  slugGenerator?: UtilityModelFeatureConfig;
+  /** Per-feature override for session description generation. */
+  sessionDescription?: UtilityModelFeatureConfig;
+};
+
 export type AgentDefaultsConfig = {
   /**
    * Agent runtime engine selection.
@@ -135,6 +147,10 @@ export type AgentDefaultsConfig = {
   model?: AgentModelListConfig;
   /** Optional image-capable model and fallbacks (provider/model). */
   imageModel?: AgentModelListConfig;
+  /** Default model for all utility/background LLM calls (provider/model or alias). */
+  utilityModel?: string;
+  /** Per-feature model overrides for utility LLM calls. */
+  utility?: UtilityModelConfig;
   /** Model catalog with optional aliases (full provider/model keys). */
   models?: Record<string, AgentModelEntryConfig>;
   /** Optional per-intent routing between local tiers and remote models. */

@@ -214,9 +214,13 @@ export class DefaultExecutionKernel implements ExecutionKernel {
       }
 
       // Step 4: Resolve runtime context
+      // embeddedOnly forces Pi runtime (no CLI/SDK)
+      const resolveRequest = request.embeddedOnly
+        ? { ...request, runtimeKind: "pi" as const }
+        : request;
       let context: RuntimeContext;
       try {
-        context = await this.resolver.resolve(request);
+        context = await this.resolver.resolve(resolveRequest);
       } catch (err) {
         const error = this.buildExecutionError("runtime_unavailable", err);
         await emitter.emit(
@@ -286,14 +290,17 @@ export class DefaultExecutionKernel implements ExecutionKernel {
       }
 
       // Step 7: Persist state (non-blocking - errors are logged but don't fail execution)
-      try {
-        const persistOptions: StatePersistOptions = {};
-        await this.stateService.persist(request, outcome, context, persistOptions);
-      } catch (err) {
-        this.logger?.warn?.(
-          `[ExecutionKernel] state persist failed: ${err instanceof Error ? err.message : String(err)}`,
-        );
-        // State persistence failure doesn't fail the execution
+      // embeddedOnly skips persist — caller manages its own session updates
+      if (!request.embeddedOnly) {
+        try {
+          const persistOptions: StatePersistOptions = {};
+          await this.stateService.persist(request, outcome, context, persistOptions);
+        } catch (err) {
+          this.logger?.warn?.(
+            `[ExecutionKernel] state persist failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          // State persistence failure doesn't fail the execution
+        }
       }
 
       // Step 8: Emit lifecycle.end

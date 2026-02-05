@@ -26,6 +26,7 @@ import {
   resolveAuthProfileOrder,
   type ResolvedProviderAuth,
 } from "../model-auth.js";
+import { resolveModel } from "../model-resolution.js";
 import { normalizeProviderId } from "../model-selection.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
 import {
@@ -47,7 +48,6 @@ import { normalizeUsage, type UsageLike } from "../usage.js";
 import { compactEmbeddedPiSessionDirect } from "./compact.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
-import { resolveModel } from "./model.js";
 import { runEmbeddedAttempt } from "./run/attempt.js";
 import { buildEmbeddedRunPayloads } from "./run/payloads.js";
 import { describeUnknownError } from "./utils.js";

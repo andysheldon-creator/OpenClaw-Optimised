@@ -1,14 +1,14 @@
 import { completeSimple } from "@mariozechner/pi-ai";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { getApiKeyForModel } from "../agents/model-auth.js";
-import { resolveModel } from "../agents/pi-embedded-runner/model.js";
+import { resolveModel } from "../agents/model-resolution.js";
 import * as tts from "./tts.js";
 
 vi.mock("@mariozechner/pi-ai", () => ({
   completeSimple: vi.fn(),
 }));
 
-vi.mock("../agents/pi-embedded-runner/model.js", () => ({
+vi.mock("../agents/model-resolution.js", () => ({
   resolveModel: vi.fn((provider: string, modelId: string) => ({
     model: {
       provider,
