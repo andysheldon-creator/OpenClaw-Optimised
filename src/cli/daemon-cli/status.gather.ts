@@ -13,6 +13,7 @@ import { findExtraGatewayServices } from "../../daemon/inspect.js";
 import { auditGatewayServiceConfig } from "../../daemon/service-audit.js";
 import { resolveGatewayService } from "../../daemon/service.js";
 import { resolveGatewayBindHost } from "../../gateway/net.js";
+import { pickOverlayIPv4 } from "../../infra/overlay-net.js";
 import {
   formatPortDiagnostics,
   inspectPortUsage,
@@ -170,16 +171,31 @@ export async function gatherDaemonStatus(
     ? "service args"
     : "env/config";
 
-  const bindMode = (daemonCfg.gateway?.bind ?? "loopback") as
-    | "auto"
-    | "lan"
-    | "loopback"
-    | "custom"
-    | "tailnet";
-  const customBindHost = daemonCfg.gateway?.customBindHost;
-  const bindHost = await resolveGatewayBindHost(bindMode, customBindHost);
+  const bindMode = (daemonCfg.gateway?.bind ?? "loopback") as GatewayBindMode;
+  const customBindHostResolved =
+    bindMode === "overlay"
+      ? daemonCfg.gateway?.overlayInterface
+      : bindMode === "zerotier"
+        ? "zt"
+        : bindMode === "wireguard"
+          ? "wg"
+          : daemonCfg.gateway?.customBindHost;
+  const bindHost = await resolveGatewayBindHost(bindMode, customBindHostResolved);
   const tailnetIPv4 = pickPrimaryTailnetIPv4();
-  const probeHost = pickProbeHostForBind(bindMode, tailnetIPv4, customBindHost);
+  const overlayIPv4 =
+    bindMode === "overlay"
+      ? pickOverlayIPv4(daemonCfg.gateway?.overlayInterface)
+      : bindMode === "zerotier"
+        ? pickOverlayIPv4("zt")
+        : bindMode === "wireguard"
+          ? pickOverlayIPv4("wg")
+          : undefined;
+  const probeHost = pickProbeHostForBind(
+    bindMode,
+    tailnetIPv4,
+    daemonCfg.gateway?.customBindHost,
+    overlayIPv4,
+  );
   const probeUrlOverride =
     typeof opts.rpc.url === "string" && opts.rpc.url.trim().length > 0 ? opts.rpc.url.trim() : null;
   const probeUrl = probeUrlOverride ?? `ws://${probeHost}:${daemonPort}`;
