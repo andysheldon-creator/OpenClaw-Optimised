@@ -53,6 +53,12 @@ import {
   hasBotMention,
   resolveTelegramForumThreadId,
 } from "./bot/helpers.js";
+import {
+  buildTelegramTopicLabel,
+  cacheTelegramTopicName,
+  extractTelegramTopicNameFromMessage,
+  getCachedTelegramTopicName,
+} from "./topic-cache.js";
 
 type TelegramMediaRef = {
   path: string;
@@ -174,6 +180,35 @@ export const buildTelegramMessageContext = async ({
       id: peerId,
     },
   });
+  const agentList = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
+  const hasMultipleAgents = agentList.length > 1;
+  const topicNameFromMessage =
+    resolvedThreadId != null
+      ? extractTelegramTopicNameFromMessage(
+          msg as {
+            forum_topic_created?: { name?: string };
+            forum_topic_edited?: { name?: string };
+          },
+        )
+      : null;
+  if (resolvedThreadId != null && topicNameFromMessage) {
+    cacheTelegramTopicName({
+      chatId,
+      topicId: resolvedThreadId,
+      name: topicNameFromMessage,
+    });
+  }
+  const cachedTopicName =
+    resolvedThreadId != null ? getCachedTelegramTopicName(chatId, resolvedThreadId) : null;
+  const threadLabel =
+    isGroup && resolvedThreadId != null
+      ? buildTelegramTopicLabel({
+          topicId: resolvedThreadId,
+          topicName: cachedTopicName ?? topicNameFromMessage,
+          agentId: route.agentId,
+          multiAgent: hasMultipleAgents,
+        })
+      : undefined;
   const baseSessionKey = route.sessionKey;
   // DMs: use raw messageThreadId for thread sessions (not resolvedThreadId which is for forums)
   const dmThreadId = !isGroup ? messageThreadId : undefined;
@@ -578,6 +613,7 @@ export const buildTelegramMessageContext = async ({
     AccountId: route.accountId,
     ChatType: isGroup ? "group" : "direct",
     ConversationLabel: conversationLabel,
+    ThreadLabel: threadLabel,
     GroupSubject: isGroup ? (msg.chat.title ?? undefined) : undefined,
     GroupSystemPrompt: isGroup ? groupSystemPrompt : undefined,
     SenderName: senderName,

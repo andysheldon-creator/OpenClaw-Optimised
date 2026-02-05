@@ -2086,6 +2086,7 @@ describe("createTelegramBot", () => {
     expect(payload.From).toBe("telegram:group:-1001234567890:topic:99");
     expect(payload.MessageThreadId).toBe(99);
     expect(payload.IsForum).toBe(true);
+    expect(payload.ThreadLabel).toBe("telegram:99");
     expect(sendChatActionSpy).toHaveBeenCalledWith(-1001234567890, "typing", {
       message_thread_id: 99,
     });
