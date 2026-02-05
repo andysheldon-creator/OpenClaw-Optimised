@@ -4,6 +4,10 @@ export {
 } from "../agents/synthetic-models.js";
 export { VENICE_DEFAULT_MODEL_ID, VENICE_DEFAULT_MODEL_REF } from "../agents/venice-models.js";
 export {
+  ASKSAGE_DEFAULT_MODEL_ID,
+  ASKSAGE_DEFAULT_MODEL_REF,
+} from "../agents/asksage-models.js";
+export {
   applyAuthProfileConfig,
   applyCloudflareAiGatewayConfig,
   applyCloudflareAiGatewayProviderConfig,
@@ -19,6 +23,8 @@ export {
   applySyntheticProviderConfig,
   applyVeniceConfig,
   applyVeniceProviderConfig,
+  applyAskSageConfig,
+  applyAskSageProviderConfig,
   applyVercelAiGatewayConfig,
   applyVercelAiGatewayProviderConfig,
   applyXiaomiConfig,
@@ -51,6 +57,7 @@ export {
   setOpenrouterApiKey,
   setSyntheticApiKey,
   setVeniceApiKey,
+  setAskSageApiKey,
   setVercelAiGatewayApiKey,
   setXiaomiApiKey,
   setZaiApiKey,

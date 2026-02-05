@@ -114,6 +114,19 @@ export async function setVeniceApiKey(key: string, agentDir?: string) {
   });
 }
 
+export async function setAskSageApiKey(key: string, agentDir?: string) {
+  // Write to resolved agent dir so gateway finds credentials on startup.
+  upsertAuthProfile({
+    profileId: "asksage:default",
+    credential: {
+      type: "api_key",
+      provider: "asksage",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
 export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";

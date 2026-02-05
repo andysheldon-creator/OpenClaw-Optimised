@@ -17,6 +17,7 @@ import {
   SYNTHETIC_MODEL_CATALOG,
 } from "./synthetic-models.js";
 import { discoverVeniceModels, VENICE_BASE_URL } from "./venice-models.js";
+import { ASKSAGE_MODEL_CATALOG, ASKSAGE_BASE_URL, buildAskSageModelDefinition } from "./asksage-models.js";
 
 type ModelsConfig = NonNullable<OpenClawConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
@@ -389,6 +390,14 @@ async function buildVeniceProvider(): Promise<ProviderConfig> {
   };
 }
 
+async function buildAskSageProvider(): Promise<ProviderConfig> {
+  return {
+    baseUrl: ASKSAGE_BASE_URL,
+    api: "anthropic-messages",
+    models: ASKSAGE_MODEL_CATALOG.map(buildAskSageModelDefinition),
+  };
+}
+
 async function buildOllamaProvider(): Promise<ProviderConfig> {
   const models = await discoverOllamaModels();
   return {
@@ -440,6 +449,13 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "venice", store: authStore });
   if (veniceKey) {
     providers.venice = { ...(await buildVeniceProvider()), apiKey: veniceKey };
+  }
+
+  const asksageKey =
+    resolveEnvApiKeyVarName("asksage") ??
+    resolveApiKeyFromProfiles({ provider: "asksage", store: authStore });
+  if (asksageKey) {
+    providers.asksage = { ...(await buildAskSageProvider()), apiKey: asksageKey };
   }
 
   const qwenProfiles = listProfilesForProvider(authStore, "qwen-portal");

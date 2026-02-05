@@ -22,6 +22,7 @@ export type AuthChoiceGroupId =
   | "minimax"
   | "synthetic"
   | "venice"
+  | "asksage"
   | "qwen";
 
 export type AuthChoiceGroup = {
@@ -127,6 +128,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     hint: "Account ID + Gateway ID + API key",
     choices: ["cloudflare-ai-gateway-api-key"],
   },
+  {
+    value: "asksage",
+    label: "Ask Sage",
+    hint: "Enterprise AI (multi-cloud routing)",
+    choices: ["asksage-api-key"],
+  },
 ];
 
 export function buildAuthChoiceOptions(params: {
@@ -172,6 +179,11 @@ export function buildAuthChoiceOptions(params: {
     value: "venice-api-key",
     label: "Venice AI API key",
     hint: "Privacy-focused inference (uncensored models)",
+  });
+  options.push({
+    value: "asksage-api-key",
+    label: "Ask Sage API key",
+    hint: "Enterprise AI with multi-cloud routing",
   });
   options.push({
     value: "github-copilot",
