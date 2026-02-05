@@ -1,4 +1,3 @@
-      await sdk.start();
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { ParentBasedSampler, TraceIdRatioBasedSampler } from "@opentelemetry/sdk-trace-base";
@@ -191,7 +190,8 @@ function formatLlmInput(messages: AgentMessage[], systemPrompt?: string): string
       content: systemPrompt,
     });
   }
-  const inputMessages = lastAssistantIndex >= 0 ? messages.slice(0, lastAssistantIndex) : messages;
+  return JSON.stringify(formattedMessages);
+}
 function formatLlmOutput(message: AgentMessage): string {
   const base: Record<string, unknown> = {
     role: message.role,
