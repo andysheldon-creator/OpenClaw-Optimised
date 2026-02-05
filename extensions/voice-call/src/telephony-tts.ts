@@ -83,6 +83,11 @@ async function* streamElevenLabsTelephony(
     signal,
   });
 
+  const contentType = response.headers.get("content-type") ?? "unknown";
+  console.log(
+    `[voice-call] ElevenLabs streaming TTS response: ${response.status} ${response.statusText}; content-type=${contentType}`,
+  );
+
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
     throw new Error(`ElevenLabs streaming TTS failed: ${response.status} ${errorText}`);
@@ -94,6 +99,10 @@ async function* streamElevenLabsTelephony(
 
   // Stream chunks as they arrive from ElevenLabs
   const reader = response.body.getReader();
+  // Cancel the reader when abort fires — otherwise reader.read() blocks
+  // indefinitely waiting for more data from ElevenLabs, hanging processQueue.
+  const onAbort = () => reader.cancel();
+  signal?.addEventListener("abort", onAbort, { once: true });
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -105,6 +114,7 @@ async function* streamElevenLabsTelephony(
       }
     }
   } finally {
+    signal?.removeEventListener("abort", onAbort);
     reader.releaseLock();
   }
 }

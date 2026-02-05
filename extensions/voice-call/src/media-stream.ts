@@ -305,7 +305,13 @@ export class MediaStreamHandler {
    */
   clearTtsQueue(streamSid: string): void {
     const queue = this.getTtsQueue(streamSid);
-    queue.length = 0;
+    // Resolve (not reject) pending entries so their callers don't hang forever
+    const pending = queue.splice(0, queue.length);
+    for (const entry of pending) {
+      entry.controller.abort();
+      entry.resolve();
+    }
+    // Abort the currently active TTS operation
     this.ttsActiveControllers.get(streamSid)?.abort();
     this.clearAudio(streamSid);
   }
