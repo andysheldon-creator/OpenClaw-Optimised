@@ -191,7 +191,7 @@ function readPositiveInt(params: Record<string, unknown>, key: string, fallback:
   return Math.max(1, Math.floor(fallback));
 }
 
-const SEND_KEYS_SPECIAL: Record<string, string> = {
+const KEY_TOKEN_SPECIAL: Record<string, string> = {
   enter: "{ENTER}",
   return: "{ENTER}",
   tab: "{TAB}",
@@ -213,10 +213,10 @@ const SEND_KEYS_SPECIAL: Record<string, string> = {
   down: "{DOWN}",
   left: "{LEFT}",
   right: "{RIGHT}",
-  space: " ",
+  space: "{SPACE}",
 };
 
-function normalizeSendKeysKey(raw: string) {
+function normalizeKeyToken(raw: string) {
   const trimmed = raw.trim();
   if (!trimmed) {
     throw new Error("key required");
@@ -225,7 +225,7 @@ function normalizeSendKeysKey(raw: string) {
     return trimmed;
   }
   const lower = trimmed.toLowerCase();
-  const special = SEND_KEYS_SPECIAL[lower];
+  const special = KEY_TOKEN_SPECIAL[lower];
   if (special) {
     return special;
   }
@@ -239,7 +239,7 @@ function normalizeSendKeysKey(raw: string) {
   if (trimmed.length === 1) {
     return trimmed;
   }
-  // Last resort: let SendKeys try (advanced syntax like {TAB 3}).
+  // Last resort: pass token to the Windows key resolver (advanced syntax like {TAB 3}).
   return trimmed;
 }
 
@@ -560,14 +560,111 @@ public static class Dpi {
 '@
 [void][Dpi]::SetProcessDPIAware()
 
-Add-Type -AssemblyName System.Windows.Forms
-
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
 public static class Mouse {
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
   [DllImport("user32.dll")] public static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+}
+'@
+
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class Keyboard {
+  public const int INPUT_KEYBOARD = 1;
+  public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
+  public const uint KEYEVENTF_KEYUP = 0x0002;
+  public const uint KEYEVENTF_UNICODE = 0x0004;
+
+  [StructLayout(LayoutKind.Sequential)]
+  public struct INPUT {
+    public int type;
+    public InputUnion U;
+  }
+
+  [StructLayout(LayoutKind.Explicit)]
+  public struct InputUnion {
+    [FieldOffset(0)]
+    public KEYBDINPUT ki;
+  }
+
+  [StructLayout(LayoutKind.Sequential)]
+  public struct KEYBDINPUT {
+    public ushort wVk;
+    public ushort wScan;
+    public uint dwFlags;
+    public uint time;
+    public IntPtr dwExtraInfo;
+  }
+
+  [DllImport("user32.dll", SetLastError = true)]
+  public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+  private static INPUT MakeKey(ushort vk, ushort scan, uint flags) {
+    var input = new INPUT();
+    input.type = INPUT_KEYBOARD;
+    input.U = new InputUnion();
+    input.U.ki = new KEYBDINPUT();
+    input.U.ki.wVk = vk;
+    input.U.ki.wScan = scan;
+    input.U.ki.dwFlags = flags;
+    input.U.ki.time = 0;
+    input.U.ki.dwExtraInfo = IntPtr.Zero;
+    return input;
+  }
+
+  public static void KeyDown(ushort vk, bool extended) {
+    uint flags = extended ? KEYEVENTF_EXTENDEDKEY : 0;
+    INPUT[] inputs = new INPUT[] { MakeKey(vk, 0, flags) };
+    SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+  }
+
+  public static void KeyUp(ushort vk, bool extended) {
+    uint flags = KEYEVENTF_KEYUP | (extended ? KEYEVENTF_EXTENDEDKEY : 0);
+    INPUT[] inputs = new INPUT[] { MakeKey(vk, 0, flags) };
+    SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+  }
+
+  public static void KeyPress(ushort vk, bool extended) {
+    KeyDown(vk, extended);
+    KeyUp(vk, extended);
+  }
+
+  public static void TypeUnicode(string text) {
+    if (string.IsNullOrEmpty(text)) {
+      return;
+    }
+    foreach (var ch in text) {
+      INPUT down = MakeKey(0, (ushort)ch, KEYEVENTF_UNICODE);
+      INPUT up = MakeKey(0, (ushort)ch, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP);
+      INPUT[] inputs = new INPUT[] { down, up };
+      SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+    }
+  }
+
+  public static void Combo(bool ctrl, bool alt, bool shift, ushort vk, bool extended) {
+    if (ctrl) {
+      KeyDown(0x11, false);
+    }
+    if (alt) {
+      KeyDown(0x12, false);
+    }
+    if (shift) {
+      KeyDown(0x10, false);
+    }
+    KeyPress(vk, extended);
+    if (shift) {
+      KeyUp(0x10, false);
+    }
+    if (alt) {
+      KeyUp(0x12, false);
+    }
+    if (ctrl) {
+      KeyUp(0x11, false);
+    }
+  }
 }
 '@
 
@@ -585,25 +682,55 @@ function Sleep-IfNeeded() {
   if ($delayMs -gt 0) { Start-Sleep -Milliseconds $delayMs }
 }
 
-function Escape-SendKeys([string]$text) {
-  if (-not $text) { return $text }
-  $sb = New-Object System.Text.StringBuilder
-  foreach ($ch in $text.ToCharArray()) {
-    switch ($ch) {
-      '+' { [void]$sb.Append('{+}') }
-      '^' { [void]$sb.Append('{^}') }
-      '%' { [void]$sb.Append('{%}') }
-      '~' { [void]$sb.Append('{~}') }
-      '(' { [void]$sb.Append('{(}') }
-      ')' { [void]$sb.Append('{)}') }
-      '[' { [void]$sb.Append('{[}') }
-      ']' { [void]$sb.Append('{]}') }
-      '{' { [void]$sb.Append('{{}') }
-      '}' { [void]$sb.Append('{}}') }
-      default { [void]$sb.Append($ch) }
+function Resolve-Key([string]$keyToken) {
+  if (-not $keyToken) { throw 'key required' }
+  $k = $keyToken.Trim()
+  if ($k.StartsWith('{') -and $k.EndsWith('}')) {
+    $k = $k.Substring(1, $k.Length - 2)
+  }
+  $k = $k.Trim()
+  if (-not $k) { throw 'key required' }
+
+  $upper = $k.ToUpperInvariant()
+  $extended = $false
+  $vk = $null
+
+  switch ($upper) {
+    'ENTER' { $vk = 0x0D }
+    'TAB' { $vk = 0x09 }
+    'ESC' { $vk = 0x1B }
+    'ESCAPE' { $vk = 0x1B }
+    'BACKSPACE' { $vk = 0x08 }
+    'DELETE' { $vk = 0x2E; $extended = $true }
+    'INSERT' { $vk = 0x2D; $extended = $true }
+    'HOME' { $vk = 0x24; $extended = $true }
+    'END' { $vk = 0x23; $extended = $true }
+    'PGUP' { $vk = 0x21; $extended = $true }
+    'PAGEUP' { $vk = 0x21; $extended = $true }
+    'PGDN' { $vk = 0x22; $extended = $true }
+    'PAGEDOWN' { $vk = 0x22; $extended = $true }
+    'UP' { $vk = 0x26; $extended = $true }
+    'DOWN' { $vk = 0x28; $extended = $true }
+    'LEFT' { $vk = 0x25; $extended = $true }
+    'RIGHT' { $vk = 0x27; $extended = $true }
+    'SPACE' { $vk = 0x20 }
+    default {
+      if ($upper -match '^F(\d{1,2})$') {
+        $n = [int]$Matches[1]
+        if ($n -ge 1 -and $n -le 24) {
+          $vk = 0x70 + ($n - 1)
+        }
+      } elseif ($upper.Length -eq 1) {
+        $vk = [int][byte][char]$upper
+      }
     }
   }
-  return $sb.ToString()
+
+  if ($vk -eq $null) {
+    throw "unsupported key token: $upper"
+  }
+
+  return @{ vk = [UInt16]$vk; extended = $extended }
 }
 
 switch ('${action}') {
@@ -652,30 +779,26 @@ switch ('${action}') {
   'type' {
     if (-not ($args.PSObject.Properties.Name -contains 'text')) { throw 'text required' }
     $text = [string]$args.text
-    if ($text.Length -gt 0) {
-      [System.Windows.Forms.SendKeys]::SendWait((Escape-SendKeys $text))
-    }
+    [Keyboard]::TypeUnicode($text)
     Sleep-IfNeeded
   }
   'hotkey' {
-    $key = [string]$args.key
-    if (-not $key) { throw 'key required' }
+    $keyToken = [string]$args.key
+    if (-not $keyToken) { throw 'key required' }
     $ctrl = $false; $alt = $false; $shift = $false
     if ($args.PSObject.Properties.Name -contains 'ctrl') { $ctrl = [bool]$args.ctrl }
     if ($args.PSObject.Properties.Name -contains 'alt') { $alt = [bool]$args.alt }
     if ($args.PSObject.Properties.Name -contains 'shift') { $shift = [bool]$args.shift }
 
-    $prefix = ''
-    if ($ctrl) { $prefix += '^' }
-    if ($alt) { $prefix += '%' }
-    if ($shift) { $prefix += '+' }
-    [System.Windows.Forms.SendKeys]::SendWait($prefix + $key)
+    $resolved = Resolve-Key $keyToken
+    [Keyboard]::Combo($ctrl, $alt, $shift, [UInt16]$resolved.vk, [bool]$resolved.extended)
     Sleep-IfNeeded
   }
   'press' {
-    $key = [string]$args.key
-    if (-not $key) { throw 'key required' }
-    [System.Windows.Forms.SendKeys]::SendWait($key)
+    $keyToken = [string]$args.key
+    if (-not $keyToken) { throw 'key required' }
+    $resolved = Resolve-Key $keyToken
+    [Keyboard]::KeyPress([UInt16]$resolved.vk, [bool]$resolved.extended)
     Sleep-IfNeeded
   }
   default {
@@ -909,7 +1032,7 @@ export function createComputerTool(options?: {
 
       if (action === "hotkey") {
         const keyRaw = readStringParam(params, "key", { required: true });
-        const key = normalizeSendKeysKey(keyRaw);
+        const key = normalizeKeyToken(keyRaw);
         const ctrl = typeof params.ctrl === "boolean" ? params.ctrl : false;
         const alt = typeof params.alt === "boolean" ? params.alt : false;
         const shift = typeof params.shift === "boolean" ? params.shift : false;
@@ -931,7 +1054,7 @@ export function createComputerTool(options?: {
 
       if (action === "press") {
         const keyRaw = readStringParam(params, "key", { required: true });
-        const key = normalizeSendKeysKey(keyRaw);
+        const key = normalizeKeyToken(keyRaw);
         await runInputAction({ action: "press", args: { key, delayMs } });
         if (agentDir) {
           await recordTeachStep({ agentDir, sessionKey, action: "press", stepParams: { key, delayMs } });
