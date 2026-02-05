@@ -61,8 +61,8 @@ describe("ensureOpenClawModelsJson", () => {
       JSON.stringify(existingModelsJson, null, 2),
     );
 
-    // Create auth.json to simulate auth profiles existing
-    await fs.writeFile(path.join(agentDir, "auth.json"), JSON.stringify({ profiles: {} }));
+    // Do NOT create auth.json - this ensures resolveImplicitProviders() won't return
+    // qwen-portal with models, so the only source is the explicit config without models.
 
     // Run ensureOpenClawModelsJson with a config that has qwen-portal
     // but WITHOUT models array (simulates when auth profiles aren't accessible
@@ -143,8 +143,7 @@ describe("ensureOpenClawModelsJson", () => {
       JSON.stringify(existingModelsJson, null, 2),
     );
 
-    // Create auth.json
-    await fs.writeFile(path.join(agentDir, "auth.json"), JSON.stringify({ profiles: {} }));
+    // Do NOT create auth.json - ensures implicit providers won't include qwen-portal.
 
     // Config with only coder-model
     const cfg = {
