@@ -161,6 +161,15 @@ async function loadCostUsageSummaryCached(params: {
   return await inFlight;
 }
 
+// Exposed for unit tests (kept as a single export to avoid widening the public API surface).
+export const __test = {
+  parseDateToMs,
+  parseDays,
+  parseDateRange,
+  loadCostUsageSummaryCached,
+  costUsageCache,
+};
+
 export type SessionUsageEntry = {
   key: string;
   label?: string;

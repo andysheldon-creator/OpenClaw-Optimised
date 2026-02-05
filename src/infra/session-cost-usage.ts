@@ -963,14 +963,15 @@ export async function loadSessionLogs(params: {
         continue;
       }
 
+      const contentParts: string[] = [];
+
       // Extract content
-      let content = "";
       const rawContent = message.content;
       if (typeof rawContent === "string") {
-        content = rawContent;
+        contentParts.push(rawContent);
       } else if (Array.isArray(rawContent)) {
         // Handle content blocks (text, tool_use, etc.)
-        content = rawContent
+        const contentText = rawContent
           .map((block: unknown) => {
             if (typeof block === "string") {
               return block;
@@ -990,8 +991,34 @@ export async function loadSessionLogs(params: {
           })
           .filter(Boolean)
           .join("\n");
+        if (contentText) {
+          contentParts.push(contentText);
+        }
       }
 
+      // OpenAI-style tool calls stored outside the content array.
+      const rawToolCalls =
+        (message.tool_calls as unknown) ??
+        (message.toolCalls as unknown) ??
+        (message.function_call as unknown) ??
+        (message.functionCall as unknown);
+      const toolCalls = Array.isArray(rawToolCalls)
+        ? rawToolCalls
+        : rawToolCalls
+          ? [rawToolCalls]
+          : [];
+      if (toolCalls.length > 0) {
+        for (const call of toolCalls) {
+          const callObj = call as Record<string, unknown>;
+          const directName = typeof callObj.name === "string" ? callObj.name : undefined;
+          const fn = callObj.function as Record<string, unknown> | undefined;
+          const fnName = typeof fn?.name === "string" ? fn.name : undefined;
+          const name = directName ?? fnName ?? "unknown";
+          contentParts.push(`[Tool: ${name}]`);
+        }
+      }
+
+      let content = contentParts.join("\n").trim();
       if (!content) {
         continue;
       }
