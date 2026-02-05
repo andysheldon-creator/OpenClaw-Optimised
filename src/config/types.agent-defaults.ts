@@ -155,6 +155,30 @@ export type AgentDefaultsConfig = {
   blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   /** Human-like delay between block replies. */
   humanDelay?: HumanDelayConfig;
+  /** Muscle -> brain synthesis of fallback output. */
+  replySynthesis?: {
+    /** Enable muscle -> brain synthesis (default: false). */
+    enabled?: boolean;
+    /** Allow synthesis when the brain provider is remote (default: false). */
+    allowRemoteBrain?: boolean;
+    /** Include media URLs in synthesis prompt (default: false). */
+    includeMediaUrls?: boolean;
+    /** Include error payload text/flags in synthesis prompt (default: false). */
+    includeErrors?: boolean;
+  };
+  /** Brain -> muscle -> brain pipeline for interactive turns. */
+  replyPipeline?: {
+    /** Enable brain -> muscle -> brain pipeline (default: false). */
+    enabled?: boolean;
+    /** Optional brain model ref (provider/model). Defaults to the resolved model. */
+    brainModel?: string;
+    /** Muscle model refs (provider/model). Defaults to agents.defaults.model.fallbacks. */
+    muscleModels?: string[];
+    /** Optional planner system prompt override. */
+    plannerPrompt?: string;
+    /** Optional muscle system prompt override. */
+    musclePrompt?: string;
+  };
   timeoutSeconds?: number;
   /** Max inbound media size in MB for agent-visible attachments (text note or future image attach). */
   mediaMaxMb?: number;

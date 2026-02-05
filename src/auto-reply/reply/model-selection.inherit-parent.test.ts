@@ -121,6 +121,35 @@ describe("createModelSelectionState parent inheritance", () => {
     expect(state.model).toBe("claude-opus-4-5");
   });
 
+
+  it("keeps configured default when forceDefaultModel is set", async () => {
+    const cfg = {} as OpenClawConfig;
+    const sessionEntry = makeEntry({
+      providerOverride: "openai",
+      modelOverride: "gpt-4o",
+    });
+    const sessionStore = {
+      "agent:main:main": sessionEntry,
+    };
+
+    const state = await createModelSelectionState({
+      cfg,
+      agentCfg: cfg.agents?.defaults,
+      sessionEntry,
+      sessionStore,
+      sessionKey: "agent:main:main",
+      defaultProvider,
+      defaultModel,
+      provider: defaultProvider,
+      model: defaultModel,
+      hasModelDirective: false,
+      forceDefaultModel: true,
+    });
+
+    expect(state.provider).toBe(defaultProvider);
+    expect(state.model).toBe(defaultModel);
+  });
+
   it("ignores parent override when disallowed", async () => {
     const cfg = {
       agents: {

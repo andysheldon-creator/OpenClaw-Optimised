@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import type { TlsOptions } from "node:tls";
 import type { WebSocketServer } from "ws";
 import {
@@ -34,6 +35,10 @@ import {
 import { handleOpenAiHttpRequest } from "./openai-http.js";
 import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
 import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
+import {
+  handleRemotePairingRequest,
+  resolveRemotePairingConfig,
+} from "./remote-pairing.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
@@ -245,12 +250,47 @@ export function createGatewayHttpServer(opts: {
       return;
     }
 
+    // Health check endpoint for Railway
+    if (req.url === "/health" && req.method === "GET") {
+      // Check if state directory is writable (critical for Railway)
+      const stateDir = process.env.CLAWDBOT_STATE_DIR || process.env.MOLTBOT_STATE_DIR;
+      if (stateDir) {
+        try {
+          const testFile = `${stateDir}/.write-test-${Date.now()}`;
+          await fs.promises.writeFile(testFile, "test");
+          await fs.promises.unlink(testFile);
+        } catch (err) {
+          res.statusCode = 503;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({
+            status: "error",
+            message: "State directory is not writable. Ensure volume is mounted at /data",
+            stateDir,
+          }));
+          return;
+        }
+      }
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ status: "ok" }));
+      return;
+    }
+
     try {
       const configSnapshot = loadConfig();
       const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
-      if (await handleHooksRequest(req, res)) {
-        return;
-      }
+// Handle remote pairing API (for Railway/cloud deployments)
+const remotePairingConfig = resolveRemotePairingConfig(configSnapshot);
+if (remotePairingConfig) {
+  if (await handleRemotePairingRequest(req, res, remotePairingConfig)) {
+    return;
+  }
+}
+
+// Handle hooks
+if (await handleHooksRequest(req, res)) {
+  return;
+}
       if (
         await handleToolsInvokeHttpRequest(req, res, {
           auth: resolvedAuth,

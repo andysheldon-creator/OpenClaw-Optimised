@@ -17,6 +17,10 @@ A2UI_APP_DIR="$ROOT_DIR/apps/shared/OpenClawKit/Tools/CanvasA2UI"
 # In that environment we must keep the prebuilt bundle.
 if [[ ! -d "$A2UI_RENDERER_DIR" || ! -d "$A2UI_APP_DIR" ]]; then
   echo "A2UI sources missing; keeping prebuilt bundle."
+  # Ensure the bundle file exists (create empty if missing)
+  if [[ ! -f "$OUTPUT_FILE" ]]; then
+    echo "// A2UI bundle placeholder for Docker builds" > "$OUTPUT_FILE"
+  fi
   exit 0
 fi
 

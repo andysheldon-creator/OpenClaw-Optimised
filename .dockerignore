@@ -31,9 +31,8 @@ coverage
 tmp
 **/tmp
 
-# build artifacts
-dist
-**/dist
+# build artifacts - NOTE: dist/ is NOT ignored because we need the built files
+# The build happens inside the container, so dist/ must be available at runtime
 apps/macos/.build
 apps/ios/build
 **/*.trace

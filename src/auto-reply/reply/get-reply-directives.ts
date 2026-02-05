@@ -20,6 +20,7 @@ import { CURRENT_MESSAGE_MARKER, stripMentions, stripStructuralPrefixes } from "
 import { createModelSelectionState, resolveContextTokens } from "./model-selection.js";
 import { formatElevatedUnavailableMessage, resolveElevatedPermissions } from "./reply-elevated.js";
 import { stripInlineStatus } from "./reply-inline.js";
+import { requiresBrain } from "./intent-gate.js";
 
 type AgentDefaults = NonNullable<OpenClawConfig["agents"]>["defaults"];
 type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
@@ -378,6 +379,12 @@ export async function resolveReplyDirectives(params: {
     ? resolveBlockStreamingChunking(cfg, sessionCtx.Provider, sessionCtx.AccountId)
     : undefined;
 
+  const forceDefaultModel = requiresBrain(cleanedBody, {
+    sessionEntry,
+    sessionStore,
+    sessionKey,
+  });
+
   const modelState = await createModelSelectionState({
     cfg,
     agentCfg,
@@ -391,6 +398,7 @@ export async function resolveReplyDirectives(params: {
     provider,
     model,
     hasModelDirective: directives.hasModelDirective,
+    forceDefaultModel,
   });
   provider = modelState.provider;
   model = modelState.model;

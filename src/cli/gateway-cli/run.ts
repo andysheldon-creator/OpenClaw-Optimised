@@ -174,7 +174,11 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
     defaultRuntime.exit(1);
     return;
   }
-  const bindRaw = toOptionString(opts.bind) ?? cfg.gateway?.bind ?? "loopback";
+  // Precedence: CLI flag -> env (OPENCLAW_GATEWAY_BIND, legacy CLAWDBOT_GATEWAY_BIND) -> config.
+  const bindEnv = toOptionString(
+    process.env.OPENCLAW_GATEWAY_BIND ?? process.env.CLAWDBOT_GATEWAY_BIND,
+  );
+  const bindRaw = toOptionString(opts.bind) ?? bindEnv ?? cfg.gateway?.bind ?? "loopback";
   const bind =
     bindRaw === "loopback" ||
     bindRaw === "lan" ||

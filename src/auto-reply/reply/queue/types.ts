@@ -75,9 +75,15 @@ export type FollowupRun = {
     };
     timeoutMs: number;
     blockReplyBreak: "text_end" | "message_end";
+    disableTools?: boolean;
     ownerNumbers?: string[];
     extraSystemPrompt?: string;
     enforceFinalTag?: boolean;
+    brainOwnerActive?: boolean;
+    brainOwnerProvider?: string;
+    brainOwnerModel?: string;
+    allowMuscleSubordinateOnly?: boolean;
+    forceFinalBrainSynthesis?: boolean;
   };
 };
 

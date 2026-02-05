@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import type { TypingMode } from "../../config/types.js";
 import type { OriginatingChannelType, TemplateContext } from "../templating.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
@@ -19,6 +21,7 @@ import {
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import { logVerbose } from "../../globals.js";
 import { defaultRuntime } from "../../runtime.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
 import { resolveResponseUsageMode, type VerboseLevel } from "../thinking.js";
@@ -33,6 +36,12 @@ import {
 import { runMemoryFlushIfNeeded } from "./agent-runner-memory.js";
 import { buildReplyPayloads } from "./agent-runner-payloads.js";
 import { appendUsageLine, formatResponseUsageLine } from "./agent-runner-utils.js";
+import {
+  buildMuscleTaskPrompt,
+  buildPipelineSynthesisPrompt,
+  parseBrainPlan,
+  resolveReplyPipelineConfig,
+} from "./brain-muscle-pipeline.js";
 import { createAudioAsVoiceBuffer, createBlockReplyPipeline } from "./block-reply-pipeline.js";
 import { resolveBlockStreamingCoalescing } from "./block-streaming.js";
 import { createFollowupRunner } from "./followup-runner.js";
@@ -158,6 +167,54 @@ export async function runReplyAgent(params: {
           buffer: createAudioAsVoiceBuffer({ isAudioPayload }),
         })
       : null;
+
+  const pipeline = resolveReplyPipelineConfig({
+    cfg,
+    defaultProvider: followupRun.run.provider,
+    defaultModel: followupRun.run.model,
+  });
+  const pipelineEnabled = pipeline.enabled && pipeline.muscleModels.length > 0;
+  if (pipeline.enabled && pipeline.muscleModels.length === 0) {
+    logVerbose("reply pipeline enabled but no muscle models configured; falling back to brain-only");
+  }
+
+  const appendSystemPrompt = (
+    base: string | undefined,
+    extra: string | undefined,
+  ): string | undefined => {
+    const parts = [base?.trim(), extra?.trim()].filter(Boolean);
+    return parts.length > 0 ? parts.join("\n\n") : undefined;
+  };
+
+  const extractPayloadText = (payloads: ReplyPayload[] | undefined): string => {
+    if (!payloads || payloads.length === 0) {
+      return "";
+    }
+    return payloads
+      .map((payload) => payload.text)
+      .filter((text): text is string => Boolean(text && text.trim()))
+      .join("\n");
+  };
+
+  const createPipelineSessionFile = async (
+    baseSessionFile: string,
+  ): Promise<{ sessionFile: string; cleanup: () => Promise<void> }> => {
+    const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "openclaw-pipeline-"));
+    const sessionFile = path.join(dir, "session.jsonl");
+    try {
+      await fs.promises.copyFile(baseSessionFile, sessionFile);
+    } catch (err) {
+      const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
+      if (code !== "ENOENT") {
+        throw err;
+      }
+      await fs.promises.writeFile(sessionFile, "", "utf-8");
+    }
+    const cleanup = async () => {
+      await fs.promises.rm(dir, { recursive: true, force: true });
+    };
+    return { sessionFile, cleanup };
+  };
 
   if (shouldSteer && isStreaming) {
     const steered = queueEmbeddedPiMessage(followupRun.run.sessionId, followupRun.prompt);
@@ -305,31 +362,205 @@ export async function runReplyAgent(params: {
         `Role ordering conflict (${reason}). Restarting session ${sessionKey} -> ${nextSessionId}.`,
       cleanupTranscripts: true,
     });
+
+  const runBrainMuscleBrainPipeline = async (): Promise<ReturnType<typeof runAgentTurnWithFallback>> => {
+    const brain = pipeline.brain;
+    const musclePrimary = pipeline.muscleModels[0];
+    const muscleFallbacks = pipeline.muscleModels
+      .slice(1)
+      .map((ref) => `${ref.provider}/${ref.model}`);
+    const pipelineSession = await createPipelineSessionFile(followupRun.run.sessionFile);
+
+    const buildRun = (overrides: Partial<FollowupRun["run"]>): FollowupRun => ({
+      ...followupRun,
+      run: {
+        ...followupRun.run,
+        ...overrides,
+      },
+    });
+
+    const plannerRun = buildRun({
+      provider: brain.provider,
+      model: brain.model,
+      sessionId: crypto.randomUUID(),
+      sessionFile: pipelineSession.sessionFile,
+      extraSystemPrompt: appendSystemPrompt(followupRun.run.extraSystemPrompt, pipeline.plannerPrompt),
+      disableTools: true,
+      authProfileId:
+        followupRun.run.provider === brain.provider ? followupRun.run.authProfileId : undefined,
+      authProfileIdSource:
+        followupRun.run.provider === brain.provider
+          ? followupRun.run.authProfileIdSource
+          : undefined,
+    });
+
+    try {
+      const plannerOutcome = await runAgentTurnWithFallback({
+        commandBody,
+        followupRun: plannerRun,
+        sessionCtx,
+        opts,
+        typingSignals,
+        blockReplyPipeline: null,
+        blockStreamingEnabled: false,
+        blockReplyChunking: undefined,
+        resolvedBlockStreamingBreak,
+        applyReplyToMode,
+        shouldEmitToolResult,
+        shouldEmitToolOutput,
+        pendingToolTasks,
+        suppressUserOutput: true,
+        resetSessionAfterCompactionFailure: async () => false,
+        resetSessionAfterRoleOrderingConflict: async () => false,
+        isHeartbeat: false,
+        sessionKey: undefined,
+        getActiveSessionEntry: () => activeSessionEntry,
+        activeSessionStore: undefined,
+        storePath: undefined,
+        resolvedVerboseLevel,
+      });
+
+      if (plannerOutcome.kind === "final") {
+        return plannerOutcome;
+      }
+
+      const planText = extractPayloadText(plannerOutcome.runResult.payloads);
+      const plan = parseBrainPlan(planText);
+      const shouldUseMuscle = Boolean(
+        plan && plan.useMuscle && plan.tasks.length > 0 && pipeline.muscleModels.length > 0,
+      );
+
+      let musclePayloads: ReplyPayload[] = [];
+      const plannerResponse = plan?.response;
+
+      if (shouldUseMuscle && musclePrimary) {
+        const musclePrompt = buildMuscleTaskPrompt({
+          tasks: plan?.tasks ?? [],
+          userMessage: commandBody,
+        });
+        const muscleRun = buildRun({
+          provider: musclePrimary.provider,
+          model: musclePrimary.model,
+          sessionId: crypto.randomUUID(),
+          sessionFile: pipelineSession.sessionFile,
+          extraSystemPrompt: appendSystemPrompt(
+            followupRun.run.extraSystemPrompt,
+            pipeline.musclePrompt,
+          ),
+          disableTools: followupRun.run.disableTools,
+          authProfileId:
+            followupRun.run.provider === musclePrimary.provider
+              ? followupRun.run.authProfileId
+              : undefined,
+          authProfileIdSource:
+            followupRun.run.provider === musclePrimary.provider
+              ? followupRun.run.authProfileIdSource
+              : undefined,
+        });
+        const muscleOutcome = await runAgentTurnWithFallback({
+          commandBody: musclePrompt,
+          followupRun: muscleRun,
+          sessionCtx,
+          opts,
+          typingSignals,
+          blockReplyPipeline: null,
+          blockStreamingEnabled: false,
+          blockReplyChunking: undefined,
+          resolvedBlockStreamingBreak,
+          applyReplyToMode,
+          shouldEmitToolResult,
+          shouldEmitToolOutput,
+          pendingToolTasks,
+          suppressUserOutput: true,
+          fallbacksOverride: muscleFallbacks,
+          resetSessionAfterCompactionFailure: async () => false,
+          resetSessionAfterRoleOrderingConflict: async () => false,
+          isHeartbeat: false,
+          sessionKey: undefined,
+          getActiveSessionEntry: () => activeSessionEntry,
+          activeSessionStore: undefined,
+          storePath: undefined,
+          resolvedVerboseLevel,
+        });
+        if (muscleOutcome.kind === "final") {
+          return muscleOutcome;
+        }
+        musclePayloads = muscleOutcome.runResult.payloads ?? [];
+      }
+
+      const synthesisPrompt = buildPipelineSynthesisPrompt({
+        cfg,
+        musclePayloads,
+        userMessage: commandBody,
+        plannerResponse,
+      });
+      const synthesisRun = buildRun({
+        provider: brain.provider,
+        model: brain.model,
+        extraSystemPrompt: appendSystemPrompt(followupRun.run.extraSystemPrompt, synthesisPrompt),
+        disableTools: followupRun.run.disableTools,
+        authProfileId:
+          followupRun.run.provider === brain.provider ? followupRun.run.authProfileId : undefined,
+        authProfileIdSource:
+          followupRun.run.provider === brain.provider
+            ? followupRun.run.authProfileIdSource
+            : undefined,
+      });
+
+      return await runAgentTurnWithFallback({
+        commandBody,
+        followupRun: synthesisRun,
+        sessionCtx,
+        opts,
+        typingSignals,
+        blockReplyPipeline,
+        blockStreamingEnabled,
+        blockReplyChunking,
+        resolvedBlockStreamingBreak,
+        applyReplyToMode,
+        shouldEmitToolResult,
+        shouldEmitToolOutput,
+        pendingToolTasks,
+        resetSessionAfterCompactionFailure,
+        resetSessionAfterRoleOrderingConflict,
+        isHeartbeat,
+        sessionKey,
+        getActiveSessionEntry: () => activeSessionEntry,
+        activeSessionStore,
+        storePath,
+        resolvedVerboseLevel,
+      });
+    } finally {
+      await pipelineSession.cleanup();
+    }
+  };
   try {
     const runStartedAt = Date.now();
-    const runOutcome = await runAgentTurnWithFallback({
-      commandBody,
-      followupRun,
-      sessionCtx,
-      opts,
-      typingSignals,
-      blockReplyPipeline,
-      blockStreamingEnabled,
-      blockReplyChunking,
-      resolvedBlockStreamingBreak,
-      applyReplyToMode,
-      shouldEmitToolResult,
-      shouldEmitToolOutput,
-      pendingToolTasks,
-      resetSessionAfterCompactionFailure,
-      resetSessionAfterRoleOrderingConflict,
-      isHeartbeat,
-      sessionKey,
-      getActiveSessionEntry: () => activeSessionEntry,
-      activeSessionStore,
-      storePath,
-      resolvedVerboseLevel,
-    });
+    const runOutcome = pipelineEnabled && !isHeartbeat
+      ? await runBrainMuscleBrainPipeline()
+      : await runAgentTurnWithFallback({
+          commandBody,
+          followupRun,
+          sessionCtx,
+          opts,
+          typingSignals,
+          blockReplyPipeline,
+          blockStreamingEnabled,
+          blockReplyChunking,
+          resolvedBlockStreamingBreak,
+          applyReplyToMode,
+          shouldEmitToolResult,
+          shouldEmitToolOutput,
+          pendingToolTasks,
+          resetSessionAfterCompactionFailure,
+          resetSessionAfterRoleOrderingConflict,
+          isHeartbeat,
+          sessionKey,
+          getActiveSessionEntry: () => activeSessionEntry,
+          activeSessionStore,
+          storePath,
+          resolvedVerboseLevel,
+        });
 
     if (runOutcome.kind === "final") {
       return finalizeWithFollowup(runOutcome.payload, queueKey, runFollowupTurn);

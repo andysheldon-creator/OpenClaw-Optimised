@@ -211,6 +211,19 @@ export type GatewayNodesConfig = {
   denyCommands?: string[];
 };
 
+export type GatewayRemotePairingConfig = {
+  /** Enable remote pairing approval API (default: false). */
+  enabled?: boolean;
+  /** Admin secret for authentication. Required if enabled. */
+  adminSecret?: string;
+  /** API path prefix (default: /.moltbot/pairing). */
+  path?: string;
+  /** Request timestamp validity window in seconds (default: 300). */
+  timestampValiditySeconds?: number;
+  /** Nonce cache size for replay protection (default: 1000). */
+  nonceCacheSize?: number;
+};
+
 export type GatewayConfig = {
   /** Single multiplexed port for Gateway WS + HTTP (default: 18789). */
   port?: number;
@@ -245,4 +258,6 @@ export type GatewayConfig = {
    * `x-real-ip`) to determine the client IP for local pairing and HTTP checks.
    */
   trustedProxies?: string[];
+  /** Remote pairing approval API for cloud deployments. */
+  remotePairing?: GatewayRemotePairingConfig;
 };

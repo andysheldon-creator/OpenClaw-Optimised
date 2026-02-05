@@ -710,6 +710,9 @@ export function attachGatewayWsMessageHandler(params: {
               }
             } else if (pairing.created) {
               context.broadcast("device.pair.requested", pairing.request, { dropIfSlow: true });
+              logGateway.info(
+                `device pair requested requestId=${pairing.request.requestId} deviceId=${device.id} role=${role ?? "unknown"} remoteIp=${reportedClientIp ?? "unknown"}`,
+              );
             }
             if (pairing.request.silent !== true) {
               setHandshakeState("failed");

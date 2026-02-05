@@ -473,3 +473,67 @@ describe("initSessionState channel reset overrides", () => {
     expect(result.sessionEntry.sessionId).toBe(sessionId);
   });
 });
+
+
+describe("initSessionState brain ownership", () => {
+  it("inherits sticky brain ownership from parent thread session", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-brain-owner-parent-"));
+    const storePath = path.join(root, "sessions.json");
+    const parentSessionKey = "agent:main:slack:channel:c1";
+    const threadSessionKey = "agent:main:slack:channel:c1:thread:123";
+
+    await saveSessionStore(storePath, {
+      [parentSessionKey]: {
+        sessionId: "parent-session",
+        updatedAt: Date.now(),
+        brainOwnerActive: true,
+        brainOwnerProvider: "anthropic",
+        brainOwnerModel: "claude-opus-4-5",
+      },
+    });
+
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
+    const result = await initSessionState({
+      ctx: {
+        Body: "Hello in thread",
+        SessionKey: threadSessionKey,
+      },
+      cfg,
+      commandAuthorized: true,
+    });
+
+    expect(result.sessionEntry.brainOwnerActive).toBe(true);
+    expect(result.sessionEntry.brainOwnerProvider).toBe("anthropic");
+    expect(result.sessionEntry.brainOwnerModel).toBe("claude-opus-4-5");
+  });
+
+  it("clears sticky brain ownership on explicit reset triggers", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-brain-owner-reset-"));
+    const storePath = path.join(root, "sessions.json");
+    const sessionKey = "agent:main:whatsapp:dm:s1";
+
+    await saveSessionStore(storePath, {
+      [sessionKey]: {
+        sessionId: "brain-owner-session",
+        updatedAt: Date.now(),
+        brainOwnerActive: true,
+        brainOwnerProvider: "anthropic",
+        brainOwnerModel: "claude-opus-4-5",
+      },
+    });
+
+    const cfg = { session: { store: storePath } } as OpenClawConfig;
+    const result = await initSessionState({
+      ctx: {
+        RawBody: "/new",
+        SessionKey: sessionKey,
+      },
+      cfg,
+      commandAuthorized: true,
+    });
+
+    expect(result.sessionEntry.brainOwnerActive).toBe(false);
+    expect(result.sessionEntry.brainOwnerProvider).toBeUndefined();
+    expect(result.sessionEntry.brainOwnerModel).toBeUndefined();
+  });
+});
