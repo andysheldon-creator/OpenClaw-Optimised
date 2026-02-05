@@ -73,3 +73,16 @@ export {
   type EventRouterLogger,
   type EventRouterOptions,
 } from "./events.js";
+
+// State Service
+export {
+  DefaultStateService,
+  createStateService,
+  hasNonzeroUsageMetrics,
+  type StateService,
+  type StatePersistOptions,
+  type CompactionUpdateResult,
+  type CompactionUpdateOptions,
+  type StateServiceLogger,
+  type StateServiceOptions,
+} from "./state.js";
