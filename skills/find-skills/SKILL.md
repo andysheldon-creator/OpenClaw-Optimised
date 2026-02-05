@@ -1,26 +1,7 @@
 ---
 name: find-skills
 description: "Search the SkillsMP marketplace (25,000+ Agent Skills) for Claude Code, Codex CLI, and ChatGPT skills. Supports keyword search, AI semantic search, flexible sorting, and pagination."
-metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "🔍",
-      "requires": {
-        "config": [
-          {
-            "id": "skillsmp-api-key",
-            "label": "SkillsMP API Key",
-            "description": "Get free API key from https://skillsmp.com/docs/api",
-            "type": "string",
-            "pattern": "^sk_live_.*",
-            "placeholder": "sk_live_your_api_key"
-          }
-        ]
-      }
-          ],
-      },
-  }
+metadata: { "openclaw": { "emoji": "🔍", "requires": { "config": ["skillsmp-api-key"] } } }
 ---
 
 # Find Skills
