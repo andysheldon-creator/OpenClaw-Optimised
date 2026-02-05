@@ -1,4 +1,5 @@
 import type { BrowserConfig, BrowserProfileConfig, OpenClawConfig } from "../config/config.js";
+import { parseDurationMs } from "../cli/parse-duration.js";
 import { resolveGatewayPort } from "../config/paths.js";
 import {
   deriveDefaultBrowserCdpPortRange,
@@ -72,6 +73,25 @@ function normalizeHexColor(raw: string | undefined) {
 function normalizeTimeoutMs(raw: number | undefined, fallback: number) {
   const value = typeof raw === "number" && Number.isFinite(raw) ? Math.floor(raw) : fallback;
   return value < 0 ? fallback : value;
+}
+
+/** Resolve actTimeoutMs from a number (ms) or duration string ("30s", "1m", etc.). */
+function resolveActTimeoutMs(raw: number | string | undefined): number {
+  if (raw === undefined || raw === null) {
+    return DEFAULT_BROWSER_ACT_TIMEOUT_MS;
+  }
+  if (typeof raw === "number") {
+    if (!Number.isFinite(raw) || raw <= 0) {
+      return DEFAULT_BROWSER_ACT_TIMEOUT_MS;
+    }
+    return Math.floor(raw);
+  }
+  try {
+    const ms = parseDurationMs(String(raw), { defaultUnit: "ms" });
+    return ms > 0 ? ms : DEFAULT_BROWSER_ACT_TIMEOUT_MS;
+  } catch {
+    return DEFAULT_BROWSER_ACT_TIMEOUT_MS;
+  }
 }
 
 export function parseHttpUrl(raw: string, label: string) {
@@ -163,7 +183,7 @@ export function resolveBrowserConfig(
     cfg?.remoteCdpHandshakeTimeoutMs,
     Math.max(2000, remoteCdpTimeoutMs * 2),
   );
-  const actTimeoutMs = normalizeTimeoutMs(cfg?.actTimeoutMs, DEFAULT_BROWSER_ACT_TIMEOUT_MS);
+  const actTimeoutMs = resolveActTimeoutMs(cfg?.actTimeoutMs);
 
   const derivedCdpRange = deriveDefaultBrowserCdpPortRange(controlPort);
 
