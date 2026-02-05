@@ -12,6 +12,7 @@ import {
 } from "../../config/config.js";
 import { applyLegacyMigrations } from "../../config/legacy.js";
 import { applyMergePatch } from "../../config/merge-patch.js";
+import { redactConfigSnapshot, restoreRedactedValues } from "../../config/redact-snapshot.js";
 import { buildConfigSchema } from "../../config/schema.js";
 import {
   formatDoctorNonInteractiveHint,
@@ -100,7 +101,7 @@ export const configHandlers: GatewayRequestHandlers = {
       return;
     }
     const snapshot = await readConfigFileSnapshot();
-    respond(true, snapshot, undefined);
+    respond(true, redactConfigSnapshot(snapshot), undefined);
   },
   "config.schema": ({ params, respond }) => {
     if (!validateConfigSchemaParams(params)) {
@@ -185,13 +186,17 @@ export const configHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    await writeConfigFile(validated.config);
+    const restored = restoreRedactedValues(
+      validated.config,
+      snapshot.config,
+    ) as typeof validated.config;
+    await writeConfigFile(restored);
     respond(
       true,
       {
         ok: true,
         path: CONFIG_PATH,
-        config: validated.config,
+        config: restored,
       },
       undefined,
     );
@@ -250,8 +255,9 @@ export const configHandlers: GatewayRequestHandlers = {
       return;
     }
     const merged = applyMergePatch(snapshot.config, parsedRes.parsed);
-    const migrated = applyLegacyMigrations(merged);
-    const resolved = migrated.next ?? merged;
+    const restoredMerge = restoreRedactedValues(merged, snapshot.config);
+    const migrated = applyLegacyMigrations(restoredMerge);
+    const resolved = migrated.next ?? restoredMerge;
     const validated = validateConfigObjectWithPlugins(resolved);
     if (!validated.ok) {
       respond(
@@ -360,7 +366,11 @@ export const configHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    await writeConfigFile(validated.config);
+    const restoredApply = restoreRedactedValues(
+      validated.config,
+      snapshot.config,
+    ) as typeof validated.config;
+    await writeConfigFile(restoredApply);
 
     const sessionKey =
       typeof (params as { sessionKey?: unknown }).sessionKey === "string"
