@@ -49,6 +49,7 @@ import { createChannelManager } from "./server-channels.js";
 import { createAgentEventHandler } from "./server-chat.js";
 import { createGatewayCloseHandler } from "./server-close.js";
 import { buildGatewayCronService } from "./server-cron.js";
+import { registerInProcessServices, clearInProcessServices } from "./in-process.js";
 import { startGatewayDiscovery } from "./server-discovery-runtime.js";
 import { applyGatewayLaneConcurrency } from "./server-lanes.js";
 import { startGatewayMaintenanceTimers } from "./server-maintenance.js";
@@ -379,6 +380,9 @@ export async function startGatewayServer(
   });
   let { cron, storePath: cronStorePath } = cronState;
 
+  // Register cron service for in-process tool access (avoids WS self-contention).
+  registerInProcessServices({ cron, cronStorePath });
+
   const channelManager = createChannelManager({
     loadConfig,
     channelLogs,
@@ -573,6 +577,8 @@ export async function startGatewayServer(
       cronState = nextState.cronState;
       cron = cronState.cron;
       cronStorePath = cronState.storePath;
+      // Re-register after reload so in-process tools use the new instance.
+      registerInProcessServices({ cron, cronStorePath });
       browserControl = nextState.browserControl;
     },
     startChannel,
@@ -632,6 +638,7 @@ export async function startGatewayServer(
         skillsRefreshTimer = null;
       }
       skillsChangeUnsub();
+      clearInProcessServices();
       await close(opts);
     },
   };
