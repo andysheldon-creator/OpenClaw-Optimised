@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import type { AgentEvent } from "@mariozechner/pi-agent-core";
 import type { EmbeddedPiSubscribeContext } from "./pi-embedded-subscribe.handlers.types.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
@@ -20,22 +19,12 @@ const LOOP_DETECTION_FAILURE_THRESHOLD = 2;
 const LOOP_DETECTION_TIME_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 function hashToolArgs(args: unknown): string {
-  let normalized: string;
-  try {
-    if (args === null || args === undefined) {
-      normalized = String(args);
-    } else if (typeof args === "object" && !Array.isArray(args)) {
-      // Sort object keys for consistent hashing
-      const sorted = Object.keys(args).sort();
-      normalized = JSON.stringify(args, sorted);
-    } else {
-      normalized = JSON.stringify(args);
-    }
-  } catch {
-    // Fallback for circular references or non-serializable objects
-    normalized = String(args);
+  const str = args ? JSON.stringify(args) : "null";
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
   }
-  return crypto.createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+  return (hash >>> 0).toString(16);
 }
 
 function checkForLoop(
