@@ -6,6 +6,7 @@ const env = {
 
 export default defineConfig([
   {
+    clean: true,
     entry: "src/index.ts",
     env,
     fixedExtension: false,
