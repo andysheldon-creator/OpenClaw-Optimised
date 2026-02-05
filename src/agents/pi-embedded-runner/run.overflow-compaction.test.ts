@@ -180,6 +180,7 @@ function makeAttemptResult(
   return {
     aborted: false,
     timedOut: false,
+    timedOutDuringCompaction: false,
     promptError: null,
     sessionIdUsed: "test-session",
     assistantTexts: ["Hello!"],

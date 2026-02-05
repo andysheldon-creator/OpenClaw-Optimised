@@ -453,7 +453,7 @@ export async function runEmbeddedPiAgent(
             enforceFinalTag: params.enforceFinalTag,
           });
 
-          const { aborted, promptError, timedOut, sessionIdUsed, lastAssistant } = attempt;
+          const { aborted, promptError, timedOut, timedOutDuringCompaction, sessionIdUsed, lastAssistant } = attempt;
           mergeUsageIntoAccumulator(
             usageAccumulator,
             attempt.attemptUsage ?? normalizeUsage(lastAssistant?.usage as UsageLike),
@@ -732,7 +732,9 @@ export async function runEmbeddedPiAgent(
           }
 
           // Treat timeout as potential rate limit (Antigravity hangs on rate limit)
-          const shouldRotate = (!aborted && failoverFailure) || timedOut;
+          // But exclude post-prompt compaction timeouts (model succeeded; no profile issue)
+          const shouldRotate =
+            (!aborted && failoverFailure) || (timedOut && !timedOutDuringCompaction);
 
           if (shouldRotate) {
             if (lastProfileId) {
