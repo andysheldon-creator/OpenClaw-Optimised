@@ -7,7 +7,6 @@ import type {
 import {
   assertGatewayAuthConfigured,
   generateSecureGatewayToken,
-  isTokenSecure,
   type ResolvedGatewayAuth,
   resolveGatewayAuth,
 } from "./auth.js";
@@ -116,7 +115,7 @@ export async function resolveGatewayRuntimeConfig(params: {
 🔒 SECURITY AUTO-CONFIG: Gateway requires authentication for external access.
    A secure token has been automatically generated and saved to your config.
 
-   Token: ${autoToken.slice(0, 16)}... (64 chars total, securely hashed in storage)
+   Token: ${autoToken.slice(0, 16)}... (64 chars total, protect your config file)
 
    To connect clients, use:
      openclaw pairing approve <channel> --token ${autoToken.slice(0, 8)}...
@@ -124,7 +123,7 @@ export async function resolveGatewayRuntimeConfig(params: {
    Or set environment variable:
      export OPENCLAW_GATEWAY_TOKEN=${autoToken}
 
-   See: https://github.com/openclaw/openclaw/blob/main/docs/security.md
+   See: https://github.com/openclaw/openclaw/blob/main/SECURITY.md
       `);
     } catch (e) {
       // If we can't save config, still use the token for this session

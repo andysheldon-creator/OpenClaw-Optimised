@@ -100,7 +100,7 @@ shodan host $(curl -s ifconfig.me)
 # Check local binding
 sudo lsof -i :18789
 
-# Should show 127.0.0.1:1879 (safe) or *:18789 (exposed)
+# Should show 127.0.0.1:18789 (safe) or *:18789 (exposed)
 ```
 
 ### Incident Response
