@@ -258,7 +258,8 @@ export function createLlmTracingService(api: OpenClawPluginApi): OpenClawPluginS
           : {}),
       });
 
-      await sdk.start();
+      // Normalize sync/async SDK start across OpenTelemetry versions.
+      await Promise.resolve(sdk.start());
 
       // Get tracer after SDK is started
       const tracer = trace.getTracer("llm-tracing", "1.0.0");
