@@ -110,6 +110,8 @@ img.chat-avatar {
     border-color 150ms ease-out;
   max-width: 100%;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow: hidden;
 }
 
 .chat-bubble.has-copy {
