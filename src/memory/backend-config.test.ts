@@ -67,4 +67,36 @@ describe("resolveMemoryBackendConfig", () => {
     const workspaceRoot = resolveAgentWorkspaceDir(cfg, "main");
     expect(custom?.path).toBe(path.resolve(workspaceRoot, "notes"));
   });
+
+  it("resolves timeout settings to their default", () => {
+    const cfg = {
+      agents: { defaults: { workspace: "/tmp/memory-test" } },
+      memory: {
+        backend: "qmd",
+        qmd: {},
+      },
+    } as OpenClawConfig;
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    expect(resolved.qmd?.update?.embedTimeoutMs).toBe(120_000);
+    expect(resolved.qmd?.update?.updateTimeoutMs).toBe(120_000);
+  });
+
+  it("parses timeout settings properly", () => {
+    const cfg = {
+      agents: { defaults: { workspace: "/tmp/memory-test" } },
+      memory: {
+        backend: "qmd",
+        qmd: {
+          update: {
+            embedTimeout: "1",
+            updateTimeout: "1s"
+          }
+        },
+      },
+    } as OpenClawConfig;
+    const resolved = resolveMemoryBackendConfig({ cfg, agentId: "main" });
+    expect(resolved.qmd?.update?.embedTimeoutMs).toBe(60_000);
+    expect(resolved.qmd?.update?.updateTimeoutMs).toBe(1_000);
+  });
+
 });

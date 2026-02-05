@@ -30,6 +30,8 @@ export type ResolvedQmdUpdateConfig = {
   debounceMs: number;
   onBoot: boolean;
   embedIntervalMs: number;
+  embedTimeoutMs: number;
+  updateTimeoutMs: number;
 };
 
 export type ResolvedQmdLimitsConfig = {
@@ -61,6 +63,8 @@ const DEFAULT_QMD_INTERVAL = "5m";
 const DEFAULT_QMD_DEBOUNCE_MS = 15_000;
 const DEFAULT_QMD_TIMEOUT_MS = 4_000;
 const DEFAULT_QMD_EMBED_INTERVAL = "60m";
+const DEFAULT_QMD_EMBED_TIMEOUT = "2m";
+const DEFAULT_QMD_UPDATE_TIMEOUT = "2m";
 const DEFAULT_QMD_LIMITS: ResolvedQmdLimitsConfig = {
   maxResults: 6,
   maxSnippetChars: 700,
@@ -130,6 +134,30 @@ function resolveEmbedIntervalMs(raw: string | undefined): number {
     return parseDurationMs(value, { defaultUnit: "m" });
   } catch {
     return parseDurationMs(DEFAULT_QMD_EMBED_INTERVAL, { defaultUnit: "m" });
+  }
+}
+
+function resolveEmbedTimeoutMs(raw: string | undefined): number {
+  const value = raw?.trim();
+  if (!value) {
+    return parseDurationMs(DEFAULT_QMD_EMBED_TIMEOUT, { defaultUnit: "m" });
+  }
+  try {
+    return parseDurationMs(value, { defaultUnit: "m" });
+  } catch {
+    return parseDurationMs(DEFAULT_QMD_EMBED_TIMEOUT, { defaultUnit: "m" });
+  }
+}
+
+function resolveUpdateTimeoutMs(raw: string | undefined): number {
+  const value = raw?.trim();
+  if (!value) {
+    return parseDurationMs(DEFAULT_QMD_UPDATE_TIMEOUT, { defaultUnit: "m" });
+  }
+  try {
+    return parseDurationMs(value, { defaultUnit: "m" });
+  } catch {
+    return parseDurationMs(DEFAULT_QMD_UPDATE_TIMEOUT, { defaultUnit: "m" });
   }
 }
 
@@ -259,6 +287,8 @@ export function resolveMemoryBackendConfig(params: {
       debounceMs: resolveDebounceMs(qmdCfg?.update?.debounceMs),
       onBoot: qmdCfg?.update?.onBoot !== false,
       embedIntervalMs: resolveEmbedIntervalMs(qmdCfg?.update?.embedInterval),
+      embedTimeoutMs: resolveEmbedTimeoutMs(qmdCfg?.update?.embedTimeout),
+      updateTimeoutMs: resolveUpdateTimeoutMs(qmdCfg?.update?.updateTimeout),
     },
     limits: resolveLimits(qmdCfg?.limits),
     scope: qmdCfg?.scope ?? DEFAULT_QMD_SCOPE,

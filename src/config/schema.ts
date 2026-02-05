@@ -272,6 +272,8 @@ const FIELD_LABELS: Record<string, string> = {
   "memory.qmd.update.debounceMs": "QMD Update Debounce (ms)",
   "memory.qmd.update.onBoot": "QMD Update on Startup",
   "memory.qmd.update.embedInterval": "QMD Embed Interval",
+  "memory.qmd.update.embedTimeout": "QMD Embed Timeout",
+  "memory.qmd.update.updateTimeout": "QMD Update Timeout",
   "memory.qmd.limits.maxResults": "QMD Max Results",
   "memory.qmd.limits.maxSnippetChars": "QMD Max Snippet Chars",
   "memory.qmd.limits.maxInjectedChars": "QMD Max Injected Chars",
@@ -603,6 +605,10 @@ const FIELD_HELP: Record<string, string> = {
   "memory.qmd.update.onBoot": "Run QMD update once on gateway startup (default: true).",
   "memory.qmd.update.embedInterval":
     "How often QMD embeddings are refreshed (duration string, default: 60m). Set to 0 to disable periodic embed.",
+  "memory.qmd.update.embedTimeout":
+    "How long the QMD embedding is allowed to run (duration string, default: 2m).",
+  "memory.qmd.update.updateTimeout":
+    "How long the QMD updating is allowed to run (duration string, default: 2m).",
   "memory.qmd.limits.maxResults": "Max QMD results returned to the agent loop (default: 6).",
   "memory.qmd.limits.maxSnippetChars": "Max characters per snippet pulled from QMD (default: 700).",
   "memory.qmd.limits.maxInjectedChars": "Max total characters injected from QMD hits per turn.",

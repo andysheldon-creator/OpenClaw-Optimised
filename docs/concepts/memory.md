@@ -168,7 +168,8 @@ out to QMD for retrieval. Key points:
   stable `name`).
 - `sessions`: opt into session JSONL indexing (`enabled`, `retentionDays`,
   `exportDir`).
-- `update`: controls refresh cadence (`interval`, `debounceMs`, `onBoot`, `embedInterval`).
+- `update`: controls refresh cadence (`interval`, `debounceMs`, `onBoot`, `embedInterval`,
+  `embedTimeout`, `updateTimeout`).
 - `limits`: clamp recall payload (`maxResults`, `maxSnippetChars`,
   `maxInjectedChars`, `timeoutMs`).
 - `scope`: same schema as [`session.sendPolicy`](/gateway/configuration#session).
@@ -195,7 +196,7 @@ memory: {
   citations: "auto",
   qmd: {
     includeDefaultMemory: true,
-    update: { interval: "5m", debounceMs: 15000 },
+    update: { interval: "5m", debounceMs: 15000, embedTimeout: "2m", updateTimeout: "2m" },
     limits: { maxResults: 6, timeoutMs: 4000 },
     scope: {
       default: "deny",
