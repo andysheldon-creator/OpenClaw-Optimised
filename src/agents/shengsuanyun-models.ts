@@ -1,4 +1,4 @@
-import type { ModelDefinitionConfig } from "../config/types.js";
+import type { ModelApi, ModelDefinitionConfig } from "../config/types.js";
 export const SHENGSUANYUN_BASE_URL = "https://router.shengsuanyun.com/api/v1";
 export const SHENGSUANYUN_MODALITIES_BASE_URL = "https://api.shengsuanyun.com/modelrouter";
 
@@ -16,6 +16,7 @@ interface ShengSuanYunModel {
   company: string;
   name: string;
   api_name: string;
+  api?: ModelApi;
   description: string;
   max_tokens: number;
   context_window: number;
@@ -46,19 +47,23 @@ interface ShengSuanYunModelsResponse {
 // ShengSuanYun multimodal API response types
 interface ShengSuanYunModalityModel {
   id: number;
-  model_name: string;
-  company_name: string;
-  class_name: string;
-  class_names: string[];
-  desc: string;
-  preview_img: string;
+  model_name?: string;
+  name?: string;
+  company_name?: string;
+  class_name?: string;
+  class_names?: string[];
+  input?: string[];
+  output?: string[];
+  desc?: string;
+  preview_img?: string;
   preview_video?: string;
-  usage: number;
-  pricing: {
+  usage?: number;
+  pricing?: {
     input_price: number;
     output_price: number;
     currency: string;
   };
+  key?: unknown;
 }
 
 interface ShengSuanYunModalitiesResponse {
@@ -102,7 +107,7 @@ function supportsVision(model: ShengSuanYunModel): boolean {
 /**
  * Build a ModelDefinitionConfig from a ShengSuanYun API model.
  */
-function buildShengSuanYunModelDefinition(model: any): ModelDefinitionConfig {
+function buildShengSuanYunModelDefinition(model: ShengSuanYunModel): ModelDefinitionConfig {
   const hasVision = supportsVision(model);
   const reasoning = isReasoningModel(model);
 
@@ -184,7 +189,9 @@ function getModalityIOTypes(classNames: string[]): string[][] {
   return io;
 }
 
-async function buildModalityModel(model: any): Promise<any | null> {
+async function buildModalityModel(
+  model: ShengSuanYunModalityModel,
+): Promise<ShengSuanYunModalityModel | null> {
   const res = await fetch(`${SHENGSUANYUN_MODALITIES_BASE_URL}/info?model_id=${model.id}`, {
     signal: AbortSignal.timeout(10000), // 10s timeout
   });
@@ -205,7 +212,7 @@ async function buildModalityModel(model: any): Promise<any | null> {
   };
 }
 
-export async function discoverShengSuanYunModalityModels(): Promise<ModelDefinitionConfig[]> {
+export async function discoverShengSuanYunModalityModels(): Promise<ShengSuanYunModalityModel[]> {
   // Skip API discovery in test environment
   if (process.env.NODE_ENV === "test" || process.env.VITEST) {
     return [];

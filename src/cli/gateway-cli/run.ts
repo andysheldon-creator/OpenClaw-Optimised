@@ -22,7 +22,6 @@ import { forceFreePortAndWait } from "../ports.js";
 import { ensureDevGatewayConfig } from "./dev.js";
 import { runGatewayLoop } from "./run-loop.js";
 import {
-  describeUnknownError,
   extractGatewayMiskeys,
   maybeExplainGatewayServiceStop,
   parsePort,

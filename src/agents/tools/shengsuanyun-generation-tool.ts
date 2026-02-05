@@ -49,12 +49,14 @@ const sampleModel: Model<Api> = {
 /**
  * Create a generation task on ShengSuanYun
  */
-async function createGenerationTask(params: any): Promise<ShengSuanYunTaskResponse> {
+async function createGenerationTask(
+  params: Record<string, unknown>,
+): Promise<ShengSuanYunTaskResponse> {
   const res = await fetch(`${SHENGSUANYUN_BASE_URL}/tasks/generations`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.apiKey}`,
+      Authorization: `Bearer ${String(params.apiKey)}`,
     },
     body: JSON.stringify({ ...params }),
     signal: AbortSignal.timeout(30000), // 30s timeout
@@ -78,7 +80,7 @@ async function getTaskStatus(params: {
   const res = await fetch(`${SHENGSUANYUN_BASE_URL}/tasks/generations/${params.taskId}`, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${params.apiKey}`,
+      Authorization: `Bearer ${String(params.apiKey)}`,
     },
     signal: AbortSignal.timeout(10000), // 10s timeout
   });

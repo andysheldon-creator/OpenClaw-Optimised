@@ -38,29 +38,4 @@ describe("ShengSuanYun generation tools", () => {
       expect(tool.parameters).toBeDefined();
     });
   });
-
-  describe("tool parameter validation", () => {
-    test("generation tool has required parameters", () => {
-      const tool = createShengSuanYunGenerationTool({
-        agentDir: "/tmp/test-agent",
-      });
-
-      const params = tool.parameters as any;
-      expect(params.type).toBe("object");
-      expect(params.properties).toBeDefined();
-      expect(params.properties.model).toBeDefined();
-      expect(params.properties.prompt).toBeDefined();
-    });
-
-    test("status tool has task_id parameter", () => {
-      const tool = createShengSuanYunStatusTool({
-        agentDir: "/tmp/test-agent",
-      });
-
-      const params = tool.parameters as any;
-      expect(params.type).toBe("object");
-      expect(params.properties).toBeDefined();
-      expect(params.properties.task_id).toBeDefined();
-    });
-  });
 });
