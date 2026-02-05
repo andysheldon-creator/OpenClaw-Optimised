@@ -1,4 +1,10 @@
 export { Header } from './Header';
 export { Sidebar } from './Sidebar';
-export { ContextPanel, ContextSection, ContextRow } from './ContextPanel';
-export { ThreeColumnLayout } from './ThreeColumnLayout';
+export { ResizableLayout } from './ResizableLayout';
+export {
+  ContextPanel,
+  ContextSection,
+  ContextRow,
+  TrackContextPanel,
+  TaskContextPanel,
+} from './ContextPanel';

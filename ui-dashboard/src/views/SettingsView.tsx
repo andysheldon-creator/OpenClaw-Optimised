@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ThreeColumnLayout } from '../components/layout/ThreeColumnLayout';
+import { ResizableLayout } from '../components/layout';
 import { Button, Input } from '../components/ui';
 import styles from './SettingsView.module.css';
 
@@ -19,7 +19,7 @@ export function SettingsView() {
   const [activeSection, setActiveSection] = useState('preferences');
 
   return (
-    <ThreeColumnLayout
+    <ResizableLayout
       sidebar={
         <nav className={styles.nav}>
           <div className={styles.navTitle}>Settings</div>
