@@ -8,6 +8,10 @@ import {
   readConfigFileSnapshot,
   resolveGatewayPort,
 } from "../../config/config.js";
+import {
+  prepareSanitizedMounts,
+  cleanupSanitizedMounts,
+} from "../../config/prepare-sanitized-mounts.js";
 import { resolveGatewayAuth } from "../../gateway/auth.js";
 import { startGatewayServer } from "../../gateway/server.js";
 import { setGatewayWsLogStyle } from "../../gateway/ws-logging.js";
@@ -17,14 +21,18 @@ import { formatPortDiagnostics, inspectPortUsage } from "../../infra/ports.js";
 import { setConsoleSubsystemFilter, setConsoleTimestampPrefix } from "../../logging/console.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { defaultRuntime } from "../../runtime.js";
+import {
+  startGatewayContainer,
+  stopGatewayContainer,
+  isGatewayContainerRunning,
+  getGatewayContainerLogs,
+} from "../../security/gateway-container.js";
+import { startSecretsProxy } from "../../security/secrets-proxy.js";
+import { createSecretsRegistry } from "../../security/secrets-registry.js";
 import { formatCliCommand } from "../command-format.js";
 import { forceFreePortAndWait } from "../ports.js";
 import { ensureDevGatewayConfig } from "./dev.js";
 import { runGatewayLoop } from "./run-loop.js";
-import { startSecretsProxy } from "../../security/secrets-proxy.js";
-import { createSecretsRegistry } from "../../security/secrets-registry.js";
-import { startGatewayContainer, stopGatewayContainer, isGatewayContainerRunning, getGatewayContainerLogs } from "../../security/gateway-container.js";
-import { prepareSanitizedMounts, cleanupSanitizedMounts } from "../../config/prepare-sanitized-mounts.js";
 import {
   describeUnknownError,
   extractGatewayMiskeys,
@@ -265,30 +273,33 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
   try {
     if (opts.secure) {
       gatewayLog.info("Starting in SECURE mode (Docker + Secrets Proxy)");
-      
+
       // NOTE: Do NOT set OPENCLAW_SECURE_MODE=1 here on the host process.
       // The host-side secrets proxy needs to resolve real tokens, not placeholders.
       // Only the Docker container should have OPENCLAW_SECURE_MODE=1 (set in gateway-container.ts).
-      
+
       const proxyPort = 8080;
       const proxyUrl = `http://host.docker.internal:${proxyPort}`;
-      
+
       // Initialize secrets registry (loads all credentials from host)
       gatewayLog.info("Loading secrets registry...");
       const registry = await createSecretsRegistry();
-      gatewayLog.info(`Loaded ${registry.oauthProfiles.size} OAuth profiles, ${registry.apiKeys.size} API keys`);
-      
-      // Start secrets proxy first - bind to 0.0.0.0 so Docker can connect via host.docker.internal
+      gatewayLog.info(
+        `Loaded ${registry.oauthProfiles.size} OAuth profiles, ${registry.apiKeys.size} API keys`,
+      );
+
+      // Start secrets proxy first - bind to localhost only for security
+      // Docker connects via host.docker.internal which routes to 127.0.0.1
       let proxyServer: Awaited<ReturnType<typeof startSecretsProxy>>;
       try {
-        proxyServer = await startSecretsProxy({ port: proxyPort, registry, bind: "0.0.0.0" });
-        gatewayLog.info(`Secrets proxy started on port ${proxyPort}`);
+        proxyServer = await startSecretsProxy({ port: proxyPort, registry });
+        gatewayLog.info(`Secrets proxy started on 127.0.0.1:${proxyPort}`);
       } catch (err) {
         gatewayLog.error(`Failed to start secrets proxy: ${String(err)}`);
         defaultRuntime.exit(1);
         return;
       }
-      
+
       // Prepare sanitized config files for mounting
       gatewayLog.info("Preparing sanitized config mounts...");
       let sanitizedMounts;
@@ -301,7 +312,7 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
         defaultRuntime.exit(1);
         return;
       }
-      
+
       // Start gateway container with sanitized mounts
       let containerName: string;
       try {
@@ -317,22 +328,22 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
         defaultRuntime.exit(1);
         return;
       }
-      
+
       // P1 Fix: Wait for container to be ready with timeout
       const HEALTH_CHECK_INTERVAL = 1000;
       const HEALTH_CHECK_TIMEOUT = 30000;
       const startTime = Date.now();
       let containerReady = false;
-      
+
       while (Date.now() - startTime < HEALTH_CHECK_TIMEOUT) {
         const isRunning = await isGatewayContainerRunning();
         if (isRunning) {
           containerReady = true;
           break;
         }
-        await new Promise(resolve => setTimeout(resolve, HEALTH_CHECK_INTERVAL));
+        await new Promise((resolve) => setTimeout(resolve, HEALTH_CHECK_INTERVAL));
       }
-      
+
       if (!containerReady) {
         gatewayLog.error("Gateway container failed to start within timeout");
         const logs = await getGatewayContainerLogs(20);
@@ -342,9 +353,9 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
         defaultRuntime.exit(1);
         return;
       }
-      
+
       gatewayLog.info("Gateway container is ready and healthy");
-      
+
       // Set up graceful shutdown handlers
       const shutdown = async () => {
         gatewayLog.info("Shutting down secure gateway...");
@@ -362,16 +373,16 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
         }
         defaultRuntime.exit(0);
       };
-      
+
       process.on("SIGINT", shutdown);
       process.on("SIGTERM", shutdown);
-      
+
       gatewayLog.info("Secure mode running. Press Ctrl+C to stop.");
-      
+
       // P1 Fix: Monitor container health periodically
       const healthCheckLoop = async () => {
         while (true) {
-          await new Promise(resolve => setTimeout(resolve, 10000)); // Check every 10s
+          await new Promise((resolve) => setTimeout(resolve, 10000)); // Check every 10s
           const isRunning = await isGatewayContainerRunning();
           if (!isRunning) {
             gatewayLog.error("Gateway container stopped unexpectedly");
@@ -382,15 +393,14 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
           }
         }
       };
-      
+
       // Run health check loop (non-blocking)
       void healthCheckLoop();
-      
+
       // Keep process alive
       await new Promise(() => {});
       return;
     }
-
 
     await runGatewayLoop({
       runtime: defaultRuntime,

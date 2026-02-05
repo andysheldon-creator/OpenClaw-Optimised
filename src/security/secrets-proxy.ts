@@ -25,6 +25,7 @@ const BODYLESS_METHODS = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
 const PATTERNS = {
   CONFIG: /\{\{CONFIG:([\w.]+)\}\}/g, // {{CONFIG:channels.discord.token}}
   OAUTH: /\{\{OAUTH:([\w\-:@.]+)\}\}/g, // {{OAUTH:google-gemini-cli:user@example.com}}
+  OAUTH_REFRESH: /\{\{OAUTH_REFRESH:([\w\-:@.]+)\}\}/g, // {{OAUTH_REFRESH:google-gemini-cli:user@example.com}}
   APIKEY: /\{\{APIKEY:([\w\-:@.]+)\}\}/g, // {{APIKEY:anthropic}}
   TOKEN: /\{\{TOKEN:([\w\-:@.]+)\}\}/g, // {{TOKEN:github-copilot}}
   ENV: /\{\{([A-Z_][A-Z0-9_]*)\}\}/g, // {{ANTHROPIC_API_KEY}}
@@ -106,6 +107,17 @@ async function replacePlaceholders(text: string, registry: SecretRegistry): Prom
       logger.warn(`OAuth token not found for profile: ${profileId}`);
     }
   }
+
+  // 2b. Replace OAUTH_REFRESH placeholders (refresh tokens)
+  text = text.replace(PATTERNS.OAUTH_REFRESH, (match, profileId) => {
+    if (checkLimits()) return match;
+    const cred = registry.oauthProfiles.get(profileId);
+    if (!cred?.refresh) {
+      logger.warn(`OAuth refresh token not found for profile: ${profileId}`);
+      return "";
+    }
+    return cred.refresh;
+  });
 
   // 3. Replace APIKEY placeholders
   text = text.replace(PATTERNS.APIKEY, (match, profileId) => {
