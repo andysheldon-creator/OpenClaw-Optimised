@@ -6,17 +6,22 @@ Docs: https://docs.openclaw.ai
 
 ### Changes
 
+- Agents: bump pi-mono packages to 0.52.5. (#9949) Thanks @gumadeiras.
 - Models: default Anthropic model to `anthropic/claude-opus-4-6`. (#9853) Thanks @TinyTb.
+- Models/Onboarding: refresh provider defaults, update OpenAI/OpenAI Codex wizard defaults, and harden model allowlist initialization for first-time configs with matching docs/tests. (#9911) Thanks @gumadeiras.
 - Telegram: auto-inject forum topic `threadId` in message tool and subagent announce so media, buttons, and subagent results land in the correct topic instead of General. (#7235) Thanks @Lukavyi.
 - CLI: sort `openclaw --help` commands (and options) alphabetically. (#8068) Thanks @deepsoumya617.
 - Telegram: remove last `@ts-nocheck` from `bot-handlers.ts`, use Grammy types directly, deduplicate `StickerMetadata`. Zero `@ts-nocheck` remaining in `src/telegram/`. (#9206)
 - Telegram: remove `@ts-nocheck` from `bot-message.ts`, type deps via `Omit<BuildTelegramMessageContextParams>`, widen `allMedia` to `TelegramMediaRef[]`. (#9180)
 - Telegram: remove `@ts-nocheck` from `bot.ts`, fix duplicate `bot.catch` error handler (Grammy overrides), remove dead reaction `message_thread_id` routing, harden sticker cache guard. (#9077)
+- Telegram: allow per-group and per-topic `groupPolicy` overrides under `channels.telegram.groups`. (#9775) Thanks @nicolasstanley.
 - Feishu: expand channel handling (posts with images, doc links, routing, reactions/typing, replies, native commands). (#8975) Thanks @jiulingyun.
 - Onboarding: add Cloudflare AI Gateway provider setup and docs. (#7914) Thanks @roerohan.
 - Onboarding: add Moonshot (.cn) auth choice and keep the China base URL when preserving defaults. (#7180) Thanks @waynelwz.
+- Onboarding: add xAI (Grok) auth choice and provider defaults. (#9885) Thanks @grp06.
 - Docs: clarify tmux send-keys for TUI by splitting text and Enter. (#7737) Thanks @Wangnov.
 - Docs: mirror the landing page revamp for zh-CN (features, quickstart, docs directory, network model, credits). (#8994) Thanks @joshp123.
+- Docs: strengthen secure DM mode guidance for multi-user inboxes with an explicit warning and example. (#9377) Thanks @Shrinija17.
 - Messages: add per-channel and per-account responsePrefix overrides across channels. (#9001) Thanks @mudrii.
 - Cron: add announce delivery mode for isolated jobs (CLI + Control UI) and delivery mode config.
 - Cron: default isolated jobs to announce delivery; accept ISO 8601 `schedule.at` in tool inputs.

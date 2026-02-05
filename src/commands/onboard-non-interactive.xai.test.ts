@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-describe("onboard (non-interactive): Vercel AI Gateway", () => {
+describe("onboard (non-interactive): xAI", () => {
   it("stores the API key and configures the default model", async () => {
     const prev = {
       home: process.env.HOME,
@@ -24,7 +24,7 @@ describe("onboard (non-interactive): Vercel AI Gateway", () => {
     delete process.env.OPENCLAW_GATEWAY_TOKEN;
     delete process.env.OPENCLAW_GATEWAY_PASSWORD;
 
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-onboard-gateway-"));
+    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-onboard-xai-"));
     process.env.HOME = tempHome;
     process.env.OPENCLAW_STATE_DIR = tempHome;
     process.env.OPENCLAW_CONFIG_PATH = path.join(tempHome, "openclaw.json");
@@ -45,8 +45,8 @@ describe("onboard (non-interactive): Vercel AI Gateway", () => {
       await runNonInteractiveOnboarding(
         {
           nonInteractive: true,
-          authChoice: "ai-gateway-api-key",
-          aiGatewayApiKey: "gateway-test-key",
+          authChoice: "xai-api-key",
+          xaiApiKey: "xai-test-key",
           skipHealth: true,
           skipChannels: true,
           skipSkills: true,
@@ -63,19 +63,17 @@ describe("onboard (non-interactive): Vercel AI Gateway", () => {
         agents?: { defaults?: { model?: { primary?: string } } };
       };
 
-      expect(cfg.auth?.profiles?.["vercel-ai-gateway:default"]?.provider).toBe("vercel-ai-gateway");
-      expect(cfg.auth?.profiles?.["vercel-ai-gateway:default"]?.mode).toBe("api_key");
-      expect(cfg.agents?.defaults?.model?.primary).toBe(
-        "vercel-ai-gateway/anthropic/claude-opus-4.6",
-      );
+      expect(cfg.auth?.profiles?.["xai:default"]?.provider).toBe("xai");
+      expect(cfg.auth?.profiles?.["xai:default"]?.mode).toBe("api_key");
+      expect(cfg.agents?.defaults?.model?.primary).toBe("xai/grok-4");
 
       const { ensureAuthProfileStore } = await import("../agents/auth-profiles.js");
       const store = ensureAuthProfileStore();
-      const profile = store.profiles["vercel-ai-gateway:default"];
+      const profile = store.profiles["xai:default"];
       expect(profile?.type).toBe("api_key");
       if (profile?.type === "api_key") {
-        expect(profile.provider).toBe("vercel-ai-gateway");
-        expect(profile.key).toBe("gateway-test-key");
+        expect(profile.provider).toBe("xai");
+        expect(profile.key).toBe("xai-test-key");
       }
     } finally {
       await fs.rm(tempHome, { recursive: true, force: true });
