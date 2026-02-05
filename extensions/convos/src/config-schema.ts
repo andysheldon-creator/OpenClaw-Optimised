@@ -42,7 +42,7 @@ export const ConvosConfigSchema = z.object({
   /** Controls how group messages are handled (default: open). */
   groupPolicy: z.enum(["open", "disabled", "allowlist"]).optional(),
 
-  /** Allowlist of conversation IDs the agent listens in (used when groupPolicy is "allowlist"). */
+  /** Allowlist of conversation IDs the agent listens in (groupPolicy "allowlist"). Include "*" to allow all. */
   groups: z.array(z.string()).optional(),
 
   /** Max group messages to keep as history context (0 disables). */

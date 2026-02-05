@@ -323,6 +323,22 @@ export const convosPlugin: ChannelPlugin<ResolvedConvosAccount> = {
   },
 };
 
+/** Check whether a group conversation is allowed by the current policy. */
+function isGroupAllowed(params: {
+  account: ResolvedConvosAccount;
+  conversationId: string;
+}): boolean {
+  const { account, conversationId } = params;
+  const policy = account.config.groupPolicy ?? "open";
+  if (policy === "open") return true;
+  if (policy === "disabled") return false;
+
+  // policy === "allowlist"
+  const groups = account.config.groups ?? [];
+  if (groups.includes("*")) return true;
+  return groups.includes(conversationId);
+}
+
 /**
  * Handle inbound messages from SDK - dispatches to the reply pipeline
  */
@@ -340,27 +356,14 @@ async function handleInboundMessage(
 
   // Enforce group policy before doing any work.
   // Owner conversation always passes so you can't lock yourself out.
-  const groupPolicy = account.config.groupPolicy ?? "open";
   const isOwnerConversation = msg.conversationId === account.ownerConversationId;
-
-  if (!isOwnerConversation) {
-    if (groupPolicy === "disabled") {
-      if (account.debug) {
-        log?.info(`[${account.accountId}] Dropped message: groupPolicy is disabled`);
-      }
-      return;
+  if (!isOwnerConversation && !isGroupAllowed({ account, conversationId: msg.conversationId })) {
+    if (account.debug) {
+      log?.info(
+        `[${account.accountId}] Dropped message from disallowed group ${msg.conversationId.slice(0, 12)}`,
+      );
     }
-    if (groupPolicy === "allowlist") {
-      const allowed = account.config.groups ?? [];
-      if (!allowed.includes(msg.conversationId)) {
-        if (account.debug) {
-          log?.info(
-            `[${account.accountId}] Dropped message: conversation ${msg.conversationId.slice(0, 12)} not in groups allowlist`,
-          );
-        }
-        return;
-      }
-    }
+    return;
   }
 
   const cfg = runtime.config.loadConfig() as OpenClawConfig;
