@@ -24,6 +24,10 @@ services:
     container_name: openclaw
     ports:
       - "${PORT:-18789}:18789"
+    labels:
+      - "coolify.managed=true"
+      - "coolify.http.enabled=true"
+      - "coolify.http.port=18789"
     # Force the host and allow the initial setup
     command:
       - sh
