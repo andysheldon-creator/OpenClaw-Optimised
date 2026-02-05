@@ -1,4 +1,4 @@
-import type { CronJob, CronSchedule } from "../../cron/types.js";
+import type { CronJob, StoredCronSchedule } from "../../cron/types.js";
 import type { GatewayRpcOpts } from "../gateway-rpc.js";
 import { listChannelPlugins } from "../../channels/plugins/index.js";
 import { parseAbsoluteTimeMs } from "../../cron/parse.js";
@@ -142,11 +142,17 @@ const formatRelative = (ms: number | null | undefined, nowMs: number) => {
   return delta >= 0 ? `in ${label}` : `${label} ago`;
 };
 
-const formatSchedule = (schedule: CronSchedule) => {
+/**
+ * Formats a schedule for display. Accepts StoredCronSchedule to handle
+ * legacy persisted data where "at" schedules may have `atMs` (numeric)
+ * instead of `at` (ISO string), or may be missing the time field entirely.
+ */
+export const formatSchedule = (schedule: StoredCronSchedule) => {
   if (schedule.kind === "at") {
     // Handle legacy atMs format (numeric timestamp) and missing at field
-    const atMs = (schedule as { atMs?: number }).atMs;
-    const atValue = schedule.at ?? (typeof atMs === "number" ? new Date(atMs).toISOString() : null);
+    const atValue =
+      schedule.at ??
+      (typeof schedule.atMs === "number" ? new Date(schedule.atMs).toISOString() : null);
     return `at ${atValue ? formatIsoMinute(atValue) : "-"}`;
   }
   if (schedule.kind === "every") {

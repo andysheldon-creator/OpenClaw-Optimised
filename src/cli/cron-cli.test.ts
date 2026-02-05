@@ -467,34 +467,100 @@ describe("cron cli", () => {
   });
 });
 
+describe("formatSchedule", () => {
+  it("formats legacy atMs to ISO minute string", async () => {
+    const { formatSchedule } = await import("./cron-cli/shared.js");
+
+    // Legacy format: atMs (numeric timestamp) instead of at (ISO string)
+    const testTimestamp = 1770307680000;
+    const legacySchedule = { kind: "at" as const, atMs: testTimestamp };
+
+    const result = formatSchedule(legacySchedule);
+
+    // Calculate expected output from the timestamp (UTC)
+    const d = new Date(testTimestamp);
+    const expectedIso = d.toISOString();
+    const expectedFormatted = `at ${expectedIso.slice(0, 10)} ${expectedIso.slice(11, 16)}Z`;
+
+    expect(result).toBe(expectedFormatted);
+  });
+
+  it("formats missing at field as dash", async () => {
+    const { formatSchedule } = await import("./cron-cli/shared.js");
+
+    // Malformed: kind is "at" but neither at nor atMs is present
+    const malformedSchedule = { kind: "at" as const };
+
+    const result = formatSchedule(malformedSchedule);
+
+    expect(result).toBe("at -");
+  });
+
+  it("prefers at over atMs when both present", async () => {
+    const { formatSchedule } = await import("./cron-cli/shared.js");
+
+    // Both at and atMs present - should use at
+    const schedule = {
+      kind: "at" as const,
+      at: "2026-03-15T10:30:00.000Z",
+      atMs: 1770307680000, // Different timestamp
+    };
+
+    const result = formatSchedule(schedule);
+
+    // Should use the at field, not atMs
+    expect(result).toBe("at 2026-03-15 10:30Z");
+  });
+});
+
 describe("printCronList", () => {
-  it("handles legacy jobs with atMs instead of at in schedule", async () => {
+  it("renders legacy atMs format correctly in table output", async () => {
     const { printCronList } = await import("./cron-cli/shared.js");
     const { defaultRuntime } = await import("../runtime.js");
+
+    const logMock = vi.mocked(defaultRuntime.log);
+    logMock.mockClear();
+
+    const testTimestamp = 1770307680000;
 
     // Mock a job with legacy atMs format (as reported in issue #9649)
     const legacyJob = {
       id: "9a867b4d-3aee-4682-9078-3a84e228c804",
       agentId: "main",
-      name: "Recordatorio: revisar pago",
+      name: "Recordatorio",
       enabled: true,
       createdAtMs: 1770300537733,
       updatedAtMs: 1770300537733,
-      // This is the legacy format: atMs instead of at
-      schedule: { kind: "at", atMs: 1770307680000 } as unknown as CronJob["schedule"],
+      schedule: { kind: "at", atMs: testTimestamp } as unknown as CronJob["schedule"],
       sessionTarget: "main",
       wakeMode: "next-heartbeat",
       payload: { kind: "systemEvent", text: "Reminder text" },
-      state: { nextRunAtMs: 1770307680000 },
+      state: { nextRunAtMs: testTimestamp },
     } as CronJob;
 
-    // This should NOT throw an error
-    expect(() => printCronList([legacyJob], defaultRuntime)).not.toThrow();
+    printCronList([legacyJob], defaultRuntime);
+
+    // Find the log call that contains the job row (not the header)
+    const jobRowCall = logMock.mock.calls.find(
+      (call) => typeof call[0] === "string" && call[0].includes("9a867b4d"),
+    );
+    expect(jobRowCall).toBeDefined();
+
+    // Calculate expected formatted timestamp (UTC)
+    const d = new Date(testTimestamp);
+    const expectedIso = d.toISOString();
+    const expectedFormatted = `at ${expectedIso.slice(0, 10)} ${expectedIso.slice(11, 16)}Z`;
+
+    // The row should contain the properly formatted schedule
+    expect(jobRowCall?.[0]).toContain(expectedFormatted);
   });
 
-  it("handles jobs with undefined at in at-type schedule", async () => {
+  it("renders missing at field as dash in table output", async () => {
     const { printCronList } = await import("./cron-cli/shared.js");
     const { defaultRuntime } = await import("../runtime.js");
+
+    const logMock = vi.mocked(defaultRuntime.log);
+    logMock.mockClear();
 
     // Mock a job with kind: "at" but missing the at field entirely
     const malformedJob = {
@@ -510,7 +576,15 @@ describe("printCronList", () => {
       state: {},
     } as CronJob;
 
-    // This should NOT throw an error
-    expect(() => printCronList([malformedJob], defaultRuntime)).not.toThrow();
+    printCronList([malformedJob], defaultRuntime);
+
+    // Find the log call that contains the job row
+    const jobRowCall = logMock.mock.calls.find(
+      (call) => typeof call[0] === "string" && call[0].includes("test-job-id"),
+    );
+    expect(jobRowCall).toBeDefined();
+
+    // The row should contain "at -" for the missing at field
+    expect(jobRowCall?.[0]).toContain("at -");
   });
 });

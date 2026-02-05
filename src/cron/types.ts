@@ -5,6 +5,17 @@ export type CronSchedule =
   | { kind: "every"; everyMs: number; anchorMs?: number }
   | { kind: "cron"; expr: string; tz?: string };
 
+/**
+ * Schedule type as it may appear in persisted data.
+ * Legacy jobs may have `atMs` (numeric timestamp) instead of `at` (ISO string),
+ * or may be missing `at` entirely. This type is used for defensive parsing
+ * when reading from storage.
+ */
+export type StoredCronSchedule =
+  | { kind: "at"; at?: string; atMs?: number }
+  | { kind: "every"; everyMs: number; anchorMs?: number }
+  | { kind: "cron"; expr: string; tz?: string };
+
 export type CronSessionTarget = "main" | "isolated";
 export type CronWakeMode = "next-heartbeat" | "now";
 
