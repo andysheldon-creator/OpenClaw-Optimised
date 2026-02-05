@@ -1,7 +1,7 @@
 import type { StreamFn } from "@mariozechner/pi-agent-core";
-import { estimateTokens } from "@mariozechner/pi-coding-agent";
 import type { SimpleStreamOptions } from "@mariozechner/pi-ai";
 import { streamSimple } from "@mariozechner/pi-ai";
+import { estimateTokens } from "@mariozechner/pi-coding-agent";
 import type { OpenClawConfig } from "../../config/config.js";
 import { SAFETY_MARGIN } from "../compaction.js";
 import { log } from "./logger.js";
@@ -141,7 +141,9 @@ export function estimateInputTokens(params: {
 }): number {
   let total = 0;
   if (params.system && params.system.trim()) {
-    total += estimateTokens({ role: "system", content: params.system });
+    total += estimateTokens({ role: "system", content: params.system } as unknown as Parameters<
+      typeof estimateTokens
+    >[0]);
   }
   for (const message of params.messages ?? []) {
     total += estimateTokens(message as Parameters<typeof estimateTokens>[0]);
