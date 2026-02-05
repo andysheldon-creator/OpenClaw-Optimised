@@ -7,7 +7,7 @@ import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { registerSkillsChangeListener } from "../agents/skills/refresh.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
-import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
+import { type ChannelId, listChannelPlugins, getChannelPlugin } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { createDefaultDeps } from "../cli/deps.js";
 import {
@@ -394,12 +394,22 @@ export async function startGatewayServer(
       return `channel:${channel}:${from}`;
     },
     onReply: async (channelId, accountId, to, text) => {
+      const plugin = getChannelPlugin(channelId);
+      if (plugin?.outbound?.sendText) {
+        try {
+          await plugin.outbound.sendText({ cfg: loadConfig(), accountId, to, text });
+        } catch (err) {
+          log.error(`[${channelId}:${accountId}] reply failed: ${String(err)}`);
+        }
+        return;
+      }
+
       const runtime = channelRuntimeEnvs[channelId];
       if (runtime && (runtime as any).channel && (runtime as any).channel.spixi) {
-        // Spixi specific for now, but generic channels should have standardized send
+        // Fallback for runtime attached capabilities
         await (runtime as any).channel.spixi.sendMessage(to, text);
       } else {
-        log.warn(`[${channelId}:${accountId}] No sendMessage capability found on runtime`);
+        log.warn(`[${channelId}:${accountId}] No outbound.sendText capability found`);
       }
     }
   });

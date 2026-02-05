@@ -9,6 +9,24 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { CURRENT_SESSION_VERSION } from "@mariozechner/pi-coding-agent";
 import { resolveStorePath, updateSessionStore } from "../config/sessions.js";
+import { dispatchInboundMessage } from "../auto-reply/dispatch.js";
+import { resolveAgentTimeoutMs } from "../agents/timeout.js";
+import { resolveSendPolicy } from "../sessions/send-policy.js";
+import { resolveSessionAgentId } from "../agents/agent-scope.js";
+import { resolveEffectiveMessagesConfig, resolveIdentityName } from "../agents/identity.js";
+import { createReplyDispatcher } from "../auto-reply/reply/reply-dispatcher.js";
+import { extractShortModelName, type ResponsePrefixContext } from "../auto-reply/reply/response-prefix-template.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
+import { resolveChatRunExpiresAtMs } from "./chat-abort.js";
+import { injectTimestamp, timestampOptsFromConfig } from "./server-methods/agent-timestamp.js";
+import { resolveSessionModelRef } from "./session-utils.js";
+import { resolveThinkingDefault } from "../agents/model-selection.js";
+import { type MsgContext } from "../auto-reply/templating.js";
+import type { OpenClawConfig } from "../config/config.js";
+import type { SubsystemLogger } from "../logging/subsystem.js";
+import { resolveDefaultAgentId, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
+import { loadGatewayModelCatalog } from "./server-model-catalog.js";
+import { ChannelMessage } from "./server-channels.js";
 
 /**
  * Check if webchat broadcasts should be suppressed for heartbeat runs.
@@ -340,11 +358,11 @@ export function createAgentEventHandler({
     const toolPayload =
       isToolEvent && toolVerbose !== "full"
         ? (() => {
-            const data = evt.data ? { ...evt.data } : {};
-            delete data.result;
-            delete data.partialResult;
-            return sessionKey ? { ...evt, sessionKey, data } : { ...evt, data };
-          })()
+          const data = evt.data ? { ...evt.data } : {};
+          delete data.result;
+          delete data.partialResult;
+          return sessionKey ? { ...evt, sessionKey, data } : { ...evt, data };
+        })()
         : agentPayload;
     if (evt.seq !== last + 1) {
       broadcast("agent", {
@@ -417,32 +435,7 @@ export function createAgentEventHandler({
   };
 }
 
-export type ChannelMessage = {
-  id?: string;
-  from: string;
-  text: string;
-  timestamp?: number;
-  raw?: unknown;
-};
 
-// Extracted for reuse by channels
-import { dispatchInboundMessage } from "../auto-reply/dispatch.js";
-import { resolveAgentTimeoutMs } from "../agents/timeout.js";
-import { resolveSendPolicy } from "../sessions/send-policy.js";
-import { resolveSessionAgentId } from "../agents/agent-scope.js";
-import { resolveEffectiveMessagesConfig, resolveIdentityName } from "../agents/identity.js";
-import { createReplyDispatcher } from "../auto-reply/reply/reply-dispatcher.js";
-import { extractShortModelName, type ResponsePrefixContext } from "../auto-reply/reply/response-prefix-template.js";
-import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
-import { resolveChatRunExpiresAtMs } from "./chat-abort.js";
-import { injectTimestamp, timestampOptsFromConfig } from "./server-methods/agent-timestamp.js";
-import { resolveSessionModelRef } from "./session-utils.js";
-import { resolveThinkingDefault } from "../agents/model-selection.js";
-import { type MsgContext } from "../auto-reply/templating.js";
-import type { OpenClawConfig } from "../config/config.js";
-import type { SubsystemLogger } from "../logging/subsystem.js";
-import { resolveDefaultAgentId, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
-import { loadGatewayModelCatalog } from "./server-model-catalog.js";
 
 function ensureTranscriptFile(params: { transcriptPath: string; sessionId: string }): {
   ok: boolean;

@@ -27,21 +27,17 @@ export function resolveSpixiAccount(params: {
   accountId?: string | null;
 }): ResolvedSpixiAccount {
   const accountId = normalizeAccountId(params.accountId);
-  const spixi = cfgPath(params.cfg.channels, "spixi");
+  const spixi = params.cfg.channels?.spixi;
   const accounts = spixi?.accounts || {};
   const accountConfig = (accounts[accountId] || {}) as SpixiAccountConfig;
-  
+
   const baseConfig = (spixi || {}) as SpixiAccountConfig;
   const merged = { ...baseConfig, ...accountConfig };
-  
+
   return {
     accountId,
     enabled: merged.enabled !== false,
     name: merged.name,
     config: merged,
   };
-}
-
-function cfgPath(obj: any, path: string): any {
-  return obj?.[path];
 }
