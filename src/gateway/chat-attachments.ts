@@ -30,20 +30,34 @@ function normalizeMime(mime?: string): string | undefined {
   return cleaned || undefined;
 }
 
+function stripDataUrlPrefix(content: string): string {
+  const trimmed = content.trim();
+  const match = /^data:[^;]+;base64,(.*)$/.exec(trimmed);
+  return match ? match[1] : trimmed;
+}
+
+function normalizeBase64ForDecode(content: string): string {
+  let s = stripDataUrlPrefix(content).trim();
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  const remainder = s.length % 4;
+  if (remainder) {
+    s += "=".repeat(4 - remainder);
+  }
+  return s;
+}
+
 async function sniffMimeFromBase64(base64: string): Promise<string | undefined> {
-  const trimmed = base64.trim();
-  if (!trimmed) {
+  const normalized = normalizeBase64ForDecode(base64);
+  if (!normalized) {
     return undefined;
   }
-
-  const take = Math.min(256, trimmed.length);
+  const take = Math.min(256, normalized.length);
   const sliceLen = take - (take % 4);
   if (sliceLen < 8) {
     return undefined;
   }
-
   try {
-    const head = Buffer.from(trimmed.slice(0, sliceLen), "base64");
+    const head = Buffer.from(normalized.slice(0, sliceLen), "base64");
     return await detectMime({ buffer: head });
   } catch {
     return undefined;
@@ -111,12 +125,8 @@ async function decodeAndValidateAudioAttachment(
   maxBytes: number,
 ): Promise<FirstAudioResult | null> {
   const label = att.fileName || att.type || `attachment-${idx + 1}`;
-  let b64 = att.content.trim();
-  const dataUrlMatch = /^data:[^;]+;base64,(.*)$/.exec(b64);
-  if (dataUrlMatch) {
-    b64 = dataUrlMatch[1];
-  }
-  if (b64.length % 4 !== 0 || /[^A-Za-z0-9+/=]/.test(b64)) {
+  const b64 = normalizeBase64ForDecode(att.content);
+  if (/[^A-Za-z0-9+/=]/.test(b64)) {
     throw new Error(`attachment ${label}: invalid base64 content`);
   }
   let buffer: Buffer;
@@ -138,11 +148,6 @@ async function decodeAndValidateAudioAttachment(
   return { buffer, mimeType };
 }
 
-/**
- * Parse attachments and extract images as structured content blocks.
- * Returns the message text and an array of image content blocks
- * compatible with Claude API's image format.
- */
 export async function parseMessageWithAttachments(
   message: string,
   attachments: ChatAttachment[] | undefined,
@@ -168,17 +173,11 @@ export async function parseMessageWithAttachments(
       throw new Error(`attachment ${label}: content must be base64 string`);
     }
 
-    let sizeBytes = 0;
-    let b64 = content.trim();
-    // Strip data URL prefix if present (e.g., "data:image/jpeg;base64,...")
-    const dataUrlMatch = /^data:[^;]+;base64,(.*)$/.exec(b64);
-    if (dataUrlMatch) {
-      b64 = dataUrlMatch[1];
-    }
-    // Basic base64 sanity: length multiple of 4 and charset check.
-    if (b64.length % 4 !== 0 || /[^A-Za-z0-9+/=]/.test(b64)) {
+    const b64 = normalizeBase64ForDecode(content);
+    if (/[^A-Za-z0-9+/=]/.test(b64)) {
       throw new Error(`attachment ${label}: invalid base64 content`);
     }
+    let sizeBytes = 0;
     try {
       sizeBytes = Buffer.from(b64, "base64").byteLength;
     } catch {
