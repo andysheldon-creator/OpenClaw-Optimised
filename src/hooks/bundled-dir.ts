@@ -19,11 +19,10 @@ export function resolveBundledHooksDir(): string | undefined {
     // ignore
   }
 
-  // npm: resolve `<packageRoot>/dist/hooks/bundled` relative to this module (compiled hooks).
-  // This path works when installed via npm: node_modules/openclaw/dist/hooks/bundled-dir.js
+  // npm/dist: resolve `<root>/dist/hooks/bundled` relative to this module (flattened dist).
   try {
     const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-    const distBundled = path.join(moduleDir, "bundled");
+    const distBundled = path.join(moduleDir, "hooks", "bundled");
     if (fs.existsSync(distBundled)) {
       return distBundled;
     }
@@ -31,11 +30,10 @@ export function resolveBundledHooksDir(): string | undefined {
     // ignore
   }
 
-  // dev: resolve `<packageRoot>/src/hooks/bundled` relative to dist/hooks/bundled-dir.js
-  // This path works in dev: dist/hooks/bundled-dir.js -> ../../src/hooks/bundled
+  // dev: resolve `<root>/src/hooks/bundled` relative to dist/ (dist flattens src/).
   try {
     const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-    const root = path.resolve(moduleDir, "..", "..");
+    const root = path.resolve(moduleDir, "..");
     const srcBundled = path.join(root, "src", "hooks", "bundled");
     if (fs.existsSync(srcBundled)) {
       return srcBundled;
