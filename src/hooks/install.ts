@@ -125,7 +125,7 @@ async function validateHookDir(hookDir: string): Promise<void> {
     throw new Error(`HOOK.md missing in ${hookDir}`);
   }
 
-  const handlerCandidates = ["handler.ts", "handler.js", "index.ts", "index.js"];
+  const handlerCandidates = ["handler.js", "index.js", "handler.ts", "index.ts"];
   const hasHandler = await Promise.all(
     handlerCandidates.map(async (candidate) => fileExists(path.join(hookDir, candidate))),
   ).then((results) => results.some(Boolean));
