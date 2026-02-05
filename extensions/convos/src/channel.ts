@@ -455,13 +455,16 @@ async function deliverConvosReply(params: {
   const text = runtime.channel.text.convertMarkdownTables(payload.text ?? "", tableMode);
 
   if (text) {
-    // Chunk the text if needed (Convos/XMTP has message size limits)
+    // Chunk the text if needed (Convos/XMTP has message size limits).
+    // Use the markdown-aware chunker to avoid breaking code blocks/tables.
+    const cfg = runtime.config.loadConfig() as OpenClawConfig;
     const chunkLimit = runtime.channel.text.resolveTextChunkLimit({
-      cfg: runtime.config.loadConfig() as OpenClawConfig,
+      cfg,
       channel: "convos",
       accountId,
     });
-    const chunks = runtime.channel.text.chunkText(text, chunkLimit);
+
+    const chunks = runtime.channel.text.chunkMarkdownText(text, chunkLimit);
 
     for (const chunk of chunks) {
       try {
