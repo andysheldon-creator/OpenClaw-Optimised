@@ -1158,8 +1158,12 @@ export async function getCoreMemories(): Promise<CoreMemories> {
 }
 
 // Session Continuation exports
-export { SessionContinuation, getSessionContinuationMessage } from "./session-continuation";
-export type { SessionContinuationConfig, ContinuationResult } from "./session-continuation";
+export {
+  SessionContinuation,
+  SessionContinuationConfig,
+  ContinuationResult,
+  getSessionContinuationMessage,
+} from "./session-continuation";
 
 export {
   initSessionContinuation,
