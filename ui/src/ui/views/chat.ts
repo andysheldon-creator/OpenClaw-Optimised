@@ -252,6 +252,8 @@ export function renderChat(props: ChatProps) {
     </div>
   `;
 
+  const ARABIC_PATTERN = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+
   return html`
     <section class="card chat">
       ${props.disabledReason ? html`<div class="callout">${props.disabledReason}</div>` : nothing}
@@ -319,8 +321,8 @@ export function renderChat(props: ChatProps) {
               <div class="chat-queue__list">
                 ${props.queue.map(
                   (item) => html`
-                    <div class="chat-queue__item">
-                      <div class="chat-queue__text">
+                    <div class="chat-queue__item${item.text && ARABIC_PATTERN.test(item.text) ? " chat-queue__item--rtl" : ""}">
+                      <div class="chat-queue__text" dir="auto">
                         ${
                           item.text ||
                           (item.attachments?.length ? `Image (${item.attachments.length})` : "")
