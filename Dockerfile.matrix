@@ -1,0 +1,15 @@
+FROM openclaw:local
+
+USER root
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends     libolm-dev     libolm3     python3     build-essential     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install all Matrix extension dependencies
+RUN pnpm add -w     @vector-im/matrix-bot-sdk@0.8.0-element.3     @matrix-org/matrix-sdk-crypto-nodejs@0.4.0     music-metadata@11.11.2     markdown-it@14.1.0     2>&1 | tail -10
+
+USER node
+
+CMD ["node", "dist/index.js", "gateway", "--allow-unconfigured"]

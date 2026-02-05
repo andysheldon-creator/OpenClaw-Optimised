@@ -1,0 +1,4 @@
+services:
+  openclaw-gateway:
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
