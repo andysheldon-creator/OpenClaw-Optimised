@@ -13,6 +13,7 @@ import { formatError } from "../server-utils.js";
 import { logWs } from "../ws-log.js";
 import { getHealthVersion, getPresenceVersion, incrementPresenceVersion } from "./health-state.js";
 import { attachGatewayWsMessageHandler } from "./ws-connection/message-handler.js";
+import { cleanupPtyForConnection } from "../server-methods/dashboard-pty.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
@@ -201,6 +202,7 @@ export function attachGatewayWsConnectionHandler(params: {
           context.nodeUnsubscribeAll(nodeId);
         }
       }
+      cleanupPtyForConnection(connId);
       logWs("out", "close", {
         connId,
         code,
