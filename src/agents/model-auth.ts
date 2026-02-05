@@ -1,5 +1,4 @@
 import { type Api, getEnvApiKey, type Model } from "@mariozechner/pi-ai";
-import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
 import { formatCliCommand } from "../cli/command-format.js";
@@ -222,7 +221,6 @@ export async function resolveApiKeyForProvider(params: {
   }
 
   const authStorePath = resolveAuthStorePathForDisplay(params.agentDir);
-  const resolvedAgentDir = path.dirname(authStorePath);
   const providerConfig = resolveProviderConfig(cfg, provider);
   const providerConfigHint = providerConfig
     ? `models.providers.${provider} exists but apiKey is empty`
