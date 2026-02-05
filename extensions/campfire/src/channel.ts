@@ -19,6 +19,7 @@ import {
   type ResolvedCampfireAccount,
 } from "./accounts.js";
 import { sendCampfireMessage, sendCampfireAttachment, probeCampfire } from "./api.js";
+import { campfireChannelConfigSchema } from "./config-schema.js";
 import { resolveCampfireWebhookPath, startCampfireMonitor } from "./monitor.js";
 import { getCampfireRuntime } from "./runtime.js";
 
@@ -83,6 +84,7 @@ export const campfirePlugin: ChannelPlugin<ResolvedCampfireAccount> = {
     blockStreamingCoalesceDefaults: { minChars: 1500, idleMs: 1000 },
   },
   reload: { configPrefixes: ["channels.campfire"] },
+  configSchema: campfireChannelConfigSchema,
   config: {
     listAccountIds: (cfg) => listCampfireAccountIds(cfg),
     resolveAccount: (cfg, accountId) => resolveCampfireAccount({ cfg, accountId }),
