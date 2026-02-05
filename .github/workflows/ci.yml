@@ -73,7 +73,7 @@ jobs:
         include:
           - runtime: node
             task: tsgo
-            command: pnpm tsgo
+            command: pnpm tsgo && pnpm -C ui exec tsc --noEmit
           - runtime: node
             task: lint
             command: pnpm build && pnpm lint
