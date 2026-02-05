@@ -78,6 +78,11 @@ export type FollowupRun = {
     ownerNumbers?: string[];
     extraSystemPrompt?: string;
     enforceFinalTag?: boolean;
+    brainOwnerActive?: boolean;
+    brainOwnerProvider?: string;
+    brainOwnerModel?: string;
+    allowMuscleSubordinateOnly?: boolean;
+    forceFinalBrainSynthesis?: boolean;
   };
 };
 

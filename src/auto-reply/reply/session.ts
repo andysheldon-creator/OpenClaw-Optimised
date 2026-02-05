@@ -27,12 +27,93 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
+import { resolveThreadParentSessionKey } from "../../sessions/session-key-utils.js";
 import { normalizeSessionDeliveryFields } from "../../utils/delivery-context.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
 import { formatInboundBodyWithSenderMeta } from "./inbound-sender-meta.js";
 import { normalizeInboundTextNewlines } from "./inbound-text.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
 
+
+
+type BrainOwnershipSnapshot = {
+  active: boolean;
+  provider?: string;
+  model?: string;
+};
+
+function normalizeOwnerModelRef(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function requiresBrain(body: string): boolean {
+  const normalized = body.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return normalized === "/brain" || normalized.startsWith("/brain ");
+}
+
+function isExplicitBrainOwnerReset(body: string): boolean {
+  const normalized = body.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return (
+    normalized === "/brain reset" ||
+    normalized === "/brain clear" ||
+    normalized === "/brain owner reset" ||
+    normalized === "/brain-owner reset"
+  );
+}
+
+function resolveParentSessionKeyCandidate(params: {
+  sessionKey?: string;
+  parentSessionKey?: string;
+}): string | null {
+  const explicit = params.parentSessionKey?.trim();
+  if (explicit && explicit !== params.sessionKey) {
+    return explicit;
+  }
+  const derived = resolveThreadParentSessionKey(params.sessionKey);
+  if (derived && derived !== params.sessionKey) {
+    return derived;
+  }
+  return null;
+}
+
+function resolveInheritedBrainOwnership(params: {
+  sessionEntry?: SessionEntry;
+  sessionStore: Record<string, SessionEntry>;
+  sessionKey?: string;
+  parentSessionKey?: string;
+}): BrainOwnershipSnapshot | null {
+  const direct = params.sessionEntry;
+  if (direct?.brainOwnerActive) {
+    return {
+      active: true,
+      provider: normalizeOwnerModelRef(direct.brainOwnerProvider),
+      model: normalizeOwnerModelRef(direct.brainOwnerModel),
+    };
+  }
+  const parentKey = resolveParentSessionKeyCandidate({
+    sessionKey: params.sessionKey,
+    parentSessionKey: params.parentSessionKey,
+  });
+  if (!parentKey) {
+    return null;
+  }
+  const parentEntry = params.sessionStore[parentKey];
+  if (!parentEntry?.brainOwnerActive) {
+    return null;
+  }
+  return {
+    active: true,
+    provider: normalizeOwnerModelRef(parentEntry.brainOwnerProvider),
+    model: normalizeOwnerModelRef(parentEntry.brainOwnerModel),
+  };
+}
 export type SessionInitResult = {
   sessionCtx: TemplateContext;
   sessionEntry: SessionEntry;
@@ -135,6 +216,9 @@ export async function initSessionState(params: {
   let persistedTtsAuto: TtsAutoMode | undefined;
   let persistedModelOverride: string | undefined;
   let persistedProviderOverride: string | undefined;
+  let persistedBrainOwnerActive: boolean | undefined;
+  let persistedBrainOwnerProvider: string | undefined;
+  let persistedBrainOwnerModel: string | undefined;
 
   const normalizedChatType = normalizeChatType(ctx.ChatType);
   const isGroup =
@@ -195,6 +279,12 @@ export async function initSessionState(params: {
 
   sessionKey = resolveSessionKey(sessionScope, sessionCtxForState, mainKey);
   const entry = sessionStore[sessionKey];
+  const inheritedBrainOwnership = resolveInheritedBrainOwnership({
+    sessionEntry: entry,
+    sessionStore,
+    sessionKey,
+    parentSessionKey: ctx.ParentSessionKey,
+  });
   const previousSessionEntry = resetTriggered && entry ? { ...entry } : undefined;
   const now = Date.now();
   const isThread = resolveThreadFlag({
@@ -232,6 +322,9 @@ export async function initSessionState(params: {
     persistedTtsAuto = entry.ttsAuto;
     persistedModelOverride = entry.modelOverride;
     persistedProviderOverride = entry.providerOverride;
+    persistedBrainOwnerActive = entry.brainOwnerActive;
+    persistedBrainOwnerProvider = entry.brainOwnerProvider;
+    persistedBrainOwnerModel = entry.brainOwnerModel;
   } else {
     sessionId = crypto.randomUUID();
     isNewSession = true;
@@ -271,6 +364,11 @@ export async function initSessionState(params: {
     responseUsage: baseEntry?.responseUsage,
     modelOverride: persistedModelOverride ?? baseEntry?.modelOverride,
     providerOverride: persistedProviderOverride ?? baseEntry?.providerOverride,
+    brainOwnerActive: persistedBrainOwnerActive ?? inheritedBrainOwnership?.active ?? false,
+    brainOwnerProvider:
+      persistedBrainOwnerProvider ?? inheritedBrainOwnership?.provider ?? baseEntry?.brainOwnerProvider,
+    brainOwnerModel:
+      persistedBrainOwnerModel ?? inheritedBrainOwnership?.model ?? baseEntry?.brainOwnerModel,
     sendPolicy: baseEntry?.sendPolicy,
     queueMode: baseEntry?.queueMode,
     queueDebounceMs: baseEntry?.queueDebounceMs,
@@ -305,6 +403,19 @@ export async function initSessionState(params: {
   const threadLabel = ctx.ThreadLabel?.trim();
   if (threadLabel) {
     sessionEntry.displayName = threadLabel;
+  }
+
+
+  const explicitOwnerReset = isExplicitBrainOwnerReset(triggerBodyNormalized);
+  const nextRequiresBrain = requiresBrain(triggerBodyNormalized);
+  if (resetTriggered || explicitOwnerReset) {
+    sessionEntry.brainOwnerActive = false;
+    sessionEntry.brainOwnerProvider = undefined;
+    sessionEntry.brainOwnerModel = undefined;
+  } else if (nextRequiresBrain) {
+    sessionEntry.brainOwnerActive = true;
+    sessionEntry.brainOwnerProvider = sessionEntry.providerOverride?.trim() || undefined;
+    sessionEntry.brainOwnerModel = sessionEntry.modelOverride?.trim() || undefined;
   }
   const parentSessionKey = ctx.ParentSessionKey?.trim();
   if (

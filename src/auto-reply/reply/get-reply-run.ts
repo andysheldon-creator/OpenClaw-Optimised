@@ -398,6 +398,11 @@ export async function runPreparedReply(
       blockReplyBreak: resolvedBlockStreamingBreak,
       ownerNumbers: command.ownerList.length > 0 ? command.ownerList : undefined,
       extraSystemPrompt: extraSystemPrompt || undefined,
+      brainOwnerActive: sessionEntry?.brainOwnerActive === true,
+      brainOwnerProvider: sessionEntry?.brainOwnerProvider,
+      brainOwnerModel: sessionEntry?.brainOwnerModel,
+      allowMuscleSubordinateOnly: sessionEntry?.brainOwnerActive === true,
+      forceFinalBrainSynthesis: sessionEntry?.brainOwnerActive === true,
       ...(isReasoningTagProvider(provider) ? { enforceFinalTag: true } : {}),
     },
   };
