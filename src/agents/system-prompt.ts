@@ -1,9 +1,9 @@
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
-import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
-import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import type { MemoryCitationsMode } from "../config/types.memory.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
+import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 
 /**
  * Controls which hardcoded sections are included in the system prompt.
@@ -75,7 +75,12 @@ function buildTimeSection(params: { userTimezone?: string }) {
   if (!params.userTimezone) {
     return [];
   }
-  return ["## Current Date & Time", `Time zone: ${params.userTimezone}`, ""];
+  return [
+    "## Current Date & Time",
+    `Time zone: ${params.userTimezone}`,
+    "If you need the current date, time, or day of week, use the session_status tool.",
+    "",
+  ];
 }
 
 function buildSafetySection() {
