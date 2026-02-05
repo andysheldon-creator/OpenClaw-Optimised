@@ -8,6 +8,8 @@ import type {
   McpToolHandlerFn,
 } from "./tool-bridge.types.js";
 import { createCronTool } from "../tools/cron-tool.js";
+import { createWorkItemTool } from "../tools/work-item-tool.js";
+import { createWorkQueueTool } from "../tools/work-queue-tool.js";
 import {
   bridgeClawdbrainToolsSync,
   buildMcpAllowedTools,
@@ -743,5 +745,107 @@ describe("bridgeClawdbrainToolsSync", () => {
 
     expect(result.serverConfig.type).toBe("sdk");
     expect(result.serverConfig.name).toBe("clawdbrain");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// execute() signature validation — work_queue and work_item tools
+// ---------------------------------------------------------------------------
+
+describe("work_queue / work_item execute signature", () => {
+  it("work_queue tool receives params (not toolCallId) through wrapToolHandler", async () => {
+    const tool = createWorkQueueTool();
+
+    // Spy on execute to intercept arguments before the real implementation
+    // runs (which would require a SQLite store).
+    const originalExecute = tool.execute;
+    const executeSpy = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: '{"queue":null,"stats":null}' }],
+    });
+    tool.execute = executeSpy;
+
+    const handler = wrapToolHandler(tool);
+    const extra = createMockExtra();
+    await handler({ action: "status" }, extra);
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    const [toolCallId, params] = executeSpy.mock.calls[0];
+
+    // toolCallId should be a string starting with the bridge prefix
+    expect(typeof toolCallId).toBe("string");
+    expect(toolCallId).toMatch(/^mcp-bridge-work_queue-/);
+
+    // params should be the actual args object, NOT the toolCallId string
+    expect(typeof params).toBe("object");
+    expect(params).not.toBeNull();
+    expect(params.action).toBe("status");
+
+    // Restore original
+    tool.execute = originalExecute;
+  });
+
+  it("work_item tool receives params (not toolCallId) through wrapToolHandler", async () => {
+    const tool = createWorkItemTool();
+
+    const executeSpy = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: '{"items":[]}' }],
+    });
+    tool.execute = executeSpy;
+
+    const handler = wrapToolHandler(tool);
+    const extra = createMockExtra();
+    await handler({ action: "list", includeCompleted: true }, extra);
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    const [toolCallId, params] = executeSpy.mock.calls[0];
+
+    // toolCallId should be a string starting with the bridge prefix
+    expect(typeof toolCallId).toBe("string");
+    expect(toolCallId).toMatch(/^mcp-bridge-work_item-/);
+
+    // params should be the actual args object, NOT the toolCallId string
+    expect(typeof params).toBe("object");
+    expect(params).not.toBeNull();
+    expect(params.action).toBe("list");
+    expect(params.includeCompleted).toBe(true);
+  });
+
+  it("work_queue tool execute function accepts 2+ parameters (toolCallId, params)", () => {
+    const tool = createWorkQueueTool();
+    // The execute function should accept at least 2 params (toolCallId, params).
+    // With `async execute(params)` (the bug), .length would be 1.
+    // With `async execute(_toolCallId, params)`, .length should be 2.
+    expect(tool.execute.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("work_item tool execute function accepts 2+ parameters (toolCallId, params)", () => {
+    const tool = createWorkItemTool();
+    expect(tool.execute.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// native tool schema completeness
+// ---------------------------------------------------------------------------
+
+describe("native tool schema completeness", () => {
+  it("work_queue tool exposes non-empty schema with action property", () => {
+    const tool = createWorkQueueTool();
+    const schema = extractJsonSchema(tool);
+    expect(schema.type).toBe("object");
+    const props = schema.properties as Record<string, unknown> | undefined;
+    expect(props).toBeDefined();
+    expect(Object.keys(props!).length).toBeGreaterThan(0);
+    expect(props!.action).toBeDefined();
+  });
+
+  it("work_item tool exposes non-empty schema with action property", () => {
+    const tool = createWorkItemTool();
+    const schema = extractJsonSchema(tool);
+    expect(schema.type).toBe("object");
+    const props = schema.properties as Record<string, unknown> | undefined;
+    expect(props).toBeDefined();
+    expect(Object.keys(props!).length).toBeGreaterThan(0);
+    expect(props!.action).toBeDefined();
   });
 });

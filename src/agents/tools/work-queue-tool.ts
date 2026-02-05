@@ -45,8 +45,8 @@ Actions:
 - get: Get a specific queue by ID
 - update: Update queue settings (concurrencyLimit, defaultPriority)
 - stats: Get detailed statistics for a queue`,
-    schema: WorkQueueToolSchema,
-    async execute(params) {
+    parameters: WorkQueueToolSchema,
+    async execute(_toolCallId, params) {
       const action = readStringParam(params, "action", { required: true });
       const store = await getDefaultWorkQueueStore();
       const queueId = readStringParam(params, "queueId");

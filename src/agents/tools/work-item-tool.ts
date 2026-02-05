@@ -107,8 +107,8 @@ Actions:
 - unblock: Clear block, return to pending
 - cancel: Cancel a pending or blocked item
 - reassign: Move item to a different queue/agent`,
-    schema: WorkItemToolSchema,
-    async execute(params) {
+    parameters: WorkItemToolSchema,
+    async execute(_toolCallId, params) {
       const action = readStringParam(params, "action", { required: true });
       const store = await getDefaultWorkQueueStore();
       const itemId = readStringParam(params, "itemId");
