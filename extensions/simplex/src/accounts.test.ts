@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { DEFAULT_ACCOUNT_ID, type OpenClawConfig } from "openclaw/plugin-sdk";
+import { describe, expect, it } from "vitest";
 import {
   listSimplexAccountIds,
   resolveDefaultSimplexAccountId,

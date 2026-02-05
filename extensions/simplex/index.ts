@@ -2,8 +2,8 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import { ErrorCodes, errorShape } from "../../src/gateway/protocol/index.js";
 import { renderQrPngBase64 } from "../../src/web/qr-image.js";
-import { simplexPlugin } from "./src/channel.js";
 import { resolveDefaultSimplexAccountId, resolveSimplexAccount } from "./src/accounts.js";
+import { simplexPlugin } from "./src/channel.js";
 import { setSimplexRuntime } from "./src/runtime.js";
 import { SimplexWsClient, type SimplexWsResponse } from "./src/simplex-ws-client.js";
 
@@ -55,7 +55,11 @@ function extractSimplexLink(resp: SimplexWsResponse): string | null {
 async function sendSimplexCommand(params: {
   account: ReturnType<typeof resolveSimplexAccount>;
   command: string;
-  logger?: { info?: (message: string) => void; warn?: (message: string) => void; error?: (message: string) => void };
+  logger?: {
+    info?: (message: string) => void;
+    warn?: (message: string) => void;
+    error?: (message: string) => void;
+  };
 }): Promise<SimplexWsResponse> {
   const client = new SimplexWsClient({
     url: params.account.wsUrl,
@@ -73,7 +77,11 @@ async function sendSimplexCommand(params: {
 async function sendSimplexCommandWithRetry(params: {
   account: ReturnType<typeof resolveSimplexAccount>;
   command: string;
-  logger?: { info?: (message: string) => void; warn?: (message: string) => void; error?: (message: string) => void };
+  logger?: {
+    info?: (message: string) => void;
+    warn?: (message: string) => void;
+    error?: (message: string) => void;
+  };
   startChannel?: () => Promise<void>;
   isRunning?: () => boolean;
 }): Promise<SimplexWsResponse> {
@@ -156,9 +164,7 @@ const plugin = {
           },
         });
         const link = extractSimplexLink(response);
-        const qrDataUrl = link
-          ? `data:image/png;base64,${await renderQrPngBase64(link)}`
-          : null;
+        const qrDataUrl = link ? `data:image/png;base64,${await renderQrPngBase64(link)}` : null;
         respond(true, { mode, accountId, command, link, qrDataUrl, response });
       } catch (err) {
         respond(

@@ -3,6 +3,7 @@ import type {
   ChannelMessageActionName,
   OpenClawConfig,
 } from "openclaw/plugin-sdk";
+import type { ResolvedSimplexAccount } from "./types.js";
 import { listEnabledSimplexAccounts, resolveSimplexAccount } from "./accounts.js";
 import {
   buildDeleteChatItemCommand,
@@ -16,7 +17,6 @@ import {
 } from "./simplex-commands.js";
 import { buildComposedMessages } from "./simplex-media.js";
 import { SimplexWsClient } from "./simplex-ws-client.js";
-import type { ResolvedSimplexAccount } from "./types.js";
 
 type ToolResult = {
   content: Array<{ type: "text"; text: string }>;

@@ -26,8 +26,9 @@ export function startSimplexCli(params: {
     stdio: ["pipe", "pipe", "pipe"],
   });
   let exited = false;
-  let exitResolver: ((value: { code: number | null; signal: NodeJS.Signals | null }) => void) | null =
-    null;
+  let exitResolver:
+    | ((value: { code: number | null; signal: NodeJS.Signals | null }) => void)
+    | null = null;
   const exitPromise = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
     (resolve) => {
       exitResolver = resolve;

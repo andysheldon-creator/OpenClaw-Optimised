@@ -65,7 +65,8 @@ export function resolveSimplexDmPolicy(params: {
   cfg: OpenClawConfig;
   account: ResolvedSimplexAccount;
 }): { policy: string; allowFrom: string[] } {
-  const policy = params.account.config.dmPolicy ?? params.cfg.channels?.simplex?.dmPolicy ?? "pairing";
+  const policy =
+    params.account.config.dmPolicy ?? params.cfg.channels?.simplex?.dmPolicy ?? "pairing";
   const allowFrom = resolveSimplexAllowFrom({
     cfg: params.cfg,
     accountId: params.account.accountId,

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
+import { describe, expect, it } from "vitest";
 import type { ResolvedSimplexAccount } from "./types.js";
 import {
   formatSimplexAllowFrom,

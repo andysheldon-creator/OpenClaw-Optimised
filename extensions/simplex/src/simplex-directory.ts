@@ -4,6 +4,7 @@ import type {
   OpenClawConfig,
   RuntimeEnv,
 } from "openclaw/plugin-sdk";
+import type { ResolvedSimplexAccount } from "./types.js";
 import { resolveSimplexAccount } from "./accounts.js";
 import {
   buildListContactsCommand,
@@ -12,7 +13,6 @@ import {
   buildShowActiveUserCommand,
 } from "./simplex-commands.js";
 import { SimplexWsClient } from "./simplex-ws-client.js";
-import type { ResolvedSimplexAccount } from "./types.js";
 
 type SimplexDirectoryParams = {
   cfg: OpenClawConfig;
@@ -79,7 +79,8 @@ function mapGroupEntry(entry: unknown): ChannelDirectoryEntry | null {
   if (!id) {
     return null;
   }
-  const profile = (group.groupProfile as Record<string, unknown> | undefined) ??
+  const profile =
+    (group.groupProfile as Record<string, unknown> | undefined) ??
     (group.profile as Record<string, unknown> | undefined) ??
     {};
   const name =
@@ -142,7 +143,11 @@ function normalizeSimplexInputId(input: string): { id: string; explicit: boolean
   if (lowered.startsWith("group:")) {
     return { id: withoutPrefix.slice("group:".length).trim(), explicit: true };
   }
-  if (lowered.startsWith("contact:") || lowered.startsWith("user:") || lowered.startsWith("member:")) {
+  if (
+    lowered.startsWith("contact:") ||
+    lowered.startsWith("user:") ||
+    lowered.startsWith("member:")
+  ) {
     return { id: withoutPrefix.slice(withoutPrefix.indexOf(":") + 1).trim(), explicit: true };
   }
   return { id: withoutPrefix, explicit: false };
@@ -217,8 +222,7 @@ async function listContactsLive(params: {
     const filtered = q
       ? mapped.filter(
           (entry) =>
-            entry.id.toLowerCase().includes(q) ||
-            (entry.name?.toLowerCase().includes(q) ?? false),
+            entry.id.toLowerCase().includes(q) || (entry.name?.toLowerCase().includes(q) ?? false),
         )
       : mapped;
     const limit = params.limit && params.limit > 0 ? params.limit : undefined;
@@ -255,8 +259,7 @@ async function listGroupsLive(params: {
     const filtered = q
       ? mapped.filter(
           (entry) =>
-            entry.id.toLowerCase().includes(q) ||
-            (entry.name?.toLowerCase().includes(q) ?? false),
+            entry.id.toLowerCase().includes(q) || (entry.name?.toLowerCase().includes(q) ?? false),
         )
       : mapped;
     const limit = params.limit && params.limit > 0 ? params.limit : undefined;
@@ -291,7 +294,9 @@ async function listGroupMembersLive(params: {
   });
 }
 
-export async function resolveSimplexSelf(params: SimplexDirectoryParams): Promise<ChannelDirectoryEntry | null> {
+export async function resolveSimplexSelf(
+  params: SimplexDirectoryParams,
+): Promise<ChannelDirectoryEntry | null> {
   const account = resolveSimplexAccount(params);
   if (!account.configured) {
     return null;
@@ -410,9 +415,7 @@ export async function resolveSimplexTargets(params: {
     if (!needle) {
       return { input, resolved: false };
     }
-    const matches = entries.filter((entry) =>
-      (entry.name ?? "").toLowerCase().includes(needle),
-    );
+    const matches = entries.filter((entry) => (entry.name ?? "").toLowerCase().includes(needle));
     if (matches.length === 1) {
       return {
         input,

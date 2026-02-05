@@ -1,5 +1,5 @@
-import type { ChannelsState, SimplexInviteMode } from "./channels.types.ts";
 import type { ChannelsStatusSnapshot } from "../types.ts";
+import type { ChannelsState, SimplexInviteMode } from "./channels.types.ts";
 
 export type { ChannelsState };
 

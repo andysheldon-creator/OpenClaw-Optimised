@@ -1,5 +1,6 @@
 import type { ChannelAccountSnapshot, OpenClawConfig, RuntimeEnv } from "openclaw/plugin-sdk";
 import { resolveMentionGatingWithBypass } from "openclaw/plugin-sdk";
+import type { ResolvedSimplexAccount } from "./types.js";
 import { getSimplexRuntime } from "./runtime.js";
 import {
   buildReceiveFileCommand,
@@ -9,7 +10,6 @@ import {
 import { buildComposedMessages, resolveSimplexMediaMaxBytes } from "./simplex-media.js";
 import { isSimplexAllowlisted } from "./simplex-security.js";
 import { SimplexWsClient, type SimplexWsEvent } from "./simplex-ws-client.js";
-import type { ResolvedSimplexAccount } from "./types.js";
 
 export type SimplexMonitorOpts = {
   account: ResolvedSimplexAccount;
@@ -26,7 +26,10 @@ type SimplexChatItem = {
     groupInfo?: { groupId?: number; localDisplayName?: string };
   };
   chatItem?: {
-    chatDir?: { type?: string; groupMember?: { memberId?: string; groupMemberId?: number; localDisplayName?: string } };
+    chatDir?: {
+      type?: string;
+      groupMember?: { memberId?: string; groupMemberId?: number; localDisplayName?: string };
+    };
     meta?: { itemId?: number; itemTs?: string };
     content?: { type?: string; msgContent?: { type?: string; text?: string } };
     file?: {
@@ -113,7 +116,8 @@ function resolveChatContext(item: SimplexChatItem): {
     if (typeof contactId !== "number") {
       return null;
     }
-    const senderName = info.contact?.localDisplayName?.trim() ||
+    const senderName =
+      info.contact?.localDisplayName?.trim() ||
       info.contact?.profile?.displayName?.trim() ||
       undefined;
     return {
@@ -130,7 +134,8 @@ function resolveChatContext(item: SimplexChatItem): {
       return null;
     }
     const member = item.chatItem?.chatDir?.groupMember;
-    const senderId = member?.memberId?.trim() ??
+    const senderId =
+      member?.memberId?.trim() ??
       (typeof member?.groupMemberId === "number" ? String(member.groupMemberId) : undefined);
     const senderName = member?.localDisplayName?.trim() || undefined;
     const groupLabel = info.groupInfo?.localDisplayName?.trim() || `group:${groupId}`;
@@ -173,8 +178,7 @@ async function sendSimplexPayload(params: {
     mediaUrls?: string[];
     audioAsVoice?: boolean;
   };
-}): Promise<{ messageId?: number }>
-{
+}): Promise<{ messageId?: number }> {
   const composedMessages = await buildComposedMessages({
     cfg: params.cfg,
     accountId: params.accountId,
@@ -191,7 +195,10 @@ async function sendSimplexPayload(params: {
     composedMessages,
   });
   const response = await params.client.sendCommand(cmd);
-  const resp = response.resp as { type?: string; chatItems?: Array<{ chatItem?: { meta?: { itemId?: number } } }> };
+  const resp = response.resp as {
+    type?: string;
+    chatItems?: Array<{ chatItem?: { meta?: { itemId?: number } } }>;
+  };
   if (resp?.type === "newChatItems") {
     const itemId = resp.chatItems?.[0]?.chatItem?.meta?.itemId;
     return { messageId: typeof itemId === "number" ? itemId : undefined };
@@ -201,8 +208,7 @@ async function sendSimplexPayload(params: {
 
 export async function startSimplexMonitor(params: SimplexMonitorOpts): Promise<{
   client: SimplexWsClient;
-}>
-{
+}> {
   const { account, cfg, runtime, statusSink } = params;
   const client = new SimplexWsClient({
     url: account.wsUrl,
@@ -349,9 +355,10 @@ async function handleSimplexEvent(params: {
       continue;
     }
 
-    const content = item.chatItem?.content?.type === "rcvMsgContent"
-      ? item.chatItem?.content?.msgContent
-      : undefined;
+    const content =
+      item.chatItem?.content?.type === "rcvMsgContent"
+        ? item.chatItem?.content?.msgContent
+        : undefined;
 
     if (!content) {
       continue;
@@ -546,9 +553,10 @@ async function handleSimplexEvent(params: {
       sessionKey: route.sessionKey,
     });
 
-    const fromLabel = context.chatType === "group"
-      ? `group:${context.chatId}`
-      : context.senderName || `contact:${context.senderId ?? "unknown"}`;
+    const fromLabel =
+      context.chatType === "group"
+        ? `group:${context.chatId}`
+        : context.senderName || `contact:${context.senderId ?? "unknown"}`;
 
     const body = core.channel.reply.formatAgentEnvelope({
       channel: "SimpleX",
@@ -562,9 +570,10 @@ async function handleSimplexEvent(params: {
       Body: body,
       RawBody: rawBody,
       CommandBody: rawBody,
-      From: context.chatType === "group"
-        ? `simplex:group:${context.chatId}`
-        : `simplex:${context.senderId ?? context.chatId}`,
+      From:
+        context.chatType === "group"
+          ? `simplex:group:${context.chatId}`
+          : `simplex:${context.senderId ?? context.chatId}`,
       To: `simplex:${context.chatId}`,
       SessionKey: route.sessionKey,
       AccountId: route.accountId,
@@ -575,9 +584,10 @@ async function handleSimplexEvent(params: {
       SenderId: context.senderId,
       Provider: "simplex" as const,
       Surface: "simplex" as const,
-      MessageSid: typeof item.chatItem?.meta?.itemId === "number"
-        ? String(item.chatItem.meta.itemId)
-        : undefined,
+      MessageSid:
+        typeof item.chatItem?.meta?.itemId === "number"
+          ? String(item.chatItem.meta.itemId)
+          : undefined,
       WasMentioned: context.chatType === "group" ? effectiveWasMentioned : undefined,
       CommandAuthorized: commandAuthorized,
       OriginatingChannel: "simplex" as const,
@@ -721,7 +731,9 @@ async function dispatchInbound(params: {
         pending.statusSink?.({ lastOutboundAt: Date.now() });
       },
       onError: (err) => {
-        pending.runtime.error?.(`[${pending.account.accountId}] SimpleX reply failed: ${String(err)}`);
+        pending.runtime.error?.(
+          `[${pending.account.accountId}] SimpleX reply failed: ${String(err)}`,
+        );
       },
     },
     replyOptions: {

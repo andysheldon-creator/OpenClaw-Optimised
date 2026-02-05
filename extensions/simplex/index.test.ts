@@ -118,7 +118,10 @@ describe("simplex invite gateway", () => {
       respond,
       context: {
         startChannel: async () => {},
-        getRuntimeSnapshot: () => ({ channels: { simplex: { running: false } }, channelAccounts: {} }),
+        getRuntimeSnapshot: () => ({
+          channels: { simplex: { running: false } },
+          channelAccounts: {},
+        }),
       },
     });
 
@@ -148,7 +151,10 @@ describe("simplex invite gateway", () => {
       respond,
       context: {
         startChannel: async () => {},
-        getRuntimeSnapshot: () => ({ channels: { simplex: { running: true } }, channelAccounts: {} }),
+        getRuntimeSnapshot: () => ({
+          channels: { simplex: { running: true } },
+          channelAccounts: {},
+        }),
       },
     });
 
