@@ -11,6 +11,7 @@ import {
 } from "../chat/grouped-render.ts";
 import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer.ts";
 import { icons } from "../icons.ts";
+import { CHAT_COMMANDS } from "../chat/commands.ts";
 import { renderMarkdownSidebar } from "./markdown-sidebar.ts";
 import "../components/resizable-divider.ts";
 
@@ -56,6 +57,10 @@ export type ChatProps = {
   // Scroll control
   showNewMessages?: boolean;
   onScrollToBottom?: () => void;
+  // History
+  commandHistory?: string[];
+  commandHistoryIndex?: number;
+  onSetCommandHistoryIndex?: (index: number) => void;
   // Event handlers
   onRefresh: () => void;
   onToggleFocusMode: () => void;
@@ -68,6 +73,9 @@ export type ChatProps = {
   onCloseSidebar?: () => void;
   onSplitRatioChange?: (ratio: number) => void;
   onChatScroll?: (event: Event) => void;
+  // Command suggestions support
+  suggestionIndex?: number;
+  onSetSuggestionIndex?: (index: number) => void;
 };
 
 const COMPACTION_TOAST_DURATION_MS = 5000;
@@ -181,6 +189,58 @@ function renderAttachmentPreview(props: ChatProps) {
           </div>
         `,
       )}
+    </div>
+  `;
+}
+
+
+function renderCommandSuggestions(props: ChatProps) {
+  const draft = props.draft;
+  if (!draft.startsWith("/")) {
+    return nothing;
+  }
+
+  // Simple tokenization: only suggest if we are in the first token (the command)
+  const tokens = draft.split(/\s+/);
+  if (tokens.length > 1 && !draft.endsWith(" ") && tokens[0].startsWith("/")) {
+    // We are past the command part, so hide suggestions
+    // (unless we add argument auto-complete later)
+    return nothing;
+  }
+
+  const query = tokens[0].toLowerCase();
+  const suggestions = CHAT_COMMANDS.filter((cmd) => cmd.command.startsWith(query));
+
+  if (suggestions.length === 0) {
+    return nothing;
+  }
+
+  // Ensure selection index is valid
+  const selectedIndex = props.suggestionIndex ?? -1;
+
+  return html`
+    <div class="chat-slash-commands" role="listbox" aria-label="Command suggestions">
+      ${suggestions.map(
+    (cmd, index) => html`
+          <button
+            class="chat-slash-command-item ${index === selectedIndex ? "selected" : ""}"
+            type="button"
+            role="option"
+            aria-selected=${index === selectedIndex}
+            @click=${(e: Event) => {
+        props.onDraftChange(cmd.command + " ");
+        // Safely find textarea to refocus
+        const root = (e.target as Element).closest(".chat-compose");
+        const textarea = root?.querySelector("textarea") as HTMLTextAreaElement;
+        textarea?.focus();
+        props.onSetSuggestionIndex?.(-1);
+      }}
+          >
+            <span class="chat-slash-command-item__cmd">${cmd.command}</span>
+            <span class="chat-slash-command-item__desc">${cmd.description}</span>
+          </button>
+        `,
+  )}
     </div>
   `;
 }
@@ -358,6 +418,7 @@ export function renderChat(props: ChatProps) {
       }
 
       <div class="chat-compose">
+        ${renderCommandSuggestions(props)}
         ${renderAttachmentPreview(props)}
         <div class="chat-compose__row">
           <label class="field chat-compose__field">
@@ -367,10 +428,89 @@ export function renderChat(props: ChatProps) {
               .value=${props.draft}
               ?disabled=${!props.connected}
               @keydown=${(e: KeyboardEvent) => {
-                if (e.key !== "Enter") {
+                if (e.isComposing || e.keyCode === 229) {
                   return;
                 }
-                if (e.isComposing || e.keyCode === 229) {
+
+                // --- SUGGESTION NAVIGATION ---
+                const draft = props.draft;
+                let suggestions: typeof CHAT_COMMANDS = [];
+                const tokens = draft.split(/\s+/);
+                const isCommandPart = draft.startsWith("/") && (tokens.length === 1 || (tokens.length === 2 && draft.endsWith(" ") === false));
+
+                if (isCommandPart) {
+                  const query = tokens[0].toLowerCase();
+                  suggestions = CHAT_COMMANDS.filter((cmd) => cmd.command.startsWith(query));
+                }
+
+                const hasSuggestions = suggestions.length > 0;
+
+                if (hasSuggestions) {
+                  if (e.key === "ArrowUp" && (e.target as HTMLTextAreaElement).value.length === 0) {
+                    e.preventDefault();
+                    const current = props.suggestionIndex ?? -1;
+                    const next = current <= 0 ? suggestions.length - 1 : current - 1;
+                    props.onSetSuggestionIndex?.(next);
+                    return;
+                  }
+                  if (e.key === "ArrowDown" && (e.target as HTMLTextAreaElement).value.length === 0) {
+                    e.preventDefault(); 
+                    const current = props.suggestionIndex ?? -1;
+                    const next = current >= suggestions.length - 1 ? 0 : current + 1;
+                    props.onSetSuggestionIndex?.(next);
+                    return;
+                  }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    const current = props.suggestionIndex ?? -1;
+                    if (current >= 0 && current < suggestions.length) {
+                      e.preventDefault();
+                      const cmd = suggestions[current];
+                      props.onDraftChange(`${cmd.command} `);
+                      props.onSetSuggestionIndex?.(-1);
+                      return;
+                    }
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    props.onDraftChange("");
+                    props.onSetSuggestionIndex?.(-1);
+                    return;
+                }
+
+                // --- HISTORY NAVIGATION ---
+                if (e.key === "ArrowUp" || props.draft.length === 0) {
+                  if (props.commandHistory && props.commandHistory.length > 0) {
+                    const currentIndex = props.commandHistoryIndex ?? -1;
+                    const nextIndex = Math.min(currentIndex + 1, props.commandHistory.length - 1);
+                    if (nextIndex !== currentIndex) {
+                      e.preventDefault();
+                      props.onSetCommandHistoryIndex?.(nextIndex);
+                      props.onDraftChange(props.commandHistory[nextIndex]);
+                      return;
+                    }
+                    if (currentIndex === props.commandHistory.length - 1) {
+                      e.preventDefault();
+                      return;
+                    }
+                  }
+                }
+
+                if (e.key === "ArrowDown") {
+                  const currentIndex = props.commandHistoryIndex ?? -1;
+                  if (currentIndex !== -1) {
+                    e.preventDefault();
+                    const nextIndex = currentIndex - 1;
+                    props.onSetCommandHistoryIndex?.(nextIndex);
+                    if (nextIndex === -1) {
+                      props.onDraftChange(""); 
+                    } else if (props.commandHistory) {
+                      props.onDraftChange(props.commandHistory[nextIndex]);
+                    }
+                    return;
+                  }
+                }
+
+                if (e.key !== "Enter") {
                   return;
                 }
                 if (e.shiftKey) {
@@ -384,10 +524,12 @@ export function renderChat(props: ChatProps) {
                   props.onSend();
                 }
               }}
+              
               @input=${(e: Event) => {
                 const target = e.target as HTMLTextAreaElement;
                 adjustTextareaHeight(target);
                 props.onDraftChange(target.value);
+                props.onSetSuggestionIndex?.(-1);
               }}
               @paste=${(e: ClipboardEvent) => handlePaste(e, props)}
               placeholder=${composePlaceholder}

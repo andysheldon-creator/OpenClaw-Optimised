@@ -981,6 +981,11 @@ export function renderApp(state: AppViewState) {
                 sidebarOpen: (state as unknown as OpenClawApp).sidebarOpen,
                 sidebarContent: (state as unknown as OpenClawApp).sidebarContent,
                 sidebarError: (state as unknown as OpenClawApp).sidebarError,
+                commandHistory: state.chatCommandHistory,
+                commandHistoryIndex: state.chatCommandHistoryIndex,
+                onSetCommandHistoryIndex: (index) => (state.chatCommandHistoryIndex = index),
+                suggestionIndex: state.chatSuggestionIndex,
+                onSetSuggestionIndex: (index) => (state.chatSuggestionIndex = index),                
                 splitRatio: (state as unknown as OpenClawApp).splitRatio,
                 onOpenSidebar: (content: string) =>
                   (state as unknown as OpenClawApp).handleOpenSidebar(content),

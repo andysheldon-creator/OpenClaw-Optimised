@@ -22,6 +22,10 @@ export type ChatHost = {
   hello: GatewayHelloOk | null;
   chatAvatarUrl: string | null;
   refreshSessionsAfterChat: Set<string>;
+  chatCommandHistory: string[];
+  chatCommandHistoryIndex: number;
+  settings: import("./storage").UiSettings;
+  applySettings(next: import("./storage").UiSettings): void;
 };
 
 export const CHAT_SESSIONS_ACTIVE_MINUTES = 120;
@@ -190,6 +194,18 @@ export async function handleSendChat(
   if (isChatBusy(host)) {
     enqueueChatMessage(host, message, attachmentsToSend, refreshSessions);
     return;
+  }
+
+  // Save to command history if it's a slash command
+  if (message.startsWith("/") && message.trim().length > 1) {
+    const history = host.chatCommandHistory;
+    const nextHistory = [message, ...history.filter((m) => m !== message)].slice(0, 50);
+    host.chatCommandHistory = nextHistory;
+    host.chatCommandHistoryIndex = -1;
+    host.applySettings({
+      ...host.settings,
+      chatCommandHistory: nextHistory,
+    });
   }
 
   await sendChatMessageNow(host, message, {

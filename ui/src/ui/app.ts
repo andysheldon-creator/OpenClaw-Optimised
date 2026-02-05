@@ -140,6 +140,8 @@ export class OpenClawApp extends LitElement {
   @state() sidebarContent: string | null = null;
   @state() sidebarError: string | null = null;
   @state() splitRatio = this.settings.splitRatio;
+  @state() chatCommandHistory: string[] = this.settings.chatCommandHistory;
+  @state() chatCommandHistoryIndex = -1;
 
   @state() nodesLoading = false;
   @state() nodes: Array<Record<string, unknown>> = [];
