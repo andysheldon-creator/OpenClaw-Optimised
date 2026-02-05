@@ -24,6 +24,7 @@ export type AuthChoiceGroupId =
   | "venice"
   | "qwen"
   | "xai";
+  | "qianfan";
 
 export type AuthChoiceGroup = {
   value: AuthChoiceGroupId;
@@ -134,6 +135,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     hint: "Account ID + Gateway ID + API key",
     choices: ["cloudflare-ai-gateway-api-key"],
   },
+  {
+    value: "qianfan",
+    label: "Qianfan",
+    hint: "API key",
+    choices: ["qianfan-api-key"],
+  },
 ];
 
 export function buildAuthChoiceOptions(params: {
@@ -225,6 +232,10 @@ export function buildAuthChoiceOptions(params: {
     value: "minimax-api-lightning",
     label: "MiniMax M2.1 Lightning",
     hint: "Faster, higher output cost",
+  });
+  options.push({
+    value: "qianfan-api-key",
+    label: "Qianfan API key",
   });
   if (params.includeSkip) {
     options.push({ value: "skip", label: "Skip for now" });
