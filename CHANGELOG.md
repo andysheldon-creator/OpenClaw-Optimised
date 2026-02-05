@@ -75,6 +75,7 @@ Docs: https://docs.openclaw.ai
 
 ### Changes
 
+- Ollama: enable auto-discovery for local models (no API key required) + configurable timeouts/base URLs.
 - Feishu: add Feishu/Lark plugin support + docs. (#7313) Thanks @jiulingyun (openclaw-cn).
 - Web UI: add Agents dashboard for managing agent files, tools, skills, models, channels, and cron jobs.
 - Subagents: discourage direct messaging tool use unless a specific external recipient is requested.

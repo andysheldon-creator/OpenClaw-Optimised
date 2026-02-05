@@ -8,7 +8,7 @@ title: "Ollama"
 
 # Ollama
 
-Ollama is a local LLM runtime that makes it easy to run open-source models on your machine. OpenClaw integrates with Ollama's OpenAI-compatible API and can **auto-discover tool-capable models** when you opt in with `OLLAMA_API_KEY` (or an auth profile) and do not define an explicit `models.providers.ollama` entry.
+Ollama is a local LLM runtime that makes it easy to run open-source models on your machine. OpenClaw integrates with Ollama's OpenAI-compatible API and can **auto-discover models** from your local instance.
 
 ## Quick start
 
@@ -24,14 +24,15 @@ ollama pull qwen2.5-coder:32b
 ollama pull deepseek-r1:32b
 ```
 
-3. Enable Ollama for OpenClaw (any value works; Ollama doesn't require a real key):
+3. Enable Ollama for OpenClaw:
+
+OpenClaw automatically detects running Ollama instances on `localhost:11434`. No configuration is required if Ollama is running locally.
+
+If you need to configure a remote instance or custom port:
 
 ```bash
 # Set environment variable
-export OLLAMA_API_KEY="ollama-local"
-
-# Or configure in your config file
-openclaw config set models.providers.ollama.apiKey "ollama-local"
+export OLLAMA_HOST="http://192.168.1.50:11434"
 ```
 
 4. Use Ollama models:
@@ -48,16 +49,15 @@ openclaw config set models.providers.ollama.apiKey "ollama-local"
 
 ## Model discovery (implicit provider)
 
-When you set `OLLAMA_API_KEY` (or an auth profile) and **do not** define `models.providers.ollama`, OpenClaw discovers models from the local Ollama instance at `http://127.0.0.1:11434`:
+OpenClaw automatically attempts to discover models from the Ollama instance at `http://127.0.0.1:11434` (or `OLLAMA_HOST`).
 
-- Queries `/api/tags` and `/api/show`
-- Keeps only models that report `tools` capability
-- Marks `reasoning` when the model reports `thinking`
-- Reads `contextWindow` from `model_info["<arch>.context_length"]` when available
-- Sets `maxTokens` to 10× the context window
+If models are found:
+
+- It queries `/api/tags`
+- It sets `apiKey` to "local" automatically if not provided
 - Sets all costs to `0`
 
-This avoids manual model entries while keeping the catalog aligned with Ollama's capabilities.
+This avoids manual configuration while keeping the catalog aligned with Ollama's capabilities.
 
 To see what models are available:
 
@@ -74,25 +74,22 @@ ollama pull mistral
 
 The new model will be automatically discovered and available to use.
 
-If you set `models.providers.ollama` explicitly, auto-discovery is skipped and you must define models manually (see below).
+If you set `models.providers.ollama` explicitly in your config, auto-discovery is skipped and you must define models manually (see below).
 
 ## Configuration
 
-### Basic setup (implicit discovery)
+### Environment Variables
 
-The simplest way to enable Ollama is via environment variable:
-
-```bash
-export OLLAMA_API_KEY="ollama-local"
-```
+- `OLLAMA_HOST`: Base URL for the Ollama API (default: `http://127.0.0.1:11434`)
+- `OLLAMA_BASE_URL`: Base URL for the OpenAI-compatible endpoint (default: `http://127.0.0.1:11434/v1`)
+- `OLLAMA_API_KEY`: Optional API key (default: `local` if discovered)
 
 ### Explicit setup (manual models)
 
 Use explicit config when:
 
-- Ollama runs on another host/port.
 - You want to force specific context windows or model lists.
-- You want to include models that do not report tool support.
+- You want to override auto-discovered parameters.
 
 ```json5
 {

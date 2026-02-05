@@ -12,6 +12,8 @@ export {
   applyMoonshotConfig,
   applyMoonshotConfigCn,
   applyMoonshotProviderConfig,
+  applyOllamaConfig,
+  applyOllamaProviderConfig,
   applyMoonshotProviderConfigCn,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
@@ -47,6 +49,7 @@ export {
   setKimiCodingApiKey,
   setMinimaxApiKey,
   setMoonshotApiKey,
+  setOllamaApiKey,
   setOpencodeZenApiKey,
   setOpenrouterApiKey,
   setSyntheticApiKey,
@@ -73,4 +76,6 @@ export {
   MOONSHOT_BASE_URL,
   MOONSHOT_DEFAULT_MODEL_ID,
   MOONSHOT_DEFAULT_MODEL_REF,
+  OLLAMA_BASE_URL,
+  OLLAMA_DEFAULT_API_KEY,
 } from "./onboard-auth.models.js";

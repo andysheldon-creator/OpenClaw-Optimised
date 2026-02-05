@@ -4,6 +4,7 @@ import {
   DEFAULT_COPILOT_API_BASE_URL,
   resolveCopilotApiToken,
 } from "../providers/github-copilot-token.js";
+import { isOllamaInstalled, promptOllamaInstall } from "../providers/ollama-installer.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
 import { discoverBedrockModels } from "./bedrock-discovery.js";
 import {
@@ -69,8 +70,6 @@ const QWEN_PORTAL_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
-const OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1";
-const OLLAMA_API_BASE_URL = "http://127.0.0.1:11434";
 const OLLAMA_DEFAULT_CONTEXT_WINDOW = 128000;
 const OLLAMA_DEFAULT_MAX_TOKENS = 8192;
 const OLLAMA_DEFAULT_COST = {
@@ -100,9 +99,12 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
   if (process.env.VITEST || process.env.NODE_ENV === "test") {
     return [];
   }
+
+  const OLLAMA_API_BASE_URL = process.env.OLLAMA_HOST || "http://127.0.0.1:11434";
+
   try {
     const response = await fetch(`${OLLAMA_API_BASE_URL}/api/tags`, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10000),
     });
     if (!response.ok) {
       console.warn(`Failed to discover Ollama models: ${response.status}`);
@@ -128,9 +130,34 @@ async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
       };
     });
   } catch (error) {
-    console.warn(`Failed to discover Ollama models: ${String(error)}`);
+    // Only warn if we expected Ollama to be there (i.e. if we have a key configured)
+    // Otherwise, silent failure is better for auto-discovery to avoid noise
+    const isExplicitlyConfigured = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_HOST;
+    if (isExplicitlyConfigured) {
+      console.warn(`Failed to discover Ollama models: ${String(error)}`);
+    }
     return [];
   }
+}
+
+/**
+ * Check if Ollama should be offered for installation
+ * Only prompt if running interactively (TTY) and not already installed
+ */
+async function shouldOfferOllamaInstall(): Promise<boolean> {
+  // Don't prompt in non-interactive environments
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    return false;
+  }
+
+  // Don't prompt if explicitly disabled
+  if (process.env.OPENCLAW_SKIP_OLLAMA_INSTALL === "1") {
+    return false;
+  }
+
+  // Check if already installed
+  const installed = await isOllamaInstalled();
+  return !installed;
 }
 
 function normalizeApiKeyConfig(value: string): string {
@@ -389,8 +416,8 @@ async function buildVeniceProvider(): Promise<ProviderConfig> {
   };
 }
 
-async function buildOllamaProvider(): Promise<ProviderConfig> {
-  const models = await discoverOllamaModels();
+async function buildOllamaProvider(models: ModelDefinitionConfig[]): Promise<ProviderConfig> {
+  const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434/v1";
   return {
     baseUrl: OLLAMA_BASE_URL,
     api: "openai-completions",
@@ -457,6 +484,7 @@ export async function resolveImplicitProviders(params: {
     providers.xiaomi = { ...buildXiaomiProvider(), apiKey: xiaomiKey };
   }
 
+  // Ollama provider - auto-discover if available, or if explicitly configured
   const cloudflareProfiles = listProfilesForProvider(authStore, "cloudflare-ai-gateway");
   for (const profileId of cloudflareProfiles) {
     const cred = authStore.profiles[profileId];
@@ -489,8 +517,16 @@ export async function resolveImplicitProviders(params: {
   const ollamaKey =
     resolveEnvApiKeyVarName("ollama") ??
     resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
-  if (ollamaKey) {
-    providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
+
+  const ollamaModels = await discoverOllamaModels();
+
+  // Enable if we have a key OR if we found models (auto-discovery)
+  if (ollamaKey || ollamaModels.length > 0) {
+    // Optimization: avoid double call by constructing the config directly
+    providers.ollama = {
+      ...(await buildOllamaProvider(ollamaModels)),
+      apiKey: ollamaKey ?? "local", // Default to "local" if discovered but no key
+    };
   }
 
   return providers;

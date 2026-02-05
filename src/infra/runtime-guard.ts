@@ -9,7 +9,7 @@ type Semver = {
   patch: number;
 };
 
-const MIN_NODE: Semver = { major: 22, minor: 0, patch: 0 };
+const MIN_NODE: Semver = { major: 20, minor: 0, patch: 0 };
 
 export type RuntimeDetails = {
   kind: RuntimeKind;

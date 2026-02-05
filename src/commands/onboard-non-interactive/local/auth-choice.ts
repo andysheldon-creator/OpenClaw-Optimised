@@ -15,6 +15,7 @@ import {
   applyMinimaxApiConfig,
   applyMinimaxConfig,
   applyMoonshotConfig,
+  applyOllamaProviderConfig,
   applyMoonshotConfigCn,
   applyOpencodeZenConfig,
   applyOpenrouterConfig,
@@ -23,12 +24,15 @@ import {
   applyVercelAiGatewayConfig,
   applyXiaomiConfig,
   applyZaiConfig,
+  OLLAMA_BASE_URL,
+  OLLAMA_DEFAULT_API_KEY,
   setAnthropicApiKey,
   setCloudflareAiGatewayConfig,
   setGeminiApiKey,
   setKimiCodingApiKey,
   setMinimaxApiKey,
   setMoonshotApiKey,
+  setOllamaApiKey,
   setOpencodeZenApiKey,
   setOpenrouterApiKey,
   setSyntheticApiKey,
@@ -490,6 +494,26 @@ export async function applyNonInteractiveAuthChoice(params: {
       mode: "api_key",
     });
     return applyOpencodeZenConfig(nextConfig);
+  }
+
+  if (authChoice === "ollama") {
+    // Resolve base URL: CLI flag > default
+    let baseUrl = OLLAMA_BASE_URL;
+    if (opts.ollamaBaseUrl) {
+      const trimmedUrl = opts.ollamaBaseUrl.trim().replace(/\/+$/, "");
+      baseUrl = trimmedUrl.endsWith("/v1") ? trimmedUrl : `${trimmedUrl}/v1`;
+    }
+
+    // Store placeholder API key to enable provider discovery
+    await setOllamaApiKey(OLLAMA_DEFAULT_API_KEY);
+
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "ollama:default",
+      provider: "ollama",
+      mode: "api_key",
+    });
+
+    return applyOllamaProviderConfig(nextConfig, { baseUrl });
   }
 
   if (

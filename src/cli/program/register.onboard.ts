@@ -86,6 +86,7 @@ export function registerOnboardCommand(program: Command) {
     .option("--synthetic-api-key <key>", "Synthetic API key")
     .option("--venice-api-key <key>", "Venice API key")
     .option("--opencode-zen-api-key <key>", "OpenCode Zen API key")
+    .option("--ollama-base-url <url>", "Ollama server URL (e.g., http://192.168.1.100:11434)")
     .option("--gateway-port <port>", "Gateway port")
     .option("--gateway-bind <mode>", "Gateway bind: loopback|tailnet|lan|auto|custom")
     .option("--gateway-auth <mode>", "Gateway auth: token|password")
@@ -140,6 +141,7 @@ export function registerOnboardCommand(program: Command) {
             syntheticApiKey: opts.syntheticApiKey as string | undefined,
             veniceApiKey: opts.veniceApiKey as string | undefined,
             opencodeZenApiKey: opts.opencodeZenApiKey as string | undefined,
+            ollamaBaseUrl: opts.ollamaBaseUrl as string | undefined,
             gatewayPort:
               typeof gatewayPort === "number" && Number.isFinite(gatewayPort)
                 ? gatewayPort
