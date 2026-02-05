@@ -356,7 +356,10 @@ export async function sanitizeSessionHistory(params: {
   // Remove orphaned tool_results that reference non-existent tool_use IDs.
   // This catches edge cases from compaction/truncation where tool_use messages
   // are removed but their corresponding tool_results remain.
-  const orphanCleanup = removeOrphanedToolResults(repairedTools, log);
+  // Only run when repairToolUseResultPairing is enabled to respect policy.
+  const orphanCleanup = policy.repairToolUseResultPairing
+    ? removeOrphanedToolResults(repairedTools, log)
+    : { messages: repairedTools, droppedCount: 0 };
   const cleanedMessages = orphanCleanup.messages;
 
   const isOpenAIResponsesApi =
