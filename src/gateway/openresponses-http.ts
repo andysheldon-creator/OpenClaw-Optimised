@@ -61,6 +61,9 @@ import {
   type StreamingEvent,
   type Usage,
 } from "./open-responses.schema.js";
+import { getAgentConfigManager } from "../agents/agent-config.js";
+import { resolveAgentIdFromRequest as resolveAgentId } from "../agents/agent-router.js";
+import { buildAgentSystemPrompt as buildCustomAgentSystemPrompt } from "../agents/custom-system-prompt.js";
 
 type OpenResponsesHttpOptions = {
   auth: ResolvedGatewayAuth;
@@ -480,11 +483,18 @@ export async function handleOpenResponsesHttpRequest(
     });
     return true;
   }
-  const agentId = resolveAgentIdForRequest({ req, model });
-  const sessionKey = resolveOpenResponsesSessionKey({ req, agentId, user });
+  // Extract metadata from request body for channel context and custom fields
+  const requestMetadata =
+    payload.metadata && typeof payload.metadata === "object" ? payload.metadata : {};
+  const metadataObj = requestMetadata as Record<string, unknown>;
 
   // Extract and store multi-tenant context for MCP integration
   const tenantContext = extractTenantContext(req);
+
+  // Resolve agent ID using new agent router (supports metadata.agentId, headers, model name)
+  const agentId = resolveAgentId({ model, metadata: metadataObj, req });
+  const sessionKey = resolveOpenResponsesSessionKey({ req, agentId, user });
+
   if (tenantContext.organizationId || tenantContext.workspaceId) {
     await updateSessionEntry(sessionKey, {
       organizationId: tenantContext.organizationId,
@@ -494,10 +504,19 @@ export async function handleOpenResponsesHttpRequest(
     });
   }
 
-  // Extract metadata from request body for channel context and custom fields
-  const requestMetadata =
-    payload.metadata && typeof payload.metadata === "object" ? payload.metadata : {};
-  const metadataObj = requestMetadata as Record<string, unknown>;
+  // Load agent configuration if available
+  let agentConfig = null;
+  try {
+    const configManager = getAgentConfigManager();
+    agentConfig = await configManager.getAgentConfig({
+      organizationId: tenantContext.organizationId || "default_org",
+      workspaceId: tenantContext.workspaceId,
+      agentId,
+    });
+  } catch (err) {
+    // Agent config is optional; continue without it if unavailable
+    console.warn(`Could not load agent config for ${agentId}:`, err);
+  }
 
   // Extract channel information
   const channel = typeof metadataObj.channel === "string" ? metadataObj.channel : "webchat";
@@ -537,19 +556,6 @@ export async function handleOpenResponsesHttpRequest(
   // Build prompt from input
   const prompt = buildAgentPrompt(payload.input);
 
-  const fileContext = fileContexts.length > 0 ? fileContexts.join("\n\n") : undefined;
-  const toolChoiceContext = toolChoicePrompt?.trim();
-
-  // Handle instructions + file context as extra system prompt
-  const extraSystemPrompt = [
-    payload.instructions,
-    prompt.extraSystemPrompt,
-    toolChoiceContext,
-    fileContext,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
   if (!prompt.message) {
     sendJson(res, 400, {
       error: {
@@ -558,6 +564,47 @@ export async function handleOpenResponsesHttpRequest(
       },
     });
     return true;
+  }
+
+  // Validate channel restrictions if agent config specifies allowed channels
+  if (agentConfig?.allowedChannels && agentConfig.allowedChannels.length > 0) {
+    if (!agentConfig.allowedChannels.includes(channel)) {
+      sendJson(res, 403, {
+        error: {
+          message: `Agent ${agentId} is not allowed to use channel ${channel}`,
+          type: "invalid_request_error",
+        },
+      });
+      return true;
+    }
+  }
+
+  const fileContext = fileContexts.length > 0 ? fileContexts.join("\n\n") : undefined;
+  const toolChoiceContext = toolChoicePrompt?.trim();
+
+  // Build base extra system prompt from request
+  const baseExtraSystemPrompt = [
+    payload.instructions,
+    prompt.extraSystemPrompt,
+    toolChoiceContext,
+    fileContext,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  // Build custom system prompt if agent config is available
+  let extraSystemPrompt = baseExtraSystemPrompt;
+  if (agentConfig) {
+    extraSystemPrompt = buildCustomAgentSystemPrompt({
+      agentConfig,
+      baseSystemPrompt: baseExtraSystemPrompt || "",
+      tenantContext: {
+        organizationId: tenantContext.organizationId,
+        workspaceId: tenantContext.workspaceId,
+        teamId: tenantContext.teamId,
+        userId: tenantContext.userId,
+      },
+    });
   }
 
   const responseId = `resp_${randomUUID()}`;
