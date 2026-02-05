@@ -1,0 +1,11 @@
+{
+  "id": "dingtalk",
+  "name": "DingTalk",
+  "version": "2025.2.5",
+  "description": "DingTalk channel integration for OpenClaw",
+  "type": "channel",
+  "main": "dist/index.js",
+  "author": "OpenClaw",
+  "license": "MIT",
+  "configSchema": {}
+}

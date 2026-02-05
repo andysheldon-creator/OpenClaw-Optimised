@@ -95,6 +95,7 @@ export type {
   MSTeamsTeamConfig,
 } from "../config/types.js";
 export {
+  DingTalkConfigSchema,
   DiscordConfigSchema,
   GoogleChatConfigSchema,
   IMessageConfigSchema,
@@ -207,7 +208,14 @@ export { PAIRING_APPROVED_MESSAGE } from "../channels/plugins/pairing-message.js
 
 export type {
   ChannelOnboardingAdapter,
+  ChannelOnboardingConfigureContext,
   ChannelOnboardingDmPolicy,
+  ChannelOnboardingResult,
+  ChannelOnboardingStatus,
+  ChannelOnboardingStatusContext,
+  PromptAccountId,
+  PromptAccountIdParams,
+  SetupChannelsOptions,
 } from "../channels/plugins/onboarding-types.js";
 export { addWildcardAllowFrom, promptAccountId } from "../channels/plugins/onboarding/helpers.js";
 export { promptChannelAccessConfig } from "../channels/plugins/onboarding/channel-access.js";

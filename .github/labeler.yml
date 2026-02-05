@@ -9,6 +9,11 @@
           - "src/discord/**"
           - "extensions/discord/**"
           - "docs/channels/discord.md"
+"channel: dingtalk":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/dingtalk/**"
+          - "docs/channels/dingtalk.md"
 "channel: feishu":
   - changed-files:
       - any-glob-to-any-file:

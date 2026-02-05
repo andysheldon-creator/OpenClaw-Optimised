@@ -777,6 +777,16 @@ export const MSTeamsTeamSchema = z
   })
   .strict();
 
+export const DingTalkConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    webhookUrl: z.string(),
+    secret: z.string(),
+    dmPolicy: DmPolicySchema.optional().default("pairing"),
+    allowFrom: z.array(z.string()).optional(),
+  })
+  .strict();
+
 export const MSTeamsConfigSchema = z
   .object({
     enabled: z.boolean().optional(),

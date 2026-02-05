@@ -1,0 +1,38 @@
+{
+  "name": "@openclaw/dingtalk",
+  "version": "2025.2.5",
+  "description": "DingTalk channel integration for OpenClaw",
+  "keywords": [
+    "channel",
+    "dingtalk",
+    "openclaw",
+    "plugin"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "openclaw": "workspace:*",
+    "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "openclaw": "*"
+  },
+  "openclaw": {
+    "type": "channel",
+    "id": "dingtalk",
+    "label": "DingTalk",
+    "order": 65
+  }
+}
