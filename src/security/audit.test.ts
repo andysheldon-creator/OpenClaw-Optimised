@@ -1146,8 +1146,8 @@ description: test skill
       );
       await fs.writeFile(path.join(pluginDir, "index.js"), "export {};");
 
-      const { collectSkillCodeSafetyFindings } = await import("./audit-extra.js");
-      const findings = await collectSkillCodeSafetyFindings({ stateDir: tmpDir });
+      const { collectPluginsCodeSafetyFindings } = await import("./audit-extra.js");
+      const findings = await collectPluginsCodeSafetyFindings({ stateDir: tmpDir });
       expect(findings.some((f) => f.checkId === "plugins.code_safety.scan_failed")).toBe(true);
     } finally {
       vi.doUnmock("./skill-scanner.js");

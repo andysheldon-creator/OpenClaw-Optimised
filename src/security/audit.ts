@@ -21,7 +21,7 @@ import {
   collectSmallModelRiskFindings,
   collectPluginsTrustFindings,
   collectSecretsInConfigFindings,
-  collectSkillCodeSafetyFindings,
+  collectPluginsCodeSafetyFindings,
   collectStateDeepFilesystemFindings,
   collectSyncedFolderFindings,
   readConfigSnapshotForAudit,
@@ -958,7 +958,7 @@ export async function runSecurityAudit(opts: SecurityAuditOptions): Promise<Secu
     );
     findings.push(...(await collectPluginsTrustFindings({ cfg, stateDir })));
     if (opts.deep === true) {
-      findings.push(...(await collectSkillCodeSafetyFindings({ stateDir })));
+      findings.push(...(await collectPluginsCodeSafetyFindings({ stateDir })));
       findings.push(...(await collectInstalledSkillsCodeSafetyFindings({ cfg, stateDir })));
     }
   }

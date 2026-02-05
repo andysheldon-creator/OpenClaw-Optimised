@@ -1126,7 +1126,7 @@ function formatCodeSafetyDetails(findings: SkillScanFinding[], rootDir: string):
     .join("\n");
 }
 
-export async function collectSkillCodeSafetyFindings(params: {
+export async function collectPluginsCodeSafetyFindings(params: {
   stateDir: string;
 }): Promise<SecurityAuditFinding[]> {
   const findings: SecurityAuditFinding[] = [];
@@ -1136,7 +1136,17 @@ export async function collectSkillCodeSafetyFindings(params: {
     return findings;
   }
 
-  const entries = await fs.readdir(extensionsDir, { withFileTypes: true }).catch(() => []);
+  const entries = await fs.readdir(extensionsDir, { withFileTypes: true }).catch((err) => {
+    findings.push({
+      checkId: "plugins.code_safety.scan_failed",
+      severity: "warn",
+      title: "Plugin extensions directory scan failed",
+      detail: `Static code scan could not list extensions directory: ${String(err)}`,
+      remediation:
+        "Check file permissions and plugin layout, then rerun `openclaw security audit --deep`.",
+    });
+    return [];
+  });
   const pluginDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
   for (const pluginName of pluginDirs) {
@@ -1200,7 +1210,8 @@ export async function collectSkillCodeSafetyFindings(params: {
         severity: "critical",
         title: `Plugin "${pluginName}" contains dangerous code patterns`,
         detail: `Found ${summary.critical} critical issue(s) in ${summary.scannedFiles} scanned file(s):\n${details}`,
-        remediation: `Review the plugin source code carefully before use. Remove the plugin with: rm -rf "${pluginPath}"`,
+        remediation:
+          "Review the plugin source code carefully before use. If untrusted, remove the plugin from your OpenClaw extensions state directory.",
       });
     } else if (summary.warn > 0) {
       const warnFindings = summary.findings.filter((f) => f.severity === "warn");

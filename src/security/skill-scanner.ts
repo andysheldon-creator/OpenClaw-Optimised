@@ -52,6 +52,16 @@ export function isScannable(filePath: string): boolean {
   return SCANNABLE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
 }
 
+function isErrno(err: unknown, code: string): boolean {
+  if (!err || typeof err !== "object") {
+    return false;
+  }
+  if (!("code" in err)) {
+    return false;
+  }
+  return (err as { code?: unknown }).code === code;
+}
+
 // ---------------------------------------------------------------------------
 // Rule definitions
 // ---------------------------------------------------------------------------
@@ -268,7 +278,7 @@ async function walkDirWithLimit(dirPath: string, maxFiles: number): Promise<stri
       break;
     }
 
-    const entries = await fs.readdir(currentDir, { withFileTypes: true }).catch(() => []);
+    const entries = await fs.readdir(currentDir, { withFileTypes: true });
     for (const entry of entries) {
       if (files.length >= maxFiles) {
         break;
@@ -313,7 +323,15 @@ async function resolveForcedFiles(params: {
       continue;
     }
 
-    const st = await fs.stat(includePath).catch(() => null);
+    let st: Awaited<ReturnType<typeof fs.stat>> | null = null;
+    try {
+      st = await fs.stat(includePath);
+    } catch (err) {
+      if (isErrno(err, "ENOENT")) {
+        continue;
+      }
+      throw err;
+    }
     if (!st?.isFile()) {
       continue;
     }
@@ -352,11 +370,26 @@ async function collectScannableFiles(dirPath: string, opts: Required<SkillScanOp
 }
 
 async function readScannableSource(filePath: string, maxFileBytes: number): Promise<string | null> {
-  const st = await fs.stat(filePath).catch(() => null);
+  let st: Awaited<ReturnType<typeof fs.stat>> | null = null;
+  try {
+    st = await fs.stat(filePath);
+  } catch (err) {
+    if (isErrno(err, "ENOENT")) {
+      return null;
+    }
+    throw err;
+  }
   if (!st?.isFile() || st.size > maxFileBytes) {
     return null;
   }
-  return await fs.readFile(filePath, "utf-8").catch(() => null);
+  try {
+    return await fs.readFile(filePath, "utf-8");
+  } catch (err) {
+    if (isErrno(err, "ENOENT")) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function scanDirectory(

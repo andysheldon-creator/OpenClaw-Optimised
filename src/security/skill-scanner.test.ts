@@ -2,7 +2,7 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   isScannable,
   scanDirectory,
@@ -318,5 +318,27 @@ describe("scanDirectoryWithSummary", () => {
     });
     expect(summary.scannedFiles).toBe(1);
     expect(summary.findings.some((f) => f.ruleId === "dynamic-code-execution")).toBe(true);
+  });
+
+  it("throws when reading a scannable file fails", async () => {
+    const root = makeTmpDir();
+    const filePath = path.join(root, "bad.js");
+    fsSync.writeFileSync(filePath, "export const ok = true;\n");
+
+    const realReadFile = fs.readFile;
+    const spy = vi.spyOn(fs, "readFile").mockImplementation(async (...args) => {
+      if (String(args[0]) === filePath) {
+        const err = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+        err.code = "EACCES";
+        throw err;
+      }
+      return await realReadFile(...args);
+    });
+
+    try {
+      await expect(scanDirectoryWithSummary(root)).rejects.toMatchObject({ code: "EACCES" });
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
