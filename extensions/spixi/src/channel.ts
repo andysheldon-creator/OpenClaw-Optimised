@@ -94,7 +94,7 @@ export const spixiPlugin: ChannelPlugin<ResolvedSpixiAccount> = {
         allowFrom: config.allowFrom,
       }));
 
-      const mqttUrl = `mqtt://${config.mqttHost || "127.0.0.1"}:${config.mqttPort || 1884}`;
+      const mqttUrl = `mqtt://${config.mqttHost || "127.0.0.1"}:${config.mqttPort || 1883}`;
 
       log?.info(`[${account.accountId}] connecting to Spixi MQTT: ${mqttUrl}`);
 

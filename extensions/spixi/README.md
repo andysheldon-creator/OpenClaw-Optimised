@@ -54,7 +54,7 @@ channels:
   spixi:
     enabled: true
     mqttHost: "127.0.0.1"
-    mqttPort: 1884
+    mqttPort: 1883
     quixiApiUrl: "http://localhost:8001"
     myWalletAddress: "your-ixian-wallet-address"
     dmPolicy: pairing  # pairing | allowlist | open | disabled
@@ -66,7 +66,7 @@ channels:
 |--------|------|---------|-------------|
 | `enabled` | boolean | `false` | Enable/disable the channel |
 | `mqttHost` | string | `127.0.0.1` | MQTT broker hostname |
-| `mqttPort` | number | `1884` | MQTT broker port |
+| `mqttPort` | number | `1883` | MQTT broker port |
 | `quixiApiUrl` | string | `http://localhost:8001` | QuIXI REST API URL |
 | `myWalletAddress` | string | - | Your Ixian wallet (filters self-messages) |
 | `dmPolicy` | string | `pairing` | DM access policy |

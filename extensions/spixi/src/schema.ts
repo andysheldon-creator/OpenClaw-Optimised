@@ -27,7 +27,7 @@ export const SpixiAccountSchemaBase = z
       .int()
       .positive()
       .optional()
-      .default(1884)
+      .default(1883)
       .describe("Port of the MQTT broker."),
     myWalletAddress: z
       .string()

@@ -102,11 +102,11 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
   spixi: {
     id: "spixi",
     label: "Spixi",
-    selectionLabel: "Spixi (P2P DLT)",
+    selectionLabel: "Spixi (Fully decentralized messaging)",
     detailLabel: "Spixi P2P",
     docsPath: "/channels/spixi",
     docsLabel: "spixi",
-    blurb: "decentralized, privacy-first messaging via Ixian DLT.",
+    blurb: "decentralized, privacy-first, post quantum secure messaging via Ixian Platform.",
     systemImage: "shield.fill",
   },
 };

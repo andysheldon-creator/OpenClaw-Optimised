@@ -82,8 +82,8 @@ export const spixiOnboardingAdapter: ChannelOnboardingAdapter = {
         const mqttPortRaw = String(
             await prompter.text({
                 message: "MQTT broker port",
-                placeholder: "1884",
-                initialValue: String((cfg.channels?.spixi as any)?.mqttPort ?? 1884),
+                placeholder: "1883",
+                initialValue: String((cfg.channels?.spixi as any)?.mqttPort ?? 1883),
                 validate: (value) => {
                     const num = Number(value);
                     if (!Number.isFinite(num) || num <= 0 || num > 65535) {

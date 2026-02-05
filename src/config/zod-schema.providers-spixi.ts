@@ -21,7 +21,7 @@ export const SpixiAccountSchemaBase = z
       .int()
       .positive()
       .optional()
-      .default(1884),
+      .default(1883),
     myWalletAddress: z
       .string()
       .optional(),
