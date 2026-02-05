@@ -34,6 +34,20 @@ if [ -n "${OPENCLAW_CONFIG_PATH:-}" ]; then
 else
     OPENCLAW_CONFIG_PATH="$OPENCLAW_STATE_DIR/openclaw.json"
 fi
+
+# If the config file exists but is not writable (e.g., owned by root), fall back to /tmp.
+if [ -e "$OPENCLAW_CONFIG_PATH" ] && [ ! -w "$OPENCLAW_CONFIG_PATH" ]; then
+    OPENCLAW_DATA_DIR="/tmp/openclaw"
+    OPENCLAW_STATE_DIR="$OPENCLAW_DATA_DIR/.openclaw"
+    OPENCLAW_CONFIG_PATH="$OPENCLAW_STATE_DIR/openclaw.json"
+    mkdir -p "$OPENCLAW_STATE_DIR" 2>/dev/null || true
+    echo "[entrypoint] Config file not writable; falling back to $OPENCLAW_CONFIG_PATH"
+fi
+
+export OPENCLAW_STATE_DIR
+export OPENCLAW_DATA_DIR
+export CLAWDBOT_STATE_DIR="$OPENCLAW_STATE_DIR"
+export MOLTBOT_STATE_DIR="$OPENCLAW_STATE_DIR"
 export OPENCLAW_CONFIG_PATH
 echo "[entrypoint] State dir: $OPENCLAW_STATE_DIR"
 echo "[entrypoint] Config path: $OPENCLAW_CONFIG_PATH"
