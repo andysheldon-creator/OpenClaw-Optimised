@@ -504,11 +504,14 @@ Output only valid JSON:`;
           stream: false,
         });
 
+        const endpoint = CONFIG?.engines?.local?.endpoint ?? "http://localhost:11434";
+        const url = new URL(endpoint);
+
         const req = http.request(
           {
-            hostname: "localhost",
-            port: 11434,
-            path: "/api/generate",
+            hostname: url.hostname,
+            port: url.port ? Number(url.port) : 80,
+            path: `${url.pathname.replace(/\/$/, "")}/api/generate`,
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -517,7 +520,16 @@ Output only valid JSON:`;
           },
           (res: http.IncomingMessage) => {
             let data = "";
-            res.on("data", (chunk: Buffer) => (data += chunk.toString()));
+
+            if (res.statusCode !== 200) {
+              res.resume();
+              reject(new Error(`Ollama returned status ${res.statusCode ?? "unknown"}`));
+              return;
+            }
+
+            res.on("data", (chunk: Buffer) => {
+              data += chunk.toString();
+            });
             res.on("end", () => {
               try {
                 const result = JSON.parse(data) as { response: string };
@@ -1147,11 +1159,11 @@ export {
   SessionContinuationConfig,
   ContinuationResult,
   getSessionContinuationMessage,
-} from "./session-continuation.js";
+} from "./session-continuation";
 
 export {
   initSessionContinuation,
   onSessionStart,
   heartbeatSessionCheck,
   getSmartReminderContext,
-} from "./session-continuation-integration.js";
+} from "./session-continuation-integration";

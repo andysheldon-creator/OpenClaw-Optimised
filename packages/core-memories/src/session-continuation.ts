@@ -28,12 +28,21 @@ export class SessionContinuation {
 
   constructor(coreMemories: CoreMemories, config?: Partial<SessionContinuationConfig>) {
     this.cm = coreMemories;
-    this.config = {
+    const defaults: SessionContinuationConfig = {
       enabled: true,
       thresholds: { silent: 2, hint: 6, prompt: 24 },
       prioritizeFlagged: true,
       maxMemoriesToShow: 3,
+    };
+
+    // Avoid shallow-merging `thresholds` (a partial override could otherwise drop required keys).
+    this.config = {
+      ...defaults,
       ...config,
+      thresholds: {
+        ...defaults.thresholds,
+        ...config?.thresholds,
+      },
     };
   }
 
