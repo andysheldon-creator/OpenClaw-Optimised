@@ -24,6 +24,7 @@ What did you expect to happen?
 What actually happened?
 
 ## Environment
+
 - OpenClaw version:
 - OS:
 - Install method (pnpm/npx/docker/etc):
