@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { wrapWebContent } from "../../security/external-content.js";
 import type { BrowserRouteContext } from "../server-context.js";
 import type { BrowserRouteRegistrar } from "./types.js";
 import { handleRouteError, readBody, requirePwAi, resolveProfileContext } from "./agent.shared.js";
@@ -54,7 +55,13 @@ export function registerBrowserAgentDebugRoutes(
         targetId: tab.targetId,
         clear,
       });
-      res.json({ ok: true, targetId: tab.targetId, ...result });
+      // Wrap error messages and stack traces with security boundaries
+      const wrappedErrors = result.errors.map((err) => ({
+        ...err,
+        message: wrapWebContent(err.message, "web_fetch"),
+        stack: err.stack ? wrapWebContent(err.stack, "web_fetch") : err.stack,
+      }));
+      res.json({ ok: true, targetId: tab.targetId, errors: wrappedErrors });
     } catch (err) {
       handleRouteError(ctx, res, err);
     }
