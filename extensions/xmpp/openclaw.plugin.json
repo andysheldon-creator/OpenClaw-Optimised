@@ -1,0 +1,9 @@
+{
+  "id": "xmpp",
+  "channels": ["xmpp"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

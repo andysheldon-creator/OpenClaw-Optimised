@@ -1,0 +1,34 @@
+{
+  "name": "@openclaw/xmpp",
+  "version": "2026.2.4",
+  "description": "OpenClaw XMPP channel plugin",
+  "type": "module",
+  "dependencies": {
+    "@xmpp/client": "^0.14.0",
+    "@xmpp/jid": "^0.14.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "xmpp",
+      "label": "XMPP",
+      "selectionLabel": "XMPP (plugin)",
+      "docsPath": "/channels/xmpp",
+      "docsLabel": "xmpp",
+      "blurb": "XMPP/Jabber protocol; supports 1:1 chat and MUC rooms.",
+      "order": 75,
+      "quickstartAllowFrom": true
+    },
+    "install": {
+      "npmSpec": "@openclaw/xmpp",
+      "localPath": "extensions/xmpp",
+      "defaultChoice": "npm"
+    }
+  }
+}
