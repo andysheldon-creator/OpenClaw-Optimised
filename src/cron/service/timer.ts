@@ -38,9 +38,31 @@ export async function onTimer(state: CronServiceState) {
     await locked(state, async () => {
       await ensureLoaded(state, { forceReload: true });
       await runDueJobs(state);
-      await persist(state);
+      try {
+        await persist(state);
+      } catch (err) {
+        // Persist failure must not prevent re-arming the timer.
+        // In-memory state is authoritative; disk will be retried next tick.
+        state.deps.log.error({ err: String(err) }, "cron: persist failed, will retry next tick");
+      }
+      // armTimer MUST always run, even if persist failed, otherwise the
+      // entire cron subsystem stops permanently until a gateway restart.
       armTimer(state);
     });
+  } catch (err) {
+    // If locked/ensureLoaded itself fails (corrupt JSON, disk I/O error),
+    // re-arm the timer so the system retries on the next tick instead of
+    // dying silently.  Use a fixed retry delay (60s) since nextWakeAtMs
+    // may not be computable from a corrupted store.
+    state.deps.log.error({ err: String(err) }, "cron: timer tick failed, scheduling retry");
+    if (state.timer) {
+      clearTimeout(state.timer);
+    }
+    state.timer = setTimeout(() => {
+      void onTimer(state).catch((retryErr) => {
+        state.deps.log.error({ err: String(retryErr) }, "cron: retry tick also failed");
+      });
+    }, 60_000);
   } finally {
     state.running = false;
   }
@@ -83,7 +105,20 @@ export async function runDueJobs(state: CronServiceState) {
   // jobs are due simultaneously (common after gateway restarts).
   due.sort((a, b) => jobSortIntervalMs(a) - jobSortIntervalMs(b));
   for (const job of due) {
-    await executeJob(state, job, now, { forced: false });
+    try {
+      await executeJob(state, job, now, { forced: false });
+    } catch (err) {
+      // Isolate per-job failures: one job's uncaught error must not
+      // prevent remaining due jobs from executing.
+      state.deps.log.error(
+        { err: String(err), jobId: job.id, jobName: job.name },
+        "cron: executeJob threw unexpectedly, continuing with next job",
+      );
+      // Best-effort cleanup: clear runningAtMs so the job isn't stuck.
+      job.state.runningAtMs = undefined;
+      job.state.lastStatus = "error";
+      job.state.lastError = `uncaught: ${String(err)}`;
+    }
   }
 }
 
@@ -108,6 +143,13 @@ export async function executeJob(
     job.state.lastDurationMs = Math.max(0, endedAt - startedAt);
     job.state.lastError = err;
 
+    // Track consecutive errors for backoff.  Reset on success or skip.
+    if (status === "error") {
+      job.state.consecutiveErrors = (job.state.consecutiveErrors ?? 0) + 1;
+    } else {
+      job.state.consecutiveErrors = 0;
+    }
+
     const shouldDelete =
       job.schedule.kind === "at" && status === "ok" && job.deleteAfterRun === true;
 
@@ -117,7 +159,35 @@ export async function executeJob(
         job.enabled = false;
         job.state.nextRunAtMs = undefined;
       } else if (job.enabled) {
-        job.state.nextRunAtMs = computeJobNextRunAtMs(job, endedAt);
+        let nextAt = computeJobNextRunAtMs(job, endedAt);
+        // Exponential backoff for consecutive errors: add increasing delay
+        // on top of the normal interval.  Prevents a broken job from
+        // hammering the system while still allowing recovery.
+        //
+        // Schedule:
+        //   2 errors: +1 min,  3 errors: +2 min,  4 errors: +4 min,
+        //   5 errors: +8 min,  6 errors: +16 min, ..., cap: +1 hour
+        if (
+          status === "error" &&
+          typeof nextAt === "number" &&
+          (job.state.consecutiveErrors ?? 0) >= 2
+        ) {
+          const backoffMs = Math.min(
+            2 ** ((job.state.consecutiveErrors ?? 2) - 2) * 60_000,
+            60 * 60_000, // cap: 1 hour additional delay
+          );
+          nextAt += backoffMs;
+          state.deps.log.warn(
+            {
+              jobId: job.id,
+              consecutiveErrors: job.state.consecutiveErrors,
+              backoffMs,
+              nextRunAt: new Date(nextAt).toISOString(),
+            },
+            "cron: applying error backoff",
+          );
+        }
+        job.state.nextRunAtMs = nextAt;
       } else {
         job.state.nextRunAtMs = undefined;
       }
@@ -230,8 +300,9 @@ export async function executeJob(
     await finish("error", String(err));
   } finally {
     job.updatedAtMs = nowMs;
-    if (!opts.forced && job.enabled && !deleted) {
+    if (!opts.forced && job.enabled && !deleted && job.state.lastStatus !== "error") {
       // Keep nextRunAtMs in sync in case the schedule advanced during a long run.
+      // Skip for errored jobs: finish() may have applied backoff that we must preserve.
       job.state.nextRunAtMs = computeJobNextRunAtMs(job, state.deps.nowMs());
     }
   }

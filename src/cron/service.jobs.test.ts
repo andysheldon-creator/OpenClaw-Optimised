@@ -99,6 +99,140 @@ describe("runDueJobs - priority sorting", () => {
   });
 });
 
+describe("runDueJobs - failure isolation", () => {
+  it("continues executing remaining jobs when one job throws", async () => {
+    const executionOrder: string[] = [];
+    const now = 1_000_000;
+
+    const state = makeFakeState([], now);
+    state.deps.onEvent = (evt) => {
+      if (evt.action === "started") {
+        executionOrder.push(evt.jobId);
+      }
+    };
+    state.deps.runIsolatedAgentJob = async ({ job }) => {
+      if (job.id === "boom") {
+        throw new Error("agent crashed");
+      }
+      return { status: "ok", summary: job.name };
+    };
+
+    const jobA = makeEveryJob({ id: "ok-first", everyMs: 60_000, nextRunAtMs: now - 100 });
+    const jobBoom = makeEveryJob({ id: "boom", everyMs: 120_000, nextRunAtMs: now - 100 });
+    const jobC = makeEveryJob({ id: "ok-after", everyMs: 180_000, nextRunAtMs: now - 100 });
+    // Make all isolated
+    for (const j of [jobA, jobBoom, jobC]) {
+      j.sessionTarget = "isolated";
+      j.payload = { kind: "agentTurn", message: "test" };
+    }
+    state.store = { version: 1, jobs: [jobA, jobBoom, jobC] };
+
+    const { runDueJobs } = await import("./service/timer.js");
+    await runDueJobs(state);
+
+    // All three should have been attempted (not just the first two)
+    expect(executionOrder).toEqual(["ok-first", "boom", "ok-after"]);
+    // The failed job should have its state cleaned up by executeJob's internal catch
+    expect(jobBoom.state.runningAtMs).toBeUndefined();
+    expect(jobBoom.state.lastStatus).toBe("error");
+    expect(jobBoom.state.lastError).toContain("agent crashed");
+  });
+});
+
+describe("executeJob - consecutive error tracking", () => {
+  it("increments consecutiveErrors on failure and resets on success", async () => {
+    const now = 1_000_000;
+    const state = makeFakeState([], now);
+    let callCount = 0;
+    state.deps.runIsolatedAgentJob = async () => {
+      callCount++;
+      if (callCount <= 2) {
+        return { status: "error", error: "model unavailable" };
+      }
+      return { status: "ok", summary: "done" };
+    };
+
+    const job = makeEveryJob({ id: "flaky", everyMs: 300_000, nextRunAtMs: now - 100 });
+    job.sessionTarget = "isolated";
+    job.payload = { kind: "agentTurn", message: "test" };
+    state.store = { version: 1, jobs: [job] };
+
+    const { executeJob } = await import("./service/timer.js");
+
+    // First failure
+    await executeJob(state, job, now, { forced: false });
+    expect(job.state.consecutiveErrors).toBe(1);
+
+    // Second failure
+    await executeJob(state, job, now, { forced: false });
+    expect(job.state.consecutiveErrors).toBe(2);
+
+    // Success resets
+    await executeJob(state, job, now, { forced: false });
+    expect(job.state.consecutiveErrors).toBe(0);
+  });
+
+  it("applies exponential backoff after 2+ consecutive errors", async () => {
+    const now = 1_000_000;
+    const interval = 300_000; // 5 minutes
+    const state = makeFakeState([], now);
+    state.deps.runIsolatedAgentJob = async () => {
+      return { status: "error", error: "always fails" };
+    };
+
+    const job = makeEveryJob({ id: "broken", everyMs: interval, nextRunAtMs: now - 100 });
+    job.sessionTarget = "isolated";
+    job.payload = { kind: "agentTurn", message: "test" };
+    state.store = { version: 1, jobs: [job] };
+
+    const { executeJob } = await import("./service/timer.js");
+
+    // First error: no backoff (consecutiveErrors becomes 1)
+    await executeJob(state, job, now, { forced: false });
+    const afterFirst = job.state.nextRunAtMs;
+    expect(job.state.consecutiveErrors).toBe(1);
+
+    // Second error: backoff kicks in (consecutiveErrors becomes 2)
+    await executeJob(state, job, now, { forced: false });
+    const afterSecond = job.state.nextRunAtMs;
+    expect(job.state.consecutiveErrors).toBe(2);
+    // Backoff should push nextRunAtMs further than the first error
+    expect(afterSecond).toBeGreaterThan(afterFirst!);
+  });
+});
+
+describe("recomputeNextRuns - stuck detection", () => {
+  it("clears stuck marker based on job timeout, not hardcoded 2 hours", () => {
+    const now = 1_000_000;
+    const job = makeEveryJob({ id: "stuck", everyMs: 300_000 });
+    job.sessionTarget = "isolated";
+    job.payload = { kind: "agentTurn", message: "test", timeoutSeconds: 300 }; // 5-min timeout
+    // Job started 31 minutes ago (> DEFAULT_STUCK_RUN_MS of 30min)
+    job.state.runningAtMs = now - 31 * 60 * 1000;
+
+    const state = makeFakeState([job], now);
+    recomputeNextRuns(state);
+
+    // Should be cleared (31min > 30min default)
+    expect(job.state.runningAtMs).toBeUndefined();
+  });
+
+  it("uses 2x job timeout when it exceeds default stuck threshold", () => {
+    const now = 1_000_000;
+    const job = makeEveryJob({ id: "long-job", everyMs: 300_000 });
+    job.sessionTarget = "isolated";
+    job.payload = { kind: "agentTurn", message: "test", timeoutSeconds: 1800 }; // 30-min timeout
+    // Job started 50 minutes ago (< 2 × 30min = 60min)
+    job.state.runningAtMs = now - 50 * 60 * 1000;
+
+    const state = makeFakeState([job], now);
+    recomputeNextRuns(state);
+
+    // Should NOT be cleared yet (50min < 60min = 2×30min)
+    expect(job.state.runningAtMs).toBe(now - 50 * 60 * 1000);
+  });
+});
+
 describe("recomputeNextRuns", () => {
   it("preserves existing nextRunAtMs (does not push due jobs into the future)", () => {
     // Simulate: timer fires at T=300_000. The job was scheduled at T=300_000.

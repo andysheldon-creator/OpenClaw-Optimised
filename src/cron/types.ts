@@ -59,6 +59,8 @@ export type CronJobState = {
   lastStatus?: "ok" | "error" | "skipped";
   lastError?: string;
   lastDurationMs?: number;
+  /** Number of consecutive errors (reset to 0 on success or skip). */
+  consecutiveErrors?: number;
 };
 
 export type CronJob = {

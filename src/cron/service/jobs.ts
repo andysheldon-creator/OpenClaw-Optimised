@@ -18,7 +18,22 @@ import {
   normalizeRequiredName,
 } from "./normalize.js";
 
-const STUCK_RUN_MS = 2 * 60 * 60 * 1000;
+/**
+ * Default maximum time a job is allowed to hold the "running" marker
+ * before it is considered stuck and forcibly cleared.  Individual jobs
+ * may override this via payload.timeoutSeconds; in that case, we use
+ * 2× the configured timeout as the stuck threshold (giving generous
+ * headroom for model fallback retries and delivery).
+ */
+const DEFAULT_STUCK_RUN_MS = 30 * 60 * 1000; // 30 minutes
+
+function resolveStuckThresholdMs(job: CronJob): number {
+  if (job.payload.kind === "agentTurn" && typeof job.payload.timeoutSeconds === "number") {
+    // 2× the configured timeout: allows for model fallback + delivery overhead.
+    return Math.max(job.payload.timeoutSeconds * 1000 * 2, DEFAULT_STUCK_RUN_MS);
+  }
+  return DEFAULT_STUCK_RUN_MS;
+}
 
 export function assertSupportedJobSpec(job: Pick<CronJob, "sessionTarget" | "payload">) {
   if (job.sessionTarget === "main" && job.payload.kind !== "systemEvent") {
@@ -73,12 +88,15 @@ export function recomputeNextRuns(state: CronServiceState) {
       continue;
     }
     const runningAt = job.state.runningAtMs;
-    if (typeof runningAt === "number" && now - runningAt > STUCK_RUN_MS) {
-      state.deps.log.warn(
-        { jobId: job.id, runningAtMs: runningAt },
-        "cron: clearing stuck running marker",
-      );
-      job.state.runningAtMs = undefined;
+    if (typeof runningAt === "number") {
+      const stuckMs = resolveStuckThresholdMs(job);
+      if (now - runningAt > stuckMs) {
+        state.deps.log.warn(
+          { jobId: job.id, runningAtMs: runningAt, stuckThresholdMs: stuckMs },
+          "cron: clearing stuck running marker",
+        );
+        job.state.runningAtMs = undefined;
+      }
     }
     // Only recompute if nextRunAtMs is not already set.
     // Existing values (even past-due) are intentionally preserved so that
