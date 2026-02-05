@@ -36,6 +36,7 @@ import {
   isContextOverflowError,
   isFailoverAssistantError,
   isFailoverErrorMessage,
+  isNetworkError,
   parseImageSizeError,
   parseImageDimensionError,
   isRateLimitAssistantError,
@@ -304,6 +305,8 @@ export async function runEmbeddedPiAgent(
       }
 
       let overflowCompactionAttempted = false;
+      let networkRetryAttempt = 0;
+      const MAX_NETWORK_RETRIES = 3;
       try {
         while (true) {
           attemptedThinking.add(thinkLevel);
@@ -510,6 +513,30 @@ export async function runEmbeddedPiAgent(
               thinkLevel = fallbackThinking;
               continue;
             }
+            // Network error retry: Retry transient network errors (TLS, socket, DNS failures)
+            if (isNetworkError(promptError) && networkRetryAttempt < MAX_NETWORK_RETRIES) {
+              // Check if already aborted before retrying
+              if (params.abortSignal?.aborted) {
+                throw promptError;
+              }
+              const delayMs = Math.min(1000 * Math.pow(2, networkRetryAttempt), 8000);
+              networkRetryAttempt += 1;
+              if (!isProbeSession) {
+                log.warn(
+                  `network error detected; retrying (${networkRetryAttempt}/${MAX_NETWORK_RETRIES}) after ${delayMs}ms delay: ${errorText.slice(0, 150)}`,
+                );
+              }
+              // Respect abort signal during backoff delay
+              await new Promise((resolve, reject) => {
+                const timeout = setTimeout(resolve, delayMs);
+                const onAbort = () => {
+                  clearTimeout(timeout);
+                  reject(promptError);
+                };
+                params.abortSignal?.addEventListener("abort", onAbort, { once: true });
+              });
+              continue;
+            }
             // FIX: Throw FailoverError for prompt errors when fallbacks configured
             // This enables model fallback for quota/rate limit errors during prompt submission
             if (fallbackConfigured && isFailoverErrorMessage(errorText)) {
@@ -523,6 +550,9 @@ export async function runEmbeddedPiAgent(
             }
             throw promptError;
           }
+
+          // Reset network retry counter on successful run (no promptError)
+          networkRetryAttempt = 0;
 
           const fallbackThinking = pickFallbackThinkingLevel({
             message: lastAssistant?.errorMessage,
