@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildBundledHooks } from "../../scripts/build-bundled-hooks.js";
+import { buildBundledHooks, resolveHookEntry } from "../../scripts/build-bundled-hooks.js";
 
 async function writeHook(params: { dir: string; withHandler?: boolean }) {
   await fs.mkdir(params.dir, { recursive: true });
@@ -21,6 +21,27 @@ async function writeHook(params: { dir: string; withHandler?: boolean }) {
 }
 
 describe("build bundled hooks script", () => {
+  it("prefers JavaScript handlers when both JS and TS exist", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-build-hooks-"));
+    try {
+      const hookDir = path.join(root, "demo-hook");
+      await fs.mkdir(hookDir, { recursive: true });
+      await fs.writeFile(path.join(hookDir, "HOOK.md"), "---\nname: demo\n---\n", "utf-8");
+      await fs.writeFile(
+        path.join(hookDir, "handler.ts"),
+        "export default async function ts() {}\n",
+      );
+      await fs.writeFile(
+        path.join(hookDir, "handler.js"),
+        "export default async function js() {}\n",
+      );
+
+      await expect(resolveHookEntry(hookDir)).resolves.toBe(path.join(hookDir, "handler.js"));
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("emits HOOK.md and handler.js for bundled hooks", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-build-hooks-"));
     try {

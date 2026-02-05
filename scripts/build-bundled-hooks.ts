@@ -1,11 +1,11 @@
 #!/usr/bin/env -S node --import tsx
 
+import { build } from "esbuild";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
 
-const HANDLER_CANDIDATES = ["handler.ts", "handler.js", "index.ts", "index.js"] as const;
+const HANDLER_CANDIDATES = ["handler.js", "index.js", "handler.ts", "index.ts"] as const;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
