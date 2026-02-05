@@ -105,7 +105,9 @@ These were discussed during roadmap creation and are settled:
 
 11. **Base directory injection, no platform conventions** -- Storage accepts a base directory as a constructor parameter. No XDG, no ~/.config defaults, no platform detection. The caller decides where files live. This keeps Storage focused on I/O and makes testing trivial (use a temp directory).
 
-12. **Claude API message types, not a custom format** -- Komatachi is explicitly built for Claude. Transcript messages use Claude's API message format (user/assistant roles, content blocks with text/tool_use/tool_result). No provider-agnostic abstraction layer. This eliminates a translation layer and means the transcript is directly usable as API input. If Rust portability requires it, we define a minimal mirror of Claude's types rather than an abstraction over multiple providers.
+12. **Context Window is a pure function** -- Caller passes in messages and a token budget. Context Window returns the messages that fit and reports what was dropped. It does not know about models, API limits, or compaction. The Agent Loop computes the budget (model context limit minus system prompt minus response reserve) and decides whether to trigger compaction based on Context Window's overflow report. No separate history policies (max messages, max age) -- the token budget is the only policy.
+
+13. **Claude API message types, not a custom format** -- Komatachi is explicitly built for Claude. Transcript messages use Claude's API message format (user/assistant roles, content blocks with text/tool_use/tool_result). No provider-agnostic abstraction layer. This eliminates a translation layer and means the transcript is directly usable as API input. If Rust portability requires it, we define a minimal mirror of Claude's types rather than an abstraction over multiple providers.
 
 ---
 
@@ -160,23 +162,26 @@ How conversations are managed within token limits.
 
 **2.1 -- Context Window**
 
-Scope: Given a conversation history and a token budget, decide which messages to include and how to present them. This is where compaction (already built) gets orchestrated.
+Scope: Pure function. Given a conversation history and a token budget (provided by caller), select the messages that fit. Does not know about models, API limits, or compaction. Reports what it dropped so the caller can decide whether to trigger compaction.
 
 Source material: `scouting/context-management.md` (~2,630 lines total; context assembly + pruning + history limiting).
 
 What to build:
-- Token budget allocation (system prompt, tools, history, response reserve)
-- Message selection (recent messages first, respect token budget)
-- Compaction trigger (when history exceeds budget, invoke compaction)
-- History policy (max messages, max age -- the "History Management" concern folded in per Pre-Resolved Decision #4)
+- Message selection: given messages + token budget, return the messages that fit (most recent first)
+- Overflow reporting: when messages are dropped, return metadata about what was dropped (count, estimated tokens) so the caller (Agent Loop) can decide to compact
+- Compacted history handling: a compaction summary is just another message at the start of history -- no special treatment needed, it's already in Claude API format
+- Token estimation: reuse the estimation logic from `src/compaction/` (already built)
 
 What to omit:
-- Multi-stage summarization (compaction handles this in one pass)
-- Adaptive ratios (fixed budget allocation is simpler and sufficient)
-- Priority-based message retention (unnecessary complexity for single-session)
+- Token budget computation (caller's job -- Agent Loop knows the model's context limit, system prompt size, response reserve)
+- Compaction triggering (caller's job -- Context Window reports overflow, Agent Loop decides)
+- History policies (max messages, max age) -- the token budget *is* the policy; with one conversation and compaction, separate limits are redundant
+- Multi-stage summarization, adaptive ratios, priority-based retention
 - Token counting for tool definitions (the LLM API handles this)
 
-Key dependency: Uses `src/compaction/` for summarization. Uses Session Store for message retrieval.
+Design: Context Window is stateless and has no dependencies on Compaction or Conversation Store. It receives messages as input and returns selected messages as output. This makes it trivially testable and keeps layer boundaries clean.
+
+Future note: when compaction is triggered, the Agent Loop could augment the compaction input with message age information, enabling the compaction summarizer to make better decisions about what to preserve vs. condense. This doesn't require changes to Context Window -- it's a concern at the Agent Loop level.
 
 ---
 
