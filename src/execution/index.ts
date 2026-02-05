@@ -95,3 +95,44 @@ export {
   type RuntimeResolverLogger,
   type RuntimeResolverOptions,
 } from "./resolver.js";
+
+// Normalization Utilities
+export {
+  // Core normalization functions
+  stripHeartbeatTokens,
+  stripThinkingTags,
+  normalizeWhitespace,
+  isSilentReply,
+  deduplicateReplies,
+  applyBlockChunking,
+  // Combined normalization
+  normalizeText,
+  normalizePayload,
+  normalizeStreamingText,
+  // Types
+  type NormalizationOptions,
+  type NormalizationResult,
+  type BlockChunkingConfig,
+} from "./normalization.js";
+
+// Turn Executor
+export {
+  DefaultTurnExecutor,
+  createTurnExecutor,
+  type TurnExecutor,
+  type TurnExecutorLogger,
+  type TurnExecutorOptions,
+  type RuntimeAdapter,
+  type RuntimeAdapterParams,
+  type RuntimeAdapterResult,
+} from "./executor.js";
+
+// Execution Kernel (the main entry point)
+export {
+  DefaultExecutionKernel,
+  createExecutionKernel,
+  createDefaultExecutionKernel,
+  type ExecutionKernel,
+  type ExecutionKernelLogger,
+  type ExecutionKernelOptions,
+} from "./kernel.js";
