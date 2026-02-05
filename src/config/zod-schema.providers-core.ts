@@ -57,6 +57,16 @@ export const TelegramGroupSchema = z
   })
   .strict();
 
+export const TelegramChannelSchema = z
+  .object({
+    tools: ToolPolicySchema.optional(),
+    skills: z.array(z.string()).optional(),
+    enabled: z.boolean().optional(),
+    allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
+    systemPrompt: z.string().optional(),
+  })
+  .strict();
+
 const TelegramCustomCommandSchema = z
   .object({
     command: z.string().transform(normalizeTelegramCommandName),
@@ -99,9 +109,12 @@ export const TelegramAccountSchemaBase = z
     tokenFile: z.string().optional(),
     replyToMode: ReplyToModeSchema.optional(),
     groups: z.record(z.string(), TelegramGroupSchema.optional()).optional(),
+    channels: z.record(z.string(), TelegramChannelSchema.optional()).optional(),
     allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
     groupAllowFrom: z.array(z.union([z.string(), z.number()])).optional(),
     groupPolicy: GroupPolicySchema.optional().default("allowlist"),
+    channelAllowFrom: z.array(z.union([z.string(), z.number()])).optional(),
+    channelPolicy: GroupPolicySchema.optional().default("allowlist"),
     historyLimit: z.number().int().min(0).optional(),
     dmHistoryLimit: z.number().int().min(0).optional(),
     dms: z.record(z.string(), DmConfigSchema.optional()).optional(),

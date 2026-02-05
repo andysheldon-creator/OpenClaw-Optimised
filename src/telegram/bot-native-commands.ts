@@ -71,6 +71,14 @@ type TelegramCommandAuthResult = {
   commandAuthorized: boolean;
 };
 
+export type TelegramChannelConfig = {
+  tools?: unknown;
+  skills?: string[];
+  enabled?: boolean;
+  allowFrom?: Array<string | number>;
+  systemPrompt?: string;
+};
+
 export type RegisterTelegramHandlerParams = {
   cfg: OpenClawConfig;
   accountId: string;
@@ -80,11 +88,14 @@ export type RegisterTelegramHandlerParams = {
   runtime: RuntimeEnv;
   telegramCfg: TelegramAccountConfig;
   groupAllowFrom?: Array<string | number>;
+  channelAllowFrom?: Array<string | number>;
   resolveGroupPolicy: (chatId: string | number) => ChannelGroupPolicy;
+  resolveChannelPolicy: (chatId: string | number) => ChannelGroupPolicy;
   resolveTelegramGroupConfig: (
     chatId: string | number,
     messageThreadId?: number,
   ) => { groupConfig?: TelegramGroupConfig; topicConfig?: TelegramTopicConfig };
+  resolveTelegramChannelConfig: (chatId: string | number) => { channelConfig?: TelegramChannelConfig };
   shouldSkipUpdate: (ctx: TelegramUpdateKeyContext) => boolean;
   processMessage: (
     ctx: TelegramContext,
@@ -93,6 +104,7 @@ export type RegisterTelegramHandlerParams = {
     options?: {
       messageIdOverride?: string;
       forceWasMentioned?: boolean;
+      isChannel?: boolean;
     },
   ) => Promise<void>;
   logger: ReturnType<typeof getChildLogger>;

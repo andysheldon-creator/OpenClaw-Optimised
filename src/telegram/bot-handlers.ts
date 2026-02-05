@@ -47,8 +47,11 @@ export const registerTelegramHandlers = ({
   mediaMaxBytes,
   telegramCfg,
   groupAllowFrom,
+  channelAllowFrom,
   resolveGroupPolicy,
+  resolveChannelPolicy,
   resolveTelegramGroupConfig,
+  resolveTelegramChannelConfig,
   shouldSkipUpdate,
   processMessage,
   logger,
@@ -901,6 +904,107 @@ export const registerTelegramHandlers = ({
       });
     } catch (err) {
       runtime.error?.(danger(`handler failed: ${String(err)}`));
+    }
+  });
+
+  // Channel post handler - for Telegram broadcast channels
+  bot.on("channel_post", async (ctx) => {
+    try {
+      const msg = ctx.channelPost;
+      if (!msg) {
+        return;
+      }
+      if (shouldSkipUpdate(ctx)) {
+        return;
+      }
+
+      const chatId = msg.chat.id;
+      const storeAllowFrom = await readChannelAllowFromStore("telegram").catch(() => []);
+      const { channelConfig } = resolveTelegramChannelConfig(chatId);
+
+      // Check if channel is explicitly disabled
+      if (channelConfig?.enabled === false) {
+        logVerbose(`Blocked telegram channel ${chatId} (channel disabled)`);
+        return;
+      }
+
+      // Channel policy filtering
+      // Note: channels reuse groupPolicy default if no channelPolicy is set
+      const defaultChannelPolicy = (cfg.channels?.defaults as { channelPolicy?: string })?.channelPolicy ?? cfg.channels?.defaults?.groupPolicy;
+      const channelPolicy =
+        (telegramCfg as { channelPolicy?: string }).channelPolicy ?? defaultChannelPolicy ?? "allowlist";
+      if (channelPolicy === "disabled") {
+        logVerbose(`Blocked telegram channel post (channelPolicy: disabled)`);
+        return;
+      }
+
+      // Check channel allowlist
+      const channelAllowlist = resolveChannelPolicy(chatId);
+      if (channelAllowlist.allowlistEnabled && !channelAllowlist.allowed) {
+        logger.info(
+          { chatId, title: msg.chat.title, reason: "not-allowed" },
+          "skipping channel post",
+        );
+        return;
+      }
+
+      // For channels with allowlist policy, check sender (sender_chat for channels)
+      if (channelPolicy === "allowlist") {
+        const senderChatId = (msg as { sender_chat?: { id?: number } }).sender_chat?.id ?? msg.chat.id;
+        const effectiveChannelAllow = normalizeAllowFromWithStore({
+          allowFrom: channelConfig?.allowFrom ?? channelAllowFrom ?? [],
+          storeAllowFrom,
+        });
+        if (!effectiveChannelAllow.hasEntries) {
+          logVerbose(
+            "Blocked telegram channel post (channelPolicy: allowlist, no channel allowlist entries)",
+          );
+          return;
+        }
+        if (
+          !isSenderAllowed({
+            allow: effectiveChannelAllow,
+            senderId: String(senderChatId),
+            senderUsername: (msg.chat as { username?: string }).username ?? "",
+          })
+        ) {
+          logVerbose(`Blocked telegram channel post from ${senderChatId} (channelPolicy: allowlist)`);
+          return;
+        }
+      }
+
+      // Handle media
+      let media: Awaited<ReturnType<typeof resolveMedia>> = null;
+      try {
+        media = await resolveMedia(ctx, mediaMaxBytes, opts.token, opts.proxyFetch);
+      } catch (mediaErr) {
+        const errMsg = String(mediaErr);
+        if (errMsg.includes("exceeds") && errMsg.includes("MB limit")) {
+          logger.warn({ chatId, error: errMsg }, "channel media exceeds size limit");
+          return;
+        }
+        throw mediaErr;
+      }
+
+      const hasText = Boolean((msg.text ?? msg.caption ?? "").trim());
+      if (!media && !hasText) {
+        logVerbose("telegram: skipping channel post with no text or media");
+        return;
+      }
+
+      const allMedia = media
+        ? [
+            {
+              path: media.path,
+              contentType: media.contentType,
+            },
+          ]
+        : [];
+
+      // Process the channel post
+      await processMessage(ctx, allMedia, storeAllowFrom, { isChannel: true });
+    } catch (err) {
+      runtime.error?.(danger(`channel_post handler failed: ${String(err)}`));
     }
   });
 };

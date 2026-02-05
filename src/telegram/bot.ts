@@ -236,6 +236,12 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       ? telegramCfg.allowFrom
       : undefined) ??
     (opts.allowFrom && opts.allowFrom.length > 0 ? opts.allowFrom : undefined);
+  const channelAllowFrom =
+    (telegramCfg as { channelAllowFrom?: Array<string | number> }).channelAllowFrom ??
+    (telegramCfg.allowFrom && telegramCfg.allowFrom.length > 0
+      ? telegramCfg.allowFrom
+      : undefined) ??
+    (opts.allowFrom && opts.allowFrom.length > 0 ? opts.allowFrom : undefined);
   const replyToMode = opts.replyToMode ?? telegramCfg.replyToMode ?? "first";
   const nativeEnabled = resolveNativeCommandsEnabled({
     providerId: "telegram",
@@ -289,6 +295,14 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       accountId: account.accountId,
       groupId: String(chatId),
     });
+  const resolveChannelPolicy = (chatId: string | number) =>
+    resolveChannelGroupPolicy({
+      cfg,
+      channel: "telegram",
+      accountId: account.accountId,
+      groupId: String(chatId),
+      configKey: "channels",
+    });
   const resolveGroupActivation = (params: {
     chatId: string | number;
     agentId?: string;
@@ -333,6 +347,15 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     const topicConfig =
       messageThreadId != null ? groupConfig?.topics?.[String(messageThreadId)] : undefined;
     return { groupConfig, topicConfig };
+  };
+  const resolveTelegramChannelConfig = (chatId: string | number) => {
+    const channels = (telegramCfg as { channels?: Record<string, unknown> }).channels;
+    if (!channels) {
+      return { channelConfig: undefined };
+    }
+    const channelKey = String(chatId);
+    const channelConfig = channels[channelKey] ?? channels["*"];
+    return { channelConfig: channelConfig as { enabled?: boolean; allowFrom?: Array<string | number>; systemPrompt?: string } | undefined };
   };
 
   const processMessage = createTelegramMessageProcessor({
@@ -476,8 +499,11 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     mediaMaxBytes,
     telegramCfg,
     groupAllowFrom,
+    channelAllowFrom,
     resolveGroupPolicy,
+    resolveChannelPolicy,
     resolveTelegramGroupConfig,
+    resolveTelegramChannelConfig,
     shouldSkipUpdate,
     processMessage,
     logger,
