@@ -1,20 +1,25 @@
 import type { OpenClawConfig } from "../config/config.js";
+import { ensureModelAllowlistEntry } from "./model-allowlist.js";
 
 export const OPENAI_DEFAULT_MODEL = "openai/gpt-5.1-codex";
 
 export function applyOpenAIProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
-  const models = { ...cfg.agents?.defaults?.models };
+  const next = ensureModelAllowlistEntry({
+    cfg,
+    modelRef: OPENAI_DEFAULT_MODEL,
+  });
+  const models = { ...next.agents?.defaults?.models };
   models[OPENAI_DEFAULT_MODEL] = {
     ...models[OPENAI_DEFAULT_MODEL],
     alias: models[OPENAI_DEFAULT_MODEL]?.alias ?? "GPT",
   };
 
   return {
-    ...cfg,
+    ...next,
     agents: {
-      ...cfg.agents,
+      ...next.agents,
       defaults: {
-        ...cfg.agents?.defaults,
+        ...next.agents?.defaults,
         models,
       },
     },

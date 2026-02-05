@@ -36,6 +36,22 @@ describe("applyDefaultModelChoice", () => {
     expect(applied.config.agents?.defaults?.models?.[defaultModel]).toEqual({});
   });
 
+  it("adds canonical allowlist key for anthropic aliases", async () => {
+    const defaultModel = "anthropic/opus-4.6";
+    const applied = await applyDefaultModelChoice({
+      config: {},
+      setDefaultModel: false,
+      defaultModel,
+      applyProviderConfig: (config: OpenClawConfig) => config,
+      applyDefaultConfig: (config: OpenClawConfig) => config,
+      noteAgentModel: async () => {},
+      prompter: makePrompter(),
+    });
+
+    expect(applied.config.agents?.defaults?.models?.[defaultModel]).toEqual({});
+    expect(applied.config.agents?.defaults?.models?.["anthropic/claude-opus-4-6"]).toEqual({});
+  });
+
   it("uses applyDefaultConfig path when setDefaultModel is true", async () => {
     const defaultModel = "openai/gpt-5.1-codex";
     const applied = await applyDefaultModelChoice({

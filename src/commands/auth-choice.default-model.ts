@@ -1,5 +1,6 @@
 import type { OpenClawConfig } from "../config/config.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
+import { ensureModelAllowlistEntry } from "./model-allowlist.js";
 
 export async function applyDefaultModelChoice(params: {
   config: OpenClawConfig;
@@ -20,20 +21,10 @@ export async function applyDefaultModelChoice(params: {
   }
 
   const next = params.applyProviderConfig(params.config);
-  const models = { ...next.agents?.defaults?.models };
-  models[params.defaultModel] = {
-    ...models[params.defaultModel],
-  };
-  const nextWithModel = {
-    ...next,
-    agents: {
-      ...next.agents,
-      defaults: {
-        ...next.agents?.defaults,
-        models,
-      },
-    },
-  };
+  const nextWithModel = ensureModelAllowlistEntry({
+    cfg: next,
+    modelRef: params.defaultModel,
+  });
   await params.noteAgentModel(params.defaultModel);
   return { config: nextWithModel, agentModelOverride: params.defaultModel };
 }
