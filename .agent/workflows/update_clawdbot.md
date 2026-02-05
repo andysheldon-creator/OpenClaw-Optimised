@@ -17,7 +17,11 @@ git fetch upstream && git rebase upstream/main && pnpm install && pnpm build && 
 
 # Check for Swift 6.2 issues after sync
 grep -r "FileManager\.default\|Thread\.isMainThread" src/ apps/ --include="*.swift"
+
+# Verify Ollama local models (after sync)
+export OLLAMA_API_KEY="ollama-local" && openclaw models list | grep ollama
 ```
+
 
 ---
 
@@ -167,6 +171,134 @@ pnpm clawdbot agent --message "Verification: macOS app rebuild successful - agen
 **Important:** Always wait for the Telegram verification message before proceeding. If the agent doesn't respond, troubleshoot the gateway or model configuration before pushing.
 
 ---
+
+## Step 4B: Configure Ollama for Local Models
+
+After rebuilding and verifying the macOS app, configure Ollama for local model compatibility:
+
+### Enable Ollama Provider
+
+```bash
+# Set Ollama API key (any value works for local instance)
+export OLLAMA_API_KEY="ollama-local"
+
+# Or configure via OpenClaw config
+openclaw config set models.providers.ollama.apiKey "ollama-local"
+```
+
+### Verify Ollama is Running
+
+```bash
+# Check if Ollama service is running
+ps aux | grep ollama | grep -v grep
+
+# If not running, start Ollama
+ollama serve &
+
+# Verify API is accessible
+curl http://localhost:11434/api/tags
+```
+
+### Pull Recommended Models
+
+```bash
+# Pull tool-capable models for OpenClaw
+ollama pull llama3.3
+ollama pull qwen2.5-coder:32b
+ollama pull deepseek-r1:32b
+
+# List all installed models
+ollama list
+```
+
+### Verify Model Discovery
+
+```bash
+# Check that OpenClaw discovers Ollama models
+openclaw models list | grep ollama
+
+# Expected output should show models like:
+# - ollama/llama3.3
+# - ollama/qwen2.5-coder:32b
+# - ollama/deepseek-r1:32b
+```
+
+### Configure Default Model
+
+Update your OpenClaw config to use Ollama as the primary model:
+
+```json5
+{
+  agents: {
+    defaults: {
+      model: {
+        primary: "ollama/llama3.3",
+        fallback: ["ollama/qwen2.5-coder:32b", "ollama/deepseek-r1:32b"],
+      },
+    },
+  },
+}
+```
+
+Or via CLI:
+
+```bash
+openclaw config set agents.defaults.model.primary "ollama/llama3.3"
+```
+
+### Test Ollama Integration
+
+```bash
+# Test agent with Ollama model
+openclaw agent --message "Test: Ollama integration working" --model "ollama/llama3.3"
+
+# Check gateway health with Ollama
+openclaw health
+
+# Verify no errors in gateway logs
+openclaw logs | grep -i ollama
+```
+
+### Troubleshooting Ollama
+
+**Ollama not detected:**
+
+```bash
+# Ensure Ollama is running
+ollama serve
+
+# Check connectivity
+curl http://localhost:11434/api/tags
+
+# Verify OLLAMA_API_KEY is set
+echo $OLLAMA_API_KEY
+```
+
+**No models available:**
+
+```bash
+# OpenClaw only auto-discovers tool-capable models
+# Pull a compatible model
+ollama pull llama3.3
+
+# Or define models explicitly in config
+openclaw config set models.providers.ollama.models '[{"id":"llama3.3","name":"Llama 3.3","reasoning":false,"input":["text"],"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0},"contextWindow":128000,"maxTokens":8192}]'
+```
+
+**Connection refused:**
+
+```bash
+# Check Ollama port
+lsof -i :11434
+
+# Restart Ollama
+pkill ollama
+ollama serve &
+
+# Check if firewall is blocking
+# (macOS) System Settings > Network > Firewall
+```
+
 
 ## Step 5: Handle Swift/macOS Build Issues (Common After Upstream Sync)
 
@@ -372,9 +504,53 @@ else
     echo "✅ No obvious Swift deprecation issues found"
 fi
 
+echo "==> Verifying Ollama configuration..."
+if [ -n "${OLLAMA_API_KEY:-}" ]; then
+    echo "✅ OLLAMA_API_KEY is set"
+    
+    # Check if Ollama is running
+    if ps aux | grep -v grep | grep ollama > /dev/null; then
+        echo "✅ Ollama service is running"
+    else
+        echo "⚠️  Ollama service not detected, starting..."
+        ollama serve &
+        sleep 2
+    fi
+    
+    # Verify Ollama API connectivity
+    if curl -s http://localhost:11434/api/tags > /dev/null; then
+        echo "✅ Ollama API is accessible"
+        
+        # Check for installed models
+        MODEL_COUNT=$(ollama list | tail -n +2 | wc -l)
+        if [ "$MODEL_COUNT" -gt 0 ]; then
+            echo "✅ Found $MODEL_COUNT Ollama model(s)"
+            ollama list
+            
+            # Verify OpenClaw can discover models
+            if openclaw models list | grep -q ollama; then
+                echo "✅ OpenClaw successfully discovered Ollama models"
+            else
+                echo "⚠️  OpenClaw did not discover Ollama models"
+                echo "   Check that models support tool calling"
+            fi
+        else
+            echo "⚠️  No Ollama models installed"
+            echo "   Run: ollama pull llama3.3"
+        fi
+    else
+        echo "❌ Ollama API not accessible at http://localhost:11434"
+        echo "   Check if Ollama is running: ps aux | grep ollama"
+    fi
+else
+    echo "ℹ️  OLLAMA_API_KEY not set - skipping Ollama verification"
+    echo "   To enable: export OLLAMA_API_KEY=\"ollama-local\""
+fi
+
 echo "==> Testing agent functionality..."
 # Note: Update YOUR_TELEGRAM_SESSION_ID with actual session ID
 pnpm clawdbot agent --message "Verification: Upstream sync and macOS rebuild completed successfully." --session-id YOUR_TELEGRAM_SESSION_ID || echo "Warning: Agent test failed - check Telegram for verification message"
 
 echo "==> Done! Check Telegram for verification message, then run 'git push --force-with-lease' when ready."
 ```
+
