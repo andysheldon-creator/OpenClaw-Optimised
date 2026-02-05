@@ -321,8 +321,8 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
             (job as { payload?: { kind?: string } }).payload?.kind === "agentTurn"
           ) {
             const deliveryValue = (job as { delivery?: unknown }).delivery;
-            const delivery = isRecord(deliveryValue) ? deliveryValue : null;
-            const modeRaw = delivery && typeof delivery.mode === "string" ? delivery.mode : "";
+            const delivery = isRecord(deliveryValue) ? deliveryValue : undefined;
+            const modeRaw = typeof delivery?.mode === "string" ? delivery.mode : "";
             const mode = modeRaw.trim().toLowerCase();
             const hasTarget =
               (typeof delivery?.channel === "string" && delivery.channel.trim()) ||
@@ -333,7 +333,7 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
               const inferred = inferDeliveryFromSessionKey(opts.agentSessionKey);
               if (inferred) {
                 (job as { delivery?: unknown }).delivery = {
-                  ...(delivery ?? {}),
+                  ...delivery,
                   ...inferred,
                 } satisfies CronDelivery;
               }
