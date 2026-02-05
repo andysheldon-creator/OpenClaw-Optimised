@@ -272,6 +272,26 @@ export function pruneContextMessages(params: {
 	let softTrimmedCount = 0;
 	let hardClearedCount = 0;
 	const prunedToolNames = new Set<string>();
+	const hookSessionKey =
+		params.sessionKey ?? (params.sessionId ? `session:${params.sessionId}` : undefined);
+	const emitPruneHook = () => {
+		if (!hookSessionKey || (softTrimmedCount === 0 && hardClearedCount === 0)) {
+			return;
+		}
+		// TODO(#8606): Consider emitting pruned content summaries or IDs; we only report counts
+		// and tool names to avoid leaking full tool output in hooks.
+		try {
+			const hookEvent = createInternalHookEvent("session", "prune", hookSessionKey, {
+				sessionId: params.sessionId,
+				softTrimmedCount,
+				hardClearedCount,
+				toolNames: prunedToolNames.size > 0 ? Array.from(prunedToolNames) : undefined,
+			});
+			void triggerInternalHook(hookEvent);
+		} catch {
+			// Best-effort only; pruning should never fail due to hooks.
+		}
+	};
 	let next: AgentMessage[] | null = null;
 
 	for (let i = pruneStartIndex; i < cutoffIndex; i++) {
@@ -311,9 +331,11 @@ export function pruneContextMessages(params: {
 	const outputAfterSoftTrim = next ?? messages;
 	ratio = totalChars / charWindow;
 	if (ratio < settings.hardClearRatio) {
+		emitPruneHook();
 		return outputAfterSoftTrim;
 	}
 	if (!settings.hardClear.enabled) {
+		emitPruneHook();
 		return outputAfterSoftTrim;
 	}
 
@@ -356,22 +378,6 @@ export function pruneContextMessages(params: {
 		}
 	}
 
-	const hookSessionKey =
-		params.sessionKey ?? (params.sessionId ? `session:${params.sessionId}` : undefined);
-	if (hookSessionKey && (softTrimmedCount > 0 || hardClearedCount > 0)) {
-		// TODO(#8606): Consider emitting pruned content summaries or IDs; we only report counts
-		// and tool names to avoid leaking full tool output in hooks.
-		try {
-			const hookEvent = createInternalHookEvent("session", "prune", hookSessionKey, {
-				sessionId: params.sessionId,
-				softTrimmedCount,
-				hardClearedCount,
-				toolNames: prunedToolNames.size > 0 ? Array.from(prunedToolNames) : undefined,
-			});
-			void triggerInternalHook(hookEvent);
-		} catch {
-			// Best-effort only; pruning should never fail due to hooks.
-		}
-	}
+	emitPruneHook();
 	return next ?? messages;
 }
