@@ -400,6 +400,16 @@ export type GatewaySessionRow = {
   model?: string;
   modelProvider?: string;
   contextTokens?: number;
+  deliveryContext?: {
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
+  lastChannel?: string;
+  lastTo?: string;
+  lastAccountId?: string;
+  lastThreadId?: string | number;
 };
 
 export type SessionsListResult = {

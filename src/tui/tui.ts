@@ -83,7 +83,7 @@ export async function runTui(opts: TuiOptions) {
   let sessionScope: SessionScope = (config.session?.scope ?? "per-sender") as SessionScope;
   let sessionMainKey = normalizeMainKey(config.session?.mainKey);
   let agentDefaultId = resolveDefaultAgentId(config);
-  let currentAgentId = agentDefaultId;
+  let currentAgentId = opts.agent ? normalizeAgentId(opts.agent) : agentDefaultId;
   let agents: AgentSummary[] = [];
   const agentNames = new Map<string, string>();
   let currentSessionKey = "";

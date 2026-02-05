@@ -71,3 +71,7 @@ USER.md
 
 # local tooling
 .serena/
+
+# OpenClaw local data
+config/
+workspace/

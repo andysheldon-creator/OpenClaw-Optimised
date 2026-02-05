@@ -15,6 +15,7 @@ import { registerMaintenanceCommands } from "./register.maintenance.js";
 import { registerMessageCommands } from "./register.message.js";
 import { registerOnboardCommand } from "./register.onboard.js";
 import { registerSetupCommand } from "./register.setup.js";
+import { registerSkillsCommands } from "./register.skills.js";
 import { registerStatusHealthSessionsCommands } from "./register.status-health-sessions.js";
 import { registerSubCliCommands } from "./register.subclis.js";
 
@@ -160,6 +161,10 @@ export const commandRegistry: CommandRegistration[] = [
   {
     id: "browser",
     register: ({ program }) => registerBrowserCli(program),
+  },
+  {
+    id: "skills",
+    register: ({ program }) => registerSkillsCommands(program),
   },
 ];
 

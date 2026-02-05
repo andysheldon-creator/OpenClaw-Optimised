@@ -97,6 +97,17 @@ export type OpenClawConfig = {
   talk?: TalkConfig;
   gateway?: GatewayConfig;
   memory?: MemoryConfig;
+  mcp?: {
+    servers?: Record<
+      string,
+      {
+        command: string;
+        args?: string[];
+        env?: Record<string, string>;
+        enabled?: boolean;
+      }
+    >;
+  };
 };
 
 export type ConfigValidationIssue = {

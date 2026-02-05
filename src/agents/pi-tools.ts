@@ -162,6 +162,8 @@ export function createOpenClawCodingTools(options?: {
   requireExplicitMessageTarget?: boolean;
   /** If true, omit the message tool from the tool list. */
   disableMessageTool?: boolean;
+  /** Extra tools (e.g. from MCP) to include. */
+  extraTools?: AnyAgentTool[];
   /** Whether the sender is an owner (required for owner-only tools). */
   senderIsOwner?: boolean;
 }): AnyAgentTool[] {
@@ -359,6 +361,7 @@ export function createOpenClawCodingTools(options?: {
       disableMessageTool: options?.disableMessageTool,
       requesterAgentIdOverride: agentId,
     }),
+    ...(options?.extraTools ?? []),
   ];
   // Security: treat unknown/undefined as unauthorized (opt-in, not opt-out)
   const senderIsOwner = options?.senderIsOwner === true;

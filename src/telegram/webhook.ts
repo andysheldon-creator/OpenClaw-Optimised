@@ -45,6 +45,8 @@ export async function startTelegramWebhook(opts: {
   });
   const handler = webhookCallback(bot, "http", {
     secretToken: opts.secret,
+    timeoutMilliseconds: 5000,
+    onTimeout: "return",
   });
 
   if (diagnosticsEnabled) {

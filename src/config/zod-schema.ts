@@ -291,6 +291,24 @@ export const OpenClawSchema = z
       })
       .strict()
       .optional(),
+    mcp: z
+      .object({
+        servers: z
+          .record(
+            z.string(),
+            z
+              .object({
+                command: z.string(),
+                args: z.array(z.string()).optional(),
+                env: z.record(z.string(), z.string()).optional(),
+                enabled: z.boolean().optional(),
+              })
+              .strict(),
+          )
+          .optional(),
+      })
+      .strict()
+      .optional(),
     hooks: z
       .object({
         enabled: z.boolean().optional(),

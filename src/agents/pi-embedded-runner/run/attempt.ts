@@ -8,6 +8,7 @@ import type { EmbeddedRunAttemptParams, EmbeddedRunAttemptResult } from "./types
 import { resolveHeartbeatPrompt } from "../../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../../config/channel-capabilities.js";
 import { getMachineDisplayName } from "../../../infra/machine-name.js";
+import { loadMcpTools } from "../../../mcp/service.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
 import { isSubagentSessionKey } from "../../../routing/session-key.js";
@@ -205,6 +206,7 @@ export async function runEmbeddedAttempt(
 
     // Check if the model supports native image input
     const modelHasVision = params.model.input?.includes("image") ?? false;
+    const mcpTools = params.config ? await loadMcpTools(params.config) : [];
     const toolsRaw = params.disableTools
       ? []
       : createOpenClawCodingTools({
@@ -242,6 +244,7 @@ export async function runEmbeddedAttempt(
           requireExplicitMessageTarget:
             params.requireExplicitMessageTarget ?? isSubagentSessionKey(params.sessionKey),
           disableMessageTool: params.disableMessageTool,
+          extraTools: mcpTools,
         });
     const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider: params.provider });
     logToolSchemasForGoogle({ tools, provider: params.provider });
