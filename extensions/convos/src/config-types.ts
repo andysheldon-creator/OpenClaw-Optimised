@@ -19,9 +19,9 @@ export type ConvosAccountConfig = {
   env?: "production" | "dev";
   /** Enable debug logging for this account. */
   debug?: boolean;
-  /** Direct message access policy (default: pairing). */
+  /** Sender access policy (default: pairing). Controls who can message the agent in groups. */
   dmPolicy?: DmPolicy;
-  /** Allowlist for direct message senders. */
+  /** Allowlist of inbox IDs permitted to message the agent. */
   allowFrom?: Array<string | number>;
   /** Optional allowlist for group senders. */
   groupAllowFrom?: Array<string | number>;
@@ -29,7 +29,7 @@ export type ConvosAccountConfig = {
   groupPolicy?: GroupPolicy;
   /** Max group messages to keep as history context (0 disables). */
   historyLimit?: number;
-  /** Max DM turns to keep as history context. */
+  /** Max per-sender turns to keep as history context. */
   dmHistoryLimit?: number;
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;

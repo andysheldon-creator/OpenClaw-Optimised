@@ -30,10 +30,10 @@ export const ConvosConfigSchema = z.object({
   /** Enable debug logging for this account. */
   debug: z.boolean().optional(),
 
-  /** Direct message access policy (default: pairing). */
+  /** Sender access policy (default: pairing). Controls who can message the agent in groups. */
   dmPolicy: z.enum(["pairing", "allowlist", "open", "disabled"]).optional(),
 
-  /** Allowlist for direct message senders. */
+  /** Allowlist of inbox IDs permitted to message the agent. */
   allowFrom: z.array(allowFromEntry).optional(),
 
   /** Optional allowlist for group senders. */
@@ -45,7 +45,7 @@ export const ConvosConfigSchema = z.object({
   /** Max group messages to keep as history context (0 disables). */
   historyLimit: z.number().int().min(0).optional(),
 
-  /** Max DM turns to keep as history context. */
+  /** Max per-sender turns to keep as history context. */
   dmHistoryLimit: z.number().int().min(0).optional(),
 
   /** Outbound text chunk size (chars). Default: 4000. */

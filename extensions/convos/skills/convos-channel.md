@@ -140,4 +140,4 @@ Key fields:
 - `privateKey`: XMTP identity key (hex, auto-generated on first run)
 - `env`: XMTP environment (production/dev)
 - `ownerConversationId`: The conversation for operator communication
-- `dmPolicy`: How to handle incoming DMs (pairing/allowlist/open/disabled)
+- `dmPolicy`: Sender access policy (pairing/allowlist/open/disabled). Controls who can message the agent in group conversations.
