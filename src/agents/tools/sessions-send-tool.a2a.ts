@@ -54,6 +54,7 @@ export async function runSessionsSendA2AFlow(params: {
     const announceTarget = await resolveAnnounceTarget({
       sessionKey: params.targetSessionKey,
       displayKey: params.displayKey,
+      requesterSessionKey: params.requesterSessionKey,
     });
     const targetChannel = announceTarget?.channel ?? "unknown";
 
