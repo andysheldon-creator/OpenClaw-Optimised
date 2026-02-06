@@ -1,4 +1,4 @@
-FROM node:22-bullseye-slim
+FROM node:22-bookworm-slim
 
 # ✅ curl, unzip + build tools (git/make/cmake) zodat pnpm deps bouwen
 RUN apt-get update && apt-get install -y curl unzip git build-essential cmake && \
