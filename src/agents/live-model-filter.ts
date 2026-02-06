@@ -5,9 +5,13 @@ export type ModelRef = {
 
 const ANTHROPIC_PREFIXES = [
   "claude-opus-4-6",
+  "claude-opus-4.6",
   "claude-opus-4-5",
+  "claude-opus-4.5",
   "claude-sonnet-4-5",
+  "claude-sonnet-4.5",
   "claude-haiku-4-5",
+  "claude-haiku-4.5",
 ];
 const OPENAI_MODELS = ["gpt-5.2", "gpt-5.0"];
 const CODEX_MODELS = [
@@ -22,6 +26,16 @@ const GOOGLE_PREFIXES = ["gemini-3"];
 const ZAI_PREFIXES = ["glm-4.7"];
 const MINIMAX_PREFIXES = ["minimax-m2.1"];
 const XAI_PREFIXES = ["grok-4"];
+
+// GitHub Copilot exposes both Claude and OpenAI models
+const COPILOT_CLAUDE_PREFIXES = [
+  "claude-opus-4.6",
+  "claude-opus-4.5",
+  "claude-sonnet-4.5",
+  "claude-sonnet-4",
+  "claude-haiku-4.5",
+];
+const COPILOT_OPENAI_PREFIXES = ["gpt-4", "gpt-5", "o1", "o3"];
 
 function matchesPrefix(id: string, prefixes: string[]): boolean {
   return prefixes.some((prefix) => id.startsWith(prefix));
@@ -72,6 +86,14 @@ export function isModernModelRef(ref: ModelRef): boolean {
 
   if (provider === "xai") {
     return matchesPrefix(id, XAI_PREFIXES);
+  }
+
+  // GitHub Copilot provider supports both Claude and OpenAI models
+  if (provider === "github-copilot") {
+    return (
+      matchesPrefix(id, COPILOT_CLAUDE_PREFIXES) ||
+      matchesPrefix(id, COPILOT_OPENAI_PREFIXES)
+    );
   }
 
   if (provider === "opencode" && id.endsWith("-free")) {
