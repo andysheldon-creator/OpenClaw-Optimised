@@ -24,6 +24,8 @@ export function buildEmbeddedSystemPrompt(params: {
     channel: string;
   };
   workspaceNotes?: string[];
+  projectsRootDir?: string;
+  projectNamingConvention?: string;
   /** Controls which hardcoded sections to include. Defaults to "full". */
   promptMode?: PromptMode;
   runtimeInfo: {
@@ -61,6 +63,8 @@ export function buildEmbeddedSystemPrompt(params: {
     docsPath: params.docsPath,
     ttsHint: params.ttsHint,
     workspaceNotes: params.workspaceNotes,
+    projectsRootDir: params.projectsRootDir,
+    projectNamingConvention: params.projectNamingConvention,
     reactionGuidance: params.reactionGuidance,
     promptMode: params.promptMode,
     runtimeInfo: params.runtimeInfo,

@@ -92,6 +92,8 @@ export type CliBackendConfig = {
 };
 
 export type AgentDefaultsConfig = {
+  /** Default hierarchy role for agents without an explicit role. Default: "specialist". */
+  role?: import("./types.agents.js").AgentRole;
   /** Primary model and fallbacks (provider/model). */
   model?: AgentModelListConfig;
   /** Optional image-capable model and fallbacks (provider/model). */
@@ -104,6 +106,11 @@ export type AgentDefaultsConfig = {
   workspace?: string;
   /** Optional repository root for system prompt runtime line (overrides auto-detect). */
   repoRoot?: string;
+  /** Projects directory configuration (root dir and naming convention). */
+  projects?: {
+    rootDir?: string;
+    namingConvention?: "kebab-case" | "snake_case" | "camelCase" | "PascalCase";
+  };
   /** Skip bootstrap (BOOTSTRAP.md creation, etc.) for pre-configured deployments. */
   skipBootstrap?: boolean;
   /** Max chars for injected bootstrap files before truncation (default: 20000). */

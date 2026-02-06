@@ -217,6 +217,9 @@ const FIELD_LABELS: Record<string, string> = {
   "skills.load.watchDebounceMs": "Skills Watch Debounce (ms)",
   "agents.defaults.workspace": "Workspace",
   "agents.defaults.repoRoot": "Repo Root",
+  "agents.defaults.projects": "Projects",
+  "agents.defaults.projects.rootDir": "Projects Root Directory",
+  "agents.defaults.projects.namingConvention": "Project Naming Convention",
   "agents.defaults.bootstrapMaxChars": "Bootstrap Max Chars",
   "agents.defaults.envelopeTimezone": "Envelope Timezone",
   "agents.defaults.envelopeTimestamp": "Envelope Timestamp",
@@ -522,6 +525,9 @@ const FIELD_HELP: Record<string, string> = {
     "Max characters of each workspace bootstrap file injected into the system prompt before truncation (default: 20000).",
   "agents.defaults.repoRoot":
     "Optional repository root shown in the system prompt runtime line (overrides auto-detect).",
+  "agents.defaults.projects.rootDir":
+    "Root directory where all dev projects are stored as subfolders (e.g., ~/Desenvolvimento).",
+  "agents.defaults.projects.namingConvention": "Naming convention for new project folders.",
   "agents.defaults.envelopeTimezone":
     'Timezone for message envelopes ("utc", "local", "user", or an IANA timezone string).',
   "agents.defaults.envelopeTimestamp":
@@ -752,6 +758,7 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.controlUi.basePath": "/openclaw",
   "gateway.controlUi.root": "dist/control-ui",
   "channels.mattermost.baseUrl": "https://chat.example.com",
+  "agents.defaults.projects.rootDir": "~/Desenvolvimento",
   "agents.list[].identity.avatar": "avatars/openclaw.png",
 };
 

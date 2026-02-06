@@ -143,6 +143,32 @@ function buildVoiceSection(params: { isMinimal: boolean; ttsHint?: string }) {
   return ["## Voice (TTS)", hint, ""];
 }
 
+function buildProjectsSection(params: {
+  projectsRootDir?: string;
+  projectNamingConvention?: string;
+  isMinimal: boolean;
+}) {
+  if (params.isMinimal || !params.projectsRootDir) {
+    return [];
+  }
+  const convention = params.projectNamingConvention ?? "kebab-case";
+  const exampleMap: Record<string, string> = {
+    "kebab-case": "my-new-project",
+    snake_case: "my_new_project",
+    camelCase: "myNewProject",
+    PascalCase: "MyNewProject",
+  };
+  const example = exampleMap[convention] ?? exampleMap["kebab-case"];
+  return [
+    "## Projects Directory",
+    `Projects root: ${params.projectsRootDir}`,
+    "When creating new projects, place them as subdirectories of this path.",
+    `Project naming convention: ${convention} (e.g., ${example}).`,
+    "Always ask the user for the project name before creating a new project.",
+    "",
+  ];
+}
+
 function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readToolName: string }) {
   const docsPath = params.docsPath?.trim();
   if (!docsPath || params.isMinimal) {
@@ -158,6 +184,69 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
     "For OpenClaw behavior, commands, config, or architecture: consult local docs first.",
     "When diagnosing issues, run `openclaw status` yourself when possible; only ask the user if you lack access (e.g., sandboxed).",
     "",
+  ];
+}
+
+const ROLE_SPAWN_TABLE: Record<string, string[]> = {
+  orchestrator: ["orchestrator", "lead", "specialist", "worker"],
+  lead: ["specialist", "worker"],
+  specialist: ["worker"],
+  worker: [],
+};
+
+function buildRoleSection(agentRole: string | undefined, isMinimal: boolean): string[] {
+  const role = agentRole ?? "orchestrator";
+
+  if (isMinimal) {
+    // Subagent/minimal mode: brief role context
+    const canSpawn = ROLE_SPAWN_TABLE[role] ?? [];
+    if (canSpawn.length === 0) {
+      return [
+        `Your role: ${role}. Focus on executing your assigned task directly. You cannot spawn sub-agents.`,
+      ];
+    }
+    return [`Your role: ${role}. You can spawn sub-agents with roles: ${canSpawn.join(", ")}.`];
+  }
+
+  if (role === "orchestrator") {
+    return [
+      "## Role: Orchestrator",
+      "You are the orchestrator. First understand the user's intent, then decide the best approach:",
+      "- Use `agents_list` to discover available specialist agents.",
+      "- For tasks that match a specialist (e.g., backend work → backend-architect, security audit → ciso), spawn that specialist via `sessions_spawn` with the `agentId` parameter set to the specialist's id.",
+      "- Always provide `agentId` with a registered agent from the list. The system will validate it exists. If omitted, the requester's own agent is used as fallback.",
+      "- For simple, quick requests (greetings, clarifications, short answers), handle them yourself — do not spawn.",
+      "- Always be the first to interpret the request; never blindly delegate. Pick the most appropriate specialist or handle it directly.",
+      "- You can spawn agents at any role level (lead, specialist, worker).",
+    ];
+  }
+
+  if (role === "lead") {
+    return [
+      "## Role: Lead",
+      "You are a lead agent. You coordinate specialists and workers within your domain.",
+      "- You can spawn specialist and worker agents via `sessions_spawn`.",
+      "- Delegate domain-specific tasks to specialists; handle coordination and synthesis yourself.",
+      "- You cannot spawn orchestrator-level agents.",
+    ];
+  }
+
+  if (role === "specialist") {
+    return [
+      "## Role: Specialist",
+      "You are a specialist agent. Focus on your domain expertise.",
+      "- You can spawn worker agents for sub-tasks via `sessions_spawn`.",
+      "- Handle your assigned task directly using your domain knowledge.",
+      "- You cannot spawn orchestrator or lead agents.",
+    ];
+  }
+
+  // worker
+  return [
+    "## Role: Worker",
+    "You are a worker agent. Execute your assigned task directly.",
+    "- You cannot spawn any sub-agents. Complete the work yourself.",
+    "- Focus on delivering results for your specific task.",
   ];
 }
 
@@ -179,11 +268,14 @@ export function buildAgentSystemPrompt(params: {
   heartbeatPrompt?: string;
   docsPath?: string;
   workspaceNotes?: string[];
+  projectsRootDir?: string;
+  projectNamingConvention?: string;
   ttsHint?: string;
   /** Controls which hardcoded sections to include. Defaults to "full". */
   promptMode?: PromptMode;
   runtimeInfo?: {
     agentId?: string;
+    agentRole?: string;
     host?: string;
     os?: string;
     arch?: string;
@@ -263,6 +355,7 @@ export function buildAgentSystemPrompt(params: {
     "message",
     "gateway",
     "agents_list",
+    "sessions_spawn",
     "sessions_list",
     "sessions_history",
     "sessions_send",
@@ -402,7 +495,7 @@ export function buildAgentSystemPrompt(params: {
           '- session_status: show usage/time/model state and answer "what model are we using?"',
         ].join("\n"),
     "TOOLS.md does not control tool availability; it is user guidance for how to use external tools.",
-    "If a task is more complex or takes longer, spawn a sub-agent. It will do the work for you and ping you when it's done. You can always check up on it.",
+    ...buildRoleSection(runtimeInfo?.agentRole, isMinimal),
     "",
     "## Tool Call Style",
     "Default: do not narrate routine, low-risk tool calls (just call the tool).",
@@ -453,6 +546,11 @@ export function buildAgentSystemPrompt(params: {
     "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.",
     ...workspaceNotes,
     "",
+    ...buildProjectsSection({
+      projectsRootDir: params.projectsRootDir,
+      projectNamingConvention: params.projectNamingConvention,
+      isMinimal,
+    }),
     ...docsSection,
     params.sandboxInfo?.enabled ? "## Sandbox" : "",
     params.sandboxInfo?.enabled
@@ -610,6 +708,7 @@ export function buildAgentSystemPrompt(params: {
 export function buildRuntimeLine(
   runtimeInfo?: {
     agentId?: string;
+    agentRole?: string;
     host?: string;
     os?: string;
     arch?: string;
@@ -624,6 +723,7 @@ export function buildRuntimeLine(
 ): string {
   return `Runtime: ${[
     runtimeInfo?.agentId ? `agent=${runtimeInfo.agentId}` : "",
+    runtimeInfo?.agentRole ? `role=${runtimeInfo.agentRole}` : "",
     runtimeInfo?.host ? `host=${runtimeInfo.host}` : "",
     runtimeInfo?.repoRoot ? `repo=${runtimeInfo.repoRoot}` : "",
     runtimeInfo?.os

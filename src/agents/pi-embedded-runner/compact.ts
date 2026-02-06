@@ -41,6 +41,7 @@ import {
   resolveCompactionReserveTokensFloor,
 } from "../pi-settings.js";
 import { createOpenClawCodingTools } from "../pi-tools.js";
+import { resolveProjectNamingConvention, resolveProjectsRootDir } from "../projects.js";
 import { resolveSandboxContext } from "../sandbox.js";
 import { repairSessionFileIfNeeded } from "../session-file-repair.js";
 import { guardSessionManager } from "../session-tool-result-guard-wrapper.js";
@@ -327,6 +328,8 @@ export async function compactEmbeddedPiSessionDirect(
       moduleUrl: import.meta.url,
     });
     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
+    const projectsRootDir = resolveProjectsRootDir(params.config);
+    const projectNamingConvention = resolveProjectNamingConvention(params.config);
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
@@ -340,6 +343,8 @@ export async function compactEmbeddedPiSessionDirect(
       skillsPrompt,
       docsPath: docsPath ?? undefined,
       ttsHint,
+      projectsRootDir,
+      projectNamingConvention,
       promptMode,
       runtimeInfo,
       reactionGuidance,

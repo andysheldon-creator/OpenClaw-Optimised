@@ -1,15 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
+import { resolveAgentRole } from "./agent-scope.js";
 import {
   formatUserTime,
   resolveUserTimeFormat,
   resolveUserTimezone,
   type ResolvedTimeFormat,
 } from "./date-time.js";
+import { resolveProjectNamingConvention, resolveProjectsRootDir } from "./projects.js";
 
 export type RuntimeInfoInput = {
   agentId?: string;
+  agentRole?: string;
   host: string;
   os: string;
   arch: string;
@@ -28,6 +31,8 @@ export type SystemPromptRuntimeParams = {
   userTimezone: string;
   userTime?: string;
   userTimeFormat?: ResolvedTimeFormat;
+  projectsRootDir?: string;
+  projectNamingConvention?: string;
 };
 
 export function buildSystemPromptParams(params: {
@@ -45,15 +50,22 @@ export function buildSystemPromptParams(params: {
   const userTimezone = resolveUserTimezone(params.config?.agents?.defaults?.userTimezone);
   const userTimeFormat = resolveUserTimeFormat(params.config?.agents?.defaults?.timeFormat);
   const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
+  const agentRole =
+    params.agentId && params.config ? resolveAgentRole(params.config, params.agentId) : undefined;
+  const projectsRootDir = resolveProjectsRootDir(params.config);
+  const projectNamingConvention = resolveProjectNamingConvention(params.config);
   return {
     runtimeInfo: {
       agentId: params.agentId,
+      agentRole,
       ...params.runtime,
       repoRoot,
     },
     userTimezone,
     userTime,
     userTimeFormat,
+    projectsRootDir,
+    projectNamingConvention,
   };
 }
 

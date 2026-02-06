@@ -56,6 +56,7 @@ import {
   loadWorkspaceSkillEntries,
   resolveSkillsPromptForRun,
 } from "../../skills.js";
+import { updateSubagentUsage } from "../../subagent-registry.js";
 import { buildSystemPromptParams } from "../../system-prompt-params.js";
 import { buildSystemPromptReport } from "../../system-prompt-report.js";
 import { resolveTranscriptPolicy } from "../../transcript-policy.js";
@@ -317,7 +318,14 @@ export async function runEmbeddedAttempt(
       agentId: sessionAgentId,
     });
     const defaultModelLabel = `${defaultModelRef.provider}/${defaultModelRef.model}`;
-    const { runtimeInfo, userTimezone, userTime, userTimeFormat } = buildSystemPromptParams({
+    const {
+      runtimeInfo,
+      userTimezone,
+      userTime,
+      userTimeFormat,
+      projectsRootDir,
+      projectNamingConvention,
+    } = buildSystemPromptParams({
       config: params.config,
       agentId: sessionAgentId,
       workspaceDir: effectiveWorkspace,
@@ -358,6 +366,8 @@ export async function runEmbeddedAttempt(
       docsPath: docsPath ?? undefined,
       ttsHint,
       workspaceNotes,
+      projectsRootDir,
+      projectNamingConvention,
       reactionGuidance,
       promptMode,
       runtimeInfo,
@@ -857,6 +867,17 @@ export async function runEmbeddedAttempt(
           }).catch((err) => {
             log.warn(`Failed to track usage: ${err}`);
           });
+
+          // Update subagent usage for real-time hierarchy tracking
+          if (isSubagentSessionKey(params.sessionKey) && params.runId) {
+            updateSubagentUsage(params.runId, {
+              inputTokens: usage.input ?? 0,
+              outputTokens: usage.output ?? 0,
+              cacheReadTokens: usage.cacheRead ?? 0,
+              cacheWriteTokens: usage.cacheWrite ?? 0,
+              durationMs: Date.now() - promptStartedAt,
+            });
+          }
         }
 
         // Run agent_end hooks to allow plugins to analyze the conversation
