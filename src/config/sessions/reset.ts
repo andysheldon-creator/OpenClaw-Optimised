@@ -9,12 +9,19 @@ export type SessionResetPolicy = {
   mode: SessionResetMode;
   atHour: number;
   idleMinutes?: number;
+  contextUsageThreshold?: number;
+  maxCompactions?: number;
 };
+
+export type SessionResetReason = "daily" | "idle" | "context-usage" | "compactions";
 
 export type SessionFreshness = {
   fresh: boolean;
   dailyResetAt?: number;
   idleExpiresAt?: number;
+  staleReason?: SessionResetReason;
+  contextUsage?: number;
+  compactionCount?: number;
 };
 
 export const DEFAULT_RESET_MODE: SessionResetMode = "daily";
@@ -87,10 +94,22 @@ export function resolveSessionResetPolicy(params: {
   resetOverride?: SessionResetConfig;
 }): SessionResetPolicy {
   const sessionCfg = params.sessionCfg;
-  const baseReset = params.resetOverride ?? sessionCfg?.reset;
-  const typeReset = params.resetOverride ? undefined : sessionCfg?.resetByType?.[params.resetType];
+  const globalReset = sessionCfg?.reset;
+
+  // When the override has `inherit: true`, merge: override values win, unset fields
+  // fall through to the global session.reset config.
+  const effectiveOverride =
+    params.resetOverride?.inherit && globalReset
+      ? {
+          ...globalReset,
+          ...stripUndefined(params.resetOverride),
+        }
+      : params.resetOverride;
+
+  const baseReset = effectiveOverride ?? globalReset;
+  const typeReset = effectiveOverride ? undefined : sessionCfg?.resetByType?.[params.resetType];
   const hasExplicitReset = Boolean(baseReset || sessionCfg?.resetByType);
-  const legacyIdleMinutes = params.resetOverride ? undefined : sessionCfg?.idleMinutes;
+  const legacyIdleMinutes = effectiveOverride ? undefined : sessionCfg?.idleMinutes;
   const mode =
     typeReset?.mode ??
     baseReset?.mode ??
@@ -110,7 +129,11 @@ export function resolveSessionResetPolicy(params: {
     idleMinutes = DEFAULT_IDLE_MINUTES;
   }
 
-  return { mode, atHour, idleMinutes };
+  const contextUsageThreshold =
+    typeReset?.contextUsageThreshold ?? baseReset?.contextUsageThreshold;
+  const maxCompactions = typeReset?.maxCompactions ?? baseReset?.maxCompactions;
+
+  return { mode, atHour, idleMinutes, contextUsageThreshold, maxCompactions };
 }
 
 export function resolveChannelResetConfig(params: {
@@ -134,6 +157,9 @@ export function evaluateSessionFreshness(params: {
   updatedAt: number;
   now: number;
   policy: SessionResetPolicy;
+  totalTokens?: number;
+  contextTokens?: number;
+  compactionCount?: number;
 }): SessionFreshness {
   const dailyResetAt =
     params.policy.mode === "daily"
@@ -145,11 +171,53 @@ export function evaluateSessionFreshness(params: {
       : undefined;
   const staleDaily = dailyResetAt != null && params.updatedAt < dailyResetAt;
   const staleIdle = idleExpiresAt != null && params.now > idleExpiresAt;
+
+  // Context-usage check: skip when token data is missing or contextTokens is 0.
+  const contextUsage =
+    params.totalTokens != null && params.contextTokens != null && params.contextTokens > 0
+      ? params.totalTokens / params.contextTokens
+      : undefined;
+  const staleContext =
+    contextUsage != null &&
+    params.policy.contextUsageThreshold != null &&
+    contextUsage >= params.policy.contextUsageThreshold;
+
+  // Compaction count check: skip when compactionCount is undefined.
+  const staleCompactions =
+    params.compactionCount != null &&
+    params.policy.maxCompactions != null &&
+    params.compactionCount >= params.policy.maxCompactions;
+
+  // OR logic: any criterion firing = stale.
+  const stale = staleDaily || staleIdle || staleContext || staleCompactions;
+
+  let staleReason: SessionResetReason | undefined;
+  if (stale) {
+    if (staleDaily) staleReason = "daily";
+    else if (staleIdle) staleReason = "idle";
+    else if (staleContext) staleReason = "context-usage";
+    else if (staleCompactions) staleReason = "compactions";
+  }
+
   return {
-    fresh: !(staleDaily || staleIdle),
+    fresh: !stale,
     dailyResetAt,
     idleExpiresAt,
+    staleReason,
+    contextUsage,
+    compactionCount: params.compactionCount,
   };
+}
+
+/** Strip keys whose value is `undefined` so spread-merge doesn't clobber global values. */
+function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const key of Object.keys(obj) as Array<keyof T>) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
 }
 
 function normalizeResetAtHour(value: number | undefined): number {

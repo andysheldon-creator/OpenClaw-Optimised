@@ -69,6 +69,12 @@ export type SessionResetConfig = {
   atHour?: number;
   /** Sliding idle window (minutes). When set with daily mode, whichever expires first wins. */
   idleMinutes?: number;
+  /** Reset when context usage (totalTokens/contextTokens) >= this fraction (0.0-1.0). */
+  contextUsageThreshold?: number;
+  /** Reset after this many compactions within a session. */
+  maxCompactions?: number;
+  /** On per-channel/per-type overrides: merge with global session.reset instead of replacing it. */
+  inherit?: boolean;
 };
 export type SessionResetByTypeConfig = {
   dm?: SessionResetConfig;

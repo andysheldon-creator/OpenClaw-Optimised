@@ -55,7 +55,14 @@ export function getSessionSnapshot(
   });
   const now = Date.now();
   const freshness = entry
-    ? evaluateSessionFreshness({ updatedAt: entry.updatedAt, now, policy: resetPolicy })
+    ? evaluateSessionFreshness({
+        updatedAt: entry.updatedAt,
+        now,
+        policy: resetPolicy,
+        totalTokens: entry.totalTokens,
+        contextTokens: entry.contextTokens,
+        compactionCount: entry.compactionCount,
+      })
     : { fresh: false };
   return {
     key,
@@ -65,5 +72,6 @@ export function getSessionSnapshot(
     resetType,
     dailyResetAt: freshness.dailyResetAt,
     idleExpiresAt: freshness.idleExpiresAt,
+    staleReason: freshness.staleReason,
   };
 }

@@ -111,8 +111,14 @@ export function resolveSession(opts: {
     resetOverride: channelReset,
   });
   const fresh = sessionEntry
-    ? evaluateSessionFreshness({ updatedAt: sessionEntry.updatedAt, now, policy: resetPolicy })
-        .fresh
+    ? evaluateSessionFreshness({
+        updatedAt: sessionEntry.updatedAt,
+        now,
+        policy: resetPolicy,
+        totalTokens: sessionEntry.totalTokens,
+        contextTokens: sessionEntry.contextTokens,
+        compactionCount: sessionEntry.compactionCount,
+      }).fresh
     : false;
   const sessionId =
     opts.sessionId?.trim() || (fresh ? sessionEntry?.sessionId : undefined) || crypto.randomUUID();
