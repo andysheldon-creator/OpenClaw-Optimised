@@ -689,4 +689,52 @@ describe("update-cli", () => {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("updateWizardCommand uses ~/openclaw as default git checkout path", async () => {
+    const previousGitDir = process.env.OPENCLAW_GIT_DIR;
+    try {
+      setTty(true);
+      delete process.env.OPENCLAW_GIT_DIR;
+
+      const { checkUpdateStatus } = await import("../infra/update-check.js");
+      const { runGatewayUpdate } = await import("../infra/update-runner.js");
+      const { updateWizardCommand } = await import("./update-cli.js");
+
+      vi.mocked(checkUpdateStatus).mockResolvedValue({
+        root: "/test/path",
+        installKind: "package",
+        packageManager: "npm",
+        deps: {
+          manager: "npm",
+          status: "ok",
+          lockfilePath: null,
+          markerPath: null,
+        },
+      });
+      select.mockResolvedValue("dev");
+      confirm.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      vi.mocked(runGatewayUpdate).mockResolvedValue({
+        status: "ok",
+        mode: "git",
+        steps: [],
+        durationMs: 100,
+      });
+
+      await updateWizardCommand({});
+
+      const firstConfirm = vi.mocked(confirm).mock.calls[0]?.[0];
+      expect(firstConfirm).toMatchObject({
+        initialValue: true,
+      });
+      expect(String(firstConfirm?.message)).toMatch(
+        /Create a git checkout at .+[\\/]openclaw\? \(override via OPENCLAW_GIT_DIR\)/,
+      );
+    } finally {
+      if (previousGitDir === undefined) {
+        delete process.env.OPENCLAW_GIT_DIR;
+      } else {
+        process.env.OPENCLAW_GIT_DIR = previousGitDir;
+      }
+    }
+  });
 });
