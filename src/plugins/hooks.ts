@@ -30,6 +30,8 @@ import type {
   PluginHookSessionEndEvent,
   PluginHookSessionStartEvent,
   PluginHookToolContext,
+  PluginHookToolResultReceivedEvent,
+  PluginHookToolResultReceivedResult,
   PluginHookToolResultPersistContext,
   PluginHookToolResultPersistEvent,
   PluginHookToolResultPersistResult,
@@ -52,6 +54,8 @@ export type {
   PluginHookBeforeToolCallEvent,
   PluginHookBeforeToolCallResult,
   PluginHookAfterToolCallEvent,
+  PluginHookToolResultReceivedEvent,
+  PluginHookToolResultReceivedResult,
   PluginHookToolResultPersistContext,
   PluginHookToolResultPersistEvent,
   PluginHookToolResultPersistResult,
@@ -313,6 +317,27 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
   }
 
   /**
+   * Run tool_result_received hook.
+   * Allows plugins to modify or block tool results before they reach the agent.
+   * Runs sequentially.
+   */
+  async function runToolResultReceived(
+    event: PluginHookToolResultReceivedEvent,
+    ctx: PluginHookToolContext,
+  ): Promise<PluginHookToolResultReceivedResult | undefined> {
+    return runModifyingHook<"tool_result_received", PluginHookToolResultReceivedResult>(
+      "tool_result_received",
+      event,
+      ctx,
+      (acc, next) => ({
+        result: next.result ?? acc?.result,
+        block: next.block ?? acc?.block,
+        blockReason: next.blockReason ?? acc?.blockReason,
+      }),
+    );
+  }
+
+  /**
    * Run tool_result_persist hook.
    *
    * This hook is intentionally synchronous: it runs in hot paths where session
@@ -454,6 +479,7 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     // Tool hooks
     runBeforeToolCall,
     runAfterToolCall,
+    runToolResultReceived,
     runToolResultPersist,
     // Session hooks
     runSessionStart,
