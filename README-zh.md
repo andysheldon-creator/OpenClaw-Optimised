@@ -1,4 +1,4 @@
-# 🦞 OpenClaw — 个人AI助手
+# 🦞 OpenClaw — 个人 AI 助手
 
 <p align="center">
     <picture>
@@ -18,7 +18,30 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**OpenClaw** 是一款在你自己的设备上运行的_个人AI助手_。
+## 国际化 (i18n)
+
+**语言:**
+- [英语 (EN)](./README.md)
+- [中文 (ZH)](./README-zh.md)
+
+**OpenClaw UI:**
+- 支持英语 (en) 和中文 (zh) 两种语言
+- 通过顶部导航栏中的下拉菜单实现实时语言切换
+- 语言偏好保存在本地存储中，持久化保存
+
+要启动 UI 并体验多语言功能：
+
+```bash
+# 安装依赖
+pnpm ui:install
+
+# 启动开发服务器
+pnpm ui:dev
+```
+
+启动后，您可以在顶部导航栏中切换英语和中文。所有界面元素，包括导航、标题、按钮和状态指示器，都将翻译为选定的语言。
+
+**OpenClaw** 是一个在你自己的设备上运行的_个人AI助手_。
 它可以在你已经使用的频道上回复你（WhatsApp、Telegram、Slack、Discord、Google Chat、Signal、iMessage、Microsoft Teams、WebChat），还包括BlueBubbles、Matrix、Zalo和Zalo Personal等扩展频道。它可以在macOS/iOS/Android上说话和倾听，并可以渲染你控制的实时Canvas。网关只是控制平面——产品是助手。
 
 如果你想要一个感觉本地化、快速且始终在线的个人单用户助手，这就是它。

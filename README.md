@@ -19,6 +19,30 @@
 </p>
 
 **OpenClaw** is a _personal AI assistant_ you run on your own devices.
+
+## Internationalization (i18n)
+
+**Languages:**
+- [English (EN)](./README.md)
+- [中文 (ZH)](./README-zh.md)
+
+**OpenClaw UI:**
+- English (en) and Chinese (zh) languages supported
+- Real-time language switching via dropdown in the top navigation bar
+- Persistent language preference saved in local storage
+
+To start the UI and experience the multilingual features:
+
+```bash
+# Install dependencies
+pnpm ui:install
+
+# Start development server
+pnpm ui:dev
+```
+
+After starting the UI, you can switch between English and Chinese in the top navigation bar. All UI elements including navigation, titles, buttons, and status indicators will be translated accordingly.
+
 It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
 
 If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
