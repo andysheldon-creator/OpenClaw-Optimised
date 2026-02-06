@@ -131,6 +131,7 @@ openclaw onboard --install-daemon
     pnpm install
     pnpm ui:build # auto-installs UI deps on first run
     pnpm build
+    pnpm link --global  # makes `openclaw` available on PATH
     ```
 
   </Step>
