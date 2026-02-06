@@ -263,7 +263,7 @@ const computeLatencyStats = (values: number[]): SessionLatencyStats | undefined 
   if (!values.length) {
     return undefined;
   }
-  const sorted = [...values].sort((a, b) => a - b);
+  const sorted = values.toSorted((a, b) => a - b);
   const total = sorted.reduce((sum, v) => sum + v, 0);
   const count = sorted.length;
   const p95Index = Math.max(0, Math.ceil(count * 0.95) - 1);
@@ -638,7 +638,7 @@ export async function loadSessionCostSummary(params: {
             latencyMs <= MAX_LATENCY_MS
           ) {
             latencyValues.push(latencyMs);
-            const dayKey = formatDayKey(entry.timestamp);
+            const dayKey = formatDayKey(entry.timestamp ?? new Date(ts));
             const dailyLatencies = dailyLatencyMap.get(dayKey) ?? [];
             dailyLatencies.push(latencyMs);
             dailyLatencyMap.set(dayKey, dailyLatencies);
@@ -920,7 +920,7 @@ export async function loadSessionUsageTimeSeries(params: {
 
 export type SessionLogEntry = {
   timestamp: number;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "tool" | "toolResult";
   content: string;
   tokens?: number;
   cost?: number;
@@ -959,11 +959,18 @@ export async function loadSessionLogs(params: {
       }
 
       const role = message.role as string | undefined;
-      if (role !== "user" && role !== "assistant") {
+      if (role !== "user" && role !== "assistant" && role !== "tool" && role !== "toolResult") {
         continue;
       }
 
       const contentParts: string[] = [];
+      const rawToolName = message.toolName ?? message.tool_name ?? message.name ?? message.tool;
+      const toolName =
+        typeof rawToolName === "string" && rawToolName.trim() ? rawToolName.trim() : undefined;
+      if (role === "tool" || role === "toolResult") {
+        contentParts.push(`[Tool: ${toolName ?? "tool"}]`);
+        contentParts.push("[Tool Result]");
+      }
 
       // Extract content
       const rawContent = message.content;
@@ -998,10 +1005,7 @@ export async function loadSessionLogs(params: {
 
       // OpenAI-style tool calls stored outside the content array.
       const rawToolCalls =
-        (message.tool_calls as unknown) ??
-        (message.toolCalls as unknown) ??
-        (message.function_call as unknown) ??
-        (message.functionCall as unknown);
+        message.tool_calls ?? message.toolCalls ?? message.function_call ?? message.functionCall;
       const toolCalls = Array.isArray(rawToolCalls)
         ? rawToolCalls
         : rawToolCalls

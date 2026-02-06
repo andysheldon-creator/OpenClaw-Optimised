@@ -1,6 +1,5 @@
 import { html, nothing } from "lit";
 import type { AppViewState } from "./app-view-state.ts";
-import type { UsageState } from "./controllers/usage.ts";
 import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
 import { refreshChatAvatar } from "./app-chat.ts";
 import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.helpers.ts";
@@ -338,6 +337,10 @@ export function renderApp(state: AppViewState) {
                 sessionLogs: state.usageSessionLogs,
                 sessionLogsLoading: state.usageSessionLogsLoading,
                 sessionLogsExpanded: state.usageSessionLogsExpanded,
+                logFilterRoles: state.usageLogFilterRoles,
+                logFilterTools: state.usageLogFilterTools,
+                logFilterHasTools: state.usageLogFilterHasTools,
+                logFilterQuery: state.usageLogFilterQuery,
                 query: state.usageQuery,
                 queryDraft: state.usageQueryDraft,
                 sessionSort: state.usageSessionSort,
@@ -370,6 +373,24 @@ export function renderApp(state: AppViewState) {
                 },
                 onToggleSessionLogsExpanded: () => {
                   state.usageSessionLogsExpanded = !state.usageSessionLogsExpanded;
+                },
+                onLogFilterRolesChange: (next) => {
+                  state.usageLogFilterRoles = next;
+                },
+                onLogFilterToolsChange: (next) => {
+                  state.usageLogFilterTools = next;
+                },
+                onLogFilterHasToolsChange: (next) => {
+                  state.usageLogFilterHasTools = next;
+                },
+                onLogFilterQueryChange: (next) => {
+                  state.usageLogFilterQuery = next;
+                },
+                onLogFilterClear: () => {
+                  state.usageLogFilterRoles = [];
+                  state.usageLogFilterTools = [];
+                  state.usageLogFilterHasTools = false;
+                  state.usageLogFilterQuery = "";
                 },
                 onToggleHeaderPinned: () => {
                   state.usageHeaderPinned = !state.usageHeaderPinned;

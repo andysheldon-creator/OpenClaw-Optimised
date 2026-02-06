@@ -12,7 +12,7 @@ export type UsageState = {
   usageStartDate: string;
   usageEndDate: string;
   usageSelectedSessions: string[];
-  usageSelectedDay: string | null;
+  usageSelectedDays: string[];
   usageTimeSeries: SessionUsageTimeSeries | null;
   usageTimeSeriesLoading: boolean;
   usageSessionLogs: SessionLogEntry[] | null;

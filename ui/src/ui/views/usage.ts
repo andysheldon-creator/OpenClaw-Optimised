@@ -40,6 +40,15 @@ const usageStylesString = `
     color: var(--text);
     font-size: 13px;
   }
+  .usage-filters-inline input[type="text"] {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    min-width: 180px;
+  }
   .usage-filters-inline .btn-sm {
     padding: 6px 12px;
     font-size: 14px;
@@ -2135,6 +2144,10 @@ export type UsageProps = {
   sessionLogs: SessionLogEntry[] | null;
   sessionLogsLoading: boolean;
   sessionLogsExpanded: boolean;
+  logFilterRoles: SessionLogRole[];
+  logFilterTools: string[];
+  logFilterHasTools: boolean;
+  logFilterQuery: string;
   query: string;
   queryDraft: string;
   sessionSort: "tokens" | "cost" | "recent" | "messages" | "errors";
@@ -2152,6 +2165,11 @@ export type UsageProps = {
   onToggleContextExpanded: () => void;
   onToggleHeaderPinned: () => void;
   onToggleSessionLogsExpanded: () => void;
+  onLogFilterRolesChange: (next: SessionLogRole[]) => void;
+  onLogFilterToolsChange: (next: string[]) => void;
+  onLogFilterHasToolsChange: (next: boolean) => void;
+  onLogFilterQueryChange: (next: string) => void;
+  onLogFilterClear: () => void;
   onSelectSession: (key: string, shiftKey: boolean) => void;
   onChartModeChange: (mode: "tokens" | "cost") => void;
   onDailyChartModeChange: (mode: "total" | "by-type") => void;
@@ -2174,11 +2192,13 @@ export type UsageProps = {
 
 export type SessionLogEntry = {
   timestamp: number;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "tool" | "toolResult";
   content: string;
   tokens?: number;
   cost?: number;
 };
+
+export type SessionLogRole = SessionLogEntry["role"];
 
 // ~4 chars per token is a rough approximation
 const CHARS_PER_TOKEN = 4;
@@ -2539,13 +2559,13 @@ const emptyUsageTotals = (): UsageTotals => ({
   missingCostEntries: 0,
 });
 
-const mergeUsageTotals = (target: UsageTotals, source: UsageTotals) => {
-  target.input += source.input;
-  target.output += source.output;
-  target.cacheRead += source.cacheRead;
-  target.cacheWrite += source.cacheWrite;
-  target.totalTokens += source.totalTokens;
-  target.totalCost += source.totalCost;
+const mergeUsageTotals = (target: UsageTotals, source: Partial<UsageTotals>) => {
+  target.input += source.input ?? 0;
+  target.output += source.output ?? 0;
+  target.cacheRead += source.cacheRead ?? 0;
+  target.cacheWrite += source.cacheWrite ?? 0;
+  target.totalTokens += source.totalTokens ?? 0;
+  target.totalCost += source.totalCost ?? 0;
   target.inputCost += source.inputCost ?? 0;
   target.outputCost += source.outputCost ?? 0;
   target.cacheReadCost += source.cacheReadCost ?? 0;
@@ -3489,12 +3509,12 @@ function renderUsageInsights(
   const topAgents = aggregates.byAgent.slice(0, 5).map((entry) => ({
     label: entry.agentId,
     value: formatCost(entry.totals.totalCost),
-    sub: `${formatTokens(entry.totals.totalTokens)}`,
+    sub: formatTokens(entry.totals.totalTokens),
   }));
   const topChannels = aggregates.byChannel.slice(0, 5).map((entry) => ({
     label: entry.channel,
     value: formatCost(entry.totals.totalCost),
-    sub: `${formatTokens(entry.totals.totalTokens)}`,
+    sub: formatTokens(entry.totals.totalTokens),
   }));
 
   return html`
@@ -3691,9 +3711,8 @@ function renderSessionsCard(
         return getSessionValue(b) - getSessionValue(a);
     }
   });
-  const sortedWithDir = sessionSortDir === "asc" ? [...sortedSessions].reverse() : sortedSessions;
+  const sortedWithDir = sessionSortDir === "asc" ? sortedSessions.toReversed() : sortedSessions;
 
-  const maxVal = Math.max(...sortedWithDir.map(getSessionValue), isTokenMode ? 1 : 0.001);
   const totalValue = sortedWithDir.reduce((sum, session) => sum + getSessionValue(session), 0);
   const avgValue = sortedWithDir.length ? totalValue / sortedWithDir.length : 0;
   const totalErrors = sortedWithDir.reduce(
@@ -3704,7 +3723,6 @@ function renderSessionsCard(
   const selectedSet = new Set(selectedSessions);
   const selectedEntries = sortedWithDir.filter((s) => selectedSet.has(s.key));
   const selectedCount = selectedEntries.length;
-  const recentSet = new Set(recentSessions);
   const sessionMap = new Map(sortedWithDir.map((s) => [s.key, s]));
   const recentEntries = recentSessions
     .map((key) => sessionMap.get(key))
@@ -3776,8 +3794,6 @@ function renderSessionsCard(
                 <div class="session-bars" style="max-height: 220px; margin-top: 6px;">
                   ${recentEntries.map((s) => {
                     const value = getSessionValue(s);
-                    const normalized = maxVal > 0 ? Math.sqrt(value / maxVal) : 0;
-                    const widthPct = value > 0 ? Math.max(normalized * 100, 6) : 0;
                     const isSelected = selectedSet.has(s.key);
                     const displayLabel = formatSessionListLabel(s);
                     const meta = buildSessionMeta(s);
@@ -3818,8 +3834,6 @@ function renderSessionsCard(
                 <div class="session-bars">
                   ${sortedWithDir.slice(0, 50).map((s) => {
                     const value = getSessionValue(s);
-                    const normalized = maxVal > 0 ? Math.sqrt(value / maxVal) : 0;
-                    const widthPct = value > 0 ? Math.max(normalized * 100, 6) : 0;
                     const isSelected = selectedSessions.includes(s.key);
                     const displayLabel = formatSessionListLabel(s);
                     const meta = buildSessionMeta(s);
@@ -3863,8 +3877,6 @@ function renderSessionsCard(
                 <div class="session-bars" style="max-height: 160px; margin-top: 6px;">
                   ${selectedEntries.map((s) => {
                     const value = getSessionValue(s);
-                    const normalized = maxVal > 0 ? Math.sqrt(value / maxVal) : 0;
-                    const widthPct = value > 0 ? Math.max(normalized * 100, 6) : 0;
                     const displayLabel = formatSessionListLabel(s);
                     const meta = buildSessionMeta(s);
                     return html`
@@ -3941,7 +3953,7 @@ function renderSessionSummary(session: UsageSessionEntry) {
     usage.modelUsage?.slice(0, 6).map((entry) => ({
       label: entry.model ?? "unknown",
       value: formatCost(entry.totals.totalCost),
-      sub: `${formatTokens(entry.totals.totalTokens)}`,
+      sub: formatTokens(entry.totals.totalTokens),
     })) ?? [];
 
   return html`
@@ -3990,6 +4002,17 @@ function renderSessionDetailPanel(
   sessionLogsLoading: boolean,
   sessionLogsExpanded: boolean,
   onToggleSessionLogsExpanded: () => void,
+  logFilters: {
+    roles: SessionLogRole[];
+    tools: string[];
+    hasTools: boolean;
+    query: string;
+  },
+  onLogFilterRolesChange: (next: SessionLogRole[]) => void,
+  onLogFilterToolsChange: (next: string[]) => void,
+  onLogFilterHasToolsChange: (next: boolean) => void,
+  onLogFilterQueryChange: (next: string) => void,
+  onLogFilterClear: () => void,
   contextExpanded: boolean,
   onToggleContextExpanded: () => void,
   onClose: () => void,
@@ -4037,6 +4060,12 @@ function renderSessionDetailPanel(
             sessionLogsLoading,
             sessionLogsExpanded,
             onToggleSessionLogsExpanded,
+            logFilters,
+            onLogFilterRolesChange,
+            onLogFilterToolsChange,
+            onLogFilterHasToolsChange,
+            onLogFilterQueryChange,
+            onLogFilterClear,
           )}
           ${renderContextPanel(session.contextWeight, usage, contextExpanded, onToggleContextExpanded)}
         </div>
@@ -4196,7 +4225,12 @@ function renderTimeSeriesCompact(
           const y = padding.top + chartHeight - barHeight;
           const date = new Date(p.timestamp);
           const tooltipLines = [
-            `${date.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`,
+            date.toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
             `${formatTokens(val)} tokens`,
           ];
           if (breakdownByType) {
@@ -4429,6 +4463,17 @@ function renderSessionLogsCompact(
   loading: boolean,
   expandedAll: boolean,
   onToggleExpandedAll: () => void,
+  filters: {
+    roles: SessionLogRole[];
+    tools: string[];
+    hasTools: boolean;
+    query: string;
+  },
+  onFilterRolesChange: (next: SessionLogRole[]) => void,
+  onFilterToolsChange: (next: string[]) => void,
+  onFilterHasToolsChange: (next: boolean) => void,
+  onFilterQueryChange: (next: string) => void,
+  onFilterClear: () => void,
 ) {
   if (loading) {
     return html`
@@ -4447,22 +4492,112 @@ function renderSessionLogsCompact(
     `;
   }
 
+  const normalizedQuery = filters.query.trim().toLowerCase();
+  const entries = logs.map((log) => {
+    const toolInfo = parseToolSummary(log.content);
+    const cleanContent = toolInfo.cleanContent || log.content;
+    return { log, toolInfo, cleanContent };
+  });
+  const toolOptions = Array.from(
+    new Set(entries.flatMap((entry) => entry.toolInfo.tools.map(([name]) => name))),
+  ).toSorted((a, b) => a.localeCompare(b));
+  const filteredEntries = entries.filter((entry) => {
+    if (filters.roles.length > 0 && !filters.roles.includes(entry.log.role)) {
+      return false;
+    }
+    if (filters.hasTools && entry.toolInfo.tools.length === 0) {
+      return false;
+    }
+    if (filters.tools.length > 0) {
+      const matchesTool = entry.toolInfo.tools.some(([name]) => filters.tools.includes(name));
+      if (!matchesTool) {
+        return false;
+      }
+    }
+    if (normalizedQuery) {
+      const haystack = entry.cleanContent.toLowerCase();
+      if (!haystack.includes(normalizedQuery)) {
+        return false;
+      }
+    }
+    return true;
+  });
+  const displayedCount =
+    filters.roles.length > 0 || filters.tools.length > 0 || filters.hasTools || normalizedQuery
+      ? `${filteredEntries.length} of ${logs.length}`
+      : `${logs.length}`;
+
+  const roleSelected = new Set(filters.roles);
+  const toolSelected = new Set(filters.tools);
+
   return html`
     <div class="session-logs-compact">
       <div class="session-logs-header">
-        <span>Conversation <span style="font-weight: normal; color: var(--text-muted);">(${logs.length} messages)</span></span>
+        <span>Conversation <span style="font-weight: normal; color: var(--text-muted);">(${displayedCount} messages)</span></span>
         <button class="btn btn-sm usage-action-btn usage-secondary-btn" @click=${onToggleExpandedAll}>
           ${expandedAll ? "Collapse All" : "Expand All"}
         </button>
       </div>
+      <div class="usage-filters-inline" style="margin: 10px 12px;">
+        <select
+          multiple
+          size="4"
+          @change=${(event: Event) =>
+            onFilterRolesChange(
+              Array.from((event.target as HTMLSelectElement).selectedOptions).map(
+                (option) => option.value as SessionLogRole,
+              ),
+            )}
+        >
+          <option value="user" ?selected=${roleSelected.has("user")}>User</option>
+          <option value="assistant" ?selected=${roleSelected.has("assistant")}>Assistant</option>
+          <option value="tool" ?selected=${roleSelected.has("tool")}>Tool</option>
+          <option value="toolResult" ?selected=${roleSelected.has("toolResult")}>Tool result</option>
+        </select>
+        <select
+          multiple
+          size="4"
+          @change=${(event: Event) =>
+            onFilterToolsChange(
+              Array.from((event.target as HTMLSelectElement).selectedOptions).map(
+                (option) => option.value,
+              ),
+            )}
+        >
+          ${toolOptions.map(
+            (tool) =>
+              html`<option value=${tool} ?selected=${toolSelected.has(tool)}>${tool}</option>`,
+          )}
+        </select>
+        <label class="usage-filters-inline" style="gap: 6px;">
+          <input
+            type="checkbox"
+            .checked=${filters.hasTools}
+            @change=${(event: Event) =>
+              onFilterHasToolsChange((event.target as HTMLInputElement).checked)}
+          />
+          Has tools
+        </label>
+        <input
+          type="text"
+          placeholder="Search conversation"
+          .value=${filters.query}
+          @input=${(event: Event) => onFilterQueryChange((event.target as HTMLInputElement).value)}
+        />
+        <button class="btn btn-sm usage-action-btn usage-secondary-btn" @click=${onFilterClear}>
+          Clear
+        </button>
+      </div>
       <div class="session-logs-list">
-        ${logs.map((log) => {
-          const toolInfo = parseToolSummary(log.content);
-          const cleanContent = toolInfo.cleanContent || log.content;
+        ${filteredEntries.map((entry) => {
+          const { log, toolInfo, cleanContent } = entry;
+          const roleClass = log.role === "user" ? "user" : "assistant";
+          const roleLabel =
+            log.role === "user" ? "You" : log.role === "assistant" ? "Assistant" : "Tool";
           return html`
-          <div class="session-log-entry ${log.role}">
+          <div class="session-log-entry ${roleClass}">
             <div class="session-log-meta">
-              <span class="session-log-role">${log.role === "user" ? "You" : "Assistant"}</span>
+              <span class="session-log-role">${roleLabel}</span>
               <span>${new Date(log.timestamp).toLocaleString()}</span>
               ${log.tokens ? html`<span>${formatTokens(log.tokens)}</span>` : nothing}
             </div>
@@ -4486,6 +4621,13 @@ function renderSessionLogsCompact(
           </div>
         `;
         })}
+        ${
+          filteredEntries.length === 0
+            ? html`
+                <div class="muted" style="padding: 12px">No messages match the filters.</div>
+              `
+            : nothing
+        }
       </div>
     </div>
   `;
@@ -4781,14 +4923,15 @@ export function renderUsage(props: UsageProps) {
   const isEmpty = !props.loading && !props.totals && props.sessions.length === 0;
   const hasMissingCost =
     (displayTotals?.missingCostEntries ?? 0) > 0 ||
-    (displayTotals &&
-      displayTotals.totalTokens > 0 &&
-      displayTotals.totalCost === 0 &&
-      displayTotals.input +
-        displayTotals.output +
-        displayTotals.cacheRead +
-        displayTotals.cacheWrite >
-        0);
+    (displayTotals
+      ? displayTotals.totalTokens > 0 &&
+        displayTotals.totalCost === 0 &&
+        displayTotals.input +
+          displayTotals.output +
+          displayTotals.cacheRead +
+          displayTotals.cacheWrite >
+          0
+      : false);
   const datePresets = [
     { label: "Today", days: 1 },
     { label: "7d", days: 7 },
@@ -5266,6 +5409,17 @@ export function renderUsage(props: UsageProps) {
             props.sessionLogsLoading,
             props.sessionLogsExpanded,
             props.onToggleSessionLogsExpanded,
+            {
+              roles: props.logFilterRoles,
+              tools: props.logFilterTools,
+              hasTools: props.logFilterHasTools,
+              query: props.logFilterQuery,
+            },
+            props.onLogFilterRolesChange,
+            props.onLogFilterToolsChange,
+            props.onLogFilterHasToolsChange,
+            props.onLogFilterQueryChange,
+            props.onLogFilterClear,
             props.contextExpanded,
             props.onToggleContextExpanded,
             props.onClearSessions,
