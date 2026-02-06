@@ -92,6 +92,12 @@ export function recomputeNextRuns(state: CronServiceState) {
       job.state.runningAtMs = undefined;
     }
     job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
+    if (job.enabled && job.state.nextRunAtMs === undefined && job.schedule.kind !== "at") {
+      state.deps.log.warn(
+        { jobId: job.id, schedule: job.schedule },
+        "cron: recomputeNextRuns produced undefined nextRunAtMs for enabled job",
+      );
+    }
   }
 }
 
