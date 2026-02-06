@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,23 @@ export function AgentOverviewTab({
     messages: 1284,
     tasksCompleted: 156,
   };
+  const configEvalSuggestions = [
+    {
+      id: "ambiguity",
+      label: "Flag ambiguous directives that could confuse intent.",
+      fileLabel: "AGENTS.md",
+    },
+    {
+      id: "missing-intent",
+      label: "Surface missing intent behind tool and policy choices.",
+      fileLabel: "TOOLS.md",
+    },
+    {
+      id: "risky-settings",
+      label: "Highlight risky settings before they ship.",
+      fileLabel: "SOUL.md",
+    },
+  ] as const;
 
   const activeWorkstreams = workstreams.filter((w) => w.status === "active");
   const upcomingRituals = rituals
@@ -201,6 +219,38 @@ export function AgentOverviewTab({
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">Config Eval (Coming Soon)</CardTitle>
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              Preview
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Future diagnostics will scan for ambiguity, missing intent, and risky settings
+            before configs go live.
+          </p>
+          <div className="space-y-2">
+            {configEvalSuggestions.map((suggestion) => (
+              <div key={suggestion.id} className="flex items-start justify-between gap-4">
+                <span className="text-sm text-muted-foreground">{suggestion.label}</span>
+                <Link
+                  to="/agents/$agentId"
+                  params={{ agentId: agent.id }}
+                  search={{ tab: "files" }}
+                  className="whitespace-nowrap text-xs font-medium text-primary hover:underline"
+                >
+                  {suggestion.fileLabel}
+                </Link>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
