@@ -236,6 +236,9 @@ export const simplexMessageActions: ChannelMessageActionAdapter = {
     }
 
     const account = resolveSimplexAccount({ cfg, accountId });
+    if (!account.enabled) {
+      throw new Error("SimpleX account disabled.");
+    }
     if (!account.configured) {
       throw new Error("SimpleX account not configured.");
     }

@@ -73,10 +73,6 @@ function resolveWsUrl(connection: SimplexConnectionConfig): string {
   return `ws://${host}:${port}`;
 }
 
-function hasExplicitWsUrl(connection: SimplexConnectionConfig): boolean {
-  return Boolean(connection.wsUrl?.trim());
-}
-
 export function resolveSimplexAccount(params: {
   cfg: OpenClawConfig;
   accountId?: string | null;
