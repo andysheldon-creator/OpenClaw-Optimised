@@ -50,10 +50,10 @@ Calls the [Zhipu Web Search HTTP API](https://docs.bigmodel.cn/api-reference/%E5
 Connects to the [Zhipu Coding Plan MCP Server](https://docs.bigmodel.cn/cn/coding-plan/mcp/search-mcp-server) via Streamable HTTP. Uses the `webSearchPrime` tool.
 
 - **Pro**: Included in Coding Plan subscription (no extra cost)
-- **Con**: Fewer tuning options (no engine/freshness/domain filter selection)
+- **Con**: No engine selection (fixed to `webSearchPrime`)
 - Session management is automatic (initialize → cache → re-init on expiry)
 
-Only the `query` parameter is forwarded to the MCP server.
+Supported parameters in MCP mode: `query`, `freshness`, `search_domain_filter`, `contentSize`.
 
 ## Example Configs
 

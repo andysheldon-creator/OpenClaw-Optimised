@@ -16,7 +16,7 @@ import type { PluginLogger } from "./types.js";
 import { wrapExternal } from "./types.js";
 
 const MCP_ENDPOINT = "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp";
-const MCP_PROTOCOL_VERSION = "2025-03-26";
+const MCP_PROTOCOL_VERSION = "2024-11-05";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** Per-API-key session cache. Maps key hash → session id. */
@@ -86,9 +86,14 @@ async function mcpPost(
 
     const newSessionId = res.headers.get("Mcp-Session-Id") ?? sessionId;
 
-    // 202 Accepted (notification acknowledged)
+    // 202 Accepted or 200 with empty body (notification acknowledged)
     if (res.status === 202) {
       return { status: 202, sessionId: newSessionId };
+    }
+
+    const contentLength = res.headers.get("content-length");
+    if (res.status === 200 && contentLength === "0") {
+      return { status: 200, sessionId: newSessionId };
     }
 
     // 404 = session expired
@@ -210,10 +215,9 @@ async function mcpInitialize(apiKey: string, logger?: PluginLogger): Promise<str
   };
   const notifyResult = await mcpPost(notifyReq, apiKey, sessionId);
   if (notifyResult.status !== 202 && notifyResult.status !== 200) {
-    logger?.error(
-      `MCP initialized notification rejected: status ${notifyResult.status}`,
+    logger?.warn(
+      `MCP initialized notification unexpected status: ${notifyResult.status} (continuing anyway)`,
     );
-    return null;
   }
 
   logger?.info(`MCP session initialized: ${sessionId?.slice(0, 8)}...`);
@@ -268,9 +272,12 @@ function invalidateSession(apiKey: string): void {
 export async function mcpSearch(params: {
   apiKey: string;
   query: string;
+  searchDomainFilter?: string;
+  searchRecencyFilter?: string;
+  contentSize?: string;
   logger?: PluginLogger;
 }): Promise<{ results: McpSearchResult[]; tookMs: number } | { error: string; message: string }> {
-  const { apiKey, query, logger } = params;
+  const { apiKey, query, searchDomainFilter, searchRecencyFilter, contentSize, logger } = params;
   const start = Date.now();
 
   let sessionId = await ensureSession(apiKey, logger);
@@ -278,13 +285,18 @@ export async function mcpSearch(params: {
     return { error: "mcp_init_failed", message: "Failed to initialize MCP session with Zhipu." };
   }
 
+  const mcpArgs: Record<string, unknown> = { search_query: query };
+  if (searchDomainFilter) mcpArgs.search_domain_filter = searchDomainFilter;
+  if (searchRecencyFilter) mcpArgs.search_recency_filter = searchRecencyFilter;
+  if (contentSize) mcpArgs.content_size = contentSize;
+
   const callReq: McpJsonRpcRequest = {
     jsonrpc: "2.0",
     id: 2,
     method: "tools/call",
     params: {
       name: "webSearchPrime",
-      arguments: { query },
+      arguments: mcpArgs,
     },
   };
 

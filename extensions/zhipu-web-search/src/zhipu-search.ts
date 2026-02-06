@@ -126,10 +126,27 @@ export function createZhipuWebSearchTool(options: ZhipuSearchToolOptions): AnyAg
         return jsonResult({ error: "missing_query", message: "query parameter is required." });
       }
 
-      // MCP mode — delegate to MCP backend (simpler params, uses subscription quota)
+      // MCP mode — delegate to MCP backend (uses subscription quota)
       if (mode === "mcp") {
         try {
-          const result = await mcpSearch({ apiKey, query, logger });
+          // Map freshness to MCP recency filter
+          const rawFreshness =
+            typeof params.freshness === "string" ? params.freshness.trim().toLowerCase() : undefined;
+          const mcpRecency = rawFreshness ? FRESHNESS_MAP[rawFreshness] : undefined;
+
+          const mcpDomain =
+            typeof params.search_domain_filter === "string" && params.search_domain_filter.trim()
+              ? params.search_domain_filter.trim()
+              : undefined;
+
+          const result = await mcpSearch({
+            apiKey,
+            query,
+            searchDomainFilter: mcpDomain,
+            searchRecencyFilter: mcpRecency,
+            contentSize,
+            logger,
+          });
           if ("error" in result) {
             return jsonResult(result);
           }
