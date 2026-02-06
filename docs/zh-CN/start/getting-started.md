@@ -15,11 +15,11 @@ x-i18n:
 
 # 入门指南
 
-目标：尽快从**零**到**第一个可用聊天**（使用合理的默认值）。
+目标：零基础、极简配置，上手首个聊天功能。
 
-最快聊天：打开 Control UI（无需渠道设置）。运行 `openclaw dashboard` 并在浏览器中聊天，或在 Gateway 网关主机上打开 `http://127.0.0.1:18789/`。文档：[Dashboard](/web/dashboard) 和 [Control UI](/web/control-ui)。
+快速开启聊天：打开 Control UI（跳过频道设置）。运行 `openclaw dashboard` 即可在浏览器中聊天，或在 Gateway 网关主机上打开 `http://127.0.0.1:18789/`。文档：[Dashboard](/web/dashboard) 和 [Control UI](/web/control-ui)。
 
-推荐路径：使用 **CLI 新手引导向导**（`openclaw onboard`）。它设置：
+推荐路径：使用 **CLI 新手引导向导**（`openclaw onboard`），它的设置流程包含：
 
 - 模型/认证（推荐 OAuth）
 - Gateway 网关设置
