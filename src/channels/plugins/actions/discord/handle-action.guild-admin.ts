@@ -183,6 +183,15 @@ export async function tryHandleDiscordMessageActionGuildAdmin(params: {
     const rateLimitPerUser = readNumberParam(actionParams, "rateLimitPerUser", {
       integer: true,
     });
+    const availableTags = actionParams.availableTags as
+      | Array<{
+          id?: string;
+          name: string;
+          moderated?: boolean;
+          emoji_id?: string | null;
+          emoji_name?: string | null;
+        }>
+      | undefined;
     return await handleDiscordAction(
       {
         action: "channelEdit",
@@ -194,6 +203,7 @@ export async function tryHandleDiscordMessageActionGuildAdmin(params: {
         parentId: parentId === undefined ? undefined : parentId,
         nsfw,
         rateLimitPerUser: rateLimitPerUser ?? undefined,
+        availableTags,
       },
       cfg,
     );
