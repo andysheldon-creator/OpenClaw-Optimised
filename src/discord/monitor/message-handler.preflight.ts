@@ -221,7 +221,8 @@ export async function preflightDiscordMessage(
   }
 
   // Fresh config for bindings lookup; other routing inputs are payload-derived.
-  const memberRoleIds = params.data.member?.roles?.map((r: { id: string }) => r.id) ?? [];
+  // member.roles is already string[] (Snowflake IDs) per Discord API types
+  const memberRoleIds: string[] = params.data.member?.roles ?? [];
   const route = resolveAgentRoute({
     cfg: loadConfig(),
     channel: "discord",
@@ -496,7 +497,8 @@ export async function preflightDiscordMessage(
     const hasRoleRestriction = Array.isArray(channelRoles) && channelRoles.length > 0;
 
     if (hasUserRestriction || hasRoleRestriction) {
-      const memberRoleIds = params.data.member?.roles?.map((r: { id: string }) => r.id) ?? [];
+      // member.roles is already string[] (Snowflake IDs) per Discord API types
+      const memberRoleIds: string[] = params.data.member?.roles ?? [];
       const userOk = hasUserRestriction
         ? resolveDiscordUserAllowed({
             allowList: channelUsers,
