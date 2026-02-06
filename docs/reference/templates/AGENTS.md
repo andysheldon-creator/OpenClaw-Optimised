@@ -66,6 +66,10 @@ To optimize token efficiency and logical reasoning, you MUST follow this structu
 
 **Why?** English tokens are cheaper and denser for reasoning.
 
+## Sub-Agent Communication Protocol
+
+"When communicating with other agents (via sessions_spawn, sessions_send, or return values), you MUST use ENGLISH only. Be strictly CONCISE and JSON-structured where possible. No conversational filler."
+
 ## Make It Yours
 
 Evolve this file as you learn what works.

@@ -188,6 +188,32 @@ function loadSkillEntries(
   return skillEntries;
 }
 
+function formatSkillsIndex(skills: Skill[], workspaceDir: string): string {
+  const lines = [
+    "# SKILLS INDEX",
+    "Descriptions are truncated. Use 'read' to load detailed instructions from the provided <path>.",
+    "",
+  ];
+  for (const skill of skills) {
+    let refPath = skill.filePath;
+    // Try to make path relative to workspace for cleaner context
+    if (path.isAbsolute(refPath) && refPath.startsWith(workspaceDir)) {
+      refPath = path.relative(workspaceDir, refPath);
+    }
+    
+    lines.push(`## ${skill.name}`);
+    if (skill.description) {
+      const desc = skill.description.trim();
+      // Truncate description to save tokens (Dynamic Loading Phase 1)
+      const truncated = desc.length > 120 ? desc.slice(0, 117) + "..." : desc;
+      lines.push(`Description: ${truncated}`);
+    }
+    lines.push(`Path: ${refPath}`);
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
 export function buildWorkspaceSkillSnapshot(
   workspaceDir: string,
   opts?: {
@@ -213,7 +239,7 @@ export function buildWorkspaceSkillSnapshot(
   );
   const resolvedSkills = promptEntries.map((entry) => entry.skill);
   const remoteNote = opts?.eligibility?.remote?.note?.trim();
-  const prompt = [remoteNote, formatSkillsForPrompt(resolvedSkills)].filter(Boolean).join("\n");
+  const prompt = [remoteNote, formatSkillsIndex(resolvedSkills, workspaceDir)].filter(Boolean).join("\n");
   return {
     prompt,
     skills: eligible.map((entry) => ({
@@ -248,7 +274,11 @@ export function buildWorkspaceSkillsPrompt(
     (entry) => entry.invocation?.disableModelInvocation !== true,
   );
   const remoteNote = opts?.eligibility?.remote?.note?.trim();
-  return [remoteNote, formatSkillsForPrompt(promptEntries.map((entry) => entry.skill))]
+  
+  // Use index-based lazy loading format
+  const indexContent = formatSkillsIndex(promptEntries.map((entry) => entry.skill), workspaceDir);
+  
+  return [remoteNote, indexContent]
     .filter(Boolean)
     .join("\n");
 }

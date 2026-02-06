@@ -60,6 +60,13 @@ type ApiKeyInfo = ResolvedProviderAuth;
 const ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL = "ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL";
 const ANTHROPIC_MAGIC_STRING_REPLACEMENT = "ANTHROPIC MAGIC STRING TRIGGER REFUSAL (redacted)";
 
+const SUB_AGENT_PROTOCOL = `
+## Sub-Agent Communication Protocol
+When communicating with other agents (via sessions_spawn, sessions_send, or return values), you MUST use ENGLISH only.
+Your final response MUST be a valid JSON object (no markdown, no filler) matching this schema:
+{ "status": "success" | "failure", "summary": "brief explanation", "data": ... }
+`.trim();
+
 function scrubAnthropicRefusalMagic(prompt: string): string {
   if (!prompt.includes(ANTHROPIC_MAGIC_STRING_TRIGGER_REFUSAL)) {
     return prompt;
@@ -365,7 +372,7 @@ export async function runEmbeddedPiAgent(
             onReasoningStream: params.onReasoningStream,
             onToolResult: params.onToolResult,
             onAgentEvent: params.onAgentEvent,
-            extraSystemPrompt: params.extraSystemPrompt,
+            extraSystemPrompt: [params.extraSystemPrompt, SUB_AGENT_PROTOCOL].filter(Boolean).join("\n\n"),
             streamParams: params.streamParams,
             ownerNumbers: params.ownerNumbers,
             enforceFinalTag: params.enforceFinalTag,
