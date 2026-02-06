@@ -45,172 +45,139 @@ Related background:
 
 ---
 
-## Proposed message shapes
+## Proposed message shapes (actual today)
+
+This section describes what OpenClaw actually speaks today for the Gateway WS handshake.
+
+Implementation references:
+
+- Connect params schema: `src/gateway/protocol/schema/frames.ts` → `ConnectParamsSchema`
+- Hello payload schema: `src/gateway/protocol/schema/frames.ts` → `HelloOkSchema`
+- Client connect sender: `src/gateway/client.ts` → `sendConnect()`
+- Server handshake handler: `src/gateway/server/ws-connection/message-handler.ts` (first `req` must be `connect`)
+- Device attestation payload: `src/gateway/device-auth.ts` → `buildDeviceAuthPayload()`
+- Signing + key material: `src/infra/device-identity.ts`
+- Local device token persistence: `src/infra/device-auth-store.ts` (`device-auth.json`)
 
 ### 1) Connection metadata (transport)
 
-**TBD:** WS vs HTTP+SSE vs gRPC. This doc assumes a WS-like message envelope.
-
-Envelope (example):
+Transport is **WebSocket**. The first client message must be a request frame:
 
 ```json
 {
-  "type": "connect",
-  "id": "c_01J...",
-  "ts": "2026-02-06T17:45:00.000Z",
-  "payload": {}
-}
-```
-
-Notes:
-
-- `id` enables request/response correlation.
-- `ts` is optional but useful for debug.
-
-### 2) `connect.hello`
-
-Sent by client immediately on connect.
-
-```json
-{
-  "type": "connect.hello",
-  "payload": {
-    "device": {
-      "deviceId": "dev_...",
+  "type": "req",
+  "id": "h1",
+  "method": "connect",
+  "params": {
+    "minProtocol": 1,
+    "maxProtocol": 1,
+    "client": {
+      "id": "node-host",
       "displayName": "Deano’s Mac mini",
+      "version": "dev",
       "platform": "darwin",
-      "app": "openclaw-node",
-      "version": "x.y.z"
+      "mode": "node",
+      "instanceId": "macmini-01"
     },
+    "caps": ["tool-events"],
     "role": "node",
-    "scope": ["node.invoke"],
-    "caps": {
-      "supportsDeviceAuth": true,
-      "supportsBearer": false
+    "scopes": ["node.invoke"],
+    "commands": ["screen.record", "camera.snap"],
+    "device": {
+      "id": "<deviceId>",
+      "publicKey": "<base64url-raw-public-key>",
+      "signature": "<base64url-signature>",
+      "signedAt": 1707231900000,
+      "nonce": "<nonce-from-connect.challenge>"
     },
-    "commands": ["screen.record", "camera.snap"]
-  }
-}
-```
-
-**Open questions (need confirmation):**
-
-- Do we want `scope` and `commands` on the wire at connect time, or only after auth?
-- Is `commands` client-declared, server-declared, or an intersection?
-
-### 3) `connect.auth` (client → gateway)
-
-Two variants are likely needed during transitions:
-
-#### A) Device-bound auth (preferred)
-
-Gateway challenges, client signs.
-
-Challenge:
-
-```json
-{
-  "type": "connect.challenge",
-  "payload": {
-    "nonce": "base64...",
-    "alg": "ed25519"
-  }
-}
-```
-
-Response:
-
-```json
-{
-  "type": "connect.auth",
-  "payload": {
-    "kind": "device",
-    "deviceId": "dev_...",
-    "publicKey": "base64...",
-    "nonce": "base64...",
-    "signature": "base64...",
-    "role": "node"
-  }
-}
-```
-
-#### B) Bearer token (temporary/compat)
-
-```json
-{
-  "type": "connect.auth",
-  "payload": {
-    "kind": "bearer",
-    "token": "...",
-    "role": "node"
-  }
-}
-```
-
-**Open questions:**
-
-- Should `role` be _bound inside_ the token/attestation only (and omitted from the auth message)?
-- Do we want `connect.auth` to allow role switching, or require a new connection per role?
-
-### 4) Pairing request + approval
-
-If auth fails / no credentials:
-
-```json
-{
-  "type": "pairing.requested",
-  "payload": {
-    "pairingId": "pair_...",
-    "deviceId": "dev_...",
-    "displayName": "Deano’s Mac mini",
-    "requestedRole": "node",
-    "requestedScope": ["node.invoke"],
-    "requestedCommands": ["screen.record", "camera.snap"],
-    "createdAt": "2026-02-06T17:45:00.000Z"
-  }
-}
-```
-
-Operator approves:
-
-```json
-{
-  "type": "pairing.approve",
-  "payload": {
-    "pairingId": "pair_...",
-    "grantedRole": "node",
-    "grantedScope": ["node.invoke"],
-    "grantedCommands": ["screen.record", "camera.snap"],
-    "expiresAt": null
-  }
-}
-```
-
-Gateway issues credentials:
-
-```json
-{
-  "type": "pairing.issued",
-  "payload": {
-    "pairingId": "pair_...",
-    "credential": {
-      "kind": "deviceToken",
-      "token": "...",
-      "boundToDeviceId": "dev_...",
-      "boundToPublicKey": "base64...",
-      "role": "node",
-      "scope": ["node.invoke"],
-      "commands": ["screen.record", "camera.snap"],
-      "issuedAt": "2026-02-06T17:46:00.000Z"
+    "auth": {
+      "token": "<shared-token-optional>",
+      "password": null
     }
   }
 }
 ```
 
-**Open questions:**
+Notes:
 
-- Are `pairing.*` messages part of the same transport, or separate REST endpoints?
-- What is the persistence format on device? (We already have `device-auth.json` in some places.)
+- This is the **only** handshake message. There is no separate `connect.hello` / `connect.auth` today.
+- `device.*` is a **device-bound attestation** over a payload built by `buildDeviceAuthPayload(...)`.
+- `role`, `scopes`, `commands` are client-declared but may be filtered/overridden by server policy.
+
+### 2) `connect.challenge` (gateway → client)
+
+On socket open, the gateway emits an event containing a `nonce`.
+
+```json
+{
+  "type": "event",
+  "event": "connect.challenge",
+  "payload": {
+    "nonce": "<string>"
+  }
+}
+```
+
+Notes:
+
+- For some non-local hosts, the gateway **requires** the nonce to be included in `params.device.nonce`.
+
+### 3) `hello-ok` response (gateway → client)
+
+Gateway responds to the `connect` request with a normal response frame whose payload is `hello-ok`:
+
+```json
+{
+  "type": "res",
+  "id": "h1",
+  "ok": true,
+  "payload": {
+    "type": "hello-ok",
+    "protocol": 1,
+    "server": {
+      "version": "dev",
+      "commit": "<optional>",
+      "host": "<hostname>",
+      "connId": "<connId>"
+    },
+    "features": {
+      "methods": ["..."],
+      "events": ["..."]
+    },
+    "snapshot": { "...": "..." },
+    "canvasHostUrl": "<optional>",
+    "auth": {
+      "deviceToken": "<device-token>",
+      "role": "node",
+      "scopes": ["node.invoke"],
+      "issuedAtMs": 1707231960000
+    },
+    "policy": {
+      "maxPayload": 26214400,
+      "maxBufferedBytes": 26214400,
+      "tickIntervalMs": 30000
+    }
+  }
+}
+```
+
+Notes:
+
+- When device auth is used successfully, the gateway may return `payload.auth.deviceToken`.
+- That token is persisted client-side in `device-auth.json` via `src/infra/device-auth-store.ts`.
+
+### 4) Pairing
+
+**TBD (for this doc):** the node/operator _pairing approval_ flow is not currently expressed as `pairing.*` WS frames in the gateway protocol layer.
+
+What exists today:
+
+- **Channel/DM pairing** (human approval codes) lives under `core.channel.pairing.*` and is documented in `docs/start/pairing.md`.
+- **Device-bound gateway auth** for WS clients uses the `connect` handshake above + server-issued `deviceToken`.
+
+Open question to resolve for WORK_ITEMS_GLOBAL#9:
+
+- Do we want explicit gateway pairing frames/APIs for nodes/operators (and if so, do we model it as WS events/reqs, REST endpoints, or both)?
 
 ---
 
