@@ -194,21 +194,7 @@ function transformToGraphData(
         borderWidth: 2,
         ...(isRunning ? { shadowBlur: 12, shadowColor: "rgba(59, 130, 246, 0.6)" } : {}),
       },
-      label: {
-        show: symbolSize >= 16,
-        position: "bottom",
-        fontSize: role === "orchestrator" ? 13 : 11,
-        fontWeight: role === "orchestrator" ? "bold" : "normal",
-        color: "#a1a1aa",
-        formatter: `{name|${label}}`,
-        rich: {
-          name: {
-            fontSize: role === "orchestrator" ? 13 : 11,
-            fontWeight: role === "orchestrator" ? "bold" : "normal",
-            color: "#a1a1aa",
-          },
-        },
-      },
+      // label inherited from series-level config (graph-label-overlap style)
       _meta: {
         sessionKey: node.sessionKey,
         runId: node.runId,
@@ -638,6 +624,11 @@ function initECharts(
         categories: ROLE_CATEGORIES,
         roam: true,
         draggable: true,
+        label: {
+          show: true,
+          position: "right",
+          formatter: "{b}",
+        },
         force: {
           repulsion: computeRepulsion(nodeCount),
           gravity: 0.1,
@@ -646,17 +637,23 @@ function initECharts(
         },
         lineStyle: {
           width: 1.5,
-          curveness: 0.2,
-          color: "rgba(161, 161, 170, 0.35)",
+          curveness: 0.3,
+          color: "source",
         },
         edgeSymbol: ["none", "arrow"],
         edgeSymbolSize: [0, 8],
         emphasis: {
           focus: "adjacency",
-          lineStyle: { width: 3 },
+          lineStyle: { width: 10 },
         },
-        animationDuration: 800,
-        animationDurationUpdate: 500,
+        labelLayout: {
+          hideOverlap: true,
+        },
+        scaleLimit: {
+          min: 0.4,
+          max: 2,
+        },
+        animationDuration: 1500,
         animationEasingUpdate: "quinticInOut",
       },
     ],
