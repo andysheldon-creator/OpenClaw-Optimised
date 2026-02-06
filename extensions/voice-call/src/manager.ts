@@ -480,11 +480,14 @@ export class CallManager {
 
       case "allowlist":
       case "pairing": {
-        const normalized = from?.replace(/\D/g, "") || "";
-        const allowed = (allowFrom || []).some((num) => {
-          const normalizedAllow = num.replace(/\D/g, "");
-          return normalized.endsWith(normalizedAllow) || normalizedAllow.endsWith(normalized);
-        });
+        if (!from) {
+          console.log("[voice-call] Inbound call rejected: missing caller ID");
+          return false;
+        }
+
+        const normalized = from.replace(/\D/g, "");
+        const allowed = (allowFrom || []).some((num) => num.replace(/\D/g, "") === normalized);
+
         const status = allowed ? "accepted" : "rejected";
         console.log(
           `[voice-call] Inbound call ${status}: ${from} ${allowed ? "is in" : "not in"} allowlist`,
