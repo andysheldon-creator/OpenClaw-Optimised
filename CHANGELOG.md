@@ -24,7 +24,7 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
-- Cron: guard against missing `state` field on stored jobs to prevent `TypeError: Cannot read properties of undefined (reading 'nextRunAtMs')` in `cron list` and `cron add`. (#10437)
+- Cron: guard against missing `state` field on stored jobs to prevent `TypeError: Cannot read properties of undefined (reading 'nextRunAtMs')` in `cron list` and `cron add`. (#10437) Thanks @lailoo.
 - CLI: resolve bundled Chrome extension assets by walking up to the nearest assets directory; add resolver and clipboard tests. (#8914) Thanks @kelvinCB.
 - Tests: stabilize Windows ACL coverage with deterministic os.userInfo mocking. (#9335) Thanks @M00N7682.
 - Heartbeat: allow explicit accountId routing for multi-account channels. (#8702) Thanks @lsh411.
