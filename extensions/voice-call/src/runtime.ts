@@ -56,8 +56,10 @@ function resolveProvider(config: VoiceCallConfig, manager: CallManager): VoiceCa
           publicKey: config.telnyx?.publicKey,
         },
         {
-          // Keep previous behavior: when explicitly skipping verification (dev), allow unsigned.
-          allowUnsignedWebhooks: config.skipSignatureVerification,
+          // Preserve upstream behavior: allow unsigned webhooks only when inbound is effectively off.
+          // (Inbound allowlist/pairing requires telnyx.publicKey; see validateProviderConfig.)
+          allowUnsignedWebhooks:
+            config.inboundPolicy === "open" || config.inboundPolicy === "disabled",
         },
       );
     case "twilio":

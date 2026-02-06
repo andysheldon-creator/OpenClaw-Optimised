@@ -561,7 +561,7 @@ export class CallManager {
         if (this.provider && event.providerCallId) {
           void this.provider
             .hangupCall({
-              callId: event.providerCallId,
+              callId: event.callId,
               providerCallId: event.providerCallId,
               reason: "rejected",
             })
