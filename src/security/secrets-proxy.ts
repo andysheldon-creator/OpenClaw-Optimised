@@ -129,10 +129,11 @@ async function replacePlaceholders(text: string, registry: SecretRegistry): Prom
   }
 
   // 2b. Replace OAUTH_REFRESH placeholders (refresh tokens)
+  // Read from authStore.profiles (not oauthProfiles) to get updated tokens after refresh
   text = text.replace(PATTERNS.OAUTH_REFRESH, (match, profileId) => {
     if (checkLimits()) return match;
-    const cred = registry.oauthProfiles.get(profileId);
-    if (!cred?.refresh) {
+    const cred = registry.authStore.profiles[profileId];
+    if (cred?.type !== "oauth" || !cred?.refresh) {
       logger.warn(`OAuth refresh token not found for profile: ${profileId}`);
       return "";
     }

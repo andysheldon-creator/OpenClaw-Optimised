@@ -25,8 +25,13 @@ const originalFetch = globalThis.fetch;
 function shouldBypassProxy(url: string): boolean {
   try {
     const parsed = new URL(url);
-    // Only bypass for exact loopback hostnames - not localhost.example.com
-    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+    const hostname = parsed.hostname;
+    // Bypass loopback: localhost, IPv6 ::1, and full IPv4 127.0.0.0/8 range
+    if (
+      hostname === "localhost" ||
+      hostname === "::1" ||
+      /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)
+    ) {
       return true;
     }
     // Also bypass requests TO the proxy itself to avoid infinite loop
