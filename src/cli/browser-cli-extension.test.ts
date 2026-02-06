@@ -78,6 +78,45 @@ describe("bundled extension resolver", () => {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("skips workspace root package.json and finds openclaw package (monorepo)", async () => {
+    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "workspace-"));
+    const openclawRoot = path.join(workspaceRoot, "packages", "openclaw");
+    const here = path.join(openclawRoot, "dist", "cli");
+    const assets = path.join(openclawRoot, "assets", "chrome-extension");
+
+    try {
+      // Create workspace structure:
+      // workspace/
+      //   package.json (name: "my-workspace")
+      //   packages/
+      //     openclaw/
+      //       package.json (name: "openclaw")
+      //       dist/cli/
+      //       assets/chrome-extension/
+
+      fs.writeFileSync(
+        path.join(workspaceRoot, "package.json"),
+        JSON.stringify({ name: "my-workspace", workspaces: ["packages/*"] }),
+      );
+
+      fs.mkdirSync(here, { recursive: true });
+      fs.writeFileSync(
+        path.join(openclawRoot, "package.json"),
+        JSON.stringify({ name: "openclaw" }),
+      );
+      writeManifest(assets);
+
+      const { resolveBundledExtensionRootDir } = await import("./browser-cli-extension.js");
+      const resolved = resolveBundledExtensionRootDir(here);
+
+      // Should resolve to openclaw's assets, not workspace root
+      expect(resolved).toBe(assets);
+      expect(resolved.includes("packages/openclaw")).toBe(true);
+    } finally {
+      fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("browser extension install", () => {

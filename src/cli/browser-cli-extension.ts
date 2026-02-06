@@ -20,11 +20,22 @@ export function resolveBundledExtensionRootDir(
   let current = here;
   let packageRoot: string | null = null;
 
-  // First pass: find package root
+  // First pass: find openclaw package root
+  // In workspace/monorepo scenarios, verify this is the openclaw package (not workspace root)
   while (true) {
-    if (fs.existsSync(path.join(current, "package.json"))) {
-      packageRoot = current;
-      break;
+    const pkgPath = path.join(current, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+        // Accept if this is the openclaw package, or if no name field (dev build)
+        if (!pkg.name || pkg.name === "openclaw") {
+          packageRoot = current;
+          break;
+        }
+        // Otherwise keep walking up (might be in a workspace)
+      } catch {
+        // Invalid package.json, keep walking
+      }
     }
     const parent = path.dirname(current);
     if (parent === current) {
