@@ -68,8 +68,14 @@ def main():
     args = parser.parse_args()
 
     # Resolve absolute path
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    skills_root = os.path.abspath(os.path.join(script_dir, args.root))
+    # If using typical project structure, ../.. is correct.
+    # Allow env var override for robustness in unusual setups.
+    env_root = os.getenv("OPENCLAW_SKILLS_ROOT")
+    if env_root:
+       skills_root = os.path.abspath(env_root)
+    else:
+       script_dir = os.path.dirname(os.path.abspath(__file__))
+       skills_root = os.path.abspath(os.path.join(script_dir, args.root))
 
     results = search_skills(args.query, skills_root)
 

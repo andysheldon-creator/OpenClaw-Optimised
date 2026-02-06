@@ -214,6 +214,19 @@ function formatSkillsIndex(skills: Skill[], workspaceDir: string): string {
   return lines.join("\n");
 }
 
+export function filterPromptEligibleSkills(entries: SkillEntry[]): SkillEntry[] {
+  return entries.filter((entry) => {
+    if (entry.invocation?.disableModelInvocation === true) return false;
+
+    const isSearch = entry.skill.name === "skills-search";
+    // Check for explicit boolean true or string "true" (handling weak typing in frontmatter)
+    const alwaysRaw = entry.frontmatter?.always;
+    const isAlways = alwaysRaw === true || alwaysRaw === "true";
+
+    return isSearch || isAlways;
+  });
+}
+
 export function buildWorkspaceSkillSnapshot(
   workspaceDir: string,
   opts?: {
@@ -236,15 +249,7 @@ export function buildWorkspaceSkillSnapshot(
   );
 
   // Dynamic Loading Phase 3: Only inject skills marked 'always: true' or 'skills-search'
-  const promptEntries = eligible.filter((entry) => {
-    if (entry.invocation?.disableModelInvocation === true) return false;
-
-    const isSearch = entry.skill.name === "skills-search";
-    const isAlways = entry.frontmatter?.always === true || entry.frontmatter?.always === "true";
-
-    return isSearch || isAlways;
-  });
-
+  const promptEntries = filterPromptEligibleSkills(eligible);
   const resolvedSkills = promptEntries.map((entry) => entry.skill);
 
   // Append discovery hint if we filtered out skills
@@ -288,15 +293,7 @@ export function buildWorkspaceSkillsPrompt(
   );
 
   // Dynamic Loading Phase 3: Only inject skills marked 'always: true' or 'skills-search'
-  const promptEntries = eligible.filter((entry) => {
-    if (entry.invocation?.disableModelInvocation === true) return false;
-
-    const isSearch = entry.skill.name === "skills-search";
-    const isAlways = entry.frontmatter?.always === true || entry.frontmatter?.always === "true";
-
-    return isSearch || isAlways;
-  });
-
+  const promptEntries = filterPromptEligibleSkills(eligible);
   const resolvedSkills = promptEntries.map((entry) => entry.skill);
 
   // Append discovery hint if we filtered out skills
