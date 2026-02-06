@@ -83,7 +83,7 @@ vi.mock("@opentelemetry/sdk-trace-base", () => ({
 }));
 
 vi.mock("@opentelemetry/resources", () => ({
-  addLogRecordProcessor: vi.mock()
+  resourceFromAttributes: vi.mock()
 }));
 
 vi.mock("@opentelemetry/semantic-conventions", () => ({
