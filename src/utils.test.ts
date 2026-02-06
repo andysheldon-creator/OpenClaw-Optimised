@@ -168,11 +168,8 @@ describe("resolveUserPath", () => {
     expect(resolveUserPath("tmp/dir")).toBe(path.resolve("tmp/dir"));
   });
 
-  it("falls back to cwd for undefined input", () => {
-    expect(resolveUserPath(undefined as unknown as string)).toBe(process.cwd());
-  });
-
-  it("falls back to cwd for empty string", () => {
-    expect(resolveUserPath("")).toBe(process.cwd());
+  it("keeps blank paths blank", () => {
+    expect(resolveUserPath("")).toBe("");
+    expect(resolveUserPath("   ")).toBe("");
   });
 });

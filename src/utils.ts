@@ -234,9 +234,6 @@ export function truncateUtf16Safe(input: string, maxLen: number): string {
 }
 
 export function resolveUserPath(input: string): string {
-  if (!input) {
-    return process.cwd();
-  }
   const trimmed = input.trim();
   if (!trimmed) {
     return trimmed;

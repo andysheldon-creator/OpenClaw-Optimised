@@ -1,4 +1,8 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { OpenClawConfig } from "../config/config.js";
 import type { CliBackendConfig } from "../config/types.js";
 import { runCliAgent } from "./cli-runner.js";
 import { cleanupSuspendedCliProcesses } from "./cli-runner/helpers.js";
@@ -57,6 +61,48 @@ describe("runCliAgent resume cleanup", () => {
     expect(pkillArgs[1]).toContain("codex");
     expect(pkillArgs[1]).toContain("resume");
     expect(pkillArgs[1]).toContain("thread-123");
+  });
+
+  it("falls back to per-agent workspace when workspaceDir is missing", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-cli-runner-"));
+    const fallbackWorkspace = path.join(tempDir, "workspace-main");
+    await fs.mkdir(fallbackWorkspace, { recursive: true });
+    const cfg = {
+      agents: {
+        defaults: {
+          workspace: fallbackWorkspace,
+        },
+      },
+    } satisfies OpenClawConfig;
+
+    runExecMock.mockResolvedValue({ stdout: "", stderr: "" });
+    runCommandWithTimeoutMock.mockResolvedValueOnce({
+      stdout: "ok",
+      stderr: "",
+      code: 0,
+      signal: null,
+      killed: false,
+    });
+
+    try {
+      await runCliAgent({
+        sessionId: "s1",
+        sessionKey: "agent:main:subagent:missing-workspace",
+        sessionFile: "/tmp/session.jsonl",
+        workspaceDir: undefined as unknown as string,
+        config: cfg,
+        prompt: "hi",
+        provider: "codex-cli",
+        model: "gpt-5.2-codex",
+        timeoutMs: 1_000,
+        runId: "run-1",
+      });
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+
+    const options = runCommandWithTimeoutMock.mock.calls[0]?.[1] as { cwd?: string };
+    expect(options.cwd).toBe(path.resolve(fallbackWorkspace));
   });
 });
 

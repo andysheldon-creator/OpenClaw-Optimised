@@ -7,7 +7,6 @@ import { shouldLogVerbose } from "../globals.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { runCommandWithTimeout } from "../process/exec.js";
-import { resolveUserPath } from "../utils.js";
 import { resolveSessionAgentIds } from "./agent-scope.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "./bootstrap-files.js";
 import { resolveCliBackendConfig } from "./cli-backends.js";
@@ -29,6 +28,7 @@ import {
 import { resolveOpenClawDocsPath } from "./docs-path.js";
 import { FailoverError, resolveFailoverStatus } from "./failover-error.js";
 import { classifyFailoverReason, isFailoverErrorMessage } from "./pi-embedded-helpers.js";
+import { resolveRunWorkspaceDir } from "./workspace-run.js";
 
 const log = createSubsystemLogger("agent/claude-cli");
 
@@ -51,7 +51,17 @@ export async function runCliAgent(params: {
   images?: ImageContent[];
 }): Promise<EmbeddedPiRunResult> {
   const started = Date.now();
-  const resolvedWorkspace = resolveUserPath(params.workspaceDir);
+  const workspaceResolution = resolveRunWorkspaceDir({
+    workspaceDir: params.workspaceDir,
+    sessionKey: params.sessionKey,
+    config: params.config,
+  });
+  const resolvedWorkspace = workspaceResolution.workspaceDir;
+  if (workspaceResolution.usedFallback) {
+    log.warn(
+      `[workspace-fallback] caller=runCliAgent reason=${workspaceResolution.fallbackReason} run=${params.runId} session=${params.sessionId} sessionKey=${params.sessionKey ?? "-"} agent=${workspaceResolution.agentId} workspace=${resolvedWorkspace}`,
+    );
+  }
   const workspaceDir = resolvedWorkspace;
 
   const backendResolved = resolveCliBackendConfig(params.provider, params.config);
