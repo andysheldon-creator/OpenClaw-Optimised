@@ -5,6 +5,7 @@ import type { HeartbeatRunner } from "../infra/heartbeat-runner.js";
 import type { OverseerRunner } from "../infra/overseer/runner.js";
 import type { PluginServicesHandle } from "../plugins/services.js";
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
+import { stopCompactionScheduler } from "../hooks/compaction-scheduler.js";
 import { stopGmailWatcher } from "../hooks/gmail-watcher.js";
 import { stopMemoryFeedbackSubscriber } from "../memory/feedback/feedback-subscriber.js";
 import { closeAllProgressiveStores } from "../memory/progressive-manager.js";
@@ -101,6 +102,7 @@ export function createGatewayCloseHandler(params: {
     await stopGmailWatcher();
     stopMemoryFeedbackSubscriber();
     closeAllProgressiveStores();
+    stopCompactionScheduler();
     params.cron.stop();
     params.heartbeatRunner.stop();
     if (params.overseerRunner) {

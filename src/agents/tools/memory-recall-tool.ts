@@ -15,9 +15,12 @@ import type {
   MemoryPriority,
   MemoryRecallEntry,
 } from "../../memory/progressive-types.js";
+import type { MemoryProviderStatus, MemorySearchResult } from "../../memory/types.js";
 import type { AnyAgentTool } from "./common.js";
+import { getMemorySearchManager } from "../../memory/index.js";
 import { getProgressiveStore } from "../../memory/progressive-manager.js";
 import { PRIORITY_ORDER } from "../../memory/progressive-types.js";
+import { resolveSessionAgentId } from "../agent-scope.js";
 import { jsonResult, readStringParam, readStringArrayParam, readNumberParam } from "./common.js";
 
 /** Approximate chars per token for budget calculations. */
@@ -60,7 +63,7 @@ export function createMemoryRecallTool(options: {
     description:
       "Smart retrieval from structured memory store. Combines semantic and full-text search " +
       "with category filtering and token budget awareness. Returns categorized entries ranked " +
-      "by relevance. Use memory_search for raw file-based search; use this for structured queries.",
+      "by relevance. Falls back to legacy memory_search results when no progressive matches exist.",
     parameters: MemoryRecallSchema,
     execute: async (_toolCallId, params) => {
       const query = readStringParam(params, "query", { required: true });
@@ -119,11 +122,19 @@ export function createMemoryRecallTool(options: {
           tokenCount += entryTokens;
         }
 
+        const fallback = await resolveLegacyFallback({
+          cfg,
+          agentSessionKey: options.agentSessionKey,
+          query,
+          resultsCount: budgetedEntries.length,
+        });
+
         return jsonResult({
           entries: budgetedEntries,
           tokenCount,
           budgetRemaining: Math.max(0, tokenBudget - tokenCount),
           totalEntriesMatched: results.length,
+          fallback,
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -162,4 +173,51 @@ function isProgressiveMemoryEnabled(cfg: OpenClawConfig): boolean {
   if (!memory) return false;
   const progressive = memory.progressive as Record<string, unknown> | undefined;
   return progressive?.enabled === true;
+}
+
+async function resolveLegacyFallback(params: {
+  cfg: OpenClawConfig;
+  agentSessionKey?: string;
+  query: string;
+  resultsCount: number;
+}): Promise<
+  | {
+      results: MemorySearchResult[];
+      provider?: string;
+      model?: string;
+      fallback?: MemoryProviderStatus["fallback"];
+    }
+  | { error: string }
+  | undefined
+> {
+  if (params.resultsCount > 0) {
+    return undefined;
+  }
+  const agentId = resolveSessionAgentId({
+    sessionKey: params.agentSessionKey,
+    config: params.cfg,
+  });
+  const { manager, error } = await getMemorySearchManager({
+    cfg: params.cfg,
+    agentId,
+  });
+  if (!manager) {
+    return error ? { error } : undefined;
+  }
+  try {
+    const results = await manager.search(params.query, {
+      maxResults: 6,
+      sessionKey: params.agentSessionKey,
+    });
+    const status = manager.status();
+    return {
+      results,
+      provider: status.provider,
+      model: status.model,
+      fallback: status.fallback,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: message };
+  }
 }
