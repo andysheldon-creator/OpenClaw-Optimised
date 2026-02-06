@@ -1,7 +1,8 @@
 FROM node:22-bookworm-slim
 
 # ✅ curl, unzip + build tools (git/make/cmake) zodat pnpm deps bouwen
-RUN apt-get update && apt-get install -y curl unzip git build-essential cmake && \
+RUN apt-get update && apt-get install -y curl unzip git build-essential cmake python3-pip && \
+    python3 -m pip install --no-cache-dir "cmake>=3.26.4" && \
     curl -fsSL https://bun.sh/install | bash && \
     corepack enable && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
