@@ -50,6 +50,35 @@ PY
 fi
 export OPENCLAW_GATEWAY_TOKEN
 
+# ---------- reconcile config with script settings ----------
+# After onboard, ensure the config file's gateway token and bind match what
+# this script generated.  The gateway reads the config file token first and
+# ignores the OPENCLAW_GATEWAY_TOKEN env-var when one is present, so we must
+# keep them in sync.
+reconcile_gateway_config() {
+  local config_file="$1"
+  [[ -f "$config_file" ]] || return 0
+  python3 - "$config_file" "$OPENCLAW_GATEWAY_TOKEN" "${OPENCLAW_GATEWAY_BIND}" <<'PY'
+import json, sys
+path, token, bind = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(path) as f:
+    cfg = json.load(f)
+gw = cfg.setdefault("gateway", {})
+auth = gw.setdefault("auth", {})
+auth["mode"] = "token"
+auth["token"] = token
+gw["bind"] = bind
+# Docker bridge routes requests through a non-loopback IP, so the gateway
+# does not recognise the Control UI as a local client.  Allow token-only
+# auth for the Control UI to avoid a pairing chicken-and-egg.
+cui = gw.setdefault("controlUi", {})
+cui["allowInsecureAuth"] = True
+with open(path, "w") as f:
+    json.dump(cfg, f, indent=2)
+    f.write("\n")
+PY
+}
+
 COMPOSE_FILES=("$COMPOSE_FILE")
 COMPOSE_ARGS=()
 
@@ -177,16 +206,21 @@ docker build \
   -f "$ROOT_DIR/Dockerfile" \
   "$ROOT_DIR"
 
+CONFIG_FILE="$OPENCLAW_CONFIG_DIR/openclaw.json"
+
 echo ""
 echo "==> Onboarding (interactive)"
 echo "When prompted:"
 echo "  - Gateway bind: lan"
 echo "  - Gateway auth: token"
-echo "  - Gateway token: $OPENCLAW_GATEWAY_TOKEN"
+echo "  - Gateway token: (any value — the script will overwrite it)"
 echo "  - Tailscale exposure: Off"
 echo "  - Install Gateway daemon: No"
 echo ""
 docker compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli onboard --no-install-daemon
+
+echo "==> Reconciling gateway config (token + bind)"
+reconcile_gateway_config "$CONFIG_FILE"
 
 echo ""
 echo "==> Provider setup (optional)"
@@ -202,12 +236,15 @@ echo ""
 echo "==> Starting gateway"
 docker compose "${COMPOSE_ARGS[@]}" up -d openclaw-gateway
 
+DASHBOARD_URL="http://127.0.0.1:${OPENCLAW_GATEWAY_PORT}/?token=${OPENCLAW_GATEWAY_TOKEN}"
+
 echo ""
 echo "Gateway running with host port mapping."
 echo "Access from tailnet devices via the host's tailnet IP."
 echo "Config: $OPENCLAW_CONFIG_DIR"
 echo "Workspace: $OPENCLAW_WORKSPACE_DIR"
-echo "Token: $OPENCLAW_GATEWAY_TOKEN"
+echo ""
+echo "Dashboard: $DASHBOARD_URL"
 echo ""
 echo "Commands:"
 echo "  ${COMPOSE_HINT} logs -f openclaw-gateway"

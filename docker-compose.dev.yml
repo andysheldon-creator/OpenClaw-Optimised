@@ -1,0 +1,38 @@
+# Development overlay – bind-mounts the local repo so source changes are
+# reflected inside the container without rebuilding the image.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d openclaw-gateway
+#
+# Prerequisites:
+#   1. Build the base image once:  docker build -t openclaw:local .
+#   2. Install deps locally:       pnpm install
+#   3. Set env vars (or use .env): OPENCLAW_CONFIG_DIR, OPENCLAW_WORKSPACE_DIR
+#
+# After editing source, restart to auto-rebuild:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml restart openclaw-gateway
+
+services:
+  openclaw-gateway:
+    environment:
+      # tsgo is a platform-specific native binary; host node_modules is macOS
+      OPENCLAW_TS_COMPILER: tsc
+    volumes:
+      - .:/app:rw
+    command:
+      [
+        "node",
+        "scripts/run-node.mjs",
+        "gateway",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "${OPENCLAW_GATEWAY_PORT:-18789}",
+      ]
+
+  openclaw-cli:
+    environment:
+      OPENCLAW_TS_COMPILER: tsc
+    volumes:
+      - .:/app:rw
+    entrypoint: ["node", "scripts/run-node.mjs"]

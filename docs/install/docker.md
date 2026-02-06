@@ -51,10 +51,15 @@ Optional env vars:
 - `OPENCLAW_EXTRA_MOUNTS` — add extra host bind mounts
 - `OPENCLAW_HOME_VOLUME` — persist `/home/node` in a named volume
 
-After it finishes:
+After it finishes, open the **Dashboard** URL printed at the end (it includes the
+gateway token). It looks like:
 
-- Open `http://127.0.0.1:18789/` in your browser.
-- Paste the token into the Control UI (Settings → token).
+```
+http://127.0.0.1:18789/?token=<token>
+```
+
+If you open the URL without the token parameter, paste the token into the
+Control UI (Settings → Gateway Token).
 
 It writes config/workspace on the host:
 
@@ -141,6 +146,33 @@ Notes:
 - If you change `OPENCLAW_DOCKER_APT_PACKAGES`, rerun `docker-setup.sh` to rebuild
   the image.
 
+### Development mode (local source)
+
+If you are working on OpenClaw itself or testing local extensions/plugins,
+use the dev setup script. It builds the Docker image from your local source
+tree (including any uncommitted changes) and starts the gateway.
+
+**Quick start:**
+
+```bash
+./docker-setup.dev.sh
+```
+
+This script:
+
+- builds the Docker image from local source
+- runs onboarding (skipped if `~/.openclaw/openclaw.json` already exists)
+- starts the gateway via Docker Compose
+- generates a gateway token and writes it to `.env`
+
+**After editing source**, rerun the script to rebuild and restart:
+
+```bash
+./docker-setup.dev.sh
+```
+
+Config, sessions, and workspace persist on the host at `~/.openclaw/`.
+
 ### Faster rebuilds (recommended)
 
 To speed up rebuilds, order your Dockerfile so dependency layers are cached.
@@ -218,7 +250,10 @@ pnpm test:docker:qr
 
 ### Notes
 
-- Gateway bind defaults to `lan` for container use.
+- Gateway bind must be `lan` (not `loopback`) for container use — the setup
+  scripts enforce this automatically. With `loopback`, the gateway only listens
+  on `127.0.0.1` *inside* the container, making it unreachable from the host
+  despite the port mapping.
 - The gateway container is the source of truth for sessions (`~/.openclaw/agents/<agentId>/sessions/`).
 
 ## Agent Sandbox (host gateway + Docker tools)

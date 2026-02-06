@@ -31,9 +31,14 @@ RUN pnpm ui:build
 
 ENV NODE_ENV=production
 
-# Security hardening: Run as non-root user
-# The node:22-bookworm image includes a 'node' user (uid 1000)
-# This reduces the attack surface by preventing container escape via root privileges
+# Security hardening: Run as non-root user (uid 1000).
+# Docker Desktop for Mac may ship empty /etc/passwd; ensure the node user exists.
+RUN if ! grep -q '^node:' /etc/passwd 2>/dev/null; then \
+      echo 'root:x:0:0:root:/root:/bin/bash' >> /etc/passwd && \
+      echo 'node:x:1000:1000::/home/node:/bin/bash' >> /etc/passwd && \
+      echo 'root:x:0:' >> /etc/group && \
+      echo 'node:x:1000:' >> /etc/group; \
+    fi && mkdir -p /home/node && chown 1000:1000 /home/node
 USER node
 
 CMD ["node", "dist/index.js"]
