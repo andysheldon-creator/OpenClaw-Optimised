@@ -112,6 +112,11 @@ export function applySettingsFromUrl(host: SettingsHost) {
   let shouldCleanUrl = false;
 
   if (tokenRaw != null) {
+    const token = tokenRaw.trim();
+    // Only import when no token is stored yet (first-time bootstrap from URL).
+    if (token && !host.settings.token) {
+      applySettings(host, { ...host.settings, token });
+    }
     params.delete("token");
     shouldCleanUrl = true;
   }
