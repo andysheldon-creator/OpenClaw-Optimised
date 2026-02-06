@@ -41,6 +41,14 @@ export function computeNextRunAtMs(schedule: CronSchedule, nowMs: number): numbe
     timezone: schedule.tz?.trim() || undefined,
     catch: false,
   });
-  const next = cron.nextRun(new Date(nowMs));
+  let next = cron.nextRun(new Date(nowMs));
+
+  // Defensive fix for #10035: If croner returns a date in the past or exactly 'now'
+  // (which can happen with certain timezone/Intl boundary edge cases), force it
+  // to look forward from the next day.
+  if (next && next.getTime() <= nowMs) {
+    next = cron.nextRun(new Date(nowMs + 24 * 60 * 60 * 1000));
+  }
+
   return next ? next.getTime() : undefined;
 }

@@ -33,4 +33,19 @@ describe("cron schedule", () => {
     const next = computeNextRunAtMs({ kind: "every", everyMs: 30_000, anchorMs: anchor }, anchor);
     expect(next).toBe(anchor + 30_000);
   });
+
+  it("ensures next run is strictly in the future for daily jobs after the time has passed (#10035)", () => {
+    // Current time: 2026-02-06 08:20 Shanghai (00:20 UTC)
+    const nowMs = Date.parse("2026-02-06T00:20:00.000Z");
+
+    // Daily job at 07:30 Shanghai
+    const schedule = { kind: "cron" as const, expr: "30 7 * * *", tz: "Asia/Shanghai" };
+
+    const next = computeNextRunAtMs(schedule, nowMs);
+
+    // Should be Feb 7 07:30 Shanghai = Feb 6 23:30 UTC
+    // (If it were in the past/2025, it would be much smaller than nowMs)
+    expect(next).toBeGreaterThan(nowMs);
+    expect(next).toBe(Date.parse("2026-02-06T23:30:00.000Z"));
+  });
 });
