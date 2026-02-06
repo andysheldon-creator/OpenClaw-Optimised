@@ -11,28 +11,39 @@
  * 8. Reputação & Accountability (Reputation)
  */
 
-import Redis from "ioredis";
-import { Pool } from "pg";
-import {
+import { Redis } from "ioredis";
+import type {
   AgentHumanizationProfile,
+  AgentRelationship,
   HumanizationRequest,
   HumanizationResponse,
-  AutonomyType,
-  RiskLevel,
   AgentReputation,
   EnergyState,
   AgentMemory,
   PersonInsight,
-} from "./models/types";
+  IntuitionRule,
+  AssertivenessRule,
+  TrackRecord,
+  SkillProgression,
+  AutonomyConfig,
+} from "./models/types.js";
+import { AutonomyType, RiskLevel } from "./models/types.js";
+
+// Minimal Pool interface to avoid requiring 'pg' as a direct dependency.
+// The full 'pg' Pool is expected at runtime.
+interface Pool {
+  query(text: string, values?: unknown[]): Promise<{ rows: unknown[] }>;
+  end(): Promise<void>;
+}
 
 export class HumanizationService {
   private db: Pool;
   private redis: Redis;
   private initialized: boolean = false;
 
-  constructor(dbConfig: any, redisConfig: any) {
-    this.db = new Pool(dbConfig);
-    this.redis = new Redis(redisConfig);
+  constructor(db: Pool, redis: Redis) {
+    this.db = db;
+    this.redis = redis;
   }
 
   /**
@@ -140,24 +151,24 @@ export class HumanizationService {
        LIMIT 50`,
       [agentId],
     );
-    return result.rows;
+    return result.rows as AgentMemory[];
   }
 
-  private async loadRelationships(agentId: string): Promise<any[]> {
+  private async loadRelationships(agentId: string): Promise<AgentRelationship[]> {
     const result = await this.db.query(
-      `SELECT * FROM agent_relationships 
-       WHERE agent_id = $1 
+      `SELECT * FROM agent_relationships
+       WHERE agent_id = $1
        ORDER BY trust_score DESC`,
       [agentId],
     );
-    return result.rows;
+    return result.rows as AgentRelationship[];
   }
 
   private async loadReputation(agentId: string): Promise<AgentReputation> {
     const result = await this.db.query(`SELECT * FROM agent_reputation WHERE agent_id = $1`, [
       agentId,
     ]);
-    return result.rows[0] || this.createDefaultReputation(agentId);
+    return (result.rows[0] as AgentReputation) || this.createDefaultReputation(agentId);
   }
 
   private createDefaultReputation(agentId: string): AgentReputation {
@@ -175,38 +186,38 @@ export class HumanizationService {
     };
   }
 
-  private async loadTrackRecord(agentId: string): Promise<any[]> {
+  private async loadTrackRecord(agentId: string): Promise<TrackRecord[]> {
     const result = await this.db.query(
-      `SELECT * FROM agent_track_record 
-       WHERE agent_id = $1 
-       ORDER BY completed_at DESC 
+      `SELECT * FROM agent_track_record
+       WHERE agent_id = $1
+       ORDER BY completed_at DESC
        LIMIT 10`,
       [agentId],
     );
-    return result.rows;
+    return result.rows as TrackRecord[];
   }
 
-  private async loadLearningProgress(agentId: string): Promise<any[]> {
+  private async loadLearningProgress(agentId: string): Promise<SkillProgression[]> {
     // Load from time-series (TimescaleDB)
     const result = await this.db.query(
-      `SELECT DISTINCT ON (skill_name) 
-         skill_name, 
-         proficiency, 
-         improvement_rate, 
+      `SELECT DISTINCT ON (skill_name)
+         skill_name,
+         proficiency,
+         improvement_rate,
          practice_hours
-       FROM agent_learning_progress 
-       WHERE agent_id = $1 
+       FROM agent_learning_progress
+       WHERE agent_id = $1
        ORDER BY skill_name, time DESC`,
       [agentId],
     );
-    return result.rows;
+    return result.rows as SkillProgression[];
   }
 
   private async getCurrentEnergyState(agentId: string): Promise<EnergyState> {
     const result = await this.db.query(`SELECT * FROM agent_energy_state WHERE agent_id = $1`, [
       agentId,
     ]);
-    return result.rows[0] || this.createDefaultEnergyState(agentId);
+    return (result.rows[0] as EnergyState) || this.createDefaultEnergyState(agentId);
   }
 
   private createDefaultEnergyState(agentId: string): EnergyState {
@@ -223,51 +234,66 @@ export class HumanizationService {
     };
   }
 
-  private async loadAutonomyConfig(agentId: string): Promise<any[]> {
+  private async loadAutonomyConfig(agentId: string): Promise<AutonomyConfig[]> {
     const result = await this.db.query(`SELECT * FROM agent_autonomy_config WHERE agent_id = $1`, [
       agentId,
     ]);
-    return result.rows.length > 0 ? result.rows : this.createDefaultAutonomyConfig();
+    return result.rows.length > 0
+      ? (result.rows as AutonomyConfig[])
+      : this.createDefaultAutonomyConfig();
   }
 
-  private createDefaultAutonomyConfig() {
+  private createDefaultAutonomyConfig(): AutonomyConfig[] {
+    const now = new Date();
     return [
       {
-        risk_level: "low",
-        autonomy_type: AutonomyType.FULL,
+        id: "",
+        agentId: "",
+        riskLevel: RiskLevel.LOW,
+        autonomyType: AutonomyType.FULL,
         definition: "Less than 2 hours impact",
+        createdAt: now,
+        updatedAt: now,
       },
       {
-        risk_level: "medium",
-        autonomy_type: AutonomyType.PROPOSE_THEN_DECIDE,
+        id: "",
+        agentId: "",
+        riskLevel: RiskLevel.MEDIUM,
+        autonomyType: AutonomyType.PROPOSE_THEN_DECIDE,
         definition: "2-48 hours impact",
+        createdAt: now,
+        updatedAt: now,
       },
       {
-        risk_level: "high",
-        autonomy_type: AutonomyType.ASK_THEN_WAIT,
+        id: "",
+        agentId: "",
+        riskLevel: RiskLevel.HIGH,
+        autonomyType: AutonomyType.ASK_THEN_WAIT,
         definition: "More than 48 hours impact",
+        createdAt: now,
+        updatedAt: now,
       },
     ];
   }
 
-  private async loadIntuitionRules(agentId: string): Promise<any[]> {
+  private async loadIntuitionRules(agentId: string): Promise<IntuitionRule[]> {
     const result = await this.db.query(
-      `SELECT * FROM agent_intuition_rules 
-       WHERE agent_id = $1 
-       ORDER BY accuracy_rate DESC 
+      `SELECT * FROM agent_intuition_rules
+       WHERE agent_id = $1
+       ORDER BY accuracy_rate DESC
        LIMIT 20`,
       [agentId],
     );
-    return result.rows;
+    return result.rows as IntuitionRule[];
   }
 
-  private async loadAssertivenessRules(agentId: string): Promise<any[]> {
+  private async loadAssertivenessRules(agentId: string): Promise<AssertivenessRule[]> {
     const result = await this.db.query(
-      `SELECT * FROM agent_assertiveness_rules 
+      `SELECT * FROM agent_assertiveness_rules
        WHERE agent_id = $1`,
       [agentId],
     );
-    return result.rows;
+    return result.rows as AssertivenessRule[];
   }
 
   /**
@@ -276,17 +302,15 @@ export class HumanizationService {
    */
   private async handleDecisionRequest(
     profile: AgentHumanizationProfile,
-    details: any,
+    details: Record<string, unknown>,
     timestamp: Date,
   ): Promise<HumanizationResponse> {
     const { riskLevel } = details;
 
     // Find applicable autonomy config
-    const autonomyConfig = profile.autonomyConfig.find((c: any) => c.risk_level === riskLevel);
+    const autonomyConfig = profile.autonomyConfig.find((c) => c.riskLevel === riskLevel);
 
-    const autonomyLevel = autonomyConfig
-      ? autonomyConfig.autonomy_type
-      : AutonomyType.ASK_THEN_WAIT;
+    const autonomyLevel = autonomyConfig ? autonomyConfig.autonomyType : AutonomyType.ASK_THEN_WAIT;
 
     // GAP 5: INTUIÇÃO - Check if pattern matches known successful decision pattern
     const relevantRules = this.matchIntuitionRules(profile.intuitionRules, details.context);
@@ -299,7 +323,12 @@ export class HumanizationService {
     );
 
     // Log decision for learning (GAP 3)
-    await this.logDecision(profile.agentId, details.decisionType, autonomyLevel, timestamp);
+    await this.logDecision(
+      profile.agentId,
+      (details.decisionType as string) ?? "",
+      autonomyLevel,
+      timestamp,
+    );
 
     // Calculate confidence based on reputation (GAP 8) + intuition accuracy
     const confidenceScore = this.calculateConfidence(
@@ -323,13 +352,16 @@ export class HumanizationService {
    */
   private async handleInteractionRequest(
     profile: AgentHumanizationProfile,
-    details: any,
-    timestamp: Date,
+    details: Record<string, unknown>,
+    _timestamp: Date,
   ): Promise<HumanizationResponse> {
-    const { targetAgentId, interactionType } = details;
+    const targetAgentId = (details.targetAgentId as string) ?? "";
+    const interactionType = (details.interactionType as string) ?? "";
 
     // Find relationship with target
-    const relationship = profile.relationships.find((r: any) => r.other_agent_id === targetAgentId);
+    const relationship = profile.relationships.find(
+      (r: unknown) => (r as Record<string, unknown>).other_agent_id === targetAgentId,
+    );
 
     // Get person insights
     const personInsights = await this.getPersonInsights(profile.agentId, targetAgentId);
@@ -345,7 +377,8 @@ export class HumanizationService {
       agentId: profile.agentId,
       recommendation,
       relatedPeople: personInsights,
-      confidenceScore: relationship?.trust_score || 0.5,
+      confidenceScore:
+        ((relationship as Record<string, unknown> | undefined)?.trustScore as number) || 0.5,
     };
   }
 
@@ -355,10 +388,12 @@ export class HumanizationService {
    */
   private async handleLearningRequest(
     profile: AgentHumanizationProfile,
-    details: any,
+    details: Record<string, unknown>,
     timestamp: Date,
   ): Promise<HumanizationResponse> {
-    const { lessonType, lesson, outcome } = details;
+    const lessonType = (details.lessonType as string) ?? "";
+    const lesson = (details.lesson as string) ?? "";
+    const outcome = details.outcome;
 
     // Record learning
     await this.recordLearning(profile.agentId, {
@@ -373,7 +408,7 @@ export class HumanizationService {
       await this.updateMistakePattern(profile.agentId, lesson);
     }
 
-    const recommendation = `✅ Logged: "${lesson}". This will improve future decisions.`;
+    const recommendation = `✅ Logged: "${String(lesson)}". This will improve future decisions.`;
 
     return {
       agentId: profile.agentId,
@@ -388,17 +423,18 @@ export class HumanizationService {
    */
   private async handleConflictRequest(
     profile: AgentHumanizationProfile,
-    details: any,
+    details: Record<string, unknown>,
     timestamp: Date,
   ): Promise<HumanizationResponse> {
-    const { concernType, concernLevel } = details;
+    const concernType = (details.concernType as string) ?? "";
+    const concernLevel = (details.concernLevel as string) ?? "";
 
     // Find applicable assertiveness rule
     const rule = profile.assertivenessRules.find(
-      (r: any) => r.concern_type === concernType && r.concern_level === concernLevel,
+      (r) => r.concernType === concernType && r.concernLevel === concernLevel,
     );
 
-    const recommendation = rule?.recommended_response || this.getDefaultAssertiveness(concernLevel);
+    const recommendation = rule?.recommendedResponse || this.getDefaultAssertiveness(concernLevel);
 
     // Record conflict for learning
     await this.recordConflict(profile.agentId, {
@@ -420,10 +456,10 @@ export class HumanizationService {
    */
   private async handleTaskRequest(
     profile: AgentHumanizationProfile,
-    details: any,
+    details: Record<string, unknown>,
     timestamp: Date,
   ): Promise<HumanizationResponse> {
-    const { taskComplexity } = details;
+    const taskComplexity = (details.taskComplexity as string) ?? "";
     const energy = profile.currentEnergy;
 
     // Adjust quality expectations based on energy
@@ -446,32 +482,38 @@ export class HumanizationService {
   // HELPER METHODS
   // =========================================================================
 
-  private matchIntuitionRules(rules: any[], context: any): any[] {
+  private matchIntuitionRules(rules: unknown[], context: unknown): unknown[] {
     return rules
       .map((rule) => ({
-        ...rule,
-        matchScore: this.calculateMatchScore(rule.trigger_conditions, context),
+        ...(rule as Record<string, unknown>),
+        matchScore: this.calculateMatchScore(
+          (rule as Record<string, unknown>).trigger_conditions,
+          context,
+        ),
       }))
       .filter((r) => r.matchScore > 0.5)
-      .sort((a, b) => b.matchScore - a.matchScore);
+      .toSorted((a, b) => b.matchScore - a.matchScore);
   }
 
-  private calculateMatchScore(conditions: any, context: any): number {
-    if (!conditions || !context) return 0;
-    let score = 0;
+  private calculateMatchScore(conditions: unknown, context: unknown): number {
+    if (!conditions || !context) {
+      return 0;
+    }
+    const condObj = conditions as Record<string, unknown>;
+    const ctxObj = context as Record<string, unknown>;
     let matches = 0;
-    for (const [key, expected] of Object.entries(conditions)) {
-      if (context[key] === expected) {
+    for (const [key, expected] of Object.entries(condObj)) {
+      if (ctxObj[key] === expected) {
         matches++;
       }
     }
-    return matches > 0 ? matches / Object.keys(conditions).length : 0;
+    return matches > 0 ? matches / Object.keys(condObj).length : 0;
   }
 
   private buildDecisionRecommendation(
     autonomyLevel: AutonomyType,
     reputation: AgentReputation,
-    rules: any[],
+    rules: unknown[],
   ): string {
     let recommendation = "";
 
@@ -494,7 +536,7 @@ export class HumanizationService {
     }
 
     if (rules.length > 0) {
-      recommendation += ` Also, I've seen ${rules[0].pattern_name} before, which ended well.`;
+      recommendation += ` Also, I've seen ${String((rules[0] as Record<string, unknown>).pattern_name)} before, which ended well.`;
     }
 
     return recommendation;
@@ -502,21 +544,21 @@ export class HumanizationService {
 
   private calculateConfidence(
     reputation: AgentReputation,
-    rules: any[],
+    rules: unknown[],
     autonomyLevel: AutonomyType,
   ): number {
     let score = reputation.reliabilityScore * 0.4;
     if (rules.length > 0) {
-      score += rules[0].accuracy_rate * 0.4;
+      score += ((rules[0] as Record<string, unknown>).accuracy_rate as number) * 0.4;
     }
     score += autonomyLevel === AutonomyType.FULL ? 0.2 : 0.1;
     return Math.min(score, 1.0);
   }
 
   private buildInteractionRecommendation(
-    relationship: any,
+    relationship: unknown,
     insights: PersonInsight[],
-    interactionType: string,
+    _interactionType: string,
   ): string {
     let recommendation = "";
 
@@ -524,9 +566,10 @@ export class HumanizationService {
       return `👤 First interaction with this person. Be formal and clear.`;
     }
 
-    if (relationship.collaboration_quality === "excellent") {
+    const rel = relationship as Record<string, unknown>;
+    if (rel.collaboration_quality === "excellent") {
       recommendation = `🤝 Great collaboration history! This person is a strong collaborator. `;
-    } else if (relationship.collaboration_quality === "poor") {
+    } else if (rel.collaboration_quality === "poor") {
       recommendation = `⚠️ Past interactions were challenging. Proceed with extra care and clarity. `;
     }
 
@@ -569,7 +612,7 @@ export class HumanizationService {
        ORDER BY confidence DESC`,
       [agentId, personId],
     );
-    return result.rows;
+    return result.rows as PersonInsight[];
   }
 
   private async logDecision(
@@ -586,10 +629,10 @@ export class HumanizationService {
     );
   }
 
-  private async recordLearning(agentId: string, lesson: any): Promise<void> {
-    const today = new Date().toISOString().split("T")[0];
+  private async recordLearning(agentId: string, lesson: Record<string, unknown>): Promise<void> {
+    const _today = new Date().toISOString().split("T")[0];
     // Implementation would insert into agent_learning_logs
-    console.log(`📚 Recorded learning for ${agentId}: ${lesson.lesson}`);
+    console.log(`📚 Recorded learning for ${agentId}: ${String(lesson.lesson)}`);
   }
 
   private async updateMistakePattern(agentId: string, mistakeType: string): Promise<void> {
@@ -597,12 +640,14 @@ export class HumanizationService {
     console.log(`❌ Updated mistake pattern: ${mistakeType}`);
   }
 
-  private async recordConflict(agentId: string, conflict: any): Promise<void> {
+  private async recordConflict(agentId: string, conflict: Record<string, unknown>): Promise<void> {
     // Implementation would insert into agent_conflict_history
-    console.log(`🔴 Recorded conflict: ${conflict.type} (level: ${conflict.level})`);
+    console.log(
+      `🔴 Recorded conflict: ${String(conflict.type)} (level: ${String(conflict.level)})`,
+    );
   }
 
-  private async updateEnergyState(agentId: string, data: any): Promise<void> {
+  private async updateEnergyState(agentId: string, _data: Record<string, unknown>): Promise<void> {
     // Implementation would update agent_energy_state and insert into TimescaleDB
     console.log(`⚡ Updated energy state for ${agentId}`);
   }
@@ -621,7 +666,7 @@ export class HumanizationService {
    */
   async close(): Promise<void> {
     await this.db.end();
-    await this.redis.disconnect();
+    this.redis.disconnect();
     console.log("✅ Humanization Service closed");
   }
 }

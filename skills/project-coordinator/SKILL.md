@@ -176,8 +176,8 @@ Auto-generated agent registry for your project:
 - [ ] Task 1
 - [ ] Task 2
       **Accountability:** What they're responsible for  
-      **Works With:** [other agents]  
-      **Response Time:** < X hours
+       **Works With:** [other agents]  
+       **Response Time:** < X hours
 ```
 
 ---

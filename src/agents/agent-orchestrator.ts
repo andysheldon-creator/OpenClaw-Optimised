@@ -5,7 +5,6 @@
  * Enables teams of agents to work together like humans in a corporate hierarchy.
  */
 
-import type { SessionsDependency } from "./sessions.js";
 import { callGateway } from "../gateway/call.js";
 
 export type OrchestratorDecision = {
@@ -86,7 +85,7 @@ export function createAgentOrchestrator(): AgentOrchestrator {
           agents: params.agents.map((a) => a.id),
           moderator: params.moderator?.id,
         },
-        clientName: "orchestrator",
+        clientName: "cli",
         mode: "cli",
       });
 
@@ -96,7 +95,7 @@ export function createAgentOrchestrator(): AgentOrchestrator {
       }
 
       // Step 2: Send opening brief to all agents
-      const openingBrief = `
+      const _openingBrief = `
 You are participating in a team debate.
 
 Topic: ${params.topic}
@@ -126,7 +125,7 @@ Debate session: ${sessionKey}
       const session = await callGateway({
         method: "collab.session.get",
         params: { sessionKey },
-        clientName: "orchestrator",
+        clientName: "cli",
         mode: "cli",
       });
 
@@ -180,7 +179,7 @@ Debate session: ${sessionKey}
       };
     },
 
-    async advanceDebatePhase(sessionKey) {
+    async advanceDebatePhase(_sessionKey) {
       // Placeholder: in a full implementation, this would
       // - Evaluate current proposals
       // - Determine if consensus is reached
@@ -192,7 +191,7 @@ Debate session: ${sessionKey}
       const session = await callGateway({
         method: "collab.session.get",
         params: { sessionKey },
-        clientName: "orchestrator",
+        clientName: "cli",
         mode: "cli",
       });
 
@@ -239,7 +238,7 @@ Debate session: ${sessionKey}
       const decisions = await this.getDebateDecisions(params.debateSessionKey);
 
       // Create implementation context from decisions
-      const implementationContext = decisions
+      const _implementationContext = decisions
         .map(
           (d) =>
             `Decision: ${d.topic}\n` +

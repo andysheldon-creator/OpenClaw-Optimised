@@ -11,6 +11,7 @@ import { collaborationHandlers } from "./server-methods/collaboration.js";
 import { configHandlers } from "./server-methods/config.js";
 import { connectHandlers } from "./server-methods/connect.js";
 import { cronHandlers } from "./server-methods/cron.js";
+import { delegationHandlers } from "./server-methods/delegation.js";
 import { deviceHandlers } from "./server-methods/devices.js";
 import { execApprovalsHandlers } from "./server-methods/exec-approvals.js";
 import { healthHandlers } from "./server-methods/health.js";
@@ -82,6 +83,14 @@ const READ_METHODS = new Set([
   "providers.list",
   "providers.usage",
   "providers.health",
+  // Collaboration read endpoints
+  "collab.session.get",
+  "collab.thread.get",
+  // Delegation read endpoints
+  "delegation.get",
+  "delegation.list",
+  "delegation.pending",
+  "delegation.metrics",
   // Security monitoring endpoints
   "security.events.query",
   "security.events.stats",
@@ -107,6 +116,18 @@ const WRITE_METHODS = new Set([
   "chat.send",
   "chat.abort",
   "browser.request",
+  // Collaboration write endpoints
+  "collab.session.init",
+  "collab.proposal.publish",
+  "collab.proposal.challenge",
+  "collab.proposal.agree",
+  "collab.decision.finalize",
+  // Delegation write endpoints
+  "delegation.create",
+  "delegation.review",
+  "delegation.accept",
+  "delegation.complete",
+  "delegation.reject",
 ]);
 
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
@@ -187,6 +208,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...chatHandlers,
   ...collaborationHandlers,
   ...collaborationAdvancedHandlers,
+  ...delegationHandlers,
   ...cronHandlers,
   ...deviceHandlers,
   ...execApprovalsHandlers,

@@ -1,8 +1,10 @@
+import type { DelegationMetrics } from "../agents/delegation-types.js";
 import {
   resolveAgentConfig,
   resolveAgentRole,
   resolveDefaultAgentId,
 } from "../agents/agent-scope.js";
+import { getAllDelegations, getAgentDelegationMetrics } from "../agents/delegation-registry.js";
 import {
   listAllSubagentRuns,
   type SubagentRunRecord,
@@ -19,7 +21,10 @@ export type HierarchyEventType =
   | "end"
   | "error"
   | "usage-update"
-  | "full-refresh";
+  | "full-refresh"
+  | "delegation-created"
+  | "delegation-reviewed"
+  | "delegation-completed";
 
 export type HierarchyEvent = {
   type: HierarchyEventType;
@@ -45,12 +50,23 @@ export type HierarchyNode = {
   endedAt?: number;
   children: HierarchyNode[];
   usage?: SubagentUsage;
+  interactionCount?: number;
+  delegations?: DelegationMetrics;
 };
 
 export type CollaborationEdge = {
   source: string; // agentId
   target: string; // agentId
-  type: "proposal" | "challenge" | "agreement" | "decision" | "clarification";
+  type:
+    | "proposal"
+    | "challenge"
+    | "agreement"
+    | "decision"
+    | "clarification"
+    | "delegation"
+    | "request"
+    | "approval"
+    | "rejection";
   topic?: string;
 };
 
@@ -88,6 +104,17 @@ function buildHierarchySnapshot(): HierarchySnapshot {
     const agentId = extractAgentIdFromSessionKey(run.childSessionKey);
     const agentRole = agentId ? resolveAgentRole(cfg, agentId) : undefined;
     const agentName = agentId ? resolveAgentConfig(cfg, agentId)?.name : undefined;
+    // Compute delegation metrics and interaction count for this agent
+    const delegMetrics = agentId ? getAgentDelegationMetrics(agentId) : undefined;
+    let interactionCount = 0;
+    if (run.usage) {
+      interactionCount += run.usage.toolCalls;
+      interactionCount += Math.floor((run.usage.inputTokens + run.usage.outputTokens) / 10_000);
+    }
+    if (delegMetrics) {
+      interactionCount += delegMetrics.sent + delegMetrics.received;
+    }
+
     const node: HierarchyNode = {
       sessionKey: run.childSessionKey,
       runId: run.runId,
@@ -100,6 +127,8 @@ function buildHierarchySnapshot(): HierarchySnapshot {
       endedAt: run.endedAt,
       children: [],
       usage: run.usage,
+      interactionCount,
+      delegations: delegMetrics,
     };
 
     nodeBySession.set(run.childSessionKey, node);
@@ -199,6 +228,48 @@ function buildHierarchySnapshot(): HierarchySnapshot {
     }
   } catch {
     // Collaboration data is optional — don't break hierarchy if it fails
+  }
+
+  // Extract delegation edges from active delegations
+  try {
+    const allDelegations = getAllDelegations();
+    for (const deleg of allDelegations) {
+      let edgeType: CollaborationEdge["type"];
+      if (deleg.state === "rejected") {
+        edgeType = "rejection";
+      } else if (
+        deleg.state === "completed" ||
+        deleg.state === "assigned" ||
+        deleg.state === "in_progress"
+      ) {
+        edgeType = deleg.direction === "upward" ? "approval" : "delegation";
+      } else if (deleg.state === "pending_review") {
+        edgeType = "request";
+      } else if (deleg.state === "redirected") {
+        edgeType = "delegation";
+      } else {
+        edgeType = deleg.direction === "downward" ? "delegation" : "request";
+      }
+
+      collaborationEdges.push({
+        source: deleg.fromAgentId,
+        target: deleg.toAgentId,
+        type: edgeType,
+        topic: deleg.task.slice(0, 80),
+      });
+
+      // If redirected, add edge to the redirect target
+      if (deleg.redirectedTo) {
+        collaborationEdges.push({
+          source: deleg.toAgentId,
+          target: deleg.redirectedTo.agentId,
+          type: "delegation",
+          topic: deleg.redirectedTo.reason.slice(0, 80),
+        });
+      }
+    }
+  } catch {
+    // Delegation data is optional
   }
 
   return {

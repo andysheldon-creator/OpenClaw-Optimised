@@ -202,6 +202,23 @@ export function canSpawnRole(requesterRole: AgentRole, targetRole: AgentRole): b
   return AGENT_ROLE_RANK[requesterRole] >= AGENT_ROLE_RANK[targetRole];
 }
 
+export type DelegationDirectionResult = "downward" | "upward";
+
+/**
+ * Determine delegation direction between two roles.
+ * Higher rank → downward (direct delegation).
+ * Lower rank → upward (request, requires review).
+ * Same rank → downward (peer = direct).
+ */
+export function canDelegate(from: AgentRole, to: AgentRole): DelegationDirectionResult {
+  const fromRank = AGENT_ROLE_RANK[from];
+  const toRank = AGENT_ROLE_RANK[to];
+  if (fromRank >= toRank) {
+    return "downward";
+  }
+  return "upward";
+}
+
 export function resolveAgentDir(cfg: OpenClawConfig, agentId: string) {
   const id = normalizeAgentId(agentId);
   const configured = resolveAgentConfig(cfg, id)?.agentDir?.trim();

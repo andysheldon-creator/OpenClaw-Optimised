@@ -5,8 +5,10 @@
  * so they know about shared decisions and team context.
  */
 
+import { getCollaborationContext } from "../gateway/server-methods/collaboration.js";
 import { getCollaborationSystemPrompt, getRoleSpecificGuidance } from "./collaboration-prompts.js";
 import { loadCollaborationSession } from "./collaboration-storage.js";
+import { listDelegationsForAgent } from "./delegation-registry.js";
 
 /**
  * When spawning agents after a debate, build context they need
@@ -27,8 +29,11 @@ export async function buildCollaborationContext(params: {
   let sharedContext = "";
 
   // If referencing a debate session, load the decisions
+  // Check both the in-memory store (live gateway sessions) and disk storage
   if (params.debateSessionKey) {
-    const session = await loadCollaborationSession(params.debateSessionKey);
+    const session =
+      getCollaborationContext(params.debateSessionKey) ??
+      (await loadCollaborationSession(params.debateSessionKey));
     if (session) {
       // Build context from debate
       sharedContext = `
@@ -54,7 +59,14 @@ DISCUSSION THREAD:
         decisionContext += `\n### ${decision.topic}\n`;
         if (decision.consensus) {
           decisionContext += `CONSENSUS DECISION: ${decision.consensus.finalDecision}\n`;
-          decisionContext += `Agreed by: ${decision.consensus.agreedBy.join(", ")}\n`;
+          // Handle both in-memory (agreed) and disk (agreedBy) formats
+          const agreedList =
+            "agreedBy" in decision.consensus
+              ? (decision.consensus as { agreedBy: string[] }).agreedBy
+              : "agreed" in decision.consensus
+                ? (decision.consensus as { agreed: string[] }).agreed
+                : [];
+          decisionContext += `Agreed by: ${agreedList.join(", ")}\n`;
         } else {
           decisionContext += `Proposals:\n`;
           for (const proposal of decision.proposals) {
@@ -77,6 +89,25 @@ DISCUSSION THREAD:
     phase: "finalization", // After debate, we're in implementation phase
   });
 
+  // Inject delegation context if the agent has active delegations
+  let delegationContext = "";
+  try {
+    const activeDelegations = listDelegationsForAgent(params.agentId);
+    const inProgress = activeDelegations.filter(
+      (d) => d.state === "assigned" || d.state === "in_progress",
+    );
+    if (inProgress.length > 0) {
+      delegationContext = "\nACTIVE DELEGATIONS:\n";
+      for (const d of inProgress) {
+        const dir = d.fromAgentId === params.agentId ? "delegated to" : "received from";
+        const other = d.fromAgentId === params.agentId ? d.toAgentId : d.fromAgentId;
+        delegationContext += `- [${d.priority}] ${dir} ${other}: ${d.task}\n`;
+      }
+    }
+  } catch {
+    // Delegation data is optional
+  }
+
   const systemPromptAddendum = `
 ${collabPrompt}
 
@@ -86,12 +117,15 @@ ${decisionContext}
 
 ${sharedContext}
 
+${delegationContext}
+
 YOUR TASK:
 You are now implementing decisions that were made by the full team.
 - Reference team decisions in your work
 - Ask for clarification if something is ambiguous
 - Work within the constraints defined by the team
 - Update the team if you encounter issues with the design
+- Use the delegation tool to delegate subtasks or request help from superiors
 `;
 
   return {

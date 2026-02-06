@@ -9,11 +9,11 @@
 
 import type { GatewayRequestHandlers } from "./types.js";
 import {
-  getCollaborationContext,
   getCollaborationMetrics,
   exportCollaborationAsMarkdown,
 } from "../../agents/collaboration-storage.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
+import { getCollaborationContext } from "./collaboration.js";
 
 type VoteRecord = {
   agentId: string;
@@ -194,7 +194,7 @@ export const collaborationAdvancedHandlers: GatewayRequestHandlers = {
       const result = registerVote(p);
       respond(true, result, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -208,7 +208,7 @@ export const collaborationAdvancedHandlers: GatewayRequestHandlers = {
       const summary = getVoteSummary(p.sessionKey, p.decisionId);
       respond(true, summary, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -224,7 +224,7 @@ export const collaborationAdvancedHandlers: GatewayRequestHandlers = {
       const appealId = submitAppeal(p);
       respond(true, { appealId }, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -242,7 +242,7 @@ export const collaborationAdvancedHandlers: GatewayRequestHandlers = {
       resolveAppeal(p);
       respond(true, { ok: true }, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -256,7 +256,7 @@ export const collaborationAdvancedHandlers: GatewayRequestHandlers = {
       const appealList = getAppeals(p.sessionKey, p.decisionId);
       respond(true, { appeals: appealList }, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -268,13 +268,13 @@ export const collaborationAdvancedHandlers: GatewayRequestHandlers = {
 
       const metrics = await getCollaborationMetrics(p.sessionKey);
       if (!metrics) {
-        respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, "Session not found"));
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "Session not found"));
         return;
       }
 
       respond(true, metrics, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -293,7 +293,7 @@ export const collaborationAdvancedHandlers: GatewayRequestHandlers = {
         respond(true, { content: JSON.stringify(session, null, 2), format: "json" }, undefined);
       }
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 };

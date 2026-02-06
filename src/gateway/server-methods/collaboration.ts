@@ -1,13 +1,6 @@
 import type { GatewayRequestHandlers } from "./types.js";
-import { loadConfig } from "../../config/config.js";
-import {
-  loadSessionStore,
-  updateSessionStore,
-  resolveStorePath,
-  type SessionEntry,
-} from "../../config/sessions.js";
-import { parseAgentSessionKey } from "../../routing/session-key.js";
-import { ErrorCodes, errorShape, formatValidationErrors } from "../protocol/index.js";
+import { ErrorCodes, errorShape } from "../protocol/index.js";
+import { broadcastHierarchyFullRefresh } from "../server-hierarchy-events.js";
 
 /**
  * COLLABORATION SYSTEM
@@ -307,9 +300,10 @@ export const collaborationHandlers: GatewayRequestHandlers = {
       }
 
       const session = initializeCollaborativeSession(p);
+      broadcastHierarchyFullRefresh();
       respond(true, session, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -324,9 +318,10 @@ export const collaborationHandlers: GatewayRequestHandlers = {
       };
 
       const result = publishProposal(p);
+      broadcastHierarchyFullRefresh();
       respond(true, result, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -341,9 +336,10 @@ export const collaborationHandlers: GatewayRequestHandlers = {
       };
 
       challengeProposal(p);
+      broadcastHierarchyFullRefresh();
       respond(true, { ok: true }, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -356,9 +352,10 @@ export const collaborationHandlers: GatewayRequestHandlers = {
       };
 
       agreeToProposal(p);
+      broadcastHierarchyFullRefresh();
       respond(true, { ok: true }, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -372,9 +369,10 @@ export const collaborationHandlers: GatewayRequestHandlers = {
       };
 
       finalizeDecision(p);
+      broadcastHierarchyFullRefresh();
       respond(true, { ok: true }, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -384,13 +382,13 @@ export const collaborationHandlers: GatewayRequestHandlers = {
       const session = getCollaborationContext(p.sessionKey);
 
       if (!session) {
-        respond(false, undefined, errorShape(ErrorCodes.NOT_FOUND, "Session not found"));
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "Session not found"));
         return;
       }
 
       respond(true, session, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 
@@ -404,7 +402,7 @@ export const collaborationHandlers: GatewayRequestHandlers = {
       const thread = getDecisionThread(p);
       respond(true, { thread }, undefined);
     } catch (err) {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL, String(err)));
+      respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(err)));
     }
   },
 };

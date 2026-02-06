@@ -21,7 +21,7 @@ export interface AgentMemory {
   memoryType: MemoryType;
   title: string;
   content: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   importance: number; // 1-10
@@ -99,7 +99,7 @@ export interface AgentLearningLog {
   lessonsLearned: string[];
   processImprovements: string[];
   skillsImproved: Record<string, number>; // skill -> improvement rate
-  mistakes: Record<string, any>;
+  mistakes: Record<string, unknown>;
 }
 
 export interface MistakePattern {
@@ -144,7 +144,7 @@ export interface AutonomyConfig {
   riskLevel: RiskLevel;
   definition: string;
   autonomyType: AutonomyType;
-  conditions?: Record<string, any>;
+  conditions?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -215,7 +215,7 @@ export interface IntuitionRule {
   agentId: string;
   patternName: string;
   patternDescription: string;
-  triggerConditions?: Record<string, any>;
+  triggerConditions?: Record<string, unknown>;
   recommendedAction: string;
   actionConfidence: number; // 0-1
   timesTriggered: number;
@@ -227,7 +227,7 @@ export interface PatternMatch {
   id: string;
   agentId: string;
   ruleId: string;
-  matchedContext?: Record<string, any>;
+  matchedContext?: Record<string, unknown>;
   actionTaken: string;
   outcome: "correct" | "incorrect" | "partial" | "unknown";
   matchedAt: Date;
@@ -282,7 +282,7 @@ export interface AssertivenessRule {
   concernLevel: "critical" | "high" | "medium" | "low";
   triggerConditions?: string;
   recommendedResponse: string;
-  alternatives?: Record<string, any>;
+  alternatives?: Record<string, unknown>;
   escalationPath?: string;
 }
 
@@ -307,7 +307,7 @@ export interface BehaviorMetric {
   agentId: string;
   metricType: "decision_quality" | "collaboration" | "output_quality" | "autonomy_level";
   metricValue: number;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface DecisionLog {
@@ -318,7 +318,7 @@ export interface DecisionLog {
   outcome?: "success" | "failure" | "pending" | "partial";
   confidenceLevel?: number;
   impactScore?: number;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface LearningProgress {
@@ -360,7 +360,7 @@ export interface AgentHumanizationProfile {
 export interface HumanizationRequest {
   agentId: string;
   context: "decision" | "interaction" | "task" | "learning" | "conflict";
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -430,7 +430,7 @@ export interface RedisConfig {
 }
 
 export interface ConnectionPool {
-  pg: any; // PostgreSQL pool
-  redis: any; // Redis client
+  pg: unknown; // PostgreSQL pool
+  redis: unknown; // Redis client
   initialized: boolean;
 }

@@ -574,6 +574,15 @@ export type AgentHierarchyUsage = {
   toolCalls: number;
 };
 
+export type AgentDelegationMetrics = {
+  sent: number;
+  received: number;
+  pending: number;
+  completed: number;
+  rejected: number;
+  interactionCount: number;
+};
+
 export type AgentHierarchyNode = {
   sessionKey: string;
   runId?: string;
@@ -586,12 +595,23 @@ export type AgentHierarchyNode = {
   endedAt?: number;
   children: AgentHierarchyNode[];
   usage?: AgentHierarchyUsage;
+  interactionCount?: number;
+  delegations?: AgentDelegationMetrics;
 };
 
 export type CollaborationEdge = {
   source: string;
   target: string;
-  type: "proposal" | "challenge" | "agreement" | "decision" | "clarification";
+  type:
+    | "proposal"
+    | "challenge"
+    | "agreement"
+    | "decision"
+    | "clarification"
+    | "delegation"
+    | "request"
+    | "approval"
+    | "rejection";
   topic?: string;
 };
 

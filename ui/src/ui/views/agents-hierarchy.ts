@@ -2,6 +2,7 @@
 import * as echarts from "echarts";
 import { html, nothing, type TemplateResult } from "lit";
 import type {
+  AgentDelegationMetrics,
   AgentHierarchyNode,
   AgentHierarchyResult,
   AgentHierarchyUsage,
@@ -29,6 +30,7 @@ type NodeMeta = {
   startedAt?: number;
   endedAt?: number;
   usage?: AgentHierarchyUsage;
+  delegations?: AgentDelegationMetrics;
 };
 
 type GraphNodeData = {
@@ -92,17 +94,92 @@ const NODE_SIZE_BY_ROLE: Record<string, number> = {
   worker: 12,
 };
 
+// Per-agent unique colors — deterministic from agentId hash
+const AGENT_PALETTE = [
+  "#7c3aed", // violet
+  "#2563eb", // blue
+  "#0891b2", // cyan
+  "#059669", // emerald
+  "#d97706", // amber
+  "#dc2626", // red
+  "#db2777", // pink
+  "#7c2d12", // brown
+  "#4f46e5", // indigo
+  "#0d9488", // teal
+  "#ea580c", // orange
+  "#9333ea", // purple
+  "#0284c7", // sky
+  "#65a30d", // lime
+  "#e11d48", // rose
+];
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit int
+  }
+  return Math.abs(hash);
+}
+
+function getAgentColor(agentId: string | undefined): string {
+  if (!agentId) {
+    return "#6b7280";
+  }
+  const idx = hashString(agentId) % AGENT_PALETTE.length;
+  return AGENT_PALETTE[idx];
+}
+
+// Connection colors by hierarchy direction
+const HIERARCHY_EDGE_COLORS: Record<string, { color: string; dash: string }> = {
+  delegation: { color: "rgba(245, 158, 11, 0.7)", dash: "solid" },
+  request: { color: "rgba(168, 85, 247, 0.5)", dash: "dashed" },
+  approval: { color: "rgba(34, 197, 94, 0.6)", dash: "solid" },
+  rejection: { color: "rgba(239, 68, 68, 0.5)", dash: "dashed" },
+};
+
+/**
+ * Dynamic node sizing: base from role + logarithmic growth from interactions.
+ */
+function computeNodeSize(node: AgentHierarchyNode): number {
+  const roleBase = NODE_SIZE_BY_ROLE[node.agentRole ?? "worker"] ?? 12;
+  let total = node.interactionCount ?? 0;
+  if (node.usage) {
+    total += node.usage.toolCalls;
+    total += Math.floor((node.usage.inputTokens + node.usage.outputTokens) / 10_000);
+  }
+  if (node.delegations) {
+    total += node.delegations.sent + node.delegations.received;
+  }
+  // Logarithmic growth, capped at +20px
+  const scale = total > 0 ? Math.min(20, Math.log2(total + 1) * 3) : 0;
+  return roleBase + scale;
+}
+
 function computeRepulsion(nodeCount: number): number {
-  if (nodeCount <= 5) return 120;
-  if (nodeCount <= 15) return 250;
-  if (nodeCount <= 30) return 400;
+  if (nodeCount <= 5) {
+    return 120;
+  }
+  if (nodeCount <= 15) {
+    return 250;
+  }
+  if (nodeCount <= 30) {
+    return 400;
+  }
   return 500;
 }
 
 function computeEdgeLength(nodeCount: number): number {
-  if (nodeCount <= 5) return 80;
-  if (nodeCount <= 15) return 120;
-  if (nodeCount <= 30) return 160;
+  if (nodeCount <= 5) {
+    return 80;
+  }
+  if (nodeCount <= 15) {
+    return 120;
+  }
+  if (nodeCount <= 30) {
+    return 160;
+  }
   return 200;
 }
 
@@ -156,6 +233,10 @@ const COLLAB_EDGE_COLORS: Record<string, string> = {
   agreement: "rgba(34, 197, 94, 0.5)", // green
   decision: "rgba(245, 158, 11, 0.5)", // amber
   clarification: "rgba(59, 130, 246, 0.4)", // blue
+  delegation: "rgba(245, 158, 11, 0.7)", // amber solid
+  request: "rgba(168, 85, 247, 0.5)", // purple
+  approval: "rgba(34, 197, 94, 0.6)", // green
+  rejection: "rgba(239, 68, 68, 0.5)", // red
 };
 
 function transformToGraphData(
@@ -172,11 +253,11 @@ function transformToGraphData(
   const agentIdToSessionKey = new Map<string, string>();
 
   function traverse(node: AgentHierarchyNode, parentKey?: string) {
-    const colors = STATUS_COLORS[node.status] ?? STATUS_COLORS.pending;
     const label = node.label || extractAgentName(node.sessionKey);
     const role = node.agentRole ?? "worker";
-    const symbolSize = NODE_SIZE_BY_ROLE[role] ?? 12;
+    const symbolSize = computeNodeSize(node);
     const isRunning = node.status === "running";
+    const agentColor = getAgentColor(node.agentId);
 
     // Track agentId → sessionKey mapping
     if (node.agentId) {
@@ -189,10 +270,13 @@ function transformToGraphData(
       symbolSize,
       category: ROLE_CATEGORY_INDEX[role] ?? 3,
       itemStyle: {
-        color: colors.bg,
-        ...(isRunning ? { shadowBlur: 12, shadowColor: "rgba(59, 130, 246, 0.6)" } : {}),
+        color: agentColor,
+        borderColor: isRunning ? "#fff" : "transparent",
+        borderWidth: isRunning ? 2 : 0,
+        // Pulsing glow for running agents
+        shadowBlur: isRunning ? 18 : 0,
+        shadowColor: isRunning ? agentColor : "transparent",
       },
-      // label inherited from series-level config (graph-label-overlap style)
       _meta: {
         sessionKey: node.sessionKey,
         runId: node.runId,
@@ -203,6 +287,7 @@ function transformToGraphData(
         startedAt: node.startedAt,
         endedAt: node.endedAt,
         usage: node.usage,
+        delegations: node.delegations,
       },
     };
 
@@ -235,19 +320,29 @@ function transformToGraphData(
     for (const collab of collaborationEdges) {
       const sourceSession = agentIdToSessionKey.get(collab.source);
       const targetSession = agentIdToSessionKey.get(collab.target);
-      if (!sourceSession || !targetSession || sourceSession === targetSession) continue;
+      if (!sourceSession || !targetSession || sourceSession === targetSession) {
+        continue;
+      }
 
       const pairKey = `${sourceSession}→${targetSession}:${collab.type}`;
-      if (seen.has(pairKey)) continue;
+      if (seen.has(pairKey)) {
+        continue;
+      }
       seen.add(pairKey);
+
+      // Use hierarchy-aware edge styling for delegation types
+      const hierarchyStyle = HIERARCHY_EDGE_COLORS[collab.type];
+      const edgeColor =
+        hierarchyStyle?.color ?? COLLAB_EDGE_COLORS[collab.type] ?? "rgba(161, 161, 170, 0.3)";
+      const edgeDash = hierarchyStyle?.dash ?? "dashed";
 
       edges.push({
         source: sourceSession,
         target: targetSession,
         lineStyle: {
-          color: COLLAB_EDGE_COLORS[collab.type] ?? "rgba(161, 161, 170, 0.3)",
-          width: 1.5,
-          type: "dashed",
+          color: edgeColor,
+          width: hierarchyStyle ? 2 : 1.5,
+          type: edgeDash,
           curveness: 0.3,
         },
       });
@@ -262,12 +357,16 @@ function transformToGraphData(
       // Only spawn edges (no lineStyle = spawn)
       const siblings = childrenByParent.get(edge.source) ?? [];
       const childNode = nodes.find((n) => n.id === edge.target);
-      if (childNode) siblings.push(childNode);
+      if (childNode) {
+        siblings.push(childNode);
+      }
       childrenByParent.set(edge.source, siblings);
     }
   }
   for (const siblings of childrenByParent.values()) {
-    if (siblings.length < 2) continue;
+    if (siblings.length < 2) {
+      continue;
+    }
     // Connect siblings that share context (completed→running or same-role clusters)
     for (let i = 0; i < siblings.length; i++) {
       for (let j = i + 1; j < siblings.length; j++) {
@@ -394,7 +493,7 @@ export function renderAgentsHierarchy(props: AgentsHierarchyProps) {
               <div
                 class="hierarchy-chart-container"
                 id="hierarchy-echarts-container"
-                style="margin-top: 16px; min-height: 400px;"
+                style="margin-top: 16px; min-height: 500px; height: ${Math.max(500, Math.min(900, totalNodes * 80))}px; transition: height 0.3s ease;"
               >
                 ${renderHierarchyTree(roots, onNodeClick)}
               </div>
@@ -487,6 +586,7 @@ function renderHierarchyTree(
 let chartInstance: echarts.ECharts | null = null;
 let lastDataHash = "";
 let clickHandlerAttached = false;
+let pulseTimer: ReturnType<typeof setInterval> | null = null;
 
 function computeDataHash(roots: AgentHierarchyNode[]): string {
   const keys: string[] = [];
@@ -498,6 +598,13 @@ function computeDataHash(roots: AgentHierarchyNode[]): string {
       const u = node.usage;
       if (u) {
         keys.push(`${u.inputTokens}:${u.outputTokens}:${u.toolCalls}`);
+      }
+      const d = node.delegations;
+      if (d) {
+        keys.push(`d:${d.sent}:${d.received}:${d.pending}`);
+      }
+      if (node.interactionCount) {
+        keys.push(`ic:${node.interactionCount}`);
       }
       if (node.children.length > 0) {
         collect(node.children);
@@ -571,11 +678,14 @@ function initECharts(
   }
 
   const nodeCount = graphData.nodes.length;
-  const chartHeight = Math.max(500, Math.min(700, nodeCount * 60));
+
+  // Use container's actual size (dynamically set via inline style)
+  const chartWidth = container.clientWidth || 800;
+  const chartHeight = container.clientHeight || 500;
 
   chartInstance = echarts.init(container, undefined, {
     renderer: "canvas",
-    width: container.clientWidth || 800,
+    width: chartWidth,
     height: chartHeight,
   });
 
@@ -584,7 +694,9 @@ function initECharts(
       trigger: "item",
       triggerOn: "mousemove",
       formatter: (params: { data?: GraphNodeData; dataType?: string }) => {
-        if (params.dataType === "edge") return "";
+        if (params.dataType === "edge") {
+          return "";
+        }
         const meta = params.data?._meta;
         if (!meta) {
           return params.data?.name ?? "";
@@ -596,11 +708,15 @@ function initECharts(
         const usageLines = meta.usage
           ? `<div style="margin-top:4px;font-size:11px;color:#aaa;">Tokens: ${formatTokenCount(meta.usage.inputTokens)}in / ${formatTokenCount(meta.usage.outputTokens)}out<br/>Tools: ${meta.usage.toolCalls} | Duration: ${formatDurationMs(meta.usage.durationMs)}${meta.usage.costUsd > 0 ? `<br/>Cost: $${meta.usage.costUsd.toFixed(4)}` : ""}</div>`
           : "";
+        const delegLines = meta.delegations
+          ? `<div style="margin-top:4px;font-size:11px;color:#aaa;">Delegations: ${meta.delegations.sent} sent / ${meta.delegations.received} received${meta.delegations.pending > 0 ? ` | ${meta.delegations.pending} pending` : ""}</div>`
+          : "";
         return `<div style="max-width:350px;">
           <strong>${params.data?.name ?? ""}</strong> ${roleLabel}<br/>
           <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:${statusColors.bg};color:${statusColors.text};">${meta.status}</span>
           ${meta.task ? `<div style="margin-top:4px;font-size:12px;color:#ccc;">${meta.task.slice(0, 120)}</div>` : ""}
           ${usageLines}
+          ${delegLines}
           <div style="margin-top:4px;font-size:10px;color:#666;">${meta.sessionKey}</div>
         </div>`;
       },
@@ -665,4 +781,36 @@ function initECharts(
     chartInstance?.resize();
   });
   resizeObserver.observe(container);
+
+  // Pulsing shadow for running agents
+  if (pulseTimer) {
+    clearInterval(pulseTimer);
+  }
+  let pulsePhase = 0;
+  pulseTimer = setInterval(() => {
+    if (!chartInstance) {
+      if (pulseTimer) {
+        clearInterval(pulseTimer);
+      }
+      return;
+    }
+    pulsePhase = (pulsePhase + 1) % 20;
+    // Sinusoidal pulse: shadow oscillates between 8 and 22
+    const intensity = 8 + Math.sin((pulsePhase / 20) * Math.PI * 2) * 7;
+    const updatedNodes = graphData.nodes.map((n) => {
+      if (n._meta?.status !== "running") {
+        return n;
+      }
+      const c = (n.itemStyle?.color as string) ?? "#6b7280";
+      return {
+        ...n,
+        itemStyle: {
+          ...n.itemStyle,
+          shadowBlur: intensity,
+          shadowColor: c,
+        },
+      };
+    });
+    chartInstance.setOption({ series: [{ data: updatedNodes }] });
+  }, 100);
 }

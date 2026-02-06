@@ -110,7 +110,9 @@ export async function listCollaborationSessions(): Promise<string[]> {
 export async function archiveCollaborationSession(sessionKey: string): Promise<void> {
   try {
     const record = await loadCollaborationSession(sessionKey);
-    if (!record) return;
+    if (!record) {
+      return;
+    }
 
     record.status = "archived";
     record.updatedAt = Date.now();
@@ -184,7 +186,9 @@ export async function getCollaborationMetrics(sessionKey: string): Promise<{
   durationMinutes: number;
 } | null> {
   const record = await loadCollaborationSession(sessionKey);
-  if (!record) return null;
+  if (!record) {
+    return null;
+  }
 
   const decisionCount = record.decisions.length;
   const consensusCount = record.decisions.filter((d) => d.consensus).length;
