@@ -1,5 +1,6 @@
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { ConfigSchemaResponse, ConfigSnapshot, ConfigUiHints } from "../types.ts";
+import { i18n, type Locale } from "../../i18n/i18n.js";
 import {
   cloneConfigObject,
   removePathValue,
@@ -97,6 +98,16 @@ export function applyConfigSnapshot(state: ConfigState, snapshot: ConfigSnapshot
     state.configFormOriginal = cloneConfigObject(snapshot.config ?? {});
     state.configRawOriginal = rawFromSnapshot;
   }
+
+  // Sync ui.locale from config to frontend i18n
+  const config = snapshot.config as Record<string, unknown> | undefined;
+  if (config?.ui && typeof config.ui === "object") {
+    const ui = config.ui as Record<string, unknown>;
+    const locale = ui.locale as Locale | undefined;
+    if (locale === "en" || locale === "zh-CN") {
+      i18n.setLocale(locale);
+    }
+  }
 }
 
 export async function saveConfig(state: ConfigState) {
@@ -183,6 +194,14 @@ export function updateConfigFormValue(
   state.configFormDirty = true;
   if (state.configFormMode === "form") {
     state.configRaw = serializeConfigForm(base);
+  }
+
+  // Sync ui.locale changes to frontend i18n
+  if (path.length === 2 && path[0] === "ui" && path[1] === "locale") {
+    const locale = value as Locale;
+    if (locale === "en" || locale === "zh-CN") {
+      i18n.setLocale(locale);
+    }
   }
 }
 

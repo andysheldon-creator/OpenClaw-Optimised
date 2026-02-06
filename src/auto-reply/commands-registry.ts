@@ -1,5 +1,6 @@
 import type { SkillCommandSpec } from "../agents/skills.js";
 import type { OpenClawConfig } from "../config/types.js";
+import type { Locale } from "../i18n/commands.js";
 import type {
   ChatCommandDefinition,
   CommandArgChoiceContext,
@@ -40,6 +41,10 @@ let cachedTextAliasMap: Map<string, TextAliasSpec> | null = null;
 let cachedTextAliasCommands: ChatCommandDefinition[] | null = null;
 let cachedDetection: CommandDetection | undefined;
 let cachedDetectionCommands: ChatCommandDefinition[] | null = null;
+
+function getLocaleFromConfig(cfg?: OpenClawConfig): Locale {
+  return (cfg?.ui?.locale as Locale) ?? "en";
+}
 
 function getTextAliasMap(): Map<string, TextAliasSpec> {
   const commands = getChatCommands();
@@ -114,7 +119,8 @@ export function listChatCommandsForConfig(
   cfg: OpenClawConfig,
   params?: { skillCommands?: SkillCommandSpec[] },
 ): ChatCommandDefinition[] {
-  const base = getChatCommands().filter((command) => isCommandEnabled(cfg, command.key));
+  const locale = getLocaleFromConfig(cfg);
+  const base = getChatCommands(locale).filter((command) => isCommandEnabled(cfg, command.key));
   if (!params?.skillCommands?.length) {
     return base;
   }

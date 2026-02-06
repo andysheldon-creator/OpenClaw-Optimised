@@ -1,6 +1,7 @@
 import { html, nothing } from "lit";
 import type { SignalStatus } from "../types.ts";
 import type { ChannelsProps } from "./channels.types.ts";
+import { t } from "../../i18n/i18n.js";
 import { formatAgo } from "../format.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
 
@@ -13,30 +14,30 @@ export function renderSignalCard(params: {
 
   return html`
     <div class="card">
-      <div class="card-title">Signal</div>
-      <div class="card-sub">signal-cli status and channel configuration.</div>
+      <div class="card-title">${t("signal.card_title")}</div>
+      <div class="card-sub">${t("signal.card_subtitle")}</div>
       ${accountCountLabel}
 
       <div class="status-list" style="margin-top: 16px;">
         <div>
-          <span class="label">Configured</span>
-          <span>${signal?.configured ? "Yes" : "No"}</span>
+          <span class="label">${t("signal.status.configured")}</span>
+          <span>${signal?.configured ? t("common.yes") : t("common.no")}</span>
         </div>
         <div>
-          <span class="label">Running</span>
-          <span>${signal?.running ? "Yes" : "No"}</span>
+          <span class="label">${t("signal.status.running")}</span>
+          <span>${signal?.running ? t("common.yes") : t("common.no")}</span>
         </div>
         <div>
-          <span class="label">Base URL</span>
-          <span>${signal?.baseUrl ?? "n/a"}</span>
+          <span class="label">${t("signal.status.base_url")}</span>
+          <span>${signal?.baseUrl ?? t("common.n_a")}</span>
         </div>
         <div>
-          <span class="label">Last start</span>
-          <span>${signal?.lastStartAt ? formatAgo(signal.lastStartAt) : "n/a"}</span>
+          <span class="label">${t("signal.status.last_start")}</span>
+          <span>${signal?.lastStartAt ? formatAgo(signal.lastStartAt) : t("common.n_a")}</span>
         </div>
         <div>
-          <span class="label">Last probe</span>
-          <span>${signal?.lastProbeAt ? formatAgo(signal.lastProbeAt) : "n/a"}</span>
+          <span class="label">${t("signal.status.last_probe")}</span>
+          <span>${signal?.lastProbeAt ? formatAgo(signal.lastProbeAt) : t("common.n_a")}</span>
         </div>
       </div>
 
@@ -51,7 +52,7 @@ export function renderSignalCard(params: {
       ${
         signal?.probe
           ? html`<div class="callout" style="margin-top: 12px;">
-            Probe ${signal.probe.ok ? "ok" : "failed"} ·
+            ${t("signal.button.probe")} ${signal.probe.ok ? "ok" : "failed"} ·
             ${signal.probe.status ?? ""} ${signal.probe.error ?? ""}
           </div>`
           : nothing
@@ -61,7 +62,7 @@ export function renderSignalCard(params: {
 
       <div class="row" style="margin-top: 12px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
-          Probe
+          ${t("signal.button.probe")}
         </button>
       </div>
     </div>

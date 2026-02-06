@@ -66,6 +66,8 @@ export type OpenClawConfig = {
   };
   browser?: BrowserConfig;
   ui?: {
+    /** UI language locale ("en" or "zh-CN"). */
+    locale?: "en" | "zh-CN";
     /** Accent color for OpenClaw UI chrome (hex). */
     seamColor?: string;
     assistant?: {
