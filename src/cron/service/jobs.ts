@@ -18,7 +18,9 @@ import {
   normalizeRequiredName,
 } from "./normalize.js";
 
-const STUCK_RUN_MS = 2 * 60 * 60 * 1000;
+const STUCK_RUN_MS = 30 * 60 * 1000;
+
+export { STUCK_RUN_MS };
 
 export function assertSupportedJobSpec(job: Pick<CronJob, "sessionTarget" | "payload">) {
   if (job.sessionTarget === "main" && job.payload.kind !== "systemEvent") {
@@ -85,11 +87,17 @@ export function recomputeNextRuns(state: CronServiceState) {
     }
     const runningAt = job.state.runningAtMs;
     if (typeof runningAt === "number" && now - runningAt > STUCK_RUN_MS) {
+      const stuckDurationMs = now - runningAt;
+      const stuckDurationMinutes = Math.round(stuckDurationMs / 60_000);
       state.deps.log.warn(
-        { jobId: job.id, runningAtMs: runningAt },
+        { jobId: job.id, runningAtMs: runningAt, stuckDurationMs },
         "cron: clearing stuck running marker",
       );
       job.state.runningAtMs = undefined;
+      job.state.lastStatus = "error";
+      job.state.lastRunAtMs = runningAt;
+      job.state.lastError = `Job appeared stuck after ${stuckDurationMinutes} minutes and was reset`;
+      job.state.lastDurationMs = stuckDurationMs;
     }
     job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
   }
@@ -346,4 +354,18 @@ export function resolveJobPayloadTextForMain(job: CronJob): string | undefined {
   }
   const text = normalizePayloadToSystemText(job.payload);
   return text.trim() ? text : undefined;
+}
+
+export function isJobStuck(job: CronJob, nowMs: number): boolean {
+  const runningAt = job.state.runningAtMs;
+  return typeof runningAt === "number" && nowMs - runningAt > STUCK_RUN_MS;
+}
+
+export function getJobStuckDurationMs(job: CronJob, nowMs: number): number | undefined {
+  const runningAt = job.state.runningAtMs;
+  if (typeof runningAt !== "number") {
+    return undefined;
+  }
+  const duration = nowMs - runningAt;
+  return duration > STUCK_RUN_MS ? duration : undefined;
 }
