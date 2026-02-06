@@ -102,15 +102,15 @@ export function installTranscriptPromptGuard(
   sessionManager: { appendMessage: (msg: AgentMessage) => unknown },
   originalPrompt: string,
 ): () => void {
-  const origAppend = sessionManager.appendMessage.bind(sessionManager);
+  const origAppend = sessionManager.appendMessage;
   let intercepted = false;
   sessionManager.appendMessage = ((msg: AgentMessage) => {
     if (!intercepted && (msg as { role?: string }).role === "user") {
       intercepted = true;
       const cleaned = { ...msg, content: originalPrompt } as AgentMessage;
-      return origAppend(cleaned as never);
+      return origAppend.call(sessionManager, cleaned as never);
     }
-    return origAppend(msg as never);
+    return origAppend.call(sessionManager, msg as never);
   }) as typeof sessionManager.appendMessage;
   return () => {
     sessionManager.appendMessage = origAppend as typeof sessionManager.appendMessage;
