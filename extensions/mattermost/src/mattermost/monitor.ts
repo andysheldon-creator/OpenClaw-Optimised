@@ -4,6 +4,7 @@ import type {
   ReplyPayload,
   RuntimeEnv,
 } from "openclaw/plugin-sdk";
+import * as fs from "node:fs/promises";
 import {
   createReplyPrefixOptions,
   createTypingCallbacks,
@@ -18,6 +19,13 @@ import {
   type HistoryEntry,
 } from "openclaw/plugin-sdk";
 import WebSocket from "ws";
+
+/** ImageContent type for passing images to the LLM context. */
+type ImageContent = {
+  type: "image";
+  data: string; // base64 encoded image data
+  mimeType: string; // e.g., "image/jpeg", "image/png"
+};
 import { getMattermostRuntime } from "../runtime.js";
 import { resolveMattermostAccount } from "./accounts.js";
 import {
@@ -236,6 +244,36 @@ function buildMattermostMediaPayload(mediaList: MattermostMediaInfo[]): {
   };
 }
 
+/**
+ * Converts image media files to ImageContent array for passing to the LLM.
+ * Only processes media with kind "image" and valid mime types.
+ */
+async function buildMattermostImageContents(
+  mediaList: MattermostMediaInfo[],
+  logger?: { debug?: (msg: string) => void },
+): Promise<ImageContent[]> {
+  const images: ImageContent[] = [];
+  const imageMediaList = mediaList.filter(
+    (media) => media.kind === "image" && media.contentType?.startsWith("image/"),
+  );
+
+  for (const media of imageMediaList) {
+    try {
+      const buffer = await fs.readFile(media.path);
+      const base64 = buffer.toString("base64");
+      images.push({
+        type: "image",
+        data: base64,
+        mimeType: media.contentType ?? "image/jpeg",
+      });
+    } catch (err) {
+      logger?.debug?.(`mattermost: failed to read image file ${media.path}: ${String(err)}`);
+    }
+  }
+
+  return images;
+}
+
 function buildMattermostWsUrl(baseUrl: string): string {
   const normalized = normalizeMattermostBaseUrl(baseUrl);
   if (!normalized) {
@@ -314,6 +352,7 @@ export async function monitorMattermostProvider(opts: MonitorMattermostOpts = {}
           fetchImpl: fetchWithAuth,
           filePathHint: fileId,
           maxBytes: mediaMaxBytes,
+          ssrfPolicy: { allowPrivateNetwork: true }, // Allow local Mattermost server
         });
         const saved = await core.channel.media.saveMediaBuffer(
           fetched.buffer,
@@ -622,6 +661,7 @@ export async function monitorMattermostProvider(opts: MonitorMattermostOpts = {}
       }
     }
     const mediaList = await resolveMattermostMedia(post.file_ids);
+    const imageContents = await buildMattermostImageContents(mediaList, logger);
     const mediaPlaceholder = buildMattermostAttachmentPlaceholder(mediaList);
     const bodySource = oncharTriggered ? oncharResult.stripped : rawText;
     const baseText = [bodySource, mediaPlaceholder].filter(Boolean).join("\n").trim();
@@ -827,6 +867,7 @@ export async function monitorMattermostProvider(opts: MonitorMattermostOpts = {}
       dispatcher,
       replyOptions: {
         ...replyOptions,
+        images: imageContents.length > 0 ? imageContents : undefined,
         disableBlockStreaming:
           typeof account.blockStreaming === "boolean" ? !account.blockStreaming : undefined,
         onModelSelected,
