@@ -133,6 +133,8 @@ export class CallManager {
       return { callId: "", success: false, error: "fromNumber not configured" };
     }
 
+    const fromName = typeof opts.fromName === "string" ? opts.fromName.trim() : "";
+
     // Create call record with mode in metadata
     const callRecord: CallRecord = {
       callId,
@@ -166,6 +168,7 @@ export class CallManager {
       const result = await this.provider.initiateCall({
         callId,
         from,
+        ...(fromName ? { fromName } : {}),
         to,
         webhookUrl: this.webhookUrl,
         inlineTwiml,

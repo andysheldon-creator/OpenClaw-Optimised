@@ -225,6 +225,10 @@ export class AsteriskAriProvider implements VoiceCallProvider {
       // Only accept from learned peer.
       if (st.rtpPeer.address !== rinfo.address || st.rtpPeer.port !== rinfo.port) continue;
 
+      if (st.speaking) {
+        return;
+      }
+
       if (st.stt) {
         st.stt.sendAudio(payload);
       }
@@ -379,6 +383,7 @@ export class AsteriskAriProvider implements VoiceCallProvider {
       query: {
         endpoint,
         app: this.cfg.app,
+        callerId: input.fromName ? `${input.fromName} <${input.from}>` : undefined,
       },
     });
 

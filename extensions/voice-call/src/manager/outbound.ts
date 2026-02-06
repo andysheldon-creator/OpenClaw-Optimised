@@ -55,6 +55,8 @@ export async function initiateCall(
     return { callId: "", success: false, error: "fromNumber not configured" };
   }
 
+  const fromName = typeof opts.fromName === "string" ? opts.fromName.trim() : "";
+
   const callRecord: CallRecord = {
     callId,
     provider: ctx.provider.name,
@@ -87,6 +89,7 @@ export async function initiateCall(
     const result = await ctx.provider.initiateCall({
       callId,
       from,
+      ...(fromName ? { fromName } : {}),
       to,
       webhookUrl: ctx.webhookUrl,
       inlineTwiml,

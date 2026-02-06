@@ -110,6 +110,7 @@ const VoiceCallToolSchema = Type.Union([
   Type.Object({
     action: Type.Literal("initiate_call"),
     to: Type.Optional(Type.String({ description: "Call target" })),
+    fromName: Type.Optional(Type.String({ description: "Caller display name (e.g. agent name)" })),
     message: Type.String({ description: "Intro message" }),
     mode: Type.Optional(Type.Union([Type.Literal("notify"), Type.Literal("conversation")])),
   }),
@@ -359,6 +360,7 @@ const voiceCallPlugin = {
                     params.mode === "notify" || params.mode === "conversation"
                       ? params.mode
                       : undefined,
+                  fromName: typeof (params as any).fromName === "string" ? String((params as any).fromName) : undefined,
                 });
                 if (!result.success) {
                   throw new Error(result.error || "initiate failed");
