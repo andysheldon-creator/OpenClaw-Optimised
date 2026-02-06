@@ -16,6 +16,53 @@ import { resolveAgentIdFromSessionKey } from "../../../routing/session-key.js";
 import { resolveHookConfig } from "../../config.js";
 
 /**
+ * Sanitize content for memory files by stripping binary data and file attachments.
+ * This prevents context overflow from embedded audio, images, or other binary content.
+ *
+ * Strips:
+ * - <file>...</file> tags (may contain binary audio/image data)
+ * - Base64 image data patterns
+ * - Long sequences of non-printable characters
+ */
+export function sanitizeForMemory(text: string): string;
+export function sanitizeForMemory(text: null): null;
+export function sanitizeForMemory(text: undefined): undefined;
+export function sanitizeForMemory(text: string | null | undefined): string | null | undefined;
+export function sanitizeForMemory(text: string | null | undefined): string | null | undefined {
+  if (!text) {
+    return text;
+  }
+
+  let result = text;
+
+  // Strip <file>...</file> tags (may contain binary audio/image data)
+  // These tags are used for embedded file content in session transcripts
+  result = result.replace(/<file[^>]*>[\s\S]*?<\/file>/gi, "[file attachment stripped]");
+
+  // Strip base64 image data patterns (data:image/... or long base64 sequences)
+  result = result.replace(
+    /data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}/g,
+    "[base64 image stripped]",
+  );
+
+  // Strip any remaining long base64-like sequences (>500 chars of base64 alphabet)
+  result = result.replace(/[A-Za-z0-9+/=]{500,}/g, "[binary data stripped]");
+
+  // Remove non-printable characters except common whitespace (newline, tab, carriage return)
+  // This catches any binary data that leaked through as raw bytes
+  // eslint-disable-next-line no-control-regex
+  result = result.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "");
+
+  // If result is mostly replacement placeholders or very short after stripping, note it
+  const strippedCount = (result.match(/\[.*?stripped\]/g) || []).length;
+  if (strippedCount > 5) {
+    console.log(`[session-memory] Stripped ${strippedCount} binary/file attachments from content`);
+  }
+
+  return result;
+}
+
+/**
  * Read recent messages from session file for slug generation
  */
 async function getRecentSessionContent(
@@ -111,6 +158,17 @@ const saveSessionToMemory: HookHandler = async (event) => {
     if (sessionFile) {
       // Get recent conversation content
       sessionContent = await getRecentSessionContent(sessionFile, messageCount);
+      // Sanitize to remove binary data, file attachments, and base64 images
+      // This prevents context overflow from embedded audio/image data
+      if (sessionContent) {
+        const originalLength = sessionContent.length;
+        sessionContent = sanitizeForMemory(sessionContent);
+        if (sessionContent.length !== originalLength) {
+          console.log(
+            `[session-memory] Sanitized content: ${originalLength} -> ${sessionContent.length} bytes`,
+          );
+        }
+      }
       console.log("[session-memory] sessionContent length:", sessionContent?.length || 0);
 
       if (sessionContent && cfg) {
