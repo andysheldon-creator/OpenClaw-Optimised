@@ -76,7 +76,8 @@ export type CommandOptions = {
   input?: string;
   env?: NodeJS.ProcessEnv;
   windowsVerbatimArguments?: boolean;
-  inheritChildStdOut?: boolean;
+  mirrorStdout?: boolean;
+  mirrorStderr?: boolean;
 };
 
 export async function runCommandWithTimeout(
@@ -86,7 +87,7 @@ export async function runCommandWithTimeout(
   const options: CommandOptions =
     typeof optionsOrTimeout === "number" ? { timeoutMs: optionsOrTimeout } : optionsOrTimeout;
   const { timeoutMs, cwd, input, env } = options;
-  const { windowsVerbatimArguments, inheritChildStdOut } = options;
+  const { windowsVerbatimArguments, mirrorStdout, mirrorStderr } = options;
   const hasInput = input !== undefined;
 
   const shouldSuppressNpmFund = (() => {
@@ -111,11 +112,7 @@ export async function runCommandWithTimeout(
     }
   }
 
-  const stdio = resolveCommandStdio({
-    hasInput,
-    preferInheritStdIn: true,
-    preferInheritStdOut: Boolean(inheritChildStdOut),
-  });
+  const stdio = resolveCommandStdio({ hasInput, preferInherit: true });
   const child = spawn(resolveCommand(argv[0]), argv.slice(1), {
     stdio,
     cwd,
@@ -140,9 +137,15 @@ export async function runCommandWithTimeout(
 
     child.stdout?.on("data", (d) => {
       stdout += d.toString();
+      if (mirrorStdout) {
+        process.stdout.write(d);
+      }
     });
     child.stderr?.on("data", (d) => {
       stderr += d.toString();
+      if (mirrorStderr) {
+        process.stderr.write(d);
+      }
     });
     child.on("error", (err) => {
       if (settled) {

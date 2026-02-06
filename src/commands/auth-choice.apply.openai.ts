@@ -174,7 +174,8 @@ export async function applyAuthChoiceOpenAI(
     const result = await runCommandWithTimeout(["codex", "login", "--device-auth"], {
       timeoutMs: 10 * 60 * 1000,
       env: { NODE_OPTIONS: "" },
-      inheritChildStdOut: true,
+      mirrorStdout: true,
+      mirrorStderr: true,
     });
     if (result.code !== 0) {
       const stderr = result.stderr.trim();
