@@ -1,4 +1,4 @@
-import type { Api, AssistantMessage, Context, Model } from "@mariozechner/pi-ai";
+import type { Api, Context, Model } from "@mariozechner/pi-ai";
 import { complete } from "@mariozechner/pi-ai";
 import type { HistoryEntry } from "../../auto-reply/reply/history.js";
 import type { OpenClawConfig } from "../../config/config.js";
@@ -75,10 +75,10 @@ export async function evaluateChimeIn(params: {
       ],
     };
 
-    const response = (await complete(model, context, {
+    const response = await complete(model, context, {
       apiKey,
       maxTokens: 10,
-    })) as AssistantMessage;
+    });
 
     const responseText = extractAssistantText(response);
     const shouldRespond = responseText.trim().toUpperCase().startsWith("YES");

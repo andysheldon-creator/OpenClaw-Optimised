@@ -370,7 +370,9 @@ export function resolveDiscordChimeIn(params: {
   channelConfig?: DiscordChannelConfigResolved | null;
   guildInfo?: DiscordGuildEntryResolved | null;
 }): import("../../config/types.discord.js").ChimeInConfig | null {
-  if (!params.isGuildMessage) return null;
+  if (!params.isGuildMessage) {
+    return null;
+  }
   return params.channelConfig?.chimeIn ?? params.guildInfo?.chimeIn ?? null;
 }
 
