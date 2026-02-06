@@ -351,8 +351,7 @@ export async function monitorMattermostProvider(opts: MonitorMattermostOpts = {}
     const url = `${client.apiBaseUrl}/files/${encodeURIComponent(fileId)}`;
     const res = await fetchWithAuth(url, { method: "GET" });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`Mattermost file download ${res.status}: ${body || res.statusText}`);
+      throw new Error(`Mattermost file download failed (${res.status} ${res.statusText})`);
     }
     const contentType = res.headers.get("content-type") ?? undefined;
     const buffer = await readResponseBufferLimited(res, mediaMaxBytes);
