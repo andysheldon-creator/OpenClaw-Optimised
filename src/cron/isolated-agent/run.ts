@@ -62,6 +62,7 @@ import {
   resolveHeartbeatAckMaxChars,
 } from "./helpers.js";
 import { resolveCronSession } from "./session.js";
+import { isDeliverableMessageChannel, isInternalMessageChannel } from "../../utils/message-channel.js";
 
 function matchesMessagingToolDeliveryTarget(
   target: MessagingToolSend,
@@ -97,6 +98,12 @@ export type RunCronAgentTurnResult = {
   /** Last non-empty agent text output (not truncated). */
   outputText?: string;
   error?: string;
+  deliveryResult?: {
+    status: "ok" | "error";
+    error?: string;
+    channel?: string;
+    to?: string;
+  };
 };
 
 export async function runCronIsolatedAgentTurn(params: {
@@ -246,10 +253,15 @@ export async function runCronIsolatedAgentTurn(params: {
   const agentPayload = params.job.payload.kind === "agentTurn" ? params.job.payload : null;
   const deliveryPlan = resolveCronDeliveryPlan(params.job);
   const deliveryRequested = deliveryPlan.requested;
+  const explicitChannelRequested =
+    typeof params.job.delivery?.channel === "string" &&
+    params.job.delivery.channel.trim() &&
+    params.job.delivery.channel.trim().toLowerCase() !== "last";
 
   const resolvedDelivery = await resolveDeliveryTarget(cfgWithAgentDefaults, agentId, {
     channel: deliveryPlan.channel ?? "last",
     to: deliveryPlan.to,
+    explicitChannel: Boolean(explicitChannelRequested),
   });
 
   const userTimezone = resolveUserTimezone(params.cfg.agents?.defaults?.userTimezone);
@@ -449,8 +461,49 @@ export async function runCronIsolatedAgentTurn(params: {
       }),
     );
 
+  const isUnsupportedDeliveryChannelError = (err: unknown) => {
+    const message = String(err);
+    return (
+      message.includes("Unsupported channel:") ||
+      message.includes("Outbound not configured for channel:") ||
+      message.includes("Delivering to WebChat is not supported")
+    );
+  };
+
   if (deliveryRequested && !skipHeartbeatDelivery && !skipMessagingToolDelivery) {
+    if (!isDeliverableMessageChannel(resolvedDelivery.channel)) {
+      const message = isInternalMessageChannel(resolvedDelivery.channel)
+        ? "Delivering to WebChat is not supported via `openclaw agent`; use WhatsApp/Telegram or run with --deliver=false."
+        : `Unsupported channel: ${resolvedDelivery.channel}`;
+      logWarn(`[cron:${params.job.id}] ${message}`);
+      return {
+        status: "ok",
+        summary,
+        outputText,
+        deliveryResult: {
+          status: "error",
+          error: message,
+          channel: resolvedDelivery.channel,
+          to: resolvedDelivery.to,
+        },
+      };
+    }
     if (resolvedDelivery.error) {
+      if (isUnsupportedDeliveryChannelError(resolvedDelivery.error)) {
+        const message = resolvedDelivery.error.message;
+        logWarn(`[cron:${params.job.id}] ${message}`);
+        return {
+          status: "ok",
+          summary,
+          outputText,
+          deliveryResult: {
+            status: "error",
+            error: message,
+            channel: resolvedDelivery.channel,
+            to: resolvedDelivery.to,
+          },
+        };
+      }
       if (!deliveryBestEffort) {
         return {
           status: "error",
@@ -487,6 +540,21 @@ export async function runCronIsolatedAgentTurn(params: {
         deps: createOutboundSendDeps(params.deps),
       });
     } catch (err) {
+      if (isUnsupportedDeliveryChannelError(err)) {
+        const message = String(err);
+        logWarn(`[cron:${params.job.id}] ${message}`);
+        return {
+          status: "ok",
+          summary,
+          outputText,
+          deliveryResult: {
+            status: "error",
+            error: message,
+            channel: resolvedDelivery.channel,
+            to: resolvedDelivery.to,
+          },
+        };
+      }
       if (!deliveryBestEffort) {
         return { status: "error", summary, outputText, error: String(err) };
       }

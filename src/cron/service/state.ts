@@ -33,6 +33,12 @@ export type CronServiceDeps = {
     /** Last non-empty agent text output (not truncated). */
     outputText?: string;
     error?: string;
+    deliveryResult?: {
+      status: "ok" | "error";
+      error?: string;
+      channel?: string;
+      to?: string;
+    };
   }>;
   onEvent?: (evt: CronEvent) => void;
 };
