@@ -20,6 +20,7 @@ import {
   runDaemonUninstall,
 } from "../daemon-cli.js";
 import { withProgress } from "../progress.js";
+import { addGatewayAllowlistCommands } from "./allowlist-cli.js";
 import { callGatewayCli, gatewayCallOpts } from "./call.js";
 import {
   dedupeBeacons,
@@ -29,7 +30,6 @@ import {
   renderBeaconLines,
 } from "./discover.js";
 import { addGatewayRunCommand } from "./run.js";
-import { addGatewayAllowlistCommands } from "./allowlist-cli.js";
 
 function styleHealthChannelLine(line: string, rich: boolean): string {
   if (!rich) {

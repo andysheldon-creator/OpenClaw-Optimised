@@ -66,13 +66,16 @@ export async function prepareSanitizedMounts(opts?: {
       // Add the detected Docker bridge IP to trustedProxies so the gateway treats these as local.
       // This keeps device auth working while allowing Docker-based connections.
       if (!config.gateway) {
-        (config as any).gateway = {};
+        (config as Record<string, unknown>).gateway = {};
       }
       const existingProxies = Array.isArray(config.gateway!.trustedProxies)
         ? config.gateway!.trustedProxies
         : [];
       if (!existingProxies.includes(dockerBridgeIp)) {
-        (config.gateway as any).trustedProxies = [...existingProxies, dockerBridgeIp];
+        (config.gateway as { trustedProxies?: string[] }).trustedProxies = [
+          ...existingProxies,
+          dockerBridgeIp,
+        ];
       }
 
       const ext = path.extname(configPath);
@@ -83,7 +86,7 @@ export async function prepareSanitizedMounts(opts?: {
       // Mount to expected container path (container runs as 'node' user)
       binds.push(`${sanitizedConfigPath}:/home/node/.openclaw/openclaw${ext}:ro`);
     } catch (err) {
-      throw new Error(`Failed to sanitize config: ${String(err)}`);
+      throw new Error(`Failed to sanitize config: ${String(err)}`, { cause: err });
     }
   }
 
@@ -96,7 +99,9 @@ export async function prepareSanitizedMounts(opts?: {
 
     for (const agentId of agentIds) {
       const agentAgentDir = path.join(agentsDir, agentId, "agent");
-      if (!fs.existsSync(agentAgentDir)) continue;
+      if (!fs.existsSync(agentAgentDir)) {
+        continue;
+      }
 
       // Sanitized auth-profiles.json (read-only, mount individual file)
       const authProfilesPath = path.join(agentAgentDir, "auth-profiles.json");
@@ -115,9 +120,9 @@ export async function prepareSanitizedMounts(opts?: {
           const authProfiles = JSON.parse(authContent);
 
           // Sanitize credentials
-          const sanitizedProfiles: Record<string, any> = {};
+          const sanitizedProfiles: Record<string, unknown> = {};
           for (const [profileId, cred] of Object.entries(authProfiles.profiles || {})) {
-            const credential = cred as any;
+            const credential = cred as Record<string, unknown>;
             if (credential.type === "oauth") {
               sanitizedProfiles[profileId] = {
                 type: "oauth",
@@ -158,7 +163,7 @@ export async function prepareSanitizedMounts(opts?: {
             `${sanitizedAuthPath}:/home/node/.openclaw/agents/${agentId}/agent/auth-profiles.json:ro`,
           );
         } catch (err) {
-          console.warn(`Skipping auth profiles for agent ${agentId}: ${err}`);
+          console.warn(`Skipping auth profiles for agent ${agentId}: ${String(err)}`);
         }
       }
 
@@ -253,7 +258,7 @@ export async function prepareSanitizedMounts(opts?: {
         }
       }
     } catch (err) {
-      console.warn(`Failed to enumerate credentials directory: ${err}`);
+      console.warn(`Failed to enumerate credentials directory: ${String(err)}`);
     }
   }
 

@@ -41,7 +41,7 @@ async function refreshOAuthTokenWithLock(params: {
   if (process.env.OPENCLAW_SECURE_MODE === "1") {
     return null;
   }
-  
+
   const authPath = resolveAuthStorePath(params.agentDir);
   ensureAuthStoreFile(authPath);
 
@@ -133,7 +133,8 @@ async function tryResolveOAuthProfile(params: {
   // The secrets proxy on the host will inject the real token at HTTP time.
   if (process.env.OPENCLAW_SECURE_MODE === "1") {
     // For google-gemini-cli, return JSON format with placeholders
-    const needsProjectId = cred.provider === "google-gemini-cli" || cred.provider === "google-antigravity";
+    const needsProjectId =
+      cred.provider === "google-gemini-cli" || cred.provider === "google-antigravity";
     const apiKey = needsProjectId
       ? JSON.stringify({
           token: `{{OAUTH:${profileId}}}`,
@@ -196,11 +197,12 @@ export async function resolveApiKeyForProfile(params: {
     let placeholder: string;
     if (cred.type === "oauth") {
       // For google-gemini-cli, return JSON format with placeholders
-      const needsProjectId = cred.provider === "google-gemini-cli" || cred.provider === "google-antigravity";
+      const needsProjectId =
+        cred.provider === "google-gemini-cli" || cred.provider === "google-antigravity";
       placeholder = needsProjectId
         ? JSON.stringify({
             token: `{{OAUTH:${profileId}}}`,
-            projectId: (cred as any).projectId || "",
+            projectId: cred.projectId || "",
           })
         : `{{OAUTH:${profileId}}}`;
     } else if (cred.type === "api_key") {

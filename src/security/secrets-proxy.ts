@@ -105,7 +105,9 @@ async function replacePlaceholders(text: string, registry: SecretRegistry): Prom
 
   // 1. Replace CONFIG placeholders
   text = text.replace(PATTERNS.CONFIG, (match, path) => {
-    if (checkLimits()) return match;
+    if (checkLimits()) {
+      return match;
+    }
     const value = resolveConfigPath(path, registry);
     if (value === null || value === undefined) {
       logger.warn(`Config secret not found: ${path}`);
@@ -118,7 +120,9 @@ async function replacePlaceholders(text: string, registry: SecretRegistry): Prom
   // 2. Replace OAUTH placeholders (async, with refresh)
   const oauthMatches = [...text.matchAll(PATTERNS.OAUTH)];
   for (const match of oauthMatches) {
-    if (checkLimits()) break;
+    if (checkLimits()) {
+      break;
+    }
     const profileId = match[1];
     const token = await resolveOAuthToken(registry, profileId);
     if (token) {
@@ -131,7 +135,9 @@ async function replacePlaceholders(text: string, registry: SecretRegistry): Prom
   // 2b. Replace OAUTH_REFRESH placeholders (refresh tokens)
   // Read from authStore.profiles (not oauthProfiles) to get updated tokens after refresh
   text = text.replace(PATTERNS.OAUTH_REFRESH, (match, profileId) => {
-    if (checkLimits()) return match;
+    if (checkLimits()) {
+      return match;
+    }
     const cred = registry.authStore.profiles[profileId];
     if (cred?.type !== "oauth" || !cred?.refresh) {
       logger.warn(`OAuth refresh token not found for profile: ${profileId}`);
@@ -142,7 +148,9 @@ async function replacePlaceholders(text: string, registry: SecretRegistry): Prom
 
   // 3. Replace APIKEY placeholders
   text = text.replace(PATTERNS.APIKEY, (match, profileId) => {
-    if (checkLimits()) return match;
+    if (checkLimits()) {
+      return match;
+    }
     const key = registry.apiKeys.get(profileId);
     if (!key) {
       logger.warn(`API key not found for profile: ${profileId}`);
@@ -153,7 +161,9 @@ async function replacePlaceholders(text: string, registry: SecretRegistry): Prom
 
   // 4. Replace TOKEN placeholders
   text = text.replace(PATTERNS.TOKEN, (match, profileId) => {
-    if (checkLimits()) return match;
+    if (checkLimits()) {
+      return match;
+    }
     const token = registry.tokens.get(profileId);
     if (!token) {
       logger.warn(`Token not found for profile: ${profileId}`);
@@ -164,7 +174,9 @@ async function replacePlaceholders(text: string, registry: SecretRegistry): Prom
 
   // 5. Replace ENV placeholders (process.env)
   text = text.replace(PATTERNS.ENV, (match, name) => {
-    if (checkLimits()) return match;
+    if (checkLimits()) {
+      return match;
+    }
     return process.env[name] ?? registry.envVars[name] ?? "";
   });
 
@@ -300,7 +312,7 @@ export async function startSecretsProxy(opts: SecretsProxyOptions): Promise<http
 
       // P0 Fix: Only pass body for methods that should have one
       const response = await request(targetUrl, {
-        method: method as any,
+        method: method as import("undici").Dispatcher.HttpMethod,
         headers,
         body: hasBody ? modifiedBody : undefined,
       });

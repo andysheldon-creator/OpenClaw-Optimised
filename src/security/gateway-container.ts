@@ -107,7 +107,9 @@ function filterSecretEnv(env: Record<string, string | undefined>): Record<string
   const filtered: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(env)) {
-    if (!value) continue;
+    if (!value) {
+      continue;
+    }
 
     const upperKey = key.toUpperCase();
 

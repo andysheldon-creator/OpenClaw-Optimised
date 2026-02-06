@@ -51,9 +51,7 @@ export function sanitizeConfigSecrets(
     }
 
     // Feishu
-    const feishu = sanitized.channels.feishu as
-      | import("./types.feishu.js").FeishuConfig
-      | undefined;
+    const feishu = sanitized.channels.feishu;
     if (feishu) {
       if (feishu.appId) {
         feishu.appId = "{{CONFIG:channels.feishu.appId}}";
@@ -121,15 +119,21 @@ export function sanitizeConfigSecrets(
   if (sanitized.tools?.web?.fetch?.firecrawl?.apiKey) {
     sanitized.tools.web.fetch.firecrawl.apiKey = "{{CONFIG:tools.web.fetch.firecrawl.apiKey}}";
   }
-  // Memory search remote API key
-  if ((sanitized as any).tools?.memory?.remote?.apiKey) {
-    (sanitized as any).tools.memory.remote.apiKey = "{{CONFIG:tools.memory.remote.apiKey}}";
+  const toolsUnknown = (sanitized as Record<string, unknown>).tools as
+    | Record<string, unknown>
+    | undefined;
+  const memoryTool = toolsUnknown?.memory as Record<string, unknown> | undefined;
+  const remoteMemory = memoryTool?.remote as Record<string, unknown> | undefined;
+  if (remoteMemory?.apiKey) {
+    remoteMemory.apiKey = "{{CONFIG:tools.memory.remote.apiKey}}";
   }
 
   // Sanitize agent workspace paths (rewrite host home dir to container path)
   if (sanitized.agents) {
     // Handle agents.defaults.workspace
-    const defaults = (sanitized.agents as any).defaults;
+    const defaults = (sanitized.agents as Record<string, unknown>).defaults as
+      | Record<string, unknown>
+      | undefined;
     if (defaults?.workspace && typeof defaults.workspace === "string") {
       defaults.workspace = defaults.workspace.replace(/^\/home\/[^/]+\//, "/home/node/");
     }
@@ -137,7 +141,9 @@ export function sanitizeConfigSecrets(
     // Handle per-agent workspaces (agents[agentId].workspace)
     const agents = sanitized.agents as Record<string, { workspace?: string } | undefined>;
     for (const agentId of Object.keys(agents)) {
-      if (agentId === "defaults") continue; // Already handled above
+      if (agentId === "defaults") {
+        continue; // Already handled above
+      }
       const agent = agents[agentId];
       if (agent?.workspace && typeof agent.workspace === "string") {
         // Replace any home directory path with container path

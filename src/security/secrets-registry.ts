@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { AuthProfileStore, OAuthCredential } from "../agents/auth-profiles/types.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
@@ -117,9 +115,7 @@ function loadConfigSecrets(
     };
   }
 
-  const feishu = config.channels?.feishu as
-    | import("../config/types.feishu.js").FeishuConfig
-    | undefined;
+  const feishu = config.channels?.feishu;
   if (feishu) {
     channelSecrets.feishu = {
       appId: feishu.appId,
@@ -169,9 +165,13 @@ function loadConfigSecrets(
     toolSecrets.web = toolSecrets.web || {};
     toolSecrets.web.fetch = { firecrawl: { apiKey: config.tools.web.fetch.firecrawl.apiKey } };
   }
-  const memoryConfig = (config as any).tools?.memory;
-  if (memoryConfig?.remote?.apiKey) {
-    toolSecrets.memory = { remote: { apiKey: memoryConfig.remote.apiKey } };
+  const memoryConfig = (config as Record<string, unknown>).tools as
+    | Record<string, unknown>
+    | undefined;
+  const memory = memoryConfig?.memory as Record<string, unknown> | undefined;
+  const memoryRemote = memory?.remote as Record<string, unknown> | undefined;
+  if (memoryRemote?.apiKey && typeof memoryRemote.apiKey === "string") {
+    toolSecrets.memory = { remote: { apiKey: memoryRemote.apiKey } };
   }
 
   return { channelSecrets, gatewaySecrets, toolSecrets, envVars };
@@ -186,7 +186,7 @@ export async function createSecretsRegistry(agentDir?: string): Promise<SecretRe
   const { oauthProfiles, apiKeys, tokens, authStore } = loadAuthProfiles(agentDir);
 
   // Load config secrets
-  const config = await loadConfig();
+  const config = loadConfig();
   const { channelSecrets, gatewaySecrets, toolSecrets, envVars } = loadConfigSecrets(config);
 
   return {

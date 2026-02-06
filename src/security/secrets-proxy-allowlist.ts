@@ -103,7 +103,7 @@ export function loadAllowlist(): string[] {
     }
   }
 
-  return Array.from(domains).sort();
+  return Array.from(domains).toSorted();
 }
 
 export function saveAllowlist(userDomains: string[]): void {
