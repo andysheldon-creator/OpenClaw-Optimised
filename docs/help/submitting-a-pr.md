@@ -5,7 +5,7 @@ title: "Submitting a PR"
 
 # Submitting a PR
 
-Good PRs make it easy for reviewers to understand intent, verify behavior, and land changes safely. This guide focuses on high-signal, low-noise submissions that work well with both human review and LLM assisted review.
+Good PRs make it easy for reviewers to understand intent, verify behavior, and land changes safely. This guide focuses on high-signal, low-noise submissions that work well with both human review and LLM-assisted review.
 
 ## What makes a good PR
 
