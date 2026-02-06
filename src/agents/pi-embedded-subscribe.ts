@@ -49,6 +49,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     partialBlockState: { thinking: false, final: false, inlineCode: createInlineCodeState() },
     lastStreamedAssistant: undefined,
     lastStreamedAssistantCleaned: undefined,
+    didEmitAssistantStream: false,
     lastStreamedReasoning: undefined,
     lastBlockReplyText: undefined,
     assistantMessageIndex: 0,
@@ -95,6 +96,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     state.partialBlockState.inlineCode = createInlineCodeState();
     state.lastStreamedAssistant = undefined;
     state.lastStreamedAssistantCleaned = undefined;
+    state.didEmitAssistantStream = false;
     state.lastBlockReplyText = undefined;
     state.lastStreamedReasoning = undefined;
     state.lastReasoningSent = undefined;
