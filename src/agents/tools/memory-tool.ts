@@ -201,7 +201,7 @@ export function createMemorySearchTool(options: {
             sessionKey: options.agentSessionKey,
           });
           const status = manager.status();
-          if (!firstStatus && targetIds.length === 1) {
+          if (!firstStatus) {
             firstStatus = {
               provider: status.provider,
               model: status.model,
