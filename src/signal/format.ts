@@ -1,4 +1,5 @@
 import type { MarkdownTableMode } from "../config/types.base.js";
+import { chunkText } from "../auto-reply/chunk.js";
 import {
   chunkMarkdownIR,
   markdownToIR,
@@ -33,6 +34,17 @@ type Insertion = {
   pos: number;
   length: number;
 };
+
+function normalizeUrlForComparison(url: string): string {
+  let normalized = url.toLowerCase();
+  // Strip protocol
+  normalized = normalized.replace(/^https?:\/\//, "");
+  // Strip www. prefix
+  normalized = normalized.replace(/^www\./, "");
+  // Strip trailing slash
+  normalized = normalized.replace(/\/$/, "");
+  return normalized;
+}
 
 function mapStyle(style: MarkdownStyle): SignalTextStyle | null {
   switch (style) {
@@ -161,16 +173,26 @@ function renderSignalText(ir: MarkdownIR): SignalFormattedText {
     const href = link.href.trim();
     const label = text.slice(link.start, link.end);
     const trimmedLabel = label.trim();
-    const comparableHref = href.startsWith("mailto:") ? href.slice("mailto:".length) : href;
 
     if (href) {
       if (!trimmedLabel) {
         out += href;
         insertions.push({ pos: link.end, length: href.length });
-      } else if (trimmedLabel !== href && trimmedLabel !== comparableHref) {
-        const addition = ` (${href})`;
-        out += addition;
-        insertions.push({ pos: link.end, length: addition.length });
+      } else {
+        // Check if label is similar enough to URL that showing both would be redundant
+        const normalizedLabel = normalizeUrlForComparison(trimmedLabel);
+        let comparableHref = href;
+        if (href.startsWith("mailto:")) {
+          comparableHref = href.slice("mailto:".length);
+        }
+        const normalizedHref = normalizeUrlForComparison(comparableHref);
+
+        // Only show URL if label is meaningfully different from it
+        if (normalizedLabel !== normalizedHref) {
+          const addition = ` (${href})`;
+          out += addition;
+          insertions.push({ pos: link.end, length: addition.length });
+        }
       }
     }
 
@@ -214,11 +236,65 @@ export function markdownToSignalText(
   const ir = markdownToIR(markdown ?? "", {
     linkify: true,
     enableSpoilers: true,
-    headingStyle: "none",
-    blockquotePrefix: "",
+    headingStyle: "bold",
+    blockquotePrefix: "> ",
     tableMode: options.tableMode,
   });
   return renderSignalText(ir);
+}
+
+function sliceSignalStyles(
+  styles: SignalTextStyleRange[],
+  start: number,
+  end: number,
+): SignalTextStyleRange[] {
+  const sliced: SignalTextStyleRange[] = [];
+  for (const style of styles) {
+    const styleEnd = style.start + style.length;
+    const sliceStart = Math.max(style.start, start);
+    const sliceEnd = Math.min(styleEnd, end);
+    if (sliceEnd > sliceStart) {
+      sliced.push({
+        start: sliceStart - start,
+        length: sliceEnd - sliceStart,
+        style: style.style,
+      });
+    }
+  }
+  return sliced;
+}
+
+function splitSignalFormattedText(
+  formatted: SignalFormattedText,
+  limit: number,
+): SignalFormattedText[] {
+  if (formatted.text.length <= limit) {
+    return [formatted];
+  }
+
+  const textChunks = chunkText(formatted.text, limit);
+  const results: SignalFormattedText[] = [];
+  let cursor = 0;
+
+  for (const chunk of textChunks) {
+    if (!chunk) {
+      continue;
+    }
+    // Advance past any whitespace that chunkText split on
+    const idx = formatted.text.indexOf(chunk, cursor);
+    if (idx >= 0) {
+      cursor = idx;
+    }
+    const start = cursor;
+    const end = start + chunk.length;
+    results.push({
+      text: chunk,
+      styles: mergeStyles(sliceSignalStyles(formatted.styles, start, end)),
+    });
+    cursor = end;
+  }
+
+  return results;
 }
 
 export function markdownToSignalTextChunks(
@@ -229,10 +305,22 @@ export function markdownToSignalTextChunks(
   const ir = markdownToIR(markdown ?? "", {
     linkify: true,
     enableSpoilers: true,
-    headingStyle: "none",
-    blockquotePrefix: "",
+    headingStyle: "bold",
+    blockquotePrefix: "> ",
     tableMode: options.tableMode,
   });
   const chunks = chunkMarkdownIR(ir, limit);
-  return chunks.map((chunk) => renderSignalText(chunk));
+  const results: SignalFormattedText[] = [];
+
+  for (const chunk of chunks) {
+    const rendered = renderSignalText(chunk);
+    // If link expansion caused the chunk to exceed the limit, re-chunk it
+    if (rendered.text.length > limit) {
+      results.push(...splitSignalFormattedText(rendered, limit));
+    } else {
+      results.push(rendered);
+    }
+  }
+
+  return results;
 }
