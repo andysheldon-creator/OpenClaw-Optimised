@@ -677,9 +677,9 @@ export function applyAliyunBailianConfig(cfg: OpenClawConfig): OpenClawConfig {
   return {
     ...next,
     agents: {
-      ...next.agents,
+      ...(next.agents ?? {}),
       defaults: {
-        ...next.agents.defaults,
+        ...(next.agents?.defaults ?? {}),
         model: {
           ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
             ? {
@@ -699,9 +699,9 @@ export function applyXaiConfig(cfg: OpenClawConfig): OpenClawConfig {
   return {
     ...next,
     agents: {
-      ...next.agents,
+      ...(next.agents ?? {}),
       defaults: {
-        ...next.agents.defaults,
+        ...(next.agents?.defaults ?? {}),
         model: {
           ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
             ? {

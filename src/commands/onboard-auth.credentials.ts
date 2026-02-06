@@ -212,8 +212,8 @@ export async function setAliyunBailianApiKey(key: string, agentDir?: string) {
     credential: {
       type: "api_key",
       provider: "aliyun-bailian",
+      key,
     },
-    key,
     agentDir: resolveAuthAgentDir(agentDir),
   });
 }
@@ -225,8 +225,8 @@ export function setXaiApiKey(key: string, agentDir?: string) {
     credential: {
       type: "api_key",
       provider: "xai",
+      key,
     },
-    key,
     agentDir: resolveAuthAgentDir(agentDir),
   });
 }
