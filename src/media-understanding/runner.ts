@@ -49,13 +49,14 @@ import {
 import { estimateBase64Size, resolveVideoMaxBase64Bytes } from "./video.js";
 
 const AUTO_AUDIO_KEY_PROVIDERS = ["openai", "groq", "deepgram", "google"] as const;
-const AUTO_IMAGE_KEY_PROVIDERS = ["openai", "anthropic", "google", "minimax"] as const;
+const AUTO_IMAGE_KEY_PROVIDERS = ["openai", "anthropic", "google", "minimax", "zai"] as const;
 const AUTO_VIDEO_KEY_PROVIDERS = ["google"] as const;
 const DEFAULT_IMAGE_MODELS: Record<string, string> = {
   openai: "gpt-5-mini",
   anthropic: "claude-opus-4-6",
   google: "gemini-3-flash-preview",
   minimax: "MiniMax-VL-01",
+  zai: "glm-4.6v",
 };
 
 export type ActiveMediaModel = {
