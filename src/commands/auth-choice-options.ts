@@ -23,6 +23,10 @@ export type AuthChoiceGroupId =
   | "synthetic"
   | "venice"
   | "qwen"
+<<<<<<< HEAD
+=======
+  | "qianfan"
+>>>>>>> 7a9deb240 (Resolve conflicts)
   | "xai";
   | "qianfan";
 
