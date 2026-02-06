@@ -57,6 +57,27 @@ describe("bundled extension resolver", () => {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("finds assets/chrome-extension in npm package root (issue #10048)", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-npm-"));
+    const here = path.join(root, "dist", "cli");
+    const assets = path.join(root, "assets", "chrome-extension");
+
+    try {
+      // Simulate npm package structure: package.json at root, dist/ and assets/ as siblings
+      fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ name: "openclaw" }));
+      writeManifest(assets);
+      fs.mkdirSync(here, { recursive: true });
+
+      const { resolveBundledExtensionRootDir } = await import("./browser-cli-extension.js");
+      const resolved = resolveBundledExtensionRootDir(here);
+
+      expect(resolved).toBe(assets);
+      expect(fs.existsSync(path.join(resolved, "manifest.json"))).toBe(true);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("browser extension install", () => {
