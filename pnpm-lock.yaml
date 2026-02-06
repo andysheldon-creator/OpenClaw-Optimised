@@ -49,16 +49,16 @@ importers:
         specifier: 1.2.0-beta.3
         version: 1.2.0-beta.3
       '@mariozechner/pi-agent-core':
-        specifier: 0.52.6
+        specifier: ^0.52.6
         version: 0.52.6(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-ai':
-        specifier: 0.52.6
+        specifier: ^0.52.6
         version: 0.52.6(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-coding-agent':
-        specifier: 0.52.6
+        specifier: ^0.52.6
         version: 0.52.6(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-tui':
-        specifier: 0.52.6
+        specifier: ^0.52.6
         version: 0.52.6
       '@mozilla/readability':
         specifier: ^0.6.0
