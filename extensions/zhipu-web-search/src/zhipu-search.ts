@@ -4,22 +4,23 @@ import type { AnyAgentTool } from "../../../src/agents/tools/common.js";
 // Zhipu Web Search API endpoint
 const ZHIPU_SEARCH_ENDPOINT = "https://open.bigmodel.cn/api/paas/v4/web_search";
 
-const DEFAULT_COUNT = 5;
-const MAX_COUNT = 10;
+const DEFAULT_COUNT = 10;
+const MAX_COUNT = 50;
 const DEFAULT_TIMEOUT_SECONDS = 15;
 
 const FRESHNESS_VALUES = ["pd", "pw", "pm", "py"] as const;
 
 // Freshness filter mapping to Zhipu's search_recency_filter
+// Zhipu uses camelCase values: oneDay, oneWeek, oneMonth, oneYear
 const FRESHNESS_MAP: Record<string, string> = {
-  pd: "one_day",
-  pw: "one_week",
-  pm: "one_month",
-  py: "one_year",
+  pd: "oneDay",
+  pw: "oneWeek",
+  pm: "oneMonth",
+  py: "oneYear",
 };
 
 type ZhipuEngine = "search_std" | "search_pro" | "search_pro_sogou" | "search_pro_quark";
-type ZhipuContentSize = "concise" | "standard" | "full";
+type ZhipuContentSize = "medium" | "high";
 
 /**
  * Zhipu Web Search API response shape.
@@ -56,7 +57,7 @@ function wrapExternal(text: string, source = "Zhipu Search"): string {
 const WebSearchSchema = Type.Object({
   query: Type.String({ description: "Search query string.", minLength: 1 }),
   count: Type.Optional(
-    Type.Integer({ description: "Number of results to return (1-10).", minimum: 1, maximum: 10 }),
+    Type.Integer({ description: "Number of results to return (1-50, default 10).", minimum: 1, maximum: 50 }),
   ),
   country: Type.Optional(
     Type.String({
@@ -83,6 +84,18 @@ const WebSearchSchema = Type.Object({
       },
     ),
   ),
+  search_intent: Type.Optional(
+    Type.Boolean({
+      description:
+        "Whether to perform search intent recognition. true = only search when intent is detected; false (default) = always search.",
+    }),
+  ),
+  search_domain_filter: Type.Optional(
+    Type.String({
+      description:
+        "Restrict results to a specific domain (e.g. 'www.example.com'). Supported engines: search_std, search_pro, search_pro_sogou.",
+    }),
+  ),
 });
 
 export interface ZhipuSearchToolOptions {
@@ -97,7 +110,7 @@ export interface ZhipuSearchToolOptions {
 }
 
 export function createZhipuWebSearchTool(options: ZhipuSearchToolOptions): AnyAgentTool | null {
-  const { apiKey, engine = "search_std", contentSize = "concise", logger } = options;
+  const { apiKey, engine = "search_std", contentSize = "medium", logger } = options;
 
   if (!apiKey) {
     logger?.warn(
@@ -156,6 +169,12 @@ export function createZhipuWebSearchTool(options: ZhipuSearchToolOptions): AnyAg
       };
       if (recencyFilter) {
         body.search_recency_filter = recencyFilter;
+      }
+      if (typeof params.search_intent === "boolean") {
+        body.search_intent = params.search_intent;
+      }
+      if (typeof params.search_domain_filter === "string" && params.search_domain_filter.trim()) {
+        body.search_domain_filter = params.search_domain_filter.trim();
       }
 
       const start = Date.now();

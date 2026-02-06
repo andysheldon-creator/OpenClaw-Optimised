@@ -5,10 +5,10 @@ import { createZhipuWebSearchTool } from "./src/zhipu-search.js";
 /** Valid Zhipu search engine identifiers. */
 const VALID_ENGINES = new Set(["search_std", "search_pro", "search_pro_sogou", "search_pro_quark"]);
 /** Valid content size options. */
-const VALID_CONTENT_SIZES = new Set(["concise", "standard", "full"]);
+const VALID_CONTENT_SIZES = new Set(["medium", "high"]);
 
 type ZhipuEngine = "search_std" | "search_pro" | "search_pro_sogou" | "search_pro_quark";
-type ZhipuContentSize = "concise" | "standard" | "full";
+type ZhipuContentSize = "medium" | "high";
 
 interface ZhipuPluginConfig {
   apiKey?: string;
@@ -59,5 +59,5 @@ function resolveContentSize(config?: ZhipuPluginConfig): ZhipuContentSize {
   if (VALID_CONTENT_SIZES.has(raw)) {
     return raw as ZhipuContentSize;
   }
-  return "concise";
+  return "medium";
 }

@@ -1,6 +1,6 @@
 # Zhipu Web Search Plugin
 
-A web search provider plugin for OpenClaw using [Zhipu AI (BigModel) Web Search API](https://open.bigmodel.cn/dev/api/search/web-search-pro).
+A web search provider plugin for OpenClaw using [Zhipu AI (BigModel) Web Search API](https://docs.bigmodel.cn/api-reference/%E5%B7%A5%E5%85%B7-api/%E7%BD%91%E7%BB%9C%E6%90%9C%E7%B4%A2).
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ A web search provider plugin for OpenClaw using [Zhipu AI (BigModel) Web Search 
 |-----|------|---------|-------------|
 | `apiKey` | string | — | Zhipu API key (fallback: `ZHIPU_API_KEY` env) |
 | `engine` | string | `search_std` | Search engine: `search_std`, `search_pro`, `search_pro_sogou`, `search_pro_quark` |
-| `contentSize` | string | `concise` | Result content size: `concise`, `standard`, `full` |
+| `contentSize` | string | `medium` | Result content size: `medium` (summaries) or `high` (full content) |
 
 ## Search Engines
 
@@ -30,6 +30,21 @@ A web search provider plugin for OpenClaw using [Zhipu AI (BigModel) Web Search 
 | `search_pro` | Enhanced search with better relevance |
 | `search_pro_sogou` | Sogou-backed search |
 | `search_pro_quark` | Quark-backed search |
+
+## Tool Parameters
+
+The plugin registers a `web_search` tool with the same core parameters as OpenClaw's built-in search, plus Zhipu-specific extras:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `query` | string | Search query (max 70 chars recommended) |
+| `count` | integer | Number of results (1-50, default 10) |
+| `freshness` | string | Recency filter: `pd` (day), `pw` (week), `pm` (month), `py` (year) |
+| `search_intent` | boolean | Enable search intent recognition (default: false) |
+| `search_domain_filter` | string | Restrict results to a specific domain |
+| `country` | string | Accepted for compatibility, not used by Zhipu |
+| `search_lang` | string | Accepted for compatibility, not used by Zhipu |
+| `ui_lang` | string | Accepted for compatibility, not used by Zhipu |
 
 ## Example Config
 
@@ -48,7 +63,7 @@ A web search provider plugin for OpenClaw using [Zhipu AI (BigModel) Web Search 
       "zhipu-web-search": {
         apiKey: "your-zhipu-api-key",
         engine: "search_pro",
-        contentSize: "standard",
+        contentSize: "medium",
       },
     },
   },
@@ -59,4 +74,9 @@ A web search provider plugin for OpenClaw using [Zhipu AI (BigModel) Web Search 
 
 When `tools.web.search.provider` is set to `"zhipu"` (or any non-built-in value), OpenClaw's core `web_search` tool steps aside, allowing this plugin to register its own `web_search` tool that delegates to Zhipu's API.
 
-The tool supports the same parameters as the core `web_search` (query, count, freshness) for a seamless agent experience.
+The tool supports the same core parameters as the built-in `web_search` (query, count, freshness) for a seamless agent experience, plus Zhipu-specific parameters like `search_intent` and `search_domain_filter`.
+
+## API Reference
+
+- [Zhipu Web Search API](https://docs.bigmodel.cn/api-reference/%E5%B7%A5%E5%85%B7-api/%E7%BD%91%E7%BB%9C%E6%90%9C%E7%B4%A2)
+- [Zhipu API Introduction](https://docs.bigmodel.cn/cn/api/introduction)

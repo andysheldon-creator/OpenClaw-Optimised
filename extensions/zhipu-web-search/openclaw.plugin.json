@@ -17,8 +17,8 @@
       },
       "contentSize": {
         "type": "string",
-        "enum": ["concise", "standard", "full"],
-        "description": "Content size in results (default: concise)"
+        "enum": ["medium", "high"],
+        "description": "Content size in results: medium (summaries) or high (full content). Default: medium"
       }
     }
   },
@@ -34,7 +34,7 @@
     },
     "contentSize": {
       "label": "Content Size",
-      "placeholder": "concise"
+      "placeholder": "medium"
     }
   }
 }
