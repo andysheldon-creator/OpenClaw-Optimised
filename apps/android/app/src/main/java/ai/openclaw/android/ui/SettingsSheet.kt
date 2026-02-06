@@ -1,4 +1,4 @@
-package ai.openclaw.android.ui
+﻿package ai.openclaw.android.ui
 
 import android.Manifest
 import android.content.Context
@@ -82,6 +82,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
   val manualHost by viewModel.manualHost.collectAsState()
   val manualPort by viewModel.manualPort.collectAsState()
   val manualTls by viewModel.manualTls.collectAsState()
+  val manualToken by viewModel.manualToken.collectAsState()
   val canvasDebugStatusEnabled by viewModel.canvasDebugStatusEnabled.collectAsState()
   val statusText by viewModel.statusText.collectAsState()
   val serverName by viewModel.serverName.collectAsState()
@@ -250,9 +251,9 @@ fun SettingsSheet(viewModel: MainViewModel) {
     if (visibleGateways.isEmpty()) {
       discoveryStatusText
     } else if (isConnected) {
-      "Discovery active • ${visibleGateways.size} other gateway${if (visibleGateways.size == 1) "" else "s"} found"
+      "Discovery active ΓÇó ${visibleGateways.size} other gateway${if (visibleGateways.size == 1) "" else "s"} found"
     } else {
-      "Discovery active • ${visibleGateways.size} gateway${if (visibleGateways.size == 1) "" else "s"} found"
+      "Discovery active ΓÇó ${visibleGateways.size} gateway${if (visibleGateways.size == 1) "" else "s"} found"
     }
 
   LazyColumn(
@@ -266,7 +267,7 @@ fun SettingsSheet(viewModel: MainViewModel) {
     contentPadding = PaddingValues(16.dp),
     verticalArrangement = Arrangement.spacedBy(6.dp),
   ) {
-    // Order parity: Node → Gateway → Voice → Camera → Messaging → Location → Screen.
+    // Order parity: Node ΓåÆ Gateway ΓåÆ Voice ΓåÆ Camera ΓåÆ Messaging ΓåÆ Location ΓåÆ Screen.
     item { Text("Node", style = MaterialTheme.typography.titleSmall) }
     item {
       OutlinedTextField(
@@ -325,8 +326,8 @@ fun SettingsSheet(viewModel: MainViewModel) {
               gateway.tailnetDns?.let { add("Tailnet: $it") }
               if (gateway.gatewayPort != null || gateway.canvasPort != null) {
                 val gw = (gateway.gatewayPort ?: gateway.port).toString()
-                val canvas = gateway.canvasPort?.toString() ?: "—"
-                add("Ports: gw $gw · canvas $canvas")
+                val canvas = gateway.canvasPort?.toString() ?: "ΓÇö"
+                add("Ports: gw $gw ┬╖ canvas $canvas")
               }
             }
           ListItem(
@@ -408,6 +409,14 @@ fun SettingsSheet(viewModel: MainViewModel) {
             supportingContent = { Text("Pin the gateway certificate on first connect.") },
             trailingContent = { Switch(checked = manualTls, onCheckedChange = viewModel::setManualTls, enabled = manualEnabled) },
             modifier = Modifier.alpha(if (manualEnabled) 1f else 0.5f),
+          )
+
+          OutlinedTextField(
+            value = manualToken,
+            onValueChange = viewModel::setManualToken,
+            label = { Text("Token (optional)") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = manualEnabled,
           )
 
           val hostOk = manualHost.trim().isNotEmpty()
