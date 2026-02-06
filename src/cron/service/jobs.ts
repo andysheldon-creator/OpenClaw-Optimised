@@ -80,6 +80,24 @@ export function recomputeNextRuns(state: CronServiceState) {
       );
       job.state.runningAtMs = undefined;
     }
+
+    // IMPORTANT: do not “skip” overdue jobs.
+    //
+    // ensureLoaded() is called from the timer tick with forceReload:true.
+    // If we recompute nextRunAtMs relative to `now` unconditionally, any job whose
+    // nextRunAtMs is already due (now >= nextRunAtMs) will get advanced into the
+    // future before runDueJobs() can see it, and it will never run.
+    //
+    // So: if a job is enabled, not running, and already due, keep its persisted
+    // nextRunAtMs until it executes.
+    const existingNext = job.state.nextRunAtMs;
+    const isOverdue = typeof existingNext === "number" && now >= existingNext;
+    const isRunning = typeof job.state.runningAtMs === "number";
+
+    if (!isRunning && isOverdue) {
+      continue;
+    }
+
     job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
   }
 }
