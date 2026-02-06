@@ -69,15 +69,15 @@ This keeps review fast while preserving deep context for anyone who needs it.
 ## Template
 
 ```md
-## Summary
+#### Summary
 
-## Behavior Changes
+#### Behavior Changes
 
-## Codebase and GitHub Search
+#### Codebase and GitHub Search
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -88,9 +88,9 @@ This keeps review fast while preserving deep context for anyone who needs it.
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -102,17 +102,17 @@ This keeps review fast while preserving deep context for anyone who needs it.
 ### Fix
 
 ```md
-## Summary
+#### Summary
 
-## Repro Steps
+#### Repro Steps
 
-## Root Cause
+#### Root Cause
 
-## Behavior Changes
+#### Behavior Changes
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -123,9 +123,9 @@ This keeps review fast while preserving deep context for anyone who needs it.
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -135,13 +135,13 @@ This keeps review fast while preserving deep context for anyone who needs it.
 ### Feature
 
 ```md
-## Summary
+#### Summary
 
-## Use Cases
+#### Use Cases
 
-## Behavior Changes
+#### Behavior Changes
 
-## Existing Functionality Check
+#### Existing Functionality Check
 
 - [ ] I searched the codebase for existing functionality before implementing this.
 
@@ -150,9 +150,9 @@ Searches performed (self-reported; 1-3 bullets, one sentence each; cite evidence
 -
 -
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -163,9 +163,9 @@ Searches performed (self-reported; 1-3 bullets, one sentence each; cite evidence
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -175,15 +175,15 @@ Searches performed (self-reported; 1-3 bullets, one sentence each; cite evidence
 ### Refactor
 
 ```md
-## Summary
+#### Summary
 
-## Scope
+#### Scope
 
-## No Behavior Change Statement
+#### No Behavior Change Statement
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -194,9 +194,9 @@ Searches performed (self-reported; 1-3 bullets, one sentence each; cite evidence
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -206,13 +206,13 @@ Searches performed (self-reported; 1-3 bullets, one sentence each; cite evidence
 ### Chore/Maintenance
 
 ```md
-## Summary
+#### Summary
 
-## Why This Matters
+#### Why This Matters
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -223,9 +223,9 @@ Searches performed (self-reported; 1-3 bullets, one sentence each; cite evidence
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -235,19 +235,19 @@ Searches performed (self-reported; 1-3 bullets, one sentence each; cite evidence
 ### Docs
 
 ```md
-## Summary
+#### Summary
 
-## Pages Updated
+#### Pages Updated
 
-## Before/After (recommended)
+#### Before/After (recommended)
 
-## Formatting
+#### Formatting
 
 pnpm format
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -257,13 +257,13 @@ pnpm format
 ### Test
 
 ```md
-## Summary
+#### Summary
 
-## Gap Covered
+#### Gap Covered
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -274,9 +274,9 @@ pnpm format
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -286,17 +286,17 @@ pnpm format
 ### Perf
 
 ```md
-## Summary
+#### Summary
 
-## Baseline
+#### Baseline
 
-## After
+#### After
 
-## Measurement Method
+#### Measurement Method
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -307,9 +307,9 @@ pnpm format
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -319,15 +319,15 @@ pnpm format
 ### UX/UI
 
 ```md
-## Summary
+#### Summary
 
-## Screenshots or Video (recommended)
+#### Screenshots or Video (recommended)
 
-## Accessibility Impact
+#### Accessibility Impact
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable)
+#### Manual Testing (when applicable)
 
 ### Prerequisites
 
@@ -338,7 +338,7 @@ pnpm format
 1.
 2.
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -348,13 +348,13 @@ pnpm format
 ### Infra/Build
 
 ```md
-## Summary
+#### Summary
 
-## Environments Affected
+#### Environments Affected
 
-## Validation Steps
+#### Validation Steps
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -365,9 +365,9 @@ pnpm format
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
@@ -377,19 +377,19 @@ pnpm format
 ### Security
 
 ```md
-## Summary
+#### Summary
 
-## Risk Summary
+#### Risk Summary
 
-## Repro Steps
+#### Repro Steps
 
-## Mitigation or Fix
+#### Mitigation or Fix
 
-## Verification
+#### Verification
 
-## Tests
+#### Tests
 
-## Manual Testing (when applicable; omit if N/A)
+#### Manual Testing (when applicable; omit if N/A)
 
 ### Prerequisites
 
@@ -400,9 +400,9 @@ pnpm format
 1.
 2.
 
-## Evidence (when applicable; omit if N/A)
+#### Evidence (when applicable; omit if N/A)
 
-## Sign-Off
+**Sign-Off**
 
 - Models used:
 - Submitter effort summary (self-reported, subjective):
