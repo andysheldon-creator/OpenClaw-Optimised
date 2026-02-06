@@ -15,9 +15,9 @@ A web search provider plugin for OpenClaw using [Zhipu AI](https://open.bigmodel
 
 1. Set `tools.web.search.provider: "zhipu"` in your OpenClaw config
 2. Provide your API key via one of:
-   - Config: `plugins.entries.zhipu-web-search.apiKey: "your-key"`
+   - Config: `plugins.entries.zhipu-web-search.config.apiKey: "your-key"`
    - Environment: `ZHIPU_API_KEY=your-key`
-3. Optionally set `mode: "mcp"` to use Coding Plan subscription
+3. Optionally set `config.mode: "mcp"` to use Coding Plan subscription
 
 ## Configuration
 
@@ -65,10 +65,12 @@ Only the `query` parameter is forwarded to the MCP server.
   plugins: {
     entries: {
       "zhipu-web-search": {
-        apiKey: "your-zhipu-api-key",
-        mode: "api",
-        engine: "search_pro",
-        contentSize: "medium",
+        config: {
+          apiKey: "your-zhipu-api-key",
+          mode: "api",
+          engine: "search_pro",
+          contentSize: "medium",
+        },
       },
     },
   },
@@ -83,8 +85,10 @@ Only the `query` parameter is forwarded to the MCP server.
   plugins: {
     entries: {
       "zhipu-web-search": {
-        apiKey: "your-zhipu-api-key",
-        mode: "mcp",
+        config: {
+          apiKey: "your-zhipu-api-key",
+          mode: "mcp",
+        },
       },
     },
   },
