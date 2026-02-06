@@ -299,10 +299,10 @@ If the image builds and the gateway starts but you cannot open the Control UI in
 
 2. **Use the correct URL**
    - Open **http** (not https) at **http://127.0.0.1:18789/** or **http://localhost:18789/**.
-   - Port is **18789** unless you set `OPENCLAW_GATEWAY_PORT`.
+   - The default host port is **18789** (fixed in `docker-compose.yml`). To use a different host port, add a `docker-compose.override.yml` with `ports: - "HOST_PORT:18789"` for the gateway service.
 
 3. **Verify port mapping**
-   - `docker compose port openclaw-gateway 18789` should print `0.0.0.0:18789` (or your host port).
+   - `docker compose port openclaw-gateway 18789` should print `0.0.0.0:18789`.
    - On Windows with Docker Desktop, try both `http://localhost:18789/` and `http://127.0.0.1:18789/`.
 
 4. **Run a health check from the host**
