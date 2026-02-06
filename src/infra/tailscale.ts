@@ -455,7 +455,6 @@ function writeCachedWhois(ip: string, value: TailscaleWhoisIdentity | null, ttlM
   whoisCache.set(ip, { value, expiresAt: Date.now() + ttlMs });
 }
 
-
 export async function readTailscaleWhoisIdentity(
   ip: string,
   exec: typeof runExec = runExec,
