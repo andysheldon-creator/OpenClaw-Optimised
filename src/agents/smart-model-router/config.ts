@@ -48,7 +48,7 @@ export const DEFAULT_OVERRIDES: OverridePattern[] = [
  * Default routing configuration
  */
 export const DEFAULT_ROUTING_CONFIG: RoutingConfig = {
-  enabled: true,
+  enabled: false,
   defaultModel: MODELS.HAIKU,
   defaultProvider: DEFAULT_PROVIDER,
 

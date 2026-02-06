@@ -11,14 +11,15 @@ describe("ModelRouter", () => {
   let router: ModelRouter;
 
   beforeEach(() => {
-    router = new ModelRouter();
+    router = new ModelRouter({ enabled: true }); // Enable for most tests
     resetGlobalRouter();
   });
 
   describe("constructor", () => {
-    it("creates router with default config", () => {
-      expect(router.isEnabled()).toBe(true);
-      expect(router.getConfig().defaultModel).toBe(MODELS.HAIKU);
+    it("creates router with default config (disabled by default)", () => {
+      const defaultRouter = new ModelRouter();
+      expect(defaultRouter.isEnabled()).toBe(false);
+      expect(defaultRouter.getConfig().defaultModel).toBe(MODELS.HAIKU);
     });
 
     it("accepts custom config", () => {
@@ -342,6 +343,7 @@ describe("ModelRouter", () => {
   describe("configuration", () => {
     it("allows custom thresholds", () => {
       const customRouter = new ModelRouter({
+        enabled: true,
         thresholds: {
           promptTokens: { heavy: 500 },
           contextTokens: { heavy: 50000 },
@@ -359,6 +361,7 @@ describe("ModelRouter", () => {
 
     it("allows custom task models", () => {
       const customRouter = new ModelRouter({
+        enabled: true,
         tasks: {
           heartbeat: MODELS.SONNET,
         },
@@ -374,6 +377,7 @@ describe("ModelRouter", () => {
 
     it("allows custom override patterns", () => {
       const customRouter = new ModelRouter({
+        enabled: true,
         overrides: [
           {
             pattern: "@gpt4",

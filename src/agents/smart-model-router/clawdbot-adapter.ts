@@ -9,14 +9,9 @@
  *   2. Wire into get-reply.ts (see integration patch)
  */
 
-import type {
-  ModelRef,
-  RoutingConfig,
-  RoutingContext,
-  RoutingResult,
-} from "../model-router/types.js";
-import { MODELS } from "../model-router/config.js";
-import { ModelRouter, createModelRouter } from "../model-router/router.js";
+import type { ModelRef, RoutingConfig, RoutingContext, RoutingResult } from "./types.js";
+import { MODELS } from "./config.js";
+import { ModelRouter, createModelRouter } from "./router.js";
 
 /**
  * Context extracted from Clawdbot's MsgContext and GetReplyOptions
@@ -76,11 +71,12 @@ export class ClawdbotModelRouterAdapter {
    * Route a request using Clawdbot context
    */
   routeRequest(ctx: ClawdbotRoutingContext): ClawdbotRoutingResult {
-    // If routing is disabled, pass through to configured model
+    // If routing is disabled, true pass-through - return configured model as-is
+    // Caller must provide configuredModel/configuredProvider for pass-through to work
     if (!this.router.isEnabled()) {
       return {
-        provider: ctx.configuredProvider ?? "anthropic",
-        model: ctx.configuredModel?.model ?? MODELS.OPUS,
+        provider: ctx.configuredProvider ?? "",
+        model: ctx.configuredModel?.model ?? "",
         rule: "disabled",
         cleanedMessage: ctx.message,
         wasExplicitOverride: false,

@@ -15,7 +15,7 @@ describe("ClawdbotModelRouterAdapter", () => {
 
   beforeEach(() => {
     resetClawdbotModelRouter();
-    adapter = new ClawdbotModelRouterAdapter();
+    adapter = new ClawdbotModelRouterAdapter({ enabled: true }); // Enable for most tests
   });
 
   describe("routeRequest", () => {
@@ -89,7 +89,7 @@ describe("ClawdbotModelRouterAdapter", () => {
       expect(result.rule).toBe("default");
     });
 
-    it("passes through when disabled", () => {
+    it("passes through when disabled with configured model", () => {
       adapter.setEnabled(false);
 
       const result = adapter.routeRequest({
@@ -99,6 +99,21 @@ describe("ClawdbotModelRouterAdapter", () => {
       });
 
       expect(result.model).toBe("claude-opus-4-5");
+      expect(result.provider).toBe("anthropic");
+      expect(result.rule).toBe("disabled");
+      expect(result.routingApplied).toBe(false);
+    });
+
+    it("passes through with empty model when disabled and no configured model", () => {
+      adapter.setEnabled(false);
+
+      const result = adapter.routeRequest({
+        message: "test message",
+        // No configuredModel or configuredProvider
+      });
+
+      expect(result.model).toBe("");
+      expect(result.provider).toBe("");
       expect(result.rule).toBe("disabled");
       expect(result.routingApplied).toBe(false);
     });
@@ -171,11 +186,16 @@ describe("getClawdbotModelRouter", () => {
     expect(router1).toBe(router2);
   });
 
-  it("applies initial config", () => {
-    const router = getClawdbotModelRouter({
-      enabled: false,
-    });
+  it("is disabled by default", () => {
+    const router = getClawdbotModelRouter();
     expect(router.isEnabled()).toBe(false);
+  });
+
+  it("applies initial config to enable", () => {
+    const router = getClawdbotModelRouter({
+      enabled: true,
+    });
+    expect(router.isEnabled()).toBe(true);
   });
 });
 

@@ -15,8 +15,8 @@ import {
 
 describe("config", () => {
   describe("DEFAULT_ROUTING_CONFIG", () => {
-    it("has enabled set to true", () => {
-      expect(DEFAULT_ROUTING_CONFIG.enabled).toBe(true);
+    it("has enabled set to false (opt-in routing)", () => {
+      expect(DEFAULT_ROUTING_CONFIG.enabled).toBe(false);
     });
 
     it("uses Haiku as default model", () => {
