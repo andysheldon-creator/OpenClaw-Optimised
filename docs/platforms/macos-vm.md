@@ -252,7 +252,7 @@ Keep the VM running by:
 
 - Keeping your Mac plugged in
 - Disabling sleep in System Settings → Energy Saver
-- Using `caffeinate` if needed
+- Using [`caffeinate`](/development/caffeinate) to prevent sleep during long operations
 
 For true always-on, consider a dedicated Mac mini or a small VPS. See [VPS hosting](/vps).
 

@@ -22,6 +22,21 @@ Use these when a task is clearly tied to a script; otherwise prefer the CLI.
 Auth monitoring scripts are documented here:
 [/automation/auth-monitoring](/automation/auth-monitoring)
 
+## Caffeinate (prevent sleep)
+
+`scripts/caffeinate-gateway.sh` wraps the gateway with `caffeinate` to prevent
+macOS from sleeping during long-running operations.
+
+```bash
+# Run directly
+./scripts/caffeinate-gateway.sh
+
+# Or use make
+make dev-caffeinate
+```
+
+See [/development/caffeinate](/development/caffeinate) for detailed documentation.
+
 ## When adding scripts
 
 - Keep scripts focused and documented.

@@ -9,7 +9,7 @@ LAUNCHD_PLIST := $(HOME)/Library/LaunchAgents/$(LAUNCHD_LABEL).plist
 LAUNCHD_PLIST_DEV := $(HOME)/Library/LaunchAgents/$(LAUNCHD_LABEL_DEV).plist
 GATEWAY_PORT := 18789
 
-.PHONY: build restart deploy dev dev-daemon prod status logs help plist-dev
+.PHONY: build restart deploy dev dev-daemon dev-caffeinate prod status logs help plist-dev
 
 # Default target
 help:
@@ -19,9 +19,10 @@ help:
 	@echo "  make restart    - Restart the gateway service (launchd)"
 	@echo "  make deploy     - Build and restart (use this after code changes)"
 	@echo ""
-	@echo "  make dev        - Stop launchd and run interactively with tsx (Ctrl+C to stop)"
-	@echo "  make dev-daemon - Switch to dev mode via launchd (tsx, auto-restart, persistent)"
-	@echo "  make prod       - Switch back to production mode (built dist/)"
+	@echo "  make dev             - Stop launchd and run interactively with tsx (Ctrl+C to stop)"
+	@echo "  make dev-caffeinate  - Same as dev, but wrapped with caffeinate (prevents sleep)"
+	@echo "  make dev-daemon      - Switch to dev mode via launchd (tsx, auto-restart, persistent)"
+	@echo "  make prod            - Switch back to production mode (built dist/)"
 	@echo ""
 	@echo "  make status     - Show gateway process status and current mode"
 	@echo "  make logs       - Tail gateway logs"
@@ -114,6 +115,18 @@ dev:
 	@echo "==> Run 'make prod' or 'make dev-daemon' in another terminal to switch modes"
 	@echo ""
 	pnpm dev
+
+# Switch to dev mode with caffeinate: prevents system sleep
+dev-caffeinate:
+	@echo "==> Switching to interactive dev mode (with caffeinate)..."
+	@# Stop any launchd services
+	@launchctl unload $(LAUNCHD_PLIST_DEV) 2>/dev/null || true
+	@launchctl unload $(LAUNCHD_PLIST) 2>/dev/null || true
+	@echo ""
+	@echo "☕ Starting dev server with caffeinate (preventing system sleep)..."
+	@echo "==> Run 'make prod' or 'make dev-daemon' in another terminal to switch modes"
+	@echo ""
+	caffeinate -ism pnpm dev
 
 # Switch to dev-daemon mode: tsx via launchd (persistent, auto-restart)
 dev-daemon: plist-dev

@@ -41,7 +41,13 @@ else
 fi
 
 echo "→ Starting openclaw gateway (detached)..."
-nohup pnpm openclaw gateway > /tmp/openclaw-gateway.log 2>&1 &
+# Use caffeinate to prevent sleep if CAFFEINATE=1 is set
+if [ "${CAFFEINATE:-0}" = "1" ]; then
+    echo "  ☕ Running with caffeinate (preventing system sleep)"
+    nohup caffeinate -ism pnpm openclaw gateway > /tmp/openclaw-gateway.log 2>&1 &
+else
+    nohup pnpm openclaw gateway > /tmp/openclaw-gateway.log 2>&1 &
+fi
 GATEWAY_PID=$!
 
 echo "  ✓ Gateway started with PID: $GATEWAY_PID"
@@ -50,3 +56,6 @@ echo ""
 echo "To check status:"
 echo "  ps aux | grep '[o]penclaw'"
 echo "  tail -f /tmp/openclaw-gateway.log"
+echo ""
+echo "To run with caffeinate (prevent sleep):"
+echo "  CAFFEINATE=1 ./restart-openclaw.sh"
