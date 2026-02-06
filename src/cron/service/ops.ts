@@ -19,8 +19,21 @@ export async function start(state: CronServiceState) {
       state.deps.log.info({ enabled: false }, "cron: disabled");
       return;
     }
-    await ensureLoaded(state);
+    // Load without recomputing so we can inspect the persisted
+    // nextRunAtMs values and detect overdue jobs before they get
+    // advanced to future slots.
+    await ensureLoaded(state, { skipRecompute: true });
+
+    // Snapshot which jobs are overdue (nextRunAtMs in the past).
+    const overdueJobIds = collectOverdueJobIds(state);
+
     recomputeNextRuns(state);
+
+    // Now execute overdue jobs that were missed while the gateway was
+    // down.  We identified them above before recompute advanced their
+    // nextRunAtMs.
+    await runOverdueJobsOnStartup(state, overdueJobIds);
+
     await persist(state);
     armTimer(state);
     state.deps.log.info(
@@ -32,6 +45,54 @@ export async function start(state: CronServiceState) {
       "cron: started",
     );
   });
+}
+
+/**
+ * Collect IDs of jobs whose persisted `nextRunAtMs` is in the past.
+ * Must be called BEFORE `recomputeNextRuns` which advances these to
+ * future slots.
+ */
+function collectOverdueJobIds(state: CronServiceState): Set<string> {
+  if (!state.store) {
+    return new Set();
+  }
+  const now = state.deps.nowMs();
+  const ids = new Set<string>();
+  for (const j of state.store.jobs) {
+    if (!j.enabled) {
+      continue;
+    }
+    if (typeof j.state.runningAtMs === "number") {
+      continue;
+    }
+    const next = j.state.nextRunAtMs;
+    if (typeof next === "number" && now >= next) {
+      ids.add(j.id);
+    }
+  }
+  return ids;
+}
+
+/**
+ * On startup, execute jobs that were overdue (missed while the gateway
+ * was down).  The `overdueIds` set was captured before recompute so we
+ * know which jobs had a past `nextRunAtMs`.  We only catch up **once
+ * per job** (not all missed occurrences) to avoid flooding after a long
+ * outage.
+ */
+async function runOverdueJobsOnStartup(state: CronServiceState, overdueIds: Set<string>) {
+  if (!state.store || overdueIds.size === 0) {
+    return;
+  }
+  const now = state.deps.nowMs();
+  const overdue = state.store.jobs.filter((j) => overdueIds.has(j.id));
+  state.deps.log.info(
+    { count: overdue.length, jobIds: overdue.map((j) => j.id) },
+    "cron: catching up overdue jobs after startup",
+  );
+  for (const job of overdue) {
+    await executeJob(state, job, now, { forced: false });
+  }
 }
 
 export function stop(state: CronServiceState) {
