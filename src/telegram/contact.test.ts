@@ -31,16 +31,16 @@ describe("extractTelegramContact", () => {
   it("extracts basic contact fields (phone, name)", () => {
     const msg = buildContactMessage({
       phone_number: "+15555550123",
-      first_name: "Nei",
-      last_name: "Cardoso",
-      user_id: 521158006,
+      first_name: "Jane",
+      last_name: "Doe",
+      user_id: 123456789,
     });
     const result = extractTelegramContact(msg);
     expect(result).toEqual({
       phoneNumber: "+15555550123",
-      firstName: "Nei",
-      lastName: "Cardoso",
-      userId: 521158006,
+      firstName: "Jane",
+      lastName: "Doe",
+      userId: 123456789,
       vcard: undefined,
     });
   });
@@ -48,9 +48,9 @@ describe("extractTelegramContact", () => {
   it("extracts contact with vCard data from fixture", () => {
     const msg = buildContactMessage({
       phone_number: "+15555550123",
-      first_name: "Nei",
-      last_name: "Cardoso",
-      user_id: 521158006,
+      first_name: "Jane",
+      last_name: "Doe",
+      user_id: 123456789,
       vcard: vcardFixture,
     });
     const result = extractTelegramContact(msg);
@@ -79,11 +79,11 @@ describe("formatContactText", () => {
   it("formats a basic contact without vCard", () => {
     const text = formatContactText({
       phoneNumber: "+15555550123",
-      firstName: "Nei",
-      lastName: "Cardoso",
-      userId: 521158006,
+      firstName: "Jane",
+      lastName: "Doe",
+      userId: 123456789,
     });
-    expect(text).toBe("[Contact: Nei Cardoso]\nPhone: +15555550123\nTelegram ID: 521158006");
+    expect(text).toBe("[Contact: Jane Doe]\nPhone: +15555550123\nTelegram ID: 123456789");
   });
 
   it("formats a contact with first name only", () => {
@@ -98,22 +98,22 @@ describe("formatContactText", () => {
   it("parses real vCard fixture and includes all fields", () => {
     const text = formatContactText({
       phoneNumber: "+15555550123",
-      firstName: "Nei",
-      lastName: "Cardoso",
-      userId: 521158006,
+      firstName: "Jane",
+      lastName: "Doe",
+      userId: 123456789,
       vcard: vcardFixture,
     });
 
-    expect(text).toContain("[Contact: Nei Cardoso]");
+    expect(text).toContain("[Contact: Jane Doe]");
     expect(text).toContain("Phone: +15555550123");
-    expect(text).toContain("Telegram ID: 521158006");
-    expect(text).toContain("Email: nei@neurohive.ai");
+    expect(text).toContain("Telegram ID: 123456789");
+    expect(text).toContain("Email: jane.doe@example.com");
     expect(text).toContain("Birthday: 1990-06-15");
     expect(text).toContain("Organization: NeuroHIVE");
     expect(text).toContain("Title: Founder");
-    expect(text).toContain("URL: https://neurohive.ai");
+    expect(text).toContain("URL: https://example.com");
     expect(text).toContain("Address:");
-    expect(text).toContain("Porto Alegre");
+    expect(text).toContain("Springfield");
     expect(text).toContain("Note: AI consultancy and engineering");
   });
 
