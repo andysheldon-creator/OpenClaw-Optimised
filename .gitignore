@@ -72,3 +72,8 @@ USER.md
 
 # local tooling
 .serena/
+
+# Agent credentials and memory (NEVER COMMIT)
+memory/
+.agent/*.json
+!.agent/workflows/
