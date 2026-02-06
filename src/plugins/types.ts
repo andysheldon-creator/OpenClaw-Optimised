@@ -1,10 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { Command } from "commander";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type {
-  AuthProfileCredential,
-  OAuthCredential,
-} from "../agents/auth-profiles/types.js";
+import type { AuthProfileCredential, OAuthCredential } from "../agents/auth-profiles/types.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import type { ChannelDock } from "../channels/dock.js";
@@ -84,12 +81,7 @@ export type OpenClawPluginHookOptions = {
   register?: boolean;
 };
 
-export type ProviderAuthKind =
-  | "oauth"
-  | "api_key"
-  | "token"
-  | "device_code"
-  | "custom";
+export type ProviderAuthKind = "oauth" | "api_key" | "token" | "device_code" | "custom";
 
 export type ProviderAuthResult = {
   profiles: Array<{ profileId: string; credential: AuthProfileCredential }>;
@@ -203,9 +195,7 @@ export type OpenClawPluginCliContext = {
   logger: PluginLogger;
 };
 
-export type OpenClawPluginCliRegistrar = (
-  ctx: OpenClawPluginCliContext,
-) => void | Promise<void>;
+export type OpenClawPluginCliRegistrar = (ctx: OpenClawPluginCliContext) => void | Promise<void>;
 
 export type OpenClawPluginServiceContext = {
   config: OpenClawConfig;
@@ -260,21 +250,10 @@ export type OpenClawPluginApi = {
     opts?: OpenClawPluginHookOptions,
   ) => void;
   registerHttpHandler: (handler: OpenClawPluginHttpHandler) => void;
-  registerHttpRoute: (params: {
-    path: string;
-    handler: OpenClawPluginHttpRouteHandler;
-  }) => void;
-  registerChannel: (
-    registration: OpenClawPluginChannelRegistration | ChannelPlugin,
-  ) => void;
-  registerGatewayMethod: (
-    method: string,
-    handler: GatewayRequestHandler,
-  ) => void;
-  registerCli: (
-    registrar: OpenClawPluginCliRegistrar,
-    opts?: { commands?: string[] },
-  ) => void;
+  registerHttpRoute: (params: { path: string; handler: OpenClawPluginHttpRouteHandler }) => void;
+  registerChannel: (registration: OpenClawPluginChannelRegistration | ChannelPlugin) => void;
+  registerGatewayMethod: (method: string, handler: GatewayRequestHandler) => void;
+  registerCli: (registrar: OpenClawPluginCliRegistrar, opts?: { commands?: string[] }) => void;
   registerService: (service: OpenClawPluginService) => void;
   registerProvider: (provider: ProviderPlugin) => void;
   /**
@@ -502,14 +481,8 @@ export type PluginHookHandlerMap = {
   before_agent_start: (
     event: PluginHookBeforeAgentStartEvent,
     ctx: PluginHookAgentContext,
-  ) =>
-    | Promise<PluginHookBeforeAgentStartResult | void>
-    | PluginHookBeforeAgentStartResult
-    | void;
-  agent_end: (
-    event: PluginHookAgentEndEvent,
-    ctx: PluginHookAgentContext,
-  ) => Promise<void> | void;
+  ) => Promise<PluginHookBeforeAgentStartResult | void> | PluginHookBeforeAgentStartResult | void;
+  agent_end: (event: PluginHookAgentEndEvent, ctx: PluginHookAgentContext) => Promise<void> | void;
   before_compaction: (
     event: PluginHookBeforeCompactionEvent,
     ctx: PluginHookAgentContext,
@@ -525,10 +498,7 @@ export type PluginHookHandlerMap = {
   message_sending: (
     event: PluginHookMessageSendingEvent,
     ctx: PluginHookMessageContext,
-  ) =>
-    | Promise<PluginHookMessageSendingResult | void>
-    | PluginHookMessageSendingResult
-    | void;
+  ) => Promise<PluginHookMessageSendingResult | void> | PluginHookMessageSendingResult | void;
   message_sent: (
     event: PluginHookMessageSentEvent,
     ctx: PluginHookMessageContext,
@@ -536,10 +506,7 @@ export type PluginHookHandlerMap = {
   before_tool_call: (
     event: PluginHookBeforeToolCallEvent,
     ctx: PluginHookToolContext,
-  ) =>
-    | Promise<PluginHookBeforeToolCallResult | void>
-    | PluginHookBeforeToolCallResult
-    | void;
+  ) => Promise<PluginHookBeforeToolCallResult | void> | PluginHookBeforeToolCallResult | void;
   after_tool_call: (
     event: PluginHookAfterToolCallEvent,
     ctx: PluginHookToolContext,
@@ -573,11 +540,10 @@ export type PluginHookHandlerMap = {
   ) => Promise<void> | void;
 };
 
-export type PluginHookRegistration<K extends PluginHookName = PluginHookName> =
-  {
-    pluginId: string;
-    hookName: K;
-    handler: PluginHookHandlerMap[K];
-    priority?: number;
-    source: string;
-  };
+export type PluginHookRegistration<K extends PluginHookName = PluginHookName> = {
+  pluginId: string;
+  hookName: K;
+  handler: PluginHookHandlerMap[K];
+  priority?: number;
+  source: string;
+};

@@ -94,10 +94,7 @@ function getHooksForName<K extends PluginHookName>(
 /**
  * Create a hook runner for a specific registry.
  */
-export function createHookRunner(
-  registry: PluginRegistry,
-  options: HookRunnerOptions = {},
-) {
+export function createHookRunner(registry: PluginRegistry, options: HookRunnerOptions = {}) {
   const logger = options.logger;
   const catchErrors = options.catchErrors ?? true;
 
@@ -119,10 +116,7 @@ export function createHookRunner(
 
     const promises = hooks.map(async (hook) => {
       try {
-        await (hook.handler as (event: unknown, ctx: unknown) => Promise<void>)(
-          event,
-          ctx,
-        );
+        await (hook.handler as (event: unknown, ctx: unknown) => Promise<void>)(event, ctx);
       } catch (err) {
         const msg = `[hooks] ${hookName} handler from ${hook.pluginId} failed: ${String(err)}`;
         if (catchErrors) {
@@ -151,9 +145,7 @@ export function createHookRunner(
       return undefined;
     }
 
-    logger?.debug?.(
-      `[hooks] running ${hookName} (${hooks.length} handlers, sequential)`,
-    );
+    logger?.debug?.(`[hooks] running ${hookName} (${hooks.length} handlers, sequential)`);
 
     let result: TResult | undefined;
 
@@ -196,16 +188,18 @@ export function createHookRunner(
     event: PluginHookBeforeAgentStartEvent,
     ctx: PluginHookAgentContext,
   ): Promise<PluginHookBeforeAgentStartResult | undefined> {
-    return runModifyingHook<
+    return runModifyingHook<"before_agent_start", PluginHookBeforeAgentStartResult>(
       "before_agent_start",
-      PluginHookBeforeAgentStartResult
-    >("before_agent_start", event, ctx, (acc, next) => ({
-      systemPrompt: next.systemPrompt ?? acc?.systemPrompt,
-      prependContext:
-        acc?.prependContext && next.prependContext
-          ? `${acc.prependContext}\n\n${next.prependContext}`
-          : (next.prependContext ?? acc?.prependContext),
-    }));
+      event,
+      ctx,
+      (acc, next) => ({
+        systemPrompt: next.systemPrompt ?? acc?.systemPrompt,
+        prependContext:
+          acc?.prependContext && next.prependContext
+            ? `${acc.prependContext}\n\n${next.prependContext}`
+            : (next.prependContext ?? acc?.prependContext),
+      }),
+    );
   }
 
   /**
@@ -331,14 +325,16 @@ export function createHookRunner(
     event: PluginHookToolResultReceivedEvent,
     ctx: PluginHookToolContext,
   ): Promise<PluginHookToolResultReceivedResult | undefined> {
-    return runModifyingHook<
+    return runModifyingHook<"tool_result_received", PluginHookToolResultReceivedResult>(
       "tool_result_received",
-      PluginHookToolResultReceivedResult
-    >("tool_result_received", event, ctx, (acc, next) => ({
-      result: next.result ?? acc?.result,
-      block: next.block ?? acc?.block,
-      blockReason: next.blockReason ?? acc?.blockReason,
-    }));
+      event,
+      ctx,
+      (acc, next) => ({
+        result: next.result ?? acc?.result,
+        block: next.block ?? acc?.block,
+        blockReason: next.blockReason ?? acc?.blockReason,
+      }),
+    );
   }
 
   /**
@@ -365,10 +361,10 @@ export function createHookRunner(
     for (const hook of hooks) {
       try {
         // oxlint-disable-next-line typescript/no-explicit-any
-        const out = (hook.handler as any)(
-          { ...event, message: current },
-          ctx,
-        ) as PluginHookToolResultPersistResult | void | Promise<unknown>;
+        const out = (hook.handler as any)({ ...event, message: current }, ctx) as
+          | PluginHookToolResultPersistResult
+          | void
+          | Promise<unknown>;
 
         // Guard against accidental async handlers (this hook is sync-only).
         // oxlint-disable-next-line typescript/no-explicit-any
@@ -383,8 +379,7 @@ export function createHookRunner(
           throw new Error(msg);
         }
 
-        const next = (out as PluginHookToolResultPersistResult | undefined)
-          ?.message;
+        const next = (out as PluginHookToolResultPersistResult | undefined)?.message;
         if (next) {
           current = next;
         }

@@ -8,9 +8,7 @@ type HookContext = {
   sessionKey?: string;
 };
 
-type HookOutcome =
-  | { blocked: true; reason: string }
-  | { blocked: false; params: unknown };
+type HookOutcome = { blocked: true; reason: string } | { blocked: false; params: unknown };
 
 const log = createSubsystemLogger("agents/tools");
 
@@ -60,9 +58,7 @@ export async function runBeforeToolCallHook(args: {
     }
   } catch (err) {
     const toolCallId = args.toolCallId ? ` toolCallId=${args.toolCallId}` : "";
-    log.warn(
-      `before_tool_call hook failed: tool=${toolName}${toolCallId} error=${String(err)}`,
-    );
+    log.warn(`before_tool_call hook failed: tool=${toolName}${toolCallId} error=${String(err)}`);
   }
 
   return { blocked: false, params };
@@ -145,12 +141,7 @@ export function wrapToolWithBeforeToolCallHook(
       }
 
       // Execute the tool
-      const result = await execute(
-        toolCallId,
-        beforeOutcome.params,
-        signal,
-        onUpdate,
-      );
+      const result = await execute(toolCallId, beforeOutcome.params, signal, onUpdate);
       const durationMs = Date.now() - startTime;
 
       // After hook - can modify result or block it
