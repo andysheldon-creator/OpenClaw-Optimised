@@ -82,13 +82,17 @@ vi.mock("@opentelemetry/sdk-trace-base", () => ({
   TraceIdRatioBasedSampler: class {},
 }));
 
-vi.mock("@opentelemetry/resources", () => ({
-  Resource: class {
-    // eslint-disable-next-line @typescript-eslint/no-useless-constructor
-    constructor(_value?: unknown) {}
-  },
-  resourceFromAttributes: (_attrs?: unknown) => ({}),
-}));
+vi.mock("@opentelemetry/resources", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@opentelemetry/resources")>();
+  return {
+    ...actual,
+    Resource: class {
+      // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+      constructor(_value?: unknown) {}
+    },
+    resourceFromAttributes: (_attrs?: unknown) => ({}),
+  };
+});
 
 vi.mock("@opentelemetry/semantic-conventions", () => ({
   SemanticResourceAttributes: {
