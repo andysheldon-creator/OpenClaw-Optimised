@@ -379,6 +379,8 @@ export async function deliverOutboundPayloads(params: {
   if (results.length > 0) {
     const lastResult = results.at(-1);
     const sentContent = normalizedPayloads.map((p) => p.text ?? "").join("\n");
+    // Determine success: all payloads delivered, or partial in bestEffort mode
+    const allSucceeded = results.length === normalizedPayloads.length;
     const hookContext: PluginHookMessageContext = {
       channelId: channel,
       accountId: accountId ?? undefined,
@@ -393,7 +395,7 @@ export async function deliverOutboundPayloads(params: {
           {
             to,
             content: sentContent,
-            success: true,
+            success: allSucceeded,
           },
           hookContext,
         )
@@ -403,19 +405,26 @@ export async function deliverOutboundPayloads(params: {
     }
 
     // Bridge to internal hooks (HOOK.md discovery system)
-    void triggerInternalHook(
-      createInternalHookEvent("message", "sent", params.mirror?.sessionKey ?? "", {
-        to,
-        content: sentContent,
-        success: true,
-        channelId: channel,
-        accountId: accountId ?? undefined,
-        conversationId: to,
-        messageId: lastResult?.messageId,
-      }),
-    ).catch(() => {
-      // Swallow internal hook errors - they shouldn't break message delivery
-    });
+    // Skip if no sessionKey available for correlation
+    const sessionKey = params.mirror?.sessionKey;
+    if (sessionKey) {
+      void triggerInternalHook(
+        createInternalHookEvent("message", "sent", sessionKey, {
+          to,
+          content: sentContent,
+          success: allSucceeded,
+          partialFailure: !allSucceeded,
+          deliveredCount: results.length,
+          attemptedCount: normalizedPayloads.length,
+          channelId: channel,
+          accountId: accountId ?? undefined,
+          conversationId: to,
+          messageId: lastResult?.messageId,
+        }),
+      ).catch(() => {
+        // Swallow internal hook errors - they shouldn't break message delivery
+      });
+    }
   }
 
   return results;
