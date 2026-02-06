@@ -305,6 +305,8 @@ function resolveConfiguredPlugins(
       if (key === "defaults") {
         continue;
       }
+      // Keep raw keys here - isChannelConfigured can detect config under alias keys.
+      // Normalization happens later in enablePluginEntry and check functions.
       channelIds.add(key);
     }
   }
@@ -331,13 +333,72 @@ function resolveConfiguredPlugins(
 }
 
 function isPluginExplicitlyDisabled(cfg: OpenClawConfig, pluginId: string): boolean {
-  const entry = cfg.plugins?.entries?.[pluginId];
-  return entry?.enabled === false;
+  const channels = cfg.channels as Record<string, unknown> | undefined;
+
+  // Check the raw pluginId first (might be an alias like "imsg")
+  const rawEntry = channels?.[pluginId];
+  if (isRecord(rawEntry) && rawEntry.enabled === false) {
+    return true;
+  }
+
+  // For built-in channels, also check the canonical ID if different
+  const builtinChannelId = normalizeChatChannelId(pluginId);
+  if (builtinChannelId && builtinChannelId !== pluginId) {
+    const canonicalEntry = channels?.[builtinChannelId];
+    if (isRecord(canonicalEntry) && canonicalEntry.enabled === false) {
+      return true;
+    }
+  }
+
+  // For non-builtin channels (plugins), check plugins.entries
+  if (!builtinChannelId) {
+    const entry = cfg.plugins?.entries?.[pluginId];
+    return entry?.enabled === false;
+  }
+
+  return false;
+}
+
+function isPluginAlreadyEnabled(cfg: OpenClawConfig, pluginId: string): boolean {
+  const channels = cfg.channels as Record<string, unknown> | undefined;
+
+  // Check the raw pluginId first (might be an alias like "imsg")
+  const rawEntry = channels?.[pluginId];
+  if (isRecord(rawEntry) && rawEntry.enabled === true) {
+    return true;
+  }
+
+  // For built-in channels, also check the canonical ID if different
+  const builtinChannelId = normalizeChatChannelId(pluginId);
+  if (builtinChannelId && builtinChannelId !== pluginId) {
+    const canonicalEntry = channels?.[builtinChannelId];
+    if (isRecord(canonicalEntry) && canonicalEntry.enabled === true) {
+      return true;
+    }
+  }
+
+  // For non-builtin channels (plugins), check plugins.entries
+  if (!builtinChannelId) {
+    return cfg.plugins?.entries?.[pluginId]?.enabled === true;
+  }
+
+  return false;
 }
 
 function isPluginDenied(cfg: OpenClawConfig, pluginId: string): boolean {
   const deny = cfg.plugins?.deny;
-  return Array.isArray(deny) && deny.includes(pluginId);
+  if (!Array.isArray(deny)) {
+    return false;
+  }
+  // Check both raw pluginId and canonical ID in deny list
+  if (deny.includes(pluginId)) {
+    return true;
+  }
+  const builtinChannelId = normalizeChatChannelId(pluginId);
+  if (builtinChannelId && builtinChannelId !== pluginId) {
+    return deny.includes(builtinChannelId);
+  }
+  return false;
 }
 
 function resolvePreferredOverIds(pluginId: string): string[] {
@@ -354,6 +415,9 @@ function shouldSkipPreferredPluginAutoEnable(
   entry: PluginEnableChange,
   configured: PluginEnableChange[],
 ): boolean {
+  // Use canonical ID for preferOver comparison since preferOver uses canonical IDs
+  const entryCanonicalId = normalizeChatChannelId(entry.pluginId) ?? entry.pluginId;
+
   for (const other of configured) {
     if (other.pluginId === entry.pluginId) {
       continue;
@@ -365,7 +429,7 @@ function shouldSkipPreferredPluginAutoEnable(
       continue;
     }
     const preferOver = resolvePreferredOverIds(other.pluginId);
-    if (preferOver.includes(entry.pluginId)) {
+    if (preferOver.includes(entryCanonicalId)) {
       return true;
     }
   }
@@ -386,7 +450,29 @@ function ensureAllowlisted(cfg: OpenClawConfig, pluginId: string): OpenClawConfi
   };
 }
 
+function enableBuiltinChannel(cfg: OpenClawConfig, channelId: string): OpenClawConfig {
+  const channels = cfg.channels as Record<string, unknown> | undefined;
+  const existingEntry = channels?.[channelId];
+  const channelEntry = isRecord(existingEntry) ? existingEntry : {};
+  return {
+    ...cfg,
+    channels: {
+      ...channels,
+      [channelId]: {
+        ...channelEntry,
+        enabled: true,
+      },
+    },
+  };
+}
+
 function enablePluginEntry(cfg: OpenClawConfig, pluginId: string): OpenClawConfig {
+  // Built-in channels should be enabled via channels.<id>.enabled, not plugins.entries.
+  const builtinChannelId = normalizeChatChannelId(pluginId);
+  if (builtinChannelId) {
+    return enableBuiltinChannel(cfg, builtinChannelId);
+  }
+
   const entries = {
     ...cfg.plugins?.entries,
     [pluginId]: {
@@ -409,7 +495,8 @@ function formatAutoEnableChange(entry: PluginEnableChange): string {
   const channelId = normalizeChatChannelId(entry.pluginId);
   if (channelId) {
     const label = getChatChannelMeta(channelId).label;
-    reason = reason.replace(new RegExp(`^${channelId}\\b`, "i"), label);
+    // Replace the original pluginId (might be an alias like "imsg") with the label
+    reason = reason.replace(new RegExp(`^${entry.pluginId}\\b`, "i"), label);
   }
   return `${reason}, not enabled yet.`;
 }
@@ -441,14 +528,28 @@ export function applyPluginAutoEnable(params: {
     if (shouldSkipPreferredPluginAutoEnable(next, entry, configured)) {
       continue;
     }
-    const allow = next.plugins?.allow;
-    const allowMissing = Array.isArray(allow) && !allow.includes(entry.pluginId);
-    const alreadyEnabled = next.plugins?.entries?.[entry.pluginId]?.enabled === true;
-    if (alreadyEnabled && !allowMissing) {
-      continue;
+
+    const isBuiltinChannel = normalizeChatChannelId(entry.pluginId) !== null;
+    const alreadyEnabled = isPluginAlreadyEnabled(next, entry.pluginId);
+
+    // For plugin channels, also check plugins.allow list.
+    if (!isBuiltinChannel) {
+      const allow = next.plugins?.allow;
+      const allowMissing = Array.isArray(allow) && !allow.includes(entry.pluginId);
+      if (alreadyEnabled && !allowMissing) {
+        continue;
+      }
+    } else {
+      if (alreadyEnabled) {
+        continue;
+      }
     }
+
     next = enablePluginEntry(next, entry.pluginId);
-    next = ensureAllowlisted(next, entry.pluginId);
+    // Built-in channels don't need plugins.allow entry.
+    if (!isBuiltinChannel) {
+      next = ensureAllowlisted(next, entry.pluginId);
+    }
     changes.push(formatAutoEnableChange(entry));
   }
 
