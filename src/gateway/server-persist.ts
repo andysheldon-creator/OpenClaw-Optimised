@@ -255,13 +255,27 @@ export function createChatRunStatePersistTimer(params: {
   intervalMs?: number;
 }): ReturnType<typeof setInterval> {
   const intervalMs = params.intervalMs ?? PERSIST_INTERVAL_MS;
+  let prevRunIds = "";
 
   return setInterval(async () => {
     try {
       const runs = params.collectState();
       if (runs.length > 0) {
         await persistChatRunState(runs);
-        params.log.debug(`persisted ${runs.length} chat run(s)`);
+        const runIds = runs
+          .map((r) => r.clientRunId)
+          .sort()
+          .join(",");
+        if (runIds !== prevRunIds) {
+          const runSummary = runs
+            .map((r) => `${r.sessionKey}/${r.clientRunId.slice(-8)}`)
+            .join(", ");
+          params.log.debug(`persisting ${runs.length} chat run(s): [${runSummary}]`);
+          prevRunIds = runIds;
+        }
+      } else if (prevRunIds) {
+        params.log.debug("no active chat runs to persist");
+        prevRunIds = "";
       }
     } catch (err) {
       params.log.warn(`failed to persist chat run state: ${String(err)}`);

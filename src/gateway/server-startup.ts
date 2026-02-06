@@ -19,6 +19,7 @@ import { isTruthyEnvValue } from "../infra/env.js";
 import { createManagedProcessManager } from "../infra/managed-processes.js";
 import { registerMemoryPipelineHooks } from "../memory/hooks/index.js";
 import { type PluginServicesHandle, startPluginServices } from "../plugins/services.js";
+import { recoverOrphanedWorkItems } from "../work-queue/recovery.js";
 import { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import {
   scheduleRestartSentinelWake,
@@ -127,6 +128,39 @@ export async function startGatewaySidecars(params: {
     }
   } catch (err) {
     params.logHooks.error(`failed to load hooks: ${String(err)}`);
+  }
+
+  // Recover orphaned work queue items from previous session (unless disabled).
+  // Runs before channels start so new agents can't claim items that recovery would reset.
+  if (params.cfg.gateway?.workQueue?.recoverOnStartup !== false) {
+    try {
+      const recoveryResult = await recoverOrphanedWorkItems();
+      if (recoveryResult.recovered.length > 0) {
+        params.log.warn(
+          `work-queue: recovered ${recoveryResult.recovered.length} orphaned item(s)`,
+        );
+        if (params.cfg.hooks?.internal?.enabled) {
+          const hookEvent = createInternalHookEvent(
+            "gateway",
+            "work-queue-recovery",
+            "gateway:work-queue-recovery",
+            {
+              items: recoveryResult.recovered.map((i) => ({
+                id: i.id,
+                title: i.title,
+                previousAssignment: i.statusReason,
+              })),
+            },
+          );
+          void triggerInternalHook(hookEvent);
+        }
+      }
+      if (recoveryResult.failed.length > 0) {
+        params.log.warn(`work-queue: failed to recover ${recoveryResult.failed.length} item(s)`);
+      }
+    } catch (err) {
+      params.log.warn(`work-queue recovery failed: ${String(err)}`);
+    }
   }
 
   // Launch configured channels so gateway replies via the surface the message came from.

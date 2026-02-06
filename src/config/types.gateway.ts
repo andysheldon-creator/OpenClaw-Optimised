@@ -253,6 +253,11 @@ export type GatewayNodesConfig = {
   denyCommands?: string[];
 };
 
+export type GatewayWorkQueueConfig = {
+  /** Auto-recover orphaned in_progress items on startup (default: true). */
+  recoverOnStartup?: boolean;
+};
+
 export type GatewayConfig = {
   /** Single multiplexed port for Gateway WS + HTTP (default: 18789). */
   port?: number;
@@ -283,6 +288,8 @@ export type GatewayConfig = {
   tls?: GatewayTlsConfig;
   http?: GatewayHttpConfig;
   nodes?: GatewayNodesConfig;
+  /** Work queue settings (recovery, etc.). */
+  workQueue?: GatewayWorkQueueConfig;
   /**
    * IPs of trusted reverse proxies (e.g. Traefik, nginx). When a connection
    * arrives from one of these IPs, the Gateway trusts `x-forwarded-for` (or

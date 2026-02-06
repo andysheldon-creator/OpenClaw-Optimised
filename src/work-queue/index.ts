@@ -22,3 +22,5 @@ export {
   getDefaultWorkQueueStore,
   resolveWorkQueueDbPath,
 } from "./store.js";
+export { recoverOrphanedWorkItems } from "./recovery.js";
+export type { RecoveryResult } from "./recovery.js";

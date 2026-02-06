@@ -45,4 +45,49 @@ describeSqlite("SqliteWorkQueueBackend", () => {
     await backend.close();
     fs.rmSync(dbPath, { force: true });
   });
+
+  it("clears fields when patch sets them to undefined", async () => {
+    const dbPath = path.join(os.tmpdir(), `work-queue-clear-${Date.now()}.sqlite`);
+    const backend = new SqliteWorkQueueBackend(dbPath);
+    await backend.initialize();
+
+    const queue = await backend.createQueue({
+      id: "clear-test",
+      agentId: "clear-test",
+      name: "Clear test queue",
+      concurrencyLimit: 1,
+      defaultPriority: "medium",
+    });
+
+    const item = await backend.createItem({
+      queueId: queue.id,
+      title: "In progress task",
+      status: "in_progress",
+      priority: "medium",
+      assignedTo: { sessionKey: "agent:test:subagent:abc", agentId: "test" },
+      startedAt: new Date().toISOString(),
+    });
+
+    expect(item.assignedTo).toBeDefined();
+    expect(item.startedAt).toBeDefined();
+
+    // Explicitly set to undefined to clear the fields (recovery scenario).
+    const updated = await backend.updateItem(item.id, {
+      status: "pending",
+      assignedTo: undefined,
+      startedAt: undefined,
+    });
+
+    expect(updated.status).toBe("pending");
+    expect(updated.assignedTo).toBeUndefined();
+    expect(updated.startedAt).toBeUndefined();
+
+    // Verify persistence by re-reading.
+    const reloaded = await backend.getItem(item.id);
+    expect(reloaded?.assignedTo).toBeUndefined();
+    expect(reloaded?.startedAt).toBeUndefined();
+
+    await backend.close();
+    fs.rmSync(dbPath, { force: true });
+  });
 });

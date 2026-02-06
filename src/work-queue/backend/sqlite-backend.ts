@@ -459,22 +459,25 @@ export class SqliteWorkQueueBackend implements WorkQueueBackend {
       params.push(value as string | number | null);
     };
 
-    if (patch.queueId !== undefined) apply("queue_id", patch.queueId);
-    if (patch.title !== undefined) apply("title", patch.title);
-    if (patch.description !== undefined) apply("description", patch.description ?? null);
-    if (patch.payload !== undefined) apply("payload_json", encodeJson(patch.payload));
-    if (patch.status !== undefined) apply("status", patch.status);
-    if (patch.statusReason !== undefined) apply("status_reason", patch.statusReason ?? null);
-    if (patch.parentItemId !== undefined) apply("parent_item_id", patch.parentItemId ?? null);
-    if (patch.dependsOn !== undefined) apply("depends_on_json", encodeJson(patch.dependsOn));
-    if (patch.blockedBy !== undefined) apply("blocked_by_json", encodeJson(patch.blockedBy));
-    if (patch.assignedTo !== undefined) apply("assigned_to_json", encodeJson(patch.assignedTo));
-    if (patch.priority !== undefined) apply("priority", patch.priority);
-    if (patch.tags !== undefined) apply("tags_json", encodeJson(patch.tags));
-    if (patch.result !== undefined) apply("result_json", encodeJson(patch.result));
-    if (patch.error !== undefined) apply("error_json", encodeJson(patch.error));
-    if (patch.startedAt !== undefined) apply("started_at", patch.startedAt ?? null);
-    if (patch.completedAt !== undefined) apply("completed_at", patch.completedAt ?? null);
+    // Use Object.hasOwn so that explicitly passing `undefined` (to clear a field)
+    // is distinguished from omitting the key entirely (no change).
+    const has = (key: string) => Object.hasOwn(patch, key);
+    if (has("queueId")) apply("queue_id", patch.queueId);
+    if (has("title")) apply("title", patch.title);
+    if (has("description")) apply("description", patch.description ?? null);
+    if (has("payload")) apply("payload_json", encodeJson(patch.payload));
+    if (has("status")) apply("status", patch.status);
+    if (has("statusReason")) apply("status_reason", patch.statusReason ?? null);
+    if (has("parentItemId")) apply("parent_item_id", patch.parentItemId ?? null);
+    if (has("dependsOn")) apply("depends_on_json", encodeJson(patch.dependsOn));
+    if (has("blockedBy")) apply("blocked_by_json", encodeJson(patch.blockedBy));
+    if (has("assignedTo")) apply("assigned_to_json", encodeJson(patch.assignedTo));
+    if (has("priority")) apply("priority", patch.priority);
+    if (has("tags")) apply("tags_json", encodeJson(patch.tags));
+    if (has("result")) apply("result_json", encodeJson(patch.result));
+    if (has("error")) apply("error_json", encodeJson(patch.error));
+    if (has("startedAt")) apply("started_at", patch.startedAt ?? null);
+    if (has("completedAt")) apply("completed_at", patch.completedAt ?? null);
 
     apply("updated_at", now);
 

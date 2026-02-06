@@ -576,6 +576,12 @@ export const OpenClawSchema = z
           })
           .strict()
           .optional(),
+        workQueue: z
+          .object({
+            recoverOnStartup: z.boolean().optional(),
+          })
+          .strict()
+          .optional(),
       })
       .strict()
       .optional(),
