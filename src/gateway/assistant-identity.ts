@@ -1,5 +1,9 @@
 import type { OpenClawConfig } from "../config/config.js";
-import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
+import {
+  resolveAgentConfig,
+  resolveAgentWorkspaceDir,
+  resolveDefaultAgentId,
+} from "../agents/agent-scope.js";
 import { resolveAgentIdentity } from "../agents/identity.js";
 import { loadAgentIdentity } from "../commands/agents.config.js";
 import { normalizeAgentId } from "../routing/session-key.js";
@@ -102,11 +106,13 @@ export function resolveAssistantIdentity(params: {
   const workspaceDir = params.workspaceDir ?? resolveAgentWorkspaceDir(params.cfg, agentId);
   const configAssistant = params.cfg.ui?.assistant;
   const agentIdentity = resolveAgentIdentity(params.cfg, agentId);
+  const agentConfig = resolveAgentConfig(params.cfg, agentId);
   const fileIdentity = workspaceDir ? loadAgentIdentity(workspaceDir) : null;
 
   const name =
     coerceIdentityValue(configAssistant?.name, MAX_ASSISTANT_NAME) ??
     coerceIdentityValue(agentIdentity?.name, MAX_ASSISTANT_NAME) ??
+    coerceIdentityValue(agentConfig?.name, MAX_ASSISTANT_NAME) ??
     coerceIdentityValue(fileIdentity?.name, MAX_ASSISTANT_NAME) ??
     DEFAULT_ASSISTANT_IDENTITY.name;
 
