@@ -61,6 +61,7 @@ type HookDispatchers = {
     thinking?: string;
     timeoutSeconds?: number;
     allowUnsafeExternalContent?: boolean;
+    agentId?: string;
   }) => string;
 };
 
