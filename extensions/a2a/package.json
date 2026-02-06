@@ -1,0 +1,19 @@
+{
+  "name": "@openclaw/a2a",
+  "version": "2026.1.30",
+  "description": "OpenClaw A2A protocol plugin",
+  "type": "module",
+  "dependencies": {
+    "@a2a-js/sdk": "^0.3.7",
+    "@sinclair/typebox": "0.34.48",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

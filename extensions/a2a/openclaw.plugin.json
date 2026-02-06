@@ -1,0 +1,56 @@
+{
+  "id": "a2a",
+  "uiHints": {
+    "agentId": {
+      "label": "Agent ID",
+      "help": "Which agent to expose via A2A (defaults to 'main')"
+    },
+    "description": {
+      "label": "Description",
+      "help": "Custom description for the Agent Card"
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": { "type": "boolean" },
+      "agentId": { "type": "string" },
+      "description": { "type": "string" },
+      "remoteAgents": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["url"],
+          "additionalProperties": false,
+          "properties": {
+            "url": { "type": "string" },
+            "headers": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      },
+      "inbound": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allowUnauthenticated": { "type": "boolean" },
+          "apiKeys": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["label", "key"],
+              "additionalProperties": false,
+              "properties": {
+                "label": { "type": "string" },
+                "key": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

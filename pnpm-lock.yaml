@@ -230,6 +230,22 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.1.0)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
 
+  extensions/a2a:
+    dependencies:
+      '@a2a-js/sdk':
+        specifier: ^0.3.7
+        version: 0.3.9(@grpc/grpc-js@1.14.3)(express@5.2.1)
+      '@sinclair/typebox':
+        specifier: 0.34.47
+        version: 0.34.47
+      ws:
+        specifier: ^8.19.0
+        version: 8.19.0
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
   extensions/bluebubbles:
     devDependencies:
       openclaw:
@@ -566,6 +582,21 @@ importers:
         version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.1.0)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
 
 packages:
+
+  '@a2a-js/sdk@0.3.9':
+    resolution: {integrity: sha512-GWOSjL/dbkNRETfmLIKqtVV/fm+chPPp0uL5DUDKJlFmVjPCxRS75I6oiIkJeGo3/AM7QjaZTMb003Ia09ibtQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.10.2
+      '@grpc/grpc-js': ^1.11.0
+      express: ^4.21.2 || ^5.1.0
+    peerDependenciesMeta:
+      '@bufbuild/protobuf':
+        optional: true
+      '@grpc/grpc-js':
+        optional: true
+      express:
+        optional: true
 
   '@agentclientprotocol/sdk@0.13.1':
     resolution: {integrity: sha512-6byvu+F/xc96GBkdAx4hq6/tB3vT63DSBO4i3gYCz8nuyZMerVFna2Gkhm8EHNpZX0J9DjUxzZCW+rnHXUg0FA==}
@@ -5333,6 +5364,13 @@ packages:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
 snapshots:
+
+  '@a2a-js/sdk@0.3.9(@grpc/grpc-js@1.14.3)(express@5.2.1)':
+    dependencies:
+      uuid: 11.1.0
+    optionalDependencies:
+      '@grpc/grpc-js': 1.14.3
+      express: 5.2.1
 
   '@agentclientprotocol/sdk@0.13.1(zod@4.3.6)':
     dependencies:
