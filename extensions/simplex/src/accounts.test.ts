@@ -137,7 +137,7 @@ describe("simplex accounts", () => {
     } as OpenClawConfig;
 
     const alpha = resolveSimplexAccount({ cfg, accountId: "alpha" });
-    expect(alpha.wsUrl).toBe("ws://127.0.0.1:5225");
+    expect(alpha.wsUrl).toBe("");
     expect(alpha.configured).toBe(false);
 
     const beta = resolveSimplexAccount({ cfg, accountId: "beta" });

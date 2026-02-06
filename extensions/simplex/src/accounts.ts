@@ -87,11 +87,12 @@ export function resolveSimplexAccount(params: {
   const enabled = baseEnabled && merged.enabled !== false;
   const connection = merged.connection ?? {};
   const mode: SimplexConnectionMode = connection.mode ?? "managed";
-  const wsUrl = resolveWsUrl(connection);
+  const explicitWsUrl = connection.wsUrl?.trim();
+  const wsUrl = mode === "external" && !explicitWsUrl ? "" : resolveWsUrl(connection);
   const wsHost = resolveWsHost(connection);
   const wsPort = resolveWsPort(connection);
   const cliPath = connection.cliPath?.trim() || DEFAULT_CLI_PATH;
-  const configured = mode === "external" ? hasExplicitWsUrl(connection) : Boolean(cliPath);
+  const configured = mode === "external" ? Boolean(explicitWsUrl) : Boolean(cliPath);
   return {
     accountId,
     enabled,
