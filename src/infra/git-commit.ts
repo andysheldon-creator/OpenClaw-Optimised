@@ -43,6 +43,8 @@ const resolveGitHead = (startDir: string) => {
 };
 
 let cachedCommit: string | null | undefined;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 5000; // Cache for 5 seconds to balance performance and freshness
 
 const readCommitFromPackageJson = () => {
   try {
@@ -81,9 +83,16 @@ const readCommitFromBuildInfo = () => {
 };
 
 export const resolveCommitHash = (options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) => {
-  if (cachedCommit !== undefined) {
+  const now = Date.now();
+  const cacheAge = now - cacheTimestamp;
+
+  // Return cached value if still fresh
+  if (cachedCommit !== undefined && cacheAge < CACHE_TTL_MS) {
     return cachedCommit;
   }
+
+  // Cache expired or never set - refresh it
+  cacheTimestamp = now;
   const env = options.env ?? process.env;
   const envCommit = env.GIT_COMMIT?.trim() || env.GIT_SHA?.trim();
   const normalized = formatCommit(envCommit);
