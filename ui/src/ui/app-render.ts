@@ -260,6 +260,12 @@ export function renderApp(state: AppViewState) {
                   window.location.href = pathForTab("config", state.basePath);
                 },
                 onRunUpdate: () => runUpdate(state as unknown as OpenClawApp),
+                onStopLegacyGateway: window.openclawDesktop?.legacyGatewayStop
+                  ? () => void window.openclawDesktop?.legacyGatewayStop?.()
+                  : undefined,
+                onUninstallLegacyGateway: window.openclawDesktop?.legacyGatewayUninstall
+                  ? () => void window.openclawDesktop?.legacyGatewayUninstall?.()
+                  : undefined,
               })
             : nothing
         }

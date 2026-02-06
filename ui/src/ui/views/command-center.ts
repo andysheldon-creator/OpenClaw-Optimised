@@ -83,6 +83,9 @@ function resolveActions(state: AppViewState): CommandAction[] {
   const canRestart = connected; // Gateway may still reject if commands.restart=false; that's ok.
   const canUpdate = connected && !state.updateRunning;
   const canDesktopUninstall = Boolean(window.openclawDesktop?.gatewayUninstall);
+  const canLegacyServiceControl = Boolean(
+    window.openclawDesktop?.legacyGatewayStop && window.openclawDesktop?.legacyGatewayUninstall,
+  );
 
   return [
     {
@@ -185,6 +188,36 @@ function resolveActions(state: AppViewState): CommandAction[] {
           return;
         }
         await api.gatewayUninstall({});
+      },
+    },
+    {
+      id: "legacy.gateway.stop",
+      title: "Stop legacy gateway service…",
+      description: "Desktop only: stop an older system-installed OpenClaw gateway service.",
+      icon: "x",
+      enabled: canLegacyServiceControl,
+      keywords: ["old", "legacy", "service", "daemon", "旧版", "老版本"],
+      run: async () => {
+        const api = window.openclawDesktop;
+        if (!api?.legacyGatewayStop) {
+          return;
+        }
+        await api.legacyGatewayStop();
+      },
+    },
+    {
+      id: "legacy.gateway.uninstall",
+      title: "Uninstall legacy gateway service…",
+      description: "Desktop only: uninstall an older system-installed gateway service.",
+      icon: "trash2",
+      enabled: canLegacyServiceControl,
+      keywords: ["old", "legacy", "service", "daemon", "卸载", "旧版"],
+      run: async () => {
+        const api = window.openclawDesktop;
+        if (!api?.legacyGatewayUninstall) {
+          return;
+        }
+        await api.legacyGatewayUninstall();
       },
     },
     {

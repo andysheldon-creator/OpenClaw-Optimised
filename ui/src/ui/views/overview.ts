@@ -23,11 +23,17 @@ export type OverviewProps = {
   onRestartGateway?: () => void;
   onOpenConfig?: () => void;
   onRunUpdate?: () => void;
+  onStopLegacyGateway?: () => void;
+  onUninstallLegacyGateway?: () => void;
 };
 
 export function renderOverview(props: OverviewProps) {
   const showQuickActions =
-    Boolean(props.onRestartGateway) || Boolean(props.onOpenConfig) || Boolean(props.onRunUpdate);
+    Boolean(props.onRestartGateway) ||
+    Boolean(props.onOpenConfig) ||
+    Boolean(props.onRunUpdate) ||
+    Boolean(props.onStopLegacyGateway) ||
+    Boolean(props.onUninstallLegacyGateway);
   const snapshot = props.hello?.snapshot as
     | { uptimeMs?: number; policy?: { tickIntervalMs?: number } }
     | undefined;
@@ -291,6 +297,16 @@ export function renderOverview(props: OverviewProps) {
                 : nothing}
               ${props.onOpenConfig
                 ? html`<button class="btn" @click=${props.onOpenConfig}>Open config</button>`
+                : nothing}
+              ${props.onStopLegacyGateway
+                ? html`<button class="btn" @click=${props.onStopLegacyGateway}>
+                    Stop legacy gateway
+                  </button>`
+                : nothing}
+              ${props.onUninstallLegacyGateway
+                ? html`<button class="btn danger" @click=${props.onUninstallLegacyGateway}>
+                    Uninstall legacy gateway
+                  </button>`
                 : nothing}
               <span class="muted">
                 Restart triggers an in-place restart; the dashboard will reconnect automatically.

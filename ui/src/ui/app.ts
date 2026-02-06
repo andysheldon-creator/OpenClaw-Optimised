@@ -88,6 +88,8 @@ declare global {
       version?: () => Promise<unknown>;
       openCommandCenter?: () => Promise<unknown>;
       gatewayUninstall?: (opts?: { includeWorkspace?: boolean; dryRun?: boolean }) => Promise<unknown>;
+      legacyGatewayStop?: () => Promise<unknown>;
+      legacyGatewayUninstall?: () => Promise<unknown>;
     };
   }
 }

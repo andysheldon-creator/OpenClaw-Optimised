@@ -38,11 +38,12 @@ function augmentPathEnv(env) {
   return { ...env, PATH: parts.join(path.delimiter) };
 }
 
-function runCommand(command, args, { timeoutMs = 5 * 60_000 } = {}) {
+function runCommand(command, args, { timeoutMs = 5 * 60_000, env, cwd } = {}) {
   return new Promise((resolve) => {
     const child = spawn(command, args, {
       windowsHide: true,
-      env: augmentPathEnv(process.env),
+      env: env ? augmentPathEnv(env) : augmentPathEnv(process.env),
+      cwd: cwd || undefined,
       stdio: ["ignore", "pipe", "pipe"],
     });
 
@@ -303,6 +304,22 @@ async function stopManagedGateway({ force = false } = {}) {
   });
 }
 
+function buildEmbeddedCliEnv() {
+  const env = { ...augmentPathEnv(process.env) };
+  env.ELECTRON_RUN_AS_NODE = "1";
+  return env;
+}
+
+async function runEmbeddedCli(args, { timeoutMs = 3 * 60_000 } = {}) {
+  const openclawIndex = resolveOpenClawDistIndex();
+  const runtimeRoot = path.dirname(path.dirname(openclawIndex));
+  return await runCommand(process.execPath, [openclawIndex, ...args], {
+    timeoutMs,
+    env: buildEmbeddedCliEnv(),
+    cwd: runtimeRoot,
+  });
+}
+
 async function runGatewayUninstall(win, opts = {}) {
   const includeWorkspace = Boolean(opts.includeWorkspace); // unused (desktop state is isolated)
   const dryRun = Boolean(opts.dryRun);
@@ -361,6 +378,78 @@ async function runGatewayUninstall(win, opts = {}) {
     noLink: true,
   });
   return { ok: dryRun ? true : rmOk };
+}
+
+async function runLegacyGatewayStop(win) {
+  const { response } = await dialog.showMessageBox(win, {
+    type: "warning",
+    title: "Stop legacy gateway service",
+    message: "Stop an older system-installed OpenClaw gateway service?",
+    detail:
+      "Use this if you previously installed OpenClaw via npm/pnpm and it's still running as a background service.\n\nThis does not affect the embedded gateway used by OpenClaw CN.",
+    buttons: ["Cancel", "Stop"],
+    defaultId: 1,
+    cancelId: 0,
+    noLink: true,
+  });
+  if (response !== 1) {
+    return { ok: false, cancelled: true };
+  }
+
+  if (win && !win.isDestroyed()) {
+    win.setProgressBar(2);
+  }
+  const result = await runEmbeddedCli(["gateway", "stop", "--json"]);
+  if (win && !win.isDestroyed()) {
+    win.setProgressBar(-1);
+  }
+
+  await dialog.showMessageBox(win, {
+    type: result.ok ? "info" : "error",
+    title: result.ok ? "Legacy gateway stopped" : "Stop failed",
+    message: result.ok ? "Done." : "Failed to stop legacy gateway service.",
+    detail: [result.error, result.stderr, result.stdout].filter(Boolean).join("\n"),
+    buttons: ["OK"],
+    defaultId: 0,
+    noLink: true,
+  });
+  return result;
+}
+
+async function runLegacyGatewayUninstall(win) {
+  const { response } = await dialog.showMessageBox(win, {
+    type: "warning",
+    title: "Uninstall legacy gateway service",
+    message: "Uninstall an older system-installed OpenClaw gateway service?",
+    detail:
+      "This removes the background service (launchd/systemd/schtasks). It does not delete your ~/.openclaw state.\n\nThis does not affect the embedded gateway used by OpenClaw CN.",
+    buttons: ["Cancel", "Uninstall service"],
+    defaultId: 1,
+    cancelId: 0,
+    noLink: true,
+  });
+  if (response !== 1) {
+    return { ok: false, cancelled: true };
+  }
+
+  if (win && !win.isDestroyed()) {
+    win.setProgressBar(2);
+  }
+  const result = await runEmbeddedCli(["gateway", "uninstall", "--json"]);
+  if (win && !win.isDestroyed()) {
+    win.setProgressBar(-1);
+  }
+
+  await dialog.showMessageBox(win, {
+    type: result.ok ? "info" : "error",
+    title: result.ok ? "Legacy gateway uninstalled" : "Uninstall failed",
+    message: result.ok ? "Done." : "Failed to uninstall legacy gateway service.",
+    detail: [result.error, result.stderr, result.stdout].filter(Boolean).join("\n"),
+    buttons: ["OK"],
+    defaultId: 0,
+    noLink: true,
+  });
+  return result;
 }
 
 function resolveUiRoot() {
@@ -480,6 +569,21 @@ function buildAppMenu(win) {
           click: () => {
             if (!win) return;
             void runGatewayUninstall(win, {});
+          },
+        },
+        { type: "separator" },
+        {
+          label: "Stop legacy gateway service…",
+          click: () => {
+            if (!win) return;
+            void runLegacyGatewayStop(win);
+          },
+        },
+        {
+          label: "Uninstall legacy gateway service…",
+          click: () => {
+            if (!win) return;
+            void runLegacyGatewayUninstall(win);
           },
         },
       ],
@@ -617,6 +721,14 @@ async function main() {
 
   ipcMain.handle("openclawDesktop.gatewayUninstall", async (_event, opts) => {
     return await runGatewayUninstall(win, opts && typeof opts === "object" ? opts : {});
+  });
+
+  ipcMain.handle("openclawDesktop.legacyGatewayStop", async () => {
+    return await runLegacyGatewayStop(win);
+  });
+
+  ipcMain.handle("openclawDesktop.legacyGatewayUninstall", async () => {
+    return await runLegacyGatewayUninstall(win);
   });
 
   // Note: Control UI uses History API; our local server supports SPA fallback.
