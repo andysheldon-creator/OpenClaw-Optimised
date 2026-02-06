@@ -714,7 +714,7 @@ export function applyAuthProfileConfig(
  * Apply OVHcloud provider configuration without changing the default model.
  * Registers OVHcloud models and sets up the provider, but preserves existing model selection.
  */
-export function applyOvhcloudProviderConfig(cfg: ClawdbotConfig): ClawdbotConfig {
+export function applyOvhcloudProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[OVHCLOUD_DEFAULT_MODEL_REF] = {
     ...models[OVHCLOUD_DEFAULT_MODEL_REF],
@@ -761,7 +761,7 @@ export function applyOvhcloudProviderConfig(cfg: ClawdbotConfig): ClawdbotConfig
  * Apply OVHcloud provider configuration AND set OVHcloud as the default model.
  * Use this when OVHcloud is the primary provider choice during onboarding.
  */
-export function applyOvhcloudConfig(cfg: ClawdbotConfig): ClawdbotConfig {
+export function applyOvhcloudConfig(cfg: OpenClawConfig): OpenClawConfig {
   const next = applyOvhcloudProviderConfig(cfg);
   const existingModel = next.agents?.defaults?.model;
   return {
