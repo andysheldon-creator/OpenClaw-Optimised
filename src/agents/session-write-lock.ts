@@ -205,15 +205,19 @@ export async function acquireSessionWriteLock(params: {
           return {
             release: async () => {
               const current = HELD_LOCKS.get(normalizedSessionFile);
-              if (!current) return;
+              if (!current) {
+                return;
+              }
               current.count -= 1;
-              if (current.count > 0) return;
+              if (current.count > 0) { 
+                return;
+              }
               HELD_LOCKS.delete(normalizedSessionFile);
               await current.handle.close();
               await fs.rm(current.lockPath, { force: true });
             },
           };
-        } catch (takeoverErr) {
+        } catch {
           // Cleanup temp file if takeover failed
           await fs.rm(tempLockPath, { force: true }).catch(() => {});
           // Another process won the race, continue waiting
