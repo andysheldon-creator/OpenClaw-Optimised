@@ -60,6 +60,8 @@ export type MsgContext = {
   ForwardedFromMessageId?: number;
   ForwardedDate?: number;
   ThreadStarterBody?: string;
+  /** Full thread history when starting a new thread session. */
+  ThreadHistoryBody?: string;
   ThreadLabel?: string;
   MediaPath?: string;
   MediaUrl?: string;
