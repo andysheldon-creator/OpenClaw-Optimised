@@ -125,4 +125,42 @@ describe("isTransientNetworkError", () => {
     const error = new AggregateError([new Error("regular error")], "Multiple errors");
     expect(isTransientNetworkError(error)).toBe(false);
   });
+
+  it("returns true for Slack SDK wrapped errors with .original containing network code", () => {
+    // Slack SDK stores the original error in `.original` instead of `.cause`
+    const original = Object.assign(new Error("getaddrinfo ENOTFOUND slack.com"), {
+      code: "ENOTFOUND",
+    });
+    const error = Object.assign(
+      new Error("A request error occurred: getaddrinfo ENOTFOUND slack.com"),
+      { code: "slack_webapi_request_error", original },
+    );
+    expect(isTransientNetworkError(error)).toBe(true);
+  });
+
+  it("returns true for Slack socket-mode wrapped errors with .original", () => {
+    const original = Object.assign(new Error("getaddrinfo ENOTFOUND slack.com"), {
+      code: "ENOTFOUND",
+    });
+    const error = Object.assign(new Error("getaddrinfo ENOTFOUND slack.com"), {
+      code: "slack_socket_mode_websocket_error",
+      original,
+    });
+    expect(isTransientNetworkError(error)).toBe(true);
+  });
+
+  it("returns true for errors with network error messages but no code", () => {
+    const error = new Error("A request error occurred: getaddrinfo ENOTFOUND slack.com");
+    expect(isTransientNetworkError(error)).toBe(true);
+  });
+
+  it("returns true for errors with socket hang up message", () => {
+    const error = new Error("socket hang up");
+    expect(isTransientNetworkError(error)).toBe(true);
+  });
+
+  it("returns true for errors with connect ECONNREFUSED message", () => {
+    const error = new Error("connect ECONNREFUSED 127.0.0.1:443");
+    expect(isTransientNetworkError(error)).toBe(true);
+  });
 });

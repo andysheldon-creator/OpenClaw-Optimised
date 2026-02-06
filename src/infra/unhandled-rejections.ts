@@ -35,11 +35,28 @@ const TRANSIENT_NETWORK_CODES = new Set([
   "UND_ERR_BODY_TIMEOUT",
 ]);
 
+// Message substrings that indicate transient network failures even when the
+// error code is missing (e.g., errors wrapped by third-party SDKs).
+const TRANSIENT_NETWORK_PATTERNS = [
+  "getaddrinfo ENOTFOUND",
+  "getaddrinfo EAI_AGAIN",
+  "connect ECONNREFUSED",
+  "connect ETIMEDOUT",
+  "read ECONNRESET",
+  "socket hang up",
+] as const;
+
 function getErrorCause(err: unknown): unknown {
   if (!err || typeof err !== "object") {
     return undefined;
   }
-  return (err as { cause?: unknown }).cause;
+  // Standard `cause` property (ES2022 Error Cause)
+  const cause = (err as { cause?: unknown }).cause;
+  if (cause !== undefined) {
+    return cause;
+  }
+  // Slack SDK stores the original error in `.original` instead of `.cause`
+  return (err as { original?: unknown }).original;
 }
 
 function extractErrorCodeWithCause(err: unknown): string | undefined {
@@ -112,6 +129,14 @@ export function isTransientNetworkError(err: unknown): boolean {
   // AggregateError may wrap multiple causes
   if (err instanceof AggregateError && err.errors?.length) {
     return err.errors.some((e) => isTransientNetworkError(e));
+  }
+
+  // Message-based fallback: some SDKs embed the original error message without
+  // preserving the code (e.g., Slack SDK "A request error occurred: getaddrinfo ENOTFOUND ...")
+  if (err instanceof Error && err.message) {
+    if (TRANSIENT_NETWORK_PATTERNS.some((pattern) => err.message.includes(pattern))) {
+      return true;
+    }
   }
 
   return false;
