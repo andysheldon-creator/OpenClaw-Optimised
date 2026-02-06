@@ -1,4 +1,5 @@
 import type { Dispatcher } from "undici";
+import { bindAbortRelay } from "../../utils/fetch-timeout.js";
 import {
   closeDispatcher,
   createPinnedDispatcher,
@@ -49,7 +50,7 @@ function buildAbortSignal(params: { timeoutMs?: number; signal?: AbortSignal }):
 
   const controller = new AbortController();
   const timeoutId = setTimeout(controller.abort.bind(controller), timeoutMs);
-  const onAbort = controller.abort.bind(controller);
+  const onAbort = bindAbortRelay(controller);
   if (signal) {
     if (signal.aborted) {
       controller.abort();
