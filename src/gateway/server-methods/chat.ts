@@ -524,12 +524,49 @@ export const chatHandlers: GatewayRequestHandlers = {
         },
       })
         .then(() => {
-          if (!agentRunStarted) {
-            const combinedReply = finalReplyParts
-              .map((part) => part.trim())
-              .filter(Boolean)
-              .join("\n\n")
-              .trim();
+          const combinedReply = finalReplyParts
+            .map((part) => part.trim())
+            .filter(Boolean)
+            .join("\n\n")
+            .trim();
+          context.logGateway.debug(
+            `chat.send .then(): runId=${clientRunId} agentRunStarted=${agentRunStarted} combinedReply.len=${combinedReply.length} finalReplyParts=${finalReplyParts.length} emptyFinal=${context.chatEmptyFinalRuns.has(clientRunId)}`,
+          );
+          // When the streaming lifecycle sent an empty final (e.g. agent used
+          // only tool_use blocks or errored before producing text) but the
+          // dispatch pipeline resolved a reply, send a corrective final so the
+          // WS client receives the actual content.
+          if (agentRunStarted && context.chatEmptyFinalRuns.delete(clientRunId)) {
+            if (combinedReply) {
+              context.logGateway.info(
+                `chat.send corrective final: runId=${clientRunId} len=${combinedReply.length}`,
+              );
+              broadcastChatFinal({
+                context,
+                runId: clientRunId,
+                sessionKey: p.sessionKey,
+                message: {
+                  role: "assistant",
+                  content: [{ type: "text", text: combinedReply }],
+                  timestamp: Date.now(),
+                  stopReason: "corrective",
+                  usage: { input: 0, output: 0, totalTokens: 0 },
+                },
+              });
+            } else {
+              // Agent ran but produced no content at all — send error so the
+              // client doesn't hang on an empty final.
+              context.logGateway.info(
+                `chat.send corrective error (empty reply): runId=${clientRunId}`,
+              );
+              broadcastChatError({
+                context,
+                runId: clientRunId,
+                sessionKey: p.sessionKey,
+                errorMessage: "Agent completed but produced no response. Please try again.",
+              });
+            }
+          } else if (!agentRunStarted) {
             let message: Record<string, unknown> | undefined;
             if (combinedReply) {
               const { storePath: latestStorePath, entry: latestEntry } = loadSessionEntry(
@@ -573,6 +610,9 @@ export const chatHandlers: GatewayRequestHandlers = {
           });
         })
         .catch((err) => {
+          context.logGateway.warn(
+            `chat.send .catch(): runId=${clientRunId} error=${String(err).slice(0, 200)}`,
+          );
           const error = errorShape(ErrorCodes.UNAVAILABLE, String(err));
           context.dedupe.set(`chat:${clientRunId}`, {
             ts: Date.now(),
@@ -593,6 +633,7 @@ export const chatHandlers: GatewayRequestHandlers = {
         })
         .finally(() => {
           context.chatAbortControllers.delete(clientRunId);
+          context.chatEmptyFinalRuns.delete(clientRunId);
         });
     } catch (err) {
       const error = errorShape(ErrorCodes.UNAVAILABLE, String(err));

@@ -4,6 +4,7 @@ import { parseReplyDirectives } from "../auto-reply/reply/reply-directives.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import { createInlineCodeState } from "../markdown/code-spans.js";
 import {
+  formatAssistantErrorText,
   isMessagingToolDuplicateNormalized,
   normalizeTextForComparison,
 } from "./pi-embedded-helpers.js";
@@ -209,6 +210,41 @@ export function handleMessageEnd(
     rawText,
     rawThinking: extractAssistantThinking(assistantMessage),
   });
+
+  const contentTypes = Array.isArray(assistantMessage.content)
+    ? (assistantMessage.content as Array<{ type?: string }>).map((b) => b.type).join(",")
+    : "n/a";
+  const errorMsg = (assistantMessage as { errorMessage?: string }).errorMessage;
+  ctx.log.debug(
+    `handleMessageEnd: runId=${ctx.params.runId} rawText.len=${rawText.length} contentTypes=${contentTypes} stopReason=${assistantMessage.stopReason ?? "?"}${errorMsg ? ` errorMessage=${errorMsg.slice(0, 300)}` : ""}`,
+  );
+
+  // Track the error message so the runner can detect mid-run errors (e.g. context
+  // overflow after tool calls) that aren't captured by promptError.
+  if (assistantMessage.stopReason === "error" && errorMsg) {
+    ctx.state.lastAssistantErrorMessage = errorMsg;
+  }
+
+  // When the assistant message errored (e.g. context overflow) and produced no text,
+  // emit a synthetic assistant event with the formatted error so the WS streaming
+  // buffer is populated before lifecycle end triggers emitChatFinal.
+  if (
+    assistantMessage.stopReason === "error" &&
+    !rawText.trim() &&
+    !ctx.state.emittedAssistantUpdate
+  ) {
+    const formattedError = formatAssistantErrorText(assistantMessage);
+    if (formattedError) {
+      ctx.log.warn(
+        `emitting synthetic assistant event from error: runId=${ctx.params.runId} len=${formattedError.length}`,
+      );
+      emitAgentEvent({
+        runId: ctx.params.runId,
+        stream: "assistant",
+        data: { text: formattedError, delta: formattedError },
+      });
+    }
+  }
 
   const text = ctx.stripBlockTags(rawText, { thinking: false, final: false });
   const rawThinking =

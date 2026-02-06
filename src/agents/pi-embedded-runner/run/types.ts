@@ -107,4 +107,6 @@ export type EmbeddedRunAttemptResult = {
   cloudCodeAssistFormatError: boolean;
   /** Client tool call detected (OpenResponses hosted tools). */
   clientToolCall?: { name: string; params: Record<string, unknown> };
+  /** Error message from the last assistant message (tracked via subscription events). */
+  lastAssistantErrorMessage?: string;
 };

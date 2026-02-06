@@ -26,6 +26,7 @@ import { resolveOpenClawAgentDir } from "../agent-paths.js";
 import { resolveSessionAgentIds } from "../agent-scope.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../bootstrap-files.js";
 import { listChannelSupportedActions, resolveChannelMessageToolHints } from "../channel-tools.js";
+import { computeAdaptiveChunkRatio, summarizeInStages } from "../compaction.js";
 import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import { resolveOpenClawDocsPath } from "../docs-path.js";
@@ -33,6 +34,7 @@ import { getApiKeyForModel, resolveModelAuthMode } from "../model-auth.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
 import {
   ensureSessionHeader,
+  isContextOverflowError,
   validateAnthropicTurns,
   validateGeminiTurns,
 } from "../pi-embedded-helpers.js";
@@ -434,7 +436,115 @@ export async function compactEmbeddedPiSessionDirect(
         if (limited.length > 0) {
           session.agent.replaceMessages(limited);
         }
-        const result = await session.compact(params.customInstructions);
+        let result: {
+          summary: string;
+          firstKeptEntryId: string;
+          tokensBefore: number;
+          details?: { readFiles?: string[]; modifiedFiles?: string[] };
+        };
+        try {
+          result = (await session.compact(params.customInstructions)) as typeof result;
+        } catch (compactErr) {
+          // When the SDK's built-in compact fails (e.g. summarization prompt too large),
+          // fall back to OpenClaw's own summarizeInStages which chunks the messages
+          // into smaller pieces that each fit within the context window.
+          const errMsg = compactErr instanceof Error ? compactErr.message : String(compactErr);
+          if (
+            !isContextOverflowError(errMsg) &&
+            !errMsg.includes("summarization failed") &&
+            !errMsg.includes("Summarization failed")
+          ) {
+            throw compactErr;
+          }
+          console.warn(
+            `session.compact() failed; falling back to staged summarization: ${errMsg.slice(0, 200)}`,
+          );
+          const pathEntries = sessionManager.getBranch();
+          const messageEntries = pathEntries.filter(
+            (e: { type: string; id?: string }) => e.type === "message" && e.id,
+          );
+          if (messageEntries.length < 4) {
+            throw compactErr;
+          }
+
+          // Find cut point by token budget: keep at most ~40% of context window
+          // worth of recent messages so compaction actually frees enough space.
+          const contextWindow = model.contextWindow ?? 200_000;
+          const keepBudget = Math.floor(contextWindow * 0.4);
+          let keptTokens = 0;
+          let cutIdx = messageEntries.length;
+          for (let i = messageEntries.length - 1; i >= 0; i--) {
+            const entry = messageEntries[i] as {
+              type: string;
+              id: string;
+              message?: import("@mariozechner/pi-agent-core").AgentMessage;
+            };
+            if (entry.message) {
+              const msgTokens = estimateTokens(entry.message);
+              if (keptTokens + msgTokens > keepBudget && cutIdx < messageEntries.length) {
+                break;
+              }
+              keptTokens += msgTokens;
+            }
+            cutIdx = i;
+          }
+          // Ensure we cut at least something
+          if (cutIdx >= messageEntries.length - 1) {
+            cutIdx = Math.max(0, messageEntries.length - 2);
+          }
+          const cutEntry = messageEntries[cutIdx];
+          if (!cutEntry?.id) {
+            throw compactErr;
+          }
+
+          // Collect messages to summarize (everything before cut point)
+          const cutPathIndex = pathEntries.indexOf(cutEntry);
+          const messagesToSummarize = pathEntries
+            .slice(0, cutPathIndex)
+            .filter(
+              (
+                e,
+              ): e is typeof e & { message: import("@mariozechner/pi-agent-core").AgentMessage } =>
+                "message" in e && e.type === "message" && !!e.message,
+            )
+            .map((e) => e.message);
+
+          let tokensBefore = 0;
+          try {
+            for (const msg of session.messages) {
+              tokensBefore += estimateTokens(msg);
+            }
+          } catch {
+            /* ignore */
+          }
+          console.warn(
+            `staged compaction: total=${tokensBefore} kept=${keptTokens} cutIdx=${cutIdx}/${messageEntries.length} toSummarize=${messagesToSummarize.length}`,
+          );
+
+          const apiKey = await modelRegistry.getApiKey(model);
+          if (!apiKey) {
+            throw compactErr;
+          }
+          const adaptiveRatio = computeAdaptiveChunkRatio(messagesToSummarize, contextWindow);
+          const maxChunkTokens = Math.max(1, Math.floor(contextWindow * adaptiveRatio));
+          const reserveTokens = Math.max(1, Math.floor(contextWindow * 0.1));
+
+          const summary = await summarizeInStages({
+            messages: messagesToSummarize,
+            model,
+            apiKey,
+            signal: AbortSignal.timeout(180_000),
+            reserveTokens,
+            maxChunkTokens,
+            contextWindow,
+            customInstructions: params.customInstructions,
+          });
+
+          sessionManager.appendCompaction(summary, cutEntry.id, tokensBefore);
+          const ctx = sessionManager.buildSessionContext();
+          session.agent.replaceMessages(ctx.messages);
+          result = { summary, firstKeptEntryId: cutEntry.id, tokensBefore };
+        }
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;
         try {

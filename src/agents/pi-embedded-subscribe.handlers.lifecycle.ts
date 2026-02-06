@@ -59,7 +59,29 @@ export function handleAutoCompactionEnd(
 }
 
 export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
-  ctx.log.debug(`embedded run agent end: runId=${ctx.params.runId}`);
+  ctx.log.debug(
+    `embedded run agent end: runId=${ctx.params.runId} assistantTexts=${ctx.state.assistantTexts.length} messagingToolSentTexts=${ctx.state.messagingToolSentTexts.length}`,
+  );
+
+  // When the agent delivered its response via a messaging tool (e.g. sessions_send)
+  // and no assistant text was streamed (tool_use-only assistant messages), emit a
+  // synthetic assistant event so the WS streaming buffer gets populated before
+  // lifecycle end triggers emitChatFinal. Without this, webchat clients receive
+  // an empty chat final. Mirrors the CLI backend fallback in agent-runner-execution.ts.
+  if (ctx.state.messagingToolSentTexts.length > 0 && ctx.state.assistantTexts.length === 0) {
+    const syntheticText = ctx.state.messagingToolSentTexts.join("\n\n").trim();
+    if (syntheticText) {
+      ctx.log.debug(
+        `emitting synthetic assistant event from messaging tool text: runId=${ctx.params.runId} len=${syntheticText.length}`,
+      );
+      emitAgentEvent({
+        runId: ctx.params.runId,
+        stream: "assistant",
+        data: { text: syntheticText, delta: syntheticText },
+      });
+    }
+  }
+
   emitAgentEvent({
     runId: ctx.params.runId,
     stream: "lifecycle",

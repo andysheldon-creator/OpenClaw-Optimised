@@ -371,7 +371,14 @@ export async function runEmbeddedPiAgent(
             enforceFinalTag: params.enforceFinalTag,
           });
 
-          const { aborted, promptError, timedOut, sessionIdUsed, lastAssistant } = attempt;
+          const {
+            aborted,
+            promptError,
+            timedOut,
+            sessionIdUsed,
+            lastAssistant,
+            lastAssistantErrorMessage,
+          } = attempt;
 
           if (promptError && !aborted) {
             const errorText = describeUnknownError(promptError);
@@ -547,6 +554,55 @@ export async function runEmbeddedPiAgent(
             );
             thinkLevel = fallbackThinking;
             continue;
+          }
+
+          // Handle context overflow that occurred mid-run (e.g. after tool calls
+          // added tokens that pushed the context over the limit). The promptError
+          // path only catches overflow on the initial prompt; this catches it when
+          // the agent's second+ turn exceeds the limit.
+          // NOTE: We use lastAssistantErrorMessage from subscription events because
+          // the Pi agent core discards errored messages from session.messages,
+          // so lastAssistant (from messagesSnapshot) won't have the error.
+          if (
+            !aborted &&
+            lastAssistantErrorMessage &&
+            isContextOverflowError(lastAssistantErrorMessage) &&
+            overflowCompactionAttempts < MAX_OVERFLOW_COMPACTION_ATTEMPTS
+          ) {
+            overflowCompactionAttempts++;
+            log.warn(
+              `mid-run context overflow detected (attempt ${overflowCompactionAttempts}/${MAX_OVERFLOW_COMPACTION_ATTEMPTS}); attempting auto-compaction for ${provider}/${modelId}`,
+            );
+            const compactResult = await compactEmbeddedPiSessionDirect({
+              sessionId: params.sessionId,
+              sessionKey: params.sessionKey,
+              messageChannel: params.messageChannel,
+              messageProvider: params.messageProvider,
+              agentAccountId: params.agentAccountId,
+              authProfileId: lastProfileId,
+              sessionFile: params.sessionFile,
+              workspaceDir: params.workspaceDir,
+              agentDir,
+              config: params.config,
+              skillsSnapshot: params.skillsSnapshot,
+              senderIsOwner: params.senderIsOwner,
+              provider,
+              model: modelId,
+              thinkLevel,
+              reasoningLevel: params.reasoningLevel,
+              bashElevated: params.bashElevated,
+              extraSystemPrompt: params.extraSystemPrompt,
+              ownerNumbers: params.ownerNumbers,
+            });
+            if (compactResult.compacted) {
+              log.info(
+                `mid-run auto-compaction succeeded for ${provider}/${modelId}; retrying prompt`,
+              );
+              continue;
+            }
+            log.warn(
+              `mid-run auto-compaction failed for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
+            );
           }
 
           const authFailure = isAuthAssistantError(lastAssistant);

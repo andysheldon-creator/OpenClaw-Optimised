@@ -648,6 +648,7 @@ export async function runEmbeddedAttempt(
         getMessagingToolSentTargets,
         didSendViaMessagingTool,
         getLastToolError,
+        getLastAssistantErrorMessage,
       } = subscription;
 
       const queueHandle: EmbeddedPiQueueHandle = {
@@ -893,6 +894,7 @@ export async function runEmbeddedAttempt(
         toolMetas: toolMetasNormalized,
         lastAssistant,
         lastToolError: getLastToolError?.(),
+        lastAssistantErrorMessage: getLastAssistantErrorMessage?.(),
         didSendViaMessagingTool: didSendViaMessagingTool(),
         messagingToolSentTexts: getMessagingToolSentTexts(),
         messagingToolSentTargets: getMessagingToolSentTargets(),

@@ -60,6 +60,8 @@ export type EmbeddedPiSubscribeState = {
   messagingToolSentTargets: MessagingToolSend[];
   pendingMessagingTexts: Map<string, string>;
   pendingMessagingTargets: Map<string, MessagingToolSend>;
+  /** Error message from the last assistant message with stopReason=error. */
+  lastAssistantErrorMessage?: string;
 };
 
 export type EmbeddedPiSubscribeContext = {

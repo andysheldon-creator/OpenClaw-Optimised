@@ -95,6 +95,8 @@ export type ChatRunState = {
   buffers: Map<string, string>;
   deltaSentAt: Map<string, number>;
   abortedRuns: Map<string, number>;
+  /** Runs where emitChatFinal sent an empty (no content) final. */
+  emptyFinalRuns: Set<string>;
   clear: () => void;
 };
 
@@ -103,12 +105,14 @@ export function createChatRunState(): ChatRunState {
   const buffers = new Map<string, string>();
   const deltaSentAt = new Map<string, number>();
   const abortedRuns = new Map<string, number>();
+  const emptyFinalRuns = new Set<string>();
 
   const clear = () => {
     registry.clear();
     buffers.clear();
     deltaSentAt.clear();
     abortedRuns.clear();
+    emptyFinalRuns.clear();
   };
 
   return {
@@ -116,6 +120,7 @@ export function createChatRunState(): ChatRunState {
     buffers,
     deltaSentAt,
     abortedRuns,
+    emptyFinalRuns,
     clear,
   };
 }
@@ -264,6 +269,9 @@ export function createAgentEventHandler({
     chatRunState.buffers.delete(clientRunId);
     chatRunState.deltaSentAt.delete(clientRunId);
     if (jobState === "done") {
+      if (!text) {
+        chatRunState.emptyFinalRuns.add(clientRunId);
+      }
       const payload = {
         runId: clientRunId,
         sessionKey,
