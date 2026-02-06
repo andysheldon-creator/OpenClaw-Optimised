@@ -1,24 +1,17 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createOpenClawCodingTools } from "./pi-tools.js";
 
-const previousBundledPluginsDir = process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+vi.mock("../plugins/tools.js", () => ({
+  getPluginToolMeta: () => undefined,
+  resolvePluginTools: () => [],
+}));
 
-beforeAll(() => {
-  process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = path.join(
-    os.tmpdir(),
-    "openclaw-test-no-bundled-extensions",
-  );
-});
-
-afterAll(() => {
-  if (previousBundledPluginsDir === undefined) {
-    delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
-  } else {
-    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = previousBundledPluginsDir;
-  }
+vi.mock("../infra/shell-env.js", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../infra/shell-env.js")>();
+  return { ...mod, getShellPathFromLoginShell: () => null };
 });
 
 async function withTempDir<T>(prefix: string, fn: (dir: string) => Promise<T>) {
@@ -113,7 +106,7 @@ describe("workspace path resolution", () => {
 
   it("defaults exec cwd to workspaceDir when workdir is omitted", async () => {
     await withTempDir("openclaw-ws-", async (workspaceDir) => {
-      const tools = createOpenClawCodingTools({ workspaceDir });
+      const tools = createOpenClawCodingTools({ workspaceDir, exec: { host: "gateway" } });
       const execTool = tools.find((tool) => tool.name === "exec");
       expect(execTool).toBeDefined();
 
@@ -136,7 +129,7 @@ describe("workspace path resolution", () => {
   it("lets exec workdir override the workspace default", async () => {
     await withTempDir("openclaw-ws-", async (workspaceDir) => {
       await withTempDir("openclaw-override-", async (overrideDir) => {
-        const tools = createOpenClawCodingTools({ workspaceDir });
+        const tools = createOpenClawCodingTools({ workspaceDir, exec: { host: "gateway" } });
         const execTool = tools.find((tool) => tool.name === "exec");
         expect(execTool).toBeDefined();
 
