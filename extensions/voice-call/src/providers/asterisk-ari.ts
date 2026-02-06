@@ -1,6 +1,12 @@
 import dgram from "node:dgram";
 import crypto from "node:crypto";
 import WebSocket from "ws";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { tmpdir } from "node:os";
+import { join as joinPath } from "node:path";
+import { randomUUID } from "node:crypto";
+import { readFile, unlink } from "node:fs/promises";
 
 import type { VoiceCallConfig } from "../config.js";
 import type { CallManager } from "../manager.js";
@@ -30,6 +36,8 @@ type AriEvent = {
   channel?: { id: string; name?: string; state?: string; caller?: { number?: string }; connected?: { number?: string } };
   args?: string[];
 };
+
+const execFileAsync = promisify(execFile);
 
 function nowMs(): number {
   return Date.now();
@@ -109,6 +117,13 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     }
   >();
 
+  // Outbound calls: we need to wait for StasisStart before issuing bridge/externalMedia actions.
+  private pendingStasisStart = new Map<
+    string,
+    { resolve: () => void; reject: (err: Error) => void; timeout: NodeJS.Timeout }
+  >();
+
+
   constructor(params: { config: VoiceCallConfig; manager: CallManager }) {
     const a = params.config.asteriskAri;
     if (!a) {
@@ -132,6 +147,74 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     return { events: [], statusCode: 200, providerResponseBody: "OK" };
   }
 
+
+
+  private async safeHangupChannel(channelId: string | undefined) {
+    const id = (channelId || "").trim();
+    if (!id) return;
+
+    // ARI supports different hangup semantics depending on channel type.
+    // - Normal SIP channels generally work with POST /channels/{id}/hangup
+    // - ExternalMedia (UnicastRTP/...) often does NOT expose /hangup and must be deleted: DELETE /channels/{id}
+    try {
+      await ariFetchJson({
+        baseUrl: this.cfg.baseUrl,
+        username: this.cfg.username,
+        password: this.cfg.password,
+        path: "/channels/" + encodeURIComponent(id) + "/hangup",
+        method: "POST",
+      });
+      return;
+    } catch {
+      // fall through
+    }
+
+    try {
+      await ariFetchJson({
+        baseUrl: this.cfg.baseUrl,
+        username: this.cfg.username,
+        password: this.cfg.password,
+        path: "/channels/" + encodeURIComponent(id),
+        method: "DELETE",
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  private async cleanupStaleExternalMedia() {
+    // Kill any orphaned UnicastRTP channels that are still in our Stasis app.
+    // This can happen if the gateway restarts or ARI WS drops before we get StasisEnd.
+    const channels = await ariFetchJson({
+      baseUrl: this.cfg.baseUrl,
+      username: this.cfg.username,
+      password: this.cfg.password,
+      path: "/channels",
+      method: "GET",
+    });
+
+    if (!Array.isArray(channels)) return;
+
+    const activeExt = new Set<string>();
+    for (const st of this.callMap.values()) {
+      if (st.extChannelId) activeExt.add(st.extChannelId);
+    }
+
+    for (const ch of channels) {
+      const id = String((ch as any)?.id || "");
+      const name = String((ch as any)?.name || "");
+      const dp = (ch as any)?.dialplan || undefined;
+      const appName = String(dp?.app_name || "");
+      const appData = String(dp?.app_data || "");
+      if (!id || !name) continue;
+      // ExternalMedia channels show up as dialplan Stasis(<app>) in ARI channel.dialplan fields.
+      if (appName != "Stasis" || appData !== this.cfg.app) continue;
+      if (!name.startsWith("UnicastRTP/")) continue;
+      if (activeExt.has(id)) continue;
+      await this.safeHangupChannel(id);
+    }
+  }
+
   private connectWs() {
     const base = this.cfg.baseUrl.replace(/\/$/, "");
     const wsBase = base.replace(/^http/, "ws");
@@ -140,7 +223,10 @@ export class AsteriskAriProvider implements VoiceCallProvider {
 
     this.ws = new WebSocket(url);
     this.ws.on("open", () => {
-      // ok
+      // Best-effort recovery: if the gateway previously crashed or missed StasisEnd events,
+      // Asterisk may still have orphaned UnicastRTP ExternalMedia channels in our Stasis app.
+      // Clean them up to avoid leaking channels and breaking RTP peer learning.
+      void this.cleanupStaleExternalMedia().catch(() => undefined);
     });
     this.ws.on("message", (data) => {
       let evt: AriEvent | null = null;
@@ -162,6 +248,24 @@ export class AsteriskAriProvider implements VoiceCallProvider {
   }
 
   private onAriEvent(evt: AriEvent) {
+    // Outbound: resolve pending promise when the originated channel enters our Stasis app.
+    if (evt.type === "StasisStart" && evt.channel?.id) {
+      const chName = evt.channel?.name || "";
+      // Only treat real inbound SIP calls as inbound. ExternalMedia (UnicastRTP/...) also enters Stasis and must be ignored,
+      // otherwise we recursively create more ExternalMedia channels and leak resources.
+      if (!chName.startsWith("PJSIP/")) {
+        return;
+      }
+
+      const pending = this.pendingStasisStart.get(evt.channel.id);
+      if (pending) {
+        clearTimeout(pending.timeout);
+        this.pendingStasisStart.delete(evt.channel.id);
+        pending.resolve();
+        return;
+      }
+    }
+
     if (evt.type === "StasisStart" && evt.channel?.id) {
       // inbound call into this Stasis app
       const sipChannelId = evt.channel.id;
@@ -194,18 +298,40 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     }
 
     if (evt.type === "StasisEnd" && evt.channel?.id) {
-      const providerCallId = evt.channel.id;
-      const st = this.callMap.get(providerCallId);
-      if (!st) return;
-      this.manager.processEvent(
-        makeEvent({
-          type: "call.ended",
-          callId: st.callId,
-          providerCallId,
-          reason: "completed",
-        }),
-      );
-      this.cleanup(providerCallId).catch(() => undefined);
+      const channelId = evt.channel.id;
+
+      // Inbound: providerCallId == sip channel id
+      if (this.callMap.has(channelId)) {
+        const providerCallId = channelId;
+        const st = this.callMap.get(providerCallId);
+        if (!st) return;
+        this.manager.processEvent(
+          makeEvent({
+            type: "call.ended",
+            callId: st.callId,
+            providerCallId,
+            reason: "completed",
+          }),
+        );
+        this.cleanup(providerCallId).catch(() => undefined);
+        return;
+      }
+
+      // Outbound: providerCallId is a UUID; find matching state by sipChannelId
+      for (const [providerCallId, st] of this.callMap.entries()) {
+        if (st.sipChannelId === channelId) {
+          this.manager.processEvent(
+            makeEvent({
+              type: "call.ended",
+              callId: st.callId,
+              providerCallId,
+              reason: "completed",
+            }),
+          );
+          this.cleanup(providerCallId).catch(() => undefined);
+          return;
+        }
+      }
     }
   }
 
@@ -295,7 +421,23 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     // STT session
     const apiKey = (process.env.OPENAI_API_KEY || "").trim();
     if (!apiKey) {
-      throw new Error("OPENAI_API_KEY missing");
+      // Allow basic call bridging even when STT is not configured.
+      // (Streaming/STT can be enabled later by providing OPENAI_API_KEY.)
+      this.manager.processEvent(
+        makeEvent({
+          type: "call.answered",
+          callId: st.callId,
+          providerCallId,
+        }),
+      );
+      this.manager.processEvent(
+        makeEvent({
+          type: "call.active",
+          callId: st.callId,
+          providerCallId,
+        }),
+      );
+      return;
     }
     const sttProvider = new OpenAIRealtimeSTTProvider({
       apiKey,
@@ -373,7 +515,14 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     );
 
     // Originate channel into Stasis app
-    const endpoint = "PJSIP/" + this.cfg.trunk + "/" + input.to;
+    // - If `to` already looks like a full dialstring (e.g. "PJSIP/1000" or "Local/1000@default"), use it as-is.
+    // - Else, if trunk is configured, dial through it: PJSIP/<trunk>/<to>
+    // - Else, dial the endpoint directly: PJSIP/<to>
+    const endpoint = input.to.includes("/")
+      ? input.to
+      : (this.cfg.trunk?.trim()
+          ? `PJSIP/${this.cfg.trunk}/${input.to}`
+          : `PJSIP/${input.to}`);
     const ch = await ariFetchJson({
       baseUrl: this.cfg.baseUrl,
       username: this.cfg.username,
@@ -401,8 +550,24 @@ export class AsteriskAriProvider implements VoiceCallProvider {
       }),
     );
 
-    // setup extMedia + stt session
-    await this.setupConversation({ providerCallId, sipChannelId, isOutbound: true });
+    // Wait until channel is actually in our Stasis app (avoids 422 Channel not in Stasis application).
+    // Best-effort: if it never enters Stasis, we still let the outbound call ring (basic telephony works).
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          const pending = this.pendingStasisStart.get(sipChannelId);
+          if (pending) clearTimeout(pending.timeout);
+          this.pendingStasisStart.delete(sipChannelId);
+          reject(new Error("Timed out waiting for StasisStart"));
+        }, 8000);
+        this.pendingStasisStart.set(sipChannelId, { resolve, reject, timeout });
+      });
+
+      // setup extMedia + (optional) STT session
+      await this.setupConversation({ providerCallId, sipChannelId, isOutbound: true });
+    } catch {
+      // Degrade gracefully: call may still be ringing/answered outside Stasis.
+    }
 
     return { providerCallId, status: "initiated" } as any;
   }
@@ -429,15 +594,27 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     if (!st) return;
 
     const apiKey = (process.env.OPENAI_API_KEY || "").trim();
-    if (!apiKey) {
-      throw new Error("OPENAI_API_KEY missing");
-    }
 
-    // Generate PCM 24k
-    const tts = new OpenAITTSProvider({ apiKey });
-    const pcm24k = await tts.synthesize(input.text);
-    // Convert to mulaw 8k
-    const mulaw = convertPcmToMulaw8k(pcm24k, 24000);
+    let mulaw: Buffer;
+    if (apiKey) {
+      const tts = new OpenAITTSProvider({ apiKey });
+      const pcm24k = await tts.synthesize(input.text);
+      mulaw = convertPcmToMulaw8k(pcm24k, 24000);
+    } else {
+      const wavPath = joinPath(tmpdir(), `openclaw-tts-${randomUUID()}.wav`);
+      try {
+        await execFileAsync("espeak-ng", ["-w", wavPath, input.text]);
+        const wav = await readFile(wavPath);
+        const { stdout } = await execFileAsync(
+          "sox",
+          ["-t", "wav", "-", "-t", "raw", "-r", "8000", "-c", "1", "-e", "mu-law", "-b", "8", "-"],
+          { input: wav, maxBuffer: 50 * 1024 * 1024 } as any,
+        );
+        mulaw = Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout);
+      } finally {
+        try { await unlink(wavPath); } catch {}
+      }
+    }
 
     // Stream as RTP 20ms frames
     st.speaking = true;
@@ -508,7 +685,15 @@ export class AsteriskAriProvider implements VoiceCallProvider {
       // ignore
     }
 
-    // Best-effort destroy bridge/ext
+    // Best-effort tear down in reverse order.
+    // IMPORTANT: ExternalMedia (UnicastRTP/...) can remain alive even if the bridge is deleted.
+    // Always try to hang up the external channel to avoid leaking UnicastRTP channels.
+    await this.safeHangupChannel(st.extChannelId);
+
+    // Optionally hang up the SIP channel as well (bridge deletion + SIP hangup should end the call anyway).
+    // This is best-effort; if the call was already hung up, ARI will error.
+    await this.safeHangupChannel(st.sipChannelId);
+
     try {
       if (st.bridgeId) {
         await ariFetchJson({
