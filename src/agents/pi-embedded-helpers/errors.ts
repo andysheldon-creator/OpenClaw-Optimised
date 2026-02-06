@@ -403,7 +403,14 @@ export function sanitizeUserFacingText(text: string): string {
     );
   }
 
-  if (isContextOverflowError(trimmed)) {
+  // Avoid rewriting normal conversations that happen to mention "Context overflow"
+  // (e.g., users asking about the error itself). Only rewrite when the text looks
+  // like a standalone error line.
+  const looksLikeStandaloneError =
+    ERROR_PREFIX_RE.test(trimmed) ||
+    HTTP_STATUS_PREFIX_RE.test(trimmed) ||
+    /^context overflow\s*[:\-—]/i.test(trimmed);
+  if (looksLikeStandaloneError && isContextOverflowError(trimmed)) {
     return (
       "Context overflow: prompt too large for the model. " +
       "Try again with less input or a larger-context model."

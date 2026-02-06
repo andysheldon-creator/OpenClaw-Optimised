@@ -28,6 +28,23 @@ describe("sanitizeUserFacingText", () => {
     expect(sanitizeUserFacingText(raw)).toBe("LLM error server_error: Something exploded");
   });
 
+  it("does not rewrite normal text that mentions context overflow", () => {
+    const text = "Can you explain what 'Context overflow' means and how to avoid it?";
+    expect(sanitizeUserFacingText(text)).toBe(text);
+  });
+
+  it("rewrites standalone context overflow error lines", () => {
+    expect(sanitizeUserFacingText("Context overflow: prompt too large")).toContain(
+      "Context overflow: prompt too large for the model.",
+    );
+    expect(sanitizeUserFacingText("400 Context overflow: prompt too large")).toContain(
+      "Context overflow: prompt too large for the model.",
+    );
+    expect(sanitizeUserFacingText("Error: Context overflow: prompt too large")).toContain(
+      "Context overflow: prompt too large for the model.",
+    );
+  });
+
   it("collapses consecutive duplicate paragraphs", () => {
     const text = "Hello there!\n\nHello there!";
     expect(sanitizeUserFacingText(text)).toBe("Hello there!");
