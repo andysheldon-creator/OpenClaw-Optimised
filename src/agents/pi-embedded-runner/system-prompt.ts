@@ -6,6 +6,7 @@ import type { ResolvedTimeFormat } from "../date-time.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
 import type { ReasoningLevel, ThinkLevel } from "./utils.js";
+import { isFeatureEnabled } from "../../config/types.debugging.js";
 import {
   isProgressiveMemoryEnabled,
   resolveProgressiveMemoryIndex,
@@ -58,6 +59,8 @@ export async function buildEmbeddedSystemPrompt(params: {
   const hasProgressiveTools = params.tools.some(
     (tool) => tool.name === "memory_recall" || tool.name === "memory_store",
   );
+  const debugIndex =
+    params.config && isFeatureEnabled(params.config.debugging, "progressive-memory-index");
   const progressiveMemoryIndex =
     params.config && hasProgressiveTools && isProgressiveMemoryEnabled(params.config)
       ? await resolveProgressiveMemoryIndex({
@@ -65,6 +68,16 @@ export async function buildEmbeddedSystemPrompt(params: {
           agentId: params.runtimeInfo.agentId,
         })
       : undefined;
+  if (debugIndex) {
+    const toolNames = params.tools.map((tool) => tool.name);
+    const enabled =
+      Boolean(params.config && isProgressiveMemoryEnabled(params.config)) && hasProgressiveTools;
+    const indexChars = progressiveMemoryIndex?.length ?? 0;
+    console.debug(
+      "[progressive-memory-index] embedded system prompt",
+      JSON.stringify({ enabled, toolNames, indexChars }),
+    );
+  }
 
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,

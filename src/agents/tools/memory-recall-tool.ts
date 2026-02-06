@@ -17,6 +17,8 @@ import type {
 } from "../../memory/progressive-types.js";
 import type { MemoryProviderStatus, MemorySearchResult } from "../../memory/types.js";
 import type { AnyAgentTool } from "./common.js";
+import { isFeatureEnabled } from "../../config/types.debugging.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { getMemorySearchManager } from "../../memory/index.js";
 import { getProgressiveStore } from "../../memory/progressive-manager.js";
 import { PRIORITY_ORDER } from "../../memory/progressive-types.js";
@@ -25,6 +27,7 @@ import { jsonResult, readStringParam, readStringArrayParam, readNumberParam } fr
 
 /** Approximate chars per token for budget calculations. */
 const CHARS_PER_TOKEN = 4;
+const log = createSubsystemLogger("memory");
 
 const MemoryRecallSchema = Type.Object({
   query: Type.String({ description: "Natural language query for memory recall" }),
@@ -128,6 +131,13 @@ export function createMemoryRecallTool(options: {
           query,
           resultsCount: budgetedEntries.length,
         });
+        if (fallback && isFeatureEnabled(cfg.debugging, "memory-recall-fallback")) {
+          log.debug?.("memory_recall fallback used", {
+            results: budgetedEntries.length,
+            fallbackResults: "results" in fallback ? fallback.results.length : 0,
+            error: "error" in fallback ? fallback.error : undefined,
+          });
+        }
 
         return jsonResult({
           entries: budgetedEntries,
