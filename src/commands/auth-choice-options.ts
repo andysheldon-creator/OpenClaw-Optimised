@@ -22,6 +22,7 @@ export type AuthChoiceGroupId =
   | "minimax"
   | "synthetic"
   | "venice"
+  | "apertis"
   | "qwen"
   | "xai";
 
@@ -129,6 +130,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     choices: ["venice-api-key"],
   },
   {
+    value: "apertis",
+    label: "Apertis AI",
+    hint: "API key (multi-model proxy)",
+    choices: ["apertis-api-key"],
+  },
+  {
     value: "cloudflare-ai-gateway",
     label: "Cloudflare AI Gateway",
     hint: "Account ID + Gateway ID + API key",
@@ -180,6 +187,11 @@ export function buildAuthChoiceOptions(params: {
     value: "venice-api-key",
     label: "Venice AI API key",
     hint: "Privacy-focused inference (uncensored models)",
+  });
+  options.push({
+    value: "apertis-api-key",
+    label: "Apertis AI API key",
+    hint: "Multi-model proxy with dynamic discovery",
   });
   options.push({
     value: "github-copilot",
