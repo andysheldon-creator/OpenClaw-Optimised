@@ -167,7 +167,8 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
           log,
           getStatus: () => getRuntime(channelId, id),
           setStatus: (next) => setRuntime(channelId, id, next),
-          onMessage: (msg: ReplyPayload) => handleChannelMessage?.(channelId, id, msg),
+          onMessage: (msg: ChannelMessage) =>
+            handleChannelMessage?.(channelId, id, msg),
         });
         const tracked = Promise.resolve(task)
           .catch((err) => {
