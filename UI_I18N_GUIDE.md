@@ -29,11 +29,11 @@ OpenClaw UI 现在支持多语言功能，目前已实现英文和中文两种�
 
 ```typescript
 // 在组件中使用翻译
-import { t } from './i18n/i18n-manager';
+import { t } from "./i18n/i18n-manager";
 
 // 使用示例
-const buttonText = t('common.save');  // "Save" 或 "保存"
-const pageTitle = t('pageTitles.overview');  // "Overview" 或 "概览"
+const buttonText = t("common.save"); // "Save" 或 "保存"
+const pageTitle = t("pageTitles.overview"); // "Overview" 或 "概览"
 ```
 
 ## 添加新语言

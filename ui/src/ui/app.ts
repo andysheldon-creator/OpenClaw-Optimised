@@ -77,10 +77,8 @@ import {
   type CompactionStatus,
 } from "./app-tool-stream.ts";
 import { resolveInjectedAssistantIdentity } from "./assistant-identity.ts";
-import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
-import { i18n, type Locale } from "./i18n/i18n-manager.ts";
 
 declare global {
   interface Window {
@@ -148,6 +146,7 @@ export class OpenClawApp extends LitElement {
   @state() devicesLoading = false;
   @state() devicesError: string | null = null;
   @state() devicesList: DevicePairingList | null = null;
+  private boundHandleLocaleChange = this.handleLocaleChange.bind(this);
   @state() execApprovalsLoading = false;
   @state() execApprovalsSaving = false;
   @state() execApprovalsDirty = false;
@@ -353,14 +352,14 @@ export class OpenClawApp extends LitElement {
     handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
 
     // Listen for locale changes to trigger UI update
-    window.addEventListener('localeChanged', this.handleLocaleChange.bind(this));
+    window.addEventListener("localeChanged", this.boundHandleLocaleChange);
   }
 
   protected firstUpdated() {
     handleFirstUpdated(this as unknown as Parameters<typeof handleFirstUpdated>[0]);
   }
 
-  private handleLocaleChange(e: Event) {
+  private handleLocaleChange(_event: Event) {
     // Force a re-render when locale changes
     this.requestUpdate();
   }
@@ -370,7 +369,7 @@ export class OpenClawApp extends LitElement {
     super.disconnectedCallback();
 
     // Remove event listener when component is destroyed
-    window.removeEventListener('localeChanged', this.handleLocaleChange.bind(this));
+    window.removeEventListener("localeChanged", this.boundHandleLocaleChange);
   }
 
   protected updated(changed: Map<PropertyKey, unknown>) {

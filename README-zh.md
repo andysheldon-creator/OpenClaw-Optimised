@@ -18,7 +18,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**OpenClaw** 是一款在你自己的设备上运行的_个人AI助手_。
+**OpenClaw** 是一款在你自己的设备上运行的*个人AI助手*。
 它可以在你已经使用的频道上回复你（WhatsApp、Telegram、Slack、Discord、Google Chat、Signal、iMessage、Microsoft Teams、WebChat），还包括BlueBubbles、Matrix、Zalo和Zalo Personal等扩展频道。它可以在macOS/iOS/Android上说话和倾听，并可以渲染你控制的实时Canvas。网关只是控制平面——产品是助手。
 
 如果你想要一个感觉本地化、快速且始终在线的个人单用户助手，这就是它。

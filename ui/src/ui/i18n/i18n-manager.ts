@@ -1,5 +1,5 @@
 // Internationalization manager for OpenClaw UI
-import { locales, defaultLocale } from './locales.js';  // 添加 .js 扩展名
+import { locales, defaultLocale } from "./locales.js"; // 添加 .js 扩展名
 
 export type Locale = keyof typeof locales;
 
@@ -21,7 +21,7 @@ export class I18nManager {
   }
 
   private initLocale() {
-    const storedLocale = localStorage.getItem('openclaw.locale');
+    const storedLocale = localStorage.getItem("openclaw.locale");
     if (storedLocale && storedLocale in locales) {
       this.currentLocale = storedLocale as Locale;
     } else {
@@ -48,13 +48,15 @@ export class I18nManager {
 
     const oldLocale = this.currentLocale;
     this.currentLocale = locale;
-    localStorage.setItem('openclaw.locale', locale);
+    localStorage.setItem("openclaw.locale", locale);
 
     // Dispatch event for UI updates only if locale changed
     if (oldLocale !== locale) {
-      window.dispatchEvent(new CustomEvent('localeChanged', {
-        detail: { locale, oldLocale }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("localeChanged", {
+          detail: { locale, oldLocale },
+        }),
+      );
 
       // Also update the lang attribute on html element for accessibility
       document.documentElement.lang = locale;
@@ -65,11 +67,11 @@ export class I18nManager {
   t(key: string, locale: Locale = this.currentLocale): string {
     try {
       // Split the key by dots to navigate the nested object
-      const keys = key.split('.');
-      let value: any = locales[locale];
+      const keys = key.split(".");
+      let value: unknown = locales[locale];
 
       for (const k of keys) {
-        if (value && typeof value === 'object' && k in value) {
+        if (value && typeof value === "object" && k in value) {
           value = value[k];
         } else {
           // If key not found in current locale, fallback to default
@@ -80,7 +82,7 @@ export class I18nManager {
         }
       }
 
-      return typeof value === 'string' ? value : key;
+      return typeof value === "string" ? value : key;
     } catch (error) {
       console.error(`Error getting translation for key '${key}':`, error);
       return key;

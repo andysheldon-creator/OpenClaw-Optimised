@@ -51,9 +51,9 @@ import {
   updateSkillEnabled,
 } from "./controllers/skills.ts";
 import { loadUsage, loadSessionTimeSeries, loadSessionLogs } from "./controllers/usage.ts";
-import { icons } from "./icons.ts";
-import { normalizeBasePath, TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation.ts";
 import { i18n, t } from "./i18n/i18n-manager.ts";
+import { icons } from "./icons.ts";
+import { normalizeBasePath, TAB_GROUPS } from "./navigation.ts";
 
 // Module-scope debounce for usage date changes (avoids type-unsafe hacks on state object)
 let usageDateDebounceTimeout: number | null = null;
@@ -155,7 +155,7 @@ export function renderApp(state: AppViewState) {
             @change=${(e: Event) => {
               const target = e.target as HTMLSelectElement;
               if (target.value) {
-                i18n.setLocale(target.value as any);
+                i18n.setLocale(target.value as "en" | "zh");
               }
             }}
             .value=${i18n.getLocale()}
