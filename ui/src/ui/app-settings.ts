@@ -81,30 +81,6 @@ export function setLastActiveSessionKey(host: SettingsHost, next: string) {
   applySettings(host, { ...host.settings, lastActiveSessionKey: trimmed });
 }
 
-function isTopLevelWindow(): boolean {
-  try {
-    return window.top === window.self;
-  } catch {
-    return false;
-  }
-}
-
-function normalizeGatewayUrl(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return null;
-  }
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol !== "ws:" && parsed.protocol !== "wss:") {
-      return null;
-    }
-    return trimmed;
-  } catch {
-    return null;
-  }
-}
-
 export function applySettingsFromUrl(host: SettingsHost) {
   if (!window.location.search) {
     return;

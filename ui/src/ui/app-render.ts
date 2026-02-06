@@ -108,6 +108,7 @@ export function renderApp(state: AppViewState) {
   const chatAvatarUrl = state.chatAvatarUrl ?? assistantAvatarUrl ?? null;
   const configValue =
     state.configForm ?? (state.configSnapshot?.config as Record<string, unknown> | null);
+  const basePath = normalizeBasePath(state.basePath ?? "");
   const resolvedAgentId =
     state.agentsSelectedId ??
     state.agentsList?.defaultId ??
@@ -132,7 +133,7 @@ export function renderApp(state: AppViewState) {
           </button>
           <div class="brand">
             <div class="brand-logo">
-              <img src="/favicon.svg" alt="OpenClaw" />
+              <img src=${basePath ? `${basePath}/favicon.svg` : "/favicon.svg"} alt="OpenClaw" />
             </div>
             <div class="brand-text">
               <div class="brand-title">OPENCLAW</div>
@@ -357,12 +358,14 @@ export function renderApp(state: AppViewState) {
                   state.usageSelectedDays = [];
                   state.usageSelectedHours = [];
                   state.usageSelectedSessions = [];
+                  debouncedLoadUsage(state);
                 },
                 onEndDateChange: (date) => {
                   state.usageEndDate = date;
                   state.usageSelectedDays = [];
                   state.usageSelectedHours = [];
                   state.usageSelectedSessions = [];
+                  debouncedLoadUsage(state);
                 },
                 onRefresh: () => loadUsage(state),
                 onTimeZoneChange: (zone) => {
