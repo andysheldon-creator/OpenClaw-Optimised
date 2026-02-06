@@ -195,6 +195,9 @@ export function registerSecurityCli(program: Command) {
             writeProgress(`  → ${event.dimension} ✓ (${pct}%)\n`);
             break;
           }
+          case "agent_done":
+            writeProgress(`  Agent ${event.agentId} done\n`);
+            break;
           case "done":
             writeProgress("\n");
             break;

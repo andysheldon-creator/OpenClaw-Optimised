@@ -71,7 +71,9 @@ export async function runDimensionAnalysis(
       timeoutMs: Math.min(timeoutMs, GRASP_TIMEOUT_MS),
       runId: crypto.randomUUID(),
       extraSystemPrompt: prompt.systemPrompt,
-      // TODO: Add tool allowlist when pi-embedded supports it; for now rely on prompt guidance
+      // Tools must stay enabled: GRASP needs read tools to inspect config/state files.
+      // disableTools: true would disable ALL tools including reads.
+      // TODO: Switch to a read-only tool allowlist when pi-embedded supports it.
       disableTools: false,
     });
 
@@ -121,14 +123,16 @@ function parseDimensionResponse(
   responseText: string,
   prompt: DimensionPrompt,
 ): GraspDimensionResult {
-  // Try to extract JSON from the response
-  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
+  // Prefer fenced ```json blocks, then fall back to first balanced JSON object
+  const fenced = responseText.match(/```json\s*\n([\s\S]*?)\n```/);
+  const jsonText = fenced?.[1] ?? extractFirstJsonObject(responseText);
+
+  if (!jsonText) {
     return createErrorResult(prompt, "No JSON found in response", responseText);
   }
 
   try {
-    const parsed = JSON.parse(jsonMatch[0]) as GraspDimensionRawResponse;
+    const parsed = JSON.parse(jsonText) as GraspDimensionRawResponse;
     return validateAndNormalize(parsed, prompt);
   } catch (err) {
     return createErrorResult(
@@ -137,6 +141,46 @@ function parseDimensionResponse(
       responseText,
     );
   }
+}
+
+/** Extract the first brace-balanced JSON object from text. */
+function extractFirstJsonObject(text: string): string | undefined {
+  const start = text.indexOf("{");
+  if (start === -1) {
+    return undefined;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\" && inString) {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      continue;
+    }
+    if (ch === "{") {
+      depth++;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+  return undefined;
 }
 
 function validateAndNormalize(
