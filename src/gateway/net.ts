@@ -71,12 +71,83 @@ function parseRealIp(realIp?: string): string | undefined {
   return normalizeIp(stripOptionalPort(raw));
 }
 
+function parseIPv4Octets(ip: string): number[] | null {
+  const parts = ip.split(".");
+  if (parts.length !== 4) {
+    return null;
+  }
+  const octets: number[] = [];
+  for (const part of parts) {
+    const num = Number.parseInt(part, 10);
+    if (Number.isNaN(num) || num < 0 || num > 255 || part !== String(num)) {
+      return null;
+    }
+    octets.push(num);
+  }
+  return octets;
+}
+
+function ipv4ToNumber(octets: number[]): number {
+  return (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
+}
+
+function matchesCidr(ip: string, cidr: string): boolean {
+  const [rangeIp, prefixStr] = cidr.split("/");
+  if (!rangeIp || !prefixStr) {
+    return false;
+  }
+  const prefix = Number.parseInt(prefixStr, 10);
+  if (Number.isNaN(prefix) || prefix < 0 || prefix > 32) {
+    return false;
+  }
+  const ipOctets = parseIPv4Octets(ip);
+  const rangeOctets = parseIPv4Octets(rangeIp);
+  if (!ipOctets || !rangeOctets) {
+    return false;
+  }
+  const ipNum = ipv4ToNumber(ipOctets) >>> 0;
+  const rangeNum = ipv4ToNumber(rangeOctets) >>> 0;
+  const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+  return (ipNum & mask) === (rangeNum & mask);
+}
+
+function matchesProxyEntry(ip: string, proxy: string): boolean {
+  // Handle CIDR entries that may have been copy/pasted with ports (e.g., "192.168.0.0/16:1234")
+  let cleanProxy = proxy.trim();
+
+  // For CIDR entries, strip any trailing port after the prefix length
+  if (cleanProxy.includes("/")) {
+    const slashIdx = cleanProxy.indexOf("/");
+    const afterSlash = cleanProxy.slice(slashIdx + 1);
+    // If there's a colon after the slash, it's likely a port (e.g., "16:1234" -> "16")
+    const colonIdx = afterSlash.indexOf(":");
+    if (colonIdx !== -1) {
+      cleanProxy = cleanProxy.slice(0, slashIdx + 1 + colonIdx);
+    }
+  } else {
+    // For non-CIDR entries, strip port normally
+    cleanProxy = stripOptionalPort(cleanProxy);
+  }
+
+  const normalizedProxy = normalizeIp(cleanProxy);
+  if (!normalizedProxy) {
+    return false;
+  }
+  if (normalizedProxy.includes("/")) {
+    return matchesCidr(ip, normalizedProxy);
+  }
+  return ip === normalizedProxy;
+}
+
 export function isTrustedProxyAddress(ip: string | undefined, trustedProxies?: string[]): boolean {
   const normalized = normalizeIp(ip);
   if (!normalized || !trustedProxies || trustedProxies.length === 0) {
     return false;
   }
-  return trustedProxies.some((proxy) => normalizeIp(proxy) === normalized);
+  if (trustedProxies.some((proxy) => proxy.trim() === "*")) {
+    return true;
+  }
+  return trustedProxies.some((proxy) => matchesProxyEntry(normalized, proxy));
 }
 
 export function resolveGatewayClientIp(params: {
