@@ -70,7 +70,7 @@ const QWEN_PORTAL_DEFAULT_COST = {
 };
 
 const MODELSCOPE_BASE_URL = "https://api-inference.modelscope.cn/v1";
-export const MODELSCOPE_DEFAULT_MODEL_ID = "Qwen/Qwen3-8B";
+export const MODELSCOPE_DEFAULT_MODEL_ID = "Qwen/Qwen3-32B";
 const MODELSCOPE_DEFAULT_CONTEXT_WINDOW = 200000;
 const MODELSCOPE_DEFAULT_MAX_TOKENS = 8192;
 const MODELSCOPE_DEFAULT_COST = {
@@ -403,7 +403,7 @@ export function buildModelScopeProvider(): ProviderConfig {
     models: [
       {
         id: MODELSCOPE_DEFAULT_MODEL_ID,
-        name: "Qwen/Qwen3-8B",
+        name: "Qwen/Qwen3-32B",
         reasoning: false,
         input: ["text"],
         cost: MODELSCOPE_DEFAULT_COST,
