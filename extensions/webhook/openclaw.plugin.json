@@ -1,0 +1,9 @@
+{
+  "id": "webhook",
+  "channels": ["webhook"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

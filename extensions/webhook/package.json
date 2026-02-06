@@ -1,0 +1,19 @@
+{
+  "name": "@openclaw/webhook",
+  "version": "2026.2.4",
+  "description": "OpenClaw webhook channel plugin for generic WebSocket connections",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "0.34.48",
+    "ws": "^8.19.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

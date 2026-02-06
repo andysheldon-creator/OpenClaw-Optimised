@@ -12,6 +12,7 @@ export const CHAT_CHANNEL_ORDER = [
   "slack",
   "signal",
   "imessage",
+  "webhook",
 ] as const;
 
 export type ChatChannelId = (typeof CHAT_CHANNEL_ORDER)[number];
@@ -97,6 +98,19 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
     docsLabel: "imessage",
     blurb: "this is still a work in progress.",
     systemImage: "message.fill",
+  },
+  webhook: {
+    id: "webhook",
+    label: "Webhook",
+    selectionLabel: "Webhook (WebSocket)",
+    detailLabel: "WebSocket",
+    docsPath: "/channels/webhook",
+    docsLabel: "webhook",
+    blurb:
+      "generic WebSocket webhook for connecting external services; requires openclaw-webhook-bridge.",
+    systemImage: "arrow.up.arrow.down",
+    selectionDocsPrefix: "Requires",
+    selectionExtras: ["https://github.com/sternelee/openclaw-webhook-bridge"],
   },
 };
 

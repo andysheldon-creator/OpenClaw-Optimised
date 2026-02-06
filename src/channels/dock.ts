@@ -371,6 +371,13 @@ const DOCKS: Record<ChatChannelId, ChannelDock> = {
       },
     },
   },
+  webhook: {
+    id: "webhook",
+    capabilities: {
+      chatTypes: ["direct"],
+    },
+    outbound: { textChunkLimit: 4000 },
+  },
 };
 
 function buildDockFromPlugin(plugin: ChannelPlugin): ChannelDock {
