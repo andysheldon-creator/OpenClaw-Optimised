@@ -327,7 +327,7 @@ export function isJobDue(job: CronJob, nowMs: number, opts: { forced: boolean })
     return true;
   }
   return (
-    job.enabled && typeof job.state?.nextRunAtMs === "number" && nowMs >= job.state.nextRunAtMs
+    job.enabled && typeof job.state?.nextRunAtMs === "number" && nowMs >= job.state?.nextRunAtMs
   );
 }
 
