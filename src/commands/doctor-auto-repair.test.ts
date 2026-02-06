@@ -86,7 +86,7 @@ describe("runAutoRepair", () => {
     expect(content).toEqual({});
   });
 
-  it("removes stale lock files", () => {
+  it("warns about stale lock files without deleting them", () => {
     const lockPath = path.join(tmpDir, "gateway.lock");
     fs.writeFileSync(lockPath, "locked");
     // Backdate the file to make it stale (2 hours ago)
@@ -101,14 +101,17 @@ describe("runAutoRepair", () => {
     const report = runAutoRepair(ctx());
     const lockAction = report.actions.find((a) => a.ruleId === "stale-lock-files");
     expect(lockAction).toBeDefined();
-    expect(lockAction!.repaired).toBe(true);
-    expect(fs.existsSync(lockPath)).toBe(false);
+    // Safety: should NOT auto-delete, only warn
+    expect(lockAction!.repaired).toBe(false);
+    expect(lockAction!.detail).toContain("Manual removal recommended");
+    // Lock file should still exist
+    expect(fs.existsSync(lockPath)).toBe(true);
   });
 
-  it("does not remove fresh lock files", () => {
+  it("does not report fresh lock files", () => {
     const lockPath = path.join(tmpDir, "active.lock");
     fs.writeFileSync(lockPath, "locked");
-    // File is fresh (just created) — should NOT be removed
+    // File is fresh (just created) — should NOT be reported
     if (process.platform !== "win32") {
       fs.chmodSync(tmpDir, 0o700);
     }
@@ -161,6 +164,57 @@ if (process.platform !== "win32") {
 // ---------------------------------------------------------------------------
 // Custom rules
 // ---------------------------------------------------------------------------
+
+describe("rule dependencies", () => {
+  it("skips child rules when parent rule fails", () => {
+    const parentRule: RepairRule = {
+      id: "parent",
+      description: "Always fails",
+      severity: "critical",
+      check() {
+        return { ruleId: "parent", severity: "critical", description: "Parent failed", repaired: false };
+      },
+    };
+    const childRule: RepairRule = {
+      id: "child",
+      description: "Depends on parent",
+      severity: "warning",
+      dependsOn: ["parent"],
+      check() {
+        return undefined; // Would pass if allowed to run
+      },
+    };
+    const report = runAutoRepair(ctx(), [parentRule, childRule]);
+    expect(report.failed).toBe(1);
+    expect(report.skipped).toBe(1);
+    const childAction = report.actions.find((a) => a.ruleId === "child");
+    expect(childAction).toBeDefined();
+    expect(childAction!.description).toContain("Skipped");
+  });
+
+  it("runs child rules when parent succeeds", () => {
+    const parentRule: RepairRule = {
+      id: "parent",
+      description: "Always passes",
+      severity: "critical",
+      check() {
+        return undefined;
+      },
+    };
+    const childRule: RepairRule = {
+      id: "child",
+      description: "Depends on parent",
+      severity: "warning",
+      dependsOn: ["parent"],
+      check() {
+        return undefined; // Passes
+      },
+    };
+    const report = runAutoRepair(ctx(), [parentRule, childRule]);
+    expect(report.passed).toBe(2);
+    expect(report.skipped).toBe(0);
+  });
+});
 
 describe("custom rules", () => {
   it("supports custom rules alongside builtin", () => {

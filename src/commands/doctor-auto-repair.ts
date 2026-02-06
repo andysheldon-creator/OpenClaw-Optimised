@@ -13,6 +13,7 @@
  *   - Composable: new rules are added by pushing to `BUILTIN_RULES`
  */
 
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -48,6 +49,8 @@ export type RepairRule = {
   id: string;
   description: string;
   severity: RepairSeverity;
+  /** IDs of rules that must pass or be repaired before this rule runs */
+  dependsOn?: string[];
   check: (ctx: RepairContext) => RepairAction | undefined;
 };
 
@@ -110,22 +113,63 @@ const stateDirRule: RepairRule = {
     if (existsDir(ctx.stateDir) && canWrite(ctx.stateDir)) {
       return undefined; // OK
     }
+
+    const exists = existsDir(ctx.stateDir);
+    const writable = exists && canWrite(ctx.stateDir);
+
     if (ctx.dryRun) {
+      const detail = !exists
+        ? "Would create state directory"
+        : "Would attempt to fix directory permissions";
       return {
         ruleId: this.id,
         severity: this.severity,
-        description: `State directory missing or not writable: ${ctx.stateDir}`,
+        description: `State directory ${!exists ? "missing" : "not writable"}: ${ctx.stateDir}`,
         repaired: false,
-        detail: "Would create state directory",
+        detail,
       };
     }
-    const ok = ensureDir(ctx.stateDir);
+
+    // Case 1: directory doesn't exist — create it
+    if (!exists) {
+      const ok = ensureDir(ctx.stateDir);
+      return {
+        ruleId: this.id,
+        severity: this.severity,
+        description: `State directory missing: ${ctx.stateDir}`,
+        repaired: ok,
+        detail: ok ? "Created state directory" : "Failed to create state directory",
+      };
+    }
+
+    // Case 2: directory exists but not writable — attempt chmod
+    if (!writable && process.platform !== "win32") {
+      try {
+        fs.chmodSync(ctx.stateDir, 0o700);
+        return {
+          ruleId: this.id,
+          severity: this.severity,
+          description: `State directory not writable: ${ctx.stateDir}`,
+          repaired: canWrite(ctx.stateDir),
+          detail: canWrite(ctx.stateDir) ? "Repaired permissions to 700" : "chmod succeeded but still not writable",
+        };
+      } catch (err) {
+        return {
+          ruleId: this.id,
+          severity: this.severity,
+          description: `State directory not writable: ${ctx.stateDir}`,
+          repaired: false,
+          detail: `chmod failed: ${String(err)}`,
+        };
+      }
+    }
+
     return {
       ruleId: this.id,
       severity: this.severity,
-      description: `State directory missing: ${ctx.stateDir}`,
-      repaired: ok,
-      detail: ok ? "Created state directory" : "Failed to create state directory",
+      description: `State directory not writable: ${ctx.stateDir}`,
+      repaired: false,
+      detail: "Cannot repair permissions on this platform",
     };
   },
 };
@@ -185,6 +229,7 @@ const sessionsDirRule: RepairRule = {
   id: "sessions-dir-exists",
   description: "Sessions directory exists",
   severity: "warning",
+  dependsOn: ["state-dir-exists"],
   check(ctx) {
     const sessionsDir = path.join(ctx.stateDir, "sessions");
     if (existsDir(sessionsDir)) {
@@ -214,11 +259,12 @@ const lockFileStalenessRule: RepairRule = {
   id: "stale-lock-files",
   description: "No stale lock files in state directory",
   severity: "info",
+  dependsOn: ["state-dir-exists"],
   check(ctx) {
     if (!existsDir(ctx.stateDir)) {
       return undefined;
     }
-    const MAX_LOCK_AGE_MS = 30 * 60 * 1000; // 30 minutes
+    const MAX_LOCK_AGE_MS = 60 * 60 * 1000; // 1 hour (generous to avoid deleting active locks)
     let entries: string[];
     try {
       entries = fs.readdirSync(ctx.stateDir);
@@ -243,30 +289,15 @@ const lockFileStalenessRule: RepairRule = {
     if (staleLocks.length === 0) {
       return undefined;
     }
-    if (ctx.dryRun) {
-      return {
-        ruleId: this.id,
-        severity: this.severity,
-        description: `${staleLocks.length} stale lock file(s) found`,
-        repaired: false,
-        detail: `Would remove: ${staleLocks.join(", ")}`,
-      };
-    }
-    let removedCount = 0;
-    for (const lock of staleLocks) {
-      try {
-        fs.unlinkSync(path.join(ctx.stateDir, lock));
-        removedCount += 1;
-      } catch {
-        // skip
-      }
-    }
+    // Safety: only report stale locks, never auto-delete.
+    // Deleting based solely on mtime risks removing active locks held by
+    // long-running operations or processes that don't refresh mtime.
     return {
       ruleId: this.id,
       severity: this.severity,
-      description: `${staleLocks.length} stale lock file(s) found`,
-      repaired: removedCount === staleLocks.length,
-      detail: `Removed ${removedCount}/${staleLocks.length} stale locks`,
+      description: `${staleLocks.length} potentially stale lock file(s) detected`,
+      repaired: false,
+      detail: `Stale locks (>1h): ${staleLocks.join(", ")}. Manual removal recommended after verifying no active processes.`,
     };
   },
 };
@@ -308,7 +339,7 @@ const corruptedJsonRule: RepairRule = {
     for (const fileName of corrupted) {
       const filePath = path.join(configDir, fileName);
       try {
-        const backupPath = filePath + `.bak.${Date.now()}`;
+        const backupPath = filePath + `.bak.${randomUUID()}`;
         fs.copyFileSync(filePath, backupPath);
         fs.writeFileSync(filePath, "{}");
         repairedCount += 1;
@@ -331,6 +362,7 @@ const logDirRule: RepairRule = {
   id: "log-dir-exists",
   description: "Log directory exists",
   severity: "info",
+  dependsOn: ["state-dir-exists"],
   check(ctx) {
     const logDir = path.join(ctx.stateDir, "logs");
     if (existsDir(logDir)) {
@@ -384,23 +416,48 @@ export function runAutoRepair(
   let failed = 0;
   let skipped = 0;
 
+  // Track which rules succeeded (passed or repaired) for dependency checks
+  const succeeded = new Set<string>();
+  const failedIds = new Set<string>();
+
   for (const rule of rules) {
+    // Check dependencies — skip if any parent rule failed
+    if (rule.dependsOn && rule.dependsOn.length > 0) {
+      const unmetDeps = rule.dependsOn.filter((dep) => failedIds.has(dep));
+      if (unmetDeps.length > 0) {
+        skipped += 1;
+        actions.push({
+          ruleId: rule.id,
+          severity: rule.severity,
+          description: `Skipped: depends on failed rule(s): ${unmetDeps.join(", ")}`,
+          repaired: false,
+          detail: "Parent rule must pass before this rule can run",
+        });
+        failedIds.add(rule.id);
+        continue;
+      }
+    }
+
     try {
       const result = rule.check(ctx);
       if (!result) {
         passed += 1;
+        succeeded.add(rule.id);
       } else if (result.repaired) {
         repaired += 1;
+        succeeded.add(rule.id);
         actions.push(result);
       } else if (ctx.dryRun) {
         skipped += 1;
         actions.push(result);
       } else {
         failed += 1;
+        failedIds.add(rule.id);
         actions.push(result);
       }
     } catch {
       failed += 1;
+      failedIds.add(rule.id);
       actions.push({
         ruleId: rule.id,
         severity: rule.severity,
