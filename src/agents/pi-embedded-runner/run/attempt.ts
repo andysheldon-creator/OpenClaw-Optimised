@@ -573,7 +573,6 @@ export async function runEmbeddedAttempt(
       let aborted = Boolean(params.abortSignal?.aborted);
       let timedOut = false;
       let timedOutDuringCompaction = false;
-      let awaitingCompaction = false;
       const getAbortReason = (signal: AbortSignal): unknown =>
         "reason" in signal ? (signal as { reason?: unknown }).reason : undefined;
       const makeTimeoutAbortReason = (): Error => {
@@ -675,10 +674,10 @@ export async function runEmbeddedAttempt(
               `embedded run timeout: runId=${params.runId} sessionId=${params.sessionId} timeoutMs=${params.timeoutMs}`,
             );
           }
-          // Classify as compaction timeout if we're in the compaction wait OR compaction is active
-          // awaitingCompaction is the primary signal (set while blocked on waitForCompactionRetry)
-          // subscription.isCompacting() catches compaction that started but hasn't entered the wait yet
-          if (awaitingCompaction || subscription.isCompacting()) {
+          // Only classify as compaction timeout if actual compaction is in-flight (not retry prompts).
+          // Using isCompactionInFlight() instead of awaitingCompaction/isCompacting() avoids
+          // suppressing profile rotation for genuine provider timeouts during compaction retries.
+          if (subscription.isCompactionInFlight()) {
             timedOutDuringCompaction = true;
           }
           abortRun(true);
@@ -847,7 +846,6 @@ export async function runEmbeddedAttempt(
         const preCompactionSnapshot = wasCompactingBefore || wasCompactingAfter ? null : snapshot;
         const preCompactionSessionId = activeSession.sessionId;
 
-        awaitingCompaction = true;
         try {
           await abortable(waitForCompactionRetry());
         } catch (err) {
@@ -863,8 +861,6 @@ export async function runEmbeddedAttempt(
           } else {
             throw err;
           }
-        } finally {
-          awaitingCompaction = false;
         }
 
         // If timeout occurred during compaction, use pre-compaction snapshot

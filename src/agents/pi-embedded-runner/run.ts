@@ -734,7 +734,7 @@ export async function runEmbeddedPiAgent(
           // Treat timeout as potential rate limit (Antigravity hangs on rate limit)
           // But exclude post-prompt compaction timeouts (model succeeded; no profile issue)
           const shouldRotate =
-            (!aborted && failoverFailure) || (timedOut && !timedOutDuringCompaction);
+            (!aborted && failoverFailure) || (timedOut && !aborted && !timedOutDuringCompaction);
 
           if (shouldRotate) {
             if (lastProfileId) {

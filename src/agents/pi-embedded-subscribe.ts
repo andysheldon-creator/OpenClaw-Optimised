@@ -596,6 +596,9 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
   const sessionUnsubscribe = params.session.subscribe(createEmbeddedPiSessionEventHandler(ctx));
 
   const unsubscribe = () => {
+    if (state.unsubscribed) {
+      return;
+    }
     // Reject pending compaction wait to unblock awaiting code.
     // Don't resolve, as that would incorrectly signal "compaction complete" when it's still in-flight.
     if (state.compactionRetryPromise) {
@@ -625,6 +628,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     toolMetas,
     unsubscribe,
     isCompacting: () => state.compactionInFlight || state.pendingCompactionRetry > 0,
+    isCompactionInFlight: () => state.compactionInFlight,
     getMessagingToolSentTexts: () => messagingToolSentTexts.slice(),
     getMessagingToolSentTargets: () => messagingToolSentTargets.slice(),
     // Returns true if any messaging tool successfully sent a message.
