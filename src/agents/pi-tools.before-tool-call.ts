@@ -21,15 +21,18 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 function resolveHookSessionKey(
   ctxSessionKey: string | undefined,
+  agentId: string | undefined,
   toolCallId: string | undefined,
 ): string {
   if (typeof ctxSessionKey === "string" && ctxSessionKey.trim().length > 0) {
     return ctxSessionKey;
   }
+  const normalizedAgentId =
+    typeof agentId === "string" && agentId.trim().length > 0 ? agentId : "unknown";
   if (typeof toolCallId === "string" && toolCallId.trim().length > 0) {
-    return `session:unknown:${toolCallId}`;
+    return `tool:${normalizedAgentId}:${toolCallId}`;
   }
-  return "session:unknown";
+  return `tool:${normalizedAgentId}:unknown`;
 }
 
 export async function runBeforeToolCallHook(args: {
@@ -41,7 +44,11 @@ export async function runBeforeToolCallHook(args: {
   const toolName = normalizeToolName(args.toolName || "tool");
   const params = args.params;
   const effectiveToolCallId = args.toolCallId ?? args.ctx?.toolCallId;
-  const hookSessionKey = resolveHookSessionKey(args.ctx?.sessionKey, effectiveToolCallId);
+  const hookSessionKey = resolveHookSessionKey(
+    args.ctx?.sessionKey,
+    args.ctx?.agentId,
+    effectiveToolCallId,
+  );
   try {
     const hookEvent = createInternalHookEvent("agent", "tool:start", hookSessionKey, {
       toolName,
@@ -104,7 +111,11 @@ export async function runAfterToolCallHook(args: {
   const toolName = normalizeToolName(args.toolName || "tool");
   const params = isPlainObject(args.params) ? args.params : {};
   const effectiveToolCallId = args.toolCallId ?? args.ctx?.toolCallId;
-  const hookSessionKey = resolveHookSessionKey(args.ctx?.sessionKey, effectiveToolCallId);
+  const hookSessionKey = resolveHookSessionKey(
+    args.ctx?.sessionKey,
+    args.ctx?.agentId,
+    effectiveToolCallId,
+  );
   try {
     const hookEvent = createInternalHookEvent("agent", "tool:end", hookSessionKey, {
       toolName,

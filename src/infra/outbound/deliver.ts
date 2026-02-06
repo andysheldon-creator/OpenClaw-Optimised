@@ -429,7 +429,7 @@ export async function deliverOutboundPayloads(params: {
       for (const url of payloadSummary.mediaUrls) {
         throwIfAborted(abortSignal);
         const caption = first ? payloadSummary.text : "";
-        const messageSentContent = payloadSummary.text || caption;
+        const messageSentContent = caption;
         attemptedSendContent = messageSentContent;
         first = false;
         if (isSignalChannel) {
