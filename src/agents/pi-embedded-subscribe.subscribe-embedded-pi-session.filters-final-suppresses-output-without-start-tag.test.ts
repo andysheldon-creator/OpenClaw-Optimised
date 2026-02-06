@@ -153,4 +153,120 @@ describe("subscribeEmbeddedPiSession", () => {
     const payload = onBlockReply.mock.calls[0][0];
     expect(payload.text).toBe("Hello block");
   });
+
+  it("strips <think> and <final> tags from Gemini-style streaming output (issue #6328)", () => {
+    let handler: ((evt: unknown) => void) | undefined;
+    const session: StubSession = {
+      subscribe: (fn) => {
+        handler = fn;
+        return () => {};
+      },
+    };
+
+    const onPartialReply = vi.fn();
+    const onAgentEvent = vi.fn();
+    const onBlockReply = vi.fn();
+
+    subscribeEmbeddedPiSession({
+      session: session as unknown as Parameters<typeof subscribeEmbeddedPiSession>[0]["session"],
+      runId: "run",
+      enforceFinalTag: true,
+      onPartialReply,
+      onAgentEvent,
+      onBlockReply,
+      blockReplyBreak: "message_end",
+    });
+
+    // Simulate Gemini-style output with <think> and <final> tags
+    const geminiOutput =
+      "<think>Let me analyze this request...</think><final>The answer is 42</final>";
+
+    handler?.({ type: "message_start", message: { role: "assistant" } });
+    handler?.({
+      type: "message_update",
+      message: { role: "assistant" },
+      assistantMessageEvent: {
+        type: "text_delta",
+        delta: geminiOutput,
+      },
+    });
+
+    // Verify onPartialReply receives stripped content (no tags visible)
+    expect(onPartialReply).toHaveBeenCalled();
+    const streamingPayload = onPartialReply.mock.calls[0][0];
+    expect(streamingPayload.text).not.toContain("<think>");
+    expect(streamingPayload.text).not.toContain("</think>");
+    expect(streamingPayload.text).not.toContain("<final>");
+    expect(streamingPayload.text).not.toContain("</final>");
+    expect(streamingPayload.text).not.toContain("Let me analyze");
+    expect(streamingPayload.text).toBe("The answer is 42");
+
+    // Now simulate message_end with full content in message.content
+    const assistantMessage = {
+      role: "assistant",
+      content: [{ type: "text", text: geminiOutput }],
+    } as AssistantMessage;
+
+    handler?.({ type: "message_end", message: assistantMessage });
+
+    // Note: When streaming has already processed content, message_end may not re-emit
+    // via onBlockReply if the text is the same (duplicate prevention).
+    // The key assertion is that onAgentEvent receives stripped content.
+    const agentPayloads = onAgentEvent.mock.calls
+      .map((call) => call[0]?.data as Record<string, unknown> | undefined)
+      .filter((value): value is Record<string, unknown> => Boolean(value?.text));
+
+    // At least one agent event should have been emitted with stripped content
+    expect(agentPayloads.length).toBeGreaterThan(0);
+    const lastPayload = agentPayloads[agentPayloads.length - 1];
+    expect(lastPayload?.text).not.toContain("<think>");
+    expect(lastPayload?.text).not.toContain("</think>");
+    expect(lastPayload?.text).not.toContain("<final>");
+    expect(lastPayload?.text).not.toContain("</final>");
+    expect(lastPayload?.text).not.toContain("Let me analyze");
+    expect(lastPayload?.text).toBe("The answer is 42");
+  });
+
+  it("strips <think> content when text does not start with < (issue #6328 variant)", () => {
+    let handler: ((evt: unknown) => void) | undefined;
+    const session: StubSession = {
+      subscribe: (fn) => {
+        handler = fn;
+        return () => {};
+      },
+    };
+
+    const onPartialReply = vi.fn();
+    const onBlockReply = vi.fn();
+
+    subscribeEmbeddedPiSession({
+      session: session as unknown as Parameters<typeof subscribeEmbeddedPiSession>[0]["session"],
+      runId: "run",
+      enforceFinalTag: true,
+      onPartialReply,
+      onBlockReply,
+      blockReplyBreak: "message_end",
+    });
+
+    // Variant where text has content before the tags (splitThinkingTaggedText would return null)
+    const output = "Hey! <think>Internal reasoning here</think><final>The answer is 42</final>";
+
+    handler?.({ type: "message_start", message: { role: "assistant" } });
+    handler?.({
+      type: "message_update",
+      message: { role: "assistant" },
+      assistantMessageEvent: {
+        type: "text_delta",
+        delta: output,
+      },
+    });
+
+    // With enforceFinalTag=true, only content inside <final> should be emitted
+    expect(onPartialReply).toHaveBeenCalled();
+    const payload = onPartialReply.mock.calls[0][0];
+    expect(payload.text).not.toContain("<think>");
+    expect(payload.text).not.toContain("Internal reasoning");
+    expect(payload.text).not.toContain("<final>");
+    expect(payload.text).toBe("The answer is 42");
+  });
 });

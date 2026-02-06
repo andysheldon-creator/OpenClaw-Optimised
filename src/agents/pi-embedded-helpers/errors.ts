@@ -1,6 +1,7 @@
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { FailoverReason } from "./types.js";
+import { stripReasoningTagsFromText } from "../../shared/text/reasoning-tags.js";
 import { formatSandboxToolPolicyBlockedMessage } from "../sandbox.js";
 
 export const BILLING_ERROR_USER_MESSAGE =
@@ -64,7 +65,6 @@ export function isCompactionFailureError(errorMessage?: string): boolean {
 
 const ERROR_PAYLOAD_PREFIX_RE =
   /^(?:error|api\s*error|apierror|openai\s*error|anthropic\s*error|gateway\s*error)[:\s-]+/i;
-const FINAL_TAG_RE = /<\s*\/?\s*final\s*>/gi;
 const ERROR_PREFIX_RE =
   /^(?:error|api\s*error|openai\s*error|anthropic\s*error|gateway\s*error|request failed|failed|exception)[:\s-]+/i;
 const HTTP_STATUS_PREFIX_RE = /^(?:http\s*)?(\d{3})\s+(.+)$/i;
@@ -86,11 +86,18 @@ const HTTP_ERROR_HINTS = [
   "permission",
 ];
 
-function stripFinalTagsFromText(text: string): string {
+/**
+ * Strip reasoning tags (<think>, <final>, etc.) from user-facing text.
+ * This is a defensive last-line filter to prevent any tags from leaking
+ * to users via channels like Telegram (#6328).
+ */
+function stripReasoningTagsForUserFacing(text: string): string {
   if (!text) {
     return text;
   }
-  return text.replace(FINAL_TAG_RE, "");
+  // Use "preserve" mode to keep text after unclosed tags (defensive).
+  // Use "none" trim to preserve whitespace (caller handles trimming).
+  return stripReasoningTagsFromText(text, { mode: "preserve", trim: "none" });
 }
 
 function collapseConsecutiveDuplicateBlocks(text: string): string {
@@ -390,7 +397,7 @@ export function sanitizeUserFacingText(text: string): string {
   if (!text) {
     return text;
   }
-  const stripped = stripFinalTagsFromText(text);
+  const stripped = stripReasoningTagsForUserFacing(text);
   const trimmed = stripped.trim();
   if (!trimmed) {
     return stripped;
