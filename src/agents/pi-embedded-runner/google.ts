@@ -12,7 +12,10 @@ import {
   sanitizeSessionMessagesImages,
 } from "../pi-embedded-helpers.js";
 import { cleanToolSchemaForGemini } from "../pi-tools.schema.js";
-import { sanitizeToolUseResultPairing } from "../session-transcript-repair.js";
+import {
+  sanitizeToolCallInputs,
+  sanitizeToolUseResultPairing,
+} from "../session-transcript-repair.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import { log } from "./logger.js";
 import { describeUnknownError } from "./utils.js";
@@ -346,12 +349,15 @@ export async function sanitizeSessionHistory(params: {
   const sanitizedThinking = policy.normalizeAntigravityThinkingBlocks
     ? sanitizeAntigravityThinkingBlocks(sanitizedImages)
     : sanitizedImages;
+  const sanitizedToolCalls = sanitizeToolCallInputs(sanitizedThinking);
   const repairedTools = policy.repairToolUseResultPairing
-    ? sanitizeToolUseResultPairing(sanitizedThinking)
-    : sanitizedThinking;
+    ? sanitizeToolUseResultPairing(sanitizedToolCalls)
+    : sanitizedToolCalls;
 
   const isOpenAIResponsesApi =
-    params.modelApi === "openai-responses" || params.modelApi === "openai-codex-responses";
+    params.modelApi === "openai-responses" ||
+    params.modelApi === "openai-codex-responses" ||
+    params.modelApi === "vida-responses";
   const hasSnapshot = Boolean(params.provider || params.modelApi || params.modelId);
   const priorSnapshot = hasSnapshot ? readLastModelSnapshot(params.sessionManager) : null;
   const modelChanged = priorSnapshot

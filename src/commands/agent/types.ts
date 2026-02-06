@@ -74,6 +74,8 @@ export type AgentCommandOpts = {
   abortSignal?: AbortSignal;
   lane?: string;
   runId?: string;
+  /** Optional provider-specific metadata (OpenResponses parity, persisted to transcript by integrations). */
+  providerMetadata?: Record<string, unknown>;
   extraSystemPrompt?: string;
   /** Per-call stream param overrides (best-effort). */
   streamParams?: AgentStreamParams;

@@ -39,6 +39,8 @@ export type RunEmbeddedPiAgentParams = {
   senderName?: string | null;
   senderUsername?: string | null;
   senderE164?: string | null;
+  /** Whether the sender is an owner (required for owner-only tools). */
+  senderIsOwner?: boolean;
   /** Current channel ID for auto-threading (Slack). */
   currentChannelId?: string;
   /** Current thread timestamp for auto-threading (Slack). */
@@ -47,6 +49,10 @@ export type RunEmbeddedPiAgentParams = {
   replyToMode?: "off" | "first" | "all";
   /** Mutable ref to track if a reply was sent (for "first" mode). */
   hasRepliedRef?: { value: boolean };
+  /** Require explicit message tool targets (no implicit last-route sends). */
+  requireExplicitMessageTarget?: boolean;
+  /** If true, omit the message tool from the tool list. */
+  disableMessageTool?: boolean;
   sessionFile: string;
   workspaceDir: string;
   agentDir?: string;
@@ -93,6 +99,8 @@ export type RunEmbeddedPiAgentParams = {
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void;
   lane?: string;
   enqueue?: typeof enqueueCommand;
+  /** Optional provider-specific metadata passed through integrations (e.g. OpenResponses). */
+  providerMetadata?: Record<string, unknown>;
   extraSystemPrompt?: string;
   streamParams?: AgentStreamParams;
   ownerNumbers?: string[];

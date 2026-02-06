@@ -187,6 +187,7 @@ export const CreateResponseBodySchema = z
     temperature: z.number().optional(),
     top_p: z.number().optional(),
     metadata: z.record(z.string(), z.string()).optional(),
+    provider_metadata: z.record(z.string(), z.unknown()).optional(),
     store: z.boolean().optional(),
     previous_response_id: z.string().optional(),
     reasoning: z

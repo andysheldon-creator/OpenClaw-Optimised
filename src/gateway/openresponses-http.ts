@@ -395,6 +395,11 @@ export async function handleOpenResponsesHttpRequest(
   const stream = Boolean(payload.stream);
   const model = payload.model;
   const user = payload.user;
+  const providerMetadata =
+    payload.provider_metadata ??
+    (payload.metadata?.["vida.ignoreOnProviderRelay"] === "true"
+      ? { vida: { ignoreOnProviderRelay: true } }
+      : undefined);
   const toolResultMaxDataBytes = opts.config?.toolResultMaxDataBytes;
   const reasoning = payload.reasoning;
   // `reasoning.effort` is accepted for parity but currently ignored.
@@ -678,6 +683,7 @@ export async function handleOpenResponsesHttpRequest(
           messageChannel: "webchat",
           bestEffortDeliver: false,
           reasoningLevel,
+          providerMetadata,
           toolResultMaxDataBytes,
           onReasoningStream: (payload) => {
             const text = typeof payload?.text === "string" ? payload.text : "";
@@ -949,6 +955,7 @@ export async function handleOpenResponsesHttpRequest(
           messageChannel: "webchat",
           bestEffortDeliver: false,
           reasoningLevel,
+          providerMetadata,
           toolResultMaxDataBytes,
           onReasoningStream: (payload) => {
             const text = typeof payload?.text === "string" ? payload.text : "";
