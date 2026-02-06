@@ -84,7 +84,8 @@ export function isSimplexAllowlisted(params: {
   if (allowFrom.length === 0) {
     return false;
   }
-  const senderKey = params.senderId ? normalizeSimplexId(String(params.senderId)) : "";
+  const senderParsed = params.senderId ? parseSimplexAllowlistEntry(String(params.senderId)) : null;
+  const senderKey = senderParsed?.kind === "sender" ? senderParsed.value : "";
   const groupKey = params.groupId ? normalizeSimplexId(String(params.groupId)) : "";
 
   for (const raw of allowFrom) {

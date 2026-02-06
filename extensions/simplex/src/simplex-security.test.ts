@@ -113,6 +113,12 @@ describe("simplex allowlist", () => {
         senderId: "Alice",
       }),
     ).toBe(true);
+    expect(
+      isSimplexAllowlisted({
+        allowFrom: ["12345"],
+        senderId: "simplex:@12345",
+      }),
+    ).toBe(true);
 
     expect(
       isSimplexAllowlisted({
