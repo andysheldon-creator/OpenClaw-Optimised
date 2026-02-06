@@ -1110,6 +1110,21 @@
                 ]
               },
               {
+                "group": "Remote access and deployment",
+                "pages": [
+                  "gateway/remote",
+                  "gateway/remote-gateway-readme",
+                  "gateway/tailscale",
+                  "platforms/fly",
+                  "platforms/hetzner",
+                  "platform/hostinger",
+                  "platforms/gcp",
+                  "platforms/macos-vm",
+                  "platforms/exe-dev",
+                  "railway",
+                  "render",
+                  "northflank"
+                ]
                 "group": "Remote access",
                 "pages": ["gateway/remote", "gateway/remote-gateway-readme", "gateway/tailscale"]
               },
@@ -1208,6 +1223,117 @@
             ]
           },
           {
+            "group": "Automation & Hooks",
+            "pages": [
+              "hooks",
+              "hooks/soul-evil",
+              "automation/auth-monitoring",
+              "automation/webhook",
+              "automation/gmail-pubsub",
+              "automation/cron-jobs",
+              "automation/cron-vs-heartbeat",
+              "automation/poll"
+            ]
+          },
+          {
+            "group": "Tools & Skills",
+            "pages": [
+              "tools/index",
+              "tools/lobster",
+              "tools/llm-task",
+              "plugin",
+              "plugins/voice-call",
+              "plugins/zalouser",
+              "tools/exec",
+              "tools/web",
+              "tools/apply-patch",
+              "tools/elevated",
+              "tools/browser",
+              "tools/browser-login",
+              "tools/chrome-extension",
+              "tools/browser-linux-troubleshooting",
+              "tools/slash-commands",
+              "tools/thinking",
+              "tools/agent-send",
+              "tools/subagents",
+              "multi-agent-sandbox-tools",
+              "tools/reactions",
+              "tools/skills",
+              "tools/skills-config",
+              "tools/clawhub"
+            ]
+          },
+          {
+            "group": "Nodes & Media",
+            "pages": [
+              "nodes/index",
+              "nodes/camera",
+              "nodes/images",
+              "nodes/audio",
+              "nodes/location-command",
+              "nodes/voicewake",
+              "nodes/talk"
+            ]
+          },
+          {
+            "group": "Platforms",
+            "pages": [
+              "platforms/index",
+              "platforms/macos",
+              "platforms/macos-vm",
+              "platforms/ios",
+              "platforms/android",
+              "platforms/windows",
+              "platforms/linux",
+              "platforms/fly",
+              "platforms/hetzner",
+              "platforms/hostinger",
+              "platforms/gcp",
+              "platforms/exe-dev"
+            ]
+          },
+          {
+            "group": "macOS Companion App",
+            "pages": [
+              "platforms/mac/dev-setup",
+              "platforms/mac/menu-bar",
+              "platforms/mac/voicewake",
+              "platforms/mac/voice-overlay",
+              "platforms/mac/webchat",
+              "platforms/mac/canvas",
+              "platforms/mac/child-process",
+              "platforms/mac/health",
+              "platforms/mac/icon",
+              "platforms/mac/logging",
+              "platforms/mac/permissions",
+              "platforms/mac/remote",
+              "platforms/mac/signing",
+              "platforms/mac/release",
+              "platforms/mac/bundled-gateway",
+              "platforms/mac/xpc",
+              "platforms/mac/skills",
+              "platforms/mac/peekaboo"
+            ]
+          },
+          {
+            "group": "Reference & Templates",
+            "pages": [
+              "testing",
+              "scripts",
+              "reference/session-management-compaction",
+              "reference/rpc",
+              "reference/device-models",
+              "reference/test",
+              "reference/RELEASING",
+              "reference/AGENTS.default",
+              "reference/templates/AGENTS",
+              "reference/templates/BOOT",
+              "reference/templates/BOOTSTRAP",
+              "reference/templates/HEARTBEAT",
+              "reference/templates/IDENTITY",
+              "reference/templates/SOUL",
+              "reference/templates/TOOLS",
+              "reference/templates/USER"
             "tab": "Help",
             "groups": [
               {

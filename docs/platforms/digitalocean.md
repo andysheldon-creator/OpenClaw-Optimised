@@ -20,6 +20,7 @@ If you want a $0/month option and don’t mind ARM + provider-specific setup, se
 | ------------ | --------------- | ---------------------- | ----------- | ------------------------------------- |
 | Oracle Cloud | Always Free ARM | up to 4 OCPU, 24GB RAM | $0          | ARM, limited capacity / signup quirks |
 | Hetzner      | CX22            | 2 vCPU, 4GB RAM        | €3.79 (~$4) | Cheapest paid option                  |
+| Hostinger    | KVM 1           | 1 vCPU, 4GB RAM        | €4.79 (~$5) | UI-based                              |
 | DigitalOcean | Basic           | 1 vCPU, 1GB RAM        | $6          | Easy UI, good docs                    |
 | Vultr        | Cloud Compute   | 1 vCPU, 1GB RAM        | $6          | Many locations                        |
 | Linode       | Nanode          | 1 vCPU, 1GB RAM        | $5          | Now part of Akamai                    |
