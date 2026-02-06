@@ -1,8 +1,8 @@
 import type { OpenClawConfig } from "../config/config.js";
 import { resolveStorePath } from "../config/sessions.js";
 import { loadSessionStore } from "../config/sessions/store.js";
-import { normalizeSessionDeliveryFields } from "../config/sessions/types.js";
 import { runMessageAction } from "../infra/outbound/message-action-runner.js";
+import { normalizeSessionDeliveryFields } from "../utils/delivery-context.js";
 
 export type RestartNoticeReason = "config.apply" | "config.patch" | "update.run";
 
