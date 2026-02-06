@@ -48,13 +48,16 @@ export type SkillsProps = {
   error: string | null;
   filter: string;
   edits: Record<string, string>;
+  envEdits: Record<string, Record<string, string>>;
   busyKey: string | null;
   messages: SkillMessageMap;
   onFilterChange: (next: string) => void;
   onRefresh: () => void;
   onToggle: (skillKey: string, enabled: boolean) => void;
   onEdit: (skillKey: string, value: string) => void;
+  onEditEnv: (skillKey: string, envKey: string, value: string) => void;
   onSaveKey: (skillKey: string) => void;
+  onSaveEnv: (skillKey: string, envKey: string) => void;
   onInstall: (skillKey: string, name: string, installId: string) => void;
 };
 
@@ -132,6 +135,14 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
   const message = props.messages[skill.skillKey] ?? null;
   const canInstall = skill.install.length > 0 && skill.missing.bins.length > 0;
   const showBundledBadge = Boolean(skill.bundled && skill.source !== "openclaw-bundled");
+  const isGeminiSkill = skill.primaryEnv === "GEMINI_API_KEY";
+  const configuredGeminiBaseUrl = isGeminiSkill ? (skill.uiEnv?.GEMINI_BASE_URL ?? "") : "";
+  const draftGeminiBaseUrl = isGeminiSkill
+    ? props.envEdits[skill.skillKey]?.GEMINI_BASE_URL
+    : undefined;
+  // Treat empty-string drafts as meaningful so users can clear values.
+  const geminiBaseUrl =
+    draftGeminiBaseUrl === undefined ? configuredGeminiBaseUrl : draftGeminiBaseUrl;
   const missing = [
     ...skill.missing.bins.map((b) => `bin:${b}`),
     ...skill.missing.env.map((e) => `env:${e}`),
@@ -246,6 +257,37 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
               >
                 Save key
               </button>
+            `
+            : nothing
+        }
+        ${
+          isGeminiSkill
+            ? html`
+              <div class="field" style="margin-top: 10px;">
+                <span>Gemini base URL (proxy)</span>
+                <input
+                  type="text"
+                  .value=${geminiBaseUrl}
+                  @input=${(e: Event) =>
+                    props.onEditEnv(
+                      skill.skillKey,
+                      "GEMINI_BASE_URL",
+                      (e.target as HTMLInputElement).value,
+                    )}
+                  placeholder="https://your-gemini-proxy.example.com"
+                />
+              </div>
+              <button
+                class="btn"
+                style="margin-top: 8px;"
+                ?disabled=${busy}
+                @click=${() => props.onSaveEnv(skill.skillKey, "GEMINI_BASE_URL")}
+              >
+                Save base URL
+              </button>
+              <div class="muted" style="margin-top: 6px;">
+                Optional. Leave blank to use the default Gemini endpoint.
+              </div>
             `
             : nothing
         }

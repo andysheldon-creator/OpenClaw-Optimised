@@ -9,6 +9,7 @@ export type SkillsState = {
   skillsError: string | null;
   skillsBusyKey: string | null;
   skillEdits: Record<string, string>;
+  skillEnvEdits: Record<string, Record<string, string>>;
   skillMessages: SkillMessageMap;
 };
 
@@ -71,6 +72,18 @@ export function updateSkillEdit(state: SkillsState, skillKey: string, value: str
   state.skillEdits = { ...state.skillEdits, [skillKey]: value };
 }
 
+export function updateSkillEnvEdit(state: SkillsState, skillKey: string, envKey: string, value: string) {
+  const trimmedKey = envKey.trim();
+  if (!trimmedKey) {
+    return;
+  }
+  const existing = state.skillEnvEdits[skillKey] ?? {};
+  state.skillEnvEdits = {
+    ...state.skillEnvEdits,
+    [skillKey]: { ...existing, [trimmedKey]: value },
+  };
+}
+
 export async function updateSkillEnabled(state: SkillsState, skillKey: string, enabled: boolean) {
   if (!state.client || !state.connected) {
     return;
@@ -109,6 +122,37 @@ export async function saveSkillApiKey(state: SkillsState, skillKey: string) {
     setSkillMessage(state, skillKey, {
       kind: "success",
       message: "API key saved",
+    });
+  } catch (err) {
+    const message = getErrorMessage(err);
+    state.skillsError = message;
+    setSkillMessage(state, skillKey, {
+      kind: "error",
+      message,
+    });
+  } finally {
+    state.skillsBusyKey = null;
+  }
+}
+
+export async function saveSkillEnvVar(state: SkillsState, skillKey: string, envKey: string) {
+  if (!state.client || !state.connected) {
+    return;
+  }
+  const key = envKey.trim();
+  if (!key) {
+    return;
+  }
+  state.skillsBusyKey = skillKey;
+  state.skillsError = null;
+  try {
+    const raw = state.skillEnvEdits[skillKey]?.[key] ?? "";
+    const value = raw.trim();
+    await state.client.request("skills.update", { skillKey, env: { [key]: value } });
+    await loadSkills(state);
+    setSkillMessage(state, skillKey, {
+      kind: "success",
+      message: value ? `${key} saved` : `${key} cleared`,
     });
   } catch (err) {
     const message = getErrorMessage(err);

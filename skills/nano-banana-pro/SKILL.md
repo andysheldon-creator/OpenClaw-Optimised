@@ -50,6 +50,12 @@ API key
 - `GEMINI_API_KEY` env var
 - Or set `skills."nano-banana-pro".apiKey` / `skills."nano-banana-pro".env.GEMINI_API_KEY` in `~/.openclaw/openclaw.json`
 
+Proxy / gateway (optional)
+
+- `GEMINI_BASE_URL` env var (Gemini-compatible proxy base URL)
+- Or set `skills."nano-banana-pro".env.GEMINI_BASE_URL` in `~/.openclaw/openclaw.json`
+- CLI override: `--base-url "https://your-proxy.example.com"`
+
 Notes
 
 - Resolutions: `1K` (default), `2K`, `4K`.

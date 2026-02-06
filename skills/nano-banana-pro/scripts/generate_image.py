@@ -28,6 +28,14 @@ def get_api_key(provided_key: str | None) -> str | None:
         return provided_key
     return os.environ.get("GEMINI_API_KEY")
 
+def get_base_url(provided_url: str | None) -> str | None:
+    """Optional Gemini-compatible proxy base URL (argument wins over env)."""
+    raw = provided_url if provided_url else os.environ.get("GEMINI_BASE_URL")
+    if not raw:
+        return None
+    trimmed = str(raw).strip()
+    return trimmed if trimmed else None
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -60,6 +68,10 @@ def main():
         "--api-key", "-k",
         help="Gemini API key (overrides GEMINI_API_KEY env var)"
     )
+    parser.add_argument(
+        "--base-url",
+        help="Optional Gemini-compatible proxy base URL (overrides GEMINI_BASE_URL env var)"
+    )
 
     args = parser.parse_args()
 
@@ -78,7 +90,17 @@ def main():
     from PIL import Image as PILImage
 
     # Initialise client
-    client = genai.Client(api_key=api_key)
+    base_url = get_base_url(args.base_url)
+    client_kwargs = {"api_key": api_key}
+    if base_url:
+        # NOTE: Some gemini-compatible proxies expect the Gemini Developer API paths under a custom base URL.
+        # The google-genai SDK supports http_options; pass base_url when provided.
+        try:
+            client_kwargs["http_options"] = types.HttpOptions(base_url=base_url)
+        except Exception:
+            # Fallback for SDKs that accept a plain dict.
+            client_kwargs["http_options"] = {"base_url": base_url}
+    client = genai.Client(**client_kwargs)
 
     # Set up output path
     output_path = Path(args.filename)

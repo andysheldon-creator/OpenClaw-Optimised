@@ -728,6 +728,7 @@ export type SkillStatusEntry = {
   skillKey: string;
   bundled?: boolean;
   primaryEnv?: string;
+  uiEnv?: Record<string, string>;
   emoji?: string;
   homepage?: string;
   always: boolean;

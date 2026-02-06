@@ -39,6 +39,11 @@ export type SkillStatusEntry = {
   baseDir: string;
   skillKey: string;
   primaryEnv?: string;
+  /**
+   * Non-secret, UI-friendly env overrides currently configured for this skill.
+   * Keep this intentionally small (avoid leaking secrets).
+   */
+  uiEnv?: Record<string, string>;
   emoji?: string;
   homepage?: string;
   always: boolean;
@@ -259,6 +264,15 @@ function buildSkillStatus(
         missing.config.length === 0 &&
         missing.os.length === 0));
 
+  const uiEnv: Record<string, string> = {};
+  // For Gemini skills, surface the proxy base URL (not a secret) so the Control UI can render it.
+  if (entry.metadata?.primaryEnv === "GEMINI_API_KEY") {
+    const baseUrl = skillConfig?.env?.GEMINI_BASE_URL;
+    if (typeof baseUrl === "string" && baseUrl.trim()) {
+      uiEnv.GEMINI_BASE_URL = baseUrl.trim();
+    }
+  }
+
   return {
     name: entry.skill.name,
     description: entry.skill.description,
@@ -268,6 +282,7 @@ function buildSkillStatus(
     baseDir: entry.skill.baseDir,
     skillKey,
     primaryEnv: entry.metadata?.primaryEnv,
+    uiEnv: Object.keys(uiEnv).length > 0 ? uiEnv : undefined,
     emoji,
     homepage,
     always,

@@ -311,6 +311,7 @@ export class OpenClawApp extends LitElement {
   @state() skillsError: string | null = null;
   @state() skillsFilter = "";
   @state() skillEdits: Record<string, string> = {};
+  @state() skillEnvEdits: Record<string, Record<string, string>> = {};
   @state() skillsBusyKey: string | null = null;
   @state() skillMessages: Record<string, SkillMessage> = {};
 
