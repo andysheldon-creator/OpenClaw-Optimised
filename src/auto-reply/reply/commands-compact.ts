@@ -8,6 +8,7 @@ import {
 } from "../../agents/pi-embedded.js";
 import { resolveSessionFilePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { formatContextUsageShort, formatTokenCount } from "../status.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
@@ -129,6 +130,17 @@ export const handleCompactCommand: CommandHandler = async (params) => {
   const line = reason
     ? `${compactLabel}: ${reason} • ${contextSummary}`
     : `${compactLabel} • ${contextSummary}`;
+  const hookSessionKey = params.sessionKey ?? sessionId ?? "unknown";
+  const hookEvent = createInternalHookEvent("agent", "compaction:manual", hookSessionKey, {
+    cfg: params.cfg,
+    sessionId,
+    sessionKey: params.sessionKey,
+    commandSource: params.command.surface,
+    compacted: result.compacted,
+    ok: result.ok,
+    reason: result.reason,
+  });
+  await triggerInternalHook(hookEvent);
   enqueueSystemEvent(line, { sessionKey: params.sessionKey });
   return { shouldContinue: false, reply: { text: `⚙️ ${line}` } };
 };

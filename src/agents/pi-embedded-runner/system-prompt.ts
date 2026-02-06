@@ -1,15 +1,21 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import type { AgentSession } from "@mariozechner/pi-coding-agent";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { MemoryCitationsMode } from "../../config/types.memory.js";
 import type { ResolvedTimeFormat } from "../date-time.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
 import type { ReasoningLevel, ThinkLevel } from "./utils.js";
+import {
+  isProgressiveMemoryEnabled,
+  resolveProgressiveMemoryIndex,
+} from "../../memory/progressive-manager.js";
 import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
 import { buildToolSummaryMap } from "../tool-summaries.js";
 
-export function buildEmbeddedSystemPrompt(params: {
+export async function buildEmbeddedSystemPrompt(params: {
   workspaceDir: string;
+  config?: OpenClawConfig;
   defaultThinkLevel?: ThinkLevel;
   reasoningLevel?: ReasoningLevel;
   extraSystemPrompt?: string;
@@ -48,7 +54,18 @@ export function buildEmbeddedSystemPrompt(params: {
   userTimeFormat?: ResolvedTimeFormat;
   contextFiles?: EmbeddedContextFile[];
   memoryCitationsMode?: MemoryCitationsMode;
-}): string {
+}): Promise<string> {
+  const hasProgressiveTools = params.tools.some(
+    (tool) => tool.name === "memory_recall" || tool.name === "memory_store",
+  );
+  const progressiveMemoryIndex =
+    params.config && hasProgressiveTools && isProgressiveMemoryEnabled(params.config)
+      ? await resolveProgressiveMemoryIndex({
+          cfg: params.config,
+          agentId: params.runtimeInfo.agentId,
+        })
+      : undefined;
+
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,
     defaultThinkLevel: params.defaultThinkLevel,
@@ -74,6 +91,7 @@ export function buildEmbeddedSystemPrompt(params: {
     userTimeFormat: params.userTimeFormat,
     contextFiles: params.contextFiles,
     memoryCitationsMode: params.memoryCitationsMode,
+    progressiveMemoryIndex,
   });
 }
 

@@ -8,6 +8,7 @@ import {
   resolveConfiguredModelRef,
   resolveHooksGmailModel,
 } from "../agents/model-selection.js";
+import { startCompactionScheduler } from "../hooks/compaction-scheduler.js";
 import { startGmailWatcher } from "../hooks/gmail-watcher.js";
 import {
   clearInternalHooks,
@@ -121,6 +122,7 @@ export async function startGatewaySidecars(params: {
     clearInternalHooks();
     const loadedCount = await loadInternalHooks(params.cfg, params.defaultWorkspaceDir);
     registerMemoryPipelineHooks();
+    startCompactionScheduler(params.cfg);
     if (loadedCount > 0) {
       params.logHooks.info(
         `loaded ${loadedCount} internal hook handler${loadedCount > 1 ? "s" : ""}`,

@@ -13,6 +13,7 @@ import { resolveStateDir } from "../config/paths.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { createEmbeddingProvider } from "./embeddings.js";
 import { createMemoryOpsLogger } from "./ops-log/index.js";
+import { generateMemoryIndex } from "./progressive-index.js";
 import { ProgressiveMemoryStore, type EmbedFn } from "./progressive-store.js";
 
 const log = createSubsystemLogger("progressive-memory");
@@ -100,4 +101,25 @@ export function closeAllProgressiveStores(): void {
  */
 export function isProgressiveMemoryEnabled(cfg: OpenClawConfig): boolean {
   return cfg.memory?.progressive?.enabled === true;
+}
+
+/**
+ * Build the always-on progressive memory index for system prompts.
+ */
+export async function resolveProgressiveMemoryIndex(params: {
+  cfg: OpenClawConfig;
+  agentId?: string;
+  maxTokens?: number;
+}): Promise<string | undefined> {
+  if (!isProgressiveMemoryEnabled(params.cfg)) {
+    return undefined;
+  }
+  try {
+    const { store } = await getProgressiveStore(params);
+    store.archiveExpired();
+    return generateMemoryIndex(store, { maxTokens: params.maxTokens });
+  } catch (err) {
+    log.warn?.(`Progressive memory index build failed: ${String(err)}`);
+    return undefined;
+  }
 }
