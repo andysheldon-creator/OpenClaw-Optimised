@@ -5,6 +5,7 @@
  */
 
 import { Client } from "pg";
+import { isReadOnlySelect } from "./readonly-validator";
 
 const VALID_CMDS = ["list_tables", "schema", "sample", "query"] as const;
 
@@ -105,6 +106,53 @@ async function runSchema(client: Client, tableArg: string): Promise<void> {
   }
 }
 
+const SAMPLE_LIMIT_MAX = 10;
+const QUERY_LIMIT_DEFAULT = 500;
+const QUERY_LIMIT_MAX = 1000;
+
+function quoteId(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
+}
+
+function rowsToCsv(fields: { name: string }[], rows: Record<string, unknown>[]): void {
+  if (fields.length === 0) return;
+  console.log(fields.map((f) => escapeCsv(f.name)).join(","));
+  for (const row of rows) {
+    const values = fields.map((f) => {
+      const v = row[f.name];
+      return v === null || v === undefined ? "" : String(v);
+    });
+    console.log(values.map(escapeCsv).join(","));
+  }
+}
+
+async function runSample(client: Client, tableArg: string, limit: number): Promise<void> {
+  const { schema, table } = parseTableArg(tableArg);
+  const n = Math.min(Math.max(1, limit), SAMPLE_LIMIT_MAX);
+  const sql = `SELECT * FROM ${quoteId(schema)}.${quoteId(table)} LIMIT ${n}`;
+  const res = await client.query(sql);
+  if (res.fields && res.fields.length > 0) {
+    rowsToCsv(
+      res.fields.map((f) => ({ name: f.name })),
+      res.rows as Record<string, unknown>[],
+    );
+  }
+}
+
+async function runQuery(client: Client, sql: string, limit: number): Promise<void> {
+  const capped = Math.min(Math.max(1, limit), QUERY_LIMIT_MAX);
+  const hasLimit = /\bLIMIT\s+\d+/i.test(sql);
+  const finalSql = hasLimit ? sql : `${sql.trimEnd().replace(/;\s*$/, "")} LIMIT ${capped}`;
+  const res = await client.query({ text: finalSql, rowMode: "object" });
+  const fields = res.fields ?? [];
+  if (fields.length > 0) {
+    rowsToCsv(
+      fields.map((f) => ({ name: f.name })),
+      res.rows as Record<string, unknown>[],
+    );
+  }
+}
+
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL) {
     console.error("DATABASE_URL is not set. Set it to a read-only PostgreSQL connection string.");
@@ -112,6 +160,13 @@ async function main(): Promise<void> {
   }
 
   const opts = parseArgs(process.argv);
+
+  // Reject non-SELECT before connecting (so we can test without a real DB).
+  if (opts.cmd === "query" && opts.sql && !isReadOnlySelect(opts.sql)) {
+    console.error("Only SELECT queries are allowed. Rejected.");
+    process.exit(1);
+  }
+
   const client = new Client({ connectionString: process.env.DATABASE_URL });
 
   try {
@@ -120,9 +175,10 @@ async function main(): Promise<void> {
       await runListTables(client);
     } else if (opts.cmd === "schema" && opts.table) {
       await runSchema(client, opts.table);
-    } else if (opts.cmd === "sample" || opts.cmd === "query") {
-      console.error("Not implemented yet");
-      process.exit(1);
+    } else if (opts.cmd === "sample" && opts.table) {
+      await runSample(client, opts.table, opts.limit ?? 1);
+    } else if (opts.cmd === "query" && opts.sql) {
+      await runQuery(client, opts.sql, opts.limit ?? QUERY_LIMIT_DEFAULT);
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
