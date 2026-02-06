@@ -62,11 +62,12 @@ function classifyStatus(status: number): ClassifiedError | undefined {
   if (status === 402) {
     return { category: "billing", retryable: false, cooldownMs: 0, reason: `HTTP ${status}` };
   }
-  if (status >= 400 && status < 500) {
-    return { category: "fatal", retryable: false, cooldownMs: 0, reason: `HTTP ${status}` };
-  }
+  // 501 Not Implemented — must come before the generic 4xx/5xx catch-alls
   if (status === 501) {
     return { category: "fatal", retryable: false, cooldownMs: 0, reason: `HTTP ${status} Not Implemented` };
+  }
+  if (status >= 400 && status < 500) {
+    return { category: "fatal", retryable: false, cooldownMs: 0, reason: `HTTP ${status}` };
   }
   if (status >= 500 && status <= 599) {
     return { category: "retryable", retryable: true, cooldownMs: 5_000, reason: `HTTP ${status}` };
