@@ -239,5 +239,5 @@ export function buildUpdateGroupProfileCommand(params: {
   groupId: number | string;
   profile: Record<string, unknown>;
 }): string {
-  return `/_group_profile ${normalizeGroupRef(params.groupId)} ${JSON.stringify(params.profile)}`;
+  return `/_group_profile ${normalizeGroupRef(params.groupId)} ${quoteCliArg(JSON.stringify(params.profile))}`;
 }

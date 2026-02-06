@@ -3,6 +3,7 @@ import {
   buildDeleteChatItemCommand,
   buildReceiveFileCommand,
   buildSendMessagesCommand,
+  buildUpdateGroupProfileCommand,
 } from "./simplex-commands.js";
 
 describe("simplex commands", () => {
@@ -47,5 +48,14 @@ describe("simplex commands", () => {
         ],
       }),
     ).toBe('/_send @123 json \'[{"msgContent":{"type":"text","text":"hello world"}}]\'');
+  });
+
+  it("quotes JSON payload in update group profile command", () => {
+    expect(
+      buildUpdateGroupProfileCommand({
+        groupId: "my-group",
+        profile: { displayName: "Team Room" },
+      }),
+    ).toBe('/_group_profile #my-group \'{"displayName":"Team Room"}\'');
   });
 });
