@@ -368,7 +368,7 @@ export function formatAssistantErrorText(
   }
 
   if (isRateLimitErrorMessage(raw)) {
-    return "⚠️ API rate limit reached. Your account may need more credits or you should try again later.";
+    return "⚠️ API rate limit reached. Please try again later.";
   }
 
   if (isOverloadedErrorMessage(raw)) {
