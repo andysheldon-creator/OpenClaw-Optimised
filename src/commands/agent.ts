@@ -50,6 +50,7 @@ import {
   registerAgentRunContext,
 } from "../infra/agent-events.js";
 import { getRemoteSkillEligibility } from "../infra/skills-remote.js";
+import { recordSpendFromResult } from "../infra/spend-ledger.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { applyVerboseOverride } from "../sessions/level-overrides.js";
@@ -513,6 +514,18 @@ export async function agentCommand(
         result,
       });
     }
+
+    // Record spend to the append-only ledger.
+    recordSpendFromResult({
+      usage: result.meta.agentMeta?.usage,
+      provider: result.meta.agentMeta?.provider ?? fallbackProvider ?? provider,
+      model: result.meta.agentMeta?.model ?? fallbackModel ?? model,
+      config: cfg,
+      agentId: sessionAgentId,
+      sessionKey,
+      sessionId,
+      startedAt,
+    });
 
     const payloads = result.payloads ?? [];
     return await deliverAgentCommandResult({

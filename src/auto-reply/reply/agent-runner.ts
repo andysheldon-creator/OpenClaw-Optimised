@@ -19,6 +19,7 @@ import {
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import { recordSpendFromResult } from "../../infra/spend-ledger.js";
 import { defaultRuntime } from "../../runtime.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
 import { resolveResponseUsageMode, type VerboseLevel } from "../thinking.js";
@@ -463,6 +464,18 @@ export async function runReplyAgent(params: {
         durationMs: Date.now() - runStartedAt,
       });
     }
+
+    recordSpendFromResult({
+      usage,
+      provider: providerUsed,
+      model: modelUsed,
+      config: cfg,
+      agentId: resolveAgentIdFromSessionKey(sessionKey),
+      sessionKey,
+      sessionId: followupRun.run.sessionId,
+      channel: replyToChannel,
+      startedAt: runStartedAt,
+    });
 
     const responseUsageRaw =
       activeSessionEntry?.responseUsage ??

@@ -38,6 +38,7 @@ import {
   refreshRemoteBinsForConnectedNodes,
   setSkillsRemoteRegistry,
 } from "../infra/skills-remote.js";
+import { initSpendAggregator } from "../infra/spend-ledger.js";
 import { scheduleGatewayUpdateCheck } from "../infra/update-startup.js";
 import { startDiagnosticHeartbeat, stopDiagnosticHeartbeat } from "../logging/diagnostic.js";
 import { createSubsystemLogger, runtimeForLogger } from "../logging/subsystem.js";
@@ -224,6 +225,9 @@ export async function startGatewayServer(
   }
   setGatewaySigusr1RestartPolicy({ allowExternal: cfgAtStart.commands?.restart === true });
   initSubagentRegistry();
+  initSpendAggregator().catch((err) => {
+    log.warn(`gateway: failed to init spend aggregator: ${String(err)}`);
+  });
   const defaultAgentId = resolveDefaultAgentId(cfgAtStart);
   const defaultWorkspaceDir = resolveAgentWorkspaceDir(cfgAtStart, defaultAgentId);
   const baseMethods = listGatewayMethods();

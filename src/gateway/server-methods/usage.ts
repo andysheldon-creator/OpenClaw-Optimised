@@ -3,6 +3,7 @@ import type { GatewayRequestHandlers } from "./types.js";
 import { loadConfig } from "../../config/config.js";
 import { loadProviderUsageSummary } from "../../infra/provider-usage.js";
 import { loadCostUsageSummary } from "../../infra/session-cost-usage.js";
+import { getSpendAggregator } from "../../infra/spend-ledger.js";
 
 const COST_USAGE_CACHE_TTL_MS = 30_000;
 
@@ -13,6 +14,15 @@ type CostUsageCacheEntry = {
 };
 
 const costUsageCache = new Map<number, CostUsageCacheEntry>();
+
+const VALID_GROUP_BY = new Set(["day", "provider", "model"]);
+
+const parseGroupBy = (raw: unknown): "day" | "provider" | "model" | undefined => {
+  if (typeof raw === "string" && VALID_GROUP_BY.has(raw)) {
+    return raw as "day" | "provider" | "model";
+  }
+  return undefined;
+};
 
 const parseDays = (raw: unknown): number => {
   if (typeof raw === "number" && Number.isFinite(raw)) {
@@ -83,6 +93,15 @@ export const usageHandlers: GatewayRequestHandlers = {
     const config = loadConfig();
     const days = parseDays(params?.days);
     const summary = await loadCostUsageSummaryCached({ days, config });
+    respond(true, summary, undefined);
+  },
+  "usage.spend": ({ respond, params }) => {
+    const days = parseDays(params?.days);
+    const provider = typeof params?.provider === "string" ? params.provider : undefined;
+    const model = typeof params?.model === "string" ? params.model : undefined;
+    const agentId = typeof params?.agentId === "string" ? params.agentId : undefined;
+    const groupBy = parseGroupBy(params?.groupBy);
+    const summary = getSpendAggregator().query({ days, provider, model, agentId, groupBy });
     respond(true, summary, undefined);
   },
 };
