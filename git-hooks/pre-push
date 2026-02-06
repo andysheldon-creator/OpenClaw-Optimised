@@ -1,0 +1,19 @@
+#!/bin/sh
+# Prevent pushing internal/* branches to origin (GitHub).
+# Internal branches should only be pushed to a private remote.
+
+remote="$1"
+
+while read local_ref local_sha remote_ref remote_sha; do
+  case "$local_ref" in
+    refs/heads/internal/*)
+      if [ "$remote" = "origin" ]; then
+        echo "❌ Blocked: refusing to push internal/ branch to origin (GitHub)."
+        echo "   Push to a private remote instead."
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+exit 0
