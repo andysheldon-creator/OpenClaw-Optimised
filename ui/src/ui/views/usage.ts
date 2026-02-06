@@ -2293,13 +2293,13 @@ type UsageMosaicStats = {
 };
 
 const WEEKDAYS = [
-  { id: "weekday.sun", text: "Sun" },
-  { id: "weekday.mon", text: "Mon" },
-  { id: "weekday.tue", text: "Tue" },
-  { id: "weekday.wed", text: "Wed" },
-  { id: "weekday.thu", text: "Thu" },
-  { id: "weekday.fri", text: "Fri" },
-  { id: "weekday.sat", text: "Sat" },
+  () => usageMsg("weekday.sun", "Sun"),
+  () => usageMsg("weekday.mon", "Mon"),
+  () => usageMsg("weekday.tue", "Tue"),
+  () => usageMsg("weekday.wed", "Wed"),
+  () => usageMsg("weekday.thu", "Thu"),
+  () => usageMsg("weekday.fri", "Fri"),
+  () => usageMsg("weekday.sat", "Sat"),
 ] as const;
 
 function getZonedHour(date: Date, zone: "local" | "utc"): number {
@@ -2363,8 +2363,8 @@ function buildUsageMosaicStats(
     }
   }
 
-  const weekdayLabels = WEEKDAYS.map(({ id, text }, index) => ({
-    label: usageMsg(id, text),
+  const weekdayLabels = WEEKDAYS.map((getLabel, index) => ({
+    label: getLabel(),
     tokens: weekdayTotals[index],
   }));
 
@@ -5456,10 +5456,11 @@ export function renderUsage(props: UsageProps) {
                 </span>
                 <span class="usage-metric-badge">
                   <strong>${displaySessionCount}</strong>
-                  ${usageMsg(
-                    displaySessionCount === 1 ? "session.one" : "session.many",
-                    displaySessionCount === 1 ? "session" : "sessions",
-                  )}
+                  ${
+                    displaySessionCount === 1
+                      ? usageMsg("session.one", "session")
+                      : usageMsg("session.many", "sessions")
+                  }
                 </span>
               `
               : nothing
