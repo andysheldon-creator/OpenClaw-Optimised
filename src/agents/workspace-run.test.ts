@@ -99,4 +99,49 @@ describe("resolveRunWorkspaceDir", () => {
     expect(result.malformedSessionKey).toBe(false);
     expect(result.workspaceDir).toBe(path.resolve(os.homedir(), ".openclaw", "workspace-research"));
   });
+
+  it("defaults to configured default agent when session key is malformed", () => {
+    const mainWorkspace = path.join(process.cwd(), "tmp", "workspace-main-default");
+    const researchWorkspace = path.join(process.cwd(), "tmp", "workspace-research-default");
+    const cfg = {
+      agents: {
+        defaults: { workspace: mainWorkspace },
+        list: [
+          { id: "main", workspace: mainWorkspace },
+          { id: "research", workspace: researchWorkspace, default: true },
+        ],
+      },
+    } satisfies OpenClawConfig;
+
+    const result = resolveRunWorkspaceDir({
+      workspaceDir: undefined,
+      sessionKey: "agent::broken",
+      config: cfg,
+    });
+
+    expect(result.agentId).toBe("research");
+    expect(result.agentIdSource).toBe("default");
+    expect(result.malformedSessionKey).toBe(true);
+    expect(result.workspaceDir).toBe(path.resolve(researchWorkspace));
+  });
+
+  it("treats non-agent legacy keys as default, not malformed", () => {
+    const fallbackWorkspace = path.join(process.cwd(), "tmp", "workspace-default-legacy");
+    const cfg = {
+      agents: {
+        defaults: { workspace: fallbackWorkspace },
+      },
+    } satisfies OpenClawConfig;
+
+    const result = resolveRunWorkspaceDir({
+      workspaceDir: undefined,
+      sessionKey: "custom-main-key",
+      config: cfg,
+    });
+
+    expect(result.agentId).toBe("main");
+    expect(result.agentIdSource).toBe("default");
+    expect(result.malformedSessionKey).toBe(false);
+    expect(result.workspaceDir).toBe(path.resolve(fallbackWorkspace));
+  });
 });

@@ -1,12 +1,13 @@
-import { createHash } from "node:crypto";
 import type { OpenClawConfig } from "../config/config.js";
+import { redactIdentifier } from "../logging/redact-identifier.js";
 import {
+  classifySessionKeyShape,
   DEFAULT_AGENT_ID,
   normalizeAgentId,
   parseAgentSessionKey,
 } from "../routing/session-key.js";
 import { resolveUserPath } from "../utils.js";
-import { resolveAgentWorkspaceDir } from "./agent-scope.js";
+import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "./agent-scope.js";
 
 export type WorkspaceFallbackReason = "missing" | "blank" | "invalid_type";
 type AgentIdSource = "explicit" | "session_key" | "default";
@@ -20,17 +21,11 @@ export type ResolveRunWorkspaceResult = {
   malformedSessionKey: boolean;
 };
 
-function isKnownSessionAlias(raw: string): boolean {
-  const normalized = raw.toLowerCase();
-  return (
-    normalized === "main" ||
-    normalized === "global" ||
-    normalized.startsWith("subagent:") ||
-    normalized.startsWith("acp:")
-  );
-}
-
-function resolveRunAgentId(params: { sessionKey?: string; agentId?: string }): {
+function resolveRunAgentId(params: {
+  sessionKey?: string;
+  agentId?: string;
+  config?: OpenClawConfig;
+}): {
   agentId: string;
   agentIdSource: AgentIdSource;
   malformedSessionKey: boolean;
@@ -43,10 +38,12 @@ function resolveRunAgentId(params: { sessionKey?: string; agentId?: string }): {
     return { agentId: explicit, agentIdSource: "explicit", malformedSessionKey: false };
   }
 
+  const defaultAgentId = resolveDefaultAgentId(params.config ?? {});
   const rawSessionKey = params.sessionKey?.trim() ?? "";
-  if (!rawSessionKey) {
+  const shape = classifySessionKeyShape(rawSessionKey);
+  if (shape === "missing") {
     return {
-      agentId: DEFAULT_AGENT_ID,
+      agentId: defaultAgentId || DEFAULT_AGENT_ID,
       agentIdSource: "default",
       malformedSessionKey: false,
     };
@@ -62,19 +59,14 @@ function resolveRunAgentId(params: { sessionKey?: string; agentId?: string }): {
   }
 
   return {
-    agentId: DEFAULT_AGENT_ID,
+    agentId: defaultAgentId || DEFAULT_AGENT_ID,
     agentIdSource: "default",
-    malformedSessionKey: !isKnownSessionAlias(rawSessionKey),
+    malformedSessionKey: shape === "malformed_agent",
   };
 }
 
 export function redactRunIdentifier(value: string | undefined): string {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return "-";
-  }
-  const hash = createHash("sha256").update(trimmed).digest("hex");
-  return `sha256:${hash.slice(0, 12)}`;
+  return redactIdentifier(value, { len: 12 });
 }
 
 export function resolveRunWorkspaceDir(params: {
@@ -84,7 +76,11 @@ export function resolveRunWorkspaceDir(params: {
   config?: OpenClawConfig;
 }): ResolveRunWorkspaceResult {
   const requested = params.workspaceDir;
-  const { agentId, agentIdSource, malformedSessionKey } = resolveRunAgentId(params);
+  const { agentId, agentIdSource, malformedSessionKey } = resolveRunAgentId({
+    sessionKey: params.sessionKey,
+    agentId: params.agentId,
+    config: params.config,
+  });
   if (typeof requested === "string") {
     const trimmed = requested.trim();
     if (trimmed) {
