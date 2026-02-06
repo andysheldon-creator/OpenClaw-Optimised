@@ -108,6 +108,7 @@ Current npm plugin list (update as needed):
 - @openclaw/discord
 - @openclaw/feishu
 - @openclaw/lobster
+- @openclaw/mattermost
 - @openclaw/matrix
 - @openclaw/msteams
 - @openclaw/nextcloud-talk
