@@ -22,12 +22,41 @@ export type SimplexComposedMessage = {
   mentions?: Record<string, number>;
 };
 
-const SIMPLEX_CHAT_REF_RE = /^[@#][0-9A-Za-z_-]+$/;
-const SIMPLEX_CHAT_ITEM_ID_RE = /^-?\d+$/;
+function isAsciiAlnumUnderscoreOrHyphen(value: string): boolean {
+  for (const ch of value) {
+    const code = ch.charCodeAt(0);
+    const isDigit = code >= 48 && code <= 57;
+    const isUpper = code >= 65 && code <= 90;
+    const isLower = code >= 97 && code <= 122;
+    if (!isDigit && !isUpper && !isLower && ch !== "_" && ch !== "-") {
+      return false;
+    }
+  }
+  return value.length > 0;
+}
+
+function isSignedIntegerToken(value: string): boolean {
+  if (!value) {
+    return false;
+  }
+  const start = value[0] === "-" ? 1 : 0;
+  if (start === value.length) {
+    return false;
+  }
+  for (let i = start; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code < 48 || code > 57) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function normalizeChatRefToken(value: string): string {
   const trimmed = value.trim();
-  if (!SIMPLEX_CHAT_REF_RE.test(trimmed)) {
+  const prefix = trimmed[0];
+  const body = trimmed.slice(1);
+  if ((prefix !== "@" && prefix !== "#") || !isAsciiAlnumUnderscoreOrHyphen(body)) {
     throw new Error(`invalid SimpleX chat ref: ${value}`);
   }
   return trimmed;
@@ -35,7 +64,7 @@ function normalizeChatRefToken(value: string): string {
 
 function normalizeChatItemIdToken(value: number | string): string {
   const normalized = normalizeCommandId(value);
-  if (!SIMPLEX_CHAT_ITEM_ID_RE.test(normalized)) {
+  if (!isSignedIntegerToken(normalized)) {
     throw new Error(`invalid SimpleX chat item id: ${value}`);
   }
   return normalized;
@@ -61,9 +90,14 @@ function hasWhitespace(value: string): boolean {
 }
 
 export function formatChatRef(ref: SimplexChatRef): string {
-  const prefix = ref.type === "direct" ? "@" : ref.type === "group" ? "#" : "*";
-  const scope = ref.scope ? String(ref.scope) : "";
-  return `${prefix}${ref.id}${scope}`;
+  if (ref.type === "local") {
+    throw new Error("local SimpleX chat refs are not supported for message commands");
+  }
+  if (ref.scope) {
+    throw new Error("scoped SimpleX chat refs are not supported for message commands");
+  }
+  const prefix = ref.type === "direct" ? "@" : "#";
+  return `${prefix}${ref.id}`;
 }
 
 export function buildSendMessagesCommand(params: {

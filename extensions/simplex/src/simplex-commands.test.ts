@@ -4,6 +4,7 @@ import {
   buildReceiveFileCommand,
   buildSendMessagesCommand,
   buildUpdateGroupProfileCommand,
+  formatChatRef,
 } from "./simplex-commands.js";
 
 describe("simplex commands", () => {
@@ -57,5 +58,14 @@ describe("simplex commands", () => {
         profile: { displayName: "Team Room" },
       }),
     ).toBe('/_group_profile #my-group \'{"displayName":"Team Room"}\'');
+  });
+
+  it("rejects unsupported local/scoped chat refs", () => {
+    expect(() => formatChatRef({ type: "local", id: "abc" })).toThrow(
+      "local SimpleX chat refs are not supported",
+    );
+    expect(() => formatChatRef({ type: "direct", id: "abc", scope: "team" })).toThrow(
+      "scoped SimpleX chat refs are not supported",
+    );
   });
 });

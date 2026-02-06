@@ -29,7 +29,12 @@ type SimplexChatItem = {
   chatItem?: {
     chatDir?: {
       type?: string;
-      groupMember?: { memberId?: string; groupMemberId?: number; localDisplayName?: string };
+      groupMember?: {
+        memberId?: string;
+        groupMemberId?: number;
+        contactId?: number | string;
+        localDisplayName?: string;
+      };
     };
     meta?: { itemId?: number; itemTs?: string };
     content?: { type?: string; msgContent?: { type?: string; text?: string } };
@@ -162,7 +167,12 @@ function resolveChatContext(item: SimplexChatItem): {
       return null;
     }
     const member = item.chatItem?.chatDir?.groupMember;
+    const contactId =
+      typeof member?.contactId === "number"
+        ? String(member.contactId)
+        : member?.contactId?.trim() || undefined;
     const senderId =
+      contactId ??
       member?.memberId?.trim() ??
       (typeof member?.groupMemberId === "number" ? String(member.groupMemberId) : undefined);
     const senderName = member?.localDisplayName?.trim() || undefined;
