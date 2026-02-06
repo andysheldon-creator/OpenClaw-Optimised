@@ -1,5 +1,4 @@
 import type { MarkdownTableMode } from "../config/types.base.js";
-import { chunkText } from "../auto-reply/chunk.js";
 import {
   chunkMarkdownIR,
   markdownToIR,
@@ -264,37 +263,105 @@ function sliceSignalStyles(
   return sliced;
 }
 
+/**
+ * Split Signal formatted text into chunks under the limit while preserving styles.
+ *
+ * This implementation deterministically tracks cursor position without using indexOf,
+ * which is fragile when chunks are trimmed or when duplicate substrings exist.
+ * Styles spanning chunk boundaries are split into separate ranges for each chunk.
+ */
 function splitSignalFormattedText(
   formatted: SignalFormattedText,
   limit: number,
 ): SignalFormattedText[] {
-  if (formatted.text.length <= limit) {
+  const { text, styles } = formatted;
+
+  if (text.length <= limit) {
     return [formatted];
   }
 
-  const textChunks = chunkText(formatted.text, limit);
   const results: SignalFormattedText[] = [];
-  let cursor = 0;
+  let remaining = text;
+  let offset = 0; // Track position in original text for style slicing
 
-  for (const chunk of textChunks) {
-    if (!chunk) {
-      continue;
+  while (remaining.length > 0) {
+    if (remaining.length <= limit) {
+      // Last chunk - take everything remaining
+      const trimmed = remaining.trimEnd();
+      if (trimmed.length > 0) {
+        results.push({
+          text: trimmed,
+          styles: mergeStyles(sliceSignalStyles(styles, offset, offset + trimmed.length)),
+        });
+      }
+      break;
     }
-    // Advance past any whitespace that chunkText split on
-    const idx = formatted.text.indexOf(chunk, cursor);
-    if (idx >= 0) {
-      cursor = idx;
+
+    // Find a good break point within the limit
+    const window = remaining.slice(0, limit);
+    let breakIdx = findBreakIndex(window);
+
+    // If no good break point found, hard break at limit
+    if (breakIdx <= 0) {
+      breakIdx = limit;
     }
-    const start = cursor;
-    const end = start + chunk.length;
-    results.push({
-      text: chunk,
-      styles: mergeStyles(sliceSignalStyles(formatted.styles, start, end)),
-    });
-    cursor = end;
+
+    // Extract chunk and trim trailing whitespace
+    const rawChunk = remaining.slice(0, breakIdx);
+    const chunk = rawChunk.trimEnd();
+
+    if (chunk.length > 0) {
+      results.push({
+        text: chunk,
+        styles: mergeStyles(sliceSignalStyles(styles, offset, offset + chunk.length)),
+      });
+    }
+
+    // Advance past the chunk and any whitespace separator
+    const brokeOnWhitespace = breakIdx < remaining.length && /\s/.test(remaining[breakIdx]);
+    const nextStart = Math.min(remaining.length, breakIdx + (brokeOnWhitespace ? 1 : 0));
+
+    // Skip leading whitespace in next chunk and update offset to track position
+    remaining = remaining.slice(nextStart).trimStart();
+    offset = text.length - remaining.length;
   }
 
   return results;
+}
+
+/**
+ * Find the best break index within a text window.
+ * Prefers newlines over whitespace, avoids breaking inside parentheses.
+ */
+function findBreakIndex(window: string): number {
+  let lastNewline = -1;
+  let lastWhitespace = -1;
+  let parenDepth = 0;
+
+  for (let i = 0; i < window.length; i++) {
+    const char = window[i];
+
+    if (char === "(") {
+      parenDepth++;
+      continue;
+    }
+    if (char === ")" && parenDepth > 0) {
+      parenDepth--;
+      continue;
+    }
+
+    // Only consider break points outside parentheses
+    if (parenDepth === 0) {
+      if (char === "\n") {
+        lastNewline = i;
+      } else if (/\s/.test(char)) {
+        lastWhitespace = i;
+      }
+    }
+  }
+
+  // Prefer newline break, fall back to whitespace
+  return lastNewline > 0 ? lastNewline : lastWhitespace;
 }
 
 export function markdownToSignalTextChunks(
