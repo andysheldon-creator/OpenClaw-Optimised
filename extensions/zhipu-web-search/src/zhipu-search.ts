@@ -104,7 +104,7 @@ export function createZhipuWebSearchTool(options: ZhipuSearchToolOptions): AnyAg
   if (!apiKey) {
     logger?.warn(
       "Zhipu web search plugin: no API key configured. " +
-        "Set plugins.entries.zhipu-web-search.apiKey or ZHIPU_API_KEY env var.",
+        "Set plugins.entries.zhipu-web-search.config.apiKey or ZHIPU_API_KEY env var.",
     );
     return null;
   }

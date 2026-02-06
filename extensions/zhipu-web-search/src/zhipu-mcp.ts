@@ -94,9 +94,26 @@ async function mcpPost(
       return { status: 202, sessionId: newSessionId };
     }
 
+    // Detect empty body — some proxies omit Content-Length for empty responses
     const contentLength = res.headers.get("content-length");
-    if (res.status === 200 && contentLength === "0") {
-      return { status: 200, sessionId: newSessionId };
+    if (res.ok && (contentLength === "0" || contentLength === null)) {
+      // Read body to check if truly empty
+      const bodyText = await res.text();
+      if (!bodyText.trim()) {
+        return { status: res.status, sessionId: newSessionId };
+      }
+      // Non-empty body despite content-length quirks — try to parse it
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("text/event-stream")) {
+        const response = parseSseForJsonRpc(bodyText);
+        return { status: res.status, sessionId: newSessionId, response };
+      }
+      try {
+        const data = JSON.parse(bodyText) as McpJsonRpcResponse;
+        return { status: res.status, sessionId: newSessionId, response: data };
+      } catch {
+        return { status: res.status, sessionId: newSessionId };
+      }
     }
 
     // 404 = session expired
