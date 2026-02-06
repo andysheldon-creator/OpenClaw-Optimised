@@ -23,117 +23,118 @@ On Windows, we strongly recommend running OpenClaw under [WSL2](https://learn.mi
 
 ## Install methods
 
-### Installer script
-
 <Tip>
-This is the recommended way to install OpenClaw.
+The **installer script** is the recommended way to install OpenClaw. It handles Node detection, installation, and onboarding in one step.
 </Tip>
 
-Downloads the CLI, installs it globally via npm, and launches the onboarding wizard.
+<AccordionGroup>
+  <Accordion title="Installer script" icon="rocket" defaultOpen>
+    Downloads the CLI, installs it globally via npm, and launches the onboarding wizard.
 
-<Tabs>
-  <Tab title="macOS / Linux / WSL2">
-    ```bash
-    curl -fsSL https://openclaw.ai/install.sh | bash
-    ```
-  </Tab>
-  <Tab title="Windows (PowerShell)">
-    ```powershell
-    iwr -useb https://openclaw.ai/install.ps1 | iex
-    ```
-  </Tab>
-</Tabs>
+    <Tabs>
+      <Tab title="macOS / Linux / WSL2">
+        ```bash
+        curl -fsSL https://openclaw.ai/install.sh | bash
+        ```
+      </Tab>
+      <Tab title="Windows (PowerShell)">
+        ```powershell
+        iwr -useb https://openclaw.ai/install.ps1 | iex
+        ```
+      </Tab>
+    </Tabs>
 
-That's it — the script handles Node detection, installation, and onboarding.
+    That's it — the script handles Node detection, installation, and onboarding.
 
-To skip onboarding and just install the binary:
+    To skip onboarding and just install the binary:
 
-<Tabs>
-  <Tab title="macOS / Linux / WSL2">
-    ```bash
-    curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
-    ```
-  </Tab>
-  <Tab title="Windows (PowerShell)">
-    ```powershell
-    & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -NoOnboard
-    ```
-  </Tab>
-</Tabs>
+    <Tabs>
+      <Tab title="macOS / Linux / WSL2">
+        ```bash
+        curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
+        ```
+      </Tab>
+      <Tab title="Windows (PowerShell)">
+        ```powershell
+        & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -NoOnboard
+        ```
+      </Tab>
+    </Tabs>
 
-For all flags, env vars, and CI/automation options, see [Installer internals](/install/installer).
+    For all flags, env vars, and CI/automation options, see [Installer internals](/install/installer).
 
-### npm / pnpm
+  </Accordion>
 
-If you already have Node 22+ and prefer to manage the install yourself:
+  <Accordion title="npm / pnpm" icon="package">
+    If you already have Node 22+ and prefer to manage the install yourself:
 
-<Tabs>
-  <Tab title="npm">
-    ```bash
-    npm install -g openclaw@latest
-    openclaw onboard --install-daemon
-    ```
+    <Tabs>
+      <Tab title="npm">
+        ```bash
+        npm install -g openclaw@latest
+        openclaw onboard --install-daemon
+        ```
 
-    <Accordion title="sharp build errors?">
-      If you have libvips installed globally (common on macOS via Homebrew) and `sharp` fails, force prebuilt binaries:
+        <Accordion title="sharp build errors?">
+          If you have libvips installed globally (common on macOS via Homebrew) and `sharp` fails, force prebuilt binaries:
 
-      ```bash
-      SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g openclaw@latest
-      ```
+          ```bash
+          SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g openclaw@latest
+          ```
 
-      If you see `sharp: Please add node-gyp to your dependencies`, either install build tooling (macOS: Xcode CLT + `npm install -g node-gyp`) or use the env var above.
-    </Accordion>
+          If you see `sharp: Please add node-gyp to your dependencies`, either install build tooling (macOS: Xcode CLT + `npm install -g node-gyp`) or use the env var above.
+        </Accordion>
+      </Tab>
+      <Tab title="pnpm">
+        ```bash
+        pnpm add -g openclaw@latest
+        pnpm approve-builds -g        # approve openclaw, node-llama-cpp, sharp, etc.
+        openclaw onboard --install-daemon
+        ```
 
-  </Tab>
-  <Tab title="pnpm">
-    ```bash
-    pnpm add -g openclaw@latest
-    pnpm approve-builds -g        # approve openclaw, node-llama-cpp, sharp, etc.
-    openclaw onboard --install-daemon
-    ```
+        <Note>
+        pnpm requires explicit approval for packages with build scripts. After the first install shows the "Ignored build scripts" warning, run `pnpm approve-builds -g` and select the listed packages.
+        </Note>
+      </Tab>
+    </Tabs>
 
-    <Note>
-    pnpm requires explicit approval for packages with build scripts. After the first install shows the "Ignored build scripts" warning, run `pnpm approve-builds -g` and select the listed packages.
-    </Note>
+  </Accordion>
 
-  </Tab>
-</Tabs>
+  <Accordion title="From source" icon="github">
+    For contributors or anyone who wants to run from a local checkout.
 
-### From source
+    <Steps>
+      <Step title="Clone and build">
+        Clone the [OpenClaw repo](https://github.com/openclaw/openclaw) and build:
 
-For contributors or anyone who wants to run from a local checkout.
+        ```bash
+        git clone https://github.com/openclaw/openclaw.git
+        cd openclaw
+        pnpm install
+        pnpm ui:build
+        pnpm build
+        ```
+      </Step>
+      <Step title="Link the CLI">
+        Make the `openclaw` command available globally:
 
-<Steps>
-  <Step title="Clone and build">
-    Clone the [OpenClaw repo](https://github.com/openclaw/openclaw) and build:
+        ```bash
+        pnpm link --global
+        ```
 
-    ```bash
-    git clone https://github.com/openclaw/openclaw.git
-    cd openclaw
-    pnpm install
-    pnpm ui:build
-    pnpm build
-    ```
+        Alternatively, skip the link and run commands via `pnpm openclaw ...` from inside the repo.
+      </Step>
+      <Step title="Run onboarding">
+        ```bash
+        openclaw onboard --install-daemon
+        ```
+      </Step>
+    </Steps>
 
-  </Step>
-  <Step title="Link the CLI">
-    Make the `openclaw` command available globally:
+    For deeper development workflows, see [Setup](/start/setup).
 
-    ```bash
-    pnpm link --global
-    ```
-
-    Alternatively, skip the link and run commands via `pnpm openclaw ...` from inside the repo.
-
-  </Step>
-  <Step title="Run onboarding">
-    ```bash
-    openclaw onboard --install-daemon
-    ```
-  </Step>
-</Steps>
-
-For deeper development workflows, see [Setup](/start/setup).
+  </Accordion>
+</AccordionGroup>
 
 ## Other install methods
 
