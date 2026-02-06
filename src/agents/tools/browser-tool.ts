@@ -588,9 +588,10 @@ export function createBrowserTool(opts?: {
             result = await browserConsoleMessages(baseUrl, { level, targetId, profile });
           }
           // Wrap console message text with security boundaries
+          const messages = Array.isArray(result.messages) ? result.messages : [];
           const wrappedResult = {
             ...result,
-            messages: result.messages.map((msg) => ({
+            messages: messages.map((msg) => ({
               ...msg,
               text: wrapWebContent(msg.text, "web_fetch"),
             })),

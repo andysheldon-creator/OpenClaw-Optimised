@@ -56,7 +56,8 @@ export function registerBrowserAgentDebugRoutes(
         clear,
       });
       // Wrap error messages and stack traces with security boundaries
-      const wrappedErrors = result.errors.map((err) => ({
+      const errors = Array.isArray(result.errors) ? result.errors : [];
+      const wrappedErrors = errors.map((err) => ({
         ...err,
         message: wrapWebContent(err.message, "web_fetch"),
         stack: err.stack ? wrapWebContent(err.stack, "web_fetch") : err.stack,
