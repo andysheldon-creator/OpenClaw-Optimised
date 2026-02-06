@@ -15,7 +15,11 @@ services:
         value: /data/workspace
       - key: OPENCLAW_GATEWAY_TOKEN
         sync: false
+      - key: GATEWAY_TRUSTED_PROXIES
+        value: 10.0.0.0/8
       - key: OPENCLAW_GATEWAY_TRUSTED_PROXIES
+        value: 10.0.0.0/8
+      - key: OPENCLAW_GATEWAY_TRUSTEDPROXIES
         value: 10.0.0.0/8
     disk:
       name: openclaw-data
