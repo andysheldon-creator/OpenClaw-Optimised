@@ -995,6 +995,7 @@
                   "gateway/tailscale",
                   "platforms/fly",
                   "platforms/hetzner",
+                  "platform/hostinger",
                   "platforms/gcp",
                   "platforms/macos-vm",
                   "platforms/exe-dev",
