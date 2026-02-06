@@ -12,11 +12,12 @@ type SkillsChangeEvent = {
 };
 
 type SkillsWatchState = {
-  watcher: FSWatcher;
+  watcher: FSWatcher | null;
   pathsKey: string;
   debounceMs: number;
   timer?: ReturnType<typeof setTimeout>;
   pendingPath?: string;
+  disabled?: boolean;
 };
 
 const log = createSubsystemLogger("gateway/skills");
@@ -29,6 +30,10 @@ export const DEFAULT_SKILLS_WATCH_IGNORED: RegExp[] = [
   /(^|[\\/])\.git([\\/]|$)/,
   /(^|[\\/])node_modules([\\/]|$)/,
   /(^|[\\/])dist([\\/]|$)/,
+  // Common non-skill artifacts that can be extremely large (and can exhaust inotify watchers on Linux).
+  /(^|[\\/])venv([\\/]|$)/,
+  /(^|[\\/])\.venv([\\/]|$)/,
+  /(^|[\\/])__pycache__([\\/]|$)/,
 ];
 
 function bumpVersion(current: number): number {
@@ -116,7 +121,9 @@ export function ensureSkillsWatcher(params: { workspaceDir: string; config?: Ope
       if (existing.timer) {
         clearTimeout(existing.timer);
       }
-      void existing.watcher.close().catch(() => {});
+      if (existing.watcher) {
+        void existing.watcher.close().catch(() => {});
+      }
     }
     return;
   }
@@ -124,28 +131,24 @@ export function ensureSkillsWatcher(params: { workspaceDir: string; config?: Ope
   const watchPaths = resolveWatchPaths(workspaceDir, params.config);
   const pathsKey = watchPaths.join("|");
   if (existing && existing.pathsKey === pathsKey && existing.debounceMs === debounceMs) {
-    return;
+    if (existing.disabled === true) {
+      return;
+    }
+    if (existing.watcher) {
+      return;
+    }
   }
   if (existing) {
     watchers.delete(workspaceDir);
     if (existing.timer) {
       clearTimeout(existing.timer);
     }
-    void existing.watcher.close().catch(() => {});
+    if (existing.watcher) {
+      void existing.watcher.close().catch(() => {});
+    }
   }
 
-  const watcher = chokidar.watch(watchPaths, {
-    ignoreInitial: true,
-    awaitWriteFinish: {
-      stabilityThreshold: debounceMs,
-      pollInterval: 100,
-    },
-    // Avoid FD exhaustion on macOS when a workspace contains huge trees.
-    // This watcher only needs to react to skill changes.
-    ignored: DEFAULT_SKILLS_WATCH_IGNORED,
-  });
-
-  const state: SkillsWatchState = { watcher, pathsKey, debounceMs };
+  const state: SkillsWatchState = { watcher: null, pathsKey, debounceMs };
 
   const schedule = (changedPath?: string) => {
     state.pendingPath = changedPath ?? state.pendingPath;
@@ -164,12 +167,66 @@ export function ensureSkillsWatcher(params: { workspaceDir: string; config?: Ope
     }, debounceMs);
   };
 
-  watcher.on("add", (p) => schedule(p));
-  watcher.on("change", (p) => schedule(p));
-  watcher.on("unlink", (p) => schedule(p));
-  watcher.on("error", (err) => {
-    log.warn(`skills watcher error (${workspaceDir}): ${String(err)}`);
-  });
+  const startWatcher = (mode: "native" | "polling"): FSWatcher => {
+    const usePolling = mode === "polling";
+    const watcher = new chokidar.FSWatcher({
+      ignoreInitial: true,
+      awaitWriteFinish: {
+        stabilityThreshold: debounceMs,
+        pollInterval: 100,
+      },
+      // Avoid FD exhaustion on macOS when a workspace contains huge trees.
+      // This watcher only needs to react to skill changes.
+      ignored: DEFAULT_SKILLS_WATCH_IGNORED,
+      usePolling,
+      // Polling avoids inotify watcher limits (ENOSPC), but can be more CPU heavy.
+      interval: usePolling ? Math.max(250, Math.min(2000, debounceMs)) : undefined,
+    });
+
+    watcher.on("add", (p) => schedule(p));
+    watcher.on("change", (p) => schedule(p));
+    watcher.on("unlink", (p) => schedule(p));
+
+    let watcherClosed = false;
+    watcher.on("error", (err) => {
+      if (watcherClosed) {
+        return;
+      }
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (mode === "native" && code === "ENOSPC") {
+        watcherClosed = true;
+        log.warn(
+          `skills watcher hit system limit (${code}) (${workspaceDir}); falling back to polling. ` +
+            "Consider increasing inotify limits (Linux) for better performance.",
+        );
+        void watcher.close().catch(() => {});
+        if (state.watcher === watcher && !state.disabled) {
+          state.watcher = startWatcher("polling");
+          state.watcher.add(watchPaths);
+        }
+        return;
+      }
+      if (code === "ENOSPC" || code === "EMFILE" || code === "ENFILE") {
+        watcherClosed = true;
+        log.warn(
+          `skills watcher disabled (${code}) (${workspaceDir}). ` +
+            "Consider increasing system limits or set skills.load.watch=false.",
+        );
+        void watcher.close().catch(() => {});
+        if (state.watcher === watcher) {
+          state.disabled = true;
+          state.watcher = null;
+        }
+        return;
+      }
+      log.warn(`skills watcher error (${workspaceDir}): ${String(err)}`);
+    });
+
+    return watcher;
+  };
+
+  state.watcher = startWatcher("native");
+  state.watcher.add(watchPaths);
 
   watchers.set(workspaceDir, state);
 }
