@@ -1,11 +1,5 @@
-import { execFile } from "node:child_process";
 import crypto from "node:crypto";
-import { randomUUID } from "node:crypto";
 import dgram from "node:dgram";
-import { readFile, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join as joinPath } from "node:path";
-import { promisify } from "node:util";
 import WebSocket from "ws";
 import type { VoiceCallConfig } from "../config.js";
 import type { CallManager } from "../manager.js";
@@ -95,8 +89,6 @@ type AriEvent = {
   };
   args?: string[];
 };
-
-const execFileAsync = promisify(execFile);
 
 function nowMs(): number {
   return Date.now();
@@ -838,54 +830,7 @@ export class AsteriskAriProvider implements VoiceCallProvider {
       const pcm24k = await tts.synthesize(input.text);
       mulaw = convertPcmToMulaw8k(pcm24k, 24000);
     } else {
-      const wavPath = joinPath(tmpdir(), `openclaw-tts-${randomUUID()}.wav`);
-      try {
-        try {
-          await execFileAsync("espeak-ng", ["-w", wavPath, input.text]);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          throw new Error(
-            `TTS fallback requires espeak-ng. Install espeak-ng/sox or set OPENAI_API_KEY. (${msg})`,
-          );
-        }
-
-        const wav = await readFile(wavPath);
-
-        try {
-          const { stdout } = await execFileAsync(
-            "sox",
-            [
-              "-t",
-              "wav",
-              "-",
-              "-t",
-              "raw",
-              "-r",
-              "8000",
-              "-c",
-              "1",
-              "-e",
-              "mu-law",
-              "-b",
-              "8",
-              "-",
-            ],
-            { input: wav, maxBuffer: 50 * 1024 * 1024 },
-          );
-          mulaw = Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          throw new Error(
-            `TTS fallback requires sox. Install espeak-ng/sox or set OPENAI_API_KEY. (${msg})`,
-          );
-        }
-      } finally {
-        try {
-          await unlink(wavPath);
-        } catch {
-          // ignore
-        }
-      }
+      throw new Error("TTS requires OPENAI_API_KEY (or a configured TTS provider). ");
     }
 
     // Stream as RTP 20ms frames
