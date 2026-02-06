@@ -212,11 +212,17 @@ export class AsteriskAriProvider implements VoiceCallProvider {
 
     for (const ch of channels) {
       const chObj = ch as Record<string, unknown>;
-      const id = String(chObj.id || "");
-      const name = String(chObj.name || "");
-      const dp = (chObj.dialplan as Record<string, unknown> | undefined) || undefined;
-      const appName = String(dp?.app_name || "");
-      const appData = String(dp?.app_data || "");
+
+      const id = typeof chObj.id === "string" ? chObj.id : "";
+      const name = typeof chObj.name === "string" ? chObj.name : "";
+
+      const dp =
+        typeof chObj.dialplan === "object" && chObj.dialplan
+          ? (chObj.dialplan as Record<string, unknown>)
+          : undefined;
+
+      const appName = typeof dp?.app_name === "string" ? dp.app_name : "";
+      const appData = typeof dp?.app_data === "string" ? dp.app_data : "";
       if (!id || !name) {
         continue;
       }
@@ -252,6 +258,10 @@ export class AsteriskAriProvider implements VoiceCallProvider {
     });
     this.ws.on("message", (data) => {
       let evt: AriEvent | null = null;
+      if (!(typeof data === "string" || Buffer.isBuffer(data))) {
+        return;
+      }
+
       try {
         evt = JSON.parse(data.toString());
       } catch {
