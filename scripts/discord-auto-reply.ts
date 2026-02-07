@@ -93,8 +93,8 @@ async function main() {
   // 3. Polling Loop
   setInterval(async () => {
     try {
-      await pollMessages(token, me.id, targetChannelId!);
-    } catch (err) {
+      await pollMessages(token, me.id, targetChannelId);
+    } catch (_err) {
       console.error("Polling error:", err);
     }
   }, POLLING_INTERVAL_MS);
@@ -114,10 +114,14 @@ async function pollMessages(token: string, myId: string, channelId: string) {
 
   for (const msg of messages) {
     // Skip my own messages
-    if (msg.author.id === myId) continue;
+    if (msg.author.id === myId) {
+      continue;
+    }
 
     // Skip if already processed
-    if (processedMessageIds.has(msg.id)) continue;
+    if (processedMessageIds.has(msg.id)) {
+      continue;
+    }
 
     // Check conditions:
     // A. Mentioned me directly
@@ -147,7 +151,7 @@ async function triggerOpenClawEvent(author: string, content: string) {
 
   console.log(`Triggering agent: ${command}`);
 
-  exec(command, (error, stdout, stderr) => {
+  exec(command, (error, stdout, _stderr) => {
     if (error) {
       console.error(`Error triggering event: ${error.message}`);
       return;

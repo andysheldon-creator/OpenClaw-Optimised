@@ -51,9 +51,14 @@ async function deriveKey(
       SCRYPT_KEY_LEN,
       { N: cost.N, r: cost.r, p: cost.p },
       (err, derivedKey) => {
-        if (err) reject(err);
-        else resolve(derivedKey as Buffer);
+      (err, derivedKey) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(derivedKey as Buffer);
+        }
       },
+
     );
   });
 }
@@ -103,7 +108,7 @@ export async function decryptVault(
   try {
     const raw = JSON.parse(vaultBuffer.toString("utf8"));
     vault = VaultSchema.parse(raw);
-  } catch (err) {
+  } catch (_err) {
     throw new VaultError("Invalid vault file format");
   }
 
@@ -126,7 +131,7 @@ export async function decryptVault(
     let decrypted = decipher.update(encryptedText, "base64", "utf8");
     decrypted += decipher.final("utf8");
     return JSON.parse(decrypted);
-  } catch (err) {
+  } catch (_err) {
     // AEAD authentication failed (wrong password or tampering)
     throw new VaultError(
       "Access Denied: Incorrect password or corrupted vault",
@@ -139,7 +144,9 @@ export async function decryptVault(
  */
 export function isVaultFile(filePath: string): boolean {
   try {
-    if (!fs.existsSync(filePath)) return false;
+    if (!fs.existsSync(filePath)) {
+      return false;
+    }
     const content = fs.readFileSync(filePath, "utf8");
     const json = JSON.parse(content);
     return VaultSchema.safeParse(json).success;

@@ -22,15 +22,19 @@ async function promptForPassword(message: string = "Enter vault password"): Prom
   const password = await p.password({
     message,
     validate: (value) => {
-      if (!value) return "Password cannot be empty";
-      if (value.length < 8) return "Password must be at least 8 characters";
+      if (!value) {
+        return "Password cannot be empty";
+      }
+      if (value.length < 8) {
+        return "Password must be at least 8 characters";
+      }
     },
   });
   if (p.isCancel(password)) {
     p.cancel("Operation cancelled");
     process.exit(0);
   }
-  return password as string;
+  return password;
 }
 
 export function registerSecurityCommands(program: Command) {
@@ -100,7 +104,7 @@ export function registerSecurityCommands(program: Command) {
         try {
           const buffer = await fs.promises.readFile(vaultPath);
           secrets = await decryptVault(buffer, password);
-        } catch (err) {
+        } catch (_err) {
           p.log.error("Failed to unlock vault. Wrong password?");
           process.exit(1);
         }
@@ -152,7 +156,7 @@ export function registerSecurityCommands(program: Command) {
       try {
         const buffer = await fs.promises.readFile(vaultPath);
         secrets = await decryptVault(buffer, oldPassword);
-      } catch (err) {
+      } catch (_err) {
         p.log.error("Failed to unlock vault");
         process.exit(1);
       }

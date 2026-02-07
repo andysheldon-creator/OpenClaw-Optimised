@@ -34,8 +34,9 @@ export async function tryUnlockVault(): Promise<boolean> {
         }
       }
       return true;
-    } catch (err: any) {
-      console.error("Failed to unlock vault with OPENCLAW_UNLOCK_KEY: " + err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Failed to unlock vault with OPENCLAW_UNLOCK_KEY: " + msg);
       return false;
     }
   }
@@ -60,7 +61,7 @@ export async function tryUnlockVault(): Promise<boolean> {
 
   try {
     const buffer = await fs.promises.readFile(vaultPath);
-    const secrets = await decryptVault(buffer, password as string);
+    const secrets = await decryptVault(buffer, password);
     
     // Inject into process.env
     for (const [key, value] of Object.entries(secrets)) {
@@ -71,8 +72,9 @@ export async function tryUnlockVault(): Promise<boolean> {
     
     prompts.outro("Vault unlocked");
     return true;
-  } catch (err: any) {
-    prompts.log.error("Unlock failed: " + err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    prompts.log.error("Unlock failed: " + msg);
     return false;
   }
 }
