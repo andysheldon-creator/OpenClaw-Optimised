@@ -12,7 +12,12 @@ import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import { resolveSandboxConfigForAgent, resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
-import { derivePromptTokens, normalizeUsage, type UsageLike } from "../../agents/usage.js";
+import {
+  derivePromptTokens,
+  hasNonzeroUsage,
+  normalizeUsage,
+  type UsageLike,
+} from "../../agents/usage.js";
 import {
   resolveAgentIdFromSessionKey,
   resolveSessionFilePath,
@@ -82,7 +87,7 @@ export async function readPromptTokensFromSessionLog(
         };
         const usageRaw = parsed.message?.usage ?? parsed.usage;
         const usage = normalizeUsage(usageRaw);
-        if (usage) {
+        if (usage && hasNonzeroUsage(usage)) {
           lastUsage = usage;
         }
       } catch {

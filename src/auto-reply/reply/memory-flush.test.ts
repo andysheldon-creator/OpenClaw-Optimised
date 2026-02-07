@@ -261,6 +261,25 @@ describe("memory flush transcript fallback", () => {
 
     expect(total).toBe(10);
   });
+
+  it("ignores trailing zero-usage transcript lines", async () => {
+    const tmp = await fsPromises.mkdtemp(path.join(os.tmpdir(), "openclaw-flush-"));
+    const logPath = path.join(tmp, "session.jsonl");
+    const lines = [
+      JSON.stringify({ usage: { input: 100, output: 20 } }),
+      JSON.stringify({ usage: { input: 0, output: 0, totalTokens: 0 } }),
+    ];
+    await fsPromises.writeFile(logPath, lines.join("\n"), "utf-8");
+
+    const sessionEntry = {
+      sessionId: "session",
+      updatedAt: Date.now(),
+      sessionFile: logPath,
+    };
+    const total = await readPromptTokensFromSessionLog("session", sessionEntry);
+
+    expect(total).toBe(120);
+  });
 });
 
 describe("runMemoryFlushIfNeeded transcript fallback", () => {
