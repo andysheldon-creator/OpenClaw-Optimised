@@ -188,7 +188,7 @@ If a node is paired but tools fail, isolate foreground, permission, and approval
 ```bash
 openclaw nodes status
 openclaw nodes describe --node <idOrNameOrIp>
-openclaw approvals list --node <idOrNameOrIp>
+openclaw approvals get --node <idOrNameOrIp>
 openclaw logs --follow
 openclaw status
 ```

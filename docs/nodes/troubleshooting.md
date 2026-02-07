@@ -25,7 +25,7 @@ Then run node specific checks:
 ```bash
 openclaw nodes status
 openclaw nodes describe --node <idOrNameOrIp>
-openclaw approvals list --node <idOrNameOrIp>
+openclaw approvals get --node <idOrNameOrIp>
 ```
 
 Healthy signals:
@@ -69,7 +69,7 @@ Quick checks:
 ```bash
 openclaw devices list
 openclaw nodes status
-openclaw approvals list --node <idOrNameOrIp>
+openclaw approvals get --node <idOrNameOrIp>
 openclaw approvals allowlist add --node <idOrNameOrIp> "/usr/bin/uname"
 ```
 
@@ -92,7 +92,7 @@ If pairing is fine but `system.run` fails, fix exec approvals/allowlist.
 ```bash
 openclaw nodes status
 openclaw nodes describe --node <idOrNameOrIp>
-openclaw approvals list --node <idOrNameOrIp>
+openclaw approvals get --node <idOrNameOrIp>
 openclaw logs --follow
 ```
 
