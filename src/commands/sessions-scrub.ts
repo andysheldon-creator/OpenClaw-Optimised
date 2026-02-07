@@ -35,12 +35,7 @@ async function scrubSessionFile(
     const redacted = redactSensitiveText(line, { mode: "tools" });
     if (redacted !== line) {
       modified = true;
-      // Count actual redactions by comparing lengths or counting redaction markers
-      // Each redaction replaces text with [REDACTED], so count occurrences
-      const redactedMatches = redacted.match(/\[REDACTED\]/g);
-      const originalMatches = line.match(/\[REDACTED\]/g);
-      const newRedactions = (redactedMatches?.length ?? 0) - (originalMatches?.length ?? 0);
-      redactionCount += Math.max(0, newRedactions);
+      redactionCount++;
     }
     return redacted;
   });
@@ -116,14 +111,14 @@ export async function sessionsScrubCommand(
 
   if (opts.dryRun) {
     lines.push(`Files that would be modified: ${theme.warn(String(result.filesModified))}`);
-    lines.push(`Approximate redaction count: ${theme.warn(String(result.redactionCount))}`);
+    lines.push(`Lines with secrets: ${theme.warn(String(result.redactionCount))}`);
     if (result.filesModified > 0) {
       lines.push("");
       lines.push(theme.muted("Run without --dry-run to apply changes. Backups will be created."));
     }
   } else {
     lines.push(`Files modified: ${theme.success(String(result.filesModified))}`);
-    lines.push(`Secrets redacted: ${theme.success(String(result.redactionCount))}`);
+    lines.push(`Lines scrubbed: ${theme.success(String(result.redactionCount))}`);
     if (result.filesModified > 0 && !opts.noBackup) {
       lines.push("");
       lines.push(theme.muted("Backups created with .bak extension."));
