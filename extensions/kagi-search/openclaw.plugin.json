@@ -1,0 +1,9 @@
+{
+  "$schema": "../openclaw.plugin.schema.json",
+  "name": "kagi-search",
+  "version": "0.0.1",
+  "description": "Example Kagi search provider plugin for web_search",
+  "entry": "./index.ts",
+  "author": "OpenClaw Contributors",
+  "license": "MIT"
+}
