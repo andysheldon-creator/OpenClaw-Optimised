@@ -56,8 +56,11 @@ export async function onTimer(state: CronServiceState) {
         const missedJobs = (state.store?.jobs ?? []).filter((j) => {
           if (!j.enabled) return false;
           if (typeof j.state.runningAtMs === "number") return false;
+          // Exclude completed one-shot jobs (same check as runMissedJobs)
+          if (j.schedule.kind === "at" && j.state.lastStatus === "ok") return false;
           const next = j.state.nextRunAtMs;
-          return typeof next === "number" && now > next;
+          // Use >= to match findDueJobs predicate
+          return typeof next === "number" && now >= next;
         });
 
         if (missedJobs.length > 0) {
