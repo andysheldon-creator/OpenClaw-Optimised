@@ -51,13 +51,19 @@ function resolveRunner() {
 }
 
 function run(cmd, args) {
-  const shellCmd = process.platform === "win32" ? `"${cmd}"` : cmd;
-  const child = spawn(shellCmd, args, {
-    cwd: uiDir,
-    stdio: "inherit",
-    env: process.env,
-    shell: process.platform === "win32",
-  });
+  const isWin = process.platform === "win32";
+  const child = isWin
+    ? spawn(`"${cmd}" ${args.join(" ")}`, {
+        cwd: uiDir,
+        stdio: "inherit",
+        env: process.env,
+        shell: true,
+      })
+    : spawn(cmd, args, {
+        cwd: uiDir,
+        stdio: "inherit",
+        env: process.env,
+      });
   child.on("exit", (code, signal) => {
     if (signal) {
       process.exit(1);
@@ -67,13 +73,19 @@ function run(cmd, args) {
 }
 
 function runSync(cmd, args, envOverride) {
-  const shellCmd = process.platform === "win32" ? `"${cmd}"` : cmd;
-  const result = spawnSync(shellCmd, args, {
-    cwd: uiDir,
-    stdio: "inherit",
-    env: envOverride ?? process.env,
-    shell: process.platform === "win32",
-  });
+  const isWin = process.platform === "win32";
+  const result = isWin
+    ? spawnSync(`"${cmd}" ${args.join(" ")}`, {
+        cwd: uiDir,
+        stdio: "inherit",
+        env: envOverride ?? process.env,
+        shell: true,
+      })
+    : spawnSync(cmd, args, {
+        cwd: uiDir,
+        stdio: "inherit",
+        env: envOverride ?? process.env,
+      });
   if (result.signal) {
     process.exit(1);
   }
