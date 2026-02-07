@@ -44,7 +44,7 @@
         "default": 50000,
         "minimum": 5,
         "maximum": 100000,
-        "description": "Maximum items in short-term memory (Phase 1: 50K default)"
+        "description": "Maximum items in short-term memory"
       },
       "embeddingsUrl": {
         "type": "string",
@@ -57,6 +57,44 @@
         "minimum": 10,
         "maximum": 500,
         "description": "Messages to keep in active session RAM cache"
+      },
+      "hotTierSize": {
+        "type": "integer",
+        "default": 100,
+        "minimum": 10,
+        "maximum": 1000,
+        "description": "Phase 2: Number of most-accessed memories to keep in hot tier"
+      },
+      "maxContextTokens": {
+        "type": "integer",
+        "default": 2000,
+        "minimum": 500,
+        "maximum": 10000,
+        "description": "Phase 2: Maximum tokens for memory context injection"
+      },
+      "relevanceThreshold": {
+        "type": "number",
+        "default": 0.5,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Phase 2: Skip memories below this relevance score"
+      },
+      "truncateOldMemoriesTo": {
+        "type": "integer",
+        "default": 200,
+        "minimum": 50,
+        "maximum": 500,
+        "description": "Phase 2: Truncate old memories to this many characters"
+      },
+      "deltaSyncEnabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Phase 2: Enable background delta sync (every 5 minutes)"
+      },
+      "prefetchEnabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Phase 2: Enable predictive category prefetching"
       }
     }
   }

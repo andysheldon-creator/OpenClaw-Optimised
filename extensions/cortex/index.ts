@@ -21,7 +21,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { OpenClawPlugin, OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { CortexBridge, type STMItem } from "./cortex-bridge.js";
+import { CortexBridge, type STMItem, type TokenBudgetConfig, estimateTokens } from "./cortex-bridge.js";
 
 // Importance triggers for auto-capture
 const IMPORTANCE_TRIGGERS = [
@@ -184,6 +184,15 @@ const cortexPlugin: OpenClawPlugin = {
     stmCapacity: Type.Number({ default: 50 }),
     minMatchScore: Type.Number({ default: 0.3, minimum: 0, maximum: 1 }),
     episodicMemoryTurns: Type.Number({ default: 20, minimum: 5, maximum: 50 }),
+    // PHASE 2: Hot Memory Tier
+    hotTierSize: Type.Number({ default: 100, minimum: 10, maximum: 1000 }),
+    // PHASE 2: Token Budget System
+    maxContextTokens: Type.Number({ default: 2000, minimum: 500, maximum: 10000 }),
+    relevanceThreshold: Type.Number({ default: 0.5, minimum: 0, maximum: 1 }),
+    truncateOldMemoriesTo: Type.Number({ default: 200, minimum: 50, maximum: 500 }),
+    // PHASE 2: Delta Sync & Prefetch
+    deltaSyncEnabled: Type.Boolean({ default: true }),
+    prefetchEnabled: Type.Boolean({ default: true }),
   }),
 
   register(api: OpenClawPluginApi) {
@@ -197,9 +206,16 @@ const cortexPlugin: OpenClawPlugin = {
       stmCapacity: number;
       minMatchScore: number;
       episodicMemoryTurns: number;
+      // PHASE 2
+      hotTierSize: number;
+      maxContextTokens: number;
+      relevanceThreshold: number;
+      truncateOldMemoriesTo: number;
+      deltaSyncEnabled: boolean;
+      prefetchEnabled: boolean;
     }>;
 
-    // Apply defaults (PHASE 1: Massive memory expansion)
+    // Apply defaults (PHASE 1 & 2: Memory expansion)
     const config = {
       enabled: rawConfig.enabled ?? true,
       autoCapture: rawConfig.autoCapture ?? true,
@@ -207,9 +223,18 @@ const cortexPlugin: OpenClawPlugin = {
       temporalRerank: rawConfig.temporalRerank ?? true,
       temporalWeight: rawConfig.temporalWeight ?? 0.5,      // Favor recent
       importanceWeight: rawConfig.importanceWeight ?? 0.4,  // Favor important
-      stmCapacity: rawConfig.stmCapacity ?? 50000,          // PHASE 1: 50K items (was 50)
+      stmCapacity: rawConfig.stmCapacity ?? 50000,          // PHASE 1: 50K items
       minMatchScore: rawConfig.minMatchScore ?? 0.3,        // Filter low-confidence results
       episodicMemoryTurns: rawConfig.episodicMemoryTurns ?? 20, // Working memory turns to pin
+      // PHASE 2: Hot Memory Tier
+      hotTierSize: rawConfig.hotTierSize ?? 100,
+      // PHASE 2: Token Budget System
+      maxContextTokens: rawConfig.maxContextTokens ?? 2000,
+      relevanceThreshold: rawConfig.relevanceThreshold ?? 0.5,
+      truncateOldMemoriesTo: rawConfig.truncateOldMemoriesTo ?? 200,
+      // PHASE 2: Delta Sync & Prefetch
+      deltaSyncEnabled: rawConfig.deltaSyncEnabled ?? true,
+      prefetchEnabled: rawConfig.prefetchEnabled ?? true,
     };
 
     if (!config.enabled) {
@@ -217,12 +242,23 @@ const cortexPlugin: OpenClawPlugin = {
       return;
     }
 
-    const bridge = new CortexBridge();
+    // PHASE 2: Initialize bridge with token budget config
+    const bridge = new CortexBridge({
+      hotTierSize: config.hotTierSize,
+      tokenBudget: {
+        maxContextTokens: config.maxContextTokens,
+        relevanceThreshold: config.relevanceThreshold,
+        truncateOldMemoriesTo: config.truncateOldMemoriesTo,
+      },
+    });
+
+    // Track last detected category for predictive prefetch
+    let lastDetectedCategory: string | null = null;
 
     // Track pending STM matches for re-ranking
     const pendingStmMatches = new Map<string, Array<STMItem & { matchScore: number }>>();
 
-    // PHASE 1: Warm up caches on startup
+    // PHASE 1 & 2: Warm up caches on startup
     void (async () => {
       const available = await bridge.isAvailable();
       if (!available) {
@@ -230,12 +266,21 @@ const cortexPlugin: OpenClawPlugin = {
         return;
       }
 
-      // Warm up all RAM caches
+      // Warm up all RAM caches (PHASE 2: also starts delta sync)
       const warmupResult = await bridge.warmupCaches();
-      api.logger.info(`Cortex initialized: ${warmupResult.stm} STM items, ${warmupResult.memories} memories cached`);
+      const indexStats = bridge.memoryIndex.getStats();
+      api.logger.info(
+        `Cortex Phase 2 initialized: ${warmupResult.stm} STM, ${warmupResult.memories} memories, ` +
+        `${indexStats.hotCount} hot tier, token budget: ${config.maxContextTokens}`
+      );
 
       // Update STM capacity in the JSON file
       await bridge.updateSTMCapacity(config.stmCapacity);
+
+      // PHASE 2: Stop delta sync if disabled
+      if (!config.deltaSyncEnabled) {
+        bridge.stopDeltaSync();
+      }
     })();
 
     // =========================================================================
@@ -455,11 +500,12 @@ const cortexPlugin: OpenClawPlugin = {
               return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
             };
 
+            const hotTierStats = extStats.memoryIndex.hotTierStats;
             return {
               content: [
                 {
                   type: "text",
-                  text: `Cortex Memory Stats (PHASE 1 - RAM Caching):
+                  text: `Cortex Memory Stats (PHASE 2 - Token Budget + Hot Tier):
 
 📊 RAM Cache Status:
 - STM cached: ${extStats.stm.cached ? "YES" : "NO"} (${extStats.stm.count}/${extStats.stm.capacity} items)
@@ -472,12 +518,20 @@ const cortexPlugin: OpenClawPlugin = {
 - By category: ${Object.entries(dbStats.by_category).map(([k, v]) => `${k}(${v})`).join(", ") || "none"}
 - By source: ${Object.entries(dbStats.by_source).map(([k, v]) => `${k}(${v})`).join(", ") || "none"}
 
-🔥 Hot Memory:
+🔥 Hot Memory Tier (PHASE 2):
+- Hot tier size: ${hotTierStats.size}/${config.hotTierSize}
+- Top accessed: ${hotTierStats.topAccessCounts.slice(0, 5).map(t => `${t.count.toFixed(1)}`).join(", ") || "none"}
 - Categories: ${extStats.memoryIndex.byCategory ? Object.keys(extStats.memoryIndex.byCategory).length : 0}
-- Hot items: ${extStats.memoryIndex.hotCount}`,
+
+💰 Token Budget (PHASE 2):
+- Max context tokens: ${config.maxContextTokens}
+- Relevance threshold: ${config.relevanceThreshold}
+- Truncate old to: ${config.truncateOldMemoriesTo} chars
+- Delta sync: ${config.deltaSyncEnabled ? "ON" : "OFF"}
+- Prefetch: ${config.prefetchEnabled ? "ON" : "OFF"}`,
                 },
               ],
-              details: { dbStats, extStats },
+              details: { dbStats, extStats, config: { maxContextTokens: config.maxContextTokens, relevanceThreshold: config.relevanceThreshold } },
             };
           } catch (err) {
             return {
@@ -627,14 +681,15 @@ const cortexPlugin: OpenClawPlugin = {
     }, { priority: -10 }); // Run after other agent_end handlers
 
     // =========================================================================
-    // Hook: before_agent_start - Inject ALL context tiers (L1-L4)
+    // Hook: before_agent_start - Inject ALL context tiers (L1-L4) with token budget
     // =========================================================================
-    // PHASE 1 MEMORY TIERS:
-    // L1. Working Memory (pinned items) - ALWAYS in context
+    // PHASE 1 & 2 MEMORY TIERS (with token budget enforcement):
+    // L1. Working Memory (pinned items) - ALWAYS in context (no token limit)
     // L2. Active Session (last 50 messages) - ELIMINATES "forgot 5 messages ago"
-    // L3. STM (keyword matching) - recent 48h context
+    // L3. Hot Memory Tier (top 100 most-accessed) - instant retrieval
+    // L3.5. STM (keyword matching) - recent 48h context
     // L4. Semantic search - GPU-accelerated long-term knowledge
-    // Results are deduplicated and filtered by minMatchScore.
+    // Results are deduplicated, token-budgeted, and filtered by relevanceThreshold.
     api.on("before_agent_start", async (event, _ctx) => {
       if (!event.prompt || event.prompt.length < 10) {
         return;
@@ -648,8 +703,20 @@ const cortexPlugin: OpenClawPlugin = {
 
         const queryText = event.prompt.slice(0, 200);
         const contextParts: string[] = [];
+        let usedTokens = 0;
+        const tokenBudget = config.maxContextTokens;
 
-        // L1. Working Memory (pinned items) - ALWAYS injected first
+        // PHASE 2: Predictive prefetch based on detected category
+        const queryCategory = detectCategory(queryText);
+        if (config.prefetchEnabled && queryCategory !== "general" && queryCategory !== lastDetectedCategory) {
+          lastDetectedCategory = queryCategory;
+          const prefetchCount = await bridge.prefetchCategory(queryCategory);
+          if (prefetchCount > 0) {
+            api.logger.debug?.(`Cortex: prefetched ${prefetchCount} memories for category "${queryCategory}"`);
+          }
+        }
+
+        // L1. Working Memory (pinned items) - ALWAYS injected first (no token limit)
         const workingItems = await loadWorkingMemory();
         if (workingItems.length > 0) {
           const wmContext = workingItems.map((item, i) => {
@@ -657,19 +724,55 @@ const cortexPlugin: OpenClawPlugin = {
             return `- ${label} ${item.content}`;
           }).join("\n");
           contextParts.push(`<working-memory hint="CRITICAL: pinned items - always keep in context">\n${wmContext}\n</working-memory>`);
+          // Working memory doesn't count against budget (it's critical)
         }
 
         // L2. Active Session - Last 50 messages (PHASE 1: eliminates "forgot 5 messages ago")
         const activeSessionMessages = bridge.activeSession.search(queryText);
         if (activeSessionMessages.length > 0) {
-          const sessionContext = activeSessionMessages.slice(0, 5).map((m) => {
+          const sessionItems = activeSessionMessages.slice(0, 5);
+          const sessionContext = sessionItems.map((m) => {
             return `- [${m.role}] ${m.content.slice(0, 150)}`;
           }).join("\n");
-          contextParts.push(`<active-session hint="recent conversation (this session)">\n${sessionContext}\n</active-session>`);
+          const sessionTokens = estimateTokens(sessionContext);
+
+          if (usedTokens + sessionTokens <= tokenBudget) {
+            contextParts.push(`<active-session hint="recent conversation (this session)">\n${sessionContext}\n</active-session>`);
+            usedTokens += sessionTokens;
+          }
         }
 
-        // L3. STM fast path (keyword matching for very recent items)
-        const stmItems = await bridge.getRecentSTM(Math.min(config.stmCapacity, 100)); // Limit to 100 for matching
+        // L3. PHASE 2: Hot Memory Tier (most accessed memories)
+        const hotMemories = bridge.getHotMemoriesTier(10);
+        if (hotMemories.length > 0) {
+          // Filter to relevant ones
+          const queryTerms = queryText.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+          const relevantHot = hotMemories.filter(m => {
+            const content = m.content.toLowerCase();
+            return queryTerms.some(term => content.includes(term));
+          }).slice(0, 3);
+
+          if (relevantHot.length > 0) {
+            const hotContext = relevantHot.map((m) => {
+              const accessCount = bridge.memoryIndex.hotTier.getAccessCount(m.id);
+              return `- [${m.category ?? "hot"}/access=${accessCount}] ${m.content.slice(0, config.truncateOldMemoriesTo)}`;
+            }).join("\n");
+            const hotTokens = estimateTokens(hotContext);
+
+            if (usedTokens + hotTokens <= tokenBudget) {
+              contextParts.push(`<hot-memory hint="frequently accessed knowledge">\n${hotContext}\n</hot-memory>`);
+              usedTokens += hotTokens;
+
+              // PHASE 2: Record co-occurrence for these memories
+              if (relevantHot.length > 1) {
+                bridge.memoryIndex.recordCoOccurrence(relevantHot.map(m => m.id));
+              }
+            }
+          }
+        }
+
+        // L3.5. STM fast path (keyword matching for very recent items)
+        const stmItems = await bridge.getRecentSTM(Math.min(config.stmCapacity, 100));
         const stmMatches = stmItems.length > 0
           ? matchSTMItems(stmItems, queryText, config.temporalWeight, config.importanceWeight)
               .filter(m => m.matchScore >= config.minMatchScore)
@@ -680,37 +783,52 @@ const cortexPlugin: OpenClawPlugin = {
           const stmContext = stmMatches.map((m) => {
             const recency = calculateRecencyScore(m.timestamp);
             const recencyLabel = recency > 0.8 ? "now" : recency > 0.4 ? "recent" : "older";
-            return `- [${m.category}/${recencyLabel}] ${m.content.slice(0, 150)}`;
+            return `- [${m.category}/${recencyLabel}] ${m.content.slice(0, config.truncateOldMemoriesTo)}`;
           }).join("\n");
-          contextParts.push(`<episodic-memory hint="recent events (last 48h)">\n${stmContext}\n</episodic-memory>`);
+          const stmTokens = estimateTokens(stmContext);
+
+          if (usedTokens + stmTokens <= tokenBudget) {
+            contextParts.push(`<episodic-memory hint="recent events (last 48h)">\n${stmContext}\n</episodic-memory>`);
+            usedTokens += stmTokens;
+          }
         }
 
-        // 2. Semantic search (GPU embeddings daemon - long-term knowledge)
-        const daemonAvailable = await bridge.isEmbeddingsDaemonAvailable();
-        if (daemonAvailable) {
-          const semanticResults = await bridge.semanticSearch(queryText, {
-            limit: 3,
-            temporalWeight: config.temporalWeight,
-            minScore: config.minMatchScore,
-          });
+        // L4. Semantic search (GPU embeddings daemon - long-term knowledge)
+        const remainingBudget = tokenBudget - usedTokens;
+        if (remainingBudget > 100) { // Need at least 100 tokens for semantic results
+          const daemonAvailable = await bridge.isEmbeddingsDaemonAvailable();
+          if (daemonAvailable) {
+            // PHASE 2: Use token-budgeted retrieval
+            const budgetedResults = bridge.getContextWithinBudget(queryText, {
+              maxContextTokens: remainingBudget,
+              relevanceThreshold: config.relevanceThreshold,
+              truncateOldMemoriesTo: config.truncateOldMemoriesTo,
+            });
 
-          // Deduplicate against STM (by content substring match)
-          const stmContents = new Set(stmMatches.map(m => m.content.slice(0, 50).toLowerCase()));
-          const uniqueSemanticResults = semanticResults.filter(
-            r => !stmContents.has(r.content.slice(0, 50).toLowerCase())
-          );
+            // Deduplicate against STM and hot (by content substring match)
+            const existingContents = new Set([
+              ...stmMatches.map(m => m.content.slice(0, 50).toLowerCase()),
+              ...hotMemories.slice(0, 3).map(m => m.content.slice(0, 50).toLowerCase()),
+            ]);
+            const uniqueResults = budgetedResults.filter(
+              r => !existingContents.has(r.content.slice(0, 50).toLowerCase())
+            );
 
-          if (uniqueSemanticResults.length > 0) {
-            const semanticContext = uniqueSemanticResults.map((r) => {
-              return `- [${r.category ?? "general"}/score=${r.score.toFixed(2)}] ${r.content.slice(0, 150)}`;
-            }).join("\n");
-            contextParts.push(`<semantic-memory hint="related knowledge from long-term memory">\n${semanticContext}\n</semantic-memory>`);
+            if (uniqueResults.length > 0) {
+              const semanticContext = uniqueResults.map((r) => {
+                return `- [${r.category ?? "general"}/tokens=${r.tokens}] ${r.finalContent}`;
+              }).join("\n");
+              contextParts.push(`<semantic-memory hint="related knowledge (token-budgeted)">\n${semanticContext}\n</semantic-memory>`);
+              usedTokens += uniqueResults.reduce((sum, r) => sum + r.tokens, 0);
+            }
           }
         }
 
         if (contextParts.length === 0) {
           return;
         }
+
+        api.logger.debug?.(`Cortex: injected ${contextParts.length} tiers, ~${usedTokens}/${tokenBudget} tokens`);
 
         return {
           prependContext: contextParts.join("\n\n"),

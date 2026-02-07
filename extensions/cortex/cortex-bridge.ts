@@ -35,6 +35,23 @@ export interface CortexSearchOptions {
   category?: string;
 }
 
+/**
+ * PHASE 2: Token budget configuration
+ */
+export interface TokenBudgetConfig {
+  maxContextTokens: number;      // Max tokens for memory context (default: 2000)
+  relevanceThreshold: number;    // Skip memories below this score (default: 0.5)
+  truncateOldMemoriesTo: number; // Truncate old memories to N chars (default: 200)
+}
+
+/**
+ * PHASE 2: Simple token estimation
+ * Rough approximation: 1 token ≈ 4 chars for English text
+ */
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
 export interface STMItem {
   content: string;
   timestamp: string;
@@ -107,8 +124,143 @@ export class ActiveSessionCache {
 }
 
 /**
+ * PHASE 2: Hot Memory Tier
+ * Top N most-accessed memories with instant retrieval
+ * Implements access count decay to prevent stale hot memories
+ */
+export class HotMemoryTier {
+  private hotIds: Set<string> = new Set();
+  private accessCounts: Map<string, number> = new Map();
+  private lastAccess: Map<string, number> = new Map();
+  private readonly maxSize: number;
+  private readonly decayIntervalMs = 3600000; // 1 hour
+  private readonly decayFactor = 0.9; // Multiply access counts by this every decay interval
+
+  constructor(maxSize = 100) {
+    this.maxSize = maxSize;
+  }
+
+  /**
+   * Record an access and potentially promote to hot tier
+   */
+  recordAccess(id: string): void {
+    const now = Date.now();
+    const prevCount = this.accessCounts.get(id) ?? 0;
+    const lastTime = this.lastAccess.get(id) ?? now;
+
+    // Apply decay if enough time has passed
+    const hoursSinceAccess = (now - lastTime) / this.decayIntervalMs;
+    const decayedCount = prevCount * Math.pow(this.decayFactor, hoursSinceAccess);
+
+    const newCount = decayedCount + 1;
+    this.accessCounts.set(id, newCount);
+    this.lastAccess.set(id, now);
+
+    // Check if this should be promoted to hot tier
+    this.maybePromote(id, newCount);
+  }
+
+  /**
+   * Promote to hot tier if access count is high enough
+   */
+  private maybePromote(id: string, count: number): void {
+    if (this.hotIds.has(id)) {
+      return; // Already hot
+    }
+
+    if (this.hotIds.size < this.maxSize) {
+      this.hotIds.add(id);
+      return;
+    }
+
+    // Find the coldest hot item and compare
+    let coldestId: string | null = null;
+    let coldestCount = Infinity;
+    for (const hotId of this.hotIds) {
+      const hotCount = this.accessCounts.get(hotId) ?? 0;
+      if (hotCount < coldestCount) {
+        coldestCount = hotCount;
+        coldestId = hotId;
+      }
+    }
+
+    if (coldestId && count > coldestCount) {
+      this.hotIds.delete(coldestId);
+      this.hotIds.add(id);
+    }
+  }
+
+  /**
+   * Check if memory is in hot tier
+   */
+  isHot(id: string): boolean {
+    return this.hotIds.has(id);
+  }
+
+  /**
+   * Get all hot memory IDs
+   */
+  getHotIds(): string[] {
+    return Array.from(this.hotIds);
+  }
+
+  /**
+   * Get access count for a memory
+   */
+  getAccessCount(id: string): number {
+    return this.accessCounts.get(id) ?? 0;
+  }
+
+  /**
+   * Apply global decay to all access counts (run periodically)
+   */
+  applyDecay(): void {
+    const now = Date.now();
+    for (const [id, count] of this.accessCounts.entries()) {
+      const lastTime = this.lastAccess.get(id) ?? now;
+      const hoursSinceAccess = (now - lastTime) / this.decayIntervalMs;
+      if (hoursSinceAccess > 0) {
+        const decayedCount = count * Math.pow(this.decayFactor, hoursSinceAccess);
+        this.accessCounts.set(id, decayedCount);
+        this.lastAccess.set(id, now);
+      }
+    }
+
+    // Rebuild hot tier after decay
+    this.rebuildHotTier();
+  }
+
+  /**
+   * Rebuild hot tier from access counts
+   */
+  private rebuildHotTier(): void {
+    const sorted = Array.from(this.accessCounts.entries())
+      .toSorted((a, b) => b[1] - a[1])
+      .slice(0, this.maxSize);
+
+    this.hotIds.clear();
+    for (const [id] of sorted) {
+      this.hotIds.add(id);
+    }
+  }
+
+  get size(): number {
+    return this.hotIds.size;
+  }
+
+  getStats(): { size: number; topAccessCounts: Array<{ id: string; count: number }> } {
+    const top = Array.from(this.accessCounts.entries())
+      .toSorted((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([id, count]) => ({ id, count }));
+    return { size: this.hotIds.size, topAccessCounts: top };
+  }
+}
+
+/**
  * L3/L4 - Full Memory Index Cache
  * All memories loaded into RAM for microsecond retrieval
+ * PHASE 2: Integrated Hot Memory Tier
  */
 export class MemoryIndexCache {
   private memories: Map<string, CortexMemory> = new Map();
@@ -116,6 +268,16 @@ export class MemoryIndexCache {
   private accessRanking: Map<string, number> = new Map(); // id -> composite score
   private initialized = false;
   private lastRefresh: number = 0;
+
+  // PHASE 2: Hot memory tier integration
+  public readonly hotTier: HotMemoryTier;
+
+  // PHASE 2: Co-occurrence tracking for predictive prefetch
+  private coOccurrences: Map<string, Map<string, number>> = new Map(); // id -> (other_id -> count)
+
+  constructor(hotTierSize = 100) {
+    this.hotTier = new HotMemoryTier(hotTierSize);
+  }
 
   async loadFromDaemon(embeddingsUrl: string): Promise<number> {
     try {
@@ -194,8 +356,55 @@ export class MemoryIndexCache {
       const recency = this.calculateRecency(memory.timestamp);
       const score = recency * memory.access_count * memory.importance;
       this.accessRanking.set(id, score);
+      // PHASE 2: Record access in hot tier
+      this.hotTier.recordAccess(id);
     }
     return memory;
+  }
+
+  /**
+   * PHASE 2: Record co-occurrence of memories accessed together
+   * Call this when multiple memories are returned in the same query
+   */
+  recordCoOccurrence(ids: string[]): void {
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const id1 = ids[i];
+        const id2 = ids[j];
+
+        // Record id1 -> id2
+        if (!this.coOccurrences.has(id1)) {
+          this.coOccurrences.set(id1, new Map());
+        }
+        const count1 = this.coOccurrences.get(id1)!.get(id2) ?? 0;
+        this.coOccurrences.get(id1)!.set(id2, count1 + 1);
+
+        // Record id2 -> id1
+        if (!this.coOccurrences.has(id2)) {
+          this.coOccurrences.set(id2, new Map());
+        }
+        const count2 = this.coOccurrences.get(id2)!.get(id1) ?? 0;
+        this.coOccurrences.get(id2)!.set(id1, count2 + 1);
+      }
+    }
+  }
+
+  /**
+   * PHASE 2: Get memories that frequently co-occur with a given memory
+   */
+  getCoOccurring(id: string, limit = 5): CortexMemory[] {
+    const coOccurs = this.coOccurrences.get(id);
+    if (!coOccurs) {
+      return [];
+    }
+
+    const sorted = Array.from(coOccurs.entries())
+      .toSorted((a, b) => b[1] - a[1])
+      .slice(0, limit);
+
+    return sorted
+      .map(([coId]) => this.memories.get(coId))
+      .filter((m): m is CortexMemory => m !== undefined);
   }
 
   getByCategory(category: string): CortexMemory[] {
@@ -208,15 +417,77 @@ export class MemoryIndexCache {
       .filter((m): m is CortexMemory => m !== undefined);
   }
 
-  getHotMemories(limit = 500): CortexMemory[] {
-    // Get top N memories by access ranking
-    const sorted = Array.from(this.accessRanking.entries())
-      .toSorted((a, b) => b[1] - a[1])
-      .slice(0, limit);
+  getHotMemories(limit = 100): CortexMemory[] {
+    // PHASE 2: First check the hot tier, then fall back to access ranking
+    const hotIds = this.hotTier.getHotIds();
 
-    return sorted
-      .map(([id]) => this.memories.get(id))
+    if (hotIds.length >= limit) {
+      return hotIds
+        .slice(0, limit)
+        .map(id => this.memories.get(id))
+        .filter((m): m is CortexMemory => m !== undefined);
+    }
+
+    // Supplement with access ranking
+    const hotSet = new Set(hotIds);
+    const additional = Array.from(this.accessRanking.entries())
+      .filter(([id]) => !hotSet.has(id))
+      .toSorted((a, b) => b[1] - a[1])
+      .slice(0, limit - hotIds.length);
+
+    const allIds = [...hotIds, ...additional.map(([id]) => id)];
+    return allIds
+      .map(id => this.memories.get(id))
       .filter((m): m is CortexMemory => m !== undefined);
+  }
+
+  /**
+   * PHASE 2: Get memories within a token budget
+   * Prioritizes by: importance × recency × access_count
+   * Truncates old memories, skips low-relevance items
+   */
+  getWithinTokenBudget(
+    query: string,
+    budget: TokenBudgetConfig = { maxContextTokens: 2000, relevanceThreshold: 0.5, truncateOldMemoriesTo: 200 }
+  ): Array<CortexMemory & { finalContent: string; tokens: number }> {
+    const results: Array<CortexMemory & { finalContent: string; tokens: number }> = [];
+    let usedTokens = 0;
+
+    // Search and score memories
+    const candidates = this.searchByKeyword(query, 50); // Get more candidates for filtering
+
+    // Score and sort by composite priority
+    const scored = candidates.map(memory => {
+      const recency = this.calculateRecency(memory.timestamp);
+      const accessScore = this.hotTier.getAccessCount(memory.id) / 100; // Normalize
+      const priority = memory.importance * recency * (1 + accessScore);
+      return { memory, priority, recency };
+    }).toSorted((a, b) => b.priority - a.priority);
+
+    for (const { memory, priority, recency } of scored) {
+      // Skip if below relevance threshold
+      if (priority < budget.relevanceThreshold) {
+        continue;
+      }
+
+      // Truncate old memories (recency < 0.3 = older than ~4 days)
+      let content = memory.content;
+      if (recency < 0.3 && content.length > budget.truncateOldMemoriesTo) {
+        content = content.slice(0, budget.truncateOldMemoriesTo) + "...";
+      }
+
+      const tokens = estimateTokens(content);
+
+      // Check budget
+      if (usedTokens + tokens > budget.maxContextTokens) {
+        break; // Budget exhausted
+      }
+
+      usedTokens += tokens;
+      results.push({ ...memory, finalContent: content, tokens });
+    }
+
+    return results;
   }
 
   searchByKeyword(query: string, limit = 10): CortexMemory[] {
@@ -286,7 +557,7 @@ export class MemoryIndexCache {
     return total;
   }
 
-  getStats(): { total: number; byCategory: Record<string, number>; sizeBytes: number; hotCount: number } {
+  getStats(): { total: number; byCategory: Record<string, number>; sizeBytes: number; hotCount: number; hotTierStats: ReturnType<HotMemoryTier["getStats"]> } {
     const byCategory: Record<string, number> = {};
     for (const [cat, ids] of this.byCategory.entries()) {
       byCategory[cat] = ids.size;
@@ -295,8 +566,56 @@ export class MemoryIndexCache {
       total: this.memories.size,
       byCategory,
       sizeBytes: this.sizeBytes,
-      hotCount: Math.min(500, this.memories.size),
+      hotCount: this.hotTier.size,
+      hotTierStats: this.hotTier.getStats(),
     };
+  }
+
+  /**
+   * PHASE 2: Delta sync - load only memories changed since a timestamp
+   */
+  async loadDelta(embeddingsUrl: string): Promise<{ added: number; updated: number }> {
+    try {
+      const sinceTs = this.lastRefresh > 0
+        ? new Date(this.lastRefresh).toISOString()
+        : new Date(Date.now() - 86400000).toISOString(); // Default: last 24h
+
+      const response = await fetch(`${embeddingsUrl}/delta?since=${encodeURIComponent(sinceTs)}`, {
+        method: "GET",
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!response.ok) {
+        // Daemon doesn't support /delta
+        return { added: 0, updated: 0 };
+      }
+
+      const data = await response.json() as { memories: CortexMemory[]; since: string };
+
+      let added = 0;
+      let updated = 0;
+
+      for (const memory of data.memories) {
+        if (this.memories.has(memory.id)) {
+          updated++;
+        } else {
+          added++;
+        }
+        this.add(memory);
+      }
+
+      this.lastRefresh = Date.now();
+      return { added, updated };
+    } catch {
+      return { added: 0, updated: 0 };
+    }
+  }
+
+  /**
+   * Get last refresh timestamp
+   */
+  get lastRefreshTime(): number {
+    return this.lastRefresh;
   }
 }
 
@@ -316,19 +635,40 @@ export class CortexBridge {
   public readonly stmCapacity = 50000; // PHASE 1: Massive STM capacity
   public readonly activeSessionCapacity = 50; // Last 50 messages always in RAM
 
-  constructor(options?: { memoryDir?: string; pythonPath?: string; embeddingsUrl?: string }) {
+  // PHASE 2: Token budget and delta sync configuration
+  public tokenBudget: TokenBudgetConfig = {
+    maxContextTokens: 2000,
+    relevanceThreshold: 0.5,
+    truncateOldMemoriesTo: 200,
+  };
+  private deltaSyncInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly deltaSyncIntervalMs = 300000; // 5 minutes
+
+  constructor(options?: {
+    memoryDir?: string;
+    pythonPath?: string;
+    embeddingsUrl?: string;
+    hotTierSize?: number;
+    tokenBudget?: Partial<TokenBudgetConfig>;
+  }) {
     this.memoryDir = options?.memoryDir ?? join(homedir(), ".openclaw", "workspace", "memory");
     this.pythonPath = options?.pythonPath ?? "python3";
     this.embeddingsUrl = options?.embeddingsUrl ?? "http://localhost:8030";
 
-    // Initialize RAM caches
+    // PHASE 2: Token budget config
+    if (options?.tokenBudget) {
+      this.tokenBudget = { ...this.tokenBudget, ...options.tokenBudget };
+    }
+
+    // Initialize RAM caches (PHASE 2: configurable hot tier size)
     this.activeSession = new ActiveSessionCache(this.activeSessionCapacity);
-    this.memoryIndex = new MemoryIndexCache();
+    this.memoryIndex = new MemoryIndexCache(options?.hotTierSize ?? 100);
   }
 
   /**
    * PHASE 1: Warm up all caches on startup
    * Loads full memory index into RAM for microsecond retrieval
+   * PHASE 2: Also starts delta sync interval
    */
   async warmupCaches(): Promise<{ stm: number; memories: number; activeSession: number }> {
     const results = { stm: 0, memories: 0, activeSession: 0 };
@@ -351,7 +691,70 @@ export class CortexBridge {
     }
 
     results.activeSession = this.activeSession.count;
+
+    // PHASE 2: Start delta sync interval
+    this.startDeltaSync();
+
     return results;
+  }
+
+  /**
+   * PHASE 2: Start background delta sync
+   */
+  startDeltaSync(): void {
+    if (this.deltaSyncInterval) {
+      return; // Already running
+    }
+
+    this.deltaSyncInterval = setInterval(async () => {
+      try {
+        const result = await this.memoryIndex.loadDelta(this.embeddingsUrl);
+        if (result.added > 0 || result.updated > 0) {
+          console.log(`[Cortex] Delta sync: +${result.added} new, ${result.updated} updated`);
+        }
+        // Also apply decay to hot tier
+        this.memoryIndex.hotTier.applyDecay();
+      } catch (err) {
+        console.warn(`[Cortex] Delta sync failed: ${err}`);
+      }
+    }, this.deltaSyncIntervalMs);
+  }
+
+  /**
+   * PHASE 2: Stop background delta sync
+   */
+  stopDeltaSync(): void {
+    if (this.deltaSyncInterval) {
+      clearInterval(this.deltaSyncInterval);
+      this.deltaSyncInterval = null;
+    }
+  }
+
+  /**
+   * PHASE 2: Get memories within token budget
+   */
+  getContextWithinBudget(query: string, budgetOverride?: Partial<TokenBudgetConfig>): Array<CortexMemory & { finalContent: string; tokens: number }> {
+    const budget = { ...this.tokenBudget, ...budgetOverride };
+    return this.memoryIndex.getWithinTokenBudget(query, budget);
+  }
+
+  /**
+   * PHASE 2: Get hot memories (most accessed)
+   */
+  getHotMemoriesTier(limit = 100): CortexMemory[] {
+    return this.memoryIndex.getHotMemories(limit);
+  }
+
+  /**
+   * PHASE 2: Predictive prefetch based on co-occurrence
+   */
+  async prefetchRelated(memoryId: string): Promise<number> {
+    const related = this.memoryIndex.getCoOccurring(memoryId, 10);
+    // Mark them as hot by recording access
+    for (const memory of related) {
+      this.memoryIndex.hotTier.recordAccess(memory.id);
+    }
+    return related.length;
   }
 
   /**
