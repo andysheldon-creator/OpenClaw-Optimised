@@ -111,15 +111,17 @@ function applyInsertionsToStyles(
   }
   const sortedInsertions = [...insertions].toSorted((a, b) => a.pos - b.pos);
   let updated = spans;
+  let cumulativeShift = 0;
 
   for (const insertion of sortedInsertions) {
+    const insertionPos = insertion.pos + cumulativeShift;
     const next: SignalStyleSpan[] = [];
     for (const span of updated) {
-      if (span.end <= insertion.pos) {
+      if (span.end <= insertionPos) {
         next.push(span);
         continue;
       }
-      if (span.start >= insertion.pos) {
+      if (span.start >= insertionPos) {
         next.push({
           start: span.start + insertion.length,
           end: span.end + insertion.length,
@@ -127,15 +129,15 @@ function applyInsertionsToStyles(
         });
         continue;
       }
-      if (span.start < insertion.pos && span.end > insertion.pos) {
-        if (insertion.pos > span.start) {
+      if (span.start < insertionPos && span.end > insertionPos) {
+        if (insertionPos > span.start) {
           next.push({
             start: span.start,
-            end: insertion.pos,
+            end: insertionPos,
             style: span.style,
           });
         }
-        const shiftedStart = insertion.pos + insertion.length;
+        const shiftedStart = insertionPos + insertion.length;
         const shiftedEnd = span.end + insertion.length;
         if (shiftedEnd > shiftedStart) {
           next.push({
@@ -147,6 +149,7 @@ function applyInsertionsToStyles(
       }
     }
     updated = next;
+    cumulativeShift += insertion.length;
   }
 
   return updated;
