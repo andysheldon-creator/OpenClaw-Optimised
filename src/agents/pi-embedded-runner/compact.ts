@@ -54,6 +54,7 @@ import {
   type SkillSnapshot,
 } from "../skills.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
+import { resolveRunWorkspaceDir } from "../workspace-run.js";
 import { buildEmbeddedExtensionPaths } from "./extensions.js";
 import {
   logToolSchemasForGoogle,
@@ -115,7 +116,12 @@ export type CompactEmbeddedPiSessionParams = {
 export async function compactEmbeddedPiSessionDirect(
   params: CompactEmbeddedPiSessionParams,
 ): Promise<EmbeddedPiCompactResult> {
-  const resolvedWorkspace = resolveUserPath(params.workspaceDir);
+  const workspaceResolution = resolveRunWorkspaceDir({
+    workspaceDir: params.workspaceDir,
+    sessionKey: params.sessionKey,
+    config: params.config,
+  });
+  const resolvedWorkspace = workspaceResolution.workspaceDir;
   const prevCwd = process.cwd();
 
   const provider = (params.provider ?? DEFAULT_PROVIDER).trim() || DEFAULT_PROVIDER;
