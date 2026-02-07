@@ -19,6 +19,7 @@ import {
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import { startIdleReminder } from "../../infra/idle-reminder.js";
 import { defaultRuntime } from "../../runtime.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
 import { resolveResponseUsageMode, type VerboseLevel } from "../thinking.js";
@@ -511,6 +512,12 @@ export async function runReplyAgent(params: {
     }
     if (responseUsageLine) {
       finalPayloads = appendUsageLine(finalPayloads, responseUsageLine);
+    }
+
+    // Start idle reminder for non-heartbeat runs with actual payloads
+    // This triggers a simulated heartbeat if the agent goes idle after responding
+    if (!isHeartbeat && sessionKey && storePath && finalPayloads.length > 0) {
+      startIdleReminder({ sessionKey, storePath });
     }
 
     return finalizeWithFollowup(

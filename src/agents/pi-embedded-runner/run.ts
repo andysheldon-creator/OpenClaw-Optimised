@@ -816,6 +816,7 @@ export async function runEmbeddedPiAgent(
             reasoningLevel: params.reasoningLevel,
             toolResultFormat: resolvedToolResultFormat,
             inlineToolResultsAllowed: false,
+            enforceFinalTag: params.enforceFinalTag,
           });
 
           log.debug(
