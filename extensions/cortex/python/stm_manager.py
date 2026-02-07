@@ -46,7 +46,7 @@ def save_stm(stm):
 def add_to_stm(content, category=None, categories=None, importance=1.0):
     """Add item to short-term memory
 
-    PHASE 3: Multi-category support
+    PHASE 2B: Multi-category support
     - categories: list of category strings (preferred)
     - category: single category string (deprecated, for backward compat)
     """
@@ -63,7 +63,7 @@ def add_to_stm(content, category=None, categories=None, importance=1.0):
     item = {
         "content": content,
         "timestamp": datetime.now().isoformat(),
-        "categories": cats,  # PHASE 3: Multi-category
+        "categories": cats,  # PHASE 2B: Multi-category
         "category": cats[0] if cats else "general",  # Backward compat
         "importance": importance,
         "access_count": 0
@@ -87,7 +87,7 @@ def add_to_stm(content, category=None, categories=None, importance=1.0):
 def get_recent(limit=10, category=None, categories=None):
     """Get recent items from STM
 
-    PHASE 3: Multi-category filtering support
+    PHASE 2B: Multi-category filtering support
     - categories: list of categories to filter by (any match)
     - category: single category (deprecated)
     """

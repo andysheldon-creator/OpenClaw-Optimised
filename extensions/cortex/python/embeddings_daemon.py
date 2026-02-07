@@ -71,7 +71,7 @@ def embed():
 def store():
     """Store a memory with embedding
 
-    PHASE 3: Multi-category support
+    PHASE 2B: Multi-category support
     - categories: list of category strings (stored as JSON in category field)
     - category: single category (deprecated, for backward compat)
     """
@@ -81,7 +81,7 @@ def store():
     importance = data.get('importance', 1.0)
     timestamp = data.get('timestamp', datetime.now().isoformat())
 
-    # PHASE 3: Handle both categories array and single category
+    # PHASE 2B: Handle both categories array and single category
     categories = data.get('categories')
     category = data.get('category')
     if categories is not None:
@@ -110,7 +110,7 @@ def store():
 def parse_categories(cat_value):
     """Parse category field which may be JSON array or single string
 
-    PHASE 3: Multi-category support
+    PHASE 2B: Multi-category support
     """
     if cat_value is None:
         return ["general"]
@@ -129,7 +129,7 @@ def parse_categories(cat_value):
 def search():
     """Semantic search
 
-    PHASE 3: Multi-category support in results
+    PHASE 2B: Multi-category support in results
     """
     init_db()
     data = request.json
@@ -165,13 +165,13 @@ def search():
                       temporal_score * temporal_weight +
                       (importance / 3.0) * importance_weight)
 
-        # PHASE 3: Parse categories
+        # PHASE 2B: Parse categories
         categories = parse_categories(cat_raw)
 
         results.append({
             'id': id_,
             'content': content,
-            'categories': categories,  # PHASE 3: Multi-category
+            'categories': categories,  # PHASE 2B: Multi-category
             'category': categories[0] if categories else "general",  # Backward compat
             'importance': importance,
             'score': final_score,
@@ -198,7 +198,7 @@ def stats():
 def dump():
     """Dump all memories for RAM cache warmup (Phase 1 memory expansion)
 
-    PHASE 3: Multi-category support in results
+    PHASE 2B: Multi-category support in results
     """
     init_db()
     conn = sqlite3.connect(DB_PATH)
@@ -210,12 +210,12 @@ def dump():
         id_, content, cat_raw, importance, timestamp, emb_bytes = row
         # Convert embedding to list for JSON serialization
         embedding = np.frombuffer(emb_bytes, dtype=np.float32).tolist()
-        # PHASE 3: Parse categories
+        # PHASE 2B: Parse categories
         categories = parse_categories(cat_raw)
         memories.append({
             'id': id_,
             'content': content,
-            'categories': categories,  # PHASE 3: Multi-category
+            'categories': categories,  # PHASE 2B: Multi-category
             'category': categories[0] if categories else "general",  # Backward compat
             'importance': importance,
             'timestamp': timestamp,
@@ -233,7 +233,7 @@ def dump():
 def delta():
     """PHASE 2: Delta sync - return only memories changed since a timestamp
 
-    PHASE 3: Multi-category support in results
+    PHASE 2B: Multi-category support in results
     """
     init_db()
     since = request.args.get('since')
@@ -256,12 +256,12 @@ def delta():
     for row in cursor.fetchall():
         id_, content, cat_raw, importance, timestamp, emb_bytes = row
         embedding = np.frombuffer(emb_bytes, dtype=np.float32).tolist()
-        # PHASE 3: Parse categories
+        # PHASE 2B: Parse categories
         categories = parse_categories(cat_raw)
         memories.append({
             'id': id_,
             'content': content,
-            'categories': categories,  # PHASE 3: Multi-category
+            'categories': categories,  # PHASE 2B: Multi-category
             'category': categories[0] if categories else "general",  # Backward compat
             'importance': importance,
             'timestamp': timestamp,

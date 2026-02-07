@@ -217,7 +217,7 @@ Manage episodic working memory.
 
 ### `cortex_add`
 
-Store memory with importance rating. **PHASE 3: Multi-category support.**
+Store memory with importance rating. **PHASE 2B: Multi-category support.**
 
 | Parameter | Description |
 |-----------|-------------|
@@ -228,7 +228,7 @@ Store memory with importance rating. **PHASE 3: Multi-category support.**
 
 ### `cortex_stm`
 
-View recent short-term memory. **PHASE 3: Multi-category support.**
+View recent short-term memory. **PHASE 2B: Multi-category support.**
 
 | Parameter | Description |
 |-----------|-------------|
@@ -289,6 +289,113 @@ Move memory to different categories.
 
 No re-embedding needed (content unchanged).
 
+---
+
+## Phase 3: Atomic Knowledge
+
+Phase 3 introduces **Atomic Knowledge Units** - the irreducible unit of causal understanding.
+
+### The Structure
+
+Every piece of knowledge is stored as an **atom**:
+
+```json
+{
+  "subject": "WHO or WHAT acts",
+  "action": "WHAT they do",
+  "outcome": "WHAT results",
+  "consequences": "WHAT follows"
+}
+```
+
+### Example Atoms
+
+**Trading:**
+```json
+{
+  "subject": "whale wallet 0x3f...",
+  "action": "accumulates mass token X over 72 hours",
+  "outcome": "on-chain concentration pattern becomes visible",
+  "consequences": "precedes price movement by 4-12 hours, 73% correlation"
+}
+```
+
+**Debugging:**
+```json
+{
+  "subject": "API endpoint /auth/refresh",
+  "action": "receives expired token during race condition",
+  "outcome": "returns empty response instead of error",
+  "consequences": "downstream null propagation, UI crash in 3 steps"
+}
+```
+
+### Atom Tools
+
+| Tool | Description |
+|------|-------------|
+| `atom_create` | Create atomic knowledge unit with subject/action/outcome/consequences |
+| `atom_search` | Search atoms by field similarity (subject, action, outcome, or consequences) |
+| `atom_find_causes` | Traverse backward through causal chains to find root causes |
+| `atom_link` | Create/strengthen causal links between atoms |
+| `atom_stats` | Get atomic knowledge database statistics |
+| `atomize` | Extract atoms from text (local pattern matching) or batch atomize existing memories |
+| `abstract_deeper` | PHASE 3E: Run deep causal analysis, find novel indicators |
+| `classify_query` | PHASE 3E: Check if query needs deep abstraction |
+| `temporal_search` | PHASE 3F: Search atoms with time context ("4 hours ago") |
+| `what_happened_before` | PHASE 3F: Find precursors to an event |
+| `temporal_patterns` | PHASE 3F: Analyze timing patterns for outcomes |
+
+### Field-Level Search
+
+Each atom field has its own embedding (384-dim via all-MiniLM-L6-v2):
+
+```
+atom_search field="consequences" query="precedes price movement"
+→ Returns ALL atoms whose consequences relate to price movement
+```
+
+### Causal Chain Traversal
+
+The core "keep going until the answer is no" capability:
+
+```
+atom_find_causes outcome="price spike"
+→ Traverses backward through causal chains
+→ Returns the root causes at depth 3, 4, 5 that others miss
+```
+
+### Storage
+
+Atoms stored in `~/.openclaw/workspace/memory/.atoms.db`:
+- `atoms` table with field-level embeddings
+- `causal_links` table connecting atoms
+- All local (RTX 5090 GPU for embeddings)
+
+### Deep Abstraction Layer (Phase 3E)
+
+Automatic causal analysis that runs in `before_agent_start`:
+
+1. **Query Classification** - Detects if query is causal ("why did X happen?") or recall ("what is X?")
+2. **Automatic Traversal** - For causal queries, traverses atom graph to find root causes
+3. **Novel Indicator Surfacing** - Returns the atoms at depth 3, 4, 5 that others miss
+4. **Context Injection** - Insights injected as `<deep-abstraction>` block
+
+**The Meta-Rule**: When in doubt, abstract deeper.
+- Cost of going too deep = extra local computation (cheap)
+- Cost of staying too shallow = missing novel insights (expensive)
+
+### Temporal Analysis (Phase 3F)
+
+Time-aware queries and pattern detection:
+
+- **Time References**: Natural language ("4 hours ago", "yesterday", "last week")
+- **Precursor Analysis**: "What happened before the price spike?"
+- **Pattern Detection**: "Whale accumulation precedes price movement by 4-12 hours"
+- **Delay Analysis**: Find consistent timing patterns across causal chains
+
+---
+
 ## Multi-Agent Context Sharing
 
 Cortex enables context sharing across agents through:
@@ -323,14 +430,17 @@ extensions/cortex/
 ├── cortex-bridge.ts            # TypeScript-Python bridge
 ├── ARCHITECTURE.md             # This file
 ├── openclaw.plugin.json        # Plugin manifest
-└── python/                     # Python backend (PHASE 3: moved to repo)
+└── python/                     # Python backend
     ├── stm_manager.py          # STM operations
     ├── embeddings_daemon.py    # GPU server (flask)
     ├── embeddings_manager.py   # Python embedding operations
     ├── collections_manager.py  # Collections operations
     ├── local_embeddings.py     # sentence-transformers wrapper
     ├── maintenance.py          # Cleanup and sync
-    └── ...
+    ├── atom_manager.py         # PHASE 3: Atomic knowledge units
+    ├── atomizer.py             # PHASE 3B: Text → Atom extraction
+    ├── deep_abstraction.py     # PHASE 3E: Deep causal analysis
+    └── temporal_analysis.py    # PHASE 3F: Time-aware queries
 ```
 
 ### Data Files (in user home)
@@ -341,6 +451,7 @@ extensions/cortex/
 ├── categories.json             # Dynamic category definitions
 ├── .local_embeddings.db        # SQLite vector store (GPU daemon)
 ├── .embeddings.db              # SQLite vector store (fallback)
+├── .atoms.db                   # PHASE 3: Atomic knowledge store
 └── collections/                # Collection files by category
 ```
 
@@ -374,4 +485,4 @@ CORTEX_DATA_DIR=~/.openclaw/workspace/memory python3 embeddings_daemon.py
 ---
 
 **Last Updated**: 2026-02-07
-**Cortex Version**: 2.0.0 (Phase 3 - Multi-category, Dedup, Edit tools)
+**Cortex Version**: 3.0.0 (Phase 3 - Atomic Knowledge, Causal Chains, Deep Abstraction)

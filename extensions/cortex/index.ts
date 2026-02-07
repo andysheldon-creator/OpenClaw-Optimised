@@ -170,7 +170,7 @@ class CategoryManager {
 
   /**
    * Detect multiple categories from content
-   * PHASE 3: Multi-category support
+   * PHASE 2B: Multi-category support
    */
   detectCategories(content: string): string[] {
     if (!this.loaded) {
@@ -215,7 +215,7 @@ function detectCategory(content: string): string {
 
 /**
  * Detect multiple categories from content
- * PHASE 3: Multi-category support
+ * PHASE 2B: Multi-category support
  */
 function detectCategories(content: string): string[] {
   if (!categoryManager) {
@@ -265,7 +265,7 @@ function shouldCapture(content: string): boolean {
 /**
  * Check if STM items match a query with improved relevance scoring.
  * Now includes: temporal decay, importance weighting, fuzzy matching, category boosting.
- * PHASE 3: Multi-category support
+ * PHASE 2B: Multi-category support
  */
 function matchSTMItems(items: STMItem[], query: string, temporalWeight = 0.4, importanceWeight = 0.3): Array<STMItem & { matchScore: number }> {
   const queryTerms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
@@ -309,7 +309,7 @@ function matchSTMItems(items: STMItem[], query: string, temporalWeight = 0.4, im
     // Importance score (normalized to 0-1, assuming 1-3 scale)
     const normalizedImportance = (item.importance - 1) / 2;
 
-    // Category match bonus (PHASE 3: multi-category support)
+    // Category match bonus (PHASE 2B: multi-category support)
     // Bonus scales with number of matching categories
     const itemCategories = item.categories ?? (item.category ? [item.category] : ["general"]);
     const matchingCats = queryCategories.filter(qc => itemCategories.includes(qc));
@@ -502,7 +502,7 @@ const cortexPlugin: OpenClawPlugin = {
     // Track pending STM matches for re-ranking
     const pendingStmMatches = new Map<string, Array<STMItem & { matchScore: number }>>();
 
-    // PHASE 3: Initialize category manager (loads from categories.json)
+    // PHASE 2B: Initialize category manager (loads from categories.json)
     const categoriesPath = join(homedir(), ".openclaw", "workspace", "memory", "categories.json");
     categoryManager = new CategoryManager(categoriesPath);
 
@@ -514,7 +514,7 @@ const cortexPlugin: OpenClawPlugin = {
         return;
       }
 
-      // PHASE 3: Load categories from JSON
+      // PHASE 2B: Load categories from JSON
       if (categoryManager) {
         await categoryManager.load();
       }
@@ -700,7 +700,7 @@ const cortexPlugin: OpenClawPlugin = {
 
     // =========================================================================
     // Tool: cortex_add - Explicit memory storage with importance
-    // PHASE 3: Multi-category support
+    // PHASE 2B: Multi-category support
     // =========================================================================
     api.registerTool(
       {
@@ -735,7 +735,7 @@ const cortexPlugin: OpenClawPlugin = {
               };
             }
 
-            // PHASE 3: Multi-category support - prefer categories array, fall back to single category, then auto-detect
+            // PHASE 2B: Multi-category support - prefer categories array, fall back to single category, then auto-detect
             const categories = p.categories ?? (p.category ? [p.category] : detectCategories(p.content));
             const importance = p.importance ?? detectImportance(p.content);
 
@@ -771,7 +771,7 @@ const cortexPlugin: OpenClawPlugin = {
 
     // =========================================================================
     // Tool: cortex_stm - Quick view of recent short-term memory
-    // PHASE 3: Multi-category support
+    // PHASE 2B: Multi-category support
     // =========================================================================
     api.registerTool(
       {
@@ -795,7 +795,7 @@ const cortexPlugin: OpenClawPlugin = {
               };
             }
 
-            // PHASE 3: Support both single category and categories array
+            // PHASE 2B: Support both single category and categories array
             const filterCats = p.categories ?? (p.category ? [p.category] : undefined);
             const items = await bridge.getRecentSTM(p.limit ?? 10, filterCats);
 
@@ -808,7 +808,7 @@ const cortexPlugin: OpenClawPlugin = {
                         .map((i) => {
                           const age = calculateRecencyScore(i.timestamp);
                           const ageLabel = age > 0.9 ? "now" : age > 0.5 ? "recent" : "older";
-                          // PHASE 3: Display all categories
+                          // PHASE 2B: Display all categories
                           const cats = i.categories ?? (i.category ? [i.category] : ["general"]);
                           return `[${cats.join(", ")}] (imp=${i.importance.toFixed(1)}, ${ageLabel}) ${i.content.slice(0, 150)}`;
                         })
@@ -1306,6 +1306,818 @@ const cortexPlugin: OpenClawPlugin = {
     );
 
     // =========================================================================
+    // PHASE 3: ATOMIC KNOWLEDGE TOOLS
+    // =========================================================================
+
+    // =========================================================================
+    // Tool: atom_create - Create atomic knowledge unit
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "atom_create",
+        description:
+          "PHASE 3: Create an atomic knowledge unit - the irreducible unit of causal understanding. " +
+          "Structure: {subject} {action} {outcome} {consequences}. " +
+          "Example: 'whale wallet' 'accumulates token X' 'concentration pattern visible' 'precedes price movement by 4h'",
+        parameters: Type.Object({
+          subject: Type.String({ description: "WHO or WHAT acts (e.g., 'whale wallet', 'market maker', 'Peter')" }),
+          action: Type.String({ description: "WHAT they do (e.g., 'accumulates token X', 'places large order')" }),
+          outcome: Type.String({ description: "WHAT results (e.g., 'pattern becomes visible', 'price moves 2%')" }),
+          consequences: Type.String({ description: "WHAT follows (e.g., 'precedes price movement by 4h', 'triggers retail FOMO')" }),
+          confidence: Type.Optional(Type.Number({ description: "Confidence in this knowledge 0-1 (default: 1.0)" })),
+          source: Type.Optional(Type.String({ description: "Source of this knowledge (default: 'agent')" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as {
+            subject: string;
+            action: string;
+            outcome: string;
+            consequences: string;
+            confidence?: number;
+            source?: string;
+          };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            const atomId = await bridge.createAtom(
+              p.subject,
+              p.action,
+              p.outcome,
+              p.consequences,
+              {
+                source: p.source ?? "agent",
+                confidence: p.confidence ?? 1.0,
+              }
+            );
+
+            return {
+              content: [{
+                type: "text",
+                text: `Created atom ${atomId}:\n` +
+                      `  Subject: ${p.subject}\n` +
+                      `  Action: ${p.action}\n` +
+                      `  Outcome: ${p.outcome}\n` +
+                      `  Consequences: ${p.consequences}`,
+              }],
+              details: { id: atomId, subject: p.subject, action: p.action },
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Atom creation error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["atom_create"] },
+    );
+
+    // =========================================================================
+    // Tool: atom_search - Search atoms by field similarity
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "atom_search",
+        description:
+          "PHASE 3: Search atomic knowledge by a specific field (subject, action, outcome, consequences). " +
+          "This enables powerful queries like 'find all entities that cause price movement' or 'what actions lead to FOMO'.",
+        parameters: Type.Object({
+          field: Type.String({
+            description: "Field to search: 'subject' (who), 'action' (what they do), 'outcome' (what results), 'consequences' (what follows)",
+          }),
+          query: Type.String({ description: "Search query for semantic similarity" }),
+          limit: Type.Optional(Type.Number({ description: "Max results (default: 10)" })),
+          threshold: Type.Optional(Type.Number({ description: "Minimum similarity 0-1 (default: 0.5)" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as {
+            field: string;
+            query: string;
+            limit?: number;
+            threshold?: number;
+          };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            if (!["subject", "action", "outcome", "consequences"].includes(p.field)) {
+              return {
+                content: [{ type: "text", text: "Invalid field. Must be: subject, action, outcome, or consequences" }],
+                details: { error: "invalid_field" },
+              };
+            }
+
+            const results = await bridge.searchAtomsByField(
+              p.field as "subject" | "action" | "outcome" | "consequences",
+              p.query,
+              { limit: p.limit ?? 10, threshold: p.threshold ?? 0.5 }
+            );
+
+            // Defensive: ensure results is an array
+            const safeResults = Array.isArray(results) ? results : [];
+
+            if (safeResults.length === 0) {
+              return {
+                content: [{ type: "text", text: `No atoms found matching "${p.query}" in ${p.field} field` }],
+                details: { count: 0 },
+              };
+            }
+
+            const formatted = safeResults.map((a, i) =>
+              `${i + 1}. [${((a.similarity ?? 0) * 100).toFixed(0)}%] {${a.subject ?? "?"}} {${a.action ?? "?"}} → {${a.outcome ?? "?"}} → {${(a.consequences ?? "").slice(0, 50)}...}`
+            ).join("\n");
+
+            return {
+              content: [{
+                type: "text",
+                text: `Found ${results.length} atoms matching "${p.query}" in ${p.field}:\n${formatted}`,
+              }],
+              details: { count: results.length, results },
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Atom search error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["atom_search"] },
+    );
+
+    // =========================================================================
+    // Tool: atom_find_causes - Find root causes (causal traversal)
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "atom_find_causes",
+        description:
+          "PHASE 3: Traverse backward through causal chains to find root causes. " +
+          "This is the 'keep going until the answer is no' capability - finds the novel indicators that others miss.",
+        parameters: Type.Object({
+          atom_id: Type.Optional(Type.String({ description: "Start from this atom ID" })),
+          outcome: Type.Optional(Type.String({ description: "Find causes of this outcome (searches first, then traverses)" })),
+          max_depth: Type.Optional(Type.Number({ description: "Max depth to traverse (default: 10)" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as {
+            atom_id?: string;
+            outcome?: string;
+            max_depth?: number;
+          };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            if (!p.atom_id && !p.outcome) {
+              return {
+                content: [{ type: "text", text: "Must provide atom_id or outcome to find causes for" }],
+                details: { error: "missing_input" },
+              };
+            }
+
+            let roots;
+            if (p.outcome) {
+              // Find all causal paths to this outcome
+              roots = await bridge.findPathsToOutcome(p.outcome, p.max_depth ?? 10);
+            } else if (p.atom_id) {
+              // Find root causes of specific atom
+              roots = await bridge.findRootCauses(p.atom_id, p.max_depth ?? 10);
+            } else {
+              roots = [];
+            }
+
+            if (roots.length === 0) {
+              return {
+                content: [{
+                  type: "text",
+                  text: p.outcome
+                    ? `No causal chains found for outcome "${p.outcome}". This may be a root cause itself.`
+                    : `No antecedent causes found. This atom appears to be at an epistemic limit.`,
+                }],
+                details: { count: 0, epistemic_limit: true },
+              };
+            }
+
+            const formatted = roots.map((a, i) =>
+              `${i + 1}. [depth=${a.depth ?? "?"}] {${a.subject}} {${a.action}}\n` +
+              `    → {${a.outcome}}\n` +
+              `    → {${a.consequences.slice(0, 80)}...}`
+            ).join("\n\n");
+
+            return {
+              content: [{
+                type: "text",
+                text: `Found ${roots.length} root cause(s):\n\n${formatted}\n\n` +
+                      `These are the deepest causal factors found - the "novel indicators" others miss.`,
+              }],
+              details: { count: roots.length, roots },
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Causal traversal error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["atom_find_causes", "find_causes"] },
+    );
+
+    // =========================================================================
+    // Tool: atom_link - Create causal links between atoms
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "atom_link",
+        description:
+          "PHASE 3: Create or strengthen a causal link between two atoms. " +
+          "Types: 'causes' (A directly causes B), 'enables' (A makes B possible), " +
+          "'precedes' (A happens before B), 'correlates' (A and B occur together).",
+        parameters: Type.Object({
+          from_atom_id: Type.String({ description: "Source atom ID" }),
+          to_atom_id: Type.String({ description: "Target atom ID" }),
+          link_type: Type.Optional(Type.String({ description: "causes, enables, precedes, or correlates (default: causes)" })),
+          strength: Type.Optional(Type.Number({ description: "Confidence in link 0-1 (default: 0.5)" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as {
+            from_atom_id: string;
+            to_atom_id: string;
+            link_type?: string;
+            strength?: number;
+          };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            const linkType = (p.link_type ?? "causes") as "causes" | "enables" | "precedes" | "correlates";
+            if (!["causes", "enables", "precedes", "correlates"].includes(linkType)) {
+              return {
+                content: [{ type: "text", text: "Invalid link_type. Must be: causes, enables, precedes, or correlates" }],
+                details: { error: "invalid_type" },
+              };
+            }
+
+            const linkId = await bridge.createCausalLink(
+              p.from_atom_id,
+              p.to_atom_id,
+              linkType,
+              p.strength ?? 0.5
+            );
+
+            return {
+              content: [{
+                type: "text",
+                text: `Created causal link: ${p.from_atom_id} --[${linkType}]--> ${p.to_atom_id}`,
+              }],
+              details: { link_id: linkId, type: linkType },
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Link creation error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["atom_link"] },
+    );
+
+    // =========================================================================
+    // Tool: atom_stats - Atomic knowledge statistics
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "atom_stats",
+        description: "PHASE 3: Get statistics about the atomic knowledge database - total atoms, causal links, embeddings status.",
+        parameters: Type.Object({}),
+        async execute() {
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            const stats = await bridge.getAtomStats();
+
+            // Defensive: handle null/undefined stats
+            const safeStats = stats ?? {
+              total_atoms: 0,
+              total_causal_links: 0,
+              by_source: {},
+              links_by_type: {},
+              avg_confidence: 0,
+              atoms_with_embeddings: 0,
+              embeddings_available: false,
+            };
+
+            return {
+              content: [{
+                type: "text",
+                text: `Atomic Knowledge Stats (PHASE 3):
+
+⚛️  Atoms: ${safeStats.total_atoms ?? 0}
+🔗 Causal Links: ${safeStats.total_causal_links ?? 0}
+📊 By source: ${Object.entries(safeStats.by_source ?? {}).map(([k, v]) => `${k}(${v})`).join(", ") || "none"}
+🔧 Links by type: ${Object.entries(safeStats.links_by_type ?? {}).map(([k, v]) => `${k}(${v})`).join(", ") || "none"}
+📈 Avg confidence: ${(safeStats.avg_confidence ?? 0).toFixed(2)}
+🧮 With embeddings: ${safeStats.atoms_with_embeddings ?? 0}
+🖥️  GPU embeddings: ${safeStats.embeddings_available ? "ENABLED" : "DISABLED"}`,
+              }],
+              details: safeStats,
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Atom stats error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["atom_stats"] },
+    );
+
+    // =========================================================================
+    // Tool: atomize - Extract atoms from text
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "atomize",
+        description:
+          "PHASE 3B: Extract atomic knowledge units from text using local pattern matching. " +
+          "Finds causal structures and converts them to atoms. Also supports batch atomization of existing memories.",
+        parameters: Type.Object({
+          text: Type.Optional(Type.String({ description: "Text to extract atoms from" })),
+          batch_stm: Type.Optional(Type.Boolean({ description: "Batch atomize all STM memories" })),
+          batch_embeddings: Type.Optional(Type.Boolean({ description: "Batch atomize all embeddings memories" })),
+          source: Type.Optional(Type.String({ description: "Source label (default: 'agent')" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as {
+            text?: string;
+            batch_stm?: boolean;
+            batch_embeddings?: boolean;
+            source?: string;
+          };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            // Batch atomization mode
+            if (p.batch_stm || p.batch_embeddings) {
+              let stmResult = { processed: 0, atomsCreated: 0 };
+              let embResult = { processed: 0, atomsCreated: 0 };
+
+              if (p.batch_stm) {
+                const res = await bridge.batchAtomizeSTM();
+                stmResult = res ?? { processed: 0, atomsCreated: 0 };
+              }
+              if (p.batch_embeddings) {
+                const res = await bridge.batchAtomizeEmbeddings();
+                embResult = res ?? { processed: 0, atomsCreated: 0 };
+              }
+
+              const total = (stmResult.atomsCreated ?? 0) + (embResult.atomsCreated ?? 0);
+              return {
+                content: [{
+                  type: "text",
+                  text: `Batch atomization complete:\n` +
+                        (p.batch_stm ? `  STM: ${stmResult.processed} processed → ${stmResult.atomsCreated} atoms\n` : "") +
+                        (p.batch_embeddings ? `  Embeddings: ${embResult.processed} processed → ${embResult.atomsCreated} atoms\n` : "") +
+                        `  Total atoms created: ${total}`,
+                }],
+                details: { stm: stmResult, embeddings: embResult },
+              };
+            }
+
+            // Single text atomization
+            if (!p.text) {
+              return {
+                content: [{ type: "text", text: "Must provide text or batch flag" }],
+                details: { error: "missing_input" },
+              };
+            }
+
+            const atomIds = await bridge.atomizeText(p.text, {
+              source: p.source ?? "agent",
+              saveToDb: true,
+            });
+
+            // Defensive: ensure atomIds is an array
+            const safeAtomIds = Array.isArray(atomIds) ? atomIds : [];
+
+            if (safeAtomIds.length === 0) {
+              return {
+                content: [{
+                  type: "text",
+                  text: "No atoms extracted - text doesn't contain recognizable causal patterns.\n" +
+                        "Try text with patterns like: 'When X happens, Y results' or 'A causes B'",
+                }],
+                details: { count: 0 },
+              };
+            }
+
+            return {
+              content: [{
+                type: "text",
+                text: `Extracted ${safeAtomIds.length} atom(s) from text:\n` +
+                      safeAtomIds.map((id, i) => `  ${i + 1}. ${id ?? "unknown"}`).join("\n"),
+              }],
+              details: { count: safeAtomIds.length, ids: safeAtomIds },
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Atomization error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["atomize"] },
+    );
+
+    // =========================================================================
+    // PHASE 3E: DEEP ABSTRACTION TOOLS
+    // =========================================================================
+
+    // =========================================================================
+    // Tool: abstract_deeper - Run deep causal analysis
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "abstract_deeper",
+        description:
+          "PHASE 3E: Run deep causal analysis on a query. Automatically traverses atom chains " +
+          "to find root causes and novel indicators. The 'keep going until no' capability.",
+        parameters: Type.Object({
+          query: Type.String({ description: "The question or topic to analyze causally" }),
+          max_depth: Type.Optional(Type.Number({ description: "Max causal chain depth (default: 5)" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as { query: string; max_depth?: number };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            const result = await bridge.abstractDeeper(p.query, { maxDepth: p.max_depth ?? 5 });
+
+            // Defensive: handle null/undefined result
+            const safeResult = result ?? {
+              query: p.query,
+              targets: [],
+              novel_indicators: [],
+              epistemic_limits: ["No result returned"],
+              depth_reached: 0,
+              atoms_traversed: 0,
+            };
+
+            const targets = Array.isArray(safeResult.targets) ? safeResult.targets : [];
+            const novelIndicators = Array.isArray(safeResult.novel_indicators) ? safeResult.novel_indicators : [];
+            const epistemicLimits = Array.isArray(safeResult.epistemic_limits) ? safeResult.epistemic_limits : [];
+
+            if (novelIndicators.length === 0) {
+              return {
+                content: [{
+                  type: "text",
+                  text: `Deep abstraction for: "${p.query}"\n\n` +
+                        `Targets identified: ${targets.join(", ") || "none"}\n` +
+                        `Atoms traversed: ${safeResult.atoms_traversed ?? 0}\n` +
+                        `Depth reached: ${safeResult.depth_reached ?? 0}\n\n` +
+                        `No novel indicators found at chain roots.\n` +
+                        `Epistemic limits: ${epistemicLimits.join("; ") || "unknown"}`,
+                }],
+                details: safeResult,
+              };
+            }
+
+            const indicators = novelIndicators.slice(0, 5).map((ind, i) => {
+              const a = ind?.atom ?? {};
+              return `${i + 1}. [${ind?.frequency ?? 0}x] {${a.subject ?? "?"}} {${a.action ?? "?"}}\n` +
+                     `   → {${a.outcome ?? "?"}}\n` +
+                     `   (${ind?.insight ?? "unknown"})`;
+            }).join("\n\n");
+
+            return {
+              content: [{
+                type: "text",
+                text: `🧠 Deep Abstraction: "${p.query}"\n\n` +
+                      `📊 Analysis:\n` +
+                      `   Targets: ${targets.join(", ") || "none"}\n` +
+                      `   Depth: ${safeResult.depth_reached ?? 0} levels\n` +
+                      `   Atoms: ${safeResult.atoms_traversed ?? 0} traversed\n\n` +
+                      `🔍 Novel Indicators (root causes others miss):\n\n${indicators}` +
+                      (epistemicLimits.length > 0
+                        ? `\n\n⚠️ Limits: ${epistemicLimits.join("; ")}`
+                        : ""),
+              }],
+              details: safeResult,
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Deep abstraction error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["abstract_deeper", "deep_abstract"] },
+    );
+
+    // =========================================================================
+    // Tool: classify_query - Check if query needs deep analysis
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "classify_query",
+        description:
+          "PHASE 3E: Classify a query as 'causal' (needs deep abstraction) or 'recall' (simple retrieval). " +
+          "Useful for understanding how Helios will process different questions.",
+        parameters: Type.Object({
+          query: Type.String({ description: "The query to classify" }),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as { query: string };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            const result = await bridge.classifyQuery(p.query);
+
+            // Defensive: handle null/undefined result
+            const queryType = result?.queryType ?? "recall";
+            const confidence = typeof result?.confidence === "number" ? result.confidence : 0.5;
+            const emoji = queryType === "causal" ? "🧠" : "📚";
+
+            return {
+              content: [{
+                type: "text",
+                text: `${emoji} Query classification:\n` +
+                      `   Type: ${queryType}\n` +
+                      `   Confidence: ${(confidence * 100).toFixed(0)}%\n\n` +
+                      (queryType === "causal"
+                        ? "This query would trigger deep abstraction (causal chain traversal)."
+                        : "This query would use simple memory recall."),
+              }],
+              details: { queryType, confidence },
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Classification error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["classify_query"] },
+    );
+
+    // =========================================================================
+    // PHASE 3F: TEMPORAL ANALYSIS TOOLS
+    // =========================================================================
+
+    // =========================================================================
+    // Tool: temporal_search - Search with time context
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "temporal_search",
+        description:
+          "PHASE 3F: Search atoms with temporal context. Supports natural language time references " +
+          "like '4 hours ago', 'yesterday', 'last week'.",
+        parameters: Type.Object({
+          query: Type.String({ description: "Search query" }),
+          time_reference: Type.String({ description: "Time reference: '4 hours ago', 'yesterday', 'last week', etc." }),
+          limit: Type.Optional(Type.Number({ description: "Max results (default: 20)" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as { query: string; time_reference: string; limit?: number };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            const result = await bridge.searchTemporal(p.query, p.time_reference, p.limit ?? 20);
+
+            if (result.atoms.length === 0) {
+              return {
+                content: [{
+                  type: "text",
+                  text: `No atoms found for "${p.query}" in ${p.time_reference}`,
+                }],
+                details: result,
+              };
+            }
+
+            const atoms = result.atoms.slice(0, 10).map((a, i) =>
+              `${i + 1}. {${a.subject}} {${a.action}}\n   → {${a.outcome}}`
+            ).join("\n\n");
+
+            return {
+              content: [{
+                type: "text",
+                text: `🕐 Temporal Search: "${p.query}" in ${p.time_reference}\n\n` +
+                      (result.time_range
+                        ? `Time range: ${result.time_range.start} to ${result.time_range.end}\n\n`
+                        : "") +
+                      `Found ${result.atoms.length} atom(s):\n\n${atoms}`,
+              }],
+              details: result,
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Temporal search error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["temporal_search"] },
+    );
+
+    // =========================================================================
+    // Tool: what_happened_before - Find precursors to an event
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "what_happened_before",
+        description:
+          "PHASE 3F: Find what happened before a given event. " +
+          "Example: 'What happened 4 hours before the price spike?'",
+        parameters: Type.Object({
+          event: Type.String({ description: "Description of the event" }),
+          hours_before: Type.Optional(Type.Number({ description: "Hours to look back (default: 4)" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as { event: string; hours_before?: number };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            const result = await bridge.whatHappenedBefore(p.event, p.hours_before ?? 4);
+
+            if (result.error) {
+              return {
+                content: [{ type: "text", text: `Could not analyze: ${result.error}` }],
+                details: result,
+              };
+            }
+
+            const precursors = result.precursor_atoms.slice(0, 10).map((a, i) =>
+              `${i + 1}. {${a.subject}} {${a.action}}\n` +
+              `   ${a.time_before_event ? `(${a.time_before_event} before)` : ""}`
+            ).join("\n\n");
+
+            const causal = result.causal_candidates.map((c, i) =>
+              `${i + 1}. {${c.atom.subject}} {${c.atom.action}}\n   Reason: ${c.reason}`
+            ).join("\n\n");
+
+            return {
+              content: [{
+                type: "text",
+                text: `⏪ What happened before: "${p.event}"\n` +
+                      `Lookback: ${result.lookback_hours} hours\n\n` +
+                      `Precursor atoms (${result.precursor_atoms.length}):\n${precursors || "None found"}\n\n` +
+                      `🎯 Likely causal (${result.causal_candidates.length}):\n${causal || "None identified"}`,
+              }],
+              details: result,
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Precursor analysis error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["what_happened_before", "before_event"] },
+    );
+
+    // =========================================================================
+    // Tool: temporal_patterns - Analyze timing patterns
+    // =========================================================================
+    api.registerTool(
+      {
+        name: "temporal_patterns",
+        description:
+          "PHASE 3F: Analyze temporal patterns for an outcome. " +
+          "Example: 'whale accumulation typically precedes price movement by 4-12 hours'.",
+        parameters: Type.Object({
+          outcome: Type.String({ description: "The outcome to analyze patterns for" }),
+          min_observations: Type.Optional(Type.Number({ description: "Minimum observations needed (default: 3)" })),
+        }),
+        async execute(_toolCallId, params) {
+          const p = params as { outcome: string; min_observations?: number };
+
+          try {
+            const available = await bridge.isAvailable();
+            if (!available) {
+              return {
+                content: [{ type: "text", text: "Cortex memory system not available" }],
+                details: { error: "unavailable" },
+              };
+            }
+
+            const result = await bridge.analyzeTemporalPatterns(p.outcome, p.min_observations ?? 3);
+
+            if (result.error) {
+              return {
+                content: [{ type: "text", text: `Pattern analysis: ${result.error}` }],
+                details: result,
+              };
+            }
+
+            const precursors = result.common_precursors.map(p =>
+              `  - ${p.subject} (${p.count}x)`
+            ).join("\n");
+
+            return {
+              content: [{
+                type: "text",
+                text: `📊 Temporal Patterns: "${p.outcome}"\n\n` +
+                      `Observations: ${result.observations}\n` +
+                      (result.avg_outcome_delay
+                        ? `Avg outcome delay: ${result.avg_outcome_delay.human}\n`
+                        : "") +
+                      (result.avg_consequence_delay
+                        ? `Avg consequence delay: ${result.avg_consequence_delay.human}\n`
+                        : "") +
+                      (result.time_patterns?.peak_hour !== undefined
+                        ? `Peak hour: ${result.time_patterns.peak_hour}:00\n`
+                        : "") +
+                      `\nCommon precursors:\n${precursors || "  None identified"}`,
+              }],
+              details: result,
+            };
+          } catch (err) {
+            return {
+              content: [{ type: "text", text: `Pattern analysis error: ${err}` }],
+              details: { error: String(err) },
+            };
+          }
+        },
+      },
+      { names: ["temporal_patterns"] },
+    );
+
+    // =========================================================================
     // Working Memory (Episodic) - Pinned items that are ALWAYS in context
     // =========================================================================
     const workingMemoryPath = join(homedir(), ".openclaw", "workspace", "memory", "working_memory.json");
@@ -1533,7 +2345,7 @@ const cortexPlugin: OpenClawPlugin = {
               // Track for dedup across tiers
               injectedContentKeys.add(m.content.slice(0, 100).toLowerCase().trim());
 
-              // PHASE 3: Multi-category display
+              // PHASE 2B: Multi-category display
               const cats = m.categories ?? (m.category ? [m.category] : ["hot"]);
               return `- [${cats.join(",")}/${timeDelta}/access=${Math.round(accessCount)}] ${m.content.slice(0, config.truncateOldMemoriesTo)}`;
             }).join("\n");
@@ -1571,7 +2383,7 @@ const cortexPlugin: OpenClawPlugin = {
             // Track for dedup
             injectedContentKeys.add(m.content.slice(0, 100).toLowerCase().trim());
 
-            // PHASE 3: Multi-category display
+            // PHASE 2B: Multi-category display
             const cats = m.categories ?? (m.category ? [m.category] : ["general"]);
             return `- [${cats.join(",")}/${timeDelta}] ${m.content.slice(0, config.truncateOldMemoriesTo)}`;
           }).join("\n");
@@ -1604,7 +2416,7 @@ const cortexPlugin: OpenClawPlugin = {
               const semanticContext = uniqueResults.map((r) => {
                 // Track for dedup
                 injectedContentKeys.add(r.content.slice(0, 100).toLowerCase().trim());
-                // PHASE 3: Multi-category display
+                // PHASE 2B: Multi-category display
                 const cats = r.categories ?? (r.category ? [r.category] : ["general"]);
                 return `- [${cats.join(",")}/${r.tokens}tok] ${r.finalContent}`;
               }).join("\n");
@@ -1615,7 +2427,7 @@ const cortexPlugin: OpenClawPlugin = {
         }
 
         // PHASE 2 IMPROVEMENT #6: Category diversity - ensure breadth
-        // PHASE 3: Multi-category support
+        // PHASE 2B: Multi-category support
         // Check if we're missing any active categories and add one memory from each
         const injectedCategories = new Set<string>();
         // Collect categories from what we've already injected (handle multi-category)
@@ -1659,6 +2471,31 @@ const cortexPlugin: OpenClawPlugin = {
                 usedTokens += diverseTokens;
               }
             }
+          }
+        }
+
+        // L5. PHASE 3E: Deep Abstraction Layer - automatic causal analysis for causal queries
+        const abstractionBudget = tokenBudget - usedTokens;
+        if (abstractionBudget > 200) { // Need enough tokens for abstraction insights
+          try {
+            // Process query with deep abstraction (classifies and optionally runs abstraction)
+            const abstractionResult = await bridge.processWithAbstraction(queryText, {
+              autoAbstract: true,
+              maxDepth: 5,
+            });
+
+            // Only inject if we got novel indicators
+            if (abstractionResult.abstraction_performed && abstractionResult.context_injection) {
+              const abstractionTokens = estimateTokens(abstractionResult.context_injection);
+              if (usedTokens + abstractionTokens <= tokenBudget) {
+                contextParts.push(`<deep-abstraction hint="PHASE 3E: causal insights from atomic knowledge">\n${abstractionResult.context_injection}\n</deep-abstraction>`);
+                usedTokens += abstractionTokens;
+                api.logger.debug?.(`Cortex: deep abstraction injected (${abstractionResult.abstraction_result?.novel_indicators?.length ?? 0} novel indicators)`);
+              }
+            }
+          } catch (abstractionErr) {
+            // Don't fail the whole context injection if abstraction fails
+            api.logger.debug?.(`Cortex: deep abstraction skipped: ${abstractionErr}`);
           }
         }
 

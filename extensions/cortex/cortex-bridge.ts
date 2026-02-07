@@ -925,7 +925,7 @@ export class CortexBridge {
   /**
    * Store memory using the GPU embeddings daemon (fast path)
    * With write-through to RAM cache
-   * PHASE 3: Multi-category support
+   * PHASE 2B: Multi-category support
    */
   async storeMemoryFast(
     content: string,
@@ -1024,15 +1024,37 @@ export class CortexBridge {
         stderr += data.toString();
       });
 
-      proc.on("close", (code) => {
-        if (code !== 0) {
-          reject(new Error(`Python error: ${stderr || "Unknown error"}`));
+      proc.on("close", (exitCode) => {
+        if (exitCode !== 0) {
+          reject(new Error(`Python error (exit ${exitCode}): ${stderr || stdout || "Unknown error"}`));
           return;
         }
         try {
-          resolve(JSON.parse(stdout));
+          // Try to parse as JSON
+          const trimmed = stdout.trim();
+          if (!trimmed) {
+            // Empty output - return null
+            resolve(null);
+            return;
+          }
+          // Find the last line that looks like JSON (in case there's debug output)
+          const lines = trimmed.split("\n");
+          for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i].trim();
+            if (line.startsWith("{") || line.startsWith("[") || line === "null" || line === "true" || line === "false") {
+              try {
+                resolve(JSON.parse(line));
+                return;
+              } catch {
+                // Keep looking
+              }
+            }
+          }
+          // Try parsing the whole thing
+          resolve(JSON.parse(trimmed));
         } catch {
-          resolve(stdout.trim());
+          // If JSON parse fails completely, reject with the error
+          reject(new Error(`Python output not valid JSON: ${stdout.slice(0, 200)}${stderr ? ` (stderr: ${stderr.slice(0, 200)})` : ""}`));
         }
       });
 
@@ -1043,7 +1065,7 @@ export class CortexBridge {
   /**
    * Add to short-term memory
    * PHASE 1: Now with 50,000 item capacity
-   * PHASE 3: Multi-category support
+   * PHASE 2B: Multi-category support
    */
   async addToSTM(content: string, categories?: string | string[], importance: number = 1.0): Promise<STMItem> {
     const normalizedCats = normalizeCategories(categories);
@@ -1081,7 +1103,7 @@ print(json.dumps(result))
   /**
    * Get recent items from STM
    * PHASE 1: Uses RAM cache when available (microsecond access)
-   * PHASE 3: Multi-category filtering support
+   * PHASE 2B: Multi-category filtering support
    */
   async getRecentSTM(limit: number = 10, category?: string | string[]): Promise<STMItem[]> {
     // Check RAM cache first
@@ -1164,7 +1186,7 @@ print(json.dumps(result))
 
   /**
    * Add memory to embeddings database
-   * PHASE 3: Multi-category support
+   * PHASE 2B: Multi-category support
    */
   async addMemory(
     content: string,
@@ -1315,6 +1337,534 @@ print(result or "OK")
       console.error("Failed to update STM capacity:", err);
     }
   }
+
+  // ==========================================
+  // PHASE 3: ATOMIC KNOWLEDGE OPERATIONS
+  // ==========================================
+
+  /**
+   * Create an atomic knowledge unit
+   * PHASE 3: The irreducible unit of causal understanding
+   */
+  async createAtom(
+    subject: string,
+    action: string,
+    outcome: string,
+    consequences: string,
+    options: {
+      source?: string;
+      confidence?: number;
+      actionTimestamp?: string;
+      outcomeDelaySeconds?: number;
+      consequenceDelaySeconds?: number;
+      sourceMemoryId?: string;
+    } = {}
+  ): Promise<string> {
+    const {
+      source = "agent",
+      confidence = 1.0,
+      actionTimestamp,
+      outcomeDelaySeconds,
+      consequenceDelaySeconds,
+      sourceMemoryId,
+    } = options;
+
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atom_manager import create_atom, init_db
+init_db()
+result = create_atom(
+    subject=${JSON.stringify(subject)},
+    action=${JSON.stringify(action)},
+    outcome=${JSON.stringify(outcome)},
+    consequences=${JSON.stringify(consequences)},
+    source=${JSON.stringify(source)},
+    confidence=${confidence},
+    action_timestamp=${actionTimestamp ? JSON.stringify(actionTimestamp) : "None"},
+    outcome_delay_seconds=${outcomeDelaySeconds ?? "None"},
+    consequence_delay_seconds=${consequenceDelaySeconds ?? "None"},
+    source_memory_id=${sourceMemoryId ? JSON.stringify(sourceMemoryId) : "None"}
+)
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as string;
+  }
+
+  /**
+   * Get an atom by ID
+   * PHASE 3: Retrieve atomic knowledge unit
+   */
+  async getAtom(atomId: string): Promise<Atom | null> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atom_manager import get_atom, init_db
+init_db()
+result = get_atom(${JSON.stringify(atomId)})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as Atom | null;
+  }
+
+  /**
+   * Search atoms by field similarity
+   * PHASE 3: Field-level semantic search (subject, action, outcome, consequences)
+   */
+  async searchAtomsByField(
+    field: "subject" | "action" | "outcome" | "consequences",
+    query: string,
+    options: { limit?: number; threshold?: number } = {}
+  ): Promise<AtomSearchResult[]> {
+    const { limit = 10, threshold = 0.5 } = options;
+
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atom_manager import search_by_field, init_db
+init_db()
+result = search_by_field(${JSON.stringify(field)}, ${JSON.stringify(query)}, limit=${limit}, threshold=${threshold})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as AtomSearchResult[];
+  }
+
+  /**
+   * Create a causal link between atoms
+   * PHASE 3: Connect atoms in causal chains
+   */
+  async createCausalLink(
+    fromAtomId: string,
+    toAtomId: string,
+    linkType: "causes" | "enables" | "precedes" | "correlates" = "causes",
+    strength: number = 0.5
+  ): Promise<string> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atom_manager import create_causal_link, init_db
+init_db()
+result = create_causal_link(
+    ${JSON.stringify(fromAtomId)},
+    ${JSON.stringify(toAtomId)},
+    ${JSON.stringify(linkType)},
+    ${strength}
+)
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as string;
+  }
+
+  /**
+   * Find root causes by traversing causal chains backward
+   * PHASE 3: The core "keep going until the answer is no" capability
+   */
+  async findRootCauses(
+    atomId: string,
+    maxDepth: number = 10
+  ): Promise<Atom[]> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atom_manager import find_root_causes, init_db
+init_db()
+result = find_root_causes(${JSON.stringify(atomId)}, max_depth=${maxDepth})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as Atom[];
+  }
+
+  /**
+   * Find all causal paths leading to an outcome
+   * PHASE 3: Discover the "40 novel indicators" that others miss
+   */
+  async findPathsToOutcome(
+    targetOutcome: string,
+    maxDepth: number = 10
+  ): Promise<Atom[]> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atom_manager import find_all_paths_to_outcome, init_db
+init_db()
+result = find_all_paths_to_outcome(${JSON.stringify(targetOutcome)}, max_depth=${maxDepth})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as Atom[];
+  }
+
+  /**
+   * Get atomic knowledge statistics
+   * PHASE 3: Stats for the atoms database
+   */
+  async getAtomStats(): Promise<AtomStats> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atom_manager import stats, init_db
+init_db()
+result = stats()
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as AtomStats;
+  }
+
+  // ==========================================
+  // PHASE 3B: ATOMIZATION PIPELINE
+  // ==========================================
+
+  /**
+   * Atomize text - extract atoms from text content
+   * PHASE 3B: Local pattern matching, no API tokens needed
+   */
+  async atomizeText(
+    text: string,
+    options: { source?: string; saveToDb?: boolean; useLlmFallback?: boolean } = {}
+  ): Promise<string[]> {
+    const { source = "agent", saveToDb = true, useLlmFallback = false } = options;
+
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atomizer import atomize_text
+result = atomize_text(
+    ${JSON.stringify(text)},
+    source=${JSON.stringify(source)},
+    save_to_db=${saveToDb ? "True" : "False"},
+    use_llm_fallback=${useLlmFallback ? "True" : "False"}
+)
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as string[];
+  }
+
+  /**
+   * Batch atomize existing STM memories
+   * PHASE 3B: Migrate Phase 2 memories to atoms
+   */
+  async batchAtomizeSTM(): Promise<{ processed: number; atomsCreated: number }> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atomizer import batch_atomize_stm
+processed, atoms = batch_atomize_stm()
+print(json.dumps({"processed": processed, "atomsCreated": atoms}))
+`;
+    return (await this.runPython(code)) as { processed: number; atomsCreated: number };
+  }
+
+  /**
+   * Batch atomize existing embeddings memories
+   * PHASE 3B: Migrate Phase 2 memories to atoms
+   */
+  async batchAtomizeEmbeddings(): Promise<{ processed: number; atomsCreated: number }> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atomizer import batch_atomize_embeddings
+processed, atoms = batch_atomize_embeddings()
+print(json.dumps({"processed": processed, "atomsCreated": atoms}))
+`;
+    return (await this.runPython(code)) as { processed: number; atomsCreated: number };
+  }
+
+  /**
+   * Auto-atomize on memory store (for hook integration)
+   * PHASE 3B: Gradual migration as new memories come in
+   */
+  async autoAtomize(content: string, source: string = "auto"): Promise<string[]> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from atomizer import auto_atomize_on_store
+result = auto_atomize_on_store(${JSON.stringify(content)}, source=${JSON.stringify(source)})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as string[];
+  }
+
+  // ==========================================
+  // PHASE 3E: DEEP ABSTRACTION LAYER
+  // ==========================================
+
+  /**
+   * Classify a query as causal or recall
+   * PHASE 3E: Determines if deep abstraction is needed
+   */
+  async classifyQuery(query: string): Promise<{ queryType: string; confidence: number }> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from deep_abstraction import classify_query
+qtype, conf = classify_query(${JSON.stringify(query)})
+print(json.dumps({"queryType": qtype, "confidence": conf}))
+`;
+    return (await this.runPython(code)) as { queryType: string; confidence: number };
+  }
+
+  /**
+   * Run deep abstraction on a query
+   * PHASE 3E: The "keep going until no" capability
+   */
+  async abstractDeeper(
+    query: string,
+    options: { maxDepth?: number; minConfidence?: number } = {}
+  ): Promise<DeepAbstractionResult> {
+    const { maxDepth = 5, minConfidence = 0.5 } = options;
+
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from deep_abstraction import abstract_deeper
+result = abstract_deeper(${JSON.stringify(query)}, max_depth=${maxDepth}, min_confidence=${minConfidence})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as DeepAbstractionResult;
+  }
+
+  /**
+   * Process query with automatic abstraction
+   * PHASE 3E: Main entry point for deep abstraction layer
+   */
+  async processWithAbstraction(
+    query: string,
+    options: { autoAbstract?: boolean; maxDepth?: number } = {}
+  ): Promise<AbstractionProcessResult> {
+    const { autoAbstract = true, maxDepth = 5 } = options;
+
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from deep_abstraction import process_query_with_abstraction
+result = process_query_with_abstraction(
+    ${JSON.stringify(query)},
+    auto_abstract=${autoAbstract ? "True" : "False"},
+    max_depth=${maxDepth}
+)
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as AbstractionProcessResult;
+  }
+
+  // ==========================================
+  // PHASE 3F: TEMPORAL ANALYSIS
+  // ==========================================
+
+  /**
+   * Search atoms with temporal context
+   * PHASE 3F: Time-aware queries
+   */
+  async searchTemporal(
+    query: string,
+    timeReference: string,
+    limit: number = 20
+  ): Promise<TemporalSearchResult> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from temporal_analysis import search_temporal
+result = search_temporal(${JSON.stringify(query)}, ${JSON.stringify(timeReference)}, limit=${limit})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as TemporalSearchResult;
+  }
+
+  /**
+   * Find what happened before an event
+   * PHASE 3F: Temporal precursor analysis
+   */
+  async whatHappenedBefore(
+    eventDescription: string,
+    hoursBefore: number = 4,
+    limit: number = 20
+  ): Promise<PrecursorAnalysisResult> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from temporal_analysis import what_happened_before
+result = what_happened_before(${JSON.stringify(eventDescription)}, hours_before=${hoursBefore}, limit=${limit})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as PrecursorAnalysisResult;
+  }
+
+  /**
+   * Analyze temporal patterns for an outcome
+   * PHASE 3F: "Whale accumulation precedes price movement by 4-12 hours"
+   */
+  async analyzeTemporalPatterns(
+    outcomePattern: string,
+    minObservations: number = 3
+  ): Promise<TemporalPatternResult> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from temporal_analysis import analyze_temporal_patterns
+result = analyze_temporal_patterns(${JSON.stringify(outcomePattern)}, min_observations=${minObservations})
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as TemporalPatternResult;
+  }
+
+  /**
+   * Detect delay patterns across all atoms
+   * PHASE 3F: Find consistent timing patterns
+   */
+  async detectDelayPatterns(): Promise<DelayPatternResult> {
+    const code = `
+import json
+import sys
+sys.path.insert(0, '${this.pythonScriptsDir}')
+from temporal_analysis import detect_delay_patterns
+result = detect_delay_patterns()
+print(json.dumps(result))
+`;
+    return (await this.runPython(code)) as DelayPatternResult;
+  }
+}
+
+/**
+ * PHASE 3: Atom interface - the irreducible unit of causal understanding
+ */
+export interface Atom {
+  id: string;
+  subject: string;
+  action: string;
+  outcome: string;
+  consequences: string;
+  action_timestamp?: string;
+  outcome_delay_seconds?: number;
+  consequence_delay_seconds?: number;
+  confidence: number;
+  access_count: number;
+  created_at: string;
+  source: string;
+  source_memory_id?: string;
+  depth?: number;  // Set by causal traversal
+}
+
+/**
+ * PHASE 3: Search result with similarity score
+ */
+export interface AtomSearchResult extends Atom {
+  similarity: number;
+  matched_field: string;
+}
+
+/**
+ * PHASE 3: Atom database statistics
+ */
+export interface AtomStats {
+  total_atoms: number;
+  total_causal_links: number;
+  by_source: Record<string, number>;
+  links_by_type: Record<string, number>;
+  avg_confidence: number;
+  atoms_with_embeddings: number;
+  embeddings_available: boolean;
+}
+
+/**
+ * PHASE 3E: Deep Abstraction result
+ */
+export interface DeepAbstractionResult {
+  query: string;
+  query_type: string;
+  targets: string[];
+  causal_chains: Array<{
+    target: string;
+    starting_atom: Atom;
+    root_causes: Atom[];
+    depth: number;
+  }>;
+  novel_indicators: Array<{
+    atom: Atom;
+    frequency: number;
+    insight: string;
+  }>;
+  epistemic_limits: string[];
+  depth_reached: number;
+  atoms_traversed: number;
+}
+
+/**
+ * PHASE 3E: Abstraction process result (includes context injection)
+ */
+export interface AbstractionProcessResult {
+  query: string;
+  query_type: string;
+  classification_confidence: number;
+  abstraction_performed: boolean;
+  abstraction_result: DeepAbstractionResult | null;
+  context_injection: string;
+}
+
+/**
+ * PHASE 3F: Temporal search result
+ */
+export interface TemporalSearchResult {
+  query: string;
+  time_reference: string;
+  time_range: { start: string; end: string } | null;
+  atoms: Atom[];
+  temporal_patterns: Array<Record<string, unknown>>;
+}
+
+/**
+ * PHASE 3F: Precursor analysis result
+ */
+export interface PrecursorAnalysisResult {
+  event: string;
+  lookback_hours: number;
+  precursor_atoms: Array<Atom & { time_before_event?: string }>;
+  causal_candidates: Array<{ atom: Atom; reason: string }>;
+  error?: string;
+}
+
+/**
+ * PHASE 3F: Temporal pattern result
+ */
+export interface TemporalPatternResult {
+  outcome_pattern: string;
+  observations: number;
+  avg_outcome_delay: { seconds: number; human: string } | null;
+  avg_consequence_delay: { seconds: number; human: string } | null;
+  common_precursors: Array<{ subject: string; count: number }>;
+  time_patterns: {
+    peak_hour?: number;
+    distribution?: Record<number, number>;
+  };
+  error?: string;
+}
+
+/**
+ * PHASE 3F: Delay pattern detection result
+ */
+export interface DelayPatternResult {
+  patterns: Array<{
+    pattern: string;
+    observations: number;
+    avg_delay_seconds: number;
+    avg_delay_human: string;
+  }>;
+  total_observations: number;
 }
 
 export const defaultBridge = new CortexBridge();
