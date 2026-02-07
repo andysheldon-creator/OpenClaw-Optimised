@@ -8,7 +8,10 @@ title: "nodes"
 
 # `openclaw nodes`
 
-Manage paired nodes (devices) and invoke node capabilities.
+Manage paired nodes (devices) from the Gateway side: list, approve, invoke.
+
+> **nodes vs node:** `openclaw nodes` is the Gateway-side command to manage and invoke paired nodes.
+> [`openclaw node`](/cli/node) runs the headless node host service on a target machine.
 
 Related:
 

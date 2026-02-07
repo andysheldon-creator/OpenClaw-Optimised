@@ -1,7 +1,35 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Repository Guidelines
 
 - Repo: https://github.com/openclaw/openclaw
 - GitHub issues/comments/PR comments: use literal multiline strings or `-F - <<'EOF'` (or $'...') for real newlines; never embed "\\n".
+
+## Architecture Overview
+
+OpenClaw is a personal AI assistant that runs locally and connects to multiple messaging platforms. The core data flow is:
+
+```
+User message → Channel adapter (WhatsApp/Telegram/etc)
+  → Gateway WebSocket server (src/gateway/)
+  → Session router → Pi embedded agent (src/agents/)
+  → Model API (Anthropic/OpenAI/Bedrock)
+  → Tool execution (Bash/Read/Write)
+  → Response → Gateway → Channel adapter → User
+```
+
+**Key subsystems:**
+- **Gateway** (`src/gateway/`): Central WebSocket server (port 18789) that manages channel connections, message routing, auth, and HTTP/RPC APIs. Runs as a daemon (launchd on macOS, systemd on Linux). Key: `server.impl.ts`, `server-methods/`, `protocol/`.
+- **Agent/Pi** (`src/agents/`): AI agent engine built on `@mariozechner/pi-*` SDK. Handles sessions, model integration, tool definitions (`pi-tools.ts`), and shell execution (`bash-tools.exec.ts`). Multi-provider auth with OAuth + API key rotation and failover.
+- **Channels** (`src/channels/`, `src/telegram/`, `src/discord/`, etc.): Unified `ChannelPlugin` interface with adapters for each platform. Core: WhatsApp (Baileys), Telegram (Grammy), Discord, Slack, Signal, iMessage. Extensions: MS Teams, Matrix, Zalo, BlueBubbles, Google Chat, LINE, voice-call.
+- **CLI** (`src/cli/`, `src/commands/`): Commander.js-based. Entry: `openclaw.mjs` → `src/entry.ts`. Commands in `src/commands/` (onboard, agent, gateway, channels, models, doctor, status).
+- **Plugin SDK** (`src/plugin-sdk/`): Extension API for channel plugins and tools. Auto-loads from `extensions/*/`. Runtime isolation with hooks and HTTP routes.
+- **Native apps** (`apps/`): macOS (SwiftUI menubar + gateway), iOS, Android. Shared Swift code in `apps/shared/OpenClawKit/`.
+- **Infrastructure** (`src/infra/`): Cross-cutting: binary checks, env loading, port management, error formatting.
+
+**Key patterns:** dependency injection via `createDefaultDeps()`, session keys as `agent:<id>:<key>`, YAML config (`~/.openclaw/config.yml`) with Zod validation, SQLite sessions + JSONL transcripts.
 
 ## Project Structure & Module Organization
 

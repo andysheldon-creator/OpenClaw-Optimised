@@ -1061,6 +1061,7 @@
                     "group": "Configuration and operations",
                     "pages": [
                       "gateway/configuration",
+                      "gateway/configuration-reference",
                       "gateway/configuration-examples",
                       "gateway/authentication",
                       "gateway/health",

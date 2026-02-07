@@ -9,11 +9,11 @@ title: "configure"
 
 Interactive prompt to set up credentials, devices, and agent defaults.
 
+> **configure vs config:** `openclaw configure` is the interactive wizard for guided setup.
+> For scripted/non-interactive edits, use [`openclaw config get/set/unset`](/cli/config).
+
 Note: The **Model** section now includes a multi-select for the
 `agents.defaults.models` allowlist (what shows up in `/model` and the model picker).
-
-Tip: `openclaw config` without a subcommand opens the same wizard. Use
-`openclaw config get|set|unset` for non-interactive edits.
 
 Related:
 

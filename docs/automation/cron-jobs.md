@@ -456,14 +456,48 @@ openclaw system event --mode now --text "Next heartbeat: check battery."
 
 ## Troubleshooting
 
-### “Nothing runs”
+### "Nothing runs"
 
 - Check cron is enabled: `cron.enabled` and `OPENCLAW_SKIP_CRON`.
 - Check the Gateway is running continuously (cron runs inside the Gateway process).
 - For `cron` schedules: confirm timezone (`--tz`) vs the host timezone.
+- Check the job is enabled: `openclaw cron list` shows `enabled` status per job.
+- Verify the Gateway has been running long enough for the next scheduled run (check `nextRun` in `openclaw cron list`).
+
+### Timer drift or missed runs after restart
+
+- The scheduler catches up missed runs on Gateway restart. If a job was due while the
+  Gateway was stopped, it runs on the next startup (unless `wakeMode` prevents it).
+- If you see duplicate deliveries after restart, check whether legacy `deliver`/`channel`/`to` fields
+  are present in the job. Run `openclaw cron edit <jobId>` to migrate to the current delivery schema.
+- Long Gateway downtimes can cause multiple catch-up runs. Use `--due` with `openclaw cron run`
+  to restrict execution to due-only.
+
+### Jobs stuck in "running" state
+
+- If a job shows `running` but the Gateway was restarted mid-run, the stale marker
+  should auto-clear on next scheduler tick. If it persists, edit the job to force a state reset:
+  `openclaw cron edit <jobId> --enable`.
+- Check for lock contention in the cron store file (`~/.openclaw/cron.json`). If the file is
+  corrupted, `openclaw doctor --fix` can attempt repair.
+
+### Delivery never arrives
+
+- For `announce` delivery: verify `--channel` and `--to` point to a connected, paired channel account.
+- Check `openclaw channels status --probe` to verify the target channel is online.
+- For isolated sessions with announce delivery, the summary only posts after the session completes.
+  Long-running sessions delay delivery.
+- Check `openclaw cron runs --id <jobId>` for error details on recent runs.
 
 ### Telegram delivers to the wrong place
 
-- For forum topics, use `-100…:topic:<id>` so it’s explicit and unambiguous.
-- If you see `telegram:...` prefixes in logs or stored “last route” targets, that’s normal;
+- For forum topics, use `-100…:topic:<id>` so it's explicit and unambiguous.
+- If you see `telegram:...` prefixes in logs or stored "last route" targets, that's normal;
   cron delivery accepts them and still parses topic IDs correctly.
+
+### Legacy job migration issues
+
+- Jobs created before v2026.2.3 may have legacy fields (`deliver`, `channel`, `to`, `atMs`).
+  The store migration handles these automatically, but if you see unexpected behavior, recreate
+  the job with `openclaw cron add` using the current CLI flags.
+- Run `openclaw doctor` to check for cron store inconsistencies.

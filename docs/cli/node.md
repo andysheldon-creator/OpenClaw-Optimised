@@ -11,6 +11,9 @@ title: "node"
 Run a **headless node host** that connects to the Gateway WebSocket and exposes
 `system.run` / `system.which` on this machine.
 
+> **node vs nodes:** `openclaw node` runs and manages the node host service on the current machine.
+> [`openclaw nodes`](/cli/nodes) manages paired nodes from the Gateway side (list, approve, invoke).
+
 ## Why use a node host?
 
 Use a node host when you want agents to **run commands on other machines** in your

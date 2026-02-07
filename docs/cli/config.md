@@ -7,8 +7,12 @@ title: "config"
 
 # `openclaw config`
 
-Config helpers: get/set/unset values by path. Run without a subcommand to open
-the configure wizard (same as `openclaw configure`).
+Non-interactive config helpers: get/set/unset values by path. Run without a subcommand to open
+the interactive wizard (same as [`openclaw configure`](/cli/configure)).
+
+> **config vs configure:** `openclaw config get/set/unset` is for scripted, non-interactive edits.
+> `openclaw configure` (or `openclaw config` with no subcommand) opens the interactive wizard.
+> See the full field reference: [Configuration Reference](/gateway/configuration-reference).
 
 ## Examples
 
