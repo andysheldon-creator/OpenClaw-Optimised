@@ -1,11 +1,14 @@
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { PrometheusExporter } from "@opentelemetry/exporter-prometheus";
-import { Resource } from "@opentelemetry/resources";
 import { NodeSDK } from "@opentelemetry/sdk-node";
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
 // Configurable via env vars
 const METRICS_PORT = parseInt(process.env.OTEL_METRICS_PORT || "9464", 10);
+
+// Set service name via env var to avoid explicit Resource class usage issues with some bundlers
+if (!process.env.OTEL_SERVICE_NAME) {
+  process.env.OTEL_SERVICE_NAME = "moltbot-gateway";
+}
 
 let sdk: NodeSDK | null = null;
 
@@ -20,10 +23,6 @@ export function initObservability() {
   });
 
   sdk = new NodeSDK({
-    resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: "moltbot-gateway",
-      [SemanticResourceAttributes.SERVICE_VERSION]: "2026.2.4",
-    }),
     metricReader: exporter,
     instrumentations: [
       getNodeAutoInstrumentations({
@@ -39,7 +38,6 @@ export function initObservability() {
       `[Observability] Started. Prometheus metrics available on port ${METRICS_PORT}/metrics`,
     );
 
-    // Graceful shutdown handled by NodeSDK implicitly for some signals, but explicit is better for custom logic
     const shutdown = async () => {
       if (sdk) {
         try {
