@@ -7,12 +7,9 @@ import { getResolvedLoggerSettings } from "../logging.js";
 import { VERSION } from "../version.js";
 
 function resolveGatewayBuildInfo(): { runPath: string; buildType: "local" | "global" } {
-  // __dirname equivalent for ESM: use the gateway module's own location
   const runPath = process.cwd();
-  const isGlobal =
-    process.execPath.includes("/opt/homebrew/") ||
-    process.execPath.includes("/usr/local/") ||
-    runPath.includes("/lib/node_modules/openclaw");
+  // Check if running from a global npm install (node_modules/openclaw) vs a local worktree/checkout
+  const isGlobal = runPath.includes("/lib/node_modules/openclaw");
   return { runPath, buildType: isGlobal ? "global" : "local" };
 }
 
