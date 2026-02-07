@@ -147,9 +147,6 @@ function inferPlaceholder(attachment: APIAttachment): string {
     return "<media:video>";
   }
   if (mime.startsWith("audio/")) {
-    if (isDiscordVoiceAttachment(attachment)) {
-      return "<media:voice>";
-    }
     return "<media:audio>";
   }
   return "<media:document>";
@@ -185,16 +182,13 @@ function buildDiscordAttachmentPlaceholder(attachments?: APIAttachment[]): strin
   }
   const count = attachments.length;
   const allImages = attachments.every(isImageAttachment);
-  const allVoice = attachments.every(isDiscordVoiceAttachment);
-  const allAudio = attachments.every(isAudioAttachment);
+  const allAudio =
+    attachments.every(isAudioAttachment) || attachments.every(isDiscordVoiceAttachment);
   let tag: string;
   let label: string;
   if (allImages) {
     tag = "<media:image>";
     label = "image";
-  } else if (allVoice) {
-    tag = "<media:voice>";
-    label = "voice";
   } else if (allAudio) {
     tag = "<media:audio>";
     label = "audio";
