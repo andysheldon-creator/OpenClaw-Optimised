@@ -1,99 +1,93 @@
-# 🍗 Fried Chicken Error Fix
+# 🍗 Fried Chicken Error — Fix Branches
 
-## Status: IN PROGRESS — Setting up safety net
+## Overview
 
-## The Problem
+"Looks like a whole meal but it's actually just gas." — Jay, 2026-02-07
 
-When Anthropic rate-limits auth-based (session/cookie) users, OpenClaw misclassifies the error as "Context overflow" instead of "Rate limit." This prevents the fallback chain from triggering.
+Auth-based Anthropic users get false "Context overflow" errors when rate-limited.
+Three related-but-distinct bugs, each on its own branch.
 
-**Why "Fried Chicken"?** Because the error "looks like a whole meal but it's actually just gas." — Jay, 2026-02-07
+---
 
-## Root Cause
+## Branch 1: `fix/fried-chicken-error` ✅ COMMITTED
 
-In `src/` (compiled to `dist/agents/pi-embedded-helpers/errors.js`):
+**Problem:** Error classification priority is wrong — `isContextOverflowError()` fires before `classifyFailoverReason()` in `run.ts`, so rate limits that happen to match overflow patterns get misclassified.
 
-1. `isContextOverflowError()` checks fire FIRST in the error handling pipeline
-2. If the error message from Anthropic's auth pathway contains anything matching context overflow patterns (e.g., "context overflow", "request too large"), it's classified as context overflow
-3. This happens BEFORE `classifyFailoverReason()` can check for rate limit patterns
-4. Result: Rate limits → treated as context overflow → no fallback → user sees false "Context overflow" error
+**Fix:** Added guard: `isContextOverflowError(errorText) && !isAlsoFailover` — context overflow handling only fires if the error is NOT also a failover error. Same guard added to `formatAssistantErrorText()` and `sanitizeUserFacingText()` in `errors.ts`.
 
-## The Fix (Two Approaches)
+**Files changed:**
 
-### Approach A (Preferred): Priority reorder in run.js
+- `src/agents/pi-embedded-runner/run.ts`
+- `src/agents/pi-embedded-helpers/errors.ts`
 
-In `src/agents/pi-embedded-runner/run.ts` (around the error handling block):
+**Status:** Committed, deployed, gateway running.
 
-- Check `classifyFailoverReason()` BEFORE `isContextOverflowError()`
-- If it's a rate limit, let the fallback chain handle it
-- Only fall through to context overflow if it's NOT a rate limit
+---
 
-### Approach B: Guard in isContextOverflowError()
+## Branch 2: `fix/auth-model-fallback` 🔲 TODO
 
-In `src/agents/pi-embedded-helpers/errors.ts`:
+**Problem:** When Opus is throttled on Anthropic auth, Sonnet and Haiku still work (same auth session, different model). But the fallback chain may not support model switching within the same auth provider — it may only switch between providers.
 
-- Add early return `false` if `isRateLimitErrorMessage()` also matches
-- Rate limit signals take priority over context overflow signals
+**Fix needed:** Ensure fallback chain supports `anthropic/opus → anthropic/sonnet → anthropic/haiku` using the same auth profile. Investigate how `runWithModelFallback()` resolves candidates and whether auth profiles carry over.
 
-### Approach C: Better error parsing from auth provider
+**Key files to investigate:**
 
-- Investigate what Anthropic's auth pathway actually returns on rate limit
-- Parse the actual HTTP status / response structure instead of text matching
-- Most robust but requires understanding the auth provider's error format
+- `src/agents/model-fallback.ts` — `resolveFallbackCandidates()`
+- `src/agents/auth-profiles/` — profile rotation logic
+- `src/agents/pi-embedded-runner/run.ts` — `advanceAuthProfile()` flow
 
-## Safety Plan
+**Key question:** Does `runWithModelFallback` re-use the same auth profile when falling back to a different model on the same provider?
 
-### Before ANY restart:
+---
 
-1. Build succeeds (`pnpm build` exits 0)
-2. Test the specific changed files for syntax errors (`node -c dist/file.js`)
-3. Keep the WORKING dist/ backed up
+## Branch 3: `fix/error-source-detection` 🔲 TODO
 
-### Recovery (if gateway won't start):
+**Problem:** `sanitizeUserFacingText()` and `isContextOverflowError()` pattern-match against ALL text content, including agent replies. If the agent explains the error in a message, that message gets intercepted as a real error — a self-referential feedback loop.
+
+**Fix needed:** Check the SOURCE of the string (API error response vs. message content). Only apply error detection to actual API error payloads, not conversational text.
+
+**Approaches:**
+
+- A: `looksLikeRealError` heuristic (our previous patch from Feb 5 — short, no paragraphs, no markdown)
+- B: Pass a flag/context indicating whether the text came from an API error vs. message body
+- C: Only run `sanitizeUserFacingText` on strings that came from `stopReason: "error"` responses
+
+**Related issues:** openclaw/openclaw#3594, #8847
+
+**Previous work:** Patch applied 2026-02-05 (wiped by update). Saved at `~/clawd/docs/patches/openclaw-3594-sanitizer-fix.patch`
+
+---
+
+## Recovery Plan
+
+### If gateway won't start:
 
 ```bash
-# Option 1: Revert to npm registry version
-sudo npm install -g openclaw@latest
-
-# Option 2: Revert our changes
-cd ~/repos/openclaw-fork
-git checkout main
-pnpm build
-# Gateway daemon auto-respawns, or:
-kill $(pgrep -f openclaw-gateway)
-
-# Option 3: Point back to the backup
+# Revert to working build
 cd ~/repos/openclaw-fork
 cp -r dist.backup/* dist/
-kill $(pgrep -f openclaw-gateway)
+kill $(pgrep -f openclaw-gateway -u canti)
+# Daemon respawns with restored build
+
+# Nuclear option: back to npm registry
+sudo npm unlink -g openclaw
+sudo npm install -g openclaw@latest
 ```
 
-### Files to modify:
+### For Claude CLI operator (if Canti is down):
 
-- `src/agents/pi-embedded-runner/run.ts` — Error handling priority
-- `src/agents/pi-embedded-helpers/errors.ts` — Classification logic
+1. Read this file for context
+2. Check `git log --oneline -5` to see which branch is active
+3. Recovery commands above
+4. Memory context: `~/clawd/memory/2026-02-07.md`
 
-### Files compiled to (runtime):
+---
 
-- `dist/agents/pi-embedded-runner/run.js`
-- `dist/agents/pi-embedded-helpers/errors.js`
+## Fork Details
 
-## Related Issues
-
-- openclaw/openclaw#3594 — sanitizeUserFacingText false positives (OPEN)
-- openclaw/openclaw#8847 — Same bug on Telegram (OPEN)
-
-## Previous Patches (wiped by updates)
-
-- 2026-02-05: Applied `looksLikeRealError` heuristic to `sanitizeUserFacingText()` — addressed the false positive when MENTIONING the error, but NOT the rate limit misclassification
-- That fix addressed a different symptom: agent replies containing error-like text being intercepted
-- THIS fix addresses the actual rate limit → context overflow misclassification
-
-## Progress Log
-
-- [ ] Back up working dist/ directory
-- [ ] Identify exact TypeScript source files
-- [ ] Implement Approach A in source
-- [ ] Build and verify syntax
-- [ ] Test with `node -e` import check
-- [ ] Restart gateway
-- [ ] Verify fix works under rate limiting conditions
+- **Repo:** https://github.com/jfgrissom/openclaw
+- **Upstream:** https://github.com/openclaw/openclaw
+- **Local:** ~/repos/openclaw-fork
+- **Installed via:** `sudo npm link` (symlink, rebuilds are live)
+- **Build:** `pnpm build` (tsdown, ~300ms)
+- **Deploy:** `kill $(pgrep -f openclaw-gateway -u canti)` (daemon respawns)
