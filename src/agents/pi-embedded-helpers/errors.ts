@@ -335,7 +335,8 @@ export function formatAssistantErrorText(
     }
   }
 
-  if (isContextOverflowError(raw)) {
+  // 🍗 Fried Chicken Fix: Don't classify as context overflow if it's also a failover error
+  if (isContextOverflowError(raw) && !isFailoverErrorMessage(raw)) {
     return (
       "Context overflow: prompt too large for the model. " +
       "Try again with less input or a larger-context model."
@@ -403,7 +404,8 @@ export function sanitizeUserFacingText(text: string): string {
     );
   }
 
-  if (isContextOverflowError(trimmed)) {
+  // 🍗 Fried Chicken Fix: Don't classify as context overflow if it's also a failover error
+  if (isContextOverflowError(trimmed) && !isFailoverErrorMessage(trimmed)) {
     return (
       "Context overflow: prompt too large for the model. " +
       "Try again with less input or a larger-context model."

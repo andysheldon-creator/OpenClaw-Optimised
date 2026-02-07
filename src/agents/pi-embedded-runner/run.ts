@@ -390,7 +390,16 @@ export async function runEmbeddedPiAgent(
 
           if (promptError && !aborted) {
             const errorText = describeUnknownError(promptError);
-            if (isContextOverflowError(errorText)) {
+
+            // 🍗 Fried Chicken Fix: Check for rate limit / failover errors BEFORE
+            // context overflow. Auth-based providers (e.g., Anthropic session auth)
+            // can return error messages that match context overflow patterns when
+            // they're actually rate-limiting. Without this guard, the fallback chain
+            // never triggers because the error is misclassified as context overflow.
+            const earlyFailoverReason = classifyFailoverReason(errorText);
+            const isAlsoFailover = earlyFailoverReason !== null;
+
+            if (isContextOverflowError(errorText) && !isAlsoFailover) {
               const msgCount = attempt.messagesSnapshot?.length ?? 0;
               log.warn(
                 `[context-overflow-diag] sessionKey=${params.sessionKey ?? params.sessionId} ` +
