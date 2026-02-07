@@ -11,10 +11,13 @@
  */
 
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import type { OpenClawConfig } from "../../../clawdbrain-dev-work/src/config/config.js";
-import type { HookHandler, InternalHookEvent } from "../../../clawdbrain-dev-work/src/hooks/hooks.js";
+import type {
+  HookHandler,
+  InternalHookEvent,
+} from "../../../clawdbrain-dev-work/src/hooks/hooks.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -95,7 +98,15 @@ interface ExperientialHookConfig {
 
 const TOOL_CATEGORIES: Record<string, string[]> = {
   file: ["write", "edit", "create", "mcp__clawdbrain__write", "mcp__clawdbrain__edit"],
-  message: ["message", "send", "mcp__clawdbrain__message", "SlackRichMessage"],
+  message: [
+    "message",
+    "send",
+    "mcp__clawdbrain__message",
+    "SlackRichMessage",
+    "AskSlackQuestion",
+    "AskSlackForm",
+    "AskSlackConfirmation",
+  ],
   exec: ["exec", "mcp__clawdbrain__exec"],
   browser: ["browser", "mcp__clawdbrain__browser"],
   experience: ["experience_capture", "experience_reflect", "uncertainty_log"],
@@ -171,7 +182,8 @@ function isObservationTool(toolName: string): boolean {
 
 function extractContextSummary(toolInput: unknown, toolResult: unknown): string {
   const inputStr = typeof toolInput === "object" ? JSON.stringify(toolInput) : String(toolInput);
-  const resultStr = typeof toolResult === "object" ? JSON.stringify(toolResult) : String(toolResult);
+  const resultStr =
+    typeof toolResult === "object" ? JSON.stringify(toolResult) : String(toolResult);
 
   // Truncate for context
   const inputSummary = inputStr.length > 500 ? inputStr.slice(0, 500) + "..." : inputStr;
@@ -262,7 +274,9 @@ async function evaluateSignificanceLocal(
   }
 }
 
-function evaluateSignificanceHeuristic(moment: Partial<ExperientialMoment>): SignificanceEvaluation {
+function evaluateSignificanceHeuristic(
+  moment: Partial<ExperientialMoment>,
+): SignificanceEvaluation {
   const toolName = moment.toolName || "";
   const category = getToolCategory(toolName);
 
@@ -325,7 +339,8 @@ function evaluateSignificanceHeuristic(moment: Partial<ExperientialMoment>): Sig
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function persistMoment(moment: ExperientialMoment): Promise<void> {
-  const existenceDir = process.env.OPENCLAW_EXISTENCE_DIR || path.join(os.homedir(), ".openclaw", "existence");
+  const existenceDir =
+    process.env.OPENCLAW_EXISTENCE_DIR || path.join(os.homedir(), ".openclaw", "existence");
   const recordsDir = path.join(existenceDir, "records");
   await fs.mkdir(recordsDir, { recursive: true });
 
@@ -337,7 +352,8 @@ async function persistMoment(moment: ExperientialMoment): Promise<void> {
 }
 
 async function persistBuffer(buffer: ExperienceBuffer): Promise<void> {
-  const existenceDir = process.env.OPENCLAW_EXISTENCE_DIR || path.join(os.homedir(), ".openclaw", "existence");
+  const existenceDir =
+    process.env.OPENCLAW_EXISTENCE_DIR || path.join(os.homedir(), ".openclaw", "existence");
   const buffersDir = path.join(existenceDir, "buffers");
   await fs.mkdir(buffersDir, { recursive: true });
 
@@ -346,16 +362,21 @@ async function persistBuffer(buffer: ExperienceBuffer): Promise<void> {
 }
 
 async function loadConfig(cfg: OpenClawConfig | undefined): Promise<ExperientialHookConfig> {
-  const hookConfig = cfg?.hooks?.internal?.entries?.["experiential-capture"] as Record<string, unknown> | undefined;
+  const hookConfig = cfg?.hooks?.internal?.entries?.["experiential-capture"] as
+    | Record<string, unknown>
+    | undefined;
 
   return {
     enabled: hookConfig?.enabled !== false,
     significantToolCategories:
-      (hookConfig?.significant_tool_categories as string[]) || DEFAULT_CONFIG.significantToolCategories,
+      (hookConfig?.significant_tool_categories as string[]) ||
+      DEFAULT_CONFIG.significantToolCategories,
     minSignificanceThreshold:
       (hookConfig?.min_significance_threshold as number) || DEFAULT_CONFIG.minSignificanceThreshold,
-    maxCapturesPerHour: (hookConfig?.max_captures_per_hour as number) || DEFAULT_CONFIG.maxCapturesPerHour,
-    localModelEndpoint: (hookConfig?.local_model_endpoint as string) || DEFAULT_CONFIG.localModelEndpoint,
+    maxCapturesPerHour:
+      (hookConfig?.max_captures_per_hour as number) || DEFAULT_CONFIG.maxCapturesPerHour,
+    localModelEndpoint:
+      (hookConfig?.local_model_endpoint as string) || DEFAULT_CONFIG.localModelEndpoint,
     evaluationModel: (hookConfig?.evaluation_model as string) || DEFAULT_CONFIG.evaluationModel,
   };
 }
@@ -374,7 +395,9 @@ function canCapture(buffer: ExperienceBuffer, config: ExperientialHookConfig): b
   ).length;
 
   if (recentCaptures >= config.maxCapturesPerHour) {
-    console.log(`[experiential-capture] Rate limit reached (${recentCaptures}/${config.maxCapturesPerHour} per hour)`);
+    console.log(
+      `[experiential-capture] Rate limit reached (${recentCaptures}/${config.maxCapturesPerHour} per hour)`,
+    );
     return false;
   }
 
@@ -415,7 +438,7 @@ const experientialCaptureHook: HookHandler = async (event: InternalHookEvent) =>
   const toolName = context.tool_name as string | undefined;
   const toolInput = context.tool_input;
   const toolResponse = context.tool_response;
-  const sessionId = context.session_id as string || event.sessionKey;
+  const sessionId = (context.session_id as string) || event.sessionKey;
 
   if (!toolName) {
     return;
@@ -449,7 +472,13 @@ const experientialCaptureHook: HookHandler = async (event: InternalHookEvent) =>
     contextSummary: extractContextSummary(toolInput, toolResponse),
     significance: {
       score: 0,
-      dimensions: { emotional: 0, uncertainty: 0, relationship: 0, consequential: 0, reconstitution: 0 },
+      dimensions: {
+        emotional: 0,
+        uncertainty: 0,
+        relationship: 0,
+        consequential: 0,
+        reconstitution: 0,
+      },
       reasons: [],
     },
     captured: false,
@@ -464,7 +493,9 @@ const experientialCaptureHook: HookHandler = async (event: InternalHookEvent) =>
     reasons: evaluation.reasons,
   };
 
-  console.log(`[experiential-capture] Significance: ${evaluation.score.toFixed(2)} → ${evaluation.recommendation}`);
+  console.log(
+    `[experiential-capture] Significance: ${evaluation.score.toFixed(2)} → ${evaluation.recommendation}`,
+  );
 
   // Handle based on recommendation
   switch (evaluation.recommendation) {

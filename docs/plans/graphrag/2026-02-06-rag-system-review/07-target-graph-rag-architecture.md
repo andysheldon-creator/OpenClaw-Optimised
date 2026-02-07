@@ -119,7 +119,7 @@ Core fields:
 ### Explicit write path
 
 - `memory_store` for durable structured writes
-- Optional `memory.ingest` for bulk/manual external content
+- Optional `memory_ingest` for bulk/manual external content
 
 ### Reflection write path (deferred)
 

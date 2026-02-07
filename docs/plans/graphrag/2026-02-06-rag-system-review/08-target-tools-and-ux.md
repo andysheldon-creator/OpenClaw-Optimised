@@ -39,13 +39,13 @@ Purpose:
 
 - Token and quality audit with optimization recommendations.
 
-### `memory.query` (activate, not stub)
+### `memory_query` (activate, not stub)
 
 Purpose:
 
 - Orchestrated query endpoint for hybrid/temporal/graph retrieval.
 
-### `memory.contextPack` (activate, not stub)
+### `memory_context_pack` (activate, not stub)
 
 Purpose:
 

@@ -32,7 +32,7 @@ Graphiti integration exists as scaffolding, not as an end-to-end production path
 
 ### 4. Agent tool entry
 
-`src/agents/tools/memory-ingest-tool.ts` exposes `memory.ingest`, and `src/agents/openclaw-tools.ts` registers it.
+`src/agents/tools/memory-ingest-tool.ts` exposes `memory_ingest`, and `src/agents/openclaw-tools.ts` registers it.
 
 ### 5. Progressive memory path
 
@@ -56,8 +56,8 @@ So the pipeline frequently degrades with warnings (`embed.missing_adapter`, `ind
 
 ### 3. Query tools are stubs
 
-- `src/agents/tools/memory-query-tool.ts` (`memory.query`) returns `not_configured`.
-- `src/agents/tools/memory-context-pack-tool.ts` (`memory.contextPack`) returns `not_configured`.
+- `src/agents/tools/memory-query-tool.ts` (`memory_query`) returns `not_configured`.
+- `src/agents/tools/memory-context-pack-tool.ts` (`memory_context_pack`) returns `not_configured`.
 
 ### 4. No graph config model in core memory config
 
@@ -76,7 +76,7 @@ Current memory config (`src/config/types.memory.ts`) includes `backend`, `qmd`, 
 
 2. False readiness risk:
 
-- Tool names imply functionality (`memory.query`, `memory.contextPack`) that is currently unavailable.
+- Tool names imply functionality (`memory_query`, `memory_context_pack`) that is currently unavailable.
 
 3. Integration ambiguity:
 

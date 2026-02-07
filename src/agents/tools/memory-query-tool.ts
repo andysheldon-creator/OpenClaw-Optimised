@@ -13,13 +13,13 @@ const MemoryQuerySchema = Type.Object({
 export function createMemoryQueryTool(): AnyAgentTool {
   return {
     label: "Memory Query",
-    name: "memory.query",
+    name: "memory_query",
     description: "Query the memory pipeline for relevant context.",
     parameters: MemoryQuerySchema,
     execute: async () =>
       jsonResult({
         ok: false,
-        tool: "memory.query",
+        tool: "memory_query",
         error: {
           code: "not_configured",
           message: "Memory query pipeline is not configured.",

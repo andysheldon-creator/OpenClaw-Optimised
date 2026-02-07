@@ -74,6 +74,35 @@ describe("scoreImpact", () => {
     expect(result.score).toBeLessThanOrEqual(0.3);
   });
 
+  it("scores Slack tools as high impact", () => {
+    for (const name of [
+      "SlackRichMessage",
+      "AskSlackQuestion",
+      "AskSlackForm",
+      "AskSlackConfirmation",
+    ]) {
+      const result = scoreImpact(makeCtx({ tool: { name, callId: "c1", isError: false } }));
+      expect(result.score, `${name} should be high impact`).toBeGreaterThanOrEqual(0.6);
+      expect(result.reason).toBe("high_impact_tool");
+    }
+  });
+
+  it("scores memory_query as low impact", () => {
+    const result = scoreImpact(
+      makeCtx({ tool: { name: "memory_query", callId: "c1", isError: false } }),
+    );
+    expect(result.score).toBeLessThanOrEqual(0.25);
+    expect(result.reason).toBe("low_impact_tool");
+  });
+
+  it("scores memory_context_pack as low impact", () => {
+    const result = scoreImpact(
+      makeCtx({ tool: { name: "memory_context_pack", callId: "c1", isError: false } }),
+    );
+    expect(result.score).toBeLessThanOrEqual(0.25);
+    expect(result.reason).toBe("low_impact_tool");
+  });
+
   it("detects high-impact meta keywords", () => {
     const result = scoreImpact(
       makeCtx({

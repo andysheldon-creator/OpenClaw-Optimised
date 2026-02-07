@@ -209,7 +209,7 @@ export interface MemoryIngestTool {
 ## Extension and tools working together
 
 - **Hook**: Captures session start and messages, sends content to the ingest tool.
-- **Plugin tool**: Exposes `memory.ingest` and `memory.query` to the agent.
+- **Plugin tool**: Exposes `memory_ingest` and `memory_query` to the agent.
 - **Gateway RPC**: Receives ingestion events from external services.
 
 # <<<<<<< ours
@@ -252,7 +252,7 @@ retrieval without building the entire stack from scratch.
 Graphiti is a strong candidate as the graph and retrieval core for Meridia because it already solves temporal knowledge
 graph updates and hybrid retrieval. The best path is to keep our ingestion and multi-modal extraction pipeline, then
 hand off normalized text episodes to Graphiti. We should prototype a thin “Meridia Graphiti adapter” service that
-exposes `memory.ingest` and `memory.query` endpoints while retaining our context-pack assembly and policy controls. If
+exposes `memory_ingest` and `memory_query` endpoints while retaining our context-pack assembly and policy controls. If
 the schema/provenance model can map cleanly, this reduces implementation cost significantly while preserving our desired
 pipeline behavior.
 
@@ -263,7 +263,7 @@ pipeline behavior.
 ### Phase 1
 
 - Define shared interfaces in `src/memory/types.ts`.
-- Add `memory.ingest` tool handler and hook wiring.
+- Add `memory_ingest` tool handler and hook wiring.
 - Implement capture pipeline with stub stages and logging.
 
 ### Phase 2

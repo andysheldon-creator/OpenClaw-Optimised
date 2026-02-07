@@ -104,6 +104,10 @@ const HIGH_IMPACT_TOOLS = new Set([
   "message",
   "sessions_send",
   "sessions_spawn", // External comms
+  "slackrichmessage",
+  "askslackquestion",
+  "askslackform",
+  "askslackconfirmation", // Slack comms (lowercased to match .toLowerCase())
   "cron", // Scheduled jobs
   "gateway", // Infrastructure changes
   "voice_call", // Voice calls
@@ -122,9 +126,8 @@ const LOW_IMPACT_TOOLS = new Set([
   "read",
   "tree",
   "ripgrep", // Read-only operations
-  "memory_search",
-  "memory_recall",
-  "memory_get", // Memory reads
+  "memory_query",
+  "memory_context_pack", // Memory reads
   "experience_search",
   "experience_reflect", // Experience reads
   "session_status",

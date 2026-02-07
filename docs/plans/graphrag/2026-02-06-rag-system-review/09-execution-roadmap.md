@@ -8,9 +8,9 @@ Ship a reliable, explainable Graph-RAG memory system incrementally without regre
 
 Deliverables:
 
-- Gate non-functional tools (`memory.query`, `memory.contextPack`) until wired.
+- Gate non-functional tools (`memory_query`, `memory_context_pack`) until wired.
 - Add explicit runtime status reporting for adapters/backends.
-- Ensure `memory.ingest` reports stage-level capability clearly.
+- Ensure `memory_ingest` reports stage-level capability clearly.
 
 Exit criteria:
 
@@ -20,13 +20,13 @@ Exit criteria:
 
 Deliverables:
 
-- Implement real `QueryOrchestrator` for `memory.query`.
-- Implement context pack builder for `memory.contextPack` with citations and budgets.
+- Implement real `QueryOrchestrator` for `memory_query`.
+- Implement context pack builder for `memory_context_pack` with citations and budgets.
 - Integrate with existing legacy + progressive stores.
 
 Exit criteria:
 
-- `memory.query` and `memory.contextPack` return real results in test environments.
+- `memory_query` and `memory_context_pack` return real results in test environments.
 - Regression tests confirm legacy behavior remains intact.
 
 ## Phase 2: Graph Core in Local Mode

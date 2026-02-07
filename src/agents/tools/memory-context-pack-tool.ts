@@ -13,13 +13,13 @@ const MemoryContextPackSchema = Type.Object({
 export function createMemoryContextPackTool(): AnyAgentTool {
   return {
     label: "Memory Context Pack",
-    name: "memory.contextPack",
+    name: "memory_context_pack",
     description: "Build a compact context pack from memory for downstream prompts.",
     parameters: MemoryContextPackSchema,
     execute: async () =>
       jsonResult({
         ok: false,
-        tool: "memory.contextPack",
+        tool: "memory_context_pack",
         error: {
           code: "not_configured",
           message: "Memory context pack pipeline is not configured.",

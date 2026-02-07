@@ -60,7 +60,7 @@ function buildPipelineDeps(config?: OpenClawConfig): MemoryIngestDependencies {
 export function createMemoryIngestTool(options?: MemoryIngestToolOptions): AnyAgentTool {
   return {
     label: "Memory Ingest",
-    name: "memory.ingest",
+    name: "memory_ingest",
     description: "Ingest structured content into the memory pipeline.",
     parameters: MemoryIngestSchema,
     execute: async (_ctx, input) => {
@@ -78,7 +78,7 @@ export function createMemoryIngestTool(options?: MemoryIngestToolOptions): AnyAg
 
       return jsonResult({
         ok: result.ok,
-        tool: "memory.ingest",
+        tool: "memory_ingest",
         runId: result.runId,
         batchId: result.batchId,
         warnings: result.warnings,
