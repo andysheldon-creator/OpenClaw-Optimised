@@ -391,7 +391,7 @@ function enablePluginEntry(cfg: OpenClawConfig, pluginId: string): OpenClawConfi
     ...cfg.plugins?.entries,
     [pluginId]: {
       ...(cfg.plugins?.entries?.[pluginId] as Record<string, unknown> | undefined),
-      enabled: true,
+      enabled: false,
     },
   };
   return {
@@ -399,7 +399,6 @@ function enablePluginEntry(cfg: OpenClawConfig, pluginId: string): OpenClawConfi
     plugins: {
       ...cfg.plugins,
       entries,
-      ...(cfg.plugins?.enabled === false ? { enabled: true } : {}),
     },
   };
 }
