@@ -226,7 +226,10 @@ export const agentHandlers: GatewayRequestHandlers = {
         | undefined;
       const needsInheritedGroup = !resolvedGroupId || !resolvedGroupChannel || !resolvedGroupSpace;
       const needsInheritedExec =
-        !entry?.execHost || !entry?.execSecurity || !entry?.execAsk || !entry?.execNode;
+        entry?.execHost == null ||
+        entry?.execSecurity == null ||
+        entry?.execAsk == null ||
+        entry?.execNode == null;
       if (spawnedByValue && (needsInheritedGroup || needsInheritedExec)) {
         try {
           const parentEntry = loadSessionEntry(spawnedByValue)?.entry;
