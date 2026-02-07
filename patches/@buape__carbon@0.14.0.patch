@@ -1,0 +1,51 @@
+diff --git a/dist/src/plugins/gateway/GatewayPlugin.js b/dist/src/plugins/gateway/GatewayPlugin.js
+index c50ca2ff5d521dfeff558f9da635142b89bd0472..58359d5492beeab36efe407da8667d832582850d 100644
+--- a/dist/src/plugins/gateway/GatewayPlugin.js
++++ b/dist/src/plugins/gateway/GatewayPlugin.js
+@@ -150,7 +150,7 @@ export class GatewayPlugin extends Plugin {
+                         interval,
+                         reconnectCallback: () => {
+                             if (closed) {
+-                                throw new Error("Attempted to reconnect zombie connection after disconnecting first (this shouldn't be possible)");
++                                return;
+                             }
+                             closed = true;
+                             this.handleZombieConnection();
+@@ -271,7 +271,7 @@ export class GatewayPlugin extends Plugin {
+                 }
+                 case GatewayOpcodes.Reconnect:
+                     if (closed) {
+-                        throw new Error("Attempted to reconnect gateway after disconnecting first (this shouldn't be possible)");
++                        return;
+                     }
+                     closed = true;
+                     this.state.sequence = this.sequence;
+diff --git a/dist/src/plugins/gateway/utils/heartbeat.js b/dist/src/plugins/gateway/utils/heartbeat.js
+index d842d506456cb8318f6e39097203ede6edfaa8f0..f69d8e9babe55ec46187956cb1f4bb164c76a10a 100644
+--- a/dist/src/plugins/gateway/utils/heartbeat.js
++++ b/dist/src/plugins/gateway/utils/heartbeat.js
+@@ -4,8 +4,11 @@ export function startHeartbeat(manager, options) {
+     const jitter = Math.random();
+     const initialDelay = Math.floor(options.interval * jitter);
+     const interval = options.interval;
++    let zombieDetected = false;
+     const sendHeartbeat = () => {
+         if (!manager.lastHeartbeatAck) {
++            zombieDetected = true;
++            stopHeartbeat(manager);
+             options.reconnectCallback();
+             return;
+         }
+@@ -16,8 +19,11 @@ export function startHeartbeat(manager, options) {
+         });
+     };
+     manager.firstHeartbeatTimeout = setTimeout(() => {
++        manager.firstHeartbeatTimeout = undefined;
+         sendHeartbeat();
+-        manager.heartbeatInterval = setInterval(sendHeartbeat, interval);
++        if (!zombieDetected) {
++            manager.heartbeatInterval = setInterval(sendHeartbeat, interval);
++        }
+     }, initialDelay);
+ }
+ export function stopHeartbeat(manager) {
