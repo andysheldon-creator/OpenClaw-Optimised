@@ -460,6 +460,7 @@ export async function prepareSlackMessage(params: {
 
   let threadStarterBody: string | undefined;
   let threadHistoryBody: string | undefined;
+  let threadSessionPreviousTimestamp: number | undefined;
   let threadLabel: string | undefined;
   let threadStarterMedia: Awaited<ReturnType<typeof resolveSlackMedia>> = null;
   if (isThreadReply && threadTs) {
@@ -502,7 +503,7 @@ export async function prepareSlackMessage(params: {
     // This provides context of previous messages (including bot replies) in the thread
     // Use the thread session key (not base session key) to determine if this is a new session
     const threadInitialHistoryLimit = account.config?.thread?.initialHistoryLimit ?? 20;
-    const threadSessionPreviousTimestamp = readSessionUpdatedAt({
+    threadSessionPreviousTimestamp = readSessionUpdatedAt({
       storePath,
       sessionKey, // Thread-specific session key
     });
@@ -584,6 +585,7 @@ export async function prepareSlackMessage(params: {
     ParentSessionKey: threadKeys.parentSessionKey,
     ThreadStarterBody: threadStarterBody,
     ThreadHistoryBody: threadHistoryBody,
+    IsFirstThreadTurn: isThreadReply && threadTs && !threadSessionPreviousTimestamp ? true : undefined,
     ThreadLabel: threadLabel,
     Timestamp: message.ts ? Math.round(Number(message.ts) * 1000) : undefined,
     WasMentioned: isRoomish ? effectiveWasMentioned : undefined,

@@ -62,6 +62,7 @@ export type MsgContext = {
   ThreadStarterBody?: string;
   /** Full thread history when starting a new thread session. */
   ThreadHistoryBody?: string;
+  IsFirstThreadTurn?: boolean;
   ThreadLabel?: string;
   MediaPath?: string;
   MediaUrl?: string;
