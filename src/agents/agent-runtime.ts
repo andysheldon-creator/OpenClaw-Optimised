@@ -45,6 +45,8 @@ export type AgentRuntimeCallbacks = {
   onAssistantMessageStart?: () => void | Promise<void>;
   onBlockReply?: (payload: AgentRuntimePayload) => void | Promise<void>;
   onToolResult?: (payload: AgentRuntimePayload) => void | Promise<void>;
+  /** Called with thinking/reasoning text as the agent streams reasoning. */
+  onReasoningStream?: (payload: AgentRuntimePayload) => void | Promise<void>;
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void | Promise<void>;
 };
 
@@ -68,6 +70,17 @@ export type AgentRuntimeRunParams = {
   abortSignal?: AbortSignal;
   /** Optional inbound images/audio/video (multimodal input support). */
   images?: ImageContent[];
+  /** When true, only content inside `<final>` tags is returned (for non-Claude models). */
+  enforceFinalTag?: boolean;
+  /** Block reply break mode for streaming block replies during the run. */
+  blockReplyBreak?: "text_end" | "message_end";
+  /** Chunking configuration for block replies. */
+  blockReplyChunking?: {
+    minChars: number;
+    maxChars: number;
+    breakPreference?: "paragraph" | "newline" | "sentence";
+    flushOnParagraph?: boolean;
+  };
 } & AgentRuntimeCallbacks;
 
 // ---------------------------------------------------------------------------

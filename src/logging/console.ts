@@ -54,6 +54,14 @@ function resolveConsoleSettings(): ConsoleSettings {
       }
     }
   }
+  // Load suppressed debug subsystems from config
+  if (cfg?.suppressSubsystemDebugLogs) {
+    loggingState.suppressedDebugSubsystems = cfg.suppressSubsystemDebugLogs
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  } else {
+    loggingState.suppressedDebugSubsystems = null;
+  }
   const level = normalizeConsoleLevel(cfg?.consoleLevel);
   const style = normalizeConsoleStyle(cfg?.consoleStyle);
   return { level, style };
@@ -108,6 +116,19 @@ export function shouldLogSubsystemToConsole(subsystem: string): boolean {
     return true;
   }
   return filter.some((prefix) => subsystem === prefix || subsystem.startsWith(`${prefix}/`));
+}
+
+/**
+ * Check if debug/trace logs should be suppressed for a given subsystem.
+ * Returns true if the subsystem is in the suppression list.
+ */
+export function isSubsystemDebugSuppressed(subsystem: string): boolean {
+  const suppressList = loggingState.suppressedDebugSubsystems;
+  if (!suppressList || suppressList.length === 0) {
+    return false;
+  }
+  // Use same prefix-matching logic as consoleSubsystemFilter
+  return suppressList.some((prefix) => subsystem === prefix || subsystem.startsWith(`${prefix}/`));
 }
 
 const SUPPRESSED_CONSOLE_PREFIXES = [

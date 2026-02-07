@@ -114,6 +114,8 @@ export type LoggingConfig = {
   redactSensitive?: "off" | "tools";
   /** Regex patterns used to redact sensitive tokens (defaults apply when unset). */
   redactPatterns?: string[];
+  /** Subsystems to suppress debug/trace logs for on console (file logs unaffected). */
+  suppressSubsystemDebugLogs?: string[];
 
   /** Enhanced logging features */
   enhanced?: {

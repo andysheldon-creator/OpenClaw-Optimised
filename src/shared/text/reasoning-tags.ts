@@ -47,6 +47,50 @@ function applyTrim(value: string, mode: ReasoningTagTrim): string {
   return value.trim();
 }
 
+/**
+ * Extract only text inside `<final>...</final>` blocks, discarding everything
+ * outside. Returns `undefined` if no `<final>` tags were found (caller should
+ * fall back to the full text). Code spans are respected — `<final>` tags
+ * inside backtick-fenced or inline code are ignored.
+ */
+export function extractFinalTagContent(text: string): string | undefined {
+  if (!text || !FINAL_TAG_RE.test(text)) {
+    return undefined;
+  }
+  FINAL_TAG_RE.lastIndex = 0;
+
+  const codeRegions = findCodeRegions(text);
+  const FINAL_OPEN_CLOSE_RE = /<\s*(\/?)\s*final\b[^<>]*>/gi;
+  let result = "";
+  let lastIndex = 0;
+  let inFinal = false;
+  let everInFinal = false;
+
+  for (const match of text.matchAll(FINAL_OPEN_CLOSE_RE)) {
+    const idx = match.index ?? 0;
+    if (isInsideCode(idx, codeRegions)) {
+      continue;
+    }
+    const isClose = match[1] === "/";
+    if (!inFinal && !isClose) {
+      inFinal = true;
+      everInFinal = true;
+      lastIndex = idx + match[0].length;
+    } else if (inFinal && isClose) {
+      result += text.slice(lastIndex, idx);
+      inFinal = false;
+      lastIndex = idx + match[0].length;
+    }
+  }
+  if (inFinal) {
+    result += text.slice(lastIndex);
+  }
+  if (!everInFinal) {
+    return undefined;
+  }
+  return result.trim() || undefined;
+}
+
 export function stripReasoningTagsFromText(
   text: string,
   options?: {

@@ -560,6 +560,7 @@ export class DefaultTurnExecutor implements TurnExecutor {
           prompt: params.prompt,
           extraSystemPrompt: request.extraSystemPrompt,
           ownerNumbers: hints?.ownerNumbers,
+          enforceFinalTag: hints?.enforceFinalTag,
           timeoutMs: params.timeoutMs ?? 120000,
           runId: params.runId,
           abortSignal: params.abortSignal,
@@ -586,9 +587,19 @@ export class DefaultTurnExecutor implements TurnExecutor {
                   audioAsVoice: payload.audioAsVoice,
                 })
             : undefined,
+          // Block streaming config (mirroring Pi runtime adapter)
+          blockReplyBreak: request.blockReplyBreak,
+          blockReplyChunking: request.blockReplyChunking,
           onToolResult: request.onToolResult
             ? (payload: import("../agents/agent-runtime.js").AgentRuntimePayload) =>
                 request.onToolResult?.({
+                  text: payload.text,
+                  mediaUrls: payload.mediaUrls,
+                })
+            : undefined,
+          onReasoningStream: request.onReasoningStream
+            ? (payload: import("../agents/agent-runtime.js").AgentRuntimePayload) =>
+                request.onReasoningStream?.({
                   text: payload.text,
                   mediaUrls: payload.mediaUrls,
                 })

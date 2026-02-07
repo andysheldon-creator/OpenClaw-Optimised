@@ -22,6 +22,7 @@ ARCH.md and COMPONENT-MAP.md already describe the target system in detail—14 c
 
 **2. Real-time Graphiti push per tool result is wrong.**
 The proposal suggests pushing every experience to Graphiti immediately. This is problematic:
+
 - Adds latency to every capture (Graphiti ingestion is not fast)
 - Individual tool results are noisy; synthesized episodes are higher quality
 - The compaction hook already does episode synthesis + entity extraction + Graphiti ingest
@@ -31,11 +32,13 @@ The proposal suggests pushing every experience to Graphiti immediately. This is 
 
 **3. The proposed LLM extraction prompt is too expensive for every tool result.**
 Full phenomenological extraction (emotions, anchors, uncertainties, engagement quality, reconstitution hints) via LLM on every tool result is:
+
 - Slow (the current LLM eval already has a 3.5s timeout)
 - Expensive (doubles or triples token usage per evaluation)
 - Unnecessary for low-significance events
 
 **Refined approach:** Two-pass evaluation.
+
 - Pass 1 (every event): Heuristic + optional lightweight LLM scoring (existing). Decides capture/skip and produces score + reason.
 - Pass 2 (captured events only, score >= threshold): Full phenomenological extraction via LLM. Only runs on events that pass the capture gate, amortizing cost over ~10 events/hour max.
 
@@ -46,6 +49,7 @@ PostgreSQL + pgvector changes the deployment story from "SQLite file, works anyw
 
 **5. Missing components the proposal ignores.**
 The COMPONENT-MAP defines 14 components. The proposal covers 4 (evaluation, persistence, graph, reconstitution) but doesn't mention:
+
 - Component 1: Event Normalizer (currently duplicated parsing in hooks)
 - Component 2: Gates and Budget Manager (currently inline in capture hook)
 - Component 5: Artifact and Reference Collector (media, files, links)
@@ -74,22 +78,22 @@ COMPONENT-MAP defines `ExperienceKit` as the canonical record type (with `phenom
 
 ### Component Implementation Status
 
-| ID | Component                        | Status                | This Plan          |
-|----|----------------------------------|-----------------------|--------------------|
-|  1 | Event Normalizer                 | Inline in hooks       | Phase 1: Extract   |
-|  2 | Gates and Budget Manager         | Inline in hooks       | Phase 1: Extract   |
-|  3 | Capture Decision Engine          | Partial (score only)  | Phase 2: Expand    |
-|  4 | Phenomenology Extractor          | Not implemented       | Phase 2: Build     |
-|  5 | Artifact & Reference Collector   | Not implemented       | Phase 4: Build     |
-|  6 | Experience Kit Builder           | Not implemented       | Phase 2: Build     |
-|  7 | Canonical Store                  | SQLite working        | Phase 2: Evolve    |
-|  8 | Trace and Audit Stream           | Partial               | Phase 1: Complete  |
-|  9 | Fanout Dispatcher                | Inline in compaction  | Phase 3: Extract   |
-| 10 | Hybrid Retriever and Ranker      | SQLite FTS only       | Phase 3: Build     |
-| 11 | Reconstitution Engine            | Bullet list only      | Phase 3: Rebuild   |
-| 12 | Sanitization Guard               | Not implemented       | Phase 1: Build     |
-| 13 | Schemas and Migrations           | Schema v1 only        | Phase 2: Migrate   |
-| 14 | Observability                    | Partial (trace JSONL) | Ongoing            |
+| ID  | Component                      | Status                | This Plan         |
+| --- | ------------------------------ | --------------------- | ----------------- |
+| 1   | Event Normalizer               | Inline in hooks       | Phase 1: Extract  |
+| 2   | Gates and Budget Manager       | Inline in hooks       | Phase 1: Extract  |
+| 3   | Capture Decision Engine        | Partial (score only)  | Phase 2: Expand   |
+| 4   | Phenomenology Extractor        | Not implemented       | Phase 2: Build    |
+| 5   | Artifact & Reference Collector | Not implemented       | Phase 4: Build    |
+| 6   | Experience Kit Builder         | Not implemented       | Phase 2: Build    |
+| 7   | Canonical Store                | SQLite working        | Phase 2: Evolve   |
+| 8   | Trace and Audit Stream         | Partial               | Phase 1: Complete |
+| 9   | Fanout Dispatcher              | Inline in compaction  | Phase 3: Extract  |
+| 10  | Hybrid Retriever and Ranker    | SQLite FTS only       | Phase 3: Build    |
+| 11  | Reconstitution Engine          | Bullet list only      | Phase 3: Rebuild  |
+| 12  | Sanitization Guard             | Not implemented       | Phase 1: Build    |
+| 13  | Schemas and Migrations         | Schema v1 only        | Phase 2: Migrate  |
+| 14  | Observability                  | Partial (trace JSONL) | Ongoing           |
 
 ---
 
@@ -160,6 +164,7 @@ export function sanitizeForFanout(kit: ExperienceKit, target: "graph" | "vector"
 Ensure every decision (capture, skip, gate-deny, error) produces a trace event. Currently some paths skip tracing.
 
 **Files created:**
+
 - `src/meridia/event/normalizer.ts`
 - `src/meridia/event/index.ts`
 - `src/meridia/gates/budget.ts`
@@ -168,6 +173,7 @@ Ensure every decision (capture, skip, gate-deny, error) produces a trace event. 
 - `src/meridia/sanitize/index.ts`
 
 **Files modified:**
+
 - `hooks/experiential-capture/handler.ts` (delegate to normalizer + gates)
 - `hooks/session-end/handler.ts` (delegate to normalizer)
 
@@ -192,11 +198,13 @@ Event → Normalize → Gates → Decision (Pass 1: score + reason)
 ```
 
 **Pass 1** (runs on every event, cheap):
+
 - Existing heuristic scorer (multi-factor: novelty, impact, relational, temporal, userIntent)
 - Optional lightweight LLM scorer (existing 3.5s timeout, score + reason only)
 - Produces `CaptureDecision { shouldCapture, significance, mode, reason }`
 
 **Pass 2** (runs only on captured events, ~10/hour max):
+
 - Full LLM phenomenology extraction
 - Timeout: 8s (separate from the gate timeout)
 - Fallback: heuristic phenomenology if LLM fails or times out
@@ -252,7 +260,10 @@ Return JSON only:
 When LLM extraction is unavailable or times out, derive basic phenomenology from event characteristics:
 
 ```ts
-function extractHeuristicPhenomenology(event: MeridiaEvent, decision: CaptureDecision): Phenomenology {
+function extractHeuristicPhenomenology(
+  event: MeridiaEvent,
+  decision: CaptureDecision,
+): Phenomenology {
   const isError = event.tool?.isError ?? false;
   const toolName = event.tool?.name ?? "unknown";
 
@@ -302,6 +313,7 @@ export function buildExperienceKit(
 Assembles the canonical record from decision + phenomenology + optional artifacts.
 
 **Files created:**
+
 - `src/meridia/phenomenology/extractor.ts`
 - `src/meridia/phenomenology/heuristic.ts`
 - `src/meridia/phenomenology/prompt.ts`
@@ -310,6 +322,7 @@ Assembles the canonical record from decision + phenomenology + optional artifact
 - `src/meridia/kit/index.ts`
 
 **Files modified:**
+
 - `src/meridia/types.ts` (add `ExperienceKit`, `Phenomenology`, `CaptureDecision` types from COMPONENT-MAP)
 - `src/meridia/evaluate.ts` (refactor to produce `CaptureDecision`)
 - `src/meridia/db/backends/sqlite.ts` (schema v2 migration, new columns)
@@ -337,16 +350,16 @@ export async function hybridRetrieve(
   const results: ScoredResult[] = [];
 
   // Always available: canonical store (SQLite FTS)
-  results.push(...await canonicalSearch(intent, sources.canonical));
+  results.push(...(await canonicalSearch(intent, sources.canonical)));
 
   // Optional: graph traversal (Graphiti)
   if (sources.graph) {
-    results.push(...await graphSearch(intent, sources.graph));
+    results.push(...(await graphSearch(intent, sources.graph)));
   }
 
   // Optional: vector similarity (Graphiti vector or pgvector)
   if (sources.vector) {
-    results.push(...await vectorSearch(intent, sources.vector));
+    results.push(...(await vectorSearch(intent, sources.vector)));
   }
 
   return rank(results, intent);
@@ -354,6 +367,7 @@ export async function hybridRetrieve(
 ```
 
 **Ranking factors** (weighted blend):
+
 - Significance score (from capture decision)
 - Semantic similarity (from vector, when available)
 - Graph proximity (from Graphiti, when available)
@@ -387,15 +401,15 @@ Replace `reconstitute.ts` with the structured context pack approach from `docs/c
 ```ts
 // src/meridia/reconstitution/engine.ts
 export interface ReconstitutionPack {
-  summary: string;               // 1-3 paragraph narrative
-  approachGuidance: string[];    // How to engage, priorities
+  summary: string; // 1-3 paragraph narrative
+  approachGuidance: string[]; // How to engage, priorities
   anchors: Array<{
     phrase: string;
     instruction: string;
-    citation?: string;           // meridia://<id>
+    citation?: string; // meridia://<id>
   }>;
-  openUncertainties: string[];   // Carried forward
-  nextActions: string[];         // Concrete next steps
+  openUncertainties: string[]; // Carried forward
+  nextActions: string[]; // Concrete next steps
   citations: Array<{
     id: string;
     kind: string;
@@ -472,6 +486,7 @@ if (graphitiEnabled && capturedRecords.length >= 3) {
 This replaces the proposed "real-time per-event Graphiti push" with batched session-level graph updates—better signal-to-noise ratio, lower write volume.
 
 **Files created:**
+
 - `src/meridia/retrieve/hybrid.ts`
 - `src/meridia/retrieve/vector-adapter.ts`
 - `src/meridia/retrieve/ranker.ts`
@@ -485,6 +500,7 @@ This replaces the proposed "real-time per-event Graphiti push" with batched sess
 - `src/meridia/fanout/index.ts`
 
 **Files modified:**
+
 - `hooks/meridia-reconstitution/handler.ts` (use new engine)
 - `hooks/compaction/handler.ts` (delegate to fanout dispatcher)
 - `hooks/session-end/handler.ts` (add mini-compaction)
@@ -543,12 +559,14 @@ export class PgVectorAdapter implements VectorSearchAdapter {
 - IVFFlat index for approximate nearest neighbor search
 
 **Files created:**
+
 - `src/meridia/artifacts/collector.ts`
 - `src/meridia/artifacts/index.ts`
 - `src/meridia/retrieve/pg-vector-adapter.ts` (optional)
 - `src/meridia/db/backends/postgresql.ts` (optional, canonical store alternative)
 
 **Files modified:**
+
 - `hooks/experiential-capture/handler.ts` (collect artifacts during capture)
 - `src/meridia/kit/builder.ts` (include artifacts in kit)
 - `src/meridia/retrieve/hybrid.ts` (register pgvector adapter when available)
@@ -573,6 +591,7 @@ Wire into `MeridiaSearchAdapter.readFile()` which is currently empty.
 #### 5b. Reconstitution Quality Metrics
 
 Track reconstitution effectiveness:
+
 - Pack token budget utilization
 - Source diversity (how many of canonical/graph/vector contributed)
 - Anchor coverage (what fraction of packs include anchors)
@@ -581,6 +600,7 @@ Track reconstitution effectiveness:
 #### 5c. Experience Reflect Tool Enhancement
 
 Update `experience_reflect` to surface phenomenological patterns:
+
 - Emotional signature distribution over time
 - Engagement quality trends
 - Recurring uncertainties across sessions
@@ -592,24 +612,24 @@ Update `experience_reflect` to surface phenomenological patterns:
 
 From the original proposal, with answers:
 
-| Question | Resolution |
-|----------|-----------|
-| Scope of feelings/thoughts? | Use the schema as designed. `emotionalSignature` with controlled vocabulary (10 primary emotions, 8 texture words). Don't go further into somatic language—keep it grounded and structured. |
-| Graph vs Local as source of truth? | SQLite canonical, Graphiti secondary index. Per ARCH.md: "Never rely on best-effort side effects (graph/vector) for correctness." |
-| PostgreSQL commitment? | Optional. Start with Graphiti vector search (already running). pgvector when Postgres is configured. SQLite-only works fine without either. |
-| LLM extraction cost? | Two-pass: cheap gate decision on every event, expensive phenomenology only on captured events (max ~10/hour). |
-| Reconstitution format? | Both. Structured pack (default, cheaper, scannable) and prose mode (optional, richer, LLM-generated). |
-| Privacy boundaries? | Component 12 (Sanitization Guard) handles this. Redaction before persistence, additional redaction before fanout. Configurable patterns. |
+| Question                           | Resolution                                                                                                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope of feelings/thoughts?        | Use the schema as designed. `emotionalSignature` with controlled vocabulary (10 primary emotions, 8 texture words). Don't go further into somatic language—keep it grounded and structured. |
+| Graph vs Local as source of truth? | SQLite canonical, Graphiti secondary index. Per ARCH.md: "Never rely on best-effort side effects (graph/vector) for correctness."                                                           |
+| PostgreSQL commitment?             | Optional. Start with Graphiti vector search (already running). pgvector when Postgres is configured. SQLite-only works fine without either.                                                 |
+| LLM extraction cost?               | Two-pass: cheap gate decision on every event, expensive phenomenology only on captured events (max ~10/hour).                                                                               |
+| Reconstitution format?             | Both. Structured pack (default, cheaper, scannable) and prose mode (optional, richer, LLM-generated).                                                                                       |
+| Privacy boundaries?                | Component 12 (Sanitization Guard) handles this. Redaction before persistence, additional redaction before fanout. Configurable patterns.                                                    |
 
 ## Dependency and Risk Summary
 
-| Dependency | Required? | Risk | Mitigation |
-|-----------|-----------|------|-----------|
-| SQLite | Yes | Low (already working) | N/A |
-| LLM for phenomenology | No (heuristic fallback) | Medium (cost, latency) | Two-pass, timeout, fallback |
-| Graphiti/Neo4j | No (optional) | Low (already integrated in compaction) | Graceful degradation |
-| pgvector/PostgreSQL | No (optional) | Low (behind adapter interface) | Graphiti vector or FTS-only |
-| Embedding model | No (needed for vector search) | Medium (model availability) | Config-driven, adapter pattern |
+| Dependency            | Required?                     | Risk                                   | Mitigation                     |
+| --------------------- | ----------------------------- | -------------------------------------- | ------------------------------ |
+| SQLite                | Yes                           | Low (already working)                  | N/A                            |
+| LLM for phenomenology | No (heuristic fallback)       | Medium (cost, latency)                 | Two-pass, timeout, fallback    |
+| Graphiti/Neo4j        | No (optional)                 | Low (already integrated in compaction) | Graceful degradation           |
+| pgvector/PostgreSQL   | No (optional)                 | Low (behind adapter interface)         | Graphiti vector or FTS-only    |
+| Embedding model       | No (needed for vector search) | Medium (model availability)            | Config-driven, adapter pattern |
 
 ## Phase Ordering Rationale
 

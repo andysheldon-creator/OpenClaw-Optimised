@@ -379,6 +379,12 @@ function adaptSdkResultToPiResult(params: {
     payloads: result.payloads.map((p) => ({
       text: p.text,
       isError: p.isError,
+      mediaUrl: p.mediaUrl,
+      mediaUrls: p.mediaUrls,
+      replyToId: p.replyToId,
+      replyToTag: p.replyToTag,
+      replyToCurrent: p.replyToCurrent,
+      audioAsVoice: p.audioAsVoice,
     })),
     meta: {
       durationMs: result.meta.durationMs,
@@ -434,6 +440,8 @@ export type RunSdkAgentAdaptedParams = {
   thinkingBudget?: number;
   hooksEnabled?: boolean;
   sdkOptions?: Record<string, unknown>;
+  /** When true, only content inside `<final>` tags is returned. */
+  enforceFinalTag?: boolean;
 
   // Tools are lazily built to avoid import cycles.
   tools: AnyAgentTool[];
@@ -443,7 +451,17 @@ export type RunSdkAgentAdaptedParams = {
   onAssistantMessageStart?: () => void | Promise<void>;
   onBlockReply?: (payload: AgentRuntimePayload) => void | Promise<void>;
   onToolResult?: (payload: AgentRuntimePayload) => void | Promise<void>;
+  onReasoningStream?: (payload: AgentRuntimePayload) => void | Promise<void>;
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void | Promise<void>;
+  /** Block reply break mode for streaming block replies during the run. */
+  blockReplyBreak?: "text_end" | "message_end";
+  /** Chunking configuration for block replies. */
+  blockReplyChunking?: {
+    minChars: number;
+    maxChars: number;
+    breakPreference?: "paragraph" | "newline" | "sentence";
+    flushOnParagraph?: boolean;
+  };
 };
 
 /**
@@ -583,10 +601,14 @@ export async function runSdkAgentAdapted(
     claudeSessionId: params.claudeSessionId,
     hooksEnabled: params.hooksEnabled,
     sdkOptions: params.sdkOptions,
+    enforceFinalTag: params.enforceFinalTag,
     onPartialReply: params.onPartialReply,
     onAssistantMessageStart: params.onAssistantMessageStart,
     onBlockReply: params.onBlockReply,
+    blockReplyBreak: params.blockReplyBreak,
+    blockReplyChunking: params.blockReplyChunking,
     onToolResult: params.onToolResult,
+    onReasoningStream: params.onReasoningStream,
     onAgentEvent: params.onAgentEvent,
   });
 

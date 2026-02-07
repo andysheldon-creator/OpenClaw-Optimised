@@ -101,6 +101,12 @@ export type SdkRunnerParams = {
   /** Enable Claude Code hook wiring for richer lifecycle/tool parity. */
   hooksEnabled?: boolean;
 
+  /**
+   * When true, only content inside `<final>...</final>` tags is returned.
+   * Mirrors Pi agent's enforceFinalTag for models that emit intermediate narration.
+   */
+  enforceFinalTag?: boolean;
+
   /** Additional `query({ options })` fields to pass through (excluding tool bridging). */
   sdkOptions?: Record<string, unknown>;
 
@@ -130,11 +136,36 @@ export type SdkRunnerParams = {
   /** Called when the agent starts a new assistant message. */
   onAssistantMessageStart?: () => void | Promise<void>;
 
-  /** Called when the agent completes a block reply. */
+  /**
+   * Called with block reply text during streaming and at run completion.
+   * With `blockReplyBreak`, block replies are emitted at message boundaries
+   * during the run (not just once at the end).
+   */
   onBlockReply?: (payload: AgentRuntimePayload) => void | Promise<void>;
+
+  /**
+   * Block reply break mode:
+   * - `"message_end"`: emit accumulated text at assistant message boundaries
+   * - `"text_end"`: emit text chunks as they are extracted (may use chunker)
+   */
+  blockReplyBreak?: "text_end" | "message_end";
+
+  /**
+   * Chunking configuration for block replies (minChars, maxChars, breakPreference).
+   * Only used when `blockReplyBreak` is set.
+   */
+  blockReplyChunking?: {
+    minChars: number;
+    maxChars: number;
+    breakPreference?: "paragraph" | "newline" | "sentence";
+    flushOnParagraph?: boolean;
+  };
 
   /** Called when a tool result is produced. */
   onToolResult?: (payload: AgentRuntimePayload) => void | Promise<void>;
+
+  /** Called with thinking/reasoning text as the agent streams reasoning. */
+  onReasoningStream?: (payload: AgentRuntimePayload) => void | Promise<void>;
 
   /** Called for lifecycle / diagnostic events. */
   onAgentEvent?: (evt: { stream: string; data: Record<string, unknown> }) => void | Promise<void>;
@@ -221,6 +252,12 @@ export type SdkRunnerResult = {
   payloads: Array<{
     text?: string;
     isError?: boolean;
+    mediaUrl?: string;
+    mediaUrls?: string[];
+    replyToId?: string;
+    replyToTag?: boolean;
+    replyToCurrent?: boolean;
+    audioAsVoice?: boolean;
   }>;
   /** Run metadata. */
   meta: SdkRunnerMeta;

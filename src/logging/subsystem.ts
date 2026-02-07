@@ -4,7 +4,11 @@ import { CHAT_CHANNEL_ORDER } from "../channels/registry.js";
 import { isVerbose } from "../globals.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { clearActiveProgressLine } from "../terminal/progress-line.js";
-import { getConsoleSettings, shouldLogSubsystemToConsole } from "./console.js";
+import {
+  getConsoleSettings,
+  shouldLogSubsystemToConsole,
+  isSubsystemDebugSuppressed,
+} from "./console.js";
 import { type LogLevel, levelToMinLevel } from "./levels.js";
 import { getChildLogger } from "./logger.js";
 import { createSensitiveRedactor, getConfiguredRedactOptions } from "./redact.js";
@@ -276,6 +280,10 @@ export function createSubsystemLogger(subsystem: string): SubsystemLogger {
       return;
     }
     if (!shouldLogSubsystemToConsole(subsystem)) {
+      return;
+    }
+    // Check if debug/trace should be suppressed for this subsystem
+    if ((level === "debug" || level === "trace") && isSubsystemDebugSuppressed(subsystem)) {
       return;
     }
     const consoleMessage = consoleMessageOverride ?? message;

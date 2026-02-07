@@ -19,7 +19,10 @@ import type { SdkRunnerParams, SdkRunnerResult } from "./sdk-runner.types.js";
 import type { SdkRunnerQueryOptions } from "./tool-bridge.types.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { formatMcpToolNamesForLog } from "../../mcp/tool-name-format.js";
-import { stripReasoningTagsFromText } from "../../shared/text/reasoning-tags.js";
+import {
+  extractFinalTagContent,
+  stripReasoningTagsFromText,
+} from "../../shared/text/reasoning-tags.js";
 import { isMessagingTool, isMessagingToolSendAction } from "../pi-embedded-messaging.js";
 import { extractMessagingToolSend } from "../pi-embedded-subscribe.tools.js";
 import { stripCompactionHandoffText } from "../pi-embedded-utils.js";
@@ -27,7 +30,7 @@ import { normalizeToolName } from "../tool-policy.js";
 
 const log = createSubsystemLogger("sdk-runner");
 import { normalizeUsage, type NormalizedUsage, type UsageLike } from "../usage.js";
-import { extractTextFromClaudeAgentSdkEvent } from "./extract.js";
+import { extractTextFromClaudeAgentSdkEvent, extractThinkingFromSdkEvent } from "./extract.js";
 import { isSdkTerminalToolEventType } from "./sdk-event-checks.js";
 import { buildClawdbrainSdkHooks } from "./sdk-hooks.js";
 import { loadClaudeAgentSdk } from "./sdk.js";
@@ -653,6 +656,46 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   const assistantTexts: string[] = [];
   let assistantTextBaseline = 0;
 
+  // Block reply streaming state — tracks whether block replies were sent
+  // during the run so the final onBlockReply can be skipped (the downstream
+  // pipeline handles dedup via shouldDropFinalPayloads).
+  let didStreamBlockReply = false;
+
+  /**
+   * Emit a block reply for the given text if onBlockReply is configured and
+   * blockReplyBreak is set. Returns true if the block was emitted.
+   */
+  const emitBlockReply = async (text: string): Promise<boolean> => {
+    if (!params.onBlockReply || !text.trim()) {
+      return false;
+    }
+    try {
+      await params.onBlockReply({ text: text.trim() });
+      didStreamBlockReply = true;
+      return true;
+    } catch (err) {
+      log.trace(`onBlockReply streaming callback error: ${String(err)}`);
+      return false;
+    }
+  };
+
+  /**
+   * Flush accumulated block text for the current message at message boundaries.
+   * Used in "message_end" mode.
+   */
+  const flushBlockReplyAtBoundary = async () => {
+    if (!params.onBlockReply || !params.blockReplyBreak) {
+      return;
+    }
+    if (params.blockReplyBreak !== "message_end") {
+      return;
+    }
+    const currentText = chunks.join("\n\n").trim();
+    if (currentText) {
+      await emitBlockReply(currentText);
+    }
+  };
+
   /**
    * Consolidate the current message boundary's text entries into a single entry
    * and advance the baseline. Called on each new message_start (to finalize the
@@ -717,9 +760,15 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         const role = typeof message?.role === "string" ? message.role : event.role;
         // Some SDK versions omit role on message_start; treat it as assistant by default.
         if (role === "assistant" || !role) {
+          // Flush pending block replies for the previous message before resetting.
+          await flushBlockReplyAtBoundary();
           // Finalize previous message's text and advance baseline.
           // Mirrors Pi agent's resetAssistantMessageState(assistantTexts.length).
           finalizeCurrentMessage();
+          // Reset per-message streaming state so onPartialReply reflects
+          // only the current message, matching Pi agent behavior.
+          chunks.length = 0;
+          assistantSoFar = "";
 
           assistantMessageCount += 1;
           turnCount += 1;
@@ -787,6 +836,22 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
       }
 
       const { kind } = classifyEvent(event);
+
+      // Stream reasoning/thinking events when callback is provided.
+      // Thinking events are classified as "system" by classifyEvent but we
+      // still want to extract and emit their text for reasoning display.
+      if (params.onReasoningStream && kind === "system" && isRecord(event)) {
+        const thinkingText = extractThinkingFromSdkEvent(event);
+        if (thinkingText) {
+          try {
+            void Promise.resolve(params.onReasoningStream({ text: thinkingText })).catch((err) => {
+              log.trace(`onReasoningStream callback error: ${String(err)}`);
+            });
+          } catch (err) {
+            log.trace(`onReasoningStream callback error: ${String(err)}`);
+          }
+        }
+      }
 
       // Emit tool results via callback.
       if (!hooksEnabled && kind === "tool") {
@@ -926,6 +991,8 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         if (!didAssistantMessageStart) {
           // Finalize any prior text (no-op on first message).
           finalizeCurrentMessage();
+          chunks.length = 0;
+          assistantSoFar = "";
           didAssistantMessageStart = true;
           if (assistantMessageCount === 0) {
             assistantMessageCount = 1;
@@ -964,6 +1031,11 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
           }
         }
 
+        // Emit block reply in "text_end" mode (per text extraction).
+        if (params.blockReplyBreak === "text_end" && params.onBlockReply) {
+          await emitBlockReply(trimmed);
+        }
+
         // Truncate if we've extracted too much text.
         if (extractedChars >= DEFAULT_MAX_EXTRACTED_CHARS) {
           truncated = true;
@@ -972,6 +1044,9 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
         }
       }
     }
+
+    // Flush last message's block reply before building the result.
+    await flushBlockReplyAtBoundary();
 
     const finalUserMessageCount = userMessageCount === 0 ? 1 : userMessageCount;
     const finalAssistantMessageCount = assistantMessageCount;
@@ -1079,12 +1154,19 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   // Strip thinking/reasoning tags from the final text before delivering to channels.
   // On error (resultText undefined), use only the last consolidated message instead of
   // joining all intermediate narration from every turn (prevents leaking internal reasoning).
-  const text = stripCompactionHandoffText(
+  let text = stripCompactionHandoffText(
     stripReasoningTagsFromText((resultText ?? assistantTexts.at(-1) ?? "").trim(), {
       mode: "strict",
       trim: "both",
     }),
   );
+
+  // When enforceFinalTag is set, only return content inside <final>...</final> tags.
+  // This prevents intermediate narration from leaking through models that don't use
+  // structured thinking blocks (e.g. Minimax copying Claude's style).
+  if (params.enforceFinalTag && text) {
+    text = extractFinalTagContent(text) ?? text;
+  }
 
   if (!text) {
     if (didSendViaMessagingTool) {
@@ -1173,10 +1255,24 @@ export async function runSdkAgent(params: SdkRunnerParams): Promise<SdkRunnerRes
   const suffix = truncated ? "\n\n[Output truncated]" : "";
   const finalText = `${text}${suffix}`;
 
-  // Emit the final block reply.
-  if (params.onBlockReply) {
+  // Emit the final block reply — but only when we did NOT already stream
+  // content via blockReplyBreak during the run. When streaming was active,
+  // content was already delivered through the pipeline and the downstream
+  // `buildReplyPayloads` will drop final payloads (shouldDropFinalPayloads).
+  // Emitting again here would cause duplicates because the string-based
+  // tracking (blockReplyStreamedText) doesn't match the pipeline's
+  // payload-key-based dedup.
+  if (params.onBlockReply && !didStreamBlockReply) {
     try {
       await params.onBlockReply({ text: finalText });
+    } catch {
+      // Don't fail the run on callback errors.
+    }
+  } else if (params.onBlockReply && didStreamBlockReply && suffix) {
+    // Only emit the truncation suffix (if any) — the main content was
+    // already delivered via streaming block replies.
+    try {
+      await params.onBlockReply({ text: suffix.trim() });
     } catch {
       // Don't fail the run on callback errors.
     }

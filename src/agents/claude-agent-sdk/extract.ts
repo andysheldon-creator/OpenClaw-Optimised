@@ -68,6 +68,50 @@ function extractTextFromContent(value: unknown): string | undefined {
 }
 
 /**
+ * Extract thinking/reasoning text from a Claude Agent SDK event.
+ * Complementary to `extractTextFromClaudeAgentSdkEvent` which strips thinking —
+ * this one extracts *only* thinking content for the reasoning stream.
+ *
+ * SDK thinking events typically have:
+ * - `{ type: "thinking", thinking: "text..." }`
+ * - `{ type: "thinking_delta", delta: "text..." }`
+ * - `{ type: "reasoning", text: "text..." }`
+ * - Content blocks: `{ type: "thinking", text: "..." }`
+ */
+export function extractThinkingFromSdkEvent(event: unknown): string | undefined {
+  if (!isRecord(event)) {
+    return undefined;
+  }
+
+  const type = event.type as string | undefined;
+  if (type !== "thinking" && type !== "thinking_delta" && type !== "reasoning") {
+    return undefined;
+  }
+
+  // Direct thinking text field.
+  if (typeof event.thinking === "string" && event.thinking.trim()) {
+    return event.thinking.trim();
+  }
+
+  // Delta text (streaming thinking chunks).
+  if (typeof event.delta === "string" && event.delta.trim()) {
+    return event.delta.trim();
+  }
+
+  // Generic text field.
+  if (typeof event.text === "string" && event.text.trim()) {
+    return event.text.trim();
+  }
+
+  // Nested delta object: { delta: { text: "..." } }
+  if (isRecord(event.delta) && typeof event.delta.text === "string" && event.delta.text.trim()) {
+    return event.delta.text.trim();
+  }
+
+  return undefined;
+}
+
+/**
  * Best-effort extraction of human-readable text from Claude Agent SDK events.
  * We keep this defensive because the SDK event shapes may evolve.
  *
