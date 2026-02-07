@@ -58,8 +58,8 @@ async function listenWithRetry(opts: {
         opts.server.listen(opts.port, opts.host);
       });
       return;
-    } catch (err: any) {
-      const code = err?.code;
+    } catch (err: unknown) {
+      const code = (err as { code?: string } | null | undefined)?.code;
       if (code !== "EADDRINUSE" || attempt === retries) {
         throw err;
       }
@@ -109,7 +109,9 @@ export async function startTelegramWebhook(opts: {
   const server = createServer((req, res) => {
     let responded = false;
     const safeRespond = (status: number, body?: string) => {
-      if (responded || res.headersSent || res.writableEnded) return;
+      if (responded || res.headersSent || res.writableEnded) {
+        return;
+      }
       responded = true;
       res.writeHead(status);
       res.end(body);
