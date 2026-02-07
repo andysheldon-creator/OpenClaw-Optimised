@@ -4,7 +4,7 @@ import { writeConfigFile } from "../config/config-file.js";
 import { loadOpenClawPlugins } from "../plugins/loader.js";
 import { updateNpmInstalledPlugins } from "../plugins/update.js";
 
-const PLUGIN_UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const PLUGIN_UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 async function fetchLatestNpmVersion(packageName: string): Promise<string | null> {
   try {
