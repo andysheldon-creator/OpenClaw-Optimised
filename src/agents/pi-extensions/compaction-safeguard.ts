@@ -20,6 +20,148 @@ const TURN_PREFIX_INSTRUCTIONS =
 const MAX_TOOL_FAILURES = 8;
 const MAX_TOOL_FAILURE_CHARS = 240;
 
+/**
+ * Maximum number of recent messages to preserve images in.
+ * Images in older messages will be replaced with text placeholders.
+ * This prevents 413 errors from accumulated screenshots bloating the session.
+ */
+const KEEP_RECENT_IMAGES_COUNT = 3;
+
+// ============================================================================
+// Image Stripping Functions (413 Session Bloat Prevention)
+// ============================================================================
+
+type ContentBlock = { type?: string; data?: string; mimeType?: string; text?: string };
+
+function isImageBlock(block: unknown): block is ContentBlock & { type: "image"; data: string } {
+  if (!block || typeof block !== "object") return false;
+  const rec = block as ContentBlock;
+  return rec.type === "image" && typeof rec.data === "string";
+}
+
+function getMessageContent(msg: AgentMessage): unknown[] | null {
+  if (!msg || typeof msg !== "object") return null;
+  const rec = msg as { content?: unknown };
+  if (Array.isArray(rec.content)) return rec.content;
+  return null;
+}
+
+function hasImageContent(msg: AgentMessage): boolean {
+  const content = getMessageContent(msg);
+  if (!content) return false;
+  return content.some(isImageBlock);
+}
+
+function estimateImageDataBytes(data: string): number {
+  // Base64 encoding overhead is ~4/3, so actual bytes = chars * 3/4
+  return Math.round((data.length * 3) / 4);
+}
+
+function createImagePlaceholder(
+  block: ContentBlock & { type: "image"; data: string },
+): ContentBlock {
+  const sizeBytes = estimateImageDataBytes(block.data);
+  const sizeKb = Math.round(sizeBytes / 1024);
+  const mimeType = block.mimeType ?? "image";
+  return {
+    type: "text",
+    text: `[Image omitted during compaction: ${mimeType}, ~${sizeKb}KB]`,
+  };
+}
+
+function replaceImagesWithPlaceholders(msg: AgentMessage): AgentMessage {
+  const content = getMessageContent(msg);
+  if (!content) return msg;
+
+  let hasImages = false;
+  const newContent = content.map((block) => {
+    if (isImageBlock(block)) {
+      hasImages = true;
+      return createImagePlaceholder(block);
+    }
+    return block;
+  });
+
+  if (!hasImages) return msg;
+  return { ...msg, content: newContent } as AgentMessage;
+}
+
+/**
+ * Count images and estimate total image data size in messages.
+ */
+function countImagesInMessages(messages: AgentMessage[]): { count: number; totalBytes: number } {
+  let count = 0;
+  let totalBytes = 0;
+  for (const msg of messages) {
+    const content = getMessageContent(msg);
+    if (!content) continue;
+    for (const block of content) {
+      if (isImageBlock(block)) {
+        count++;
+        totalBytes += estimateImageDataBytes(block.data);
+      }
+    }
+  }
+  return { count, totalBytes };
+}
+
+/**
+ * Strip images from older messages, keeping only recent ones.
+ * This prevents sessions from bloating with accumulated screenshots,
+ * which can cause 413 Request Entity Too Large errors.
+ */
+function stripOldImagesFromMessages(
+  messages: AgentMessage[],
+  opts: { keepRecentCount?: number } = {},
+): {
+  messages: AgentMessage[];
+  strippedCount: number;
+  strippedBytes: number;
+} {
+  const keepRecentCount = opts.keepRecentCount ?? KEEP_RECENT_IMAGES_COUNT;
+
+  // Find indices of messages with images, from the end (most recent)
+  const indicesWithImages: number[] = [];
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (hasImageContent(messages[i])) {
+      indicesWithImages.push(i);
+    }
+  }
+
+  // Keep images in the last N messages that have them
+  const keepIndices = new Set(indicesWithImages.slice(0, keepRecentCount));
+
+  let strippedCount = 0;
+  let strippedBytes = 0;
+  const result: AgentMessage[] = [];
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    if (keepIndices.has(i) || !hasImageContent(msg)) {
+      result.push(msg);
+      continue;
+    }
+
+    // Strip images from this message
+    const content = getMessageContent(msg);
+    if (content) {
+      for (const block of content) {
+        if (isImageBlock(block)) {
+          strippedCount++;
+          strippedBytes += estimateImageDataBytes(block.data);
+        }
+      }
+    }
+    result.push(replaceImagesWithPlaceholders(msg));
+  }
+
+  return { messages: result, strippedCount, strippedBytes };
+}
+
+// ============================================================================
+// Tool Failure Tracking
+// ============================================================================
+
 type ToolFailure = {
   toolCallId: string;
   toolName: string;
@@ -32,12 +174,16 @@ function normalizeFailureText(text: string): string {
 }
 
 function truncateFailureText(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
+  if (text.length <= maxChars) {
+    return text;
+  }
   return `${text.slice(0, Math.max(0, maxChars - 3))}...`;
 }
 
 function formatToolFailureMeta(details: unknown): string | undefined {
-  if (!details || typeof details !== "object") return undefined;
+  if (!details || typeof details !== "object") {
+    return undefined;
+  }
   const record = details as Record<string, unknown>;
   const status = typeof record.status === "string" ? record.status : undefined;
   const exitCode =
@@ -45,16 +191,24 @@ function formatToolFailureMeta(details: unknown): string | undefined {
       ? record.exitCode
       : undefined;
   const parts: string[] = [];
-  if (status) parts.push(`status=${status}`);
-  if (exitCode !== undefined) parts.push(`exitCode=${exitCode}`);
+  if (status) {
+    parts.push(`status=${status}`);
+  }
+  if (exitCode !== undefined) {
+    parts.push(`exitCode=${exitCode}`);
+  }
   return parts.length > 0 ? parts.join(" ") : undefined;
 }
 
 function extractToolResultText(content: unknown): string {
-  if (!Array.isArray(content)) return "";
+  if (!Array.isArray(content)) {
+    return "";
+  }
   const parts: string[] = [];
   for (const block of content) {
-    if (!block || typeof block !== "object") continue;
+    if (!block || typeof block !== "object") {
+      continue;
+    }
     const rec = block as { type?: unknown; text?: unknown };
     if (rec.type === "text" && typeof rec.text === "string") {
       parts.push(rec.text);
@@ -68,9 +222,13 @@ function collectToolFailures(messages: AgentMessage[]): ToolFailure[] {
   const seen = new Set<string>();
 
   for (const message of messages) {
-    if (!message || typeof message !== "object") continue;
+    if (!message || typeof message !== "object") {
+      continue;
+    }
     const role = (message as { role?: unknown }).role;
-    if (role !== "toolResult") continue;
+    if (role !== "toolResult") {
+      continue;
+    }
     const toolResult = message as {
       toolCallId?: unknown;
       toolName?: unknown;
@@ -78,9 +236,13 @@ function collectToolFailures(messages: AgentMessage[]): ToolFailure[] {
       details?: unknown;
       isError?: unknown;
     };
-    if (toolResult.isError !== true) continue;
+    if (toolResult.isError !== true) {
+      continue;
+    }
     const toolCallId = typeof toolResult.toolCallId === "string" ? toolResult.toolCallId : "";
-    if (!toolCallId || seen.has(toolCallId)) continue;
+    if (!toolCallId || seen.has(toolCallId)) {
+      continue;
+    }
     seen.add(toolCallId);
 
     const toolName =
@@ -101,7 +263,9 @@ function collectToolFailures(messages: AgentMessage[]): ToolFailure[] {
 }
 
 function formatToolFailuresSection(failures: ToolFailure[]): string {
-  if (failures.length === 0) return "";
+  if (failures.length === 0) {
+    return "";
+  }
   const lines = failures.slice(0, MAX_TOOL_FAILURES).map((failure) => {
     const meta = failure.meta ? ` (${failure.meta})` : "";
     return `- ${failure.toolName}${meta}: ${failure.summary}`;
@@ -117,8 +281,8 @@ function computeFileLists(fileOps: FileOperations): {
   modifiedFiles: string[];
 } {
   const modified = new Set([...fileOps.edited, ...fileOps.written]);
-  const readFiles = [...fileOps.read].filter((f) => !modified.has(f)).sort();
-  const modifiedFiles = [...modified].sort();
+  const readFiles = [...fileOps.read].filter((f) => !modified.has(f)).toSorted();
+  const modifiedFiles = [...modified].toSorted();
   return { readFiles, modifiedFiles };
 }
 
@@ -130,7 +294,9 @@ function formatFileOperations(readFiles: string[], modifiedFiles: string[]): str
   if (modifiedFiles.length > 0) {
     sections.push(`<modified-files>\n${modifiedFiles.join("\n")}\n</modified-files>`);
   }
-  if (sections.length === 0) return "";
+  if (sections.length === 0) {
+    return "";
+  }
   return `\n\n${sections.join("\n\n")}`;
 }
 
@@ -177,6 +343,34 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
 
       const runtime = getCompactionSafeguardRuntime(ctx.sessionManager);
       const maxHistoryShare = runtime?.maxHistoryShare ?? 0.5;
+
+      // === IMAGE STRIPPING (prevents 413 session bloat) ===
+      // Strip images from older messages before summarization to reduce payload size.
+      // This addresses the issue where accumulated screenshots cause 413 Request Entity
+      // Too Large errors by replacing old image data with lightweight text placeholders.
+      const allMessagesForImages = [...messagesToSummarize, ...turnPrefixMessages];
+      const imageStats = countImagesInMessages(allMessagesForImages);
+
+      if (imageStats.count > 0) {
+        const imagesMb = (imageStats.totalBytes / 1024 / 1024).toFixed(2);
+        console.log(
+          `Compaction safeguard: session has ${imageStats.count} images (~${imagesMb}MB). ` +
+            `Stripping old images, keeping ${KEEP_RECENT_IMAGES_COUNT} recent.`,
+        );
+
+        const strippedResult = stripOldImagesFromMessages(messagesToSummarize, {
+          keepRecentCount: KEEP_RECENT_IMAGES_COUNT,
+        });
+        messagesToSummarize = strippedResult.messages;
+
+        if (strippedResult.strippedCount > 0) {
+          const strippedMb = (strippedResult.strippedBytes / 1024 / 1024).toFixed(2);
+          console.log(
+            `Compaction safeguard: stripped ${strippedResult.strippedCount} images (~${strippedMb}MB).`,
+          );
+        }
+      }
+      // === END IMAGE STRIPPING ===
 
       const tokensBefore =
         typeof preparation.tokensBefore === "number" && Number.isFinite(preparation.tokensBefore)
@@ -318,4 +512,10 @@ export const __testing = {
   BASE_CHUNK_RATIO,
   MIN_CHUNK_RATIO,
   SAFETY_MARGIN,
+  // Image stripping functions (for 413 session bloat prevention)
+  stripOldImagesFromMessages,
+  countImagesInMessages,
+  replaceImagesWithPlaceholders,
+  hasImageContent,
+  KEEP_RECENT_IMAGES_COUNT,
 } as const;
