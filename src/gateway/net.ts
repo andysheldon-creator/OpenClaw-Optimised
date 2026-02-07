@@ -161,7 +161,7 @@ export async function resolveGatewayBindHost(
       return "0.0.0.0";
     } // invalid config → fall back to all
 
-    if (isValidIPv4(host) && (await canBindToHost(host))) {
+    if (isValidIp(host) && (await canBindToHost(host))) {
       return host;
     }
     // Custom IP failed → fall back to LAN
@@ -204,31 +204,24 @@ export async function resolveGatewayListenHosts(
   bindHost: string,
   opts?: { canBindToHost?: (host: string) => Promise<boolean> },
 ): Promise<string[]> {
-  if (bindHost !== "127.0.0.1") {
+  const canBind = opts?.canBindToHost ?? canBindToHost;
+  if (bindHost === "127.0.0.1") {
+    if (await canBind("::1")) {
+      return [bindHost, "::1"];
+    }
     return [bindHost];
   }
-  const canBind = opts?.canBindToHost ?? canBindToHost;
-  if (await canBind("::1")) {
-    return [bindHost, "::1"];
+  if (bindHost === "0.0.0.0") {
+    if (await canBind("::")) {
+      return [bindHost, "::"];
+    }
+    return [bindHost];
   }
   return [bindHost];
 }
 
-/**
- * Validate if a string is a valid IPv4 address.
- *
- * @param host - The string to validate
- * @returns True if valid IPv4 format
- */
-function isValidIPv4(host: string): boolean {
-  const parts = host.split(".");
-  if (parts.length !== 4) {
-    return false;
-  }
-  return parts.every((part) => {
-    const n = parseInt(part, 10);
-    return !Number.isNaN(n) && n >= 0 && n <= 255 && part === String(n);
-  });
+function isValidIp(host: string): boolean {
+  return net.isIP(host) !== 0;
 }
 
 export function isLoopbackHost(host: string): boolean {
