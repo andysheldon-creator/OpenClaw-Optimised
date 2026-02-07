@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { runExec } from "../process/exec.js";
 import { note } from "../terminal/note.js";
 
@@ -40,7 +40,7 @@ async function isPocketServerHealthy(baseUrl: string): Promise<boolean> {
  * Note TTS configuration warnings.
  * Called from doctor.ts.
  */
-export async function noteTtsConfigWarnings(cfg: ClawdbotConfig): Promise<void> {
+export async function noteTtsConfigWarnings(cfg: OpenClawConfig): Promise<void> {
   const ttsConfig = cfg.messages?.tts;
   if (!ttsConfig) return;
 

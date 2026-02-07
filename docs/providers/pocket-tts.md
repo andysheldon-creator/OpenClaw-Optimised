@@ -36,7 +36,7 @@ uv pip install pocket-tts
 pocket-tts serve --voice alba
 ```
 
-3. Configure Clawdbot:
+3. Configure OpenClaw:
 
 ```json5
 {
@@ -148,7 +148,7 @@ pocket-tts serve --voice /path/to/your-voice.wav
 
 ### Auto-start mode
 
-Clawdbot can automatically start `pocket-tts serve` when it's not running:
+OpenClaw can automatically start `pocket-tts serve` when it's not running:
 
 ```json5
 {
@@ -166,11 +166,11 @@ Clawdbot can automatically start `pocket-tts serve` when it's not running:
 ```
 
 **How it works:**
-1. Clawdbot checks `/health` endpoint
+1. OpenClaw checks `/health` endpoint
 2. If server is down and `autoStart: true`, spawns `pocket-tts serve`
 3. Host and port are derived from `baseUrl` (e.g., `http://localhost:9000` → `--host localhost --port 9000`)
 4. Waits up to 30s for server to become healthy (model loading)
-5. Server is stopped automatically when Clawdbot exits
+5. Server is stopped automatically when OpenClaw exits
 
 **Note:** First request may be slow (~10-30s) while the model loads. Subsequent requests are fast (~200ms).
 
@@ -182,15 +182,15 @@ Pocket TTS doesn't require API keys:
 # Manual start (recommended for production)
 pocket-tts serve --voice alba
 
-# Or let Clawdbot auto-start via config
+# Or let OpenClaw auto-start via config
 ```
 
 ## Provider fallback
 
-Clawdbot tries providers in order: **OpenAI → ElevenLabs → Edge → Pocket**
+OpenClaw tries providers in order: **OpenAI → ElevenLabs → Edge → Pocket**
 
 When Pocket TTS is configured but the server isn't running:
-1. If `autoStart: true`, Clawdbot tries to start the server
+1. If `autoStart: true`, OpenClaw tries to start the server
 2. If that fails (or `autoStart: false`), falls back to next provider
 
 To check if the server is running:
@@ -280,7 +280,7 @@ If you see a voice validation warning, check your voice format:
 | HTTP/HTTPS URL | `https://example.com/voice.wav` | ✅ |
 | Local file path | `/path/to/voice.wav` | ❌ (use `--voice` flag when starting server) |
 
-**Note:** Clawdbot warns about unrecognized voices but still sends them to the server. The server gives the authoritative error if the voice is truly invalid.
+**Note:** OpenClaw warns about unrecognized voices but still sends them to the server. The server gives the authoritative error if the voice is truly invalid.
 
 ### Missing dependencies
 
