@@ -231,7 +231,6 @@ function renderRow(
       <div>${formatSessionTokens(row)}</div>
       <div>
         <select
-          .value=${thinking}
           ?disabled=${disabled}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
@@ -240,12 +239,14 @@ function renderRow(
             });
           }}
         >
-          ${thinkLevels.map((level) => html`<option value=${level}>${level || "inherit"}</option>`)}
+          ${thinkLevels.map(
+            (level) =>
+              html`<option value=${level} ?selected=${thinking === level}>${level || "inherit"}</option>`,
+          )}
         </select>
       </div>
       <div>
         <select
-          .value=${verbose}
           ?disabled=${disabled}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
@@ -253,13 +254,13 @@ function renderRow(
           }}
         >
           ${VERBOSE_LEVELS.map(
-            (level) => html`<option value=${level.value}>${level.label}</option>`,
+            (level) =>
+              html`<option value=${level.value} ?selected=${verbose === level.value}>${level.label}</option>`,
           )}
         </select>
       </div>
       <div>
         <select
-          .value=${reasoning}
           ?disabled=${disabled}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
@@ -267,7 +268,8 @@ function renderRow(
           }}
         >
           ${REASONING_LEVELS.map(
-            (level) => html`<option value=${level}>${level || "inherit"}</option>`,
+            (level) =>
+              html`<option value=${level} ?selected=${reasoning === level}>${level || "inherit"}</option>`,
           )}
         </select>
       </div>
