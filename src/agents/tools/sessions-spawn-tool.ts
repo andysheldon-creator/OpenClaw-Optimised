@@ -19,10 +19,11 @@ import {
 } from "../agent-scope.js";
 import { buildCollaborationAwareTask } from "../collaboration-spawn.js";
 import { registerDelegation } from "../delegation-registry.js";
+import { resolveAgentIdentity } from "../identity.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
-import { registerSubagentRun } from "../subagent-registry.js";
+import { listSubagentRunsForRequester, registerSubagentRun } from "../subagent-registry.js";
 import { jsonResult, readStringParam } from "./common.js";
 import {
   resolveDisplaySessionKey,
@@ -269,6 +270,33 @@ export function createSessionsSpawnTool(opts?: {
         task,
         cleanup,
       });
+
+      // Inject active peer context so spawned agents know about concurrent teammates
+      try {
+        const activeRuns = listSubagentRunsForRequester(requesterInternalKey).filter(
+          (r) => !r.outcome && r.childSessionKey !== childSessionKey,
+        );
+        if (activeRuns.length > 0) {
+          const peerLines = activeRuns
+            .map((r) => {
+              const peerId = parseAgentSessionKey(r.childSessionKey)?.agentId;
+              if (!peerId) {
+                return null;
+              }
+              const peerName = resolveAgentIdentity(cfg, peerId)?.name ?? peerId;
+              const peerRole = resolveAgentRole(cfg, peerId);
+              return `- **${peerName}** (${peerId}, ${peerRole}): ${(r.task ?? "").slice(0, 100)}`;
+            })
+            .filter(Boolean);
+          if (peerLines.length > 0) {
+            task +=
+              "\n\n---\n**Active peers working on related tasks (consult them via sessions_send):**\n" +
+              peerLines.join("\n");
+          }
+        }
+      } catch {
+        // Non-critical
+      }
 
       const childIdem = crypto.randomUUID();
       let childRunId: string = childIdem;
