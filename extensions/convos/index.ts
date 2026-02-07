@@ -22,6 +22,7 @@ let setupResult: {
   conversationId: string;
   env: "production" | "dev";
   accountId?: string;
+  inboxId?: string;
 } | null = null;
 
 // Cached setup response (so repeated calls don't destroy the running agent)
@@ -29,6 +30,7 @@ let cachedSetupResponse: {
   inviteUrl: string;
   conversationId: string;
   qrDataUrl: string;
+  inboxId?: string;
 } | null = null;
 
 async function cleanupSetupAgent() {
@@ -145,7 +147,12 @@ async function handleSetup(params: {
     conversationId: result.conversationId,
     env: params.env ?? "production",
     accountId: params.accountId,
+    inboxId: result.inboxId,
   };
+
+  if (result.inboxId) {
+    console.log("[convos-setup] XMTP public key (inboxId):", result.inboxId);
+  }
 
   const qrBase64 = await renderQrPngBase64(result.inviteUrl);
 
@@ -153,6 +160,7 @@ async function handleSetup(params: {
     inviteUrl: result.inviteUrl,
     conversationId: result.conversationId,
     qrDataUrl: `data:image/png;base64,${qrBase64}`,
+    inboxId: result.inboxId,
   };
 
   return cachedSetupResponse;
@@ -208,6 +216,7 @@ async function handleComplete() {
         ownerConversationId: setupResult.conversationId,
         env: setupResult.env,
         enabled: true,
+        ...(setupResult.inboxId ? { inboxId: setupResult.inboxId } : {}),
         ...(allowFrom.length > 0 ? { allowFrom } : {}),
       },
     },

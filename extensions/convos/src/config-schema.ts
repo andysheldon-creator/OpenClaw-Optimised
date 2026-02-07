@@ -62,6 +62,9 @@ export const ConvosConfigSchema = z.object({
 
   /** The conversation ID where OpenClaw communicates with its owner. */
   ownerConversationId: z.string().optional(),
+
+  /** XMTP public address (inbox ID) for display / share. */
+  inboxId: z.string().optional(),
 });
 
 export type ConvosConfigInput = z.infer<typeof ConvosConfigSchema>;

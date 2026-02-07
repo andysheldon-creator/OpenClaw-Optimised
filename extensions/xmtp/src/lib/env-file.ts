@@ -13,7 +13,7 @@ export function writeXmtpVarsToEnv(params: {
   dbEncryptionKey: string;
   env: "production" | "dev";
 }): string {
-  const configDir = getXmtpRuntime().state.resolveConfigDir();
+  const configDir = getXmtpRuntime().state.resolveStateDir();
   const envPath = path.join(configDir, ".env");
   const vars: Record<string, string> = {
     XMTP_WALLET_KEY: params.walletKey,

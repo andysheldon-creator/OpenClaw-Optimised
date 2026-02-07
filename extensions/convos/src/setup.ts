@@ -67,6 +67,7 @@ export async function setupConvosWithInvite(
     const result = await client.createConversation(conversationName);
 
     const privateKey = client.getPrivateKey();
+    const inboxId = client.getInboxId();
 
     // Keep running or stop based on option
     if (!params.keepRunning) {
@@ -77,6 +78,7 @@ export async function setupConvosWithInvite(
       inviteUrl: result.inviteUrl,
       conversationId: result.conversationId,
       privateKey,
+      inboxId,
       client: params.keepRunning ? client : undefined,
     };
   } catch (err) {

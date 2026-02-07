@@ -33,6 +33,8 @@ export interface ConvosSetupResult {
   inviteUrl: string;
   conversationId: string;
   privateKey: string;
+  /** XMTP public identity (inbox ID) for logging/display */
+  inboxId?: string;
 }
 
 export interface JoinConversationResult {

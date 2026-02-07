@@ -46,6 +46,8 @@ export type ConvosAccountConfig = {
   reactionLevel?: ConvosReactionLevel;
   /** The conversation ID where OpenClaw communicates with its owner. */
   ownerConversationId?: string;
+  /** XMTP public address (inbox ID) for display. */
+  inboxId?: string;
 };
 
 export type ConvosConfig = {
