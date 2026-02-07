@@ -344,7 +344,12 @@ const braveSearchProvider: SearchProviderPlugin = {
     const search = resolveSearchConfig(ctx.config);
     const apiKey = resolveSearchApiKey(search);
     if (!apiKey) {
-      throw new Error("Brave Search API key is required");
+      return {
+        error: "missing_brave_api_key",
+        message:
+          "Brave Search API key is required. Set BRAVE_API_KEY env var or configure tools.web.search.apiKey.",
+        provider: "brave",
+      };
     }
 
     const freshness = params.freshness ? normalizeFreshness(params.freshness) : undefined;
@@ -444,9 +449,12 @@ const perplexitySearchProvider: SearchProviderPlugin = {
     const apiKey = perplexityAuth?.apiKey;
 
     if (!apiKey) {
-      throw new Error(
-        "Perplexity API key is required (set PERPLEXITY_API_KEY or OPENROUTER_API_KEY env var, or configure tools.web.search.perplexity.apiKey)",
-      );
+      return {
+        error: "missing_perplexity_api_key",
+        message:
+          "Perplexity API key is required. Set PERPLEXITY_API_KEY or OPENROUTER_API_KEY env var, or configure tools.web.search.perplexity.apiKey.",
+        provider: "perplexity",
+      };
     }
 
     const baseUrl = resolvePerplexityBaseUrl(perplexityConfig, perplexityAuth.source, apiKey);
