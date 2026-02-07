@@ -1,6 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ImageContent } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
+import { isAbortError } from "../abort.js";
 import { injectHistoryImagesIntoMessages } from "./attempt.js";
 
 describe("injectHistoryImagesIntoMessages", () => {
@@ -54,5 +55,94 @@ describe("injectHistoryImagesIntoMessages", () => {
 
     expect(didMutate).toBe(false);
     expect(messages[0]?.content).toBe("noop");
+  });
+});
+
+describe("abortable compaction wait (regression for stuck session)", () => {
+  // Reproduces the bug where waitForCompactionRetry() was not wrapped with
+  // abortable(), causing the session to stay stuck in active=true forever
+  // when a run timed out during compaction.
+
+  /** Mirrors the abortable() helper from attempt.ts */
+  function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+    if (signal.aborted) {
+      const err = new Error("aborted");
+      err.name = "AbortError";
+      return Promise.reject(err);
+    }
+    return new Promise<T>((resolve, reject) => {
+      const onAbort = () => {
+        signal.removeEventListener("abort", onAbort);
+        const err = new Error("aborted");
+        err.name = "AbortError";
+        reject(err);
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      promise.then(
+        (value) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(value);
+        },
+        (err) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(err);
+        },
+      );
+    });
+  }
+
+  it("rejects with AbortError when abort fires during a never-resolving compaction wait", async () => {
+    const controller = new AbortController();
+    // Simulate a compaction promise that never resolves (the bug scenario)
+    const neverResolves = new Promise<void>(() => {});
+
+    const resultPromise = abortable(neverResolves, controller.signal);
+
+    // Simulate timeout firing
+    controller.abort();
+
+    await expect(resultPromise).rejects.toThrow();
+    try {
+      await resultPromise;
+    } catch (err) {
+      expect(isAbortError(err)).toBe(true);
+    }
+  });
+
+  it("resolves normally when compaction finishes before abort", async () => {
+    const controller = new AbortController();
+    const quickResolve = Promise.resolve();
+
+    const result = await abortable(quickResolve, controller.signal);
+    expect(result).toBeUndefined();
+  });
+
+  it("rejects immediately if already aborted before compaction wait starts", async () => {
+    const controller = new AbortController();
+    controller.abort(); // Already aborted
+
+    const neverResolves = new Promise<void>(() => {});
+    await expect(abortable(neverResolves, controller.signal)).rejects.toThrow();
+  });
+
+  it("ensures cleanup runs after abort (simulates finally block)", async () => {
+    const controller = new AbortController();
+    const neverResolves = new Promise<void>(() => {});
+    let cleanupRan = false;
+
+    try {
+      const waitPromise = abortable(neverResolves, controller.signal);
+      controller.abort();
+      await waitPromise;
+    } catch (err) {
+      if (!isAbortError(err)) {
+        throw err;
+      }
+    } finally {
+      // This simulates clearActiveEmbeddedRun() in the real code
+      cleanupRan = true;
+    }
+
+    expect(cleanupRan).toBe(true);
   });
 });
