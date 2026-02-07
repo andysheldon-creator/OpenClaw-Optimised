@@ -13,7 +13,9 @@ import {
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
+import { logDebug, logInfo, logWarn } from "../../logger.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../../routing/session-key.js";
+import { callGateway } from "../call.js";
 import {
   ErrorCodes,
   errorShape,
@@ -234,6 +236,73 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     const cfg = loadConfig();
     const target = resolveGatewaySessionStoreTarget({ cfg, key });
     const storePath = target.storePath;
+
+    // Pre-reset hook: trigger an agent turn before resetting (best-effort, non-blocking)
+    const preResetConfig = cfg.sessions?.preReset;
+    if (preResetConfig?.enabled && preResetConfig.prompt) {
+      const timeoutSeconds = preResetConfig.timeoutSeconds ?? 30;
+      const timeoutMs = timeoutSeconds * 1000;
+
+      // Check if we should skip due to empty session
+      let shouldSkip = false;
+      if (preResetConfig.skipIfEmpty !== false) {
+        // Default: skip if empty. Check if session has any content.
+        const { entry } = loadSessionEntry(key);
+        const sessionId = entry?.sessionId;
+        if (sessionId) {
+          const candidates = resolveSessionTranscriptCandidates(
+            sessionId,
+            storePath,
+            entry?.sessionFile,
+            target.agentId,
+          );
+          const transcriptPath = candidates.find((c) => fs.existsSync(c));
+          if (!transcriptPath) {
+            shouldSkip = true;
+          } else {
+            try {
+              const stat = fs.statSync(transcriptPath);
+              // Skip if transcript is effectively empty (< 100 bytes)
+              if (stat.size < 100) {
+                shouldSkip = true;
+              }
+            } catch {
+              shouldSkip = true;
+            }
+          }
+        } else {
+          shouldSkip = true;
+        }
+      }
+
+      if (!shouldSkip) {
+        logInfo(`[pre-reset] Running pre-reset hook for session: ${key}`);
+        try {
+          await Promise.race([
+            callGateway({
+              method: "agent",
+              params: {
+                message: preResetConfig.prompt,
+                sessionKey: key,
+                deliver: false,
+                lane: "pre-reset",
+              },
+              timeoutMs: timeoutMs + 5000, // Add buffer for RPC overhead
+            }),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("pre-reset timeout")), timeoutMs),
+            ),
+          ]);
+          logInfo(`[pre-reset] Hook completed successfully for session: ${key}`);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          logWarn(`[pre-reset] Hook failed for session ${key}: ${message} (continuing with reset)`);
+        }
+      } else {
+        logDebug(`[pre-reset] Skipping hook for session ${key} (session empty)`);
+      }
+    }
+
     const next = await updateSessionStore(storePath, (store) => {
       const primaryKey = target.storeKeys[0] ?? key;
       const existingKey = target.storeKeys.find((candidate) => store[candidate]);
