@@ -40,12 +40,12 @@ function quoteCmdArg(value: string): string {
   return `"${value.replace(/"/g, '\\"')}"`;
 }
 
-function quotePowerShellArg(value: string): string {
+export function quotePowerShellArg(value: string): string {
   // Escape single quotes for PowerShell
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-function buildPowerShellWrapper({
+export function buildPowerShellWrapper({
   description,
   programArguments,
   workingDirectory,
