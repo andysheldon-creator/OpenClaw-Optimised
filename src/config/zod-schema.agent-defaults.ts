@@ -153,6 +153,8 @@ export const AgentDefaultsSchema = z
           ])
           .optional(),
         thinking: z.string().optional(),
+        /** Files to inject into sub-agent system prompts (relative to workspace). */
+        injectFiles: z.array(z.string()).optional(),
       })
       .strict()
       .optional(),

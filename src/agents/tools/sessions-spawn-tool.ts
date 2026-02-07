@@ -1,5 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import type { AnyAgentTool } from "./common.js";
 import { formatThinkingLevels, normalizeThinkLevel } from "../../auto-reply/thinking.js";
@@ -11,8 +14,9 @@ import {
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
-import { resolveAgentConfig } from "../agent-scope.js";
+import { resolveAgentConfig, resolveAgentWorkspaceDir } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
+import { resolveBootstrapMaxChars } from "../pi-embedded-helpers.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import { registerSubagentRun } from "../subagent-registry.js";
@@ -63,6 +67,74 @@ function normalizeModelSelection(value: unknown): string | undefined {
     return primary.trim();
   }
   return undefined;
+}
+
+/**
+ * Load files specified in subagents.injectFiles config and return formatted content
+ * to prepend to the subagent system prompt.
+ */
+async function loadInjectFiles(params: {
+  injectFiles?: string[];
+  workspaceDir: string;
+  config?: OpenClawConfig;
+  warn?: (message: string) => void;
+}): Promise<string | undefined> {
+  const { injectFiles, workspaceDir, config, warn } = params;
+  const maxChars = resolveBootstrapMaxChars(config);
+  if (!injectFiles || injectFiles.length === 0) {
+    return undefined;
+  }
+
+  const sections: string[] = [];
+
+  for (const relativePath of injectFiles) {
+    const trimmedPath = relativePath.trim();
+    if (!trimmedPath) {
+      continue;
+    }
+
+    const normalizedWorkspace = path.resolve(workspaceDir);
+    const filePath = path.resolve(normalizedWorkspace, trimmedPath);
+    const rel = path.relative(normalizedWorkspace, filePath);
+
+    // Security: ensure the file is within the workspace
+    if (rel.startsWith(".." + path.sep) || rel === ".." || path.isAbsolute(rel)) {
+      warn?.(`Skipping inject file outside workspace: ${trimmedPath}`);
+      continue;
+    }
+
+    try {
+      let content = await fs.readFile(filePath, "utf-8");
+
+      // Skip empty files
+      if (!content.trim()) {
+        continue;
+      }
+
+      // Truncate large files
+      if (content.length > maxChars) {
+        content = content.slice(0, maxChars) + `\n\n[Truncated: file exceeded ${maxChars} chars]`;
+        warn?.(`Inject file truncated: ${trimmedPath}`);
+      }
+
+      sections.push(`## ${trimmedPath}\n${content}`);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") {
+        warn?.(`Inject file not found: ${trimmedPath}`);
+      } else if (code === "EISDIR") {
+        warn?.(`Inject path is a directory: ${trimmedPath}`);
+      } else {
+        warn?.(`Failed to load inject file ${trimmedPath}: ${String(err)}`);
+      }
+    }
+  }
+
+  if (sections.length === 0) {
+    return undefined;
+  }
+
+  return `# Project Context\nThe following project context files have been loaded:\n${sections.join("\n")}`;
 }
 
 export function createSessionsSpawnTool(opts?: {
@@ -234,13 +306,30 @@ export function createSessionsSpawnTool(opts?: {
           });
         }
       }
-      const childSystemPrompt = buildSubagentSystemPrompt({
+
+      // Resolve and load inject files (agent-specific config takes precedence over defaults)
+      const resolvedInjectFiles: string[] | undefined =
+        targetAgentConfig?.subagents?.injectFiles ?? cfg.agents?.defaults?.subagents?.injectFiles;
+      const workspaceDir = resolveAgentWorkspaceDir(cfg, targetAgentId);
+      const injectedContent = await loadInjectFiles({
+        injectFiles: resolvedInjectFiles,
+        workspaceDir,
+        config: cfg,
+        warn: (msg) => console.warn(`[sessions_spawn] ${msg}`),
+      });
+
+      const baseSystemPrompt = buildSubagentSystemPrompt({
         requesterSessionKey,
         requesterOrigin,
         childSessionKey,
         label: label || undefined,
         task,
       });
+
+      // Prepend injected content to the system prompt if present
+      const childSystemPrompt = injectedContent
+        ? `${baseSystemPrompt}\n${injectedContent}`
+        : baseSystemPrompt;
 
       const childIdem = crypto.randomUUID();
       let childRunId: string = childIdem;

@@ -38,6 +38,8 @@ export type AgentConfig = {
     allowAgents?: string[];
     /** Per-agent default model for spawned sub-agents (string or {primary,fallbacks}). */
     model?: string | { primary?: string; fallbacks?: string[] };
+    /** Per-agent files to inject into sub-agent system prompts (relative to workspace). */
+    injectFiles?: string[];
   };
   sandbox?: {
     mode?: "off" | "non-main" | "all";
