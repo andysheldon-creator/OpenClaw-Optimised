@@ -1,5 +1,6 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import crypto from "node:crypto";
+import { stripMarkdown } from "openclaw/plugin-sdk";
 import { resolveBlueBubblesAccount } from "./accounts.js";
 import {
   extractHandleFromChatGuid,
@@ -377,6 +378,11 @@ export async function sendMessageBlueBubbles(
   if (!trimmedText.trim()) {
     throw new Error("BlueBubbles send requires text");
   }
+  // Strip markdown early and validate - ensures messages like "***" or "---" don't become empty
+  const strippedText = stripMarkdown(trimmedText);
+  if (!strippedText.trim()) {
+    throw new Error("BlueBubbles send requires text (message was empty after markdown removal)");
+  }
 
   const account = resolveBlueBubblesAccount({
     cfg: opts.cfg ?? {},
@@ -406,7 +412,7 @@ export async function sendMessageBlueBubbles(
         baseUrl,
         password,
         address: target.address,
-        message: trimmedText,
+        message: strippedText,
         timeoutMs: opts.timeoutMs,
       });
     }
@@ -419,7 +425,7 @@ export async function sendMessageBlueBubbles(
   const payload: Record<string, unknown> = {
     chatGuid,
     tempGuid: crypto.randomUUID(),
-    message: trimmedText,
+    message: strippedText,
   };
   if (needsPrivateApi) {
     payload.method = "private-api";
