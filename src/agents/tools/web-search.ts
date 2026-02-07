@@ -543,6 +543,7 @@ export function createWebSearchTool(options?: {
             config: options?.config ?? ({} as OpenClawConfig),
             timeoutSeconds: resolveTimeoutSeconds(search?.timeoutSeconds, DEFAULT_TIMEOUT_SECONDS),
             cacheTtlMs: resolveCacheTtlMs(search?.cacheTtlMinutes, DEFAULT_CACHE_TTL_MINUTES),
+            pluginConfig: options?.config?.plugins?.entries?.[searchProvider.id]?.config,
           },
         );
         return jsonResult(result);

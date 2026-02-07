@@ -18,10 +18,9 @@ const plugin: OpenClawPluginModule = {
       description: "Privacy-focused search engine with high-quality results",
 
       async search(params, ctx) {
-        // Get API key from config or environment
-        const apiKey =
-          (ctx.config.plugins?.entries?.["kagi-search"]?.config as { apiKey?: string })?.apiKey ||
-          process.env.KAGI_API_KEY;
+        // Get API key from plugin config or environment
+        const pluginConfig = ctx.pluginConfig as { apiKey?: string } | undefined;
+        const apiKey = pluginConfig?.apiKey || process.env.KAGI_API_KEY;
 
         if (!apiKey) {
           throw new Error(

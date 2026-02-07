@@ -244,6 +244,7 @@ export type SearchProviderContext = {
   config: OpenClawConfig;
   timeoutSeconds: number;
   cacheTtlMs: number;
+  pluginConfig?: unknown;
 };
 
 export type SearchProviderPlugin = {
