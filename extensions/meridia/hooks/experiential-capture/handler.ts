@@ -12,6 +12,16 @@ import { resolveMeridiaPluginConfig } from "../../src/meridia/config.js";
 import { extractTextForAnalysis, detectContentSignals } from "../../src/meridia/content-signals.js";
 import { createBackend } from "../../src/meridia/db/index.js";
 import { evaluateHeuristic, evaluateWithLlm } from "../../src/meridia/evaluate.js";
+import {
+  type HookEvent,
+  asObject,
+  resolveHookConfig,
+  readNumber,
+  readPositiveNumber,
+  readString,
+  readBoolean,
+  safeFileKey,
+} from "../../src/meridia/event.js";
 // V2 components
 import { normalizeToolResult } from "../../src/meridia/event/normalizer.js";
 import {
@@ -34,82 +44,7 @@ import {
   readJsonIfExists,
 } from "../../src/meridia/storage.js";
 
-type HookEvent = {
-  type: string;
-  action: string;
-  timestamp: Date;
-  sessionKey?: string;
-  context?: unknown;
-};
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
-
-function readNumber(
-  cfg: Record<string, unknown> | undefined,
-  keys: string[],
-  fallback: number,
-): number {
-  for (const key of keys) {
-    const value = cfg?.[key];
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return value;
-    }
-  }
-  for (const key of keys) {
-    const value = cfg?.[key];
-    if (typeof value === "string") {
-      const parsed = Number(value.trim());
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-  }
-  return fallback;
-}
-
-function readString(cfg: Record<string, unknown> | undefined, keys: string[]): string | undefined {
-  for (const key of keys) {
-    const raw = cfg?.[key];
-    if (typeof raw === "string") {
-      const trimmed = raw.trim();
-      if (trimmed) {
-        return trimmed;
-      }
-    }
-  }
-  return undefined;
-}
-
-function readBoolean(
-  cfg: Record<string, unknown> | undefined,
-  keys: string[],
-  fallback: boolean,
-): boolean {
-  for (const key of keys) {
-    const val = cfg?.[key];
-    if (typeof val === "boolean") return val;
-    if (val === "true") return true;
-    if (val === "false") return false;
-  }
-  return fallback;
-}
-
-function safeFileKey(raw: string): string {
-  return raw.trim().replace(/[^a-zA-Z0-9._-]+/g, "_");
-}
-
-function resolveHookConfig(
-  cfg: OpenClawConfig | undefined,
-  hookKey: string,
-): Record<string, unknown> | undefined {
-  const entry = cfg?.hooks?.internal?.entries?.[hookKey] as Record<string, unknown> | undefined;
-  return entry && typeof entry === "object" ? entry : undefined;
-}
+// Local helpers removed — shared via event.js imports
 
 function resolveBufferPath(
   meridiaDir: string,
@@ -162,15 +97,23 @@ const handler = async (event: HookEvent): Promise<void> => {
   const nowMs = Date.now();
   const writeTraceJsonl = resolveMeridiaPluginConfig(cfg).debug.writeTraceJsonl;
 
-  // ── Read config values ────────────────────────────────────────────────
-  const minThreshold = readNumber(
+  // ── Read config values (positive-only to prevent degenerate thresholds) ─
+  const minThreshold = readPositiveNumber(
     hookCfg,
     ["min_significance_threshold", "minSignificanceThreshold", "threshold"],
     0.6,
   );
-  const maxPerHour = readNumber(hookCfg, ["max_captures_per_hour", "maxCapturesPerHour"], 10);
-  const minIntervalMs = readNumber(hookCfg, ["min_interval_ms", "minIntervalMs"], 5 * 60 * 1000);
-  const evaluationTimeoutMs = readNumber(
+  const maxPerHour = readPositiveNumber(
+    hookCfg,
+    ["max_captures_per_hour", "maxCapturesPerHour"],
+    10,
+  );
+  const minIntervalMs = readPositiveNumber(
+    hookCfg,
+    ["min_interval_ms", "minIntervalMs"],
+    5 * 60 * 1000,
+  );
+  const evaluationTimeoutMs = readPositiveNumber(
     hookCfg,
     ["evaluation_timeout_ms", "evaluationTimeoutMs"],
     3500,

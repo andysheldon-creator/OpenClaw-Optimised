@@ -2,23 +2,23 @@ import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import crypto from "node:crypto";
 import path from "node:path";
 import type { MeridiaExperienceRecord, MeridiaTraceEvent } from "../../src/meridia/types.js";
-import { createBackend } from "../../src/meridia/db/index.js";
-import { resolveMeridiaDir, dateKeyUtc } from "../../src/meridia/paths.js";
 import { resolveMeridiaPluginConfig } from "../../src/meridia/config.js";
+import { createBackend } from "../../src/meridia/db/index.js";
+import {
+  type HookEvent,
+  asObject,
+  resolveHookConfig,
+  safeFileKey,
+  nowIso,
+  resolveSessionIdFromEntry,
+} from "../../src/meridia/event.js";
+import { resolveMeridiaDir, dateKeyUtc } from "../../src/meridia/paths.js";
 import {
   appendJsonl,
   readJsonIfExists,
   resolveTraceJsonlPath,
   writeJson,
 } from "../../src/meridia/storage.js";
-
-type HookEvent = {
-  type: string;
-  action: string;
-  timestamp: Date;
-  sessionKey?: string;
-  context?: unknown;
-};
 
 type BufferV1 = {
   version: 1;
@@ -40,38 +40,6 @@ type BufferV1 = {
   }>;
   lastError?: { ts: string; toolName: string; message: string };
 };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
-
-function resolveHookConfig(
-  cfg: OpenClawConfig | undefined,
-  hookKey: string,
-): Record<string, unknown> | undefined {
-  const entry = cfg?.hooks?.internal?.entries?.[hookKey] as Record<string, unknown> | undefined;
-  return entry && typeof entry === "object" ? entry : undefined;
-}
-
-function safeFileKey(raw: string): string {
-  return raw.trim().replace(/[^a-zA-Z0-9._-]+/g, "_");
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
-
-function resolveSessionIdFromEntry(value: unknown): string | undefined {
-  const obj = asObject(value);
-  if (!obj) {
-    return undefined;
-  }
-  const sessionId = obj.sessionId;
-  return typeof sessionId === "string" && sessionId.trim() ? sessionId.trim() : undefined;
-}
 
 const handler = async (event: HookEvent): Promise<void> => {
   if (event.type !== "command") {

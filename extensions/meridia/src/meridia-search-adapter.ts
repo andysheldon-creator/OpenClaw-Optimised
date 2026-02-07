@@ -82,14 +82,18 @@ export class MeridiaSearchAdapter {
     // Check for meridia:// URI scheme
     if (isMeridiaUri(relPath)) {
       const result = await resolveKitUri(relPath, this.backend);
-      if (result) return result;
+      if (result) {
+        return result;
+      }
     }
 
     // Also handle bare IDs (e.g. from search results that strip the scheme)
     const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidLike.test(relPath)) {
       const result = await resolveKitUri(`meridia://${relPath}`, this.backend);
-      if (result) return result;
+      if (result) {
+        return result;
+      }
     }
 
     return { text: "", path: "" };
@@ -118,10 +122,11 @@ export class MeridiaSearchAdapter {
   }
 
   async probeVectorAvailability(): Promise<boolean> {
-    return false;
+    const sqliteBackend = this.backend as MeridiaDbBackend & { vecAvailable?: boolean };
+    return sqliteBackend.vecAvailable ?? false;
   }
 
   async close(): Promise<void> {
-    this.backend.close();
+    await this.backend.close();
   }
 }

@@ -17,12 +17,12 @@ import type {
   RecordQueryResult,
   TransactionOptions,
 } from "../backend.js";
-import { wipeDir } from "../../fs.js";
-import { isDefaultMeridiaDir, resolveMeridiaDir } from "../../paths.js";
+import { resolveMeridiaDir } from "../../paths.js";
+import { runMigrations, getCurrentVersion } from "../migrations.js";
 
 const require = createRequire(import.meta.url);
 
-const SCHEMA_VERSION = "2";
+// Schema version managed by migrations.ts
 
 // ────────────────────────────────────────────────────────────────────────────
 // Database Helpers
@@ -38,17 +38,6 @@ function openDb(dbPath: string): DatabaseSync {
   return db;
 }
 
-function listTables(db: DatabaseSync): string[] {
-  try {
-    const rows = db.prepare(`SELECT name FROM sqlite_master WHERE type='table'`).all() as Array<{
-      name: string;
-    }>;
-    return rows.map((row) => row.name).filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
 function tableExists(db: DatabaseSync, name: string): boolean {
   try {
     const row = db
@@ -60,148 +49,8 @@ function tableExists(db: DatabaseSync, name: string): boolean {
   }
 }
 
-function readSchemaVersion(db: DatabaseSync): string | null {
-  try {
-    if (!tableExists(db, "meridia_meta")) {
-      return null;
-    }
-    const row = db.prepare(`SELECT value FROM meridia_meta WHERE key = 'schema_version'`).get() as
-      | { value?: string }
-      | undefined;
-    return typeof row?.value === "string" ? row.value : null;
-  } catch {
-    return null;
-  }
-}
-
-function hasAnyUserTables(db: DatabaseSync): boolean {
-  const tables = listTables(db);
-  return tables.some((name) => name && !name.startsWith("sqlite_"));
-}
-
-// Schema versions that can be migrated to the current version
-const MIGRATABLE_VERSIONS = new Set(["1"]);
-
-function isExpectedSchema(db: DatabaseSync): boolean {
-  const required = ["meridia_meta", "meridia_records", "meridia_trace"];
-  for (const name of required) {
-    if (!tableExists(db, name)) {
-      return false;
-    }
-  }
-  const version = readSchemaVersion(db);
-  // Accept current version or any migratable version (will be upgraded in ensureSchema)
-  return version === SCHEMA_VERSION || (version !== null && MIGRATABLE_VERSIONS.has(version));
-}
-
-function columnExists(db: DatabaseSync, table: string, column: string): boolean {
-  try {
-    const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-    return rows.some((r) => r.name === column);
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Migrate v1 schema to v2: add memory classification + phenomenology columns.
- * Safe to call multiple times (idempotent via column existence checks).
- */
-function migrateV1toV2(db: DatabaseSync): void {
-  const cols = [
-    { name: "memory_type", type: "TEXT" },
-    { name: "classification_json", type: "TEXT" },
-    { name: "emotional_primary", type: "TEXT" },
-    { name: "emotional_intensity", type: "REAL" },
-    { name: "emotional_valence", type: "REAL" },
-    { name: "engagement_quality", type: "TEXT" },
-    { name: "phenomenology_json", type: "TEXT" },
-  ];
-  for (const col of cols) {
-    if (!columnExists(db, "meridia_records", col.name)) {
-      db.exec(`ALTER TABLE meridia_records ADD COLUMN ${col.name} ${col.type}`);
-    }
-  }
-  db.exec(
-    `CREATE INDEX IF NOT EXISTS idx_meridia_records_memory_type ON meridia_records(memory_type);`,
-  );
-}
-
-function ensureSchema(db: DatabaseSync): { ftsAvailable: boolean; ftsError?: string } {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS meridia_meta (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-  `);
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS meridia_records (
-      id TEXT PRIMARY KEY,
-      ts TEXT NOT NULL,
-      kind TEXT NOT NULL,
-      session_key TEXT,
-      session_id TEXT,
-      run_id TEXT,
-      tool_name TEXT,
-      tool_call_id TEXT,
-      is_error INTEGER DEFAULT 0,
-      score REAL,
-      threshold REAL,
-      eval_kind TEXT,
-      eval_model TEXT,
-      eval_reason TEXT,
-      tags_json TEXT,
-      data_json TEXT NOT NULL,
-      data_text TEXT,
-      -- V2 phenomenology columns
-      emotional_primary TEXT,
-      emotional_intensity REAL,
-      emotional_valence REAL,
-      engagement_quality TEXT,
-      phenomenology_json TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_meridia_records_ts ON meridia_records(ts);`);
-  db.exec(
-    `CREATE INDEX IF NOT EXISTS idx_meridia_records_session_key ON meridia_records(session_key);`,
-  );
-  db.exec(
-    `CREATE INDEX IF NOT EXISTS idx_meridia_records_tool_name ON meridia_records(tool_name);`,
-  );
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_meridia_records_score ON meridia_records(score);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_meridia_records_kind ON meridia_records(kind);`);
-  // V2 phenomenology indices
-  db.exec(
-    `CREATE INDEX IF NOT EXISTS idx_meridia_records_engagement ON meridia_records(engagement_quality);`,
-  );
-  db.exec(
-    `CREATE INDEX IF NOT EXISTS idx_meridia_records_emotional_intensity ON meridia_records(emotional_intensity);`,
-  );
-
-  // v1 → v2 migration handled below after trace table creation
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS meridia_trace (
-      id TEXT PRIMARY KEY,
-      ts TEXT NOT NULL,
-      kind TEXT NOT NULL,
-      session_key TEXT,
-      data_json TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_meridia_trace_ts ON meridia_trace(ts);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_meridia_trace_kind ON meridia_trace(kind);`);
-  db.exec(
-    `CREATE INDEX IF NOT EXISTS idx_meridia_trace_session_key ON meridia_trace(session_key);`,
-  );
-
-  // Migrate v1 → v2: add classification + phenomenology columns if missing
-  migrateV1toV2(db);
-
+/** Set up FTS5 virtual table (try/catch for graceful degradation). */
+function ensureFts(db: DatabaseSync): { ftsAvailable: boolean; ftsError?: string } {
   let ftsAvailable = false;
   let ftsError: string | undefined;
   try {
@@ -218,12 +67,25 @@ function ensureSchema(db: DatabaseSync): { ftsAvailable: boolean; ftsError?: str
   } catch (err) {
     ftsError = err instanceof Error ? err.message : String(err);
   }
-
-  db.prepare(`INSERT OR REPLACE INTO meridia_meta (key, value) VALUES ('schema_version', ?)`).run(
-    SCHEMA_VERSION,
-  );
-
   return { ftsAvailable, ...(ftsError ? { ftsError } : {}) };
+}
+
+/** Create the vec0 virtual table for vector search. Requires sqlite-vec extension loaded. */
+function ensureVecTable(
+  db: DatabaseSync,
+  dims: number,
+): { vecAvailable: boolean; vecError?: string } {
+  try {
+    db.exec(
+      `CREATE VIRTUAL TABLE IF NOT EXISTS meridia_vec USING vec0(` +
+        `record_id TEXT PRIMARY KEY, ` +
+        `embedding float[${dims}]` +
+        `);`,
+    );
+    return { vecAvailable: true };
+  } catch (err) {
+    return { vecAvailable: false, vecError: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -255,18 +117,19 @@ function buildSearchableText(record: MeridiaExperienceRecord): string {
   if (record.content?.context) parts.push(record.content.context);
   if (record.content?.tags?.length) parts.push(record.content.tags.join(" "));
   if (record.content?.anchors?.length) parts.push(record.content.anchors.join(" "));
-  // V2: Include phenomenology in searchable text
-  if (record.phenomenology?.emotionalSignature?.primary?.length) {
-    parts.push(record.phenomenology.emotionalSignature.primary.join(" "));
+  // Phenomenology (V2 top-level + legacy content.phenomenology)
+  const phenom = record.phenomenology ?? record.content?.phenomenology;
+  if (phenom?.emotionalSignature?.primary?.length) {
+    parts.push(phenom.emotionalSignature.primary.join(" "));
   }
-  if (record.phenomenology?.engagementQuality) {
-    parts.push(record.phenomenology.engagementQuality);
+  if (phenom?.engagementQuality) {
+    parts.push(phenom.engagementQuality);
   }
-  if (record.phenomenology?.anchors?.length) {
-    parts.push(record.phenomenology.anchors.map((a) => a.phrase).join(" "));
+  if (phenom?.anchors?.length) {
+    parts.push(phenom.anchors.map((a) => a.phrase).join(" "));
   }
-  if (record.phenomenology?.uncertainties?.length) {
-    parts.push(record.phenomenology.uncertainties.join(" "));
+  if (phenom?.uncertainties?.length) {
+    parts.push(phenom.uncertainties.join(" "));
   }
   if (record.data?.args !== undefined)
     parts.push(clampText(safeJsonStringify(record.data.args), 500));
@@ -507,6 +370,8 @@ export class SqliteBackend implements MeridiaDbBackend {
   private dbPath: string;
   private allowAutoWipe: boolean;
   private initCalled = false;
+  vecAvailable = false;
+  private embeddingDimensions = 384;
 
   constructor(params: { dbPath: string; allowAutoWipe?: boolean }) {
     this.dbPath = params.dbPath;
@@ -524,64 +389,31 @@ export class SqliteBackend implements MeridiaDbBackend {
 
     fs.mkdirSync(path.dirname(this.dbPath), { recursive: true, mode: 0o700 });
 
-    const dbExists = fs.existsSync(this.dbPath);
-    const dirPath = path.dirname(this.dbPath);
-    const dirHasFiles =
-      fs.existsSync(dirPath) &&
-      (() => {
-        try {
-          return fs.readdirSync(dirPath).length > 0;
-        } catch {
-          return false;
-        }
-      })();
+    this.db = openDb(this.dbPath);
 
-    if (dbExists) {
-      const tmp = openDb(this.dbPath);
-      const mismatch = hasAnyUserTables(tmp) && !isExpectedSchema(tmp);
-      try {
-        tmp.close();
-      } catch {}
-
-      if (mismatch) {
-        if (!this.allowAutoWipe || !isDefaultMeridiaDir(dirPath)) {
-          throw new Error(
-            `Unsupported Meridia data detected in ${JSON.stringify(dirPath)}. ` +
-              `Run: openclaw meridia reset --dir ${JSON.stringify(dirPath)} --force`,
-          );
-        }
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[meridia] Unsupported existing data detected in ${dirPath}; wiping and recreating.`,
-        );
-        wipeDir(dirPath);
-      }
-    } else if (dirHasFiles) {
-      if (!this.allowAutoWipe || !isDefaultMeridiaDir(dirPath)) {
-        throw new Error(
-          `Unsupported Meridia data detected in ${JSON.stringify(dirPath)}. ` +
-            `Run: openclaw meridia reset --dir ${JSON.stringify(dirPath)} --force`,
-        );
-      }
+    // Run forward-only migrations (replaces wipe-on-mismatch)
+    const migrationResult = runMigrations(this.db);
+    if (migrationResult.applied.length > 0) {
       // eslint-disable-next-line no-console
-      console.warn(
-        `[meridia] Unsupported existing data detected in ${dirPath}; wiping and recreating.`,
+      console.log(
+        `[meridia] Applied migrations: ${migrationResult.applied.join(", ")} (v${migrationResult.current})`,
       );
-      wipeDir(dirPath);
     }
 
-    this.db = openDb(this.dbPath);
-    const result = ensureSchema(this.db);
-    this.ftsAvailable = result.ftsAvailable;
-    this.schemaVersion = readSchemaVersion(this.db);
+    // Set up FTS (try/catch for graceful degradation)
+    const ftsResult = ensureFts(this.db);
+    this.ftsAvailable = ftsResult.ftsAvailable;
+
+    this.schemaVersion = String(getCurrentVersion(this.db));
     this.initCalled = true;
   }
 
   async ensureSchema(): Promise<{ ftsAvailable: boolean; ftsError?: string }> {
     this.ensureDb();
-    const res = ensureSchema(this.db!);
+    runMigrations(this.db!);
+    const res = ensureFts(this.db!);
     this.ftsAvailable = res.ftsAvailable;
-    this.schemaVersion = readSchemaVersion(this.db!);
+    this.schemaVersion = String(getCurrentVersion(this.db!));
     return res;
   }
 
@@ -743,18 +575,24 @@ export class SqliteBackend implements MeridiaDbBackend {
     const hasFts = this.ftsAvailable && tableExists(this.db!, "meridia_records_fts");
 
     if (hasFts) {
-      const rows = this.db!.prepare(
-        `
-          SELECT r.data_json AS data_json, bm25(meridia_records_fts) AS rank
-          FROM meridia_records_fts
-          JOIN meridia_records r ON meridia_records_fts.rowid = r.rowid
-          ${where ? `${where} AND meridia_records_fts MATCH ?` : "WHERE meridia_records_fts MATCH ?"}
-          ORDER BY rank ASC
-          LIMIT ${limit}
-        `,
-      ).all(...params, trimmed) as Array<{ data_json: string; rank: number }>;
+      // Quote the query to prevent FTS5 column-prefix syntax (e.g. "sk-live-..." → column:live)
+      const ftsQuery = `"${trimmed.replaceAll('"', '""')}"`;
+      try {
+        const rows = this.db!.prepare(
+          `
+            SELECT r.data_json AS data_json, bm25(meridia_records_fts) AS rank
+            FROM meridia_records_fts
+            JOIN meridia_records r ON meridia_records_fts.rowid = r.rowid
+            ${where ? `${where} AND meridia_records_fts MATCH ?` : "WHERE meridia_records_fts MATCH ?"}
+            ORDER BY rank ASC
+            LIMIT ${limit}
+          `,
+        ).all(...params, ftsQuery) as Array<{ data_json: string; rank: number }>;
 
-      return rows.map((row) => ({ record: parseRecordJson(row.data_json), rank: row.rank }));
+        return rows.map((row) => ({ record: parseRecordJson(row.data_json), rank: row.rank }));
+      } catch {
+        // FTS query failed (e.g. syntax issue); fall through to LIKE search
+      }
     }
 
     const like = `%${trimmed}%`;
@@ -1022,6 +860,75 @@ export class SqliteBackend implements MeridiaDbBackend {
       key,
       value,
     );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Vector Operations
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /** Load the sqlite-vec extension and create the vec0 virtual table. */
+  async loadVectorExtension(extensionPath?: string): Promise<{ ok: boolean; error?: string }> {
+    this.ensureDb();
+    try {
+      const { loadSqliteVecExtension } = await import(
+        /* webpackIgnore: true */ "../../../../../../src/memory/sqlite-vec.js"
+      );
+      const loadResult = await loadSqliteVecExtension({
+        db: this.db!,
+        extensionPath,
+      });
+      if (!loadResult.ok) {
+        return { ok: false, error: loadResult.error };
+      }
+      const vecResult = ensureVecTable(this.db!, this.embeddingDimensions);
+      this.vecAvailable = vecResult.vecAvailable;
+      if (vecResult.vecAvailable) {
+        this.db!.prepare(
+          `INSERT OR REPLACE INTO meridia_meta (key, value) VALUES ('vector_enabled', 'true')`,
+        ).run();
+      }
+      return { ok: this.vecAvailable, error: vecResult.vecError };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /** Insert an embedding vector for a record. */
+  async insertEmbedding(recordId: string, embedding: Float32Array): Promise<boolean> {
+    if (!this.vecAvailable) return false;
+    this.ensureDb();
+    try {
+      // vec0 doesn't support upsert; delete-then-insert
+      this.db!.prepare(`DELETE FROM meridia_vec WHERE record_id = ?`).run(recordId);
+      this.db!.prepare(`INSERT INTO meridia_vec (record_id, embedding) VALUES (?, ?)`).run(
+        recordId,
+        embedding,
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Search using vector similarity. Returns record IDs ranked by distance. */
+  async searchByVector(
+    embedding: Float32Array,
+    limit: number = 20,
+  ): Promise<Array<{ recordId: string; distance: number }>> {
+    if (!this.vecAvailable) return [];
+    this.ensureDb();
+    try {
+      const rows = this.db!.prepare(
+        `SELECT v.record_id, v.distance
+           FROM meridia_vec v
+           WHERE v.embedding MATCH ?
+           ORDER BY v.distance ASC
+           LIMIT ?`,
+      ).all(embedding, limit) as Array<{ record_id: string; distance: number }>;
+      return rows.map((r) => ({ recordId: r.record_id, distance: r.distance }));
+    } catch {
+      return [];
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────

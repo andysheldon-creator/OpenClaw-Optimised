@@ -9,6 +9,7 @@ export type MeridiaEvaluation = {
   model?: string;
   durationMs?: number;
   error?: string;
+  phenomenology?: Phenomenology;
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -139,6 +140,7 @@ export type MeridiaExperienceRecord = {
       relationship?: string[];
       consequences?: string[];
     };
+    phenomenology?: Phenomenology;
   };
   /** V2 phenomenology (stored alongside legacy content for backward compat) */
   phenomenology?: Phenomenology;

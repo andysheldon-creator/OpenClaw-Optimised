@@ -3,8 +3,13 @@ import crypto from "node:crypto";
 import type { MeridiaTraceEvent } from "../../src/meridia/types.js";
 import { resolveMeridiaPluginConfig } from "../../src/meridia/config.js";
 import { createBackend } from "../../src/meridia/db/index.js";
+import {
+  type HookEvent,
+  resolveHookConfig,
+  readPositiveNumber,
+  readBoolean,
+} from "../../src/meridia/event.js";
 import { resolveMeridiaDir } from "../../src/meridia/paths.js";
-// Legacy fallback
 import { generateReconstitution } from "../../src/meridia/reconstitute.js";
 // V2: Use enhanced reconstitution engine (Component 11)
 import { generateEnhancedReconstitution } from "../../src/meridia/reconstitution/engine.js";
@@ -16,53 +21,7 @@ type WorkspaceBootstrapFile = {
   role: "system" | "user";
 };
 
-type HookEvent = {
-  type: string;
-  action: string;
-  timestamp: Date;
-  sessionKey?: string;
-  context?: unknown;
-};
-
-function resolveHookConfig(
-  cfg: OpenClawConfig | undefined,
-  hookKey: string,
-): Record<string, unknown> | undefined {
-  const entry = cfg?.hooks?.internal?.entries?.[hookKey] as Record<string, unknown> | undefined;
-  return entry && typeof entry === "object" ? entry : undefined;
-}
-
-function readPositiveNumber(
-  hookCfg: Record<string, unknown> | undefined,
-  key: string,
-  fallback: number,
-): number {
-  if (!hookCfg) return fallback;
-  const val = hookCfg[key];
-  if (typeof val === "number" && Number.isFinite(val) && val > 0) {
-    return val;
-  }
-  if (typeof val === "string") {
-    const parsed = Number(val.trim());
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return parsed;
-    }
-  }
-  return fallback;
-}
-
-function readBoolean(
-  hookCfg: Record<string, unknown> | undefined,
-  key: string,
-  fallback: boolean,
-): boolean {
-  if (!hookCfg) return fallback;
-  const val = hookCfg[key];
-  if (typeof val === "boolean") return val;
-  if (val === "true") return true;
-  if (val === "false") return false;
-  return fallback;
-}
+// Local helpers removed — shared via event.js imports
 
 const handler = async (event: HookEvent): Promise<void> => {
   if (event.type !== "agent" || event.action !== "bootstrap") {
