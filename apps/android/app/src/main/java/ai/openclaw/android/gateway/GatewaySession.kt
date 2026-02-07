@@ -625,10 +625,12 @@ class GatewaySession(
       val q = parsed?.rawQuery
       if (!q.isNullOrBlank()) append("?$q")
     }
+    // Preserve explicit non-default port from the advertised URL.
+    val portSuffix = if (port > 0 && port != 443) ":$port" else ""
 
-    // If the advertised URL has a non-loopback .ts.net host, use HTTPS on default port (443).
+    // If the advertised URL has a non-loopback .ts.net host, use HTTPS (preserve explicit port).
     if (host.endsWith(".ts.net", ignoreCase = true)) {
-      return "https://$host$pathSuffix"
+      return "https://$host$portSuffix$pathSuffix"
     }
 
     if (trimmed.isNotBlank() && !isLoopbackHost(host)) {
