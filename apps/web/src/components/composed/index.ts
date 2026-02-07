@@ -24,3 +24,4 @@ export {
 } from "./LoadingSkeleton";
 export { RouteErrorFallback, type RouteErrorFallbackProps } from "./RouteErrorFallback";
 export { ErrorState, errorMessages, type ErrorStateProps, type ErrorStateVariant } from "./ErrorState";
+export { GlobalSearchDialog, useGlobalSearchDialog, type GlobalSearchDialogProps } from "./GlobalSearchDialog";

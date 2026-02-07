@@ -3,6 +3,10 @@ import { motion } from "framer-motion";
 import { Sidebar } from "./Sidebar";
 import { cn } from "@/lib/utils";
 import { ApprovalAttentionNudgeConnected } from "@/components/composed/ApprovalAttentionNudge";
+import {
+  GlobalSearchDialog,
+  useGlobalSearchDialog,
+} from "@/components/composed/GlobalSearchDialog";
 
 export interface AppShellProps {
   /** Main content to render */
@@ -23,11 +27,19 @@ export interface AppShellProps {
  * - Mobile (<768px): Bottom nav (handled separately)
  */
 export function AppShell({ children, panel, className }: AppShellProps) {
+  const globalSearch = useGlobalSearchDialog();
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Global Search Dialog (Cmd+Shift+F) */}
+      <GlobalSearchDialog
+        open={globalSearch.open}
+        onOpenChange={globalSearch.setOpen}
+      />
+
       {/* Sidebar - Hidden on mobile, shown on tablet+ */}
       <div className="hidden md:flex">
-        <Sidebar />
+        <Sidebar onSearchClick={() => globalSearch.setOpen(true)} />
       </div>
 
       {/* Main Content Area */}

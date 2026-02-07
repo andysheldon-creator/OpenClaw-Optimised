@@ -24,6 +24,7 @@ import {
   HardDrive,
   Calendar,
   Share2,
+  Search,
 } from "lucide-react";
 import { useUIStore } from "@/stores/useUIStore";
 import { NavItem } from "./NavItem";
@@ -36,6 +37,8 @@ import { cn } from "@/lib/utils";
 export interface SidebarProps {
   /** Additional className */
   className?: string;
+  /** Callback when the search button is clicked */
+  onSearchClick?: () => void;
 }
 
 interface NavSectionProps {
@@ -98,7 +101,7 @@ function NavSection({ title, collapsed, children, defaultOpen = true }: NavSecti
   );
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, onSearchClick }: SidebarProps) {
   const { sidebarCollapsed, toggleSidebar, powerUserMode } = useUIStore();
 
   return (
@@ -134,6 +137,42 @@ export function Sidebar({ className }: SidebarProps) {
           </AnimatePresence>
         </Link>
       </div>
+
+      {/* Search Button */}
+      {onSearchClick && (
+        <div className="px-2 pt-3">
+          <button
+            type="button"
+            onClick={onSearchClick}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground",
+              "hover:bg-muted hover:text-foreground transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              sidebarCollapsed && "justify-center px-2"
+            )}
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <AnimatePresence initial={false}>
+              {!sidebarCollapsed && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 overflow-hidden whitespace-nowrap text-left"
+                >
+                  Search...
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {!sidebarCollapsed && (
+              <kbd className="hidden shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:inline-block">
+                ⌘⇧F
+              </kbd>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin py-4 space-y-4">
