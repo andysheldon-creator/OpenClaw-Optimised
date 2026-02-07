@@ -1,8 +1,8 @@
 import { intro, outro, spinner } from "@clack/prompts";
 import fs from "node:fs";
-import path from "node:path";
 import type { RuntimeEnv } from "../runtime.js";
 import { resolveStateDir } from "../config/paths.js";
+import { findSessionFiles } from "../gateway/session-utils.fs.js";
 import { redactSensitiveText } from "../logging/redact.js";
 import { stylePromptTitle } from "../terminal/prompt-style.js";
 import { theme } from "../terminal/theme.js";
@@ -18,35 +18,6 @@ type ScrubResult = {
   filesModified: number;
   redactionCount: number;
 };
-
-async function findSessionFiles(stateDir: string): Promise<string[]> {
-  const agentsDir = path.join(stateDir, "agents");
-  if (!fs.existsSync(agentsDir)) {
-    return [];
-  }
-
-  const files: string[] = [];
-  const agentDirs = await fs.promises.readdir(agentsDir, { withFileTypes: true });
-
-  for (const agentDir of agentDirs) {
-    if (!agentDir.isDirectory()) {
-      continue;
-    }
-    const sessionsDir = path.join(agentsDir, agentDir.name, "sessions");
-    if (!fs.existsSync(sessionsDir)) {
-      continue;
-    }
-
-    const sessionFiles = await fs.promises.readdir(sessionsDir);
-    for (const file of sessionFiles) {
-      if (file.endsWith(".jsonl")) {
-        files.push(path.join(sessionsDir, file));
-      }
-    }
-  }
-
-  return files;
-}
 
 async function scrubSessionFile(
   filePath: string,
@@ -64,7 +35,12 @@ async function scrubSessionFile(
     const redacted = redactSensitiveText(line, { mode: "tools" });
     if (redacted !== line) {
       modified = true;
-      redactionCount++;
+      // Count actual redactions by comparing lengths or counting redaction markers
+      // Each redaction replaces text with [REDACTED], so count occurrences
+      const redactedMatches = redacted.match(/\[REDACTED\]/g);
+      const originalMatches = line.match(/\[REDACTED\]/g);
+      const newRedactions = (redactedMatches?.length ?? 0) - (originalMatches?.length ?? 0);
+      redactionCount += Math.max(0, newRedactions);
     }
     return redacted;
   });

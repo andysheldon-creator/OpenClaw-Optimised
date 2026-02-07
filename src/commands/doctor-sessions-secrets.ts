@@ -1,42 +1,21 @@
 import fs from "node:fs";
-import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveStateDir } from "../config/paths.js";
+import { findSessionFiles } from "../gateway/session-utils.fs.js";
 import { getDefaultRedactPatterns } from "../logging/redact.js";
 import { note } from "../terminal/note.js";
 
-async function findSessionFiles(stateDir: string): Promise<string[]> {
-  const agentsDir = path.join(stateDir, "agents");
-  if (!fs.existsSync(agentsDir)) {
-    return [];
+/**
+ * Randomly shuffle an array using Fisher-Yates algorithm.
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-
-  const files: string[] = [];
-  try {
-    const agentDirs = await fs.promises.readdir(agentsDir, { withFileTypes: true });
-
-    for (const agentDir of agentDirs) {
-      if (!agentDir.isDirectory()) {
-        continue;
-      }
-      const sessionsDir = path.join(agentsDir, agentDir.name, "sessions");
-      if (!fs.existsSync(sessionsDir)) {
-        continue;
-      }
-
-      const sessionFiles = await fs.promises.readdir(sessionsDir);
-      for (const file of sessionFiles) {
-        if (file.endsWith(".jsonl")) {
-          files.push(path.join(sessionsDir, file));
-        }
-      }
-    }
-  } catch {
-    // Silently skip if we can't read the directory
-  }
-
-  return files;
+  return shuffled;
 }
 
 async function scanFileForSecrets(filePath: string, patterns: RegExp[]): Promise<boolean> {
@@ -88,9 +67,9 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
   const patterns = compilePatterns(getDefaultRedactPatterns());
   let filesWithSecrets = 0;
 
-  // Scan a sample of files to avoid long delays
-  const sampleSize = Math.min(files.length, 50);
-  const sampled = files.slice(0, sampleSize);
+  // Scan all files if <=200, otherwise sample 200 randomly to avoid long delays
+  const sampled = files.length > 200 ? shuffleArray(files).slice(0, 200) : files;
+  const sampleSize = sampled.length;
 
   for (const file of sampled) {
     if (await scanFileForSecrets(file, patterns)) {
@@ -102,8 +81,9 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
 
   if (filesWithSecrets > 0) {
     const percentage = Math.round((filesWithSecrets / sampleSize) * 100);
+    const sampledNote = files.length > 200 ? " (random sample)" : "";
     warnings.push(
-      `- Found unredacted secrets in ${filesWithSecrets} of ${sampleSize} session files scanned (~${percentage}%).`,
+      `- Found unredacted secrets in ${filesWithSecrets} of ${sampleSize} session files scanned${sampledNote} (~${percentage}%).`,
     );
     warnings.push(
       `  Session transcripts may contain API keys, tokens, or passwords from tool calls.`,
@@ -115,8 +95,9 @@ export async function noteSessionSecretsWarnings(_cfg?: OpenClawConfig): Promise
     warnings.push("  Note: Runtime redaction is already enabled (read-time protection).");
     warnings.push("  The scrub command provides at-rest scrubbing for historical sessions.");
   } else {
+    const sampledNote = files.length > 200 ? " (random sample)" : "";
     warnings.push(
-      `- Scanned ${sampleSize} session file(s), no obvious unredacted secrets detected.`,
+      `- Scanned ${sampleSize} session file(s)${sampledNote}, no obvious unredacted secrets detected.`,
     );
     warnings.push(
       `  This is a basic pattern check. Run ${formatCliCommand("openclaw sessions scrub --dry-run")} for thorough analysis.`,
