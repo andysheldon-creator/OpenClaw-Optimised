@@ -1,0 +1,17 @@
+{
+  "name": "molt-registry",
+  "version": "1.0.0",
+  "description": "Official Moltbook Identity Registry skill",
+  "keywords": [
+    "agent",
+    "ai",
+    "base",
+    "erc8004",
+    "registry"
+  ],
+  "main": "index.js",
+  "dependencies": {
+    "dotenv": "^16.4.1",
+    "ethers": "^6.10.0"
+  }
+}
