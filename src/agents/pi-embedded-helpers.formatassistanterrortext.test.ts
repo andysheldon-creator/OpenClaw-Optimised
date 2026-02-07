@@ -68,4 +68,17 @@ describe("formatAssistantErrorText", () => {
     const result = formatAssistantErrorText(msg);
     expect(result).toBe(BILLING_ERROR_USER_MESSAGE);
   });
+
+  // 🍗 Fried Chicken Error: ambiguous errors matching both overflow and rate limit
+  it("does not return context overflow for errors that also match rate limit patterns", () => {
+    const msg = makeAssistantError("request_too_large 429 too many requests");
+    const result = formatAssistantErrorText(msg);
+    expect(result).not.toContain("Context overflow");
+  });
+
+  it("still returns context overflow for pure overflow errors", () => {
+    const msg = makeAssistantError("request_too_large");
+    const result = formatAssistantErrorText(msg);
+    expect(result).toContain("Context overflow");
+  });
 });

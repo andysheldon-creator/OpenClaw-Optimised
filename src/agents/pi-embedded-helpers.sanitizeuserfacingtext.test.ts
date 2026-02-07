@@ -37,4 +37,26 @@ describe("sanitizeUserFacingText", () => {
     const text = "Hello there!\n\nDifferent line.";
     expect(sanitizeUserFacingText(text)).toBe(text);
   });
+
+  // 🍗 Fried Chicken Error: errors matching both context overflow AND rate limit
+  // patterns should NOT be rewritten to the context overflow message.
+  it("does not rewrite rate limit errors that also match context overflow patterns", () => {
+    // An error containing both "context overflow" and "429" should be treated as
+    // a rate limit, not swallowed as context overflow
+    const ambiguous = "429 context overflow rate limit exceeded";
+    const result = sanitizeUserFacingText(ambiguous);
+    expect(result).not.toContain("prompt too large for the model");
+  });
+
+  it("does not rewrite overloaded errors that mention context", () => {
+    const ambiguous = "context length exceeded - resource has been exhausted";
+    const result = sanitizeUserFacingText(ambiguous);
+    expect(result).not.toContain("prompt too large for the model");
+  });
+
+  it("still rewrites pure context overflow errors", () => {
+    const pure = "context length exceeded";
+    const result = sanitizeUserFacingText(pure);
+    expect(result).toContain("prompt too large for the model");
+  });
 });
