@@ -1,8 +1,24 @@
-import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
-import { toToolDefinitions } from "./pi-tool-definition-adapter.js";
+import type { ClientToolDefinition } from "./pi-embedded-runner/run/params.js";
+import { toClientToolDefinitions, toToolDefinitions } from "./pi-tool-definition-adapter.js";
+import { truncateToolNameForOpenAI } from "./tool-policy.js";
 
 describe("pi tool definition adapter", () => {
+  const executeTool = async (
+    execute: unknown,
+    toolCallId: string,
+    params: Record<string, unknown>,
+  ) => {
+    const run = execute as (
+      toolCallId: string,
+      params: unknown,
+      arg3?: unknown,
+      arg4?: unknown,
+      arg5?: unknown,
+    ) => Promise<{ details: Record<string, unknown> }>;
+    return await run(toolCallId, params, undefined, undefined, undefined);
+  };
+
   it("wraps tool errors into a tool result", async () => {
     const tool = {
       name: "boom",
@@ -12,10 +28,10 @@ describe("pi tool definition adapter", () => {
       execute: async () => {
         throw new Error("nope");
       },
-    } satisfies AgentTool<unknown, unknown>;
+    };
 
     const defs = toToolDefinitions([tool]);
-    const result = await defs[0].execute("call1", {}, undefined, undefined);
+    const result = await executeTool(defs[0].execute, "call1", {});
 
     expect(result.details).toMatchObject({
       status: "error",
@@ -34,15 +50,43 @@ describe("pi tool definition adapter", () => {
       execute: async () => {
         throw new Error("nope");
       },
-    } satisfies AgentTool<unknown, unknown>;
+    };
 
     const defs = toToolDefinitions([tool]);
-    const result = await defs[0].execute("call2", {}, undefined, undefined);
+    const result = await executeTool(defs[0].execute, "call2", {});
 
     expect(result.details).toMatchObject({
       status: "error",
       tool: "exec",
       error: "nope",
+    });
+  });
+
+  it("uses truncated api name consistently for client tool callback and result", async () => {
+    const originalName = `very_long_client_tool_name_${"x".repeat(80)}`;
+    const clientTool: ClientToolDefinition = {
+      type: "function",
+      function: {
+        name: originalName,
+        description: "client tool",
+        parameters: { type: "object", properties: {} },
+      },
+    };
+
+    let callbackToolName = "";
+    const defs = toClientToolDefinitions([clientTool], (toolName) => {
+      callbackToolName = toolName;
+    });
+
+    const expectedApiName = truncateToolNameForOpenAI(originalName);
+    expect(defs[0].name).toBe(expectedApiName);
+
+    const result = await executeTool(defs[0].execute, "call3", {});
+
+    expect(callbackToolName).toBe(expectedApiName);
+    expect(result.details).toMatchObject({
+      status: "pending",
+      tool: expectedApiName,
     });
   });
 });
