@@ -85,7 +85,7 @@ export function parseExecApprovalData(
   };
 }
 
-function formatExecApprovalEmbed(request: ExecApprovalRequest) {
+export function formatExecApprovalEmbed(request: ExecApprovalRequest) {
   const commandText = request.request.command;
   const commandPreview =
     commandText.length > 1000 ? `${commandText.slice(0, 1000)}...` : commandText;
@@ -184,6 +184,34 @@ function formatExpiredEmbed(request: ExecApprovalRequest) {
     footer: { text: `ID: ${request.id}` },
     timestamp: new Date().toISOString(),
   };
+}
+
+export function buildExecApprovalComponents(approvalId: string) {
+  return [
+    {
+      type: 1, // ACTION_ROW
+      components: [
+        {
+          type: 2, // BUTTON
+          style: ButtonStyle.Success,
+          label: "Allow once",
+          custom_id: buildExecApprovalCustomId(approvalId, "allow-once"),
+        },
+        {
+          type: 2, // BUTTON
+          style: ButtonStyle.Primary,
+          label: "Always allow",
+          custom_id: buildExecApprovalCustomId(approvalId, "allow-always"),
+        },
+        {
+          type: 2, // BUTTON
+          style: ButtonStyle.Danger,
+          label: "Deny",
+          custom_id: buildExecApprovalCustomId(approvalId, "deny"),
+        },
+      ],
+    },
+  ];
 }
 
 export type DiscordExecApprovalHandlerOpts = {
@@ -331,33 +359,7 @@ export class DiscordExecApprovalHandler {
     );
 
     const embed = formatExecApprovalEmbed(request);
-
-    // Build action rows with buttons
-    const components = [
-      {
-        type: 1, // ACTION_ROW
-        components: [
-          {
-            type: 2, // BUTTON
-            style: ButtonStyle.Success,
-            label: "Allow once",
-            custom_id: buildExecApprovalCustomId(request.id, "allow-once"),
-          },
-          {
-            type: 2, // BUTTON
-            style: ButtonStyle.Primary,
-            label: "Always allow",
-            custom_id: buildExecApprovalCustomId(request.id, "allow-always"),
-          },
-          {
-            type: 2, // BUTTON
-            style: ButtonStyle.Danger,
-            label: "Deny",
-            custom_id: buildExecApprovalCustomId(request.id, "deny"),
-          },
-        ],
-      },
-    ];
+    const components = buildExecApprovalComponents(request.id);
 
     const approvers = this.opts.config.approvers ?? [];
 

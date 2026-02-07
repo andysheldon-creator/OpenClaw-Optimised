@@ -194,6 +194,7 @@ async function deliverToTargets(params: {
   cfg: OpenClawConfig;
   targets: ForwardTarget[];
   text: string;
+  channelData?: Record<string, unknown>;
   deliver: typeof deliverOutboundPayloads;
   shouldSend?: () => boolean;
 }) {
@@ -212,7 +213,7 @@ async function deliverToTargets(params: {
         to: target.to,
         accountId: target.accountId,
         threadId: target.threadId,
-        payloads: [{ text: params.text }],
+        payloads: [{ text: params.text, channelData: params.channelData }],
       });
     } catch (err) {
       log.error(`exec approvals: failed to deliver to ${channel}:${target.to}: ${String(err)}`);
@@ -290,10 +291,24 @@ export function createExecApprovalForwarder(
     }
 
     const text = buildRequestMessage(request, nowMs());
+    const channelData: Record<string, unknown> = {
+      discord: {
+        execApproval: {
+          id: request.id,
+          command: request.request.command,
+          cwd: request.request.cwd,
+          host: request.request.host,
+          agentId: request.request.agentId,
+          security: request.request.security,
+          expiresAtMs: request.expiresAtMs,
+        },
+      },
+    };
     await deliverToTargets({
       cfg,
       targets,
       text,
+      channelData,
       deliver,
       shouldSend: () => pending.get(request.id) === pendingEntry,
     });

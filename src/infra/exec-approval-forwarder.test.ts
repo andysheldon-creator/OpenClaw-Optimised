@@ -35,6 +35,12 @@ describe("exec approval forwarder", () => {
     await forwarder.handleRequested(baseRequest);
     expect(deliver).toHaveBeenCalledTimes(1);
 
+    // Verify channelData is included in the request delivery
+    const requestPayloads = deliver.mock.calls[0][0].payloads;
+    expect(requestPayloads[0].channelData).toBeDefined();
+    expect(requestPayloads[0].channelData.discord.execApproval.id).toBe("req-1");
+    expect(requestPayloads[0].channelData.discord.execApproval.command).toBe("echo hello");
+
     await forwarder.handleResolved({
       id: baseRequest.id,
       decision: "allow-once",
