@@ -34,7 +34,6 @@ describe("hr (thematic break) spacing", () => {
 
 Para 2`;
       const result = markdownToIR(input);
-      console.log("HR between paras:", JSON.stringify(result.text));
       expect(result.text).toBe("Para 1\n\n───\n\nPara 2");
     });
 
@@ -45,7 +44,6 @@ Para 2`;
 ***
 Para 2`;
       const result = markdownToIR(input);
-      console.log("HR interrupts:", JSON.stringify(result.text));
       // HR interrupts para, renders visibly
       expect(result.text).toContain("───");
     });
@@ -139,16 +137,13 @@ Para 2`;
   });
 
   describe("edge cases", () => {
-    it("hr inside list should not affect list formatting", () => {
-      // Note: CommonMark says hr takes precedence over list in some cases
-      // This tests hr in a separate list item
+    it("hr between list items renders as separator without extra spacing", () => {
       const input = `- Item 1
 - ---
 - Item 2`;
       const result = markdownToIR(input);
-      // The middle item contains "---" as text (not an hr) due to list context
-      // This is actually complex CommonMark parsing behavior
-      console.log("HR in list:", JSON.stringify(result.text));
+      expect(result.text).toBe("• Item 1\n\n───\n\n• Item 2");
+      expect(result.text).not.toMatch(/\n{3,}/);
     });
 
     it("hr followed immediately by heading", () => {

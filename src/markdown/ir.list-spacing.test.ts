@@ -8,7 +8,6 @@ describe("list paragraph spacing", () => {
 
 Paragraph after`;
     const result = markdownToIR(input);
-    console.log("Output:", JSON.stringify(result.text));
     // Should have two newlines between "item 2" and "Paragraph"
     expect(result.text).toContain("item 2\n\nParagraph");
   });
@@ -19,7 +18,6 @@ Paragraph after`;
 
 Paragraph after`;
     const result = markdownToIR(input);
-    console.log("Output:", JSON.stringify(result.text));
     expect(result.text).toContain("item 2\n\nParagraph");
   });
 

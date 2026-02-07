@@ -60,10 +60,6 @@ describe("Nested Lists - 2 Level Nesting", () => {
   • Nested 1.2
 • Item 2`;
 
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
-
     expect(result.text).toBe(expected);
   });
 
@@ -84,10 +80,6 @@ describe("Nested Lists - 2 Level Nesting", () => {
   1. Ordered sub-item 1
   2. Ordered sub-item 2
 • Another bullet`;
-
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
 
     expect(result.text).toBe(expected);
   });
@@ -110,10 +102,6 @@ describe("Nested Lists - 2 Level Nesting", () => {
   • Bullet sub 2
 2. Ordered 2`;
 
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
-
     expect(result.text).toBe(expected);
   });
 
@@ -129,10 +117,6 @@ describe("Nested Lists - 2 Level Nesting", () => {
   1. Sub-first
   2. Sub-second
 2. Second`;
-
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
 
     expect(result.text).toBe(expected);
   });
@@ -157,10 +141,6 @@ describe("Nested Lists - 3+ Level Deep Nesting", () => {
     • Level 3
 • Back to 1`;
 
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
-
     expect(result.text).toBe(expected);
   });
 
@@ -178,10 +158,6 @@ describe("Nested Lists - 3+ Level Deep Nesting", () => {
     • L3
       • L4
 • Back`;
-
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
 
     expect(result.text).toBe(expected);
   });
@@ -203,10 +179,6 @@ describe("Nested Lists - 3+ Level Deep Nesting", () => {
   • B2
 • A2`;
 
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
-
     expect(result.text).toBe(expected);
   });
 });
@@ -227,10 +199,6 @@ describe("Nested Lists - Mixed Nesting", () => {
   2. Ordered 1.2
 • Bullet 2`;
 
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
-
     expect(result.text).toBe(expected);
   });
 
@@ -248,10 +216,6 @@ describe("Nested Lists - Mixed Nesting", () => {
     1. Deep ordered
   • Another bullet
 2. Second`;
-
-    console.log("Input:", JSON.stringify(input));
-    console.log("Output:", JSON.stringify(result.text));
-    console.log("Expected:", JSON.stringify(expected));
 
     expect(result.text).toBe(expected);
   });
@@ -276,7 +240,8 @@ describe("Nested Lists - Newline Handling", () => {
     const result = markdownToIR(input);
 
     // Between B and C there should be exactly one newline
-    expect(result.text).not.toMatch(/Nested.*\n\n.*Nested/);
+    expect(result.text).toContain("  • B\n  • C");
+    expect(result.text).not.toContain("  • B\n\n  • C");
   });
 
   it("properly terminates top-level list (trimmed output)", () => {
@@ -302,7 +267,6 @@ describe("Nested Lists - Edge Cases", () => {
 - Normal`;
 
     const result = markdownToIR(input);
-    console.log("Empty parent output:", JSON.stringify(result.text));
 
     // Should still render the nested item with proper indentation
     expect(result.text).toContain("  • Nested only");
