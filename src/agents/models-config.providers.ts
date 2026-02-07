@@ -91,20 +91,16 @@ const OLLAMA_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
-interface OllamaModel {
-  name: string;
-  modified_at: string;
-  size: number;
-  digest: string;
-  details?: {
-    family?: string;
-    parameter_size?: string;
-  };
-}
-
-interface OllamaTagsResponse {
-  models: OllamaModel[];
-}
+export const QIANFAN_BASE_URL = "https://qianfan.baidubce.com/v2";
+export const QIANFAN_DEFAULT_MODEL_ID = "deepseek-v3.2";
+const QIANFAN_DEFAULT_CONTEXT_WINDOW = 98304;
+const QIANFAN_DEFAULT_MAX_TOKENS = 32768;
+const QIANFAN_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
 
 type OpenAiModelEntry = {
   id?: string;
@@ -123,6 +119,21 @@ type NebiusTokenFactoryModel = {
   contextWindow: number;
   maxTokens: number;
 };
+
+interface OllamaModel {
+  name: string;
+  modified_at: string;
+  size: number;
+  digest: string;
+  details?: {
+    family?: string;
+    parameter_size?: string;
+  };
+}
+
+interface OllamaTagsResponse {
+  models: OllamaModel[];
+}
 
 async function discoverOllamaModels(): Promise<ModelDefinitionConfig[]> {
   // Skip Ollama discovery in test environments
@@ -361,6 +372,71 @@ function buildMoonshotProvider(): ProviderConfig {
   };
 }
 
+function coerceNebiusTokenFactoryModel(entry: OpenAiModelEntry): NebiusTokenFactoryModel | null {
+  const id = typeof entry.id === "string" ? entry.id.trim() : "";
+  if (!id) {
+    return null;
+  }
+  return {
+    id,
+    name: id,
+    reasoning: false,
+    input: ["text"],
+    cost: NEBIUS_TOKEN_FACTORY_DEFAULT_COST,
+    contextWindow: NEBIUS_TOKEN_FACTORY_DEFAULT_CONTEXT_WINDOW,
+    maxTokens: NEBIUS_TOKEN_FACTORY_DEFAULT_MAX_TOKENS,
+  };
+}
+
+async function discoverNebiusTokenFactoryModels(apiKey?: string): Promise<ModelDefinitionConfig[]> {
+  if (!apiKey || process.env.VITEST || process.env.NODE_ENV === "test") {
+    return [];
+  }
+  try {
+    const res = await fetch(`${NEBIUS_TOKEN_FACTORY_BASE_URL}/models`, {
+      headers: { Authorization: `Bearer ${apiKey.trim()}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      console.warn(`Failed to discover Nebius Token Factory models: ${res.status}`);
+      return [];
+    }
+    const payload = (await res.json()) as OpenAiModelsResponse;
+    const entries = Array.isArray(payload.data) ? payload.data : [];
+    return entries
+      .map(coerceNebiusTokenFactoryModel)
+      .filter((m): m is NebiusTokenFactoryModel => Boolean(m))
+      .map((m) => ({ ...m }) satisfies ModelDefinitionConfig);
+  } catch (err) {
+    console.warn(`Failed to discover Nebius Token Factory models: ${String(err)}`);
+    return [];
+  }
+}
+
+function buildNebiusTokenFactoryDefaultModel(): ModelDefinitionConfig {
+  return {
+    id: NEBIUS_TOKEN_FACTORY_DEFAULT_MODEL_ID,
+    name: "GLM 4.7 FP8",
+    reasoning: false,
+    input: ["text"],
+    cost: NEBIUS_TOKEN_FACTORY_DEFAULT_COST,
+    contextWindow: NEBIUS_TOKEN_FACTORY_DEFAULT_CONTEXT_WINDOW,
+    maxTokens: NEBIUS_TOKEN_FACTORY_DEFAULT_MAX_TOKENS,
+  };
+}
+
+async function buildNebiusTokenFactoryProvider(apiKey?: string): Promise<ProviderConfig> {
+  const discovered = await discoverNebiusTokenFactoryModels(apiKey);
+  const defaultModel = buildNebiusTokenFactoryDefaultModel();
+  const hasDefault = discovered.some((m) => m.id === defaultModel.id);
+  const models = hasDefault ? discovered : [defaultModel, ...discovered];
+  return {
+    baseUrl: NEBIUS_TOKEN_FACTORY_BASE_URL,
+    api: "openai-completions",
+    models,
+  };
+}
+
 function buildQwenPortalProvider(): ProviderConfig {
   return {
     baseUrl: QWEN_PORTAL_BASE_URL,
@@ -432,68 +508,30 @@ async function buildOllamaProvider(): Promise<ProviderConfig> {
   };
 }
 
-function coerceNebiusTokenFactoryModel(entry: OpenAiModelEntry): NebiusTokenFactoryModel | null {
-  const id = typeof entry.id === "string" ? entry.id.trim() : "";
-  if (!id) {
-    return null;
-  }
+export function buildQianfanProvider(): ProviderConfig {
   return {
-    id,
-    name: id,
-    reasoning: false,
-    input: ["text"],
-    cost: NEBIUS_TOKEN_FACTORY_DEFAULT_COST,
-    contextWindow: NEBIUS_TOKEN_FACTORY_DEFAULT_CONTEXT_WINDOW,
-    maxTokens: NEBIUS_TOKEN_FACTORY_DEFAULT_MAX_TOKENS,
-  };
-}
-
-async function discoverNebiusTokenFactoryModels(apiKey?: string): Promise<ModelDefinitionConfig[]> {
-  if (!apiKey || process.env.VITEST || process.env.NODE_ENV === "test") {
-    return [];
-  }
-  try {
-    const res = await fetch(`${NEBIUS_TOKEN_FACTORY_BASE_URL}/models`, {
-      headers: { Authorization: `Bearer ${apiKey.trim()}` },
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) {
-      console.warn(`Failed to discover Nebius Token Factory models: ${res.status}`);
-      return [];
-    }
-    const payload = (await res.json()) as OpenAiModelsResponse;
-    const entries = Array.isArray(payload.data) ? payload.data : [];
-    return entries
-      .map(coerceNebiusTokenFactoryModel)
-      .filter((m): m is NebiusTokenFactoryModel => Boolean(m))
-      .map((m) => ({ ...m }) satisfies ModelDefinitionConfig);
-  } catch (err) {
-    console.warn(`Failed to discover Nebius Token Factory models: ${String(err)}`);
-    return [];
-  }
-}
-
-function buildNebiusTokenFactoryDefaultModel(): ModelDefinitionConfig {
-  return {
-    id: NEBIUS_TOKEN_FACTORY_DEFAULT_MODEL_ID,
-    name: "GLM 4.7 FP8",
-    reasoning: false,
-    input: ["text"],
-    cost: NEBIUS_TOKEN_FACTORY_DEFAULT_COST,
-    contextWindow: NEBIUS_TOKEN_FACTORY_DEFAULT_CONTEXT_WINDOW,
-    maxTokens: NEBIUS_TOKEN_FACTORY_DEFAULT_MAX_TOKENS,
-  };
-}
-
-async function buildNebiusTokenFactoryProvider(apiKey?: string): Promise<ProviderConfig> {
-  const discovered = await discoverNebiusTokenFactoryModels(apiKey);
-  const defaultModel = buildNebiusTokenFactoryDefaultModel();
-  const hasDefault = discovered.some((m) => m.id === defaultModel.id);
-  const models = hasDefault ? discovered : [defaultModel, ...discovered];
-  return {
-    baseUrl: NEBIUS_TOKEN_FACTORY_BASE_URL,
+    baseUrl: QIANFAN_BASE_URL,
     api: "openai-completions",
-    models,
+    models: [
+      {
+        id: QIANFAN_DEFAULT_MODEL_ID,
+        name: "DEEPSEEK V3.2",
+        reasoning: true,
+        input: ["text"],
+        cost: QIANFAN_DEFAULT_COST,
+        contextWindow: QIANFAN_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: QIANFAN_DEFAULT_MAX_TOKENS,
+      },
+      {
+        id: "ernie-5.0-thinking-preview",
+        name: "ERNIE-5.0-Thinking-Preview",
+        reasoning: true,
+        input: ["text", "image"],
+        cost: QIANFAN_DEFAULT_COST,
+        contextWindow: 119000,
+        maxTokens: 64000,
+      },
+    ],
   };
 }
 
@@ -608,6 +646,13 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
   if (ollamaKey) {
     providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
+  }
+
+  const qianfanKey =
+    resolveEnvApiKeyVarName("qianfan") ??
+    resolveApiKeyFromProfiles({ provider: "qianfan", store: authStore });
+  if (qianfanKey) {
+    providers.qianfan = { ...buildQianfanProvider(), apiKey: qianfanKey };
   }
 
   return providers;

@@ -1,4 +1,5 @@
 import type { ModelDefinitionConfig } from "../config/types.js";
+import { QIANFAN_BASE_URL, QIANFAN_DEFAULT_MODEL_ID } from "../agents/models-config.providers.js";
 
 export const DEFAULT_MINIMAX_BASE_URL = "https://api.minimax.io/v1";
 export const MINIMAX_API_BASE_URL = "https://api.minimax.io/anthropic";
@@ -20,6 +21,9 @@ export const NEBIUS_TOKEN_FACTORY_DEFAULT_MODEL_ID = "zai-org/GLM-4.7-FP8";
 export const NEBIUS_TOKEN_FACTORY_DEFAULT_MODEL_REF = `nebius-token-factory/${NEBIUS_TOKEN_FACTORY_DEFAULT_MODEL_ID}`;
 export const NEBIUS_TOKEN_FACTORY_DEFAULT_CONTEXT_WINDOW = 131072;
 export const NEBIUS_TOKEN_FACTORY_DEFAULT_MAX_TOKENS = 8192;
+
+export { QIANFAN_BASE_URL, QIANFAN_DEFAULT_MODEL_ID };
+export const QIANFAN_DEFAULT_MODEL_REF = `qianfan/${QIANFAN_DEFAULT_MODEL_ID}`;
 
 // Pricing: MiniMax doesn't publish public rates. Override in models.json for accurate costs.
 export const MINIMAX_API_COST = {
