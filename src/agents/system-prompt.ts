@@ -214,6 +214,7 @@ export function buildAgentSystemPrompt(params: {
     channel: string;
   };
   memoryCitationsMode?: MemoryCitationsMode;
+  artifactMemorySection?: string | null;
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -364,6 +365,8 @@ export function buildAgentSystemPrompt(params: {
     availableTools,
     citationsMode: params.memoryCitationsMode,
   });
+  const artifactMemorySection =
+    !isMinimal && params.artifactMemorySection?.trim() ? params.artifactMemorySection.trim() : null;
   const docsSection = buildDocsSection({
     docsPath: params.docsPath,
     isMinimal,
@@ -422,6 +425,7 @@ export function buildAgentSystemPrompt(params: {
     "",
     ...skillsSection,
     ...memorySection,
+    ...(artifactMemorySection ? [artifactMemorySection, ""] : []),
     // Skip self-update for subagent/none modes
     hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",
     hasGateway && !isMinimal

@@ -24,6 +24,7 @@ import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { resolveOpenClawAgentDir } from "../agent-paths.js";
 import { resolveSessionAgentIds } from "../agent-scope.js";
+import { buildArtifactRecallSection } from "../artifact-recall.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../bootstrap-files.js";
 import { listChannelSupportedActions, resolveChannelMessageToolHints } from "../channel-tools.js";
 import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
@@ -42,6 +43,7 @@ import {
 } from "../pi-settings.js";
 import { createOpenClawCodingTools } from "../pi-tools.js";
 import { resolveSandboxContext } from "../sandbox.js";
+import { migrateSessionFileArtifactsIfNeeded } from "../session-artifact-migration.js";
 import { repairSessionFileIfNeeded } from "../session-file-repair.js";
 import { guardSessionManager } from "../session-tool-result-guard-wrapper.js";
 import { acquireSessionWriteLock } from "../session-write-lock.js";
@@ -330,6 +332,11 @@ export async function compactEmbeddedPiSessionDirect(
       moduleUrl: import.meta.url,
     });
     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
+    const artifactMemorySection = buildArtifactRecallSection({
+      sessionFile: params.sessionFile,
+      sessionKey: params.sessionKey,
+      config: params.config,
+    });
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
@@ -355,6 +362,7 @@ export async function compactEmbeddedPiSessionDirect(
       userTimeFormat,
       contextFiles,
       memoryCitationsMode: params.config?.memory?.citations,
+      artifactMemorySection,
     });
     const systemPromptOverride = createSystemPromptOverride(appendPrompt);
 
@@ -364,6 +372,12 @@ export async function compactEmbeddedPiSessionDirect(
     try {
       await repairSessionFileIfNeeded({
         sessionFile: params.sessionFile,
+        warn: (message) => log.warn(message),
+      });
+      await migrateSessionFileArtifactsIfNeeded({
+        sessionFile: params.sessionFile,
+        sessionKey: params.sessionKey,
+        sessionId: params.sessionId,
         warn: (message) => log.warn(message),
       });
       await prewarmSessionFile(params.sessionFile);
@@ -390,6 +404,7 @@ export async function compactEmbeddedPiSessionDirect(
         provider,
         modelId,
         model,
+        sessionFile: params.sessionFile,
       });
 
       const { builtInTools, customTools } = splitSdkTools({

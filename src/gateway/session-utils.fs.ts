@@ -2,14 +2,70 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { SessionPreviewItem } from "./session-utils.types.js";
+import { readToolResultArtifactPayload } from "../agents/artifact-store.js";
 import { resolveSessionTranscriptPath } from "../config/sessions.js";
 import { extractToolCallNames, hasToolCall } from "../utils/transcript-tools.js";
 import { stripEnvelope } from "./chat-sanitize.js";
+
+type ArtifactRefLike = {
+  id?: string;
+  path: string;
+  toolName?: string;
+};
+
+type TranscriptMessageLike = {
+  role?: string;
+  content?: unknown;
+  toolName?: string;
+  details?: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function extractArtifactRef(details: unknown): ArtifactRefLike | null {
+  if (!isRecord(details)) {
+    return null;
+  }
+  const ref = details.artifactRef;
+  if (!isRecord(ref)) {
+    return null;
+  }
+  if (typeof ref.path !== "string" || !ref.path) {
+    return null;
+  }
+  return {
+    id: typeof ref.id === "string" ? ref.id : undefined,
+    path: ref.path,
+    toolName: typeof ref.toolName === "string" ? ref.toolName : undefined,
+  };
+}
+
+function rehydrateToolResultMessage(message: TranscriptMessageLike): TranscriptMessageLike {
+  if (message.role !== "toolResult") {
+    return message;
+  }
+  const ref = extractArtifactRef(message.details);
+  if (!ref) {
+    return message;
+  }
+  const payload = readToolResultArtifactPayload(ref.path);
+  if (!payload) {
+    return message;
+  }
+  return {
+    ...message,
+    toolName: message.toolName || payload.toolName || ref.toolName,
+    content: payload.content,
+  };
+}
 
 export function readSessionMessages(
   sessionId: string,
   storePath: string | undefined,
   sessionFile?: string,
+  options?: { rehydrateArtifacts?: boolean },
 ): unknown[] {
   const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile);
 
@@ -27,7 +83,11 @@ export function readSessionMessages(
     try {
       const parsed = JSON.parse(line);
       if (parsed?.message) {
-        messages.push(parsed.message);
+        let message = parsed.message as TranscriptMessageLike;
+        if (options?.rehydrateArtifacts) {
+          message = rehydrateToolResultMessage(message);
+        }
+        messages.push(message);
       }
     } catch {
       // ignore bad lines

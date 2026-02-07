@@ -1,6 +1,8 @@
+import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { SessionManager } from "@mariozechner/pi-coding-agent";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { installSessionToolResultGuard } from "./session-tool-result-guard.js";
+import { externalizeToolResultForSession } from "./tool-result-externalizer.js";
 
 export type GuardedSessionManager = SessionManager & {
   /** Flush any synthetic tool results for pending tool calls. Idempotent. */
@@ -24,26 +26,38 @@ export function guardSessionManager(
   }
 
   const hookRunner = getGlobalHookRunner();
-  const transform = hookRunner?.hasHooks("tool_result_persist")
-    ? // oxlint-disable-next-line typescript/no-explicit-any
-      (message: any, meta: { toolCallId?: string; toolName?: string; isSynthetic?: boolean }) => {
-        const out = hookRunner.runToolResultPersist(
-          {
-            toolName: meta.toolName,
-            toolCallId: meta.toolCallId,
-            message,
-            isSynthetic: meta.isSynthetic,
-          },
-          {
-            agentId: opts?.agentId,
-            sessionKey: opts?.sessionKey,
-            toolName: meta.toolName,
-            toolCallId: meta.toolCallId,
-          },
-        );
-        return out?.message ?? message;
-      }
-    : undefined;
+  const transform = (
+    message: AgentMessage,
+    meta: { toolCallId?: string; toolName?: string; isSynthetic?: boolean },
+  ) => {
+    const sessionFile = (
+      sessionManager as { getSessionFile?: () => string | null }
+    ).getSessionFile?.();
+    let next = externalizeToolResultForSession({
+      message,
+      sessionFile,
+      sessionKey: opts?.sessionKey,
+      isSynthetic: meta.isSynthetic,
+    });
+    if (hookRunner?.hasHooks("tool_result_persist")) {
+      const out = hookRunner.runToolResultPersist(
+        {
+          toolName: meta.toolName,
+          toolCallId: meta.toolCallId,
+          message: next,
+          isSynthetic: meta.isSynthetic,
+        },
+        {
+          agentId: opts?.agentId,
+          sessionKey: opts?.sessionKey,
+          toolName: meta.toolName,
+          toolCallId: meta.toolCallId,
+        },
+      );
+      next = (out?.message as AgentMessage) ?? next;
+    }
+    return next;
+  };
 
   const guard = installSessionToolResultGuard(sessionManager, {
     transformToolResultForPersistence: transform,

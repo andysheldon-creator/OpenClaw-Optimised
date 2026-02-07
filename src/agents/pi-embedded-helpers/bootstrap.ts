@@ -148,7 +148,7 @@ export async function ensureSessionHeader(params: {
     // create
   }
   await fs.mkdir(path.dirname(file), { recursive: true });
-  const sessionVersion = 2;
+  const sessionVersion = 3;
   const entry = {
     type: "session",
     version: sessionVersion,

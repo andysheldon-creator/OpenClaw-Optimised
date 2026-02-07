@@ -38,6 +38,21 @@ Session pruning trims **old tool results** from the in-memory context right befo
 - If there aren’t enough assistant messages to establish the cutoff, pruning is skipped.
 - Tool results containing **image blocks** are skipped (never trimmed/cleared).
 
+## Artifact externalization
+
+OpenClaw also **externalizes tool outputs** when it persists session history.
+The raw payload is written to an artifact file and replaced with a deterministic
+placeholder that contains an artifact reference. This keeps the on-disk session
+history small and makes it possible to reference large outputs without
+re-injecting them into the model context by default.
+
+- Artifact references are preserved in the JSONL transcript.
+- The agent sees a short placeholder with the artifact id/path.
+- A bounded “Artifact Recall” section can be injected into the system prompt for
+  quick lookup without reloading large payloads.
+
+See [Memory](/concepts/memory) for the `memory.artifacts` configuration.
+
 ## Context window estimation
 
 Pruning uses an estimated context window (chars ≈ tokens × 4). The base window is resolved in this order:

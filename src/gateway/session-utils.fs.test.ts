@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
   readFirstUserMessageFromTranscript,
   readLastMessagePreviewFromTranscript,
+  readSessionMessages,
   readSessionPreviewItemsFromTranscript,
 } from "./session-utils.fs.js";
 
@@ -340,6 +341,90 @@ describe("readLastMessagePreviewFromTranscript", () => {
 
     const result = readLastMessagePreviewFromTranscript(sessionId, storePath);
     expect(result).toBe("Valid UTF-8: 你好世界 🌍");
+  });
+});
+
+describe("readSessionMessages", () => {
+  let tmpDir: string;
+  let storePath: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-session-fs-test-"));
+    storePath = path.join(tmpDir, "sessions.json");
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test("rehydrates tool results when requested", () => {
+    const sessionId = "rehydrate-session";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    const artifactDir = path.join(tmpDir, "artifacts");
+    fs.mkdirSync(artifactDir, { recursive: true });
+    const artifactPath = path.join(artifactDir, "art_1.json");
+    const artifactPayload = {
+      id: "art_1",
+      type: "tool-result",
+      toolName: "exec",
+      createdAt: new Date().toISOString(),
+      sizeBytes: 12,
+      summary: "artifact summary",
+      content: [{ type: "text", text: "rehydrated output" }],
+    };
+    fs.writeFileSync(artifactPath, JSON.stringify(artifactPayload), "utf-8");
+    const toolMessage = {
+      role: "toolResult",
+      toolCallId: "call-1",
+      toolName: "exec",
+      content: [{ type: "text", text: "[Tool result omitted]" }],
+      details: {
+        artifactRef: {
+          id: "art_1",
+          type: "tool-result",
+          toolName: "exec",
+          createdAt: artifactPayload.createdAt,
+          sizeBytes: artifactPayload.sizeBytes,
+          summary: artifactPayload.summary,
+          path: artifactPath,
+        },
+      },
+    };
+    const lines = [
+      JSON.stringify({ type: "session", version: 3, id: sessionId }),
+      JSON.stringify({ type: "message", message: toolMessage }),
+    ];
+    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
+
+    const messages = readSessionMessages(sessionId, storePath, transcriptPath, {
+      rehydrateArtifacts: true,
+    });
+    const toolResult = messages.find((msg) => (msg as { role?: string }).role === "toolResult") as
+      | { content?: Array<{ type?: string; text?: string }> }
+      | undefined;
+    expect(toolResult?.content?.[0]?.text).toBe("rehydrated output");
+  });
+
+  test("returns placeholder content when rehydration is not requested", () => {
+    const sessionId = "no-rehydrate-session";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    const toolMessage = {
+      role: "toolResult",
+      toolCallId: "call-2",
+      toolName: "exec",
+      content: [{ type: "text", text: "[Tool result omitted]" }],
+    };
+    const lines = [
+      JSON.stringify({ type: "session", version: 3, id: sessionId }),
+      JSON.stringify({ type: "message", message: toolMessage }),
+    ];
+    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
+
+    const messages = readSessionMessages(sessionId, storePath, transcriptPath);
+    const toolResult = messages.find((msg) => (msg as { role?: string }).role === "toolResult") as
+      | { content?: Array<{ type?: string; text?: string }> }
+      | undefined;
+    expect(toolResult?.content?.[0]?.text).toBe("[Tool result omitted]");
   });
 });
 

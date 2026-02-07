@@ -6,7 +6,15 @@ export type MemoryCitationsMode = "auto" | "on" | "off";
 export type MemoryConfig = {
   backend?: MemoryBackend;
   citations?: MemoryCitationsMode;
+  artifacts?: MemoryArtifactsConfig;
   qmd?: MemoryQmdConfig;
+};
+
+export type MemoryArtifactsConfig = {
+  enabled?: boolean;
+  maxItems?: number;
+  maxChars?: number;
+  narrativeMaxChars?: number;
 };
 
 export type MemoryQmdConfig = {

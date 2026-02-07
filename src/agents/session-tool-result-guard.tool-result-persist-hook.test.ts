@@ -6,6 +6,7 @@ import path from "node:path";
 import { describe, expect, it, afterEach } from "vitest";
 import { resetGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { loadOpenClawPlugins } from "../plugins/loader.js";
+import { getToolResultArtifactRef } from "./session-artifacts.js";
 import { guardSessionManager } from "./session-tool-result-guard-wrapper.js";
 
 const EMPTY_PLUGIN_SCHEMA = { type: "object", additionalProperties: false, properties: {} };
@@ -141,5 +142,45 @@ describe("tool_result_persist hook", () => {
     // Hook composition: priority 10 runs before priority 5.
     expect(toolResult.persistOrder).toEqual(["a", "b"]);
     expect(toolResult.agentSeen).toBe("main");
+  });
+
+  it("externalizes tool results on persistence when session file is available", () => {
+    const sessionFile = path.join(os.tmpdir(), `openclaw-toolpersist-${Date.now()}.jsonl`);
+    const sm = guardSessionManager(SessionManager.open(sessionFile), {
+      agentId: "main",
+      sessionKey: "main",
+    });
+
+    sm.appendMessage({
+      role: "assistant",
+      content: [{ type: "toolCall", id: "call_1", name: "read", arguments: {} }],
+    } as AgentMessage);
+
+    sm.appendMessage({
+      role: "toolResult",
+      toolCallId: "call_1",
+      isError: false,
+      content: [{ type: "text", text: "ok" }],
+      // oxlint-disable-next-line typescript/no-explicit-any
+    } as any);
+
+    const messages = sm
+      .getEntries()
+      .filter((e) => e.type === "message")
+      .map((e) => (e as { message: AgentMessage }).message);
+
+    const toolResult = messages.find((m) => (m as { role?: unknown }).role === "toolResult");
+    if (!toolResult) {
+      throw new Error("missing toolResult");
+    }
+    const ref = getToolResultArtifactRef(toolResult);
+    expect(ref).toBeTruthy();
+    if (ref) {
+      expect(fs.existsSync(ref.path)).toBe(true);
+      expect(ref.path).toContain("artifacts");
+    }
+    const first = (toolResult as { content?: unknown }).content?.[0];
+    // oxlint-disable-next-line typescript/no-explicit-any
+    expect((first as any)?.text).toContain("Tool result omitted");
   });
 });

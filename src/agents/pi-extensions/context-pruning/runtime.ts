@@ -5,6 +5,7 @@ export type ContextPruningRuntimeValue = {
   contextWindowTokens?: number | null;
   isToolPrunable: (toolName: string) => boolean;
   lastCacheTouchAt?: number | null;
+  artifactDir?: string | null;
 };
 
 // Session-scoped runtime registry keyed by object identity.

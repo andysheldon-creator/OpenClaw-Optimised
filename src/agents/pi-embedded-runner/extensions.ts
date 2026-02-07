@@ -41,6 +41,7 @@ function buildContextPruningExtension(params: {
   provider: string;
   modelId: string;
   model: Model<Api> | undefined;
+  sessionFile?: string;
 }): { additionalExtensionPaths?: string[] } {
   const raw = params.cfg?.agents?.defaults?.contextPruning;
   if (raw?.mode !== "cache-ttl") {
@@ -60,6 +61,9 @@ function buildContextPruningExtension(params: {
     contextWindowTokens: resolveContextWindowTokens(params),
     isToolPrunable: makeToolPrunablePredicate(settings.tools),
     lastCacheTouchAt: readLastCacheTtlTimestamp(params.sessionManager),
+    artifactDir: params.sessionFile
+      ? path.join(path.dirname(params.sessionFile), "artifacts")
+      : null,
   });
 
   return {
@@ -77,6 +81,7 @@ export function buildEmbeddedExtensionPaths(params: {
   provider: string;
   modelId: string;
   model: Model<Api> | undefined;
+  sessionFile?: string;
 }): string[] {
   const paths: string[] = [];
   if (resolveCompactionMode(params.cfg) === "safeguard") {
@@ -91,6 +96,9 @@ export function buildEmbeddedExtensionPaths(params: {
     setCompactionSafeguardRuntime(params.sessionManager, {
       maxHistoryShare: compactionCfg?.maxHistoryShare,
       contextWindowTokens: contextWindowInfo.tokens,
+      artifactDir: params.sessionFile
+        ? path.join(path.dirname(params.sessionFile), "artifacts")
+        : null,
     });
     paths.push(resolvePiExtensionPath("compaction-safeguard"));
   }

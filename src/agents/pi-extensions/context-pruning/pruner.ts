@@ -1,7 +1,9 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ImageContent, TextContent, ToolResultMessage } from "@mariozechner/pi-ai";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ArtifactRef } from "./artifacts.js";
 import type { EffectiveContextPruningSettings } from "./settings.js";
+import { buildToolResultPlaceholder, shouldExternalizeToolResult } from "./artifacts.js";
 import { makeToolPrunablePredicate } from "./tools.js";
 
 const CHARS_PER_TOKEN_ESTIMATE = 4;
@@ -222,12 +224,44 @@ ${tail}`;
   return { ...msg, content: [asText(trimmed + note)] };
 }
 
+function externalizeToolResultMessage(params: {
+  msg: ToolResultMessage;
+  settings: EffectiveContextPruningSettings;
+  storeArtifact?: (params: {
+    toolName?: string;
+    content: ToolResultMessage["content"];
+  }) => ArtifactRef;
+}): ToolResultMessage | null {
+  const { msg, settings, storeArtifact } = params;
+  if (!storeArtifact) {
+    return null;
+  }
+
+  if (
+    !shouldExternalizeToolResult({ content: msg.content, maxChars: settings.softTrim.maxChars })
+  ) {
+    return null;
+  }
+
+  const ref = storeArtifact({ toolName: msg.toolName, content: msg.content });
+  const placeholder = buildToolResultPlaceholder(ref);
+
+  return {
+    ...msg,
+    content: [asText(placeholder)],
+  };
+}
+
 export function pruneContextMessages(params: {
   messages: AgentMessage[];
   settings: EffectiveContextPruningSettings;
   ctx: Pick<ExtensionContext, "model">;
   isToolPrunable?: (toolName: string) => boolean;
   contextWindowTokensOverride?: number;
+  storeArtifact?: (params: {
+    toolName?: string;
+    content: ToolResultMessage["content"];
+  }) => ArtifactRef;
 }): AgentMessage[] {
   const { messages, settings, ctx } = params;
   const contextWindowTokens =
@@ -276,15 +310,25 @@ export function pruneContextMessages(params: {
     if (!isToolPrunable(msg.toolName)) {
       continue;
     }
-    if (hasImageBlocks(msg.content)) {
+    if (hasImageBlocks(msg.content) && !params.storeArtifact) {
       continue;
     }
     prunableToolIndexes.push(i);
 
-    const updated = softTrimToolResultMessage({
-      msg: msg as unknown as ToolResultMessage,
-      settings,
-    });
+    let updated: ToolResultMessage | null = null;
+    if (ratio >= settings.softTrimRatio) {
+      updated = externalizeToolResultMessage({
+        msg: msg as unknown as ToolResultMessage,
+        settings,
+        storeArtifact: params.storeArtifact,
+      });
+    }
+    if (!updated) {
+      updated = softTrimToolResultMessage({
+        msg: msg as unknown as ToolResultMessage,
+        settings,
+      });
+    }
     if (!updated) {
       continue;
     }

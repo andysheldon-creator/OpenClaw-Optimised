@@ -21,6 +21,7 @@ import { isReasoningTagProvider } from "../../../utils/provider-utils.js";
 import { resolveOpenClawAgentDir } from "../../agent-paths.js";
 import { resolveSessionAgentIds } from "../../agent-scope.js";
 import { createAnthropicPayloadLogger } from "../../anthropic-payload-log.js";
+import { buildArtifactRecallSection } from "../../artifact-recall.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../../bootstrap-files.js";
 import { createCacheTrace } from "../../cache-trace.js";
 import {
@@ -32,6 +33,7 @@ import { isTimeoutError } from "../../failover-error.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import { resolveDefaultModelForAgent } from "../../model-selection.js";
 import {
+  ensureSessionHeader,
   isCloudCodeAssistFormatError,
   resolveBootstrapMaxChars,
   validateAnthropicTurns,
@@ -46,6 +48,7 @@ import { toClientToolDefinitions } from "../../pi-tool-definition-adapter.js";
 import { createOpenClawCodingTools } from "../../pi-tools.js";
 import { resolveSandboxContext } from "../../sandbox.js";
 import { resolveSandboxRuntimeStatus } from "../../sandbox/runtime-status.js";
+import { migrateSessionFileArtifactsIfNeeded } from "../../session-artifact-migration.js";
 import { repairSessionFileIfNeeded } from "../../session-file-repair.js";
 import { guardSessionManager } from "../../session-tool-result-guard-wrapper.js";
 import { acquireSessionWriteLock } from "../../session-write-lock.js";
@@ -345,6 +348,11 @@ export async function runEmbeddedAttempt(
       moduleUrl: import.meta.url,
     });
     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
+    const artifactMemorySection = buildArtifactRecallSection({
+      sessionFile: params.sessionFile,
+      sessionKey: params.sessionKey,
+      config: params.config,
+    });
 
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
@@ -372,6 +380,7 @@ export async function runEmbeddedAttempt(
       userTimeFormat,
       contextFiles,
       memoryCitationsMode: params.config?.memory?.citations,
+      artifactMemorySection,
     });
     const systemPromptReport = buildSystemPromptReport({
       source: "run",
@@ -405,8 +414,19 @@ export async function runEmbeddedAttempt(
     let sessionManager: ReturnType<typeof guardSessionManager> | undefined;
     let session: Awaited<ReturnType<typeof createAgentSession>>["session"] | undefined;
     try {
+      await ensureSessionHeader({
+        sessionFile: params.sessionFile,
+        sessionId: params.sessionId,
+        cwd: effectiveWorkspace,
+      });
       await repairSessionFileIfNeeded({
         sessionFile: params.sessionFile,
+        warn: (message) => log.warn(message),
+      });
+      await migrateSessionFileArtifactsIfNeeded({
+        sessionFile: params.sessionFile,
+        sessionKey: params.sessionKey,
+        sessionId: params.sessionId,
         warn: (message) => log.warn(message),
       });
       const hadSessionFile = await fs
@@ -449,6 +469,7 @@ export async function runEmbeddedAttempt(
         provider: params.provider,
         modelId: params.modelId,
         model: params.model,
+        sessionFile: params.sessionFile,
       });
 
       const { builtInTools, customTools } = splitSdkTools({

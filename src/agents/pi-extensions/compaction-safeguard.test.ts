@@ -1,4 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   getCompactionSafeguardRuntime,
@@ -14,6 +17,7 @@ const {
   BASE_CHUNK_RATIO,
   MIN_CHUNK_RATIO,
   SAFETY_MARGIN,
+  externalizeToolResultMessages,
 } = __testing;
 
 describe("compaction-safeguard tool failures", () => {
@@ -247,5 +251,81 @@ describe("compaction-safeguard runtime registry", () => {
     setCompactionSafeguardRuntime(sm2, { maxHistoryShare: 0.8 });
     expect(getCompactionSafeguardRuntime(sm1)).toEqual({ maxHistoryShare: 0.3 });
     expect(getCompactionSafeguardRuntime(sm2)).toEqual({ maxHistoryShare: 0.8 });
+  });
+});
+
+describe("compaction-safeguard artifact externalization", () => {
+  it("externalizes oversized tool results into artifacts", () => {
+    const artifactDir = fs.mkdtempSync(path.join(tmpdir(), "openclaw-compaction-artifacts-"));
+    const messages: AgentMessage[] = [
+      {
+        role: "toolResult",
+        toolCallId: "call-1",
+        toolName: "exec",
+        isError: false,
+        content: [{ type: "text", text: "x".repeat(5001) }],
+        timestamp: Date.now(),
+      },
+    ];
+
+    const updated = externalizeToolResultMessages({ messages, artifactDir, maxChars: 4000 });
+    expect(updated).toHaveLength(1);
+    const msg = updated[0];
+    if (msg.role !== "toolResult") {
+      throw new Error("expected toolResult");
+    }
+    const first = msg.content[0];
+    if (first?.type !== "text") {
+      throw new Error("expected text placeholder");
+    }
+    expect(first.text).toContain("Tool result omitted");
+    const files = fs.readdirSync(artifactDir).filter((entry) => entry.endsWith(".json"));
+    expect(files.length).toBe(1);
+  });
+
+  it("externalizes image tool results even when small", () => {
+    const artifactDir = fs.mkdtempSync(path.join(tmpdir(), "openclaw-compaction-images-"));
+    const messages: AgentMessage[] = [
+      {
+        role: "toolResult",
+        toolCallId: "call-2",
+        toolName: "screenshot",
+        isError: false,
+        content: [
+          { type: "image", data: "AA==", mimeType: "image/png" },
+          { type: "text", text: "small" },
+        ],
+        timestamp: Date.now(),
+      },
+    ];
+
+    const updated = externalizeToolResultMessages({ messages, artifactDir, maxChars: 4000 });
+    const msg = updated[0];
+    if (msg.role !== "toolResult") {
+      throw new Error("expected toolResult");
+    }
+    const first = msg.content[0];
+    if (first?.type !== "text") {
+      throw new Error("expected text placeholder");
+    }
+    expect(first.text).toContain("Tool result omitted");
+    const files = fs.readdirSync(artifactDir).filter((entry) => entry.endsWith(".json"));
+    expect(files.length).toBe(1);
+  });
+
+  it("skips externalization without artifact dir", () => {
+    const messages: AgentMessage[] = [
+      {
+        role: "toolResult",
+        toolCallId: "call-3",
+        toolName: "exec",
+        isError: false,
+        content: [{ type: "text", text: "x".repeat(5001) }],
+        timestamp: Date.now(),
+      },
+    ];
+
+    const updated = externalizeToolResultMessages({ messages, artifactDir: null, maxChars: 4000 });
+    expect(updated).toBe(messages);
   });
 });

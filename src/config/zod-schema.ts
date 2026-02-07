@@ -78,10 +78,20 @@ const MemoryQmdSchema = z
   })
   .strict();
 
+const MemoryArtifactsSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    maxItems: z.number().int().positive().optional(),
+    maxChars: z.number().int().positive().optional(),
+    narrativeMaxChars: z.number().int().positive().optional(),
+  })
+  .strict();
+
 const MemorySchema = z
   .object({
     backend: z.union([z.literal("builtin"), z.literal("qmd")]).optional(),
     citations: z.union([z.literal("auto"), z.literal("on"), z.literal("off")]).optional(),
+    artifacts: MemoryArtifactsSchema.optional(),
     qmd: MemoryQmdSchema.optional(),
   })
   .strict()

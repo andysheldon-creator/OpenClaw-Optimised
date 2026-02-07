@@ -1,4 +1,6 @@
+import type { ToolResultMessage } from "@mariozechner/pi-ai";
 import type { ContextEvent, ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import { writeToolResultArtifact } from "./artifacts.js";
 import { pruneContextMessages } from "./pruner.js";
 import { getContextPruningRuntime } from "./runtime.js";
 
@@ -20,12 +22,23 @@ export default function contextPruningExtension(api: ExtensionAPI): void {
       }
     }
 
+    const storeArtifact =
+      runtime.artifactDir && runtime.artifactDir.trim()
+        ? (params: { toolName?: string; content: ToolResultMessage["content"] }) =>
+            writeToolResultArtifact({
+              artifactDir: runtime.artifactDir as string,
+              toolName: params.toolName,
+              content: params.content,
+            })
+        : undefined;
+
     const next = pruneContextMessages({
       messages: event.messages,
       settings: runtime.settings,
       ctx,
       isToolPrunable: runtime.isToolPrunable,
       contextWindowTokensOverride: runtime.contextWindowTokens ?? undefined,
+      storeArtifact,
     });
 
     if (next === event.messages) {

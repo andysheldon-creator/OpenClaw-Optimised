@@ -1,4 +1,5 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import type { ToolResultMessage } from "@mariozechner/pi-ai";
 import type { ExtensionAPI, FileOperations } from "@mariozechner/pi-coding-agent";
 import {
   BASE_CHUNK_RATIO,
@@ -12,6 +13,11 @@ import {
   summarizeInStages,
 } from "../compaction.js";
 import { getCompactionSafeguardRuntime } from "./compaction-safeguard-runtime.js";
+import {
+  buildToolResultPlaceholder,
+  shouldExternalizeToolResult,
+  writeToolResultArtifact,
+} from "./context-pruning/artifacts.js";
 const FALLBACK_SUMMARY =
   "Summary unavailable due to context limits. Older messages were truncated.";
 const TURN_PREFIX_INSTRUCTIONS =
@@ -158,6 +164,39 @@ function formatFileOperations(readFiles: string[], modifiedFiles: string[]): str
   return `\n\n${sections.join("\n\n")}`;
 }
 
+function externalizeToolResultMessages(params: {
+  messages: AgentMessage[];
+  artifactDir?: string | null;
+  maxChars?: number;
+}): AgentMessage[] {
+  const { messages, artifactDir, maxChars } = params;
+  if (!artifactDir) {
+    return messages;
+  }
+  let changed = false;
+  const updated = messages.map((message) => {
+    if (message.role !== "toolResult" || !Array.isArray(message.content)) {
+      return message;
+    }
+    if (!shouldExternalizeToolResult({ content: message.content, maxChars })) {
+      return message;
+    }
+    const ref = writeToolResultArtifact({
+      artifactDir,
+      toolName: message.toolName,
+      content: message.content,
+    });
+    const placeholder = buildToolResultPlaceholder(ref);
+    const content: ToolResultMessage["content"] = [{ type: "text", text: placeholder }];
+    changed = true;
+    return {
+      ...message,
+      content,
+    };
+  });
+  return changed ? updated : messages;
+}
+
 export default function compactionSafeguardExtension(api: ExtensionAPI): void {
   api.on("session_before_compact", async (event, ctx) => {
     const { preparation, customInstructions, signal } = event;
@@ -198,10 +237,22 @@ export default function compactionSafeguardExtension(api: ExtensionAPI): void {
       const runtime = getCompactionSafeguardRuntime(ctx.sessionManager);
       const modelContextWindow = resolveContextWindowTokens(model);
       const contextWindowTokens = runtime?.contextWindowTokens ?? modelContextWindow;
-      const turnPrefixMessages = preparation.turnPrefixMessages ?? [];
+      let turnPrefixMessages = preparation.turnPrefixMessages ?? [];
       let messagesToSummarize = preparation.messagesToSummarize;
 
       const maxHistoryShare = runtime?.maxHistoryShare ?? 0.5;
+      const artifactDir = runtime?.artifactDir ?? null;
+
+      if (artifactDir) {
+        messagesToSummarize = externalizeToolResultMessages({
+          messages: messagesToSummarize,
+          artifactDir,
+        });
+        turnPrefixMessages = externalizeToolResultMessages({
+          messages: turnPrefixMessages,
+          artifactDir,
+        });
+      }
 
       const tokensBefore =
         typeof preparation.tokensBefore === "number" && Number.isFinite(preparation.tokensBefore)
@@ -343,4 +394,5 @@ export const __testing = {
   BASE_CHUNK_RATIO,
   MIN_CHUNK_RATIO,
   SAFETY_MARGIN,
+  externalizeToolResultMessages,
 } as const;

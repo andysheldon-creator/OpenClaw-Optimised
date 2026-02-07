@@ -425,4 +425,23 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("## Reactions");
     expect(prompt).toContain("Reactions are enabled for Telegram in MINIMAL mode.");
   });
+
+  it("includes artifact recall section in full mode", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      artifactMemorySection: "## Artifact Recall\n- item",
+    });
+
+    expect(prompt).toContain("## Artifact Recall");
+  });
+
+  it("omits artifact recall section in minimal mode", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      promptMode: "minimal",
+      artifactMemorySection: "## Artifact Recall\n- item",
+    });
+
+    expect(prompt).not.toContain("## Artifact Recall");
+  });
 });
