@@ -215,13 +215,16 @@ export const agentsHandlers: GatewayRequestHandlers = {
     }
 
     const workspaceDir = resolveUserPath(String(params.workspace ?? "").trim());
-    const agentDir = resolveAgentDir(cfg, agentId);
-    const nextConfig = applyAgentConfig(cfg, {
+
+    // Resolve agentDir against the config we're about to persist (vs the pre-write config),
+    // so subsequent resolutions can't disagree about the agent's directory.
+    let nextConfig = applyAgentConfig(cfg, {
       agentId,
       name: rawName,
       workspace: workspaceDir,
-      agentDir,
     });
+    const agentDir = resolveAgentDir(nextConfig, agentId);
+    nextConfig = applyAgentConfig(nextConfig, { agentId, agentDir });
 
     await writeConfigFile(nextConfig);
 
@@ -232,6 +235,7 @@ export const agentsHandlers: GatewayRequestHandlers = {
     const emoji =
       typeof params.emoji === "string" && params.emoji.trim() ? params.emoji.trim() : undefined;
     if (emoji) {
+      await fs.mkdir(workspaceDir, { recursive: true });
       const identityPath = path.join(workspaceDir, DEFAULT_IDENTITY_FILENAME);
       const safeName = sanitizeIdentityLine(rawName);
       const safeEmoji = sanitizeIdentityLine(emoji);
