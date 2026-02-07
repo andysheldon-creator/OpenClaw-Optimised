@@ -409,7 +409,6 @@ export type PluginHookToolResultReceivedEvent = {
   /** Original tool params (may be non-object for some tools). */
   params: unknown;
   result: unknown;
-  error?: string;
   durationMs?: number;
 };
 
