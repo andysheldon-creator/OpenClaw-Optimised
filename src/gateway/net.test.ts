@@ -1,5 +1,5 @@
 import os from "node:os";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { pickPrimaryLanIPv4, resolveGatewayListenHosts } from "./net.js";
 
 describe("resolveGatewayListenHosts", () => {
@@ -28,6 +28,10 @@ describe("resolveGatewayListenHosts", () => {
 });
 
 describe("pickPrimaryLanIPv4", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("returns en0 IPv4 address when available", () => {
     vi.spyOn(os, "networkInterfaces").mockReturnValue({
       lo0: [
@@ -38,7 +42,6 @@ describe("pickPrimaryLanIPv4", () => {
       ] as unknown as os.NetworkInterfaceInfo[],
     });
     expect(pickPrimaryLanIPv4()).toBe("192.168.1.42");
-    vi.restoreAllMocks();
   });
 
   it("returns eth0 IPv4 address when en0 is absent", () => {
@@ -51,7 +54,6 @@ describe("pickPrimaryLanIPv4", () => {
       ] as unknown as os.NetworkInterfaceInfo[],
     });
     expect(pickPrimaryLanIPv4()).toBe("10.0.0.5");
-    vi.restoreAllMocks();
   });
 
   it("falls back to any non-internal IPv4 interface", () => {
@@ -64,7 +66,6 @@ describe("pickPrimaryLanIPv4", () => {
       ] as unknown as os.NetworkInterfaceInfo[],
     });
     expect(pickPrimaryLanIPv4()).toBe("172.16.0.99");
-    vi.restoreAllMocks();
   });
 
   it("returns undefined when only internal interfaces exist", () => {
@@ -74,6 +75,5 @@ describe("pickPrimaryLanIPv4", () => {
       ] as unknown as os.NetworkInterfaceInfo[],
     });
     expect(pickPrimaryLanIPv4()).toBeUndefined();
-    vi.restoreAllMocks();
   });
 });
