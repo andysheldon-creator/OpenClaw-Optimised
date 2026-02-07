@@ -117,6 +117,7 @@ describe("trigger handling", () => {
       const normalized = normalizeTestText(text ?? "");
       expect(normalized).toContain("Current: anthropic/claude-opus-4-5");
       expect(normalized).toContain("Switch: /model <provider/model>");
+ 	  expect(normalized).toContain("Switch: /model-set <provider/model>");
       expect(normalized).toContain("Browse: /models (providers) or /models <provider> (models)");
       expect(normalized).toContain("More: /model status");
       expect(normalized).not.toContain("reasoning");
