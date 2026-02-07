@@ -494,10 +494,10 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
         const statusText = discordCfg.activity ?? "the market 📉";
         const activityType = discordCfg.activityType ?? 3;
         const status = discordCfg.status ?? "online";
-        const url = discordCfg.activityUrl;
+        const activityUrl = activityType === 1 ? discordCfg.activityUrl : undefined;
 
         gateway.updatePresence({
-          activities: [{ name: statusText, type: activityType, url: url }],
+          activities: [{ name: statusText, type: activityType, url: activityUrl }],
           status: status,
           since: null,
           afk: false,
