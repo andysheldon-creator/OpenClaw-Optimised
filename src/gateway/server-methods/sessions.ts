@@ -2,10 +2,12 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import type { GatewayRequestHandlers } from "./types.js";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import { DEFAULT_PROVIDER } from "../../agents/defaults.js";
+import { modelKey, parseModelRef } from "../../agents/model-selection.js";
 import { abortEmbeddedPiRun, waitForEmbeddedPiRunEnd } from "../../agents/pi-embedded.js";
 import { stopSubagentsForRequester } from "../../auto-reply/reply/abort.js";
 import { clearSessionQueues } from "../../auto-reply/reply/queue.js";
-import { loadConfig } from "../../config/config.js";
+import { loadConfig, writeConfigFile } from "../../config/config.js";
 import {
   loadSessionStore,
   snapshotSessionOrigin,
@@ -41,6 +43,37 @@ import {
 } from "../session-utils.js";
 import { applySessionsPatchToStore } from "../sessions-patch.js";
 import { resolveSessionKeyFromResolveParams } from "../sessions-resolve.js";
+
+function extractDisallowedModelKey(message: string): string | null {
+  const match = /^model not allowed:\s*(\S+)\s*$/i.exec(String(message ?? "").trim());
+  return match?.[1] ?? null;
+}
+
+function addModelToAllowlist(cfg: ReturnType<typeof loadConfig>, rawKey: string) {
+  const parsed = parseModelRef(rawKey, DEFAULT_PROVIDER);
+  if (!parsed) {
+    return null;
+  }
+  const key = modelKey(parsed.provider, parsed.model);
+  const defaults = cfg.agents?.defaults ?? {};
+  const existingModels = defaults.models ?? {};
+  if (existingModels[key]) {
+    return null;
+  }
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...defaults,
+        models: {
+          ...existingModels,
+          [key]: {},
+        },
+      },
+    },
+  };
+}
 
 export const sessionsHandlers: GatewayRequestHandlers = {
   "sessions.list": ({ params, respond }) => {
@@ -175,24 +208,40 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const cfg = loadConfig();
+    let cfg = loadConfig();
     const target = resolveGatewaySessionStoreTarget({ cfg, key });
     const storePath = target.storePath;
-    const applied = await updateSessionStore(storePath, async (store) => {
-      const primaryKey = target.storeKeys[0] ?? key;
-      const existingKey = target.storeKeys.find((candidate) => store[candidate]);
-      if (existingKey && existingKey !== primaryKey && !store[primaryKey]) {
-        store[primaryKey] = store[existingKey];
-        delete store[existingKey];
-      }
-      return await applySessionsPatchToStore({
-        cfg,
-        store,
-        storeKey: primaryKey,
-        patch: p,
-        loadGatewayModelCatalog: context.loadGatewayModelCatalog,
+
+    const applyPatch = async (currentCfg: ReturnType<typeof loadConfig>) =>
+      updateSessionStore(storePath, async (store) => {
+        const primaryKey = target.storeKeys[0] ?? key;
+        const existingKey = target.storeKeys.find((candidate) => store[candidate]);
+        if (existingKey && existingKey !== primaryKey && !store[primaryKey]) {
+          store[primaryKey] = store[existingKey];
+          delete store[existingKey];
+        }
+        return await applySessionsPatchToStore({
+          cfg: currentCfg,
+          store,
+          storeKey: primaryKey,
+          patch: p,
+          loadGatewayModelCatalog: context.loadGatewayModelCatalog,
+        });
       });
-    });
+
+    let applied = await applyPatch(cfg);
+    if (!applied.ok && "model" in p && p.model) {
+      const disallowedKey = extractDisallowedModelKey(applied.error.message ?? "");
+      if (disallowedKey) {
+        const nextCfg = addModelToAllowlist(cfg, disallowedKey);
+        if (nextCfg) {
+          await writeConfigFile(nextCfg);
+          cfg = loadConfig();
+          applied = await applyPatch(cfg);
+        }
+      }
+    }
+
     if (!applied.ok) {
       respond(false, undefined, applied.error);
       return;
