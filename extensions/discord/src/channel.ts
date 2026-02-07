@@ -385,45 +385,80 @@ export const discordPlugin: ChannelPlugin<ResolvedDiscordAccount> = {
     startAccount: async (ctx) => {
       const account = ctx.account;
       const token = account.token.trim();
-      let discordBotLabel = "";
-      try {
-        const probe = await getDiscordRuntime().channel.discord.probeDiscord(token, 2500, {
-          includeApplication: true,
-        });
-        const username = probe.ok ? probe.bot?.username?.trim() : null;
-        if (username) {
-          discordBotLabel = ` (@${username})`;
+      const abortSignal = ctx.abortSignal;
+      const baseDelayMs = 1000;
+      const maxDelayMs = 60_000;
+      let restartAttempt = 0;
+
+      while (!abortSignal?.aborted) {
+        let discordBotLabel = "";
+        try {
+          const probe = await getDiscordRuntime().channel.discord.probeDiscord(token, 2500, {
+            includeApplication: true,
+          });
+          const username = probe.ok ? probe.bot?.username?.trim() : null;
+          if (username) {
+            discordBotLabel = ` (@${username})`;
+          }
+          ctx.setStatus({
+            accountId: account.accountId,
+            bot: probe.bot,
+            application: probe.application,
+          });
+          const messageContent = probe.application?.intents?.messageContent;
+          if (messageContent === "disabled") {
+            ctx.log?.warn(
+              `[${account.accountId}] Discord Message Content Intent is disabled; bot may not respond to channel messages. Enable it in Discord Dev Portal (Bot → Privileged Gateway Intents) or require mentions.`,
+            );
+          } else if (messageContent === "limited") {
+            ctx.log?.info(
+              `[${account.accountId}] Discord Message Content Intent is limited; bots under 100 servers can use it without verification.`,
+            );
+          }
+        } catch (err) {
+          if (getDiscordRuntime().logging.shouldLogVerbose()) {
+            ctx.log?.debug?.(`[${account.accountId}] bot probe failed: ${String(err)}`);
+          }
         }
-        ctx.setStatus({
-          accountId: account.accountId,
-          bot: probe.bot,
-          application: probe.application,
-        });
-        const messageContent = probe.application?.intents?.messageContent;
-        if (messageContent === "disabled") {
+
+        ctx.log?.info(`[${account.accountId}] starting provider${discordBotLabel}`);
+
+        try {
+          await getDiscordRuntime().channel.discord.monitorDiscordProvider({
+            token,
+            accountId: account.accountId,
+            config: ctx.cfg,
+            runtime: ctx.runtime,
+            abortSignal,
+            mediaMaxMb: account.config.mediaMaxMb,
+            historyLimit: account.config.historyLimit,
+          });
+          return;
+        } catch (err) {
+          if (abortSignal?.aborted) {
+            return;
+          }
+
+          const message = String(err);
+          const nonRetryable =
+            message.includes("Discord bot token missing") ||
+            message.includes("Fatal Gateway error");
+          if (nonRetryable) {
+            throw err;
+          }
+
+          restartAttempt += 1;
+          const exp = Math.min(8, restartAttempt - 1);
+          const backoff = Math.min(maxDelayMs, baseDelayMs * 2 ** exp);
+          const jitter = Math.floor(backoff * 0.2 * Math.random());
+          const delayMs = backoff + jitter;
+
           ctx.log?.warn(
-            `[${account.accountId}] Discord Message Content Intent is disabled; bot may not respond to channel messages. Enable it in Discord Dev Portal (Bot → Privileged Gateway Intents) or require mentions.`,
+            `[${account.accountId}] provider exited; restarting in ${delayMs}ms (attempt ${restartAttempt}): ${message}`,
           );
-        } else if (messageContent === "limited") {
-          ctx.log?.info(
-            `[${account.accountId}] Discord Message Content Intent is limited; bots under 100 servers can use it without verification.`,
-          );
-        }
-      } catch (err) {
-        if (getDiscordRuntime().logging.shouldLogVerbose()) {
-          ctx.log?.debug?.(`[${account.accountId}] bot probe failed: ${String(err)}`);
+          await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
         }
       }
-      ctx.log?.info(`[${account.accountId}] starting provider${discordBotLabel}`);
-      return getDiscordRuntime().channel.discord.monitorDiscordProvider({
-        token,
-        accountId: account.accountId,
-        config: ctx.cfg,
-        runtime: ctx.runtime,
-        abortSignal: ctx.abortSignal,
-        mediaMaxMb: account.config.mediaMaxMb,
-        historyLimit: account.config.historyLimit,
-      });
     },
   },
 };

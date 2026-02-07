@@ -86,6 +86,19 @@ export type DiscordIntentsConfig = {
   guildMembers?: boolean;
 };
 
+export type DiscordGatewayReconnectConfig = {
+  /**
+   * Max reconnect attempts before giving up.
+   * - Omit to allow unlimited reconnects.
+   * - Set to 0 to disable reconnects (useful during controlled shutdown).
+   */
+  maxAttempts?: number;
+  /** Base delay for exponential backoff (ms). Default: 1000. */
+  baseDelayMs?: number;
+  /** Maximum backoff delay (ms). Default: 30000. */
+  maxDelayMs?: number;
+};
+
 export type DiscordExecApprovalConfig = {
   /** Enable exec approval forwarding to Discord DMs. Default: false. */
   enabled?: boolean;
@@ -164,6 +177,8 @@ export type DiscordAccountConfig = {
   agentComponents?: DiscordAgentComponentsConfig;
   /** Privileged Gateway Intents (must also be enabled in Discord Developer Portal). */
   intents?: DiscordIntentsConfig;
+  /** Discord gateway reconnect/backoff tuning (Carbon GatewayPlugin). */
+  gatewayReconnect?: DiscordGatewayReconnectConfig;
   /** PluralKit identity resolution for proxied messages. */
   pluralkit?: DiscordPluralKitConfig;
   /** Outbound response prefix override for this channel/account. */
