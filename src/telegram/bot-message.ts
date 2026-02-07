@@ -78,23 +78,27 @@ export const createTelegramMessageProcessor = (deps: TelegramMessageProcessorDep
       return;
     }
 
-    // Trigger message:received hook
+    // Trigger message:received hook (non-blocking — must not prevent dispatch)
     const { ctxPayload, chatId, isGroup, msg } = context;
-    await triggerInternalHook(
-      createInternalHookEvent("message", "received", ctxPayload.SessionKey ?? "", {
-        ctxPayload,
-        channel: "telegram",
-        messageId: ctxPayload.MessageSid ?? String(msg.message_id),
-        from: ctxPayload.From ?? "",
-        to: ctxPayload.To ?? "",
-        isGroup,
-        chatId: String(chatId),
-        senderId: ctxPayload.SenderId || undefined,
-        hasMedia: Boolean(ctxPayload.MediaPath),
-        mediaCount: ctxPayload.MediaPaths?.length ?? (ctxPayload.MediaPath ? 1 : 0),
-        timestamp: msg.date ? msg.date * 1000 : undefined,
-      }),
-    );
+    try {
+      await triggerInternalHook(
+        createInternalHookEvent("message", "received", ctxPayload.SessionKey ?? "", {
+          ctxPayload,
+          channel: "telegram",
+          messageId: ctxPayload.MessageSid ?? String(msg.message_id),
+          from: ctxPayload.From ?? "",
+          to: ctxPayload.To ?? "",
+          isGroup,
+          chatId: String(chatId),
+          senderId: ctxPayload.SenderId || undefined,
+          hasMedia: Boolean(ctxPayload.MediaPath),
+          mediaCount: ctxPayload.MediaPaths?.length ?? (ctxPayload.MediaPath ? 1 : 0),
+          timestamp: msg.date ? msg.date * 1000 : undefined,
+        }),
+      );
+    } catch (err) {
+      logger.warn("message:received hook failed, continuing dispatch", { error: err });
+    }
 
     await dispatchTelegramMessage({
       context,
