@@ -80,29 +80,45 @@ export function sanitizePayload(value: unknown, maxChars: number, config?: Sanit
 }
 
 /**
+ * Sanitize a single payload value: stringify → truncate → redact → try to parse back.
+ * Falls back to the redacted string if JSON.parse fails (truncation/redaction can break JSON).
+ */
+function sanitizeValue(value: unknown, maxChars: number, cfg: SanitizeConfig): unknown {
+  const redacted = sanitizePayload(value, maxChars, cfg);
+  try {
+    return JSON.parse(redacted);
+  } catch {
+    // Truncation or redaction broke JSON structure — store as redacted string
+    return redacted;
+  }
+}
+
+/**
  * Sanitize tool args and result for persistence.
+ * Handles both `{ args, result }` and `{ toolArgs, toolResult }` field conventions.
  * Returns a new object with sanitized payload fields.
  */
-export function sanitizeForPersistence<T extends { args?: unknown; result?: unknown }>(
+export function sanitizeForPersistence<T extends Record<string, unknown>>(
   data: T,
   config?: Partial<SanitizeConfig>,
 ): T {
   const cfg = { ...DEFAULT_SANITIZE_CONFIG, ...config };
   const sanitized = { ...data };
 
+  // Handle { args, result } convention
   if (sanitized.args !== undefined) {
-    const raw =
-      typeof sanitized.args === "string" ? sanitized.args : JSON.stringify(sanitized.args);
-    sanitized.args = JSON.parse(
-      sanitizePayload(JSON.parse(raw === undefined ? "null" : raw), cfg.maxArgChars, cfg),
-    );
+    sanitized.args = sanitizeValue(sanitized.args, cfg.maxArgChars, cfg);
   }
   if (sanitized.result !== undefined) {
-    const raw =
-      typeof sanitized.result === "string" ? sanitized.result : JSON.stringify(sanitized.result);
-    sanitized.result = JSON.parse(
-      sanitizePayload(JSON.parse(raw === undefined ? "null" : raw), cfg.maxResultChars, cfg),
-    );
+    sanitized.result = sanitizeValue(sanitized.result, cfg.maxResultChars, cfg);
+  }
+
+  // Handle { toolArgs, toolResult } convention (experience kits)
+  if (sanitized.toolArgs !== undefined) {
+    sanitized.toolArgs = sanitizeValue(sanitized.toolArgs, cfg.maxArgChars, cfg);
+  }
+  if (sanitized.toolResult !== undefined) {
+    sanitized.toolResult = sanitizeValue(sanitized.toolResult, cfg.maxResultChars, cfg);
   }
 
   return sanitized;

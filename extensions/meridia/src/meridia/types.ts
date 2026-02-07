@@ -126,7 +126,7 @@ export type MeridiaExperienceRecord = {
     score: number;
     threshold?: number;
     evaluation: MeridiaEvaluation;
-    limited?: { reason: "min_interval" | "max_per_hour"; detail?: string };
+    limited?: { reason: "min_interval" | "max_per_hour" | "budget"; detail?: string };
   };
   content?: {
     topic?: string;
@@ -173,7 +173,7 @@ export type MeridiaTraceEvent = {
     decision: "capture" | "skip" | "error";
     score?: number;
     threshold?: number;
-    limited?: { reason: "min_interval" | "max_per_hour"; detail?: string };
+    limited?: { reason: "min_interval" | "max_per_hour" | "budget"; detail?: string };
     evaluation?: MeridiaEvaluation;
     recordId?: string;
     error?: string;

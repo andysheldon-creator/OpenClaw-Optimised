@@ -3,8 +3,8 @@ import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import fs from "node:fs";
 import path from "node:path";
 import { probeModelRefAuth } from "openclaw/plugin-sdk";
-import { createBackend } from "../meridia/db/index.js";
 import { createSqliteBackend } from "../meridia/db/backends/sqlite.js";
+import { createBackend } from "../meridia/db/index.js";
 import { wipeDir } from "../meridia/fs.js";
 import { resolveMeridiaDir } from "../meridia/paths.js";
 
@@ -99,8 +99,8 @@ export function registerMeridiaCli(program: Command, config: OpenClawConfig): vo
 
       try {
         const backend = createBackend({ cfg: config });
-        const stats = backend.getStats();
-        const events = backend.getTraceEventsByDateRange(fromIso, toIso);
+        const stats = await backend.getStats();
+        const events = await backend.getTraceEventsByDateRange(fromIso, toIso);
 
         const toolEvals = events.filter((e) => e.kind === "tool_result_eval");
         const captured = toolEvals.filter((e) => e.decision?.decision === "capture");
@@ -292,10 +292,9 @@ export function registerMeridiaCli(program: Command, config: OpenClawConfig): vo
         const existed = fs.existsSync(targetDir);
         wipeDir(targetDir);
         const backend = createSqliteBackend({
-          cfg: config,
           dbPath: path.join(targetDir, "meridia.sqlite"),
         });
-        const stats = backend.getStats();
+        const stats = await backend.getStats();
         backend.close();
 
         const out = {
@@ -346,12 +345,15 @@ export function registerMeridiaCli(program: Command, config: OpenClawConfig): vo
         const toIso = new Date(nowMs).toISOString();
 
         const backend = createBackend({ cfg: config });
-        const records = backend
-          .getRecordsByDateRange(fromIso, toIso, { limit })
-          .map((r) => r.record);
+        const records = (await backend.getRecordsByDateRange(fromIso, toIso, { limit })).map(
+          (r) => r.record,
+        );
 
         if (mode === "jsonl") {
-          writeOutput({ outPath, content: `${records.map((r) => JSON.stringify(r)).join("\n")}\n` });
+          writeOutput({
+            outPath,
+            content: `${records.map((r) => JSON.stringify(r)).join("\n")}\n`,
+          });
           return;
         }
 
@@ -395,7 +397,7 @@ export function registerMeridiaCli(program: Command, config: OpenClawConfig): vo
         const toIso = new Date(nowMs).toISOString();
 
         const backend = createBackend({ cfg: config });
-        const events = backend.getTraceEventsByDateRange(fromIso, toIso, {
+        const events = await backend.getTraceEventsByDateRange(fromIso, toIso, {
           kind: opts.kind,
           limit,
         });
