@@ -145,8 +145,10 @@ export async function run(state: CronServiceState, id: string, mode?: "due" | "f
     job.state.lastError = undefined;
     emit(state, { jobId: job.id, action: "started", runAtMs: startedAt });
 
-    await persist(state);
-    armTimer(state);
+    // NOTE: For manual runs, we intentionally do NOT persist the running marker here.
+    // Persisting requires filesystem I/O and can delay job start; we'll persist the
+    // finished state (which also clears runningAtMs) in phase 3.
+    // The scheduler timer path (onTimer) still persists before executing due jobs.
     return { ok: true, ran: true, nowMs: now } as const;
   });
 
