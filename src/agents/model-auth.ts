@@ -302,6 +302,7 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     mistral: "MISTRAL_API_KEY",
     opencode: "OPENCODE_API_KEY",
     ollama: "OLLAMA_API_KEY",
+    "huawei-maas": "HUAWEI_MAAS_API_KEY",
   };
   const envVar = envMap[normalized];
   if (!envVar) {

@@ -23,6 +23,7 @@ export type AuthChoiceGroupId =
   | "synthetic"
   | "venice"
   | "qwen"
+  | "huawei"
   | "xai";
 
 export type AuthChoiceGroup = {
@@ -38,6 +39,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
   hint?: string;
   choices: AuthChoice[];
 }[] = [
+  {
+    value: "huawei",
+    label: "Huawei Cloud MAAS",
+    hint: "ModelArts MAAS API key",
+    choices: ["huawei-maas-api-key"],
+  },
   {
     value: "xai",
     label: "xAI (Grok)",
@@ -225,6 +232,11 @@ export function buildAuthChoiceOptions(params: {
     value: "minimax-api-lightning",
     label: "MiniMax M2.1 Lightning",
     hint: "Faster, higher output cost",
+  });
+  options.push({
+    value: "huawei-maas-api-key",
+    label: "Huawei Cloud MAAS API key",
+    hint: "Supports multiple models including DeepSeek, Qwen, and Kimi",
   });
   if (params.includeSkip) {
     options.push({ value: "skip", label: "Skip for now" });
