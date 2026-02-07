@@ -11,6 +11,7 @@ export async function runDecomposePhase(opts: {
   plan: WorkflowPlan;
   discoveryResults: DiscoveryResult[];
   agentId: string;
+  model?: string;
   thinking?: string;
   callGateway: GatewayCallFn;
   log: WorkflowLogger;
@@ -57,6 +58,7 @@ export async function runDecomposePhase(opts: {
     constraints,
     repoContextSnapshot: consolidatedFindings,
     agentId,
+    modelOverride: opts.model,
     thinkingOverride: thinking,
   });
 

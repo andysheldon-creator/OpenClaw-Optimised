@@ -141,6 +141,8 @@ export type WorkerWorkflowConfig = {
 export type WorkerConfig = {
   /** Enable the perpetual worker loop for this agent. */
   enabled?: boolean;
+  /** Queue to claim from (default: this agent's queue). */
+  queueId?: string;
   /** Only process items in these workstreams (omit = all). */
   workstreams?: string[];
   /** Polling interval in ms when no work is available (default 5000). */

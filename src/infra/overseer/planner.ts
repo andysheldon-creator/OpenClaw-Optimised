@@ -207,12 +207,14 @@ export async function generateOverseerPlan(params: {
   constraints: string[];
   repoContextSnapshot?: string;
   agentId?: string;
+  /** Optional planner model override for this run. */
+  modelOverride?: string;
   /** Override thinking level for the planner session (e.g. "high"). */
   thinkingOverride?: string;
 }): Promise<PlannerResult> {
   const cfg = loadConfig();
   const plannerCfg = cfg.overseer?.planner;
-  const model = plannerCfg?.model?.trim();
+  const model = params.modelOverride?.trim() || plannerCfg?.model?.trim();
   if (!model) {
     throw new Error("overseer planner model not configured");
   }
@@ -249,6 +251,7 @@ export async function generateOverseerPlan(params: {
       extraSystemPrompt: "You are OverseerPlanner. Reply with JSON only.",
       timeoutMs: 60_000,
       lane: AGENT_LANE_SUBAGENT,
+      model,
       thinking: params.thinkingOverride,
     });
     lastOutput = reply ?? "";

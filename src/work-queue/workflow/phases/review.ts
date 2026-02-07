@@ -68,6 +68,7 @@ export async function runReviewPhase(opts: {
   agentId: string;
   reviewerAgentId?: string;
   maxIterations?: number;
+  model?: string;
   thinking?: string;
   callGateway: GatewayCallFn;
   log: WorkflowLogger;
@@ -89,6 +90,7 @@ export async function runReviewPhase(opts: {
       extraSystemPrompt: "You are WorkflowReviewer. Reply with JSON only.",
       timeoutMs: 60_000,
       lane: AGENT_LANE_SUBAGENT,
+      model: opts.model,
       thinking,
     });
 

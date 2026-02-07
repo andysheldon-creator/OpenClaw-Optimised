@@ -460,6 +460,7 @@ export const WorkerWorkflowSchema = z
 export const WorkerConfigSchema = z
   .object({
     enabled: z.boolean().optional(),
+    queueId: z.string().optional(),
     workstreams: z.array(z.string()).optional(),
     pollIntervalMs: z.number().int().positive().optional(),
     model: z.string().optional(),

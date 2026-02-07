@@ -294,8 +294,9 @@ export function registerWorkQueueCli(program: Command) {
         defaultRuntime.log(theme.error(`Work item not found: ${itemId}`));
         return;
       }
+      const executions = await store.listExecutions(item.id, { limit: 10 });
       if (opts.json) {
-        defaultRuntime.log(JSON.stringify({ item }, null, 2));
+        defaultRuntime.log(JSON.stringify({ item, executions }, null, 2));
         return;
       }
       defaultRuntime.log(`${theme.heading("Work Item")} ${theme.muted(item.id)}`);
@@ -339,6 +340,14 @@ export function registerWorkQueueCli(program: Command) {
       }
       if (item.payload && Object.keys(item.payload).length > 0) {
         defaultRuntime.log(`  Payload: ${JSON.stringify(item.payload, null, 2)}`);
+      }
+      if (executions.length > 0) {
+        defaultRuntime.log(`  Executions:`);
+        for (const exec of executions) {
+          defaultRuntime.log(
+            `    #${exec.attemptNumber} ${exec.outcome} ${exec.sessionKey} (${exec.durationMs}ms)`,
+          );
+        }
       }
     });
 
@@ -501,10 +510,12 @@ export function registerWorkQueueCli(program: Command) {
             {
               workers: workerAgents.map((a) => ({
                 agentId: a.id,
+                queueId: a.worker?.queueId ?? a.id,
                 workstreams: a.worker?.workstreams ?? [],
                 pollIntervalMs: a.worker?.pollIntervalMs ?? 5000,
                 model: a.worker?.model,
                 contextExtractor: a.worker?.contextExtractor ?? "transcript",
+                workflowEnabled: a.worker?.workflow?.enabled ?? false,
               })),
             },
             null,
@@ -526,6 +537,8 @@ export function registerWorkQueueCli(program: Command) {
           width: tableWidth(),
           columns: [
             { key: "Agent", header: "Agent", minWidth: 12 },
+            { key: "Queue", header: "Queue", minWidth: 12 },
+            { key: "Mode", header: "Mode", minWidth: 8 },
             { key: "Workstreams", header: "Workstreams", minWidth: 12, flex: true },
             { key: "Poll", header: "Poll (ms)", minWidth: 9 },
             { key: "Model", header: "Model", minWidth: 10 },
@@ -533,6 +546,8 @@ export function registerWorkQueueCli(program: Command) {
           ],
           rows: workerAgents.map((a) => ({
             Agent: a.id,
+            Queue: a.worker?.queueId ?? a.id,
+            Mode: a.worker?.workflow?.enabled ? "workflow" : "classic",
             Workstreams: a.worker?.workstreams?.join(", ") || "(all)",
             Poll: String(a.worker?.pollIntervalMs ?? 5000),
             Model: a.worker?.model ?? "(default)",

@@ -61,6 +61,7 @@ function buildRepairPrompt(errors: string[], previousOutput: string): string {
 export async function runPlanPhase(opts: {
   item: WorkItem;
   agentId: string;
+  model?: string;
   thinking?: string;
   callGateway: GatewayCallFn;
   log: WorkflowLogger;
@@ -84,6 +85,7 @@ export async function runPlanPhase(opts: {
       extraSystemPrompt: "You are WorkflowPlanner. Reply with JSON only.",
       timeoutMs: 60_000,
       lane: AGENT_LANE_SUBAGENT,
+      model: opts.model,
       thinking,
     });
 

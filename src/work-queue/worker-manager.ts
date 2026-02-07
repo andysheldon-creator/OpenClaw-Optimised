@@ -54,7 +54,7 @@ export class WorkQueueWorkerManager {
     const workerAgents = agents.filter((a) => a.worker?.enabled);
 
     if (workerAgents.length === 0) {
-      this.log!.debug("no worker agents configured");
+      this.log!.info("no worker agents configured");
       return;
     }
 
@@ -136,6 +136,12 @@ export class WorkQueueWorkerManager {
     store: Awaited<ReturnType<typeof getDefaultWorkQueueStore>>,
   ): Promise<void> {
     const workerConfig = agent.worker!;
+    const queueId = workerConfig.queueId?.trim() || agent.id;
+    const workstreams = workerConfig.workstreams?.join(", ") || "(all)";
+    const mode = workerConfig.workflow?.enabled ? "workflow" : "classic";
+    this.log!.info(
+      `worker config: agent=${agent.id} queue=${queueId} mode=${mode} workstreams=${workstreams}`,
+    );
     const gwCall = <T = Record<string, unknown>>(opts: {
       method: string;
       params?: unknown;

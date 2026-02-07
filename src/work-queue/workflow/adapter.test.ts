@@ -185,6 +185,58 @@ describe("WorkflowWorkerAdapter", () => {
     expect(alpha?.status).toBe("pending");
   });
 
+  it("claims unscoped items when no workstreams are configured", async () => {
+    const item = await store.createItem({
+      agentId: "test-agent",
+      title: "Workflow unscoped task",
+    });
+
+    mockExecuteWorkflow.mockResolvedValueOnce(makeSuccessState(item.id));
+
+    const adapter = makeAdapter();
+    await adapter.start();
+    await new Promise((r) => setTimeout(r, 150));
+    await adapter.stop();
+
+    const updated = await store.getItem(item.id);
+    expect(updated?.status).toBe("completed");
+  });
+
+  it("treats blank workstream entries as unscoped", async () => {
+    const item = await store.createItem({
+      agentId: "test-agent",
+      title: "Workflow unscoped task with blank workstream config",
+    });
+
+    mockExecuteWorkflow.mockResolvedValueOnce(makeSuccessState(item.id));
+
+    const adapter = makeAdapter({ workstreams: ["", "   "] });
+    await adapter.start();
+    await new Promise((r) => setTimeout(r, 150));
+    await adapter.stop();
+
+    const updated = await store.getItem(item.id);
+    expect(updated?.status).toBe("completed");
+  });
+
+  it("claims from configured queueId when provided", async () => {
+    const item = await store.createItem({
+      agentId: "shared-queue",
+      title: "Workflow queue override task",
+    });
+
+    mockExecuteWorkflow.mockResolvedValueOnce(makeSuccessState(item.id));
+
+    const adapter = makeAdapter({ queueId: "shared-queue" });
+    await adapter.start();
+    await new Promise((r) => setTimeout(r, 200));
+    await adapter.stop();
+
+    const updated = await store.getItem(item.id);
+    expect(updated?.status).toBe("completed");
+    expect(updated?.assignedTo?.agentId).toBe("test-agent");
+  });
+
   it("exposes config and metrics", () => {
     const config: WorkerConfig = { enabled: true, pollIntervalMs: 100, thinking: "high" };
     const adapter = new WorkflowWorkerAdapter({

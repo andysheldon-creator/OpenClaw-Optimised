@@ -115,6 +115,7 @@ function buildNodeSystemPrompt(node: FlatNode, priorContext: string[]): string {
 export async function runExecutePhase(opts: {
   dag: OverseerPlan;
   agentId: string;
+  model?: string;
   thinking?: string;
   sessionTimeoutSeconds?: number;
   callGateway: GatewayCallFn;
@@ -161,6 +162,7 @@ export async function runExecutePhase(opts: {
           deliver: false,
           lane: AGENT_LANE_SUBAGENT,
           extraSystemPrompt: systemPrompt,
+          model: opts.model,
           thinking: opts.thinking,
           timeout: timeoutS,
           label: `Workflow node: ${node.name}`,

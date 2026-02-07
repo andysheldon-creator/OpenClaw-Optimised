@@ -75,7 +75,10 @@ export class WorkQueueWorker {
     if (this.running) return;
     this.running = true;
     this.abortController = new AbortController();
-    this.deps.log.info(`worker[${this.agentId}]: starting`);
+    const workstreams = this.targetWorkstreams.join(", ") || "(all)";
+    this.deps.log.info(
+      `worker[${this.agentId}]: starting (queue=${this.targetQueueId}, workstreams=${workstreams})`,
+    );
     this.loopPromise = this.loop();
   }
 
@@ -252,12 +255,13 @@ export class WorkQueueWorker {
   }
 
   private async claimNext(): Promise<WorkItem | null> {
-    const workstreams = this.config.workstreams;
+    const queueId = this.targetQueueId;
+    const workstreams = this.targetWorkstreams;
     if (workstreams && workstreams.length > 0) {
       // Try each workstream in order.
       for (const ws of workstreams) {
         const item = await this.deps.store.claimNextItem({
-          agentId: this.agentId,
+          queueId,
           assignTo: { agentId: this.agentId },
           workstream: ws,
         });
@@ -266,9 +270,18 @@ export class WorkQueueWorker {
       return null;
     }
     return this.deps.store.claimNextItem({
-      agentId: this.agentId,
+      queueId,
       assignTo: { agentId: this.agentId },
     });
+  }
+
+  private get targetQueueId(): string {
+    const configured = this.config.queueId?.trim();
+    return configured || this.agentId;
+  }
+
+  private get targetWorkstreams(): string[] {
+    return (this.config.workstreams ?? []).map((w) => w.trim()).filter((w) => w.length > 0);
   }
 
   private async processItem(item: WorkItem): Promise<ProcessItemResult> {
@@ -293,6 +306,7 @@ export class WorkQueueWorker {
         deliver: false,
         lane: "worker",
         extraSystemPrompt: systemPrompt,
+        model: this.config.model ?? undefined,
         thinking: this.config.thinking ?? undefined,
         timeout: timeoutS,
         label: `Worker: ${item.title}`,

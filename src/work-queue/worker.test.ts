@@ -217,6 +217,110 @@ describe("WorkQueueWorker", () => {
     expect(beta?.status).toBe("completed");
     expect(alpha?.status).toBe("pending"); // Not touched.
   });
+
+  it("claims unscoped items when no workstreams are configured", async () => {
+    const { store, deps } = createTestDeps();
+
+    const item = await store.createItem({
+      agentId: "test-agent",
+      title: "Unscoped task",
+    });
+
+    const worker = new WorkQueueWorker({
+      agentId: "test-agent",
+      config: {
+        enabled: true,
+        pollIntervalMs: 50,
+      },
+      deps,
+    });
+
+    await worker.start();
+    await new Promise((r) => setTimeout(r, 250));
+    await worker.stop();
+
+    const updated = await store.getItem(item.id);
+    expect(updated?.status).toBe("completed");
+  });
+
+  it("treats blank workstream entries as unscoped", async () => {
+    const { store, deps } = createTestDeps();
+
+    const item = await store.createItem({
+      agentId: "test-agent",
+      title: "Unscoped task with blank workstream config",
+    });
+
+    const worker = new WorkQueueWorker({
+      agentId: "test-agent",
+      config: {
+        enabled: true,
+        pollIntervalMs: 50,
+        workstreams: ["", "   "],
+      },
+      deps,
+    });
+
+    await worker.start();
+    await new Promise((r) => setTimeout(r, 250));
+    await worker.stop();
+
+    const updated = await store.getItem(item.id);
+    expect(updated?.status).toBe("completed");
+  });
+
+  it("claims from configured queueId when provided", async () => {
+    const { store, deps } = createTestDeps();
+
+    const item = await store.createItem({
+      agentId: "shared-queue",
+      title: "Shared queue task",
+    });
+
+    const worker = new WorkQueueWorker({
+      agentId: "worker-a",
+      config: {
+        enabled: true,
+        pollIntervalMs: 50,
+        queueId: "shared-queue",
+      },
+      deps,
+    });
+
+    await worker.start();
+    await new Promise((r) => setTimeout(r, 250));
+    await worker.stop();
+
+    const updated = await store.getItem(item.id);
+    expect(updated?.status).toBe("completed");
+    expect(updated?.assignedTo?.agentId).toBe("worker-a");
+  });
+
+  it("passes model override to spawned agent session", async () => {
+    const { store, deps, gateway } = createTestDeps();
+
+    await store.createItem({
+      agentId: "test-agent",
+      title: "Model override task",
+    });
+
+    const worker = new WorkQueueWorker({
+      agentId: "test-agent",
+      config: {
+        enabled: true,
+        pollIntervalMs: 50,
+        model: "zai/glm-4.7",
+      },
+      deps,
+    });
+
+    await worker.start();
+    await new Promise((r) => setTimeout(r, 250));
+    await worker.stop();
+
+    const agentCall = gateway.mock.calls.find((c: any) => c[0]?.method === "agent");
+    expect(agentCall?.[0]?.params?.model).toBe("zai/glm-4.7");
+  });
 });
 
 // =============================================================================

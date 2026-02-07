@@ -78,7 +78,10 @@ export class WorkflowWorkerAdapter {
     }
     this.running = true;
     this.abortController = new AbortController();
-    this.deps.log.info(`workflow-worker[${this.agentId}]: starting`);
+    const workstreams = this.targetWorkstreams.join(", ") || "(all)";
+    this.deps.log.info(
+      `workflow-worker[${this.agentId}]: starting (queue=${this.targetQueueId}, workstreams=${workstreams})`,
+    );
     this.loopPromise = this.loop();
   }
 
@@ -151,9 +154,7 @@ export class WorkflowWorkerAdapter {
           this.deps.log.info(`workflow-worker[${this.agentId}]: completed item ${item.id}`);
         } else {
           const maxRetries = item.maxRetries ?? 0;
-          // maxRetries is the number of allowed retry attempts after the initial run,
-          // so the item is exhausted when attemptNumber > maxRetries (attempt 1 is the first try).
-          const exhausted = maxRetries > 0 && attemptNumber > maxRetries;
+          const exhausted = maxRetries > 0 && attemptNumber >= maxRetries;
 
           if (exhausted || maxRetries === 0) {
             await this.deps.store.updateItem(item.id, {
@@ -198,11 +199,12 @@ export class WorkflowWorkerAdapter {
   }
 
   private async claimNext(): Promise<WorkItem | null> {
-    const workstreams = this.config.workstreams;
+    const queueId = this.targetQueueId;
+    const workstreams = this.targetWorkstreams;
     if (workstreams && workstreams.length > 0) {
       for (const ws of workstreams) {
         const item = await this.deps.store.claimNextItem({
-          agentId: this.agentId,
+          queueId,
           assignTo: { agentId: this.agentId },
           workstream: ws,
         });
@@ -213,9 +215,18 @@ export class WorkflowWorkerAdapter {
       return null;
     }
     return this.deps.store.claimNextItem({
-      agentId: this.agentId,
+      queueId,
       assignTo: { agentId: this.agentId },
     });
+  }
+
+  private get targetQueueId(): string {
+    const configured = this.config.queueId?.trim();
+    return configured || this.agentId;
+  }
+
+  private get targetWorkstreams(): string[] {
+    return (this.config.workstreams ?? []).map((w) => w.trim()).filter((w) => w.length > 0);
   }
 
   private sleep(ms: number, signal: AbortSignal): Promise<void> {
