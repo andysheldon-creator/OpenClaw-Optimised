@@ -9,37 +9,11 @@ These tests ensure that the _validate_place_id function correctly:
 
 import pytest
 from fastapi import HTTPException
-
-# Import the validation function - adjust the import path as needed
-# from local_places.google_places import _validate_place_id
-
-
 from local_places.google_places import _validate_place_id
-
-    import re
-    
-    if not place_id or not isinstance(place_id, str):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid place_id: must be a non-empty string.",
-        )
-    
-    if len(place_id) < 10 or len(place_id) > 300:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid place_id length: {len(place_id)}. Expected 10-300 characters.",
-        )
-    
-    if not re.match(r'^[A-Za-z0-9_-]+$', place_id):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid place_id format: must contain only alphanumeric characters, underscores, and hyphens.",
-        )
-
 
 class TestValidatePlaceId:
     """Test suite for place_id validation."""
-    
+
     def test_valid_place_ids(self):
         """Test that valid Google Place IDs are accepted."""
         valid_ids = [
@@ -50,14 +24,13 @@ class TestValidatePlaceId:
             "A" * 100,                       # Long valid ID
             "1234567890",                    # Numeric only (minimum length)
         ]
-        
+
         for place_id in valid_ids:
             try:
                 _validate_place_id(place_id)
-                # If no exception is raised, the test passes
             except HTTPException:
                 pytest.fail(f"Valid place_id '{place_id}' was incorrectly rejected")
-    
+
     def test_path_traversal_attempts(self):
         """Test that path traversal attempts are rejected."""
         malicious_ids = [
@@ -69,13 +42,13 @@ class TestValidatePlaceId:
             "place/../../file",
             "//network/share",
         ]
-        
+
         for place_id in malicious_ids:
             with pytest.raises(HTTPException) as exc_info:
                 _validate_place_id(place_id)
             assert exc_info.value.status_code == 400
             assert "Invalid place_id format" in exc_info.value.detail
-    
+
     def test_special_characters(self):
         """Test that place IDs with special characters are rejected."""
         invalid_ids = [
@@ -97,25 +70,22 @@ class TestValidatePlaceId:
             "place{braces}",         # Braces
             "place<tag>",            # Angle brackets (XSS attempt)
         ]
-        
+
         for place_id in invalid_ids:
             with pytest.raises(HTTPException) as exc_info:
                 _validate_place_id(place_id)
             assert exc_info.value.status_code == 400
-    
+
     def test_empty_or_none(self):
         """Test that empty or None place IDs are rejected."""
-        invalid_ids = [
-            "",
-            None,
-        ]
-        
+        invalid_ids = ["", None]
+
         for place_id in invalid_ids:
             with pytest.raises(HTTPException) as exc_info:
                 _validate_place_id(place_id)
             assert exc_info.value.status_code == 400
             assert "must be a non-empty string" in exc_info.value.detail
-    
+
     def test_length_validation(self):
         """Test that place IDs are validated for appropriate length."""
         # Too short
@@ -123,17 +93,17 @@ class TestValidatePlaceId:
             _validate_place_id("short")
         assert exc_info.value.status_code == 400
         assert "Invalid place_id length" in exc_info.value.detail
-        
+
         # Too long
         with pytest.raises(HTTPException) as exc_info:
             _validate_place_id("A" * 301)
         assert exc_info.value.status_code == 400
         assert "Invalid place_id length" in exc_info.value.detail
-        
+
         # Boundary cases - should pass
         _validate_place_id("A" * 10)   # Minimum length
         _validate_place_id("A" * 300)  # Maximum length
-    
+
     def test_mixed_case(self):
         """Test that mixed case alphanumeric IDs are accepted."""
         valid_ids = [
@@ -142,13 +112,13 @@ class TestValidatePlaceId:
             "lowercase456",
             "MiXeDCaSe789",
         ]
-        
+
         for place_id in valid_ids:
             try:
                 _validate_place_id(place_id)
             except HTTPException:
                 pytest.fail(f"Valid mixed-case place_id '{place_id}' was incorrectly rejected")
-    
+
     def test_underscores_and_hyphens(self):
         """Test that underscores and hyphens are allowed."""
         valid_ids = [
@@ -158,13 +128,12 @@ class TestValidatePlaceId:
             "___underscores___",
             "---hyphens---mixed123",
         ]
-        
+
         for place_id in valid_ids:
             try:
                 _validate_place_id(place_id)
             except HTTPException:
                 pytest.fail(f"Valid place_id '{place_id}' with underscores/hyphens was incorrectly rejected")
-
 
 if __name__ == "__main__":
     # Run tests
