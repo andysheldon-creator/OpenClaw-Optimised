@@ -115,12 +115,16 @@ When approvals are required, the exec tool returns immediately with
 the Gateway emits system events (`Exec finished` / `Exec denied`). If the command is still
 running after `tools.exec.approvalRunningNoticeMs`, a single `Exec running` notice is emitted.
 
-## Allowlist + safe bins
+## Allowlist + safe bins + denylist
 
 Allowlist enforcement matches **resolved binary paths only** (no basename matches). When
 `security=allowlist`, shell commands are auto-allowed only if every pipeline segment is
 allowlisted or a safe bin. Chaining (`;`, `&&`, `||`) and redirections are rejected in
 allowlist mode.
+
+The **denylist** is evaluated before the allowlist. High-risk subcommands (e.g. `git push`,
+`npm publish`, `curl -X POST`) require explicit approval even when the binary is allowlisted.
+See [Exec denylist](/tools/exec-denylist) for details and default patterns.
 
 ## Examples
 

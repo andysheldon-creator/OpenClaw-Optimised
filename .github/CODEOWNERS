@@ -1,0 +1,11 @@
+# Ironclaw CODEOWNERS
+#
+# This file enforces review requirements for all changes to the repository.
+# The bot operates with its own GitHub credentials but CANNOT approve its own PRs.
+# Only the human owner (josgraha) can approve and merge.
+#
+# This is a platform-level enforcement of the Shogun Principle:
+# the agent proposes, the human disposes.
+
+# Default owner for everything in the repo
+*       @josgraha

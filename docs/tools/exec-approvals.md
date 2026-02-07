@@ -95,6 +95,11 @@ If a prompt is required but no UI is reachable, fallback decides:
 
 ## Allowlist (per agent)
 
+> [!NOTE]
+> The **denylist** is evaluated before the allowlist. Even if a binary is allowlisted,
+> high-risk subcommands (e.g. `git push`) will still require approval.
+> See [Exec denylist](/tools/exec-denylist) for details.
+
 Allowlists are **per agent**. If multiple agents exist, switch which agent you’re
 editing in the macOS app. Patterns are **case-insensitive glob matches**.
 Patterns should resolve to **binary paths** (basename-only entries are ignored).
@@ -235,6 +240,8 @@ Approval-gated execs reuse the approval id as the `runId` in these messages for 
 - **full** is powerful; prefer allowlists when possible.
 - **ask** keeps you in the loop while still allowing fast approvals.
 - Per-agent allowlists prevent one agent’s approvals from leaking into others.
+- The **denylist** forces approval for high-risk commands (e.g. `git push`, `npm publish`)
+  even when the binary is allowlisted. See [Exec denylist](/tools/exec-denylist).
 - Approvals only apply to host exec requests from **authorized senders**. Unauthorized senders cannot issue `/exec`.
 - `/exec security=full` is a session-level convenience for authorized operators and skips approvals by design.
   To hard-block host exec, set approvals security to `deny` or deny the `exec` tool via tool policy.
@@ -242,5 +249,6 @@ Approval-gated execs reuse the approval id as the `runId` in these messages for 
 Related:
 
 - [Exec tool](/tools/exec)
+- [Exec denylist](/tools/exec-denylist)
 - [Elevated mode](/tools/elevated)
 - [Skills](/tools/skills)

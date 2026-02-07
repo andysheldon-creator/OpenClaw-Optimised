@@ -19,9 +19,20 @@ export type ExecApprovalsDefaults = {
 export type ExecAllowlistEntry = {
   id?: string;
   pattern: string;
+  subcommandPattern?: string;
   lastUsedAt?: number;
   lastUsedCommand?: string;
   lastResolvedPath?: string;
+};
+
+export type ExecDenylistMatchMode = "subcommand" | "binary" | "regex";
+export type ExecDenylistReason = "external-system" | "destructive" | "custom";
+
+export type ExecDenylistEntry = {
+  pattern: string;
+  mode: ExecDenylistMatchMode;
+  reason: ExecDenylistReason;
+  description?: string;
 };
 
 export type ExecApprovalsAgent = ExecApprovalsDefaults & {
@@ -63,6 +74,83 @@ const DEFAULT_AUTO_ALLOW_SKILLS = false;
 const DEFAULT_SOCKET = "~/.openclaw/exec-approvals.sock";
 const DEFAULT_FILE = "~/.openclaw/exec-approvals.json";
 export const DEFAULT_SAFE_BINS = ["jq", "grep", "cut", "sort", "uniq", "head", "tail", "tr", "wc"];
+
+/**
+ * Built-in denylist for commands that interact with external systems or perform
+ * destructive operations. Denylist evaluation fires BEFORE allowlist checks and
+ * forces `ask=always` for matched commands regardless of allowlist status.
+ *
+ * Mode = "subcommand": matches binary name + first argument(s) using glob.
+ * Mode = "binary": matches binary name only.
+ * Mode = "regex": matches the full command string against a regex.
+ */
+export const DEFAULT_DENYLIST: ExecDenylistEntry[] = [
+  // Version control — external pushes
+  {
+    pattern: "git push",
+    mode: "subcommand",
+    reason: "external-system",
+    description: "Pushes commits to a remote repository",
+  },
+  // Package publishing
+  {
+    pattern: "npm publish",
+    mode: "subcommand",
+    reason: "external-system",
+    description: "Publishes a package to the npm registry",
+  },
+  {
+    pattern: "yarn publish",
+    mode: "subcommand",
+    reason: "external-system",
+    description: "Publishes a package to the npm registry",
+  },
+  {
+    pattern: "pnpm publish",
+    mode: "subcommand",
+    reason: "external-system",
+    description: "Publishes a package to the npm registry",
+  },
+  // Network — data exfiltration via POST/PUT
+  {
+    pattern: "curl -X POST",
+    mode: "subcommand",
+    reason: "external-system",
+    description: "Sends an HTTP POST request",
+  },
+  {
+    pattern: "curl -X PUT",
+    mode: "subcommand",
+    reason: "external-system",
+    description: "Sends an HTTP PUT request",
+  },
+  {
+    pattern: "curl --data",
+    mode: "subcommand",
+    reason: "external-system",
+    description: "Sends data via HTTP request",
+  },
+  {
+    pattern: "curl -d ",
+    mode: "subcommand",
+    reason: "external-system",
+    description: "Sends data via HTTP request",
+  },
+  // Database — destructive operations
+  {
+    pattern: "dropdb",
+    mode: "binary",
+    reason: "destructive",
+    description: "Drops a PostgreSQL database",
+  },
+  // Destructive filesystem operations
+  {
+    pattern: "rm -rf /",
+    mode: "subcommand",
+    reason: "destructive",
+    description: "Recursively removes root filesystem",
+  },
+];
 
 function hashExecApprovalsRaw(raw: string | null): string {
   return crypto
@@ -1412,6 +1500,188 @@ export function requiresExecApproval(params: {
       params.security === "allowlist" &&
       (!params.analysisOk || !params.allowlistSatisfied))
   );
+}
+
+// ---------------------------------------------------------------------------
+// Denylist evaluation
+// ---------------------------------------------------------------------------
+
+export type ExecDenylistEvaluation = {
+  matched: boolean;
+  matchedEntries: ExecDenylistEntry[];
+  reason?: string;
+};
+
+/**
+ * Matches a single command segment against a denylist entry.
+ * - "subcommand": The entry pattern is "binary subcommand..." — we check if the
+ *   command starts with the same binary and subcommand tokens (case-insensitive).
+ * - "binary": The entry pattern is a binary name — match by executable name only.
+ * - "regex": The entry pattern is a regex — test against the full raw command.
+ */
+function matchesDenylistEntry(
+  rawCommand: string,
+  argv: string[],
+  entry: ExecDenylistEntry,
+): boolean {
+  const normalizedCommand = rawCommand.trim().toLowerCase();
+
+  switch (entry.mode) {
+    case "subcommand": {
+      const patternTokens = entry.pattern.trim().toLowerCase().split(/\s+/);
+      if (patternTokens.length === 0) {
+        return false;
+      }
+      // Match each token of the pattern against the argv
+      const normalizedArgv = argv.map((a) => a.toLowerCase());
+      if (normalizedArgv.length < patternTokens.length) {
+        return false;
+      }
+      // Check binary name (basename only for paths)
+      const argvBin = normalizedArgv[0];
+      const patternBin = patternTokens[0];
+      const argvBinBase = argvBin.includes("/") ? (argvBin.split("/").pop() ?? argvBin) : argvBin;
+      if (argvBinBase !== patternBin) {
+        return false;
+      }
+      // Check remaining tokens
+      for (let i = 1; i < patternTokens.length; i += 1) {
+        if (normalizedArgv[i] !== patternTokens[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+    case "binary": {
+      const patternBin = entry.pattern.trim().toLowerCase();
+      if (!patternBin) {
+        return false;
+      }
+      const cmdBin = argv[0]?.toLowerCase() ?? "";
+      const cmdBinBase = cmdBin.includes("/") ? (cmdBin.split("/").pop() ?? cmdBin) : cmdBin;
+      return cmdBinBase === patternBin;
+    }
+    case "regex": {
+      try {
+        const regex = new RegExp(entry.pattern, "i");
+        return regex.test(normalizedCommand);
+      } catch {
+        return false;
+      }
+    }
+    default:
+      return false;
+  }
+}
+
+/**
+ * Tokenizes a raw command string into argv-like tokens, respecting shell quoting.
+ * This is a lightweight version for denylist matching (not full shell parsing).
+ */
+function tokenizeForDenylist(command: string): string[] {
+  const tokens: string[] = [];
+  let buf = "";
+  let inSingle = false;
+  let inDouble = false;
+  let escaped = false;
+
+  for (let i = 0; i < command.length; i += 1) {
+    const ch = command[i];
+    if (escaped) {
+      buf += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\" && !inSingle) {
+      escaped = true;
+      continue;
+    }
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (!inSingle && !inDouble && (ch === " " || ch === "\t")) {
+      if (buf.length > 0) {
+        tokens.push(buf);
+        buf = "";
+      }
+      continue;
+    }
+    buf += ch;
+  }
+  if (buf.length > 0) {
+    tokens.push(buf);
+  }
+  return tokens;
+}
+
+/**
+ * Evaluates a shell command (including chained commands via &&, ||, ;) against
+ * the denylist. If ANY segment matches a denylist entry, the whole command is
+ * flagged. This fires BEFORE allowlist evaluation.
+ */
+export function evaluateDenylist(params: {
+  command: string;
+  denylist?: ExecDenylistEntry[];
+  platform?: string | null;
+}): ExecDenylistEvaluation {
+  const entries = params.denylist ?? DEFAULT_DENYLIST;
+  if (entries.length === 0) {
+    return { matched: false, matchedEntries: [] };
+  }
+
+  // Split chained commands (&&, ||, ;)
+  const parts = isWindowsPlatform(params.platform)
+    ? [params.command]
+    : (splitCommandChain(params.command) ?? [params.command]);
+
+  const matchedEntries: ExecDenylistEntry[] = [];
+  const seen = new Set<string>();
+
+  for (const part of parts) {
+    // Further split by pipe to check each pipeline segment
+    const pipelineResult = splitShellPipeline(part);
+    const segments = pipelineResult.ok ? pipelineResult.segments : [part];
+
+    for (const segment of segments) {
+      const argv = tokenizeForDenylist(segment.trim());
+      if (argv.length === 0) {
+        continue;
+      }
+
+      for (const entry of entries) {
+        const key = `${entry.mode}:${entry.pattern}`;
+        if (seen.has(key)) {
+          continue;
+        }
+        if (matchesDenylistEntry(segment, argv, entry)) {
+          matchedEntries.push(entry);
+          seen.add(key);
+        }
+      }
+    }
+  }
+
+  if (matchedEntries.length === 0) {
+    return { matched: false, matchedEntries: [] };
+  }
+
+  const reasons = matchedEntries
+    .map((e) => {
+      const desc = e.description ? ` (${e.description})` : "";
+      return `${e.pattern}${desc}`;
+    })
+    .join(", ");
+
+  return {
+    matched: true,
+    matchedEntries,
+    reason: `⚠️ Denylist match: ${reasons}. Approval required.`,
+  };
 }
 
 export function recordAllowlistUse(

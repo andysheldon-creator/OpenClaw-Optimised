@@ -10,6 +10,7 @@ import {
   type ExecSecurity,
   type ExecApprovalsFile,
   addAllowlistEntry,
+  evaluateDenylist,
   evaluateShellAllowlist,
   maxAsk,
   minSecurity,
@@ -1000,7 +1001,7 @@ export function createExecTool(
       if (host === "node") {
         const approvals = resolveExecApprovals(agentId, { security, ask });
         const hostSecurity = minSecurity(security, approvals.agent.security);
-        const hostAsk = maxAsk(ask, approvals.agent.ask);
+        let hostAsk = maxAsk(ask, approvals.agent.ask);
         const askFallback = approvals.agent.askFallback;
         if (hostSecurity === "deny") {
           throw new Error("exec denied: host=node security=deny");
@@ -1055,6 +1056,19 @@ export function createExecTool(
         });
         let analysisOk = baseAllowlistEval.analysisOk;
         let allowlistSatisfied = false;
+
+        // Denylist check — fires before allowlist, forces approval if matched
+        const denylistEval = evaluateDenylist({
+          command: params.command,
+          platform: nodeInfo?.platform,
+        });
+        if (denylistEval.matched) {
+          hostAsk = "always";
+          if (denylistEval.reason) {
+            warnings.push(denylistEval.reason);
+          }
+        }
+
         if (hostAsk === "on-miss" && hostSecurity === "allowlist" && analysisOk) {
           try {
             const approvalsSnapshot = await callGatewayTool<{ file: string }>(
@@ -1278,11 +1292,24 @@ export function createExecTool(
       if (host === "gateway" && !bypassApprovals) {
         const approvals = resolveExecApprovals(agentId, { security, ask });
         const hostSecurity = minSecurity(security, approvals.agent.security);
-        const hostAsk = maxAsk(ask, approvals.agent.ask);
+        let hostAsk = maxAsk(ask, approvals.agent.ask);
         const askFallback = approvals.agent.askFallback;
         if (hostSecurity === "deny") {
           throw new Error("exec denied: host=gateway security=deny");
         }
+
+        // Denylist check — fires before allowlist, forces approval if matched
+        const denylistEval = evaluateDenylist({
+          command: params.command,
+          platform: process.platform,
+        });
+        if (denylistEval.matched) {
+          hostAsk = "always";
+          if (denylistEval.reason) {
+            warnings.push(denylistEval.reason);
+          }
+        }
+
         const allowlistEval = evaluateShellAllowlist({
           command: params.command,
           allowlist: approvals.allowlist,
