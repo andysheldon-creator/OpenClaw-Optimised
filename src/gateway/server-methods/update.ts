@@ -7,7 +7,7 @@ import {
   writeRestartSentinel,
 } from "../../infra/restart-sentinel.js";
 import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
-import { normalizeUpdateChannel, type UpdateChannel } from "../../infra/update-channels.js";
+import { normalizeUpdateChannel } from "../../infra/update-channels.js";
 import { runGatewayUpdate, type UpdateRunResult } from "../../infra/update-runner.js";
 import { runInstallScriptUpdate } from "../../infra/update-install-script.js";
 import {
@@ -16,6 +16,19 @@ import {
   formatValidationErrors,
   validateUpdateRunParams,
 } from "../protocol/index.js";
+
+/**
+ * Safely convert normalized channel to install script channel type.
+ * Returns undefined if channel is null or not a valid install script channel.
+ */
+function toInstallScriptChannel(
+  channel: string | null,
+): "stable" | "beta" | "dev" | undefined {
+  if (channel === "stable" || channel === "beta" || channel === "dev") {
+    return channel;
+  }
+  return undefined;
+}
 
 export const updateHandlers: GatewayRequestHandlers = {
   "update.run": async ({ params, respond }) => {
@@ -56,12 +69,13 @@ export const updateHandlers: GatewayRequestHandlers = {
     try {
       const config = loadConfig();
       const configChannel = normalizeUpdateChannel(config.update?.channel);
+      const installScriptChannel = toInstallScriptChannel(configChannel);
 
       if (useInstallScript) {
         // Use the simpler, more reliable install script method
         result = await runInstallScriptUpdate({
           timeoutMs,
-          channel: configChannel as "stable" | "beta" | "dev" | undefined,
+          channel: installScriptChannel,
         });
       } else {
         // Try the complex update method first
@@ -80,10 +94,22 @@ export const updateHandlers: GatewayRequestHandlers = {
 
         // If the complex method fails, fall back to install script
         if (result.status === "error" || result.status === "skipped") {
-          const fallbackResult = await runInstallScriptUpdate({
-            timeoutMs,
-            channel: configChannel as "stable" | "beta" | "dev" | undefined,
-          });
+          let fallbackResult: UpdateRunResult;
+          try {
+            fallbackResult = await runInstallScriptUpdate({
+              timeoutMs,
+              channel: installScriptChannel,
+            });
+          } catch (fallbackErr) {
+            // Fallback also failed - return original result with fallback error noted
+            fallbackResult = {
+              status: "error",
+              mode: "unknown",
+              reason: `install script fallback failed: ${String(fallbackErr)}`,
+              steps: [],
+              durationMs: 0,
+            };
+          }
           // Merge steps for debugging
           result = {
             ...fallbackResult,
@@ -97,17 +123,19 @@ export const updateHandlers: GatewayRequestHandlers = {
       }
     } catch (err) {
       // Final fallback on exception
+      let fallbackResult: UpdateRunResult;
       try {
-        result = await runInstallScriptUpdate({ timeoutMs });
-      } catch {
-        result = {
+        fallbackResult = await runInstallScriptUpdate({ timeoutMs });
+      } catch (fallbackErr) {
+        fallbackResult = {
           status: "error",
           mode: "unknown",
-          reason: String(err),
+          reason: `both update methods failed. Original: ${String(err)}. Fallback: ${String(fallbackErr)}`,
           steps: [],
           durationMs: 0,
         };
       }
+      result = fallbackResult;
     }
 
     const payload: RestartSentinelPayload = {

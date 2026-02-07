@@ -63,6 +63,45 @@ async function findOpenClawRoot(): Promise<string | null> {
 }
 
 /**
+ * Check if required executables exist for the install script method.
+ * Returns null if all requirements are met, or an error message if not.
+ */
+async function checkPrerequisites(
+  runCommand: CommandRunner,
+  timeoutMs: number,
+): Promise<string | null> {
+  // Check platform - install script only works on Unix-like systems
+  if (process.platform === "win32") {
+    return "install script method not supported on Windows";
+  }
+
+  // Check for bash
+  try {
+    const bashCheck = await runCommand(["which", "bash"], { timeoutMs: 5000 });
+    if (bashCheck.code !== 0) {
+      return "bash not found";
+    }
+  } catch {
+    return "bash not found";
+  }
+
+  // Check for curl or wget
+  try {
+    const curlCheck = await runCommand(["which", "curl"], { timeoutMs: 5000 });
+    if (curlCheck.code !== 0) {
+      const wgetCheck = await runCommand(["which", "wget"], { timeoutMs: 5000 });
+      if (wgetCheck.code !== 0) {
+        return "neither curl nor wget found";
+      }
+    }
+  } catch {
+    return "neither curl nor wget found";
+  }
+
+  return null;
+}
+
+/**
  * Run update using the official install script.
  * This is a simpler, more reliable fallback when the complex update logic fails.
  */
@@ -81,6 +120,20 @@ export async function runInstallScriptUpdate(
   const steps: UpdateStepResult[] = [];
   const root = await findOpenClawRoot();
   const beforeVersion = root ? await readPackageVersion(root) : null;
+
+  // Check prerequisites before attempting install script
+  const prereqError = await checkPrerequisites(runCommand, timeoutMs);
+  if (prereqError) {
+    return {
+      status: "skipped",
+      mode: "unknown",
+      root: root ?? undefined,
+      reason: prereqError,
+      before: { version: beforeVersion },
+      steps: [],
+      durationMs: Date.now() - startedAt,
+    };
+  }
 
   // Build install script arguments
   const scriptArgs: string[] = [];
@@ -101,10 +154,31 @@ export async function runInstallScriptUpdate(
     : `curl -fsSL "${INSTALL_SCRIPT_URL}" | bash`;
 
   const updateStarted = Date.now();
-  const result = await runCommand(["bash", "-c", bashCommand], {
-    timeoutMs,
-    cwd: os.homedir(),
-  });
+  let result: { stdout: string; stderr: string; code: number | null };
+  try {
+    result = await runCommand(["bash", "-c", bashCommand], {
+      timeoutMs,
+      cwd: os.homedir(),
+    });
+  } catch (err) {
+    // Handle execution errors gracefully
+    return {
+      status: "error",
+      mode: "npm",
+      root: root ?? undefined,
+      reason: `install script execution failed: ${String(err)}`,
+      before: { version: beforeVersion },
+      steps: [{
+        name: "install script",
+        command: bashCommand,
+        cwd: os.homedir(),
+        durationMs: Date.now() - updateStarted,
+        exitCode: null,
+        stderrTail: String(err),
+      }],
+      durationMs: Date.now() - startedAt,
+    };
+  }
   const updateDuration = Date.now() - updateStarted;
 
   steps.push({
