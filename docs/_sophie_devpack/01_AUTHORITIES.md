@@ -15,6 +15,21 @@ When there is conflict:
 3. Cookbooks and guides provide context
 4. If docs contradict code, code wins until docs are updated
 
+### Jurisdictional Boundary
+
+This authority hierarchy governs **Sophie's behavior at runtime**. It defines how Sophie reasons, what tools Sophie may use, what side effects require approval, and how Sophie handles security.
+
+This hierarchy does NOT govern:
+
+- How code is edited or committed (governed by `CLAUDE.md` at repo root)
+- How the repository is structured (governed by `AGENTS.md` at repo root)
+- What tasks the builder agent may perform (governed by `AGENT_WORK_CONTRACT.md` at repo root)
+- What model IDs, ports, or commands the builder system uses at dev time
+
+Operational defaults (model IDs, ports, startup commands) that appear in devpack documents are **informative snapshots**. The authoritative source for operational facts is runtime source code, then `RUNBOOK.md`, then explicit human instruction. If a devpack document contains a stale operational fact, it is a doc bug -- not a reason to change source code.
+
+The builder agent (Claude Code) treats devpack documents as **product specifications**: requirements to implement, not rules to obey.
+
 ---
 
 ## 1) Authority Layers (Precedence Order)
