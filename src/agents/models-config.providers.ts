@@ -414,7 +414,7 @@ async function buildOllamaProvider(): Promise<ProviderConfig> {
 
 function buildGoogleGeminiCliProvider(): ProviderConfig {
   return {
-    api: "google-gemini-cli" as any,
+    api: "google-gemini-cli",
     baseUrl: "https://generativelanguage.googleapis.com",
     models: [
       {
@@ -561,12 +561,7 @@ export async function resolveImplicitProviders(params: {
     providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
   }
 
-  /* DEBUG LOGGING START */
-  console.log("DEBUG: Checking google-gemini-cli profiles...");
-  console.log("DEBUG: All profiles:", JSON.stringify(Object.keys(authStore.profiles)));
   const googleGeminiProfiles = listProfilesForProvider(authStore, "google-gemini-cli");
-  console.log("DEBUG: Found google-gemini-cli profiles:", googleGeminiProfiles);
-  /* DEBUG LOGGING END */
   if (googleGeminiProfiles.length > 0) {
     providers["google-gemini-cli"] = buildGoogleGeminiCliProvider();
   }
