@@ -118,6 +118,7 @@ export async function setVeniceApiKey(key: string, agentDir?: string) {
 export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
 export const XIAOMI_DEFAULT_MODEL_REF = "xiaomi/mimo-v2-flash";
 export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
+export const MODELSCOPE_DEFAULT_MODEL_REF = "modelscope/Qwen/Qwen3-32B";
 export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.6";
 
 export async function setZaiApiKey(key: string, agentDir?: string) {
@@ -139,6 +140,18 @@ export async function setXiaomiApiKey(key: string, agentDir?: string) {
     credential: {
       type: "api_key",
       provider: "xiaomi",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
+export async function setModelScopeApiKey(key: string, agentDir?: string) {
+  upsertAuthProfile({
+    profileId: "modelscope:default",
+    credential: {
+      type: "api_key",
+      provider: "modelscope",
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),

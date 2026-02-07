@@ -69,6 +69,17 @@ const QWEN_PORTAL_DEFAULT_COST = {
   cacheWrite: 0,
 };
 
+const MODELSCOPE_BASE_URL = "https://api-inference.modelscope.cn/v1";
+export const MODELSCOPE_DEFAULT_MODEL_ID = "Qwen/Qwen3-32B";
+const MODELSCOPE_DEFAULT_CONTEXT_WINDOW = 200000;
+const MODELSCOPE_DEFAULT_MAX_TOKENS = 8192;
+const MODELSCOPE_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
 const OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1";
 const OLLAMA_API_BASE_URL = "http://127.0.0.1:11434";
 const OLLAMA_DEFAULT_CONTEXT_WINDOW = 128000;
@@ -385,6 +396,24 @@ export function buildXiaomiProvider(): ProviderConfig {
   };
 }
 
+export function buildModelScopeProvider(): ProviderConfig {
+  return {
+    baseUrl: MODELSCOPE_BASE_URL,
+    api: "openai-completions",
+    models: [
+      {
+        id: MODELSCOPE_DEFAULT_MODEL_ID,
+        name: "Qwen/Qwen3-32B",
+        reasoning: false,
+        input: ["text"],
+        cost: MODELSCOPE_DEFAULT_COST,
+        contextWindow: MODELSCOPE_DEFAULT_CONTEXT_WINDOW,
+        maxTokens: MODELSCOPE_DEFAULT_MAX_TOKENS,
+      },
+    ],
+  };
+}
+
 async function buildVeniceProvider(): Promise<ProviderConfig> {
   const models = await discoverVeniceModels();
   return {
@@ -453,6 +482,13 @@ export async function resolveImplicitProviders(params: {
       ...buildQwenPortalProvider(),
       apiKey: QWEN_PORTAL_OAUTH_PLACEHOLDER,
     };
+  }
+
+  const modelscopeKey =
+    resolveEnvApiKeyVarName("modelscope") ??
+    resolveApiKeyFromProfiles({ provider: "modelscope", store: authStore });
+  if (modelscopeKey) {
+    providers.modelscope = { ...buildModelScopeProvider(), apiKey: modelscopeKey };
   }
 
   const xiaomiKey =

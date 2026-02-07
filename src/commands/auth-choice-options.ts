@@ -18,6 +18,7 @@ export type AuthChoiceGroupId =
   | "moonshot"
   | "zai"
   | "xiaomi"
+  | "modelscope"
   | "opencode-zen"
   | "minimax"
   | "synthetic"
@@ -117,6 +118,12 @@ const AUTH_CHOICE_GROUP_DEFS: {
     choices: ["xiaomi-api-key"],
   },
   {
+    value: "modelscope",
+    label: "ModelScope",
+    hint: "API key",
+    choices: ["modelscope-api-key"],
+  },
+  {
     value: "synthetic",
     label: "Synthetic",
     hint: "Anthropic-compatible (multi-model)",
@@ -201,6 +208,10 @@ export function buildAuthChoiceOptions(params: {
   options.push({
     value: "xiaomi-api-key",
     label: "Xiaomi API key",
+  });
+  options.push({
+    value: "modelscope-api-key",
+    label: "ModelScope API key",
   });
   options.push({
     value: "minimax-portal",

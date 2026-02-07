@@ -25,4 +25,5 @@ export type UsageProviderId =
   | "minimax"
   | "openai-codex"
   | "xiaomi"
+  | "modelscope"
   | "zai";

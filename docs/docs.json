@@ -99,6 +99,10 @@
       "destination": "/providers/opencode"
     },
     {
+      "source": "/modelscope",
+      "destination": "/providers/modelscope"
+    },
+    {
       "source": "/mattermost",
       "destination": "/channels/mattermost"
     },
