@@ -4,8 +4,10 @@ import type { TypingMode } from "../../config/types.js";
 import type { OriginatingChannelType, TemplateContext } from "../templating.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
 import type { TypingController } from "./typing.js";
+import { preAnswerHookRegistry } from "../../agents/agent-hooks-registry.js";
 import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
+import { registerMemorySearchHook } from "../../agents/hooks/memory-search-hook.js";
 import { resolveModelAuthMode } from "../../agents/model-auth.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { queueEmbeddedPiMessage } from "../../agents/pi-embedded.js";
@@ -305,10 +307,66 @@ export async function runReplyAgent(params: {
         `Role ordering conflict (${reason}). Restarting session ${sessionKey} -> ${nextSessionId}.`,
       cleanupTranscripts: true,
     });
+
+  // Register built-in hooks (once per process)
+  if (!globalThis.openclawHooksRegistered) {
+    try {
+      registerMemorySearchHook();
+      globalThis.openclawHooksRegistered = true;
+    } catch (error) {
+      // Hook registration may fail in some environments, log but don't fail
+      console.warn("[agent-runner] Failed to register pre-answer hooks:", error);
+    }
+  }
+
   try {
     const runStartedAt = Date.now();
-    const runOutcome = await runAgentTurnWithFallback({
+
+    // Execute pre-answer hooks to gather context
+    let enhancedCommandBody = commandBody;
+    const hookResults = await preAnswerHookRegistry.execute({
       commandBody,
+      sessionKey,
+      sessionEntry: activeSessionEntry,
+      agentConfig: followupRun.run.config,
+      sessionCtx,
+      isHeartbeat,
+      opts,
+    });
+
+    // Check if any hooks produced context
+    const hasHookContext = hookResults.some((r) => r.contextFragments.length > 0);
+
+    if (hasHookContext) {
+      // Collect and format context fragments
+      const fragments = hookResults
+        .flatMap((r) => r.contextFragments)
+        .sort((a, b) => (a.weight ?? 100) - (b.weight ?? 100));
+
+      if (fragments.length > 0) {
+        const contextText = fragments.map((f) => f.content).join("\n\n---\n\n");
+        enhancedCommandBody = `${contextText}\n\n---\n\n${commandBody}`;
+
+        // Log hook execution for diagnostics
+        if (isDiagnosticsEnabled()) {
+          emitDiagnosticEvent({
+            type: "custom",
+            name: "pre-answer-hooks",
+            sessionKey,
+            hooksExecuted: hookResults.map((r) => ({
+              id: r.hook.id,
+              success: r.success,
+              executionTimeMs: r.executionTimeMs,
+              contextFragments: r.contextFragments.length,
+            })),
+            totalContextFragments: fragments.length,
+          } as any);
+        }
+      }
+    }
+
+    const runOutcome = await runAgentTurnWithFallback({
+      commandBody: enhancedCommandBody,
       followupRun,
       sessionCtx,
       opts,
