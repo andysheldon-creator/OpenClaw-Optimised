@@ -7,6 +7,48 @@ type DiagnosticBaseEvent = {
   seq: number;
 };
 
+// -- GenAI message content types (OTel GenAI semantic conventions v1.38+) --
+
+export type GenAiPartText = { type: "text"; content: string };
+export type GenAiPartToolCall = {
+  type: "tool_call";
+  id: string;
+  name: string;
+  arguments?: Record<string, unknown>;
+};
+export type GenAiPartToolCallResponse = {
+  type: "tool_call_response";
+  id: string;
+  response: unknown;
+};
+export type GenAiPartReasoning = { type: "reasoning"; content: string };
+export type GenAiPartMedia = {
+  type: "uri" | "blob";
+  modality: "image" | "audio" | "video";
+  mime_type?: string;
+  uri?: string;
+  content?: string;
+};
+
+export type GenAiPart =
+  | GenAiPartText
+  | GenAiPartToolCall
+  | GenAiPartToolCallResponse
+  | GenAiPartReasoning
+  | GenAiPartMedia;
+
+export type GenAiMessage = {
+  role: "system" | "user" | "assistant" | "tool";
+  parts: GenAiPart[];
+  finish_reason?: string;
+};
+
+export type GenAiToolDef = {
+  name: string;
+  description?: string;
+  parameters?: Record<string, unknown>;
+};
+
 export type DiagnosticUsageEvent = DiagnosticBaseEvent & {
   type: "model.usage";
   sessionKey?: string;
@@ -28,6 +70,15 @@ export type DiagnosticUsageEvent = DiagnosticBaseEvent & {
   };
   costUsd?: number;
   durationMs?: number;
+  // GenAI semantic convention fields (v1.38+)
+  operationName?: string;
+  responseId?: string;
+  responseModel?: string;
+  finishReasons?: string[];
+  inputMessages?: GenAiMessage[];
+  outputMessages?: GenAiMessage[];
+  systemInstructions?: GenAiPart[];
+  toolDefinitions?: GenAiToolDef[];
 };
 
 export type DiagnosticWebhookReceivedEvent = DiagnosticBaseEvent & {
@@ -127,6 +178,18 @@ export type DiagnosticHeartbeatEvent = DiagnosticBaseEvent & {
   queued: number;
 };
 
+export type DiagnosticToolExecutionEvent = DiagnosticBaseEvent & {
+  type: "tool.execution";
+  toolName: string;
+  toolType?: "function" | "extension" | "datastore";
+  toolCallId?: string;
+  sessionKey?: string;
+  sessionId?: string;
+  channel?: string;
+  durationMs?: number;
+  error?: string;
+};
+
 export type DiagnosticEventPayload =
   | DiagnosticUsageEvent
   | DiagnosticWebhookReceivedEvent
@@ -139,7 +202,8 @@ export type DiagnosticEventPayload =
   | DiagnosticLaneEnqueueEvent
   | DiagnosticLaneDequeueEvent
   | DiagnosticRunAttemptEvent
-  | DiagnosticHeartbeatEvent;
+  | DiagnosticHeartbeatEvent
+  | DiagnosticToolExecutionEvent;
 
 export type DiagnosticEventInput = DiagnosticEventPayload extends infer Event
   ? Event extends DiagnosticEventPayload

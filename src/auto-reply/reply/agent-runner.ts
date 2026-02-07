@@ -440,6 +440,12 @@ export async function runReplyAgent(params: {
         config: cfg,
       });
       const costUsd = estimateUsageCost({ usage, cost: costConfig });
+      // Map stopReason to GenAI finish_reasons
+      const stopReason = runResult.meta.stopReason;
+      const finishReasons = stopReason
+        ? [stopReason === "tool_calls" ? "tool_call" : stopReason]
+        : ["stop"];
+
       emitDiagnosticEvent({
         type: "model.usage",
         sessionKey,
@@ -461,6 +467,9 @@ export async function runReplyAgent(params: {
         },
         costUsd,
         durationMs: Date.now() - runStartedAt,
+        operationName: "chat",
+        finishReasons,
+        responseModel: runResult.meta.agentMeta?.model,
       });
     }
 

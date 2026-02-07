@@ -1,7 +1,7 @@
 import type { SeverityNumber } from "@opentelemetry/api-logs";
 import type { ExportResult } from "@opentelemetry/core";
 import type { DiagnosticEventPayload, OpenClawPluginService } from "openclaw/plugin-sdk";
-import { metrics, trace, SpanStatusCode } from "@opentelemetry/api";
+import { metrics, trace, SpanKind, SpanStatusCode } from "@opentelemetry/api";
 import { hrTimeToMilliseconds } from "@opentelemetry/core";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
@@ -47,6 +47,42 @@ function resolveSampleRate(value: number | undefined): number | undefined {
     return undefined;
   }
   return value;
+}
+
+/** Map internal provider names to gen_ai.provider.name enum values. */
+function mapProviderName(provider?: string): string {
+  if (!provider) {
+    return "unknown";
+  }
+  const p = provider.toLowerCase();
+  if (p.includes("openai") || p === "orq") {
+    return "openai";
+  }
+  if (p.includes("anthropic") || p.includes("claude")) {
+    return "anthropic";
+  }
+  if (p.includes("google") || p.includes("gemini")) {
+    return "gcp.gemini";
+  }
+  if (p.includes("bedrock")) {
+    return "aws.bedrock";
+  }
+  if (p.includes("mistral")) {
+    return "mistral_ai";
+  }
+  if (p.includes("deepseek")) {
+    return "deepseek";
+  }
+  if (p.includes("groq")) {
+    return "groq";
+  }
+  if (p.includes("cohere")) {
+    return "cohere";
+  }
+  if (p.includes("perplexity")) {
+    return "perplexity";
+  }
+  return provider;
 }
 
 class LoggingTraceExporter implements SpanExporter {
@@ -304,6 +340,16 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         description: "Run attempts",
       });
 
+      // GenAI semantic convention metrics (v1.38+)
+      const genAiOperationDuration = meter.createHistogram("gen_ai.client.operation.duration", {
+        unit: "s",
+        description: "GenAI operation duration",
+      });
+      const genAiTokenUsage = meter.createHistogram("gen_ai.client.token.usage", {
+        unit: "{token}",
+        description: "GenAI token usage",
+      });
+
       if (logsEnabled) {
         const logExporter = new OTLPLogExporter({
           ...(logUrl ? { url: logUrl } : {}),
@@ -425,16 +471,20 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         });
       }
 
+      const captureContent = otel.captureContent === true;
+
       const spanWithDuration = (
         name: string,
-        attributes: Record<string, string | number>,
+        attributes: Record<string, string | number | string[]>,
         durationMs?: number,
+        kind?: SpanKind,
       ) => {
         const startTime =
           typeof durationMs === "number" ? Date.now() - Math.max(0, durationMs) : undefined;
         const span = tracer.startSpan(name, {
           attributes,
           ...(startTime ? { startTime } : {}),
+          ...(kind !== undefined ? { kind } : {}),
         });
         return span;
       };
@@ -485,10 +535,36 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
           });
         }
 
+        // GenAI standard metrics (gen_ai_latest_experimental)
+        const opName = evt.operationName ?? "chat";
+        const genAiMetricAttrs = {
+          "gen_ai.operation.name": opName,
+          "gen_ai.provider.name": mapProviderName(evt.provider),
+          "gen_ai.request.model": evt.model ?? "unknown",
+        };
+        if (evt.durationMs) {
+          genAiOperationDuration.record(evt.durationMs / 1000, genAiMetricAttrs);
+        }
+        if (usage.input) {
+          genAiTokenUsage.record(usage.input, {
+            ...genAiMetricAttrs,
+            "gen_ai.token.type": "input",
+          });
+        }
+        if (usage.output) {
+          genAiTokenUsage.record(usage.output, {
+            ...genAiMetricAttrs,
+            "gen_ai.token.type": "output",
+          });
+        }
+
         if (!tracesEnabled) {
           return;
         }
-        const spanAttrs: Record<string, string | number> = {
+
+        // Dual-namespace span: openclaw.* + gen_ai.*
+        const spanAttrs: Record<string, string | number | string[]> = {
+          // Existing openclaw.* attributes
           ...attrs,
           "openclaw.sessionKey": evt.sessionKey ?? "",
           "openclaw.sessionId": evt.sessionId ?? "",
@@ -497,11 +573,44 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
           "openclaw.tokens.cache_read": usage.cacheRead ?? 0,
           "openclaw.tokens.cache_write": usage.cacheWrite ?? 0,
           "openclaw.tokens.total": usage.total ?? 0,
-        };
 
-        const span = spanWithDuration("openclaw.model.usage", spanAttrs, evt.durationMs);
+          // GenAI semantic convention attributes (v1.38+)
+          "gen_ai.operation.name": opName,
+          "gen_ai.provider.name": mapProviderName(evt.provider),
+          "gen_ai.request.model": evt.model ?? "unknown",
+          "gen_ai.usage.input_tokens": usage.input ?? 0,
+          "gen_ai.usage.output_tokens": usage.output ?? 0,
+        };
+        if (evt.responseModel) {
+          spanAttrs["gen_ai.response.model"] = evt.responseModel;
+        }
+        if (evt.responseId) {
+          spanAttrs["gen_ai.response.id"] = evt.responseId;
+        }
+        if (evt.finishReasons?.length) {
+          spanAttrs["gen_ai.response.finish_reasons"] = evt.finishReasons;
+        }
+        if (evt.sessionKey) {
+          spanAttrs["gen_ai.conversation.id"] = evt.sessionKey;
+        }
+
+        // Opt-in content capture
+        if (captureContent) {
+          if (evt.inputMessages) {
+            spanAttrs["gen_ai.input.messages"] = JSON.stringify(evt.inputMessages);
+          }
+          if (evt.outputMessages) {
+            spanAttrs["gen_ai.output.messages"] = JSON.stringify(evt.outputMessages);
+          }
+          if (evt.systemInstructions) {
+            spanAttrs["gen_ai.system_instructions"] = JSON.stringify(evt.systemInstructions);
+          }
+        }
+
+        const spanName = `${opName} ${evt.model ?? "unknown"}`;
+        const span = spanWithDuration(spanName, spanAttrs, evt.durationMs, SpanKind.CLIENT);
         if (debugExports) {
-          ctx.logger.info(`diagnostics-otel: span created openclaw.model.usage`);
+          ctx.logger.info(`diagnostics-otel: span created ${spanName}`);
         }
         span.end();
       };
@@ -682,6 +791,35 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
         runAttemptCounter.add(1, { "openclaw.attempt": evt.attempt });
       };
 
+      const recordToolExecution = (
+        evt: Extract<DiagnosticEventPayload, { type: "tool.execution" }>,
+      ) => {
+        if (!tracesEnabled) {
+          return;
+        }
+        const spanAttrs: Record<string, string | number> = {
+          "gen_ai.operation.name": "execute_tool",
+          "gen_ai.tool.name": evt.toolName,
+          "gen_ai.tool.type": evt.toolType ?? "function",
+        };
+        if (evt.toolCallId) {
+          spanAttrs["gen_ai.tool.call.id"] = evt.toolCallId;
+        }
+        if (evt.channel) {
+          spanAttrs["openclaw.channel"] = evt.channel;
+        }
+
+        const spanName = `execute_tool ${evt.toolName}`;
+        const span = spanWithDuration(spanName, spanAttrs, evt.durationMs, SpanKind.INTERNAL);
+        if (evt.error) {
+          span.setStatus({ code: SpanStatusCode.ERROR, message: evt.error });
+        }
+        if (debugExports) {
+          ctx.logger.info(`diagnostics-otel: span created ${spanName}`);
+        }
+        span.end();
+      };
+
       const recordHeartbeat = (
         evt: Extract<DiagnosticEventPayload, { type: "diagnostic.heartbeat" }>,
       ) => {
@@ -728,6 +866,9 @@ export function createDiagnosticsOtelService(): OpenClawPluginService {
             return;
           case "diagnostic.heartbeat":
             recordHeartbeat(evt);
+            return;
+          case "tool.execution":
+            recordToolExecution(evt);
             return;
         }
       });

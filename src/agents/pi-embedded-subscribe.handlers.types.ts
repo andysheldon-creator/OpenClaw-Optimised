@@ -24,6 +24,7 @@ export type EmbeddedPiSubscribeState = {
   assistantTexts: string[];
   toolMetas: Array<{ toolName?: string; meta?: string }>;
   toolMetaById: Map<string, string | undefined>;
+  toolStartTimeById: Map<string, number>;
   toolSummaryById: Set<string>;
   lastToolError?: ToolErrorSummary;
 

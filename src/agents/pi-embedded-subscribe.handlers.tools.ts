@@ -1,6 +1,7 @@
 import type { AgentEvent } from "@mariozechner/pi-agent-core";
 import type { EmbeddedPiSubscribeContext } from "./pi-embedded-subscribe.handlers.types.js";
 import { emitAgentEvent } from "../infra/agent-events.js";
+import { emitDiagnosticEvent } from "../infra/diagnostic-events.js";
 import { normalizeTextForComparison } from "./pi-embedded-helpers.js";
 import { isMessagingTool, isMessagingToolSendAction } from "./pi-embedded-messaging.js";
 import {
@@ -64,6 +65,7 @@ export async function handleToolExecutionStart(
 
   const meta = extendExecMeta(toolName, args, inferToolMetaFromArgs(toolName, args));
   ctx.state.toolMetaById.set(toolCallId, meta);
+  ctx.state.toolStartTimeById.set(toolCallId, Date.now());
   ctx.log.debug(
     `embedded run tool start: runId=${ctx.params.runId} tool=${toolName} toolCallId=${toolCallId}`,
   );
@@ -214,6 +216,18 @@ export function handleToolExecutionEnd(
       meta,
       isError: isToolError,
     },
+  });
+
+  // Emit OTel diagnostic event for tool execution
+  const startTime = ctx.state.toolStartTimeById.get(toolCallId);
+  ctx.state.toolStartTimeById.delete(toolCallId);
+  emitDiagnosticEvent({
+    type: "tool.execution",
+    toolName,
+    toolType: "function",
+    toolCallId,
+    durationMs: startTime ? Date.now() - startTime : undefined,
+    error: isToolError ? extractToolErrorMessage(sanitizedResult) : undefined,
   });
 
   ctx.log.debug(
