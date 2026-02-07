@@ -1,10 +1,29 @@
 {
   "name": "openclaw",
   "version": "2026.2.6-3",
-  "description": "WhatsApp gateway CLI (Baileys web) with Pi RPC agent",
-  "keywords": [],
+  "description": "Personal AI assistant you run on your own devices — WhatsApp, Telegram, Slack, Discord, iMessage, and more",
+  "keywords": [
+    "ai",
+    "assistant",
+    "chatbot",
+    "whatsapp",
+    "telegram",
+    "slack",
+    "discord",
+    "imessage",
+    "self-hosted",
+    "personal-assistant"
+  ],
   "license": "MIT",
-  "author": "",
+  "author": "Peter Steinberger",
+  "homepage": "https://openclaw.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openclaw/openclaw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/openclaw/openclaw/issues"
+  },
   "bin": {
     "openclaw": "openclaw.mjs"
   },
@@ -243,7 +262,6 @@
       "apps/macos/**",
       "apps/macos/.build/**",
       "**/vendor/**",
-      "apps/macos/.build/**",
       "dist/OpenClaw.app/**"
     ]
   }
