@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import type {
   CommandHandler,
   CommandHandlerResult,
@@ -5,6 +6,7 @@ import type {
 } from "./commands-types.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
 import { shouldHandleTextCommands } from "../commands-registry.js";
 import { handleAllowlistCommand } from "./commands-allowlist.js";
@@ -102,6 +104,46 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
           threadId: params.ctx.MessageThreadId,
           cfg: params.cfg,
         });
+      }
+    }
+
+    // Fire before_reset plugin hook — extract memories before session history is lost
+    const prevEntry = params.previousSessionEntry;
+    if (prevEntry?.sessionFile) {
+      const hookRunner = getGlobalHookRunner();
+      if (hookRunner?.hasHooks("before_reset")) {
+        const sessionFile = prevEntry.sessionFile;
+        // Fire-and-forget: read old session messages and run hook
+        (async () => {
+          try {
+            const content = await fs.promises.readFile(sessionFile, "utf-8");
+            const messages: unknown[] = [];
+            for (const line of content.split("\n")) {
+              if (!line.trim()) continue;
+              try {
+                const entry = JSON.parse(line);
+                if (entry.type === "message" && entry.message) {
+                  messages.push(entry.message);
+                }
+              } catch {
+                // skip malformed lines
+              }
+            }
+            if (messages.length > 0) {
+              await hookRunner.runBeforeReset(
+                { sessionFile, messages, reason: commandAction },
+                {
+                  agentId: params.sessionKey?.split(":")[0] ?? "main",
+                  sessionKey: params.sessionKey,
+                  sessionId: prevEntry.sessionId,
+                  workspaceDir: params.workspaceDir,
+                },
+              );
+            }
+          } catch (err) {
+            logVerbose(`before_reset hook failed: ${err}`);
+          }
+        })();
       }
     }
   }
