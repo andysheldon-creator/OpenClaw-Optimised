@@ -221,15 +221,19 @@ export async function resolveApiKeyForProvider(params: {
   }
 
   const authStorePath = resolveAuthStorePathForDisplay(params.agentDir);
-  const providerConfig = resolveProviderConfig(cfg, provider);
-  const providerConfigHint = providerConfig
-    ? `models.providers.${provider} exists but apiKey is empty`
-    : `models.providers.${provider} not found in config`;
+  const providers = cfg?.models?.providers ?? {};
+  const normalizedProvider = normalizeProviderId(provider);
+  const configKey = Object.keys(providers).find(
+    (key) => key === provider || normalizeProviderId(key) === normalizedProvider,
+  );
+  const providerConfigHint = configKey
+    ? `models.providers.${configKey} exists but apiKey is empty`
+    : `provider "${provider}" not configured in models.providers`;
   throw new Error(
     [
       `No API key found for provider "${provider}".`,
       `Checked: auth-profiles (${authStorePath}), env, config (${providerConfigHint}).`,
-      `Fix: add apiKey to models.providers.${provider} in openclaw.json, or ${formatCliCommand("openclaw agents add <id>")}.`,
+      `Fix: add apiKey to models.providers.${configKey ?? provider} in openclaw.json, or ${formatCliCommand("openclaw agents add <id>")}.`,
     ].join(" "),
   );
 }
