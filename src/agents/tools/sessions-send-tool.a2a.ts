@@ -21,6 +21,7 @@ export async function runSessionsSendA2AFlow(params: {
   message: string;
   announceTimeoutMs: number;
   maxPingPongTurns: number;
+  announceEnabled: boolean;
   requesterSessionKey?: string;
   requesterChannel?: GatewayMessageChannel;
   roundOneReply?: string;
@@ -94,6 +95,13 @@ export async function runSessionsSendA2AFlow(params: {
         currentSessionKey = nextSessionKey;
         nextSessionKey = swap;
       }
+    }
+
+    if (!params.announceEnabled) {
+      log.info("sessions_send announce skipped (announceEnabled=false)", {
+        runId: runContextId,
+      });
+      return;
     }
 
     const announcePrompt = buildAgentToAgentAnnounceContext({

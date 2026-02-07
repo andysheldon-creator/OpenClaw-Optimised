@@ -7,7 +7,7 @@ import { normalizeChannelId as normalizeChatChannelId } from "../../channels/reg
 
 const ANNOUNCE_SKIP_TOKEN = "ANNOUNCE_SKIP";
 const REPLY_SKIP_TOKEN = "REPLY_SKIP";
-const DEFAULT_PING_PONG_TURNS = 5;
+const DEFAULT_PING_PONG_TURNS = 0;
 const MAX_PING_PONG_TURNS = 5;
 
 export type AnnounceTarget = {
@@ -163,4 +163,10 @@ export function resolvePingPongTurns(cfg?: OpenClawConfig) {
   }
   const rounded = Math.floor(raw);
   return Math.max(0, Math.min(MAX_PING_PONG_TURNS, rounded));
+}
+
+export function resolveAnnounceEnabled(cfg?: OpenClawConfig): boolean {
+  const raw = cfg?.session?.agentToAgent?.announceEnabled;
+  if (typeof raw === "boolean") return raw;
+  return true; // default: enabled for backward compat
 }
