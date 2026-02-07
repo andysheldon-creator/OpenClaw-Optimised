@@ -1,0 +1,89 @@
+---
+description: OpenClaw 开发环境关键经验和避坑指南
+alwaysApply: true
+---
+
+# OpenClaw 开发环境经验
+
+## 1. LLM API 的 TLS 证书问题
+
+内部 LLM 代理 (`llmapi.csl.secx`) 使用的证书不在 Node.js 默认 CA 库中。
+
+**症状**: Agent 对话无回复，日志中 agent run 正常完成（~19.6s），呈 2s/4s/8s 指数退避，无 WARN/ERROR。
+**根因**: `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` — Node.js TLS 握手失败。
+**修复**: 启动 Gateway 时必须设置 `NODE_TLS_REJECT_UNAUTHORIZED=0`。
+
+```bash
+# 正确的启动命令
+NODE_TLS_REJECT_UNAUTHORIZED=0 \
+OPENCLAW_CONFIG_PATH=~/.openclaw-dev/openclaw.json \
+OPENCLAW_SKIP_CHANNELS=1 \
+node scripts/run-node.mjs --dev gateway
+```
+
+**快捷方式**: 使用项目根目录的 `./dev-start.sh` 脚本一键启动所有服务。
+
+> `dev-start.sh` 已加入 `.gitignore`，不会被提交到 Git。
+
+## 2. Dev 模式下的 CONFIG_DIR 路径
+
+当设置 `OPENCLAW_CONFIG_PATH=~/.openclaw-dev/openclaw.json` 时：
+- `CONFIG_DIR` 解析为 `~/.openclaw-dev/`（不是 `~/.openclaw/`）
+- Managed Skills 目录: `~/.openclaw-dev/skills/`
+- 审计日志: `~/.openclaw-dev/security/skill-guard/audit.jsonl`
+- Manifest 缓存: `~/.openclaw-dev/security/skill-guard/manifest-cache.json`
+
+**常见错误**: 将测试 Skill 放到 `~/.openclaw/skills/` 后 Guard 找不到。
+
+## 3. 模块实例隔离 (globalThis 模式)
+
+bundled Gateway 代码和 jiti-loaded Extension 代码拥有**独立的模块实例**。
+共享状态必须使用 `globalThis` 而非模块级变量。
+
+```typescript
+// ✅ 正确 - 使用 globalThis
+const GUARD_KEY = "__openclaw_skill_load_guard__" as const;
+(globalThis as any)[GUARD_KEY] = guard;
+
+// ❌ 错误 - 模块级变量在不同实例间不共享
+let _guard: SkillLoadGuard | null = null;
+```
+
+## 4. dev-start.sh 使用说明
+
+```bash
+./dev-start.sh              # 启动所有服务 (Mock Store + Gateway)
+./dev-start.sh --clean      # 清理审计日志和缓存后启动
+./dev-start.sh --rebuild    # 强制重新构建 dist 后启动
+./dev-start.sh --gateway    # 只重启 Gateway
+./dev-start.sh --store      # 只重启 Mock Store
+./dev-start.sh --stop       # 停止所有服务
+```
+
+## 5. Extension register() 生命周期陷阱
+
+Extension 的 `register()` 可能被多次调用（`config.schema` 请求触发 `loadOpenClawPlugins()` 缓存未命中）。
+但 `registerService().start()` 不一定在所有 `register()` 调用后执行。
+
+**关键原则**: 所有 Guard 需要的同步初始化（缓存加载、审计日志打开）必须在 `register()` 中完成，
+不能延迟到 `start()` 回调。
+
+```typescript
+// ✅ 正确 - 在 register() 中初始化
+audit.init();
+cache.loadFromDisk();
+registerSkillLoadGuard({evaluate: ...});
+
+// ❌ 错误 - 延迟到 start() 中
+registerSkillLoadGuard({evaluate: ...});  // Guard 已激活但缓存为空！
+api.registerService({
+  start() { cache.loadFromDisk(); }  // 可能不被调用
+});
+```
+
+## 6. 不安全配置的安全边界
+
+以下文件/配置**绝不提交到 Git**:
+- `dev-start.sh` — 包含 `NODE_TLS_REJECT_UNAUTHORIZED=0`
+- `~/.openclaw-dev/openclaw.json` — 包含 API Key
+- `~/sg-test-manifest.json` — 测试用 manifest

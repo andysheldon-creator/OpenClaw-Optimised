@@ -25,19 +25,25 @@ export type SkillLoadGuard = {
   evaluate(skills: Map<string, Skill>): SkillLoadGuardVerdict;
 };
 
-let _guard: SkillLoadGuard | null = null;
+/**
+ * Use globalThis to store the guard reference so that the SAME guard
+ * instance is visible from both the bundled gateway code and jiti-loaded
+ * extensions (which produce separate module instances of this file).
+ */
+const GUARD_KEY = "__openclaw_skill_load_guard__" as const;
+type GuardHolder = typeof globalThis & { [GUARD_KEY]?: SkillLoadGuard | null };
 
 /** Called by the Extension to register a guard. Returns an unregister function. */
 export function registerSkillLoadGuard(guard: SkillLoadGuard): () => void {
-  _guard = guard;
+  (globalThis as GuardHolder)[GUARD_KEY] = guard;
   log.info("skill load guard registered");
   return () => {
-    _guard = null;
+    (globalThis as GuardHolder)[GUARD_KEY] = null;
     log.info("skill load guard unregistered");
   };
 }
 
 /** Called by core code to retrieve the currently registered guard (if any). */
 export function getSkillLoadGuard(): SkillLoadGuard | null {
-  return _guard;
+  return (globalThis as GuardHolder)[GUARD_KEY] ?? null;
 }

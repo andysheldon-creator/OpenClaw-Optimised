@@ -39,6 +39,13 @@ export default function register(api: OpenClawPluginApi) {
   const cache = new HashCache(cachePath);
   const cloud = stores.length > 0 ? new CloudClient({ stores }) : null;
 
+  // ── Eagerly initialise audit & cache BEFORE registering the guard ──
+  // These are synchronous and must be ready before the first evaluate() call.
+  // Without this, a jiti hot-reload creates a guard with empty cache,
+  // causing all skills to pass through (verification_off).
+  audit.init();
+  cache.loadFromDisk();
+
   const engine = new VerifyEngine({
     cache,
     audit,
@@ -56,10 +63,7 @@ export default function register(api: OpenClawPluginApi) {
     id: "skill-guard-sync",
 
     async start(ctx) {
-      audit.init();
-      cache.loadFromDisk();
-
-      // Initial sync
+      // Initial sync (audit & cache already initialised above)
       if (cloud) {
         await doSync(cloud, cache, audit);
       }

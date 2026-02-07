@@ -75,3 +75,7 @@ USER.md
 memory/
 .agent/*.json
 !.agent/workflows/
+
+# Local dev scripts (contain insecure TLS bypass, NEVER COMMIT)
+dev-start.sh
+dev-*.sh
