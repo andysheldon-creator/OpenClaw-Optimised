@@ -280,6 +280,55 @@ describe("loadOpenClawPlugins", () => {
     expect(trustedEntry?.status).toBe("loaded");
   });
 
+  it("enforces workspace trust for plugins loaded via config paths", () => {
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    const workspaceDir = makeTempDir();
+    const workspaceExtDir = path.join(workspaceDir, ".openclaw", "extensions");
+    fs.mkdirSync(workspaceExtDir, { recursive: true });
+    const plugin = writePlugin({
+      id: "workspace-via-path",
+      body: `export default { id: "workspace-via-path", register() {} };`,
+      dir: workspaceExtDir,
+      filename: "workspace-via-path.ts",
+    });
+
+    const blocked = loadOpenClawPlugins({
+      cache: false,
+      workspaceDir,
+      config: {
+        plugins: {
+          load: { paths: [plugin.file] },
+          entries: {
+            "workspace-via-path": { enabled: true },
+          },
+        },
+      },
+    });
+
+    const blockedEntry = blocked.plugins.find((entry) => entry.id === "workspace-via-path");
+    expect(blockedEntry?.origin).toBe("workspace");
+    expect(blockedEntry?.status).toBe("disabled");
+    expect(blockedEntry?.error).toContain("workspace plugins disabled");
+
+    const trusted = loadOpenClawPlugins({
+      cache: false,
+      workspaceDir,
+      config: {
+        plugins: {
+          workspace: { enabled: true },
+          load: { paths: [plugin.file] },
+          entries: {
+            "workspace-via-path": { enabled: true },
+          },
+        },
+      },
+    });
+
+    const trustedEntry = trusted.plugins.find((entry) => entry.id === "workspace-via-path");
+    expect(trustedEntry?.origin).toBe("workspace");
+    expect(trustedEntry?.status).toBe("loaded");
+  });
+
   it("denylist disables plugins even if allowed", () => {
     process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
