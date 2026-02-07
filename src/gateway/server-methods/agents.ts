@@ -26,6 +26,7 @@ import {
 } from "../../commands/agents.config.js";
 import { loadConfig, writeConfigFile } from "../../config/config.js";
 import { resolveSessionTranscriptsDirForAgent } from "../../config/sessions/paths.js";
+import { runCommandWithTimeout } from "../../process/exec.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../../routing/session-key.js";
 import { resolveUserPath } from "../../utils.js";
 import {
@@ -141,6 +142,22 @@ function resolveAgentIdOrError(agentIdRaw: string, cfg: ReturnType<typeof loadCo
 
 function sanitizeIdentityLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
+}
+
+async function moveToTrashBestEffort(pathname: string): Promise<void> {
+  if (!pathname) {
+    return;
+  }
+  try {
+    await fs.access(pathname);
+  } catch {
+    return;
+  }
+  try {
+    await runCommandWithTimeout(["trash", pathname], { timeoutMs: 5000 });
+  } catch {
+    // Best-effort: fall back to leaving the directory in place.
+  }
 }
 
 export const agentsHandlers: GatewayRequestHandlers = {
@@ -309,8 +326,22 @@ export const agentsHandlers: GatewayRequestHandlers = {
       return;
     }
 
+    const deleteFiles = typeof params.deleteFiles === "boolean" ? params.deleteFiles : true;
+    const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
+    const agentDir = resolveAgentDir(cfg, agentId);
+    const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId);
+
     const result = pruneAgentConfig(cfg, agentId);
     await writeConfigFile(result.config);
+
+    if (deleteFiles) {
+      await Promise.all([
+        moveToTrashBestEffort(workspaceDir),
+        moveToTrashBestEffort(agentDir),
+        moveToTrashBestEffort(sessionsDir),
+      ]);
+    }
+
     respond(true, { ok: true, agentId, removedBindings: result.removedBindings }, undefined);
   },
   "agents.files.list": async ({ params, respond }) => {

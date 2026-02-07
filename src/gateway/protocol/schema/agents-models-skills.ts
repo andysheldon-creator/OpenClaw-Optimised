@@ -84,6 +84,7 @@ export const AgentsUpdateResultSchema = Type.Object(
 export const AgentsDeleteParamsSchema = Type.Object(
   {
     agentId: NonEmptyString,
+    deleteFiles: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },
 );
