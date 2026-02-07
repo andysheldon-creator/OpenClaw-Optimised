@@ -12,6 +12,7 @@ import {
 } from "./pi-embedded-subscribe.tools.js";
 import { inferToolMetaFromArgs } from "./pi-embedded-utils.js";
 import { normalizeToolName } from "./tool-policy.js";
+import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 
 function extendExecMeta(toolName: string, args: unknown, meta?: string): string | undefined {
   const normalized = toolName.trim().toLowerCase();
@@ -219,6 +220,32 @@ export function handleToolExecutionEnd(
   ctx.log.debug(
     `embedded run tool end: runId=${ctx.params.runId} tool=${toolName} toolCallId=${toolCallId}`,
   );
+
+  // Run after_tool_call plugin hook (fire-and-forget).
+  const hookRunner = getGlobalHookRunner();
+  if (hookRunner?.hasHooks("after_tool_call")) {
+    void hookRunner
+      .runAfterToolCall(
+        {
+          toolName,
+          params:
+            evt.args && typeof evt.args === "object"
+              ? (evt.args as Record<string, unknown>)
+              : {},
+          result: sanitizedResult,
+          error: isToolError ? extractToolErrorMessage(sanitizedResult) : undefined,
+          durationMs: undefined,
+        },
+        {
+          toolName,
+          agentId: ctx.params.runId?.split(":")[0],
+          sessionKey: undefined,
+        },
+      )
+      .catch((err) => {
+        ctx.log.warn(`after_tool_call hook failed: tool=${toolName} error=${String(err)}`);
+      });
+  }
 
   if (ctx.params.onToolResult && ctx.shouldEmitToolOutput()) {
     const outputText = extractToolResultText(sanitizedResult);
