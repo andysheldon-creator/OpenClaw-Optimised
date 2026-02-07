@@ -223,12 +223,24 @@ export async function noteStateIntegrity(
   if (configPath && existsFile(configPath) && process.platform !== "win32") {
     try {
       const lstat = fs.lstatSync(configPath);
-      // Symlinks always report mode 777; checking them triggers false positives
-      // (e.g. Nix store symlinks). Skip the permission check for symlinks —
-      // the containing directory's permissions protect access.  See #11307.
-      if (!lstat.isSymbolicLink()) {
-        const stat = fs.statSync(configPath);
-        if ((stat.mode & 0o077) !== 0) {
+      const isSymlink = lstat.isSymbolicLink();
+      // For symlinks, lstat reports mode 777 (meaningless). Use statSync to
+      // check the target's actual permissions instead.
+      const stat = isSymlink ? fs.statSync(configPath) : lstat;
+      if ((stat.mode & 0o077) !== 0) {
+        // If the target is on a read-only filesystem (e.g. /nix/store),
+        // chmod would fail and the containing directory (typically mode 700)
+        // already protects access.  Skip the warning in that case.  #11307
+        let targetWritable = true;
+        if (isSymlink) {
+          try {
+            const resolved = fs.realpathSync(configPath);
+            fs.accessSync(resolved, fs.constants.W_OK);
+          } catch {
+            targetWritable = false;
+          }
+        }
+        if (targetWritable) {
           warnings.push(
             `- Config file is group/world readable (${displayConfigPath ?? configPath}). Recommend chmod 600.`,
           );
