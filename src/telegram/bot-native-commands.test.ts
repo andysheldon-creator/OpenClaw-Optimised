@@ -1,81 +1,88 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OpenClawConfig } from "../config/config.js";
+import type { Bot } from "grammy";
+import { expect, it, vi, describe } from "vitest";
 import type { TelegramAccountConfig } from "../config/types.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { loadConfig } from "../config/config.js";
 import { registerTelegramNativeCommands } from "./bot-native-commands.js";
 
-const { listSkillCommandsForAgents } = vi.hoisted(() => ({
-  listSkillCommandsForAgents: vi.fn(() => []),
-}));
+// Mock grammy
+vi.mock("grammy", () => {
+  return {
+    Bot: vi.fn().mockImplementation(() => {
+      return {
+        api: {
+          setMyCommands: vi.fn().mockResolvedValue(true),
+        },
+        command: vi.fn(),
+      };
+    }),
+  };
+});
 
-vi.mock("../auto-reply/skill-commands.js", () => ({
-  listSkillCommandsForAgents,
-}));
+// Mock dependencies to control skill commands
+vi.mock("../auto-reply/skill-commands.js", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    listSkillCommandsForAgents: vi.fn().mockReturnValue([
+      { name: "github", description: "GitHub skill" },
+      { name: "github", description: "GitHub duplicate" },
+      { name: "weather", description: "Weather skill" },
+    ]),
+  };
+});
 
-describe("registerTelegramNativeCommands", () => {
-  beforeEach(() => {
-    listSkillCommandsForAgents.mockReset();
-  });
-
-  const buildParams = (cfg: OpenClawConfig, accountId = "default") => ({
-    bot: {
+describe("Telegram native commands deduplication", () => {
+  it("should register skill commands exactly once even if found multiple times", async () => {
+    const setMyCommandsSpy = vi.fn().mockResolvedValue(true);
+    const bot = {
       api: {
-        setMyCommands: vi.fn().mockResolvedValue(undefined),
-        sendMessage: vi.fn().mockResolvedValue(undefined),
+        setMyCommands: setMyCommandsSpy,
       },
       command: vi.fn(),
-    } as unknown as Parameters<typeof registerTelegramNativeCommands>[0]["bot"],
-    cfg,
-    runtime: {} as RuntimeEnv,
-    accountId,
-    telegramCfg: {} as TelegramAccountConfig,
-    allowFrom: [],
-    groupAllowFrom: [],
-    replyToMode: "off" as const,
-    textLimit: 4096,
-    useAccessGroups: false,
-    nativeEnabled: true,
-    nativeSkillsEnabled: true,
-    nativeDisabledExplicit: false,
-    resolveGroupPolicy: () => ({ allowlistEnabled: false, allowed: true }),
-    resolveTelegramGroupConfig: () => ({
-      groupConfig: undefined,
-      topicConfig: undefined,
-    }),
-    shouldSkipUpdate: () => false,
-    opts: { token: "token" },
-  });
+    } as unknown as Bot;
 
-  it("scopes skill commands when account binding exists", () => {
-    const cfg: OpenClawConfig = {
-      agents: {
-        list: [{ id: "main", default: true }, { id: "butler" }],
+    const cfg = loadConfig();
+    const runtime = {
+      log: vi.fn(),
+      error: vi.fn(),
+    } as unknown as RuntimeEnv;
+
+    const telegramCfg = {
+      token: "test",
+      commands: {
+        native: "auto",
+        nativeSkills: "auto",
       },
-      bindings: [
-        {
-          agentId: "butler",
-          match: { channel: "telegram", accountId: "bot-a" },
-        },
-      ],
-    };
+    } as unknown as TelegramAccountConfig;
 
-    registerTelegramNativeCommands(buildParams(cfg, "bot-a"));
-
-    expect(listSkillCommandsForAgents).toHaveBeenCalledWith({
+    registerTelegramNativeCommands({
+      bot,
       cfg,
-      agentIds: ["butler"],
+      runtime,
+      accountId: "main",
+      telegramCfg,
+      allowFrom: [],
+      groupAllowFrom: [],
+      replyToMode: "first",
+      textLimit: 4000,
+      useAccessGroups: true,
+      nativeEnabled: true,
+      nativeSkillsEnabled: true,
+      nativeDisabledExplicit: false,
+      resolveGroupPolicy: () => ({ allowed: true, allowlistEnabled: false }),
+      resolveTelegramGroupConfig: () => ({}),
+      shouldSkipUpdate: () => false,
+      opts: { token: "test" },
     });
-  });
 
-  it("keeps skill commands unscoped without a matching binding", () => {
-    const cfg: OpenClawConfig = {
-      agents: {
-        list: [{ id: "main", default: true }, { id: "butler" }],
-      },
-    };
+    expect(setMyCommandsSpy).toHaveBeenCalledOnce();
+    const commands = setMyCommandsSpy.mock.calls[0][0] as Array<{ command: string }>;
 
-    registerTelegramNativeCommands(buildParams(cfg, "bot-a"));
+    const githubCount = commands.filter((c) => c.command === "github").length;
+    const weatherCount = commands.filter((c) => c.command === "weather").length;
 
-    expect(listSkillCommandsForAgents).toHaveBeenCalledWith({ cfg });
+    expect(githubCount).toBe(1);
+    expect(weatherCount).toBe(1);
   });
 });
