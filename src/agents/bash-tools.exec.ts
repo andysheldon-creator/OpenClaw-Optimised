@@ -435,6 +435,12 @@ async function runExecProcess(opts: {
   onUpdate?: (partialResult: AgentToolResult<ExecToolDetails>) => void;
 }): Promise<ExecProcessHandle> {
   const startedAt = Date.now();
+
+  const config = getShellConfig();
+  const rewrittenCommand = opts.command.replace(/(\s*)2>\s*nul\s*$/gi, `$12>${config.nullDevice}`);
+  const finalCommand =
+    process.platform === "win32" ? rewrittenCommand.replace(/\$null/g, "`$null") : rewrittenCommand;
+
   const sessionId = createSessionSlug();
   let child: ChildProcessWithoutNullStreams | null = null;
   let pty: PtyHandle | null = null;
@@ -446,7 +452,7 @@ async function runExecProcess(opts: {
         "docker",
         ...buildDockerExecArgs({
           containerName: opts.sandbox.containerName,
-          command: opts.command,
+          command: finalCommand,
           workdir: opts.containerWorkdir ?? opts.sandbox.containerWorkdir,
           env: opts.env,
           tty: opts.usePty,
@@ -475,7 +481,7 @@ async function runExecProcess(opts: {
     child = spawned as ChildProcessWithoutNullStreams;
     stdin = child.stdin;
   } else if (opts.usePty) {
-    const { shell, args: shellArgs } = getShellConfig();
+    const { shell, args: shellArgs } = config;
     try {
       const ptyModule = (await import("@lydell/node-pty")) as unknown as {
         spawn?: PtySpawn;
@@ -485,7 +491,7 @@ async function runExecProcess(opts: {
       if (!spawnPty) {
         throw new Error("PTY support is unavailable (node-pty spawn not found).");
       }
-      pty = spawnPty(shell, [...shellArgs, opts.command], {
+      pty = spawnPty(shell, [...shellArgs, finalCommand], {
         cwd: opts.workdir,
         env: opts.env,
         name: process.env.TERM ?? "xterm-256color",
@@ -517,7 +523,7 @@ async function runExecProcess(opts: {
       logWarn(`exec: PTY spawn failed (${errText}); retrying without PTY for "${opts.command}".`);
       opts.warnings.push(warning);
       const { child: spawned } = await spawnWithFallback({
-        argv: [shell, ...shellArgs, opts.command],
+        argv: [shell, ...shellArgs, finalCommand],
         options: {
           cwd: opts.workdir,
           env: opts.env,
@@ -542,9 +548,9 @@ async function runExecProcess(opts: {
       stdin = child.stdin;
     }
   } else {
-    const { shell, args: shellArgs } = getShellConfig();
+    const { shell, args: shellArgs } = config;
     const { child: spawned } = await spawnWithFallback({
-      argv: [shell, ...shellArgs, opts.command],
+      argv: [shell, ...shellArgs, finalCommand],
       options: {
         cwd: opts.workdir,
         env: opts.env,

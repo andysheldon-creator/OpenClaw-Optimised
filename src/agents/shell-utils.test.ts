@@ -46,8 +46,9 @@ describe("getShellConfig", () => {
 
   if (isWin) {
     it("uses PowerShell on Windows", () => {
-      const { shell } = getShellConfig();
+      const { shell, nullDevice } = getShellConfig();
       expect(shell.toLowerCase()).toContain("powershell");
+      expect(nullDevice).toBe("$null");
     });
     return;
   }
@@ -55,27 +56,31 @@ describe("getShellConfig", () => {
   it("prefers bash when fish is default and bash is on PATH", () => {
     const binDir = createTempBin(["bash"]);
     process.env.PATH = binDir;
-    const { shell } = getShellConfig();
+    const { shell, nullDevice } = getShellConfig();
     expect(shell).toBe(path.join(binDir, "bash"));
+    expect(nullDevice).toBe("/dev/null");
   });
 
   it("falls back to sh when fish is default and bash is missing", () => {
     const binDir = createTempBin(["sh"]);
     process.env.PATH = binDir;
-    const { shell } = getShellConfig();
+    const { shell, nullDevice } = getShellConfig();
     expect(shell).toBe(path.join(binDir, "sh"));
+    expect(nullDevice).toBe("/dev/null");
   });
 
   it("falls back to env shell when fish is default and no sh is available", () => {
     process.env.PATH = "";
-    const { shell } = getShellConfig();
+    const { shell, nullDevice } = getShellConfig();
     expect(shell).toBe("/usr/bin/fish");
+    expect(nullDevice).toBe("/dev/null");
   });
 
   it("uses sh when SHELL is unset", () => {
     delete process.env.SHELL;
     process.env.PATH = "";
-    const { shell } = getShellConfig();
+    const { shell, nullDevice } = getShellConfig();
     expect(shell).toBe("sh");
+    expect(nullDevice).toBe("/dev/null");
   });
 });

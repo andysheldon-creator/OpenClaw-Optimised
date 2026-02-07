@@ -19,7 +19,11 @@ function resolvePowerShellPath(): string {
   return "powershell.exe";
 }
 
-export function getShellConfig(): { shell: string; args: string[] } {
+export function getShellConfig(): {
+  shell: string;
+  args: string[];
+  nullDevice: string;
+} {
   if (process.platform === "win32") {
     // Use PowerShell instead of cmd.exe on Windows.
     // Problem: Many Windows system utilities (ipconfig, systeminfo, etc.) write
@@ -29,6 +33,7 @@ export function getShellConfig(): { shell: string; args: string[] } {
     return {
       shell: resolvePowerShellPath(),
       args: ["-NoProfile", "-NonInteractive", "-Command"],
+      nullDevice: "$null",
     };
   }
 
@@ -38,15 +43,15 @@ export function getShellConfig(): { shell: string; args: string[] } {
   if (shellName === "fish") {
     const bash = resolveShellFromPath("bash");
     if (bash) {
-      return { shell: bash, args: ["-c"] };
+      return { shell: bash, args: ["-c"], nullDevice: "/dev/null" };
     }
     const sh = resolveShellFromPath("sh");
     if (sh) {
-      return { shell: sh, args: ["-c"] };
+      return { shell: sh, args: ["-c"], nullDevice: "/dev/null" };
     }
   }
   const shell = envShell && envShell.length > 0 ? envShell : "sh";
-  return { shell, args: ["-c"] };
+  return { shell, args: ["-c"], nullDevice: "/dev/null" };
 }
 
 function resolveShellFromPath(name: string): string | undefined {
