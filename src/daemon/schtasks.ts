@@ -330,8 +330,9 @@ export async function installScheduledTask({
   });
   await fs.writeFile(ps1ScriptPath, ps1Script, "utf8");
 
-  // Keep CMD script for backward compatibility with existing installations
-  // New installations will use PowerShell script, but CMD remains for manual fallback
+  // Keep CMD script for backward compatibility and manual troubleshooting
+  // The CMD script can be manually invoked if PowerShell execution fails
+  // or for debugging purposes, but the scheduled task will use the PowerShell script
   const script = buildTaskScript({
     description: taskDescription,
     programArguments,
@@ -396,20 +397,27 @@ export async function uninstallScheduledTask({
   const scriptBasename = path.basename(scriptPath, ".cmd");
   const ps1ScriptPath = path.join(scriptDir, `${scriptBasename}.ps1`);
 
-  // Remove both CMD and PowerShell scripts
-  // Both may exist since CMD is kept for backward compatibility and manual fallback
+  // Remove both CMD and PowerShell scripts (silent failure if not found)
+  // Both may exist since CMD is kept for manual troubleshooting
+  let removedAny = false;
   try {
     await fs.unlink(scriptPath);
     stdout.write(`${formatLine("Removed task script", scriptPath)}\n`);
+    removedAny = true;
   } catch {
-    // CMD script might not exist (silent failure is acceptable)
+    // CMD script might not exist
   }
 
   try {
     await fs.unlink(ps1ScriptPath);
     stdout.write(`${formatLine("Removed task script", ps1ScriptPath)}\n`);
+    removedAny = true;
   } catch {
-    stdout.write(`Task script not found at ${ps1ScriptPath}\n`);
+    // PowerShell script might not exist
+  }
+
+  if (!removedAny) {
+    stdout.write(`No task scripts found to remove\n`);
   }
 }
 
