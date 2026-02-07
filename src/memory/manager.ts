@@ -244,7 +244,13 @@ export class MemoryIndexManager implements MemorySearchManager {
     this.ensureWatcher();
     this.ensureSessionListener();
     this.ensureIntervalSync();
-    this.dirty = this.sources.has("memory");
+    this.dirty = false;
+    if (this.sources.has("memory")) {
+      const existing = this.db
+        .prepare(`SELECT 1 FROM files WHERE source = ? LIMIT 1`)
+        .get("memory");
+      this.dirty = !existing;
+    }
     this.batch = this.resolveBatchConfig();
   }
 
