@@ -10,6 +10,8 @@ import {
   resolveMainSessionAlias,
   resolveInternalSessionKey,
   SessionListRow,
+  SESSIONS_HISTORY_MAX_BYTES,
+  sanitizeAndCapSessionMessages,
   stripToolMessages,
 } from "./sessions-helpers.js";
 
@@ -17,6 +19,7 @@ const SessionsHistoryToolSchema = Type.Object({
   sessionKey: Type.String(),
   limit: Type.Optional(Type.Number({ minimum: 1 })),
   includeTools: Type.Optional(Type.Boolean()),
+  includeThinking: Type.Optional(Type.Boolean()),
 });
 
 function resolveSandboxSessionToolsVisibility(cfg: ReturnType<typeof loadConfig>) {
@@ -126,15 +129,27 @@ export function createSessionsHistoryTool(opts?: {
           ? Math.max(1, Math.floor(params.limit))
           : undefined;
       const includeTools = Boolean(params.includeTools);
+      const includeThinking = Boolean(params.includeThinking);
       const result = await callGateway<{ messages: Array<unknown> }>({
         method: "chat.history",
         params: { sessionKey: resolvedKey, limit },
       });
       const rawMessages = Array.isArray(result?.messages) ? result.messages : [];
-      const messages = includeTools ? rawMessages : stripToolMessages(rawMessages);
+      const selectedMessages = includeTools ? rawMessages : stripToolMessages(rawMessages);
+      const sanitized = sanitizeAndCapSessionMessages({
+        messages: selectedMessages,
+        includeThinking,
+        maxBytes: SESSIONS_HISTORY_MAX_BYTES,
+        placeholderText: "[sessions_history omitted: message too large]",
+      });
       return jsonResult({
         sessionKey: displayKey,
-        messages,
+        messages: sanitized.messages,
+        truncated: sanitized.truncated,
+        droppedMessages: sanitized.droppedMessages,
+        contentTruncated: sanitized.contentTruncated,
+        bytes: sanitized.bytes,
+      });
       });
     },
   };
