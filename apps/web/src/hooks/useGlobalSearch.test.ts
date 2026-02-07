@@ -53,7 +53,7 @@ describe("fuzzyMatch", () => {
     const exact = fuzzyMatch("bot", "bot");
     const startsWith = fuzzyMatch("bot", "botnet");
     const substring = fuzzyMatch("bot", "chatbot");
-    const wordPrefix = fuzzyMatch("bot", "chat bot service");
+    fuzzyMatch("bot", "chat bot service");
     const fuzzy = fuzzyMatch("bt", "bot");
 
     expect(exact).toBeGreaterThan(startsWith);

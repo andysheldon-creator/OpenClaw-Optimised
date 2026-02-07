@@ -42,6 +42,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      // Large vendor libs (react, radix, zustand, etc.) share one 'vendor' chunk
+      // to avoid circular chunk dependencies. ~230 kB gzipped is acceptable.
+      chunkSizeWarningLimit: 800,
       rollupOptions: {
         output: {
           manualChunks(id) {
@@ -78,28 +81,6 @@ export default defineConfig(({ mode }) => {
               // Graph visualization
               if (id.includes('reagraph') || id.includes('graphology')) {
                 return 'vendor-graph';
-              }
-              // React ecosystem - bundle React core with UI libraries, state management, and flow diagrams
-              // to eliminate circular dependencies through shared utilities
-              if (
-                id.match(/\/react\//) ||
-                id.match(/\/react-dom\//) ||
-                id.includes('zustand') ||
-                id.includes('immer') ||
-                id.includes('@xyflow/') ||
-                id.includes('@radix-ui/') ||
-                // React UI component libraries
-                id.includes('cmdk') ||
-                id.includes('sonner') ||
-                // Shared UI utilities used heavily by React components
-                id.includes('class-variance-authority') ||
-                id.includes('clsx') ||
-                id.includes('tailwind-merge') ||
-                // React-specific utilities that React packages actually use
-                id.includes('scheduler') ||
-                id.includes('use-sync-external-store')
-              ) {
-                return 'vendor-react';
               }
               // Form libraries with validation
               if (id.includes('react-hook-form') || id.includes('@hookform/')) {

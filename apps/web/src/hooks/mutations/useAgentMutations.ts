@@ -272,7 +272,6 @@ export function useDeleteAgent() {
 
 export function useUpdateAgentStatus() {
   const queryClient = useQueryClient();
-  const liveMode = useGatewayEnabled();
   const modeKey = useGatewayModeKey();
   const listKey = agentKeys.list({ mode: modeKey });
 

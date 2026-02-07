@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listAgents, getAgentStatus, type GatewayAgent, type AgentStatusEntry } from "@/lib/api";
 import { useGateway } from "@/providers";
 import { useAgentStore } from "@/stores/useAgentStore";
-import { useGatewayEnabled, useGatewayModeKey } from "../useGatewayEnabled";
+import { useGatewayEnabled } from "../useGatewayEnabled";
 
 // Re-export types from store for consistency
 export type { Agent, AgentStatus } from "../../stores/useAgentStore";

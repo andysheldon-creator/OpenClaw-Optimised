@@ -8,14 +8,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/agent-status/")({
-  beforeLoad: ({ search }) => {
-    // Preserve the health filter when redirecting
-    const health = (search as Record<string, unknown>).health;
+  beforeLoad: () => {
     throw redirect({
       to: "/agents/dashboard",
       search: {
         layout: "list" as const,
-        ...(health ? { health } : {}),
       },
     });
   },

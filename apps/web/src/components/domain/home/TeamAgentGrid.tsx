@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AgentCard } from "@/components/domain/agents";
-import { useAgents } from "@/hooks/queries";
+import { useAgents } from "@/hooks/queries/useAgents";
 import { Users, ArrowRight, Loader2 } from "lucide-react";
 
 interface TeamAgentGridProps {

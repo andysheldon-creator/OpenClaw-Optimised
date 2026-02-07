@@ -25,8 +25,8 @@ import type {
 import { CardSkeleton } from "@/components/composed/LoadingSkeleton";
 import { useDecisions } from "@/hooks/queries/useDecisions";
 import { useDebounce } from "@/hooks/useDebounce";
-import {
 import { RouteErrorFallback } from "@/components/composed";
+import {
   Scale,
   Search,
   SlidersHorizontal,

@@ -255,7 +255,7 @@ export function CommandPalette({
       navigate({
         to: "/agents/$agentId",
         params: { agentId },
-        search: { tab: "sessions" },
+        search: { tab: "activity" },
       });
     },
     [navigate]
@@ -266,7 +266,7 @@ export function CommandPalette({
       navigate({
         to: "/agents/$agentId",
         params: { agentId },
-        search: { tab: "config" },
+        search: { tab: "overview" },
       });
     },
     [navigate]

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Send, Sparkles } from "lucide-react";
-import { useAgents } from "@/hooks/queries";
+import { useAgents } from "@/hooks/queries/useAgents";
 
 interface QuickChatBoxProps {
   onSend?: (message: string, agentId: string) => void;

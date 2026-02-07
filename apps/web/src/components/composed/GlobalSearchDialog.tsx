@@ -88,7 +88,7 @@ export function GlobalSearchDialog({
     }
   });
 
-  const { results, grouped, isEmpty, isSearching, totalCount } =
+  const { grouped, isEmpty, isSearching, totalCount } =
     useGlobalSearch(query, {
       maxPerCategory: 8,
       maxTotal: 30,
@@ -376,7 +376,7 @@ function SearchResultItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium">{result.title}</span>
-          {result.meta?.status && (
+          {result.meta?.status != null && (
             <Badge
               variant="outline"
               className="text-[10px] px-1 py-0 shrink-0"

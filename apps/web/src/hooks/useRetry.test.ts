@@ -15,7 +15,7 @@ describe("useRetry", () => {
     const operation = vi.fn().mockResolvedValue("success");
     const { result } = renderHook(() => useRetry(operation));
 
-    let executeResult: string | undefined;
+    let executeResult: unknown;
     await act(async () => {
       executeResult = await result.current.execute();
     });
