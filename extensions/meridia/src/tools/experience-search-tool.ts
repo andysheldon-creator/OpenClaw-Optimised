@@ -95,21 +95,30 @@ export function createExperienceSearchTool(opts?: { config?: OpenClawConfig }): 
 
         const results =
           recent && !query && !from && !to
-            ? backend.getRecentRecords(limit, { sessionKey, toolName, minScore, tag })
+            ? await backend.getRecentRecords(limit, { sessionKey, toolName, minScore, tag })
             : query
-              ? backend.searchRecords(query, filters)
+              ? await backend.searchRecords(query, filters)
               : from || to
-                ? backend.getRecordsByDateRange(from ?? "1970-01-01", to ?? new Date().toISOString(), {
-                    ...filters,
-                    limit,
-                  })
+                ? await backend.getRecordsByDateRange(
+                    from ?? "1970-01-01",
+                    to ?? new Date().toISOString(),
+                    {
+                      ...filters,
+                      limit,
+                    },
+                  )
                 : sessionKey
-                  ? backend.getRecordsBySession(sessionKey, { limit })
+                  ? await backend.getRecordsBySession(sessionKey, { limit })
                   : toolName
-                    ? backend.getRecordsByTool(toolName, { limit })
-                    : backend.getRecentRecords(limit, { sessionKey, toolName, minScore, tag });
+                    ? await backend.getRecordsByTool(toolName, { limit })
+                    : await backend.getRecentRecords(limit, {
+                        sessionKey,
+                        toolName,
+                        minScore,
+                        tag,
+                      });
 
-        const stats = backend.getStats();
+        const stats = await backend.getStats();
 
         const formatted = results.map((r) => ({
           id: r.record.id,

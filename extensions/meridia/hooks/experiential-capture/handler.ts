@@ -5,11 +5,27 @@ import type {
   MeridiaExperienceRecord,
   MeridiaToolResultContext,
   MeridiaTraceEvent,
+  CaptureDecision,
 } from "../../src/meridia/types.js";
+import { collectArtifacts } from "../../src/meridia/artifacts/collector.js";
+import { resolveMeridiaPluginConfig } from "../../src/meridia/config.js";
 import { createBackend } from "../../src/meridia/db/index.js";
 import { evaluateHeuristic, evaluateWithLlm } from "../../src/meridia/evaluate.js";
+// V2 components
+import { normalizeToolResult } from "../../src/meridia/event/normalizer.js";
+import {
+  checkGates,
+  ensureBuffer,
+  pruneOldEntries,
+  recordCapture,
+  recordEvaluation,
+  type SessionBuffer,
+  type GatesConfig,
+} from "../../src/meridia/gates/budget.js";
+import { buildExperienceKit, kitToLegacyRecord } from "../../src/meridia/kit/builder.js";
 import { resolveMeridiaDir } from "../../src/meridia/paths.js";
-import { resolveMeridiaPluginConfig } from "../../src/meridia/config.js";
+import { extractPhenomenology } from "../../src/meridia/phenomenology/extractor.js";
+import { sanitizeForPersistence } from "../../src/meridia/sanitize/redact.js";
 import {
   appendJsonl,
   resolveTraceJsonlPath,
@@ -23,29 +39,6 @@ type HookEvent = {
   timestamp: Date;
   sessionKey?: string;
   context?: unknown;
-};
-
-type LimitedInfo = { reason: "min_interval" | "max_per_hour"; detail?: string };
-
-type BufferV1 = {
-  version: 1;
-  sessionId?: string;
-  sessionKey?: string;
-  createdAt: string;
-  updatedAt: string;
-  toolResultsSeen: number;
-  captured: number;
-  lastSeenAt?: string;
-  lastCapturedAt?: string;
-  recentCaptures: Array<{ ts: string; toolName: string; score: number; recordId: string }>;
-  recentEvaluations: Array<{
-    ts: string;
-    toolName: string;
-    score: number;
-    recommendation: "capture" | "skip";
-    reason?: string;
-  }>;
-  lastError?: { ts: string; toolName: string; message: string };
 };
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -91,37 +84,22 @@ function readString(cfg: Record<string, unknown> | undefined, keys: string[]): s
   return undefined;
 }
 
+function readBoolean(
+  cfg: Record<string, unknown> | undefined,
+  keys: string[],
+  fallback: boolean,
+): boolean {
+  for (const key of keys) {
+    const val = cfg?.[key];
+    if (typeof val === "boolean") return val;
+    if (val === "true") return true;
+    if (val === "false") return false;
+  }
+  return fallback;
+}
+
 function safeFileKey(raw: string): string {
   return raw.trim().replace(/[^a-zA-Z0-9._-]+/g, "_");
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
-
-function ensureBuffer(seed: Partial<BufferV1>): BufferV1 {
-  const now = nowIso();
-  return {
-    version: 1,
-    sessionId: seed.sessionId,
-    sessionKey: seed.sessionKey,
-    createdAt: seed.createdAt ?? now,
-    updatedAt: now,
-    toolResultsSeen: seed.toolResultsSeen ?? 0,
-    captured: seed.captured ?? 0,
-    lastSeenAt: seed.lastSeenAt,
-    lastCapturedAt: seed.lastCapturedAt,
-    recentCaptures: seed.recentCaptures ?? [],
-    recentEvaluations: seed.recentEvaluations ?? [],
-    lastError: seed.lastError,
-  };
-}
-
-function pruneOld(buffer: BufferV1, nowMs: number): BufferV1 {
-  const hourAgo = nowMs - 60 * 60 * 1000;
-  const recentCaptures = buffer.recentCaptures.filter((c) => Date.parse(c.ts) >= hourAgo);
-  const recentEvaluations = buffer.recentEvaluations.slice(-50);
-  return { ...buffer, recentCaptures, recentEvaluations };
 }
 
 function resolveHookConfig(
@@ -130,13 +108,6 @@ function resolveHookConfig(
 ): Record<string, unknown> | undefined {
   const entry = cfg?.hooks?.internal?.entries?.[hookKey] as Record<string, unknown> | undefined;
   return entry && typeof entry === "object" ? entry : undefined;
-}
-
-function resolveSessionContext(event: HookEvent, context: Record<string, unknown>) {
-  const sessionId = typeof context.sessionId === "string" ? context.sessionId : undefined;
-  const sessionKey = typeof context.sessionKey === "string" ? context.sessionKey : event.sessionKey;
-  const runId = typeof context.runId === "string" ? context.runId : undefined;
-  return { sessionId, sessionKey, runId };
 }
 
 function resolveBufferPath(
@@ -153,8 +124,8 @@ async function loadBuffer(
   bufferPath: string,
   sessionId?: string,
   sessionKey?: string,
-): Promise<BufferV1> {
-  const existing = await readJsonIfExists<BufferV1>(bufferPath);
+): Promise<SessionBuffer> {
+  const existing = await readJsonIfExists<SessionBuffer>(bufferPath);
   return ensureBuffer(existing ?? { sessionId, sessionKey });
 }
 
@@ -170,25 +141,27 @@ const handler = async (event: HookEvent): Promise<void> => {
     return;
   }
 
-  const toolName = typeof context.toolName === "string" ? context.toolName : "";
-  const toolCallId = typeof context.toolCallId === "string" ? context.toolCallId : "";
-  if (!toolName || !toolCallId) {
-    return;
-  }
+  // ── Normalize event via Component 1 ───────────────────────────────────
+  const meridiaEvent = normalizeToolResult(event);
+  if (!meridiaEvent) return;
 
-  const { sessionId, sessionKey, runId } = resolveSessionContext(event, context);
-  const meta = typeof context.meta === "string" ? context.meta : undefined;
-  const isError = Boolean(context.isError);
-  const args = context.args;
-  const result = context.result;
+  const toolName = meridiaEvent.tool?.name ?? "";
+  const toolCallId = meridiaEvent.tool?.callId ?? "";
+  const sessionId = meridiaEvent.session?.id;
+  const sessionKey = meridiaEvent.session?.key;
+  const runId = meridiaEvent.session?.runId;
+  const meta = meridiaEvent.tool?.meta;
+  const isError = meridiaEvent.tool?.isError ?? false;
+  const payload = meridiaEvent.payload as { args?: unknown; result?: unknown } | undefined;
 
   const meridiaDir = resolveMeridiaDir(cfg, "experiential-capture");
   const tracePath = resolveTraceJsonlPath({ meridiaDir, date: event.timestamp });
   const bufferPath = resolveBufferPath(meridiaDir, sessionId, sessionKey, event.sessionKey);
-  const now = nowIso();
+  const now = new Date().toISOString();
   const nowMs = Date.now();
   const writeTraceJsonl = resolveMeridiaPluginConfig(cfg).debug.writeTraceJsonl;
 
+  // ── Read config values ────────────────────────────────────────────────
   const minThreshold = readNumber(
     hookCfg,
     ["min_significance_threshold", "minSignificanceThreshold", "threshold"],
@@ -204,32 +177,40 @@ const handler = async (event: HookEvent): Promise<void> => {
   const evaluationModel =
     readString(hookCfg, ["evaluation_model", "evaluationModel", "model"]) ?? "";
 
+  // Phenomenology config (V2)
+  const phenomenologyEnabled = readBoolean(
+    hookCfg,
+    ["phenomenology_enabled", "phenomenologyEnabled"],
+    true,
+  );
+  const phenomenologyModel = readString(hookCfg, [
+    "phenomenology_model",
+    "phenomenologyModel",
+    "evaluation_model",
+    "evaluationModel",
+  ]);
+
+  const gatesConfig: GatesConfig = { maxCapturesPerHour: maxPerHour, minIntervalMs };
+
+  // Build legacy context for evaluate.ts
   const ctx: MeridiaToolResultContext = {
     session: { id: sessionId, key: sessionKey, runId },
     tool: { name: toolName, callId: toolCallId, meta, isError },
-    args,
-    result,
+    args: payload?.args,
+    result: payload?.result,
   };
 
+  // ── Load and update buffer ────────────────────────────────────────────
   let buffer = await loadBuffer(bufferPath, sessionId, sessionKey);
-  buffer = pruneOld(buffer, nowMs);
+  buffer = pruneOldEntries(buffer, nowMs);
   buffer.toolResultsSeen += 1;
   buffer.lastSeenAt = now;
   buffer.updatedAt = now;
 
-  const limited: LimitedInfo | undefined = (() => {
-    if (buffer.lastCapturedAt) {
-      const last = Date.parse(buffer.lastCapturedAt);
-      if (Number.isFinite(last) && nowMs - last < minIntervalMs) {
-        return { reason: "min_interval" };
-      }
-    }
-    if (buffer.recentCaptures.length >= maxPerHour) {
-      return { reason: "max_per_hour", detail: `${buffer.recentCaptures.length}/${maxPerHour}` };
-    }
-    return undefined;
-  })();
+  // ── Gate check via Component 2 ────────────────────────────────────────
+  const gateResult = checkGates(buffer, gatesConfig);
 
+  // ── Pass 1: Significance evaluation (existing heuristic + optional LLM) ─
   let evaluation = evaluateHeuristic(ctx);
   if (cfg && evaluationModel) {
     try {
@@ -247,52 +228,69 @@ const handler = async (event: HookEvent): Promise<void> => {
     }
   }
 
-  const shouldCapture = !limited && evaluation.score >= minThreshold;
+  const shouldCapture = gateResult.allowed && evaluation.score >= minThreshold;
 
-  buffer.recentEvaluations.push({
-    ts: now,
+  // Record evaluation in buffer
+  buffer = recordEvaluation(buffer, {
     toolName,
     score: evaluation.score,
     recommendation: shouldCapture ? "capture" : "skip",
     reason: evaluation.reason,
   });
-  if (buffer.recentEvaluations.length > 50) {
-    buffer.recentEvaluations.splice(0, buffer.recentEvaluations.length - 50);
-  }
 
   let recordId: string | undefined;
   if (shouldCapture) {
-    recordId = crypto.randomUUID();
-    const record: MeridiaExperienceRecord = {
-      id: recordId,
-      ts: now,
-      kind: "tool_result",
-      session: { id: sessionId, key: sessionKey, runId },
-      tool: { name: toolName, callId: toolCallId, meta, isError },
-      capture: {
-        score: evaluation.score,
-        threshold: minThreshold,
-        evaluation,
-      },
-      content: {
-        summary: evaluation.reason,
-      },
-      data: { args, result },
+    recordId = meridiaEvent.id;
+
+    // ── Pass 2: Phenomenology extraction (V2 Component 4) ─────────────
+    const phenomenology = phenomenologyEnabled
+      ? await extractPhenomenology(meridiaEvent, evaluation.score, evaluation.reason, cfg, {
+          llmEnabled: Boolean(phenomenologyModel),
+          modelRef: phenomenologyModel,
+        })
+      : undefined;
+
+    // ── Artifact collection (V2 Component 5) ──────────────────────────
+    const artifacts = collectArtifacts(meridiaEvent);
+
+    // ── Build CaptureDecision (V2) ────────────────────────────────────
+    const captureDecision: CaptureDecision = {
+      shouldCapture: true,
+      significance: evaluation.score,
+      threshold: minThreshold,
+      mode: "full",
+      reason: evaluation.reason,
     };
+
+    // ── Build ExperienceKit via Component 6 ───────────────────────────
+    const kit = buildExperienceKit({
+      event: meridiaEvent,
+      decision: captureDecision,
+      phenomenology,
+      summary: evaluation.reason,
+      artifacts: artifacts.length > 0 ? artifacts : undefined,
+    });
+
+    // ── Sanitize before persistence (Component 12) ────────────────────
+    if (kit.raw) {
+      kit.raw = sanitizeForPersistence(kit.raw);
+    }
+
+    // ── Convert to legacy record for backward-compatible SQLite insert ─
+    const record = kitToLegacyRecord(kit);
 
     try {
       const backend = createBackend({ cfg, hookKey: "experiential-capture" });
-      backend.insertExperienceRecord(record);
+      await backend.insertExperienceRecord(record);
     } catch {
       // ignore
     }
 
-    buffer.captured += 1;
-    buffer.lastCapturedAt = now;
-    buffer.recentCaptures.push({ ts: now, toolName, score: evaluation.score, recordId });
-    buffer = pruneOld(buffer, nowMs);
+    // Update buffer with capture info
+    buffer = recordCapture(buffer, { toolName, score: evaluation.score, recordId });
   }
 
+  // ── Trace event ───────────────────────────────────────────────────────
   const traceEvent: MeridiaTraceEvent = {
     id: crypto.randomUUID(),
     ts: now,
@@ -300,10 +298,18 @@ const handler = async (event: HookEvent): Promise<void> => {
     session: { id: sessionId, key: sessionKey, runId },
     tool: { name: toolName, callId: toolCallId, meta, isError },
     decision: {
-      decision: shouldCapture ? "capture" : limited ? "skip" : evaluation.error ? "error" : "skip",
+      decision: shouldCapture
+        ? "capture"
+        : !gateResult.allowed
+          ? "skip"
+          : evaluation.error
+            ? "error"
+            : "skip",
       score: evaluation.score,
       threshold: minThreshold,
-      limited,
+      limited: !gateResult.allowed
+        ? { reason: gateResult.reason ?? "min_interval", detail: gateResult.detail }
+        : undefined,
       evaluation,
       recordId,
       error: evaluation.error,
@@ -311,7 +317,7 @@ const handler = async (event: HookEvent): Promise<void> => {
   };
   try {
     const backend = createBackend({ cfg, hookKey: "experiential-capture" });
-    backend.insertTraceEvent(traceEvent);
+    await backend.insertTraceEvent(traceEvent);
   } catch {
     // ignore
   }

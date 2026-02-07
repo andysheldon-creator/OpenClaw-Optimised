@@ -22,7 +22,7 @@ import { isDefaultMeridiaDir, resolveMeridiaDir } from "../../paths.js";
 
 const require = createRequire(import.meta.url);
 
-const SCHEMA_VERSION = "1";
+const SCHEMA_VERSION = "2";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Database Helpers
@@ -86,7 +86,37 @@ function isExpectedSchema(db: DatabaseSync): boolean {
       return false;
     }
   }
-  return readSchemaVersion(db) === SCHEMA_VERSION;
+  // Accept both v1 (will be migrated) and v2
+  const version = readSchemaVersion(db);
+  return version === SCHEMA_VERSION || version === "1";
+}
+
+function columnExists(db: DatabaseSync, table: string, column: string): boolean {
+  try {
+    const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    return rows.some((r) => r.name === column);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Migrate v1 schema to v2: add phenomenology columns to meridia_records.
+ * Safe to call multiple times (idempotent via column existence checks).
+ */
+function migrateV1ToV2(db: DatabaseSync): void {
+  const cols = [
+    { name: "emotional_primary", type: "TEXT" },
+    { name: "emotional_intensity", type: "REAL" },
+    { name: "emotional_valence", type: "REAL" },
+    { name: "engagement_quality", type: "TEXT" },
+    { name: "phenomenology_json", type: "TEXT" },
+  ];
+  for (const col of cols) {
+    if (!columnExists(db, "meridia_records", col.name)) {
+      db.exec(`ALTER TABLE meridia_records ADD COLUMN ${col.name} ${col.type}`);
+    }
+  }
 }
 
 function ensureSchema(db: DatabaseSync): { ftsAvailable: boolean; ftsError?: string } {
@@ -116,6 +146,12 @@ function ensureSchema(db: DatabaseSync): { ftsAvailable: boolean; ftsError?: str
       tags_json TEXT,
       data_json TEXT NOT NULL,
       data_text TEXT,
+      -- V2 phenomenology columns
+      emotional_primary TEXT,
+      emotional_intensity REAL,
+      emotional_valence REAL,
+      engagement_quality TEXT,
+      phenomenology_json TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);
@@ -129,6 +165,13 @@ function ensureSchema(db: DatabaseSync): { ftsAvailable: boolean; ftsError?: str
   );
   db.exec(`CREATE INDEX IF NOT EXISTS idx_meridia_records_score ON meridia_records(score);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_meridia_records_kind ON meridia_records(kind);`);
+  // V2 phenomenology indices
+  db.exec(
+    `CREATE INDEX IF NOT EXISTS idx_meridia_records_engagement ON meridia_records(engagement_quality);`,
+  );
+  db.exec(
+    `CREATE INDEX IF NOT EXISTS idx_meridia_records_emotional_intensity ON meridia_records(emotional_intensity);`,
+  );
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS meridia_trace (
@@ -145,6 +188,9 @@ function ensureSchema(db: DatabaseSync): { ftsAvailable: boolean; ftsError?: str
   db.exec(
     `CREATE INDEX IF NOT EXISTS idx_meridia_trace_session_key ON meridia_trace(session_key);`,
   );
+
+  // Migrate v1 → v2: add phenomenology columns if missing
+  migrateV1ToV2(db);
 
   let ftsAvailable = false;
   let ftsError: string | undefined;
@@ -199,6 +245,19 @@ function buildSearchableText(record: MeridiaExperienceRecord): string {
   if (record.content?.context) parts.push(record.content.context);
   if (record.content?.tags?.length) parts.push(record.content.tags.join(" "));
   if (record.content?.anchors?.length) parts.push(record.content.anchors.join(" "));
+  // V2: Include phenomenology in searchable text
+  if (record.phenomenology?.emotionalSignature?.primary?.length) {
+    parts.push(record.phenomenology.emotionalSignature.primary.join(" "));
+  }
+  if (record.phenomenology?.engagementQuality) {
+    parts.push(record.phenomenology.engagementQuality);
+  }
+  if (record.phenomenology?.anchors?.length) {
+    parts.push(record.phenomenology.anchors.map((a) => a.phrase).join(" "));
+  }
+  if (record.phenomenology?.uncertainties?.length) {
+    parts.push(record.phenomenology.uncertainties.join(" "));
+  }
   if (record.data?.args !== undefined)
     parts.push(clampText(safeJsonStringify(record.data.args), 500));
   if (record.data?.result !== undefined) {
@@ -347,12 +406,21 @@ function insertRecordSync(
   const tagsJson = record.content?.tags?.length ? JSON.stringify(record.content.tags) : null;
   const evaluation = record.capture.evaluation;
 
+  // V2 phenomenology columns
+  const phenom = record.phenomenology;
+  const emotionalPrimary = phenom?.emotionalSignature?.primary?.join(",") ?? null;
+  const emotionalIntensity = phenom?.emotionalSignature?.intensity ?? null;
+  const emotionalValence = phenom?.emotionalSignature?.valence ?? null;
+  const engagementQuality = phenom?.engagementQuality ?? null;
+  const phenomenologyJson = phenom ? JSON.stringify(phenom) : null;
+
   const result = db
     .prepare(`
       INSERT OR IGNORE INTO meridia_records
         (id, ts, kind, session_key, session_id, run_id, tool_name, tool_call_id, is_error,
-         score, threshold, eval_kind, eval_model, eval_reason, tags_json, data_json, data_text)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         score, threshold, eval_kind, eval_model, eval_reason, tags_json, data_json, data_text,
+         emotional_primary, emotional_intensity, emotional_valence, engagement_quality, phenomenology_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       record.id,
@@ -372,6 +440,11 @@ function insertRecordSync(
       tagsJson,
       dataJson,
       dataText,
+      emotionalPrimary,
+      emotionalIntensity,
+      emotionalValence,
+      engagementQuality,
+      phenomenologyJson,
     );
 
   const inserted = (result.changes ?? 0) > 0;

@@ -173,7 +173,9 @@ function analyzeRecords(records: MeridiaExperienceRecord[]): ReflectionAnalysis 
     if (Number.isFinite(spanMs)) {
       const spanHours = spanMs / (1000 * 60 * 60);
       if (spanHours < 1) {
-        patterns.push(`All records within ~${Math.ceil(spanHours * 60)} minutes — a focused burst.`);
+        patterns.push(
+          `All records within ~${Math.ceil(spanHours * 60)} minutes — a focused burst.`,
+        );
       } else if (spanHours > 24) {
         patterns.push(
           `Records span ${Math.ceil(spanHours / 24)} days — look for evolution over time.`,
@@ -234,7 +236,7 @@ export function createExperienceReflectTool(opts?: {
 
       try {
         const backend = createBackend({ cfg: opts?.config });
-        const stats = backend.getStats();
+        const stats = await backend.getStats();
 
         if (stats.recordCount === 0) {
           return jsonResult({
@@ -257,24 +259,26 @@ export function createExperienceReflectTool(opts?: {
           if (!sessionKey) {
             return jsonResult({ error: "session_key is required when scope='session'." });
           }
-          scopeResults = backend
-            .getRecordsBySession(sessionKey, { limit: baseLimit })
-            .map((r) => r.record);
+          scopeResults = (await backend.getRecordsBySession(sessionKey, { limit: baseLimit })).map(
+            (r) => r.record,
+          );
         } else if (scope === "date_range") {
           if (!from) {
             return jsonResult({ error: "from is required when scope='date_range'." });
           }
-          scopeResults = backend
-            .getRecordsByDateRange(from, to ?? new Date().toISOString(), { limit: baseLimit })
-            .map((r) => r.record);
+          scopeResults = (
+            await backend.getRecordsByDateRange(from, to ?? new Date().toISOString(), {
+              limit: baseLimit,
+            })
+          ).map((r) => r.record);
         } else {
-          scopeResults = backend.getRecentRecords(baseLimit).map((r) => r.record);
+          scopeResults = (await backend.getRecentRecords(baseLimit)).map((r) => r.record);
         }
 
         let records = scopeResults;
         let focusNote: string | null = null;
         if (focus && focus.trim()) {
-          const focusResults = backend.searchRecords(focus, { limit: baseLimit });
+          const focusResults = await backend.searchRecords(focus, { limit: baseLimit });
           if (focusResults.length > 0) {
             const scopeIds = new Set(scopeResults.map((r) => r.id));
             const intersected = focusResults.filter((r) => scopeIds.has(r.record.id));
@@ -282,7 +286,8 @@ export function createExperienceReflectTool(opts?: {
               records = intersected.map((r) => r.record);
             } else {
               records = focusResults.map((r) => r.record);
-              focusNote = "Focus search did not intersect with selected scope; using focus results.";
+              focusNote =
+                "Focus search did not intersect with selected scope; using focus results.";
             }
           }
         }

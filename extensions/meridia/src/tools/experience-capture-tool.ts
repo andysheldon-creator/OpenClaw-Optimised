@@ -109,7 +109,7 @@ export function createExperienceCaptureTool(opts?: {
         };
 
         const backend = createBackend({ cfg: opts?.config });
-        backend.insertExperienceRecord(record);
+        await backend.insertExperienceRecord(record);
 
         const meridiaDir = resolveMeridiaDir(opts?.config);
 

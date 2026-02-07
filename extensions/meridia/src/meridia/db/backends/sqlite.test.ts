@@ -3,12 +3,13 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { MeridiaExperienceRecord } from "../../types.js";
+import { createBackend, closeBackend } from "./index.js";
 import { createSqliteBackend, resolveMeridiaDbPath } from "./sqlite.js";
-import { createBackend } from "./index.js";
 
 const originalStateDir = process.env.OPENCLAW_STATE_DIR;
 
 afterEach(() => {
+  closeBackend();
   if (originalStateDir === undefined) {
     delete process.env.OPENCLAW_STATE_DIR;
   } else {
@@ -17,7 +18,7 @@ afterEach(() => {
 });
 
 describe("meridia sqlite backend", () => {
-  it("wipes unsupported data for default meridia dir", () => {
+  it("wipes unsupported data for default meridia dir", async () => {
     const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-meridia-"));
     process.env.OPENCLAW_STATE_DIR = stateDir;
 
@@ -26,15 +27,16 @@ describe("meridia sqlite backend", () => {
     fs.writeFileSync(path.join(meridiaDir, "legacy.txt"), "legacy");
 
     const dbPath = resolveMeridiaDbPath({ cfg: {} });
-    const backend = createSqliteBackend({ cfg: {}, dbPath });
-    const stats = backend.getStats();
-    backend.close();
+    const backend = createSqliteBackend({ dbPath });
+    await backend.init();
+    const stats = await backend.getStats();
+    await backend.close();
 
-    expect(stats.schemaVersion).toBe("1");
+    expect(stats.schemaVersion).toBe("2");
     expect(fs.existsSync(path.join(meridiaDir, "legacy.txt"))).toBe(false);
   });
 
-  it("refuses to wipe non-default meridia dirs", () => {
+  it("refuses to wipe non-default meridia dirs", async () => {
     const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-meridia-"));
     process.env.OPENCLAW_STATE_DIR = stateDir;
 
@@ -43,10 +45,11 @@ describe("meridia sqlite backend", () => {
     fs.writeFileSync(path.join(meridiaDir, "legacy.txt"), "legacy");
 
     const dbPath = path.join(meridiaDir, "meridia.sqlite");
-    expect(() => createSqliteBackend({ cfg: {}, dbPath })).toThrow(/openclaw meridia reset/);
+    const backend = createSqliteBackend({ dbPath, allowAutoWipe: false });
+    await expect(backend.init()).rejects.toThrow(/openclaw meridia reset/i);
   });
 
-  it("inserts and searches records", () => {
+  it("inserts and searches records", async () => {
     const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-meridia-"));
     process.env.OPENCLAW_STATE_DIR = stateDir;
 
@@ -65,19 +68,19 @@ describe("meridia sqlite backend", () => {
       data: { args: { foo: "bar" } },
     };
 
-    const inserted = backend.insertExperienceRecord(record);
+    const inserted = await backend.insertExperienceRecord(record);
     expect(inserted).toBe(true);
 
-    const results = backend.searchRecords("breakthrough", { limit: 10 });
+    const results = await backend.searchRecords("breakthrough", { limit: 10 });
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]?.record.id).toBe("rec-1");
 
-    const stats = backend.getStats();
+    const stats = await backend.getStats();
     expect(stats.recordCount).toBe(1);
     expect(stats.sessionCount).toBe(1);
-    expect(stats.schemaVersion).toBe("1");
+    expect(stats.schemaVersion).toBe("2");
 
-    const toolStats = backend.getToolStats();
+    const toolStats = await backend.getToolStats();
     expect(toolStats.length).toBeGreaterThan(0);
     expect(toolStats[0]?.toolName).toBe("experience_capture");
   });

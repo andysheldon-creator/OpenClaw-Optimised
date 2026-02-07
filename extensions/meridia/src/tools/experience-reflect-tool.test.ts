@@ -23,9 +23,9 @@ function withTempStateDir(): string {
   return stateDir;
 }
 
-function seedRecords(records: MeridiaExperienceRecord[]): void {
+async function seedRecords(records: MeridiaExperienceRecord[]): Promise<void> {
   const backend = createBackend({ cfg: {} });
-  const inserted = backend.insertExperienceRecordsBatch(records);
+  const inserted = await backend.insertExperienceRecordsBatch(records);
   if (inserted !== records.length) {
     throw new Error("Failed to seed Meridia records for tests.");
   }
@@ -77,7 +77,7 @@ describe("meridia experience_reflect tool", () => {
       },
     ];
 
-    seedRecords(records);
+    await seedRecords(records);
 
     const tool = createExperienceReflectTool({ config: {} });
     const res = await tool.execute("call-1", { scope: "recent", limit: 10 });
@@ -122,7 +122,7 @@ describe("meridia experience_reflect tool", () => {
       },
     ];
 
-    seedRecords(records);
+    await seedRecords(records);
 
     const tool = createExperienceReflectTool({ config: {} });
     const res = await tool.execute("call-2", { scope: "recent", focus: "debugging", limit: 10 });
