@@ -23,10 +23,10 @@ export type WorkerDeps = {
     timeoutMs?: number;
   }) => Promise<T>;
   log: {
-    info: (msg: string) => void;
-    warn: (msg: string) => void;
-    error: (msg: string) => void;
-    debug: (msg: string) => void;
+    info: (msg: string, meta?: Record<string, unknown>) => void;
+    warn: (msg: string, meta?: Record<string, unknown>) => void;
+    error: (msg: string, meta?: Record<string, unknown>) => void;
+    debug: (msg: string, meta?: Record<string, unknown>) => void;
   };
 };
 
@@ -44,6 +44,7 @@ export class WorkQueueWorker {
   private carryoverContext: WorkItemCarryoverContext | undefined;
   private loopPromise: Promise<void> | null = null;
   private metrics = new WorkerMetrics();
+  private lastPollTime: Date | null = null;
 
   readonly agentId: string;
   private readonly config: WorkerConfig;
@@ -69,6 +70,19 @@ export class WorkQueueWorker {
 
   getMetrics(): WorkerMetricsSnapshot {
     return this.metrics.snapshot(this.agentId, this.currentItemId);
+  }
+
+  getStatus(): WorkerStatus {
+    return {
+      agentId: this.agentId,
+      running: this.running,
+      currentItem: this.currentItemId,
+      consecutiveErrors: this.consecutiveErrors,
+      lastPollTime: this.lastPollTime?.toISOString() ?? null,
+      queueId: this.targetQueueId,
+      workstreams: this.targetWorkstreams,
+      metrics: this.metrics.snapshot(this.agentId, this.currentItemId),
+    };
   }
 
   async start(): Promise<void> {
@@ -99,15 +113,19 @@ export class WorkQueueWorker {
 
     while (this.running && !signal.aborted) {
       try {
+        this.lastPollTime = new Date();
+        this.deps.log.debug(`worker[${this.agentId}]: polling for work`);
         const item = await this.claimNext();
         if (!item) {
+          this.deps.log.debug(`worker[${this.agentId}]: no pending items, sleeping ${pollMs}ms`);
           await this.sleep(pollMs, signal);
           continue;
         }
 
+        this.deps.log.info(`worker[${this.agentId}]: claimed item ${item.id} "${item.title}"`);
+
         this.consecutiveErrors = 0;
         this.currentItemId = item.id;
-        this.deps.log.info(`worker[${this.agentId}]: processing item ${item.id} "${item.title}"`);
 
         const startTime = Date.now();
         const result = await this.processItem(item);
@@ -158,8 +176,13 @@ export class WorkQueueWorker {
             },
             completedAt: now,
           });
-          this.deps.log.info(`worker[${this.agentId}]: completed item ${item.id}`);
+          this.deps.log.info(
+            `worker[${this.agentId}]: completed item ${item.id} in ${durationMs}ms`,
+          );
         } else {
+          this.deps.log.warn(
+            `worker[${this.agentId}]: item ${item.id} failed with outcome ${outcome} after ${durationMs}ms`,
+          );
           await this.handleFailure(item, outcome, retryCount, result.error, now);
         }
 
@@ -182,8 +205,10 @@ export class WorkQueueWorker {
       } catch (err) {
         this.currentItemId = null;
         this.consecutiveErrors++;
+        const stack = err instanceof Error ? err.stack : undefined;
         this.deps.log.error(
           `worker[${this.agentId}]: loop error (${this.consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${String(err)}`,
+          { stack },
         );
         if (this.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
           const backoff =
@@ -257,6 +282,11 @@ export class WorkQueueWorker {
   private async claimNext(): Promise<WorkItem | null> {
     const queueId = this.targetQueueId;
     const workstreams = this.targetWorkstreams;
+    const workstreamDesc = workstreams.length > 0 ? workstreams.join(",") : "(all)";
+    this.deps.log.debug(
+      `worker[${this.agentId}]: attempting claim (queue=${queueId}, workstreams=${workstreamDesc})`,
+    );
+
     if (workstreams && workstreams.length > 0) {
       // Try each workstream in order.
       for (const ws of workstreams) {
@@ -265,14 +295,26 @@ export class WorkQueueWorker {
           assignTo: { agentId: this.agentId },
           workstream: ws,
         });
-        if (item) return item;
+        if (item) {
+          this.deps.log.debug(
+            `worker[${this.agentId}]: claimed item ${item.id} from workstream ${ws}`,
+          );
+          return item;
+        }
       }
+      this.deps.log.debug(`worker[${this.agentId}]: no items available in any workstream`);
       return null;
     }
-    return this.deps.store.claimNextItem({
+    const item = await this.deps.store.claimNextItem({
       queueId,
       assignTo: { agentId: this.agentId },
     });
+    if (item) {
+      this.deps.log.debug(`worker[${this.agentId}]: claimed item ${item.id}`);
+    } else {
+      this.deps.log.debug(`worker[${this.agentId}]: no items available to claim`);
+    }
+    return item;
   }
 
   private get targetQueueId(): string {

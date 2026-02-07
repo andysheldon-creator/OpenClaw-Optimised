@@ -33,7 +33,12 @@ export async function startGatewaySidecars(params: {
   defaultWorkspaceDir: string;
   deps: CliDeps;
   startChannels: () => Promise<void>;
-  log: { warn: (msg: string) => void };
+  log: {
+    info: (msg: string) => void;
+    warn: (msg: string) => void;
+    error: (msg: string, meta?: Record<string, unknown>) => void;
+    debug: (msg: string) => void;
+  };
   logManagedProcesses: {
     info: (msg: string) => void;
     warn: (msg: string) => void;
@@ -173,16 +178,18 @@ export async function startGatewaySidecars(params: {
       const mgr = new WorkQueueWorkerManager({
         config: params.cfg,
         log: {
-          info: (msg) => params.log.warn(`work-queue: ${msg}`),
+          info: (msg) => params.log.info(`work-queue: ${msg}`),
           warn: (msg) => params.log.warn(`work-queue: ${msg}`),
-          error: (msg) => params.log.warn(`work-queue: ${msg}`),
-          debug: () => {},
+          error: (msg) => params.log.error(`work-queue: ${msg}`),
+          debug: (msg) => params.log.debug(`work-queue: ${msg}`),
         },
       });
       await mgr.start();
       workerManager = mgr;
     } catch (err) {
-      params.log.warn(`work-queue workers failed to start: ${String(err)}`);
+      params.log.error(`work-queue workers failed to start: ${String(err)}`, {
+        stack: err instanceof Error ? err.stack : undefined,
+      });
     }
   }
 
