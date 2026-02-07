@@ -122,7 +122,7 @@ In `moltbot.json`:
         baseUrl: "https://api.moonshot.ai/v1",
         apiKey: "${MOONSHOT_API_KEY}",
         api: "openai-completions",
-        models: [{ id: "kimi-k2.5", name: "Kimi K2.5" }]
+        models: [{ id: "kimi-k2-0905-preview", name: "Kimi K2" }]
       }
     }
   }

@@ -88,7 +88,7 @@ Until task lanes are implemented:
     defaults: {
       model: {
         primary: "ollama/llama3:chat",
-        fallbacks: ["moonshot/kimi-k2.5", "anthropic/claude-opus-4-5"]
+        fallbacks: ["moonshot/kimi-k2-0905-preview", "anthropic/claude-opus-4-5"]
       }
     }
   }
@@ -145,23 +145,23 @@ When implemented, configuration will look like:
       routing: {
         extraction: {
           primary: "ollama/llama3:chat",
-          fallback: "moonshot/kimi-k2.5"
+          fallback: "moonshot/kimi-k2-0905-preview"
         },
         planning: {
-          primary: "moonshot/kimi-k2.5",
+          primary: "moonshot/kimi-k2-0905-preview",
           fallback: "anthropic/claude-opus-4-5"
         },
         summarization: {
           primary: "ollama/llama3:chat",
-          fallback: "moonshot/kimi-k2.5"
+          fallback: "moonshot/kimi-k2-0905-preview"
         },
         coding: {
-          primary: "moonshot/kimi-k2.5",
+          primary: "moonshot/kimi-k2-0905-preview",
           fallback: "anthropic/claude-opus-4-5"
         },
         general: {
           primary: "ollama/llama3:chat",
-          fallback: "moonshot/kimi-k2.5"
+          fallback: "moonshot/kimi-k2-0905-preview"
         }
       }
     }

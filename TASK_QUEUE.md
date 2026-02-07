@@ -8,10 +8,11 @@
 
 ## 0) Rules
 
-- Agents must only work on tasks listed in this file
-- Agents must only work on tasks with status `READY`
-- Agents must set status to `IN_PROGRESS` before starting work
-- Agents must set status to `COMPLETED` or `FAILED` when done
+- This file is the ONLY execution queue for agents. No other file authorizes work.
+- `docs/_sophie_devpack/TODO_QUEUE.md` is the Sophie roadmap. It is NOT an execution queue. Agents MUST NOT pull tasks from it.
+- Agents MUST only work on tasks listed in this file with status `READY`
+- Agents MUST set status to `IN_PROGRESS` before starting work
+- Agents MUST set status to `COMPLETED` or `FAILED` when done
 - Only one task may be `IN_PROGRESS` at a time
 - Tasks not in this file are not authorized
 
@@ -44,7 +45,16 @@
 
 ## 1) Active Tasks
 
-<!-- No active tasks yet. Add tasks here following the format above. -->
+### GOV-003: Update Cursor rules stale Moonshot model ID
+- **Status:** COMPLETED
+- **Type:** docs
+- **Prerequisites:** None
+- **Definition of Done:** All occurrences of `kimi-k2.5` in `.cursor/rules/*.md` that refer to the Moonshot default model ID are replaced with `kimi-k2-0905-preview`. `rg -n "kimi-k2\.5" .cursor/rules` returns 0 matches. `rg -n "kimi-k2-0905-preview" .cursor/rules` shows expected replacements. No runtime code changes. No other wording changes.
+- **Max Diff:** ~10 lines
+- **Notes:** Mode: SAFE_DOCS_ONLY. These are Cursor IDE agent instruction files, not runtime code. The stale model ID was identified during governance audit. Source of truth is `src/agents/models-config.providers.ts:35` which reads `kimi-k2-0905-preview`. Provide grep receipts before and after.
+- **Assigned:** claude-code
+- **Branch:** main
+- **Completed:** 2026-02-07
 
 ---
 
