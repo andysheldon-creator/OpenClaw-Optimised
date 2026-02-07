@@ -18,6 +18,7 @@ import { SqliteWorkQueueBackend } from "./backend/sqlite-backend.js";
 
 const DEFAULT_PRIORITY: WorkItemPriority = "medium";
 const DEFAULT_CONCURRENCY = 1;
+const DEFAULT_MAX_RETRIES = 3;
 
 export type WorkQueueStoreOptions = {
   backend: WorkQueueBackend;
@@ -164,11 +165,13 @@ export class WorkQueueStore {
     const queue = await this.ensureQueueForAgent(normalized);
     const status: WorkItemStatus = item.status ?? "pending";
     const priority: WorkItemPriority = item.priority ?? queue.defaultPriority ?? DEFAULT_PRIORITY;
+    const maxRetries = item.maxRetries ?? DEFAULT_MAX_RETRIES;
     const created = await this.backend.createItem({
       ...item,
       queueId: queue.id,
       status,
       priority,
+      maxRetries,
     });
     // Validate no cycles after creation (item now has an ID we can traverse).
     if (created.dependsOn && created.dependsOn.length > 0) {
