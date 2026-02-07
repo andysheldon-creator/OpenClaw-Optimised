@@ -1,6 +1,6 @@
 import type { MessagingToolSend } from "../../agents/pi-embedded-messaging.js";
 import type { OpenClawConfig } from "../../config/config.js";
-import type { AgentDefaultsConfig } from "../../config/types.js";
+import type { AgentDefaultsConfig, AgentToolGuardrailsConfig } from "../../config/types.js";
 import type { CronJob } from "../types.js";
 import {
   resolveAgentConfig,
@@ -91,6 +91,38 @@ function resolveCronDeliveryBestEffort(job: CronJob): boolean {
   return false;
 }
 
+function mergeToolGuardrails(
+  base: AgentToolGuardrailsConfig | undefined,
+  override: AgentToolGuardrailsConfig | undefined,
+): AgentToolGuardrailsConfig | undefined {
+  if (!base && !override) {
+    return undefined;
+  }
+  const merged: AgentToolGuardrailsConfig = {
+    maxToolCallsPerSession:
+      override?.maxToolCallsPerSession ?? base?.maxToolCallsPerSession ?? undefined,
+    maxToolCallsPerMinute:
+      override?.maxToolCallsPerMinute ?? base?.maxToolCallsPerMinute ?? undefined,
+    toolBlocklist: override?.toolBlocklist ?? base?.toolBlocklist ?? undefined,
+    toolRateLimits:
+      override?.toolRateLimits || base?.toolRateLimits
+        ? {
+            ...(base?.toolRateLimits ?? {}),
+            ...(override?.toolRateLimits ?? {}),
+          }
+        : undefined,
+  };
+  if (
+    !merged.maxToolCallsPerSession &&
+    !merged.maxToolCallsPerMinute &&
+    !merged.toolBlocklist &&
+    !merged.toolRateLimits
+  ) {
+    return undefined;
+  }
+  return merged;
+}
+
 export type RunCronAgentTurnResult = {
   status: "ok" | "error" | "skipped";
   summary?: string;
@@ -130,6 +162,15 @@ export async function runCronIsolatedAgentTurn(params: {
     agentCfg.model = { primary: overrideModel };
   } else if (overrideModel) {
     agentCfg.model = overrideModel;
+  }
+  if (params.job.payload.kind === "agentTurn") {
+    const mergedGuardrails = mergeToolGuardrails(
+      agentCfg.guardrails,
+      params.job.payload.guardrails,
+    );
+    if (mergedGuardrails) {
+      agentCfg.guardrails = mergedGuardrails;
+    }
   }
   const cfgWithAgentDefaults: OpenClawConfig = {
     ...params.cfg,

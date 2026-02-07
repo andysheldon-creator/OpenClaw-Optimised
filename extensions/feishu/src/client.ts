@@ -84,6 +84,7 @@ export function createFeishuWSClient(account: ResolvedFeishuAccount): Lark.WSCli
   return new Lark.WSClient({
     appId,
     appSecret,
+    appType: Lark.AppType.SelfBuild,
     domain: resolveDomain(domain),
     loggerLevel: Lark.LoggerLevel.info,
   });

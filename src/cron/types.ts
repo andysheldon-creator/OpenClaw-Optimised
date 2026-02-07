@@ -1,4 +1,5 @@
 import type { ChannelId } from "../channels/plugins/types.js";
+import type { AgentToolGuardrailsConfig } from "../config/types.agent-defaults.js";
 
 export type CronSchedule =
   | { kind: "at"; at: string }
@@ -31,6 +32,7 @@ export type CronPayload =
       thinking?: string;
       timeoutSeconds?: number;
       allowUnsafeExternalContent?: boolean;
+      guardrails?: AgentToolGuardrailsConfig;
       deliver?: boolean;
       channel?: CronMessageChannel;
       to?: string;
@@ -46,6 +48,7 @@ export type CronPayloadPatch =
       thinking?: string;
       timeoutSeconds?: number;
       allowUnsafeExternalContent?: boolean;
+      guardrails?: AgentToolGuardrailsConfig;
       deliver?: boolean;
       channel?: CronMessageChannel;
       to?: string;

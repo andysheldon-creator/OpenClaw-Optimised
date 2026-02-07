@@ -100,4 +100,43 @@ describe("applyJobPatch", () => {
       bestEffort: undefined,
     });
   });
+
+  it("applies guardrails patch on agentTurn payload", () => {
+    const now = Date.now();
+    const job: CronJob = {
+      id: "job-4",
+      name: "job-4",
+      enabled: true,
+      createdAtMs: now,
+      updatedAtMs: now,
+      schedule: { kind: "every", everyMs: 60_000 },
+      sessionTarget: "isolated",
+      wakeMode: "now",
+      payload: {
+        kind: "agentTurn",
+        message: "do it",
+        guardrails: { maxToolCallsPerSession: 50 },
+      },
+      state: {},
+    };
+
+    const patch: CronJobPatch = {
+      payload: {
+        kind: "agentTurn",
+        guardrails: {
+          maxToolCallsPerSession: 20,
+          toolBlocklist: ["message.send"],
+        },
+      },
+    };
+
+    expect(() => applyJobPatch(job, patch)).not.toThrow();
+    expect(job.payload.kind).toBe("agentTurn");
+    if (job.payload.kind === "agentTurn") {
+      expect(job.payload.guardrails).toEqual({
+        maxToolCallsPerSession: 20,
+        toolBlocklist: ["message.send"],
+      });
+    }
+  });
 });

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { toClientToolDefinitions } from "./pi-tool-definition-adapter.js";
 import { wrapToolWithBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
+import { resetToolGuardrailStateForTests } from "./tool-guardrails.js";
 
 vi.mock("../plugins/hook-runner-global.js");
 
@@ -14,6 +15,7 @@ describe("before_tool_call hook integration", () => {
   };
 
   beforeEach(() => {
+    resetToolGuardrailStateForTests();
     hookRunner = {
       hasHooks: vi.fn(),
       runBeforeToolCall: vi.fn(),
@@ -82,6 +84,23 @@ describe("before_tool_call hook integration", () => {
     expect(execute).toHaveBeenCalledWith("call-4", { path: "/tmp/file" }, undefined, undefined);
   });
 
+  it("blocks tool execution when runtime guardrails reject the call", async () => {
+    hookRunner.hasHooks.mockReturnValue(false);
+    const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
+    // oxlint-disable-next-line typescript/no-explicit-any
+    const tool = wrapToolWithBeforeToolCallHook({ name: "message.send", execute } as any, {
+      sessionKey: "session-guardrails",
+      guardrails: {
+        toolBlocklist: ["message.send"],
+      },
+    });
+
+    await expect(tool.execute("call-guard", { text: "hi" }, undefined, undefined)).rejects.toThrow(
+      'Tool "message.send" is blocked by agent guardrails.',
+    );
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("normalizes non-object params for hook contract", async () => {
     hookRunner.hasHooks.mockReturnValue(true);
     hookRunner.runBeforeToolCall.mockResolvedValue(undefined);
@@ -115,6 +134,7 @@ describe("before_tool_call hook integration for client tools", () => {
   };
 
   beforeEach(() => {
+    resetToolGuardrailStateForTests();
     hookRunner = {
       hasHooks: vi.fn(),
       runBeforeToolCall: vi.fn(),

@@ -91,7 +91,13 @@ export function recomputeNextRuns(state: CronServiceState) {
       );
       job.state.runningAtMs = undefined;
     }
-    job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
+    const nextRunAtMs = job.state.nextRunAtMs;
+    const hasNextRun =
+      typeof nextRunAtMs === "number" && Number.isFinite(nextRunAtMs) && nextRunAtMs >= 0;
+    // Preserve persisted nextRunAtMs so missed runs remain due after restarts/reloads.
+    if (!hasNextRun) {
+      job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
+    }
   }
 }
 
@@ -223,6 +229,9 @@ function mergeCronPayload(existing: CronPayload, patch: CronPayloadPatch): CronP
   if (typeof patch.timeoutSeconds === "number") {
     next.timeoutSeconds = patch.timeoutSeconds;
   }
+  if (patch.guardrails && typeof patch.guardrails === "object") {
+    next.guardrails = patch.guardrails;
+  }
   if (typeof patch.deliver === "boolean") {
     next.deliver = patch.deliver;
   }
@@ -297,6 +306,7 @@ function buildPayloadFromPatch(patch: CronPayloadPatch): CronPayload {
     model: patch.model,
     thinking: patch.thinking,
     timeoutSeconds: patch.timeoutSeconds,
+    guardrails: patch.guardrails,
     deliver: patch.deliver,
     channel: patch.channel,
     to: patch.to,

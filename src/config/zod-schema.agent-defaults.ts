@@ -137,6 +137,24 @@ export const AgentDefaultsSchema = z
       .optional(),
     heartbeat: HeartbeatSchema,
     maxConcurrent: z.number().int().positive().optional(),
+    guardrails: z
+      .object({
+        maxToolCallsPerSession: z.number().int().positive().optional(),
+        maxToolCallsPerMinute: z.number().int().positive().optional(),
+        toolBlocklist: z.array(z.string()).optional(),
+        toolRateLimits: z
+          .record(
+            z.string(),
+            z
+              .object({
+                maxPerMinute: z.number().int().positive().optional(),
+              })
+              .strict(),
+          )
+          .optional(),
+      })
+      .strict()
+      .optional(),
     subagents: z
       .object({
         maxConcurrent: z.number().int().positive().optional(),

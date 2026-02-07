@@ -262,6 +262,67 @@ describe("runCronIsolatedAgentTurn", () => {
     });
   });
 
+  it("applies payload guardrails override for cron isolated runs", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn(),
+        sendMessageDiscord: vi.fn(),
+        sendMessageSignal: vi.fn(),
+        sendMessageIMessage: vi.fn(),
+      };
+      vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "ok" }],
+        meta: {
+          durationMs: 5,
+          agentMeta: { sessionId: "s", provider: "p", model: "m" },
+        },
+      });
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "openclaw"),
+              guardrails: {
+                maxToolCallsPerSession: 100,
+                toolBlocklist: ["exec"],
+              },
+            },
+          },
+        }),
+        deps,
+        job: makeJob({
+          kind: "agentTurn",
+          message: "do it",
+          guardrails: {
+            maxToolCallsPerSession: 5,
+            toolRateLimits: {
+              "message.send": { maxPerMinute: 1 },
+            },
+          },
+        }),
+        message: "do it",
+        sessionKey: "cron:job-1",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      const call = vi.mocked(runEmbeddedPiAgent).mock.calls.at(-1)?.[0] as {
+        config?: OpenClawConfig;
+      };
+      expect(call?.config?.agents?.defaults?.guardrails).toEqual({
+        maxToolCallsPerSession: 5,
+        toolBlocklist: ["exec"],
+        toolRateLimits: {
+          "message.send": { maxPerMinute: 1 },
+        },
+      });
+    });
+  });
+
   it("uses hooks.gmail.model for Gmail hook sessions", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);

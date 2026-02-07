@@ -1,11 +1,14 @@
+import type { AgentToolGuardrailsConfig } from "../config/types.agent-defaults.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
+import { evaluateToolGuardrails } from "./tool-guardrails.js";
 import { normalizeToolName } from "./tool-policy.js";
 
 type HookContext = {
   agentId?: string;
   sessionKey?: string;
+  guardrails?: AgentToolGuardrailsConfig;
 };
 
 type HookOutcome = { blocked: true; reason: string } | { blocked: false; params: unknown };
@@ -76,6 +79,14 @@ export function wrapToolWithBeforeToolCallHook(
   return {
     ...tool,
     execute: async (toolCallId, params, signal, onUpdate) => {
+      const guardrail = evaluateToolGuardrails({
+        toolName,
+        sessionKey: ctx?.sessionKey,
+        guardrails: ctx?.guardrails,
+      });
+      if (!guardrail.allowed) {
+        throw new Error(guardrail.reason);
+      }
       const outcome = await runBeforeToolCallHook({
         toolName,
         params,

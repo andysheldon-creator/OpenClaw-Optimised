@@ -46,6 +46,8 @@ export type WhatsAppConfig = {
   selfChatMode?: boolean;
   /** Optional allowlist for WhatsApp direct chats (E.164). */
   allowFrom?: string[];
+  /** Optional outbound DM allowlist (E.164). Group sends are not affected. */
+  sendTo?: string[];
   /** Optional allowlist for WhatsApp group senders (E.164). */
   groupAllowFrom?: string[];
   /**
@@ -126,6 +128,8 @@ export type WhatsAppAccountConfig = {
   /** Same-phone setup for this account (bot uses your personal WhatsApp number). */
   selfChatMode?: boolean;
   allowFrom?: string[];
+  /** Optional outbound DM allowlist (E.164). Group sends are not affected. */
+  sendTo?: string[];
   groupAllowFrom?: string[];
   groupPolicy?: GroupPolicy;
   /** Max group messages to keep as history context (0 disables). */

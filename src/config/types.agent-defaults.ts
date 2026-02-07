@@ -25,6 +25,22 @@ export type AgentModelListConfig = {
   fallbacks?: string[];
 };
 
+export type AgentToolGuardrailsConfig = {
+  /** Max total tool calls allowed during a single session run. */
+  maxToolCallsPerSession?: number;
+  /** Max total tool calls allowed per rolling minute in a session run. */
+  maxToolCallsPerMinute?: number;
+  /** Hard blocklist of tool names (e.g. ["message.send"]). */
+  toolBlocklist?: string[];
+  /** Per-tool rolling minute limits keyed by tool name. */
+  toolRateLimits?: Record<
+    string,
+    {
+      maxPerMinute?: number;
+    }
+  >;
+};
+
 export type AgentContextPruningConfig = {
   mode?: "off" | "cache-ttl";
   /** TTL to consider cache expired (duration string, default unit: minutes). */
@@ -200,6 +216,8 @@ export type AgentDefaultsConfig = {
   };
   /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
   maxConcurrent?: number;
+  /** Runtime-enforced tool call guardrails (rate limits, caps, blocklists). */
+  guardrails?: AgentToolGuardrailsConfig;
   /** Sub-agent defaults (spawned via sessions_spawn). */
   subagents?: {
     /** Max concurrent sub-agent runs (global lane: "subagent"). Default: 1. */

@@ -29,6 +29,68 @@ describe("resolveOutboundTarget", () => {
     expect(res).toEqual({ ok: true, to: "+1555" });
   });
 
+  it("falls back to whatsapp sendTo for outbound DMs when configured", () => {
+    const cfg: OpenClawConfig = {
+      channels: { whatsapp: { allowFrom: ["+1555"], sendTo: ["+1666"] } },
+    };
+    const res = resolveOutboundTarget({
+      channel: "whatsapp",
+      to: "",
+      cfg,
+      mode: "implicit",
+    });
+    expect(res).toEqual({ ok: true, to: "+1666" });
+  });
+
+  it("blocks explicit whatsapp DM target not listed in sendTo", () => {
+    const cfg: OpenClawConfig = {
+      channels: { whatsapp: { sendTo: ["+1666"] } },
+    };
+    const res = resolveOutboundTarget({
+      channel: "whatsapp",
+      to: "+1555",
+      cfg,
+      mode: "explicit",
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.message).toContain("sendTo");
+    }
+  });
+
+  it("allows whatsapp group targets even when sendTo is configured", () => {
+    const cfg: OpenClawConfig = {
+      channels: { whatsapp: { sendTo: ["+1666"] } },
+    };
+    const res = resolveOutboundTarget({
+      channel: "whatsapp",
+      to: "120363401234567890@g.us",
+      cfg,
+      mode: "explicit",
+    });
+    expect(res).toEqual({ ok: true, to: "120363401234567890@g.us" });
+  });
+
+  it("uses account-level whatsapp sendTo when accountId is set", () => {
+    const cfg: OpenClawConfig = {
+      channels: {
+        whatsapp: {
+          accounts: {
+            work: { sendTo: ["+1999"], allowFrom: ["+1444"] },
+          },
+        },
+      },
+    };
+    const res = resolveOutboundTarget({
+      channel: "whatsapp",
+      to: "",
+      cfg,
+      accountId: "work",
+      mode: "implicit",
+    });
+    expect(res).toEqual({ ok: true, to: "+1999" });
+  });
+
   it.each([
     {
       name: "normalizes whatsapp target when provided",

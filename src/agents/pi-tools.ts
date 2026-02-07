@@ -43,6 +43,7 @@ import {
   wrapToolParamNormalization,
 } from "./pi-tools.read.js";
 import { cleanToolSchemaForGemini, normalizeToolParameters } from "./pi-tools.schema.js";
+import { resolveToolGuardrailsFromConfig } from "./tool-guardrails.js";
 import {
   applyOwnerOnlyToolPolicy,
   buildPluginToolGroups,
@@ -436,10 +437,12 @@ export function createOpenClawCodingTools(options?: {
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
   const normalized = subagentFiltered.map(normalizeToolParameters);
+  const toolGuardrails = resolveToolGuardrailsFromConfig(options?.config);
   const withHooks = normalized.map((tool) =>
     wrapToolWithBeforeToolCallHook(tool, {
       agentId,
       sessionKey: options?.sessionKey,
+      guardrails: toolGuardrails,
     }),
   );
   const withAbort = options?.abortSignal
