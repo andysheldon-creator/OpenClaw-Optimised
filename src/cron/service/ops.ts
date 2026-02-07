@@ -66,7 +66,7 @@ export async function list(state: CronServiceState, opts?: { includeDisabled?: b
     await ensureLoaded(state, { skipRecompute: true });
     const includeDisabled = opts?.includeDisabled === true;
     const jobs = (state.store?.jobs ?? []).filter((j) => includeDisabled || j.enabled);
-    return jobs.toSorted((a, b) => (a.state.nextRunAtMs ?? 0) - (b.state.nextRunAtMs ?? 0));
+    return [...jobs].sort((a, b) => (a.state.nextRunAtMs ?? 0) - (b.state.nextRunAtMs ?? 0));
   });
 }
 
@@ -110,12 +110,17 @@ export async function update(state: CronServiceState, id: string, patch: CronJob
         };
       }
     }
+    const scheduleChanged = patch.schedule !== undefined;
+    const enabledChanged = patch.enabled !== undefined;
+
     job.updatedAtMs = now;
-    if (job.enabled) {
-      job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
-    } else {
-      job.state.nextRunAtMs = undefined;
-      job.state.runningAtMs = undefined;
+    if (scheduleChanged || enabledChanged) {
+      if (job.enabled) {
+        job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
+      } else {
+        job.state.nextRunAtMs = undefined;
+        job.state.runningAtMs = undefined;
+      }
     }
 
     await persist(state);

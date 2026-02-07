@@ -46,20 +46,15 @@ export function computeNextRunAtMs(schedule: CronSchedule, nowMs: number): numbe
     return undefined;
   }
   const cron = new Cron(expr, {
-    timezone: resolveCronTimezone(schedule.tz),
-    catch: false,
+    timezone: schedule.tz?.trim() || undefined,
+    catch: true,
   });
-  let cursor = nowMs;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const next = cron.nextRun(new Date(cursor));
-    if (!next) {
-      return undefined;
-    }
-    const nextMs = next.getTime();
-    if (Number.isFinite(nextMs) && nextMs > nowMs) {
-      return nextMs;
-    }
-    cursor += 1_000;
+  // Use a tiny lookback to catch the boundary if we are exactly at it.
+  // Croner's nextRun(date) skips the current second if it matches exactly.
+  const next = cron.nextRun(new Date(nowMs - 1));
+  if (!next) {
+    return undefined;
   }
-  return undefined;
+  const nextMs = next.getTime();
+  return Number.isFinite(nextMs) && nextMs >= nowMs ? nextMs : undefined;
 }

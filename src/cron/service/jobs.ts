@@ -118,10 +118,14 @@ export function recomputeNextRuns(state: CronServiceState): boolean {
       job.state.runningAtMs = undefined;
       changed = true;
     }
-    const newNext = computeJobNextRunAtMs(job, now);
-    if (job.state.nextRunAtMs !== newNext) {
-      job.state.nextRunAtMs = newNext;
-      changed = true;
+    const nextRun = job.state.nextRunAtMs;
+    const isDueOrMissing = nextRun === undefined || now >= nextRun;
+    if (isDueOrMissing) {
+      const newNext = computeJobNextRunAtMs(job, now);
+      if (job.state.nextRunAtMs !== newNext) {
+        job.state.nextRunAtMs = newNext;
+        changed = true;
+      }
     }
   }
   return changed;
