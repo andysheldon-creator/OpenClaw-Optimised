@@ -1,10 +1,12 @@
 import type { Command } from "commander";
+import path from "path";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import {
   buildWorkspaceSkillStatus,
   type SkillStatusEntry,
   type SkillStatusReport,
 } from "../agents/skills-status.js";
+import { createSkill } from "../commands/skills.create.js";
 import { loadConfig } from "../config/config.js";
 import { defaultRuntime } from "../runtime.js";
 import { formatDocsLink } from "../terminal/links.js";
@@ -350,6 +352,32 @@ export function registerSkillsCli(program: Command) {
     );
 
   skills
+    .command("create")
+    .description("Create a new skill from a template")
+    .argument("<name>", "Skill name (kebab-case)")
+    .action(async (name) => {
+      try {
+        const skillDir = await createSkill({ name });
+
+        defaultRuntime.log(theme.success(`Created skill "${name}" at ${skillDir}`));
+        defaultRuntime.log("");
+        defaultRuntime.log("To start:");
+
+        let relativePath = path.relative(process.cwd(), skillDir);
+        if (!relativePath.startsWith(".")) {
+          relativePath = `./${relativePath}`;
+        }
+
+        defaultRuntime.log(`  cd ${relativePath}`);
+        defaultRuntime.log("  npm install");
+        defaultRuntime.log("  # Edit SKILL.md to define your tool's interface");
+      } catch (err) {
+        defaultRuntime.error(String(err));
+        defaultRuntime.exit(1);
+      }
+    });
+
+  skills
     .command("list")
     .description("List all available skills")
     .option("--json", "Output as JSON", false)
@@ -400,7 +428,6 @@ export function registerSkillsCli(program: Command) {
       }
     });
 
-  // Default action (no subcommand) - show list
   skills.action(async () => {
     try {
       const config = loadConfig();
