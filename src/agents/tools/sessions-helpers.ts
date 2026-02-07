@@ -14,6 +14,7 @@ export type SessionKind = "main" | "group" | "cron" | "hook" | "node" | "other";
 
 export const SESSIONS_HISTORY_MAX_BYTES = 80 * 1024;
 const SESSIONS_HISTORY_TEXT_MAX_CHARS = 4000;
+const SESSIONS_HISTORY_TEXT_TRUNCATED_SUFFIX = "\n…(truncated)…";
 
 export type SessionListDeliveryContext = {
   channel?: string;
@@ -359,8 +360,13 @@ function truncateHistoryText(text: string): { text: string; truncated: boolean }
   if (text.length <= SESSIONS_HISTORY_TEXT_MAX_CHARS) {
     return { text, truncated: false };
   }
-  const cut = truncateUtf16Safe(text, SESSIONS_HISTORY_TEXT_MAX_CHARS);
-  return { text: `${cut}\n…(truncated)…`, truncated: true };
+  // Keep the *final* string (including the suffix) within the hard cap.
+  const maxPrefixChars = Math.max(
+    0,
+    SESSIONS_HISTORY_TEXT_MAX_CHARS - SESSIONS_HISTORY_TEXT_TRUNCATED_SUFFIX.length,
+  );
+  const cut = truncateUtf16Safe(text, maxPrefixChars);
+  return { text: `${cut}${SESSIONS_HISTORY_TEXT_TRUNCATED_SUFFIX}`, truncated: true };
 }
 
 function sanitizeHistoryContentBlock(params: { block: unknown; includeThinking: boolean }): {
@@ -375,9 +381,11 @@ function sanitizeHistoryContentBlock(params: { block: unknown; includeThinking: 
   let truncated = false;
   const type = typeof entry.type === "string" ? entry.type : "";
 
-  if (!params.includeThinking && type === "thinking") {
-    // Thinking blocks can contain large encrypted signatures; omit by default.
-    return { block: null, truncated: true };
+  const hasThinkingSignature = "thinkingSignature" in entry;
+  if (!params.includeThinking && (type === "thinking" || hasThinkingSignature)) {
+    // Thinking blocks (and thinking-like blocks) can contain large encrypted signatures; omit by default.
+    // This is policy-based omission, not "truncation due to size limits".
+    return { block: null, truncated: false };
   }
 
   if (typeof entry.text === "string") {
@@ -391,11 +399,12 @@ function sanitizeHistoryContentBlock(params: { block: unknown; includeThinking: 
       entry.thinking = res.text;
       truncated ||= res.truncated;
     }
-    // The encrypted signature can be extremely large and is not useful for history recall.
-    if ("thinkingSignature" in entry) {
-      delete entry.thinkingSignature;
-      truncated = true;
-    }
+  }
+  // The encrypted signature can be extremely large and is not useful for history recall.
+  // Strip it regardless of block type so minor schema drift can't leak it.
+  if (hasThinkingSignature) {
+    delete entry.thinkingSignature;
+    truncated = true;
   }
   if (typeof entry.partialJson === "string") {
     const res = truncateHistoryText(entry.partialJson);
@@ -404,14 +413,12 @@ function sanitizeHistoryContentBlock(params: { block: unknown; includeThinking: 
   }
   if (type === "image") {
     const data = typeof entry.data === "string" ? entry.data : undefined;
-    const bytes = data ? data.length : undefined;
-    if ("data" in entry) {
+    if (data !== undefined) {
+      const bytes = Buffer.byteLength(data, "utf8");
       delete entry.data;
-      truncated = true;
-    }
-    entry.omitted = true;
-    if (bytes !== undefined) {
+      entry.omitted = true;
       entry.bytes = bytes;
+      truncated = true;
     }
   }
   return { block: entry, truncated };
@@ -450,7 +457,9 @@ function sanitizeHistoryMessage(params: { message: unknown; includeThinking: boo
     const updated = entry.content.map((block) =>
       sanitizeHistoryContentBlock({ block, includeThinking: params.includeThinking }),
     );
-    entry.content = updated.flatMap((item) => (item.block === null ? [] : [item.block]));
+    entry.content = updated.flatMap((item) =>
+      item.block === null || item.block === undefined ? [] : [item.block],
+    );
     truncated ||= updated.some((item) => item.truncated);
   }
   if (typeof entry.text === "string") {

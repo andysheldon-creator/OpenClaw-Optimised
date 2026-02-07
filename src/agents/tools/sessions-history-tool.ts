@@ -128,8 +128,8 @@ export function createSessionsHistoryTool(opts?: {
         typeof params.limit === "number" && Number.isFinite(params.limit)
           ? Math.max(1, Math.floor(params.limit))
           : undefined;
-      const includeTools = Boolean(params.includeTools);
-      const includeThinking = Boolean(params.includeThinking);
+      const includeTools = params.includeTools === true;
+      const includeThinking = params.includeThinking === true;
       const result = await callGateway<{ messages: Array<unknown> }>({
         method: "chat.history",
         params: { sessionKey: resolvedKey, limit },

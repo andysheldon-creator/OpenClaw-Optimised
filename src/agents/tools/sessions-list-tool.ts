@@ -79,7 +79,7 @@ export function createSessionsListTool(opts?: {
           ? Math.max(0, Math.floor(params.messageLimit))
           : 0;
       const messageLimit = Math.min(messageLimitRaw, 20);
-      const includeThinking = Boolean(params.includeThinking);
+      const includeThinking = params.includeThinking === true;
 
       const list = await callGateway<{ sessions: Array<SessionListRow>; path: string }>({
         method: "sessions.list",
