@@ -160,11 +160,14 @@ class DeviceIdentityStore(context: Context) {
     val privateKeyParams = keyPair.private as Ed25519PrivateKeyParameters
     val rawPublic = publicKeyParams.encoded
     val rawPrivate = privateKeyParams.encoded
+    // Wrap raw 32-byte key in PKCS8 envelope so the stored format is always
+    // consistent with system-provider keygen (signPayload expects PKCS8).
+    val pkcs8Private = ED25519_PKCS8_PREFIX + rawPrivate
     val deviceId = sha256Hex(rawPublic)
     return DeviceIdentity(
       deviceId = deviceId,
       publicKeyRawBase64 = Base64.encodeToString(rawPublic, Base64.NO_WRAP),
-      privateKeyPkcs8Base64 = Base64.encodeToString(rawPrivate, Base64.NO_WRAP),
+      privateKeyPkcs8Base64 = Base64.encodeToString(pkcs8Private, Base64.NO_WRAP),
       createdAtMs = System.currentTimeMillis(),
     )
   }

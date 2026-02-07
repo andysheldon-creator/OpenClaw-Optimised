@@ -610,10 +610,14 @@ class NodeRuntime(context: Context) {
   fun connectManual() {
     val host = manualHost.value.trim()
     val port = manualPort.value
-    android.util.Log.i("OpenClawGateway", "connectManual: host=$host port=$port")
+    if (BuildConfig.DEBUG) {
+      android.util.Log.d("OpenClawGateway", "connectManual: host=$host port=$port")
+    }
     if (host.isEmpty() || port <= 0 || port > 65535) {
       _statusText.value = "Failed: invalid manual host/port"
-      android.util.Log.w("OpenClawGateway", "connectManual: invalid host/port")
+      if (BuildConfig.DEBUG) {
+        android.util.Log.d("OpenClawGateway", "connectManual: invalid host/port")
+      }
       return
     }
     connect(GatewayEndpoint.manual(host = host, port = port))
