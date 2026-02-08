@@ -133,7 +133,13 @@ type DeepgramError = {
   message?: string;
 };
 
-type DeepgramMessage = DeepgramResult | DeepgramError;
+type DeepgramTurnInfo = {
+  type: "TurnInfo";
+  transcript?: string;
+  event?: string;
+};
+
+type DeepgramMessage = DeepgramResult | DeepgramError | DeepgramTurnInfo;
 
 const MIC_CONSTRAINTS: MediaStreamConstraints = {
   audio: {
