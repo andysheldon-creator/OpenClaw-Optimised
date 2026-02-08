@@ -84,13 +84,21 @@ function initDb(): void {
   }
 }
 
+function normalizeStatus(status: string): MissionControlTaskStatus {
+  // Map legacy "success" to "done" for UI compatibility
+  if (status === "success") {
+    return "done";
+  }
+  return status as MissionControlTaskStatus;
+}
+
 function dbToTask(row: unknown): MissionControlTask {
   const r = row as Record<string, unknown>;
   return {
     id: String(r.id),
     title: String(r.title),
     description: String(r.description ?? ""),
-    status: String(r.status) as MissionControlTaskStatus,
+    status: normalizeStatus(String(r.status)),
     agentId: r.agent_id ? String(r.agent_id) : null,
     sessionKey: r.session_key ? String(r.session_key) : null,
     createdAt: Number(r.created_at),
