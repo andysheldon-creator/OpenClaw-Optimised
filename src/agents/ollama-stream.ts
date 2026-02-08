@@ -1,5 +1,14 @@
 import type { StreamFn } from "@mariozechner/pi-agent-core";
-import { AssistantMessageEventStream } from "@mariozechner/pi-ai";
+import type {
+  AssistantMessage,
+  StopReason,
+  TextContent,
+  ToolCall,
+  Tool,
+  Usage,
+} from "@mariozechner/pi-ai";
+import { createAssistantMessageEventStream } from "@mariozechner/pi-ai";
+import { randomUUID } from "node:crypto";
 
 // ── Ollama /api/chat request types ──────────────────────────────────────────
 
@@ -56,17 +65,11 @@ interface OllamaChatResponse {
 
 // ── Message conversion ──────────────────────────────────────────────────────
 
-type AgentMessage = {
-  role: string;
-  content: unknown;
-  [key: string]: unknown;
-};
-
-type ContentPart =
+type InputContentPart =
   | { type: "text"; text: string }
-  | { type: "image"; data: string; mediaType?: string }
-  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-  | { type: "tool_result"; tool_use_id: string; content: string };
+  | { type: "image"; data: string }
+  | { type: "toolCall"; id: string; name: string; arguments: Record<string, unknown> }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
 
 function extractTextContent(content: unknown): string {
   if (typeof content === "string") {
@@ -75,7 +78,7 @@ function extractTextContent(content: unknown): string {
   if (!Array.isArray(content)) {
     return "";
   }
-  return (content as ContentPart[])
+  return (content as InputContentPart[])
     .filter((part): part is { type: "text"; text: string } => part.type === "text")
     .map((part) => part.text)
     .join("");
@@ -85,7 +88,7 @@ function extractImages(content: unknown): string[] {
   if (!Array.isArray(content)) {
     return [];
   }
-  return (content as ContentPart[])
+  return (content as InputContentPart[])
     .filter((part): part is { type: "image"; data: string } => part.type === "image")
     .map((part) => part.data);
 }
@@ -94,21 +97,20 @@ function extractToolCalls(content: unknown): OllamaToolCall[] {
   if (!Array.isArray(content)) {
     return [];
   }
-  return (content as ContentPart[])
-    .filter(
-      (part): part is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
-        part.type === "tool_use",
-    )
-    .map((part) => ({
-      function: {
-        name: part.name,
-        arguments: part.input,
-      },
-    }));
+  const parts = content as InputContentPart[];
+  const result: OllamaToolCall[] = [];
+  for (const part of parts) {
+    if (part.type === "toolCall") {
+      result.push({ function: { name: part.name, arguments: part.arguments } });
+    } else if (part.type === "tool_use") {
+      result.push({ function: { name: part.name, arguments: part.input } });
+    }
+  }
+  return result;
 }
 
 export function convertToOllamaMessages(
-  messages: AgentMessage[],
+  messages: Array<{ role: string; content: unknown; [key: string]: unknown }>,
   system?: string,
 ): OllamaChatMessage[] {
   const result: OllamaChatMessage[] = [];
@@ -118,7 +120,7 @@ export function convertToOllamaMessages(
   }
 
   for (const msg of messages) {
-    const role = msg.role as string;
+    const { role } = msg;
 
     if (role === "user") {
       const text = extractTextContent(msg.content);
@@ -149,31 +151,21 @@ export function convertToOllamaMessages(
 
 // ── Tool extraction ─────────────────────────────────────────────────────────
 
-type SdkToolDef = {
-  name?: string;
-  description?: string;
-  parameters?: Record<string, unknown>;
-  inputSchema?: Record<string, unknown>;
-  [key: string]: unknown;
-};
-
-function extractOllamaTools(tools: unknown[] | undefined): OllamaTool[] {
+function extractOllamaTools(tools: Tool[] | undefined): OllamaTool[] {
   if (!tools || !Array.isArray(tools)) {
     return [];
   }
   const result: OllamaTool[] = [];
   for (const tool of tools) {
-    const t = tool as SdkToolDef;
-    const name = t.name;
-    if (typeof name !== "string" || !name) {
+    if (typeof tool.name !== "string" || !tool.name) {
       continue;
     }
     result.push({
       type: "function",
       function: {
-        name,
-        description: typeof t.description === "string" ? t.description : "",
-        parameters: t.inputSchema ?? t.parameters ?? {},
+        name: tool.name,
+        description: typeof tool.description === "string" ? tool.description : "",
+        parameters: (tool.parameters ?? {}) as Record<string, unknown>,
       },
     });
   }
@@ -182,35 +174,11 @@ function extractOllamaTools(tools: unknown[] | undefined): OllamaTool[] {
 
 // ── Response conversion ─────────────────────────────────────────────────────
 
-interface AssistantMessageLike {
-  role: "assistant";
-  content: ContentPart[];
-  stopReason: string;
-  api: string;
-  provider: string;
-  model: string;
-  usage: {
-    input: number;
-    output: number;
-    cacheRead: number;
-    cacheWrite: number;
-    totalTokens: number;
-    cost: {
-      input: number;
-      output: number;
-      cacheRead: number;
-      cacheWrite: number;
-      total: number;
-    };
-  };
-  timestamp: number;
-}
-
 export function buildAssistantMessage(
   response: OllamaChatResponse,
   modelInfo: { api: string; provider: string; id: string },
-): AssistantMessageLike {
-  const content: ContentPart[] = [];
+): AssistantMessage {
+  const content: (TextContent | ToolCall)[] = [];
 
   if (response.message.content) {
     content.push({ type: "text", text: response.message.content });
@@ -220,16 +188,25 @@ export function buildAssistantMessage(
   if (toolCalls && toolCalls.length > 0) {
     for (const tc of toolCalls) {
       content.push({
-        type: "tool_use",
-        id: `ollama_call_${crypto.randomUUID()}`,
+        type: "toolCall",
+        id: `ollama_call_${randomUUID()}`,
         name: tc.function.name,
-        input: tc.function.arguments,
+        arguments: tc.function.arguments,
       });
     }
   }
 
   const hasToolCalls = toolCalls && toolCalls.length > 0;
-  const stopReason = hasToolCalls ? "end_turn" : "stop";
+  const stopReason: StopReason = hasToolCalls ? "toolUse" : "stop";
+
+  const usage: Usage = {
+    input: response.prompt_eval_count ?? 0,
+    output: response.eval_count ?? 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    totalTokens: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0),
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+  };
 
   return {
     role: "assistant",
@@ -238,14 +215,7 @@ export function buildAssistantMessage(
     api: modelInfo.api,
     provider: modelInfo.provider,
     model: modelInfo.id,
-    usage: {
-      input: response.prompt_eval_count ?? 0,
-      output: response.eval_count ?? 0,
-      cacheRead: 0,
-      cacheWrite: 0,
-      totalTokens: (response.prompt_eval_count ?? 0) + (response.eval_count ?? 0),
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-    },
+    usage,
     timestamp: Date.now(),
   };
 }
@@ -284,7 +254,10 @@ export async function* parseNdjsonStream(
     try {
       yield JSON.parse(buffer.trim()) as OllamaChatResponse;
     } catch {
-      console.warn("[ollama-stream] Skipping malformed trailing data:", buffer.trim().slice(0, 120));
+      console.warn(
+        "[ollama-stream] Skipping malformed trailing data:",
+        buffer.trim().slice(0, 120),
+      );
     }
   }
 }
@@ -295,12 +268,16 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
   const chatUrl = `${baseUrl.replace(/\/+$/, "")}/api/chat`;
 
   return (model, context, options) => {
-    const stream = new AssistantMessageEventStream();
+    const stream = createAssistantMessageEventStream();
 
     const run = async () => {
       try {
-        const ctx = context as { messages?: AgentMessage[]; system?: string; tools?: unknown[] };
-        const ollamaMessages = convertToOllamaMessages(ctx.messages ?? [], ctx.system as string);
+        const ctx = context as unknown as {
+          messages?: Array<{ role: string; content: unknown; [key: string]: unknown }>;
+          systemPrompt?: string;
+          tools?: Tool[];
+        };
+        const ollamaMessages = convertToOllamaMessages(ctx.messages ?? [], ctx.systemPrompt);
 
         // Extract tools from context if available and convert to Ollama format.
         const ollamaTools = extractOllamaTools(ctx.tools);
@@ -317,7 +294,7 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
 
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
-          ...(options?.headers ?? {}),
+          ...options?.headers,
         };
         if (options?.apiKey) {
           headers.Authorization = `Bearer ${options.apiKey}`;
@@ -363,25 +340,28 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
         finalResponse.message.content = accumulatedContent;
 
         const assistantMessage = buildAssistantMessage(finalResponse, {
-          api: model.api as string,
-          provider: model.provider as string,
+          api: model.api,
+          provider: model.provider,
           id: model.id,
         });
 
+        const reason: Extract<StopReason, "stop" | "length" | "toolUse"> =
+          assistantMessage.stopReason === "toolUse" ? "toolUse" : "stop";
+
         stream.push({
           type: "done",
-          reason: "stop",
+          reason,
           message: assistantMessage,
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err);
         stream.push({
-          type: "done",
+          type: "error",
           reason: "error",
-          message: {
+          error: {
             role: "assistant" as const,
             content: [],
-            stopReason: "error",
+            stopReason: "error" as StopReason,
             errorMessage,
             api: model.api,
             provider: model.provider,

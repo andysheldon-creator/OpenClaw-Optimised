@@ -19,9 +19,7 @@ describe("convertToOllamaMessages", () => {
       },
     ];
     const result = convertToOllamaMessages(messages);
-    expect(result).toEqual([
-      { role: "user", content: "describe this", images: ["base64data"] },
-    ]);
+    expect(result).toEqual([{ role: "user", content: "describe this", images: ["base64data"] }]);
   });
 
   it("prepends system message when provided", () => {
@@ -31,13 +29,13 @@ describe("convertToOllamaMessages", () => {
     expect(result[1]).toEqual({ role: "user", content: "hello" });
   });
 
-  it("converts assistant messages with tool calls", () => {
+  it("converts assistant messages with toolCall content blocks", () => {
     const messages = [
       {
         role: "assistant",
         content: [
           { type: "text", text: "Let me check." },
-          { type: "tool_use", id: "call_1", name: "bash", input: { command: "ls" } },
+          { type: "toolCall", id: "call_1", name: "bash", arguments: { command: "ls" } },
         ],
       },
     ];
@@ -95,22 +93,25 @@ describe("buildAssistantMessage", () => {
       message: {
         role: "assistant" as const,
         content: "",
-        tool_calls: [
-          { function: { name: "bash", arguments: { command: "ls -la" } } },
-        ],
+        tool_calls: [{ function: { name: "bash", arguments: { command: "ls -la" } } }],
       },
       done: true,
       prompt_eval_count: 20,
       eval_count: 10,
     };
     const result = buildAssistantMessage(response, modelInfo);
-    expect(result.stopReason).toBe("end_turn");
-    expect(result.content.length).toBe(1); // tool_use only (empty content is skipped)
-    expect(result.content[0].type).toBe("tool_use");
-    const toolUse = result.content[0] as { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
-    expect(toolUse.name).toBe("bash");
-    expect(toolUse.input).toEqual({ command: "ls -la" });
-    expect(toolUse.id).toMatch(/^ollama_call_[0-9a-f-]{36}$/);
+    expect(result.stopReason).toBe("toolUse");
+    expect(result.content.length).toBe(1); // toolCall only (empty content is skipped)
+    expect(result.content[0].type).toBe("toolCall");
+    const toolCall = result.content[0] as {
+      type: "toolCall";
+      id: string;
+      name: string;
+      arguments: Record<string, unknown>;
+    };
+    expect(toolCall.name).toBe("bash");
+    expect(toolCall.arguments).toEqual({ command: "ls -la" });
+    expect(toolCall.id).toMatch(/^ollama_call_[0-9a-f-]{36}$/);
   });
 
   it("sets all costs to zero for local models", () => {
@@ -122,7 +123,11 @@ describe("buildAssistantMessage", () => {
     };
     const result = buildAssistantMessage(response, modelInfo);
     expect(result.usage.cost).toEqual({
-      input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0,
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      total: 0,
     });
   });
 });
