@@ -44,10 +44,14 @@ function getOrCreate(providerKey: string): ProviderCircuit {
 
 export function isCircuitOpen(providerKey: string, config?: CircuitBreakerConfig): boolean {
   const resolved = resolveConfig(config);
-  if (!resolved.enabled) return false;
+  if (!resolved.enabled) {
+    return false;
+  }
 
   const circuit = circuits.get(providerKey);
-  if (!circuit || circuit.state === "closed") return false;
+  if (!circuit || circuit.state === "closed") {
+    return false;
+  }
 
   if (circuit.state === "open") {
     const elapsed = Date.now() - circuit.openedAt;
@@ -65,7 +69,9 @@ export function isCircuitOpen(providerKey: string, config?: CircuitBreakerConfig
 
 export function recordFailure(providerKey: string, config?: CircuitBreakerConfig): void {
   const resolved = resolveConfig(config);
-  if (!resolved.enabled) return;
+  if (!resolved.enabled) {
+    return;
+  }
 
   const circuit = getOrCreate(providerKey);
   circuit.failures += 1;
@@ -88,10 +94,14 @@ export function recordFailure(providerKey: string, config?: CircuitBreakerConfig
 
 export function recordSuccess(providerKey: string, config?: CircuitBreakerConfig): void {
   const resolved = resolveConfig(config);
-  if (!resolved.enabled) return;
+  if (!resolved.enabled) {
+    return;
+  }
 
   const circuit = circuits.get(providerKey);
-  if (!circuit) return;
+  if (!circuit) {
+    return;
+  }
 
   if (circuit.state === "half-open") {
     log.info(`Circuit closed for ${providerKey} (probe succeeded)`);

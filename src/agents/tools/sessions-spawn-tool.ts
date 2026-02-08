@@ -160,7 +160,9 @@ export function createSessionsSpawnTool(opts?: {
           false;
         if (autoDiscover) {
           for (const agent of cfg.agents?.list ?? []) {
-            if (agent.id) allowSet.add(normalizeAgentId(agent.id).toLowerCase());
+            if (agent.id) {
+              allowSet.add(normalizeAgentId(agent.id).toLowerCase());
+            }
           }
         }
         if (!allowAny && !allowSet.has(normalizedTargetId)) {

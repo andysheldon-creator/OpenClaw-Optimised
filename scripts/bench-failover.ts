@@ -7,18 +7,20 @@
 
 function parseRuns(): number {
   const idx = process.argv.indexOf("--runs");
-  if (idx === -1 || !process.argv[idx + 1]) return 10;
+  if (idx === -1 || !process.argv[idx + 1]) {
+    return 10;
+  }
   const n = Number(process.argv[idx + 1]);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 10;
 }
 
 function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
+  if (values.length === 0) {
+    return 0;
+  }
+  const sorted = [...values].toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
-    : sorted[mid];
+  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
 }
 
 type Scenario = {

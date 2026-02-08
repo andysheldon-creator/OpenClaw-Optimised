@@ -238,7 +238,7 @@ export async function runOnboardingWizard(
   })();
 
   if (flow === "quickstart") {
-    const formatBind = (value: "loopback" | "lan" | "auto" | "custom" | "tailnet") => {
+    const formatBind = (value: "loopback" | "lan" | "auto" | "custom" | "tailnet" | "all") => {
       if (value === "loopback") {
         return "Loopback (127.0.0.1)";
       }
@@ -250,6 +250,9 @@ export async function runOnboardingWizard(
       }
       if (value === "tailnet") {
         return "Tailnet (Tailscale IP)";
+      }
+      if (value === "all") {
+        return "All Interfaces (0.0.0.0)";
       }
       return "Auto";
     };

@@ -41,7 +41,9 @@ export function endResponseTimer(params: {
   kpi?: Partial<ResponseTimeKpi>;
 }): { durationMs: number; exceeded: boolean } | null {
   const timer = activeTimers.get(params.requestId);
-  if (!timer) return null;
+  if (!timer) {
+    return null;
+  }
   activeTimers.delete(params.requestId);
 
   const durationMs = Date.now() - timer.startMs;

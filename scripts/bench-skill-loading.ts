@@ -8,7 +8,9 @@ const DEFAULT_COUNTS = [10, 50, 100];
 
 function parseCounts(): number[] {
   const idx = process.argv.indexOf("--counts");
-  if (idx === -1 || !process.argv[idx + 1]) return DEFAULT_COUNTS;
+  if (idx === -1 || !process.argv[idx + 1]) {
+    return DEFAULT_COUNTS;
+  }
   return process.argv[idx + 1]
     .split(",")
     .map(Number)
@@ -16,12 +18,12 @@ function parseCounts(): number[] {
 }
 
 function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
+  if (values.length === 0) {
+    return 0;
+  }
+  const sorted = [...values].toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
-    : sorted[mid];
+  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
 }
 
 /** Simulate skill frontmatter parsing (the CPU-bound part of skill loading). */

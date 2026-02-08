@@ -213,16 +213,22 @@ export function describeFailoverError(err: unknown): {
  * Supports Gemini `"retryDelay": "15s"` (JSON body) and `"retry in 49.7s"` (error text).
  */
 export function parseRetryAfterFromMessage(message: string): number | undefined {
-  if (!message) return undefined;
+  if (!message) {
+    return undefined;
+  }
   const delayMatch = GEMINI_RETRY_DELAY_RE.exec(message);
   if (delayMatch) {
     const seconds = Number(delayMatch[1]);
-    if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.ceil(seconds);
+    }
   }
   const retryInMatch = GEMINI_RETRY_IN_RE.exec(message);
   if (retryInMatch) {
     const seconds = Number(retryInMatch[1]);
-    if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.ceil(seconds);
+    }
   }
   return undefined;
 }
@@ -232,7 +238,9 @@ export function parseRetryAfterFromMessage(message: string): number | undefined 
  * Supports numeric seconds, HTTP-date formats, and Gemini retryDelay patterns.
  */
 export function parseRetryAfter(err: unknown): number | undefined {
-  if (!err || typeof err !== "object") return undefined;
+  if (!err || typeof err !== "object") {
+    return undefined;
+  }
 
   // 1. HTTP Retry-After header
   const headers = (err as { headers?: Record<string, unknown> }).headers;
@@ -242,7 +250,9 @@ export function parseRetryAfter(err: unknown): number | undefined {
     if (str) {
       if (/^\d+$/.test(str)) {
         const seconds = Number(str);
-        if (Number.isFinite(seconds) && seconds >= 0) return seconds;
+        if (Number.isFinite(seconds) && seconds >= 0) {
+          return seconds;
+        }
       }
       const date = new Date(str);
       if (!Number.isNaN(date.valueOf())) {

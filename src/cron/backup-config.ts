@@ -9,7 +9,6 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-
 import { createSubsystemLogger } from "../logging/subsystem.js";
 
 const log = createSubsystemLogger("cron/backup-config");
@@ -58,8 +57,8 @@ export async function runConfigBackup(opts: BackupConfigOptions): Promise<{
   const existing = await fs.readdir(opts.backupDir).catch(() => [] as string[]);
   const backups = existing
     .filter((f) => f.startsWith("config-backup-") && f.endsWith(".json5"))
-    .sort()
-    .reverse();
+    .toSorted()
+    .toReversed();
 
   if (backups.length > 0) {
     const latestName = backups[0];

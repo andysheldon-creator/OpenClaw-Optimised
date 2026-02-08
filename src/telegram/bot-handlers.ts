@@ -671,6 +671,10 @@ export const registerTelegramHandlers = ({
       if (!msg) {
         return;
       }
+      // [Phase 3 Fix] Loop Guard: Ignore messages from self
+      if (msg.from?.id === ctx.me.id) {
+        return;
+      }
       if (shouldSkipUpdate(ctx)) {
         return;
       }

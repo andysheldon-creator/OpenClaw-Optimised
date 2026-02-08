@@ -212,6 +212,10 @@ export type AgentDefaultsConfig = {
     model?: string | { primary?: string; fallbacks?: string[] };
     /** Default thinking level for spawned sub-agents (e.g. "off", "low", "medium", "high"). */
     thinking?: string;
+    /** Auto-discover agents from `agents.list[]` and add them to the spawn allowlist. */
+    autoDiscoverAgents?: boolean;
+    /** Maximum number of turns (rounds) for the sub-agent session. */
+    maxRounds?: number;
   };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: {

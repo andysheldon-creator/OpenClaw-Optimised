@@ -47,3 +47,16 @@
 - 원인 1: src/sessions 디렉토리 부재 (세션 영속성 미비)
 - 원인 2: lastChannel/lastTo 필드가 갱신되지 않고 stale 상태로 남음
 - 해결안: 세션 스위칭 시 명시적 context clear 로직 추가 필요
+
+---
+
+[하윤] Phase 2 (Delivery Context) 수정 완료
+
+- Requester Priority 로직 적용 (Sticking 해결)
+- 테스트 통과 (Web<->Telegram)
+
+[🚨 긴급 이슈 접수]
+
+1. Persona Confusion: 소율 호출 -> 세나 응답
+2. Loop/Duplicate: 세나 반복 응답
+   -> 즉시 분석 착수

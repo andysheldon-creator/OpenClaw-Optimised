@@ -61,7 +61,7 @@ export function rankMessagesByImportance(
   });
 
   // Sort ascending by score (least important first for pruning)
-  return ranked.sort((a, b) => a.score.score - b.score.score);
+  return ranked.toSorted((a, b) => a.score.score - b.score.score);
 }
 
 function normalizeRole(role?: string): MessageRole {
@@ -108,10 +108,14 @@ export function selectDropsByImportance(
   let currentTokens = totalTokens;
 
   for (const { index, score } of ranked) {
-    if (currentTokens <= budgetTokens) break;
+    if (currentTokens <= budgetTokens) {
+      break;
+    }
 
     // Never drop system messages
-    if (score.role === "system") continue;
+    if (score.role === "system") {
+      continue;
+    }
 
     const tokens = messages[index].tokenEstimate;
     currentTokens -= tokens;

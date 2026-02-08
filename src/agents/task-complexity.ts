@@ -48,28 +48,47 @@ export function estimateTaskComplexity(message: string): TaskComplexity {
   let score = 0;
 
   // Length-based scoring
-  if (signals.charLength > 2000) score += 3;
-  else if (signals.charLength > 500) score += 1;
+  if (signals.charLength > 2000) {
+    score += 3;
+  } else if (signals.charLength > 500) {
+    score += 1;
+  }
 
   // Code blocks
-  if (signals.codeBlockCount >= 3) score += 3;
-  else if (signals.codeBlockCount >= 1) score += 1;
+  if (signals.codeBlockCount >= 3) {
+    score += 3;
+  } else if (signals.codeBlockCount >= 1) {
+    score += 1;
+  }
 
   // Multi-step requests
-  if (signals.hasMultiStep) score += 2;
+  if (signals.hasMultiStep) {
+    score += 2;
+  }
 
   // Analysis/evaluation requests
-  if (signals.hasAnalysis) score += 3;
+  if (signals.hasAnalysis) {
+    score += 3;
+  }
 
   // Technical keywords
-  if (signals.hasTechnicalKeywords) score += 2;
+  if (signals.hasTechnicalKeywords) {
+    score += 2;
+  }
 
   // Line count
-  if (signals.lineCount > 20) score += 2;
-  else if (signals.lineCount > 5) score += 1;
+  if (signals.lineCount > 20) {
+    score += 2;
+  } else if (signals.lineCount > 5) {
+    score += 1;
+  }
 
-  if (score >= 6) return "complex";
-  if (score >= 3) return "medium";
+  if (score >= 6) {
+    return "complex";
+  }
+  if (score >= 3) {
+    return "medium";
+  }
   return "simple";
 }
 
@@ -85,9 +104,13 @@ export function resolveModelForComplexity(
   complexity: TaskComplexity,
   config?: ComplexityRoutingConfig,
 ): string | null {
-  if (!config?.enabled) return null;
+  if (!config?.enabled) {
+    return null;
+  }
   const tiers = config.modelTiers;
-  if (!tiers) return null;
+  if (!tiers) {
+    return null;
+  }
 
   switch (complexity) {
     case "simple":

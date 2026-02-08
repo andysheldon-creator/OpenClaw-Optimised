@@ -1,5 +1,4 @@
 import chalk from "chalk";
-import path from "node:path";
 import type { loadConfig } from "../config/config.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { resolveConfiguredModelRef } from "../agents/model-selection.js";

@@ -1,6 +1,6 @@
+import type { CostUsageSummary, CostLimitsConfig } from "./session-cost-usage.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { emitDiagnosticEvent } from "./diagnostic-events.js";
-import type { CostUsageSummary, CostLimitsConfig } from "./session-cost-usage.js";
 import { checkCostThresholds } from "./session-cost-usage.js";
 
 const log = createSubsystemLogger("infra/budget");
@@ -109,5 +109,5 @@ export function groupCostByProviderModel(
     map.set(key, existing);
   }
 
-  return Array.from(map.values()).sort((a, b) => b.totalCost - a.totalCost);
+  return Array.from(map.values()).toSorted((a, b) => b.totalCost - a.totalCost);
 }

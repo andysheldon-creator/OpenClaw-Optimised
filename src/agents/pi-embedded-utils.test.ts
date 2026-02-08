@@ -5,7 +5,7 @@ import {
   stripHistoricalContext,
 } from "./pi-embedded-utils.js";
 
-function mockMsg(content: any): any {
+function mockMsg(content: unknown): unknown {
   return {
     role: "assistant",
     content,

@@ -1,5 +1,12 @@
 export type MemorySource = "memory" | "sessions";
 
+export type MemoryType = "vector" | "keyword" | "graph";
+
+export type SlugAndTypeResult = {
+  slug: string;
+  type: MemoryType;
+};
+
 export type MemorySearchResult = {
   path: string;
   startLine: number;

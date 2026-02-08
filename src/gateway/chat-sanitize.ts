@@ -120,7 +120,9 @@ const INJECTION_PATTERNS = [
  * Returns true if the text contains a known injection pattern.
  */
 export function containsInjectionPattern(text: string): boolean {
-  if (!text) return false;
+  if (!text) {
+    return false;
+  }
   return INJECTION_PATTERNS.some((re) => re.test(text));
 }
 

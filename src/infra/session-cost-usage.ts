@@ -1140,7 +1140,7 @@ export function aggregateByPeriod(
 
   return Array.from(buckets.entries())
     .map(([periodKey, totals]) => ({ ...totals, period, periodKey }))
-    .sort((a, b) => a.periodKey.localeCompare(b.periodKey));
+    .toSorted((a, b) => a.periodKey.localeCompare(b.periodKey));
 }
 
 // --- Cost threshold checks ---

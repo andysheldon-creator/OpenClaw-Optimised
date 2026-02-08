@@ -24,7 +24,9 @@ import fs from "node:fs";
 
 function parseArg(flag: string): string | undefined {
   const idx = process.argv.indexOf(flag);
-  if (idx === -1 || !process.argv[idx + 1]) return undefined;
+  if (idx === -1 || !process.argv[idx + 1]) {
+    return undefined;
+  }
   return process.argv[idx + 1];
 }
 
@@ -50,24 +52,28 @@ const PROVIDER_ENV_KEYS: Record<string, string> = {
 
 function resolveApiKey(provider: string): string | undefined {
   const envKey = PROVIDER_ENV_KEYS[provider];
-  if (!envKey) return undefined;
+  if (!envKey) {
+    return undefined;
+  }
   return process.env[envKey]?.trim() || undefined;
 }
 
 // ── Stats helpers ───────────────────────────────────────────────────────────
 
 function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
+  if (values.length === 0) {
+    return 0;
+  }
+  const sorted = [...values].toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid];
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 function p95(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
+  if (values.length === 0) {
+    return 0;
+  }
+  const sorted = [...values].toSorted((a, b) => a - b);
   const idx = Math.ceil(sorted.length * 0.95) - 1;
   return sorted[Math.max(0, idx)];
 }
@@ -108,12 +114,14 @@ async function benchModelLive(params: {
 
   let model;
   try {
-    model = getModel(params.provider as any, params.modelId as any);
+    model = getModel(params.provider as unknown as string, params.modelId as unknown as string);
   } catch {
     // If specific model not found, try getting first model for provider
     const { getModels } = await import("@mariozechner/pi-ai");
-    const models = getModels(params.provider as any);
-    if (models.length === 0) throw new Error(`No models for ${params.provider}`);
+    const models = getModels(params.provider as unknown as string);
+    if (models.length === 0) {
+      throw new Error(`No models for ${params.provider}`);
+    }
     model = models[0];
   }
 
@@ -124,9 +132,7 @@ async function benchModelLive(params: {
       const res = await completeSimple(
         model,
         {
-          messages: [
-            { role: "user", content: params.prompt, timestamp: Date.now() },
-          ],
+          messages: [{ role: "user", content: params.prompt, timestamp: Date.now() }],
         },
         { apiKey: params.apiKey, maxTokens: 64 },
       );
@@ -136,16 +142,12 @@ async function benchModelLive(params: {
         inputTokens: res.usage?.input ?? 0,
         outputTokens: res.usage?.output ?? 0,
       });
-      console.log(
-        `  [${i + 1}/${params.runs}] ${model.id}: ${Math.round(durationMs)}ms`,
-      );
+      console.log(`  [${i + 1}/${params.runs}] ${model.id}: ${Math.round(durationMs)}ms`);
     } catch (err) {
       const durationMs = performance.now() - start;
       const msg = err instanceof Error ? err.message : String(err);
       results.push({ durationMs, inputTokens: 0, outputTokens: 0, error: msg });
-      console.log(
-        `  [${i + 1}/${params.runs}] ${model.id}: ERROR ${msg.slice(0, 80)}`,
-      );
+      console.log(`  [${i + 1}/${params.runs}] ${model.id}: ERROR ${msg.slice(0, 80)}`);
     }
   }
   return results;
@@ -165,7 +167,12 @@ const SIM_PROFILES: Record<string, SimProfile> = {
 };
 
 function benchModelSimulated(provider: string, runs: number): RunResult[] {
-  const profile = SIM_PROFILES[provider] ?? { baseLatency: 1000, jitter: 300, failureRate: 0.05, tps: 30 };
+  const profile = SIM_PROFILES[provider] ?? {
+    baseLatency: 1000,
+    jitter: 300,
+    failureRate: 0.05,
+    tps: 30,
+  };
   const results: RunResult[] = [];
 
   for (let i = 0; i < runs; i++) {
@@ -174,7 +181,12 @@ function benchModelSimulated(provider: string, runs: number): RunResult[] {
     const failed = Math.random() < profile.failureRate;
 
     if (failed) {
-      results.push({ durationMs: latency, inputTokens: 0, outputTokens: 0, error: "simulated failure" });
+      results.push({
+        durationMs: latency,
+        inputTokens: 0,
+        outputTokens: 0,
+        error: "simulated failure",
+      });
     } else {
       const outputTokens = Math.round(2 + Math.random() * 3);
       results.push({ durationMs: latency, inputTokens: 12, outputTokens });
@@ -232,7 +244,9 @@ async function main() {
   const simulate = hasFlag("--simulate");
   const runs = (() => {
     const raw = parseArg("--runs");
-    if (!raw) return DEFAULT_RUNS;
+    if (!raw) {
+      return DEFAULT_RUNS;
+    }
     const n = Number(raw);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_RUNS;
   })();
@@ -249,9 +263,7 @@ async function main() {
 
   if (simulate) {
     // Simulated mode: no API keys needed
-    const providers = filterProvider
-      ? [filterProvider]
-      : Object.keys(SIM_PROFILES);
+    const providers = filterProvider ? [filterProvider] : Object.keys(SIM_PROFILES);
 
     for (const provider of providers) {
       console.log(`\n--- ${provider} (simulated) ---`);
@@ -285,7 +297,7 @@ async function main() {
       let costOutput = 0;
       try {
         const { getModels } = await import("@mariozechner/pi-ai");
-        const models = getModels(provider as any);
+        const models = getModels(provider as unknown as string);
         if (models.length === 0) {
           console.log(`\n[SKIP] ${provider} - no models`);
           continue;

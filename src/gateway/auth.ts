@@ -325,7 +325,9 @@ export class AuthRateLimiter {
   /** Check if an IP is currently blocked. Returns delay ms if throttled, 0 if ok, -1 if blocked. */
   check(ip: string, now = Date.now()): { allowed: boolean; retryAfterMs: number } {
     const entry = this.entries.get(ip);
-    if (!entry) return { allowed: true, retryAfterMs: 0 };
+    if (!entry) {
+      return { allowed: true, retryAfterMs: 0 };
+    }
 
     // Expire old entries
     if (now - entry.lastFailure > this.windowMs) {

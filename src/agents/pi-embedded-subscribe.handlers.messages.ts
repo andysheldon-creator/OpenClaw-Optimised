@@ -34,6 +34,20 @@ export function handleMessageStart(
   evt: AgentEvent & { message: AgentMessage },
 ) {
   const msg = evt.message;
+
+  // [Phase 3 Fix] Target Guard: Ignore messages not meant for me (unless broadcast)
+  const myAgentId = (ctx.params.session as unknown as { agentId: string }).agentId;
+  const targetAgentId = (msg as { to?: string }).to;
+
+  if (myAgentId && targetAgentId && targetAgentId !== "*" && targetAgentId !== myAgentId) {
+    // Drop the message silently
+    return;
+  }
+
+  if (msg?.role !== "assistant") {
+    return;
+  }
+
   if (msg?.role !== "assistant") {
     return;
   }

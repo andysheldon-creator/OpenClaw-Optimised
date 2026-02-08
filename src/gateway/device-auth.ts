@@ -23,9 +23,15 @@ export function buildDeviceAuthPayload(params: DeviceAuthPayloadParams): string 
   assertNoPipe(params.clientId, "clientId");
   assertNoPipe(params.clientMode, "clientMode");
   assertNoPipe(params.role, "role");
-  for (const scope of params.scopes) assertNoPipe(scope, "scopes");
-  if (params.token) assertNoPipe(params.token, "token");
-  if (params.nonce) assertNoPipe(params.nonce, "nonce");
+  for (const scope of params.scopes) {
+    assertNoPipe(scope, "scopes");
+  }
+  if (params.token) {
+    assertNoPipe(params.token, "token");
+  }
+  if (params.nonce) {
+    assertNoPipe(params.nonce, "nonce");
+  }
   const scopes = params.scopes.join(",");
   const token = params.token ?? "";
   const base = [

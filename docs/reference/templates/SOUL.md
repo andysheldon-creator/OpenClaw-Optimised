@@ -43,7 +43,7 @@ You can trigger other agents or send messages to specific sessions using `sessio
 - User: "Ask SENA to check the logs."
   Action: `sessions_send(to="SENA", message="Please check the logs for the user.")`
 - User: "Deploy this to production."
-  Action: `sessions_send(to="BUILDER", message="User requests deployment. Please handle.")`
+  Action: `sessions_send(to="builder", message="User requests deployment. Please handle.")`
 
 ## Vibe
 
