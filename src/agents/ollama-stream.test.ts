@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { convertToOllamaMessages, buildAssistantMessage } from "./ollama-stream.js";
+import {
+  convertToOllamaMessages,
+  buildAssistantMessage,
+  parseNdjsonStream,
+} from "./ollama-stream.js";
 
 describe("convertToOllamaMessages", () => {
   it("converts user text messages", () => {
@@ -129,5 +133,85 @@ describe("buildAssistantMessage", () => {
       cacheWrite: 0,
       total: 0,
     });
+  });
+});
+
+// Helper: build a ReadableStreamDefaultReader from NDJSON lines
+function mockNdjsonReader(lines: string[]): ReadableStreamDefaultReader<Uint8Array> {
+  const encoder = new TextEncoder();
+  const payload = lines.join("\n") + "\n";
+  let consumed = false;
+  return {
+    read: async () => {
+      if (consumed) {
+        return { done: true as const, value: undefined };
+      }
+      consumed = true;
+      return { done: false as const, value: encoder.encode(payload) };
+    },
+    releaseLock: () => {},
+    cancel: async () => {},
+    closed: Promise.resolve(undefined),
+  } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+}
+
+describe("parseNdjsonStream", () => {
+  it("parses text-only streaming chunks", async () => {
+    const reader = mockNdjsonReader([
+      '{"model":"m","created_at":"t","message":{"role":"assistant","content":"Hello"},"done":false}',
+      '{"model":"m","created_at":"t","message":{"role":"assistant","content":" world"},"done":false}',
+      '{"model":"m","created_at":"t","message":{"role":"assistant","content":""},"done":true,"prompt_eval_count":5,"eval_count":2}',
+    ]);
+    const chunks = [];
+    for await (const chunk of parseNdjsonStream(reader)) {
+      chunks.push(chunk);
+    }
+    expect(chunks).toHaveLength(3);
+    expect(chunks[0].message.content).toBe("Hello");
+    expect(chunks[1].message.content).toBe(" world");
+    expect(chunks[2].done).toBe(true);
+  });
+
+  it("parses tool_calls from intermediate chunk (not final)", async () => {
+    // Ollama sends tool_calls in done:false chunk, final done:true has no tool_calls
+    const reader = mockNdjsonReader([
+      '{"model":"m","created_at":"t","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"bash","arguments":{"command":"ls"}}}]},"done":false}',
+      '{"model":"m","created_at":"t","message":{"role":"assistant","content":""},"done":true,"prompt_eval_count":10,"eval_count":5}',
+    ]);
+    const chunks = [];
+    for await (const chunk of parseNdjsonStream(reader)) {
+      chunks.push(chunk);
+    }
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0].done).toBe(false);
+    expect(chunks[0].message.tool_calls).toHaveLength(1);
+    expect(chunks[0].message.tool_calls![0].function.name).toBe("bash");
+    expect(chunks[1].done).toBe(true);
+    expect(chunks[1].message.tool_calls).toBeUndefined();
+  });
+
+  it("accumulates tool_calls across multiple intermediate chunks", async () => {
+    const reader = mockNdjsonReader([
+      '{"model":"m","created_at":"t","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"read","arguments":{"path":"/tmp/a"}}}]},"done":false}',
+      '{"model":"m","created_at":"t","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"bash","arguments":{"command":"ls"}}}]},"done":false}',
+      '{"model":"m","created_at":"t","message":{"role":"assistant","content":""},"done":true}',
+    ]);
+
+    // Simulate the accumulation logic from createOllamaStreamFn
+    const accumulatedToolCalls: Array<{
+      function: { name: string; arguments: Record<string, unknown> };
+    }> = [];
+    const chunks = [];
+    for await (const chunk of parseNdjsonStream(reader)) {
+      chunks.push(chunk);
+      if (chunk.message?.tool_calls) {
+        accumulatedToolCalls.push(...chunk.message.tool_calls);
+      }
+    }
+    expect(accumulatedToolCalls).toHaveLength(2);
+    expect(accumulatedToolCalls[0].function.name).toBe("read");
+    expect(accumulatedToolCalls[1].function.name).toBe("bash");
+    // Final done:true chunk has no tool_calls
+    expect(chunks[2].message.tool_calls).toBeUndefined();
   });
 });

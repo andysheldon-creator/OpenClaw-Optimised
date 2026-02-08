@@ -279,7 +279,6 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
         };
         const ollamaMessages = convertToOllamaMessages(ctx.messages ?? [], ctx.systemPrompt);
 
-        // Extract tools from context if available and convert to Ollama format.
         const ollamaTools = extractOllamaTools(ctx.tools);
 
         const body: OllamaChatRequest = {
@@ -317,19 +316,23 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
 
         const reader = response.body.getReader();
         let accumulatedContent = "";
+        const accumulatedToolCalls: OllamaToolCall[] = [];
         let finalResponse: OllamaChatResponse | undefined;
 
         for await (const chunk of parseNdjsonStream(reader)) {
-          if (chunk.done) {
-            finalResponse = chunk;
-            if (chunk.message?.content) {
-              accumulatedContent += chunk.message.content;
-            }
-            break;
-          }
-
           if (chunk.message?.content) {
             accumulatedContent += chunk.message.content;
+          }
+
+          // Ollama sends tool_calls in intermediate (done:false) chunks,
+          // NOT in the final done:true chunk. Collect from all chunks.
+          if (chunk.message?.tool_calls) {
+            accumulatedToolCalls.push(...chunk.message.tool_calls);
+          }
+
+          if (chunk.done) {
+            finalResponse = chunk;
+            break;
           }
         }
 
@@ -338,6 +341,9 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
         }
 
         finalResponse.message.content = accumulatedContent;
+        if (accumulatedToolCalls.length > 0) {
+          finalResponse.message.tool_calls = accumulatedToolCalls;
+        }
 
         const assistantMessage = buildAssistantMessage(finalResponse, {
           api: model.api,
