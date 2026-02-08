@@ -50,6 +50,8 @@ OUTPUT_FILE="$ROOT_DIR/src/canvas-host/a2ui/a2ui.bundle.js"
 A2UI_RENDERER_DIR="$ROOT_DIR/vendor/a2ui/renderers/lit"
 A2UI_APP_DIR="$ROOT_DIR/apps/shared/OpenClawKit/Tools/CanvasA2UI"
 
+cd "$ROOT_DIR" || exit 1
+
 # Docker builds exclude vendor/apps via .dockerignore.
 # In that environment we must keep the prebuilt bundle.
 if [[ ! -d "$A2UI_RENDERER_DIR" || ! -d "$A2UI_APP_DIR" ]]; then
@@ -118,7 +120,7 @@ if [[ -f "$HASH_FILE" ]]; then
   fi
 fi
 
-# Run tsc and rolldown via $NODE with relative paths so Windows Node never sees Unix-style paths.
+# Run tsc and rolldown via $NODE; relative paths are valid because we cd'd to $ROOT_DIR above.
 "$NODE" node_modules/typescript/bin/tsc -p vendor/a2ui/renderers/lit/tsconfig.json
 "$NODE" node_modules/rolldown/bin/cli.mjs -c apps/shared/OpenClawKit/Tools/CanvasA2UI/rolldown.config.mjs
 
