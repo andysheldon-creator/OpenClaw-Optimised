@@ -17,9 +17,8 @@ describe("subagent announce queue stale policy", () => {
       },
     });
 
-    await vi.waitFor(() => {
-      expect(send).toHaveBeenCalledTimes(0);
-    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(send).toHaveBeenCalledTimes(0);
   });
 
   it("allows stale high-priority announce items to bypass stale gate", async () => {
@@ -41,5 +40,38 @@ describe("subagent announce queue stale policy", () => {
     await vi.waitFor(() => {
       expect(send).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("drops stale items during collect mode while keeping fresh entries", async () => {
+    const send = vi.fn(async () => {});
+    const key = `collect-stale-${Date.now()}`;
+
+    enqueueAnnounce({
+      key,
+      send,
+      settings: { mode: "collect", debounceMs: 0, maxAgeMs: 50 },
+      item: {
+        prompt: "stale item",
+        sessionKey: "agent:main:main",
+        enqueuedAt: Date.now() - 10_000,
+      },
+    });
+
+    enqueueAnnounce({
+      key,
+      send,
+      settings: { mode: "collect", debounceMs: 0, maxAgeMs: 50 },
+      item: {
+        prompt: "fresh item",
+        sessionKey: "agent:main:main",
+        enqueuedAt: Date.now(),
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+    expect(send.mock.calls[0]?.[0]?.prompt).toContain("fresh item");
+    expect(send.mock.calls[0]?.[0]?.prompt).not.toContain("stale item");
   });
 });

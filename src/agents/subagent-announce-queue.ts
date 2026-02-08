@@ -163,16 +163,27 @@ function scheduleAnnounceDrain(key: string) {
             continue;
           }
           const items = queue.items.splice(0, queue.items.length);
+          const now = Date.now();
+          const freshItems = items.filter((item) => {
+            const stale = isStaleItem(queue, item, now);
+            if (stale) {
+              const queueAgeMs = Math.max(0, now - item.enqueuedAt);
+              defaultRuntime.log?.(
+                `[subagent_announce_metric] stale_message_dropped key=${key} queue_age_ms=${queueAgeMs} max_age_ms=${queue.maxAgeMs}`,
+              );
+            }
+            return !stale;
+          });
           const summary = buildQueueSummaryPrompt({ state: queue, noun: "announce" });
           const prompt = buildCollectPrompt({
             title: "[Queued announce messages while agent was busy]",
-            items,
+            items: freshItems,
             summary,
             renderItem: (item, idx) => `---\nQueued #${idx + 1}\n${item.prompt}`.trim(),
           });
-          const last = items.at(-1);
+          const last = freshItems.at(-1);
           if (!last) {
-            break;
+            continue;
           }
           await sendIfFresh(queue, key, { ...last, prompt });
           continue;
