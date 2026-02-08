@@ -15,7 +15,9 @@ import {
 } from "../../utils/message-channel.js";
 import { resolveAgentRole } from "../agent-scope.js";
 import { registerDelegation } from "../delegation-registry.js";
+import { resolveAgentIdentity } from "../identity.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
+import { resolveRootSessionKey } from "../subagent-registry.js";
 import { deliverToInbox } from "./agent-inbox.js";
 import { jsonResult, readStringParam } from "./common.js";
 import {
@@ -281,6 +283,31 @@ export function createSessionsSendTool(opts?: {
             toAgentId: targetAgentId,
             toSessionKey: resolvedKey,
             message,
+          });
+        } catch {
+          // Non-critical
+        }
+      }
+
+      // Broadcast cross-agent message to root webchat for Slack-like visibility
+      if (isCrossAgent && requesterAgentId && targetAgentId) {
+        try {
+          const senderKey = requesterInternalKey ?? `agent:${requesterAgentId}:main`;
+          const rootSession = resolveRootSessionKey(senderKey);
+          const senderIdentity = resolveAgentIdentity(cfg, requesterAgentId);
+          const targetIdentity = resolveAgentIdentity(cfg, targetAgentId);
+          const toName = targetIdentity?.name ?? targetAgentId;
+          void callGateway({
+            method: "chat.inject",
+            params: {
+              sessionKey: rootSession,
+              message: `**@${toName}** ${message.slice(0, 400)}`,
+              senderAgentId: requesterAgentId,
+              senderName: senderIdentity?.name ?? requesterAgentId,
+              senderEmoji: senderIdentity?.emoji ?? "💬",
+              senderAvatar: senderIdentity?.avatar,
+            },
+            timeoutMs: 5_000,
           });
         } catch {
           // Non-critical

@@ -104,10 +104,10 @@ const ROLE_CATEGORY_INDEX: Record<string, number> = {
 };
 
 const NODE_SIZE_BY_ROLE: Record<string, number> = {
-  orchestrator: 30,
-  lead: 22,
-  specialist: 16,
-  worker: 12,
+  orchestrator: 14,
+  lead: 11,
+  specialist: 9,
+  worker: 7,
 };
 
 /** Deterministic color palette keyed by agentId hash. */
@@ -167,17 +167,20 @@ function getAgentColor(agentId: string | undefined): string {
 }
 
 function computeNodeSize(node: AgentHierarchyNode): number {
-  const roleBase = NODE_SIZE_BY_ROLE[node.agentRole ?? "worker"] ?? 12;
+  const roleBase = NODE_SIZE_BY_ROLE[node.agentRole ?? "worker"] ?? 7;
   let total = node.interactionCount ?? 0;
   if (node.usage) {
     total += node.usage.toolCalls;
-    total += Math.floor((node.usage.inputTokens + node.usage.outputTokens) / 10_000);
+    total += Math.floor((node.usage.inputTokens + node.usage.outputTokens) / 5_000);
   }
   if (node.delegations) {
-    total += node.delegations.sent + node.delegations.received;
+    total += (node.delegations.sent + node.delegations.received) * 2;
   }
-  const scale = total > 0 ? Math.min(20, Math.log2(total + 1) * 3) : 0;
-  return roleBase + scale;
+  // Running nodes get a minimum boost so they're visually distinct
+  const runningBoost = node.status === "running" ? 6 : 0;
+  // Scale grows more aggressively — nodes visibly grow with activity
+  const scale = total > 0 ? Math.min(36, Math.log2(total + 1) * 5) : 0;
+  return roleBase + scale + runningBoost;
 }
 
 /** Compute a value weight for the node (used for sizing + tooltip). */
@@ -193,51 +196,35 @@ function computeNodeValue(node: AgentHierarchyNode): number {
   return total;
 }
 
-/**
- * Dynamic chart height based on node count.
- * Scales up to use available viewport space for large graphs.
+/*
+ * Chart height is driven by CSS `calc(100vh - 220px)` on the container,
+ * filling available viewport space and responding to window resize.
  */
-function computeChartHeight(nodeCount: number): number {
-  if (nodeCount <= 5) {
-    return 500;
-  }
-  if (nodeCount <= 10) {
-    return 600;
-  }
-  // For larger graphs, scale with nodes but also consider viewport
-  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 900;
-  // Use up to 85% of viewport, with a floor of 700px
-  const viewportBased = Math.floor(viewportHeight * 0.85);
-  // Node-based scaling: 40px per node, min 700
-  const nodeBased = Math.max(700, nodeCount * 40);
-  // Take the larger of the two, capped at 2000px to avoid excessive scrolling
-  return Math.min(2000, Math.max(viewportBased, nodeBased));
-}
 
 function computeRepulsion(nodeCount: number): number {
   if (nodeCount <= 5) {
-    return 150;
+    return 120;
   }
   if (nodeCount <= 15) {
-    return 300;
+    return 250;
   }
   if (nodeCount <= 30) {
-    return 450;
+    return 400;
   }
-  return 600;
+  return 550;
 }
 
 function computeEdgeLength(nodeCount: number): number {
   if (nodeCount <= 5) {
-    return 100;
+    return 80;
   }
   if (nodeCount <= 15) {
-    return 150;
+    return 120;
   }
   if (nodeCount <= 30) {
-    return 200;
+    return 180;
   }
-  return 250;
+  return 220;
 }
 
 function formatTokenCount(tokens: number): string {
@@ -641,7 +628,7 @@ export function renderAgentsHierarchy(props: AgentsHierarchyProps) {
             <div
               class="hierarchy-chart-container"
               id="hierarchy-echarts-container"
-              style="margin-top: 16px; min-height: 500px; height: ${computeChartHeight(totalNodes)}px; transition: height 0.3s ease;"
+              style="margin-top: 8px; min-height: 400px; height: calc(100vh - 220px); transition: height 0.3s ease;"
             >
               ${renderHierarchyTree(roots, onNodeClick)}
             </div>
@@ -995,9 +982,10 @@ function initECharts(
         labelLayout: {
           hideOverlap: true,
         },
+        center: ["50%", "50%"],
         force: {
           repulsion: computeRepulsion(nodeCount),
-          gravity: 0.1,
+          gravity: 0.15,
           edgeLength: computeEdgeLength(nodeCount),
           friction: 0.85,
         },
@@ -1107,12 +1095,12 @@ function startPulseTimer() {
       return;
     }
 
-    phase = (phase + 1) % 20;
-    const t = (phase / 20) * Math.PI * 2;
-    // Shadow intensity oscillates between 4 and 20 for a visible pulse
-    const shadowIntensity = 12 + Math.sin(t) * 8;
-    // Border width oscillates between 2 and 3.5
-    const borderWidth = 2.75 + Math.sin(t) * 0.75;
+    phase = (phase + 1) % 24;
+    const t = (phase / 24) * Math.PI * 2;
+    // Shadow intensity oscillates between 2 and 24 for a pronounced breathing pulse
+    const shadowIntensity = 13 + Math.sin(t) * 11;
+    // Border width oscillates between 1.5 and 3
+    const borderWidth = 2.25 + Math.sin(t) * 0.75;
 
     // Collect running node IDs for edge highlighting
     const runningNodeIds = new Set<string>();

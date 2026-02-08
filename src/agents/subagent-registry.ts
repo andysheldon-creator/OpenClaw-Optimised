@@ -1,6 +1,7 @@
 import { loadConfig } from "../config/config.js";
 import { callGateway } from "../gateway/call.js";
 import { emitAgentEvent, onAgentEvent } from "../infra/agent-events.js";
+import { isSubagentSessionKey } from "../routing/session-key.js";
 import { type DeliveryContext, normalizeDeliveryContext } from "../utils/delivery-context.js";
 import { runSubagentAnnounceFlow, type SubagentRunOutcome } from "./subagent-announce.js";
 import {
@@ -643,4 +644,23 @@ export function getSubagentRunBySessionKey(sessionKey: string): SubagentRunRecor
     }
   }
   return null;
+}
+
+/**
+ * Walk up the subagent spawn chain to find the root (main) session key.
+ * This is the webchat session where the human is — all agent activity
+ * should be visible there.
+ */
+export function resolveRootSessionKey(sessionKey: string): string {
+  let current = sessionKey;
+  const visited = new Set<string>();
+  while (isSubagentSessionKey(current) && !visited.has(current)) {
+    visited.add(current);
+    const run = getSubagentRunBySessionKey(current);
+    if (!run?.requesterSessionKey) {
+      break;
+    }
+    current = run.requesterSessionKey;
+  }
+  return current;
 }

@@ -22,6 +22,7 @@ import { completeDelegation, listDelegationsForAgent } from "./delegation-regist
 import { resolveAgentIdentity } from "./identity.js";
 import { isEmbeddedPiRunActive, queueEmbeddedPiMessage } from "./pi-embedded.js";
 import { type AnnounceQueueItem, enqueueAnnounce } from "./subagent-announce-queue.js";
+import { resolveRootSessionKey } from "./subagent-registry.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
 
 function formatDurationShort(valueMs?: number) {
@@ -517,12 +518,15 @@ export async function runSubagentAnnounceFlow(params: {
       directOrigin = deliveryContextFromSession(entry);
     }
 
+    // Always resolve root webchat session so results are visible to the human
+    const rootSession = resolveRootSessionKey(params.requesterSessionKey);
+
     if (useDirectInject) {
       // Direct mode: inject message directly to chat with agent identity
       await callGateway({
         method: "chat.inject",
         params: {
-          sessionKey: params.requesterSessionKey,
+          sessionKey: rootSession,
           message: triggerMessage,
           // Pass sender identity for webchat display
           senderAgentId: childAgentId,
@@ -533,7 +537,25 @@ export async function runSubagentAnnounceFlow(params: {
         timeoutMs: 30_000,
       });
     } else {
-      // System mode: send to main agent for summarization
+      // System mode: also inject into root webchat for Slack-like visibility,
+      // then send to main agent for summarization
+      try {
+        await callGateway({
+          method: "chat.inject",
+          params: {
+            sessionKey: rootSession,
+            message: `Task completed: ${taskLabel}\n\n${(reply || "(no output)").slice(0, 500)}`,
+            senderAgentId: childAgentId,
+            senderName,
+            senderEmoji,
+            senderAvatar,
+          },
+          timeoutMs: 10_000,
+        });
+      } catch {
+        // Non-critical — still send to main agent below
+      }
+
       await callGateway({
         method: "agent",
         params: {

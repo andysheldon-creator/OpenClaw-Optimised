@@ -27,6 +27,7 @@ import {
   getSubagentRunBySessionKey,
   listSubagentRunsForRequester,
   registerSubagentRun,
+  resolveRootSessionKey,
 } from "../subagent-registry.js";
 import { jsonResult, readStringParam } from "./common.js";
 import {
@@ -379,6 +380,31 @@ export function createSessionsSpawnTool(opts?: {
         });
       } catch {
         // Non-critical — don't fail the spawn
+      }
+
+      // Announce delegation in the root webchat session (Slack-like visibility)
+      try {
+        const rootSession = resolveRootSessionKey(requesterInternalKey);
+        const requesterIdentity = resolveAgentIdentity(cfg, requesterAgentId);
+        const targetIdentity = resolveAgentIdentity(cfg, targetAgentId);
+        const fromName = requesterIdentity?.name ?? requesterAgentId;
+        const toName = targetIdentity?.name ?? targetAgentId;
+        const fromEmoji = requesterIdentity?.emoji ?? "🤖";
+        const taskPreview = (label || task).slice(0, 200);
+        void callGateway({
+          method: "chat.inject",
+          params: {
+            sessionKey: rootSession,
+            message: `Delegating to **${toName}** (${targetRole}): ${taskPreview}`,
+            senderAgentId: requesterAgentId,
+            senderName: fromName,
+            senderEmoji: fromEmoji,
+            senderAvatar: requesterIdentity?.avatar,
+          },
+          timeoutMs: 5_000,
+        });
+      } catch {
+        // Non-critical — don't block the spawn
       }
 
       return jsonResult({
